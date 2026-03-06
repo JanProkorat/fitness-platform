@@ -1,0 +1,155 @@
+using FastEndpoints;
+using FluentAssertions;
+using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Features.Auth.Register;
+using Microsoft.AspNetCore.Identity;
+using NSubstitute;
+
+namespace FitnessPlatform.Tests.Endpoints.Auth;
+
+public class RegisterEndpointTests
+{
+    private readonly UserManager<ApplicationUser> _userManager = EndpointTestHelpers.CreateFakeUserManager();
+    private readonly IAuditService _audit = Substitute.For<IAuditService>();
+
+    [Fact]
+    public async Task HandleAsync_ValidRequest_Returns201WithUserId()
+    {
+        _userManager.CreateAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>())
+            .Returns(IdentityResult.Success);
+        _userManager.AddToRoleAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>())
+            .Returns(IdentityResult.Success);
+
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _audit);
+
+        var req = new RegisterRequest
+        {
+            Email = "test@example.com",
+            Password = "TestPass1!",
+            ConfirmPassword = "TestPass1!",
+            FirstName = "John",
+            LastName = "Doe",
+            Role = "Client",
+            GdprConsent = true
+        };
+
+        await ep.HandleAsync(req, CancellationToken.None);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(201);
+        ep.Response.Email.Should().Be("test@example.com");
+        ep.Response.Message.Should().Be("Registration successful.");
+    }
+
+    [Fact]
+    public async Task HandleAsync_DuplicateEmail_ThrowsValidationError()
+    {
+        _userManager.CreateAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>())
+            .Returns(IdentityResult.Failed(new IdentityError { Description = "Email already taken." }));
+
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _audit);
+
+        var req = new RegisterRequest
+        {
+            Email = "taken@example.com",
+            Password = "TestPass1!",
+            ConfirmPassword = "TestPass1!",
+            FirstName = "John",
+            LastName = "Doe",
+            Role = "Client",
+            GdprConsent = true
+        };
+
+        var act = () => ep.HandleAsync(req, CancellationToken.None);
+
+        await act.Should().ThrowAsync<ValidationFailureException>();
+    }
+
+    [Fact]
+    public async Task HandleAsync_AssignsCorrectRole()
+    {
+        _userManager.CreateAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>())
+            .Returns(IdentityResult.Success);
+        _userManager.AddToRoleAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>())
+            .Returns(IdentityResult.Success);
+
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _audit);
+
+        var req = new RegisterRequest
+        {
+            Email = "trainer@example.com",
+            Password = "TestPass1!",
+            ConfirmPassword = "TestPass1!",
+            FirstName = "Jane",
+            LastName = "Doe",
+            Role = "Trainer",
+            GdprConsent = true
+        };
+
+        await ep.HandleAsync(req, CancellationToken.None);
+
+        await _userManager.Received(1).AddToRoleAsync(
+            Arg.Any<ApplicationUser>(), "Trainer");
+    }
+
+    [Fact]
+    public async Task HandleAsync_SetsGdprConsentDate()
+    {
+        ApplicationUser? capturedUser = null;
+        _userManager.CreateAsync(Arg.Do<ApplicationUser>(u => capturedUser = u), Arg.Any<string>())
+            .Returns(IdentityResult.Success);
+        _userManager.AddToRoleAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>())
+            .Returns(IdentityResult.Success);
+
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _audit);
+
+        var req = new RegisterRequest
+        {
+            Email = "gdpr@example.com",
+            Password = "TestPass1!",
+            ConfirmPassword = "TestPass1!",
+            FirstName = "Jane",
+            LastName = "Doe",
+            Role = "Client",
+            GdprConsent = true
+        };
+
+        await ep.HandleAsync(req, CancellationToken.None);
+
+        capturedUser.Should().NotBeNull();
+        capturedUser!.GdprConsent.Should().BeTrue();
+        capturedUser.GdprConsentDate.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
+    }
+
+    [Fact]
+    public async Task HandleAsync_WritesAuditLog()
+    {
+        _userManager.CreateAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>())
+            .Returns(IdentityResult.Success);
+        _userManager.AddToRoleAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>())
+            .Returns(IdentityResult.Success);
+
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _audit);
+
+        await ep.HandleAsync(new RegisterRequest
+        {
+            Email = "audit@example.com",
+            Password = "TestPass1!",
+            ConfirmPassword = "TestPass1!",
+            FirstName = "Jane",
+            LastName = "Doe",
+            Role = "Client",
+            GdprConsent = true
+        }, CancellationToken.None);
+
+        await _audit.Received(1).LogAsync(
+            Arg.Any<Guid?>(),
+            "Register",
+            nameof(ApplicationUser),
+            Arg.Any<Guid?>(),
+            Arg.Any<string?>(),
+            Arg.Any<string?>(),
+            Arg.Is<string?>(s => s != null && s.Contains("gdprConsent")),
+            Arg.Any<CancellationToken>());
+    }
+}

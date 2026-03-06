@@ -1,0 +1,92 @@
+# =========================
+# C# / .NET
+# =========================
+## Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Ll]og/
+[Ll]ogs/
+
+## NuGet
+*.nupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+*.nuget.props
+*.nuget.targets
+project.lock.json
+
+## Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.dbmdl
+*.dbproj.schemaview
+*.jfm
+*.pfx
+*.publishsettings
+launchSettings.json
+
+## Rider
+.idea/
+
+# =========================
+# Node / React
+# =========================
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+.vite/
+
+# =========================
+# React Native / Expo
+# =========================
+.expo/
+ios/
+android/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# =========================
+# Environment & Secrets
+# =========================
+.env
+.env.local
+.env.*.local
+!.env.example
+appsettings.Development.json
+appsettings.Production.json
+
+# =========================
+# Docker
+# =========================
+postgres_data/
+mongo_data/
+minio_data/
+
+# =========================
+# OS Files
+# =========================
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# =========================
+# IDE
+# =========================
+.vscode/
+!.vscode/settings.json
+!.vscode/extensions.json

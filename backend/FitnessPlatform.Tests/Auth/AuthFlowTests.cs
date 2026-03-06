@@ -1,0 +1,249 @@
+using System.Net;
+using System.Net.Http.Json;
+using FluentAssertions;
+using FitnessPlatform.Tests.Infrastructure;
+
+namespace FitnessPlatform.Tests.Auth;
+
+/// <summary>
+/// Integration tests for the complete authentication flow:
+/// register, login, refresh token, logout, password reset.
+/// </summary>
+[Collection(TestCollection.Name)]
+public class AuthFlowTests(FitnessApiFactory factory)
+{
+    private static string UniqueEmail() => $"{Guid.NewGuid():N}@test.com";
+
+    [Fact]
+    public async Task Register_WithValidData_Returns201()
+    {
+        var client = factory.CreateClient();
+        var email = UniqueEmail();
+
+        var response = await TestHelpers.RegisterAsync(
+            client, email, "TestPass1!", "John", "Doe", "Client");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var body = await response.Content.ReadFromJsonAsync<RegisterResult>(cancellationToken: TestContext.Current.CancellationToken);
+        body!.Email.Should().Be(email);
+        body.Message.Should().Be("Registration successful.");
+    }
+
+    [Fact]
+    public async Task Register_WithDuplicateEmail_Returns400()
+    {
+        var client = factory.CreateClient();
+        var email = UniqueEmail();
+
+        await TestHelpers.RegisterAsync(client, email, "TestPass1!", "John", "Doe", "Client");
+
+        var response = await TestHelpers.RegisterAsync(client, email, "TestPass1!", "Jane", "Doe", "Client");
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Register_WithoutGdprConsent_Returns400()
+    {
+        var client = factory.CreateClient();
+
+        var response = await client.PostAsJsonAsync("/auth/register", new
+        {
+            Email = UniqueEmail(),
+            Password = "TestPass1!",
+            ConfirmPassword = "TestPass1!",
+            FirstName = "John",
+            LastName = "Doe",
+            Role = "Client",
+            GdprConsent = false
+        }, cancellationToken: TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Login_WithValidCredentials_ReturnsTokens()
+    {
+        var client = factory.CreateClient();
+        var email = UniqueEmail();
+
+        await TestHelpers.RegisterAsync(client, email, "TestPass1!", "John", "Doe", "Client");
+
+        var response = await client.PostAsJsonAsync("/auth/login", new
+        {
+            Email = email,
+            Password = "TestPass1!"
+        }, cancellationToken: TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<LoginResult>(cancellationToken: TestContext.Current.CancellationToken);
+        body!.AccessToken.Should().NotBeNullOrEmpty();
+        body.RefreshToken.Should().NotBeNullOrEmpty();
+        body.ExpiresAt.Should().BeAfter(DateTime.UtcNow);
+    }
+
+    [Fact]
+    public async Task Login_WithInvalidPassword_Returns400()
+    {
+        var client = factory.CreateClient();
+        var email = UniqueEmail();
+
+        await TestHelpers.RegisterAsync(client, email, "TestPass1!", "John", "Doe", "Client");
+
+        var response = await client.PostAsJsonAsync("/auth/login", new
+        {
+            Email = email,
+            Password = "WrongPassword1!"
+        }, cancellationToken: TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task RefreshToken_WithValidToken_ReturnsNewTokens()
+    {
+        var client = factory.CreateClient();
+        var email = UniqueEmail();
+
+        await TestHelpers.RegisterAsync(client, email, "TestPass1!", "John", "Doe", "Client");
+
+        var (_, refreshToken) = await TestHelpers.LoginAsync(client, email, "TestPass1!");
+
+        var response = await client.PostAsJsonAsync("/auth/refresh", new
+        {
+            RefreshToken = refreshToken
+        }, cancellationToken: TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<LoginResult>(cancellationToken: TestContext.Current.CancellationToken);
+        body!.AccessToken.Should().NotBeNullOrEmpty();
+        body.RefreshToken.Should().NotBe(refreshToken);
+    }
+
+    [Fact]
+    public async Task RefreshToken_UsedTwice_FailsSecondTime()
+    {
+        var client = factory.CreateClient();
+        var email = UniqueEmail();
+
+        await TestHelpers.RegisterAsync(client, email, "TestPass1!", "John", "Doe", "Client");
+
+        var (_, refreshToken) = await TestHelpers.LoginAsync(client, email, "TestPass1!");
+
+        var first = await client.PostAsJsonAsync("/auth/refresh", new { RefreshToken = refreshToken }, cancellationToken: TestContext.Current.CancellationToken);
+        first.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var second = await client.PostAsJsonAsync("/auth/refresh", new { RefreshToken = refreshToken }, cancellationToken: TestContext.Current.CancellationToken);
+        second.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Logout_RevokesRefreshToken()
+    {
+        var client = factory.CreateClient();
+        var email = UniqueEmail();
+
+        await TestHelpers.RegisterAsync(client, email, "TestPass1!", "John", "Doe", "Client");
+
+        var (accessToken, refreshToken) = await TestHelpers.LoginAsync(client, email, "TestPass1!");
+
+        TestHelpers.SetBearerToken(client, accessToken);
+
+        var logoutResponse = await client.PostAsJsonAsync("/auth/logout", new
+        {
+            RefreshToken = refreshToken
+        }, cancellationToken: TestContext.Current.CancellationToken);
+
+        logoutResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        var refreshResponse = await client.PostAsJsonAsync("/auth/refresh", new
+        {
+            RefreshToken = refreshToken
+        }, cancellationToken: TestContext.Current.CancellationToken);
+
+        refreshResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task GetProfile_WithValidToken_ReturnsProfile()
+    {
+        var client = factory.CreateClient();
+        var email = UniqueEmail();
+
+        await TestHelpers.RegisterAsync(client, email, "TestPass1!", "John", "Doe", "Client");
+
+        var (accessToken, _) = await TestHelpers.LoginAsync(client, email, "TestPass1!");
+
+        TestHelpers.SetBearerToken(client, accessToken);
+
+        var response = await client.GetAsync("/users/me", TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<ProfileResult>(cancellationToken: TestContext.Current.CancellationToken);
+        body!.Email.Should().Be(email);
+        body.FirstName.Should().Be("John");
+        body.LastName.Should().Be("Doe");
+    }
+
+    [Fact]
+    public async Task GetProfile_WithoutToken_Returns401()
+    {
+        var client = factory.CreateClient();
+
+        var response = await client.GetAsync("/users/me", TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task PasswordReset_FullFlow_Works()
+    {
+        FakeEmailService.Reset();
+        var client = factory.CreateClient();
+        var email = UniqueEmail();
+
+        await TestHelpers.RegisterAsync(client, email, "TestPass1!", "John", "Doe", "Client");
+
+        var requestResponse = await client.PostAsJsonAsync("/auth/password/reset", new { Email = email }, cancellationToken: TestContext.Current.CancellationToken);
+
+        requestResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        FakeEmailService.SentPasswordResets.Should().ContainSingle();
+
+        var resetToken = FakeEmailService.SentPasswordResets[0].Token;
+
+        var resetResponse = await client.PutAsJsonAsync("/auth/password/reset", new
+            {
+                Token = resetToken,
+                Email = email,
+                NewPassword = "NewTestPass1!",
+                ConfirmPassword = "NewTestPass1!"
+            }, cancellationToken: TestContext.Current.CancellationToken);
+
+        resetResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var (accessToken, _) = await TestHelpers.LoginAsync(client, email, "NewTestPass1!");
+
+        accessToken.Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public async Task PasswordReset_NonExistentEmail_StillReturns200()
+    {
+        var client = factory.CreateClient();
+
+        var response = await client.PostAsJsonAsync("/auth/password/reset", new
+        {
+            Email = "nonexistent-" + UniqueEmail()
+        }, cancellationToken: TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    private record RegisterResult(Guid UserId, string Email, string Message);
+    private record LoginResult(string AccessToken, string RefreshToken, DateTime ExpiresAt);
+    private record ProfileResult(Guid UserId, string Email, string FirstName, string LastName, List<string> Roles);
+}

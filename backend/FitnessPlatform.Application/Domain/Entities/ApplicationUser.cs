@@ -1,0 +1,62 @@
+using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Identity;
+
+namespace FitnessPlatform.Application.Domain.Entities;
+
+/// <summary>
+/// Application user extending ASP.NET Identity with fitness platform specific properties.
+/// </summary>
+public class ApplicationUser : IdentityUser<Guid>
+{
+    /// <summary>
+    /// User's first name.
+    /// </summary>
+    [MaxLength(50)]
+    public string FirstName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// User's last name.
+    /// </summary>
+    [MaxLength(50)]
+    public string LastName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Date and time when the user account was created.
+    /// </summary>
+    public DateTime DateCreated { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// Date and time when the user account was last updated.
+    /// </summary>
+    public DateTime? DateUpdated { get; set; }
+
+    /// <summary>
+    /// Indicates whether the user account is active.
+    /// </summary>
+    public bool IsActive { get; set; } = true;
+
+    /// <summary>
+    /// Indicates whether the user has given GDPR consent for health data processing.
+    /// </summary>
+    public bool GdprConsent { get; set; }
+
+    /// <summary>
+    /// Date and time when the user gave GDPR consent.
+    /// </summary>
+    public DateTime? GdprConsentDate { get; set; }
+
+    /// <summary>
+    /// Navigation property to the user's trainer profile (if the user is a trainer).
+    /// </summary>
+    public TrainerProfile? TrainerProfile { get; set; }
+
+    /// <summary>
+    /// Navigation property to the user's client profile (if the user is a client).
+    /// </summary>
+    public ClientProfile? ClientProfile { get; set; }
+
+    /// <summary>
+    /// Collection of refresh tokens issued to this user.
+    /// </summary>
+    public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
+}

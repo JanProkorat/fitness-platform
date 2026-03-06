@@ -1,0 +1,128 @@
+using System.Security.Claims;
+using FastEndpoints;
+using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Infrastructure.Data;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+
+namespace FitnessPlatform.Application.Features.Users.DeleteAccount;
+
+/// <summary>
+/// Endpoint for deleting the authenticated user's account and all associated data.
+/// Implements GDPR right to be forgotten (Art. 17).
+/// </summary>
+/// <param name="userManager">ASP.NET Identity user manager.</param>
+/// <param name="db">Database context.</param>
+/// <param name="audit">Audit logging service.</param>
+public class DeleteAccountEndpoint(
+    UserManager<ApplicationUser> userManager,
+    IApplicationDbContext db,
+    IAuditService audit) : EndpointWithoutRequest
+{
+    /// <inheritdoc />
+    public override void Configure()
+    {
+        Delete("/users/me");
+        Summary(s =>
+        {
+            s.Summary = "Delete current user account";
+            s.Description = "Permanently deletes the authenticated user's account and all associated data (GDPR Art. 17).";
+        });
+    }
+
+    /// <inheritdoc />
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var userIdStr = User.FindFirstValue(AppClaims.UserId);
+
+        if (userIdStr is null)
+        {
+            await Send.UnauthorizedAsync(ct);
+            return;
+        }
+
+        var userId = Guid.Parse(userIdStr);
+        var user = await userManager.FindByIdAsync(userIdStr);
+
+        if (user is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+        // Delete client profile and all related data (measurements, photos, links)
+        var clientProfile = await db.ClientProfiles
+            .FirstOrDefaultAsync(cp => cp.UserId == userId, ct);
+
+        if (clientProfile is not null)
+        {
+            var measurements = await db.BodyMeasurements
+                .Where(bm => bm.ClientProfileId == clientProfile.Id)
+                .ToListAsync(ct);
+            db.BodyMeasurements.RemoveRange(measurements);
+
+            var photos = await db.ProgressPhotos
+                .Where(pp => pp.ClientProfileId == clientProfile.Id)
+                .ToListAsync(ct);
+            db.ProgressPhotos.RemoveRange(photos);
+
+            var clientLinks = await db.ClientTrainerLinks
+                .Where(ctl => ctl.ClientProfileId == clientProfile.Id)
+                .ToListAsync(ct);
+            db.ClientTrainerLinks.RemoveRange(clientLinks);
+
+            db.ClientProfiles.Remove(clientProfile);
+        }
+
+        // Delete trainer profile and all related data (invitations, links)
+        var trainerProfile = await db.TrainerProfiles
+            .FirstOrDefaultAsync(tp => tp.UserId == userId, ct);
+
+        if (trainerProfile is not null)
+        {
+            var invitations = await db.InvitationTokens
+                .Where(it => it.TrainerProfileId == trainerProfile.Id)
+                .ToListAsync(ct);
+            db.InvitationTokens.RemoveRange(invitations);
+
+            var trainerLinks = await db.ClientTrainerLinks
+                .Where(ctl => ctl.TrainerProfileId == trainerProfile.Id)
+                .ToListAsync(ct);
+            db.ClientTrainerLinks.RemoveRange(trainerLinks);
+
+            db.TrainerProfiles.Remove(trainerProfile);
+        }
+
+        // Delete refresh tokens
+        var refreshTokens = await db.RefreshTokens
+            .Where(rt => rt.UserId == userId)
+            .ToListAsync(ct);
+        db.RefreshTokens.RemoveRange(refreshTokens);
+
+        await db.SaveChangesAsync(ct);
+
+        // Delete the Identity user (cascades to user_roles, user_claims, user_logins, user_tokens)
+        var result = await userManager.DeleteAsync(user);
+
+        if (!result.Succeeded)
+        {
+            ThrowError("Account deletion failed.");
+            return;
+        }
+
+        // Audit log the deletion (user is gone, record it for compliance)
+        await audit.LogAsync(
+            userId,
+            "Delete",
+            nameof(ApplicationUser),
+            entityId: userId,
+            ipAddress: ipAddress,
+            ct: ct);
+
+        await Send.NoContentAsync(ct);
+    }
+}
