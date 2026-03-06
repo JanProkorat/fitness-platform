@@ -60,7 +60,7 @@ public class InviteClientEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             db, emailService, logger);
 
-        var act = () => ep.HandleAsync(new InviteClientRequest { Email = "client@test.com" }, default);
+        var act = () => ep.HandleAsync(new InviteClientRequest { Email = "client@test.com" }, TestContext.Current.CancellationToken);
 
         await act.Should().ThrowAsync<ValidationFailureException>();
     }
@@ -74,7 +74,7 @@ public class InviteClientEndpointTests
 
         var ep = Factory.Create<InviteClientEndpoint>(db, emailService, logger);
 
-        await ep.HandleAsync(new InviteClientRequest { Email = "client@test.com" }, default);
+        await ep.HandleAsync(new InviteClientRequest { Email = "client@test.com" }, TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(401);
     }
@@ -104,7 +104,7 @@ public class InviteClientEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             db, emailService, logger);
 
-        await ep.HandleAsync(new InviteClientRequest { Email = "client@test.com" }, default);
+        await ep.HandleAsync(new InviteClientRequest { Email = "client@test.com" }, TestContext.Current.CancellationToken);
 
         capturedInvitation.Should().NotBeNull();
         capturedInvitation!.ExpiresAt.Should().BeCloseTo(DateTime.UtcNow.AddDays(7), TimeSpan.FromSeconds(5));

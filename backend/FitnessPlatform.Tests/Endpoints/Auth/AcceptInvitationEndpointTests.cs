@@ -142,7 +142,7 @@ public class AcceptInvitationEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_userId))),
             db, userManager, _audit);
 
-        await ep.HandleAsync(new AcceptInvitationRequest { Token = "one-time-token" }, default);
+        await ep.HandleAsync(new AcceptInvitationRequest { Token = "one-time-token" }, TestContext.Current.CancellationToken);
 
         invitation.IsUsed.Should().BeTrue();
     }

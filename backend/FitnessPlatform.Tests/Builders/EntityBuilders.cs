@@ -277,6 +277,11 @@ public class RefreshTokenBuilder
     public RefreshTokenBuilder Revoked() { _revokedAt = DateTime.UtcNow.AddMinutes(-5); return this; }
 
     /// <summary>
+    /// Sets the replacement token string.
+    /// </summary>
+    public RefreshTokenBuilder WithReplacedByToken(string? token) { _replacedByToken = token; return this; }
+
+    /// <summary>
     /// Sets the User navigation property.
     /// </summary>
     public RefreshTokenBuilder WithUser(ApplicationUser user) { _user = user; _userId = user.Id; return this; }
