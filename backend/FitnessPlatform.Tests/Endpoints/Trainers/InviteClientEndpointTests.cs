@@ -38,13 +38,13 @@ public class InviteClientEndpointTests
         await ep.HandleAsync(new InviteClientRequest { Email = "client@test.com" }, TestContext.Current.CancellationToken);
 
         ep.ValidationFailed.Should().BeFalse();
-        ep.HttpContext.Response.StatusCode.Should().Be(201);
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
         ep.Response.Message.Should().Be("Invitation sent successfully.");
         ep.Response.InvitationToken.Should().NotBeNullOrEmpty();
 
         db.InvitationTokens.Received(1).Add(Arg.Is<InvitationToken>(t => t.Email == "client@test.com"));
         await emailService.Received(1).SendInvitationEmailAsync(
-            "client@test.com", "Train Er", Arg.Any<string>(), Arg.Any<CancellationToken>());
+            "client@test.com", "Train Er", Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]

@@ -67,7 +67,8 @@ public class InviteClientEndpoint(IApplicationDbContext db, IEmailService emailS
         db.InvitationTokens.Add(invitation);
         await db.SaveChangesAsync(ct);
 
-        await emailService.SendInvitationEmailAsync(req.Email, trainerName, tokenValue, ct);
+        var language = HttpContext.Request.Headers.AcceptLanguage.FirstOrDefault() ?? "en";
+        await emailService.SendInvitationEmailAsync(req.Email, trainerName, tokenValue, language, ct);
 
         logger.LogInformation(
             "Invitation sent from trainer {TrainerId} to {Email}",
@@ -77,6 +78,6 @@ public class InviteClientEndpoint(IApplicationDbContext db, IEmailService emailS
         {
             Message = "Invitation sent successfully.",
             InvitationToken = tokenValue
-        }, StatusCodes.Status201Created, ct);
+        }, cancellation: ct);
     }
 }

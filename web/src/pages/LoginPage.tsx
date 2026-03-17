@@ -6,16 +6,22 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/stores/auth';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
-import api from '@/lib/api';
+import { apiClient } from '@/api/client';
+import type { LoginResponse } from '@/api/client';
+import { INVITE_TOKEN_KEY } from '@/pages/InviteAcceptPage';
 
 export default function LoginPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const login = useAuthStore((s) => s.login);
+  const setTokens = useAuthStore((s) => s.setTokens);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [inviteStatus, setInviteStatus] = useState<'accepted' | 'failed' | null>(null);
   const justRegistered = (location.state as { registered?: boolean })?.registered;
+  const fromInvite = (location.state as { fromInvite?: boolean })?.fromInvite;
+  const hasPendingInvite = !!localStorage.getItem(INVITE_TOKEN_KEY);
 
   const loginSchema = z.object({
     email: z.string().email(t('validation.invalidEmail')),
@@ -36,19 +42,41 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      const res = await api.post('/auth/login', data);
+      const res: LoginResponse = await apiClient.loginEndpoint(data);
+      // Store tokens first, then fetch profile for user info
+      setTokens(res.accessToken!, res.refreshToken!);
+      const profile = await apiClient.getProfileEndpoint();
       login(
         {
-          publicId: res.data.publicId,
-          email: res.data.email,
-          firstName: res.data.firstName,
-          lastName: res.data.lastName,
-          roles: res.data.roles,
+          publicId: profile.userId!,
+          email: profile.email!,
+          firstName: profile.firstName!,
+          lastName: profile.lastName!,
+          roles: profile.roles ?? [],
         },
-        res.data.accessToken,
-        res.data.refreshToken,
+        res.accessToken!,
+        res.refreshToken!,
       );
-      navigate('/dashboard', { replace: true });
+
+      const roles = profile.roles ?? [];
+      const isClientOnly = roles.includes('Client') && !roles.some((r: string) => ['Trainer', 'Nutritionist', 'Admin'].includes(r));
+
+      // Auto-accept pending invitation after login
+      const pendingToken = localStorage.getItem(INVITE_TOKEN_KEY);
+      if (pendingToken) {
+        try {
+          await apiClient.acceptInvitationEndpoint({ token: pendingToken });
+          localStorage.removeItem(INVITE_TOKEN_KEY);
+          setInviteStatus('accepted');
+          await new Promise((r) => setTimeout(r, 2000));
+        } catch {
+          localStorage.removeItem(INVITE_TOKEN_KEY);
+          setInviteStatus('failed');
+          await new Promise((r) => setTimeout(r, 2000));
+        }
+      }
+
+      navigate(isClientOnly ? '/download-app' : '/dashboard', { replace: true });
     } catch {
       setError(t('auth.loginError'));
     } finally {
@@ -93,6 +121,24 @@ export default function LoginPage() {
             </div>
           )}
 
+          {(fromInvite || hasPendingInvite) && !justRegistered && !inviteStatus && (
+            <div className="mb-4 rounded-sm border border-gold-dim/30 bg-gold/8 px-4 py-3 text-sm text-gold">
+              {t('auth.inviteRegisterHint')}
+            </div>
+          )}
+
+          {inviteStatus === 'accepted' && (
+            <div className="mb-4 rounded-sm border border-green-bright/30 bg-green-bright/8 px-4 py-3 text-sm text-green-bright">
+              {t('auth.inviteAccepted')}
+            </div>
+          )}
+
+          {inviteStatus === 'failed' && (
+            <div className="mb-4 rounded-sm border border-red-dim bg-red/8 px-4 py-3 text-sm text-red">
+              {t('auth.inviteExpired')}
+            </div>
+          )}
+
           {error && (
             <div className="mb-4 rounded-sm border border-red-dim bg-red/8 px-4 py-3 text-sm text-red">
               {error}
@@ -132,12 +178,12 @@ export default function LoginPage() {
 
             {/* Forgot password */}
             <div className="text-right">
-              <a
-                href="/auth/forgot-password"
+              <Link
+                to="/forgot-password"
                 className="text-xs text-gold transition-colors hover:text-gold-bright"
               >
                 {t('auth.forgotPassword')}
-              </a>
+              </Link>
             </div>
 
             {/* Submit */}

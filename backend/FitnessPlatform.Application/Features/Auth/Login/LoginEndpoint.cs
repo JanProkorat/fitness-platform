@@ -3,6 +3,7 @@ using FastEndpoints;
 using FastEndpoints.Security;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
 
@@ -39,13 +40,13 @@ public class LoginEndpoint(
 
         if (user is null || !await userManager.CheckPasswordAsync(user, req.Password))
         {
-            ThrowError("Invalid email or password.");
+            this.ThrowErrorWithCode(ErrorCodes.InvalidCredentials, "Invalid email or password.");
             return;
         }
 
         if (!user.IsActive)
         {
-            ThrowError("Account is deactivated.");
+            this.ThrowErrorWithCode(ErrorCodes.AccountDeactivated, "Account is deactivated.");
             return;
         }
 

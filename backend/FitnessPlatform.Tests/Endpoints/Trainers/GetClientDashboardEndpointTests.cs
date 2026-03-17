@@ -1,6 +1,7 @@
 using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.Trainers.GetClientDashboard;
 using FitnessPlatform.Tests.Builders;
@@ -12,6 +13,7 @@ public class GetClientDashboardEndpointTests
 {
     private readonly Guid _trainerId = Guid.NewGuid();
     private readonly IAuditService _audit = Substitute.For<IAuditService>();
+    private readonly IComplianceService _complianceService = Substitute.For<IComplianceService>();
 
     [Fact]
     public async Task HandleAsync_LinkedClient_ReturnsDashboard()
@@ -35,7 +37,7 @@ public class GetClientDashboardEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, _audit);
+            db, _audit, _complianceService);
 
         await ep.HandleAsync(new GetClientDashboardRequest
         {
@@ -67,7 +69,7 @@ public class GetClientDashboardEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, _audit);
+            db, _audit, _complianceService);
 
         await ep.HandleAsync(new GetClientDashboardRequest
         {
@@ -87,7 +89,7 @@ public class GetClientDashboardEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, _audit);
+            db, _audit, _complianceService);
 
         await ep.HandleAsync(new GetClientDashboardRequest
         {
@@ -101,7 +103,7 @@ public class GetClientDashboardEndpointTests
     public async Task HandleAsync_NoClaims_Returns401()
     {
         var db = new MockDbBuilder().Build();
-        var ep = Factory.Create<GetClientDashboardEndpoint>(db, _audit);
+        var ep = Factory.Create<GetClientDashboardEndpoint>(db, _audit, _complianceService);
 
         await ep.HandleAsync(new GetClientDashboardRequest
         {
@@ -133,7 +135,7 @@ public class GetClientDashboardEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, _audit);
+            db, _audit, _complianceService);
 
         await ep.HandleAsync(new GetClientDashboardRequest
         {

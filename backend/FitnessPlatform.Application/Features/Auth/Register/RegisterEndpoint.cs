@@ -3,6 +3,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
 
 namespace FitnessPlatform.Application.Features.Auth.Register;
@@ -11,8 +12,9 @@ namespace FitnessPlatform.Application.Features.Auth.Register;
 /// Endpoint for registering a new user account.
 /// </summary>
 /// <param name="userManager">ASP.NET Identity user manager.</param>
+/// <param name="dbContext">Database context.</param>
 /// <param name="audit">Audit logging service.</param>
-public class RegisterEndpoint(UserManager<ApplicationUser> userManager, IAuditService audit) : Endpoint<RegisterRequest, RegisterResponse>
+public class RegisterEndpoint(UserManager<ApplicationUser> userManager, IApplicationDbContext dbContext, IAuditService audit) : Endpoint<RegisterRequest, RegisterResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -24,6 +26,8 @@ public class RegisterEndpoint(UserManager<ApplicationUser> userManager, IAuditSe
         {
             s.Summary = "Register a new user";
             s.Description = "Creates a new user account with the specified role and GDPR consent.";
+            s.Responses[201] = "Registration successful";
+            s.Responses[400] = "Validation error";
         });
     }
 
@@ -54,6 +58,21 @@ public class RegisterEndpoint(UserManager<ApplicationUser> userManager, IAuditSe
 
         var role = Enum.Parse<UserRole>(req.Role, ignoreCase: true);
         await userManager.AddToRoleAsync(user, role.ToString());
+
+        // Create role-specific profile
+        switch (role)
+        {
+            case UserRole.Trainer:
+                dbContext.TrainerProfiles.Add(new TrainerProfile { UserId = user.Id });
+                break;
+            case UserRole.Nutritionist:
+                break;
+            case UserRole.Client:
+                dbContext.ClientProfiles.Add(new ClientProfile { UserId = user.Id });
+                break;
+        }
+
+        await dbContext.SaveChangesAsync(ct);
 
         // Audit: GDPR consent recorded at registration
         await audit.LogAsync(

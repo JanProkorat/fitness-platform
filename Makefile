@@ -1,4 +1,4 @@
-.PHONY: dev down backend web migrate seed test clean setup
+.PHONY: dev down backend web migrate seed test clean setup generate-api
 
 # Start all Docker services
 dev:
@@ -28,6 +28,11 @@ seed:
 test:
 	cd backend && dotnet test
 	cd web && npm test
+
+# Generate TypeScript API client from backend OpenAPI spec (backend must be running)
+generate-api:
+	cd backend && curl -sk https://localhost:5001/swagger/v1/swagger.json -o swagger.json && dotnet nswag run nswag.json
+	sed -i '' 's|/\* eslint-disable \*/|/* eslint-disable */\n// @ts-nocheck|' web/src/api/generated.ts
 
 # Remove Docker volumes (destructive!)
 clean:

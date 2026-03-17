@@ -1,4 +1,6 @@
+using System.Collections.Concurrent;
 using System.Net;
+using System.Reflection;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Interfaces;
 using MailKit.Net.Smtp;
@@ -10,12 +12,42 @@ namespace FitnessPlatform.Application.Infrastructure.Services;
 
 /// <summary>
 /// SMTP-based email service implementation using MailKit.
-/// Reads configuration from the <c>Email</c> and <c>App</c> sections of appsettings.
+/// Loads localized HTML templates from embedded resources.
 /// Compatible with MailHog (no authentication) for local development.
 /// Includes Polly retry logic (3 attempts with exponential backoff).
 /// </summary>
 public class SmtpEmailService(IConfiguration configuration, ILogger<SmtpEmailService> logger) : IEmailService
 {
+    /// <summary>
+    /// Supported languages for email templates.
+    /// </summary>
+    private static readonly HashSet<string> SupportedLanguages = ["en", "cs", "de"];
+
+    /// <summary>
+    /// Cache for loaded email templates, keyed by resource name.
+    /// </summary>
+    private static readonly ConcurrentDictionary<string, string> TemplateCache = new();
+
+    /// <summary>
+    /// Localized email subjects for invitation emails.
+    /// </summary>
+    private static readonly Dictionary<string, string> InvitationSubjects = new()
+    {
+        ["en"] = "You have been invited to GF Platform",
+        ["cs"] = "Pozvánka na GF Platform",
+        ["de"] = "Einladung zur GF Platform"
+    };
+
+    /// <summary>
+    /// Localized email subjects for password reset emails.
+    /// </summary>
+    private static readonly Dictionary<string, string> PasswordResetSubjects = new()
+    {
+        ["en"] = "Reset your GF Platform password",
+        ["cs"] = "Obnovení hesla na GF Platform",
+        ["de"] = "GF Platform Passwort zurücksetzen"
+    };
+
     /// <summary>
     /// Polly retry pipeline: 3 retries with exponential backoff (1s, 2s, 4s).
     /// </summary>
@@ -29,34 +61,42 @@ public class SmtpEmailService(IConfiguration configuration, ILogger<SmtpEmailSer
         .Build();
 
     /// <inheritdoc />
-    public async Task SendInvitationEmailAsync(string toEmail, string trainerName, string invitationToken, CancellationToken ct)
+    public async Task SendInvitationEmailAsync(string toEmail, string trainerName, string invitationToken, string language, CancellationToken ct)
     {
+        var lang = NormalizeLanguage(language);
         var baseUrl = configuration[ConfigKeys.AppBaseUrl] ?? "http://localhost:5173";
         var encodedToken = WebUtility.UrlEncode(invitationToken);
         var acceptUrl = $"{baseUrl}/invite/accept?token={encodedToken}";
 
-        var subject = "You have been invited to GF Platform";
-        var html = BuildInvitationHtml(trainerName, acceptUrl);
+        var template = LoadTemplate("Invitation", lang);
+        var html = template
+            .Replace("{{TrainerName}}", WebUtility.HtmlEncode(trainerName))
+            .Replace("{{AcceptUrl}}", acceptUrl);
+
+        var subject = InvitationSubjects.GetValueOrDefault(lang, InvitationSubjects["en"]);
 
         await SendEmailAsync(toEmail, subject, html, ct);
 
-        logger.LogInformation("Invitation email sent to {Email} from trainer {TrainerName}", toEmail, trainerName);
+        logger.LogInformation("Invitation email sent to {Email} from trainer {TrainerName} (lang={Language})", toEmail, trainerName, lang);
     }
 
     /// <inheritdoc />
-    public async Task SendPasswordResetEmailAsync(string toEmail, string resetToken, CancellationToken ct)
+    public async Task SendPasswordResetEmailAsync(string toEmail, string resetToken, string language, CancellationToken ct)
     {
+        var lang = NormalizeLanguage(language);
         var baseUrl = configuration[ConfigKeys.AppBaseUrl] ?? "http://localhost:5173";
         var encodedToken = WebUtility.UrlEncode(resetToken);
         var encodedEmail = WebUtility.UrlEncode(toEmail);
         var resetUrl = $"{baseUrl}/auth/reset-password?token={encodedToken}&email={encodedEmail}";
 
-        var subject = "Reset your GF Platform password";
-        var html = BuildPasswordResetHtml(resetUrl);
+        var template = LoadTemplate("PasswordReset", lang);
+        var html = template.Replace("{{ResetUrl}}", resetUrl);
+
+        var subject = PasswordResetSubjects.GetValueOrDefault(lang, PasswordResetSubjects["en"]);
 
         await SendEmailAsync(toEmail, subject, html, ct);
 
-        logger.LogInformation("Password reset email sent to {Email}", toEmail);
+        logger.LogInformation("Password reset email sent to {Email} (lang={Language})", toEmail, lang);
     }
 
     /// <summary>
@@ -93,200 +133,48 @@ public class SmtpEmailService(IConfiguration configuration, ILogger<SmtpEmailSer
     }
 
     /// <summary>
-    /// Builds the HTML body for a client invitation email in the GF Platform dark+gold design.
+    /// Normalizes a language code to a supported two-letter code. Falls back to "en".
     /// </summary>
-    /// <param name="trainerName">The name of the inviting trainer.</param>
-    /// <param name="acceptUrl">The URL to accept the invitation.</param>
-    /// <returns>The HTML email body.</returns>
-    private static string BuildInvitationHtml(string trainerName, string acceptUrl)
+    /// <param name="language">The raw language string (e.g. "cs", "cs-CZ", "de-DE").</param>
+    /// <returns>A supported two-letter language code.</returns>
+    private static string NormalizeLanguage(string? language)
     {
-        var encodedName = WebUtility.HtmlEncode(trainerName);
-        return $$"""
-                 <!DOCTYPE html>
-                 <html lang="en">
-                 <head>
-                   <meta charset="UTF-8">
-                   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                   <title>You're Invited to GF Platform</title>
-                 </head>
-                 <body style="margin:0;padding:0;background-color:#0d0d0d;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
-                   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0d0d0d;padding:40px 16px;">
-                     <tr>
-                       <td align="center">
-                         <!-- Outer container -->
-                         <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
-                           <!-- Logo -->
-                           <tr>
-                             <td style="text-align:center;padding-bottom:32px;">
-                               <span style="font-size:22px;font-weight:800;letter-spacing:3px;color:#c9a84c;text-transform:uppercase;">GF</span>
-                               <span style="font-size:22px;font-weight:400;letter-spacing:1px;color:#a89f8c;text-transform:uppercase;"> PLATFORM</span>
-                             </td>
-                           </tr>
-                           <!-- Card -->
-                           <tr>
-                             <td style="background-color:#161616;border:1px solid #2a2a2a;border-radius:4px;padding:40px 32px;">
-                               <!-- Icon -->
-                               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                                 <tr>
-                                   <td style="text-align:center;padding-bottom:24px;">
-                                     <div style="display:inline-block;width:56px;height:56px;line-height:56px;font-size:28px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.2);border-radius:4px;text-align:center;">&#x1F3CB;&#xFE0F;</div>
-                                   </td>
-                                 </tr>
-                               </table>
-                               <!-- Label -->
-                               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                                 <tr>
-                                   <td style="text-align:center;padding-bottom:8px;">
-                                     <span style="font-size:10px;font-weight:700;letter-spacing:3px;color:#8a6f2e;text-transform:uppercase;">INVITATION</span>
-                                   </td>
-                                 </tr>
-                               </table>
-                               <!-- Heading -->
-                               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                                 <tr>
-                                   <td style="text-align:center;padding-bottom:16px;">
-                                     <h1 style="margin:0;font-size:24px;font-weight:700;color:#f0ece4;line-height:1.3;">You've Been Invited</h1>
-                                   </td>
-                                 </tr>
-                               </table>
-                               <!-- Body -->
-                               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                                 <tr>
-                                   <td style="text-align:center;font-size:15px;line-height:1.6;color:#a89f8c;padding-bottom:32px;">
-                                     <strong style="color:#f0ece4;">{{encodedName}}</strong> has invited you to join GF Platform as their client. Start your personalized fitness journey today.
-                                   </td>
-                                 </tr>
-                               </table>
-                               <!-- CTA Button -->
-                               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                                 <tr>
-                                   <td align="center" style="padding-bottom:32px;">
-                                     <a href="{{acceptUrl}}" style="display:inline-block;background-color:#c9a84c;color:#000000;text-decoration:none;font-size:13px;font-weight:800;letter-spacing:2px;text-transform:uppercase;padding:14px 40px;border-radius:2px;">Accept Invitation</a>
-                                   </td>
-                                 </tr>
-                               </table>
-                               <!-- Divider -->
-                               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                                 <tr>
-                                   <td style="border-top:1px solid #2a2a2a;padding-top:20px;">
-                                     <p style="margin:0;font-size:12px;line-height:1.6;color:#5a5248;">If you did not expect this invitation, you can safely ignore this email.</p>
-                                     <p style="margin:8px 0 0;font-size:12px;line-height:1.6;color:#5a5248;">If the button doesn't work, copy this URL into your browser:</p>
-                                     <p style="margin:4px 0 0;font-size:11px;word-break:break-all;"><a href="{{acceptUrl}}" style="color:#c9a84c;text-decoration:underline;">{{acceptUrl}}</a></p>
-                                   </td>
-                                 </tr>
-                               </table>
-                             </td>
-                           </tr>
-                           <!-- Footer -->
-                           <tr>
-                             <td style="text-align:center;padding-top:24px;">
-                               <p style="margin:0;font-size:11px;color:#5a5248;letter-spacing:1px;">GF Platform &mdash; Fitness & Nutrition</p>
-                             </td>
-                           </tr>
-                         </table>
-                       </td>
-                     </tr>
-                   </table>
-                 </body>
-                 </html>
-                 """;
+        if (string.IsNullOrWhiteSpace(language))
+            return "en";
+
+        // Take first two characters (handles "cs-CZ" → "cs")
+        var code = language.Length >= 2 ? language[..2].ToLowerInvariant() : language.ToLowerInvariant();
+        return SupportedLanguages.Contains(code) ? code : "en";
     }
 
     /// <summary>
-    /// Builds the HTML body for a password reset email in the GF Platform dark+gold design.
+    /// Loads an email template from embedded resources with caching.
+    /// Falls back to English if the requested language template is not found.
     /// </summary>
-    /// <param name="resetUrl">The URL to reset the password.</param>
-    /// <returns>The HTML email body.</returns>
-    private static string BuildPasswordResetHtml(string resetUrl)
+    /// <param name="templateName">The template name (e.g. "Invitation", "PasswordReset").</param>
+    /// <param name="language">The two-letter language code.</param>
+    /// <returns>The HTML template content.</returns>
+    private static string LoadTemplate(string templateName, string language)
     {
-        return $$"""
-                 <!DOCTYPE html>
-                 <html lang="en">
-                 <head>
-                   <meta charset="UTF-8">
-                   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                   <title>Reset Your Password</title>
-                 </head>
-                 <body style="margin:0;padding:0;background-color:#0d0d0d;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
-                   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0d0d0d;padding:40px 16px;">
-                     <tr>
-                       <td align="center">
-                         <!-- Outer container -->
-                         <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
-                           <!-- Logo -->
-                           <tr>
-                             <td style="text-align:center;padding-bottom:32px;">
-                               <span style="font-size:22px;font-weight:800;letter-spacing:3px;color:#c9a84c;text-transform:uppercase;">GF</span>
-                               <span style="font-size:22px;font-weight:400;letter-spacing:1px;color:#a89f8c;text-transform:uppercase;"> PLATFORM</span>
-                             </td>
-                           </tr>
-                           <!-- Card -->
-                           <tr>
-                             <td style="background-color:#161616;border:1px solid #2a2a2a;border-radius:4px;padding:40px 32px;">
-                               <!-- Icon -->
-                               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                                 <tr>
-                                   <td style="text-align:center;padding-bottom:24px;">
-                                     <div style="display:inline-block;width:56px;height:56px;line-height:56px;font-size:28px;background:rgba(192,57,43,0.08);border:1px solid rgba(192,57,43,0.2);border-radius:4px;text-align:center;">&#x1F512;</div>
-                                   </td>
-                                 </tr>
-                               </table>
-                               <!-- Label -->
-                               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                                 <tr>
-                                   <td style="text-align:center;padding-bottom:8px;">
-                                     <span style="font-size:10px;font-weight:700;letter-spacing:3px;color:#8a6f2e;text-transform:uppercase;">SECURITY</span>
-                                   </td>
-                                 </tr>
-                               </table>
-                               <!-- Heading -->
-                               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                                 <tr>
-                                   <td style="text-align:center;padding-bottom:16px;">
-                                     <h1 style="margin:0;font-size:24px;font-weight:700;color:#f0ece4;line-height:1.3;">Password Reset</h1>
-                                   </td>
-                                 </tr>
-                               </table>
-                               <!-- Body -->
-                               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                                 <tr>
-                                   <td style="text-align:center;font-size:15px;line-height:1.6;color:#a89f8c;padding-bottom:32px;">
-                                     We received a request to reset your GF Platform password. Click the button below to choose a new password. This link expires in <strong style="color:#f0ece4;">1 hour</strong>.
-                                   </td>
-                                 </tr>
-                               </table>
-                               <!-- CTA Button -->
-                               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                                 <tr>
-                                   <td align="center" style="padding-bottom:32px;">
-                                     <a href="{{resetUrl}}" style="display:inline-block;background-color:#c9a84c;color:#000000;text-decoration:none;font-size:13px;font-weight:800;letter-spacing:2px;text-transform:uppercase;padding:14px 40px;border-radius:2px;">Reset Password</a>
-                                   </td>
-                                 </tr>
-                               </table>
-                               <!-- Divider -->
-                               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                                 <tr>
-                                   <td style="border-top:1px solid #2a2a2a;padding-top:20px;">
-                                     <p style="margin:0;font-size:12px;line-height:1.6;color:#5a5248;">If you did not request a password reset, you can safely ignore this email. Your password will remain unchanged.</p>
-                                     <p style="margin:8px 0 0;font-size:12px;line-height:1.6;color:#5a5248;">If the button doesn't work, copy this URL into your browser:</p>
-                                     <p style="margin:4px 0 0;font-size:11px;word-break:break-all;"><a href="{{resetUrl}}" style="color:#c9a84c;text-decoration:underline;">{{resetUrl}}</a></p>
-                                   </td>
-                                 </tr>
-                               </table>
-                             </td>
-                           </tr>
-                           <!-- Footer -->
-                           <tr>
-                             <td style="text-align:center;padding-top:24px;">
-                               <p style="margin:0;font-size:11px;color:#5a5248;letter-spacing:1px;">GF Platform &mdash; Fitness & Nutrition</p>
-                             </td>
-                           </tr>
-                         </table>
-                       </td>
-                     </tr>
-                   </table>
-                 </body>
-                 </html>
-                 """;
+        var resourceName = $"FitnessPlatform.Application.Infrastructure.EmailTemplates.{templateName}.{language}.html";
+
+        return TemplateCache.GetOrAdd(resourceName, name =>
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            using var stream = assembly.GetManifestResourceStream(name);
+
+            if (stream is null)
+            {
+                // Fallback to English
+                var fallback = $"FitnessPlatform.Application.Infrastructure.EmailTemplates.{templateName}.en.html";
+                using var fallbackStream = assembly.GetManifestResourceStream(fallback)
+                    ?? throw new InvalidOperationException($"Email template '{fallback}' not found in embedded resources.");
+                using var fallbackReader = new StreamReader(fallbackStream);
+                return fallbackReader.ReadToEnd();
+            }
+
+            using var reader = new StreamReader(stream);
+            return reader.ReadToEnd();
+        });
     }
 }

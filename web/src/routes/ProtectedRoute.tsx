@@ -3,9 +3,20 @@ import { useAuthStore } from '@/stores/auth';
 
 export default function ProtectedRoute() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isInitialized = useAuthStore((s) => s.isInitialized);
+  const user = useAuthStore((s) => s.user);
+
+  if (!isInitialized) {
+    return null;
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Clients use the mobile app — redirect them away from the web portal
+  if (user?.roles.includes('Client') && !user.roles.some((r) => ['Trainer', 'Nutritionist', 'Admin'].includes(r))) {
+    return <Navigate to="/download-app" replace />;
   }
 
   return <Outlet />;

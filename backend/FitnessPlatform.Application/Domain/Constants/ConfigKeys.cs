@@ -54,4 +54,29 @@ public static class ConfigKeys
     /// Sender display name for outgoing emails.
     /// </summary>
     public const string EmailFromName = "Email:FromName";
+
+    /// <summary>
+    /// MongoDB connection string key.
+    /// </summary>
+    public const string MongoDb = "MongoDB";
+
+    /// <summary>
+    /// MongoDB database name.
+    /// </summary>
+    public const string MongoDbDatabaseName = "MongoDB:DatabaseName";
+
+    /// <summary>
+    /// Open Food Facts API base URL.
+    /// </summary>
+    public const string OpenFoodFactsBaseUrl = "OpenFoodFacts:BaseUrl";
+
+    /// <summary>
+    /// Open Food Facts HTTP request timeout in seconds.
+    /// </summary>
+    public const string OpenFoodFactsTimeoutSeconds = "OpenFoodFacts:TimeoutSeconds";
+
+    /// <summary>
+    /// Number of days to cache Open Food Facts results in MongoDB.
+    /// </summary>
+    public const string OpenFoodFactsCacheDays = "OpenFoodFacts:CacheDays";
 }

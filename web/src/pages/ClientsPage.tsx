@@ -1,21 +1,8 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import api from '@/lib/api';
-
-interface Client {
-  publicId: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-}
-
-interface ClientsResponse {
-  clients: Client[];
-  totalCount: number;
-  page: number;
-  pageSize: number;
-}
+import { apiClient } from '@/api/client';
+import type { GetClientsResponse } from '@/api/client';
 
 export default function ClientsPage() {
   const { t } = useTranslation();
@@ -24,21 +11,16 @@ export default function ClientsPage() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteStatus, setInviteStatus] = useState<string | null>(null);
 
-  const { data, isLoading, refetch } = useQuery<ClientsResponse>({
+  const { data, isLoading, refetch } = useQuery<GetClientsResponse>({
     queryKey: ['clients', page],
-    queryFn: async () => {
-      const res = await api.get('/trainer/clients', {
-        params: { page, pageSize: 20 },
-      });
-      return res.data;
-    },
+    queryFn: () => apiClient.getClientsEndpoint(page, 20),
   });
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     setInviteStatus(null);
     try {
-      await api.post('/trainer/clients/invite', { email: inviteEmail });
+      await apiClient.inviteClientEndpoint({ email: inviteEmail });
       setInviteStatus(t('clients.inviteSent'));
       setInviteEmail('');
       refetch();
@@ -47,7 +29,7 @@ export default function ClientsPage() {
     }
   };
 
-  const totalPages = data ? Math.ceil(data.totalCount / data.pageSize) : 0;
+  const totalPages = data ? Math.ceil((data.totalCount ?? 0) / (data.pageSize ?? 1)) : 0;
 
   return (
     <div className="flex h-full flex-col">
@@ -113,7 +95,7 @@ export default function ClientsPage() {
             <div className="flex items-center justify-center py-20 text-text3">
               {t('common.loading')}
             </div>
-          ) : !data?.clients.length ? (
+          ) : !data?.clients?.length ? (
             <div className="flex flex-col items-center justify-center py-20 text-text3">
               <span className="text-4xl">&#x1F465;</span>
               <p className="mt-3 text-sm">{t('clients.noClients')}</p>
@@ -131,8 +113,8 @@ export default function ClientsPage() {
               </div>
 
               {/* Rows */}
-              {data.clients.map((client) => {
-                const initials = `${client.firstName[0]}${client.lastName[0]}`.toUpperCase();
+              {data.clients!.map((client) => {
+                const initials = `${(client.firstName ?? '')[0]}${(client.lastName ?? '')[0]}`.toUpperCase();
                 return (
                   <div
                     key={client.publicId}

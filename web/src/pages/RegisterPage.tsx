@@ -5,20 +5,27 @@ import { z } from 'zod';
 import { Link, useNavigate } from 'react-router-dom';
 import { Trans, useTranslation } from 'react-i18next';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
-import api from '@/lib/api';
+import { apiClient, ApiException } from '@/api/client';
+import { INVITE_TOKEN_KEY } from '@/pages/InviteAcceptPage';
 
 export default function RegisterPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const hasPendingInvite = !!localStorage.getItem(INVITE_TOKEN_KEY);
 
   const registerSchema = z
     .object({
       firstName: z.string().min(1, t('validation.required')),
       lastName: z.string().min(1, t('validation.required')),
       email: z.string().email(t('validation.invalidEmail')),
-      password: z.string().min(8, t('validation.passwordMin')),
+      password: z
+        .string()
+        .min(9, t('validation.passwordMinLength'))
+        .regex(/[a-z]/, t('validation.passwordLowercase'))
+        .regex(/[A-Z]/, t('validation.passwordUppercase'))
+        .regex(/[0-9]/, t('validation.passwordDigit')),
       confirmPassword: z.string().min(1, t('validation.confirmPassword')),
       role: z.enum(['Trainer', 'Client'], { error: t('validation.selectRole') }),
       gdprConsent: z.literal(true, { error: t('validation.gdprRequired') }),
@@ -37,7 +44,7 @@ export default function RegisterPage() {
     watch,
   } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { role: 'Trainer' },
+    defaultValues: { role: hasPendingInvite ? 'Client' : 'Trainer' },
     mode: 'onChange',
   });
 
@@ -53,20 +60,20 @@ export default function RegisterPage() {
     setError(null);
     setLoading(true);
     try {
-      await api.post('/auth/register', data);
+      await apiClient.registerEndpoint(data);
       navigate('/login', {
         replace: true,
         state: { registered: true },
       });
     } catch (err: unknown) {
-      if (
-        typeof err === 'object' &&
-        err !== null &&
-        'response' in err
-      ) {
-        const res = (err as { response: { data?: { errors?: { message?: string }[] } } }).response;
-        const messages = res.data?.errors?.map((e) => e.message).join(', ');
-        setError(messages ?? t('auth.registerError'));
+      if (ApiException.isApiException(err)) {
+        try {
+          const parsed = JSON.parse(err.response);
+          const messages = parsed.errors?.map((e: { message?: string }) => e.message).join(', ');
+          setError(messages ?? t('auth.registerError'));
+        } catch {
+          setError(t('auth.registerError'));
+        }
       } else {
         setError(t('auth.registerError'));
       }
@@ -108,6 +115,12 @@ export default function RegisterPage() {
           <p className="mb-8 text-sm text-muted">
             {t('auth.registerSubtitle')}
           </p>
+
+          {hasPendingInvite && (
+            <div className="mb-4 rounded-sm border border-gold-dim/30 bg-gold/8 px-4 py-3 text-sm text-gold">
+              {t('auth.inviteRegisterHint')}
+            </div>
+          )}
 
           {error && (
             <div className="mb-4 rounded-sm border border-red-dim bg-red/8 px-4 py-3 text-sm text-red">
@@ -181,6 +194,25 @@ export default function RegisterPage() {
                   {errors.password.message}
                 </p>
               )}
+              <ul className="mt-2 flex flex-col gap-0.5 text-xs text-muted">
+                {([
+                  { test: (v: string) => v.length >= 9, label: t('validation.passwordMinLength') },
+                  { test: (v: string) => /[a-z]/.test(v), label: t('validation.passwordLowercase') },
+                  { test: (v: string) => /[A-Z]/.test(v), label: t('validation.passwordUppercase') },
+                  { test: (v: string) => /[0-9]/.test(v), label: t('validation.passwordDigit') },
+                ] as const).map(({ test, label }) => {
+                  const pwd = watch('password') || '';
+                  const met = test(pwd);
+                  return (
+                    <li
+                      key={label}
+                      className={met ? 'text-green-500' : 'text-muted'}
+                    >
+                      {met ? '\u2713' : '\u2022'} {label}
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
 
             {/* Confirm password */}

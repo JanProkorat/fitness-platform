@@ -1,9 +1,21 @@
 import { useParams, Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { getClientDashboard } from '@/api/nutrition-goals';
 
 export default function ClientDetailPage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
+
+  const { data: client, isLoading } = useQuery({
+    queryKey: ['client-dashboard', id],
+    queryFn: () => getClientDashboard(id!),
+    enabled: !!id,
+  });
+
+  const clientName = client
+    ? `${client.firstName} ${client.lastName}`
+    : '...';
 
   return (
     <div className="flex h-full flex-col">
@@ -17,21 +29,168 @@ export default function ClientDetailPage() {
         </Link>
         <div className="h-4 w-px bg-border" />
         <div>
-          <h1 className="text-lg font-bold">{t('clients.clientDetail')}</h1>
-          <p className="font-mono text-xs text-muted">{id}</p>
-        </div>
-      </div>
-
-      {/* Content skeleton */}
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="flex flex-col items-center justify-center py-24 text-text3">
-          <span className="text-5xl">&#x1F3CB;&#xFE0F;</span>
-          <p className="mt-4 text-sm font-semibold">{t('clients.comingSoon')}</p>
-          <p className="mt-1 text-xs text-muted">
-            {t('clients.comingSoonHint')}
+          <h1 className="text-lg font-bold">
+            {isLoading ? t('common.loading') : clientName}
+          </h1>
+          <p className="text-xs text-muted">
+            {client?.email}
           </p>
         </div>
       </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto p-6">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-24 text-muted">
+            {t('common.loading')}
+          </div>
+        ) : client ? (
+          <div className="mx-auto max-w-3xl space-y-6">
+            {/* Overview heading */}
+            <h2 className="font-heading text-sm font-bold uppercase tracking-wide text-gold">
+              {t('clients.overview')}
+            </h2>
+
+            {/* Stats cards */}
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <StatCard
+                label={t('clients.compliance')}
+                value={
+                  client.compliancePercent != null
+                    ? `${client.compliancePercent}%`
+                    : t('clients.noData')
+                }
+              />
+              <StatCard
+                label={t('clients.streak')}
+                value={
+                  client.currentStreak != null
+                    ? `${client.currentStreak}`
+                    : '0'
+                }
+              />
+              <StatCard
+                label={t('clients.measurements')}
+                value={`${client.totalMeasurements ?? 0}`}
+              />
+              <StatCard
+                label={t('clients.photos')}
+                value={`${client.totalProgressPhotos ?? 0}`}
+              />
+            </div>
+
+            {/* Latest measurement */}
+            {client.latestMeasurement && (
+              <div className="rounded-sm border border-border bg-surface p-5">
+                <h3 className="mb-3 text-sm font-semibold text-text2">
+                  {t('clients.measurements')}
+                </h3>
+                <div className="flex gap-6">
+                  {client.latestMeasurement.weightKg != null && (
+                    <div>
+                      <span className="text-xs text-muted">
+                        {t('clients.latestWeight')}
+                      </span>
+                      <p className="text-lg font-bold">
+                        {client.latestMeasurement.weightKg} kg
+                      </p>
+                    </div>
+                  )}
+                  {client.latestMeasurement.bodyFatPercentage != null && (
+                    <div>
+                      <span className="text-xs text-muted">
+                        {t('clients.bodyFat')}
+                      </span>
+                      <p className="text-lg font-bold">
+                        {client.latestMeasurement.bodyFatPercentage}%
+                      </p>
+                    </div>
+                  )}
+                </div>
+                <p className="mt-2 text-[11px] text-muted">
+                  {new Date(
+                    client.latestMeasurement.measuredAt,
+                  ).toLocaleDateString()}
+                </p>
+              </div>
+            )}
+
+            {/* Client info */}
+            <div className="rounded-sm border border-border bg-surface p-5">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                {client.heightCm != null && (
+                  <div>
+                    <span className="text-xs text-muted">
+                      {t('nutritionGoals.height')}
+                    </span>
+                    <p className="font-semibold">{client.heightCm} cm</p>
+                  </div>
+                )}
+                {client.weightKg != null && (
+                  <div>
+                    <span className="text-xs text-muted">
+                      {t('nutritionGoals.weight')}
+                    </span>
+                    <p className="font-semibold">{client.weightKg} kg</p>
+                  </div>
+                )}
+                {client.dateOfBirth && (
+                  <div>
+                    <span className="text-xs text-muted">
+                      {t('nutritionGoals.age')}
+                    </span>
+                    <p className="font-semibold">
+                      {new Date(client.dateOfBirth).toLocaleDateString()}
+                    </p>
+                  </div>
+                )}
+                <div>
+                  <span className="text-xs text-muted">
+                    {t('clients.linkedSince')}
+                  </span>
+                  <p className="font-semibold">
+                    {new Date(client.linkedAt).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+              {client.goals && (
+                <div className="mt-4">
+                  <span className="text-xs text-muted">
+                    {t('nutritionGoals.goal')}
+                  </span>
+                  <p className="text-sm">{client.goals}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex flex-wrap gap-3">
+              <Link
+                to={`/clients/${id}/nutrition-goals`}
+                className="rounded-sm bg-gold px-4 py-2 font-heading text-[13px] font-extrabold uppercase tracking-wide text-black transition-colors hover:bg-gold-bright"
+              >
+                {t('clients.nutritionGoals')} &rarr;
+              </Link>
+              <button
+                type="button"
+                disabled
+                className="rounded-sm bg-gold/30 px-4 py-2 font-heading text-[13px] font-extrabold uppercase tracking-wide text-black/40 cursor-not-allowed"
+              >
+                {t('clients.nutritionPlans')} &rarr;
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-sm border border-border bg-surface p-4 text-center">
+      <p className="text-xs text-muted">{label}</p>
+      <p className="mt-1 text-xl font-bold text-text">{value}</p>
     </div>
   );
 }

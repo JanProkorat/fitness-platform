@@ -69,6 +69,16 @@ public class GetClientDashboardResponse
     /// The most recent body measurement, or null if none exist.
     /// </summary>
     public LatestMeasurementDto? LatestMeasurement { get; set; }
+
+    /// <summary>
+    /// Compliance percentage for the last 7 days (0-100), or null if no active nutrition plan exists.
+    /// </summary>
+    public decimal? CompliancePercent { get; set; }
+
+    /// <summary>
+    /// Current streak of consecutive compliant days.
+    /// </summary>
+    public int CurrentStreak { get; set; }
 }
 
 /// <summary>

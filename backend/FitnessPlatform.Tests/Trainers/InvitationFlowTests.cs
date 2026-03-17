@@ -31,7 +31,7 @@ public class InvitationFlowTests(FitnessApiFactory factory)
             Email = UniqueEmail()
         }, cancellationToken: TestContext.Current.CancellationToken);
 
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var body = await response.Content.ReadFromJsonAsync<InviteResult>(cancellationToken: TestContext.Current.CancellationToken);
         body!.Message.Should().Be("Invitation sent successfully.");
@@ -74,7 +74,7 @@ public class InvitationFlowTests(FitnessApiFactory factory)
             Email = clientEmail
         }, cancellationToken: TestContext.Current.CancellationToken);
 
-        inviteResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        inviteResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var inviteBody = await inviteResponse.Content.ReadFromJsonAsync<InviteResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         // 3. Client registers and logs in
@@ -122,7 +122,7 @@ public class InvitationFlowTests(FitnessApiFactory factory)
             Email = clientEmail
         }, cancellationToken: TestContext.Current.CancellationToken);
 
-        inviteResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        inviteResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var inviteBody = await inviteResponse.Content.ReadFromJsonAsync<InviteResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         // Expire the token in the database
@@ -163,7 +163,7 @@ public class InvitationFlowTests(FitnessApiFactory factory)
             Email = clientEmail1
         }, cancellationToken: TestContext.Current.CancellationToken);
 
-        inviteResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        inviteResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var inviteBody = await inviteResponse.Content.ReadFromJsonAsync<InviteResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         // First client accepts

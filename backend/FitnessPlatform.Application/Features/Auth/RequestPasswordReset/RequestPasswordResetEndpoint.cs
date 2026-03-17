@@ -40,7 +40,8 @@ public class RequestPasswordResetEndpoint(
         {
             var token = await userManager.GeneratePasswordResetTokenAsync(user);
 
-            await emailService.SendPasswordResetEmailAsync(req.Email, token, ct);
+            var language = HttpContext.Request.Headers.AcceptLanguage.FirstOrDefault() ?? "en";
+            await emailService.SendPasswordResetEmailAsync(req.Email, token, language, ct);
 
             logger.LogInformation(
                 "Password reset email sent to {Email}",

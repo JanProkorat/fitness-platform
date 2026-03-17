@@ -3,6 +3,8 @@ using FluentAssertions;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.Auth.Register;
+using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Tests.Builders;
 using Microsoft.AspNetCore.Identity;
 using NSubstitute;
 
@@ -11,6 +13,7 @@ namespace FitnessPlatform.Tests.Endpoints.Auth;
 public class RegisterEndpointTests
 {
     private readonly UserManager<ApplicationUser> _userManager = EndpointTestHelpers.CreateFakeUserManager();
+    private readonly IApplicationDbContext _db = new MockDbBuilder().Build();
     private readonly IAuditService _audit = Substitute.For<IAuditService>();
 
     [Fact]
@@ -21,7 +24,7 @@ public class RegisterEndpointTests
         _userManager.AddToRoleAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>())
             .Returns(IdentityResult.Success);
 
-        var ep = Factory.Create<RegisterEndpoint>(_userManager, _audit);
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit);
 
         var req = new RegisterRequest
         {
@@ -47,7 +50,7 @@ public class RegisterEndpointTests
         _userManager.CreateAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>())
             .Returns(IdentityResult.Failed(new IdentityError { Description = "Email already taken." }));
 
-        var ep = Factory.Create<RegisterEndpoint>(_userManager, _audit);
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit);
 
         var req = new RegisterRequest
         {
@@ -73,7 +76,7 @@ public class RegisterEndpointTests
         _userManager.AddToRoleAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>())
             .Returns(IdentityResult.Success);
 
-        var ep = Factory.Create<RegisterEndpoint>(_userManager, _audit);
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit);
 
         var req = new RegisterRequest
         {
@@ -93,6 +96,54 @@ public class RegisterEndpointTests
     }
 
     [Fact]
+    public async Task HandleAsync_ClientRole_CreatesClientProfile()
+    {
+        _userManager.CreateAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>())
+            .Returns(IdentityResult.Success);
+        _userManager.AddToRoleAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>())
+            .Returns(IdentityResult.Success);
+
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit);
+
+        await ep.HandleAsync(new RegisterRequest
+        {
+            Email = "client@example.com",
+            Password = "TestPass1!",
+            ConfirmPassword = "TestPass1!",
+            FirstName = "John",
+            LastName = "Doe",
+            Role = "Client",
+            GdprConsent = true
+        }, CancellationToken.None);
+
+        _db.ClientProfiles.Received(1).Add(Arg.Any<ClientProfile>());
+    }
+
+    [Fact]
+    public async Task HandleAsync_TrainerRole_CreatesTrainerProfile()
+    {
+        _userManager.CreateAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>())
+            .Returns(IdentityResult.Success);
+        _userManager.AddToRoleAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>())
+            .Returns(IdentityResult.Success);
+
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit);
+
+        await ep.HandleAsync(new RegisterRequest
+        {
+            Email = "trainer@example.com",
+            Password = "TestPass1!",
+            ConfirmPassword = "TestPass1!",
+            FirstName = "Jane",
+            LastName = "Doe",
+            Role = "Trainer",
+            GdprConsent = true
+        }, CancellationToken.None);
+
+        _db.TrainerProfiles.Received(1).Add(Arg.Any<TrainerProfile>());
+    }
+
+    [Fact]
     public async Task HandleAsync_SetsGdprConsentDate()
     {
         ApplicationUser? capturedUser = null;
@@ -101,7 +152,7 @@ public class RegisterEndpointTests
         _userManager.AddToRoleAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>())
             .Returns(IdentityResult.Success);
 
-        var ep = Factory.Create<RegisterEndpoint>(_userManager, _audit);
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit);
 
         var req = new RegisterRequest
         {
@@ -129,7 +180,7 @@ public class RegisterEndpointTests
         _userManager.AddToRoleAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>())
             .Returns(IdentityResult.Success);
 
-        var ep = Factory.Create<RegisterEndpoint>(_userManager, _audit);
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit);
 
         await ep.HandleAsync(new RegisterRequest
         {

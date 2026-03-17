@@ -14,7 +14,8 @@ namespace FitnessPlatform.Application.Features.Trainers.GetClientDashboard;
 /// </summary>
 /// <param name="db">Database context.</param>
 /// <param name="audit">Audit logging service.</param>
-public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService audit)
+/// <param name="complianceService">Service for calculating compliance metrics.</param>
+public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService audit, IComplianceService complianceService)
     : Endpoint<GetClientDashboardRequest, GetClientDashboardResponse>
 {
     /// <inheritdoc />
@@ -99,6 +100,24 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
             })
             .FirstOrDefaultAsync(ct);
 
+        // Calculate compliance data (last 7 days)
+        decimal? compliancePercent = null;
+        var currentStreak = 0;
+
+        try
+        {
+            var complianceFrom = DateTime.UtcNow.Date.AddDays(-7);
+            var complianceTo = DateTime.UtcNow.Date.AddDays(1).AddTicks(-1);
+            var compliance = await complianceService.CalculateComplianceAsync(
+                clientProfile.UserId, complianceFrom, complianceTo, ct);
+            compliancePercent = compliance.CompliancePercent;
+            currentStreak = await complianceService.CalculateStreakAsync(clientProfile.UserId, ct);
+        }
+        catch
+        {
+            // Compliance data is optional — may fail if no active nutrition plan exists
+        }
+
         // Audit: trainer accessing client health data
         await audit.LogAsync(
             Guid.Parse(userId),
@@ -122,7 +141,9 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
             IsActive = link.IsActive,
             TotalMeasurements = totalMeasurements,
             TotalProgressPhotos = totalProgressPhotos,
-            LatestMeasurement = latestMeasurement
+            LatestMeasurement = latestMeasurement,
+            CompliancePercent = compliancePercent,
+            CurrentStreak = currentStreak
         }, ct);
     }
 }

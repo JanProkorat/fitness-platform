@@ -8,9 +8,18 @@ export default function Sidebar() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
 
+  const isNutritionist = user?.roles.some((r) => ['Nutritionist', 'Admin'].includes(r));
+
   const navItems = [
     { to: '/dashboard', icon: '\u{1F4CA}', label: t('sidebar.dashboard') },
     { to: '/clients', icon: '\u{1F465}', label: t('sidebar.clients') },
+    ...(isNutritionist
+      ? [
+          { to: '/foods', icon: '\u{1F34E}', label: t('sidebar.foods') },
+          { to: '/recipes', icon: '\u{1F4D6}', label: t('sidebar.recipes') },
+          { to: '/plans', icon: '\u{1F4CB}', label: t('sidebar.plans') },
+        ]
+      : []),
     { to: '/profile', icon: '\u{2699}\u{FE0F}', label: t('sidebar.settings') },
   ];
 
@@ -64,7 +73,7 @@ export default function Sidebar() {
               {user?.firstName} {user?.lastName}
             </div>
             <div className="text-[11px] text-muted">
-              {user?.roles.join(', ')}
+              {user?.roles.map((r) => t(`auth.role${r}`)).join(', ')}
             </div>
           </div>
         </div>

@@ -11,14 +11,16 @@ public interface IEmailService
     /// <param name="toEmail">The recipient's email address.</param>
     /// <param name="trainerName">The name of the trainer who sent the invitation.</param>
     /// <param name="invitationToken">The unique token for accepting the invitation.</param>
+    /// <param name="language">Two-letter language code (en, cs, de). Defaults to en.</param>
     /// <param name="ct">Cancellation token.</param>
-    Task SendInvitationEmailAsync(string toEmail, string trainerName, string invitationToken, CancellationToken ct);
+    Task SendInvitationEmailAsync(string toEmail, string trainerName, string invitationToken, string language, CancellationToken ct);
 
     /// <summary>
     /// Sends a password reset email containing a link to reset the user's password.
     /// </summary>
     /// <param name="toEmail">The recipient's email address.</param>
     /// <param name="resetToken">The password reset token.</param>
+    /// <param name="language">Two-letter language code (en, cs, de). Defaults to en.</param>
     /// <param name="ct">Cancellation token.</param>
-    Task SendPasswordResetEmailAsync(string toEmail, string resetToken, CancellationToken ct);
+    Task SendPasswordResetEmailAsync(string toEmail, string resetToken, string language, CancellationToken ct);
 }

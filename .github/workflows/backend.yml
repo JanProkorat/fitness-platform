@@ -53,3 +53,9 @@ jobs:
       - name: Test
         run: dotnet test --no-build --configuration Release --verbosity normal
         working-directory: backend
+        env:
+          POSTGRES_PASSWORD: test_password
+          MONGO_PASSWORD: test_password
+          MINIO_ACCESS_KEY: test
+          MINIO_SECRET_KEY: test
+          JWT_SECRET: ci-test-jwt-secret-must-be-at-least-32-characters-long!!

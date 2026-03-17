@@ -31,7 +31,7 @@ public class RequestPasswordResetEndpointTests
         await ep.HandleAsync(new RequestPasswordResetRequest { Email = "test@test.com" }, CancellationToken.None);
 
         await emailService.Received(1).SendPasswordResetEmailAsync(
-            "test@test.com", "reset-token-123", Arg.Any<CancellationToken>());
+            "test@test.com", "reset-token-123", Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -49,6 +49,6 @@ public class RequestPasswordResetEndpointTests
 
         ep.ValidationFailed.Should().BeFalse();
         await emailService.DidNotReceive().SendPasswordResetEmailAsync(
-            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 }

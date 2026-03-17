@@ -1,0 +1,69 @@
+using System.Security.Claims;
+using FastEndpoints;
+using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
+
+namespace FitnessPlatform.Application.Features.Trainers.UpdateTrainerProfile;
+
+/// <summary>
+/// Updates the trainer profile for the currently authenticated trainer.
+/// </summary>
+/// <param name="db">Database context.</param>
+/// <param name="audit">Audit logging service.</param>
+public class UpdateTrainerProfileEndpoint(IApplicationDbContext db, IAuditService audit)
+    : Endpoint<UpdateTrainerProfileRequest>
+{
+    /// <inheritdoc />
+    public override void Configure()
+    {
+        Put("/trainer/profile");
+        Roles(AppRoles.Trainer, AppRoles.Nutritionist);
+        Summary(s =>
+        {
+            s.Summary = "Update trainer profile";
+            s.Description = "Updates the trainer's professional profile (bio, specialization, experience).";
+        });
+    }
+
+    /// <inheritdoc />
+    public override async Task HandleAsync(UpdateTrainerProfileRequest req, CancellationToken ct)
+    {
+        var userId = User.FindFirstValue(AppClaims.UserId);
+
+        if (userId is null)
+        {
+            await Send.UnauthorizedAsync(ct);
+            return;
+        }
+
+        var userGuid = Guid.Parse(userId);
+
+        var profile = await db.TrainerProfiles
+            .FirstOrDefaultAsync(tp => tp.UserId == userGuid, ct);
+
+        if (profile is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        profile.Bio = req.Bio;
+        profile.Specialization = req.Specialization;
+        profile.YearsOfExperience = req.YearsOfExperience;
+
+        await db.SaveChangesAsync(ct);
+
+        await audit.LogAsync(
+            userGuid,
+            "UpdateTrainerProfile",
+            nameof(TrainerProfile),
+            profile.PublicId,
+            HttpContext.Connection.RemoteIpAddress?.ToString(),
+            ct: ct);
+
+        await Send.OkAsync(new { Message = "Trainer profile updated successfully." }, ct);
+    }
+}

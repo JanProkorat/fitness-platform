@@ -36,6 +36,9 @@ launchSettings.json
 ## Rider
 .idea/
 
+## NSwag intermediate
+backend/swagger.json
+
 # =========================
 # Node / React
 # =========================
