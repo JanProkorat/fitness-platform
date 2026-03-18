@@ -88,6 +88,16 @@ export default function LoginScreen() {
             {loading ? 'Signing in...' : 'Sign in'}
           </Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => router.replace('/(auth)/register')}
+          style={styles.linkRow}
+        >
+          <Text style={styles.linkText}>
+            Don't have an account?{' '}
+            <Text style={styles.linkAccent}>Sign up</Text>
+          </Text>
+        </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
   );
@@ -146,5 +156,17 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     textTransform: 'uppercase',
     letterSpacing: 1,
+  },
+  linkRow: {
+    marginTop: 24,
+    alignItems: 'center',
+  },
+  linkText: {
+    fontSize: 14,
+    color: Colors.dark.text3,
+  },
+  linkAccent: {
+    color: Colors.dark.gold,
+    fontWeight: '700',
   },
 });
