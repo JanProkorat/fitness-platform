@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getLocales } from 'expo-localization';
 import { useAuthStore } from '../stores/auth';
 
 const API_BASE_URL = __DEV__
@@ -11,12 +12,14 @@ const api = axios.create({
   timeout: 15000,
 });
 
-// Attach access token to every request
+// Attach access token and device locale to every request
 api.interceptors.request.use((config) => {
   const token = useAuthStore.getState().accessToken;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  const locale = getLocales()[0]?.languageCode ?? 'en';
+  config.headers['Accept-Language'] = locale;
   return config;
 });
 
