@@ -28,6 +28,14 @@ public class Food
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
+    /// Localized food names (en, cs, de) for multi-language support.
+    /// Null for system/custom foods that don't come from OpenFoodFacts.
+    /// </summary>
+    [BsonElement("localizedNames")]
+    [BsonIgnoreIfNull]
+    public LocalizedNames? LocalizedNames { get; set; }
+
+    /// <summary>
     /// Data source: "system", "custom", or "openfoodfacts".
     /// </summary>
     [BsonElement("source")]
