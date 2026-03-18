@@ -26,11 +26,6 @@ public class TrainerProfile : PublicTimestampableEntity
     public string? Specialization { get; set; }
 
     /// <summary>
-    /// Number of years of professional experience.
-    /// </summary>
-    public int YearsOfExperience { get; set; }
-
-    /// <summary>
     /// Navigation property to the associated user.
     /// </summary>
     public ApplicationUser User { get; set; } = null!;

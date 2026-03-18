@@ -15,9 +15,5 @@ public class UpdateTrainerProfileValidator : AbstractValidator<UpdateTrainerProf
 
         RuleFor(x => x.Specialization)
             .MaximumLength(100);
-
-        RuleFor(x => x.YearsOfExperience)
-            .GreaterThanOrEqualTo(0)
-            .LessThanOrEqualTo(80);
     }
 }

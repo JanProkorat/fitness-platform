@@ -47,8 +47,7 @@ public class GetTrainerProfileEndpoint(IApplicationDbContext db) : EndpointWitho
         await Send.OkAsync(new GetTrainerProfileResponse
         {
             Bio = profile.Bio,
-            Specialization = profile.Specialization,
-            YearsOfExperience = profile.YearsOfExperience
+            Specialization = profile.Specialization
         }, ct);
     }
 }

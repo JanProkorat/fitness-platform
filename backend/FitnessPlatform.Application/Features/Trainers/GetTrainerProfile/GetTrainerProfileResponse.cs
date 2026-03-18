@@ -14,9 +14,4 @@ public class GetTrainerProfileResponse
     /// Area of specialization (e.g. "Strength training", "Yoga").
     /// </summary>
     public string? Specialization { get; set; }
-
-    /// <summary>
-    /// Number of years of professional experience.
-    /// </summary>
-    public int YearsOfExperience { get; set; }
 }

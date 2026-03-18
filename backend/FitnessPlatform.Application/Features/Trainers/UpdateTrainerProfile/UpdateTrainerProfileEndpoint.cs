@@ -24,7 +24,7 @@ public class UpdateTrainerProfileEndpoint(IApplicationDbContext db, IAuditServic
         Summary(s =>
         {
             s.Summary = "Update trainer profile";
-            s.Description = "Updates the trainer's professional profile (bio, specialization, experience).";
+            s.Description = "Updates the trainer's professional profile (bio, specialization).";
         });
     }
 
@@ -52,7 +52,6 @@ public class UpdateTrainerProfileEndpoint(IApplicationDbContext db, IAuditServic
 
         profile.Bio = req.Bio;
         profile.Specialization = req.Specialization;
-        profile.YearsOfExperience = req.YearsOfExperience;
 
         await db.SaveChangesAsync(ct);
 

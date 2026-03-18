@@ -14,9 +14,4 @@ public class UpdateTrainerProfileRequest
     /// Area of specialization (max 100 characters).
     /// </summary>
     public string? Specialization { get; set; }
-
-    /// <summary>
-    /// Number of years of professional experience.
-    /// </summary>
-    public int YearsOfExperience { get; set; }
 }
