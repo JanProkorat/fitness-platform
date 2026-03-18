@@ -285,6 +285,48 @@ public class OpenFoodFactsServiceTests
         result.CommonServings[0].WeightGrams.Should().Be(40);
     }
 
+    // ── Localized names ───────────────────────────────────────────
+
+    [Fact]
+    public async Task SearchByBarcodeAsync_MapsLocalizedNames()
+    {
+        SetupFindReturns(null);
+
+        var apiResponse = CreateProductResponse("Nutella", "3017620422003", 539, 6.3m, 57.5m, 30.9m);
+        apiResponse.Product!.ProductNameEn = "Nutella";
+        apiResponse.Product.ProductNameCs = "Nutella čokoládová pomazánka";
+        apiResponse.Product.ProductNameDe = "Nutella Schokoladenaufstrich";
+        var httpClient = CreateHttpClient(_ => CreateJsonResponse(apiResponse));
+        var sut = CreateService(httpClient);
+
+        var result = await sut.SearchByBarcodeAsync("3017620422003");
+
+        result.Should().NotBeNull();
+        result!.LocalizedNames.Should().NotBeNull();
+        result.LocalizedNames!.En.Should().Be("Nutella");
+        result.LocalizedNames.Cs.Should().Be("Nutella čokoládová pomazánka");
+        result.LocalizedNames.De.Should().Be("Nutella Schokoladenaufstrich");
+    }
+
+    [Fact]
+    public async Task SearchByBarcodeAsync_LocalizedNames_HandlesPartialLocalization()
+    {
+        SetupFindReturns(null);
+
+        var apiResponse = CreateProductResponse("Some Food", "111", 100, 5, 10, 3);
+        apiResponse.Product!.ProductNameEn = "Some Food";
+        // No cs or de name
+        var httpClient = CreateHttpClient(_ => CreateJsonResponse(apiResponse));
+        var sut = CreateService(httpClient);
+
+        var result = await sut.SearchByBarcodeAsync("111");
+
+        result!.LocalizedNames.Should().NotBeNull();
+        result.LocalizedNames!.En.Should().Be("Some Food");
+        result.LocalizedNames.Cs.Should().BeNull();
+        result.LocalizedNames.De.Should().BeNull();
+    }
+
     // ── Helpers ───────────────────────────────────────────────────
 
     private OpenFoodFactsService CreateService(HttpClient httpClient) =>

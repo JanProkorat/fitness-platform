@@ -78,6 +78,24 @@ public sealed class OffProduct
     /// </summary>
     [JsonPropertyName("serving_quantity")]
     public decimal? ServingQuantity { get; set; }
+
+    /// <summary>
+    /// English product name.
+    /// </summary>
+    [JsonPropertyName("product_name_en")]
+    public string? ProductNameEn { get; set; }
+
+    /// <summary>
+    /// Czech product name.
+    /// </summary>
+    [JsonPropertyName("product_name_cs")]
+    public string? ProductNameCs { get; set; }
+
+    /// <summary>
+    /// German product name.
+    /// </summary>
+    [JsonPropertyName("product_name_de")]
+    public string? ProductNameDe { get; set; }
 }
 
 /// <summary>

@@ -122,6 +122,12 @@ public class OpenFoodFactsService : IFoodExternalService
         {
             ExternalId = Guid.NewGuid(),
             Name = product.ProductName?.Trim() ?? "Unknown Product",
+            LocalizedNames = new LocalizedNames
+            {
+                En = product.ProductNameEn?.Trim().NullIfEmpty(),
+                Cs = product.ProductNameCs?.Trim().NullIfEmpty(),
+                De = product.ProductNameDe?.Trim().NullIfEmpty(),
+            },
             Source = "openfoodfacts",
             Barcode = barcode,
             IsVerified = false,
@@ -179,4 +185,13 @@ public class OpenFoodFactsService : IFoodExternalService
 
         return [];
     }
+}
+
+/// <summary>
+/// Returns null if the string is empty or whitespace.
+/// </summary>
+internal static class StringExtensions
+{
+    internal static string? NullIfEmpty(this string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value;
 }
