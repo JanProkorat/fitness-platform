@@ -33,6 +33,7 @@ public class GetFoodByBarcodeEndpoint(
             return;
         }
 
-        await Send.OkAsync(FoodSummary.FromDocument(food), ct);
+        var language = HttpContext.Request.Headers.AcceptLanguage.FirstOrDefault()?.Split(',').FirstOrDefault()?.Split('-').FirstOrDefault();
+        await Send.OkAsync(FoodSummary.FromDocument(food, language), ct);
     }
 }

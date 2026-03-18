@@ -57,4 +57,25 @@ public class SearchFoodsEndpointTests
 
         ep.Response.Foods.Should().HaveCount(2);
     }
+
+    [Fact]
+    public async Task HandleAsync_WithAcceptLanguageCzech_ReturnsCzechName()
+    {
+        var food = FoodTestHelpers.CreateFood(name: "Chicken Breast");
+        food.LocalizedNames = new LocalizedNames
+        {
+            En = "Chicken Breast",
+            Cs = "Kuřecí prsa",
+        };
+        var mongo = FoodTestHelpers.CreateMockMongo(food);
+        var externalService = Substitute.For<IFoodExternalService>();
+
+        var ep = Factory.Create<SearchFoodsEndpoint>(mongo, externalService);
+        ep.HttpContext.Request.Headers.AcceptLanguage = "cs";
+
+        await ep.HandleAsync(new SearchFoodsRequest { Query = "chicken" }, TestContext.Current.CancellationToken);
+
+        ep.Response.Foods.Should().HaveCount(1);
+        ep.Response.Foods[0].Name.Should().Be("Kuřecí prsa");
+    }
 }

@@ -55,7 +55,7 @@ public class GetCustomFoodsEndpoint(IMongoContext mongo) : Endpoint<GetCustomFoo
 
         await Send.OkAsync(new GetCustomFoodsResponse
         {
-            Foods = foods.Select(FoodSummary.FromDocument).ToList(),
+            Foods = foods.Select(f => FoodSummary.FromDocument(f)).ToList(),
             TotalCount = totalCount,
             Page = req.Page,
             PageSize = req.PageSize

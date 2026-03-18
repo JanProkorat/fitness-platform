@@ -88,9 +88,11 @@ public class SearchFoodsEndpoint(
             }
         }
 
+        var language = HttpContext.Request.Headers.AcceptLanguage.FirstOrDefault()?.Split(',').FirstOrDefault()?.Split('-').FirstOrDefault();
+
         await Send.OkAsync(new SearchFoodsResponse
         {
-            Foods = localFoods.Select(FoodSummary.FromDocument).ToList(),
+            Foods = localFoods.Select(f => FoodSummary.FromDocument(f, language)).ToList(),
             TotalCount = totalCount,
             Page = req.Page,
             PageSize = req.PageSize

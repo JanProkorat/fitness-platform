@@ -50,10 +50,12 @@ public class FoodSummary
     /// <summary>
     /// Maps a <see cref="Food"/> document to a <see cref="FoodSummary"/> DTO.
     /// </summary>
-    public static FoodSummary FromDocument(Food food) => new()
+    /// <param name="food">The food document.</param>
+    /// <param name="language">Two-letter language code for name resolution (e.g. "cs", "de"). Defaults to "en".</param>
+    public static FoodSummary FromDocument(Food food, string? language = null) => new()
     {
         FoodId = food.ExternalId,
-        Name = food.Name,
+        Name = food.LocalizedNames?.Resolve(language) ?? food.Name,
         Source = food.Source,
         Barcode = food.Barcode,
         NutrientValue = new NutrientValueDto
