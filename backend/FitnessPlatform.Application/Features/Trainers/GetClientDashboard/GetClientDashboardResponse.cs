@@ -79,6 +79,56 @@ public class GetClientDashboardResponse
     /// Current streak of consecutive compliant days.
     /// </summary>
     public int CurrentStreak { get; set; }
+
+    /// <summary>
+    /// Client's onboarding questionnaire data, or null if not completed.
+    /// </summary>
+    public OnboardingDataDto? Onboarding { get; set; }
+}
+
+/// <summary>
+/// Client onboarding questionnaire data summary.
+/// </summary>
+public class OnboardingDataDto
+{
+    /// <summary>Biological sex.</summary>
+    public string? Sex { get; set; }
+    /// <summary>Target weight in kg.</summary>
+    public decimal? TargetWeightKg { get; set; }
+    /// <summary>Body type / somatotype.</summary>
+    public string? BodyType { get; set; }
+    /// <summary>Primary fitness goal.</summary>
+    public string? PrimaryGoal { get; set; }
+    /// <summary>Desired time horizon.</summary>
+    public string? TimeHorizon { get; set; }
+    /// <summary>Job/activity type.</summary>
+    public string? JobType { get; set; }
+    /// <summary>Sleep hours per night.</summary>
+    public int? SleepHours { get; set; }
+    /// <summary>Stress level (1-5).</summary>
+    public int? StressLevel { get; set; }
+    /// <summary>Current training frequency.</summary>
+    public string? CurrentTrainingFrequency { get; set; }
+    /// <summary>Desired training frequency.</summary>
+    public string? DesiredTrainingFrequency { get; set; }
+    /// <summary>Self-rated fitness (1-10).</summary>
+    public int? FitnessRating { get; set; }
+    /// <summary>Preferred activities (comma-separated).</summary>
+    public string? PreferredActivities { get; set; }
+    /// <summary>Injuries/limitations (comma-separated).</summary>
+    public string? Injuries { get; set; }
+    /// <summary>Meals per day.</summary>
+    public string? MealsPerDay { get; set; }
+    /// <summary>Dietary style.</summary>
+    public string? DietaryStyle { get; set; }
+    /// <summary>Allergies (comma-separated).</summary>
+    public string? Allergies { get; set; }
+    /// <summary>Plan experience.</summary>
+    public string? PlanExperience { get; set; }
+    /// <summary>Past blockers (comma-separated).</summary>
+    public string? PastBlockers { get; set; }
+    /// <summary>Primary motivation.</summary>
+    public string? PrimaryMotivation { get; set; }
 }
 
 /// <summary>

@@ -42,11 +42,11 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
         }
 
         // Find the trainer's profile
-        var trainerProfile = await db.TrainerProfiles
+        var professionalProfile = await db.ProfessionalProfiles
             .AsNoTracking()
             .FirstOrDefaultAsync(tp => tp.UserId == Guid.Parse(userId), ct);
 
-        if (trainerProfile is null)
+        if (professionalProfile is null)
         {
             await Send.NotFoundAsync(ct);
             return;
@@ -56,6 +56,7 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
         var clientProfile = await db.ClientProfiles
             .AsNoTracking()
             .Include(cp => cp.User)
+            .Include(cp => cp.OnboardingData)
             .FirstOrDefaultAsync(cp => cp.PublicId == req.ClientId, ct);
 
         if (clientProfile is null)
@@ -65,10 +66,10 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
         }
 
         // Verify an active trainer-client link exists
-        var link = await db.ClientTrainerLinks
+        var link = await db.ClientProfessionalLinks
             .AsNoTracking()
             .FirstOrDefaultAsync(ctl =>
-                ctl.TrainerProfileId == trainerProfile.Id &&
+                ctl.ProfessionalProfileId == professionalProfile.Id &&
                 ctl.ClientProfileId == clientProfile.Id &&
                 ctl.IsActive, ct);
 
@@ -127,6 +128,33 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
             HttpContext.Connection.RemoteIpAddress?.ToString(),
             ct: ct);
 
+        OnboardingDataDto? onboarding = null;
+        if (clientProfile.OnboardingData is { } od)
+        {
+            onboarding = new OnboardingDataDto
+            {
+                Sex = od.Sex.ToString(),
+                TargetWeightKg = od.TargetWeightKg,
+                BodyType = od.BodyType.ToString(),
+                PrimaryGoal = od.PrimaryGoal.ToString(),
+                TimeHorizon = od.TimeHorizon.ToString(),
+                JobType = od.JobType.ToString(),
+                SleepHours = od.SleepHours,
+                StressLevel = od.StressLevel,
+                CurrentTrainingFrequency = od.CurrentTrainingFrequency.ToString(),
+                DesiredTrainingFrequency = od.DesiredTrainingFrequency.ToString(),
+                FitnessRating = od.FitnessRating,
+                PreferredActivities = od.PreferredActivities,
+                Injuries = od.Injuries,
+                MealsPerDay = od.MealsPerDay.ToString(),
+                DietaryStyle = od.DietaryStyle.ToString(),
+                Allergies = od.Allergies,
+                PlanExperience = od.PlanExperience.ToString(),
+                PastBlockers = od.PastBlockers,
+                PrimaryMotivation = od.PrimaryMotivation.ToString(),
+            };
+        }
+
         await Send.OkAsync(new GetClientDashboardResponse
         {
             ClientPublicId = clientProfile.PublicId,
@@ -143,7 +171,8 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
             TotalProgressPhotos = totalProgressPhotos,
             LatestMeasurement = latestMeasurement,
             CompliancePercent = compliancePercent,
-            CurrentStreak = currentStreak
+            CurrentStreak = currentStreak,
+            Onboarding = onboarding
         }, ct);
     }
 }
