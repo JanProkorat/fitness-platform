@@ -1,117 +1,16 @@
 import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
-  StyleSheet, Alert, ActivityIndicator,
+  StyleSheet, Alert, ActivityIndicator, Modal, Pressable,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import Slider from '@react-native-community/slider';
 import api from '../../src/api/client';
 import { useAuthStore } from '../../src/stores/auth';
 import { Colors } from '../../constants/Colors';
 
 const TOTAL_STEPS = 7;
-
-const BODY_TYPES = [
-  { value: 'Ectomorph', label: 'Ectomorph', sub: 'Naturally slim, hard to gain weight' },
-  { value: 'Mesomorph', label: 'Mesomorph', sub: 'Athletic build, responds well' },
-  { value: 'Endomorph', label: 'Endomorph', sub: 'Tends to store fat' },
-];
-
-const GOALS = [
-  { value: 'LoseFat', label: 'Lose fat', sub: 'Caloric deficit, cardio + strength' },
-  { value: 'GainMuscle', label: 'Gain muscle', sub: 'Caloric surplus, strength training' },
-  { value: 'Recomposition', label: 'Recomposition', sub: 'Lose fat & gain muscle simultaneously' },
-  { value: 'Fitness', label: 'Improve fitness', sub: 'Functional fitness, endurance, energy' },
-  { value: 'Health', label: 'Health & prevention', sub: 'Movement as lifestyle' },
-];
-
-const TIME_HORIZONS = [
-  { value: 'ThreeMonths', label: '3 months', sub: 'Quick start' },
-  { value: 'SixMonths', label: '6 months', sub: 'Realistic goal' },
-  { value: 'OneYear', label: '1 year+', sub: 'Lasting change' },
-];
-
-const JOB_TYPES = [
-  { value: 'Sedentary', label: 'Sedentary', sub: 'Office, desk work' },
-  { value: 'Standing', label: 'Standing / moving', sub: 'Retail, teaching, healthcare' },
-  { value: 'Physical', label: 'Physical work', sub: 'Construction, trade, sport' },
-];
-
-const CURRENT_FREQ = [
-  { value: 'None', label: 'None', sub: '0× per week' },
-  { value: 'Occasional', label: 'Occasional', sub: '1–2× per week' },
-  { value: 'Regular', label: 'Regular', sub: '3–4× per week' },
-  { value: 'High', label: 'High', sub: '5× or more' },
-];
-
-const DESIRED_FREQ = [
-  { value: 'TwoPerWeek', label: '2× / week' },
-  { value: 'ThreePerWeek', label: '3× / week' },
-  { value: 'FourPerWeek', label: '4× / week' },
-  { value: 'FivePerWeek', label: '5× / week' },
-];
-
-const GYM_ACCESS = [
-  { value: 'Yes', label: 'Yes, I have membership' },
-  { value: 'Sometimes', label: 'Sometimes / pay per visit' },
-  { value: 'No', label: 'No, I train at home' },
-];
-
-const ACTIVITIES = [
-  { value: 'strength', label: 'Strength training' },
-  { value: 'cardio', label: 'Cardio / running' },
-  { value: 'hiit', label: 'HIIT / circuit' },
-  { value: 'yoga', label: 'Yoga / stretching' },
-  { value: 'cycling', label: 'Cycling / outdoor' },
-  { value: 'martial_arts', label: 'Martial arts' },
-];
-
-const INJURY_OPTIONS = [
-  { value: 'none', label: 'No limitations' },
-  { value: 'back', label: 'Back / spine' },
-  { value: 'knees', label: 'Knees' },
-  { value: 'shoulders', label: 'Shoulders' },
-];
-
-const MEALS_OPTIONS = [
-  { value: 'TwoToThree', label: '2–3 meals' },
-  { value: 'FourToFive', label: '4–5 meals' },
-  { value: 'SixPlus', label: '6 or more' },
-];
-
-const DIET_STYLES = [
-  { value: 'Standard', label: 'Standard' },
-  { value: 'Vegetarian', label: 'Vegetarian' },
-  { value: 'Vegan', label: 'Vegan' },
-  { value: 'GlutenFree', label: 'Gluten free' },
-];
-
-const ALLERGY_OPTIONS = [
-  { value: 'none', label: 'None' },
-  { value: 'lactose', label: 'Lactose' },
-  { value: 'gluten', label: 'Gluten' },
-  { value: 'nuts', label: 'Nuts' },
-];
-
-const PLAN_EXP = [
-  { value: 'Never', label: 'Never had a plan' },
-  { value: 'TriedFailed', label: "Tried but didn't stick" },
-  { value: 'TriedSucceeded', label: 'Yes, it worked for me' },
-];
-
-const BLOCKER_OPTIONS = [
-  { value: 'time', label: 'Lack of time' },
-  { value: 'motivation', label: 'Lost motivation' },
-  { value: 'knowledge', label: "Didn't know how" },
-  { value: 'slow_results', label: 'Results were slow' },
-  { value: 'none', label: 'Nothing held me back' },
-];
-
-const MOTIVATIONS = [
-  { value: 'Appearance', label: 'Better appearance' },
-  { value: 'Health', label: 'Health & energy' },
-  { value: 'Performance', label: 'Athletic performance' },
-  { value: 'Confidence', label: 'Confidence' },
-];
 
 interface FormData {
   age: string;
@@ -141,9 +40,12 @@ interface FormData {
 }
 
 export default function OnboardingScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [customActivity, setCustomActivity] = useState('');
+  const [customInjury, setCustomInjury] = useState('');
   const [form, setForm] = useState<FormData>({
     age: '', sex: '', heightCm: '', weightKg: '', targetWeightKg: '',
     bodyType: '', primaryGoal: '', timeHorizon: '', jobType: '',
@@ -154,6 +56,109 @@ export default function OnboardingScreen() {
     primaryMotivation: '',
   });
 
+  const BODY_TYPES = [
+    { value: 'Ectomorph', label: t('onboarding.step1.ectomorph'), sub: t('onboarding.step1.ectomorphSub') },
+    { value: 'Mesomorph', label: t('onboarding.step1.mesomorph'), sub: t('onboarding.step1.mesomorphSub') },
+    { value: 'Endomorph', label: t('onboarding.step1.endomorph'), sub: t('onboarding.step1.endomorphSub') },
+  ];
+
+  const GOALS = [
+    { value: 'LoseFat', label: t('onboarding.step2.loseFat'), sub: t('onboarding.step2.loseFatSub') },
+    { value: 'GainMuscle', label: t('onboarding.step2.gainMuscle'), sub: t('onboarding.step2.gainMuscleSub') },
+    { value: 'Recomposition', label: t('onboarding.step2.recomposition'), sub: t('onboarding.step2.recompositionSub') },
+    { value: 'Fitness', label: t('onboarding.step2.fitness'), sub: t('onboarding.step2.fitnessSub') },
+    { value: 'Health', label: t('onboarding.step2.health'), sub: t('onboarding.step2.healthSub') },
+  ];
+
+  const TIME_HORIZONS = [
+    { value: 'ThreeMonths', label: t('onboarding.step2.threeMonths'), sub: t('onboarding.step2.threeMonthsSub') },
+    { value: 'SixMonths', label: t('onboarding.step2.sixMonths'), sub: t('onboarding.step2.sixMonthsSub') },
+    { value: 'OneYear', label: t('onboarding.step2.oneYear'), sub: t('onboarding.step2.oneYearSub') },
+  ];
+
+  const JOB_TYPES = [
+    { value: 'Sedentary', label: t('onboarding.step3.sedentary'), sub: t('onboarding.step3.sedentarySub') },
+    { value: 'Standing', label: t('onboarding.step3.standing'), sub: t('onboarding.step3.standingSub') },
+    { value: 'Physical', label: t('onboarding.step3.physical'), sub: t('onboarding.step3.physicalSub') },
+  ];
+
+  const CURRENT_FREQ = [
+    { value: 'None', label: t('onboarding.step4.none'), sub: t('onboarding.step4.noneSub') },
+    { value: 'Occasional', label: t('onboarding.step4.occasional'), sub: t('onboarding.step4.occasionalSub') },
+    { value: 'Regular', label: t('onboarding.step4.regular'), sub: t('onboarding.step4.regularSub') },
+    { value: 'High', label: t('onboarding.step4.high'), sub: t('onboarding.step4.highSub') },
+  ];
+
+  const DESIRED_FREQ = [
+    { value: 'TwoPerWeek', label: t('onboarding.step4.twoPerWeek') },
+    { value: 'ThreePerWeek', label: t('onboarding.step4.threePerWeek') },
+    { value: 'FourPerWeek', label: t('onboarding.step4.fourPerWeek') },
+    { value: 'FivePerWeek', label: t('onboarding.step4.fivePerWeek') },
+  ];
+
+  const GYM_ACCESS = [
+    { value: 'Yes', label: t('onboarding.step5.gymYes') },
+    { value: 'Sometimes', label: t('onboarding.step5.gymSometimes') },
+    { value: 'No', label: t('onboarding.step5.gymNo') },
+  ];
+
+  const ACTIVITIES = [
+    { value: 'strength', label: t('onboarding.step5.strength') },
+    { value: 'cardio', label: t('onboarding.step5.cardio') },
+    { value: 'hiit', label: t('onboarding.step5.hiit') },
+    { value: 'yoga', label: t('onboarding.step5.yoga') },
+    { value: 'cycling', label: t('onboarding.step5.cycling') },
+    { value: 'martial_arts', label: t('onboarding.step5.martialArts') },
+  ];
+
+  const INJURY_OPTIONS = [
+    { value: 'none', label: t('onboarding.step5.noLimitations') },
+    { value: 'back', label: t('onboarding.step5.back') },
+    { value: 'knees', label: t('onboarding.step5.knees') },
+    { value: 'shoulders', label: t('onboarding.step5.shoulders') },
+  ];
+
+  const MEALS_OPTIONS = [
+    { value: 'TwoToThree', label: t('onboarding.step6.twoToThree') },
+    { value: 'FourToFive', label: t('onboarding.step6.fourToFive') },
+    { value: 'SixPlus', label: t('onboarding.step6.sixPlus') },
+  ];
+
+  const DIET_STYLES = [
+    { value: 'Standard', label: t('onboarding.step6.standard') },
+    { value: 'Vegetarian', label: t('onboarding.step6.vegetarian') },
+    { value: 'Vegan', label: t('onboarding.step6.vegan') },
+    { value: 'GlutenFree', label: t('onboarding.step6.glutenFree') },
+  ];
+
+  const ALLERGY_OPTIONS = [
+    { value: 'none', label: t('onboarding.step6.noAllergies') },
+    { value: 'lactose', label: t('onboarding.step6.lactose') },
+    { value: 'gluten', label: t('onboarding.step6.gluten') },
+    { value: 'nuts', label: t('onboarding.step6.nuts') },
+  ];
+
+  const PLAN_EXP = [
+    { value: 'Never', label: t('onboarding.step7.never') },
+    { value: 'TriedFailed', label: t('onboarding.step7.triedFailed') },
+    { value: 'TriedSucceeded', label: t('onboarding.step7.triedSucceeded') },
+  ];
+
+  const BLOCKER_OPTIONS = [
+    { value: 'time', label: t('onboarding.step7.lackOfTime') },
+    { value: 'motivation', label: t('onboarding.step7.lostMotivation') },
+    { value: 'knowledge', label: t('onboarding.step7.didntKnow') },
+    { value: 'slow_results', label: t('onboarding.step7.slowResults') },
+    { value: 'none', label: t('onboarding.step7.nothingHeldBack') },
+  ];
+
+  const MOTIVATIONS = [
+    { value: 'Appearance', label: t('onboarding.step7.appearance') },
+    { value: 'Health', label: t('onboarding.step7.healthEnergy') },
+    { value: 'Performance', label: t('onboarding.step7.performance') },
+    { value: 'Confidence', label: t('onboarding.step7.confidence') },
+  ];
+
   const set = (key: keyof FormData, value: FormData[keyof FormData]) =>
     setForm(prev => ({ ...prev, [key]: value }));
 
@@ -162,6 +167,17 @@ export default function OnboardingScreen() {
       const arr = prev[key] as string[];
       return { ...prev, [key]: arr.includes(value) ? arr.filter(v => v !== value) : [...arr, value] };
     });
+  };
+
+  const addCustomItem = (key: 'preferredActivities' | 'injuries', value: string, clearFn: (v: string) => void) => {
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    setForm(prev => {
+      const arr = prev[key] as string[];
+      if (arr.includes(trimmed)) return prev;
+      return { ...prev, [key]: [...arr, trimmed] };
+    });
+    clearFn('');
   };
 
   const canAdvance = (): boolean => {
@@ -214,7 +230,7 @@ export default function OnboardingScreen() {
       }
       router.replace('/(client)');
     } catch {
-      Alert.alert('Error', 'Failed to save onboarding data. Please try again.');
+      Alert.alert(t('onboarding.errorTitle'), t('onboarding.errorMessage'));
     } finally {
       setLoading(false);
     }
@@ -246,6 +262,42 @@ export default function OnboardingScreen() {
     </TouchableOpacity>
   );
 
+  const DropdownSelect = ({ value, placeholder, options, onSelect }: {
+    value: string; placeholder: string;
+    options: { value: string; label: string }[];
+    onSelect: (v: string) => void;
+  }) => {
+    const [open, setOpen] = useState(false);
+    const selected = options.find(o => o.value === value);
+    return (
+      <>
+        <TouchableOpacity style={styles.dropdown} onPress={() => setOpen(true)} activeOpacity={0.7}>
+          <Text style={[styles.dropdownText, !selected && styles.dropdownPlaceholder]}>
+            {selected?.label ?? placeholder}
+          </Text>
+          <Text style={styles.dropdownArrow}>▾</Text>
+        </TouchableOpacity>
+        <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+          <Pressable style={styles.dropdownOverlay} onPress={() => setOpen(false)}>
+            <View style={styles.dropdownMenu}>
+              {options.map(o => (
+                <TouchableOpacity
+                  key={o.value}
+                  style={[styles.dropdownItem, value === o.value && styles.dropdownItemSelected]}
+                  onPress={() => { onSelect(o.value); setOpen(false); }}
+                >
+                  <Text style={[styles.dropdownItemText, value === o.value && styles.optionLabelSelected]}>
+                    {o.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </Pressable>
+        </Modal>
+      </>
+    );
+  };
+
   const ScaleRow = ({ count, value, onSelect }: {
     count: number; value: number; onSelect: (n: number) => void;
   }) => (
@@ -266,43 +318,40 @@ export default function OnboardingScreen() {
     switch (step) {
       case 1: return (
         <>
-          <Text style={styles.stepTitle}>Basic Info</Text>
-          <Text style={styles.stepSub}>Helps us set the right starting point for your plan.</Text>
+          <Text style={styles.stepTitle}>{t('onboarding.step1.title')}</Text>
+          <Text style={styles.stepSub}>{t('onboarding.step1.subtitle')}</Text>
           <View style={styles.row}>
             <View style={styles.halfField}>
-              <Text style={styles.label}>Age</Text>
+              <Text style={styles.label}>{t('onboarding.step1.age')}</Text>
               <TextInput style={styles.input} keyboardType="number-pad" value={form.age}
                 onChangeText={v => set('age', v)} placeholder="25" placeholderTextColor={Colors.dark.muted} />
             </View>
             <View style={styles.halfField}>
-              <Text style={styles.label}>Sex</Text>
-              <View style={styles.row}>
-                {['Male', 'Female'].map(s => (
-                  <TouchableOpacity key={s}
-                    style={[styles.optionCard, styles.flex1, form.sex === s && styles.optionCardSelected]}
-                    onPress={() => set('sex', s)}>
-                    <Text style={[styles.optionLabel, form.sex === s && styles.optionLabelSelected]}>{s}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+              <Text style={styles.label}>{t('onboarding.step1.sex')}</Text>
+              <DropdownSelect
+                value={form.sex}
+                placeholder={t('onboarding.step1.sexSelect')}
+                options={[{ value: 'Male', label: t('onboarding.step1.male') }, { value: 'Female', label: t('onboarding.step1.female') }]}
+                onSelect={v => set('sex', v)}
+              />
             </View>
           </View>
           <View style={styles.row}>
             <View style={styles.halfField}>
-              <Text style={styles.label}>Height (cm)</Text>
+              <Text style={styles.label}>{t('onboarding.step1.height')}</Text>
               <TextInput style={styles.input} keyboardType="number-pad" value={form.heightCm}
                 onChangeText={v => set('heightCm', v)} placeholder="175" placeholderTextColor={Colors.dark.muted} />
             </View>
             <View style={styles.halfField}>
-              <Text style={styles.label}>Weight (kg)</Text>
+              <Text style={styles.label}>{t('onboarding.step1.weight')}</Text>
               <TextInput style={styles.input} keyboardType="decimal-pad" value={form.weightKg}
                 onChangeText={v => set('weightKg', v)} placeholder="75" placeholderTextColor={Colors.dark.muted} />
             </View>
           </View>
-          <Text style={styles.label}>Target weight (kg) — optional</Text>
+          <Text style={styles.label}>{t('onboarding.step1.targetWeight')}</Text>
           <TextInput style={styles.input} keyboardType="decimal-pad" value={form.targetWeightKg}
             onChangeText={v => set('targetWeightKg', v)} placeholder="70" placeholderTextColor={Colors.dark.muted} />
-          <Text style={styles.label}>Body type</Text>
+          <Text style={styles.label}>{t('onboarding.step1.bodyType')}</Text>
           {BODY_TYPES.map(o => (
             <OptionCard key={o.value} label={o.label} sub={o.sub}
               selected={form.bodyType === o.value} onPress={() => set('bodyType', o.value)} />
@@ -311,14 +360,14 @@ export default function OnboardingScreen() {
       );
       case 2: return (
         <>
-          <Text style={styles.stepTitle}>Your Main Goal</Text>
-          <Text style={styles.stepSub}>We'll adjust caloric intake and training type based on this.</Text>
-          <Text style={styles.label}>What do you want to achieve?</Text>
+          <Text style={styles.stepTitle}>{t('onboarding.step2.title')}</Text>
+          <Text style={styles.stepSub}>{t('onboarding.step2.subtitle')}</Text>
+          <Text style={styles.label}>{t('onboarding.step2.goalLabel')}</Text>
           {GOALS.map(o => (
             <OptionCard key={o.value} label={o.label} sub={o.sub}
               selected={form.primaryGoal === o.value} onPress={() => set('primaryGoal', o.value)} />
           ))}
-          <Text style={[styles.label, { marginTop: 16 }]}>Time horizon</Text>
+          <Text style={[styles.label, { marginTop: 16 }]}>{t('onboarding.step2.timeHorizon')}</Text>
           <View style={styles.row}>
             {TIME_HORIZONS.map(o => (
               <OptionCard key={o.value} label={o.label} sub={o.sub}
@@ -329,32 +378,41 @@ export default function OnboardingScreen() {
       );
       case 3: return (
         <>
-          <Text style={styles.stepTitle}>Lifestyle</Text>
-          <Text style={styles.stepSub}>Helps us estimate your daily energy expenditure.</Text>
-          <Text style={styles.label}>Job type / daily activity</Text>
+          <Text style={styles.stepTitle}>{t('onboarding.step3.title')}</Text>
+          <Text style={styles.stepSub}>{t('onboarding.step3.subtitle')}</Text>
+          <Text style={styles.label}>{t('onboarding.step3.jobType')}</Text>
           {JOB_TYPES.map(o => (
             <OptionCard key={o.value} label={o.label} sub={o.sub}
               selected={form.jobType === o.value} onPress={() => set('jobType', o.value)} />
           ))}
-          <Text style={[styles.label, { marginTop: 16 }]}>Average sleep (hours)</Text>
-          <ScaleRow count={7} value={form.sleepHours - 3} onSelect={n => set('sleepHours', n + 3)} />
-          <View style={styles.scaleLabels}>
-            <Text style={styles.scaleLabelText}>4h</Text>
-            <Text style={styles.scaleLabelText}>10h</Text>
+          <Text style={[styles.label, { marginTop: 16 }]}>{t('onboarding.step3.sleep')}</Text>
+          <View style={styles.sliderRow}>
+            <Slider
+              style={{ flex: 1 }}
+              minimumValue={0}
+              maximumValue={12}
+              step={1}
+              value={form.sleepHours}
+              onValueChange={v => set('sleepHours', v)}
+              minimumTrackTintColor={Colors.dark.gold}
+              maximumTrackTintColor={Colors.dark.border}
+              thumbTintColor={Colors.dark.gold}
+            />
+            <Text style={styles.sliderValue}>{form.sleepHours}{t('onboarding.step3.sleepUnit')}</Text>
           </View>
-          <Text style={[styles.label, { marginTop: 16 }]}>Stress level</Text>
+          <Text style={[styles.label, { marginTop: 16 }]}>{t('onboarding.step3.stressLevel')}</Text>
           <ScaleRow count={5} value={form.stressLevel} onSelect={n => set('stressLevel', n)} />
           <View style={styles.scaleLabels}>
-            <Text style={styles.scaleLabelText}>No stress</Text>
-            <Text style={styles.scaleLabelText}>Extreme</Text>
+            <Text style={styles.scaleLabelText}>{t('onboarding.step3.noStress')}</Text>
+            <Text style={styles.scaleLabelText}>{t('onboarding.step3.extremeStress')}</Text>
           </View>
         </>
       );
       case 4: return (
         <>
-          <Text style={styles.stepTitle}>Current Activity</Text>
-          <Text style={styles.stepSub}>Be honest — the plan only works based on reality.</Text>
-          <Text style={styles.label}>How often did you train in the last 4 weeks?</Text>
+          <Text style={styles.stepTitle}>{t('onboarding.step4.title')}</Text>
+          <Text style={styles.stepSub}>{t('onboarding.step4.subtitle')}</Text>
+          <Text style={styles.label}>{t('onboarding.step4.currentFreq')}</Text>
           <View style={styles.row}>
             {CURRENT_FREQ.map(o => (
               <OptionCard key={o.value} label={o.label} sub={o.sub}
@@ -362,7 +420,7 @@ export default function OnboardingScreen() {
                 onPress={() => set('currentTrainingFrequency', o.value)} />
             ))}
           </View>
-          <Text style={[styles.label, { marginTop: 16 }]}>How often do you want to train (realistically)?</Text>
+          <Text style={[styles.label, { marginTop: 16 }]}>{t('onboarding.step4.desiredFreq')}</Text>
           <View style={styles.row}>
             {DESIRED_FREQ.map(o => (
               <OptionCard key={o.value} label={o.label}
@@ -370,24 +428,24 @@ export default function OnboardingScreen() {
                 onPress={() => set('desiredTrainingFrequency', o.value)} />
             ))}
           </View>
-          <Text style={[styles.label, { marginTop: 16 }]}>Current fitness level</Text>
+          <Text style={[styles.label, { marginTop: 16 }]}>{t('onboarding.step4.fitnessLevel')}</Text>
           <ScaleRow count={10} value={form.fitnessRating} onSelect={n => set('fitnessRating', n)} />
           <View style={styles.scaleLabels}>
-            <Text style={styles.scaleLabelText}>Very poor</Text>
-            <Text style={styles.scaleLabelText}>Athlete</Text>
+            <Text style={styles.scaleLabelText}>{t('onboarding.step4.veryPoor')}</Text>
+            <Text style={styles.scaleLabelText}>{t('onboarding.step4.athlete')}</Text>
           </View>
         </>
       );
       case 5: return (
         <>
-          <Text style={styles.stepTitle}>Equipment & Preferences</Text>
-          <Text style={styles.stepSub}>Your plan will only use what you actually have access to.</Text>
-          <Text style={styles.label}>Gym access</Text>
+          <Text style={styles.stepTitle}>{t('onboarding.step5.title')}</Text>
+          <Text style={styles.stepSub}>{t('onboarding.step5.subtitle')}</Text>
+          <Text style={styles.label}>{t('onboarding.step5.gymAccess')}</Text>
           {GYM_ACCESS.map(o => (
             <OptionCard key={o.value} label={o.label}
               selected={form.gymAccess === o.value} onPress={() => set('gymAccess', o.value)} />
           ))}
-          <Text style={[styles.label, { marginTop: 16 }]}>Preferred activities (select all that apply)</Text>
+          <Text style={[styles.label, { marginTop: 16 }]}>{t('onboarding.step5.activities')}</Text>
           <View style={styles.grid}>
             {ACTIVITIES.map(o => (
               <CheckboxItem key={o.value} label={o.label}
@@ -395,7 +453,22 @@ export default function OnboardingScreen() {
                 onPress={() => toggleMulti('preferredActivities', o.value)} />
             ))}
           </View>
-          <Text style={[styles.label, { marginTop: 16 }]}>Injuries or limitations</Text>
+          <View style={styles.customInputRow}>
+            <TextInput
+              style={[styles.input, styles.customInput]}
+              value={customActivity}
+              onChangeText={setCustomActivity}
+              placeholder={t('onboarding.step5.addCustomActivity')}
+              placeholderTextColor={Colors.dark.muted}
+              onSubmitEditing={() => addCustomItem('preferredActivities', customActivity, setCustomActivity)}
+            />
+            <TouchableOpacity
+              style={styles.addBtn}
+              onPress={() => addCustomItem('preferredActivities', customActivity, setCustomActivity)}>
+              <Text style={styles.addBtnText}>+</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={[styles.label, { marginTop: 16 }]}>{t('onboarding.step5.injuries')}</Text>
           <View style={styles.grid}>
             {INJURY_OPTIONS.map(o => (
               <CheckboxItem key={o.value} label={o.label}
@@ -403,27 +476,42 @@ export default function OnboardingScreen() {
                 onPress={() => toggleMulti('injuries', o.value)} />
             ))}
           </View>
+          <View style={styles.customInputRow}>
+            <TextInput
+              style={[styles.input, styles.customInput]}
+              value={customInjury}
+              onChangeText={setCustomInjury}
+              placeholder={t('onboarding.step5.addCustomInjury')}
+              placeholderTextColor={Colors.dark.muted}
+              onSubmitEditing={() => addCustomItem('injuries', customInjury, setCustomInjury)}
+            />
+            <TouchableOpacity
+              style={styles.addBtn}
+              onPress={() => addCustomItem('injuries', customInjury, setCustomInjury)}>
+              <Text style={styles.addBtnText}>+</Text>
+            </TouchableOpacity>
+          </View>
         </>
       );
       case 6: return (
         <>
-          <Text style={styles.stepTitle}>Nutrition</Text>
-          <Text style={styles.stepSub}>We'll adapt the meal plan to your habits — not the other way around.</Text>
-          <Text style={styles.label}>Meals per day</Text>
+          <Text style={styles.stepTitle}>{t('onboarding.step6.title')}</Text>
+          <Text style={styles.stepSub}>{t('onboarding.step6.subtitle')}</Text>
+          <Text style={styles.label}>{t('onboarding.step6.mealsPerDay')}</Text>
           <View style={styles.row}>
             {MEALS_OPTIONS.map(o => (
               <OptionCard key={o.value} label={o.label}
                 selected={form.mealsPerDay === o.value} onPress={() => set('mealsPerDay', o.value)} />
             ))}
           </View>
-          <Text style={[styles.label, { marginTop: 16 }]}>Dietary style</Text>
+          <Text style={[styles.label, { marginTop: 16 }]}>{t('onboarding.step6.dietaryStyle')}</Text>
           <View style={styles.grid}>
             {DIET_STYLES.map(o => (
               <OptionCard key={o.value} label={o.label}
                 selected={form.dietaryStyle === o.value} onPress={() => set('dietaryStyle', o.value)} />
             ))}
           </View>
-          <Text style={[styles.label, { marginTop: 16 }]}>Allergies / intolerances</Text>
+          <Text style={[styles.label, { marginTop: 16 }]}>{t('onboarding.step6.allergies')}</Text>
           <View style={styles.grid}>
             {ALLERGY_OPTIONS.map(o => (
               <CheckboxItem key={o.value} label={o.label}
@@ -431,24 +519,24 @@ export default function OnboardingScreen() {
                 onPress={() => toggleMulti('allergies', o.value)} />
             ))}
           </View>
-          <Text style={[styles.label, { marginTop: 16 }]}>Diet quality rating</Text>
+          <Text style={[styles.label, { marginTop: 16 }]}>{t('onboarding.step6.dietRating')}</Text>
           <ScaleRow count={5} value={form.dietRating} onSelect={n => set('dietRating', n)} />
           <View style={styles.scaleLabels}>
-            <Text style={styles.scaleLabelText}>Very poor</Text>
-            <Text style={styles.scaleLabelText}>Excellent</Text>
+            <Text style={styles.scaleLabelText}>{t('onboarding.step6.veryPoorDiet')}</Text>
+            <Text style={styles.scaleLabelText}>{t('onboarding.step6.excellentDiet')}</Text>
           </View>
         </>
       );
       case 7: return (
         <>
-          <Text style={styles.stepTitle}>Experience & Motivation</Text>
-          <Text style={styles.stepSub}>Last step — helps us set the right intensity and approach.</Text>
-          <Text style={styles.label}>Experience with structured plans</Text>
+          <Text style={styles.stepTitle}>{t('onboarding.step7.title')}</Text>
+          <Text style={styles.stepSub}>{t('onboarding.step7.subtitle')}</Text>
+          <Text style={styles.label}>{t('onboarding.step7.planExperience')}</Text>
           {PLAN_EXP.map(o => (
             <OptionCard key={o.value} label={o.label}
               selected={form.planExperience === o.value} onPress={() => set('planExperience', o.value)} />
           ))}
-          <Text style={[styles.label, { marginTop: 16 }]}>What held you back in the past?</Text>
+          <Text style={[styles.label, { marginTop: 16 }]}>{t('onboarding.step7.blockers')}</Text>
           <View style={styles.grid}>
             {BLOCKER_OPTIONS.map(o => (
               <CheckboxItem key={o.value} label={o.label}
@@ -456,7 +544,7 @@ export default function OnboardingScreen() {
                 onPress={() => toggleMulti('pastBlockers', o.value)} />
             ))}
           </View>
-          <Text style={[styles.label, { marginTop: 16 }]}>Primary motivation</Text>
+          <Text style={[styles.label, { marginTop: 16 }]}>{t('onboarding.step7.motivation')}</Text>
           <View style={styles.grid}>
             {MOTIVATIONS.map(o => (
               <OptionCard key={o.value} label={o.label}
@@ -471,36 +559,36 @@ export default function OnboardingScreen() {
 
   const renderSummary = () => {
     const summaryRows: { label: string; value: string }[] = [
-      { label: 'Age', value: form.age },
-      { label: 'Sex', value: form.sex },
-      { label: 'Height', value: `${form.heightCm} cm` },
-      { label: 'Weight', value: `${form.weightKg} kg` },
-      ...(form.targetWeightKg ? [{ label: 'Target weight', value: `${form.targetWeightKg} kg` }] : []),
-      { label: 'Body type', value: form.bodyType },
-      { label: 'Goal', value: form.primaryGoal },
-      { label: 'Time horizon', value: form.timeHorizon },
-      { label: 'Job type', value: form.jobType },
-      { label: 'Sleep', value: `${form.sleepHours}h` },
-      { label: 'Stress', value: `${form.stressLevel}/5` },
-      { label: 'Current training', value: form.currentTrainingFrequency },
-      { label: 'Desired training', value: form.desiredTrainingFrequency },
-      { label: 'Fitness level', value: `${form.fitnessRating}/10` },
-      { label: 'Gym access', value: form.gymAccess },
-      ...(form.preferredActivities.length ? [{ label: 'Activities', value: form.preferredActivities.join(', ') }] : []),
-      ...(form.injuries.length ? [{ label: 'Injuries', value: form.injuries.join(', ') }] : []),
-      { label: 'Meals/day', value: form.mealsPerDay },
-      { label: 'Diet style', value: form.dietaryStyle },
-      ...(form.allergies.length ? [{ label: 'Allergies', value: form.allergies.join(', ') }] : []),
-      { label: 'Diet rating', value: `${form.dietRating}/5` },
-      { label: 'Plan experience', value: form.planExperience },
-      ...(form.pastBlockers.length ? [{ label: 'Past blockers', value: form.pastBlockers.join(', ') }] : []),
-      { label: 'Motivation', value: form.primaryMotivation },
+      { label: t('onboarding.summary.age'), value: form.age },
+      { label: t('onboarding.summary.sex'), value: form.sex },
+      { label: t('onboarding.summary.height'), value: `${form.heightCm} cm` },
+      { label: t('onboarding.summary.weight'), value: `${form.weightKg} kg` },
+      ...(form.targetWeightKg ? [{ label: t('onboarding.summary.targetWeight'), value: `${form.targetWeightKg} kg` }] : []),
+      { label: t('onboarding.summary.bodyType'), value: form.bodyType },
+      { label: t('onboarding.summary.goal'), value: form.primaryGoal },
+      { label: t('onboarding.summary.timeHorizon'), value: form.timeHorizon },
+      { label: t('onboarding.summary.jobType'), value: form.jobType },
+      { label: t('onboarding.summary.sleep'), value: `${form.sleepHours}${t('onboarding.step3.sleepUnit')}` },
+      { label: t('onboarding.summary.stress'), value: `${form.stressLevel}/5` },
+      { label: t('onboarding.summary.currentTraining'), value: form.currentTrainingFrequency },
+      { label: t('onboarding.summary.desiredTraining'), value: form.desiredTrainingFrequency },
+      { label: t('onboarding.summary.fitnessLevel'), value: `${form.fitnessRating}/10` },
+      { label: t('onboarding.summary.gymAccess'), value: form.gymAccess },
+      ...(form.preferredActivities.length ? [{ label: t('onboarding.summary.activities'), value: form.preferredActivities.join(', ') }] : []),
+      ...(form.injuries.length ? [{ label: t('onboarding.summary.injuries'), value: form.injuries.join(', ') }] : []),
+      { label: t('onboarding.summary.mealsPerDay'), value: form.mealsPerDay },
+      { label: t('onboarding.summary.dietStyle'), value: form.dietaryStyle },
+      ...(form.allergies.length ? [{ label: t('onboarding.summary.allergies'), value: form.allergies.join(', ') }] : []),
+      { label: t('onboarding.summary.dietRating'), value: `${form.dietRating}/5` },
+      { label: t('onboarding.summary.planExperience'), value: form.planExperience },
+      ...(form.pastBlockers.length ? [{ label: t('onboarding.summary.pastBlockers'), value: form.pastBlockers.join(', ') }] : []),
+      { label: t('onboarding.summary.motivation'), value: form.primaryMotivation },
     ];
 
     return (
       <>
-        <Text style={styles.stepTitle}>Summary</Text>
-        <Text style={styles.stepSub}>Review your answers before submitting.</Text>
+        <Text style={styles.stepTitle}>{t('onboarding.summary.title')}</Text>
+        <Text style={styles.stepSub}>{t('onboarding.summary.subtitle')}</Text>
         <View style={styles.summaryCard}>
           {summaryRows.map(({ label, value }) => (
             <View key={label} style={styles.summaryRow}>
@@ -523,16 +611,16 @@ export default function OnboardingScreen() {
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        {!isSummary && <Text style={styles.stepLabel}>Step {step} of {TOTAL_STEPS}</Text>}
+        {!isSummary && <Text style={styles.stepLabel}>{t('onboarding.stepOf', { step, total: TOTAL_STEPS })}</Text>}
         {isSummary ? renderSummary() : renderStep()}
       </ScrollView>
 
       <View style={styles.nav}>
-        <Text style={styles.navInfo}>{isSummary ? 'Ready to submit' : `Step ${step} of ${TOTAL_STEPS}`}</Text>
+        <Text style={styles.navInfo}>{isSummary ? t('onboarding.readyToSubmit') : t('onboarding.stepOf', { step, total: TOTAL_STEPS })}</Text>
         <View style={styles.btnRow}>
           {(step > 1 || isSummary) && (
             <TouchableOpacity style={styles.backBtn} onPress={() => setStep(s => s - 1)}>
-              <Text style={styles.backBtnText}>Back</Text>
+              <Text style={styles.backBtnText}>{t('onboarding.back')}</Text>
             </TouchableOpacity>
           )}
           {isSummary ? (
@@ -543,7 +631,7 @@ export default function OnboardingScreen() {
               {loading ? (
                 <ActivityIndicator size="small" color="#000" />
               ) : (
-                <Text style={styles.nextBtnText}>Submit</Text>
+                <Text style={styles.nextBtnText}>{t('onboarding.submit')}</Text>
               )}
             </TouchableOpacity>
           ) : step < TOTAL_STEPS ? (
@@ -551,14 +639,14 @@ export default function OnboardingScreen() {
               style={[styles.nextBtn, !canAdvance() && styles.btnDisabled]}
               onPress={() => canAdvance() && setStep(s => s + 1)}
               disabled={!canAdvance()}>
-              <Text style={styles.nextBtnText}>Continue</Text>
+              <Text style={styles.nextBtnText}>{t('onboarding.continue')}</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
               style={[styles.nextBtn, !canAdvance() && styles.btnDisabled]}
               onPress={() => canAdvance() && setStep(TOTAL_STEPS + 1)}
               disabled={!canAdvance()}>
-              <Text style={styles.nextBtnText}>Review</Text>
+              <Text style={styles.nextBtnText}>{t('onboarding.review')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -588,7 +676,8 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
   optionCard: {
     borderWidth: 1, borderColor: Colors.dark.border, borderRadius: 6,
-    paddingHorizontal: 14, paddingVertical: 10, backgroundColor: Colors.dark.surface, minWidth: 80,
+    paddingHorizontal: 14, paddingVertical: 10, backgroundColor: Colors.dark.surface,
+    minWidth: 80, flexBasis: '48%', flexGrow: 1,
   },
   optionCardSelected: { borderColor: Colors.dark.gold, backgroundColor: 'rgba(201,168,76,0.08)' },
   optionLabel: { fontSize: 14, fontWeight: '500', color: Colors.dark.text },
@@ -599,7 +688,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 10,
     borderWidth: 1, borderColor: Colors.dark.border, borderRadius: 6,
     paddingHorizontal: 14, paddingVertical: 10, backgroundColor: Colors.dark.surface,
-    minWidth: '47%',
+    flexBasis: '48%', flexGrow: 1,
   },
   checkboxSelected: { borderColor: Colors.dark.gold, backgroundColor: 'rgba(201,168,76,0.08)' },
   checkboxBox: {
@@ -619,6 +708,15 @@ const styles = StyleSheet.create({
   scaleBtnTextSelected: { color: Colors.dark.gold, fontWeight: '600' },
   scaleLabels: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8, paddingHorizontal: 2 },
   scaleLabelText: { fontSize: 11, color: Colors.dark.muted },
+  sliderRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 4 },
+  sliderValue: { fontSize: 16, fontWeight: '600', color: Colors.dark.gold, minWidth: 36, textAlign: 'right' },
+  customInputRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
+  customInput: { flex: 1, marginBottom: 0 },
+  addBtn: {
+    backgroundColor: Colors.dark.gold, borderRadius: 4, width: 44, height: 44,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  addBtnText: { fontSize: 22, color: '#000', fontWeight: '700' },
   nav: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 24, paddingVertical: 16, borderTopWidth: 1, borderTopColor: Colors.dark.border,
@@ -637,6 +735,25 @@ const styles = StyleSheet.create({
   },
   nextBtnText: { fontSize: 14, color: '#000', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
   btnDisabled: { opacity: 0.4 },
+  dropdown: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: Colors.dark.surface, borderWidth: 1, borderColor: Colors.dark.border,
+    borderRadius: 4, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 12,
+  },
+  dropdownText: { fontSize: 15, color: Colors.dark.text },
+  dropdownPlaceholder: { color: Colors.dark.muted },
+  dropdownArrow: { fontSize: 14, color: Colors.dark.muted },
+  dropdownOverlay: {
+    flex: 1, justifyContent: 'center', alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  dropdownMenu: {
+    backgroundColor: Colors.dark.surface, borderRadius: 8, borderWidth: 1,
+    borderColor: Colors.dark.border, minWidth: 200, overflow: 'hidden',
+  },
+  dropdownItem: { paddingHorizontal: 20, paddingVertical: 14 },
+  dropdownItemSelected: { backgroundColor: 'rgba(201,168,76,0.08)' },
+  dropdownItemText: { fontSize: 15, color: Colors.dark.text },
   summaryCard: {
     backgroundColor: Colors.dark.surface, borderRadius: 8, padding: 16, marginBottom: 16,
   },
