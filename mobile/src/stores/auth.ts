@@ -9,6 +9,7 @@ interface User {
   firstName: string;
   lastName: string;
   roles: string[];
+  isOnboardingComplete: boolean | null;
 }
 
 interface AuthState {
@@ -73,6 +74,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           firstName: profile.firstName,
           lastName: profile.lastName,
           roles: profile.roles ?? [],
+          isOnboardingComplete: profile.isOnboardingComplete ?? null,
         },
         isAuthenticated: true,
         isInitialized: true,
