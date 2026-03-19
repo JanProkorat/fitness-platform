@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getClientDashboard } from '@/api/nutrition-goals';
 import AnamnesisForm from '@/components/nutrition/AnamnesisForm';
@@ -9,6 +9,7 @@ import MacroSliders from '@/components/nutrition/MacroSliders';
 import MealDistribution from '@/components/nutrition/MealDistribution';
 import {
   calculateGoals,
+  updateClientData,
   type CalculateGoalsResponse,
   type CalculateGoalsRequest,
 } from '@/api/nutrition-goals';
@@ -48,9 +49,23 @@ export default function ClientDetailPage() {
   const { id } = useParams<{ id: string }>();
 
   const [activeTab, setActiveTab] = useState<Tab>('overview');
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerMounted, setDrawerMounted] = useState(false);
+  const [drawerVisible, setDrawerVisible] = useState(false);
+
+  const openDrawer = useCallback(() => {
+    setDrawerMounted(true);
+    requestAnimationFrame(() => requestAnimationFrame(() => setDrawerVisible(true)));
+  }, []);
+
+  const closeDrawer = useCallback(() => {
+    setDrawerVisible(false);
+    setTimeout(() => setDrawerMounted(false), 300);
+  }, []);
+
+  const queryClient = useQueryClient();
 
   // Nutrition calculator state
+  const [isSaving, setIsSaving] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
   const [result, setResult] = useState<CalculateGoalsResponse | null>(null);
   const [lastRequest, setLastRequest] = useState<AnamnesisData | null>(null);
@@ -121,6 +136,39 @@ export default function ClientDetailPage() {
         // Silently fail on recalculation
       }
     }
+  };
+
+  const handleSave = async () => {
+    if (!result || !lastRequest || !id) return;
+    setIsSaving(true);
+    try {
+      await updateClientData(id, {
+        weightKg: lastRequest.weightKg,
+        heightCm: lastRequest.heightCm,
+        age: lastRequest.age,
+        sex: lastRequest.sex,
+        derivedActivityLevel: lastRequest.activityLevel,
+        derivedNutritionGoal: lastRequest.goal,
+        bmr: result.bmr,
+        tdee: result.tdee,
+        adjustedKcal: result.adjustedKcal,
+        proteinGrams: result.macroTargets.proteinGrams,
+        carbsGrams: result.macroTargets.carbsGrams,
+        fatGrams: result.macroTargets.fatGrams,
+      });
+      await queryClient.invalidateQueries({ queryKey: ['client-dashboard', id] });
+      setResult(null);
+      setLastRequest(null);
+    } catch {
+      // handled by interceptor
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleReset = () => {
+    setResult(null);
+    setLastRequest(null);
   };
 
   return (
@@ -315,13 +363,6 @@ export default function ClientDetailPage() {
                 <div className="flex flex-wrap gap-3">
                   <button
                     type="button"
-                    onClick={() => setDrawerOpen(true)}
-                    className="rounded-sm bg-gold px-4 py-2 font-heading text-[13px] font-extrabold uppercase tracking-wide text-black transition-colors hover:bg-gold-bright"
-                  >
-                    {t('clients.nutritionGoals')} &rarr;
-                  </button>
-                  <button
-                    type="button"
                     disabled
                     className="rounded-sm bg-gold/30 px-4 py-2 font-heading text-[13px] font-extrabold uppercase tracking-wide text-black/40 cursor-not-allowed"
                   >
@@ -379,19 +420,8 @@ export default function ClientDetailPage() {
                     </div>
                   </div>
                 </div>
-              </>
-            )}
 
-            {activeTab === 'lifestyle' && !ob && (
-              <p className="text-center text-sm text-muted">
-                {t('clients.onboardingNotCompleted')}
-              </p>
-            )}
-
-            {/* ========== NUTRITION TAB ========== */}
-            {activeTab === 'nutrition' && ob && (
-              <>
-                {/* Nutrition */}
+                {/* Nutrition (diet info) */}
                 <SectionHeading>{t('clients.nutrition')}</SectionHeading>
                 <div className="rounded-sm border border-border bg-surface p-5">
                   <div className="grid grid-cols-2 gap-4">
@@ -407,67 +437,124 @@ export default function ClientDetailPage() {
                     </div>
                   </div>
                 </div>
+              </>
+            )}
 
-                {/* Nutrition Targets (auto-calculated) */}
+            {activeTab === 'lifestyle' && !ob && (
+              <p className="text-center text-sm text-muted">
+                {t('clients.onboardingNotCompleted')}
+              </p>
+            )}
+
+            {/* ========== NUTRITION TAB ========== */}
+            {activeTab === 'nutrition' && ob && (
+              <>
+                {/* Nutrition Targets (shows recalculated values when available, otherwise onboarding) */}
                 {ob.bmr != null && (
                   <>
-                    <SectionHeading>{t('clients.nutritionTargets')}</SectionHeading>
-                    <div className="rounded-sm border border-border bg-surface p-5">
-                      {/* BMR -> TDEE -> Adjusted flow */}
+                    <div className="flex items-center justify-between">
+                      <SectionHeading>{t('clients.nutritionTargets')}</SectionHeading>
+                      <div className="flex gap-2">
+                        {result && (
+                          <>
+                            <button type="button" onClick={handleReset}
+                              className="rounded-sm border border-border px-3 py-1.5 font-heading text-[11px] font-extrabold uppercase tracking-wide text-muted transition-colors hover:text-text">
+                              {t('clients.resetTargets')}
+                            </button>
+                            <button type="button" onClick={handleSave} disabled={isSaving}
+                              className="rounded-sm bg-green-600 px-3 py-1.5 font-heading text-[11px] font-extrabold uppercase tracking-wide text-white transition-colors hover:bg-green-500 disabled:opacity-50">
+                              {isSaving ? t('common.saving') : t('clients.saveTargets')}
+                            </button>
+                          </>
+                        )}
+                        <button type="button" onClick={openDrawer}
+                          className="rounded-sm bg-gold px-3 py-1.5 font-heading text-[11px] font-extrabold uppercase tracking-wide text-black transition-colors hover:bg-gold-bright">
+                          {t('clients.recalculate')}
+                        </button>
+                      </div>
+                    </div>
+                    <div className={`rounded-sm border ${result ? 'border-amber-500/50' : 'border-border'} bg-surface p-5 transition-colors`}>
+                      {result && (
+                        <div className="mb-3 flex items-center gap-2">
+                          <span className="inline-block h-2 w-2 rounded-full bg-amber-500" />
+                          <span className="text-xs font-medium text-amber-400">{t('clients.unsavedChanges')}</span>
+                        </div>
+                      )}
+                      {/* BMR -> TDEE -> Adjusted flow -- use result if available, otherwise onboarding */}
                       <div className="mb-4 flex items-center gap-3 text-sm">
                         <div className="rounded bg-gold/10 px-3 py-2 text-center">
                           <span className="text-xs text-muted">BMR</span>
-                          <p className="font-bold text-gold">{ob.bmr} kcal</p>
+                          <p className="font-bold text-gold">{result?.bmr ?? ob.bmr} kcal</p>
                         </div>
                         <span className="text-muted">&rarr;</span>
                         <div className="rounded bg-gold/10 px-3 py-2 text-center">
                           <span className="text-xs text-muted">TDEE</span>
-                          <p className="font-bold text-gold">{ob.tdee} kcal</p>
+                          <p className="font-bold text-gold">{result?.tdee ?? ob.tdee} kcal</p>
                         </div>
                         <span className="text-muted">&rarr;</span>
                         <div className="rounded bg-gold/10 px-3 py-2 text-center">
                           <span className="text-xs text-muted">{t('clients.adjustedKcal')}</span>
-                          <p className="font-bold text-gold">{ob.adjustedKcal} kcal</p>
+                          <p className="font-bold text-gold">{result?.adjustedKcal ?? ob.adjustedKcal} kcal</p>
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-4">
-                        {ob.derivedActivityLevel && (
-                          <Field label={t('clients.derivedActivity')} value={v(ob.derivedActivityLevel)} />
+                        {(result ? lastRequest?.activityLevel : ob.derivedActivityLevel) && (
+                          <Field label={t('clients.derivedActivity')} value={v(result ? lastRequest?.activityLevel : ob.derivedActivityLevel)} />
                         )}
-                        {ob.derivedNutritionGoal && (
-                          <Field label={t('clients.derivedGoal')} value={v(ob.derivedNutritionGoal)} />
+                        {(result ? lastRequest?.goal : ob.derivedNutritionGoal) && (
+                          <Field label={t('clients.derivedGoal')} value={v(result ? lastRequest?.goal : ob.derivedNutritionGoal)} />
                         )}
                       </div>
-                      {/* Macro targets */}
                       <div className="mt-4 grid grid-cols-3 gap-4 text-center">
                         <div className="rounded bg-blue-500/10 px-3 py-3">
                           <span className="text-xs text-blue-400">{t('clients.protein')}</span>
-                          <p className="text-lg font-bold text-blue-400">{ob.proteinGrams}g</p>
+                          <p className="text-lg font-bold text-blue-400">{result?.macroTargets.proteinGrams ?? ob.proteinGrams}g</p>
                         </div>
                         <div className="rounded bg-amber-500/10 px-3 py-3">
                           <span className="text-xs text-amber-400">{t('clients.carbs')}</span>
-                          <p className="text-lg font-bold text-amber-400">{ob.carbsGrams}g</p>
+                          <p className="text-lg font-bold text-amber-400">{result?.macroTargets.carbsGrams ?? ob.carbsGrams}g</p>
                         </div>
                         <div className="rounded bg-rose-500/10 px-3 py-3">
                           <span className="text-xs text-rose-400">{t('clients.fat')}</span>
-                          <p className="text-lg font-bold text-rose-400">{ob.fatGrams}g</p>
+                          <p className="text-lg font-bold text-rose-400">{result?.macroTargets.fatGrams ?? ob.fatGrams}g</p>
                         </div>
                       </div>
-                      <p className="mt-3 text-[11px] text-muted">{t('clients.nutritionTargetsHint')}</p>
+                      {!result && (
+                        <p className="mt-3 text-[11px] text-muted">{t('clients.nutritionTargetsHint')}</p>
+                      )}
                     </div>
                   </>
                 )}
 
-                {/* Recalculate button */}
-                <div className="flex flex-wrap gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setDrawerOpen(true)}
-                    className="rounded-sm bg-gold px-4 py-2 font-heading text-[13px] font-extrabold uppercase tracking-wide text-black transition-colors hover:bg-gold-bright"
-                  >
-                    {t('clients.recalculate')} &rarr;
-                  </button>
-                </div>
+                {/* Macro Sliders + Meal Distribution (use recalculated if available, else onboarding) */}
+                {(() => {
+                  const activeKcal = result?.adjustedKcal ?? ob.adjustedKcal;
+                  const activeMacros = result
+                    ? result.macroTargets
+                    : ob.bmr != null
+                      ? { dailyKcal: ob.adjustedKcal ?? 0, proteinGrams: ob.proteinGrams ?? 0, carbsGrams: ob.carbsGrams ?? 0, fatGrams: ob.fatGrams ?? 0 }
+                      : null;
+                  if (!activeKcal || !activeMacros) return null;
+                  return (
+                    <>
+                      <div className="rounded-sm border border-border bg-surface p-5">
+                        <MacroSliders
+                          proteinPercent={macros.protein}
+                          carbsPercent={macros.carbs}
+                          fatPercent={macros.fat}
+                          totalKcal={activeKcal}
+                          onChange={handleMacroChange}
+                        />
+                      </div>
+                      <div className="rounded-sm border border-border bg-surface p-5">
+                        <MealDistribution
+                          totalKcal={activeKcal}
+                          macroTargets={activeMacros}
+                        />
+                      </div>
+                    </>
+                  );
+                })()}
               </>
             )}
 
@@ -508,16 +595,28 @@ export default function ClientDetailPage() {
       </div>
 
       {/* Nutrition Goals Drawer */}
-      {drawerOpen && (
-        <div className="fixed inset-0 z-50 flex">
-          {/* Backdrop */}
-          <div className="flex-1 bg-black/50" onClick={() => setDrawerOpen(false)} />
-          {/* Panel */}
-          <div className="w-full max-w-xl overflow-y-auto border-l border-border bg-bg p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold">{t('nutritionGoals.title')}</h2>
-              <button onClick={() => setDrawerOpen(false)} className="text-muted hover:text-text">&#10005;</button>
-            </div>
+      {drawerMounted && (
+        <>
+          <div
+            className={`fixed inset-0 z-40 bg-black/50 transition-opacity duration-300 ${drawerVisible ? 'opacity-100' : 'opacity-0'}`}
+            onClick={closeDrawer}
+          />
+          <div
+            className={`fixed top-0 right-0 z-50 flex h-full w-full max-w-xl flex-col border-l border-border bg-bg shadow-2xl transition-transform duration-300 ease-out ${drawerVisible ? 'translate-x-0' : 'translate-x-full'}`}
+          >
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <div className="text-sm font-semibold">{t('nutritionGoals.title')}</div>
+                <button
+                  type="button"
+                  onClick={closeDrawer}
+                  className="text-text3 transition-colors hover:text-text"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             <div className="space-y-6">
               {/* Anamnesis Form */}
               <div className="rounded-sm border border-border bg-surface p-5">
@@ -578,7 +677,8 @@ export default function ClientDetailPage() {
               )}
             </div>
           </div>
-        </div>
+          </div>
+        </>
       )}
     </div>
   );

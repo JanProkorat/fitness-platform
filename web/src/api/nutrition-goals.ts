@@ -103,3 +103,27 @@ export async function getClientDashboard(
   );
   return data;
 }
+
+export async function updateClientData(
+  clientId: string,
+  data: {
+    weightKg?: number;
+    heightCm?: number;
+    age?: number;
+    sex?: string;
+    derivedActivityLevel?: string;
+    derivedNutritionGoal?: string;
+    bmr?: number;
+    tdee?: number;
+    adjustedKcal?: number;
+    proteinGrams?: number;
+    carbsGrams?: number;
+    fatGrams?: number;
+  },
+): Promise<{ message: string }> {
+  const { data: res } = await api.put<{ message: string }>(
+    `/trainer/clients/${clientId}`,
+    data,
+  );
+  return res;
+}
