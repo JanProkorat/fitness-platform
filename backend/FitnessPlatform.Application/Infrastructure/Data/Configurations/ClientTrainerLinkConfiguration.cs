@@ -5,22 +5,22 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace FitnessPlatform.Application.Infrastructure.Data.Configurations;
 
 /// <summary>
-/// EF Core configuration for <see cref="ClientTrainerLink"/>.
+/// EF Core configuration for <see cref="ClientProfessionalLink"/>.
 /// </summary>
-public class ClientTrainerLinkConfiguration : IEntityTypeConfiguration<ClientTrainerLink>
+public class ClientProfessionalLinkConfiguration : IEntityTypeConfiguration<ClientProfessionalLink>
 {
     /// <inheritdoc />
-    public void Configure(EntityTypeBuilder<ClientTrainerLink> builder)
+    public void Configure(EntityTypeBuilder<ClientProfessionalLink> builder)
     {
-        builder.HasIndex(ctl => new { ctl.ClientProfileId, ctl.TrainerProfileId })
+        builder.HasIndex(cpl => new { cpl.ClientProfileId, cpl.ProfessionalProfileId })
             .IsUnique();
 
-        builder.HasOne(ctl => ctl.ClientProfile)
-            .WithMany(cp => cp.TrainerLinks)
-            .HasForeignKey(ctl => ctl.ClientProfileId);
+        builder.HasOne(cpl => cpl.ClientProfile)
+            .WithMany(cp => cp.ProfessionalLinks)
+            .HasForeignKey(cpl => cpl.ClientProfileId);
 
-        builder.HasOne(ctl => ctl.TrainerProfile)
-            .WithMany(tp => tp.ClientLinks)
-            .HasForeignKey(ctl => ctl.TrainerProfileId);
+        builder.HasOne(cpl => cpl.ProfessionalProfile)
+            .WithMany(pp => pp.ClientLinks)
+            .HasForeignKey(cpl => cpl.ProfessionalProfileId);
     }
 }

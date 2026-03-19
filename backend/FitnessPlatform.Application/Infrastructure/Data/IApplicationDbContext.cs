@@ -14,9 +14,9 @@ public interface IApplicationDbContext
     DbSet<ApplicationUser> Users { get; }
 
     /// <summary>
-    /// Trainer profiles.
+    /// Professional profiles (trainers and nutritionists).
     /// </summary>
-    DbSet<TrainerProfile> TrainerProfiles { get; set; }
+    DbSet<ProfessionalProfile> ProfessionalProfiles { get; set; }
 
     /// <summary>
     /// Client profiles.
@@ -24,9 +24,9 @@ public interface IApplicationDbContext
     DbSet<ClientProfile> ClientProfiles { get; set; }
 
     /// <summary>
-    /// Client-trainer relationships.
+    /// Client-professional relationships.
     /// </summary>
-    DbSet<ClientTrainerLink> ClientTrainerLinks { get; set; }
+    DbSet<ClientProfessionalLink> ClientProfessionalLinks { get; set; }
 
     /// <summary>
     /// Body measurement records.
@@ -52,6 +52,11 @@ public interface IApplicationDbContext
     /// Audit log entries for GDPR compliance.
     /// </summary>
     DbSet<AuditLog> AuditLogs { get; set; }
+
+    /// <summary>
+    /// Client onboarding questionnaire data.
+    /// </summary>
+    DbSet<ClientOnboardingData> ClientOnboardingData { get; set; }
 
     /// <summary>
     /// Saves all changes made in this context to the database.

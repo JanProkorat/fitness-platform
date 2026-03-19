@@ -12,9 +12,9 @@ public class InvitationTokenConfiguration : IEntityTypeConfiguration<InvitationT
     /// <inheritdoc />
     public void Configure(EntityTypeBuilder<InvitationToken> builder)
     {
-        builder.HasOne(it => it.TrainerProfile)
-            .WithMany(tp => tp.InvitationTokens)
-            .HasForeignKey(it => it.TrainerProfileId);
+        builder.HasOne(it => it.ProfessionalProfile)
+            .WithMany(pp => pp.InvitationTokens)
+            .HasForeignKey(it => it.ProfessionalProfileId);
 
         builder.HasIndex(it => it.Token).IsUnique();
     }

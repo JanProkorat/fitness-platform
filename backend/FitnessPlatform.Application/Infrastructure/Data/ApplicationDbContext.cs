@@ -15,9 +15,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 {
 
     /// <summary>
-    /// Trainer profiles.
+    /// Professional profiles (trainers and nutritionists).
     /// </summary>
-    public virtual DbSet<TrainerProfile> TrainerProfiles { get; set; } = null!;
+    public virtual DbSet<ProfessionalProfile> ProfessionalProfiles { get; set; } = null!;
 
     /// <summary>
     /// Client profiles.
@@ -25,9 +25,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public virtual DbSet<ClientProfile> ClientProfiles { get; set; } = null!;
 
     /// <summary>
-    /// Client-trainer relationships.
+    /// Client-professional relationships.
     /// </summary>
-    public virtual DbSet<ClientTrainerLink> ClientTrainerLinks { get; set; } = null!;
+    public virtual DbSet<ClientProfessionalLink> ClientProfessionalLinks { get; set; } = null!;
 
     /// <summary>
     /// Body measurement records.
@@ -53,6 +53,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     /// Audit log entries for GDPR compliance.
     /// </summary>
     public virtual DbSet<AuditLog> AuditLogs { get; set; } = null!;
+
+    /// <summary>
+    /// Client onboarding questionnaire data.
+    /// </summary>
+    public virtual DbSet<ClientOnboardingData> ClientOnboardingData { get; set; } = null!;
 
     /// <inheritdoc />
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

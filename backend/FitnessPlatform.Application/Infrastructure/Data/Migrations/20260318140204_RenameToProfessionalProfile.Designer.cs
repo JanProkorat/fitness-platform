@@ -3,6 +3,7 @@ using System;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260318140204_RenameToProfessionalProfile")]
+    partial class RenameToProfessionalProfile
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -312,144 +315,6 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.ToTable("body_measurements", (string)null);
                 });
 
-            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.ClientOnboardingData", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<string>("Allergies")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("allergies");
-
-                    b.Property<int>("BodyType")
-                        .HasColumnType("integer")
-                        .HasColumnName("body_type");
-
-                    b.Property<long>("ClientProfileId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("client_profile_id");
-
-                    b.Property<int>("CurrentTrainingFrequency")
-                        .HasColumnType("integer")
-                        .HasColumnName("current_training_frequency");
-
-                    b.Property<DateTime>("DateCreated")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("date_created");
-
-                    b.Property<DateTime>("DateOfBirth")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("date_of_birth");
-
-                    b.Property<DateTime?>("DateUpdated")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("date_updated");
-
-                    b.Property<int>("DesiredTrainingFrequency")
-                        .HasColumnType("integer")
-                        .HasColumnName("desired_training_frequency");
-
-                    b.Property<int>("DietRating")
-                        .HasColumnType("integer")
-                        .HasColumnName("diet_rating");
-
-                    b.Property<int>("DietaryStyle")
-                        .HasColumnType("integer")
-                        .HasColumnName("dietary_style");
-
-                    b.Property<int>("FitnessRating")
-                        .HasColumnType("integer")
-                        .HasColumnName("fitness_rating");
-
-                    b.Property<int>("GymAccess")
-                        .HasColumnType("integer")
-                        .HasColumnName("gym_access");
-
-                    b.Property<decimal>("HeightCm")
-                        .HasPrecision(5, 1)
-                        .HasColumnType("numeric(5,1)")
-                        .HasColumnName("height_cm");
-
-                    b.Property<string>("Injuries")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("injuries");
-
-                    b.Property<int>("JobType")
-                        .HasColumnType("integer")
-                        .HasColumnName("job_type");
-
-                    b.Property<int>("MealsPerDay")
-                        .HasColumnType("integer")
-                        .HasColumnName("meals_per_day");
-
-                    b.Property<string>("PastBlockers")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("past_blockers");
-
-                    b.Property<int>("PlanExperience")
-                        .HasColumnType("integer")
-                        .HasColumnName("plan_experience");
-
-                    b.Property<string>("PreferredActivities")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("preferred_activities");
-
-                    b.Property<int>("PrimaryGoal")
-                        .HasColumnType("integer")
-                        .HasColumnName("primary_goal");
-
-                    b.Property<int>("PrimaryMotivation")
-                        .HasColumnType("integer")
-                        .HasColumnName("primary_motivation");
-
-                    b.Property<int>("Sex")
-                        .HasColumnType("integer")
-                        .HasColumnName("sex");
-
-                    b.Property<int>("SleepHours")
-                        .HasColumnType("integer")
-                        .HasColumnName("sleep_hours");
-
-                    b.Property<int>("StressLevel")
-                        .HasColumnType("integer")
-                        .HasColumnName("stress_level");
-
-                    b.Property<decimal?>("TargetWeightKg")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("numeric(5,2)")
-                        .HasColumnName("target_weight_kg");
-
-                    b.Property<int>("TimeHorizon")
-                        .HasColumnType("integer")
-                        .HasColumnName("time_horizon");
-
-                    b.Property<decimal>("WeightKg")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("numeric(5,2)")
-                        .HasColumnName("weight_kg");
-
-                    b.HasKey("Id")
-                        .HasName("pk_client_onboarding_data");
-
-                    b.HasIndex("ClientProfileId")
-                        .IsUnique()
-                        .HasDatabaseName("ix_client_onboarding_data_client_profile_id");
-
-                    b.ToTable("client_onboarding_data", (string)null);
-                });
-
             modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.ClientProfessionalLink", b =>
                 {
                     b.Property<long>("Id")
@@ -534,10 +399,6 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasPrecision(5, 1)
                         .HasColumnType("numeric(5,1)")
                         .HasColumnName("height_cm");
-
-                    b.Property<bool>("IsOnboardingComplete")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_onboarding_complete");
 
                     b.Property<string>("MedicalNotes")
                         .HasMaxLength(500)
@@ -918,18 +779,6 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Navigation("ClientProfile");
                 });
 
-            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.ClientOnboardingData", b =>
-                {
-                    b.HasOne("FitnessPlatform.Application.Domain.Entities.ClientProfile", "ClientProfile")
-                        .WithOne("OnboardingData")
-                        .HasForeignKey("FitnessPlatform.Application.Domain.Entities.ClientOnboardingData", "ClientProfileId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_client_onboarding_data_client_profiles_client_profile_id");
-
-                    b.Navigation("ClientProfile");
-                });
-
             modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.ClientProfessionalLink", b =>
                 {
                     b.HasOne("FitnessPlatform.Application.Domain.Entities.ClientProfile", "ClientProfile")
@@ -1080,8 +929,6 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
             modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.ClientProfile", b =>
                 {
                     b.Navigation("BodyMeasurements");
-
-                    b.Navigation("OnboardingData");
 
                     b.Navigation("ProfessionalLinks");
 

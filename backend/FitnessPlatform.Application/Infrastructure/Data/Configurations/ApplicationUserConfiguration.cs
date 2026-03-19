@@ -14,9 +14,9 @@ public class ApplicationUserConfiguration : IEntityTypeConfiguration<Application
     {
         builder.HasIndex(u => u.Email).IsUnique();
 
-        builder.HasOne(u => u.TrainerProfile)
-            .WithOne(tp => tp.User)
-            .HasForeignKey<TrainerProfile>(tp => tp.UserId);
+        builder.HasOne(u => u.ProfessionalProfile)
+            .WithOne(pp => pp.User)
+            .HasForeignKey<ProfessionalProfile>(pp => pp.UserId);
 
         builder.HasOne(u => u.ClientProfile)
             .WithOne(cp => cp.User)
