@@ -41,14 +41,24 @@ public class ClientProfile : PublicTimestampableEntity
     public string? MedicalNotes { get; set; }
 
     /// <summary>
+    /// Whether the client has completed the onboarding questionnaire.
+    /// </summary>
+    public bool IsOnboardingComplete { get; set; }
+
+    /// <summary>
+    /// Navigation property to the onboarding questionnaire data.
+    /// </summary>
+    public ClientOnboardingData? OnboardingData { get; set; }
+
+    /// <summary>
     /// Navigation property to the associated user.
     /// </summary>
     public ApplicationUser User { get; set; } = null!;
 
     /// <summary>
-    /// Collection of links to trainers/nutritionists managing this client.
+    /// Collection of links to professionals (trainers/nutritionists) managing this client.
     /// </summary>
-    public ICollection<ClientTrainerLink> TrainerLinks { get; set; } = [];
+    public ICollection<ClientProfessionalLink> ProfessionalLinks { get; set; } = [];
 
     /// <summary>
     /// Collection of body measurements recorded for this client.
