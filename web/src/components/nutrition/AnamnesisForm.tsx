@@ -70,6 +70,14 @@ export default function AnamnesisForm({
     if (client.weightKg) values.weightKg = client.weightKg;
     if (client.heightCm) values.heightCm = client.heightCm;
     if (client.dateOfBirth) values.age = calculateAge(client.dateOfBirth);
+    const ob = client.onboarding;
+    if (ob?.sex === 'Male' || ob?.sex === 'Female') values.sex = ob.sex;
+    if (ob?.derivedActivityLevel && ['Sedentary', 'LightlyActive', 'ModeratelyActive', 'VeryActive', 'ExtremelyActive'].includes(ob.derivedActivityLevel)) {
+      values.activityLevel = ob.derivedActivityLevel as AnamnesisData['activityLevel'];
+    }
+    if (ob?.derivedNutritionGoal && ['Cut', 'Maintain', 'Bulk'].includes(ob.derivedNutritionGoal)) {
+      values.goal = ob.derivedNutritionGoal as AnamnesisData['goal'];
+    }
     reset((prev) => ({ ...prev, ...values }));
   }, [client, reset]);
 

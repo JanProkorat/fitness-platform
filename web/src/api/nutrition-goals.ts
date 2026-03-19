@@ -31,6 +31,36 @@ export interface CalculateGoalsResponse {
   macroTargets: MacroTargets;
 }
 
+export interface OnboardingData {
+  sex?: string | null;
+  targetWeightKg?: number | null;
+  bodyType?: string | null;
+  primaryGoal?: string | null;
+  timeHorizon?: string | null;
+  jobType?: string | null;
+  sleepHours?: number | null;
+  stressLevel?: number | null;
+  currentTrainingFrequency?: string | null;
+  desiredTrainingFrequency?: string | null;
+  fitnessRating?: number | null;
+  preferredActivities?: string | null;
+  injuries?: string | null;
+  mealsPerDay?: string | null;
+  dietaryStyle?: string | null;
+  allergies?: string | null;
+  planExperience?: string | null;
+  pastBlockers?: string | null;
+  primaryMotivation?: string | null;
+  derivedActivityLevel?: string | null;
+  derivedNutritionGoal?: string | null;
+  bmr?: number | null;
+  tdee?: number | null;
+  adjustedKcal?: number | null;
+  proteinGrams?: number | null;
+  carbsGrams?: number | null;
+  fatGrams?: number | null;
+}
+
 export interface ClientDashboard {
   clientPublicId: string;
   email: string;
@@ -51,6 +81,7 @@ export interface ClientDashboard {
   } | null;
   compliancePercent?: number | null;
   currentStreak: number;
+  onboarding?: OnboardingData | null;
 }
 
 export async function calculateGoals(
