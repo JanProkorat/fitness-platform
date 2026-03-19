@@ -2,7 +2,9 @@ using System.Security.Claims;
 using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.Client.SubmitOnboarding;
 using FitnessPlatform.Application.Infrastructure.Data;
@@ -17,7 +19,22 @@ namespace FitnessPlatform.Tests.Endpoints.Client;
 public class SubmitOnboardingEndpointTests
 {
     private readonly IAuditService _audit = Substitute.For<IAuditService>();
+    private readonly IMacroCalculatorService _calculator = CreateCalculatorMock();
     private static readonly Guid UserId = Guid.NewGuid();
+
+    private static IMacroCalculatorService CreateCalculatorMock()
+    {
+        var calc = Substitute.For<IMacroCalculatorService>();
+        calc.CalculateBmr(Arg.Any<decimal>(), Arg.Any<decimal>(), Arg.Any<int>(), Arg.Any<BiologicalSex>())
+            .Returns(1800m);
+        calc.CalculateTdee(Arg.Any<decimal>(), Arg.Any<ActivityLevel>())
+            .Returns(2500m);
+        calc.ApplyGoalAdjustment(Arg.Any<decimal>(), Arg.Any<NutritionGoal>())
+            .Returns(2750m);
+        calc.CalculateMacroSplit(Arg.Any<decimal>(), Arg.Any<decimal>(), Arg.Any<decimal>(), Arg.Any<decimal>())
+            .Returns(new GlobalNutritionSettings { ProteinGrams = 206, CarbsGrams = 309, FatGrams = 76 });
+        return calc;
+    }
 
     private static SubmitOnboardingRequest ValidRequest() => new()
     {
@@ -32,13 +49,13 @@ public class SubmitOnboardingEndpointTests
         PastBlockers = ["time", "motivation"], PrimaryMotivation = "Appearance",
     };
 
-    private static SubmitOnboardingEndpoint CreateEndpoint(IApplicationDbContext db, IAuditService audit, Guid userId)
+    private SubmitOnboardingEndpoint CreateEndpoint(IApplicationDbContext db, IAuditService audit, Guid userId)
     {
         return Factory.Create<SubmitOnboardingEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(userId, AppRoles.Client))),
-            db, audit);
+            db, audit, _calculator);
     }
 
     /// <summary>

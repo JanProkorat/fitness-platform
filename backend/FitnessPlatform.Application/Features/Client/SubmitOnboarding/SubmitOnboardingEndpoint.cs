@@ -15,7 +15,8 @@ namespace FitnessPlatform.Application.Features.Client.SubmitOnboarding;
 /// </summary>
 /// <param name="dbContext">Database context.</param>
 /// <param name="audit">Audit logging service.</param>
-public class SubmitOnboardingEndpoint(IApplicationDbContext dbContext, IAuditService audit)
+/// <param name="calculator">Macro calculator service for BMR/TDEE/macro computation.</param>
+public class SubmitOnboardingEndpoint(IApplicationDbContext dbContext, IAuditService audit, IMacroCalculatorService calculator)
     : Endpoint<SubmitOnboardingRequest, SubmitOnboardingResponse>
 {
     /// <inheritdoc />
@@ -47,7 +48,7 @@ public class SubmitOnboardingEndpoint(IApplicationDbContext dbContext, IAuditSer
             return;
         }
 
-        var dateOfBirth = new DateTime(DateTime.UtcNow.Year - req.Age, 1, 1);
+        var dateOfBirth = new DateTime(DateTime.UtcNow.Year - req.Age, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         var data = profile.OnboardingData ?? new ClientOnboardingData { ClientProfileId = profile.Id };
 
         data.DateOfBirth = dateOfBirth;
@@ -64,16 +65,62 @@ public class SubmitOnboardingEndpoint(IApplicationDbContext dbContext, IAuditSer
         data.CurrentTrainingFrequency = Enum.Parse<CurrentTrainingFrequency>(req.CurrentTrainingFrequency, true);
         data.DesiredTrainingFrequency = Enum.Parse<DesiredTrainingFrequency>(req.DesiredTrainingFrequency, true);
         data.FitnessRating = req.FitnessRating;
-        data.GymAccess = Enum.Parse<GymAccess>(req.GymAccess, true);
+        data.GymAccess = !string.IsNullOrEmpty(req.GymAccess) ? Enum.Parse<GymAccess>(req.GymAccess, true) : GymAccess.No;
         data.PreferredActivities = string.Join(",", req.PreferredActivities);
         data.Injuries = string.Join(",", req.Injuries);
         data.MealsPerDay = Enum.Parse<MealsPerDay>(req.MealsPerDay, true);
-        data.DietaryStyle = Enum.Parse<DietaryStyle>(req.DietaryStyle, true);
+        data.DietaryStyle = Enum.TryParse<DietaryStyle>(req.DietaryStyle, true, out var ds) ? ds : DietaryStyle.Standard;
         data.Allergies = string.Join(",", req.Allergies);
-        data.DietRating = req.DietRating;
+        data.DietRating = req.DietRating ?? 0;
         data.PlanExperience = Enum.Parse<PlanExperience>(req.PlanExperience, true);
         data.PastBlockers = string.Join(",", req.PastBlockers);
         data.PrimaryMotivation = Enum.Parse<PrimaryMotivation>(req.PrimaryMotivation, true);
+
+        // --- Map onboarding data to calculator inputs ---
+
+        // Map JobType + CurrentTrainingFrequency → ActivityLevel
+        var activityLevel = (data.JobType, data.CurrentTrainingFrequency) switch
+        {
+            (JobType.Sedentary, CurrentTrainingFrequency.None) => ActivityLevel.Sedentary,
+            (JobType.Sedentary, CurrentTrainingFrequency.Occasional) => ActivityLevel.LightlyActive,
+            (JobType.Sedentary, CurrentTrainingFrequency.Regular) => ActivityLevel.ModeratelyActive,
+            (JobType.Sedentary, CurrentTrainingFrequency.High) => ActivityLevel.VeryActive,
+            (JobType.Standing, CurrentTrainingFrequency.None) => ActivityLevel.LightlyActive,
+            (JobType.Standing, CurrentTrainingFrequency.Occasional) => ActivityLevel.ModeratelyActive,
+            (JobType.Standing, CurrentTrainingFrequency.Regular) => ActivityLevel.VeryActive,
+            (JobType.Standing, CurrentTrainingFrequency.High) => ActivityLevel.VeryActive,
+            (JobType.Physical, CurrentTrainingFrequency.None) => ActivityLevel.ModeratelyActive,
+            (JobType.Physical, CurrentTrainingFrequency.Occasional) => ActivityLevel.VeryActive,
+            (JobType.Physical, CurrentTrainingFrequency.Regular) => ActivityLevel.VeryActive,
+            (JobType.Physical, CurrentTrainingFrequency.High) => ActivityLevel.ExtremelyActive,
+            _ => ActivityLevel.ModeratelyActive
+        };
+
+        // Map PrimaryGoal → NutritionGoal
+        var nutritionGoal = data.PrimaryGoal switch
+        {
+            PrimaryGoal.LoseFat => NutritionGoal.Cut,
+            PrimaryGoal.GainMuscle => NutritionGoal.Bulk,
+            PrimaryGoal.Recomposition => NutritionGoal.Cut, // slight deficit for recomp
+            PrimaryGoal.Fitness => NutritionGoal.Maintain,
+            PrimaryGoal.Health => NutritionGoal.Maintain,
+            _ => NutritionGoal.Maintain
+        };
+
+        // Calculate
+        var bmr = calculator.CalculateBmr(data.WeightKg, data.HeightCm, req.Age, data.Sex);
+        var tdee = calculator.CalculateTdee(bmr, activityLevel);
+        var adjustedKcal = calculator.ApplyGoalAdjustment(tdee, nutritionGoal);
+        var macros = calculator.CalculateMacroSplit(adjustedKcal); // defaults: 30/45/25
+
+        data.DerivedActivityLevel = activityLevel;
+        data.DerivedNutritionGoal = nutritionGoal;
+        data.Bmr = bmr;
+        data.Tdee = tdee;
+        data.AdjustedKcal = adjustedKcal;
+        data.ProteinGrams = macros.ProteinGrams ?? 0;
+        data.CarbsGrams = macros.CarbsGrams ?? 0;
+        data.FatGrams = macros.FatGrams ?? 0;
 
         if (profile.OnboardingData is null)
             dbContext.ClientOnboardingData.Add(data);

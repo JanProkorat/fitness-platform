@@ -78,6 +78,32 @@ public class ClientOnboardingData : TimestampableEntity
     /// <summary>Primary source of motivation.</summary>
     public PrimaryMotivation PrimaryMotivation { get; set; }
 
+    // --- Computed Nutrition Targets (auto-calculated on submit) ---
+
+    /// <summary>Derived activity level used for TDEE calculation.</summary>
+    public ActivityLevel DerivedActivityLevel { get; set; }
+
+    /// <summary>Derived nutrition goal used for caloric adjustment.</summary>
+    public NutritionGoal DerivedNutritionGoal { get; set; }
+
+    /// <summary>Basal Metabolic Rate (Mifflin-St Jeor), kcal/day.</summary>
+    public decimal Bmr { get; set; }
+
+    /// <summary>Total Daily Energy Expenditure, kcal/day.</summary>
+    public decimal Tdee { get; set; }
+
+    /// <summary>Goal-adjusted daily calories.</summary>
+    public decimal AdjustedKcal { get; set; }
+
+    /// <summary>Daily protein target in grams.</summary>
+    public decimal ProteinGrams { get; set; }
+
+    /// <summary>Daily carbohydrate target in grams.</summary>
+    public decimal CarbsGrams { get; set; }
+
+    /// <summary>Daily fat target in grams.</summary>
+    public decimal FatGrams { get; set; }
+
     // --- Navigation ---
     /// <summary>Navigation property to the associated client profile.</summary>
     public ClientProfile ClientProfile { get; set; } = null!;

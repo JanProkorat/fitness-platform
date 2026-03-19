@@ -152,6 +152,14 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
                 PlanExperience = od.PlanExperience.ToString(),
                 PastBlockers = od.PastBlockers,
                 PrimaryMotivation = od.PrimaryMotivation.ToString(),
+                DerivedActivityLevel = od.DerivedActivityLevel.ToString(),
+                DerivedNutritionGoal = od.DerivedNutritionGoal.ToString(),
+                Bmr = od.Bmr,
+                Tdee = od.Tdee,
+                AdjustedKcal = od.AdjustedKcal,
+                ProteinGrams = od.ProteinGrams,
+                CarbsGrams = od.CarbsGrams,
+                FatGrams = od.FatGrams,
             };
         }
 

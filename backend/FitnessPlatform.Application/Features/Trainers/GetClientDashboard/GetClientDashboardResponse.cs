@@ -129,6 +129,22 @@ public class OnboardingDataDto
     public string? PastBlockers { get; set; }
     /// <summary>Primary motivation.</summary>
     public string? PrimaryMotivation { get; set; }
+    /// <summary>Derived activity level.</summary>
+    public string? DerivedActivityLevel { get; set; }
+    /// <summary>Derived nutrition goal.</summary>
+    public string? DerivedNutritionGoal { get; set; }
+    /// <summary>BMR in kcal/day.</summary>
+    public decimal? Bmr { get; set; }
+    /// <summary>TDEE in kcal/day.</summary>
+    public decimal? Tdee { get; set; }
+    /// <summary>Adjusted daily calories.</summary>
+    public decimal? AdjustedKcal { get; set; }
+    /// <summary>Daily protein target in grams.</summary>
+    public decimal? ProteinGrams { get; set; }
+    /// <summary>Daily carbs target in grams.</summary>
+    public decimal? CarbsGrams { get; set; }
+    /// <summary>Daily fat target in grams.</summary>
+    public decimal? FatGrams { get; set; }
 }
 
 /// <summary>
