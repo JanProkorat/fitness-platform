@@ -1,7 +1,18 @@
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getClientDashboard } from '@/api/nutrition-goals';
+import AnamnesisForm from '@/components/nutrition/AnamnesisForm';
+import GoalCalculation from '@/components/nutrition/GoalCalculation';
+import MacroSliders from '@/components/nutrition/MacroSliders';
+import MealDistribution from '@/components/nutrition/MealDistribution';
+import {
+  calculateGoals,
+  type CalculateGoalsResponse,
+  type CalculateGoalsRequest,
+} from '@/api/nutrition-goals';
+import type { AnamnesisData } from '@/components/nutrition/AnamnesisForm';
 
 function Tags({ value, t }: { value: string | undefined | null; t: (key: string) => string }) {
   if (!value) return <span className="text-xs text-muted">&mdash;</span>;
@@ -29,9 +40,25 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
+const TABS = ['overview', 'lifestyle', 'nutrition', 'motivation'] as const;
+type Tab = (typeof TABS)[number];
+
 export default function ClientDetailPage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
+
+  const [activeTab, setActiveTab] = useState<Tab>('overview');
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // Nutrition calculator state
+  const [isCalculating, setIsCalculating] = useState(false);
+  const [result, setResult] = useState<CalculateGoalsResponse | null>(null);
+  const [lastRequest, setLastRequest] = useState<AnamnesisData | null>(null);
+  const [macros, setMacros] = useState({
+    protein: 30,
+    carbs: 45,
+    fat: 25,
+  });
 
   const { data: client, isLoading } = useQuery({
     queryKey: ['client-dashboard', id],
@@ -47,10 +74,53 @@ export default function ClientDetailPage() {
 
   /** Translate an enum/tag value via clients.values.X, fall back to raw value */
   const v = (val: string | null | undefined) => {
-    if (!val) return '—';
+    if (!val) return '\u2014';
     const key = `clients.values.${val}`;
     const translated = t(key);
     return translated !== key ? translated : val;
+  };
+
+  const handleCalculate = async (data: AnamnesisData) => {
+    if (!id) return;
+    setIsCalculating(true);
+    try {
+      const request: CalculateGoalsRequest = {
+        ...data,
+        proteinPercent: macros.protein,
+        carbsPercent: macros.carbs,
+        fatPercent: macros.fat,
+      };
+      const response = await calculateGoals(id, request);
+      setResult(response);
+      setLastRequest(data);
+    } catch {
+      // Error is handled by the API interceptor
+    } finally {
+      setIsCalculating(false);
+    }
+  };
+
+  const handleMacroChange = async (
+    protein: number,
+    carbs: number,
+    fat: number,
+  ) => {
+    setMacros({ protein, carbs, fat });
+
+    if (lastRequest && id) {
+      try {
+        const request: CalculateGoalsRequest = {
+          ...lastRequest,
+          proteinPercent: protein,
+          carbsPercent: carbs,
+          fatPercent: fat,
+        };
+        const response = await calculateGoals(id, request);
+        setResult(response);
+      } catch {
+        // Silently fail on recalculation
+      }
+    }
   };
 
   return (
@@ -74,6 +144,23 @@ export default function ClientDetailPage() {
         </div>
       </div>
 
+      {/* Tab bar */}
+      <div className="flex gap-1 border-b border-border bg-[#111111] px-6">
+        {TABS.map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`px-4 py-2.5 text-xs font-semibold uppercase tracking-wide transition-colors ${
+              activeTab === tab
+                ? 'border-b-2 border-gold text-gold'
+                : 'text-muted hover:text-text2'
+            }`}
+          >
+            {t(`clients.tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`)}
+          </button>
+        ))}
+      </div>
+
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-6">
         {isLoading ? (
@@ -82,73 +169,171 @@ export default function ClientDetailPage() {
           </div>
         ) : client ? (
           <div className="mx-auto max-w-3xl space-y-6">
-            {/* Overview heading */}
-            <h2 className="font-heading text-sm font-bold uppercase tracking-wide text-gold">
-              {t('clients.overview')}
-            </h2>
-
-            {/* Stats cards */}
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <StatCard
-                label={t('clients.compliance')}
-                value={
-                  client.compliancePercent != null
-                    ? `${client.compliancePercent}%`
-                    : t('clients.noData')
-                }
-              />
-              <StatCard
-                label={t('clients.streak')}
-                value={
-                  client.currentStreak != null
-                    ? `${client.currentStreak}`
-                    : '0'
-                }
-              />
-              <StatCard
-                label={t('clients.measurements')}
-                value={`${client.totalMeasurements ?? 0}`}
-              />
-              <StatCard
-                label={t('clients.photos')}
-                value={`${client.totalProgressPhotos ?? 0}`}
-              />
-            </div>
-
-            {ob ? (
+            {/* ========== OVERVIEW TAB ========== */}
+            {activeTab === 'overview' && (
               <>
-                {/* Profile */}
-                <SectionHeading>{t('clients.profile')}</SectionHeading>
-                <div className="rounded-sm border border-border bg-surface p-5">
-                  <div className="grid grid-cols-2 gap-4">
-                    {client.dateOfBirth && (
-                      <Field
-                        label={t('clients.yearOfBirth')}
-                        value={new Date(client.dateOfBirth).getFullYear()}
-                      />
-                    )}
-                    {client.heightCm != null && (
-                      <Field label={t('nutritionGoals.height')} value={`${client.heightCm} cm`} />
-                    )}
-                    {client.weightKg != null && (
-                      <Field label={t('nutritionGoals.weight')} value={`${client.weightKg} kg`} />
-                    )}
-                    {ob.sex && (
-                      <Field label={t('clients.sex')} value={v(ob.sex)} />
-                    )}
-                    {ob.targetWeightKg != null && (
-                      <Field label={t('clients.targetWeight')} value={`${ob.targetWeightKg} kg`} />
-                    )}
-                    {ob.bodyType && (
-                      <Field label={t('clients.bodyType')} value={v(ob.bodyType)} />
-                    )}
-                    <Field
-                      label={t('clients.linkedSince')}
-                      value={new Date(client.linkedAt).toLocaleDateString()}
-                    />
-                  </div>
+                <h2 className="font-heading text-sm font-bold uppercase tracking-wide text-gold">
+                  {t('clients.overview')}
+                </h2>
+
+                {/* Stats cards */}
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                  <StatCard
+                    label={t('clients.compliance')}
+                    value={
+                      client.compliancePercent != null
+                        ? `${client.compliancePercent}%`
+                        : t('clients.noData')
+                    }
+                  />
+                  <StatCard
+                    label={t('clients.streak')}
+                    value={
+                      client.currentStreak != null
+                        ? `${client.currentStreak}`
+                        : '0'
+                    }
+                  />
+                  <StatCard
+                    label={t('clients.measurements')}
+                    value={`${client.totalMeasurements ?? 0}`}
+                  />
+                  <StatCard
+                    label={t('clients.photos')}
+                    value={`${client.totalProgressPhotos ?? 0}`}
+                  />
                 </div>
 
+                {ob ? (
+                  <>
+                    {/* Profile */}
+                    <SectionHeading>{t('clients.profile')}</SectionHeading>
+                    <div className="rounded-sm border border-border bg-surface p-5">
+                      <div className="grid grid-cols-2 gap-4">
+                        {client.dateOfBirth && (
+                          <Field
+                            label={t('clients.yearOfBirth')}
+                            value={new Date(client.dateOfBirth).getFullYear()}
+                          />
+                        )}
+                        {client.heightCm != null && (
+                          <Field label={t('nutritionGoals.height')} value={`${client.heightCm} cm`} />
+                        )}
+                        {client.weightKg != null && (
+                          <Field label={t('nutritionGoals.weight')} value={`${client.weightKg} kg`} />
+                        )}
+                        {ob.sex && (
+                          <Field label={t('clients.sex')} value={v(ob.sex)} />
+                        )}
+                        {ob.targetWeightKg != null && (
+                          <Field label={t('clients.targetWeight')} value={`${ob.targetWeightKg} kg`} />
+                        )}
+                        {ob.bodyType && (
+                          <Field label={t('clients.bodyType')} value={v(ob.bodyType)} />
+                        )}
+                        <Field
+                          label={t('clients.linkedSince')}
+                          value={new Date(client.linkedAt).toLocaleDateString()}
+                        />
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* No onboarding data */}
+                    <div className="rounded-sm border border-border bg-surface p-5">
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        {client.heightCm != null && (
+                          <Field label={t('nutritionGoals.height')} value={`${client.heightCm} cm`} />
+                        )}
+                        {client.weightKg != null && (
+                          <Field label={t('nutritionGoals.weight')} value={`${client.weightKg} kg`} />
+                        )}
+                        {client.dateOfBirth && (
+                          <Field
+                            label={t('clients.yearOfBirth')}
+                            value={new Date(client.dateOfBirth).getFullYear()}
+                          />
+                        )}
+                        <Field
+                          label={t('clients.linkedSince')}
+                          value={new Date(client.linkedAt).toLocaleDateString()}
+                        />
+                      </div>
+                      {client.goals && (
+                        <div className="mt-4">
+                          <span className="text-xs text-muted">
+                            {t('nutritionGoals.goal')}
+                          </span>
+                          <p className="text-sm">{client.goals}</p>
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-center text-sm text-muted">
+                      {t('clients.onboardingNotCompleted')}
+                    </p>
+                  </>
+                )}
+
+                {/* Latest measurement */}
+                {client.latestMeasurement && (
+                  <div className="rounded-sm border border-border bg-surface p-5">
+                    <h3 className="mb-3 text-sm font-semibold text-text2">
+                      {t('clients.measurements')}
+                    </h3>
+                    <div className="flex gap-6">
+                      {client.latestMeasurement.weightKg != null && (
+                        <div>
+                          <span className="text-xs text-muted">
+                            {t('clients.latestWeight')}
+                          </span>
+                          <p className="text-lg font-bold">
+                            {client.latestMeasurement.weightKg} kg
+                          </p>
+                        </div>
+                      )}
+                      {client.latestMeasurement.bodyFatPercentage != null && (
+                        <div>
+                          <span className="text-xs text-muted">
+                            {t('clients.bodyFat')}
+                          </span>
+                          <p className="text-lg font-bold">
+                            {client.latestMeasurement.bodyFatPercentage}%
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    <p className="mt-2 text-[11px] text-muted">
+                      {new Date(
+                        client.latestMeasurement.measuredAt,
+                      ).toLocaleDateString()}
+                    </p>
+                  </div>
+                )}
+
+                {/* Action buttons */}
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setDrawerOpen(true)}
+                    className="rounded-sm bg-gold px-4 py-2 font-heading text-[13px] font-extrabold uppercase tracking-wide text-black transition-colors hover:bg-gold-bright"
+                  >
+                    {t('clients.nutritionGoals')} &rarr;
+                  </button>
+                  <button
+                    type="button"
+                    disabled
+                    className="rounded-sm bg-gold/30 px-4 py-2 font-heading text-[13px] font-extrabold uppercase tracking-wide text-black/40 cursor-not-allowed"
+                  >
+                    {t('clients.nutritionPlans')} &rarr;
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* ========== LIFESTYLE TAB ========== */}
+            {activeTab === 'lifestyle' && ob && (
+              <>
                 {/* Goals & Lifestyle */}
                 <SectionHeading>{t('clients.goalsLifestyle')}</SectionHeading>
                 <div className="rounded-sm border border-border bg-surface p-5">
@@ -194,7 +379,18 @@ export default function ClientDetailPage() {
                     </div>
                   </div>
                 </div>
+              </>
+            )}
 
+            {activeTab === 'lifestyle' && !ob && (
+              <p className="text-center text-sm text-muted">
+                {t('clients.onboardingNotCompleted')}
+              </p>
+            )}
+
+            {/* ========== NUTRITION TAB ========== */}
+            {activeTab === 'nutrition' && ob && (
+              <>
                 {/* Nutrition */}
                 <SectionHeading>{t('clients.nutrition')}</SectionHeading>
                 <div className="rounded-sm border border-border bg-surface p-5">
@@ -212,29 +408,12 @@ export default function ClientDetailPage() {
                   </div>
                 </div>
 
-                {/* Motivation */}
-                <SectionHeading>{t('clients.motivation')}</SectionHeading>
-                <div className="rounded-sm border border-border bg-surface p-5">
-                  <div className="grid grid-cols-2 gap-4">
-                    {ob.planExperience && (
-                      <Field label={t('clients.planExperience')} value={v(ob.planExperience)} />
-                    )}
-                    {ob.primaryMotivation && (
-                      <Field label={t('clients.primaryMotivation')} value={v(ob.primaryMotivation)} />
-                    )}
-                    <div>
-                      <span className="text-xs text-muted">{t('clients.pastBlockers')}</span>
-                      <div className="mt-1"><Tags t={t} value={ob.pastBlockers} /></div>
-                    </div>
-                  </div>
-                </div>
-
                 {/* Nutrition Targets (auto-calculated) */}
                 {ob.bmr != null && (
                   <>
                     <SectionHeading>{t('clients.nutritionTargets')}</SectionHeading>
                     <div className="rounded-sm border border-border bg-surface p-5">
-                      {/* BMR → TDEE → Adjusted flow */}
+                      {/* BMR -> TDEE -> Adjusted flow */}
                       <div className="mb-4 flex items-center gap-3 text-sm">
                         <div className="rounded bg-gold/10 px-3 py-2 text-center">
                           <span className="text-xs text-muted">BMR</span>
@@ -278,99 +457,129 @@ export default function ClientDetailPage() {
                     </div>
                   </>
                 )}
+
+                {/* Recalculate button */}
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setDrawerOpen(true)}
+                    className="rounded-sm bg-gold px-4 py-2 font-heading text-[13px] font-extrabold uppercase tracking-wide text-black transition-colors hover:bg-gold-bright"
+                  >
+                    {t('clients.recalculate')} &rarr;
+                  </button>
+                </div>
               </>
-            ) : (
+            )}
+
+            {activeTab === 'nutrition' && !ob && (
+              <p className="text-center text-sm text-muted">
+                {t('clients.onboardingNotCompleted')}
+              </p>
+            )}
+
+            {/* ========== MOTIVATION TAB ========== */}
+            {activeTab === 'motivation' && ob && (
               <>
-                {/* No onboarding data — show basic profile info */}
+                <SectionHeading>{t('clients.motivation')}</SectionHeading>
                 <div className="rounded-sm border border-border bg-surface p-5">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    {client.heightCm != null && (
-                      <Field label={t('nutritionGoals.height')} value={`${client.heightCm} cm`} />
+                  <div className="grid grid-cols-2 gap-4">
+                    {ob.planExperience && (
+                      <Field label={t('clients.planExperience')} value={v(ob.planExperience)} />
                     )}
-                    {client.weightKg != null && (
-                      <Field label={t('nutritionGoals.weight')} value={`${client.weightKg} kg`} />
+                    {ob.primaryMotivation && (
+                      <Field label={t('clients.primaryMotivation')} value={v(ob.primaryMotivation)} />
                     )}
-                    {client.dateOfBirth && (
-                      <Field
-                        label={t('clients.yearOfBirth')}
-                        value={new Date(client.dateOfBirth).getFullYear()}
-                      />
-                    )}
-                    <Field
-                      label={t('clients.linkedSince')}
-                      value={new Date(client.linkedAt).toLocaleDateString()}
-                    />
-                  </div>
-                  {client.goals && (
-                    <div className="mt-4">
-                      <span className="text-xs text-muted">
-                        {t('nutritionGoals.goal')}
-                      </span>
-                      <p className="text-sm">{client.goals}</p>
+                    <div>
+                      <span className="text-xs text-muted">{t('clients.pastBlockers')}</span>
+                      <div className="mt-1"><Tags t={t} value={ob.pastBlockers} /></div>
                     </div>
-                  )}
+                  </div>
                 </div>
-                <p className="text-center text-sm text-muted">
-                  {t('clients.onboardingNotCompleted')}
-                </p>
               </>
             )}
 
-            {/* Latest measurement */}
-            {client.latestMeasurement && (
-              <div className="rounded-sm border border-border bg-surface p-5">
-                <h3 className="mb-3 text-sm font-semibold text-text2">
-                  {t('clients.measurements')}
-                </h3>
-                <div className="flex gap-6">
-                  {client.latestMeasurement.weightKg != null && (
-                    <div>
-                      <span className="text-xs text-muted">
-                        {t('clients.latestWeight')}
-                      </span>
-                      <p className="text-lg font-bold">
-                        {client.latestMeasurement.weightKg} kg
-                      </p>
-                    </div>
-                  )}
-                  {client.latestMeasurement.bodyFatPercentage != null && (
-                    <div>
-                      <span className="text-xs text-muted">
-                        {t('clients.bodyFat')}
-                      </span>
-                      <p className="text-lg font-bold">
-                        {client.latestMeasurement.bodyFatPercentage}%
-                      </p>
-                    </div>
-                  )}
-                </div>
-                <p className="mt-2 text-[11px] text-muted">
-                  {new Date(
-                    client.latestMeasurement.measuredAt,
-                  ).toLocaleDateString()}
-                </p>
-              </div>
+            {activeTab === 'motivation' && !ob && (
+              <p className="text-center text-sm text-muted">
+                {t('clients.onboardingNotCompleted')}
+              </p>
             )}
-
-            {/* Action buttons */}
-            <div className="flex flex-wrap gap-3">
-              <Link
-                to={`/clients/${id}/nutrition-goals`}
-                className="rounded-sm bg-gold px-4 py-2 font-heading text-[13px] font-extrabold uppercase tracking-wide text-black transition-colors hover:bg-gold-bright"
-              >
-                {t('clients.nutritionGoals')} &rarr;
-              </Link>
-              <button
-                type="button"
-                disabled
-                className="rounded-sm bg-gold/30 px-4 py-2 font-heading text-[13px] font-extrabold uppercase tracking-wide text-black/40 cursor-not-allowed"
-              >
-                {t('clients.nutritionPlans')} &rarr;
-              </button>
-            </div>
           </div>
         ) : null}
       </div>
+
+      {/* Nutrition Goals Drawer */}
+      {drawerOpen && (
+        <div className="fixed inset-0 z-50 flex">
+          {/* Backdrop */}
+          <div className="flex-1 bg-black/50" onClick={() => setDrawerOpen(false)} />
+          {/* Panel */}
+          <div className="w-full max-w-xl overflow-y-auto border-l border-border bg-bg p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-bold">{t('nutritionGoals.title')}</h2>
+              <button onClick={() => setDrawerOpen(false)} className="text-muted hover:text-text">&#10005;</button>
+            </div>
+            <div className="space-y-6">
+              {/* Anamnesis Form */}
+              <div className="rounded-sm border border-border bg-surface p-5">
+                <AnamnesisForm
+                  client={client}
+                  onSubmit={handleCalculate}
+                  isLoading={isCalculating}
+                />
+              </div>
+
+              {/* Calculation Results */}
+              {result && lastRequest && (
+                <div className="rounded-sm border border-border bg-surface p-5">
+                  <GoalCalculation
+                    bmr={result.bmr}
+                    tdee={result.tdee}
+                    adjustedKcal={result.adjustedKcal}
+                    activityLevel={lastRequest.activityLevel}
+                    goal={lastRequest.goal}
+                  />
+                </div>
+              )}
+
+              {/* Macro Sliders */}
+              {result && (
+                <div className="rounded-sm border border-border bg-surface p-5">
+                  <MacroSliders
+                    proteinPercent={macros.protein}
+                    carbsPercent={macros.carbs}
+                    fatPercent={macros.fat}
+                    totalKcal={result.adjustedKcal}
+                    onChange={handleMacroChange}
+                  />
+                </div>
+              )}
+
+              {/* Meal Distribution */}
+              {result && (
+                <div className="rounded-sm border border-border bg-surface p-5">
+                  <MealDistribution
+                    totalKcal={result.adjustedKcal}
+                    macroTargets={result.macroTargets}
+                  />
+                </div>
+              )}
+
+              {/* Apply to Plan button */}
+              {result && (
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    disabled
+                    className="rounded-sm bg-gold/30 px-4 py-2 font-heading text-[13px] font-extrabold uppercase tracking-wide text-black/40 cursor-not-allowed"
+                  >
+                    {t('nutritionGoals.applyToPlan')}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

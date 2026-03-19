@@ -179,6 +179,11 @@
     "carbs": "Kohlenhydrate",
     "fat": "Fett",
     "nutritionTargetsHint": "Automatisch aus Onboarding-Daten berechnet. Ernährungsziele zur Überschreibung verwenden.",
+    "tabOverview": "\u00dcbersicht",
+    "tabLifestyle": "Lebensstil",
+    "tabNutrition": "Ern\u00e4hrung",
+    "tabMotivation": "Motivation",
+    "recalculate": "Neu berechnen",
     "values": {
       "Male": "Männlich",
       "Female": "Weiblich",

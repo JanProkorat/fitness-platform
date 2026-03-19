@@ -179,6 +179,11 @@
     "carbs": "Sacharidy",
     "fat": "Tuky",
     "nutritionTargetsHint": "Automaticky vypo\u010dteno z dat z dotazn\u00edku. Pou\u017eijte Nutri\u010dn\u00ed c\u00edle pro \u00fapravu.",
+    "tabOverview": "P\u0159ehled",
+    "tabLifestyle": "\u017divotn\u00ed styl",
+    "tabNutrition": "V\u00fd\u017eiva",
+    "tabMotivation": "Motivace",
+    "recalculate": "P\u0159epo\u010d\u00edtat",
     "values": {
       "Male": "Muž",
       "Female": "Žena",

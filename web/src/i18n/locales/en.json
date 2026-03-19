@@ -179,6 +179,11 @@
     "carbs": "Carbs",
     "fat": "Fat",
     "nutritionTargetsHint": "Auto-calculated from onboarding data. Use Nutrition Goals to override.",
+    "tabOverview": "Overview",
+    "tabLifestyle": "Lifestyle",
+    "tabNutrition": "Nutrition",
+    "tabMotivation": "Motivation",
+    "recalculate": "Recalculate",
     "values": {
       "Male": "Male",
       "Female": "Female",
