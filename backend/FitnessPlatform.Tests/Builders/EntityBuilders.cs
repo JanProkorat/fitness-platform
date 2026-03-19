@@ -14,9 +14,9 @@ public static class EntityBuilder
     public static ApplicationUserBuilder User => new();
 
     /// <summary>
-    /// Creates a new <see cref="TrainerProfileBuilder"/>.
+    /// Creates a new <see cref="ProfessionalProfileBuilder"/>.
     /// </summary>
-    public static TrainerProfileBuilder TrainerProfile => new();
+    public static ProfessionalProfileBuilder ProfessionalProfile => new();
 
     /// <summary>
     /// Creates a new <see cref="ClientProfileBuilder"/>.
@@ -24,9 +24,9 @@ public static class EntityBuilder
     public static ClientProfileBuilder ClientProfile => new();
 
     /// <summary>
-    /// Creates a new <see cref="ClientTrainerLinkBuilder"/>.
+    /// Creates a new <see cref="ClientProfessionalLinkBuilder"/>.
     /// </summary>
-    public static ClientTrainerLinkBuilder ClientTrainerLink => new();
+    public static ClientProfessionalLinkBuilder ClientProfessionalLink => new();
 
     /// <summary>
     /// Creates a new <see cref="RefreshTokenBuilder"/>.
@@ -37,6 +37,11 @@ public static class EntityBuilder
     /// Creates a new <see cref="InvitationTokenBuilder"/>.
     /// </summary>
     public static InvitationTokenBuilder InvitationToken => new();
+
+    /// <summary>
+    /// Creates a new <see cref="ClientOnboardingDataBuilder"/>.
+    /// </summary>
+    public static ClientOnboardingDataBuilder ClientOnboardingData => new();
 }
 
 /// <summary>
@@ -87,9 +92,9 @@ public class ApplicationUserBuilder
 }
 
 /// <summary>
-/// Builder for <see cref="TrainerProfile"/> test entities.
+/// Builder for <see cref="ProfessionalProfile"/> test entities.
 /// </summary>
-public class TrainerProfileBuilder
+public class ProfessionalProfileBuilder
 {
     private long _id = 1;
     private Guid _userId = Guid.NewGuid();
@@ -101,37 +106,37 @@ public class TrainerProfileBuilder
     /// <summary>
     /// Sets the internal ID.
     /// </summary>
-    public TrainerProfileBuilder WithId(long id) { _id = id; return this; }
+    public ProfessionalProfileBuilder WithId(long id) { _id = id; return this; }
 
     /// <summary>
     /// Sets the user ID.
     /// </summary>
-    public TrainerProfileBuilder WithUserId(Guid userId) { _userId = userId; return this; }
+    public ProfessionalProfileBuilder WithUserId(Guid userId) { _userId = userId; return this; }
 
     /// <summary>
     /// Sets the public ID.
     /// </summary>
-    public TrainerProfileBuilder WithPublicId(Guid publicId) { _publicId = publicId; return this; }
+    public ProfessionalProfileBuilder WithPublicId(Guid publicId) { _publicId = publicId; return this; }
 
     /// <summary>
     /// Sets the bio.
     /// </summary>
-    public TrainerProfileBuilder WithBio(string bio) { _bio = bio; return this; }
+    public ProfessionalProfileBuilder WithBio(string bio) { _bio = bio; return this; }
 
     /// <summary>
     /// Sets the specialization.
     /// </summary>
-    public TrainerProfileBuilder WithSpecialization(string spec) { _specialization = spec; return this; }
+    public ProfessionalProfileBuilder WithSpecialization(string spec) { _specialization = spec; return this; }
 
     /// <summary>
     /// Sets the User navigation property.
     /// </summary>
-    public TrainerProfileBuilder WithUser(ApplicationUser user) { _user = user; _userId = user.Id; return this; }
+    public ProfessionalProfileBuilder WithUser(ApplicationUser user) { _user = user; _userId = user.Id; return this; }
 
     /// <summary>
-    /// Builds the <see cref="TrainerProfile"/> instance.
+    /// Builds the <see cref="ProfessionalProfile"/> instance.
     /// </summary>
-    public TrainerProfile Build() => new()
+    public ProfessionalProfile Build() => new()
     {
         Id = _id, UserId = _userId, PublicId = _publicId,
         Bio = _bio, Specialization = _specialization,
@@ -180,61 +185,61 @@ public class ClientProfileBuilder
 }
 
 /// <summary>
-/// Builder for <see cref="ClientTrainerLink"/> test entities.
+/// Builder for <see cref="ClientProfessionalLink"/> test entities.
 /// </summary>
-public class ClientTrainerLinkBuilder
+public class ClientProfessionalLinkBuilder
 {
     private long _clientProfileId;
-    private long _trainerProfileId;
-    private UserRole _trainerRole = UserRole.Trainer;
+    private long _professionalProfileId;
+    private UserRole _professionalRole = UserRole.Trainer;
     private bool _isActive = true;
     private ClientProfile? _clientProfile;
-    private TrainerProfile? _trainerProfile;
+    private ProfessionalProfile? _professionalProfile;
     private DateTime _dateCreated = DateTime.UtcNow;
 
     /// <summary>
     /// Sets the client profile ID.
     /// </summary>
-    public ClientTrainerLinkBuilder WithClientProfileId(long id) { _clientProfileId = id; return this; }
+    public ClientProfessionalLinkBuilder WithClientProfileId(long id) { _clientProfileId = id; return this; }
 
     /// <summary>
-    /// Sets the trainer profile ID.
+    /// Sets the professional profile ID.
     /// </summary>
-    public ClientTrainerLinkBuilder WithTrainerProfileId(long id) { _trainerProfileId = id; return this; }
+    public ClientProfessionalLinkBuilder WithProfessionalProfileId(long id) { _professionalProfileId = id; return this; }
 
     /// <summary>
-    /// Sets the trainer role.
+    /// Sets the professional role.
     /// </summary>
-    public ClientTrainerLinkBuilder WithTrainerRole(UserRole role) { _trainerRole = role; return this; }
+    public ClientProfessionalLinkBuilder WithProfessionalRole(UserRole role) { _professionalRole = role; return this; }
 
     /// <summary>
     /// Sets the link as inactive.
     /// </summary>
-    public ClientTrainerLinkBuilder Inactive() { _isActive = false; return this; }
+    public ClientProfessionalLinkBuilder Inactive() { _isActive = false; return this; }
 
     /// <summary>
     /// Sets the ClientProfile navigation property.
     /// </summary>
-    public ClientTrainerLinkBuilder WithClientProfile(ClientProfile cp) { _clientProfile = cp; _clientProfileId = cp.Id; return this; }
+    public ClientProfessionalLinkBuilder WithClientProfile(ClientProfile cp) { _clientProfile = cp; _clientProfileId = cp.Id; return this; }
 
     /// <summary>
-    /// Sets the TrainerProfile navigation property.
+    /// Sets the ProfessionalProfile navigation property.
     /// </summary>
-    public ClientTrainerLinkBuilder WithTrainerProfile(TrainerProfile tp) { _trainerProfile = tp; _trainerProfileId = tp.Id; return this; }
+    public ClientProfessionalLinkBuilder WithProfessionalProfile(ProfessionalProfile pp) { _professionalProfile = pp; _professionalProfileId = pp.Id; return this; }
 
     /// <summary>
     /// Sets the date created.
     /// </summary>
-    public ClientTrainerLinkBuilder WithDateCreated(DateTime dt) { _dateCreated = dt; return this; }
+    public ClientProfessionalLinkBuilder WithDateCreated(DateTime dt) { _dateCreated = dt; return this; }
 
     /// <summary>
-    /// Builds the <see cref="ClientTrainerLink"/> instance.
+    /// Builds the <see cref="ClientProfessionalLink"/> instance.
     /// </summary>
-    public ClientTrainerLink Build() => new()
+    public ClientProfessionalLink Build() => new()
     {
-        ClientProfileId = _clientProfileId, TrainerProfileId = _trainerProfileId,
-        TrainerRole = _trainerRole, IsActive = _isActive,
-        ClientProfile = _clientProfile!, TrainerProfile = _trainerProfile!,
+        ClientProfileId = _clientProfileId, ProfessionalProfileId = _professionalProfileId,
+        ProfessionalRole = _professionalRole, IsActive = _isActive,
+        ClientProfile = _clientProfile!, ProfessionalProfile = _professionalProfile!,
         DateCreated = _dateCreated
     };
 }
@@ -302,17 +307,17 @@ public class RefreshTokenBuilder
 /// </summary>
 public class InvitationTokenBuilder
 {
-    private long _trainerProfileId = 1;
+    private long _professionalProfileId = 1;
     private string _email = "client@test.com";
     private string _token = "invite-token";
     private DateTime _expiresAt = DateTime.UtcNow.AddDays(7);
     private bool _isUsed;
-    private TrainerProfile? _trainerProfile;
+    private ProfessionalProfile? _professionalProfile;
 
     /// <summary>
-    /// Sets the trainer profile ID.
+    /// Sets the professional profile ID.
     /// </summary>
-    public InvitationTokenBuilder WithTrainerProfileId(long id) { _trainerProfileId = id; return this; }
+    public InvitationTokenBuilder WithProfessionalProfileId(long id) { _professionalProfileId = id; return this; }
 
     /// <summary>
     /// Sets the invited email.
@@ -340,16 +345,61 @@ public class InvitationTokenBuilder
     public InvitationTokenBuilder Used() { _isUsed = true; return this; }
 
     /// <summary>
-    /// Sets the TrainerProfile navigation property.
+    /// Sets the ProfessionalProfile navigation property.
     /// </summary>
-    public InvitationTokenBuilder WithTrainerProfile(TrainerProfile tp) { _trainerProfile = tp; _trainerProfileId = tp.Id; return this; }
+    public InvitationTokenBuilder WithProfessionalProfile(ProfessionalProfile pp) { _professionalProfile = pp; _professionalProfileId = pp.Id; return this; }
 
     /// <summary>
     /// Builds the <see cref="Application.Domain.Entities.InvitationToken"/> instance.
     /// </summary>
     public InvitationToken Build() => new()
     {
-        TrainerProfileId = _trainerProfileId, Email = _email, Token = _token,
-        ExpiresAt = _expiresAt, IsUsed = _isUsed, TrainerProfile = _trainerProfile!
+        ProfessionalProfileId = _professionalProfileId, Email = _email, Token = _token,
+        ExpiresAt = _expiresAt, IsUsed = _isUsed, ProfessionalProfile = _professionalProfile!
     };
+}
+
+/// <summary>
+/// Builder for <see cref="ClientOnboardingData"/> test entities.
+/// </summary>
+public class ClientOnboardingDataBuilder
+{
+    private readonly ClientOnboardingData _entity = new()
+    {
+        Id = 1,
+        ClientProfileId = 1,
+        DateOfBirth = new DateTime(2000, 1, 1),
+        Sex = BiologicalSex.Male,
+        HeightCm = 180,
+        WeightKg = 80,
+        BodyType = BodyType.Mesomorph,
+        PrimaryGoal = PrimaryGoal.GainMuscle,
+        TimeHorizon = TimeHorizon.SixMonths,
+        JobType = JobType.Sedentary,
+        SleepHours = 7,
+        StressLevel = 3,
+        CurrentTrainingFrequency = CurrentTrainingFrequency.Regular,
+        DesiredTrainingFrequency = DesiredTrainingFrequency.FourPerWeek,
+        FitnessRating = 6,
+        GymAccess = GymAccess.Yes,
+        PreferredActivities = "strength,cardio",
+        Injuries = "none",
+        MealsPerDay = MealsPerDay.FourToFive,
+        DietaryStyle = DietaryStyle.Standard,
+        Allergies = "none",
+        DietRating = 3,
+        PlanExperience = PlanExperience.TriedFailed,
+        PastBlockers = "time,motivation",
+        PrimaryMotivation = PrimaryMotivation.Appearance,
+    };
+
+    /// <summary>
+    /// Sets the client profile ID.
+    /// </summary>
+    public ClientOnboardingDataBuilder WithClientProfileId(long id) { _entity.ClientProfileId = id; return this; }
+
+    /// <summary>
+    /// Builds the <see cref="ClientOnboardingData"/> instance.
+    /// </summary>
+    public ClientOnboardingData Build() => _entity;
 }
