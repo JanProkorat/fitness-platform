@@ -6,7 +6,7 @@ namespace FitnessPlatform.Application.Domain.Entities;
 /// <summary>
 /// Profile information for users in the Trainer or Nutritionist role.
 /// </summary>
-public class TrainerProfile : PublicTimestampableEntity
+public class ProfessionalProfile : PublicTimestampableEntity
 {
     /// <summary>
     /// Foreign key to the associated <see cref="ApplicationUser"/>.
@@ -14,7 +14,7 @@ public class TrainerProfile : PublicTimestampableEntity
     public Guid UserId { get; set; }
 
     /// <summary>
-    /// Short biography or description of the trainer.
+    /// Short biography or description of the professional.
     /// </summary>
     [MaxLength(1000)]
     public string? Bio { get; set; }
@@ -31,12 +31,12 @@ public class TrainerProfile : PublicTimestampableEntity
     public ApplicationUser User { get; set; } = null!;
 
     /// <summary>
-    /// Collection of links to clients managed by this trainer.
+    /// Collection of links to clients managed by this professional.
     /// </summary>
-    public ICollection<ClientTrainerLink> ClientLinks { get; set; } = [];
+    public ICollection<ClientProfessionalLink> ClientLinks { get; set; } = [];
 
     /// <summary>
-    /// Collection of invitation tokens sent by this trainer.
+    /// Collection of invitation tokens sent by this professional.
     /// </summary>
     public ICollection<InvitationToken> InvitationTokens { get; set; } = [];
 }
