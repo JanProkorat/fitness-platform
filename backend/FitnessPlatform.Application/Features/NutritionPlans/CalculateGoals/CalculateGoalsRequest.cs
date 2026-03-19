@@ -1,5 +1,3 @@
-using FitnessPlatform.Application.Domain.Enums;
-
 namespace FitnessPlatform.Application.Features.NutritionPlans.CalculateGoals;
 
 /// <summary>
@@ -30,17 +28,17 @@ public class CalculateGoalsRequest
     /// <summary>
     /// Biological sex for BMR calculation.
     /// </summary>
-    public BiologicalSex Sex { get; set; }
+    public string Sex { get; set; } = string.Empty;
 
     /// <summary>
     /// Physical activity level.
     /// </summary>
-    public ActivityLevel ActivityLevel { get; set; }
+    public string ActivityLevel { get; set; } = string.Empty;
 
     /// <summary>
     /// Nutrition goal (Cut, Maintain, Bulk).
     /// </summary>
-    public NutritionGoal Goal { get; set; }
+    public string Goal { get; set; } = string.Empty;
 
     /// <summary>
     /// Custom protein percentage (default 30).

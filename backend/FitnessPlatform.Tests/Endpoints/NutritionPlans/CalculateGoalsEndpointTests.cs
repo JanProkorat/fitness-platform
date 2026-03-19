@@ -2,7 +2,6 @@ using System.Security.Claims;
 using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
-using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Features.NutritionPlans.CalculateGoals;
 using FitnessPlatform.Application.Infrastructure.Services;
@@ -38,9 +37,9 @@ public class CalculateGoalsEndpointTests
             WeightKg = 80,
             HeightCm = 180,
             Age = 30,
-            Sex = BiologicalSex.Male,
-            ActivityLevel = ActivityLevel.ModeratelyActive,
-            Goal = NutritionGoal.Maintain,
+            Sex = "Male",
+            ActivityLevel = "ModeratelyActive",
+            Goal = "Maintain",
             ProteinPercent = 30,
             CarbsPercent = 45,
             FatPercent = 25
@@ -80,9 +79,9 @@ public class CalculateGoalsEndpointTests
             WeightKg = 80,
             HeightCm = 180,
             Age = 30,
-            Sex = BiologicalSex.Male,
-            ActivityLevel = ActivityLevel.ModeratelyActive,
-            Goal = NutritionGoal.Maintain
+            Sex = "Male",
+            ActivityLevel = "ModeratelyActive",
+            Goal = "Maintain"
         };
 
         await ep.HandleAsync(request, TestContext.Current.CancellationToken);
@@ -108,9 +107,9 @@ public class CalculateGoalsEndpointTests
             WeightKg = 80,
             HeightCm = 180,
             Age = 30,
-            Sex = BiologicalSex.Male,
-            ActivityLevel = ActivityLevel.ModeratelyActive,
-            Goal = NutritionGoal.Maintain
+            Sex = "Male",
+            ActivityLevel = "ModeratelyActive",
+            Goal = "Maintain"
         };
 
         await ep.HandleAsync(request, TestContext.Current.CancellationToken);

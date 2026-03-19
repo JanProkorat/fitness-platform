@@ -1,4 +1,5 @@
 using FastEndpoints;
+using FitnessPlatform.Application.Domain.Enums;
 using FluentValidation;
 
 namespace FitnessPlatform.Application.Features.NutritionPlans.CalculateGoals;
@@ -17,9 +18,9 @@ public class CalculateGoalsValidator : Validator<CalculateGoalsRequest>
         RuleFor(x => x.WeightKg).GreaterThan(0);
         RuleFor(x => x.HeightCm).GreaterThan(0);
         RuleFor(x => x.Age).InclusiveBetween(1, 120);
-        RuleFor(x => x.Sex).IsInEnum();
-        RuleFor(x => x.ActivityLevel).IsInEnum();
-        RuleFor(x => x.Goal).IsInEnum();
+        RuleFor(x => x.Sex).NotEmpty().Must(v => Enum.TryParse<BiologicalSex>(v, true, out _));
+        RuleFor(x => x.ActivityLevel).NotEmpty().Must(v => Enum.TryParse<ActivityLevel>(v, true, out _));
+        RuleFor(x => x.Goal).NotEmpty().Must(v => Enum.TryParse<NutritionGoal>(v, true, out _));
         RuleFor(x => x.ProteinPercent).InclusiveBetween(0, 100);
         RuleFor(x => x.CarbsPercent).InclusiveBetween(0, 100);
         RuleFor(x => x.FatPercent).InclusiveBetween(0, 100);

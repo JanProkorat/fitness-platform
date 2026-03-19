@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Services;
 
@@ -48,9 +49,13 @@ public class CalculateGoalsEndpoint(IMacroCalculatorService calculator, Nutritio
             return;
         }
 
-        var bmr = calculator.CalculateBmr(req.WeightKg, req.HeightCm, req.Age, req.Sex);
-        var tdee = calculator.CalculateTdee(bmr, req.ActivityLevel);
-        var adjustedKcal = calculator.ApplyGoalAdjustment(tdee, req.Goal);
+        var sex = Enum.Parse<BiologicalSex>(req.Sex, true);
+        var activityLevel = Enum.Parse<ActivityLevel>(req.ActivityLevel, true);
+        var goal = Enum.Parse<NutritionGoal>(req.Goal, true);
+
+        var bmr = calculator.CalculateBmr(req.WeightKg, req.HeightCm, req.Age, sex);
+        var tdee = calculator.CalculateTdee(bmr, activityLevel);
+        var adjustedKcal = calculator.ApplyGoalAdjustment(tdee, goal);
         var macroTargets = calculator.CalculateMacroSplit(adjustedKcal, req.ProteinPercent, req.CarbsPercent, req.FatPercent);
 
         await Send.OkAsync(new CalculateGoalsResponse
