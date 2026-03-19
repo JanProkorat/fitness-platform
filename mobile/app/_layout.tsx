@@ -29,6 +29,7 @@ function AuthGate() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const isInitialized = useAuthStore((s) => s.isInitialized);
   const restoreSession = useAuthStore((s) => s.restoreSession);
+  const user = useAuthStore((s) => s.user);
 
   // Process offline mutations
   useOfflineMutations();
@@ -42,13 +43,18 @@ function AuthGate() {
     SplashScreen.hideAsync();
 
     const inAuthGroup = segments[0] === '(auth)';
+    const onOnboardingScreen = inAuthGroup && segments[1] === 'onboarding';
+    const isClient = user?.roles.includes('Client') && !user.roles.some(r => ['Trainer', 'Nutritionist', 'Admin'].includes(r));
+    const needsOnboarding = isClient && user?.isOnboardingComplete === false;
 
     if (!isAuthenticated && !inAuthGroup) {
       router.replace('/(auth)/login');
-    } else if (isAuthenticated && inAuthGroup) {
+    } else if (isAuthenticated && needsOnboarding && !onOnboardingScreen) {
+      router.replace('/(auth)/onboarding');
+    } else if (isAuthenticated && inAuthGroup && !needsOnboarding && !onOnboardingScreen) {
       router.replace('/(client)');
     }
-  }, [isAuthenticated, isInitialized, segments, router]);
+  }, [isAuthenticated, isInitialized, segments, router, user]);
 
   if (!isInitialized) {
     return (
