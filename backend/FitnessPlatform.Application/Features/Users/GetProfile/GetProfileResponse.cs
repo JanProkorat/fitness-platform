@@ -34,4 +34,9 @@ public class GetProfileResponse
     /// Date and time when the account was created.
     /// </summary>
     public DateTime DateCreated { get; set; }
+
+    /// <summary>
+    /// Whether the client has completed onboarding. Null for non-client users.
+    /// </summary>
+    public bool? IsOnboardingComplete { get; set; }
 }

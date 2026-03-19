@@ -2,7 +2,9 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace FitnessPlatform.Application.Features.Users.GetProfile;
 
@@ -10,7 +12,9 @@ namespace FitnessPlatform.Application.Features.Users.GetProfile;
 /// Endpoint for retrieving the authenticated user's profile.
 /// </summary>
 /// <param name="userManager">ASP.NET Identity user manager.</param>
-public class GetProfileEndpoint(UserManager<ApplicationUser> userManager) : EndpointWithoutRequest<GetProfileResponse>
+/// <param name="dbContext">Application database context.</param>
+public class GetProfileEndpoint(UserManager<ApplicationUser> userManager, IApplicationDbContext dbContext)
+    : EndpointWithoutRequest<GetProfileResponse>
 {
 
     /// <inheritdoc />
@@ -45,6 +49,14 @@ public class GetProfileEndpoint(UserManager<ApplicationUser> userManager) : Endp
 
         var roles = await userManager.GetRolesAsync(user);
 
+        bool? isOnboardingComplete = null;
+        if (roles.Contains("Client"))
+        {
+            var clientProfile = await dbContext.ClientProfiles
+                .FirstOrDefaultAsync(cp => cp.UserId == user.Id, ct);
+            isOnboardingComplete = clientProfile?.IsOnboardingComplete ?? false;
+        }
+
         await Send.OkAsync(new GetProfileResponse
         {
             UserId = user.Id,
@@ -52,7 +64,8 @@ public class GetProfileEndpoint(UserManager<ApplicationUser> userManager) : Endp
             FirstName = user.FirstName,
             LastName = user.LastName,
             Roles = roles.ToList(),
-            DateCreated = user.DateCreated
+            DateCreated = user.DateCreated,
+            IsOnboardingComplete = isOnboardingComplete
         }, ct);
     }
 }
