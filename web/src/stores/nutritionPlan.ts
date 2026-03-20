@@ -4,16 +4,9 @@ import type {
   PlanMeal,
   MealFood,
   NutrientTotals,
+  UpdatePlanRequest,
 } from '@/api/plan-types';
-import {
-  addMeal as apiAddMeal,
-  deleteMeal as apiDeleteMeal,
-  addFoodToMeal as apiAddFood,
-  removeFoodFromMeal as apiRemoveFood,
-  updateMeal as apiUpdateMeal,
-  updateDay as apiUpdateDay,
-  getPlan,
-} from '@/api/plans';
+import { updatePlan as apiUpdatePlan, publishWeek as apiPublishWeek, getPlan } from '@/api/plans';
 
 interface NutritionPlanState {
   plan: NutritionPlanDetail | null;
@@ -47,10 +40,11 @@ interface NutritionPlanState {
     mealId: string,
     targetIndex: number,
   ) => void;
-  persistDays: (weekNum: number, dayOfWeeks: number[]) => void;
   swapDays: (weekNum: number, fromDayOfWeek: number, toDayOfWeek: number) => void;
-  markSaved: (version: number) => void;
-  setSaving: (saving: boolean) => void;
+  addWeek: () => void;
+  removeWeek: (weekNum: number) => void;
+  save: () => Promise<void>;
+  publishWeek: (weekNumber: number) => Promise<void>;
 }
 
 /** Calculate nutrient totals for a list of foods using Atwater factors. */
@@ -104,17 +98,28 @@ function recalculateTotals(plan: NutritionPlanDetail): NutritionPlanDetail {
   };
 }
 
-/** Debounce timer for food amount changes. */
-let amountSaveTimer: ReturnType<typeof setTimeout> | null = null;
-
-/** Re-fetch the plan from the API to sync version and server-calculated data. */
-async function refreshPlan(planId: string) {
-  try {
-    const fresh = await getPlan(planId);
-    useNutritionPlanStore.getState().setPlan(fresh);
-  } catch {
-    // If refresh fails, local state is still showing optimistic data
-  }
+/** Helper: immutably update a specific day's meals within the plan. */
+function updateDay(
+  plan: NutritionPlanDetail,
+  weekNum: number,
+  dayOfWeek: number,
+  updater: (meals: PlanMeal[]) => PlanMeal[],
+): NutritionPlanDetail {
+  return {
+    ...plan,
+    weeks: plan.weeks.map((week) =>
+      week.weekNumber !== weekNum
+        ? week
+        : {
+            ...week,
+            days: week.days.map((day) =>
+              day.dayOfWeek !== dayOfWeek
+                ? day
+                : { ...day, meals: updater(day.meals) },
+            ),
+          },
+    ),
+  };
 }
 
 export const useNutritionPlanStore = create<NutritionPlanState>((set, get) => ({
@@ -131,267 +136,104 @@ export const useNutritionPlanStore = create<NutritionPlanState>((set, get) => ({
     set({ selectedWeek: week });
   },
 
-  setSaving: (saving) => {
-    set({ isSaving: saving });
-  },
-
   updateFoodAmount: (weekNum, dayOfWeek, mealId, foodExternalId, amountGrams) => {
     const { plan } = get();
     if (!plan) return;
 
-    const updated: NutritionPlanDetail = {
-      ...plan,
-      weeks: plan.weeks.map((week) =>
-        week.weekNumber !== weekNum
-          ? week
+    const updated = updateDay(plan, weekNum, dayOfWeek, (meals) =>
+      meals.map((meal) =>
+        meal.mealId !== mealId
+          ? meal
           : {
-              ...week,
-              days: week.days.map((day) =>
-                day.dayOfWeek !== dayOfWeek
-                  ? day
-                  : {
-                      ...day,
-                      meals: day.meals.map((meal) =>
-                        meal.mealId !== mealId
-                          ? meal
-                          : {
-                              ...meal,
-                              foods: meal.foods.map((food) =>
-                                food.foodExternalId !== foodExternalId
-                                  ? food
-                                  : { ...food, amountGrams },
-                              ),
-                            },
-                      ),
-                    },
+              ...meal,
+              foods: meal.foods.map((food) =>
+                food.foodExternalId !== foodExternalId
+                  ? food
+                  : { ...food, amountGrams },
               ),
             },
       ),
-    };
+    );
 
-    const recalculated = recalculateTotals(updated);
-    set({ plan: recalculated, isDirty: false });
-
-    // Debounce: persist the whole day after user stops typing
-    if (amountSaveTimer) clearTimeout(amountSaveTimer);
-    amountSaveTimer = setTimeout(() => {
-      const currentPlan = get().plan;
-      if (!currentPlan) return;
-      const day = currentPlan.weeks
-        .find((w) => w.weekNumber === weekNum)
-        ?.days.find((d) => d.dayOfWeek === dayOfWeek);
-      if (!day) return;
-      apiUpdateDay(currentPlan.planId, weekNum, dayOfWeek, day.meals)
-        .then(() => refreshPlan(currentPlan.planId));
-    }, 1000);
+    set({ plan: recalculateTotals(updated), isDirty: true });
   },
 
   addFoodToMeal: (weekNum, dayOfWeek, mealId, food) => {
     const { plan } = get();
     if (!plan) return;
 
-    // Optimistic local update
-    const updated: NutritionPlanDetail = {
-      ...plan,
-      weeks: plan.weeks.map((week) =>
-        week.weekNumber !== weekNum
-          ? week
-          : {
-              ...week,
-              days: week.days.map((day) =>
-                day.dayOfWeek !== dayOfWeek
-                  ? day
-                  : {
-                      ...day,
-                      meals: day.meals.map((meal) =>
-                        meal.mealId !== mealId
-                          ? meal
-                          : { ...meal, foods: [...meal.foods, food] },
-                      ),
-                    },
-              ),
-            },
+    const updated = updateDay(plan, weekNum, dayOfWeek, (meals) =>
+      meals.map((meal) =>
+        meal.mealId !== mealId
+          ? meal
+          : { ...meal, foods: [...meal.foods, food] },
       ),
-    };
+    );
 
-    set({ plan: recalculateTotals(updated), isDirty: false });
-
-    // Persist to backend
-    apiAddFood(plan.planId, mealId, {
-      foodExternalId: food.foodExternalId,
-      foodName: food.foodName,
-      nutrientValuePer100Grams: food.nutrientValuePer100Grams,
-      amountGrams: food.amountGrams,
-    }).then(() => refreshPlan(plan.planId));
+    set({ plan: recalculateTotals(updated), isDirty: true });
   },
 
   removeFoodFromMeal: (weekNum, dayOfWeek, mealId, foodExternalId) => {
     const { plan } = get();
     if (!plan) return;
 
-    // Optimistic local update
-    const updated: NutritionPlanDetail = {
-      ...plan,
-      weeks: plan.weeks.map((week) =>
-        week.weekNumber !== weekNum
-          ? week
+    const updated = updateDay(plan, weekNum, dayOfWeek, (meals) =>
+      meals.map((meal) =>
+        meal.mealId !== mealId
+          ? meal
           : {
-              ...week,
-              days: week.days.map((day) =>
-                day.dayOfWeek !== dayOfWeek
-                  ? day
-                  : {
-                      ...day,
-                      meals: day.meals.map((meal) =>
-                        meal.mealId !== mealId
-                          ? meal
-                          : {
-                              ...meal,
-                              foods: meal.foods.filter(
-                                (f) => f.foodExternalId !== foodExternalId,
-                              ),
-                            },
-                      ),
-                    },
-              ),
+              ...meal,
+              foods: meal.foods.filter((f) => f.foodExternalId !== foodExternalId),
             },
       ),
-    };
+    );
 
-    set({ plan: recalculateTotals(updated), isDirty: false });
-
-    // Persist to backend
-    apiRemoveFood(plan.planId, mealId, foodExternalId)
-      .then(() => refreshPlan(plan.planId));
+    set({ plan: recalculateTotals(updated), isDirty: true });
   },
 
   addMeal: (weekNum, dayOfWeek, meal) => {
     const { plan } = get();
     if (!plan) return;
 
-    // Optimistic local update
-    const updated: NutritionPlanDetail = {
-      ...plan,
-      weeks: plan.weeks.map((week) =>
-        week.weekNumber !== weekNum
-          ? week
-          : {
-              ...week,
-              days: week.days.map((day) =>
-                day.dayOfWeek !== dayOfWeek
-                  ? day
-                  : { ...day, meals: [...day.meals, meal] },
-              ),
-            },
-      ),
-    };
-
-    set({ plan: recalculateTotals(updated), isDirty: false });
-
-    // Persist to backend
-    apiAddMeal(plan.planId, weekNum, dayOfWeek, {
-      name: meal.name,
-      order: meal.order,
-      time: meal.time,
-    }).then(() => refreshPlan(plan.planId));
+    const updated = updateDay(plan, weekNum, dayOfWeek, (meals) => [...meals, meal]);
+    set({ plan: recalculateTotals(updated), isDirty: true });
   },
 
   removeMeal: (weekNum, dayOfWeek, mealId) => {
     const { plan } = get();
     if (!plan) return;
 
-    // Optimistic local update
-    const updated: NutritionPlanDetail = {
-      ...plan,
-      weeks: plan.weeks.map((week) =>
-        week.weekNumber !== weekNum
-          ? week
-          : {
-              ...week,
-              days: week.days.map((day) =>
-                day.dayOfWeek !== dayOfWeek
-                  ? day
-                  : {
-                      ...day,
-                      meals: day.meals.filter((m) => m.mealId !== mealId),
-                    },
-              ),
-            },
-      ),
-    };
-
-    set({ plan: recalculateTotals(updated), isDirty: false });
-
-    // Persist to backend
-    apiDeleteMeal(plan.planId, weekNum, dayOfWeek, mealId)
-      .then(() => refreshPlan(plan.planId));
+    const updated = updateDay(plan, weekNum, dayOfWeek, (meals) =>
+      meals.filter((m) => m.mealId !== mealId),
+    );
+    set({ plan: recalculateTotals(updated), isDirty: true });
   },
 
   updateMealName: (weekNum, dayOfWeek, mealId, name) => {
     const { plan } = get();
     if (!plan) return;
 
-    // Optimistic local update
-    const updated: NutritionPlanDetail = {
-      ...plan,
-      weeks: plan.weeks.map((week) =>
-        week.weekNumber !== weekNum
-          ? week
-          : {
-              ...week,
-              days: week.days.map((day) =>
-                day.dayOfWeek !== dayOfWeek
-                  ? day
-                  : {
-                      ...day,
-                      meals: day.meals.map((meal) =>
-                        meal.mealId !== mealId ? meal : { ...meal, name },
-                      ),
-                    },
-              ),
-            },
+    const updated = updateDay(plan, weekNum, dayOfWeek, (meals) =>
+      meals.map((meal) =>
+        meal.mealId !== mealId ? meal : { ...meal, name },
       ),
-    };
-
-    set({ plan: recalculateTotals(updated), isDirty: false });
-
-    // Find the meal's current order for the required field
-    const meal = plan.weeks
-      .find((w) => w.weekNumber === weekNum)
-      ?.days.find((d) => d.dayOfWeek === dayOfWeek)
-      ?.meals.find((m) => m.mealId === mealId);
-
-    // Persist to backend
-    apiUpdateMeal(plan.planId, weekNum, dayOfWeek, mealId, { name, order: meal?.order ?? 1 })
-      .then(() => refreshPlan(plan.planId));
+    );
+    set({ plan: recalculateTotals(updated), isDirty: true });
   },
 
   reorderMeals: (weekNum, dayOfWeek, mealIds) => {
     const { plan } = get();
     if (!plan) return;
 
-    const updated: NutritionPlanDetail = {
-      ...plan,
-      weeks: plan.weeks.map((week) =>
-        week.weekNumber !== weekNum
-          ? week
-          : {
-              ...week,
-              days: week.days.map((day) => {
-                if (day.dayOfWeek !== dayOfWeek) return day;
-                const reordered = mealIds
-                  .map((id, idx) => {
-                    const meal = day.meals.find((m) => m.mealId === id);
-                    return meal ? { ...meal, order: idx + 1 } : null;
-                  })
-                  .filter(Boolean) as PlanMeal[];
-                return { ...day, meals: reordered };
-              }),
-            },
-      ),
-    };
-
-    set({ plan: recalculateTotals(updated), isDirty: false });
+    const updated = updateDay(plan, weekNum, dayOfWeek, (meals) =>
+      mealIds
+        .map((id, idx) => {
+          const meal = meals.find((m) => m.mealId === id);
+          return meal ? { ...meal, order: idx + 1 } : null;
+        })
+        .filter(Boolean) as PlanMeal[],
+    );
+    set({ plan: recalculateTotals(updated), isDirty: true });
   },
 
   moveMealToDay: (weekNum, fromDayOfWeek, toDayOfWeek, mealId, targetIndex) => {
@@ -413,7 +255,6 @@ export const useNutritionPlanStore = create<NutritionPlanState>((set, get) => ({
           ...w,
           days: w.days.map((day) => {
             if (day.dayOfWeek === fromDayOfWeek) {
-              // Remove meal from source day and re-number
               const remaining = day.meals
                 .filter((m) => m.mealId !== mealId)
                 .sort((a, b) => a.order - b.order)
@@ -421,7 +262,6 @@ export const useNutritionPlanStore = create<NutritionPlanState>((set, get) => ({
               return { ...day, meals: remaining };
             }
             if (day.dayOfWeek === toDayOfWeek) {
-              // Insert meal into target day at the given index
               const sorted = day.meals.slice().sort((a, b) => a.order - b.order);
               const idx = Math.min(targetIndex, sorted.length);
               sorted.splice(idx, 0, meal);
@@ -434,21 +274,7 @@ export const useNutritionPlanStore = create<NutritionPlanState>((set, get) => ({
       }),
     };
 
-    set({ plan: recalculateTotals(updated), isDirty: false });
-  },
-
-  persistDays: (weekNum, dayOfWeeks) => {
-    const { plan } = get();
-    if (!plan) return;
-
-    const week = plan.weeks.find((w) => w.weekNumber === weekNum);
-    if (!week) return;
-
-    const promises = dayOfWeeks.map((dow) => {
-      const day = week.days.find((d) => d.dayOfWeek === dow);
-      return day ? apiUpdateDay(plan.planId, weekNum, dow, day.meals) : Promise.resolve();
-    });
-    Promise.all(promises).then(() => refreshPlan(plan.planId));
+    set({ plan: recalculateTotals(updated), isDirty: true });
   },
 
   swapDays: (weekNum, fromDayOfWeek, toDayOfWeek) => {
@@ -460,16 +286,12 @@ export const useNutritionPlanStore = create<NutritionPlanState>((set, get) => ({
       weeks: plan.weeks.map((week) => {
         if (week.weekNumber !== weekNum) return week;
 
-        // Get the current day order
         const dayOrder = [1, 2, 3, 4, 5, 6, 7];
         const fromIdx = dayOrder.indexOf(fromDayOfWeek);
         const toIdx = dayOrder.indexOf(toDayOfWeek);
-
-        // Reorder: remove from old position, insert at new
         dayOrder.splice(fromIdx, 1);
         dayOrder.splice(toIdx, 0, fromDayOfWeek);
 
-        // Reassign dayOfWeek values so the content shifts
         const daysByOriginal = new Map(week.days.map((d) => [d.dayOfWeek, d]));
         const newDays = dayOrder.map((origDay, idx) => {
           const day = daysByOriginal.get(origDay) ?? {
@@ -484,21 +306,97 @@ export const useNutritionPlanStore = create<NutritionPlanState>((set, get) => ({
       }),
     };
 
-    set({ plan: recalculateTotals(updated), isDirty: false });
+    set({ plan: recalculateTotals(updated), isDirty: true });
+  },
 
-    // Persist all affected days
-    const week = updated.weeks.find((w) => w.weekNumber === weekNum);
-    if (week) {
-      const promises = week.days.map((day) =>
-        apiUpdateDay(plan.planId, weekNum, day.dayOfWeek, day.meals),
-      );
-      Promise.all(promises).then(() => refreshPlan(plan.planId));
+  addWeek: () => {
+    const { plan } = get();
+    if (!plan) return;
+
+    const maxWeekNum = Math.max(0, ...plan.weeks.map((w) => w.weekNumber));
+    const newWeek = {
+      weekNumber: maxWeekNum + 1,
+      status: 'Draft' as const,
+      datePublished: null,
+      days: Array.from({ length: 7 }, (_, i) => ({
+        dayOfWeek: i + 1,
+        meals: [],
+        dayTotals: null,
+      })),
+    };
+
+    set({
+      plan: { ...plan, weeks: [...plan.weeks, newWeek] },
+      isDirty: true,
+    });
+  },
+
+  removeWeek: (weekNum) => {
+    const { plan } = get();
+    if (!plan || plan.weeks.length <= 1) return;
+
+    const week = plan.weeks.find((w) => w.weekNumber === weekNum);
+    if (!week || week.status === 'Published') return;
+
+    const updated = {
+      ...plan,
+      weeks: plan.weeks.filter((w) => w.weekNumber !== weekNum),
+    };
+
+    set({ plan: updated, isDirty: true, selectedWeek: 1 });
+  },
+
+  save: async () => {
+    const { plan } = get();
+    if (!plan) return;
+
+    set({ isSaving: true });
+    try {
+      const request: UpdatePlanRequest = {
+        name: plan.name,
+        globalSettings: plan.globalSettings,
+        version: plan.version,
+        weeks: plan.weeks.map((week) => ({
+          weekNumber: week.weekNumber,
+          days: week.days.map((day) => ({
+            dayOfWeek: day.dayOfWeek,
+            meals: day.meals.map((meal) => ({
+              mealId: meal.mealId,
+              name: meal.name,
+              order: meal.order,
+              foods: meal.foods.map((food) => ({
+                foodExternalId: food.foodExternalId,
+                foodName: food.foodName,
+                nutrientValuePer100Grams: food.nutrientValuePer100Grams,
+                amountGrams: food.amountGrams,
+              })),
+            })),
+          })),
+        })),
+      };
+
+      const result = await apiUpdatePlan(plan.planId, request);
+      set({ plan: recalculateTotals(result), isDirty: false, isSaving: false });
+    } catch (error: unknown) {
+      set({ isSaving: false });
+      // On 409, silently refetch the plan (conflict resolved by reload)
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response?: { status?: number } };
+        if (axiosError.response?.status === 409) {
+          const fresh = await getPlan(plan.planId);
+          set({ plan: recalculateTotals(fresh), isDirty: false });
+          return; // Don't re-throw — 409 is handled gracefully
+        }
+      }
+      throw error;
     }
   },
 
-  markSaved: (version) => {
+  publishWeek: async (weekNumber) => {
     const { plan } = get();
     if (!plan) return;
-    set({ plan: { ...plan, version }, isDirty: false, isSaving: false });
+
+    const result = await apiPublishWeek(plan.planId, weekNumber, plan.version);
+    set({ plan: recalculateTotals(result), isDirty: false });
   },
 }));
