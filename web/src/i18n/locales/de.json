@@ -418,7 +418,21 @@
     "conflictError": "Plan wurde anderweitig geändert. Bitte neu laden.",
     "createError": "Plan konnte nicht erstellt werden",
     "updateError": "Plan konnte nicht gespeichert werden",
-    "deleteError": "Plan konnte nicht gelöscht werden"
+    "deleteError": "Plan konnte nicht gelöscht werden",
+    "tabMealPlan": "Ernährungsplan",
+    "tabNutritionGoals": "Ernährungsziele",
+    "weekDraft": "Entwurf",
+    "weekPublished": "Veröffentlicht",
+    "publishWeek": "Woche {{number}} veröffentlichen",
+    "confirmPublishWeek": "Das Veröffentlichen dieser Woche macht sie für den Kunden sichtbar. Fortfahren?",
+    "weekPublished_success": "Woche {{number}} veröffentlicht",
+    "addWeek": "+ Woche hinzufügen",
+    "removeWeek": "Woche entfernen",
+    "target": "Ziel {{kcal}}",
+    "overBy": "+{{amount}}",
+    "savePlan": "Speichern",
+    "planSaved": "Plan gespeichert",
+    "versionConflict": "Plan wurde anderswo geändert. Wird neu geladen..."
   },
   "apiErrors": {
     "INVALID_CREDENTIALS": "Ungültige E-Mail oder Passwort.",

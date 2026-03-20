@@ -418,7 +418,21 @@
     "conflictError": "Plán byl mezitím změněn. Načtěte stránku znovu.",
     "createError": "Nepodařilo se vytvořit plán",
     "updateError": "Nepodařilo se uložit plán",
-    "deleteError": "Nepodařilo se smazat plán"
+    "deleteError": "Nepodařilo se smazat plán",
+    "tabMealPlan": "Jídelníček",
+    "tabNutritionGoals": "Nutriční cíle",
+    "weekDraft": "Koncept",
+    "weekPublished": "Publikováno",
+    "publishWeek": "Publikovat týden {{number}}",
+    "confirmPublishWeek": "Publikování tohoto týdne ho zpřístupní klientovi. Pokračovat?",
+    "weekPublished_success": "Týden {{number}} publikován",
+    "addWeek": "+ Přidat týden",
+    "removeWeek": "Odebrat týden",
+    "target": "cíl {{kcal}}",
+    "overBy": "+{{amount}}",
+    "savePlan": "Uložit",
+    "planSaved": "Plán uložen",
+    "versionConflict": "Plán byl změněn jinde. Načítám znovu..."
   },
   "apiErrors": {
     "INVALID_CREDENTIALS": "Neplatný email nebo heslo.",

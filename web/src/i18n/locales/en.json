@@ -419,7 +419,21 @@
     "conflictError": "This plan was modified elsewhere. Please reload.",
     "createError": "Failed to create plan",
     "updateError": "Failed to save plan",
-    "deleteError": "Failed to delete plan"
+    "deleteError": "Failed to delete plan",
+    "tabMealPlan": "Meal Plan",
+    "tabNutritionGoals": "Nutrition Goals",
+    "weekDraft": "Draft",
+    "weekPublished": "Published",
+    "publishWeek": "Publish Week {{number}}",
+    "confirmPublishWeek": "Publishing this week will make it visible to the client. Continue?",
+    "weekPublished_success": "Week {{number}} published",
+    "addWeek": "+ Add Week",
+    "removeWeek": "Remove Week",
+    "target": "target {{kcal}}",
+    "overBy": "+{{amount}}",
+    "savePlan": "Save",
+    "planSaved": "Plan saved",
+    "versionConflict": "Plan was modified elsewhere. Reloading..."
   },
   "apiErrors": {
     "INVALID_CREDENTIALS": "Invalid email or password.",
