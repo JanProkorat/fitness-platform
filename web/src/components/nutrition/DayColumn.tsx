@@ -91,12 +91,27 @@ export default function DayColumn({
     ? Object.entries(mealDistribution).filter(([, pct]) => pct > 0)
     : [];
 
-  // Compute per-meal target kcal from distribution
+  // Map distribution keys (e.g. "breakfast") to localized labels
+  const getMealLabel = (key: string): string => {
+    const i18nKey = `nutritionGoals.${key}`;
+    const translated = t(i18nKey);
+    // If the key wasn't found, t() returns the key itself — fall back to raw key
+    return translated === i18nKey ? key : translated;
+  };
+
+  // Compute per-meal target kcal from distribution (match by key or localized label)
   const getMealTargetKcal = (mealName: string): number | null => {
     if (!mealDistribution || dailyKcal == null || dailyKcal <= 0) return null;
+    // Direct key match
     const pct = mealDistribution[mealName];
-    if (pct == null) return null;
-    return (pct / 100) * dailyKcal;
+    if (pct != null) return (pct / 100) * dailyKcal;
+    // Try matching by localized label
+    const lower = mealName.toLowerCase();
+    const entry = Object.entries(mealDistribution).find(
+      ([key]) => getMealLabel(key).toLowerCase() === lower,
+    );
+    if (entry) return (entry[1] / 100) * dailyKcal;
+    return null;
   };
 
   const handleAddMeal = () => {
@@ -111,11 +126,11 @@ export default function DayColumn({
     setShowAddMeal(false);
   };
 
-  const handleCreateMealAndAddFood = (mealName: string, action: 'food' | 'recipe') => {
+  const handleCreateMealAndAddFood = (mealKey: string, action: 'food' | 'recipe') => {
     const mealId = crypto.randomUUID();
     addMeal(weekNumber, day.dayOfWeek, {
       mealId,
-      name: mealName,
+      name: getMealLabel(mealKey),
       order: day.meals.length + 1,
       foods: [],
     });
@@ -223,8 +238,12 @@ export default function DayColumn({
         {distributionEntries.length > 0
           ? distributionEntries.map(([mealName, pct]) => {
               const target = dailyKcal != null && dailyKcal > 0 ? Math.round((pct / 100) * dailyKcal) : null;
+              const label = getMealLabel(mealName).toLowerCase();
               const existingMeal = sortedMeals.find(
-                (m) => m.name.toLowerCase() === mealName.toLowerCase(),
+                (m) => {
+                  const n = m.name.toLowerCase();
+                  return n === mealName.toLowerCase() || n === label;
+                },
               );
 
               if (existingMeal) {
@@ -245,7 +264,7 @@ export default function DayColumn({
               return (
                 <div key={mealName} className="rounded-sm border border-border bg-[#1a1a1a]">
                   <div className="flex items-center gap-2 border-b border-border px-3 py-2">
-                    <span className="flex-1 text-sm font-semibold text-text">{mealName}</span>
+                    <span className="flex-1 text-sm font-semibold text-text">{getMealLabel(mealName)}</span>
                     {target != null && (
                       <span className="text-[9px] text-muted">target {target}</span>
                     )}
@@ -285,7 +304,10 @@ export default function DayColumn({
         {/* Also render any meals that don't match distribution names (manually added) */}
         {distributionEntries.length > 0 &&
           sortedMeals
-            .filter((m) => !distributionEntries.some(([name]) => name.toLowerCase() === m.name.toLowerCase()))
+            .filter((m) => !distributionEntries.some(([key]) => {
+              const n = m.name.toLowerCase();
+              return n === key.toLowerCase() || n === getMealLabel(key).toLowerCase();
+            }))
             .map((meal, idx) => (
               <SortableMealCard
                 key={meal.mealId}
