@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using FitnessPlatform.Application.Domain.Enums;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
@@ -20,6 +21,7 @@ public class PlanWeek
     /// </summary>
     [BsonElement("status")]
     [BsonRepresentation(BsonType.String)]
+    [JsonConverter(typeof(JsonStringEnumConverter))]
     public WeekStatus Status { get; set; } = WeekStatus.Draft;
 
     /// <summary>
