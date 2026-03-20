@@ -219,18 +219,18 @@ export default function MealCard({ meal, weekNumber, dayOfWeek, targetKcal }: Me
               />
             </div>
           ) : (
-            <div className="mt-2 flex gap-3">
+            <div className="mt-2 flex gap-1">
               <button
                 onClick={() => setShowFoodSearch(true)}
-                className="text-xs font-semibold text-gold-dim transition-colors hover:text-gold"
+                className="flex-1 rounded-sm border border-border bg-[#222] py-1 text-[9px] font-semibold uppercase text-text3 transition-colors hover:text-gold"
               >
-                {t('nutrition.addFood')}
+                + Food
               </button>
               <button
                 onClick={() => setShowRecipeSearch(true)}
-                className="text-xs font-semibold text-gold-dim transition-colors hover:text-gold"
+                className="flex-1 rounded-sm border border-border bg-[#222] py-1 text-[9px] font-semibold uppercase text-text3 transition-colors hover:text-gold"
               >
-                {t('recipes.fromRecipe')}
+                + Recipe
               </button>
             </div>
           )}

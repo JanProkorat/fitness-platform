@@ -252,18 +252,18 @@ export default function DayColumn({
                   </div>
                   <div className="px-3 py-2">
                     <div className="mb-2 text-xs italic text-text3">{t('nutrition.noFoods', 'No foods added')}</div>
-                    <div className="flex gap-3">
+                    <div className="flex gap-1">
                       <button
                         onClick={() => handleCreateMealAndAddFood(mealName, 'food')}
-                        className="text-xs font-semibold text-gold-dim transition-colors hover:text-gold"
+                        className="flex-1 rounded-sm border border-border bg-[#222] py-1 text-[9px] font-semibold uppercase text-text3 transition-colors hover:text-gold"
                       >
-                        + {t('nutrition.addFood')}
+                        + Food
                       </button>
                       <button
                         onClick={() => handleCreateMealAndAddFood(mealName, 'recipe')}
-                        className="text-xs font-semibold text-gold-dim transition-colors hover:text-gold"
+                        className="flex-1 rounded-sm border border-border bg-[#222] py-1 text-[9px] font-semibold uppercase text-text3 transition-colors hover:text-gold"
                       >
-                        + {t('recipes.fromRecipe', 'From Recipe')}
+                        + Recipe
                       </button>
                     </div>
                   </div>
