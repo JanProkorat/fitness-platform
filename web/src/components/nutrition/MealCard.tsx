@@ -82,7 +82,7 @@ export default function MealCard({ meal, weekNumber, dayOfWeek, targetKcal }: Me
   const excess = isOverTarget ? totalKcal - targetKcal! : 0;
 
   return (
-    <div className={`rounded-sm border bg-dark2 ${isOverTarget ? 'border-l-red-500 border-l-2 border-border' : 'border-border'}`}>
+    <div className={`flex min-h-0 flex-1 flex-col rounded-sm border bg-dark2 ${isOverTarget ? 'border-l-red-500 border-l-2 border-border' : 'border-border'}`}>
       {/* Header */}
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
         <button

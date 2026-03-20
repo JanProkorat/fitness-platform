@@ -43,6 +43,7 @@ function SortableMealCard({
   return (
     <div
       ref={ref}
+      className="flex flex-1 flex-col"
       style={{ opacity: isDragging ? 0.4 : 1 }}
     >
       <MealCard
@@ -262,7 +263,7 @@ export default function DayColumn({
 
               // Placeholder for a meal that doesn't exist yet
               return (
-                <div key={mealName} className="rounded-sm border border-border bg-[#1a1a1a]">
+                <div key={mealName} className="flex flex-1 flex-col rounded-sm border border-border bg-[#1a1a1a]">
                   <div className="flex items-center gap-2 border-b border-border px-3 py-2">
                     <span className="flex-1 text-sm font-semibold text-text">{getMealLabel(mealName)}</span>
                     {target != null && (
