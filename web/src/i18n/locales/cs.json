@@ -432,7 +432,10 @@
     "overBy": "+{{amount}}",
     "savePlan": "Uložit",
     "planSaved": "Plán uložen",
-    "versionConflict": "Plán byl změněn jinde. Načítám znovu..."
+    "versionConflict": "Plán byl změněn jinde. Načítám znovu...",
+    "addItems": "Přidat položky",
+    "selectedItems": "Vybrané položky",
+    "addToMeal": "Přidat do jídla"
   },
   "apiErrors": {
     "INVALID_CREDENTIALS": "Neplatný email nebo heslo.",

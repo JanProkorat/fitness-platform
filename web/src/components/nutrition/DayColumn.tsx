@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSortable } from '@dnd-kit/react/sortable';
 import { useNutritionPlanStore } from '@/stores/nutritionPlan';
-import type { PlanDay, PlanMeal, GlobalNutritionSettings } from '@/api/plan-types';
+import type { PlanDay, PlanMeal, MealFood, GlobalNutritionSettings } from '@/api/plan-types';
 import MacroProgressBar from './MacroProgressBar';
 import MealCard from './MealCard';
+import AddItemsDrawer from './AddItemsDrawer';
 
 interface DayColumnProps {
   day: PlanDay;
@@ -127,7 +128,10 @@ export default function DayColumn({
     setShowAddMeal(false);
   };
 
-  const handleCreateMealAndAddFood = (mealKey: string, action: 'food' | 'recipe') => {
+  // Drawer state for adding items to a placeholder meal
+  const [placeholderDrawerKey, setPlaceholderDrawerKey] = useState<string | null>(null);
+
+  const handlePlaceholderAddItems = (mealKey: string, items: MealFood[]) => {
     const mealId = crypto.randomUUID();
     addMeal(weekNumber, day.dayOfWeek, {
       mealId,
@@ -135,11 +139,11 @@ export default function DayColumn({
       order: day.meals.length + 1,
       foods: [],
     });
-    // After creating the meal, set the appropriate search state via a small trick:
-    // We store the pending action so the newly rendered MealCard can pick it up.
-    // Since we can't directly trigger state inside MealCard, we just create the meal
-    // and let the user click the button themselves. A UX improvement can be done later.
-    void action; // meal is created; user can now interact with it
+    // Add all items to the newly created meal
+    const addFoodToMeal = useNutritionPlanStore.getState().addFoodToMeal;
+    for (const item of items) {
+      addFoodToMeal(weekNumber, day.dayOfWeek, mealId, item);
+    }
   };
 
   const sortedMeals = day.meals.slice().sort((a, b) => a.order - b.order);
@@ -272,20 +276,17 @@ export default function DayColumn({
                   </div>
                   <div className="px-3 py-2">
                     <div className="mb-2 text-xs italic text-text3">{t('nutrition.noFoods', 'No foods added')}</div>
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => handleCreateMealAndAddFood(mealName, 'food')}
-                        className="flex-1 rounded-sm border border-border bg-[#222] py-1 text-[9px] font-semibold uppercase text-text3 transition-colors hover:text-gold"
-                      >
-                        + Food
-                      </button>
-                      <button
-                        onClick={() => handleCreateMealAndAddFood(mealName, 'recipe')}
-                        className="flex-1 rounded-sm border border-border bg-[#222] py-1 text-[9px] font-semibold uppercase text-text3 transition-colors hover:text-gold"
-                      >
-                        + Recipe
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => setPlaceholderDrawerKey(mealName)}
+                      className="w-full rounded-sm border border-border bg-[#222] py-1.5 text-[9px] font-semibold uppercase text-text3 transition-colors hover:text-gold"
+                    >
+                      + {t('nutrition.addItems', 'Add Items')}
+                    </button>
+                    <AddItemsDrawer
+                      open={placeholderDrawerKey === mealName}
+                      onClose={() => setPlaceholderDrawerKey(null)}
+                      onAdd={(items) => handlePlaceholderAddItems(mealName, items)}
+                    />
                   </div>
                 </div>
               );

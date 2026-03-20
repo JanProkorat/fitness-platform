@@ -432,7 +432,10 @@
     "overBy": "+{{amount}}",
     "savePlan": "Speichern",
     "planSaved": "Plan gespeichert",
-    "versionConflict": "Plan wurde anderswo geändert. Wird neu geladen..."
+    "versionConflict": "Plan wurde anderswo geändert. Wird neu geladen...",
+    "addItems": "Elemente hinzufügen",
+    "selectedItems": "Ausgewählte Elemente",
+    "addToMeal": "Zur Mahlzeit hinzufügen"
   },
   "apiErrors": {
     "INVALID_CREDENTIALS": "Ungültige E-Mail oder Passwort.",

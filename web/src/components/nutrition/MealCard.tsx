@@ -1,11 +1,8 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNutritionPlanStore } from '@/stores/nutritionPlan';
-import type { PlanMeal } from '@/api/plan-types';
-import type { FoodSummary } from '@/api/food-types';
-import type { RecipeDetail } from '@/api/recipe-types';
-import FoodSearch from './FoodSearch';
-import RecipeSearch from './RecipeSearch';
+import type { PlanMeal, MealFood } from '@/api/plan-types';
+import AddItemsDrawer from './AddItemsDrawer';
 
 interface MealCardProps {
   meal: PlanMeal;
@@ -17,8 +14,7 @@ interface MealCardProps {
 export default function MealCard({ meal, weekNumber, dayOfWeek, targetKcal }: MealCardProps) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(true);
-  const [showFoodSearch, setShowFoodSearch] = useState(false);
-  const [showRecipeSearch, setShowRecipeSearch] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(meal.name);
 
@@ -35,46 +31,10 @@ export default function MealCard({ meal, weekNumber, dayOfWeek, targetKcal }: Me
     setEditingName(false);
   };
 
-  const handleFoodSelect = (food: FoodSummary) => {
-    addFood(weekNumber, dayOfWeek, meal.mealId, {
-      foodExternalId: food.foodId,
-      foodName: food.name,
-      nutrientValuePer100Grams: {
-        kcal: food.nutrientValue.kcal,
-        protein: food.nutrientValue.protein,
-        carbs: food.nutrientValue.carbs,
-        fat: food.nutrientValue.fat,
-        fiber: food.nutrientValue.fiber,
-        sugar: food.nutrientValue.sugar,
-        saturatedFat: food.nutrientValue.saturatedFat,
-        salt: food.nutrientValue.salt,
-      },
-      amountGrams: 100,
-    });
-    setShowFoodSearch(false);
-  };
-
-  const handleRecipeSelect = (recipe: RecipeDetail) => {
-    updateMealName(weekNumber, dayOfWeek, meal.mealId, recipe.name);
-    for (const food of recipe.foods) {
-      addFood(weekNumber, dayOfWeek, meal.mealId, {
-        foodExternalId: food.foodExternalId,
-        foodName: food.foodName,
-        nutrientValuePer100Grams: {
-          kcal: food.nutrientValuePer100Grams.kcal,
-          protein: food.nutrientValuePer100Grams.protein,
-          carbs: food.nutrientValuePer100Grams.carbs,
-          fat: food.nutrientValuePer100Grams.fat,
-          fiber: food.nutrientValuePer100Grams.fiber,
-          sugar: food.nutrientValuePer100Grams.sugar,
-          saturatedFat: food.nutrientValuePer100Grams.saturatedFat,
-          salt: food.nutrientValuePer100Grams.salt,
-        },
-        amountGrams: food.amountGrams,
-      });
+  const handleAddItems = (items: MealFood[]) => {
+    for (const item of items) {
+      addFood(weekNumber, dayOfWeek, meal.mealId, item);
     }
-    setNameValue(recipe.name);
-    setShowRecipeSearch(false);
   };
 
   const totalKcal = Math.round(meal.mealTotals?.kcal ?? 0);
@@ -203,39 +163,21 @@ export default function MealCard({ meal, weekNumber, dayOfWeek, targetKcal }: Me
             </table>
           )}
 
-          {/* Add food / recipe */}
-          {showFoodSearch ? (
-            <div className="mt-2">
-              <FoodSearch
-                onSelect={handleFoodSelect}
-                onClose={() => setShowFoodSearch(false)}
-              />
-            </div>
-          ) : showRecipeSearch ? (
-            <div className="mt-2">
-              <RecipeSearch
-                onSelect={handleRecipeSelect}
-                onClose={() => setShowRecipeSearch(false)}
-              />
-            </div>
-          ) : (
-            <div className="mt-2 flex gap-1">
-              <button
-                onClick={() => setShowFoodSearch(true)}
-                className="flex-1 rounded-sm border border-border bg-[#222] py-1 text-[9px] font-semibold uppercase text-text3 transition-colors hover:text-gold"
-              >
-                + Food
-              </button>
-              <button
-                onClick={() => setShowRecipeSearch(true)}
-                className="flex-1 rounded-sm border border-border bg-[#222] py-1 text-[9px] font-semibold uppercase text-text3 transition-colors hover:text-gold"
-              >
-                + Recipe
-              </button>
-            </div>
-          )}
+          {/* Add items button */}
+          <button
+            onClick={() => setDrawerOpen(true)}
+            className="mt-2 w-full rounded-sm border border-border bg-[#222] py-1.5 text-[9px] font-semibold uppercase text-text3 transition-colors hover:text-gold"
+          >
+            + {t('nutrition.addItems', 'Add Items')}
+          </button>
         </div>
       )}
+
+      <AddItemsDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        onAdd={handleAddItems}
+      />
     </div>
   );
 }

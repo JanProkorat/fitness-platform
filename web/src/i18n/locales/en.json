@@ -433,7 +433,10 @@
     "overBy": "+{{amount}}",
     "savePlan": "Save",
     "planSaved": "Plan saved",
-    "versionConflict": "Plan was modified elsewhere. Reloading..."
+    "versionConflict": "Plan was modified elsewhere. Reloading...",
+    "addItems": "Add Items",
+    "selectedItems": "Selected Items",
+    "addToMeal": "Add to Meal"
   },
   "apiErrors": {
     "INVALID_CREDENTIALS": "Invalid email or password.",
