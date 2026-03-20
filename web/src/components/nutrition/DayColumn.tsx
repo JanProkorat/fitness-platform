@@ -146,7 +146,7 @@ export default function DayColumn({
 
   return (
     <div
-      className={`flex w-[280px] shrink-0 flex-col rounded-sm border bg-surface transition-colors ${
+      className={`flex w-[336px] shrink-0 flex-col rounded-sm border bg-surface transition-colors ${
         isDragOver ? 'border-gold' : 'border-border'
       }`}
       onDragOver={(e) => {
