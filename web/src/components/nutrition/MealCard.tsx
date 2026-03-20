@@ -11,9 +11,10 @@ interface MealCardProps {
   meal: PlanMeal;
   weekNumber: number;
   dayOfWeek: number;
+  targetKcal?: number | null;
 }
 
-export default function MealCard({ meal, weekNumber, dayOfWeek }: MealCardProps) {
+export default function MealCard({ meal, weekNumber, dayOfWeek, targetKcal }: MealCardProps) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(true);
   const [showFoodSearch, setShowFoodSearch] = useState(false);
@@ -77,9 +78,11 @@ export default function MealCard({ meal, weekNumber, dayOfWeek }: MealCardProps)
   };
 
   const totalKcal = Math.round(meal.mealTotals?.kcal ?? 0);
+  const isOverTarget = targetKcal != null && totalKcal > targetKcal;
+  const excess = isOverTarget ? totalKcal - targetKcal! : 0;
 
   return (
-    <div className="rounded-sm border border-border bg-dark2">
+    <div className={`rounded-sm border bg-dark2 ${isOverTarget ? 'border-l-red-500 border-l-2 border-border' : 'border-border'}`}>
       {/* Header */}
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
         <button
@@ -99,17 +102,29 @@ export default function MealCard({ meal, weekNumber, dayOfWeek }: MealCardProps)
             className="flex-1 rounded-sm border border-border bg-surface px-2 py-0.5 text-sm text-text outline-none focus:border-gold/40"
           />
         ) : (
-          <button
-            onClick={() => setEditingName(true)}
-            className="flex-1 text-left text-sm font-semibold transition-colors hover:text-gold"
-          >
-            {meal.name}
-          </button>
+          <div className="flex flex-1 items-center gap-1.5 min-w-0">
+            <button
+              onClick={() => setEditingName(true)}
+              className="text-left text-sm font-semibold transition-colors hover:text-gold truncate"
+            >
+              {meal.name}
+            </button>
+            {targetKcal != null && (
+              <span className="text-[9px] text-muted shrink-0">target {Math.round(targetKcal)}</span>
+            )}
+          </div>
         )}
 
-        {meal.time && <span className="text-[11px] text-text3">{meal.time}</span>}
+        {meal.time && <span className="text-[11px] text-text3 shrink-0">{meal.time}</span>}
 
-        <span className="text-xs font-medium text-green-400">{totalKcal} kcal</span>
+        {isOverTarget ? (
+          <div className="flex items-center gap-1 shrink-0">
+            <span className="text-xs font-semibold text-red-500">{totalKcal} kcal</span>
+            <span className="text-[9px] text-red-500 font-bold">⚠️ +{Math.round(excess)}</span>
+          </div>
+        ) : (
+          <span className="text-xs font-medium text-green-400 shrink-0">{totalKcal} kcal</span>
+        )}
 
         <button
           onClick={() => removeMeal(weekNumber, dayOfWeek, meal.mealId)}

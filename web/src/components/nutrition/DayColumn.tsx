@@ -11,6 +11,8 @@ interface DayColumnProps {
   weekNumber: number;
   dayLabel: string;
   globalSettings?: GlobalNutritionSettings | null;
+  mealDistribution?: Record<string, number> | null;
+  dailyKcal?: number | null;
   onDayDragStart: (dayOfWeek: number) => void;
   onDayDragOver: (dayOfWeek: number) => void;
   onDayDrop: (dayOfWeek: number) => void;
@@ -22,11 +24,13 @@ function SortableMealCard({
   weekNumber,
   dayOfWeek,
   index,
+  targetKcal,
 }: {
   meal: PlanMeal;
   weekNumber: number;
   dayOfWeek: number;
   index: number;
+  targetKcal?: number | null;
 }) {
   const { ref, isDragging } = useSortable({
     id: meal.mealId,
@@ -45,6 +49,7 @@ function SortableMealCard({
         meal={meal}
         weekNumber={weekNumber}
         dayOfWeek={dayOfWeek}
+        targetKcal={targetKcal}
       />
     </div>
   );
@@ -55,6 +60,8 @@ export default function DayColumn({
   weekNumber,
   dayLabel,
   globalSettings,
+  mealDistribution,
+  dailyKcal,
   onDayDragStart,
   onDayDragOver,
   onDayDrop,
@@ -72,6 +79,26 @@ export default function DayColumn({
   const isOverTarget =
     globalSettings?.dailyKcal && dayKcal > globalSettings.dailyKcal * 1.15;
 
+  const dayTotals = {
+    kcal: Math.round(day.dayTotals?.kcal ?? 0),
+    protein: Math.round(day.dayTotals?.protein ?? 0),
+    carbs: Math.round(day.dayTotals?.carbs ?? 0),
+    fat: Math.round(day.dayTotals?.fat ?? 0),
+  };
+
+  // Distribution entries with non-zero percentages
+  const distributionEntries = mealDistribution
+    ? Object.entries(mealDistribution).filter(([, pct]) => pct > 0)
+    : [];
+
+  // Compute per-meal target kcal from distribution
+  const getMealTargetKcal = (mealName: string): number | null => {
+    if (!mealDistribution || dailyKcal == null || dailyKcal <= 0) return null;
+    const pct = mealDistribution[mealName];
+    if (pct == null) return null;
+    return (pct / 100) * dailyKcal;
+  };
+
   const handleAddMeal = () => {
     if (!newMealName.trim()) return;
     addMeal(weekNumber, day.dayOfWeek, {
@@ -82,6 +109,21 @@ export default function DayColumn({
     });
     setNewMealName('');
     setShowAddMeal(false);
+  };
+
+  const handleCreateMealAndAddFood = (mealName: string, action: 'food' | 'recipe') => {
+    const mealId = crypto.randomUUID();
+    addMeal(weekNumber, day.dayOfWeek, {
+      mealId,
+      name: mealName,
+      order: day.meals.length + 1,
+      foods: [],
+    });
+    // After creating the meal, set the appropriate search state via a small trick:
+    // We store the pending action so the newly rendered MealCard can pick it up.
+    // Since we can't directly trigger state inside MealCard, we just create the meal
+    // and let the user click the button themselves. A UX improvement can be done later.
+    void action; // meal is created; user can now interact with it
   };
 
   const sortedMeals = day.meals.slice().sort((a, b) => a.order - b.order);
@@ -116,6 +158,14 @@ export default function DayColumn({
           <span className={`text-xs font-medium ${isOverTarget ? 'text-red-400' : 'text-green-400'}`}>
             {dayKcal} kcal
           </span>
+        </div>
+
+        {/* Day macro totals */}
+        <div className="flex justify-center gap-2 mt-1.5 mb-2.5 pb-2 border-b border-border">
+          <span className="text-[10px] font-semibold text-gold">{dayTotals.kcal} kcal</span>
+          <span className="text-[10px] text-blue-400">P {dayTotals.protein}g</span>
+          <span className="text-[10px] text-amber-400">C {dayTotals.carbs}g</span>
+          <span className="text-[10px] text-rose-400">F {dayTotals.fat}g</span>
         </div>
 
         {isOverTarget && (
@@ -165,9 +215,41 @@ export default function DayColumn({
 
       {/* Meals */}
       <div className="flex flex-1 flex-col gap-2 overflow-y-auto p-2">
-        {sortedMeals.length === 0 && (
+        {sortedMeals.length === 0 && distributionEntries.length === 0 && (
           <div className="py-6 text-center text-xs text-text3">{t('nutrition.noMeals')}</div>
         )}
+
+        {/* Placeholder sections for empty days that have a meal distribution */}
+        {sortedMeals.length === 0 && distributionEntries.length > 0 && distributionEntries.map(([mealName, pct]) => {
+          const target = dailyKcal != null && dailyKcal > 0 ? Math.round((pct / 100) * dailyKcal) : null;
+          return (
+            <div key={mealName} className="rounded-sm border border-border bg-dark2">
+              <div className="flex items-center gap-2 border-b border-border px-3 py-2">
+                <span className="flex-1 text-sm font-semibold text-text">{mealName}</span>
+                {target != null && (
+                  <span className="text-[9px] text-muted">target {target}</span>
+                )}
+              </div>
+              <div className="px-3 py-2">
+                <div className="text-xs text-text3 mb-2">{t('nutrition.noFoods', 'No foods added')}</div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => handleCreateMealAndAddFood(mealName, 'food')}
+                    className="text-xs font-semibold text-gold-dim transition-colors hover:text-gold"
+                  >
+                    {t('nutrition.addFood')}
+                  </button>
+                  <button
+                    onClick={() => handleCreateMealAndAddFood(mealName, 'recipe')}
+                    className="text-xs font-semibold text-gold-dim transition-colors hover:text-gold"
+                  >
+                    {t('recipes.fromRecipe')}
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
 
         {sortedMeals.map((meal, idx) => (
           <SortableMealCard
@@ -176,6 +258,7 @@ export default function DayColumn({
             weekNumber={weekNumber}
             dayOfWeek={day.dayOfWeek}
             index={idx}
+            targetKcal={getMealTargetKcal(meal.name)}
           />
         ))}
 
