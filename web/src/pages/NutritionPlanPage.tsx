@@ -3,9 +3,12 @@ import { useParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { DragDropProvider } from '@dnd-kit/react';
 import { useNutritionPlanStore } from '@/stores/nutritionPlan';
-import { getPlan, updatePlan, publishPlan as publishPlanApi } from '@/api/plans';
+import { getPlan } from '@/api/plans';
 import PlanToolbar from '@/components/nutrition/PlanToolbar';
 import DayColumn from '@/components/nutrition/DayColumn';
+import WeekSelector from '@/components/nutrition/WeekSelector';
+import NutritionGoalsTab from '@/components/nutrition/NutritionGoalsTab';
+import { showSuccess, showApiError } from '@/lib/api-errors';
 
 const DAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
 
@@ -19,12 +22,15 @@ export default function NutritionPlanPage() {
   const selectedWeek = useNutritionPlanStore((s) => s.selectedWeek);
   const setPlan = useNutritionPlanStore((s) => s.setPlan);
   const setSelectedWeek = useNutritionPlanStore((s) => s.setSelectedWeek);
-  const markSaved = useNutritionPlanStore((s) => s.markSaved);
-  const setSaving = useNutritionPlanStore((s) => s.setSaving);
+  const save = useNutritionPlanStore((s) => s.save);
+  const publishWeek = useNutritionPlanStore((s) => s.publishWeek);
+  const addWeek = useNutritionPlanStore((s) => s.addWeek);
+  const removeWeek = useNutritionPlanStore((s) => s.removeWeek);
   const reorderMeals = useNutritionPlanStore((s) => s.reorderMeals);
   const moveMealToDay = useNutritionPlanStore((s) => s.moveMealToDay);
-  const persistDays = useNutritionPlanStore((s) => s.persistDays);
   const swapDays = useNutritionPlanStore((s) => s.swapDays);
+
+  const [activeTab, setActiveTab] = useState<'mealPlan' | 'nutritionGoals'>('mealPlan');
 
   // Load plan on mount
   useEffect(() => {
@@ -45,51 +51,34 @@ export default function NutritionPlanPage() {
     };
   }, [planId, setPlan]);
 
-  // Auto-save with 2s debounce
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const planRef = useRef(plan);
-  planRef.current = plan;
-
-  const doSave = useCallback(async () => {
-    const currentPlan = planRef.current;
-    if (!currentPlan) return;
-
-    setSaving(true);
-    try {
-      const result = await updatePlan(currentPlan.planId, {
-        name: currentPlan.name,
-        globalSettings: currentPlan.globalSettings,
-        version: currentPlan.version,
-      });
-      markSaved(result.version);
-    } catch {
-      setSaving(false);
-    }
-  }, [setSaving, markSaved]);
-
+  // Warn the user if they try to leave with unsaved changes
   useEffect(() => {
     if (!isDirty) return;
-
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(() => {
-      doSave();
-    }, 2000);
-
-    return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
     };
-  }, [isDirty, plan, doSave]);
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isDirty]);
 
-  // Publish handler
-  const handlePublish = async () => {
-    if (!plan) return;
-    if (!window.confirm(t('nutrition.confirmPublish'))) return;
-
+  // Save handler
+  const handleSave = async () => {
     try {
-      const result = await publishPlanApi(plan.planId);
-      setPlan(result);
+      await save();
+      showSuccess(t('nutrition.planSaved'));
     } catch {
-      // publish failed
+      showApiError(undefined, 'nutrition.versionConflict');
+    }
+  };
+
+  // Publish week handler
+  const handlePublishWeek = async () => {
+    if (!window.confirm(t('nutrition.confirmPublishWeek', { number: selectedWeek }))) return;
+    try {
+      await publishWeek(selectedWeek);
+      showSuccess(t('nutrition.weekPublished_success', { number: selectedWeek }));
+    } catch {
+      showApiError(undefined, 'common.error');
     }
   };
 
@@ -188,15 +177,11 @@ export default function NutritionPlanPage() {
     [plan, reorderMeals, moveMealToDay],
   );
 
-  // onDragEnd: persist all affected days to the API
+  // onDragEnd: mark dirty (drag mutations already set isDirty via store)
   const handleDragEnd = useCallback(() => {
-    const days = affectedDaysRef.current;
-    if (days.size > 0) {
-      persistDays(selectedWeek, Array.from(days));
-    }
     affectedDaysRef.current = new Set();
     dragSourceGroupRef.current = null;
-  }, [selectedWeek, persistDays]);
+  }, []);
 
   if (!plan) {
     return (
@@ -221,45 +206,62 @@ export default function NutritionPlanPage() {
         </Link>
       </div>
 
-      {/* Toolbar */}
+      {/* Toolbar with tabs */}
       <PlanToolbar
         planName={plan.name}
-        status={plan.status}
         isDirty={isDirty}
         isSaving={isSaving}
-        selectedWeek={selectedWeek}
-        totalWeeks={plan.weeks.length}
-        onPublish={handlePublish}
-        onWeekChange={setSelectedWeek}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onSave={handleSave}
       />
 
-      {/* Day columns with drag and drop */}
-      <DragDropProvider onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
-        <div className="flex flex-1 gap-3 overflow-x-auto p-4">
-          {DAY_KEYS.map((key, idx) => {
-            const dayOfWeek = idx + 1;
-            const day = days.find((d) => d.dayOfWeek === dayOfWeek) ?? {
-              dayOfWeek,
-              meals: [],
-              dayTotals: null,
-            };
+      {/* Tab content */}
+      {activeTab === 'mealPlan' ? (
+        <>
+          {/* Week selector */}
+          <WeekSelector
+            weeks={plan.weeks.map((w) => ({ weekNumber: w.weekNumber, status: w.status }))}
+            selectedWeek={selectedWeek}
+            onWeekChange={setSelectedWeek}
+            onPublishWeek={handlePublishWeek}
+            onAddWeek={addWeek}
+            onRemoveWeek={() => removeWeek(selectedWeek)}
+          />
 
-            return (
-              <DayColumn
-                key={dayOfWeek}
-                day={day}
-                weekNumber={selectedWeek}
-                dayLabel={t(`nutrition.${key}`)}
-                globalSettings={plan.globalSettings}
-                onDayDragStart={handleDayDragStart}
-                onDayDragOver={handleDayDragOver}
-                onDayDrop={handleDayDrop}
-                isDragOver={dragOverDay === dayOfWeek}
-              />
-            );
-          })}
+          {/* Day columns with drag and drop */}
+          <DragDropProvider onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
+            <div className="flex flex-1 gap-3 overflow-x-auto p-4">
+              {DAY_KEYS.map((key, idx) => {
+                const dayOfWeek = idx + 1;
+                const day = days.find((d) => d.dayOfWeek === dayOfWeek) ?? {
+                  dayOfWeek,
+                  meals: [],
+                  dayTotals: null,
+                };
+
+                return (
+                  <DayColumn
+                    key={dayOfWeek}
+                    day={day}
+                    weekNumber={selectedWeek}
+                    dayLabel={t(`nutrition.${key}`)}
+                    globalSettings={plan.globalSettings}
+                    onDayDragStart={handleDayDragStart}
+                    onDayDragOver={handleDayDragOver}
+                    onDayDrop={handleDayDrop}
+                    isDragOver={dragOverDay === dayOfWeek}
+                  />
+                );
+              })}
+            </div>
+          </DragDropProvider>
+        </>
+      ) : (
+        <div className="flex-1 overflow-y-auto p-6">
+          <NutritionGoalsTab clientId={plan.clientId} />
         </div>
-      </DragDropProvider>
+      )}
     </div>
   );
 }
