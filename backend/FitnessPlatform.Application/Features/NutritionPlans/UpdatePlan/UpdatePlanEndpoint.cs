@@ -2,17 +2,22 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
-using FitnessPlatform.Application.Features.NutritionPlans.Shared;
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Features.NutritionPlans.GetPlan;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.NutritionPlans.UpdatePlan;
 
 /// <summary>
-/// Updates a nutrition plan's name and global settings with optimistic concurrency control.
+/// Full-state update of a nutrition plan: replaces name, settings, and all weeks/days/meals/foods.
+/// Preserves per-week Status and DatePublished. Uses optimistic concurrency.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
-public class UpdatePlanEndpoint(IMongoContext mongo) : Endpoint<UpdatePlanRequest, PlanSummaryDto>
+/// <param name="macroCalculator">Service to recalculate nutrient totals.</param>
+public class UpdatePlanEndpoint(IMongoContext mongo, IMacroCalculatorService macroCalculator)
+    : Endpoint<UpdatePlanRequest, GetPlanResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -21,8 +26,9 @@ public class UpdatePlanEndpoint(IMongoContext mongo) : Endpoint<UpdatePlanReques
         Roles(AppRoles.Nutritionist);
         Summary(s =>
         {
-            s.Summary = "Update a nutrition plan";
-            s.Description = "Updates the plan name and global settings. Uses optimistic concurrency via version field.";
+            s.Summary = "Full-state update of a nutrition plan";
+            s.Description = "Replaces the plan's name, global settings, and all weeks/days/meals/foods. " +
+                            "Per-week publish status is preserved. Uses optimistic concurrency via version field.";
         });
     }
 
@@ -30,7 +36,6 @@ public class UpdatePlanEndpoint(IMongoContext mongo) : Endpoint<UpdatePlanReques
     public override async Task HandleAsync(UpdatePlanRequest req, CancellationToken ct)
     {
         var userId = User.FindFirstValue(AppClaims.UserId);
-
         if (userId is null)
         {
             await Send.UnauthorizedAsync(ct);
@@ -39,42 +44,100 @@ public class UpdatePlanEndpoint(IMongoContext mongo) : Endpoint<UpdatePlanReques
 
         var nutritionistId = Guid.Parse(userId);
 
+        // Fetch current plan
         var filter = Builders<NutritionPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
-                     & Builders<NutritionPlan>.Filter.Eq(p => p.NutritionistId, nutritionistId)
-                     & Builders<NutritionPlan>.Filter.Eq(p => p.Version, req.Version);
+                     & Builders<NutritionPlan>.Filter.Eq(p => p.NutritionistId, nutritionistId);
 
-        var update = Builders<NutritionPlan>.Update
-            .Set(p => p.Name, req.Name)
-            .Set(p => p.GlobalSettings, req.GlobalSettings)
-            .Set(p => p.DateUpdated, DateTime.UtcNow)
-            .Inc(p => p.Version, 1);
+        var cursor = await mongo.NutritionPlans.FindAsync(filter, cancellationToken: ct);
+        var plan = await cursor.FirstOrDefaultAsync(ct);
 
-        var result = await mongo.NutritionPlans.UpdateOneAsync(filter, update, cancellationToken: ct);
-
-        if (result.ModifiedCount == 0)
+        if (plan is null)
         {
-            // Check if the plan exists at all for this nutritionist
-            var existsFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
-                               & Builders<NutritionPlan>.Filter.Eq(p => p.NutritionistId, nutritionistId);
-
-            var exists = await mongo.NutritionPlans.CountDocumentsAsync(existsFilter, cancellationToken: ct);
-
-            if (exists == 0)
-            {
-                await Send.NotFoundAsync(ct);
-                return;
-            }
-
-            // Plan exists but version mismatch
-            await HttpContext.Response.SendAsync(new { Error = "Version conflict. The plan was modified by another request." }, 409, cancellation: ct);
+            await Send.NotFoundAsync(ct);
             return;
         }
 
-        // Re-fetch the updated plan
-        var fetchFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ExternalId, req.PlanId);
-        var cursor = await mongo.NutritionPlans.FindAsync(fetchFilter, cancellationToken: ct);
-        var updated = await cursor.FirstOrDefaultAsync(ct);
+        // Optimistic concurrency check
+        if (plan.Version != req.Version)
+        {
+            await HttpContext.Response.SendAsync(
+                new { Error = "Version conflict. The plan was modified by another request." },
+                409, cancellation: ct);
+            return;
+        }
 
-        await Send.OkAsync(PlanSummaryDto.FromDocument(updated!), ct);
+        // Build lookup of existing week statuses
+        var existingWeeks = plan.Weeks.ToDictionary(w => w.WeekNumber);
+
+        // Check that no published weeks are being removed
+        var incomingWeekNumbers = req.Weeks.Select(w => w.WeekNumber).ToHashSet();
+        var removedPublished = plan.Weeks
+            .Where(w => w.Status == WeekStatus.Published && !incomingWeekNumbers.Contains(w.WeekNumber))
+            .ToList();
+
+        if (removedPublished.Count > 0)
+        {
+            ThrowError($"Cannot remove published weeks: {string.Join(", ", removedPublished.Select(w => w.WeekNumber))}");
+            return;
+        }
+
+        // Map request to domain
+        plan.Name = req.Name;
+        plan.GlobalSettings = req.GlobalSettings;
+        plan.Weeks = req.Weeks.Select(rw =>
+        {
+            var existing = existingWeeks.GetValueOrDefault(rw.WeekNumber);
+            return new PlanWeek
+            {
+                WeekNumber = rw.WeekNumber,
+                Status = existing?.Status ?? WeekStatus.Draft,
+                DatePublished = existing?.DatePublished,
+                Days = rw.Days.Select(rd => new PlanDay
+                {
+                    DayOfWeek = rd.DayOfWeek,
+                    Meals = rd.Meals.Select(rm => new PlanMeal
+                    {
+                        MealId = rm.MealId ?? Guid.NewGuid(),
+                        Name = rm.Name,
+                        Order = rm.Order,
+                        Foods = rm.Foods.Select(rf => new MealFood
+                        {
+                            FoodExternalId = rf.FoodExternalId,
+                            FoodName = rf.FoodName,
+                            NutrientValuePer100Grams = rf.NutrientValuePer100Grams,
+                            AmountGrams = rf.AmountGrams
+                        }).ToList()
+                    }).ToList()
+                }).ToList()
+            };
+        }).ToList();
+
+        // Recalculate totals
+        macroCalculator.RecalculateTotals(plan);
+
+        // Derive plan-level status from week statuses
+        plan.Status = plan.Weeks.Any(w => w.Status == WeekStatus.Published)
+            ? NutritionPlanStatus.Active
+            : NutritionPlanStatus.Draft;
+
+        plan.DateUpdated = DateTime.UtcNow;
+        plan.Version += 1;
+
+        // Persist with version check
+        var versionFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
+                            & Builders<NutritionPlan>.Filter.Eq(p => p.Version, req.Version);
+
+        var result = await mongo.NutritionPlans.ReplaceOneAsync(
+            versionFilter, plan, cancellationToken: ct);
+
+        if (result.ModifiedCount == 0)
+        {
+            await HttpContext.Response.SendAsync(
+                new { Error = "Version conflict. The plan was modified by another request." },
+                409, cancellation: ct);
+            return;
+        }
+
+        await Send.OkAsync(GetPlanResponse.FromDocument(plan), ct);
     }
 }

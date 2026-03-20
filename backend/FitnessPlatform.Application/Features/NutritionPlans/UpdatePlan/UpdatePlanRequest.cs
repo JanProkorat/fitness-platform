@@ -3,7 +3,7 @@ using FitnessPlatform.Application.Domain.Documents;
 namespace FitnessPlatform.Application.Features.NutritionPlans.UpdatePlan;
 
 /// <summary>
-/// Request to update a nutrition plan's name and global settings with optimistic concurrency.
+/// Request for a full-state update of a nutrition plan: replaces name, settings, and all weeks/days/meals/foods.
 /// </summary>
 public class UpdatePlanRequest
 {
@@ -26,4 +26,9 @@ public class UpdatePlanRequest
     /// Expected version for optimistic concurrency control.
     /// </summary>
     public int Version { get; set; }
+
+    /// <summary>
+    /// Full week structure to persist. Replaces all existing weeks, days, meals, and foods.
+    /// </summary>
+    public List<UpdateWeekRequest> Weeks { get; set; } = [];
 }
