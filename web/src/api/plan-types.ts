@@ -51,6 +51,8 @@ export interface PlanDay {
 /** A week within the nutrition plan. */
 export interface PlanWeek {
   weekNumber: number;
+  status: 'Draft' | 'Published';
+  datePublished?: string | null;
   days: PlanDay[];
 }
 
@@ -66,7 +68,6 @@ export interface NutritionPlanDetail {
   version: number;
   dateCreated: string;
   dateUpdated?: string | null;
-  datePublished?: string | null;
 }
 
 /** Plan summary for list views. */
@@ -97,22 +98,36 @@ export interface CreatePlanRequest {
   weekCount?: number;
 }
 
-/** Request to update an existing plan (includes version for optimistic locking). */
+/** Request to update an existing plan with full state (includes version for optimistic locking). */
 export interface UpdatePlanRequest {
   name: string;
   globalSettings?: GlobalNutritionSettings | null;
+  weeks: UpdateWeekRequest[];
   version: number;
 }
 
-/** Request to add a meal to a day. */
-export interface AddMealRequest {
-  name: string;
-  order: number;
-  time?: string | null;
+/** Week data within a full-state plan update. */
+export interface UpdateWeekRequest {
+  weekNumber: number;
+  days: UpdateDayRequest[];
 }
 
-/** Request to add a food to a meal. */
-export interface AddFoodToMealRequest {
+/** Day data within a full-state plan update. */
+export interface UpdateDayRequest {
+  dayOfWeek: number;
+  meals: UpdateMealRequest[];
+}
+
+/** Meal data within a full-state plan update. */
+export interface UpdateMealRequest {
+  mealId?: string | null;
+  name: string;
+  order: number;
+  foods: UpdateMealFoodRequest[];
+}
+
+/** Food item data within a full-state plan update. */
+export interface UpdateMealFoodRequest {
   foodExternalId: string;
   foodName: string;
   nutrientValuePer100Grams: {
