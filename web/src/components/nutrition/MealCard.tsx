@@ -163,15 +163,16 @@ export default function MealCard({ meal, weekNumber, dayOfWeek, targetKcal }: Me
             </table>
           )}
 
-          {/* Add items button */}
-          <button
-            onClick={() => setDrawerOpen(true)}
-            className="mt-2 w-full rounded-sm border border-border bg-[#222] py-1.5 text-[9px] font-semibold uppercase text-text3 transition-colors hover:text-gold"
-          >
-            + {t('nutrition.addItems', 'Add Items')}
-          </button>
         </div>
       )}
+
+      {/* Add items button — always visible at bottom */}
+      <button
+        onClick={() => setDrawerOpen(true)}
+        className="mt-auto w-full border-t border-border bg-[#222] py-1.5 text-[9px] font-semibold uppercase text-text3 transition-colors hover:text-gold"
+      >
+        + {t('nutrition.addItems', 'Add Items')}
+      </button>
 
       <AddItemsDrawer
         open={drawerOpen}
