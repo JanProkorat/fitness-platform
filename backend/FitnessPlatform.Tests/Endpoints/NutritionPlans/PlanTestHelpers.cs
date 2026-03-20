@@ -35,6 +35,7 @@ public static class PlanTestHelpers
             Weeks = Enumerable.Range(1, weekCount).Select(w => new PlanWeek
             {
                 WeekNumber = w,
+                Status = WeekStatus.Draft,
                 Days = Enumerable.Range(1, 7).Select(d => new PlanDay
                 {
                     DayOfWeek = d,

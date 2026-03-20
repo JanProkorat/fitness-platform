@@ -63,6 +63,7 @@ public class CreatePlanEndpoint(IMongoContext mongo, NutritionAuthHelper authHel
             Weeks = Enumerable.Range(1, req.WeekCount).Select(w => new PlanWeek
             {
                 WeekNumber = w,
+                Status = WeekStatus.Draft,
                 Days = Enumerable.Range(1, 7).Select(d => new PlanDay
                 {
                     DayOfWeek = d,

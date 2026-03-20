@@ -58,11 +58,6 @@ public class GetPlanResponse
     public DateTime? DateUpdated { get; set; }
 
     /// <summary>
-    /// When the plan was published (status changed to Active).
-    /// </summary>
-    public DateTime? DatePublished { get; set; }
-
-    /// <summary>
     /// Maps a <see cref="NutritionPlan"/> document to a detailed response DTO.
     /// </summary>
     /// <param name="plan">The nutrition plan document.</param>
@@ -78,7 +73,6 @@ public class GetPlanResponse
         Weeks = plan.Weeks,
         Version = plan.Version,
         DateCreated = plan.DateCreated,
-        DateUpdated = plan.DateUpdated,
-        DatePublished = plan.DatePublished
+        DateUpdated = plan.DateUpdated
     };
 }
