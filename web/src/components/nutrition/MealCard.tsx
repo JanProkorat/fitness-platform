@@ -166,10 +166,13 @@ export default function MealCard({ meal, weekNumber, dayOfWeek, targetKcal }: Me
         </div>
       )}
 
+      {/* Spacer to push button to bottom */}
+      <div className="flex-1" />
+
       {/* Add items button — always visible at bottom */}
       <button
         onClick={() => setDrawerOpen(true)}
-        className="mt-auto w-full border-t border-border bg-[#222] py-1.5 text-[9px] font-semibold uppercase text-text3 transition-colors hover:text-gold"
+        className="shrink-0 w-full border-t border-border bg-[#222] py-1.5 text-[9px] font-semibold uppercase text-text3 transition-colors hover:text-gold"
       >
         + {t('nutrition.addItems', 'Add Items')}
       </button>
