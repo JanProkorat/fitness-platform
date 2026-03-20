@@ -1,9 +1,11 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useRef, useCallback, useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import { DragDropProvider } from '@dnd-kit/react';
 import { useNutritionPlanStore } from '@/stores/nutritionPlan';
 import { getPlan } from '@/api/plans';
+import { getClientDashboard } from '@/api/nutrition-goals';
 import PlanToolbar from '@/components/nutrition/PlanToolbar';
 import DayColumn from '@/components/nutrition/DayColumn';
 import WeekSelector from '@/components/nutrition/WeekSelector';
@@ -50,6 +52,25 @@ export default function NutritionPlanPage() {
       cancelled = true;
     };
   }, [planId, setPlan]);
+
+  // Fetch client dashboard for meal distribution targets
+  const { data: clientDashboard } = useQuery({
+    queryKey: ['client-dashboard', plan?.clientId],
+    queryFn: () => getClientDashboard(plan!.clientId),
+    enabled: !!plan?.clientId,
+  });
+
+  const mealDistribution = useMemo(() => {
+    const ob = clientDashboard?.onboarding;
+    if (!ob?.mealDistribution) return null;
+    try {
+      return JSON.parse(ob.mealDistribution) as Record<string, number>;
+    } catch {
+      return null;
+    }
+  }, [clientDashboard]);
+
+  const dailyKcal = clientDashboard?.onboarding?.adjustedKcal ?? null;
 
   // Warn the user if they try to leave with unsaved changes
   useEffect(() => {
@@ -247,6 +268,8 @@ export default function NutritionPlanPage() {
                     weekNumber={selectedWeek}
                     dayLabel={t(`nutrition.${key}`)}
                     globalSettings={plan.globalSettings}
+                    mealDistribution={mealDistribution}
+                    dailyKcal={dailyKcal}
                     onDayDragStart={handleDayDragStart}
                     onDayDragOver={handleDayDragOver}
                     onDayDrop={handleDayDrop}

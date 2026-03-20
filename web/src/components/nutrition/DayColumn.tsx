@@ -219,48 +219,84 @@ export default function DayColumn({
           <div className="py-6 text-center text-xs text-text3">{t('nutrition.noMeals')}</div>
         )}
 
-        {/* Placeholder sections for empty days that have a meal distribution */}
-        {sortedMeals.length === 0 && distributionEntries.length > 0 && distributionEntries.map(([mealName, pct]) => {
-          const target = dailyKcal != null && dailyKcal > 0 ? Math.round((pct / 100) * dailyKcal) : null;
-          return (
-            <div key={mealName} className="rounded-sm border border-border bg-dark2">
-              <div className="flex items-center gap-2 border-b border-border px-3 py-2">
-                <span className="flex-1 text-sm font-semibold text-text">{mealName}</span>
-                {target != null && (
-                  <span className="text-[9px] text-muted">target {target}</span>
-                )}
-              </div>
-              <div className="px-3 py-2">
-                <div className="text-xs text-text3 mb-2">{t('nutrition.noFoods', 'No foods added')}</div>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => handleCreateMealAndAddFood(mealName, 'food')}
-                    className="text-xs font-semibold text-gold-dim transition-colors hover:text-gold"
-                  >
-                    {t('nutrition.addFood')}
-                  </button>
-                  <button
-                    onClick={() => handleCreateMealAndAddFood(mealName, 'recipe')}
-                    className="text-xs font-semibold text-gold-dim transition-colors hover:text-gold"
-                  >
-                    {t('recipes.fromRecipe')}
-                  </button>
-                </div>
-              </div>
-            </div>
-          );
-        })}
+        {/* Render distribution-based meal sections: real meals where they exist, placeholders where they don't */}
+        {distributionEntries.length > 0
+          ? distributionEntries.map(([mealName, pct]) => {
+              const target = dailyKcal != null && dailyKcal > 0 ? Math.round((pct / 100) * dailyKcal) : null;
+              const existingMeal = sortedMeals.find(
+                (m) => m.name.toLowerCase() === mealName.toLowerCase(),
+              );
 
-        {sortedMeals.map((meal, idx) => (
-          <SortableMealCard
-            key={meal.mealId}
-            meal={meal}
-            weekNumber={weekNumber}
-            dayOfWeek={day.dayOfWeek}
-            index={idx}
-            targetKcal={getMealTargetKcal(meal.name)}
-          />
-        ))}
+              if (existingMeal) {
+                const idx = sortedMeals.indexOf(existingMeal);
+                return (
+                  <SortableMealCard
+                    key={existingMeal.mealId}
+                    meal={existingMeal}
+                    weekNumber={weekNumber}
+                    dayOfWeek={day.dayOfWeek}
+                    index={idx}
+                    targetKcal={target}
+                  />
+                );
+              }
+
+              // Placeholder for a meal that doesn't exist yet
+              return (
+                <div key={mealName} className="rounded-sm border border-border bg-[#1a1a1a]">
+                  <div className="flex items-center gap-2 border-b border-border px-3 py-2">
+                    <span className="flex-1 text-sm font-semibold text-text">{mealName}</span>
+                    {target != null && (
+                      <span className="text-[9px] text-muted">target {target}</span>
+                    )}
+                  </div>
+                  <div className="px-3 py-2">
+                    <div className="mb-2 text-xs italic text-text3">{t('nutrition.noFoods', 'No foods added')}</div>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => handleCreateMealAndAddFood(mealName, 'food')}
+                        className="text-xs font-semibold text-gold-dim transition-colors hover:text-gold"
+                      >
+                        + {t('nutrition.addFood')}
+                      </button>
+                      <button
+                        onClick={() => handleCreateMealAndAddFood(mealName, 'recipe')}
+                        className="text-xs font-semibold text-gold-dim transition-colors hover:text-gold"
+                      >
+                        + {t('recipes.fromRecipe', 'From Recipe')}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          : sortedMeals.map((meal, idx) => (
+              <SortableMealCard
+                key={meal.mealId}
+                meal={meal}
+                weekNumber={weekNumber}
+                dayOfWeek={day.dayOfWeek}
+                index={idx}
+                targetKcal={getMealTargetKcal(meal.name)}
+              />
+            ))
+        }
+
+        {/* Also render any meals that don't match distribution names (manually added) */}
+        {distributionEntries.length > 0 &&
+          sortedMeals
+            .filter((m) => !distributionEntries.some(([name]) => name.toLowerCase() === m.name.toLowerCase()))
+            .map((meal, idx) => (
+              <SortableMealCard
+                key={meal.mealId}
+                meal={meal}
+                weekNumber={weekNumber}
+                dayOfWeek={day.dayOfWeek}
+                index={sortedMeals.indexOf(meal)}
+                targetKcal={null}
+              />
+            ))
+        }
 
         {/* Add meal */}
         {showAddMeal ? (
