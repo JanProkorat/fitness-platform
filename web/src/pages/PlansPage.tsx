@@ -6,7 +6,6 @@ import {
   getPlans,
   createPlan,
   deletePlan,
-  publishPlan,
 } from '@/api/plans';
 import type { CreatePlanRequest, PlanSummary } from '@/api/plan-types';
 import ClientSelect from '@/components/nutrition/ClientSelect';
@@ -95,17 +94,6 @@ export default function PlansPage() {
     }
   };
 
-  const handlePublish = async (e: React.MouseEvent, plan: PlanSummary) => {
-    e.stopPropagation();
-    try {
-      await publishPlan(plan.planId);
-      showSuccess('nutrition.planPublished');
-      refetch();
-    } catch (err) {
-      showApiError(err, 'nutrition.updateError');
-    }
-  };
-
   const statusLabel = (status: string) =>
     status === 'Draft'
       ? t('nutrition.statusDraft')
@@ -148,12 +136,11 @@ export default function PlansPage() {
           ) : (
             <>
               {/* Table header */}
-              <div className="grid grid-cols-[1fr_100px_80px_120px_80px_60px] gap-4 border-b border-border px-5 py-3">
+              <div className="grid grid-cols-[1fr_100px_80px_120px_60px] gap-4 border-b border-border px-5 py-3">
                 <span className="lbl">{t('nutrition.planName')}</span>
                 <span className="lbl">{t('nutrition.status')}</span>
                 <span className="lbl">{t('nutrition.weeks')}</span>
                 <span className="lbl">{t('nutrition.created')}</span>
-                <span className="lbl text-center">{t('nutrition.publish')}</span>
                 <span className="lbl" />
               </div>
 
@@ -162,7 +149,7 @@ export default function PlansPage() {
                 <div
                   key={plan.planId}
                   onClick={() => navigate(`/plans/${plan.planId}`)}
-                  className="grid grid-cols-[1fr_100px_80px_120px_80px_60px] cursor-pointer items-center gap-4 border-b border-charcoal px-5 py-3 transition-colors last:border-0 hover:bg-white/[0.02]"
+                  className="grid grid-cols-[1fr_100px_80px_120px_60px] cursor-pointer items-center gap-4 border-b border-charcoal px-5 py-3 transition-colors last:border-0 hover:bg-white/[0.02]"
                 >
                   <span className="truncate text-sm font-semibold">{plan.name}</span>
                   <span
@@ -174,19 +161,6 @@ export default function PlansPage() {
                   <span className="text-xs text-text3">
                     {new Date(plan.dateCreated).toLocaleDateString()}
                   </span>
-                  <div className="text-center">
-                    {plan.status === 'Draft' && (
-                      <button
-                        onClick={(e) => handlePublish(e, plan)}
-                        title={t('nutrition.publish')}
-                        className="rounded-sm p-1 text-green-400 transition-colors hover:text-green-300"
-                      >
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </button>
-                    )}
-                  </div>
                   <div className="text-center">
                     <button
                       onClick={(e) => handleDeleteClick(e, plan)}
