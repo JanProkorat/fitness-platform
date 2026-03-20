@@ -26,7 +26,7 @@ public class LocalizedNames
     public string? De { get; set; }
 
     /// <summary>
-    /// Resolves the best name for the given language, falling back to English, then any available name.
+    /// Resolves the best name for the given language, falling back to English, then Czech, then German.
     /// </summary>
     /// <param name="language">Two-letter language code (e.g. "cs", "de", "en").</param>
     /// <returns>The best available name, or <c>null</c> if none set.</returns>
@@ -40,6 +40,6 @@ public class LocalizedNames
             _ => null
         };
 
-        return preferred;
+        return preferred ?? En ?? Cs ?? De;
     }
 }
