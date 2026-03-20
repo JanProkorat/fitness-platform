@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Features.Foods.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Application.Infrastructure.Services;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.Foods.UpdateFood;
@@ -58,8 +59,18 @@ public class UpdateFoodEndpoint(IMongoContext mongo) : Endpoint<UpdateFoodReques
             return;
         }
 
+        var localizedNames = (!string.IsNullOrWhiteSpace(req.NameEn) || !string.IsNullOrWhiteSpace(req.NameCs) || !string.IsNullOrWhiteSpace(req.NameDe))
+            ? new LocalizedNames
+            {
+                En = req.NameEn?.Trim().NullIfEmpty(),
+                Cs = req.NameCs?.Trim().NullIfEmpty(),
+                De = req.NameDe?.Trim().NullIfEmpty(),
+            }
+            : null;
+
         var update = Builders<Food>.Update
             .Set(f => f.Name, req.Name.Trim())
+            .Set(f => f.LocalizedNames, localizedNames)
             .Set(f => f.Barcode, req.Barcode?.Trim())
             .Set(f => f.NutrientValue, new NutrientValue
             {

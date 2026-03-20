@@ -125,9 +125,9 @@ public class CollaborationTests(FitnessApiFactory factory)
             .GetRequiredService<Application.Infrastructure.Data.ApplicationDbContext>();
         var user = await db.Users.FirstAsync(u => u.Email == email);
 
-        if (!await db.TrainerProfiles.AnyAsync(tp => tp.UserId == user.Id))
+        if (!await db.ProfessionalProfiles.AnyAsync(tp => tp.UserId == user.Id))
         {
-            db.TrainerProfiles.Add(new Application.Domain.Entities.TrainerProfile
+            db.ProfessionalProfiles.Add(new Application.Domain.Entities.ProfessionalProfile
             {
                 UserId = user.Id,
                 Bio = "Test trainer",
@@ -145,7 +145,7 @@ public class CollaborationTests(FitnessApiFactory factory)
         var db = scope.ServiceProvider
             .GetRequiredService<Application.Infrastructure.Data.ApplicationDbContext>();
         var user = await db.Users.FirstAsync(u => u.Email == email);
-        var profile = await db.TrainerProfiles.FirstAsync(tp => tp.UserId == user.Id);
+        var profile = await db.ProfessionalProfiles.FirstAsync(tp => tp.UserId == user.Id);
         return profile.PublicId;
     }
 

@@ -62,11 +62,11 @@ public class AddRoleEndpoint(
 
         await userManager.AddToRoleAsync(user, req.Role);
 
-        // If user doesn't have a TrainerProfile yet, create one (Nutritionist → Trainer case)
-        var hasProfile = await db.TrainerProfiles.AnyAsync(p => p.UserId == userId, ct);
+        // If user doesn't have a ProfessionalProfile yet, create one (Nutritionist → Trainer case)
+        var hasProfile = await db.ProfessionalProfiles.AnyAsync(p => p.UserId == userId, ct);
         if (!hasProfile)
         {
-            db.TrainerProfiles.Add(new TrainerProfile { UserId = userId });
+            db.ProfessionalProfiles.Add(new ProfessionalProfile { UserId = userId });
             await db.SaveChangesAsync(ct);
         }
 

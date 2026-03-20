@@ -7,10 +7,10 @@ using Microsoft.EntityFrameworkCore;
 namespace FitnessPlatform.Application.Features.Trainers.GetTrainerProfile;
 
 /// <summary>
-/// Returns the trainer profile for the currently authenticated trainer.
+/// Returns the professional profile for the currently authenticated trainer or nutritionist.
 /// </summary>
 /// <param name="db">Database context.</param>
-public class GetTrainerProfileEndpoint(IApplicationDbContext db) : EndpointWithoutRequest<GetTrainerProfileResponse>
+public class GetProfessionalProfileEndpoint(IApplicationDbContext db) : EndpointWithoutRequest<GetProfessionalProfileResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -19,8 +19,8 @@ public class GetTrainerProfileEndpoint(IApplicationDbContext db) : EndpointWitho
         Roles(AppRoles.Trainer, AppRoles.Nutritionist);
         Summary(s =>
         {
-            s.Summary = "Get trainer profile";
-            s.Description = "Returns the trainer profile data for the currently authenticated user.";
+            s.Summary = "Get professional profile";
+            s.Description = "Returns the professional profile data for the currently authenticated user.";
         });
     }
 
@@ -35,8 +35,8 @@ public class GetTrainerProfileEndpoint(IApplicationDbContext db) : EndpointWitho
             return;
         }
 
-        var profile = await db.TrainerProfiles
-            .FirstOrDefaultAsync(tp => tp.UserId == Guid.Parse(userId), ct);
+        var profile = await db.ProfessionalProfiles
+            .FirstOrDefaultAsync(pp => pp.UserId == Guid.Parse(userId), ct);
 
         if (profile is null)
         {
@@ -44,7 +44,7 @@ public class GetTrainerProfileEndpoint(IApplicationDbContext db) : EndpointWitho
             return;
         }
 
-        await Send.OkAsync(new GetTrainerProfileResponse
+        await Send.OkAsync(new GetProfessionalProfileResponse
         {
             Bio = profile.Bio,
             Specialization = profile.Specialization

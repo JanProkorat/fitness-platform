@@ -6,6 +6,7 @@ namespace FitnessPlatform.Application.Domain.Documents;
 /// <summary>
 /// MongoDB document representing a food item with nutritional data.
 /// </summary>
+[BsonIgnoreExtraElements]
 public class Food
 {
     /// <summary>
@@ -65,12 +66,6 @@ public class Food
     /// </summary>
     [BsonElement("commonServings")]
     public List<ServingSize> CommonServings { get; set; } = [];
-
-    /// <summary>
-    /// Whether this food has been verified by a nutritionist or admin.
-    /// </summary>
-    [BsonElement("isVerified")]
-    public bool IsVerified { get; set; }
 
     /// <summary>
     /// The nutritionist who created this custom food, if applicable.

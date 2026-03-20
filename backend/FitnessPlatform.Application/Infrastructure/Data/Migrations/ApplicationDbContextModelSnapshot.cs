@@ -410,6 +410,11 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("job_type");
 
+                    b.Property<string>("MealDistribution")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("meal_distribution");
+
                     b.Property<int>("MealsPerDay")
                         .HasColumnType("integer")
                         .HasColumnName("meals_per_day");

@@ -160,6 +160,7 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
                 ProteinGrams = od.ProteinGrams,
                 CarbsGrams = od.CarbsGrams,
                 FatGrams = od.FatGrams,
+                MealDistribution = od.MealDistribution,
             };
         }
 

@@ -19,6 +19,12 @@ public class SearchFoodsRequest
     public string? Source { get; set; }
 
     /// <summary>
+    /// When true, skip supplementing results from external APIs (Open Food Facts).
+    /// Local MongoDB results are returned immediately without waiting for external calls.
+    /// </summary>
+    public bool ExcludeExternal { get; set; }
+
+    /// <summary>
     /// Page number (1-based). Defaults to 1.
     /// </summary>
     public int Page { get; set; } = 1;

@@ -18,6 +18,21 @@ public class CreateFoodRequest
     public string? Barcode { get; set; }
 
     /// <summary>
+    /// Optional English name.
+    /// </summary>
+    public string? NameEn { get; set; }
+
+    /// <summary>
+    /// Optional Czech name.
+    /// </summary>
+    public string? NameCs { get; set; }
+
+    /// <summary>
+    /// Optional German name.
+    /// </summary>
+    public string? NameDe { get; set; }
+
+    /// <summary>
     /// Nutritional values per 100 grams.
     /// </summary>
     public NutrientValueDto NutrientValue { get; set; } = new();

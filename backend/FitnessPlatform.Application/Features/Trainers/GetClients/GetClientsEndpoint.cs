@@ -36,19 +36,19 @@ public class GetClientsEndpoint(IApplicationDbContext db) : Endpoint<GetClientsR
             return;
         }
 
-        var trainerProfile = await db.TrainerProfiles
+        var professionalProfile = await db.ProfessionalProfiles
             .AsNoTracking()
             .FirstOrDefaultAsync(tp => tp.UserId == Guid.Parse(userId), ct);
 
-        if (trainerProfile is null)
+        if (professionalProfile is null)
         {
             await Send.NotFoundAsync(ct);
             return;
         }
 
-        var query = db.ClientTrainerLinks
+        var query = db.ClientProfessionalLinks
             .AsNoTracking()
-            .Where(ctl => ctl.TrainerProfileId == trainerProfile.Id)
+            .Where(ctl => ctl.ProfessionalProfileId == professionalProfile.Id)
             .Include(ctl => ctl.ClientProfile)
             .ThenInclude(cp => cp.User)
             .AsQueryable();

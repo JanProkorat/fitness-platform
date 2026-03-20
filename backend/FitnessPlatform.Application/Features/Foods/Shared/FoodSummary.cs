@@ -13,9 +13,29 @@ public class FoodSummary
     public Guid FoodId { get; set; }
 
     /// <summary>
-    /// Food name.
+    /// Resolved food name for display (localized based on Accept-Language).
     /// </summary>
     public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Original (canonical) food name, unaffected by language resolution.
+    /// </summary>
+    public string RawName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// English name, if available.
+    /// </summary>
+    public string? NameEn { get; set; }
+
+    /// <summary>
+    /// Czech name, if available.
+    /// </summary>
+    public string? NameCs { get; set; }
+
+    /// <summary>
+    /// German name, if available.
+    /// </summary>
+    public string? NameDe { get; set; }
 
     /// <summary>
     /// Data source: "system", "custom", or "openfoodfacts".
@@ -43,11 +63,6 @@ public class FoodSummary
     public List<ServingSizeDto> CommonServings { get; set; } = [];
 
     /// <summary>
-    /// Whether this food has been verified.
-    /// </summary>
-    public bool IsVerified { get; set; }
-
-    /// <summary>
     /// Maps a <see cref="Food"/> document to a <see cref="FoodSummary"/> DTO.
     /// </summary>
     /// <param name="food">The food document.</param>
@@ -56,6 +71,10 @@ public class FoodSummary
     {
         FoodId = food.ExternalId,
         Name = food.LocalizedNames?.Resolve(language) ?? food.Name,
+        RawName = food.Name,
+        NameEn = food.LocalizedNames?.En,
+        NameCs = food.LocalizedNames?.Cs,
+        NameDe = food.LocalizedNames?.De,
         Source = food.Source,
         Barcode = food.Barcode,
         NutrientValue = new NutrientValueDto
@@ -72,8 +91,7 @@ public class FoodSummary
         Allergens = food.Allergens,
         CommonServings = food.CommonServings
             .Select(s => new ServingSizeDto { Label = s.Label, WeightGrams = s.WeightGrams })
-            .ToList(),
-        IsVerified = food.IsVerified
+            .ToList()
     };
 }
 

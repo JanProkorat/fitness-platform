@@ -120,7 +120,7 @@ public class RegisterEndpointTests
     }
 
     [Fact]
-    public async Task HandleAsync_TrainerRole_CreatesTrainerProfile()
+    public async Task HandleAsync_TrainerRole_CreatesProfessionalProfile()
     {
         _userManager.CreateAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>())
             .Returns(IdentityResult.Success);
@@ -140,7 +140,7 @@ public class RegisterEndpointTests
             GdprConsent = true
         }, CancellationToken.None);
 
-        _db.TrainerProfiles.Received(1).Add(Arg.Any<TrainerProfile>());
+        _db.ProfessionalProfiles.Received(1).Add(Arg.Any<ProfessionalProfile>());
     }
 
     [Fact]

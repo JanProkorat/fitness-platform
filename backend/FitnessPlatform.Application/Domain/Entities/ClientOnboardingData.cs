@@ -104,6 +104,10 @@ public class ClientOnboardingData : TimestampableEntity
     /// <summary>Daily fat target in grams.</summary>
     public decimal FatGrams { get; set; }
 
+    /// <summary>Meal distribution percentages as JSON (e.g. {"breakfast":25,"snack1":10,"lunch":30,"snack2":10,"dinner":25}).</summary>
+    [MaxLength(500)]
+    public string? MealDistribution { get; set; }
+
     // --- Navigation ---
     /// <summary>Navigation property to the associated client profile.</summary>
     public ClientProfile ClientProfile { get; set; } = null!;

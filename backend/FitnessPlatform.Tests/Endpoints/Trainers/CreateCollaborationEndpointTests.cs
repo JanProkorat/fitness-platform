@@ -18,16 +18,16 @@ public class CreateCollaborationEndpointTests
     {
         var trainerBUser = EntityBuilder.User.WithId(_trainerBId).WithEmail("b@test.com")
             .WithFirstName("B").WithLastName("Trainer").Build();
-        var trainerAProfile = EntityBuilder.TrainerProfile.WithId(1).WithUserId(_trainerAId).Build();
-        var trainerBProfile = EntityBuilder.TrainerProfile.WithId(2).WithUser(trainerBUser).Build();
+        var trainerAProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUserId(_trainerAId).Build();
+        var trainerBProfile = EntityBuilder.ProfessionalProfile.WithId(2).WithUser(trainerBUser).Build();
 
         var clientUser = EntityBuilder.User.WithEmail("client@test.com")
             .WithFirstName("C").WithLastName("U").Build();
         var clientProfile = EntityBuilder.ClientProfile.WithId(1).WithUser(clientUser).Build();
 
-        var existingLink = EntityBuilder.ClientTrainerLink
+        var existingLink = EntityBuilder.ClientProfessionalLink
             .WithClientProfile(clientProfile)
-            .WithTrainerProfile(trainerAProfile)
+            .WithProfessionalProfile(trainerAProfile)
             .Build();
 
         var db = new MockDbBuilder()
@@ -54,14 +54,14 @@ public class CreateCollaborationEndpointTests
 
         ep.ValidationFailed.Should().BeFalse();
         ep.HttpContext.Response.StatusCode.Should().Be(201);
-        db.ClientTrainerLinks.Received(1).Add(Arg.Is<ClientTrainerLink>(
-            l => l.TrainerProfileId == trainerBProfile.Id && l.ClientProfileId == clientProfile.Id));
+        db.ClientProfessionalLinks.Received(1).Add(Arg.Is<ClientProfessionalLink>(
+            l => l.ProfessionalProfileId == trainerBProfile.Id && l.ClientProfileId == clientProfile.Id));
     }
 
     [Fact]
     public async Task HandleAsync_NoActiveLink_ThrowsError()
     {
-        var trainerAProfile = EntityBuilder.TrainerProfile.WithId(1).WithUserId(_trainerAId).Build();
+        var trainerAProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUserId(_trainerAId).Build();
         var clientUser = EntityBuilder.User.WithEmail("c@test.com")
             .WithFirstName("C").WithLastName("U").Build();
         var clientProfile = EntityBuilder.ClientProfile.WithId(1).WithUser(clientUser).Build();
@@ -93,20 +93,20 @@ public class CreateCollaborationEndpointTests
     {
         var trainerBUser = EntityBuilder.User.WithId(_trainerBId).WithEmail("b@test.com")
             .WithFirstName("B").WithLastName("Trainer").Build();
-        var trainerAProfile = EntityBuilder.TrainerProfile.WithId(1).WithUserId(_trainerAId).Build();
-        var trainerBProfile = EntityBuilder.TrainerProfile.WithId(2).WithUser(trainerBUser).Build();
+        var trainerAProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUserId(_trainerAId).Build();
+        var trainerBProfile = EntityBuilder.ProfessionalProfile.WithId(2).WithUser(trainerBUser).Build();
 
         var clientUser = EntityBuilder.User.WithEmail("client@test.com")
             .WithFirstName("C").WithLastName("U").Build();
         var clientProfile = EntityBuilder.ClientProfile.WithId(1).WithUser(clientUser).Build();
 
-        var linkA = EntityBuilder.ClientTrainerLink
+        var linkA = EntityBuilder.ClientProfessionalLink
             .WithClientProfile(clientProfile)
-            .WithTrainerProfile(trainerAProfile)
+            .WithProfessionalProfile(trainerAProfile)
             .Build();
-        var linkB = EntityBuilder.ClientTrainerLink
+        var linkB = EntityBuilder.ClientProfessionalLink
             .WithClientProfile(clientProfile)
-            .WithTrainerProfile(trainerBProfile)
+            .WithProfessionalProfile(trainerBProfile)
             .Build();
 
         var db = new MockDbBuilder()
@@ -151,7 +151,7 @@ public class CreateCollaborationEndpointTests
     }
 
     [Fact]
-    public async Task HandleAsync_NoTrainerProfile_Returns404()
+    public async Task HandleAsync_NoProfessionalProfile_Returns404()
     {
         var db = new MockDbBuilder().Build();
         var userManager = EndpointTestHelpers.CreateFakeUserManager();

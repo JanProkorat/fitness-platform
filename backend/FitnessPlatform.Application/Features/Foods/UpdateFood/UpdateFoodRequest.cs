@@ -23,6 +23,21 @@ public class UpdateFoodRequest
     public string? Barcode { get; set; }
 
     /// <summary>
+    /// Updated English name.
+    /// </summary>
+    public string? NameEn { get; set; }
+
+    /// <summary>
+    /// Updated Czech name.
+    /// </summary>
+    public string? NameCs { get; set; }
+
+    /// <summary>
+    /// Updated German name.
+    /// </summary>
+    public string? NameDe { get; set; }
+
+    /// <summary>
     /// Updated nutritional values per 100 grams.
     /// </summary>
     public NutrientValueDto NutrientValue { get; set; } = new();

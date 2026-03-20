@@ -46,9 +46,9 @@ public class ApplicationUser : IdentityUser<Guid>
     public DateTime? GdprConsentDate { get; set; }
 
     /// <summary>
-    /// Navigation property to the user's trainer profile (if the user is a trainer).
+    /// Navigation property to the user's professional profile (if the user is a trainer or nutritionist).
     /// </summary>
-    public TrainerProfile? TrainerProfile { get; set; }
+    public ProfessionalProfile? ProfessionalProfile { get; set; }
 
     /// <summary>
     /// Navigation property to the user's client profile (if the user is a client).

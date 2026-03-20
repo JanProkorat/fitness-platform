@@ -20,11 +20,11 @@ public class GetClientDashboardEndpointTests
     {
         var clientUser = EntityBuilder.User.WithEmail("client@test.com")
             .WithFirstName("Dash").WithLastName("Client").Build();
-        var trainerProfile = EntityBuilder.TrainerProfile.WithId(1).WithUserId(_trainerId).Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUserId(_trainerId).Build();
         var clientProfile = EntityBuilder.ClientProfile.WithId(1).WithUser(clientUser).Build();
-        var link = EntityBuilder.ClientTrainerLink
+        var link = EntityBuilder.ClientProfessionalLink
             .WithClientProfile(clientProfile)
-            .WithTrainerProfile(trainerProfile)
+            .WithProfessionalProfile(trainerProfile)
             .Build();
 
         var db = new MockDbBuilder()
@@ -55,7 +55,7 @@ public class GetClientDashboardEndpointTests
     [Fact]
     public async Task HandleAsync_UnlinkedClient_Returns404()
     {
-        var trainerProfile = EntityBuilder.TrainerProfile.WithId(1).WithUserId(_trainerId).Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUserId(_trainerId).Build();
         var otherUser = EntityBuilder.User.WithEmail("other@test.com")
             .WithFirstName("Other").WithLastName("User").Build();
         var clientProfile = EntityBuilder.ClientProfile.WithId(1).WithUser(otherUser).Build();
@@ -82,7 +82,7 @@ public class GetClientDashboardEndpointTests
     [Fact]
     public async Task HandleAsync_NonexistentClient_Returns404()
     {
-        var trainerProfile = EntityBuilder.TrainerProfile.WithId(1).WithUserId(_trainerId).Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUserId(_trainerId).Build();
         var db = new MockDbBuilder().With(trainerProfile).Build();
 
         var ep = Factory.Create<GetClientDashboardEndpoint>(
@@ -118,11 +118,11 @@ public class GetClientDashboardEndpointTests
     {
         var clientUser = EntityBuilder.User.WithEmail("client@test.com")
             .WithFirstName("Dash").WithLastName("Client").Build();
-        var trainerProfile = EntityBuilder.TrainerProfile.WithId(1).WithUserId(_trainerId).Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUserId(_trainerId).Build();
         var clientProfile = EntityBuilder.ClientProfile.WithId(1).WithUser(clientUser).Build();
-        var link = EntityBuilder.ClientTrainerLink
+        var link = EntityBuilder.ClientProfessionalLink
             .WithClientProfile(clientProfile)
-            .WithTrainerProfile(trainerProfile)
+            .WithProfessionalProfile(trainerProfile)
             .Build();
 
         var db = new MockDbBuilder()

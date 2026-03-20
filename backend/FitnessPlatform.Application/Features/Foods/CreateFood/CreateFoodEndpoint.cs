@@ -4,6 +4,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Features.Foods.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Application.Infrastructure.Services;
 
 namespace FitnessPlatform.Application.Features.Foods.CreateFood;
 
@@ -40,6 +41,12 @@ public class CreateFoodEndpoint(IMongoContext mongo) : Endpoint<CreateFoodReques
         {
             ExternalId = Guid.NewGuid(),
             Name = req.Name.Trim(),
+            LocalizedNames = HasAnyLocalizedName(req) ? new LocalizedNames
+            {
+                En = req.NameEn?.Trim().NullIfEmpty(),
+                Cs = req.NameCs?.Trim().NullIfEmpty(),
+                De = req.NameDe?.Trim().NullIfEmpty(),
+            } : null,
             Source = "custom",
             Barcode = req.Barcode?.Trim(),
             NutrientValue = new NutrientValue
@@ -57,7 +64,6 @@ public class CreateFoodEndpoint(IMongoContext mongo) : Endpoint<CreateFoodReques
             CommonServings = req.CommonServings
                 .Select(s => new ServingSize { Label = s.Label, WeightGrams = s.WeightGrams })
                 .ToList(),
-            IsVerified = false,
             NutritionistId = Guid.Parse(userId),
             DateCreated = DateTime.UtcNow
         };
@@ -66,4 +72,9 @@ public class CreateFoodEndpoint(IMongoContext mongo) : Endpoint<CreateFoodReques
 
         await HttpContext.Response.SendAsync(FoodSummary.FromDocument(food), 201, cancellation: ct);
     }
+
+    private static bool HasAnyLocalizedName(CreateFoodRequest req) =>
+        !string.IsNullOrWhiteSpace(req.NameEn) ||
+        !string.IsNullOrWhiteSpace(req.NameCs) ||
+        !string.IsNullOrWhiteSpace(req.NameDe);
 }

@@ -33,8 +33,8 @@ public class SubmitOnboardingRequest
     public string DesiredTrainingFrequency { get; set; } = string.Empty;
     /// <summary>Self-rated fitness level (1-10).</summary>
     public int FitnessRating { get; set; }
-    /// <summary>Gym access level.</summary>
-    public string GymAccess { get; set; } = string.Empty;
+    /// <summary>Gym access level (optional).</summary>
+    public string? GymAccess { get; set; }
     /// <summary>Preferred activity types.</summary>
     public List<string> PreferredActivities { get; set; } = [];
     /// <summary>Physical injuries or limitations.</summary>
@@ -45,8 +45,8 @@ public class SubmitOnboardingRequest
     public string DietaryStyle { get; set; } = string.Empty;
     /// <summary>Food allergies/intolerances.</summary>
     public List<string> Allergies { get; set; } = [];
-    /// <summary>Self-rated diet quality (1-5).</summary>
-    public int DietRating { get; set; }
+    /// <summary>Self-rated diet quality (1-5, optional).</summary>
+    public int? DietRating { get; set; }
     /// <summary>Prior plan experience.</summary>
     public string PlanExperience { get; set; } = string.Empty;
     /// <summary>Past blockers to fitness progress.</summary>

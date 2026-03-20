@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore;
 namespace FitnessPlatform.Application.Features.Auth.AcceptInvitation;
 
 /// <summary>
-/// Endpoint for a client to accept a trainer's invitation using a one-time token.
-/// Creates or reuses the client's profile and establishes a client-trainer link.
+/// Endpoint for a client to accept a professional's invitation using a one-time token.
+/// Creates or reuses the client's profile and establishes a client-professional link.
 /// </summary>
 /// <param name="db">Database context.</param>
 /// <param name="userManager">ASP.NET Identity user manager.</param>
@@ -28,7 +28,7 @@ public class AcceptInvitationEndpoint(IApplicationDbContext db, UserManager<Appl
         Summary(s =>
         {
             s.Summary = "Accept a trainer invitation";
-            s.Description = "Accepts a one-time invitation token from a trainer, creating a client-trainer relationship.";
+            s.Description = "Accepts a one-time invitation token from a trainer, creating a client-professional relationship.";
         });
     }
 
@@ -47,7 +47,7 @@ public class AcceptInvitationEndpoint(IApplicationDbContext db, UserManager<Appl
 
         // Find the invitation token (must not be used and not expired)
         var invitation = await db.InvitationTokens
-            .Include(i => i.TrainerProfile)
+            .Include(i => i.ProfessionalProfile)
             .FirstOrDefaultAsync(i => i.Token == req.Token, ct);
 
         if (invitation is null)
@@ -82,32 +82,32 @@ public class AcceptInvitationEndpoint(IApplicationDbContext db, UserManager<Appl
             await db.SaveChangesAsync(ct);
         }
 
-        // Check if a link already exists between this client and trainer
-        var existingLink = await db.ClientTrainerLinks
+        // Check if a link already exists between this client and professional
+        var existingLink = await db.ClientProfessionalLinks
             .AnyAsync(l => l.ClientProfileId == clientProfile.Id
-                           && l.TrainerProfileId == invitation.TrainerProfileId, ct);
+                           && l.ProfessionalProfileId == invitation.ProfessionalProfileId, ct);
 
         if (!existingLink)
         {
-            // Determine the trainer's role from their Identity roles
-            var trainerUser = await userManager.FindByIdAsync(invitation.TrainerProfile.UserId.ToString());
-            var trainerRoles = trainerUser is not null
-                ? await userManager.GetRolesAsync(trainerUser)
+            // Determine the professional's role from their Identity roles
+            var professionalUser = await userManager.FindByIdAsync(invitation.ProfessionalProfile.UserId.ToString());
+            var professionalRoles = professionalUser is not null
+                ? await userManager.GetRolesAsync(professionalUser)
                 : [];
 
-            var trainerRole = trainerRoles.Contains(AppRoles.Nutritionist)
+            var professionalRole = professionalRoles.Contains(AppRoles.Nutritionist)
                 ? UserRole.Nutritionist
                 : UserRole.Trainer;
 
-            var link = new ClientTrainerLink
+            var link = new ClientProfessionalLink
             {
                 ClientProfileId = clientProfile.Id,
-                TrainerProfileId = invitation.TrainerProfileId,
-                TrainerRole = trainerRole,
+                ProfessionalProfileId = invitation.ProfessionalProfileId,
+                ProfessionalRole = professionalRole,
                 IsActive = true
             };
 
-            db.ClientTrainerLinks.Add(link);
+            db.ClientProfessionalLinks.Add(link);
         }
 
         // Mark invitation as used
@@ -119,15 +119,15 @@ public class AcceptInvitationEndpoint(IApplicationDbContext db, UserManager<Appl
         await audit.LogAsync(
             userGuid,
             "AcceptInvitation",
-            nameof(ClientTrainerLink),
-            invitation.TrainerProfile.PublicId,
+            nameof(ClientProfessionalLink),
+            invitation.ProfessionalProfile.PublicId,
             HttpContext.Connection.RemoteIpAddress?.ToString(),
             ct: ct);
 
         await Send.OkAsync(new AcceptInvitationResponse
         {
             Message = "Invitation accepted successfully.",
-            TrainerPublicId = invitation.TrainerProfile.PublicId
+            TrainerPublicId = invitation.ProfessionalProfile.PublicId
         }, ct);
     }
 }

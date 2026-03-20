@@ -42,10 +42,10 @@ public class InviteClientEndpoint(IApplicationDbContext db, IEmailService emailS
             return;
         }
 
-        var trainerProfile = await db.TrainerProfiles
+        var professionalProfile = await db.ProfessionalProfiles
             .FirstOrDefaultAsync(tp => tp.UserId == Guid.Parse(userId), ct);
 
-        if (trainerProfile is null)
+        if (professionalProfile is null)
         {
             ThrowError("Trainer profile not found. Please complete your profile setup first.");
             return;
@@ -55,13 +55,13 @@ public class InviteClientEndpoint(IApplicationDbContext db, IEmailService emailS
 
         var invitation = new InvitationToken
         {
-            TrainerProfileId = trainerProfile.Id,
+            ProfessionalProfileId = professionalProfile.Id,
             Email = req.Email,
             Token = tokenValue,
             ExpiresAt = DateTime.UtcNow.AddDays(7)
         };
 
-        var trainerUser = await db.Users.FirstAsync(u => u.Id == trainerProfile.UserId, ct);
+        var trainerUser = await db.Users.FirstAsync(u => u.Id == professionalProfile.UserId, ct);
         var trainerName = $"{trainerUser.FirstName} {trainerUser.LastName}";
 
         db.InvitationTokens.Add(invitation);
@@ -72,7 +72,7 @@ public class InviteClientEndpoint(IApplicationDbContext db, IEmailService emailS
 
         logger.LogInformation(
             "Invitation sent from trainer {TrainerId} to {Email}",
-            trainerProfile.PublicId, req.Email);
+            professionalProfile.PublicId, req.Email);
 
         await Send.ResponseAsync(new InviteClientResponse
         {

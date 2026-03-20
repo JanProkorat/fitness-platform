@@ -81,7 +81,6 @@ public class OpenFoodFactsServiceTests
         result.Should().NotBeNull();
         result!.Name.Should().Be("Fresh Product");
         result.Source.Should().Be("openfoodfacts");
-        result.IsVerified.Should().BeFalse();
 
         await _foodsCollection.Received(1).ReplaceOneAsync(
             Arg.Any<FilterDefinition<Food>>(),
@@ -206,7 +205,6 @@ public class OpenFoodFactsServiceTests
         results.Should().AllSatisfy(f =>
         {
             f.Source.Should().Be("openfoodfacts");
-            f.IsVerified.Should().BeFalse();
             f.ExternalId.Should().NotBeEmpty();
         });
     }

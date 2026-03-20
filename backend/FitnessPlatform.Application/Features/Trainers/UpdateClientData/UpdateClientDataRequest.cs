@@ -36,4 +36,6 @@ public class UpdateClientDataRequest
     public decimal? CarbsGrams { get; set; }
     /// <summary>Daily fat grams.</summary>
     public decimal? FatGrams { get; set; }
+    /// <summary>Meal distribution percentages as JSON.</summary>
+    public string? MealDistribution { get; set; }
 }

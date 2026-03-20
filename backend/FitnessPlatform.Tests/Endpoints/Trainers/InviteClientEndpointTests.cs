@@ -19,7 +19,7 @@ public class InviteClientEndpointTests
     {
         var trainerUser = EntityBuilder.User.WithId(_trainerId).WithEmail("trainer@test.com")
             .WithFirstName("Train").WithLastName("Er").Build();
-        var trainerProfile = EntityBuilder.TrainerProfile.WithId(1).WithUser(trainerUser).Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUser(trainerUser).Build();
 
         var db = new MockDbBuilder()
             .With(trainerUser)
@@ -48,7 +48,7 @@ public class InviteClientEndpointTests
     }
 
     [Fact]
-    public async Task HandleAsync_NoTrainerProfile_ThrowsError()
+    public async Task HandleAsync_NoProfessionalProfile_ThrowsError()
     {
         var db = new MockDbBuilder().Build();
         var emailService = Substitute.For<IEmailService>();
@@ -84,7 +84,7 @@ public class InviteClientEndpointTests
     {
         var trainerUser = EntityBuilder.User.WithId(_trainerId).WithEmail("trainer@test.com")
             .WithFirstName("Train").WithLastName("Er").Build();
-        var trainerProfile = EntityBuilder.TrainerProfile.WithId(1).WithUser(trainerUser).Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUser(trainerUser).Build();
 
         var db = new MockDbBuilder()
             .With(trainerUser)

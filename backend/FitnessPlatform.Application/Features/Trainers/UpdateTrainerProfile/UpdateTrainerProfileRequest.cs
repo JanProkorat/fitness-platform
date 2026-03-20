@@ -1,12 +1,12 @@
 namespace FitnessPlatform.Application.Features.Trainers.UpdateTrainerProfile;
 
 /// <summary>
-/// Request model for updating the trainer's professional profile.
+/// Request model for updating the professional's profile.
 /// </summary>
-public class UpdateTrainerProfileRequest
+public class UpdateProfessionalProfileRequest
 {
     /// <summary>
-    /// Short biography of the trainer (max 1000 characters).
+    /// Short biography of the professional (max 1000 characters).
     /// </summary>
     public string? Bio { get; set; }
 

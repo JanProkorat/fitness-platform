@@ -251,7 +251,7 @@ public class InvitationFlowTests(FitnessApiFactory factory)
     }
 
     /// <summary>
-    /// Registers a trainer, logs in, and creates a TrainerProfile in the database.
+    /// Registers a trainer, logs in, and creates a ProfessionalProfile in the database.
     /// Returns the access token.
     /// </summary>
     private async Task<string> RegisterAndLoginTrainer(HttpClient client, string email)
@@ -263,9 +263,9 @@ public class InvitationFlowTests(FitnessApiFactory factory)
         var db = scope.ServiceProvider.GetRequiredService<Application.Infrastructure.Data.ApplicationDbContext>();
         var user = await db.Users.FirstAsync(u => u.Email == email);
 
-        if (!await db.TrainerProfiles.AnyAsync(tp => tp.UserId == user.Id))
+        if (!await db.ProfessionalProfiles.AnyAsync(tp => tp.UserId == user.Id))
         {
-            db.TrainerProfiles.Add(new Application.Domain.Entities.TrainerProfile
+            db.ProfessionalProfiles.Add(new Application.Domain.Entities.ProfessionalProfile
             {
                 UserId = user.Id,
                 Bio = "Test trainer",

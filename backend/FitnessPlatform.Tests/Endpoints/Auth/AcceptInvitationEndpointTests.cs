@@ -17,10 +17,10 @@ public class AcceptInvitationEndpointTests
     [Fact]
     public async Task HandleAsync_ValidToken_AcceptsInvitation()
     {
-        var trainerProfile = EntityBuilder.TrainerProfile.WithId(1).WithUserId(_trainerId).Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUserId(_trainerId).Build();
         var invitation = EntityBuilder.InvitationToken
             .WithToken("invite-token")
-            .WithTrainerProfile(trainerProfile)
+            .WithProfessionalProfile(trainerProfile)
             .Build();
 
         var db = new MockDbBuilder()
@@ -47,16 +47,16 @@ public class AcceptInvitationEndpointTests
         ep.Response.Message.Should().Be("Invitation accepted successfully.");
         invitation.IsUsed.Should().BeTrue();
         db.ClientProfiles.Received(1).Add(Arg.Is<ClientProfile>(cp => cp.UserId == _userId));
-        db.ClientTrainerLinks.Received(1).Add(Arg.Any<ClientTrainerLink>());
+        db.ClientProfessionalLinks.Received(1).Add(Arg.Any<ClientProfessionalLink>());
     }
 
     [Fact]
     public async Task HandleAsync_ExpiredToken_ThrowsError()
     {
-        var trainerProfile = EntityBuilder.TrainerProfile.WithId(1).WithUserId(_trainerId).Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUserId(_trainerId).Build();
         var invitation = EntityBuilder.InvitationToken
             .WithToken("expired-token")
-            .WithTrainerProfile(trainerProfile)
+            .WithProfessionalProfile(trainerProfile)
             .Expired()
             .Build();
 
@@ -77,10 +77,10 @@ public class AcceptInvitationEndpointTests
     [Fact]
     public async Task HandleAsync_UsedToken_ThrowsError()
     {
-        var trainerProfile = EntityBuilder.TrainerProfile.WithId(1).WithUserId(_trainerId).Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUserId(_trainerId).Build();
         var invitation = EntityBuilder.InvitationToken
             .WithToken("used-token")
-            .WithTrainerProfile(trainerProfile)
+            .WithProfessionalProfile(trainerProfile)
             .Used()
             .Build();
 
@@ -118,10 +118,10 @@ public class AcceptInvitationEndpointTests
     [Fact]
     public async Task HandleAsync_MarksTokenAsUsed()
     {
-        var trainerProfile = EntityBuilder.TrainerProfile.WithId(1).WithUserId(_trainerId).Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUserId(_trainerId).Build();
         var invitation = EntityBuilder.InvitationToken
             .WithToken("one-time-token")
-            .WithTrainerProfile(trainerProfile)
+            .WithProfessionalProfile(trainerProfile)
             .Build();
 
         var db = new MockDbBuilder()

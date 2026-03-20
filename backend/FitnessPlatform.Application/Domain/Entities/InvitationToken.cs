@@ -10,9 +10,9 @@ namespace FitnessPlatform.Application.Domain.Entities;
 public class InvitationToken : TimestampableEntity
 {
     /// <summary>
-    /// Foreign key to the <see cref="TrainerProfile"/> who sent the invitation.
+    /// Foreign key to the <see cref="ProfessionalProfile"/> who sent the invitation.
     /// </summary>
-    public long TrainerProfileId { get; set; }
+    public long ProfessionalProfileId { get; set; }
 
     /// <summary>
     /// Email address of the invited client.
@@ -37,7 +37,7 @@ public class InvitationToken : TimestampableEntity
     public bool IsUsed { get; set; }
 
     /// <summary>
-    /// Navigation property to the trainer who sent this invitation.
+    /// Navigation property to the professional who sent this invitation.
     /// </summary>
-    public TrainerProfile TrainerProfile { get; set; } = null!;
+    public ProfessionalProfile ProfessionalProfile { get; set; } = null!;
 }

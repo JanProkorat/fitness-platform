@@ -3,12 +3,12 @@ using FluentValidation;
 namespace FitnessPlatform.Application.Features.Trainers.UpdateTrainerProfile;
 
 /// <summary>
-/// Validator for the trainer profile update request.
+/// Validator for the professional profile update request.
 /// </summary>
-public class UpdateTrainerProfileValidator : AbstractValidator<UpdateTrainerProfileRequest>
+public class UpdateProfessionalProfileValidator : AbstractValidator<UpdateProfessionalProfileRequest>
 {
     /// <inheritdoc />
-    public UpdateTrainerProfileValidator()
+    public UpdateProfessionalProfileValidator()
     {
         RuleFor(x => x.Bio)
             .MaximumLength(1000);

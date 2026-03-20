@@ -21,7 +21,7 @@ public class GetClientMeasurementsEndpointTests
     [Fact]
     public async Task HandleAsync_ActiveLink_ReturnsMeasurements()
     {
-        var trainerProfile = EntityBuilder.TrainerProfile
+        var trainerProfile = EntityBuilder.ProfessionalProfile
             .WithUserId(_trainerId)
             .WithId(1)
             .Build();
@@ -31,9 +31,9 @@ public class GetClientMeasurementsEndpointTests
             .WithId(2)
             .Build();
 
-        var link = EntityBuilder.ClientTrainerLink
+        var link = EntityBuilder.ClientProfessionalLink
             .WithClientProfileId(2)
-            .WithTrainerProfileId(1)
+            .WithProfessionalProfileId(1)
             .Build();
 
         var measurement = new BodyMeasurement
@@ -84,7 +84,7 @@ public class GetClientMeasurementsEndpointTests
     [Fact]
     public async Task HandleAsync_NoActiveLink_Returns404()
     {
-        var trainerProfile = EntityBuilder.TrainerProfile
+        var trainerProfile = EntityBuilder.ProfessionalProfile
             .WithUserId(_trainerId)
             .WithId(1)
             .Build();

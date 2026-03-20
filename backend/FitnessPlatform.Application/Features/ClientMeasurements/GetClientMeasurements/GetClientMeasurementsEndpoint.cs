@@ -45,10 +45,10 @@ public class GetClientMeasurementsEndpoint(IApplicationDbContext db, IAuditServi
 
         var trainerId = Guid.Parse(userId);
 
-        var trainerProfile = await db.TrainerProfiles
+        var professionalProfile = await db.ProfessionalProfiles
             .FirstOrDefaultAsync(tp => tp.UserId == trainerId, ct);
 
-        if (trainerProfile is null)
+        if (professionalProfile is null)
         {
             await Send.NotFoundAsync(ct);
             return;
@@ -64,9 +64,9 @@ public class GetClientMeasurementsEndpoint(IApplicationDbContext db, IAuditServi
         }
 
         // Verify active trainer-client link
-        var hasActiveLink = await db.ClientTrainerLinks
+        var hasActiveLink = await db.ClientProfessionalLinks
             .AnyAsync(l => l.ClientProfileId == clientProfile.Id
-                        && l.TrainerProfileId == trainerProfile.Id
+                        && l.ProfessionalProfileId == professionalProfile.Id
                         && l.IsActive, ct);
 
         if (!hasActiveLink)

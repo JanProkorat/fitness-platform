@@ -43,11 +43,11 @@ public class CreateCollaborationEndpoint(IApplicationDbContext db, UserManager<A
         }
 
         // Find the requesting trainer's profile
-        var trainerProfile = await db.TrainerProfiles
+        var professionalProfile = await db.ProfessionalProfiles
             .AsNoTracking()
             .FirstOrDefaultAsync(tp => tp.UserId == Guid.Parse(userId), ct);
 
-        if (trainerProfile is null)
+        if (professionalProfile is null)
         {
             await Send.NotFoundAsync(ct);
             return;
@@ -65,10 +65,10 @@ public class CreateCollaborationEndpoint(IApplicationDbContext db, UserManager<A
         }
 
         // Verify the requesting trainer has an active link to this client
-        var hasActiveLink = await db.ClientTrainerLinks
+        var hasActiveLink = await db.ClientProfessionalLinks
             .AsNoTracking()
             .AnyAsync(ctl =>
-                ctl.TrainerProfileId == trainerProfile.Id &&
+                ctl.ProfessionalProfileId == professionalProfile.Id &&
                 ctl.ClientProfileId == clientProfile.Id &&
                 ctl.IsActive, ct);
 
@@ -78,8 +78,8 @@ public class CreateCollaborationEndpoint(IApplicationDbContext db, UserManager<A
             return;
         }
 
-        // Find the collaborator's TrainerProfile by PublicId
-        var collaboratorProfile = await db.TrainerProfiles
+        // Find the collaborator's ProfessionalProfile by PublicId
+        var collaboratorProfile = await db.ProfessionalProfiles
             .Include(tp => tp.User)
             .FirstOrDefaultAsync(tp => tp.PublicId == req.CollaboratorPublicId, ct);
 
@@ -90,10 +90,10 @@ public class CreateCollaborationEndpoint(IApplicationDbContext db, UserManager<A
         }
 
         // Check if the collaborator already has a link to this client
-        var collaboratorAlreadyLinked = await db.ClientTrainerLinks
+        var collaboratorAlreadyLinked = await db.ClientProfessionalLinks
             .AsNoTracking()
             .AnyAsync(ctl =>
-                ctl.TrainerProfileId == collaboratorProfile.Id &&
+                ctl.ProfessionalProfileId == collaboratorProfile.Id &&
                 ctl.ClientProfileId == clientProfile.Id, ct);
 
         if (collaboratorAlreadyLinked)
@@ -108,16 +108,16 @@ public class CreateCollaborationEndpoint(IApplicationDbContext db, UserManager<A
             ? UserRole.Nutritionist
             : UserRole.Trainer;
 
-        // Create the new ClientTrainerLink
-        var link = new ClientTrainerLink
+        // Create the new ClientProfessionalLink
+        var link = new ClientProfessionalLink
         {
             ClientProfileId = clientProfile.Id,
-            TrainerProfileId = collaboratorProfile.Id,
-            TrainerRole = collaboratorRole,
+            ProfessionalProfileId = collaboratorProfile.Id,
+            ProfessionalRole = collaboratorRole,
             IsActive = true
         };
 
-        db.ClientTrainerLinks.Add(link);
+        db.ClientProfessionalLinks.Add(link);
         await db.SaveChangesAsync(ct);
 
         await Send.ResponseAsync(new CreateCollaborationResponse

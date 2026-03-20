@@ -1,12 +1,12 @@
 namespace FitnessPlatform.Application.Features.Trainers.GetTrainerProfile;
 
 /// <summary>
-/// Response model for the trainer's own profile data.
+/// Response model for the professional's own profile data.
 /// </summary>
-public class GetTrainerProfileResponse
+public class GetProfessionalProfileResponse
 {
     /// <summary>
-    /// Short biography of the trainer.
+    /// Short biography of the professional.
     /// </summary>
     public string? Bio { get; set; }
 

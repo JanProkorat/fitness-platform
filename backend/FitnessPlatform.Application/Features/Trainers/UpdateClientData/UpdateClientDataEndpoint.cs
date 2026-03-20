@@ -78,6 +78,7 @@ public class UpdateClientDataEndpoint(IApplicationDbContext db, IAuditService au
             if (req.ProteinGrams.HasValue) od.ProteinGrams = req.ProteinGrams.Value;
             if (req.CarbsGrams.HasValue) od.CarbsGrams = req.CarbsGrams.Value;
             if (req.FatGrams.HasValue) od.FatGrams = req.FatGrams.Value;
+            if (req.MealDistribution != null) od.MealDistribution = req.MealDistribution;
         }
 
         await db.SaveChangesAsync(ct);

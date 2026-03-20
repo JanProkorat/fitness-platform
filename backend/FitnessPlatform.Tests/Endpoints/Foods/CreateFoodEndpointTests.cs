@@ -51,8 +51,7 @@ public class CreateFoodEndpointTests
             Arg.Is<Food>(f =>
                 f.Name == "Custom Protein Bar" &&
                 f.Source == "custom" &&
-                f.NutritionistId == _nutritionistId &&
-                !f.IsVerified),
+                f.NutritionistId == _nutritionistId),
             Arg.Any<InsertOneOptions>(),
             Arg.Any<CancellationToken>());
     }

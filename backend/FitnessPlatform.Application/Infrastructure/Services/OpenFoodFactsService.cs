@@ -130,7 +130,6 @@ public class OpenFoodFactsService : IFoodExternalService
             },
             Source = "openfoodfacts",
             Barcode = barcode,
-            IsVerified = false,
             NutrientValue = new NutrientValue
             {
                 Kcal = n?.EnergyKcalPer100Grams ?? 0,

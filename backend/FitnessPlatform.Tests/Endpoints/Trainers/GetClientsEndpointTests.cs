@@ -15,11 +15,11 @@ public class GetClientsEndpointTests
     {
         var clientUser = EntityBuilder.User.WithEmail("linked-client@test.com")
             .WithFirstName("Linked").WithLastName("Client").Build();
-        var trainerProfile = EntityBuilder.TrainerProfile.WithId(1).WithUserId(_trainerId).Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUserId(_trainerId).Build();
         var clientProfile = EntityBuilder.ClientProfile.WithId(1).WithUser(clientUser).Build();
-        var link = EntityBuilder.ClientTrainerLink
+        var link = EntityBuilder.ClientProfessionalLink
             .WithClientProfile(clientProfile)
-            .WithTrainerProfile(trainerProfile)
+            .WithProfessionalProfile(trainerProfile)
             .Build();
 
         var db = new MockDbBuilder()
@@ -41,7 +41,7 @@ public class GetClientsEndpointTests
     }
 
     [Fact]
-    public async Task HandleAsync_NoTrainerProfile_Returns404()
+    public async Task HandleAsync_NoProfessionalProfile_Returns404()
     {
         var db = new MockDbBuilder().Build();
 
@@ -70,7 +70,7 @@ public class GetClientsEndpointTests
     [Fact]
     public async Task HandleAsync_TrainerWithNoClients_ReturnsEmptyList()
     {
-        var trainerProfile = EntityBuilder.TrainerProfile.WithId(1).WithUserId(_trainerId).Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUserId(_trainerId).Build();
         var db = new MockDbBuilder().With(trainerProfile).Build();
 
         var ep = Factory.Create<GetClientsEndpoint>(
@@ -88,7 +88,7 @@ public class GetClientsEndpointTests
     [Fact]
     public async Task HandleAsync_Pagination_RespectsPageSize()
     {
-        var trainerProfile = EntityBuilder.TrainerProfile.WithId(1).WithUserId(_trainerId).Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUserId(_trainerId).Build();
 
         var dbBuilder = new MockDbBuilder().With(trainerProfile);
 
@@ -97,9 +97,9 @@ public class GetClientsEndpointTests
             var clientUser = EntityBuilder.User.WithEmail($"client{i}@test.com")
                 .WithFirstName($"Client{i}").WithLastName("User").Build();
             var clientProfile = EntityBuilder.ClientProfile.WithId(i + 1).WithUser(clientUser).Build();
-            var link = EntityBuilder.ClientTrainerLink
+            var link = EntityBuilder.ClientProfessionalLink
                 .WithClientProfile(clientProfile)
-                .WithTrainerProfile(trainerProfile)
+                .WithProfessionalProfile(trainerProfile)
                 .Build();
 
             dbBuilder.With(clientUser).With(clientProfile).With(link);

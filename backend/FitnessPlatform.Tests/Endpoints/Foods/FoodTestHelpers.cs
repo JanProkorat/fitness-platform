@@ -33,7 +33,6 @@ public static class FoodTestHelpers
             Barcode = barcode,
             NutritionistId = nutritionistId,
             IsDeleted = isDeleted,
-            IsVerified = source == "system",
             NutrientValue = new NutrientValue
             {
                 Kcal = kcal,

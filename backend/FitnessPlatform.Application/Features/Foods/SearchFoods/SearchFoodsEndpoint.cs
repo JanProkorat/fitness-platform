@@ -33,13 +33,36 @@ public class SearchFoodsEndpoint(
     /// <inheritdoc />
     public override async Task HandleAsync(SearchFoodsRequest req, CancellationToken ct)
     {
+        var language = HttpContext.Request.Headers.AcceptLanguage.FirstOrDefault()?.Split(',').FirstOrDefault()?.Split('-').FirstOrDefault();
+
         var filterBuilder = Builders<Food>.Filter;
         var filter = filterBuilder.Eq(f => f.IsDeleted, false);
 
         if (!string.IsNullOrWhiteSpace(req.Query))
         {
             var escaped = Regex.Escape(req.Query);
-            filter &= filterBuilder.Regex(f => f.Name, new BsonRegularExpression(escaped, "i"));
+            var regex = new BsonRegularExpression(escaped, "i");
+
+            // Match against canonical name and the localized name for the user's language
+            var nameFilters = new List<FilterDefinition<Food>>
+            {
+                filterBuilder.Regex(f => f.Name, regex)
+            };
+
+            var localizedField = language?.ToLowerInvariant() switch
+            {
+                "en" => "localizedNames.en",
+                "cs" => "localizedNames.cs",
+                "de" => "localizedNames.de",
+                _ => null
+            };
+
+            if (localizedField is not null)
+            {
+                nameFilters.Add(filterBuilder.Regex(localizedField, regex));
+            }
+
+            filter &= filterBuilder.Or(nameFilters);
         }
 
         if (!string.IsNullOrWhiteSpace(req.Source))
@@ -58,6 +81,7 @@ public class SearchFoodsEndpoint(
 
         // Supplement with OFF results on first page if we have a query and not enough local results
         if (req.Page == 1
+            && !req.ExcludeExternal
             && !string.IsNullOrWhiteSpace(req.Query)
             && localFoods.Count < req.PageSize
             && req.Source is null or "openfoodfacts")
@@ -87,8 +111,6 @@ public class SearchFoodsEndpoint(
                 // External service unavailable — return local results only
             }
         }
-
-        var language = HttpContext.Request.Headers.AcceptLanguage.FirstOrDefault()?.Split(',').FirstOrDefault()?.Split('-').FirstOrDefault();
 
         await Send.OkAsync(new SearchFoodsResponse
         {

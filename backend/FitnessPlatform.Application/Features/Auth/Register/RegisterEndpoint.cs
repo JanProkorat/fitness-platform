@@ -63,9 +63,10 @@ public class RegisterEndpoint(UserManager<ApplicationUser> userManager, IApplica
         switch (role)
         {
             case UserRole.Trainer:
-                dbContext.TrainerProfiles.Add(new TrainerProfile { UserId = user.Id });
+                dbContext.ProfessionalProfiles.Add(new ProfessionalProfile { UserId = user.Id });
                 break;
             case UserRole.Nutritionist:
+                dbContext.ProfessionalProfiles.Add(new ProfessionalProfile { UserId = user.Id });
                 break;
             case UserRole.Client:
                 dbContext.ClientProfiles.Add(new ClientProfile { UserId = user.Id });

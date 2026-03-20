@@ -70,31 +70,31 @@ public class DeleteAccountEndpoint(
                 .ToListAsync(ct);
             db.ProgressPhotos.RemoveRange(photos);
 
-            var clientLinks = await db.ClientTrainerLinks
-                .Where(ctl => ctl.ClientProfileId == clientProfile.Id)
+            var clientLinks = await db.ClientProfessionalLinks
+                .Where(cpl => cpl.ClientProfileId == clientProfile.Id)
                 .ToListAsync(ct);
-            db.ClientTrainerLinks.RemoveRange(clientLinks);
+            db.ClientProfessionalLinks.RemoveRange(clientLinks);
 
             db.ClientProfiles.Remove(clientProfile);
         }
 
-        // Delete trainer profile and all related data (invitations, links)
-        var trainerProfile = await db.TrainerProfiles
-            .FirstOrDefaultAsync(tp => tp.UserId == userId, ct);
+        // Delete professional profile and all related data (invitations, links)
+        var professionalProfile = await db.ProfessionalProfiles
+            .FirstOrDefaultAsync(pp => pp.UserId == userId, ct);
 
-        if (trainerProfile is not null)
+        if (professionalProfile is not null)
         {
             var invitations = await db.InvitationTokens
-                .Where(it => it.TrainerProfileId == trainerProfile.Id)
+                .Where(it => it.ProfessionalProfileId == professionalProfile.Id)
                 .ToListAsync(ct);
             db.InvitationTokens.RemoveRange(invitations);
 
-            var trainerLinks = await db.ClientTrainerLinks
-                .Where(ctl => ctl.TrainerProfileId == trainerProfile.Id)
+            var professionalLinks = await db.ClientProfessionalLinks
+                .Where(cpl => cpl.ProfessionalProfileId == professionalProfile.Id)
                 .ToListAsync(ct);
-            db.ClientTrainerLinks.RemoveRange(trainerLinks);
+            db.ClientProfessionalLinks.RemoveRange(professionalLinks);
 
-            db.TrainerProfiles.Remove(trainerProfile);
+            db.ProfessionalProfiles.Remove(professionalProfile);
         }
 
         // Delete refresh tokens

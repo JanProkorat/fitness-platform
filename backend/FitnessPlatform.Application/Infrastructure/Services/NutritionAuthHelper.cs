@@ -18,11 +18,11 @@ public class NutritionAuthHelper(IApplicationDbContext db)
     /// <returns>True if an active link exists.</returns>
     public virtual async Task<bool> HasActiveLinkAsync(Guid nutritionistUserId, Guid clientPublicId, CancellationToken ct)
     {
-        var trainerProfile = await db.TrainerProfiles
+        var professionalProfile = await db.ProfessionalProfiles
             .AsNoTracking()
             .FirstOrDefaultAsync(tp => tp.UserId == nutritionistUserId, ct);
 
-        if (trainerProfile is null) return false;
+        if (professionalProfile is null) return false;
 
         var clientProfile = await db.ClientProfiles
             .AsNoTracking()
@@ -30,10 +30,10 @@ public class NutritionAuthHelper(IApplicationDbContext db)
 
         if (clientProfile is null) return false;
 
-        return await db.ClientTrainerLinks
+        return await db.ClientProfessionalLinks
             .AsNoTracking()
             .AnyAsync(ctl =>
-                ctl.TrainerProfileId == trainerProfile.Id &&
+                ctl.ProfessionalProfileId == professionalProfile.Id &&
                 ctl.ClientProfileId == clientProfile.Id &&
                 ctl.IsActive, ct);
     }

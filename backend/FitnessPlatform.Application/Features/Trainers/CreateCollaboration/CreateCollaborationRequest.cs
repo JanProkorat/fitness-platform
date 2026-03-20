@@ -11,7 +11,7 @@ public class CreateCollaborationRequest
     public Guid ClientPublicId { get; set; }
 
     /// <summary>
-    /// The public ID of the collaborator's <see cref="Domain.Entities.TrainerProfile"/>.
+    /// The public ID of the collaborator's <see cref="Domain.Entities.ProfessionalProfile"/>.
     /// </summary>
     public Guid CollaboratorPublicId { get; set; }
 }

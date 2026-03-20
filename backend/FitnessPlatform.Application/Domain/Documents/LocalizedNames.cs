@@ -40,6 +40,6 @@ public class LocalizedNames
             _ => null
         };
 
-        return preferred ?? En ?? Cs ?? De;
+        return preferred;
     }
 }

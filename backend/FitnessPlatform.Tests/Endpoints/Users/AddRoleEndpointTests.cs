@@ -35,7 +35,7 @@ public class AddRoleEndpointTests
         var userId = Guid.NewGuid();
         var user = new ApplicationUser { Id = userId, Email = "trainer@test.com", UserName = "trainer@test.com" };
         var db = new MockDbBuilder()
-            .With(new TrainerProfile { UserId = userId })
+            .With(new ProfessionalProfile { UserId = userId })
             .Build();
 
         _userManager.FindByIdAsync(userId.ToString()).Returns(user);
@@ -60,11 +60,11 @@ public class AddRoleEndpointTests
     }
 
     [Fact]
-    public async Task HandleAsync_NutritionistAddsTrainer_CreatesTrainerProfile()
+    public async Task HandleAsync_NutritionistAddsTrainer_CreatesProfessionalProfile()
     {
         var userId = Guid.NewGuid();
         var user = new ApplicationUser { Id = userId, Email = "nutri@test.com", UserName = "nutri@test.com" };
-        var db = new MockDbBuilder().Build(); // No TrainerProfile
+        var db = new MockDbBuilder().Build(); // No ProfessionalProfile
 
         _userManager.FindByIdAsync(userId.ToString()).Returns(user);
         _userManager.GetRolesAsync(user)
@@ -82,7 +82,7 @@ public class AddRoleEndpointTests
         await ep.HandleAsync(new AddRoleRequest { Role = AppRoles.Trainer }, CancellationToken.None);
 
         ep.Response.AddedRole.Should().Be(AppRoles.Trainer);
-        db.TrainerProfiles.Received(1).Add(Arg.Is<TrainerProfile>(p => p.UserId == userId));
+        db.ProfessionalProfiles.Received(1).Add(Arg.Is<ProfessionalProfile>(p => p.UserId == userId));
     }
 
     [Fact]
@@ -91,7 +91,7 @@ public class AddRoleEndpointTests
         var userId = Guid.NewGuid();
         var user = new ApplicationUser { Id = userId, Email = "both@test.com", UserName = "both@test.com" };
         var db = new MockDbBuilder()
-            .With(new TrainerProfile { UserId = userId })
+            .With(new ProfessionalProfile { UserId = userId })
             .Build();
 
         _userManager.FindByIdAsync(userId.ToString()).Returns(user);
@@ -133,7 +133,7 @@ public class AddRoleEndpointTests
         var userId = Guid.NewGuid();
         var user = new ApplicationUser { Id = userId, Email = "audit@test.com", UserName = "audit@test.com" };
         var db = new MockDbBuilder()
-            .With(new TrainerProfile { UserId = userId })
+            .With(new ProfessionalProfile { UserId = userId })
             .Build();
 
         _userManager.FindByIdAsync(userId.ToString()).Returns(user);

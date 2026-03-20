@@ -4,10 +4,10 @@ using FitnessPlatform.Application.Domain.Enums;
 namespace FitnessPlatform.Application.Domain.Entities;
 
 /// <summary>
-/// Represents a many-to-many relationship between a client and a trainer/nutritionist.
-/// A single client can have multiple trainers (e.g., one fitness trainer and one nutritionist).
+/// Represents a many-to-many relationship between a client and a professional (trainer or nutritionist).
+/// A single client can have multiple professionals (e.g., one fitness trainer and one nutritionist).
 /// </summary>
-public class ClientTrainerLink : PublicTimestampableEntity
+public class ClientProfessionalLink : PublicTimestampableEntity
 {
     /// <summary>
     /// Foreign key to the <see cref="ClientProfile"/>.
@@ -15,17 +15,17 @@ public class ClientTrainerLink : PublicTimestampableEntity
     public long ClientProfileId { get; set; }
 
     /// <summary>
-    /// Foreign key to the <see cref="TrainerProfile"/>.
+    /// Foreign key to the <see cref="ProfessionalProfile"/>.
     /// </summary>
-    public long TrainerProfileId { get; set; }
+    public long ProfessionalProfileId { get; set; }
 
     /// <summary>
-    /// The role of the trainer in this relationship (Trainer or Nutritionist).
+    /// The role of the professional in this relationship (Trainer or Nutritionist).
     /// </summary>
-    public UserRole TrainerRole { get; set; }
+    public UserRole ProfessionalRole { get; set; }
 
     /// <summary>
-    /// Indicates whether this trainer-client relationship is currently active.
+    /// Indicates whether this professional-client relationship is currently active.
     /// </summary>
     public bool IsActive { get; set; } = true;
 
@@ -35,7 +35,7 @@ public class ClientTrainerLink : PublicTimestampableEntity
     public ClientProfile ClientProfile { get; set; } = null!;
 
     /// <summary>
-    /// Navigation property to the trainer profile.
+    /// Navigation property to the professional profile.
     /// </summary>
-    public TrainerProfile TrainerProfile { get; set; } = null!;
+    public ProfessionalProfile ProfessionalProfile { get; set; } = null!;
 }

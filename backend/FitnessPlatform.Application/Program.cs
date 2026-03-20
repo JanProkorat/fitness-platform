@@ -139,10 +139,11 @@ builder.Services.AddHttpClient<IFoodExternalService, OpenFoodFactsService>(clien
 })
 .AddStandardResilienceHandler(options =>
 {
-    options.Retry.MaxRetryAttempts = 3;
+    options.Retry.MaxRetryAttempts = 2;
     options.Retry.Delay = TimeSpan.FromSeconds(1);
     options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(offTimeout);
-    options.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(offTimeout * 4);
+    options.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(offTimeout * 2 + 1);
+    options.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(offTimeout * 3);
 });
 
 // Macro Calculator
