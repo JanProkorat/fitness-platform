@@ -221,7 +221,7 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
             </div>
 
             {foodLoading && (
-              <div className="mt-2 text-center text-xs text-text3">{t('common.loading')}</div>
+              <div className="absolute left-0 right-0 z-10 mt-2 rounded-sm border border-border bg-bg px-3 py-2 text-center text-xs text-text3 shadow-lg">{t('common.loading')}</div>
             )}
 
             {!foodLoading && foodResults.length > 0 && (
@@ -250,7 +250,7 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
             )}
 
             {!foodLoading && (foodOpen || foodQuery.trim()) && foodResults.length === 0 && (
-              <div className="mt-2 text-center text-xs text-text3">{t('foods.noFoods')}</div>
+              <div className="absolute left-0 right-0 z-10 mt-2 rounded-sm border border-border bg-bg px-3 py-2 text-center text-xs text-text3 shadow-lg">{t('foods.noFoods')}</div>
             )}
           </div>
 
@@ -270,7 +270,7 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
             />
 
             {recipeLoading && (
-              <div className="mt-2 text-center text-xs text-text3">{t('common.loading')}</div>
+              <div className="absolute left-0 right-0 z-10 mt-2 rounded-sm border border-border bg-bg px-3 py-2 text-center text-xs text-text3 shadow-lg">{t('common.loading')}</div>
             )}
 
             {!recipeLoading && recipeResults.length > 0 && (
@@ -291,7 +291,7 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
             )}
 
             {!recipeLoading && (recipeOpen || recipeQuery.trim()) && recipeResults.length === 0 && (
-              <div className="mt-2 text-center text-xs text-text3">{t('recipes.noResults')}</div>
+              <div className="absolute left-0 right-0 z-10 mt-2 rounded-sm border border-border bg-bg px-3 py-2 text-center text-xs text-text3 shadow-lg">{t('recipes.noResults')}</div>
             )}
           </div>
 
