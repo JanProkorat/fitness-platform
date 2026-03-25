@@ -3,33 +3,33 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
-using FitnessPlatform.Application.Features.NutritionPlans.GetPlan;
+using FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Driver;
 
-namespace FitnessPlatform.Application.Features.NutritionPlans.PublishWeek;
+namespace FitnessPlatform.Application.Features.TrainingPlans.PublishTrainingWeek;
 
 /// <summary>
-/// Publishes a single week of a nutrition plan, making it visible to the client.
-/// Archives other active plans for the same client when the first week is published.
+/// Publishes a single week of a training plan, making it visible to the client.
+/// Archives other active training plans for the same client when the first week is published.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
-public class PublishWeekEndpoint(IMongoContext mongo) : Endpoint<PublishWeekRequest, GetPlanResponse>
+public class PublishTrainingWeekEndpoint(IMongoContext mongo) : Endpoint<PublishTrainingWeekRequest, GetTrainingPlanResponse>
 {
     /// <inheritdoc />
     public override void Configure()
     {
-        Post("/nutrition/plans/{PlanId}/weeks/{WeekNumber}/publish");
-        Roles(AppRoles.Nutritionist);
+        Post("/training/plans/{PlanId}/weeks/{WeekNumber}/publish");
+        Roles(AppRoles.Trainer);
         Summary(s =>
         {
-            s.Summary = "Publish a week of a nutrition plan";
-            s.Description = "Sets the week's status to Published. Archives other active plans for the same client.";
+            s.Summary = "Publish a week of a training plan";
+            s.Description = "Sets the week's status to Published. Archives other active training plans for the same client.";
         });
     }
 
     /// <inheritdoc />
-    public override async Task HandleAsync(PublishWeekRequest req, CancellationToken ct)
+    public override async Task HandleAsync(PublishTrainingWeekRequest req, CancellationToken ct)
     {
         var userId = User.FindFirstValue(AppClaims.UserId);
         if (userId is null)
@@ -38,13 +38,13 @@ public class PublishWeekEndpoint(IMongoContext mongo) : Endpoint<PublishWeekRequ
             return;
         }
 
-        var nutritionistId = Guid.Parse(userId);
+        var trainerId = Guid.Parse(userId);
 
         // Fetch plan
-        var filter = Builders<NutritionPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
-                     & Builders<NutritionPlan>.Filter.Eq(p => p.NutritionistId, nutritionistId);
+        var filter = Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
+                     & Builders<TrainingPlan>.Filter.Eq(p => p.TrainerId, trainerId);
 
-        var cursor = await mongo.NutritionPlans.FindAsync(filter, cancellationToken: ct);
+        var cursor = await mongo.TrainingPlans.FindAsync(filter, cancellationToken: ct);
         var plan = await cursor.FirstOrDefaultAsync(ct);
 
         if (plan is null)
@@ -95,28 +95,28 @@ public class PublishWeekEndpoint(IMongoContext mongo) : Endpoint<PublishWeekRequ
         var hadPublishedWeeks = plan.Weeks.Any(w => w.Status == WeekStatus.Published);
         if (!hadPublishedWeeks)
         {
-            var archiveFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, plan.ClientId)
-                                & Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active)
-                                & Builders<NutritionPlan>.Filter.Ne(p => p.ExternalId, plan.ExternalId);
+            var archiveFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, plan.ClientId)
+                                & Builders<TrainingPlan>.Filter.Eq(p => p.Status, TrainingPlanStatus.Active)
+                                & Builders<TrainingPlan>.Filter.Ne(p => p.ExternalId, plan.ExternalId);
 
-            var archiveUpdate = Builders<NutritionPlan>.Update
-                .Set(p => p.Status, NutritionPlanStatus.Archived)
+            var archiveUpdate = Builders<TrainingPlan>.Update
+                .Set(p => p.Status, TrainingPlanStatus.Archived)
                 .Set(p => p.DateUpdated, DateTime.UtcNow);
 
-            await mongo.NutritionPlans.UpdateManyAsync(archiveFilter, archiveUpdate, cancellationToken: ct);
+            await mongo.TrainingPlans.UpdateManyAsync(archiveFilter, archiveUpdate, cancellationToken: ct);
         }
 
         // Publish the week
         week.Status = WeekStatus.Published;
         week.DatePublished = DateTime.UtcNow;
-        plan.Status = NutritionPlanStatus.Active;
+        plan.Status = TrainingPlanStatus.Active;
         plan.DateUpdated = DateTime.UtcNow;
         plan.Version += 1;
 
-        var versionFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
-                            & Builders<NutritionPlan>.Filter.Eq(p => p.Version, req.Version);
+        var versionFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
+                            & Builders<TrainingPlan>.Filter.Eq(p => p.Version, req.Version);
 
-        var result = await mongo.NutritionPlans.ReplaceOneAsync(versionFilter, plan, cancellationToken: ct);
+        var result = await mongo.TrainingPlans.ReplaceOneAsync(versionFilter, plan, cancellationToken: ct);
 
         if (result.ModifiedCount == 0)
         {
@@ -125,6 +125,6 @@ public class PublishWeekEndpoint(IMongoContext mongo) : Endpoint<PublishWeekRequ
             return;
         }
 
-        await Send.OkAsync(GetPlanResponse.FromDocument(plan), ct);
+        await Send.OkAsync(GetTrainingPlanResponse.FromDocument(plan), ct);
     }
 }
