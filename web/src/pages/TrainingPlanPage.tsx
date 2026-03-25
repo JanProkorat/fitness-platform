@@ -294,6 +294,7 @@ export default function TrainingPlanPage() {
           onAddWeek={addWeek}
           onRemoveWeek={() => removeWeek(selectedWeek)}
           renderTab={renderWeekTab}
+          startDate={plan.startDate}
         />
 
         {/* Day columns */}

@@ -403,6 +403,7 @@ export default function NutritionPlanPage() {
             onAddWeek={addWeek}
             onRemoveWeek={() => removeWeek(selectedWeek)}
             renderTab={renderWeekTab}
+            startDate={plan.startDate}
           />
 
           <div className="flex flex-1 overflow-x-auto p-4">
