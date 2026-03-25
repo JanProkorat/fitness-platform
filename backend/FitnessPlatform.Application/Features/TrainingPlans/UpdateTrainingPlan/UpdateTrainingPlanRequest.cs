@@ -1,11 +1,9 @@
-using FitnessPlatform.Application.Domain.Documents;
-
-namespace FitnessPlatform.Application.Features.NutritionPlans.UpdatePlan;
+namespace FitnessPlatform.Application.Features.TrainingPlans.UpdateTrainingPlan;
 
 /// <summary>
-/// Request for a full-state update of a nutrition plan: replaces name, settings, and all weeks/days/meals/foods.
+/// Request for a full-state update of a training plan.
 /// </summary>
-public class UpdatePlanRequest
+public class UpdateTrainingPlanRequest
 {
     /// <summary>
     /// The plan's public identifier (route parameter).
@@ -18,9 +16,9 @@ public class UpdatePlanRequest
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
-    /// Updated global daily nutrition targets.
+    /// Updated plan description.
     /// </summary>
-    public GlobalNutritionSettings? GlobalSettings { get; set; }
+    public string? Description { get; set; }
 
     /// <summary>
     /// Expected version for optimistic concurrency control.
@@ -28,13 +26,12 @@ public class UpdatePlanRequest
     public int Version { get; set; }
 
     /// <summary>
-    /// Full week structure to persist. Replaces all existing weeks, days, meals, and foods.
+    /// Full week structure to persist.
     /// </summary>
-    public List<UpdateWeekRequest> Weeks { get; set; } = [];
+    public List<UpdateTrainingWeekRequest> Weeks { get; set; } = [];
 
     /// <summary>
     /// Updated start date. Must be a Monday and not in the past.
-    /// Null clears the start date (only if it hasn't arrived and no weeks are published).
     /// </summary>
     public DateTime? StartDate { get; set; }
 }

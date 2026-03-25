@@ -3,37 +3,35 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
-using FitnessPlatform.Application.Domain.Interfaces;
-using FitnessPlatform.Application.Features.NutritionPlans.GetPlan;
+using FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Driver;
 
-namespace FitnessPlatform.Application.Features.NutritionPlans.UpdatePlan;
+namespace FitnessPlatform.Application.Features.TrainingPlans.UpdateTrainingPlan;
 
 /// <summary>
-/// Full-state update of a nutrition plan: replaces name, settings, and all weeks/days/meals/foods.
+/// Full-state update of a training plan: replaces name, description, and all weeks/sessions/exercises/sets.
 /// Preserves per-week Status and DatePublished. Uses optimistic concurrency.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
-/// <param name="macroCalculator">Service to recalculate nutrient totals.</param>
-public class UpdatePlanEndpoint(IMongoContext mongo, IMacroCalculatorService macroCalculator)
-    : Endpoint<UpdatePlanRequest, GetPlanResponse>
+public class UpdateTrainingPlanEndpoint(IMongoContext mongo)
+    : Endpoint<UpdateTrainingPlanRequest, GetTrainingPlanResponse>
 {
     /// <inheritdoc />
     public override void Configure()
     {
-        Put("/nutrition/plans/{PlanId}");
-        Roles(AppRoles.Nutritionist);
+        Put("/training/plans/{PlanId}");
+        Roles(AppRoles.Trainer);
         Summary(s =>
         {
-            s.Summary = "Full-state update of a nutrition plan";
-            s.Description = "Replaces the plan's name, global settings, and all weeks/days/meals/foods. " +
+            s.Summary = "Full-state update of a training plan";
+            s.Description = "Replaces the plan's name, description, and all weeks/sessions/exercises/sets. " +
                             "Per-week publish status is preserved. Uses optimistic concurrency via version field.";
         });
     }
 
     /// <inheritdoc />
-    public override async Task HandleAsync(UpdatePlanRequest req, CancellationToken ct)
+    public override async Task HandleAsync(UpdateTrainingPlanRequest req, CancellationToken ct)
     {
         var userId = User.FindFirstValue(AppClaims.UserId);
         if (userId is null)
@@ -42,13 +40,13 @@ public class UpdatePlanEndpoint(IMongoContext mongo, IMacroCalculatorService mac
             return;
         }
 
-        var nutritionistId = Guid.Parse(userId);
+        var trainerId = Guid.Parse(userId);
 
         // Fetch current plan
-        var filter = Builders<NutritionPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
-                     & Builders<NutritionPlan>.Filter.Eq(p => p.NutritionistId, nutritionistId);
+        var filter = Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
+                     & Builders<TrainingPlan>.Filter.Eq(p => p.TrainerId, trainerId);
 
-        var cursor = await mongo.NutritionPlans.FindAsync(filter, cancellationToken: ct);
+        var cursor = await mongo.TrainingPlans.FindAsync(filter, cancellationToken: ct);
         var plan = await cursor.FirstOrDefaultAsync(ct);
 
         if (plan is null)
@@ -119,51 +117,57 @@ public class UpdatePlanEndpoint(IMongoContext mongo, IMacroCalculatorService mac
         // Map request to domain
         plan.Name = req.Name;
         plan.StartDate = req.StartDate?.Date;
-        plan.GlobalSettings = req.GlobalSettings;
+        plan.Description = req.Description?.Trim();
         plan.Weeks = req.Weeks.Select(rw =>
         {
             var existing = existingWeeks.GetValueOrDefault(rw.WeekNumber);
-            return new PlanWeek
+            return new TrainingWeek
             {
                 WeekNumber = rw.WeekNumber,
                 Status = existing?.Status ?? WeekStatus.Draft,
                 DatePublished = existing?.DatePublished,
-                Days = rw.Days.Select(rd => new PlanDay
+                Sessions = rw.Sessions.Select(rs => new TrainingSession
                 {
-                    DayOfWeek = rd.DayOfWeek,
-                    Meals = rd.Meals.Select(rm => new PlanMeal
+                    SessionId = rs.SessionId ?? Guid.NewGuid(),
+                    DayOfWeek = rs.DayOfWeek,
+                    Name = rs.Name,
+                    Order = rs.Order,
+                    Notes = rs.Notes?.Trim(),
+                    Exercises = rs.Exercises.Select(re => new SessionExercise
                     {
-                        MealId = rm.MealId ?? Guid.NewGuid(),
-                        Name = rm.Name,
-                        Order = rm.Order,
-                        Foods = rm.Foods.Select(rf => new MealFood
+                        ExerciseExternalId = re.ExerciseExternalId,
+                        ExerciseName = re.ExerciseName,
+                        Order = re.Order,
+                        Notes = re.Notes?.Trim(),
+                        RestSeconds = re.RestSeconds,
+                        Sets = re.Sets.Select(rset => new ExerciseSet
                         {
-                            FoodExternalId = rf.FoodExternalId,
-                            FoodName = rf.FoodName,
-                            NutrientValuePer100Grams = rf.NutrientValuePer100Grams,
-                            AmountGrams = rf.AmountGrams
+                            SetNumber = rset.SetNumber,
+                            Type = rset.Type,
+                            Reps = rset.Reps,
+                            WeightKg = rset.WeightKg,
+                            DurationSeconds = rset.DurationSeconds,
+                            Rpe = rset.Rpe,
+                            DistanceMeters = rset.DistanceMeters
                         }).ToList()
                     }).ToList()
                 }).ToList()
             };
         }).ToList();
 
-        // Recalculate totals
-        macroCalculator.RecalculateTotals(plan);
-
         // Derive plan-level status from week statuses
         plan.Status = plan.Weeks.Any(w => w.Status == WeekStatus.Published)
-            ? NutritionPlanStatus.Active
-            : NutritionPlanStatus.Draft;
+            ? TrainingPlanStatus.Active
+            : TrainingPlanStatus.Draft;
 
         plan.DateUpdated = DateTime.UtcNow;
         plan.Version += 1;
 
         // Persist with version check
-        var versionFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
-                            & Builders<NutritionPlan>.Filter.Eq(p => p.Version, req.Version);
+        var versionFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
+                            & Builders<TrainingPlan>.Filter.Eq(p => p.Version, req.Version);
 
-        var result = await mongo.NutritionPlans.ReplaceOneAsync(
+        var result = await mongo.TrainingPlans.ReplaceOneAsync(
             versionFilter, plan, cancellationToken: ct);
 
         if (result.ModifiedCount == 0)
@@ -174,6 +178,6 @@ public class UpdatePlanEndpoint(IMongoContext mongo, IMacroCalculatorService mac
             return;
         }
 
-        await Send.OkAsync(GetPlanResponse.FromDocument(plan), ct);
+        await Send.OkAsync(GetTrainingPlanResponse.FromDocument(plan), ct);
     }
 }
