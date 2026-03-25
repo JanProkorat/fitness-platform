@@ -68,6 +68,7 @@ export interface NutritionPlanDetail {
   version: number;
   dateCreated: string;
   dateUpdated?: string | null;
+  startDate?: string | null;
 }
 
 /** Plan summary for list views. */
@@ -80,6 +81,7 @@ export interface PlanSummary {
   version: number;
   dateCreated: string;
   dateUpdated?: string | null;
+  startDate?: string | null;
 }
 
 /** Paginated plan list response. */
@@ -96,6 +98,7 @@ export interface CreatePlanRequest {
   name: string;
   globalSettings?: GlobalNutritionSettings | null;
   weekCount?: number;
+  startDate?: string | null;
 }
 
 /** Request to update an existing plan with full state (includes version for optimistic locking). */
@@ -104,6 +107,7 @@ export interface UpdatePlanRequest {
   globalSettings?: GlobalNutritionSettings | null;
   weeks: UpdateWeekRequest[];
   version: number;
+  startDate?: string | null;
 }
 
 /** Week data within a full-state plan update. */
