@@ -356,6 +356,7 @@
     "deleteConfirmMessage": "Möchten Sie \"{{name}}\" wirklich löschen? Dies kann nicht rückgängig gemacht werden.",
     "deleteRecipe": "Löschen",
     "fromRecipe": "Aus Rezept",
+    "portions": "Portionen",
     "searchRecipes": "Rezepte suchen...",
     "noResults": "Keine Rezepte gefunden",
     "foodCount": "{{count}} Zutaten",

@@ -5,7 +5,13 @@ import { searchFoods } from '@/api/foods';
 import { searchRecipes, getRecipe } from '@/api/recipes';
 import type { FoodSummary } from '@/api/food-types';
 import type { RecipeSummary } from '@/api/recipe-types';
+import type { RecipeDetail } from '@/api/recipe-types';
 import type { MealFood } from '@/api/plan-types';
+
+interface StagedRecipe {
+  recipe: RecipeDetail;
+  portions: number;
+}
 
 interface AddItemsDrawerProps {
   open: boolean;
@@ -17,6 +23,7 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
   const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const [staged, setStaged] = useState<MealFood[]>([]);
+  const [stagedRecipes, setStagedRecipes] = useState<StagedRecipe[]>([]);
 
   // Food search state
   const [foodQuery, setFoodQuery] = useState('');
@@ -36,6 +43,7 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
       requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
       // Reset state
       setStaged([]);
+      setStagedRecipes([]);
       setFoodQuery('');
       setFoodSource('');
       setFoodResults([]);
@@ -115,33 +123,14 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
   }, [staged]);
 
   const addRecipeToStaged = useCallback(async (recipe: RecipeSummary) => {
+    if (stagedRecipes.some((s) => s.recipe.recipeId === recipe.recipeId)) return;
     try {
       const detail = await getRecipe(recipe.recipeId);
-      setStaged((prev) => {
-        const existingIds = new Set(prev.map((s) => s.foodExternalId));
-        const newFoods = detail.foods
-          .filter((f) => !existingIds.has(f.foodExternalId))
-          .map((f) => ({
-            foodExternalId: f.foodExternalId,
-            foodName: f.foodName,
-            nutrientValuePer100Grams: {
-              kcal: f.nutrientValuePer100Grams.kcal,
-              protein: f.nutrientValuePer100Grams.protein,
-              carbs: f.nutrientValuePer100Grams.carbs,
-              fat: f.nutrientValuePer100Grams.fat,
-              fiber: f.nutrientValuePer100Grams.fiber,
-              sugar: f.nutrientValuePer100Grams.sugar,
-              saturatedFat: f.nutrientValuePer100Grams.saturatedFat,
-              salt: f.nutrientValuePer100Grams.salt,
-            },
-            amountGrams: f.amountGrams,
-          }));
-        return [...prev, ...newFoods];
-      });
+      setStagedRecipes((prev) => [...prev, { recipe: detail, portions: 1 }]);
     } catch {
       // silently ignore
     }
-  }, []);
+  }, [stagedRecipes]);
 
   const removeStagedItem = (foodExternalId: string) => {
     setStaged((prev) => prev.filter((s) => s.foodExternalId !== foodExternalId));
@@ -153,15 +142,48 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
     );
   };
 
+  const removeStagedRecipe = (recipeId: string) => {
+    setStagedRecipes((prev) => prev.filter((s) => s.recipe.recipeId !== recipeId));
+  };
+
+  const updateRecipePortions = (recipeId: string, portions: number) => {
+    setStagedRecipes((prev) =>
+      prev.map((s) => (s.recipe.recipeId === recipeId ? { ...s, portions } : s)),
+    );
+  };
+
   const handleAdd = () => {
-    if (staged.length === 0) return;
-    onAdd(staged);
+    const totalItems = staged.length + stagedRecipes.length;
+    if (totalItems === 0) return;
+
+    // Expand recipes into individual foods, multiplying amounts by portions
+    const recipeFoods: MealFood[] = stagedRecipes.flatMap((sr) =>
+      sr.recipe.foods.map((f) => ({
+        foodExternalId: f.foodExternalId,
+        foodName: f.foodName,
+        nutrientValuePer100Grams: {
+          kcal: f.nutrientValuePer100Grams.kcal,
+          protein: f.nutrientValuePer100Grams.protein,
+          carbs: f.nutrientValuePer100Grams.carbs,
+          fat: f.nutrientValuePer100Grams.fat,
+          fiber: f.nutrientValuePer100Grams.fiber,
+          sugar: f.nutrientValuePer100Grams.sugar,
+          saturatedFat: f.nutrientValuePer100Grams.saturatedFat,
+          salt: f.nutrientValuePer100Grams.salt,
+        },
+        amountGrams: Math.round(f.amountGrams * sr.portions),
+      })),
+    );
+
+    onAdd([...staged, ...recipeFoods]);
     onClose();
   };
 
   const handleClose = () => {
     onClose();
   };
+
+  const totalItemCount = staged.length + stagedRecipes.length;
 
   if (!open) return null;
 
@@ -275,18 +297,26 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
 
             {!recipeLoading && recipeResults.length > 0 && (
               <div className="absolute left-0 right-0 z-10 mt-2 max-h-40 overflow-y-auto rounded-sm border border-border bg-bg shadow-lg" onMouseDown={(e) => e.preventDefault()}>
-                {recipeResults.map((recipe) => (
-                  <button
-                    key={recipe.recipeId}
-                    onClick={() => addRecipeToStaged(recipe)}
-                    className="flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors hover:bg-gold/5"
-                  >
-                    <span className="truncate font-medium">{recipe.name}</span>
-                    <span className="ml-3 shrink-0 text-xs text-text3">
-                      {recipe.foodCount} {t('recipes.foods')} | {Math.round(recipe.totalNutrients.kcal)} kcal
-                    </span>
-                  </button>
-                ))}
+                {recipeResults.map((recipe) => {
+                  const isSelected = stagedRecipes.some((s) => s.recipe.recipeId === recipe.recipeId);
+                  return (
+                    <button
+                      key={recipe.recipeId}
+                      onClick={() => addRecipeToStaged(recipe)}
+                      disabled={isSelected}
+                      className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors ${
+                        isSelected
+                          ? 'bg-gold/10 text-gold opacity-60'
+                          : 'hover:bg-gold/5'
+                      }`}
+                    >
+                      <span className="truncate font-medium">{recipe.name}</span>
+                      <span className="ml-3 shrink-0 text-xs text-text3">
+                        {recipe.foodCount} {t('recipes.foods')} | {Math.round(recipe.totalNutrients.kcal)} kcal
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             )}
 
@@ -295,11 +325,11 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
             )}
           </div>
 
-          {/* Staged items table */}
+          {/* Staged foods table */}
           {staged.length > 0 && (
-            <div>
+            <div className="mb-6">
               <label className="mb-2 block font-heading text-xs font-semibold uppercase tracking-wide text-text3">
-                {t('nutrition.selectedItems', 'Selected Items')} ({staged.length})
+                {t('nutrition.searchFoods')} ({staged.length})
               </label>
               <div className="rounded-sm border border-border">
                 <table className="w-full text-xs">
@@ -362,16 +392,85 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
               </div>
             </div>
           )}
+
+          {/* Staged recipes table */}
+          {stagedRecipes.length > 0 && (
+            <div>
+              <label className="mb-2 block font-heading text-xs font-semibold uppercase tracking-wide text-text3">
+                {t('recipes.fromRecipe')} ({stagedRecipes.length})
+              </label>
+              <div className="rounded-sm border border-border">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-border text-left text-[10px] uppercase text-text3">
+                      <th className="px-3 py-2 font-medium">{t('recipes.fromRecipe')}</th>
+                      <th className="w-20 px-2 py-2 font-medium">{t('recipes.portions')}</th>
+                      <th className="w-14 px-2 py-2 text-right font-medium">kcal</th>
+                      <th className="w-10 px-2 py-2 text-right font-medium">P</th>
+                      <th className="w-10 px-2 py-2 text-right font-medium">C</th>
+                      <th className="w-10 px-2 py-2 text-right font-medium">F</th>
+                      <th className="w-8 px-2 py-2" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stagedRecipes.map((sr) => {
+                      const tn = sr.recipe.totalNutrients;
+                      return (
+                        <tr key={sr.recipe.recipeId} className="border-t border-charcoal">
+                          <td className="truncate px-3 py-2 text-text2">{sr.recipe.name}</td>
+                          <td className="px-2 py-2">
+                            <input
+                              type="number"
+                              min={0.25}
+                              step={0.25}
+                              value={sr.portions}
+                              onChange={(e) =>
+                                updateRecipePortions(
+                                  sr.recipe.recipeId,
+                                  Math.max(0.25, Number(e.target.value) || 1),
+                                )
+                              }
+                              className="w-16 rounded-sm border border-border bg-surface px-1.5 py-0.5 text-xs text-text outline-none focus:border-gold/40"
+                            />
+                          </td>
+                          <td className="px-2 py-2 text-right text-text3">
+                            {Math.round(tn.kcal * sr.portions)}
+                          </td>
+                          <td className="px-2 py-2 text-right text-blue-400">
+                            {Math.round(tn.protein * sr.portions)}
+                          </td>
+                          <td className="px-2 py-2 text-right text-amber-400">
+                            {Math.round(tn.carbs * sr.portions)}
+                          </td>
+                          <td className="px-2 py-2 text-right text-rose-400">
+                            {Math.round(tn.fat * sr.portions)}
+                          </td>
+                          <td className="px-2 py-2 text-right">
+                            <button
+                              onClick={() => removeStagedRecipe(sr.recipe.recipeId)}
+                              className="text-text3 transition-colors hover:text-red-400"
+                            >
+                              &times;
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Sticky add button */}
         <div className="shrink-0 border-t border-border bg-bg px-6 py-4">
           <button
             onClick={handleAdd}
-            disabled={staged.length === 0}
+            disabled={totalItemCount === 0}
             className="w-full rounded-sm bg-gold px-5 py-3 font-heading text-xs font-bold uppercase tracking-wide text-black transition-colors hover:bg-gold-bright disabled:opacity-50"
           >
-            {t('nutrition.addToMeal', 'Add to Meal')} ({staged.length})
+            {t('nutrition.addToMeal', 'Add to Meal')} ({totalItemCount})
           </button>
         </div>
       </div>

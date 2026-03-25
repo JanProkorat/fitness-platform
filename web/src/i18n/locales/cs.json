@@ -356,6 +356,7 @@
     "deleteConfirmMessage": "Opravdu chcete smazat \"{{name}}\"? Tuto akci nelze vrátit.",
     "deleteRecipe": "Smazat",
     "fromRecipe": "Z receptu",
+    "portions": "Porce",
     "searchRecipes": "Hledat recepty...",
     "noResults": "Žádné recepty nenalezeny",
     "foodCount": "{{count}} ingrediencí",

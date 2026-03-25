@@ -357,6 +357,7 @@
     "deleteConfirmMessage": "Are you sure you want to delete \"{{name}}\"? This cannot be undone.",
     "deleteRecipe": "Delete",
     "fromRecipe": "From Recipe",
+    "portions": "Portions",
     "searchRecipes": "Search recipes...",
     "noResults": "No recipes found",
     "foodCount": "{{count}} ingredients",
