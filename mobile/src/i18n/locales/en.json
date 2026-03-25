@@ -127,7 +127,9 @@
       "nuts": "Nuts",
       "dietRating": "Diet quality rating",
       "veryPoorDiet": "Very poor",
-      "excellentDiet": "Excellent"
+      "excellentDiet": "Excellent",
+      "addCustomDiet": "Other dietary style...",
+      "addCustomAllergy": "Other allergy..."
     },
     "step7": {
       "title": "Experience & Motivation",
@@ -176,5 +178,41 @@
       "pastBlockers": "Past blockers",
       "motivation": "Motivation"
     }
+  },
+  "common": {
+    "back": "Back"
+  },
+  "training": {
+    "title": "Training",
+    "todayOverview": "Today's training session",
+    "exercises": "exercises",
+    "sets": "sets",
+    "startWorkout": "Start Workout",
+    "restDay": "Rest Day",
+    "restDayHint": "No training session planned for today",
+    "viewHistory": "View Workout History",
+    "activeWorkout": "Active Workout",
+    "addExercise": "Add Exercise",
+    "addSet": "Add Set",
+    "set": "Set",
+    "reps": "Reps",
+    "weight": "Weight",
+    "rest": "Rest",
+    "mood": "How did it feel?",
+    "finishWorkout": "Finish Workout",
+    "newPR": "New Personal Record!",
+    "prMessage": "Congratulations! You set a new personal record!",
+    "startError": "Failed to start workout",
+    "completeError": "Failed to complete workout",
+    "tapToStop": "Tap to stop",
+    "history": "Workout History",
+    "noWorkouts": "No workouts yet",
+    "progress": "Progress",
+    "progressSubtitle": "Track your strength gains over time",
+    "strengthChart": "Strength Progress",
+    "selectExercise": "Select an exercise to view progress",
+    "prTimeline": "PR Timeline",
+    "prTimelineHint": "Complete workouts to see your personal records here",
+    "weekProgress": "Week {{current}}/{{total}}"
   }
 }
