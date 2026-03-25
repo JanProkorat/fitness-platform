@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useRef, useMemo, useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -9,71 +9,204 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
+import PagerView from 'react-native-pager-view';
+import { useTranslation } from 'react-i18next';
 import { Colors } from '../../../constants/Colors';
 import {
-  getWeekPlan,
+  getFullPlan,
+  type FullPlanResponse,
+  type FullPlanWeek,
   type PlanDay,
   type PlanMeal,
+  type NutrientTotals,
 } from '../../../src/api/nutrition';
 
-const DAY_NAMES: Record<number, string> = {
-  1: 'Monday',
-  2: 'Tuesday',
-  3: 'Wednesday',
-  4: 'Thursday',
-  5: 'Friday',
-  6: 'Saturday',
-  7: 'Sunday',
-};
-
-/** Map JS Date.getDay() (0=Sun) to our format (1=Mon ... 7=Sun). */
+/** Map JS Date.getDay() (0=Sun) to our format (1=Mon … 7=Sun). */
 function getCurrentDayOfWeek(): number {
   const jsDay = new Date().getDay();
   return jsDay === 0 ? 7 : jsDay;
 }
 
+interface DayInfo {
+  weekIndex: number;
+  weekNumber: number;
+  dayOfWeek: number;
+  week: FullPlanWeek;
+  day: PlanDay;
+}
+
+/** Flatten all weeks × days into a single ordered list of pages. */
+function buildDayList(data: FullPlanResponse): DayInfo[] {
+  const list: DayInfo[] = [];
+  data.weeks.forEach((week, weekIndex) => {
+    week.days
+      .slice()
+      .sort((a, b) => a.dayOfWeek - b.dayOfWeek)
+      .forEach((day) => {
+        list.push({
+          weekIndex,
+          weekNumber: week.weekNumber,
+          dayOfWeek: day.dayOfWeek,
+          week,
+          day,
+        });
+      });
+  });
+  return list;
+}
+
+/** Compute the initial PagerView page index. */
+function computeInitialPage(
+  allDays: DayInfo[],
+  data: FullPlanResponse,
+  paramWeekNumber?: number,
+  paramDayOfWeek?: number,
+): number {
+  // If returning from week overview with explicit params, use those.
+  if (paramWeekNumber != null && paramDayOfWeek != null) {
+    const idx = allDays.findIndex(
+      (d) => d.weekNumber === paramWeekNumber && d.dayOfWeek === paramDayOfWeek,
+    );
+    if (idx >= 0) return idx;
+  }
+  // Active plan: go to today.
+  if (data.currentWeek != null && data.currentDayOfWeek != null) {
+    const idx = allDays.findIndex(
+      (d) =>
+        d.weekNumber === data.currentWeek &&
+        d.dayOfWeek === data.currentDayOfWeek,
+    );
+    if (idx >= 0) return idx;
+  }
+  // Upcoming plan or fallback: page 0.
+  return 0;
+}
+
+function formatWeekRange(startDate: string, endDate: string): string {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const fmt = (d: Date) =>
+    d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  return `${fmt(start)} – ${fmt(end)}`;
+}
+
+function formatDayLabel(weekStartDate: string, dayOfWeek: number): string {
+  // dayOfWeek: 1=Mon … 7=Sun
+  const start = new Date(weekStartDate);
+  // weekStartDate is Monday; offset by (dayOfWeek - 1) days
+  const date = new Date(start);
+  date.setDate(start.getDate() + (dayOfWeek - 1));
+  return date.toLocaleDateString(undefined, {
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+// ─── Main Screen ──────────────────────────────────────────────────────────────
+
 export default function NutritionScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
-  const [expandedDay, setExpandedDay] = useState<number | null>(
-    getCurrentDayOfWeek(),
-  );
+  const params = useLocalSearchParams<{ weekNumber?: string; dayOfWeek?: string }>();
+
+  const paramWeekNumber = params.weekNumber ? parseInt(params.weekNumber, 10) : undefined;
+  const paramDayOfWeek = params.dayOfWeek ? parseInt(params.dayOfWeek, 10) : undefined;
 
   const {
-    data: plan,
+    data,
     isLoading,
     isError,
     refetch,
     isRefetching,
   } = useQuery({
-    queryKey: ['week-plan'],
-    queryFn: getWeekPlan,
+    queryKey: ['full-plan'],
+    queryFn: getFullPlan,
+    staleTime: 5 * 60 * 1000,
+    retry: (failureCount, error: any) => {
+      if (error?.response?.status === 404) return false;
+      return failureCount < 3;
+    },
   });
 
-  const currentDay = useMemo(() => getCurrentDayOfWeek(), []);
+  const allDays = useMemo(() => (data ? buildDayList(data) : []), [data]);
 
-  const toggleDay = useCallback((dayOfWeek: number) => {
-    setExpandedDay((prev) => (prev === dayOfWeek ? null : dayOfWeek));
-  }, []);
+  const initialPage = useMemo(
+    () =>
+      data && allDays.length > 0
+        ? computeInitialPage(allDays, data, paramWeekNumber, paramDayOfWeek)
+        : 0,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [data, allDays],
+  );
+
+  const [currentPageIndex, setCurrentPageIndex] = useState<number>(initialPage);
+  const pagerRef = useRef<PagerView>(null);
+
+  const currentDayInfo = allDays[currentPageIndex];
+  const currentWeekNumber = currentDayInfo?.weekNumber ?? 1;
+  const totalWeeks = data?.weeks.length ?? 0;
+  const currentWeekObj = currentDayInfo?.week ?? null;
+
+  const isUpcoming = data != null && data.currentWeek == null;
+
+  const handlePageSelected = useCallback(
+    (e: { nativeEvent: { position: number } }) => {
+      setCurrentPageIndex(e.nativeEvent.position);
+    },
+    [],
+  );
+
+  const handlePrevWeek = useCallback(() => {
+    if (!allDays.length) return;
+    // Find first page of the previous week
+    const prevWeekNumber = currentWeekNumber - 1;
+    if (prevWeekNumber < 1) return;
+    const idx = allDays.findIndex((d) => d.weekNumber === prevWeekNumber);
+    if (idx >= 0) {
+      pagerRef.current?.setPage(idx);
+    }
+  }, [allDays, currentWeekNumber]);
+
+  const handleNextWeek = useCallback(() => {
+    if (!allDays.length) return;
+    const nextWeekNumber = currentWeekNumber + 1;
+    if (nextWeekNumber > totalWeeks) return;
+    const idx = allDays.findIndex((d) => d.weekNumber === nextWeekNumber);
+    if (idx >= 0) {
+      pagerRef.current?.setPage(idx);
+    }
+  }, [allDays, currentWeekNumber, totalWeeks]);
+
+  const handleWeekCenterPress = useCallback(() => {
+    router.push({
+      pathname: '/nutrition/week-overview' as any,
+      params: { weekNumber: currentWeekNumber },
+    });
+  }, [router, currentWeekNumber]);
+
+  const handleShoppingPress = useCallback(() => {
+    router.push('/nutrition/shopping' as any);
+  }, [router]);
 
   const handleMealPress = useCallback(
     (mealId: string) => {
-      router.push(`/(client)/nutrition/${mealId}`);
+      router.push({
+        pathname: '/nutrition/[mealId]' as any,
+        params: { mealId },
+      });
     },
     [router],
   );
 
-  const handleShoppingPress = useCallback(() => {
-    router.push('/(client)/nutrition/shopping');
-  }, [router]);
+  // ── Loading state ──────────────────────────────────────────────────────────
 
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Weekly Menu</Text>
-        </View>
+        <Header title={t('nutrition.title')} onShoppingPress={handleShoppingPress} />
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={Colors.dark.gold} />
         </View>
@@ -81,171 +214,290 @@ export default function NutritionScreen() {
     );
   }
 
-  if (isError || !plan) {
+  // ── No-plan state (404 or any error) ──────────────────────────────────────
+
+  if (isError || !data) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Weekly Menu</Text>
-        </View>
+        <Header title={t('nutrition.title')} onShoppingPress={handleShoppingPress} />
         <View style={styles.centered}>
-          <Text style={styles.emptyIcon}>🍽️</Text>
-          <Text style={styles.emptyTitle}>No active nutrition plan</Text>
-          <Text style={styles.emptyHint}>
-            Ask your trainer to assign a nutrition plan
-          </Text>
-          <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
-            <Text style={styles.retryText}>Try Again</Text>
-          </TouchableOpacity>
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyCardText}>
+              {t('nutrition.noPlanMessage')}
+            </Text>
+          </View>
         </View>
       </SafeAreaView>
     );
   }
 
+  // ── Main view ──────────────────────────────────────────────────────────────
+
+  const hasPrevWeek = currentWeekNumber > 1;
+  const hasNextWeek = currentWeekNumber < totalWeeks;
+
+  const startDate = data?.weeks[0]?.weekStartDate;
+  const planStartFormatted = startDate
+    ? new Date(startDate).toLocaleDateString(undefined, {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      })
+    : '';
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <View style={styles.headerRow}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.title}>Weekly Menu</Text>
-            <Text style={styles.planName}>{plan.planName}</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.shoppingButton}
-            onPress={handleShoppingPress}
-          >
-            <Text style={styles.shoppingButtonIcon}>🛒</Text>
-            <Text style={styles.shoppingButtonText}>List</Text>
-          </TouchableOpacity>
+      {/* Header */}
+      <Header title={t('nutrition.title')} onShoppingPress={handleShoppingPress} />
+
+      {/* Upcoming banner */}
+      {isUpcoming && (
+        <View style={styles.upcomingBanner}>
+          <Text style={styles.upcomingBannerText}>
+            {t('nutrition.planStartsBanner', { date: planStartFormatted })}
+          </Text>
         </View>
+      )}
+
+      {/* Week bar */}
+      <View style={styles.weekBar}>
+        <TouchableOpacity
+          style={[styles.weekArrow, !hasPrevWeek && styles.weekArrowDisabled]}
+          onPress={handlePrevWeek}
+          disabled={!hasPrevWeek}
+        >
+          <Text style={[styles.weekArrowText, !hasPrevWeek && styles.weekArrowTextDisabled]}>
+            ‹
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.weekCenter} onPress={handleWeekCenterPress}>
+          <Text style={styles.weekLabel}>
+            {t('nutrition.weekLabel', { current: currentWeekNumber, total: totalWeeks })}
+          </Text>
+          {currentWeekObj && (
+            <Text style={styles.weekRange}>
+              {formatWeekRange(currentWeekObj.weekStartDate, currentWeekObj.weekEndDate)}
+            </Text>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.weekArrow, !hasNextWeek && styles.weekArrowDisabled]}
+          onPress={handleNextWeek}
+          disabled={!hasNextWeek}
+        >
+          <Text style={[styles.weekArrowText, !hasNextWeek && styles.weekArrowTextDisabled]}>
+            ›
+          </Text>
+        </TouchableOpacity>
       </View>
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={refetch}
-            tintColor={Colors.dark.gold}
-          />
-        }
-      >
-        {plan.days
-          .sort((a, b) => a.dayOfWeek - b.dayOfWeek)
-          .map((day) => (
-            <DayCard
-              key={day.dayOfWeek}
-              day={day}
-              isToday={day.dayOfWeek === currentDay}
-              isExpanded={expandedDay === day.dayOfWeek}
-              onToggle={() => toggleDay(day.dayOfWeek)}
-              onMealPress={handleMealPress}
-            />
+      {/* Day pager */}
+      {allDays.length === 0 ? (
+        <View style={styles.centered}>
+          <Text style={styles.emptyText}>{t('nutrition.noPlanMessage')}</Text>
+        </View>
+      ) : (
+        <PagerView
+          ref={pagerRef}
+          style={styles.pager}
+          initialPage={initialPage}
+          onPageSelected={handlePageSelected}
+        >
+          {allDays.map((dayInfo, index) => (
+            <View key={index} style={styles.pageWrapper}>
+              <DayPage
+                dayInfo={dayInfo}
+                data={data}
+                isRefreshing={isRefetching}
+                onRefresh={refetch}
+                onMealPress={handleMealPress}
+                t={t}
+              />
+            </View>
           ))}
-      </ScrollView>
+        </PagerView>
+      )}
     </SafeAreaView>
   );
 }
 
-interface DayCardProps {
-  day: PlanDay;
-  isToday: boolean;
-  isExpanded: boolean;
-  onToggle: () => void;
-  onMealPress: (mealId: string) => void;
+// ─── Header ──────────────────────────────────────────────────────────────────
+
+interface HeaderProps {
+  title: string;
+  onShoppingPress: () => void;
 }
 
-function DayCard({
-  day,
-  isToday,
-  isExpanded,
-  onToggle,
-  onMealPress,
-}: DayCardProps) {
-  const dayName = DAY_NAMES[day.dayOfWeek] ?? `Day ${day.dayOfWeek}`;
-  const totalKcal = day.dayTotals?.kcal ?? 0;
-  const mealCount = day.meals.length;
-
+function Header({ title, onShoppingPress }: HeaderProps) {
   return (
-    <View
-      style={[
-        styles.dayCard,
-        isToday && styles.dayCardToday,
-      ]}
-    >
-      <TouchableOpacity
-        style={styles.dayHeader}
-        onPress={onToggle}
-        activeOpacity={0.7}
-      >
-        <View style={styles.dayHeaderLeft}>
-          <View style={styles.dayNameRow}>
-            <Text style={[styles.dayName, isToday && styles.dayNameToday]}>
-              {dayName}
-            </Text>
-            {isToday && (
-              <View style={styles.todayBadge}>
-                <Text style={styles.todayBadgeText}>TODAY</Text>
-              </View>
-            )}
-          </View>
-          <Text style={styles.daySummary}>
-            {mealCount} {mealCount === 1 ? 'meal' : 'meals'}
-            {totalKcal > 0 ? ` · ${Math.round(totalKcal)} kcal` : ''}
-          </Text>
-        </View>
-        <Text style={styles.expandIcon}>{isExpanded ? '▾' : '▸'}</Text>
+    <View style={styles.header}>
+      <Text style={styles.headerTitle}>{title}</Text>
+      <TouchableOpacity style={styles.shoppingBtn} onPress={onShoppingPress}>
+        <Text style={styles.shoppingBtnIcon}>🛒</Text>
       </TouchableOpacity>
-
-      {isExpanded && (
-        <View style={styles.mealsContainer}>
-          {day.meals
-            .sort((a, b) => a.order - b.order)
-            .map((meal, idx) => (
-              <MealRow
-                key={meal.mealId}
-                meal={meal}
-                isLast={idx === day.meals.length - 1}
-                onPress={() => onMealPress(meal.mealId)}
-              />
-            ))}
-          {mealCount === 0 && (
-            <Text style={styles.noMeals}>No meals planned</Text>
-          )}
-        </View>
-      )}
     </View>
   );
 }
 
-interface MealRowProps {
+// ─── Day Page ────────────────────────────────────────────────────────────────
+
+interface DayPageProps {
+  dayInfo: DayInfo;
+  data: FullPlanResponse;
+  isRefreshing: boolean;
+  onRefresh: () => void;
+  onMealPress: (mealId: string) => void;
+  t: (key: string, opts?: Record<string, unknown>) => string;
+}
+
+function DayPage({ dayInfo, data, isRefreshing, onRefresh, onMealPress, t }: DayPageProps) {
+  const { week, day } = dayInfo;
+
+  const isToday =
+    data.currentWeek != null &&
+    data.currentDayOfWeek != null &&
+    dayInfo.weekNumber === data.currentWeek &&
+    dayInfo.dayOfWeek === data.currentDayOfWeek;
+
+  const dayLabel = formatDayLabel(week.weekStartDate, day.dayOfWeek);
+  const totals = day.dayTotals;
+
+  const sortedMeals = useMemo(
+    () => day.meals.slice().sort((a, b) => a.order - b.order),
+    [day.meals],
+  );
+
+  return (
+    <ScrollView
+      style={styles.pageScroll}
+      contentContainerStyle={styles.pageScrollContent}
+      refreshControl={
+        <RefreshControl
+          refreshing={isRefreshing}
+          onRefresh={onRefresh}
+          tintColor={Colors.dark.gold}
+        />
+      }
+    >
+      {/* Day name + date */}
+      <View style={styles.dayHeader}>
+        <Text style={[styles.dayLabel, isToday && styles.dayLabelToday]}>{dayLabel}</Text>
+        {isToday && (
+          <View style={styles.todayBadge}>
+            <Text style={styles.todayBadgeText}>{t('nutrition.today')}</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Macro summary bar */}
+      {totals && <MacroBar totals={totals} t={t} />}
+
+      {/* Meal cards */}
+      {sortedMeals.length === 0 ? (
+        <View style={styles.noMealsContainer}>
+          <Text style={styles.noMealsText}>{t('nutrition.meals', { count: 0 })}</Text>
+        </View>
+      ) : (
+        sortedMeals.map((meal) => (
+          <MealCard
+            key={meal.mealId}
+            meal={meal}
+            onPress={() => onMealPress(meal.mealId)}
+          />
+        ))
+      )}
+    </ScrollView>
+  );
+}
+
+// ─── Macro Bar ───────────────────────────────────────────────────────────────
+
+interface MacroBarProps {
+  totals: NutrientTotals;
+  t: (key: string) => string;
+}
+
+function MacroBar({ totals, t }: MacroBarProps) {
+  return (
+    <View style={styles.macroBar}>
+      <MacroItem
+        label={t('nutrition.kcal')}
+        value={Math.round(totals.kcal)}
+        unit=""
+        color={Colors.dark.kcal}
+      />
+      <View style={styles.macroDivider} />
+      <MacroItem
+        label={t('nutrition.protein')}
+        value={Math.round(totals.protein)}
+        unit="g"
+        color={Colors.dark.protein}
+      />
+      <View style={styles.macroDivider} />
+      <MacroItem
+        label={t('nutrition.carbs')}
+        value={Math.round(totals.carbs)}
+        unit="g"
+        color={Colors.dark.carbs}
+      />
+      <View style={styles.macroDivider} />
+      <MacroItem
+        label={t('nutrition.fat')}
+        value={Math.round(totals.fat)}
+        unit="g"
+        color={Colors.dark.fat}
+      />
+    </View>
+  );
+}
+
+interface MacroItemProps {
+  label: string;
+  value: number;
+  unit: string;
+  color: string;
+}
+
+function MacroItem({ label, value, unit, color }: MacroItemProps) {
+  return (
+    <View style={styles.macroItem}>
+      <Text style={[styles.macroValue, { color }]}>
+        {value}
+        {unit}
+      </Text>
+      <Text style={styles.macroLabel}>{label}</Text>
+    </View>
+  );
+}
+
+// ─── Meal Card ───────────────────────────────────────────────────────────────
+
+interface MealCardProps {
   meal: PlanMeal;
-  isLast: boolean;
   onPress: () => void;
 }
 
-function MealRow({ meal, isLast, onPress }: MealRowProps) {
+function MealCard({ meal, onPress }: MealCardProps) {
   const kcal = meal.mealTotals?.kcal ?? 0;
-  const foodCount = meal.foods.length;
 
   return (
-    <TouchableOpacity
-      style={[styles.mealRow, !isLast && styles.mealRowBorder]}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
-      <View style={styles.mealInfo}>
+    <TouchableOpacity style={styles.mealCard} onPress={onPress} activeOpacity={0.75}>
+      <View style={styles.mealCardLeft}>
         <Text style={styles.mealName}>{meal.name}</Text>
         <Text style={styles.mealMeta}>
           {meal.time ? `${meal.time} · ` : ''}
-          {foodCount} {foodCount === 1 ? 'food' : 'foods'}
+          {meal.foods.length} {meal.foods.length === 1 ? 'food' : 'foods'}
           {kcal > 0 ? ` · ${Math.round(kcal)} kcal` : ''}
         </Text>
       </View>
-      <Text style={styles.chevron}>›</Text>
+      <Text style={styles.mealChevron}>›</Text>
     </TouchableOpacity>
   );
 }
+
+// ─── Styles ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: {
@@ -258,88 +510,121 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 32,
   },
+
+  // Header
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: 12,
-    paddingBottom: 16,
+    paddingBottom: 12,
   },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  headerLeft: {
-    flex: 1,
-  },
-  title: {
+  headerTitle: {
     fontSize: 22,
     fontWeight: '800',
     color: Colors.dark.text,
   },
-  planName: {
-    fontSize: 13,
-    color: Colors.dark.text3,
-    marginTop: 2,
-  },
-  shoppingButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.dark.card,
-    borderRadius: 8,
+  shoppingBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.dark.surface,
     borderWidth: 1,
     borderColor: Colors.dark.border,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginLeft: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  shoppingButtonIcon: {
-    fontSize: 14,
-    marginRight: 4,
+  shoppingBtnIcon: {
+    fontSize: 18,
   },
-  shoppingButtonText: {
+
+  // Upcoming banner
+  upcomingBanner: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    backgroundColor: Colors.dark.gold + '22',
+    borderWidth: 1,
+    borderColor: Colors.dark.gold,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  upcomingBannerText: {
+    color: Colors.dark.gold,
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.dark.text2,
+    textAlign: 'center',
   },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 32,
-  },
-  dayCard: {
-    backgroundColor: Colors.dark.card,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    marginBottom: 10,
-    overflow: 'hidden',
-  },
-  dayCardToday: {
-    borderColor: Colors.dark.gold,
-    borderWidth: 1.5,
-  },
-  dayHeader: {
+
+  // Week bar
+  weekBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 8,
+    paddingBottom: 8,
   },
-  dayHeaderLeft: {
+  weekArrow: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  weekArrowDisabled: {
+    opacity: 0.3,
+  },
+  weekArrowText: {
+    fontSize: 24,
+    color: Colors.dark.text,
+    lineHeight: 28,
+  },
+  weekArrowTextDisabled: {
+    color: Colors.dark.text3,
+  },
+  weekCenter: {
     flex: 1,
-  },
-  dayNameRow: {
-    flexDirection: 'row',
     alignItems: 'center',
   },
-  dayName: {
-    fontSize: 16,
+  weekLabel: {
+    fontSize: 14,
     fontWeight: '700',
     color: Colors.dark.text,
   },
-  dayNameToday: {
+  weekRange: {
+    fontSize: 12,
+    color: Colors.dark.text3,
+    marginTop: 2,
+  },
+
+  // Pager
+  pager: {
+    flex: 1,
+  },
+  pageWrapper: {
+    flex: 1,
+  },
+  pageScroll: {
+    flex: 1,
+  },
+  pageScrollContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 32,
+  },
+
+  // Day header inside page
+  dayHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    marginBottom: 12,
+    gap: 8,
+  },
+  dayLabel: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: Colors.dark.text,
+  },
+  dayLabelToday: {
     color: Colors.dark.gold,
   },
   todayBadge: {
@@ -347,7 +632,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     paddingHorizontal: 6,
     paddingVertical: 2,
-    marginLeft: 8,
   },
   todayBadgeText: {
     fontSize: 9,
@@ -355,81 +639,92 @@ const styles = StyleSheet.create({
     color: Colors.dark.background,
     letterSpacing: 0.5,
   },
-  daySummary: {
-    fontSize: 13,
+
+  // Macro bar
+  macroBar: {
+    flexDirection: 'row',
+    backgroundColor: Colors.dark.surface,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.dark.border,
+    paddingVertical: 12,
+    marginBottom: 14,
+  },
+  macroItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  macroValue: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  macroLabel: {
+    fontSize: 11,
     color: Colors.dark.text3,
     marginTop: 2,
   },
-  expandIcon: {
-    fontSize: 16,
-    color: Colors.dark.text3,
-    marginLeft: 8,
+  macroDivider: {
+    width: StyleSheet.hairlineWidth,
+    backgroundColor: Colors.dark.border,
+    marginVertical: 4,
   },
-  mealsContainer: {
-    borderTopWidth: 1,
-    borderTopColor: Colors.dark.border,
-  },
-  mealRow: {
+
+  // Meal card
+  mealCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    backgroundColor: Colors.dark.surface,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.dark.border,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    marginBottom: 10,
   },
-  mealRowBorder: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.dark.border,
-  },
-  mealInfo: {
+  mealCardLeft: {
     flex: 1,
   },
   mealName: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
     color: Colors.dark.text,
   },
   mealMeta: {
     fontSize: 12,
     color: Colors.dark.text3,
-    marginTop: 2,
+    marginTop: 3,
   },
-  chevron: {
+  mealChevron: {
     fontSize: 20,
     color: Colors.dark.text3,
     marginLeft: 8,
   },
-  noMeals: {
-    fontSize: 13,
-    color: Colors.dark.muted,
-    textAlign: 'center',
-    paddingVertical: 16,
-  },
-  emptyIcon: {
-    fontSize: 48,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.dark.text3,
-    marginTop: 16,
-  },
-  emptyHint: {
-    fontSize: 13,
-    color: Colors.dark.muted,
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  retryButton: {
-    marginTop: 20,
-    backgroundColor: Colors.dark.card,
-    borderRadius: 8,
+
+  // Empty states
+  emptyCard: {
+    backgroundColor: Colors.dark.surface,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: Colors.dark.border,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    padding: 24,
   },
-  retryText: {
+  emptyCardText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: Colors.dark.gold,
+    color: Colors.dark.text2,
+    lineHeight: 22,
+    textAlign: 'center',
+  },
+  emptyText: {
+    fontSize: 14,
+    color: Colors.dark.text3,
+    textAlign: 'center',
+  },
+  noMealsContainer: {
+    paddingTop: 40,
+    alignItems: 'center',
+  },
+  noMealsText: {
+    fontSize: 14,
+    color: Colors.dark.text3,
   },
 });
