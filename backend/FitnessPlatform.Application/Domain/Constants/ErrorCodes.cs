@@ -42,6 +42,13 @@ public static class ErrorCodes
     /// <summary>User can only edit/delete their own custom foods.</summary>
     public const string FoodNotOwned = "FOOD_NOT_OWNED";
 
+    // ── Exercises ──────────────────────────────────────────────────
+    /// <summary>User can only edit/delete their own custom exercises.</summary>
+    public const string ExerciseNotOwned = "EXERCISE_NOT_OWNED";
+
+    /// <summary>Cannot modify system exercises.</summary>
+    public const string SystemExercise = "SYSTEM_EXERCISE";
+
     // ── Trainers ─────────────────────────────────────────────────────
     /// <summary>Trainer profile not found.</summary>
     public const string TrainerProfileMissing = "TRAINER_PROFILE_MISSING";
@@ -61,6 +68,22 @@ public static class ErrorCodes
     // ── Nutrition Plans ──────────────────────────────────────────────
     /// <summary>Only draft plans can be published.</summary>
     public const string PlanNotDraft = "PLAN_NOT_DRAFT";
+
+    // ── Plan Start Date ────────────────────────────────────────────
+    /// <summary>Start date is not a Monday.</summary>
+    public const string StartDateNotMonday = "START_DATE_NOT_MONDAY";
+
+    /// <summary>Start date is in the past.</summary>
+    public const string StartDateInPast = "START_DATE_IN_PAST";
+
+    /// <summary>Start date is locked because it has already arrived.</summary>
+    public const string StartDateLocked = "START_DATE_LOCKED";
+
+    /// <summary>Start date is required before publishing.</summary>
+    public const string StartDateRequired = "START_DATE_REQUIRED";
+
+    /// <summary>The target week's start Monday is in the past.</summary>
+    public const string WeekStartInPast = "WEEK_START_IN_PAST";
 
     // ── Validation (generic) ─────────────────────────────────────────
     /// <summary>Required field is missing.</summary>

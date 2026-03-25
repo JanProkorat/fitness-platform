@@ -5,9 +5,9 @@ using MongoDB.Bson.Serialization.Attributes;
 namespace FitnessPlatform.Application.Domain.Documents;
 
 /// <summary>
-/// MongoDB document representing a nutrition plan assigned to a client by a nutritionist.
+/// MongoDB document representing a training plan assigned to a client by a trainer.
 /// </summary>
-public class NutritionPlan
+public class TrainingPlan
 {
     /// <summary>
     /// MongoDB internal identifier.
@@ -29,35 +29,36 @@ public class NutritionPlan
     public Guid ClientId { get; set; }
 
     /// <summary>
-    /// The nutritionist who created this plan (matches ApplicationUser.Id).
+    /// The trainer who created this plan (matches ApplicationUser.Id).
     /// </summary>
-    [BsonElement("nutritionistId")]
-    public Guid NutritionistId { get; set; }
+    [BsonElement("trainerId")]
+    public Guid TrainerId { get; set; }
 
     /// <summary>
-    /// Display name of the plan (e.g. "Weight Loss — March 2026").
+    /// Display name of the plan (e.g. "Hypertrophy — March 2026").
     /// </summary>
     [BsonElement("name")]
     public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Optional description of the training plan.
+    /// </summary>
+    [BsonElement("description")]
+    [BsonIgnoreIfNull]
+    public string? Description { get; set; }
 
     /// <summary>
     /// Current plan status (Draft, Active, Archived).
     /// </summary>
     [BsonElement("status")]
     [BsonRepresentation(BsonType.String)]
-    public NutritionPlanStatus Status { get; set; } = NutritionPlanStatus.Draft;
-
-    /// <summary>
-    /// Global daily nutrition targets for the plan.
-    /// </summary>
-    [BsonElement("globalSettings")]
-    public GlobalNutritionSettings? GlobalSettings { get; set; }
+    public TrainingPlanStatus Status { get; set; } = TrainingPlanStatus.Draft;
 
     /// <summary>
     /// Weeks in the plan.
     /// </summary>
     [BsonElement("weeks")]
-    public List<PlanWeek> Weeks { get; set; } = [];
+    public List<TrainingWeek> Weeks { get; set; } = [];
 
     /// <summary>
     /// Optimistic concurrency version. Incremented on each update.
@@ -75,12 +76,14 @@ public class NutritionPlan
     /// When this plan was last updated.
     /// </summary>
     [BsonElement("dateUpdated")]
+    [BsonIgnoreIfNull]
     public DateTime? DateUpdated { get; set; }
 
     /// <summary>
     /// When this plan was published (status changed to Active).
     /// </summary>
     [BsonElement("datePublished")]
+    [BsonIgnoreIfNull]
     public DateTime? DatePublished { get; set; }
 
     /// <summary>
