@@ -73,7 +73,7 @@ public class CreatePlanEndpoint(IMongoContext mongo, NutritionAuthHelper authHel
             }).ToList(),
             Version = 1,
             DateCreated = now,
-            StartDate = req.StartDate?.Date
+            StartDate = req.StartDate.HasValue ? DateTime.SpecifyKind(req.StartDate.Value.Date, DateTimeKind.Utc) : null
         };
 
         await mongo.NutritionPlans.InsertOneAsync(plan, cancellationToken: ct);

@@ -68,7 +68,7 @@ public class CreateTrainingPlanEndpoint(IMongoContext mongo, ProfessionalAuthHel
             }).ToList(),
             Version = 1,
             DateCreated = now,
-            StartDate = req.StartDate?.Date
+            StartDate = req.StartDate.HasValue ? DateTime.SpecifyKind(req.StartDate.Value.Date, DateTimeKind.Utc) : null
         };
 
         await mongo.TrainingPlans.InsertOneAsync(plan, cancellationToken: ct);

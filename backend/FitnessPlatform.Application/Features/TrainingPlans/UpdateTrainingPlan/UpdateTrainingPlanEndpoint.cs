@@ -116,7 +116,7 @@ public class UpdateTrainingPlanEndpoint(IMongoContext mongo)
 
         // Map request to domain
         plan.Name = req.Name;
-        plan.StartDate = req.StartDate?.Date;
+        plan.StartDate = req.StartDate.HasValue ? DateTime.SpecifyKind(req.StartDate.Value.Date, DateTimeKind.Utc) : null;
         plan.Description = req.Description?.Trim();
         plan.Weeks = req.Weeks.Select(rw =>
         {
