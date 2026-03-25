@@ -214,5 +214,22 @@
     "prTimeline": "PR Timeline",
     "prTimelineHint": "Complete workouts to see your personal records here",
     "weekProgress": "Week {{current}}/{{total}}"
+  },
+  "nutrition": {
+    "title": "Nutrition",
+    "noPlanMessage": "Your nutritionist is reviewing your data and preparing a personalized plan. They may reach out for additional information.",
+    "planStartsBanner": "Your plan starts on {{date}}",
+    "weekLabel": "Week {{current}} of {{total}}",
+    "today": "TODAY",
+    "meals": "{{count}} meals",
+    "meal": "{{count}} meal",
+    "weekOverview": "Week Overview",
+    "back": "Back",
+    "dailyAverage": "Daily Avg",
+    "shopping": "Shopping List",
+    "kcal": "kcal",
+    "protein": "Protein",
+    "carbs": "Carbs",
+    "fat": "Fat"
   }
 }
