@@ -1,17 +1,17 @@
 using FastEndpoints;
 using FluentValidation;
 
-namespace FitnessPlatform.Application.Features.NutritionPlans.CreatePlan;
+namespace FitnessPlatform.Application.Features.TrainingPlans.CreateTrainingPlan;
 
 /// <summary>
-/// Validates the <see cref="CreatePlanRequest"/>.
+/// Validates the <see cref="CreateTrainingPlanRequest"/>.
 /// </summary>
-public class CreatePlanValidator : Validator<CreatePlanRequest>
+public class CreateTrainingPlanValidator : Validator<CreateTrainingPlanRequest>
 {
     /// <summary>
-    /// Initializes validation rules for creating a nutrition plan.
+    /// Initializes validation rules for creating a training plan.
     /// </summary>
-    public CreatePlanValidator()
+    public CreateTrainingPlanValidator()
     {
         RuleFor(x => x.Name)
             .NotEmpty()
@@ -22,6 +22,10 @@ public class CreatePlanValidator : Validator<CreatePlanRequest>
 
         RuleFor(x => x.WeekCount)
             .InclusiveBetween(1, 52);
+
+        RuleFor(x => x.Description)
+            .MaximumLength(2000)
+            .When(x => x.Description is not null);
 
         RuleFor(x => x.StartDate)
             .Must(d => d!.Value.DayOfWeek == System.DayOfWeek.Monday)

@@ -1,11 +1,9 @@
-using FitnessPlatform.Application.Domain.Documents;
-
-namespace FitnessPlatform.Application.Features.NutritionPlans.CreatePlan;
+namespace FitnessPlatform.Application.Features.TrainingPlans.CreateTrainingPlan;
 
 /// <summary>
-/// Request to create a new nutrition plan for a client.
+/// Request to create a new training plan for a client.
 /// </summary>
-public class CreatePlanRequest
+public class CreateTrainingPlanRequest
 {
     /// <summary>
     /// The client's public user identifier.
@@ -18,9 +16,9 @@ public class CreatePlanRequest
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
-    /// Optional global daily nutrition targets.
+    /// Optional plan description.
     /// </summary>
-    public GlobalNutritionSettings? GlobalSettings { get; set; }
+    public string? Description { get; set; }
 
     /// <summary>
     /// Number of weeks to initialize (default 1).
@@ -29,7 +27,6 @@ public class CreatePlanRequest
 
     /// <summary>
     /// Optional start date for the plan. Must be a Monday and not in the past.
-    /// Transmitted as ISO date string (e.g. "2026-03-30"), stored as midnight UTC.
     /// </summary>
     public DateTime? StartDate { get; set; }
 }
