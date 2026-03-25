@@ -41,8 +41,12 @@ interface NutritionPlanState {
     targetIndex: number,
   ) => void;
   swapDays: (weekNum: number, fromDayOfWeek: number, toDayOfWeek: number) => void;
+  reorderDay: (weekNum: number, fromDay: number, toPosition: number) => void;
+  copyDayToDay: (weekNum: number, fromDayOfWeek: number, toDayOfWeek: number) => void;
+  copyDayToWeek: (fromWeek: number, fromDay: number, toWeek: number, toDay: number) => void;
   addWeek: () => void;
   removeWeek: (weekNum: number) => void;
+  setStartDate: (date: string | null) => void;
   save: () => Promise<void>;
   publishWeek: (weekNumber: number) => Promise<void>;
 }
@@ -309,6 +313,108 @@ export const useNutritionPlanStore = create<NutritionPlanState>((set, get) => ({
     set({ plan: recalculateTotals(updated), isDirty: true });
   },
 
+  reorderDay: (weekNum, fromDay, toPosition) => {
+    const { plan } = get();
+    if (!plan || fromDay === toPosition) return;
+
+    const updated: NutritionPlanDetail = {
+      ...plan,
+      weeks: plan.weeks.map((week) => {
+        if (week.weekNumber !== weekNum) return week;
+        // Build ordered array [1..7], remove fromDay, insert at toPosition
+        const order = [1, 2, 3, 4, 5, 6, 7];
+        const fromIdx = order.indexOf(fromDay);
+        order.splice(fromIdx, 1);
+        const insertIdx = toPosition > fromDay ? toPosition - 2 : toPosition - 1;
+        order.splice(Math.max(0, Math.min(order.length, insertIdx)), 0, fromDay);
+        // Map old dayOfWeek → new dayOfWeek
+        const dayMapping = new Map<number, number>();
+        order.forEach((oldDay, idx) => dayMapping.set(oldDay, idx + 1));
+        const daysByOriginal = new Map(week.days.map((d) => [d.dayOfWeek, d]));
+        const newDays = order.map((origDay, idx) => {
+          const day = daysByOriginal.get(origDay) ?? {
+            dayOfWeek: idx + 1,
+            meals: [],
+            dayTotals: null,
+          };
+          return { ...day, dayOfWeek: idx + 1 };
+        });
+        return { ...week, days: newDays };
+      }),
+    };
+
+    set({ plan: recalculateTotals(updated), isDirty: true });
+  },
+
+  copyDayToDay: (weekNum, fromDayOfWeek, toDayOfWeek) => {
+    const { plan } = get();
+    if (!plan || fromDayOfWeek === toDayOfWeek) return;
+
+    const updated: NutritionPlanDetail = {
+      ...plan,
+      weeks: plan.weeks.map((week) => {
+        if (week.weekNumber !== weekNum) return week;
+        const sourceDay = week.days.find((d) => d.dayOfWeek === fromDayOfWeek);
+        if (!sourceDay) return week;
+        const targetDay = week.days.find((d) => d.dayOfWeek === toDayOfWeek);
+        const existingMeals = targetDay?.meals ?? [];
+        const copiedMeals = sourceDay.meals.map((m, i) => ({
+          ...structuredClone(m),
+          mealId: crypto.randomUUID(),
+          order: existingMeals.length + i + 1,
+        }));
+        const newDays = week.days.map((d) => {
+          if (d.dayOfWeek === toDayOfWeek) {
+            return { ...d, meals: [...d.meals, ...copiedMeals] };
+          }
+          return d;
+        });
+        // If target day didn't exist, add it
+        if (!targetDay) {
+          newDays.push({ dayOfWeek: toDayOfWeek, meals: copiedMeals, dayTotals: null });
+        }
+        return { ...week, days: newDays };
+      }),
+    };
+
+    set({ plan: recalculateTotals(updated), isDirty: true });
+  },
+
+  copyDayToWeek: (fromWeek, fromDay, toWeek, toDay) => {
+    const { plan } = get();
+    if (!plan) return;
+    const sourceWeek = plan.weeks.find((w) => w.weekNumber === fromWeek);
+    if (!sourceWeek) return;
+    const sourceDay = sourceWeek.days.find((d) => d.dayOfWeek === fromDay);
+    if (!sourceDay || sourceDay.meals.length === 0) return;
+
+    const updated: NutritionPlanDetail = {
+      ...plan,
+      weeks: plan.weeks.map((week) => {
+        if (week.weekNumber !== toWeek) return week;
+        const targetDay = week.days.find((d) => d.dayOfWeek === toDay);
+        const existingMeals = targetDay?.meals ?? [];
+        const copiedMeals = sourceDay.meals.map((m, i) => ({
+          ...structuredClone(m),
+          mealId: crypto.randomUUID(),
+          order: existingMeals.length + i + 1,
+        }));
+        const newDays = week.days.map((d) => {
+          if (d.dayOfWeek === toDay) {
+            return { ...d, meals: [...d.meals, ...copiedMeals] };
+          }
+          return d;
+        });
+        if (!targetDay) {
+          newDays.push({ dayOfWeek: toDay, meals: copiedMeals, dayTotals: null });
+        }
+        return { ...week, days: newDays };
+      }),
+    };
+
+    set({ plan: recalculateTotals(updated), isDirty: true });
+  },
+
   addWeek: () => {
     const { plan } = get();
     if (!plan) return;
@@ -356,6 +462,7 @@ export const useNutritionPlanStore = create<NutritionPlanState>((set, get) => ({
         name: plan.name,
         globalSettings: plan.globalSettings,
         version: plan.version,
+        startDate: plan.startDate,
         weeks: plan.weeks.map((week) => ({
           weekNumber: week.weekNumber,
           days: week.days.map((day) => ({
@@ -390,6 +497,12 @@ export const useNutritionPlanStore = create<NutritionPlanState>((set, get) => ({
       }
       throw error;
     }
+  },
+
+  setStartDate: (date) => {
+    const { plan } = get();
+    if (!plan) return;
+    set({ plan: { ...plan, startDate: date }, isDirty: true });
   },
 
   publishWeek: async (weekNumber) => {
