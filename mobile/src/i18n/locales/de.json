@@ -127,7 +127,9 @@
       "nuts": "Nüsse",
       "dietRating": "Bewertung der Ernährungsqualität",
       "veryPoorDiet": "Sehr schlecht",
-      "excellentDiet": "Ausgezeichnet"
+      "excellentDiet": "Ausgezeichnet",
+      "addCustomDiet": "Anderer Ernährungsstil...",
+      "addCustomAllergy": "Andere Allergie..."
     },
     "step7": {
       "title": "Erfahrung & Motivation",
@@ -176,5 +178,57 @@
       "pastBlockers": "Vergangene Hindernisse",
       "motivation": "Motivation"
     }
+  },
+  "common": {
+    "back": "Zurück"
+  },
+  "nutrition": {
+    "title": "Ernährung",
+    "noPlanMessage": "Dein Ernährungsberater wertet deine Daten aus und erstellt einen personalisierten Plan. Du wirst ggf. für weitere Informationen kontaktiert.",
+    "planStartsBanner": "Dein Plan startet am {{date}}",
+    "weekLabel": "Woche {{current}} von {{total}}",
+    "today": "HEUTE",
+    "meals": "{{count}} Mahlzeiten",
+    "meal": "{{count}} Mahlzeit",
+    "weekOverview": "Wochenübersicht",
+    "back": "Zurück",
+    "dailyAverage": "Tagesdurchschnitt",
+    "shopping": "Einkaufsliste",
+    "kcal": "kcal",
+    "protein": "Eiweiß",
+    "carbs": "Kohlenhydrate",
+    "fat": "Fett"
+  },
+  "training": {
+    "title": "Training",
+    "todayOverview": "Heutige Trainingseinheit",
+    "exercises": "Übungen",
+    "sets": "Sätze",
+    "startWorkout": "Training starten",
+    "restDay": "Ruhetag",
+    "restDayHint": "Für heute ist kein Training geplant",
+    "viewHistory": "Trainingshistorie anzeigen",
+    "activeWorkout": "Aktives Training",
+    "addExercise": "Übung hinzufügen",
+    "addSet": "Satz hinzufügen",
+    "set": "Satz",
+    "reps": "Wdh.",
+    "weight": "Gewicht",
+    "rest": "Pause",
+    "mood": "Wie hat es sich angefühlt?",
+    "finishWorkout": "Training beenden",
+    "newPR": "Neuer persönlicher Rekord!",
+    "prMessage": "Herzlichen Glückwunsch! Sie haben einen neuen persönlichen Rekord aufgestellt!",
+    "startError": "Training konnte nicht gestartet werden",
+    "completeError": "Training konnte nicht abgeschlossen werden",
+    "tapToStop": "Tippen zum Stoppen",
+    "history": "Trainingshistorie",
+    "noWorkouts": "Noch keine Trainings",
+    "progress": "Fortschritt",
+    "progressSubtitle": "Verfolgen Sie Ihre Kraftzuwächse im Zeitverlauf",
+    "strengthChart": "Kraftfortschritt",
+    "selectExercise": "Wählen Sie eine Übung aus",
+    "prTimeline": "PR-Zeitachse",
+    "prTimelineHint": "Schließen Sie Trainings ab, um Ihre persönlichen Rekorde zu sehen"
   }
 }

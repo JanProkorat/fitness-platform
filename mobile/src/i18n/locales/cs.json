@@ -127,7 +127,9 @@
       "nuts": "Ořechy",
       "dietRating": "Jak bys hodnotil svůj aktuální jídelníček?",
       "veryPoorDiet": "Velmi špatný",
-      "excellentDiet": "Výborný"
+      "excellentDiet": "Výborný",
+      "addCustomDiet": "Jiný stravovací styl...",
+      "addCustomAllergy": "Jiná alergie..."
     },
     "step7": {
       "title": "Zkušenosti a motivace",
@@ -139,7 +141,7 @@
       "blockers": "Co tě v minulosti nejvíce brzdilo?",
       "lackOfTime": "Nedostatek času",
       "lostMotivation": "Ztráta motivace",
-      "didntKnow": "Nevěděl jsem jak na to",
+      "didntKnow": "Nevěděl jsem\njak na to",
       "slowResults": "Výsledky přišly pomalu",
       "nothingHeldBack": "Nic mě nebrzdilo",
       "motivation": "Co tě nejvíce motivuje?",
@@ -176,5 +178,57 @@
       "pastBlockers": "Minulé překážky",
       "motivation": "Motivace"
     }
+  },
+  "common": {
+    "back": "Zpět"
+  },
+  "nutrition": {
+    "title": "Výživa",
+    "noPlanMessage": "Váš nutricionista vyhodnocuje vaše data a připravuje personalizovaný plán. Mohou vás kontaktovat pro další informace.",
+    "planStartsBanner": "Váš plán začíná {{date}}",
+    "weekLabel": "Týden {{current}} z {{total}}",
+    "today": "DNES",
+    "meals": "{{count}} jídel",
+    "meal": "{{count}} jídlo",
+    "weekOverview": "Přehled týdne",
+    "back": "Zpět",
+    "dailyAverage": "Denní průměr",
+    "shopping": "Nákupní seznam",
+    "kcal": "kcal",
+    "protein": "Bílkoviny",
+    "carbs": "Sacharidy",
+    "fat": "Tuky"
+  },
+  "training": {
+    "title": "Trénink",
+    "todayOverview": "Dnešní tréninková session",
+    "exercises": "cviků",
+    "sets": "sérií",
+    "startWorkout": "Začít trénink",
+    "restDay": "Den odpočinku",
+    "restDayHint": "Na dnes není naplánovaný žádný trénink",
+    "viewHistory": "Zobrazit historii tréninků",
+    "activeWorkout": "Aktivní trénink",
+    "addExercise": "Přidat cvik",
+    "addSet": "Přidat sérii",
+    "set": "Série",
+    "reps": "Opakování",
+    "weight": "Váha",
+    "rest": "Odpočinek",
+    "mood": "Jak jste se cítili?",
+    "finishWorkout": "Dokončit trénink",
+    "newPR": "Nový osobní rekord!",
+    "prMessage": "Gratulujeme! Překonali jste osobní rekord!",
+    "startError": "Nepodařilo se zahájit trénink",
+    "completeError": "Nepodařilo se dokončit trénink",
+    "tapToStop": "Klepněte pro zastavení",
+    "history": "Historie tréninků",
+    "noWorkouts": "Zatím žádné tréninky",
+    "progress": "Pokrok",
+    "progressSubtitle": "Sledujte svůj silový pokrok v čase",
+    "strengthChart": "Silový pokrok",
+    "selectExercise": "Vyberte cvik pro zobrazení pokroku",
+    "prTimeline": "Časová osa PR",
+    "prTimelineHint": "Dokončete tréninky a uvidíte zde své osobní rekordy"
   }
 }

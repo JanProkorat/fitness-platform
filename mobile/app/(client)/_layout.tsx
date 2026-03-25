@@ -5,6 +5,7 @@ import { Colors } from '../../constants/Colors';
 function TabIcon({ name, focused }: { name: string; focused: boolean }) {
   const icons: Record<string, string> = {
     index: '🏠',
+    'training/index': '🏋️',
     'nutrition/index': '🍽️',
     'measurements/index': '📏',
     scanner: '📷',
@@ -43,6 +44,13 @@ export default function ClientTabLayout() {
         }}
       />
       <Tabs.Screen
+        name="training/index"
+        options={{
+          title: 'Training',
+          tabBarIcon: ({ focused }) => <TabIcon name="training/index" focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
         name="nutrition/index"
         options={{
           title: 'Nutrition',
@@ -64,8 +72,13 @@ export default function ClientTabLayout() {
         }}
       />
       {/* Hide sub-routes from tabs */}
+      <Tabs.Screen name="training/session/[id]" options={{ href: null }} />
+      <Tabs.Screen name="training/log/[id]" options={{ href: null }} />
+      <Tabs.Screen name="training/history" options={{ href: null }} />
+      <Tabs.Screen name="training/progress" options={{ href: null }} />
       <Tabs.Screen name="nutrition/[mealId]" options={{ href: null }} />
       <Tabs.Screen name="nutrition/shopping" options={{ href: null }} />
+      <Tabs.Screen name="nutrition/week-overview" options={{ href: null }} />
       <Tabs.Screen name="measurements/new" options={{ href: null }} />
     </Tabs>
   );
