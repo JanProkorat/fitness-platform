@@ -1,12 +1,11 @@
 using FitnessPlatform.Application.Domain.Documents;
-using FitnessPlatform.Application.Domain.Enums;
 
-namespace FitnessPlatform.Application.Features.NutritionPlans.Shared;
+namespace FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
 
 /// <summary>
-/// Lightweight plan summary for list views.
+/// Detailed training plan response including all weeks, sessions, exercises, and sets.
 /// </summary>
-public class PlanSummaryDto
+public class GetTrainingPlanResponse
 {
     /// <summary>
     /// Plan's public identifier.
@@ -14,24 +13,34 @@ public class PlanSummaryDto
     public Guid PlanId { get; set; }
 
     /// <summary>
-    /// Display name.
-    /// </summary>
-    public string Name { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Client's user ID.
+    /// Client's public user identifier.
     /// </summary>
     public Guid ClientId { get; set; }
 
     /// <summary>
-    /// Current status as string (Draft, Active, Archived).
+    /// Trainer's public user identifier.
+    /// </summary>
+    public Guid TrainerId { get; set; }
+
+    /// <summary>
+    /// Display name of the plan.
+    /// </summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Optional plan description.
+    /// </summary>
+    public string? Description { get; set; }
+
+    /// <summary>
+    /// Current plan status as string (Draft, Active, Archived).
     /// </summary>
     public string Status { get; set; } = string.Empty;
 
     /// <summary>
-    /// Number of weeks.
+    /// All weeks in the plan with their sessions, exercises, and sets.
     /// </summary>
-    public int WeekCount { get; set; }
+    public List<TrainingWeek> Weeks { get; set; } = [];
 
     /// <summary>
     /// Optimistic concurrency version.
@@ -54,15 +63,17 @@ public class PlanSummaryDto
     public DateTime? StartDate { get; set; }
 
     /// <summary>
-    /// Maps a <see cref="NutritionPlan"/> document to a summary DTO.
+    /// Maps a <see cref="TrainingPlan"/> document to a detailed response DTO.
     /// </summary>
-    public static PlanSummaryDto FromDocument(NutritionPlan plan) => new()
+    public static GetTrainingPlanResponse FromDocument(TrainingPlan plan) => new()
     {
         PlanId = plan.ExternalId,
-        Name = plan.Name,
         ClientId = plan.ClientId,
+        TrainerId = plan.TrainerId,
+        Name = plan.Name,
+        Description = plan.Description,
         Status = plan.Status.ToString(),
-        WeekCount = plan.Weeks.Count,
+        Weeks = plan.Weeks,
         Version = plan.Version,
         DateCreated = plan.DateCreated,
         DateUpdated = plan.DateUpdated,

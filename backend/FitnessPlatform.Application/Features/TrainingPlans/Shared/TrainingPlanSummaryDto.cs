@@ -1,12 +1,11 @@
 using FitnessPlatform.Application.Domain.Documents;
-using FitnessPlatform.Application.Domain.Enums;
 
-namespace FitnessPlatform.Application.Features.NutritionPlans.Shared;
+namespace FitnessPlatform.Application.Features.TrainingPlans.Shared;
 
 /// <summary>
-/// Lightweight plan summary for list views.
+/// Lightweight training plan summary for list views.
 /// </summary>
-public class PlanSummaryDto
+public class TrainingPlanSummaryDto
 {
     /// <summary>
     /// Plan's public identifier.
@@ -17,6 +16,11 @@ public class PlanSummaryDto
     /// Display name.
     /// </summary>
     public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Optional plan description.
+    /// </summary>
+    public string? Description { get; set; }
 
     /// <summary>
     /// Client's user ID.
@@ -54,12 +58,13 @@ public class PlanSummaryDto
     public DateTime? StartDate { get; set; }
 
     /// <summary>
-    /// Maps a <see cref="NutritionPlan"/> document to a summary DTO.
+    /// Maps a <see cref="TrainingPlan"/> document to a summary DTO.
     /// </summary>
-    public static PlanSummaryDto FromDocument(NutritionPlan plan) => new()
+    public static TrainingPlanSummaryDto FromDocument(TrainingPlan plan) => new()
     {
         PlanId = plan.ExternalId,
         Name = plan.Name,
+        Description = plan.Description,
         ClientId = plan.ClientId,
         Status = plan.Status.ToString(),
         WeekCount = plan.Weeks.Count,

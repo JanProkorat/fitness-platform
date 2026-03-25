@@ -58,6 +58,11 @@ public class GetPlanResponse
     public DateTime? DateUpdated { get; set; }
 
     /// <summary>
+    /// The Monday when Week 1 begins, if set.
+    /// </summary>
+    public DateTime? StartDate { get; set; }
+
+    /// <summary>
     /// Maps a <see cref="NutritionPlan"/> document to a detailed response DTO.
     /// </summary>
     /// <param name="plan">The nutrition plan document.</param>
@@ -73,6 +78,7 @@ public class GetPlanResponse
         Weeks = plan.Weeks,
         Version = plan.Version,
         DateCreated = plan.DateCreated,
-        DateUpdated = plan.DateUpdated
+        DateUpdated = plan.DateUpdated,
+        StartDate = plan.StartDate
     };
 }
