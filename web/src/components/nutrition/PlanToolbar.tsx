@@ -14,6 +14,12 @@ interface PlanToolbarProps {
   onTabChange: (tab: 'mealPlan' | 'nutritionGoals') => void;
   /// Callback to save the plan.
   onSave: () => void;
+  /// Optional plan start date (ISO date string).
+  startDate?: string | null;
+  /// Callback to update the plan start date.
+  onStartDateChange?: (date: string | null) => void;
+  /// Whether the start date field is locked (past date).
+  isStartDateLocked?: boolean;
 }
 
 /// Top toolbar for the plan detail page, including plan name, save controls, and tab navigation.
@@ -24,6 +30,9 @@ export default function PlanToolbar({
   activeTab,
   onTabChange,
   onSave,
+  startDate,
+  onStartDateChange,
+  isStartDateLocked,
 }: PlanToolbarProps) {
   const { t } = useTranslation();
 
@@ -32,6 +41,28 @@ export default function PlanToolbar({
       {/* Top bar: plan name + save controls */}
       <div className="flex items-center gap-4 px-6 py-3">
         <h1 className="flex-1 text-lg font-bold">{planName}</h1>
+
+        {onStartDateChange && (
+          <div className="flex items-center gap-2">
+            <label className="font-heading text-[10px] font-semibold uppercase tracking-wide text-text3">
+              {t('nutrition.startDate')}
+            </label>
+            <input
+              type="date"
+              value={startDate ?? ''}
+              onChange={(e) => {
+                const val = e.target.value || null;
+                if (val) {
+                  const d = new Date(val + 'T00:00:00');
+                  if (d.getDay() !== 1) return;
+                }
+                onStartDateChange(val);
+              }}
+              disabled={isStartDateLocked}
+              className="rounded-sm border border-border bg-surface px-2 py-1 text-xs text-text outline-none transition-colors focus:border-gold/40 disabled:opacity-40 disabled:cursor-not-allowed"
+            />
+          </div>
+        )}
 
         <div className="flex items-center gap-3">
           {isSaving ? (
