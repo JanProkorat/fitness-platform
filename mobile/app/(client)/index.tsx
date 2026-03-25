@@ -1,7 +1,8 @@
 import React, { useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../src/stores/auth';
 import { useNetworkStatus } from '../../src/hooks/useNetworkStatus';
@@ -22,7 +23,9 @@ import {
 const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 export default function TodayScreen() {
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
   const router = useRouter();
   const queryClient = useQueryClient();
   const isConnected = useNetworkStatus();
@@ -151,54 +154,81 @@ export default function TodayScreen() {
     day: 'numeric',
   });
 
+  const handleLogout = useCallback(() => {
+    Alert.alert('Sign out', 'Are you sure you want to sign out?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Sign out', style: 'destructive', onPress: logout },
+    ]);
+  }, [logout]);
+
   const renderHeader = () => (
     <View>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.greeting}>
-          Hello, <Text style={styles.name}>{user?.firstName}</Text>
-        </Text>
-        <Text style={styles.subtitle}>{dateString}</Text>
+        <View style={styles.headerRow}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.greeting}>
+              Hello, <Text style={styles.name}>{user?.firstName}</Text>
+            </Text>
+            <Text style={styles.subtitle}>{dateString}</Text>
+          </View>
+          <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn} activeOpacity={0.7}>
+            <Text style={styles.logoutText}>Sign out</Text>
+          </TouchableOpacity>
+        </View>
       </View>
+
+      {/* Empty state */}
+      {(planQuery.isError || (!planQuery.isLoading && !planQuery.data)) && (
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyIcon}>🍽️</Text>
+          <Text style={styles.emptyTitle}>{t('nutrition.title')}</Text>
+          <Text style={styles.emptyMessage}>{t('nutrition.noPlanMessage')}</Text>
+        </View>
+      )}
 
       {/* Calorie Circle */}
-      <View style={styles.circleContainer}>
-        <CalorieCircle consumed={consumed.kcal} target={targetKcal} />
-      </View>
+      {planQuery.data && (
+        <View style={styles.circleContainer}>
+          <CalorieCircle consumed={consumed.kcal} target={targetKcal} />
+        </View>
+      )}
 
       {/* Macro Cards */}
-      <View style={styles.macroRow}>
-        <MacroCard
-          label="Protein"
-          current={consumed.protein}
-          target={targetProtein}
-          color={Colors.dark.protein}
-        />
-        <View style={styles.macroGap} />
-        <MacroCard
-          label="Carbs"
-          current={consumed.carbs}
-          target={targetCarbs}
-          color={Colors.dark.carbs}
-        />
-        <View style={styles.macroGap} />
-        <MacroCard
-          label="Fat"
-          current={consumed.fat}
-          target={targetFat}
-          color={Colors.dark.fat}
-        />
-      </View>
+      {planQuery.data && (
+        <View style={styles.macroRow}>
+          <MacroCard
+            label="Protein"
+            current={consumed.protein}
+            target={targetProtein}
+            color={Colors.dark.protein}
+          />
+          <View style={styles.macroGap} />
+          <MacroCard
+            label="Carbs"
+            current={consumed.carbs}
+            target={targetCarbs}
+            color={Colors.dark.carbs}
+          />
+          <View style={styles.macroGap} />
+          <MacroCard
+            label="Fat"
+            current={consumed.fat}
+            target={targetFat}
+            color={Colors.dark.fat}
+          />
+        </View>
+      )}
 
       {/* Meals section header */}
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Meals</Text>
-        {plan && (
+      {planQuery.data && (
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Meals</Text>
           <Text style={styles.sectionMeta}>
             {eatenMealIds.size} / {sortedMeals.length} eaten
           </Text>
-        )}
-      </View>
+        </View>
+      )}
     </View>
   );
 
@@ -221,30 +251,10 @@ export default function TodayScreen() {
     );
   }
 
-  if (hasNoPlan) {
-    return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
-          <Text style={styles.greeting}>
-            Hello, <Text style={styles.name}>{user?.firstName}</Text>
-          </Text>
-          <Text style={styles.subtitle}>{dateString}</Text>
-        </View>
-        <View style={styles.centered}>
-          <Text style={styles.emptyIcon}>📋</Text>
-          <Text style={styles.emptyText}>No active plan</Text>
-          <Text style={styles.emptyHint}>
-            Your trainer hasn't assigned a nutrition plan yet.
-          </Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <FlatList
-        data={sortedMeals}
+        data={planQuery.isError || hasNoPlan ? [] : sortedMeals}
         keyExtractor={(item) => item.mealId}
         renderItem={renderMeal}
         ListHeaderComponent={renderHeader}
@@ -271,6 +281,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: 8,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  logoutBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: Colors.dark.border,
+    marginTop: 4,
+  },
+  logoutText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.dark.text3,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   greeting: {
     fontSize: 24,
@@ -319,20 +352,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 20,
   },
-  emptyIcon: {
-    fontSize: 48,
+  emptyCard: {
+    margin: 16,
+    backgroundColor: Colors.dark.surface,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.dark.border,
+    padding: 32,
+    alignItems: 'center' as const,
   },
-  emptyText: {
+  emptyIcon: { fontSize: 40 },
+  emptyTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: Colors.dark.text3,
-    marginTop: 16,
+    fontWeight: '700' as const,
+    color: Colors.dark.text2,
+    marginTop: 12,
   },
-  emptyHint: {
+  emptyMessage: {
     fontSize: 13,
-    color: Colors.dark.muted,
-    marginTop: 4,
-    textAlign: 'center',
-    paddingHorizontal: 40,
+    color: Colors.dark.text3,
+    marginTop: 8,
+    textAlign: 'center' as const,
+    lineHeight: 20,
   },
 });
