@@ -134,3 +134,28 @@ export async function getShoppingList(params?: {
   );
   return data;
 }
+
+// --- Full Plan types (for Nutrition tab browsing) ---
+
+export interface FullPlanWeek {
+  weekNumber: number;
+  weekStartDate: string;
+  weekEndDate: string;
+  days: PlanDay[];
+}
+
+export interface FullPlanResponse {
+  planId: string;
+  planName: string;
+  startDate: string | null;
+  globalSettings: GlobalNutritionSettings | null;
+  weeks: FullPlanWeek[];
+  publishedWeekCount: number;
+  currentWeek: number | null;
+  currentDayOfWeek: number | null;
+}
+
+export async function getFullPlan(): Promise<FullPlanResponse> {
+  const { data } = await api.get<FullPlanResponse>('/client/nutrition/plan/full');
+  return data;
+}
