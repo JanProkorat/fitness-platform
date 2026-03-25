@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { searchFoods } from '@/api/foods';
 import { searchRecipes, getRecipe } from '@/api/recipes';
@@ -40,57 +41,55 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
       setFoodResults([]);
       setRecipeQuery('');
       setRecipeResults([]);
+      setFoodOpen(false);
+      setRecipeOpen(false);
     } else {
       setVisible(false);
     }
   }, [open]);
 
-  // Focus food input when opened
-  useEffect(() => {
-    if (open && visible) {
-      foodInputRef.current?.focus();
-    }
-  }, [open, visible]);
 
-  // Food search with debounce
+  // Food search — loads on focus, stays open until drawer closes
+  const [foodOpen, setFoodOpen] = useState(false);
   useEffect(() => {
-    if (!foodQuery.trim()) {
+    if (!foodOpen && !foodQuery.trim()) {
       setFoodResults([]);
       return;
     }
     const timer = setTimeout(async () => {
       setFoodLoading(true);
       try {
-        const data = await searchFoods({ q: foodQuery, source: foodSource || undefined, pageSize: 10 });
+        const data = await searchFoods({ q: foodQuery || undefined, source: foodSource || undefined, pageSize: 15 });
         setFoodResults(data.foods ?? []);
       } catch {
         setFoodResults([]);
       } finally {
         setFoodLoading(false);
       }
-    }, 300);
+    }, foodQuery.trim() ? 300 : 0);
     return () => clearTimeout(timer);
-  }, [foodQuery, foodSource]);
+  }, [foodQuery, foodSource, foodOpen]);
 
-  // Recipe search with debounce
+  // Recipe search — loads on focus, stays open until drawer closes
+  const [recipeOpen, setRecipeOpen] = useState(false);
   useEffect(() => {
-    if (!recipeQuery.trim()) {
+    if (!recipeOpen && !recipeQuery.trim()) {
       setRecipeResults([]);
       return;
     }
     const timer = setTimeout(async () => {
       setRecipeLoading(true);
       try {
-        const data = await searchRecipes({ search: recipeQuery, page: 1, pageSize: 10 });
+        const data = await searchRecipes({ search: recipeQuery || undefined, page: 1, pageSize: 15 });
         setRecipeResults(data.recipes ?? []);
       } catch {
         setRecipeResults([]);
       } finally {
         setRecipeLoading(false);
       }
-    }, 300);
+    }, recipeQuery.trim() ? 300 : 0);
     return () => clearTimeout(timer);
-  }, [recipeQuery]);
+  }, [recipeQuery, recipeOpen]);
 
   const addFoodToStaged = useCallback((food: FoodSummary) => {
     // Check if already staged
@@ -166,7 +165,7 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
 
   if (!open) return null;
 
-  return (
+  return createPortal(
     <>
       {/* Backdrop */}
       <div
@@ -194,7 +193,7 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto p-6">
           {/* Food search */}
-          <div className="mb-6">
+          <div className="relative mb-6">
             <label className="mb-2 block font-heading text-xs font-semibold uppercase tracking-wide text-text3">
               {t('nutrition.searchFoods')}
             </label>
@@ -204,6 +203,8 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
                 type="text"
                 value={foodQuery}
                 onChange={(e) => setFoodQuery(e.target.value)}
+                onFocus={() => setFoodOpen(true)}
+                onBlur={() => setTimeout(() => setFoodOpen(false), 200)}
                 placeholder={t('nutrition.searchFoods')}
                 className="flex-1 rounded-sm border border-border bg-surface px-3 py-2 text-sm text-text outline-none focus:border-gold/40"
               />
@@ -224,7 +225,7 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
             )}
 
             {!foodLoading && foodResults.length > 0 && (
-              <div className="mt-2 max-h-40 overflow-y-auto rounded-sm border border-border">
+              <div className="absolute left-0 right-0 z-10 mt-2 max-h-40 overflow-y-auto rounded-sm border border-border bg-bg shadow-lg" onMouseDown={(e) => e.preventDefault()}>
                 {foodResults.map((food) => {
                   const isSelected = staged.some((s) => s.foodExternalId === food.foodId);
                   return (
@@ -248,13 +249,13 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
               </div>
             )}
 
-            {!foodLoading && foodQuery.trim() && foodResults.length === 0 && (
+            {!foodLoading && (foodOpen || foodQuery.trim()) && foodResults.length === 0 && (
               <div className="mt-2 text-center text-xs text-text3">{t('foods.noFoods')}</div>
             )}
           </div>
 
           {/* Recipe search */}
-          <div className="mb-6">
+          <div className="relative mb-6">
             <label className="mb-2 block font-heading text-xs font-semibold uppercase tracking-wide text-text3">
               {t('recipes.searchRecipes')}
             </label>
@@ -262,6 +263,8 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
               type="text"
               value={recipeQuery}
               onChange={(e) => setRecipeQuery(e.target.value)}
+              onFocus={() => setRecipeOpen(true)}
+              onBlur={() => setTimeout(() => setRecipeOpen(false), 200)}
               placeholder={t('recipes.searchRecipes')}
               className="w-full rounded-sm border border-border bg-surface px-3 py-2 text-sm text-text outline-none focus:border-gold/40"
             />
@@ -271,7 +274,7 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
             )}
 
             {!recipeLoading && recipeResults.length > 0 && (
-              <div className="mt-2 max-h-40 overflow-y-auto rounded-sm border border-border">
+              <div className="absolute left-0 right-0 z-10 mt-2 max-h-40 overflow-y-auto rounded-sm border border-border bg-bg shadow-lg" onMouseDown={(e) => e.preventDefault()}>
                 {recipeResults.map((recipe) => (
                   <button
                     key={recipe.recipeId}
@@ -287,7 +290,7 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
               </div>
             )}
 
-            {!recipeLoading && recipeQuery.trim() && recipeResults.length === 0 && (
+            {!recipeLoading && (recipeOpen || recipeQuery.trim()) && recipeResults.length === 0 && (
               <div className="mt-2 text-center text-xs text-text3">{t('recipes.noResults')}</div>
             )}
           </div>
@@ -372,6 +375,7 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
           </button>
         </div>
       </div>
-    </>
+    </>,
+    document.body,
   );
 }
