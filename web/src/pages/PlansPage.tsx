@@ -152,7 +152,7 @@ export default function PlansPage() {
               {/* Table header */}
               <div className="grid grid-cols-[1fr_140px_100px_80px_120px_60px] gap-4 border-b border-border px-5 py-3">
                 <span className="lbl">{t('nutrition.planName')}</span>
-                <span className="lbl">{t('common.client')}</span>
+                <span className="lbl">{t('nutrition.client')}</span>
                 <span className="lbl">{t('nutrition.status')}</span>
                 <span className="lbl">{t('nutrition.weeks')}</span>
                 <span className="lbl">{t('nutrition.created')}</span>
