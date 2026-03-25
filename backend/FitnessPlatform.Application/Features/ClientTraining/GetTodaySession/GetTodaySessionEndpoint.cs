@@ -3,7 +3,9 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.ClientTraining.GetTodaySession;
@@ -12,7 +14,8 @@ namespace FitnessPlatform.Application.Features.ClientTraining.GetTodaySession;
 /// Returns today's planned training session based on the client's active training plan.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
-public class GetTodaySessionEndpoint(IMongoContext mongo) : EndpointWithoutRequest<GetTodaySessionResponse>
+/// <param name="db">Relational database context.</param>
+public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext db) : EndpointWithoutRequest<GetTodaySessionResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -37,7 +40,17 @@ public class GetTodaySessionEndpoint(IMongoContext mongo) : EndpointWithoutReque
             return;
         }
 
-        var clientId = Guid.Parse(userId);
+        var clientProfile = await db.ClientProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cp => cp.UserId == Guid.Parse(userId), ct);
+
+        if (clientProfile is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        var clientId = clientProfile.PublicId;
 
         // Find the active training plan for this client
         var filter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientId)

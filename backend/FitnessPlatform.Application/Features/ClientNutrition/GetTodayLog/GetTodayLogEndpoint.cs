@@ -3,7 +3,9 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.ClientNutrition.GetTodayLog;
@@ -12,7 +14,8 @@ namespace FitnessPlatform.Application.Features.ClientNutrition.GetTodayLog;
 /// Endpoint that returns the client's meal log for today, including consumed and remaining nutrients.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
-public class GetTodayLogEndpoint(IMongoContext mongo) : EndpointWithoutRequest<GetTodayLogResponse>
+/// <param name="db">Relational database context.</param>
+public class GetTodayLogEndpoint(IMongoContext mongo, IApplicationDbContext db) : EndpointWithoutRequest<GetTodayLogResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -37,7 +40,17 @@ public class GetTodayLogEndpoint(IMongoContext mongo) : EndpointWithoutRequest<G
             return;
         }
 
-        var clientId = Guid.Parse(userId);
+        var clientProfile = await db.ClientProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cp => cp.UserId == Guid.Parse(userId), ct);
+
+        if (clientProfile is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        var clientId = clientProfile.PublicId;
         var todayUtc = DateTime.UtcNow.Date;
         var tomorrowUtc = todayUtc.AddDays(1);
 

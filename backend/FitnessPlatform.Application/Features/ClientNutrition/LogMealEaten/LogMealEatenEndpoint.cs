@@ -3,7 +3,9 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.ClientNutrition.LogMealEaten;
@@ -13,7 +15,8 @@ namespace FitnessPlatform.Application.Features.ClientNutrition.LogMealEaten;
 /// Creates a <see cref="MealLog"/> document with a snapshot of the meal's foods.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
-public class LogMealEatenEndpoint(IMongoContext mongo) : Endpoint<LogMealEatenRequest>
+/// <param name="db">Relational database context.</param>
+public class LogMealEatenEndpoint(IMongoContext mongo, IApplicationDbContext db) : Endpoint<LogMealEatenRequest>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -38,7 +41,17 @@ public class LogMealEatenEndpoint(IMongoContext mongo) : Endpoint<LogMealEatenRe
             return;
         }
 
-        var clientId = Guid.Parse(userId);
+        var clientProfile = await db.ClientProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cp => cp.UserId == Guid.Parse(userId), ct);
+
+        if (clientProfile is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        var clientId = clientProfile.PublicId;
 
         var filter = Builders<NutritionPlan>.Filter.And(
             Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientId),

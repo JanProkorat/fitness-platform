@@ -3,7 +3,9 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.ClientNutrition.GetFullPlan;
@@ -13,7 +15,8 @@ namespace FitnessPlatform.Application.Features.ClientNutrition.GetFullPlan;
 /// with pre-computed date ranges and current position within the plan.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
-public class GetFullPlanEndpoint(IMongoContext mongo) : EndpointWithoutRequest<GetFullPlanResponse>
+/// <param name="db">Relational database context.</param>
+public class GetFullPlanEndpoint(IMongoContext mongo, IApplicationDbContext db) : EndpointWithoutRequest<GetFullPlanResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -38,7 +41,17 @@ public class GetFullPlanEndpoint(IMongoContext mongo) : EndpointWithoutRequest<G
             return;
         }
 
-        var clientId = Guid.Parse(userId);
+        var clientProfile = await db.ClientProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cp => cp.UserId == Guid.Parse(userId), ct);
+
+        if (clientProfile is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        var clientId = clientProfile.PublicId;
 
         // Find the active nutrition plan for this client
         var filter = Builders<NutritionPlan>.Filter.And(

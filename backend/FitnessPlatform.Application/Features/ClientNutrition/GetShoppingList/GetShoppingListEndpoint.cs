@@ -3,7 +3,9 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.ClientNutrition.GetShoppingList;
@@ -12,7 +14,8 @@ namespace FitnessPlatform.Application.Features.ClientNutrition.GetShoppingList;
 /// Generates an aggregated shopping list from the client's active nutrition plan.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
-public class GetShoppingListEndpoint(IMongoContext mongo)
+/// <param name="db">Relational database context.</param>
+public class GetShoppingListEndpoint(IMongoContext mongo, IApplicationDbContext db)
     : Endpoint<GetShoppingListRequest, GetShoppingListResponse>
 {
     /// <inheritdoc />
@@ -39,7 +42,17 @@ public class GetShoppingListEndpoint(IMongoContext mongo)
             return;
         }
 
-        var clientId = Guid.Parse(userId);
+        var clientProfile = await db.ClientProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cp => cp.UserId == Guid.Parse(userId), ct);
+
+        if (clientProfile is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        var clientId = clientProfile.PublicId;
 
         // Find the client's active nutrition plan
         var filter = Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientId)

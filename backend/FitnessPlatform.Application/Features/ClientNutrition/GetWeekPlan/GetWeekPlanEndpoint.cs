@@ -2,7 +2,9 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.ClientNutrition.GetWeekPlan;
@@ -12,7 +14,8 @@ namespace FitnessPlatform.Application.Features.ClientNutrition.GetWeekPlan;
 /// Cycles through plan weeks when the plan duration is exceeded.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
-public class GetWeekPlanEndpoint(IMongoContext mongo) : EndpointWithoutRequest<GetWeekPlanResponse>
+/// <param name="db">Relational database context.</param>
+public class GetWeekPlanEndpoint(IMongoContext mongo, IApplicationDbContext db) : EndpointWithoutRequest<GetWeekPlanResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -37,7 +40,17 @@ public class GetWeekPlanEndpoint(IMongoContext mongo) : EndpointWithoutRequest<G
             return;
         }
 
-        var clientId = Guid.Parse(userId);
+        var clientProfile = await db.ClientProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cp => cp.UserId == Guid.Parse(userId), ct);
+
+        if (clientProfile is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        var clientId = clientProfile.PublicId;
 
         var filter = Builders<Domain.Documents.NutritionPlan>.Filter.And(
             Builders<Domain.Documents.NutritionPlan>.Filter.Eq(p => p.ClientId, clientId),
