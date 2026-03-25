@@ -76,7 +76,7 @@ export default function NutritionPlanPage() {
   const [activeTab, setActiveTab] = useState<'mealPlan' | 'nutritionGoals'>('mealPlan');
 
   const isStartDateLocked = Boolean(
-    plan?.startDate && new Date(plan.startDate + 'T00:00:00') < new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00')
+    plan?.startDate && plan.startDate.slice(0, 10) < new Date().toISOString().slice(0, 10)
   );
 
   // Load plan on mount

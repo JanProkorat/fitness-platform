@@ -49,7 +49,7 @@ export default function PlanToolbar({
             </label>
             <input
               type="date"
-              value={startDate ?? ''}
+              value={startDate?.slice(0, 10) ?? ''}
               onChange={(e) => {
                 const val = e.target.value || null;
                 if (val) {

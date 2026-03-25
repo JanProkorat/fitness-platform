@@ -249,7 +249,7 @@ export default function TrainingPlanPage() {
             </label>
             <input
               type="date"
-              value={plan.startDate ?? ''}
+              value={plan.startDate?.slice(0, 10) ?? ''}
               onChange={(e) => {
                 const val = e.target.value || null;
                 if (val) {
@@ -258,7 +258,7 @@ export default function TrainingPlanPage() {
                 }
                 setStartDate(val);
               }}
-              disabled={Boolean(plan.startDate && new Date(plan.startDate + 'T00:00:00') < new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00'))}
+              disabled={Boolean(plan.startDate && plan.startDate.slice(0, 10) < new Date().toISOString().slice(0, 10))}
               className="rounded-sm border border-border bg-surface px-2 py-1 text-xs text-text outline-none transition-colors focus:border-gold/40 disabled:opacity-40 disabled:cursor-not-allowed"
             />
           </div>
