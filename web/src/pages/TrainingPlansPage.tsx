@@ -2,12 +2,8 @@ import { useState, useCallback, useMemo } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import {
-  getPlans,
-  createPlan,
-  deletePlan,
-} from '@/api/plans';
-import type { CreatePlanRequest, PlanSummary } from '@/api/plan-types';
+import { getTrainingPlans, createTrainingPlan, deleteTrainingPlan } from '@/api/training-plans';
+import type { CreateTrainingPlanRequest, TrainingPlanSummary } from '@/api/training-plan-types';
 import { apiClient } from '@/api/client';
 import ClientSelect from '@/components/nutrition/ClientSelect';
 import { showApiError, showSuccess } from '@/lib/api-errors';
@@ -18,7 +14,7 @@ const statusStyles: Record<string, string> = {
   Archived: 'bg-white/5 text-text3',
 };
 
-export default function PlansPage() {
+export default function TrainingPlansPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -29,10 +25,11 @@ export default function PlansPage() {
   // Drawer
   const [drawerMounted, setDrawerMounted] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
-  const [newPlan, setNewPlan] = useState<CreatePlanRequest>({
+  const [newPlan, setNewPlan] = useState<CreateTrainingPlanRequest>({
     clientId: clientIdParam ?? '',
     name: '',
     weekCount: 1,
+    description: '',
   });
   const [creating, setCreating] = useState(false);
 
@@ -40,7 +37,7 @@ export default function PlansPage() {
   const [confirmDelete, setConfirmDelete] = useState<{ planId: string; name: string } | null>(null);
 
   const openDrawer = useCallback(() => {
-    setNewPlan({ clientId: clientIdParam ?? '', name: '', weekCount: 1, startDate: null });
+    setNewPlan({ clientId: clientIdParam ?? '', name: '', weekCount: 1, description: '', startDate: null });
     setDrawerMounted(true);
     requestAnimationFrame(() => requestAnimationFrame(() => setDrawerVisible(true)));
   }, [clientIdParam]);
@@ -51,8 +48,8 @@ export default function PlansPage() {
   }, []);
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['plans', clientIdParam, page],
-    queryFn: () => getPlans({ clientId: clientIdParam, page, pageSize: 20 }),
+    queryKey: ['training-plans', clientIdParam, page],
+    queryFn: () => getTrainingPlans({ clientId: clientIdParam, page, pageSize: 20 }),
   });
 
   const { data: clientsData } = useQuery({
@@ -69,12 +66,12 @@ export default function PlansPage() {
   }, [clientsData]);
 
   const deleteMutation = useMutation({
-    mutationFn: deletePlan,
+    mutationFn: deleteTrainingPlan,
     onSuccess: () => {
-      showSuccess('nutrition.planDeleted');
+      showSuccess('training.planDeleted');
       refetch();
     },
-    onError: (error) => showApiError(error, 'nutrition.deleteError'),
+    onError: (error) => showApiError(error, 'training.deleteError'),
   });
 
   const totalPages = data ? Math.ceil((data.totalCount ?? 0) / (data.pageSize ?? 1)) : 0;
@@ -85,18 +82,18 @@ export default function PlansPage() {
 
     setCreating(true);
     try {
-      const plan = await createPlan(newPlan);
-      showSuccess('nutrition.planCreated');
+      const plan = await createTrainingPlan(newPlan);
+      showSuccess('training.planCreated');
       closeDrawer();
-      navigate(`/plans/${plan.planId}`);
+      navigate(`/training-plans/${plan.planId}`);
     } catch (err) {
-      showApiError(err, 'nutrition.createError');
+      showApiError(err, 'training.createError');
     } finally {
       setCreating(false);
     }
   };
 
-  const handleDeleteClick = (e: React.MouseEvent, plan: PlanSummary) => {
+  const handleDeleteClick = (e: React.MouseEvent, plan: TrainingPlanSummary) => {
     e.stopPropagation();
     setConfirmDelete({ planId: plan.planId, name: plan.name });
   };
@@ -110,10 +107,10 @@ export default function PlansPage() {
 
   const statusLabel = (status: string) =>
     status === 'Draft'
-      ? t('nutrition.statusDraft')
+      ? t('training.statusDraft')
       : status === 'Active'
-        ? t('nutrition.statusActive')
-        : t('nutrition.statusArchived');
+        ? t('training.statusActive')
+        : t('training.statusArchived');
 
   const inputClass =
     'rounded-sm border border-border bg-surface px-4 py-2.5 text-sm text-text outline-none transition-colors focus:border-gold/40';
@@ -123,19 +120,19 @@ export default function PlansPage() {
       {/* Top bar */}
       <div className="flex items-center border-b border-border bg-[#111111] px-6 py-4">
         <div className="flex-1">
-          <h1 className="text-lg font-bold">{t('nutrition.title')}</h1>
-          <p className="text-xs text-muted">{t('nutrition.subtitle')}</p>
+          <h1 className="text-lg font-bold">{t('training.title')}</h1>
+          <p className="text-xs text-muted">{t('training.subtitle')}</p>
         </div>
         <button
           onClick={openDrawer}
           className="rounded-sm bg-gold px-4 py-2 font-heading text-[13px] font-extrabold uppercase tracking-wide text-black transition-colors hover:bg-gold-bright"
         >
-          {t('nutrition.createPlan')}
+          {t('training.createPlan')}
         </button>
       </div>
 
       <div className="flex-1 overflow-y-auto p-6">
-        {/* Plans table */}
+        {/* Training plans table */}
         <div className="rounded-sm border border-border bg-surface">
           {isLoading ? (
             <div className="flex items-center justify-center py-20 text-text3">
@@ -143,19 +140,19 @@ export default function PlansPage() {
             </div>
           ) : !data?.plans?.length ? (
             <div className="flex flex-col items-center justify-center py-20 text-text3">
-              <span className="text-4xl">&#x1F4CB;</span>
-              <p className="mt-3 text-sm">{t('nutrition.noPlans')}</p>
-              <p className="mt-1 text-xs text-muted">{t('nutrition.noPlansHint')}</p>
+              <span className="text-4xl">&#x1F3CB;</span>
+              <p className="mt-3 text-sm">{t('training.noPlans')}</p>
+              <p className="mt-1 text-xs text-muted">{t('training.noPlansHint')}</p>
             </div>
           ) : (
             <>
               {/* Table header */}
               <div className="grid grid-cols-[1fr_140px_100px_80px_120px_60px] gap-4 border-b border-border px-5 py-3">
-                <span className="lbl">{t('nutrition.planName')}</span>
+                <span className="lbl">{t('training.planName')}</span>
                 <span className="lbl">{t('common.client')}</span>
-                <span className="lbl">{t('nutrition.status')}</span>
-                <span className="lbl">{t('nutrition.weeks')}</span>
-                <span className="lbl">{t('nutrition.created')}</span>
+                <span className="lbl">{t('training.status')}</span>
+                <span className="lbl">{t('training.weeks')}</span>
+                <span className="lbl">{t('training.created')}</span>
                 <span className="lbl" />
               </div>
 
@@ -163,7 +160,7 @@ export default function PlansPage() {
               {data.plans.map((plan) => (
                 <div
                   key={plan.planId}
-                  onClick={() => navigate(`/plans/${plan.planId}`)}
+                  onClick={() => navigate(`/training-plans/${plan.planId}`)}
                   className="grid grid-cols-[1fr_140px_100px_80px_120px_60px] cursor-pointer items-center gap-4 border-b border-charcoal px-5 py-3 transition-colors last:border-0 hover:bg-white/[0.02]"
                 >
                   <span className="truncate text-sm font-semibold">{plan.name}</span>
@@ -221,7 +218,7 @@ export default function PlansPage() {
         </div>
       </div>
 
-      {/* Right-side drawer for creating a plan */}
+      {/* Right-side drawer for creating a training plan */}
       {drawerMounted && (
         <>
           <div
@@ -233,7 +230,7 @@ export default function PlansPage() {
           >
             <div className="flex-1 overflow-y-auto p-6">
               <div className="mb-4 flex items-center justify-between">
-                <div className="text-sm font-semibold">{t('nutrition.createPlan')}</div>
+                <div className="text-sm font-semibold">{t('training.createPlan')}</div>
                 <button
                   type="button"
                   onClick={closeDrawer}
@@ -245,16 +242,16 @@ export default function PlansPage() {
                 </button>
               </div>
 
-              <form id="create-plan-form" onSubmit={handleCreate} className="flex flex-col gap-4">
+              <form id="create-training-plan-form" onSubmit={handleCreate} className="flex flex-col gap-4">
                 <div>
                   <label className="mb-1 block font-heading text-xs text-text3">
-                    {t('nutrition.planName')}
+                    {t('training.planName')}
                   </label>
                   <input
                     type="text"
                     value={newPlan.name}
                     onChange={(e) => setNewPlan({ ...newPlan, name: e.target.value })}
-                    placeholder={t('nutrition.planNamePlaceholder')}
+                    placeholder={t('training.planNamePlaceholder')}
                     required
                     className={`w-full ${inputClass}`}
                   />
@@ -262,7 +259,7 @@ export default function PlansPage() {
 
                 <div>
                   <label className="mb-1 block font-heading text-xs text-text3">
-                    {t('nutrition.client')}
+                    {t('training.client')}
                   </label>
                   <ClientSelect
                     value={newPlan.clientId}
@@ -272,7 +269,7 @@ export default function PlansPage() {
 
                 <div>
                   <label className="mb-1 block font-heading text-xs text-text3">
-                    {t('nutrition.weekCount')}
+                    {t('training.weekCount')}
                   </label>
                   <input
                     type="number"
@@ -288,7 +285,20 @@ export default function PlansPage() {
 
                 <div>
                   <label className="mb-1 block font-heading text-xs text-text3">
-                    {t('nutrition.startDate')}
+                    {t('training.description')}
+                  </label>
+                  <textarea
+                    value={newPlan.description ?? ''}
+                    onChange={(e) => setNewPlan({ ...newPlan, description: e.target.value })}
+                    rows={4}
+                    placeholder={t('training.descriptionPlaceholder')}
+                    className={`w-full resize-none ${inputClass}`}
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block font-heading text-xs text-text3">
+                    {t('training.startDate')}
                   </label>
                   <input
                     type="date"
@@ -303,7 +313,7 @@ export default function PlansPage() {
                     }}
                     className={`w-full ${inputClass}`}
                   />
-                  <p className="mt-1 text-[10px] text-text3">{t('nutrition.startDateHint')}</p>
+                  <p className="mt-1 text-[10px] text-text3">{t('training.startDateHint')}</p>
                 </div>
               </form>
             </div>
@@ -312,11 +322,11 @@ export default function PlansPage() {
             <div className="shrink-0 border-t border-border bg-bg px-6 py-4">
               <button
                 type="submit"
-                form="create-plan-form"
+                form="create-training-plan-form"
                 disabled={creating || !newPlan.name.trim() || !newPlan.clientId.trim()}
                 className="w-full rounded-sm bg-gold px-5 py-3 font-heading text-xs font-bold uppercase tracking-wide text-black transition-colors hover:bg-gold-bright disabled:opacity-50"
               >
-                {creating ? t('nutrition.saving') : t('nutrition.createPlan')}
+                {creating ? t('training.saving') : t('training.createPlan')}
               </button>
             </div>
           </div>
@@ -328,9 +338,9 @@ export default function PlansPage() {
         <div className="fixed inset-0 z-[70] flex items-center justify-center">
           <div className="fixed inset-0 bg-black/60" onClick={() => setConfirmDelete(null)} />
           <div className="relative z-10 w-full max-w-sm rounded-sm border border-border bg-surface p-6 shadow-2xl">
-            <h3 className="text-sm font-bold">{t('nutrition.deleteConfirmTitle')}</h3>
+            <h3 className="text-sm font-bold">{t('training.deleteConfirmTitle')}</h3>
             <p className="mt-2 text-sm text-text2">
-              {t('nutrition.deleteConfirmMessage', { name: confirmDelete.name })}
+              {t('training.deleteConfirmMessage', { name: confirmDelete.name })}
             </p>
             <div className="mt-5 flex justify-end gap-3">
               <button
@@ -343,7 +353,7 @@ export default function PlansPage() {
                 onClick={handleConfirmDelete}
                 className="rounded-sm bg-red-500 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-red-600"
               >
-                {t('nutrition.delete')}
+                {t('training.delete')}
               </button>
             </div>
           </div>
