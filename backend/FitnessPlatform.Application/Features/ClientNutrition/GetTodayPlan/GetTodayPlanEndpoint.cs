@@ -52,13 +52,51 @@ public class GetTodayPlanEndpoint(IMongoContext mongo) : EndpointWithoutRequest<
             return;
         }
 
-        var daysSincePublish = (int)(DateTime.UtcNow.Date - plan.DatePublished!.Value.Date).TotalDays;
-        var totalDays = plan.Weeks.Count * 7;
-        var currentDayIndex = daysSincePublish % totalDays;
-        var weekIndex = currentDayIndex / 7;
-        var dayIndex = currentDayIndex % 7;
+        var publishedWeeks = plan.Weeks.Where(w => w.Status == WeekStatus.Published).ToList();
 
-        var week = plan.Weeks[weekIndex];
+        if (publishedWeeks.Count == 0)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        Domain.Documents.PlanWeek week;
+        int dayIndex;
+
+        if (plan.StartDate.HasValue)
+        {
+            var daysSinceStart = (int)(DateTime.UtcNow.Date - plan.StartDate.Value.Date).TotalDays;
+
+            if (daysSinceStart < 0)
+            {
+                await Send.NotFoundAsync(ct);
+                return;
+            }
+
+            var weekNum = daysSinceStart / 7 + 1;
+            dayIndex = daysSinceStart % 7;
+
+            week = publishedWeeks.FirstOrDefault(w => w.WeekNumber == weekNum)
+                   ?? publishedWeeks[^1];
+        }
+        else
+        {
+            var daysSincePublish = (int)(DateTime.UtcNow.Date - plan.DatePublished!.Value.Date).TotalDays;
+
+            if (daysSincePublish < 0)
+            {
+                await Send.NotFoundAsync(ct);
+                return;
+            }
+
+            var totalDays = publishedWeeks.Count * 7;
+            var currentDayIndex = daysSincePublish % totalDays;
+            var weekIndex = currentDayIndex / 7;
+            dayIndex = currentDayIndex % 7;
+
+            week = publishedWeeks[weekIndex];
+        }
+
         var day = week.Days[dayIndex];
 
         await Send.OkAsync(new GetTodayPlanResponse
