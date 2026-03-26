@@ -8,7 +8,6 @@ function TabIcon({ name, focused }: { name: string; focused: boolean }) {
     'training/index': '🏋️',
     'nutrition/index': '🍽️',
     'measurements/index': '📏',
-    scanner: '📷',
   };
   return <Text style={styles.icon}>{icons[name] ?? '•'}</Text>;
 }
@@ -55,13 +54,6 @@ export default function ClientTabLayout() {
         options={{
           title: 'Nutrition',
           tabBarIcon: ({ focused }) => <TabIcon name="nutrition/index" focused={focused} />,
-        }}
-      />
-      <Tabs.Screen
-        name="scanner"
-        options={{
-          title: 'Scanner',
-          tabBarIcon: ({ focused }) => <TabIcon name="scanner" focused={focused} />,
         }}
       />
       <Tabs.Screen
