@@ -248,8 +248,12 @@ export default function NutritionScreen() {
 
   // ── Main view ──────────────────────────────────────────────────────────────
 
-  const hasPrevWeek = currentWeekNumber > 1;
-  const hasNextWeek = currentWeekNumber < totalWeeks;
+  const publishedWeekNumbers = useMemo(
+    () => data?.weeks.map((w) => w.weekNumber) ?? [],
+    [data],
+  );
+  const hasPrevWeek = publishedWeekNumbers.some((w) => w < currentWeekNumber);
+  const hasNextWeek = publishedWeekNumbers.some((w) => w > currentWeekNumber);
 
   const startDate = data?.weeks[0]?.weekStartDate;
   const planStartFormatted = startDate
