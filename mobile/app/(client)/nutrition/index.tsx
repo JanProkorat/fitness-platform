@@ -192,16 +192,6 @@ export default function NutritionScreen() {
     router.push('/nutrition/shopping' as any);
   }, [router]);
 
-  const handleMealPress = useCallback(
-    (mealId: string) => {
-      router.push({
-        pathname: '/nutrition/[mealId]' as any,
-        params: { mealId },
-      });
-    },
-    [router],
-  );
-
   // ── Loading state ──────────────────────────────────────────────────────────
 
   if (isLoading) {
@@ -318,7 +308,6 @@ export default function NutritionScreen() {
                 data={data}
                 isRefreshing={isRefetching}
                 onRefresh={refetch}
-                onMealPress={handleMealPress}
                 t={t}
               />
             </View>
@@ -354,11 +343,10 @@ interface DayPageProps {
   data: FullPlanResponse;
   isRefreshing: boolean;
   onRefresh: () => void;
-  onMealPress: (mealId: string) => void;
   t: (key: string, opts?: Record<string, unknown>) => string;
 }
 
-function DayPage({ dayInfo, data, isRefreshing, onRefresh, onMealPress, t }: DayPageProps) {
+function DayPage({ dayInfo, data, isRefreshing, onRefresh, t }: DayPageProps) {
   const { week, day } = dayInfo;
 
   const isToday =
@@ -421,7 +409,6 @@ function DayPage({ dayInfo, data, isRefreshing, onRefresh, onMealPress, t }: Day
           <MealCard
             key={meal.mealId}
             meal={meal}
-            onPress={() => onMealPress(meal.mealId)}
           />
         ))
       )}
@@ -493,23 +480,55 @@ function MacroItem({ label, value, unit, color }: MacroItemProps) {
 
 interface MealCardProps {
   meal: PlanMeal;
-  onPress: () => void;
 }
 
-function MealCard({ meal, onPress }: MealCardProps) {
+function MealCard({ meal }: MealCardProps) {
+  const [expanded, setExpanded] = useState(false);
   const kcal = meal.mealTotals?.kcal ?? 0;
 
   return (
-    <TouchableOpacity style={styles.mealCard} onPress={onPress} activeOpacity={0.75}>
-      <View style={styles.mealCardLeft}>
-        <Text style={styles.mealName}>{meal.name}</Text>
-        <Text style={styles.mealMeta}>
-          {meal.time ? `${meal.time} · ` : ''}
-          {meal.foods.length} {meal.foods.length === 1 ? 'food' : 'foods'}
-          {kcal > 0 ? ` · ${Math.round(kcal)} kcal` : ''}
-        </Text>
+    <TouchableOpacity
+      style={styles.mealCard}
+      onPress={() => setExpanded(!expanded)}
+      activeOpacity={0.75}
+    >
+      <View style={styles.mealCardContent}>
+        <View style={styles.mealCardHeader}>
+          <View style={styles.mealCardLeft}>
+            <Text style={styles.mealName}>{meal.name}</Text>
+            <Text style={styles.mealMeta}>
+              {meal.time ? `${meal.time} · ` : ''}
+              {meal.foods.length} {meal.foods.length === 1 ? 'food' : 'foods'}
+              {kcal > 0 ? ` · ${Math.round(kcal)} kcal` : ''}
+            </Text>
+          </View>
+          <Text style={[styles.mealChevron, expanded && styles.mealChevronExpanded]}>
+            ›
+          </Text>
+        </View>
+
+        {expanded && meal.foods.length > 0 && (
+          <View style={styles.foodsList}>
+            {meal.foods.map((food, idx) => {
+              const scale = food.amountGrams / 100;
+              return (
+                <View key={`${food.foodExternalId}-${idx}`} style={styles.foodRow}>
+                  <View style={styles.foodInfo}>
+                    <Text style={styles.foodName}>{food.foodName}</Text>
+                    <Text style={styles.foodAmount}>{Math.round(food.amountGrams)}g</Text>
+                  </View>
+                  <View style={styles.foodMacros}>
+                    <Text style={styles.foodMacro}>{Math.round(food.nutrientValuePer100Grams.kcal * scale)}</Text>
+                    <Text style={[styles.foodMacro, { color: Colors.dark.protein }]}>{Math.round(food.nutrientValuePer100Grams.protein * scale)}g</Text>
+                    <Text style={[styles.foodMacro, { color: Colors.dark.carbs }]}>{Math.round(food.nutrientValuePer100Grams.carbs * scale)}g</Text>
+                    <Text style={[styles.foodMacro, { color: Colors.dark.fat }]}>{Math.round(food.nutrientValuePer100Grams.fat * scale)}g</Text>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
       </View>
-      <Text style={styles.mealChevron}>›</Text>
     </TouchableOpacity>
   );
 }
@@ -718,7 +737,7 @@ const styles = StyleSheet.create({
   // Meal card
   mealCard: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     backgroundColor: Colors.dark.surface,
     borderRadius: 10,
     borderWidth: 1,
@@ -726,6 +745,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 14,
     marginBottom: 10,
+  },
+  mealCardContent: {
+    flex: 1,
+  },
+  mealCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   mealCardLeft: {
     flex: 1,
@@ -744,6 +770,44 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: Colors.dark.text3,
     marginLeft: 8,
+  },
+  mealChevronExpanded: {
+    transform: [{ rotate: '90deg' }],
+  },
+  foodsList: {
+    marginTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: Colors.dark.border,
+    paddingTop: 8,
+  },
+  foodRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 6,
+  },
+  foodInfo: {
+    flex: 1,
+  },
+  foodName: {
+    fontSize: 13,
+    color: Colors.dark.text2,
+    fontWeight: '500',
+  },
+  foodAmount: {
+    fontSize: 11,
+    color: Colors.dark.text3,
+    marginTop: 1,
+  },
+  foodMacros: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  foodMacro: {
+    fontSize: 11,
+    color: Colors.dark.text3,
+    minWidth: 28,
+    textAlign: 'right',
   },
 
   // Empty states
