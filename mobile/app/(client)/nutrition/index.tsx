@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
@@ -339,6 +340,7 @@ export default function NutritionScreen() {
               <DayPage
                 dayInfo={dayInfo}
                 data={data}
+                isActive={index === currentPageIndex}
                 isRefreshing={isManualRefresh}
                 onRefresh={handleManualRefresh}
                 t={t}
@@ -374,13 +376,31 @@ function Header({ title, onShoppingPress }: HeaderProps) {
 interface DayPageProps {
   dayInfo: DayInfo;
   data: FullPlanResponse;
+  isActive: boolean;
   isRefreshing: boolean;
   onRefresh: () => void;
   t: (key: string, opts?: Record<string, unknown>) => string;
 }
 
-function DayPage({ dayInfo, data, isRefreshing, onRefresh, t }: DayPageProps) {
+function DayPage({ dayInfo, data, isActive, isRefreshing, onRefresh, t }: DayPageProps) {
   const { week, day } = dayInfo;
+
+  const opacity = useSharedValue(isActive ? 1 : 0);
+  const translateY = useSharedValue(isActive ? 0 : 10);
+
+  useEffect(() => {
+    if (isActive) {
+      opacity.value = 0;
+      translateY.value = 10;
+      opacity.value = withTiming(1, { duration: 250, easing: Easing.out(Easing.quad) });
+      translateY.value = withTiming(0, { duration: 250, easing: Easing.out(Easing.quad) });
+    }
+  }, [isActive, opacity, translateY]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: translateY.value }],
+  }));
 
   const isToday =
     data.currentWeek != null &&
@@ -408,6 +428,7 @@ function DayPage({ dayInfo, data, isRefreshing, onRefresh, t }: DayPageProps) {
         />
       }
     >
+      <Animated.View style={animatedStyle}>
       {/* Day name + date */}
       <View style={styles.dayHeader}>
         <Text style={[styles.dayLabel, isToday && styles.dayLabelToday]}>{dayLabel}</Text>
@@ -434,6 +455,7 @@ function DayPage({ dayInfo, data, isRefreshing, onRefresh, t }: DayPageProps) {
           />
         ))
       )}
+      </Animated.View>
     </ScrollView>
   );
 }
