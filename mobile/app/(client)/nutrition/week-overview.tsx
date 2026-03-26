@@ -92,7 +92,10 @@ export default function WeekOverviewScreen() {
       : null;
 
   const handleBack = () => {
-    router.back();
+    router.replace({
+      pathname: '/nutrition' as any,
+      params: { weekNumber: currentWeekNumber, dayOfWeek: 1 },
+    });
   };
 
   const handlePrevWeek = () => {
@@ -204,6 +207,7 @@ export default function WeekOverviewScreen() {
       >
         {/* Week sum */}
         <WeekSumRow totals={weekSum} t={t} />
+        <View style={styles.weekSumSpacer} />
 
         {/* Day cards */}
         {allDays.map((day, index) => {
@@ -612,5 +616,8 @@ const styles = StyleSheet.create({
   averageMacros: {
     flexDirection: 'row',
     gap: 12,
+  },
+  weekSumSpacer: {
+    height: 16,
   },
 });
