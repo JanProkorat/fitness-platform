@@ -29,7 +29,8 @@ function getDayDate(weekStartDate: string, dayOfWeek: number): Date {
 
 function formatDayName(weekStartDate: string, dayOfWeek: number): string {
   const date = getDayDate(weekStartDate, dayOfWeek);
-  return date.toLocaleDateString(i18n.language, { weekday: 'long' });
+  const str = date.toLocaleDateString(i18n.language, { weekday: 'long' });
+  return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 function formatShortDate(weekStartDate: string, dayOfWeek: number): string {

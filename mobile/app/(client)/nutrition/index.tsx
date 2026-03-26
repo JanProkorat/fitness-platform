@@ -100,11 +100,12 @@ function formatDayLabel(weekStartDate: string, dayOfWeek: number): string {
   const start = new Date(weekStartDate);
   const date = new Date(start);
   date.setDate(start.getDate() + (dayOfWeek - 1));
-  return date.toLocaleDateString(locale, {
+  const str = date.toLocaleDateString(locale, {
     weekday: 'long',
     month: 'short',
     day: 'numeric',
   });
+  return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
