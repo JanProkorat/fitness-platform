@@ -167,6 +167,7 @@ public class GetFullPlanEndpoint(IMongoContext mongo, IApplicationDbContext db) 
             GlobalSettings = plan.GlobalSettings,
             Weeks = fullPlanWeeks,
             PublishedWeekCount = publishedWeeks.Count,
+            TotalWeeks = plan.Weeks.Count,
             CurrentWeek = currentWeek,
             CurrentDayOfWeek = currentDayOfWeek
         }, ct);

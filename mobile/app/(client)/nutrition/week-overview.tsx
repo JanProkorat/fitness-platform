@@ -82,7 +82,7 @@ export default function WeekOverviewScreen() {
     [data, currentWeekNumber],
   );
 
-  const totalWeeks = data?.weeks.length ?? 0;
+  const totalWeeks = data?.totalWeeks ?? data?.weeks.length ?? 0;
 
   // Published week numbers for prev/next navigation
   const publishedWeekNumbers = useMemo(

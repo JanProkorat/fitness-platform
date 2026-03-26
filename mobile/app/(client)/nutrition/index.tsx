@@ -148,7 +148,7 @@ export default function NutritionScreen() {
 
   const currentDayInfo = allDays[currentPageIndex];
   const currentWeekNumber = currentDayInfo?.weekNumber ?? 1;
-  const totalWeeks = data?.weeks.length ?? 0;
+  const totalWeeks = data?.totalWeeks ?? data?.weeks.length ?? 0;
   const currentWeekObj = currentDayInfo?.week ?? null;
 
   const isUpcoming = data != null && data.currentWeek == null;

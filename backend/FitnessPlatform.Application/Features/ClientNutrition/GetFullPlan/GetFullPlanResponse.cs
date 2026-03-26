@@ -25,6 +25,9 @@ public class GetFullPlanResponse
     /// <summary>Number of published weeks.</summary>
     public int PublishedWeekCount { get; set; }
 
+    /// <summary>Total number of weeks in the plan (including draft).</summary>
+    public int TotalWeeks { get; set; }
+
     /// <summary>Current week number (null if plan is upcoming).</summary>
     public int? CurrentWeek { get; set; }
 

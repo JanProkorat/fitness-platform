@@ -151,6 +151,7 @@ export interface FullPlanResponse {
   globalSettings: GlobalNutritionSettings | null;
   weeks: FullPlanWeek[];
   publishedWeekCount: number;
+  totalWeeks: number;
   currentWeek: number | null;
   currentDayOfWeek: number | null;
 }
