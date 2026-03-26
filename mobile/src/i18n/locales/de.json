@@ -198,7 +198,12 @@
     "kcal": "kcal",
     "protein": "Eiweiß",
     "carbs": "Kohlenhydrate",
-    "fat": "Fett"
+    "fat": "Fett",
+    "proteinShort": "E",
+    "carbsShort": "K",
+    "fatShort": "F",
+    "foodCount_one": "{{count}} Lebensmittel",
+    "foodCount_other": "{{count}} Lebensmittel"
   },
   "training": {
     "title": "Training",

@@ -5,15 +5,17 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Colors } from '../../../constants/Colors';
+import i18n from '../../../src/i18n';
 import { getFullPlan, type FullPlanResponse, type PlanDay, type NutrientTotals } from '../../../src/api/nutrition';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function formatWeekRange(startDate: string, endDate: string): string {
+  const locale = i18n.language;
   const start = new Date(startDate);
   const end = new Date(endDate);
   const fmt = (d: Date) =>
-    d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    d.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
   return `${fmt(start)} – ${fmt(end)}`;
 }
 
@@ -27,12 +29,12 @@ function getDayDate(weekStartDate: string, dayOfWeek: number): Date {
 
 function formatDayName(weekStartDate: string, dayOfWeek: number): string {
   const date = getDayDate(weekStartDate, dayOfWeek);
-  return date.toLocaleDateString(undefined, { weekday: 'long' });
+  return date.toLocaleDateString(i18n.language, { weekday: 'long' });
 }
 
 function formatShortDate(weekStartDate: string, dayOfWeek: number): string {
   const date = getDayDate(weekStartDate, dayOfWeek);
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  return date.toLocaleDateString(i18n.language, { month: 'short', day: 'numeric' });
 }
 
 function sumTotals(totalsArr: NutrientTotals[]): NutrientTotals {
@@ -312,19 +314,19 @@ function DayCard({ dayOfWeek, day, weekStartDate, isToday, onPress, t }: DayCard
               color={Colors.dark.kcal}
             />
             <MacroChip
-              label="P"
+              label={t('nutrition.proteinShort')}
               value={Math.round(totals.protein)}
               unit="g"
               color={Colors.dark.protein}
             />
             <MacroChip
-              label="C"
+              label={t('nutrition.carbsShort')}
               value={Math.round(totals.carbs)}
               unit="g"
               color={Colors.dark.carbs}
             />
             <MacroChip
-              label="F"
+              label={t('nutrition.fatShort')}
               value={Math.round(totals.fat)}
               unit="g"
               color={Colors.dark.fat}

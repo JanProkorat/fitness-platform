@@ -198,7 +198,12 @@
     "kcal": "kcal",
     "protein": "Bílkoviny",
     "carbs": "Sacharidy",
-    "fat": "Tuky"
+    "fat": "Tuky",
+    "proteinShort": "B",
+    "carbsShort": "S",
+    "fatShort": "T",
+    "foodCount_one": "{{count}} potravina",
+    "foodCount_other": "{{count}} potravin"
   },
   "training": {
     "title": "Trénink",

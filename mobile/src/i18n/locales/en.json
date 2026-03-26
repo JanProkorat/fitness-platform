@@ -231,6 +231,11 @@
     "kcal": "kcal",
     "protein": "Protein",
     "carbs": "Carbs",
-    "fat": "Fat"
+    "fat": "Fat",
+    "proteinShort": "P",
+    "carbsShort": "C",
+    "fatShort": "F",
+    "foodCount_one": "{{count}} food",
+    "foodCount_other": "{{count}} foods"
   }
 }

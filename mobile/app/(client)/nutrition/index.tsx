@@ -15,6 +15,7 @@ import { useQuery } from '@tanstack/react-query';
 import PagerView from 'react-native-pager-view';
 import { useTranslation } from 'react-i18next';
 import { Colors } from '../../../constants/Colors';
+import i18n from '../../../src/i18n';
 import {
   getFullPlan,
   type FullPlanResponse,
@@ -86,20 +87,20 @@ function computeInitialPage(
 }
 
 function formatWeekRange(startDate: string, endDate: string): string {
+  const locale = i18n.language;
   const start = new Date(startDate);
   const end = new Date(endDate);
   const fmt = (d: Date) =>
-    d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    d.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
   return `${fmt(start)} – ${fmt(end)}`;
 }
 
 function formatDayLabel(weekStartDate: string, dayOfWeek: number): string {
-  // dayOfWeek: 1=Mon … 7=Sun
+  const locale = i18n.language;
   const start = new Date(weekStartDate);
-  // weekStartDate is Monday; offset by (dayOfWeek - 1) days
   const date = new Date(start);
   date.setDate(start.getDate() + (dayOfWeek - 1));
-  return date.toLocaleDateString(undefined, {
+  return date.toLocaleDateString(locale, {
     weekday: 'long',
     month: 'short',
     day: 'numeric',
@@ -257,7 +258,7 @@ export default function NutritionScreen() {
 
   const startDate = data?.weeks[0]?.weekStartDate;
   const planStartFormatted = startDate
-    ? new Date(startDate).toLocaleDateString(undefined, {
+    ? new Date(startDate).toLocaleDateString(i18n.language, {
         month: 'long',
         day: 'numeric',
         year: 'numeric',
@@ -531,6 +532,7 @@ interface MealCardProps {
 }
 
 function MealCard({ meal }: MealCardProps) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const kcal = meal.mealTotals?.kcal ?? 0;
 
@@ -546,7 +548,7 @@ function MealCard({ meal }: MealCardProps) {
             <Text style={styles.mealName}>{meal.name}</Text>
             <Text style={styles.mealMeta}>
               {meal.time ? `${meal.time} · ` : ''}
-              {meal.foods.length} {meal.foods.length === 1 ? 'food' : 'foods'}
+              {t('nutrition.foodCount', { count: meal.foods.length })}
               {kcal > 0 ? ` · ${Math.round(kcal)} kcal` : ''}
             </Text>
           </View>
