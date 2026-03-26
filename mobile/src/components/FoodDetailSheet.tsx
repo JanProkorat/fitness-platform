@@ -46,15 +46,6 @@ export function FoodDetailSheet({ food, visible, onClose }: FoodDetailSheetProps
                     <Text style={styles.badgeText}>{food.source}</Text>
                   </View>
                 )}
-                {food.isVerified ? (
-                  <View style={[styles.badge, styles.verifiedBadge]}>
-                    <Text style={[styles.badgeText, styles.verifiedText]}>Verified</Text>
-                  </View>
-                ) : (
-                  <View style={[styles.badge, styles.unverifiedBadge]}>
-                    <Text style={[styles.badgeText, styles.unverifiedText]}>Unverified</Text>
-                  </View>
-                )}
               </View>
               {food.barcode && (
                 <Text style={styles.barcode}>Barcode: {food.barcode}</Text>
@@ -233,20 +224,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: Colors.dark.text3,
-  },
-  verifiedBadge: {
-    backgroundColor: 'rgba(34,197,94,0.15)',
-    borderColor: Colors.dark.green,
-  },
-  verifiedText: {
-    color: Colors.dark.green,
-  },
-  unverifiedBadge: {
-    backgroundColor: 'rgba(251,191,36,0.15)',
-    borderColor: Colors.dark.carbs,
-  },
-  unverifiedText: {
-    color: Colors.dark.carbs,
   },
   barcode: {
     fontSize: 12,

@@ -2,34 +2,39 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Trans, useTranslation } from 'react-i18next';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { apiClient, ApiException } from '@/api/client';
-import { INVITE_TOKEN_KEY } from '@/pages/InviteAcceptPage';
+
 
 export default function RegisterPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const hasPendingInvite = !!localStorage.getItem(INVITE_TOKEN_KEY);
 
-  const registerSchema = z
-    .object({
-      firstName: z.string().min(1, t('validation.required')),
-      lastName: z.string().min(1, t('validation.required')),
-      email: z.string().email(t('validation.invalidEmail')),
-      password: z
-        .string()
-        .min(9, t('validation.passwordMinLength'))
-        .regex(/[a-z]/, t('validation.passwordLowercase'))
-        .regex(/[A-Z]/, t('validation.passwordUppercase'))
-        .regex(/[0-9]/, t('validation.passwordDigit')),
-      confirmPassword: z.string().min(1, t('validation.confirmPassword')),
-      role: z.enum(['Trainer', 'Client'], { error: t('validation.selectRole') }),
-      gdprConsent: z.literal(true, { error: t('validation.gdprRequired') }),
-    })
+  const fromInvite = !!(location.state as { fromInvite?: boolean })?.fromInvite;
+
+  const baseSchema = z.object({
+    firstName: z.string().min(1, t('validation.required')),
+    lastName: z.string().min(1, t('validation.required')),
+    email: z.string().email(t('validation.invalidEmail')),
+    password: z
+      .string()
+      .min(8, t('validation.passwordMinLength'))
+      .regex(/[a-z]/, t('validation.passwordLowercase'))
+      .regex(/[A-Z]/, t('validation.passwordUppercase'))
+      .regex(/[0-9]/, t('validation.passwordDigit')),
+    confirmPassword: z.string().min(1, t('validation.confirmPassword')),
+    role: fromInvite
+      ? z.string().optional()
+      : z.enum(['Trainer', 'Nutritionist'], { error: t('validation.selectRole') }),
+    gdprConsent: z.literal(true, { error: t('validation.gdprRequired') }),
+  });
+
+  const registerSchema = baseSchema
     .refine((data) => data.password === data.confirmPassword, {
       message: t('validation.passwordsMismatch'),
       path: ['confirmPassword'],
@@ -44,7 +49,7 @@ export default function RegisterPage() {
     watch,
   } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { role: hasPendingInvite ? 'Client' : 'Trainer' },
+    defaultValues: fromInvite ? {} : { role: 'Trainer' },
     mode: 'onChange',
   });
 
@@ -60,7 +65,8 @@ export default function RegisterPage() {
     setError(null);
     setLoading(true);
     try {
-      await apiClient.registerEndpoint(data);
+      const payload = fromInvite ? { ...data, role: 'Client' } : data;
+      await apiClient.registerEndpoint(payload);
       navigate('/login', {
         replace: true,
         state: { registered: true },
@@ -115,12 +121,6 @@ export default function RegisterPage() {
           <p className="mb-8 text-sm text-muted">
             {t('auth.registerSubtitle')}
           </p>
-
-          {hasPendingInvite && (
-            <div className="mb-4 rounded-sm border border-gold-dim/30 bg-gold/8 px-4 py-3 text-sm text-gold">
-              {t('auth.inviteRegisterHint')}
-            </div>
-          )}
 
           {error && (
             <div className="mb-4 rounded-sm border border-red-dim bg-red/8 px-4 py-3 text-sm text-red">
@@ -196,7 +196,7 @@ export default function RegisterPage() {
               )}
               <ul className="mt-2 flex flex-col gap-0.5 text-xs text-muted">
                 {([
-                  { test: (v: string) => v.length >= 9, label: t('validation.passwordMinLength') },
+                  { test: (v: string) => v.length >= 8, label: t('validation.passwordMinLength') },
                   { test: (v: string) => /[a-z]/.test(v), label: t('validation.passwordLowercase') },
                   { test: (v: string) => /[A-Z]/.test(v), label: t('validation.passwordUppercase') },
                   { test: (v: string) => /[0-9]/.test(v), label: t('validation.passwordDigit') },
@@ -231,31 +231,33 @@ export default function RegisterPage() {
               )}
             </div>
 
-            {/* Role */}
-            <div>
-              <label className="lbl mb-2 block">{t('auth.role')}</label>
-              <div className="flex gap-3">
-                {(['Trainer', 'Client'] as const).map((role) => (
-                  <label
-                    key={role}
-                    className="flex flex-1 cursor-pointer items-center gap-2 rounded-sm border border-border bg-bg px-4 py-3 text-sm transition-colors has-[:checked]:border-gold/40 has-[:checked]:bg-gold/5"
-                  >
-                    <input
-                      type="radio"
-                      value={role}
-                      {...register('role')}
-                      className="accent-gold"
-                    />
-                    <span>{role === 'Trainer' ? t('auth.roleTrainer') : t('auth.roleClient')}</span>
-                  </label>
-                ))}
+            {/* Role – hidden for client invitation flow */}
+            {!fromInvite && (
+              <div>
+                <label className="lbl mb-2 block">{t('auth.role')}</label>
+                <div className="flex gap-3">
+                  {(['Trainer', 'Nutritionist'] as const).map((role) => (
+                    <label
+                      key={role}
+                      className="flex flex-1 cursor-pointer items-center gap-2 rounded-sm border border-border bg-bg px-4 py-3 text-sm transition-colors has-[:checked]:border-gold/40 has-[:checked]:bg-gold/5"
+                    >
+                      <input
+                        type="radio"
+                        value={role}
+                        {...register('role')}
+                        className="accent-gold"
+                      />
+                      <span>{role === 'Trainer' ? t('auth.roleTrainer') : t('auth.roleNutritionist')}</span>
+                    </label>
+                  ))}
+                </div>
+                {errors.role && (
+                  <p className="mt-1 text-xs text-red">
+                    {errors.role.message}
+                  </p>
+                )}
               </div>
-              {errors.role && (
-                <p className="mt-1 text-xs text-red">
-                  {errors.role.message}
-                </p>
-              )}
-            </div>
+            )}
 
             {/* GDPR */}
             <label className="flex items-start gap-3 rounded-sm border border-border bg-bg px-4 py-3">

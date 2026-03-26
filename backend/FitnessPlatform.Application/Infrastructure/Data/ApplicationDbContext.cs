@@ -60,6 +60,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public virtual DbSet<ClientOnboardingData> ClientOnboardingData { get; set; } = null!;
 
     /// <inheritdoc />
+    public virtual DbSet<Notification> Notifications { get; set; } = null!;
+
+    /// <inheritdoc />
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         base.OnConfiguring(optionsBuilder);

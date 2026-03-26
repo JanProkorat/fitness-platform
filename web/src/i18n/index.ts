@@ -20,6 +20,8 @@ i18n.use(initReactI18next).init({
 i18n.on('languageChanged', (lng) => {
   localStorage.setItem('lang', lng);
   document.documentElement.lang = lng;
+  // Notify listeners (e.g. React Query cache invalidation) that language changed
+  window.dispatchEvent(new CustomEvent('app:languageChanged'));
 });
 
 export default i18n;

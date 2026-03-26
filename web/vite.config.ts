@@ -35,6 +35,8 @@ export default defineConfig({
       '/nutrition': apiProxy('/nutrition'),
       '/recipes': apiProxy('/recipes'),
       '/client': apiProxy('/client'),
+      '/exercises': apiProxy('/exercises'),
+      '/training': apiProxy('/training'),
     },
   },
 })

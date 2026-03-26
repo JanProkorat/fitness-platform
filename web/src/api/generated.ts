@@ -1042,7 +1042,7 @@ export interface CreateCollaborationResponse {
 export interface CreateCollaborationRequest {
     /** The public ID of the client to share with the collaborator. */
     clientPublicId: string;
-    /** The public ID of the collaborator's TrainerProfile. */
+    /** The public ID of the collaborator's ProfessionalProfile. */
     collaboratorPublicId: string;
 }
 

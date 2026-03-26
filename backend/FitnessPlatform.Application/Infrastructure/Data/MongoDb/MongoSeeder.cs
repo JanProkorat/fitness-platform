@@ -17,15 +17,30 @@ public static class MongoSeeder
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<MongoContext>>();
 
-        var existingCount = await mongo.Foods.CountDocumentsAsync(FilterDefinition<Domain.Documents.Food>.Empty);
-        if (existingCount > 0)
+        // Seed foods
+        var existingFoodCount = await mongo.Foods.CountDocumentsAsync(FilterDefinition<Domain.Documents.Food>.Empty);
+        if (existingFoodCount > 0)
         {
-            logger.LogInformation("MongoDB foods collection already has {Count} documents, skipping seed", existingCount);
-            return;
+            logger.LogInformation("MongoDB foods collection already has {Count} documents, skipping seed", existingFoodCount);
+        }
+        else
+        {
+            var foods = FoodSeedData.GetFoods();
+            await mongo.Foods.InsertManyAsync(foods);
+            logger.LogInformation("Seeded {Count} foods into MongoDB", foods.Count);
         }
 
-        var foods = FoodSeedData.GetFoods();
-        await mongo.Foods.InsertManyAsync(foods);
-        logger.LogInformation("Seeded {Count} foods into MongoDB", foods.Count);
+        // Seed exercises
+        var existingExerciseCount = await mongo.Exercises.CountDocumentsAsync(FilterDefinition<Domain.Documents.Exercise>.Empty);
+        if (existingExerciseCount > 0)
+        {
+            logger.LogInformation("MongoDB exercises collection already has {Count} documents, skipping seed", existingExerciseCount);
+        }
+        else
+        {
+            var exercises = ExerciseSeedData.GetExercises();
+            await mongo.Exercises.InsertManyAsync(exercises);
+            logger.LogInformation("Seeded {Count} exercises into MongoDB", exercises.Count);
+        }
     }
 }

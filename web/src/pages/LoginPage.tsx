@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/stores/auth';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { apiClient } from '@/api/client';
+import { showError } from '@/lib/api-errors';
 import type { LoginResponse } from '@/api/client';
 import { INVITE_TOKEN_KEY } from '@/pages/InviteAcceptPage';
 
@@ -16,7 +17,6 @@ export default function LoginPage() {
   const location = useLocation();
   const login = useAuthStore((s) => s.login);
   const setTokens = useAuthStore((s) => s.setTokens);
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [inviteStatus, setInviteStatus] = useState<'accepted' | 'failed' | null>(null);
   const justRegistered = (location.state as { registered?: boolean })?.registered;
@@ -39,7 +39,6 @@ export default function LoginPage() {
   });
 
   const onSubmit = async (data: LoginForm) => {
-    setError(null);
     setLoading(true);
     try {
       const res: LoginResponse = await apiClient.loginEndpoint(data);
@@ -78,7 +77,7 @@ export default function LoginPage() {
 
       navigate(isClientOnly ? '/download-app' : '/dashboard', { replace: true });
     } catch {
-      setError(t('auth.loginError'));
+      showError('auth.loginError');
     } finally {
       setLoading(false);
     }
@@ -139,12 +138,6 @@ export default function LoginPage() {
             </div>
           )}
 
-          {error && (
-            <div className="mb-4 rounded-sm border border-red-dim bg-red/8 px-4 py-3 text-sm text-red">
-              {error}
-            </div>
-          )}
-
           <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
             {/* Email */}
             <div>
@@ -201,6 +194,7 @@ export default function LoginPage() {
             {t('auth.noAccount')}{' '}
             <Link
               to="/register"
+              state={{ fromInvite: hasPendingInvite || fromInvite }}
               className="text-gold transition-colors hover:text-gold-bright"
             >
               {t('auth.register')}

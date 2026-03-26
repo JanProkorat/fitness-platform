@@ -20,12 +20,15 @@ export interface ServingSizeDto {
 export interface FoodSummary {
   foodId: string;
   name: string;
+  rawName: string;
+  nameEn?: string | null;
+  nameCs?: string | null;
+  nameDe?: string | null;
   source?: string | null;
   barcode?: string | null;
   nutrientValue: NutrientValueDto;
   allergens: string[];
   commonServings: ServingSizeDto[];
-  isVerified: boolean;
 }
 
 /** Paginated food search response. */
@@ -44,10 +47,25 @@ export interface GetCustomFoodsResponse {
   pageSize: number;
 }
 
+/** Request to update a custom food. */
+export interface UpdateFoodRequest {
+  name: string;
+  barcode?: string | null;
+  nameEn?: string | null;
+  nameCs?: string | null;
+  nameDe?: string | null;
+  nutrientValue: NutrientValueDto;
+  allergens: string[];
+  commonServings: ServingSizeDto[];
+}
+
 /** Request to create a custom food. */
 export interface CreateFoodRequest {
   name: string;
   barcode?: string | null;
+  nameEn?: string | null;
+  nameCs?: string | null;
+  nameDe?: string | null;
   nutrientValue: NutrientValueDto;
   allergens: string[];
   commonServings: ServingSizeDto[];

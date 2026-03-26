@@ -6,6 +6,7 @@ import type { PlanDay, PlanMeal, MealFood, GlobalNutritionSettings } from '@/api
 import MacroProgressBar from './MacroProgressBar';
 import MealCard from './MealCard';
 import AddItemsDrawer from './AddItemsDrawer';
+import DraggableDayHeader from '@/components/training/DraggableDayHeader';
 
 interface DayColumnProps {
   day: PlanDay;
@@ -14,10 +15,8 @@ interface DayColumnProps {
   globalSettings?: GlobalNutritionSettings | null;
   mealDistribution?: Record<string, number> | null;
   dailyKcal?: number | null;
-  onDayDragStart: (dayOfWeek: number) => void;
-  onDayDragOver: (dayOfWeek: number) => void;
-  onDayDrop: (dayOfWeek: number) => void;
-  isDragOver: boolean;
+  /// When true, the day header becomes a draggable handle for day reorder/copy.
+  draggable?: boolean;
 }
 
 function SortableMealCard({
@@ -64,10 +63,7 @@ export default function DayColumn({
   globalSettings,
   mealDistribution,
   dailyKcal,
-  onDayDragStart,
-  onDayDragOver,
-  onDayDrop,
-  isDragOver,
+  draggable: isDraggable,
 }: DayColumnProps) {
   const { t } = useTranslation();
   const addMeal = useNutritionPlanStore((s) => s.addMeal);
@@ -149,28 +145,10 @@ export default function DayColumn({
   const sortedMeals = day.meals.slice().sort((a, b) => a.order - b.order);
 
   return (
-    <div
-      className={`flex w-[336px] shrink-0 flex-col rounded-sm border bg-surface transition-colors ${
-        isDragOver ? 'border-gold' : 'border-border'
-      }`}
-      onDragOver={(e) => {
-        e.preventDefault();
-        onDayDragOver(day.dayOfWeek);
-      }}
-      onDrop={(e) => {
-        e.preventDefault();
-        onDayDrop(day.dayOfWeek);
-      }}
-    >
-      {/* Day header — drag handle for day reordering */}
-      <div
-        draggable
-        onDragStart={(e) => {
-          e.dataTransfer.effectAllowed = 'move';
-          onDayDragStart(day.dayOfWeek);
-        }}
-        className="cursor-grab border-b border-border px-3 py-2.5 active:cursor-grabbing"
-      >
+    <div className="flex w-[336px] shrink-0 flex-1 flex-col rounded-sm border border-border bg-surface transition-colors">
+      {/* Day header — optionally a drag handle */}
+      {isDraggable ? (
+      <DraggableDayHeader weekNumber={weekNumber} dayOfWeek={day.dayOfWeek}>
         <div className="flex items-center justify-between">
           <span className="font-heading text-xs font-bold uppercase tracking-wide">
             {dayLabel}
@@ -179,9 +157,23 @@ export default function DayColumn({
             {dayKcal} kcal
           </span>
         </div>
+      </DraggableDayHeader>
+      ) : (
+      <div className="border-b border-border px-3 py-2.5">
+        <div className="flex items-center justify-between">
+          <span className="font-heading text-xs font-bold uppercase tracking-wide">
+            {dayLabel}
+          </span>
+          <span className={`text-xs font-medium ${isOverTarget ? 'text-red-400' : 'text-green-400'}`}>
+            {dayKcal} kcal
+          </span>
+        </div>
+      </div>
+      )}
 
+      <div className="px-3 py-2.5">
         {/* Day macro totals */}
-        <div className="flex justify-center gap-2 mt-1.5 mb-2.5 pb-2 border-b border-border">
+        <div className="flex justify-center gap-2 mb-2.5 pb-2 border-b border-border">
           <span className="text-[10px] font-semibold text-gold">{dayTotals.kcal} kcal</span>
           <span className="text-[10px] text-blue-400">P {dayTotals.protein}g</span>
           <span className="text-[10px] text-amber-400">C {dayTotals.carbs}g</span>

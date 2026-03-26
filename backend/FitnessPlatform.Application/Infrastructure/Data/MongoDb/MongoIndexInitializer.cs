@@ -30,6 +30,9 @@ public class MongoIndexInitializer : IHostedService
         await CreateFoodIndexes(cancellationToken);
         await CreateNutritionPlanIndexes(cancellationToken);
         await CreateMealLogIndexes(cancellationToken);
+        await CreateExerciseIndexes(cancellationToken);
+        await CreateTrainingPlanIndexes(cancellationToken);
+        await CreateWorkoutLogIndexes(cancellationToken);
 
         _logger.LogInformation("MongoDB indexes created successfully");
     }
@@ -97,5 +100,89 @@ public class MongoIndexInitializer : IHostedService
             new CreateIndexOptions { Name = "idx_meallog_clientId_eatenAt" });
 
         await indexes.CreateManyAsync([clientDateIndex], ct);
+    }
+
+    private async Task CreateExerciseIndexes(CancellationToken ct)
+    {
+        var indexes = _mongo.Exercises.Indexes;
+
+        // Text index on name for fulltext search
+        var textIndex = new CreateIndexModel<Exercise>(
+            Builders<Exercise>.IndexKeys.Text(e => e.Name),
+            new CreateIndexOptions { Name = "idx_exercise_name_text" });
+
+        // Unique index on externalId for API lookups
+        var externalIdIndex = new CreateIndexModel<Exercise>(
+            Builders<Exercise>.IndexKeys.Ascending(e => e.ExternalId),
+            new CreateIndexOptions { Name = "idx_exercise_externalId", Unique = true });
+
+        // Index on muscleGroups for filter queries
+        var muscleGroupIndex = new CreateIndexModel<Exercise>(
+            Builders<Exercise>.IndexKeys.Ascending(e => e.MuscleGroups),
+            new CreateIndexOptions { Name = "idx_exercise_muscleGroups" });
+
+        // Index on category for filter queries
+        var categoryIndex = new CreateIndexModel<Exercise>(
+            Builders<Exercise>.IndexKeys.Ascending(e => e.Category),
+            new CreateIndexOptions { Name = "idx_exercise_category" });
+
+        // Sparse index on trainerId for custom exercise queries
+        var trainerIndex = new CreateIndexModel<Exercise>(
+            Builders<Exercise>.IndexKeys.Ascending(e => e.TrainerId),
+            new CreateIndexOptions { Name = "idx_exercise_trainerId", Sparse = true });
+
+        await indexes.CreateManyAsync(
+            [textIndex, externalIdIndex, muscleGroupIndex, categoryIndex, trainerIndex],
+            ct);
+    }
+
+    private async Task CreateTrainingPlanIndexes(CancellationToken ct)
+    {
+        var indexes = _mongo.TrainingPlans.Indexes;
+
+        // Compound index on clientId + status for filtered queries
+        var clientStatusIndex = new CreateIndexModel<TrainingPlan>(
+            Builders<TrainingPlan>.IndexKeys
+                .Ascending(p => p.ClientId)
+                .Ascending(p => p.Status),
+            new CreateIndexOptions { Name = "idx_trainingplan_clientId_status" });
+
+        // Unique index on externalId for API lookups
+        var externalIdIndex = new CreateIndexModel<TrainingPlan>(
+            Builders<TrainingPlan>.IndexKeys.Ascending(p => p.ExternalId),
+            new CreateIndexOptions { Name = "idx_trainingplan_externalId", Unique = true });
+
+        // Index on trainerId for ownership queries
+        var trainerIndex = new CreateIndexModel<TrainingPlan>(
+            Builders<TrainingPlan>.IndexKeys.Ascending(p => p.TrainerId),
+            new CreateIndexOptions { Name = "idx_trainingplan_trainerId" });
+
+        await indexes.CreateManyAsync([clientStatusIndex, externalIdIndex, trainerIndex], ct);
+    }
+
+    private async Task CreateWorkoutLogIndexes(CancellationToken ct)
+    {
+        var indexes = _mongo.WorkoutLogs.Indexes;
+
+        // Unique index on externalId for API lookups
+        var externalIdIndex = new CreateIndexModel<WorkoutLog>(
+            Builders<WorkoutLog>.IndexKeys.Ascending(w => w.ExternalId),
+            new CreateIndexOptions { Name = "idx_workoutlog_externalId", Unique = true });
+
+        // Compound index on clientId + startedAt for history queries
+        var clientDateIndex = new CreateIndexModel<WorkoutLog>(
+            Builders<WorkoutLog>.IndexKeys
+                .Ascending(w => w.ClientId)
+                .Descending(w => w.StartedAt),
+            new CreateIndexOptions { Name = "idx_workoutlog_clientId_startedAt" });
+
+        // Index on clientId + sessionId for finding logs by session
+        var clientSessionIndex = new CreateIndexModel<WorkoutLog>(
+            Builders<WorkoutLog>.IndexKeys
+                .Ascending(w => w.ClientId)
+                .Ascending(w => w.SessionId),
+            new CreateIndexOptions { Name = "idx_workoutlog_clientId_sessionId", Sparse = true });
+
+        await indexes.CreateManyAsync([externalIdIndex, clientDateIndex, clientSessionIndex], ct);
     }
 }

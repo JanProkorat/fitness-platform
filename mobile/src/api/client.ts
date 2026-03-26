@@ -3,7 +3,7 @@ import { getLocales } from 'expo-localization';
 import { useAuthStore } from '../stores/auth';
 
 const API_BASE_URL = __DEV__
-  ? 'http://localhost:5001'  // iOS simulator
+  ? 'http://localhost:5000'  // iOS simulator – use HTTP port (5001 is HTTPS)
   : 'https://api.gfplatform.com'; // production
 
 const api = axios.create({

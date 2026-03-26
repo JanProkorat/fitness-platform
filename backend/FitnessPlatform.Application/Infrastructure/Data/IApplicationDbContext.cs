@@ -59,6 +59,11 @@ public interface IApplicationDbContext
     DbSet<ClientOnboardingData> ClientOnboardingData { get; set; }
 
     /// <summary>
+    /// Notifications.
+    /// </summary>
+    DbSet<Notification> Notifications { get; set; }
+
+    /// <summary>
     /// Saves all changes made in this context to the database.
     /// </summary>
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

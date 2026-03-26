@@ -1,0 +1,2457 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GoodFellas Platform – Webový portál</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #ffffff;
+  --bg2:       #f7f7f5;
+  --bg3:       #efede9;
+  --bg-hover:  #f1f0ee;
+  --bg-active: #e9e8e3;
+  --border:    rgba(55,53,47,0.09);
+  --border-md: rgba(55,53,47,0.16);
+  --text:      #37352f;
+  --text2:     #6b6860;
+  --text3:     #9b9a97;
+  --text4:     #c7c6c3;
+  --accent:    #c9a84c;
+  --accent-bg: rgba(201,168,76,0.08);
+  --accent-border: rgba(201,168,76,0.3);
+  --red:       #e03e3e;
+  --red-bg:    rgba(224,62,62,0.08);
+  --green:     #0f7b6c;
+  --green-bg:  rgba(15,123,108,0.08);
+  --blue:      #0b6e99;
+  --blue-bg:   rgba(11,110,153,0.08);
+  --purple:    #6940a5;
+  --purple-bg: rgba(105,64,165,0.08);
+  --orange:    #ad5700;
+  --orange-bg: rgba(173,87,0,0.08);
+  --radius:    4px;
+  --radius-md: 6px;
+  --sidebar-w: 240px;
+}
+
+body {
+  font-family: 'Inter', -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── TOP NAV (screen switcher) ── */
+#topnav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+  height: 40px; background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 2px;
+  padding: 0 12px; overflow-x: auto;
+}
+#topnav .tn-logo {
+  font-size: 12px; font-weight: 600; color: var(--accent);
+  margin-right: 12px; white-space: nowrap; letter-spacing: 0.3px;
+  flex-shrink: 0;
+}
+#topnav .tn-sep { width: 1px; height: 16px; background: var(--border-md); margin: 0 8px; flex-shrink: 0; }
+#topnav .tn-group { display: flex; align-items: center; gap: 1px; }
+#topnav .tn-label { font-size: 11px; color: var(--text3); padding: 0 6px; white-space: nowrap; letter-spacing: 0.4px; flex-shrink: 0; }
+.tn-btn {
+  padding: 4px 8px; border-radius: var(--radius); border: none;
+  background: transparent; color: var(--text2); font-size: 12px; font-family: 'Inter', sans-serif;
+  cursor: pointer; white-space: nowrap; transition: background .1s, color .1s;
+}
+.tn-btn:hover { background: var(--bg-hover); color: var(--text); }
+.tn-btn.active { background: var(--bg-active); color: var(--text); font-weight: 500; }
+
+/* ── CANVAS ── */
+#canvas { padding-top: 40px; }
+.screen { display: none; }
+.screen.active { display: block; }
+
+/* ── APP SHELL ── */
+.app-shell {
+  display: flex;
+  height: calc(100vh - 40px);
+  overflow: hidden;
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.sidebar::-webkit-scrollbar { width: 0; }
+
+.sidebar-workspace {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 12px 8px;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  margin: 4px 6px;
+  transition: background .1s;
+}
+.sidebar-workspace:hover { background: var(--bg-hover); }
+.sidebar-workspace .ws-icon {
+  width: 24px; height: 24px; border-radius: var(--radius);
+  background: var(--text); display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: var(--accent); flex-shrink: 0;
+}
+.sidebar-workspace .ws-name { font-size: 13px; font-weight: 600; color: var(--text); }
+.sidebar-workspace .ws-chevron { margin-left: auto; color: var(--text3); font-size: 11px; }
+
+.sidebar-section { padding: 6px 0 2px; }
+.sidebar-section-label {
+  font-size: 11px; font-weight: 500; color: var(--text3);
+  padding: 4px 14px 2px; letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.sidebar-item {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 8px 5px 12px; margin: 0 4px;
+  border-radius: var(--radius-md); cursor: pointer;
+  transition: background .1s; position: relative;
+  font-size: 13px; color: var(--text2);
+}
+.sidebar-item:hover { background: var(--bg-hover); color: var(--text); }
+.sidebar-item:hover .si-actions { opacity: 1; }
+.sidebar-item.active { background: var(--bg-active); color: var(--text); font-weight: 500; }
+.sidebar-item .si-icon { font-size: 14px; width: 18px; text-align: center; flex-shrink: 0; opacity: 0.7; }
+.sidebar-item.active .si-icon { opacity: 1; }
+.sidebar-item .si-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sidebar-item .si-count {
+  font-size: 11px; color: var(--text3); background: var(--bg3);
+  border-radius: 10px; padding: 0 6px; flex-shrink: 0;
+}
+.sidebar-item .si-actions { opacity: 0; display: flex; gap: 2px; margin-left: auto; }
+.sidebar-item .si-actions span {
+  width: 20px; height: 20px; border-radius: var(--radius);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; color: var(--text3);
+  transition: background .1s, color .1s;
+}
+.sidebar-item .si-actions span:hover { background: var(--bg3); color: var(--text); }
+.sidebar-item.indent { padding-left: 28px; }
+
+.sidebar-divider { height: 1px; background: var(--border); margin: 6px 12px; }
+
+.sidebar-user {
+  margin-top: auto; padding: 10px 12px;
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+  cursor: pointer; transition: background .1s;
+}
+.sidebar-user:hover { background: var(--bg-hover); }
+.sidebar-user .su-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--text); display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600; color: var(--bg); flex-shrink: 0;
+}
+.sidebar-user .su-name { font-size: 13px; font-weight: 500; color: var(--text); }
+.sidebar-user .su-role { font-size: 11px; color: var(--text3); }
+
+/* ── MAIN CONTENT ── */
+.main {
+  flex: 1; overflow-y: auto; overflow-x: hidden;
+  display: flex; flex-direction: column;
+}
+.main::-webkit-scrollbar { width: 6px; }
+.main::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 3px; }
+
+/* ── PAGE HEADER ── */
+.page-header {
+  padding: 40px 96px 12px;
+  max-width: 1200px;
+}
+.page-header .ph-icon { font-size: 36px; margin-bottom: 8px; line-height: 1; }
+.page-header h1 {
+  font-size: 30px; font-weight: 700; color: var(--text);
+  letter-spacing: -0.02em; line-height: 1.2; margin-bottom: 4px;
+}
+.page-header .ph-sub { font-size: 14px; color: var(--text3); }
+
+/* ── PAGE CONTENT ── */
+.page-content { padding: 0 96px 60px; max-width: 1200px; }
+
+/* ── NOTION TOOLBAR ── */
+.notion-toolbar {
+  display: flex; align-items: center; gap: 4px;
+  padding: 6px 96px 10px;
+  border-bottom: 1px solid var(--border);
+  max-width: 1200px;
+}
+.notion-toolbar .nt-view {
+  display: flex; align-items: center; gap: 4px;
+  padding: 4px 8px; border-radius: var(--radius-md);
+  font-size: 13px; color: var(--text2); cursor: pointer;
+  transition: background .1s;
+}
+.notion-toolbar .nt-view:hover { background: var(--bg-hover); color: var(--text); }
+.notion-toolbar .nt-view.active { background: var(--bg-active); color: var(--text); font-weight: 500; }
+.notion-toolbar .nt-sep { width: 1px; height: 18px; background: var(--border-md); margin: 0 4px; }
+.notion-toolbar .nt-action {
+  display: flex; align-items: center; gap: 4px;
+  padding: 4px 8px; border-radius: var(--radius-md);
+  font-size: 13px; color: var(--text2); cursor: pointer;
+  margin-left: auto; transition: background .1s;
+}
+.notion-toolbar .nt-action:hover { background: var(--bg-hover); color: var(--text); }
+.notion-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 10px; border-radius: var(--radius-md);
+  font-size: 13px; font-family: 'Inter', sans-serif; cursor: pointer;
+  transition: background .1s, border-color .1s;
+  border: 1px solid var(--border-md); background: var(--bg);
+  color: var(--text); font-weight: 500;
+}
+.notion-btn:hover { background: var(--bg-hover); }
+.notion-btn.primary {
+  background: var(--text); color: var(--bg);
+  border-color: transparent;
+}
+.notion-btn.primary:hover { background: #1a1915; }
+
+/* ── TAGS / BADGES ── */
+.tag {
+  display: inline-flex; align-items: center;
+  padding: 2px 8px; border-radius: 12px;
+  font-size: 12px; font-weight: 500; white-space: nowrap;
+}
+.tag-green  { background: var(--green-bg);  color: var(--green); }
+.tag-red    { background: var(--red-bg);    color: var(--red); }
+.tag-orange { background: var(--orange-bg); color: var(--orange); }
+.tag-blue   { background: var(--blue-bg);   color: var(--blue); }
+.tag-purple { background: var(--purple-bg); color: var(--purple); }
+.tag-gray   { background: var(--bg3);       color: var(--text2); }
+.tag-accent { background: var(--accent-bg); color: var(--accent); }
+
+/* ── PROGRESS BAR ── */
+.progress-wrap { background: var(--bg3); border-radius: 99px; overflow: hidden; height: 6px; }
+.progress-fill { height: 100%; border-radius: 99px; background: var(--green); transition: width .3s; }
+.progress-fill.warn  { background: var(--orange); }
+.progress-fill.crit  { background: var(--red); }
+.progress-fill.gold  { background: var(--accent); }
+
+/* ── DIVIDER ── */
+.divider { height: 1px; background: var(--border); margin: 16px 0; }
+
+/* ── INLINE INPUT (Notion style – no box until hover) ── */
+.inline-val {
+  display: inline-block; padding: 2px 4px;
+  border-radius: var(--radius); cursor: text;
+  transition: background .1s;
+}
+.inline-val:hover { background: var(--bg-hover); }
+
+/* ── PROPERTY ROW (like Notion page properties) ── */
+.prop-list { margin-bottom: 20px; }
+.prop-row {
+  display: flex; align-items: flex-start; gap: 0;
+  padding: 4px 0; border-radius: var(--radius-md);
+  transition: background .1s; cursor: default;
+}
+.prop-row:hover { background: var(--bg-hover); }
+.prop-key {
+  width: 180px; flex-shrink: 0;
+  font-size: 13px; color: var(--text3);
+  display: flex; align-items: center; gap: 6px;
+  padding: 2px 8px;
+}
+.prop-key .pk-icon { font-size: 13px; opacity: 0.6; }
+.prop-val {
+  flex: 1; font-size: 13px; color: var(--text);
+  padding: 2px 8px;
+}
+
+/* ── DATABASE TABLE ── */
+.db-table { width: 100%; border-collapse: collapse; }
+.db-table th {
+  text-align: left; font-size: 12px; font-weight: 500;
+  color: var(--text3); padding: 6px 12px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap; cursor: pointer;
+  transition: background .1s;
+}
+.db-table th:hover { background: var(--bg-hover); }
+.db-table td {
+  padding: 8px 12px; font-size: 13px; color: var(--text);
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.db-table tr:hover td { background: var(--bg-hover); }
+.db-table tr:hover .row-actions { opacity: 1; }
+.db-table .row-title { font-weight: 500; color: var(--text); cursor: pointer; }
+.db-table .row-title:hover { text-decoration: underline; }
+.row-actions { opacity: 0; display: flex; gap: 4px; }
+.row-actions button {
+  padding: 2px 8px; border-radius: var(--radius); border: 1px solid var(--border-md);
+  background: var(--bg); font-size: 11px; color: var(--text2); cursor: pointer;
+  font-family: 'Inter', sans-serif;
+}
+.row-actions button:hover { background: var(--bg-hover); }
+.db-add-row {
+  padding: 8px 12px; font-size: 13px; color: var(--text3);
+  cursor: pointer; display: flex; align-items: center; gap: 6px;
+  border-bottom: 1px solid var(--border);
+  transition: background .1s;
+}
+.db-add-row:hover { background: var(--bg-hover); color: var(--text); }
+
+/* ── CARD GRID ── */
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.notion-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md); background: var(--bg);
+  cursor: pointer; transition: box-shadow .15s, border-color .15s;
+  overflow: hidden;
+}
+.notion-card:hover { border-color: var(--border-md); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.card-cover { height: 80px; background: var(--bg3); position: relative; overflow: hidden; }
+.card-cover-pattern {
+  position: absolute; inset: 0;
+  background-image: repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(55,53,47,0.04) 8px, rgba(55,53,47,0.04) 9px);
+}
+.card-body { padding: 12px 14px; }
+.card-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+.card-props { display: flex; flex-direction: column; gap: 3px; }
+.card-prop { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text3); }
+.card-prop-val { color: var(--text2); }
+
+/* ── STAT BLOCKS (Notion callout style) ── */
+.callout {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 12px 14px; border-radius: var(--radius-md);
+  background: var(--bg2); border: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+.callout-icon { font-size: 18px; flex-shrink: 0; line-height: 1.4; }
+.callout-body { flex: 1; }
+.callout-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+.callout-text  { font-size: 13px; color: var(--text2); line-height: 1.5; }
+
+/* ── STATS ROW ── */
+.stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+.stat-block {
+  padding: 14px 16px; border-radius: var(--radius-md);
+  border: 1px solid var(--border); background: var(--bg);
+}
+.stat-label { font-size: 11px; color: var(--text3); font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
+.stat-value { font-size: 22px; font-weight: 700; color: var(--text); letter-spacing: -0.02em; line-height: 1; }
+.stat-sub   { font-size: 12px; color: var(--text3); margin-top: 4px; }
+
+/* ── TOGGLE BLOCK ── */
+.toggle-block { border-radius: var(--radius-md); overflow: hidden; margin-bottom: 4px; }
+.toggle-header {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 8px; cursor: pointer; transition: background .1s;
+  border-radius: var(--radius-md);
+}
+.toggle-header:hover { background: var(--bg-hover); }
+.toggle-chevron { font-size: 11px; color: var(--text3); transition: transform .15s; width: 14px; text-align: center; }
+.toggle-chevron.open { transform: rotate(90deg); }
+.toggle-content { padding: 4px 0 4px 22px; display: none; }
+.toggle-content.open { display: block; }
+
+/* ── INLINE TOOLBAR (appears on hover) ── */
+.hover-toolbar {
+  display: none; align-items: center; gap: 2px;
+  background: var(--bg); border: 1px solid var(--border-md);
+  border-radius: var(--radius-md); padding: 3px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  z-index: 10;
+}
+*:hover > .hover-toolbar { display: flex; }
+.hover-toolbar button {
+  padding: 3px 8px; border-radius: var(--radius); border: none;
+  background: transparent; font-size: 12px; color: var(--text2);
+  cursor: pointer; font-family: 'Inter', sans-serif;
+  transition: background .1s;
+}
+.hover-toolbar button:hover { background: var(--bg-hover); color: var(--text); }
+
+/* ── BREADCRUMB ── */
+.breadcrumb {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 13px; color: var(--text3); padding: 8px 96px 0;
+  max-width: 1200px;
+}
+.breadcrumb a { color: var(--text3); text-decoration: none; cursor: pointer; }
+.breadcrumb a:hover { color: var(--text); text-decoration: underline; }
+.breadcrumb .bc-sep { color: var(--text4); }
+
+/* ── CHAT / MESSAGES ── */
+.msg-list { display: flex; flex-direction: column; gap: 2px; padding: 12px 0; }
+.msg-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 8px 12px; border-radius: var(--radius-md);
+  transition: background .1s; cursor: default;
+}
+.msg-item:hover { background: var(--bg-hover); }
+.msg-avatar {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600; color: var(--bg);
+  margin-top: 2px;
+}
+.msg-body { flex: 1; }
+.msg-meta { display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px; }
+.msg-name { font-size: 13px; font-weight: 600; color: var(--text); }
+.msg-time { font-size: 11px; color: var(--text3); }
+.msg-text { font-size: 13px; color: var(--text); line-height: 1.6; }
+
+/* ── FOOD TABLE ── */
+.food-section { margin-bottom: 20px; }
+.food-section-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 0; border-bottom: 1px solid var(--border); margin-bottom: 4px;
+}
+.food-section-title { font-size: 13px; font-weight: 600; color: var(--text); flex: 1; }
+.food-section-total { font-size: 12px; color: var(--text3); }
+.food-row {
+  display: grid; align-items: center;
+  padding: 5px 4px; border-radius: var(--radius-md);
+  transition: background .1s; cursor: default;
+  grid-template-columns: 1fr 70px 55px 40px 40px 40px 60px;
+  gap: 4px;
+}
+.food-row:hover { background: var(--bg-hover); }
+.food-row .fr-name { font-size: 13px; color: var(--text); }
+.food-row .fr-amount { font-size: 12px; color: var(--text3); font-variant-numeric: tabular-nums; }
+.food-row .fr-num { font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; }
+.food-row-header {
+  display: grid; padding: 4px 4px 6px;
+  grid-template-columns: 1fr 70px 55px 40px 40px 40px 60px;
+  gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 2px;
+}
+.food-row-header span { font-size: 11px; color: var(--text3); font-weight: 500; text-align: right; }
+.food-row-header span:first-child { text-align: left; }
+.food-row-header span:nth-child(2) { text-align: left; }
+
+/* ── EXERCISE BLOCK ── */
+.exercise-block {
+  border: 1px solid var(--border); border-radius: var(--radius-md);
+  overflow: hidden; margin-bottom: 8px;
+}
+.ex-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; background: var(--bg2); cursor: pointer;
+  transition: background .1s;
+}
+.ex-header:hover { background: var(--bg3); }
+.ex-name { font-size: 13px; font-weight: 600; flex: 1; }
+.ex-meta { font-size: 12px; color: var(--text3); }
+.ex-body { padding: 8px 12px; }
+.ex-sets {
+  display: grid; grid-template-columns: 40px 80px 80px 80px 1fr;
+  gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--border);
+  font-size: 12px; color: var(--text3);
+}
+.ex-set-row {
+  display: grid; grid-template-columns: 40px 80px 80px 80px 1fr;
+  gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.ex-set-row:last-child { border-bottom: none; }
+.ex-set-row .done { color: var(--green); }
+
+/* ── WEEK GRID (training plan) ── */
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px; margin-bottom: 16px;
+}
+.day-col {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md); overflow: hidden;
+  min-height: 200px;
+}
+.day-header {
+  padding: 6px 10px; background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  font-size: 11px; font-weight: 600; color: var(--text3);
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.day-header.today { color: var(--blue); background: var(--blue-bg); }
+.day-body { padding: 8px; }
+.day-session {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 6px 8px; margin-bottom: 6px;
+  cursor: pointer; transition: border-color .1s, background .1s;
+}
+.day-session:hover { border-color: var(--border-md); background: var(--bg-hover); }
+.day-session-name { font-size: 11px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+.day-session-meta { font-size: 11px; color: var(--text3); }
+.day-rest { padding: 8px; text-align: center; color: var(--text4); font-size: 12px; }
+.day-add {
+  font-size: 12px; color: var(--text4); padding: 4px;
+  text-align: center; cursor: pointer; border-radius: var(--radius);
+  transition: background .1s, color .1s;
+}
+.day-add:hover { background: var(--bg-hover); color: var(--text3); }
+
+/* ── SEARCH INPUT ── */
+.search-wrap {
+  display: flex; align-items: center; gap: 8px;
+  border: 1px solid var(--border-md); border-radius: var(--radius-md);
+  padding: 6px 10px; background: var(--bg);
+  transition: border-color .15s, box-shadow .15s;
+}
+.search-wrap:focus-within {
+  border-color: rgba(55,53,47,0.3);
+  box-shadow: 0 0 0 2px rgba(55,53,47,0.06);
+}
+.search-wrap input {
+  border: none; outline: none; background: transparent;
+  font-size: 13px; color: var(--text); flex: 1;
+  font-family: 'Inter', sans-serif;
+}
+.search-wrap input::placeholder { color: var(--text3); }
+.search-icon { color: var(--text3); font-size: 14px; }
+
+/* ── FILTER CHIPS ── */
+.filter-bar { display: flex; align-items: center; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+.filter-chip {
+  display: flex; align-items: center; gap: 4px;
+  padding: 4px 10px; border-radius: 99px; font-size: 12px;
+  border: 1px solid var(--border-md); background: var(--bg);
+  color: var(--text2); cursor: pointer; transition: background .1s;
+}
+.filter-chip:hover { background: var(--bg-hover); }
+.filter-chip.active { background: var(--bg-active); color: var(--text); font-weight: 500; border-color: var(--border-md); }
+
+/* ── INLINE MENTION CHIP ── */
+.mention {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 1px 6px;
+  font-size: 12px; color: var(--text2); cursor: pointer;
+  transition: background .1s;
+}
+.mention:hover { background: var(--bg3); }
+
+/* ── MACRO MINI BAR ── */
+.macro-bar { display: flex; gap: 2px; height: 4px; border-radius: 99px; overflow: hidden; width: 80px; }
+.macro-bar .mb-p { background: var(--blue); }
+.macro-bar .mb-c { background: var(--orange); }
+.macro-bar .mb-f { background: var(--purple); }
+
+/* ── SIDEBAR TOGGLE (mobile) ── */
+@media (max-width: 900px) {
+  :root { --sidebar-w: 0px; }
+  .sidebar { display: none; }
+  .page-header, .page-content, .notion-toolbar, .breadcrumb { padding-left: 20px; padding-right: 20px; }
+}
+
+/* ── DARK MODE ── */
+body.dark {
+  --bg:        #191919;
+  --bg2:       #202020;
+  --bg3:       #2a2a2a;
+  --bg-hover:  #252525;
+  --bg-active: #2f2f2f;
+  --border:    rgba(255,255,255,0.07);
+  --border-md: rgba(255,255,255,0.13);
+  --text:      #e6e3dd;
+  --text2:     #9b9a97;
+  --text3:     #6b6860;
+  --text4:     #454340;
+  --accent:    #c9a84c;
+  --accent-bg: rgba(201,168,76,0.1);
+  --accent-border: rgba(201,168,76,0.25);
+  --red:       #e75b5b;
+  --red-bg:    rgba(231,91,91,0.1);
+  --green:     #4dab97;
+  --green-bg:  rgba(77,171,151,0.1);
+  --blue:      #529fc9;
+  --blue-bg:   rgba(82,159,201,0.1);
+  --purple:    #9b7fd4;
+  --purple-bg: rgba(155,127,212,0.1);
+  --orange:    #d4873a;
+  --orange-bg: rgba(212,135,58,0.1);
+}
+
+/* dark mode scrollbar */
+body.dark .main::-webkit-scrollbar-thumb { background: var(--bg-active); }
+
+/* dark mode sidebar user avatar */
+body.dark .sidebar-workspace .ws-icon { background: #e6e3dd; color: #191919; }
+body.dark .sidebar-user .su-avatar { background: #e6e3dd; color: #191919; }
+
+/* ── THEME TOGGLE BUTTON ── */
+#theme-toggle {
+  width: 28px; height: 28px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-md);
+  background: transparent;
+  color: var(--text2);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  margin-left: 8px;
+  flex-shrink: 0;
+  transition: background .1s, color .1s;
+}
+#theme-toggle:hover { background: var(--bg-hover); color: var(--text); }
+
+
+/* ── NUTRITION EDITOR (s16) ── */
+.ne-shell { display: grid; grid-template-columns: 1fr 256px; height: calc(100vh - 40px); overflow: hidden; }
+.ne-main  { display: flex; flex-direction: column; overflow: hidden; }
+.ne-panel { border-left: 1px solid var(--border); background: var(--bg2); display: flex; flex-direction: column; overflow: hidden; }
+.ne-topbar {
+  height: 44px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 6px;
+  padding: 0 16px; background: var(--bg); flex-shrink: 0;
+}
+.ne-save { font-size: 11px; color: var(--text3); }
+.ne-save.saved { color: var(--green); }
+.ne-day-tabs {
+  display: flex; align-items: center; border-bottom: 1px solid var(--border);
+  padding: 0 12px; background: var(--bg); overflow-x: auto; flex-shrink: 0;
+}
+.ne-day-tab {
+  padding: 7px 10px; font-size: 12px; color: var(--text3);
+  cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;
+  white-space: nowrap; transition: color .1s; text-align: center;
+}
+.ne-day-tab:hover { color: var(--text); }
+.ne-day-tab.active { color: var(--text); border-bottom-color: var(--text); font-weight: 500; }
+.ne-day-tab .ndt-k { font-size: 10px; color: var(--text4); display: block; margin-top: 1px; }
+.ne-day-tab.active .ndt-k { color: var(--text3); }
+.ne-meals { padding: 10px 12px; overflow-y: auto; flex: 1; }
+.ne-meals::-webkit-scrollbar { width: 4px; }
+.ne-meals::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 2px; }
+.ne-meal-block { margin-bottom: 4px; border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; background: var(--bg); }
+.ne-meal-header {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 10px; cursor: pointer; transition: background .1s; user-select: none;
+}
+.ne-meal-header:hover { background: var(--bg-hover); }
+.ne-mchev { font-size: 10px; color: var(--text3); transition: transform .15s; width: 12px; flex-shrink: 0; }
+.ne-mchev.open { transform: rotate(90deg); }
+.ne-mname { font-size: 13px; font-weight: 600; flex: 1; }
+.ne-mtime { font-size: 11px; color: var(--text3); }
+.ne-mtotals { display: flex; gap: 8px; font-size: 12px; flex-shrink: 0; }
+.ne-mtotals .mt-k { font-weight: 600; color: var(--text); }
+.ne-mtotals .mt-p { color: var(--blue); }
+.ne-mtotals .mt-c { color: var(--orange); }
+.ne-mtotals .mt-f { color: var(--purple); }
+.ne-meal-body { display: none; border-top: 1px solid var(--border); }
+.ne-meal-body.open { display: block; }
+.ne-food-head {
+  display: grid; grid-template-columns: 1fr 68px 48px 36px 36px 36px 20px;
+  gap: 4px; padding: 5px 10px 4px; border-bottom: 1px solid var(--border);
+}
+.ne-food-head span { font-size: 11px; color: var(--text3); font-weight: 500; text-align: right; }
+.ne-food-head span:first-child, .ne-food-head span:nth-child(2) { text-align: left; }
+.ne-food-row {
+  display: grid; grid-template-columns: 1fr 68px 48px 36px 36px 36px 20px;
+  gap: 4px; padding: 5px 10px; align-items: center; transition: background .1s;
+}
+.ne-food-row:hover { background: var(--bg-hover); }
+.ne-food-row:hover .ne-del { opacity: 1; }
+.ne-fname { font-size: 13px; color: var(--text); }
+.ne-famt  { font-size: 12px; color: var(--text3); }
+.ne-fnum  { font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; }
+.ne-del   { opacity: 0; font-size: 11px; color: var(--text4); cursor: pointer; text-align: center; transition: opacity .1s, color .1s; }
+.ne-del:hover { color: var(--red); }
+.ne-editable {
+  border-radius: var(--radius); padding: 1px 3px; cursor: text;
+  transition: background .1s; outline: none; min-width: 20px; display: inline-block;
+}
+.ne-editable:hover { background: var(--bg-hover); }
+.ne-editable:focus { background: var(--bg-active); box-shadow: 0 0 0 1.5px var(--border-md); }
+.ne-add-food {
+  position: relative; padding: 5px 10px;
+  display: flex; align-items: center; gap: 6px; transition: background .1s;
+}
+.ne-add-food:hover { background: var(--bg-hover); }
+.ne-add-input {
+  flex: 1; border: none; outline: none; background: transparent;
+  font-size: 13px; color: var(--text); font-family: 'Inter', sans-serif;
+}
+.ne-add-input::placeholder { color: var(--text4); }
+.ne-dropdown {
+  display: none; position: absolute; left: 8px; right: 8px; top: 100%;
+  border: 1px solid var(--border-md); border-radius: var(--radius-md);
+  background: var(--bg); z-index: 100; box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  overflow: hidden;
+}
+.ne-dropdown.open { display: block; }
+.ne-dopt {
+  display: grid; grid-template-columns: 1fr auto; gap: 12px;
+  padding: 7px 12px; cursor: pointer; font-size: 13px; transition: background .1s; align-items: center;
+}
+.ne-dopt:hover { background: var(--bg-hover); }
+.ne-dopt-name { color: var(--text); }
+.ne-dopt-meta { font-size: 11px; color: var(--text3); white-space: nowrap; }
+.ne-add-meal {
+  margin: 6px 12px 12px; display: flex; align-items: center; gap: 6px;
+  padding: 7px 10px; border: 1px dashed var(--border-md); border-radius: var(--radius-md);
+  color: var(--text3); font-size: 13px; cursor: pointer; transition: background .1s, color .1s;
+}
+.ne-add-meal:hover { background: var(--bg-hover); color: var(--text); }
+.ne-sp-section { padding: 12px; border-bottom: 1px solid var(--border); }
+.ne-sp-label { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px; }
+.ne-macro-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+.ne-macro-label { font-size: 12px; color: var(--text2); display: flex; align-items: center; gap: 5px; }
+.ne-macro-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.ne-macro-vals { font-size: 12px; font-variant-numeric: tabular-nums; }
+.ne-macro-vals .nmc { font-weight: 600; color: var(--text); }
+.ne-macro-vals .nmx { color: var(--text3); }
+.ne-pbar { height: 4px; border-radius: 99px; background: var(--bg3); margin-bottom: 7px; overflow: hidden; }
+.ne-pfill { height: 100%; border-radius: 99px; transition: width .3s; }
+.ne-stack-bar { height: 8px; border-radius: 99px; overflow: hidden; display: flex; margin: 8px 0 4px; }
+.ne-sbar-p { background: var(--blue); transition: width .3s; }
+.ne-sbar-c { background: var(--orange); transition: width .3s; }
+.ne-sbar-f { background: var(--purple); transition: width .3s; }
+
+.ne-week-tabs {
+  display: flex; align-items: center; gap: 0;
+  border-bottom: 1px solid var(--border);
+  padding: 0 12px; background: var(--bg2); overflow-x: auto; flex-shrink: 0;
+}
+.ne-week-tab {
+  padding: 6px 12px; font-size: 12px; color: var(--text3);
+  cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;
+  white-space: nowrap; transition: color .1s; display: flex; align-items: center; gap: 5px;
+}
+.ne-week-tab:hover { color: var(--text); }
+.ne-week-tab.active { color: var(--text); border-bottom-color: var(--text); font-weight: 500; }
+.ne-week-tab .nwt-badge {
+  font-size: 10px; background: var(--bg3); color: var(--text3);
+  border-radius: 10px; padding: 0 5px; line-height: 16px;
+}
+.ne-week-tab.active .nwt-badge { background: var(--bg-active); color: var(--text2); }
+.ne-week-tab.template .nwt-badge { background: var(--accent-bg); color: var(--accent); }
+.ne-week-actions {
+  margin-left: auto; display: flex; align-items: center; gap: 4px; padding: 4px 0;
+}
+.ne-copy-week-btn {
+  padding: 3px 8px; border-radius: var(--radius); border: 1px solid var(--border-md);
+  background: var(--bg); color: var(--text2); font-size: 11px; cursor: pointer;
+  font-family: 'Inter', sans-serif; transition: background .1s, color .1s;
+  display: flex; align-items: center; gap: 3px;
+}
+.ne-copy-week-btn:hover { background: var(--bg-hover); color: var(--text); }
+.ne-del-week-btn {
+  padding: 3px 6px; border-radius: var(--radius); border: 1px solid transparent;
+  background: transparent; color: var(--text4); font-size: 11px; cursor: pointer;
+  font-family: 'Inter', sans-serif; transition: background .1s, color .1s;
+}
+.ne-del-week-btn:hover { background: var(--red-bg); color: var(--red); border-color: var(--red-bg); }
+.ne-add-week-btn {
+  padding: 5px 8px; border-radius: var(--radius); border: 1px dashed var(--border-md);
+  background: transparent; color: var(--text3); font-size: 12px; cursor: pointer;
+  font-family: 'Inter', sans-serif; transition: background .1s, color .1s;
+  display: flex; align-items: center; gap: 4px; margin: 4px 0 4px 4px;
+}
+.ne-add-week-btn:hover { background: var(--bg-hover); color: var(--text); }
+.ne-week-progress {
+  padding: 6px 12px; background: var(--bg2); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+}
+.ne-wp-bar { flex: 1; height: 3px; background: var(--bg3); border-radius: 99px; overflow: hidden; }
+.ne-wp-fill { height: 100%; border-radius: 99px; background: var(--accent); transition: width .4s; }
+.ne-wp-label { font-size: 11px; color: var(--text3); white-space: nowrap; }
+.ne-week-from-template {
+  padding: 8px 12px; background: var(--accent-bg);
+  border-bottom: 1px solid var(--accent-border);
+  font-size: 12px; color: var(--orange); display: flex; align-items: center; gap: 8px;
+  flex-shrink: 0;
+}
+.ne-week-from-template button {
+  padding: 2px 8px; border-radius: var(--radius); border: 1px solid var(--accent-border);
+  background: var(--bg); color: var(--orange); font-size: 11px; cursor: pointer;
+  font-family: 'Inter', sans-serif;
+}
+
+.ne-week-bars { display: flex; align-items: flex-end; gap: 4px; height: 48px; margin-bottom: 4px; }
+.ne-wbar { flex: 1; border-radius: 2px 2px 0 0; cursor: pointer; transition: opacity .15s; }
+.ne-wbar:hover { opacity: .75; }
+.ne-wlabels { display: flex; justify-content: space-between; font-size: 10px; color: var(--text4); }
+
+</style>
+
+<!-- TOP NAV -->
+<div id="topnav">
+  <div class="tn-logo">GF</div>
+  <div class="tn-sep"></div>
+  <div class="tn-label">Trenér</div>
+  <div class="tn-group">
+    <button class="tn-btn active" onclick="show('s09')">Dashboard</button>
+    <button class="tn-btn" onclick="show('s10')">Klient – detail</button>
+    <button class="tn-btn" onclick="show('s11')">Tréninkový plán</button>
+    <button class="tn-btn" onclick="show('s12')">Zprávy</button>
+  </div>
+  <div class="tn-sep"></div>
+  <div class="tn-label">Výživa</div>
+  <div class="tn-group">
+    <button class="tn-btn" onclick="show('s13')">Jídelníček</button>
+    <button class="tn-btn" onclick="show('s16')">Editor jídelníčku</button>
+    <button class="tn-btn" onclick="show('s14')">Databáze potravin</button>
+    <button class="tn-btn" onclick="show('s15')">Cíle klienta</button>
+  </div>
+
+  <button id="theme-toggle" onclick="toggleTheme()" title="Přepnout tmavý režim">☀</button>
+</div>
+
+<div id="canvas">
+
+<!-- ═══════════════════════════════════════════════════════════
+     S09 · DASHBOARD TRENÉRA
+═══════════════════════════════════════════════════════════ -->
+<div id="s09" class="screen active">
+<div class="app-shell">
+
+  <!-- sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-workspace">
+      <div class="ws-icon">GF</div>
+      <div>
+        <div class="ws-name">GoodFellas</div>
+      </div>
+      <div class="ws-chevron">⌄</div>
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">
+      <div class="sidebar-item active" onclick="show('s09')">
+        <span class="si-icon">⊞</span>
+        <span class="si-label">Dashboard</span>
+      </div>
+      <div class="sidebar-item" onclick="show('s12')">
+        <span class="si-icon">✉</span>
+        <span class="si-label">Zprávy</span>
+        <span class="si-count">2</span>
+      </div>
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Klienti</div>
+      <div class="sidebar-item" onclick="show('s10')">
+        <span class="si-icon">👤</span>
+        <span class="si-label">Petra Horáková</span>
+        <div class="si-actions"><span>···</span></div>
+      </div>
+      <div class="sidebar-item">
+        <span class="si-icon">👤</span>
+        <span class="si-label">Tomáš Novák</span>
+        <div class="si-actions"><span>···</span></div>
+      </div>
+      <div class="sidebar-item">
+        <span class="si-icon">👤</span>
+        <span class="si-label">Jakub Malý</span>
+        <div class="si-actions"><span>···</span></div>
+      </div>
+      <div class="sidebar-item">
+        <span class="si-icon">👤</span>
+        <span class="si-label">Lucie Procházková</span>
+        <div class="si-actions"><span>···</span></div>
+      </div>
+      <div class="sidebar-item">
+        <span class="si-icon">👤</span>
+        <span class="si-label">Martin Červenka</span>
+        <div class="si-actions"><span>···</span></div>
+      </div>
+      <div class="sidebar-item" style="color:var(--text3)">
+        <span class="si-icon">+</span>
+        <span class="si-label">Přidat klienta</span>
+      </div>
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Plány</div>
+      <div class="sidebar-item" onclick="show('s11')">
+        <span class="si-icon">🏋️</span>
+        <span class="si-label">Tréninkové plány</span>
+      </div>
+      <div class="sidebar-item" onclick="show('s13')">
+        <span class="si-icon">🥗</span>
+        <span class="si-label">Jídelníčky</span>
+      </div>
+      <div class="sidebar-item" onclick="show('s14')">
+        <span class="si-icon">📦</span>
+        <span class="si-label">Databáze potravin</span>
+      </div>
+    </div>
+    <div class="sidebar-user">
+      <div class="su-avatar">MT</div>
+      <div>
+        <div class="su-name">Marek Trenér</div>
+        <div class="su-role">Trenér & výživa</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- main -->
+  <div class="main">
+    <div class="page-header" style="padding-bottom:8px">
+      <div class="ph-icon">⊞</div>
+      <h1>Dashboard</h1>
+      <div class="ph-sub">Přehled všech klientů · Středa 4. března 2026</div>
+    </div>
+
+    <div class="notion-toolbar">
+      <div class="nt-view active">⊞ Tabulka</div>
+      <div class="nt-view" onclick="">☰ Seznam</div>
+      <div class="nt-view" onclick="">⬜ Karty</div>
+      <div class="nt-sep"></div>
+      <div class="nt-action">⊞ Filtr</div>
+      <div class="nt-action">↕ Seřadit</div>
+      <div class="nt-action">👁 Skupiny</div>
+      <button class="notion-btn primary" style="margin-left:auto" onclick="show('s10')">+ Nový klient</button>
+    </div>
+
+    <div class="page-content" style="padding-top:16px">
+
+      <!-- stat blocks -->
+      <div class="stats-row">
+        <div class="stat-block">
+          <div class="stat-label">Aktivní klienti</div>
+          <div class="stat-value">5</div>
+          <div class="stat-sub">+1 tento měsíc</div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-label">Avg. compliance</div>
+          <div class="stat-value">74 %</div>
+          <div class="stat-sub">↑ 6 % vs. minulý týden</div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-label">Tréninky / plán</div>
+          <div class="stat-value">13/20</div>
+          <div class="stat-sub">tento týden</div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-label">Upozornění</div>
+          <div class="stat-value" style="color:var(--orange)">2</div>
+          <div class="stat-sub">vyžaduje pozornost</div>
+        </div>
+      </div>
+
+      <!-- callouts -->
+      <div class="callout" style="border-left:3px solid var(--orange); background:var(--orange-bg)">
+        <div class="callout-icon">⚠</div>
+        <div class="callout-body">
+          <div class="callout-title">Martin Červenka — 5 dní bez tréninku</div>
+          <div class="callout-text">Compliance 35 %, plní pouze 1/4 tréninků. Doporučujeme kontaktovat klienta.
+            <span class="mention" onclick="show('s12')">✉ Napsat zprávu</span>
+          </div>
+        </div>
+      </div>
+      <div class="callout" style="border-left:3px solid var(--orange); background:var(--orange-bg); margin-bottom:16px">
+        <div class="callout-icon">⚠</div>
+        <div class="callout-body">
+          <div class="callout-title">Jakub Malý — nízká compliance</div>
+          <div class="callout-text">Plní pouze 2/5 tréninků. Streak přerušen 3. 3.
+            <span class="mention" onclick="show('s12')">✉ Napsat zprávu</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- klienti tabulka -->
+      <table class="db-table">
+        <thead>
+          <tr>
+            <th style="width:200px">Jméno ↑</th>
+            <th>Cíl</th>
+            <th>Compliance</th>
+            <th>Streak</th>
+            <th>Kalorie dnes</th>
+            <th>Tréninky</th>
+            <th>Poslední aktivita</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr onclick="show('s10')" style="cursor:pointer">
+            <td><span class="row-title">Petra Horáková</span></td>
+            <td><span class="tag tag-blue">Hubnutí</span></td>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="progress-wrap" style="width:60px"><div class="progress-fill" style="width:95%"></div></div>
+                <span style="font-size:12px;color:var(--text2)">95 %</span>
+              </div>
+            </td>
+            <td><span style="font-size:13px">🔥 21 dní</span></td>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="progress-wrap" style="width:50px"><div class="progress-fill gold" style="width:96%"></div></div>
+                <span style="font-size:12px;color:var(--text2)">1 640/1 700</span>
+              </div>
+            </td>
+            <td><span class="tag tag-green">4/4</span></td>
+            <td><span style="color:var(--green);font-size:12px">dnes</span></td>
+            <td>
+              <div class="row-actions">
+                <button onclick="show('s10');event.stopPropagation()">Otevřít</button>
+                <button onclick="show('s12');event.stopPropagation()">Zpráva</button>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="row-title">Tomáš Novák</span></td>
+            <td><span class="tag tag-purple">Nabírání</span></td>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="progress-wrap" style="width:60px"><div class="progress-fill" style="width:87%"></div></div>
+                <span style="font-size:12px;color:var(--text2)">87 %</span>
+              </div>
+            </td>
+            <td><span style="font-size:13px">🔥 12 dní</span></td>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="progress-wrap" style="width:50px"><div class="progress-fill gold" style="width:98%"></div></div>
+                <span style="font-size:12px;color:var(--text2)">2 840/2 900</span>
+              </div>
+            </td>
+            <td><span class="tag tag-orange">3/4</span></td>
+            <td><span style="color:var(--green);font-size:12px">dnes</span></td>
+            <td><div class="row-actions"><button>Otevřít</button><button>Zpráva</button></div></td>
+          </tr>
+          <tr>
+            <td><span class="row-title">Lucie Procházková</span></td>
+            <td><span class="tag tag-green">Zdraví</span></td>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="progress-wrap" style="width:60px"><div class="progress-fill" style="width:100%"></div></div>
+                <span style="font-size:12px;color:var(--text2)">100 %</span>
+              </div>
+            </td>
+            <td><span style="font-size:13px">🔥 34 dní</span></td>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="progress-wrap" style="width:50px"><div class="progress-fill gold" style="width:99%"></div></div>
+                <span style="font-size:12px;color:var(--text2)">1 890/1 900</span>
+              </div>
+            </td>
+            <td><span class="tag tag-green">3/3</span></td>
+            <td><span style="color:var(--green);font-size:12px">dnes</span></td>
+            <td><div class="row-actions"><button>Otevřít</button><button>Zpráva</button></div></td>
+          </tr>
+          <tr>
+            <td><span class="row-title">Jakub Malý</span></td>
+            <td><span class="tag tag-orange">Výkonnost</span></td>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="progress-wrap" style="width:60px"><div class="progress-fill warn" style="width:52%"></div></div>
+                <span style="font-size:12px;color:var(--text2)">52 %</span>
+              </div>
+            </td>
+            <td><span style="font-size:13px;color:var(--text3)">4 dny</span></td>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="progress-wrap" style="width:50px"><div class="progress-fill warn" style="width:97%"></div></div>
+                <span style="font-size:12px;color:var(--text2)">3 100/3 200</span>
+              </div>
+            </td>
+            <td><span class="tag tag-red">2/5</span></td>
+            <td><span style="color:var(--text3);font-size:12px">3 dny</span></td>
+            <td><div class="row-actions"><button>Otevřít</button><button>Zpráva</button></div></td>
+          </tr>
+          <tr>
+            <td><span class="row-title">Martin Červenka</span></td>
+            <td><span class="tag tag-gray">Síla</span></td>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="progress-wrap" style="width:60px"><div class="progress-fill crit" style="width:35%"></div></div>
+                <span style="font-size:12px;color:var(--text2)">35 %</span>
+              </div>
+            </td>
+            <td><span style="font-size:13px;color:var(--text3)">2 dny</span></td>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="progress-wrap" style="width:50px"><div class="progress-fill gold" style="width:95%"></div></div>
+                <span style="font-size:12px;color:var(--text2)">2 650/2 800</span>
+              </div>
+            </td>
+            <td><span class="tag tag-red">1/4</span></td>
+            <td><span style="color:var(--red);font-size:12px">5 dní</span></td>
+            <td><div class="row-actions"><button>Otevřít</button><button>Zpráva</button></div></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="db-add-row">
+        <span>+</span>
+        <span>Přidat klienta</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     S10 · DETAIL KLIENTA
+═══════════════════════════════════════════════════════════ -->
+<div id="s10" class="screen">
+<div class="app-shell">
+  <div class="sidebar">
+    <div class="sidebar-workspace">
+      <div class="ws-icon">GF</div>
+      <div><div class="ws-name">GoodFellas</div></div>
+      <div class="ws-chevron">⌄</div>
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">
+      <div class="sidebar-item" onclick="show('s09')"><span class="si-icon">⊞</span><span class="si-label">Dashboard</span></div>
+      <div class="sidebar-item" onclick="show('s12')"><span class="si-icon">✉</span><span class="si-label">Zprávy</span><span class="si-count">2</span></div>
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Klienti</div>
+      <div class="sidebar-item active"><span class="si-icon">👤</span><span class="si-label">Petra Horáková</span></div>
+      <div class="sidebar-item indent"><span class="si-icon">🏋️</span><span class="si-label">Tréninkový plán</span></div>
+      <div class="sidebar-item indent"><span class="si-icon">🥗</span><span class="si-label">Jídelníček</span></div>
+      <div class="sidebar-item indent"><span class="si-icon">📈</span><span class="si-label">Pokrok</span></div>
+    </div>
+    <div class="sidebar-user">
+      <div class="su-avatar">MT</div>
+      <div><div class="su-name">Marek Trenér</div><div class="su-role">Trenér & výživa</div></div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="breadcrumb">
+      <a onclick="show('s09')">Dashboard</a>
+      <span class="bc-sep">/</span>
+      <a>Klienti</a>
+      <span class="bc-sep">/</span>
+      <span style="color:var(--text)">Petra Horáková</span>
+    </div>
+
+    <div class="page-header">
+      <div class="ph-icon">👤</div>
+      <h1>Petra Horáková</h1>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+        <span class="tag tag-blue">Hubnutí</span>
+        <span class="tag tag-green">🔥 21 dní streak</span>
+        <span class="tag tag-green">95 % compliance</span>
+      </div>
+    </div>
+
+    <div class="page-content">
+
+      <!-- properties -->
+      <div class="prop-list">
+        <div class="prop-row">
+          <div class="prop-key"><span class="pk-icon">📅</span>Věk</div>
+          <div class="prop-val">27 let</div>
+        </div>
+        <div class="prop-row">
+          <div class="prop-key"><span class="pk-icon">📏</span>Výška / váha</div>
+          <div class="prop-val">168 cm · 63,1 kg <span style="color:var(--green);font-size:12px">↓ 2,4 kg</span></div>
+        </div>
+        <div class="prop-row">
+          <div class="prop-key"><span class="pk-icon">🎯</span>Cílová váha</div>
+          <div class="prop-val">58,0 kg</div>
+        </div>
+        <div class="prop-row">
+          <div class="prop-key"><span class="pk-icon">⚡</span>Aktivita</div>
+          <div class="prop-val">Střední (3× týdně)</div>
+        </div>
+        <div class="prop-row">
+          <div class="prop-key"><span class="pk-icon">✉</span>Email</div>
+          <div class="prop-val" style="color:var(--blue)">petra@example.cz</div>
+        </div>
+        <div class="prop-row">
+          <div class="prop-key"><span class="pk-icon">📋</span>Aktivní plány</div>
+          <div class="prop-val">
+            <span class="mention" onclick="show('s13')">🥗 Jídelníček únor/březen</span>
+            &nbsp;
+            <span class="mention" onclick="show('s11')">🏋️ Silový A/B</span>
+          </div>
+        </div>
+        <div class="prop-row">
+          <div class="prop-key"><span class="pk-icon">⚠</span>Alergie / omezení</div>
+          <div class="prop-val">Laktóza (mírná)</div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- stats -->
+      <div class="stats-row" style="grid-template-columns:repeat(3,1fr)">
+        <div class="stat-block">
+          <div class="stat-label">Compliance</div>
+          <div class="stat-value" style="color:var(--green)">95 %</div>
+          <div class="stat-sub">↑ 3 % vs. minulý týden</div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-label">Streak</div>
+          <div class="stat-value">21 dní</div>
+          <div class="stat-sub">osobní rekord</div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-label">Pokrok váhy</div>
+          <div class="stat-value" style="color:var(--green)">−2,4 kg</div>
+          <div class="stat-sub">za 8 týdnů</div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- váhový graf (jednoduchý) -->
+      <div style="margin-bottom:16px">
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px">Váhový pokrok</div>
+        <div style="display:flex;gap:8px;align-items:flex-end;height:80px;padding-bottom:20px;position:relative">
+          <div style="position:absolute;bottom:20px;left:0;right:0;height:1px;background:var(--border)"></div>
+          <div style="position:absolute;bottom:42px;left:0;right:0;height:1px;background:var(--border);opacity:0.5"></div>
+          <div style="position:absolute;bottom:64px;left:0;right:0;height:1px;background:var(--border);opacity:0.5"></div>
+          <!-- bars -->
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+            <div style="width:100%;height:60px;background:var(--bg3);border-radius:2px 2px 0 0"></div>
+            <div style="font-size:10px;color:var(--text3)">T1</div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+            <div style="width:100%;height:52px;background:var(--bg3);border-radius:2px 2px 0 0"></div>
+            <div style="font-size:10px;color:var(--text3)">T2</div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+            <div style="width:100%;height:48px;background:var(--bg3);border-radius:2px 2px 0 0"></div>
+            <div style="font-size:10px;color:var(--text3)">T3</div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+            <div style="width:100%;height:44px;background:var(--bg3);border-radius:2px 2px 0 0"></div>
+            <div style="font-size:10px;color:var(--text3)">T4</div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+            <div style="width:100%;height:40px;background:var(--bg3);border-radius:2px 2px 0 0"></div>
+            <div style="font-size:10px;color:var(--text3)">T5</div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+            <div style="width:100%;height:34px;background:var(--bg3);border-radius:2px 2px 0 0"></div>
+            <div style="font-size:10px;color:var(--text3)">T6</div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+            <div style="width:100%;height:28px;background:var(--bg3);border-radius:2px 2px 0 0"></div>
+            <div style="font-size:10px;color:var(--text3)">T7</div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+            <div style="width:100%;height:24px;background:var(--text);border-radius:2px 2px 0 0"></div>
+            <div style="font-size:10px;color:var(--text)">T8</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Poslední aktivita (toggle style) -->
+      <div style="font-size:13px;font-weight:600;margin-bottom:8px">Poslední aktivita</div>
+      <div class="msg-list">
+        <div class="msg-item"><div style="width:6px;height:6px;border-radius:50%;background:var(--green);margin-top:6px;flex-shrink:0"></div><div class="msg-text">✓ Splněn jídelníček – středa 4. 3.</div></div>
+        <div class="msg-item"><div style="width:6px;height:6px;border-radius:50%;background:var(--blue);margin-top:6px;flex-shrink:0"></div><div class="msg-text">🏋️ Trénink Pull A – 52 min – úterý 3. 3.</div></div>
+        <div class="msg-item"><div style="width:6px;height:6px;border-radius:50%;background:var(--text3);margin-top:6px;flex-shrink:0"></div><div class="msg-text">📏 Tělesné míry zadány – pondělí 2. 3.</div></div>
+        <div class="msg-item"><div style="width:6px;height:6px;border-radius:50%;background:var(--green);margin-top:6px;flex-shrink:0"></div><div class="msg-text">✓ Splněn jídelníček – úterý 3. 3.</div></div>
+        <div class="msg-item"><div style="width:6px;height:6px;border-radius:50%;background:var(--blue);margin-top:6px;flex-shrink:0"></div><div class="msg-text">🏋️ Trénink Push A – 58 min – sobota 28. 2.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     S11 · TRÉNINKOVÝ PLÁN
+═══════════════════════════════════════════════════════════ -->
+<div id="s11" class="screen">
+<div class="app-shell">
+  <div class="sidebar">
+    <div class="sidebar-workspace"><div class="ws-icon">GF</div><div><div class="ws-name">GoodFellas</div></div><div class="ws-chevron">⌄</div></div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">
+      <div class="sidebar-item" onclick="show('s09')"><span class="si-icon">⊞</span><span class="si-label">Dashboard</span></div>
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Petra Horáková</div>
+      <div class="sidebar-item" onclick="show('s10')"><span class="si-icon">👤</span><span class="si-label">Profil klientky</span></div>
+      <div class="sidebar-item active"><span class="si-icon">🏋️</span><span class="si-label">Tréninkový plán</span></div>
+      <div class="sidebar-item" onclick="show('s13')"><span class="si-icon">🥗</span><span class="si-label">Jídelníček</span></div>
+    </div>
+    <div class="sidebar-user"><div class="su-avatar">MT</div><div><div class="su-name">Marek Trenér</div><div class="su-role">Trenér & výživa</div></div></div>
+  </div>
+
+  <div class="main">
+    <div class="breadcrumb">
+      <a onclick="show('s09')">Dashboard</a>
+      <span class="bc-sep">/</span>
+      <a onclick="show('s10')">Petra Horáková</a>
+      <span class="bc-sep">/</span>
+      <span style="color:var(--text)">Tréninkový plán – Silový A/B</span>
+    </div>
+
+    <div class="page-header">
+      <div class="ph-icon">🏋️</div>
+      <h1>Silový A/B – 4 dny / týden</h1>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+        <span class="tag tag-green">Aktivní</span>
+        <span class="tag tag-gray">12 týdnů</span>
+        <span class="tag tag-gray">Petra Horáková</span>
+      </div>
+    </div>
+
+    <div class="notion-toolbar">
+      <div class="nt-view active">📅 Týden 1</div>
+      <div class="nt-view">📅 Týden 2</div>
+      <div class="nt-view">📅 Týden 3</div>
+      <div class="nt-view">📅 Týden 4</div>
+      <div class="nt-sep"></div>
+      <button class="notion-btn" style="margin-left:auto">Náhled klienta</button>
+      <button class="notion-btn primary">Publikovat změny</button>
+    </div>
+
+    <div class="page-content" style="padding-top:16px">
+      <div class="week-grid">
+        <!-- Po -->
+        <div class="day-col">
+          <div class="day-header today">Po</div>
+          <div class="day-body">
+            <div class="day-session" onclick="">
+              <div class="day-session-name">Push A</div>
+              <div class="day-session-meta">5 cviků · 60 min</div>
+            </div>
+            <div class="day-add">+ Přidat</div>
+          </div>
+        </div>
+        <!-- Út -->
+        <div class="day-col">
+          <div class="day-header">Út</div>
+          <div class="day-body">
+            <div class="day-session">
+              <div class="day-session-name">Pull A</div>
+              <div class="day-session-meta">4 cviky · 50 min</div>
+            </div>
+            <div class="day-add">+ Přidat</div>
+          </div>
+        </div>
+        <!-- St -->
+        <div class="day-col">
+          <div class="day-header">St</div>
+          <div class="day-body">
+            <div class="day-rest">Odpočinek</div>
+          </div>
+        </div>
+        <!-- Čt -->
+        <div class="day-col">
+          <div class="day-header">Čt</div>
+          <div class="day-body">
+            <div class="day-session">
+              <div class="day-session-name">Legs A</div>
+              <div class="day-session-meta">4 cviky · 55 min</div>
+            </div>
+            <div class="day-add">+ Přidat</div>
+          </div>
+        </div>
+        <!-- Pá -->
+        <div class="day-col">
+          <div class="day-header">Pá</div>
+          <div class="day-body">
+            <div class="day-session">
+              <div class="day-session-name">Push B</div>
+              <div class="day-session-meta">5 cviků · 55 min</div>
+            </div>
+            <div class="day-add">+ Přidat</div>
+          </div>
+        </div>
+        <!-- So -->
+        <div class="day-col">
+          <div class="day-header">So</div>
+          <div class="day-body">
+            <div class="day-rest">Odpočinek</div>
+          </div>
+        </div>
+        <!-- Ne -->
+        <div class="day-col">
+          <div class="day-header">Ne</div>
+          <div class="day-body">
+            <div class="day-session">
+              <div class="day-session-name">Pull B</div>
+              <div class="day-session-meta">4 cviky · 50 min</div>
+            </div>
+            <div class="day-add">+ Přidat</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Push A detail -->
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px">Push A — Pondělí</div>
+
+      <div class="exercise-block">
+        <div class="ex-header" onclick="toggleEx(this)">
+          <span class="toggle-chevron open">▶</span>
+          <span class="ex-name">Bench press s činkou</span>
+          <span class="ex-meta">4 série · 8–10 opak. · 80 kg</span>
+        </div>
+        <div class="ex-body" style="display:block">
+          <div class="ex-sets">
+            <span>Série</span><span>Váha (kg)</span><span>Opakování</span><span>RPE</span><span>Poznámka</span>
+          </div>
+          <div class="ex-set-row"><span style="color:var(--text3)">1</span><span class="inline-val">80</span><span class="inline-val">10</span><span class="inline-val">7</span><span class="inline-val" style="color:var(--text3)">—</span></div>
+          <div class="ex-set-row"><span style="color:var(--text3)">2</span><span class="inline-val">80</span><span class="inline-val">10</span><span class="inline-val">7</span><span class="inline-val" style="color:var(--text3)">—</span></div>
+          <div class="ex-set-row"><span style="color:var(--text3)">3</span><span class="inline-val">80</span><span class="inline-val">9</span><span class="inline-val">8</span><span class="inline-val" style="color:var(--text3)">—</span></div>
+          <div class="ex-set-row"><span style="color:var(--text3)">4</span><span class="inline-val">82,5</span><span class="inline-val">8</span><span class="inline-val">9</span><span class="inline-val" style="color:var(--text3)">—</span></div>
+        </div>
+      </div>
+
+      <div class="exercise-block">
+        <div class="ex-header" onclick="toggleEx(this)">
+          <span class="toggle-chevron">▶</span>
+          <span class="ex-name">Vojenský tlak s činkou</span>
+          <span class="ex-meta">3 série · 10–12 opak. · 55 kg</span>
+        </div>
+        <div class="ex-body" style="display:none"></div>
+      </div>
+
+      <div class="exercise-block">
+        <div class="ex-header" onclick="toggleEx(this)">
+          <span class="toggle-chevron">▶</span>
+          <span class="ex-name">Kliky na bradlech</span>
+          <span class="ex-meta">3 série · 12 opak. · vlastní váha</span>
+        </div>
+        <div class="ex-body" style="display:none"></div>
+      </div>
+
+      <div class="db-add-row" style="border:1px dashed var(--border);border-radius:var(--radius-md);margin-top:8px">
+        <span>+</span><span>Přidat cvik</span>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     S12 · ZPRÁVY
+═══════════════════════════════════════════════════════════ -->
+<div id="s12" class="screen">
+<div class="app-shell">
+  <div class="sidebar">
+    <div class="sidebar-workspace"><div class="ws-icon">GF</div><div><div class="ws-name">GoodFellas</div></div><div class="ws-chevron">⌄</div></div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">
+      <div class="sidebar-item" onclick="show('s09')"><span class="si-icon">⊞</span><span class="si-label">Dashboard</span></div>
+      <div class="sidebar-item active"><span class="si-icon">✉</span><span class="si-label">Zprávy</span><span class="si-count">2</span></div>
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Konverzace</div>
+      <div class="sidebar-item active"><span class="si-icon">👤</span><span class="si-label">Petra Horáková</span><span class="si-count">1</span></div>
+      <div class="sidebar-item"><span class="si-icon">👤</span><span class="si-label">Tomáš Novák</span></div>
+      <div class="sidebar-item"><span class="si-icon">👤</span><span class="si-label">Jakub Malý</span><span class="si-count">1</span></div>
+      <div class="sidebar-item"><span class="si-icon">👤</span><span class="si-label">Lucie Procházková</span></div>
+      <div class="sidebar-item"><span class="si-icon">👤</span><span class="si-label">Martin Červenka</span></div>
+    </div>
+    <div class="sidebar-user"><div class="su-avatar">MT</div><div><div class="su-name">Marek Trenér</div><div class="su-role">Trenér & výživa</div></div></div>
+  </div>
+
+  <div class="main">
+    <div class="page-header" style="padding-bottom:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <h1 style="font-size:22px">Petra Horáková</h1>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
+            <span style="width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block"></span>
+            <span style="font-size:13px;color:var(--text3)">online</span>
+            <span class="mention" onclick="show('s10')">👤 Profil klientky</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-content" style="padding-top:0">
+      <div class="msg-list" style="margin-bottom:16px">
+        <div class="msg-item">
+          <div class="msg-avatar" style="background:#5a7a8a">PH</div>
+          <div class="msg-body">
+            <div class="msg-meta"><span class="msg-name">Petra Horáková</span><span class="msg-time">13:48</span></div>
+            <div class="msg-text">Ahoj Marku! Zkoukla jsem nový tréninkový plán, vypadá skvěle 💪</div>
+          </div>
+        </div>
+        <div class="msg-item">
+          <div class="msg-avatar" style="background:var(--text)">MT</div>
+          <div class="msg-body">
+            <div class="msg-meta"><span class="msg-name">Marek Trenér</span><span class="msg-time" style="color:var(--text3)">13:52</span></div>
+            <div class="msg-text">Díky Petro! Jak se cítíš po prvním tréninku?</div>
+          </div>
+        </div>
+        <div class="msg-item">
+          <div class="msg-avatar" style="background:#5a7a8a">PH</div>
+          <div class="msg-body">
+            <div class="msg-meta"><span class="msg-name">Petra Horáková</span><span class="msg-time">14:10</span></div>
+            <div class="msg-text">Super! Bench press byl trochu těžký, ale zvládla jsem. Mám otázku ohledně jídelníčku...</div>
+          </div>
+        </div>
+        <div class="msg-item">
+          <div class="msg-avatar" style="background:#5a7a8a">PH</div>
+          <div class="msg-body">
+            <div class="msg-meta"><span class="msg-name">Petra Horáková</span><span class="msg-time">14:11</span></div>
+            <div class="msg-text">Na oběd je napsáno 80 g hnědé rýže — myslíš to suchá nebo uvařená?</div>
+          </div>
+        </div>
+        <div class="msg-item">
+          <div class="msg-avatar" style="background:var(--text)">MT</div>
+          <div class="msg-body">
+            <div class="msg-meta"><span class="msg-name">Marek Trenér</span><span class="msg-time">14:22</span></div>
+            <div class="msg-text">Vždy suchá gramáž 😊 Uvařená váží přibližně 2,5× více.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="search-wrap">
+        <span class="search-icon">✎</span>
+        <input type="text" placeholder="Napsat zprávu Petře...">
+        <button class="notion-btn primary" style="padding:4px 12px;font-size:12px">Odeslat</button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     S13 · JÍDELNÍČEK
+═══════════════════════════════════════════════════════════ -->
+<div id="s13" class="screen">
+<div class="app-shell">
+  <div class="sidebar">
+    <div class="sidebar-workspace"><div class="ws-icon">GF</div><div><div class="ws-name">GoodFellas</div></div><div class="ws-chevron">⌄</div></div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">
+      <div class="sidebar-item" onclick="show('s09')"><span class="si-icon">⊞</span><span class="si-label">Dashboard</span></div>
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Petra Horáková</div>
+      <div class="sidebar-item" onclick="show('s10')"><span class="si-icon">👤</span><span class="si-label">Profil klientky</span></div>
+      <div class="sidebar-item" onclick="show('s11')"><span class="si-icon">🏋️</span><span class="si-label">Tréninkový plán</span></div>
+      <div class="sidebar-item active"><span class="si-icon">🥗</span><span class="si-label">Jídelníček</span></div>
+      <div class="sidebar-item indent" onclick="show('s16')"><span class="si-icon">✏</span><span class="si-label">Editor jídelníčku</span></div>
+      <div class="sidebar-item indent" onclick="show('s15')"><span class="si-icon">🎯</span><span class="si-label">Cíle a makra</span></div>
+    </div>
+    <div class="sidebar-user"><div class="su-avatar">MT</div><div><div class="su-name">Marek Trenér</div><div class="su-role">Trenér & výživa</div></div></div>
+  </div>
+
+  <div class="main">
+    <div class="breadcrumb">
+      <a onclick="show('s09')">Dashboard</a><span class="bc-sep">/</span>
+      <a onclick="show('s10')">Petra Horáková</a><span class="bc-sep">/</span>
+      <span style="color:var(--text)">Jídelníček – únor/březen</span>
+    </div>
+
+    <div class="page-header">
+      <div class="ph-icon">🥗</div>
+      <h1>Jídelníček – únor/březen 2026</h1>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+        <span class="tag tag-green">Aktivní</span>
+        <span class="tag tag-gray">1 700 kcal / den</span>
+        <span class="tag tag-gray">Petra Horáková</span>
+      </div>
+    </div>
+
+    <div class="notion-toolbar">
+      <div class="nt-view active">Út 4. 3.</div>
+      <div class="nt-view">St 5. 3.</div>
+      <div class="nt-view">Čt 6. 3.</div>
+      <div class="nt-view">Pá 7. 3.</div>
+      <div class="nt-view">So 8. 3.</div>
+      <div class="nt-view">Ne 9. 3.</div>
+      <div class="nt-view">Po 10. 3.</div>
+      <div class="nt-sep"></div>
+      <button class="notion-btn" style="margin-left:auto" onclick="show('s15')">Cíle klienta</button>
+      <button class="notion-btn primary">Publikovat</button>
+    </div>
+
+    <div class="page-content" style="padding-top:16px;display:grid;grid-template-columns:1fr 260px;gap:24px">
+
+      <div>
+        <!-- makra summary -->
+        <div class="callout" style="margin-bottom:16px">
+          <div class="callout-icon">📊</div>
+          <div class="callout-body">
+            <div style="display:flex;gap:24px;flex-wrap:wrap">
+              <div>
+                <div style="font-size:11px;color:var(--text3);margin-bottom:2px">Kalorie</div>
+                <div style="font-size:16px;font-weight:700;color:var(--text)">1 547 <span style="font-size:12px;font-weight:400;color:var(--text3)">/ 1 700</span></div>
+                <div class="progress-wrap" style="width:100px;margin-top:4px"><div class="progress-fill gold" style="width:91%"></div></div>
+              </div>
+              <div>
+                <div style="font-size:11px;color:var(--text3);margin-bottom:2px">Bílkoviny</div>
+                <div style="font-size:16px;font-weight:700;color:var(--blue)">102 g <span style="font-size:12px;font-weight:400;color:var(--text3)">/ 130 g</span></div>
+                <div class="progress-wrap" style="width:80px;margin-top:4px"><div class="progress-fill" style="width:78%;background:var(--blue)"></div></div>
+              </div>
+              <div>
+                <div style="font-size:11px;color:var(--text3);margin-bottom:2px">Sacharidy</div>
+                <div style="font-size:16px;font-weight:700;color:var(--orange)">152 g <span style="font-size:12px;font-weight:400;color:var(--text3)">/ 180 g</span></div>
+                <div class="progress-wrap" style="width:80px;margin-top:4px"><div class="progress-fill" style="width:84%;background:var(--orange)"></div></div>
+              </div>
+              <div>
+                <div style="font-size:11px;color:var(--text3);margin-bottom:2px">Tuky</div>
+                <div style="font-size:16px;font-weight:700;color:var(--purple)">44 g <span style="font-size:12px;font-weight:400;color:var(--text3)">/ 55 g</span></div>
+                <div class="progress-wrap" style="width:80px;margin-top:4px"><div class="progress-fill" style="width:80%;background:var(--purple)"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- jídla -->
+        <div class="food-section">
+          <div class="food-section-header">
+            <div style="cursor:pointer;color:var(--text3);font-size:12px;margin-right:4px">▶</div>
+            <div class="food-section-title">Snídaně <span style="font-weight:400;color:var(--text3)">07:30</span></div>
+            <div class="food-section-total">431 kcal · B 26 · S 63 · T 7</div>
+          </div>
+          <div class="food-row-header"><span>Potravina</span><span style="text-align:left">Množství</span><span>kcal</span><span>B</span><span>S</span><span>T</span><span></span></div>
+          <div class="food-row"><span class="fr-name">Ovesné vločky</span><span class="fr-amount">80 g</span><span class="fr-num">296</span><span class="fr-num" style="color:var(--blue)">10</span><span class="fr-num" style="color:var(--orange)">52</span><span class="fr-num" style="color:var(--purple)">6</span><span></span></div>
+          <div class="food-row"><span class="fr-name">Řecký jogurt 0%</span><span class="fr-amount">150 g</span><span class="fr-num">89</span><span class="fr-num" style="color:var(--blue)">15</span><span class="fr-num" style="color:var(--orange)">8</span><span class="fr-num" style="color:var(--purple)">1</span><span></span></div>
+          <div class="food-row"><span class="fr-name">Borůvky</span><span class="fr-amount">80 g</span><span class="fr-num">46</span><span class="fr-num" style="color:var(--blue)">1</span><span class="fr-num" style="color:var(--orange)">11</span><span class="fr-num" style="color:var(--purple)">0</span><span></span></div>
+          <div class="db-add-row" style="padding:4px 4px;border:none;font-size:12px">+ přidat potravinu</div>
+        </div>
+
+        <div class="food-section">
+          <div class="food-section-header">
+            <div style="cursor:pointer;color:var(--text3);font-size:12px;margin-right:4px">▶</div>
+            <div class="food-section-title">Oběd <span style="font-weight:400;color:var(--text3)">13:00</span></div>
+            <div class="food-section-total">540 kcal · B 46 · S 62 · T 7</div>
+          </div>
+          <div class="food-row-header"><span>Potravina</span><span style="text-align:left">Množství</span><span>kcal</span><span>B</span><span>S</span><span>T</span><span></span></div>
+          <div class="food-row"><span class="fr-name">Kuřecí prsa</span><span class="fr-amount">160 g</span><span class="fr-num">184</span><span class="fr-num" style="color:var(--blue)">34</span><span class="fr-num" style="color:var(--orange)">0</span><span class="fr-num" style="color:var(--purple)">4</span><span></span></div>
+          <div class="food-row"><span class="fr-name">Hnědá rýže (suchá)</span><span class="fr-amount">80 g</span><span class="fr-num">288</span><span class="fr-num" style="color:var(--blue)">6</span><span class="fr-num" style="color:var(--orange)">62</span><span class="fr-num" style="color:var(--purple)">2</span><span></span></div>
+          <div class="food-row"><span class="fr-name">Brokolice</span><span class="fr-amount">150 g</span><span class="fr-num">51</span><span class="fr-num" style="color:var(--blue)">4</span><span class="fr-num" style="color:var(--orange)">7</span><span class="fr-num" style="color:var(--purple)">1</span><span></span></div>
+          <div class="db-add-row" style="padding:4px 4px;border:none;font-size:12px">+ přidat potravinu</div>
+        </div>
+
+        <div class="food-section">
+          <div class="food-section-header">
+            <div style="cursor:pointer;color:var(--text3);font-size:12px;margin-right:4px">▶</div>
+            <div class="food-section-title">Večeře <span style="font-weight:400;color:var(--text3)">19:00</span></div>
+            <div class="food-section-total">459 kcal · B 41 · S 40 · T 20</div>
+          </div>
+          <div class="food-row-header"><span>Potravina</span><span style="text-align:left">Množství</span><span>kcal</span><span>B</span><span>S</span><span>T</span><span></span></div>
+          <div class="food-row"><span class="fr-name">Losos</span><span class="fr-amount">180 g</span><span class="fr-num">309</span><span class="fr-num" style="color:var(--blue)">38</span><span class="fr-num" style="color:var(--orange)">0</span><span class="fr-num" style="color:var(--purple)">20</span><span></span></div>
+          <div class="food-row"><span class="fr-name">Batáty</span><span class="fr-amount">180 g</span><span class="fr-num">155</span><span class="fr-num" style="color:var(--blue)">3</span><span class="fr-num" style="color:var(--orange)">36</span><span class="fr-num" style="color:var(--purple)">0</span><span></span></div>
+          <div class="db-add-row" style="padding:4px 4px;border:none;font-size:12px">+ přidat potravinu</div>
+        </div>
+
+        <div class="db-add-row" style="border:1px dashed var(--border);border-radius:var(--radius-md)">
+          <span>+</span><span>Přidat jídlo</span>
+        </div>
+      </div>
+
+      <!-- sidebar cíle -->
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px">Cíle klienta</div>
+        <div class="prop-list" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-md);padding:8px">
+          <div class="prop-row"><div class="prop-key" style="width:100px">Kalorie</div><div class="prop-val">1 700 kcal</div></div>
+          <div class="prop-row"><div class="prop-key" style="width:100px">Bílkoviny</div><div class="prop-val" style="color:var(--blue)">130 g</div></div>
+          <div class="prop-row"><div class="prop-key" style="width:100px">Sacharidy</div><div class="prop-val" style="color:var(--orange)">180 g</div></div>
+          <div class="prop-row"><div class="prop-key" style="width:100px">Tuky</div><div class="prop-val" style="color:var(--purple)">55 g</div></div>
+        </div>
+        <div style="margin-top:12px">
+          <button class="notion-btn" style="width:100%;justify-content:center;margin-bottom:6px" onclick="show('s15')">🎯 Upravit cíle</button>
+          <button class="notion-btn" style="width:100%;justify-content:center">🛒 Nákupní seznam</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     S14 · DATABÁZE POTRAVIN
+═══════════════════════════════════════════════════════════ -->
+<div id="s14" class="screen">
+<div class="app-shell">
+  <div class="sidebar">
+    <div class="sidebar-workspace"><div class="ws-icon">GF</div><div><div class="ws-name">GoodFellas</div></div><div class="ws-chevron">⌄</div></div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">
+      <div class="sidebar-item" onclick="show('s09')"><span class="si-icon">⊞</span><span class="si-label">Dashboard</span></div>
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Výživa</div>
+      <div class="sidebar-item" onclick="show('s13')"><span class="si-icon">🥗</span><span class="si-label">Jídelníčky</span></div>
+      <div class="sidebar-item active"><span class="si-icon">📦</span><span class="si-label">Databáze potravin</span></div>
+    </div>
+    <div class="sidebar-user"><div class="su-avatar">MT</div><div><div class="su-name">Marek Trenér</div><div class="su-role">Trenér & výživa</div></div></div>
+  </div>
+
+  <div class="main">
+    <div class="page-header">
+      <div class="ph-icon">📦</div>
+      <h1>Databáze potravin</h1>
+      <div class="ph-sub">1 247 potravin · vlastní + Open Food Facts</div>
+    </div>
+
+    <div class="notion-toolbar">
+      <div class="nt-view active">⊞ Tabulka</div>
+      <div class="nt-view">☰ Seznam</div>
+      <div class="nt-sep"></div>
+      <div class="nt-action">⊞ Filtr</div>
+      <button class="notion-btn primary" style="margin-left:auto">+ Přidat potravinu</button>
+    </div>
+
+    <div class="page-content" style="padding-top:16px">
+      <div class="filter-bar">
+        <div class="filter-chip active">Vše</div>
+        <div class="filter-chip">Proteiny</div>
+        <div class="filter-chip">Sacharidy</div>
+        <div class="filter-chip">Zelenina</div>
+        <div class="filter-chip">Tuky</div>
+        <div class="filter-chip">Mléčné</div>
+        <div class="filter-chip">Ovoce</div>
+        <div class="filter-chip" style="margin-left:auto">Vlastní</div>
+      </div>
+
+      <div class="search-wrap" style="margin-bottom:12px">
+        <span class="search-icon">🔍</span>
+        <input type="text" placeholder="Hledat potravinu nebo skenovat čárový kód...">
+      </div>
+
+      <table class="db-table">
+        <thead>
+          <tr>
+            <th style="width:220px">Název ↑</th>
+            <th>Kategorie</th>
+            <th>Na 100 g</th>
+            <th>Kcal</th>
+            <th>Bílk.</th>
+            <th>Sach.</th>
+            <th>Tuky</th>
+            <th>Zdroj</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="row-title">Kuřecí prsa</span></td><td><span class="tag tag-blue">Proteiny</span></td><td></td><td>115</td><td style="color:var(--blue)">21,5</td><td style="color:var(--orange)">0</td><td style="color:var(--purple)">2,5</td><td><span class="tag tag-gray">OFF</span></td><td><div class="row-actions"><button>Upravit</button><button>Přidat</button></div></td></tr>
+          <tr><td><span class="row-title">Ovesné vločky</span></td><td><span class="tag tag-orange">Sacharidy</span></td><td></td><td>370</td><td style="color:var(--blue)">13</td><td style="color:var(--orange)">64</td><td style="color:var(--purple)">7</td><td><span class="tag tag-gray">OFF</span></td><td><div class="row-actions"><button>Upravit</button><button>Přidat</button></div></td></tr>
+          <tr><td><span class="row-title">Losos atlantický</span></td><td><span class="tag tag-blue">Proteiny</span></td><td></td><td>206</td><td style="color:var(--blue)">20</td><td style="color:var(--orange)">0</td><td style="color:var(--purple)">13</td><td><span class="tag tag-gray">OFF</span></td><td><div class="row-actions"><button>Upravit</button><button>Přidat</button></div></td></tr>
+          <tr><td><span class="row-title">Protein WPC 80</span></td><td><span class="tag tag-purple">Suplementy</span></td><td></td><td>113</td><td style="color:var(--blue)">24</td><td style="color:var(--orange)">3</td><td style="color:var(--purple)">1,5</td><td><span class="tag tag-accent">Vlastní</span></td><td><div class="row-actions"><button>Upravit</button><button>Přidat</button></div></td></tr>
+          <tr><td><span class="row-title">Batáty</span></td><td><span class="tag tag-orange">Sacharidy</span></td><td></td><td>86</td><td style="color:var(--blue)">2</td><td style="color:var(--orange)">20</td><td style="color:var(--purple)">0,1</td><td><span class="tag tag-gray">OFF</span></td><td><div class="row-actions"><button>Upravit</button><button>Přidat</button></div></td></tr>
+          <tr><td><span class="row-title">Vejce L</span></td><td><span class="tag tag-blue">Proteiny</span></td><td>1 ks</td><td>74</td><td style="color:var(--blue)">6,5</td><td style="color:var(--orange)">0,5</td><td style="color:var(--purple)">5</td><td><span class="tag tag-gray">OFF</span></td><td><div class="row-actions"><button>Upravit</button><button>Přidat</button></div></td></tr>
+          <tr><td><span class="row-title">Avokádo</span></td><td><span class="tag tag-green">Tuky</span></td><td></td><td>160</td><td style="color:var(--blue)">2</td><td style="color:var(--orange)">9</td><td style="color:var(--purple)">15</td><td><span class="tag tag-gray">OFF</span></td><td><div class="row-actions"><button>Upravit</button><button>Přidat</button></div></td></tr>
+          <tr><td><span class="row-title">Borůvky</span></td><td><span class="tag tag-green">Ovoce</span></td><td></td><td>57</td><td style="color:var(--blue)">0,7</td><td style="color:var(--orange)">14</td><td style="color:var(--purple)">0,3</td><td><span class="tag tag-gray">OFF</span></td><td><div class="row-actions"><button>Upravit</button><button>Přidat</button></div></td></tr>
+        </tbody>
+      </table>
+      <div class="db-add-row"><span>+</span><span>Přidat vlastní potravinu</span></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     S15 · CÍLE KLIENTA
+═══════════════════════════════════════════════════════════ -->
+<div id="s15" class="screen">
+<div class="app-shell">
+  <div class="sidebar">
+    <div class="sidebar-workspace"><div class="ws-icon">GF</div><div><div class="ws-name">GoodFellas</div></div><div class="ws-chevron">⌄</div></div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">
+      <div class="sidebar-item" onclick="show('s09')"><span class="si-icon">⊞</span><span class="si-label">Dashboard</span></div>
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Petra Horáková</div>
+      <div class="sidebar-item" onclick="show('s10')"><span class="si-icon">👤</span><span class="si-label">Profil klientky</span></div>
+      <div class="sidebar-item" onclick="show('s13')"><span class="si-icon">🥗</span><span class="si-label">Jídelníček</span></div>
+      <div class="sidebar-item active"><span class="si-icon">🎯</span><span class="si-label">Cíle a makra</span></div>
+    </div>
+    <div class="sidebar-user"><div class="su-avatar">MT</div><div><div class="su-name">Marek Trenér</div><div class="su-role">Trenér & výživa</div></div></div>
+  </div>
+
+  <div class="main">
+    <div class="breadcrumb">
+      <a onclick="show('s09')">Dashboard</a><span class="bc-sep">/</span>
+      <a onclick="show('s10')">Petra Horáková</a><span class="bc-sep">/</span>
+      <a onclick="show('s13')">Jídelníček</a><span class="bc-sep">/</span>
+      <span style="color:var(--text)">Cíle a makra</span>
+    </div>
+
+    <div class="page-header">
+      <div class="ph-icon">🎯</div>
+      <h1>Cíle a makra</h1>
+      <div class="ph-sub">Petra Horáková · Výpočet kalorického cíle</div>
+    </div>
+
+    <div class="page-content" style="display:grid;grid-template-columns:1fr 1fr;gap:32px">
+
+      <div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px">Anamnéza</div>
+        <div class="prop-list" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-md);padding:8px;margin-bottom:20px">
+          <div class="prop-row"><div class="prop-key" style="width:140px"><span class="pk-icon">📅</span>Věk</div><div class="prop-val inline-val">27 let</div></div>
+          <div class="prop-row"><div class="prop-key" style="width:140px"><span class="pk-icon">👤</span>Pohlaví</div><div class="prop-val inline-val">Žena</div></div>
+          <div class="prop-row"><div class="prop-key" style="width:140px"><span class="pk-icon">📏</span>Výška</div><div class="prop-val inline-val">168 cm</div></div>
+          <div class="prop-row"><div class="prop-key" style="width:140px"><span class="pk-icon">⚖</span>Aktuální váha</div><div class="prop-val inline-val">63,1 kg</div></div>
+          <div class="prop-row"><div class="prop-key" style="width:140px"><span class="pk-icon">🎯</span>Cílová váha</div><div class="prop-val inline-val">58,0 kg</div></div>
+          <div class="prop-row"><div class="prop-key" style="width:140px"><span class="pk-icon">⚡</span>Aktivita</div><div class="prop-val inline-val">Střední (3× týdně)</div></div>
+          <div class="prop-row"><div class="prop-key" style="width:140px"><span class="pk-icon">🌾</span>Alergie</div><div class="prop-val inline-val">Laktóza (mírná)</div></div>
+          <div class="prop-row"><div class="prop-key" style="width:140px"><span class="pk-icon">⚠</span>Omezení</div><div class="prop-val inline-val">Žádná</div></div>
+        </div>
+
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px">Výpočet</div>
+        <div class="callout">
+          <div class="callout-icon">🧮</div>
+          <div class="callout-body">
+            <div class="callout-title">Mifflin-St Jeor</div>
+            <div class="callout-text">
+              BMR = 1 456 kcal<br>
+              TDEE = 1 456 × 1,55 = 2 184 kcal<br>
+              Deficit −20 % → <strong>cíl 1 747 kcal</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px">Nastavení maker</div>
+        <div class="prop-list" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-md);padding:8px;margin-bottom:16px">
+          <div class="prop-row"><div class="prop-key" style="width:120px">Kalorie / den</div><div class="prop-val"><span class="inline-val" style="font-weight:600">1 700 kcal</span></div></div>
+          <div class="prop-row"><div class="prop-key" style="width:120px;color:var(--blue)">Bílkoviny</div><div class="prop-val"><span class="inline-val" style="color:var(--blue);font-weight:600">130 g</span> <span style="font-size:12px;color:var(--text3)">31 % · 520 kcal</span></div></div>
+          <div class="prop-row"><div class="prop-key" style="width:120px;color:var(--orange)">Sacharidy</div><div class="prop-val"><span class="inline-val" style="color:var(--orange);font-weight:600">180 g</span> <span style="font-size:12px;color:var(--text3)">42 % · 720 kcal</span></div></div>
+          <div class="prop-row"><div class="prop-key" style="width:120px;color:var(--purple)">Tuky</div><div class="prop-val"><span class="inline-val" style="color:var(--purple);font-weight:600">55 g</span> <span style="font-size:12px;color:var(--text3)">27 % · 495 kcal</span></div></div>
+        </div>
+
+        <!-- macro visual bar -->
+        <div style="height:12px;border-radius:99px;overflow:hidden;display:flex;margin-bottom:8px">
+          <div style="width:31%;background:var(--blue)"></div>
+          <div style="width:42%;background:var(--orange)"></div>
+          <div style="width:27%;background:var(--purple)"></div>
+        </div>
+        <div style="display:flex;gap:16px;font-size:12px;color:var(--text3);margin-bottom:20px">
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:var(--blue);display:inline-block"></span>Bílkoviny 31 %</span>
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:var(--orange);display:inline-block"></span>Sacharidy 42 %</span>
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:var(--purple);display:inline-block"></span>Tuky 27 %</span>
+        </div>
+
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px">Rozložení jídel</div>
+        <div class="prop-list" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-md);padding:8px">
+          <div class="prop-row"><div class="prop-key" style="width:120px">Snídaně</div><div class="prop-val">20 % · 340 kcal</div></div>
+          <div class="prop-row"><div class="prop-key" style="width:120px">Svačina</div><div class="prop-val">10 % · 170 kcal</div></div>
+          <div class="prop-row"><div class="prop-key" style="width:120px">Oběd</div><div class="prop-val">35 % · 595 kcal</div></div>
+          <div class="prop-row"><div class="prop-key" style="width:120px">Svačina 2</div><div class="prop-val">10 % · 170 kcal</div></div>
+          <div class="prop-row"><div class="prop-key" style="width:120px">Večeře</div><div class="prop-val">25 % · 425 kcal</div></div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:16px">
+          <button class="notion-btn primary" style="flex:1;justify-content:center">Uložit změny</button>
+          <button class="notion-btn" style="flex:1;justify-content:center" onclick="show('s13')">← Zpět na jídelníček</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     S16 · EDITOR JÍDELNÍČKU
+═══════════════════════════════════════════════════════════ -->
+<div id="s16" class="screen">
+<div class="app-shell">
+
+  <!-- sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-workspace">
+      <div class="ws-icon">GF</div>
+      <div><div class="ws-name">GoodFellas</div></div>
+      <div class="ws-chevron">⌄</div>
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">
+      <div class="sidebar-item" onclick="show('s09')"><span class="si-icon">⊞</span><span class="si-label">Dashboard</span></div>
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Petra Horáková</div>
+      <div class="sidebar-item" onclick="show('s10')"><span class="si-icon">👤</span><span class="si-label">Profil klientky</span></div>
+      <div class="sidebar-item" onclick="show('s11')"><span class="si-icon">🏋️</span><span class="si-label">Tréninkový plán</span></div>
+      <div class="sidebar-item" onclick="show('s13')"><span class="si-icon">🥗</span><span class="si-label">Jídelníček</span></div>
+      <div class="sidebar-item active indent"><span class="si-icon">✏</span><span class="si-label">Editor jídelníčku</span></div>
+      <div class="sidebar-item indent" onclick="show('s15')"><span class="si-icon">🎯</span><span class="si-label">Cíle a makra</span></div>
+    </div>
+    <div class="sidebar-user">
+      <div class="su-avatar">MT</div>
+      <div><div class="su-name">Marek Trenér</div><div class="su-role">Trenér & výživa</div></div>
+    </div>
+  </div>
+
+  <!-- editor shell (no page-header, full height like a real app) -->
+  <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+
+    <!-- topbar -->
+    <div class="ne-topbar">
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text3)">
+        <span style="cursor:pointer" onclick="show('s09')">Dashboard</span>
+        <span style="color:var(--text4)">/</span>
+        <span style="cursor:pointer" onclick="show('s10')">Petra Horáková</span>
+        <span style="color:var(--text4)">/</span>
+        <span style="color:var(--text)">Jídelníček – únor/březen</span>
+      </div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:6px">
+        <span class="ne-save saved" id="ne-save-ind">Uloženo</span>
+        <button class="notion-btn" onclick="neShoppingList()">🛒 Nákupní seznam</button>
+        <button class="notion-btn" onclick="neCopyWeek()">Kopírovat týden</button>
+        <button class="notion-btn" onclick="neAddWeek()">+ Týden</button>
+        <button class="notion-btn primary" onclick="nePublish()">Publikovat</button>
+      </div>
+    </div>
+
+    <!-- week tabs -->
+    <div class="ne-week-tabs" id="ne-week-tabs"></div>
+    <!-- week progress -->
+    <div class="ne-week-progress" id="ne-week-progress">
+      <span class="ne-wp-label" id="ne-wp-label">Týden 1 ze 12</span>
+      <div class="ne-wp-bar"><div class="ne-wp-fill" id="ne-wp-fill" style="width:8%"></div></div>
+      <span class="ne-wp-label" id="ne-wp-stats">0 / 7 dní vyplněno</span>
+    </div>
+    <!-- template banner (shown for non-template weeks) -->
+    <div class="ne-week-from-template" id="ne-template-banner" style="display:none">
+      📋 Zkopírováno z Týdne 1 (šablona) — upravuj libovolně
+      <button onclick="neResetToTemplate()">Obnovit ze šablony</button>
+      <span style="margin-left:auto;cursor:pointer;color:var(--text3)" onclick="document.getElementById('ne-template-banner').style.display='none'">✕</span>
+    </div>
+    <!-- day tabs -->
+    <div class="ne-day-tabs" id="ne-day-tabs"></div>
+
+    <!-- two-column layout: meals + sidebar -->
+    <div style="display:grid;grid-template-columns:1fr 256px;flex:1;overflow:hidden">
+
+      <!-- meals column -->
+      <div style="display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--border)">
+        <div class="ne-meals" id="ne-meals"></div>
+        <div class="ne-add-meal" onclick="neAddMeal()">
+          <span style="font-size:16px;line-height:1">+</span>
+          <span>Přidat jídlo</span>
+        </div>
+      </div>
+
+      <!-- right sidebar -->
+      <div style="background:var(--bg2);display:flex;flex-direction:column;overflow-y:auto">
+
+        <div class="ne-sp-section">
+          <div class="ne-sp-label">Denní přehled</div>
+          <div style="display:flex;align-items:baseline;gap:3px;margin-bottom:2px">
+            <span style="font-size:24px;font-weight:700;color:var(--text);letter-spacing:-.02em" id="ne-kcal">0</span>
+            <span style="font-size:13px;color:var(--text3)" id="ne-kcal-max">/ 1 700 kcal</span>
+          </div>
+          <div style="font-size:12px;margin-top:2px" id="ne-kcal-rem"></div>
+          <div class="ne-pbar" style="margin-top:8px"><div class="ne-pfill" id="ne-pb-kcal" style="background:var(--accent)"></div></div>
+        </div>
+
+        <div class="ne-sp-section">
+          <div class="ne-sp-label">Makra</div>
+          <div class="ne-stack-bar"><div class="ne-sbar-p" id="ne-sb-p"></div><div class="ne-sbar-c" id="ne-sb-c"></div><div class="ne-sbar-f" id="ne-sb-f"></div></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--text3);margin-bottom:10px">
+            <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:var(--blue);display:inline-block"></span>Bílkoviny</span>
+            <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:var(--orange);display:inline-block"></span>Sacharidy</span>
+            <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:var(--purple);display:inline-block"></span>Tuky</span>
+          </div>
+          <div class="ne-macro-row"><div class="ne-macro-label"><div class="ne-macro-dot" style="background:var(--blue)"></div>Bílkoviny</div><div class="ne-macro-vals"><span class="nmc" id="ne-protein">0</span><span class="nmx"> / 130 g</span></div></div>
+          <div class="ne-pbar"><div class="ne-pfill" id="ne-pb-p" style="background:var(--blue)"></div></div>
+          <div class="ne-macro-row"><div class="ne-macro-label"><div class="ne-macro-dot" style="background:var(--orange)"></div>Sacharidy</div><div class="ne-macro-vals"><span class="nmc" id="ne-carbs">0</span><span class="nmx"> / 180 g</span></div></div>
+          <div class="ne-pbar"><div class="ne-pfill" id="ne-pb-c" style="background:var(--orange)"></div></div>
+          <div class="ne-macro-row"><div class="ne-macro-label"><div class="ne-macro-dot" style="background:var(--purple)"></div>Tuky</div><div class="ne-macro-vals"><span class="nmc" id="ne-fat">0</span><span class="nmx"> / 55 g</span></div></div>
+          <div class="ne-pbar"><div class="ne-pfill" id="ne-pb-f" style="background:var(--purple)"></div></div>
+        </div>
+
+        <div class="ne-sp-section">
+          <div class="ne-sp-label">Klient</div>
+          <div style="font-size:12px;display:flex;flex-direction:column;gap:4px">
+            <div style="display:flex;justify-content:space-between"><span style="color:var(--text3)">Jméno</span><span>Petra Horáková</span></div>
+            <div style="display:flex;justify-content:space-between"><span style="color:var(--text3)">Cíl</span><span class="tag tag-blue" style="font-size:11px">Hubnutí</span></div>
+            <div style="display:flex;justify-content:space-between"><span style="color:var(--text3)">Deficit</span><span>−20 %</span></div>
+            <div style="display:flex;justify-content:space-between"><span style="color:var(--text3)">Alergie</span><span>Laktóza (mírná)</span></div>
+          </div>
+          <button class="notion-btn" style="width:100%;justify-content:center;margin-top:10px;font-size:12px" onclick="show('s15')">🎯 Upravit cíle</button>
+        </div>
+
+        <div class="ne-sp-section" style="flex:1">
+          <div class="ne-sp-label">Týdenní přehled</div>
+          <div class="ne-week-bars" id="ne-week-bars"></div>
+          <div class="ne-wlabels"><span>Po</span><span>Út</span><span>St</span><span>Čt</span><span>Pá</span><span>So</span><span>Ne</span></div>
+        </div>
+
+        <div style="padding:10px 12px;border-top:1px solid var(--border)">
+          <button class="notion-btn primary" style="width:100%;justify-content:center;font-size:12px" onclick="nePublish()">Publikovat plán</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+</div><!-- #canvas -->
+
+<script>
+var _neReady = false;
+function show(id) {
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
+  document.querySelectorAll('.tn-btn').forEach(function(b){ b.classList.remove('active'); });
+  var el = document.getElementById(id);
+  if (el) el.classList.add('active');
+  document.querySelectorAll('.tn-btn').forEach(function(b){
+    if (b.getAttribute('onclick') === "show('" + id + "')") b.classList.add('active');
+  });
+  window.scrollTo(0, 0);
+  if (id === 's16' && !_neReady) {
+    _neReady = true;
+    NE.initWeeks();
+    NE.renderAll();
+  }
+}
+
+function toggleEx(header) {
+  var chevron = header.querySelector('.toggle-chevron');
+  var body = header.nextElementSibling;
+  var isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  if (chevron) chevron.classList.toggle('open', !isOpen);
+}
+function toggleTheme() {
+  var isDark = document.body.classList.toggle('dark');
+  document.getElementById('theme-toggle').textContent = isDark ? '☀' : '☾';
+  try { localStorage.setItem('gf-theme', isDark ? 'dark' : 'light'); } catch(e) {}
+}
+
+// restore saved preference
+(function() {
+  try {
+    if (localStorage.getItem('gf-theme') === 'dark') {
+      document.body.classList.add('dark');
+      var btn = document.getElementById('theme-toggle');
+      if (btn) btn.textContent = '☀';
+    }
+  } catch(e) {}
+})();
+
+// ── NUTRITION EDITOR (s16) ──────────────────────────────────────────────────
+var NE = {
+  goals: {kcal:1700, p:130, c:180, f:55},
+  days: ['Po','Út','St','Čt','Pá','So','Ne'],
+  currentWeek: 0,
+  currentDay: 0,
+  saveTimer: null,
+  TOTAL_WEEKS: 12,
+
+  foods_db: [
+    {name:'Kuřecí prsa',per100:{kcal:115,p:21.5,c:0,f:2.5}},
+    {name:'Ovesné vločky',per100:{kcal:370,p:13,c:64,f:7}},
+    {name:'Řecký jogurt 0%',per100:{kcal:59,p:10,c:5,f:0.5}},
+    {name:'Losos',per100:{kcal:206,p:20,c:0,f:13}},
+    {name:'Brokolice',per100:{kcal:34,p:3,c:5,f:0.4}},
+    {name:'Hnědá rýže',per100:{kcal:360,p:7.5,c:75,f:2.5}},
+    {name:'Batáty',per100:{kcal:86,p:1.6,c:20,f:0.1}},
+    {name:'Vejce L',per100:{kcal:155,p:13,c:1.1,f:11}},
+    {name:'Borůvky',per100:{kcal:57,p:0.7,c:14,f:0.3}},
+    {name:'Tvaroh 0%',per100:{kcal:73,p:12,c:4,f:0.6}},
+    {name:'Avokádo',per100:{kcal:160,p:2,c:9,f:15}},
+    {name:'Banán',per100:{kcal:89,p:1.1,c:23,f:0.3}},
+    {name:'Mandle',per100:{kcal:579,p:21,c:22,f:50}},
+    {name:'Olivový olej',per100:{kcal:884,p:0,c:0,f:100}},
+    {name:'Hnědý chléb',per100:{kcal:247,p:9,c:47,f:3}},
+    {name:'Špenát',per100:{kcal:23,p:3,c:2,f:0.4}},
+    {name:'Brambory',per100:{kcal:77,p:2,c:17,f:0.1}},
+    {name:'Cottage cheese',per100:{kcal:98,p:11,c:3,f:5}},
+    {name:'Tuňák ve vlastní šťávě',per100:{kcal:95,p:22,c:0,f:0.8}},
+  ],
+
+  // Template meals (Week 1 source of truth)
+  templateMeals: function() {
+    return [
+      {name:'Snídaně',time:'07:30',open:true,foods:[
+        {name:'Ovesné vločky',amt:80},{name:'Řecký jogurt 0%',amt:150},{name:'Borůvky',amt:80}
+      ]},
+      {name:'Oběd',time:'13:00',open:true,foods:[
+        {name:'Kuřecí prsa',amt:160},{name:'Hnědá rýže',amt:80},{name:'Brokolice',amt:150}
+      ]},
+      {name:'Svačina',time:'16:30',open:false,foods:[
+        {name:'Tvaroh 0%',amt:150},{name:'Banán',amt:100}
+      ]},
+      {name:'Večeře',time:'19:00',open:false,foods:[
+        {name:'Losos',amt:180},{name:'Batáty',amt:180}
+      ]}
+    ];
+  },
+
+  // Build a fresh week structure (7 days, each with template meals)
+  makeWeek: function(fromTemplate) {
+    var days = [];
+    for (var d = 0; d < 7; d++) {
+      days.push({
+        meals: fromTemplate ? JSON.parse(JSON.stringify(NE.templateMeals())) : []
+      });
+    }
+    return { days: days, fromTemplate: !!fromTemplate };
+  },
+
+  // weeks[w].days[d].meals[]
+  weeks: []
+};
+
+// Init weeks on first load
+NE.initWeeks = function() {
+  NE.weeks = [];
+  // Week 1 = template (all 7 days pre-filled)
+  NE.weeks.push(NE.makeWeek(true));
+  // Weeks 2–12 = copies of template
+  for (var w = 1; w < NE.TOTAL_WEEKS; w++) {
+    NE.weeks.push(NE.makeWeek(true));
+    NE.weeks[w].fromTemplate = true;
+  }
+};
+
+NE.currentMeals = function() {
+  return NE.weeks[NE.currentWeek].days[NE.currentDay].meals;
+};
+
+NE.getFood = function(name) {
+  return NE.foods_db.find(function(f){return f.name===name;}) || {name:name,per100:{kcal:100,p:5,c:10,f:3}};
+};
+NE.calcFood = function(name, amt) {
+  var fd = NE.getFood(name); var r = amt/100;
+  return {kcal:Math.round(fd.per100.kcal*r), p:Math.round(fd.per100.p*r*10)/10, c:Math.round(fd.per100.c*r*10)/10, f:Math.round(fd.per100.f*r*10)/10};
+};
+NE.calcMeal = function(meal) {
+  var t={kcal:0,p:0,c:0,f:0};
+  meal.foods.forEach(function(fd){var n=NE.calcFood(fd.name,fd.amt);t.kcal+=n.kcal;t.p+=n.p;t.c+=n.c;t.f+=n.f;});
+  return {kcal:t.kcal, p:Math.round(t.p*10)/10, c:Math.round(t.c*10)/10, f:Math.round(t.f*10)/10};
+};
+NE.calcDay = function(wi, di) {
+  wi = (wi !== undefined) ? wi : NE.currentWeek;
+  di = (di !== undefined) ? di : NE.currentDay;
+  var t={kcal:0,p:0,c:0,f:0};
+  var meals = NE.weeks[wi].days[di].meals;
+  meals.forEach(function(m){var n=NE.calcMeal(m);t.kcal+=n.kcal;t.p+=n.p;t.c+=n.c;t.f+=n.f;});
+  return {kcal:t.kcal, p:Math.round(t.p*10)/10, c:Math.round(t.c*10)/10, f:Math.round(t.f*10)/10};
+};
+NE.weekKcalAvg = function(wi) {
+  var total = 0; var filled = 0;
+  for (var d = 0; d < 7; d++) {
+    var k = NE.calcDay(wi, d).kcal;
+    if (k > 0) { total += k; filled++; }
+  }
+  return filled ? Math.round(total/filled) : 0;
+};
+NE.pct = function(v,max){return Math.min(100,Math.round(v/max*100));};
+
+NE.updateSidebar = function() {
+  var d = NE.calcDay();
+  var el = document.getElementById('ne-kcal'); if(!el) return;
+  el.textContent = d.kcal.toLocaleString('cs');
+  var rem = NE.goals.kcal - d.kcal;
+  var remEl = document.getElementById('ne-kcal-rem');
+  if (rem >= 0) { remEl.textContent = 'Zbývá '+rem+' kcal'; remEl.style.color = 'var(--green)'; }
+  else { remEl.textContent = 'Překročeno o '+Math.abs(rem)+' kcal'; remEl.style.color = 'var(--red)'; }
+  var pk = NE.pct(d.kcal, NE.goals.kcal);
+  var pbk = document.getElementById('ne-pb-kcal');
+  pbk.style.width = pk+'%';
+  pbk.style.background = pk > 100 ? 'var(--red)' : 'var(--accent)';
+  document.getElementById('ne-protein').textContent = d.p+'g';
+  document.getElementById('ne-pb-p').style.width = NE.pct(d.p, NE.goals.p)+'%';
+  document.getElementById('ne-carbs').textContent = d.c+'g';
+  document.getElementById('ne-pb-c').style.width = NE.pct(d.c, NE.goals.c)+'%';
+  document.getElementById('ne-fat').textContent = d.f+'g';
+  document.getElementById('ne-pb-f').style.width = NE.pct(d.f, NE.goals.f)+'%';
+  var totalK = d.p*4+d.c*4+d.f*9 || 1;
+  document.getElementById('ne-sb-p').style.width = Math.round(d.p*4/totalK*100)+'%';
+  document.getElementById('ne-sb-c').style.width = Math.round(d.c*4/totalK*100)+'%';
+  document.getElementById('ne-sb-f').style.width = Math.round(d.f*9/totalK*100)+'%';
+  NE.markSaved();
+};
+
+NE.updateWeekBars = function() {
+  var el = document.getElementById('ne-week-bars'); if(!el) return;
+  el.innerHTML = '';
+  var weekKcal = [];
+  for (var d = 0; d < 7; d++) weekKcal.push(NE.calcDay(NE.currentWeek, d).kcal);
+  var maxK = Math.max.apply(null, weekKcal.concat([NE.goals.kcal]));
+  weekKcal.forEach(function(v, i) {
+    var h = v ? Math.max(4, Math.round(v/maxK*44)) : 4;
+    var active = i === NE.currentDay;
+    var over = v > NE.goals.kcal + 100;
+    var near = Math.abs(v - NE.goals.kcal) < 80;
+    var bg = active ? 'var(--text)' : over ? 'var(--red)' : near ? 'var(--green)' : v ? 'var(--bg3)' : 'var(--bg3)';
+    var bar = document.createElement('div');
+    bar.className = 'ne-wbar';
+    bar.style.cssText = 'flex:1;height:'+h+'px;background:'+bg+';border-radius:2px 2px 0 0;opacity:'+(v?1:0.4);
+    bar.title = NE.days[i]+': '+(v||'nevyplněno')+' kcal';
+    bar.onclick = (function(idx){return function(){neSwitchDay(idx);};})(i);
+    el.appendChild(bar);
+  });
+};
+
+NE.updateWeekProgress = function() {
+  var el = document.getElementById('ne-wp-label'); if(!el) return;
+  el.textContent = 'Týden '+(NE.currentWeek+1)+' z '+NE.TOTAL_WEEKS;
+  var filled = 0;
+  for (var d = 0; d < 7; d++) {
+    if (NE.calcDay(NE.currentWeek, d).kcal > 0) filled++;
+  }
+  document.getElementById('ne-wp-stats').textContent = filled+' / 7 dní vyplněno';
+  document.getElementById('ne-wp-fill').style.width = Math.round((NE.currentWeek+1)/NE.TOTAL_WEEKS*100)+'%';
+  // template banner
+  var banner = document.getElementById('ne-template-banner');
+  banner.style.display = (NE.currentWeek > 0 && NE.weeks[NE.currentWeek].fromTemplate) ? '' : 'none';
+};
+
+NE.renderWeekTabs = function() {
+  var el = document.getElementById('ne-week-tabs'); if(!el) return;
+  el.innerHTML = '';
+  NE.weeks.forEach(function(week, wi) {
+    var avg = NE.weekKcalAvg(wi);
+    var tab = document.createElement('div');
+    tab.className = 'ne-week-tab' +
+      (wi === NE.currentWeek ? ' active' : '') +
+      (wi === 0 ? ' template' : '');
+    var badge = wi === 0 ? 'šablona' : (avg ? avg+' kcal' : '—');
+    tab.innerHTML = '<span>Týden '+(wi+1)+'</span><span class="nwt-badge">'+badge+'</span>';
+    tab.onclick = (function(idx){return function(){neSwitchWeek(idx);};})(wi);
+    el.appendChild(tab);
+  });
+  // add week button (only if < TOTAL_WEEKS)
+  if (NE.weeks.length < NE.TOTAL_WEEKS) {
+    var addBtn = document.createElement('button');
+    addBtn.className = 'ne-add-week-btn';
+    addBtn.innerHTML = '+ Přidat týden';
+    addBtn.onclick = neAddWeek;
+    el.appendChild(addBtn);
+  }
+  // actions for current week
+  var actions = document.createElement('div');
+  actions.className = 'ne-week-actions';
+  var copyBtn = document.createElement('button');
+  copyBtn.className = 'ne-copy-week-btn';
+  copyBtn.innerHTML = (NE.currentWeek === 0 ? '📋 Aplikovat na všechny' : '📋 Kopírovat do dalšího');
+  copyBtn.onclick = neCopyWeek;
+  actions.appendChild(copyBtn);
+  if (NE.currentWeek > 0) {
+    var delBtn = document.createElement('button');
+    delBtn.className = 'ne-del-week-btn';
+    delBtn.textContent = 'Smazat týden';
+    delBtn.onclick = neDeleteWeek;
+    actions.appendChild(delBtn);
+  }
+  el.appendChild(actions);
+};
+
+NE.renderDayTabs = function() {
+  var el = document.getElementById('ne-day-tabs'); if(!el) return;
+  el.innerHTML = '';
+  NE.days.forEach(function(d, i) {
+    var k = NE.calcDay(NE.currentWeek, i).kcal;
+    var tab = document.createElement('div');
+    tab.className = 'ne-day-tab' + (i === NE.currentDay ? ' active' : '');
+    tab.innerHTML = '<span>'+d+'</span><span class="ndt-k">'+(k || '—')+'</span>';
+    tab.onclick = (function(idx){return function(){neSwitchDay(idx);};})(i);
+    el.appendChild(tab);
+  });
+};
+
+NE.renderMeals = function() {
+  var el = document.getElementById('ne-meals'); if(!el) return;
+  el.innerHTML = '';
+  var meals = NE.currentMeals();
+  meals.forEach(function(meal, mi) {
+    var tot = NE.calcMeal(meal);
+    var block = document.createElement('div'); block.className = 'ne-meal-block';
+    var hdr = document.createElement('div'); hdr.className = 'ne-meal-header';
+    hdr.innerHTML = '<span class="ne-mchev'+(meal.open?' open':'')+'">&#9654;</span>'+
+      '<span class="ne-mname">'+meal.name+'</span>'+
+      '<span class="ne-mtime">'+meal.time+'</span>'+
+      '<span class="ne-mtotals"><span class="mt-k">'+tot.kcal+' kcal</span><span class="mt-p">B '+tot.p+'</span><span class="mt-c">S '+tot.c+'</span><span class="mt-f">T '+tot.f+'</span></span>';
+    var body = document.createElement('div'); body.className = 'ne-meal-body'+(meal.open?' open':'');
+    var head = document.createElement('div'); head.className = 'ne-food-head';
+    head.innerHTML = '<span>Potravina</span><span style="text-align:left">Množství</span><span>kcal</span><span>B</span><span>S</span><span>T</span><span></span>';
+    body.appendChild(head);
+    meal.foods.forEach(function(fd, fi) {
+      var n = NE.calcFood(fd.name, fd.amt);
+      var row = document.createElement('div'); row.className = 'ne-food-row';
+      row.innerHTML = '<span class="ne-fname">'+fd.name+'</span>'+
+        '<span class="ne-famt"><span class="ne-editable" contenteditable="true" data-mi="'+mi+'" data-fi="'+fi+'">'+fd.amt+'</span> g</span>'+
+        '<span class="ne-fnum">'+n.kcal+'</span>'+
+        '<span class="ne-fnum" style="color:var(--blue)">'+n.p+'</span>'+
+        '<span class="ne-fnum" style="color:var(--orange)">'+n.c+'</span>'+
+        '<span class="ne-fnum" style="color:var(--purple)">'+n.f+'</span>'+
+        '<span class="ne-del" data-mi="'+mi+'" data-fi="'+fi+'">✕</span>';
+      body.appendChild(row);
+    });
+    var addWrap = document.createElement('div'); addWrap.className = 'ne-add-food';
+    addWrap.innerHTML = '<span style="color:var(--text4);font-size:14px">+</span>'+
+      '<input class="ne-add-input" placeholder="Přidat potravinu..." data-mi="'+mi+'">'+
+      '<div class="ne-dropdown" data-dmi="'+mi+'"></div>';
+    body.appendChild(addWrap);
+    hdr.addEventListener('click', function(){meal.open=!meal.open; NE.renderMeals();});
+    block.appendChild(hdr); block.appendChild(body); el.appendChild(block);
+  });
+
+  el.querySelectorAll('.ne-editable').forEach(function(e) {
+    e.addEventListener('blur', function() {
+      var v = parseInt(this.textContent)||0;
+      NE.currentMeals()[parseInt(this.dataset.mi)].foods[parseInt(this.dataset.fi)].amt = v;
+      NE.markUnsaved(); NE.renderMeals(); NE.updateSidebar(); NE.updateWeekBars(); NE.renderWeekTabs(); NE.renderDayTabs();
+    });
+    e.addEventListener('keydown', function(ev){if(ev.key==='Enter'){ev.preventDefault();this.blur();}});
+  });
+  el.querySelectorAll('.ne-del').forEach(function(e) {
+    e.addEventListener('click', function(ev) {
+      ev.stopPropagation();
+      NE.currentMeals()[parseInt(this.dataset.mi)].foods.splice(parseInt(this.dataset.fi),1);
+      NE.markUnsaved(); NE.renderMeals(); NE.updateSidebar(); NE.updateWeekBars(); NE.renderDayTabs();
+    });
+  });
+  el.querySelectorAll('.ne-add-input').forEach(function(inp) {
+    var mi = parseInt(inp.dataset.mi);
+    var dd = inp.parentElement.querySelector('.ne-dropdown');
+    inp.addEventListener('input', function() {
+      var q = this.value.toLowerCase().trim();
+      if (!q) { dd.classList.remove('open'); return; }
+      var res = NE.foods_db.filter(function(f){return f.name.toLowerCase().includes(q);}).slice(0,7);
+      dd.innerHTML = '';
+      res.forEach(function(f) {
+        var opt = document.createElement('div'); opt.className = 'ne-dopt';
+        opt.innerHTML = '<span class="ne-dopt-name">'+f.name+'</span>'+
+          '<span class="ne-dopt-meta">'+Math.round(f.per100.kcal)+' kcal | B'+Math.round(f.per100.p)+' S'+Math.round(f.per100.c)+' T'+Math.round(f.per100.f)+' /100g</span>';
+        opt.addEventListener('mousedown', function(ev) {
+          ev.preventDefault();
+          NE.currentMeals()[mi].foods.push({name:f.name, amt:100});
+          inp.value=''; dd.classList.remove('open');
+          NE.markUnsaved(); NE.renderMeals(); NE.updateSidebar(); NE.updateWeekBars(); NE.renderDayTabs(); NE.renderWeekTabs();
+        });
+        dd.appendChild(opt);
+      });
+      dd.classList.toggle('open', res.length > 0);
+    });
+    inp.addEventListener('blur', function(){setTimeout(function(){dd.classList.remove('open');},150);});
+  });
+};
+
+NE.markUnsaved = function() {
+  var el = document.getElementById('ne-save-ind'); if(!el) return;
+  el.textContent='Ukládám...'; el.className='ne-save';
+  clearTimeout(NE.saveTimer);
+  NE.saveTimer = setTimeout(function(){NE.markSaved();}, 1000);
+};
+NE.markSaved = function() {
+  var el = document.getElementById('ne-save-ind'); if(!el) return;
+  el.textContent='Uloženo'; el.className='ne-save saved';
+};
+NE.renderAll = function() {
+  NE.renderWeekTabs();
+  NE.updateWeekProgress();
+  NE.renderDayTabs();
+  NE.renderMeals();
+  NE.updateSidebar();
+  NE.updateWeekBars();
+};
+
+function neSwitchWeek(w) {
+  NE.currentWeek = w;
+  NE.currentDay = 0;
+  NE.renderAll();
+}
+function neSwitchDay(d) {
+  NE.currentDay = d;
+  NE.renderDayTabs();
+  NE.renderMeals();
+  NE.updateSidebar();
+  NE.updateWeekBars();
+}
+function neAddWeek() {
+  if (NE.weeks.length >= NE.TOTAL_WEEKS) return;
+  // Copy from week 1 template
+  var newWeek = JSON.parse(JSON.stringify(NE.weeks[0]));
+  newWeek.fromTemplate = true;
+  NE.weeks.push(newWeek);
+  neSwitchWeek(NE.weeks.length - 1);
+}
+function neDeleteWeek() {
+  if (NE.currentWeek === 0 || NE.weeks.length <= 1) { alert('Týden 1 (šablonu) nelze smazat.'); return; }
+  if (!confirm('Smazat Týden '+(NE.currentWeek+1)+'? Tato akce je nevratná.')) return;
+  NE.weeks.splice(NE.currentWeek, 1);
+  NE.currentWeek = Math.max(0, NE.currentWeek - 1);
+  NE.renderAll();
+}
+function neCopyWeek() {
+  if (NE.currentWeek === 0) {
+    // Apply template to ALL weeks
+    if (!confirm('Přepsat všechny týdny obsahem Týdne 1 (šablony)?')) return;
+    for (var w = 1; w < NE.weeks.length; w++) {
+      NE.weeks[w] = JSON.parse(JSON.stringify(NE.weeks[0]));
+      NE.weeks[w].fromTemplate = true;
+    }
+    NE.renderAll();
+    NE.markUnsaved();
+  } else {
+    // Copy current week to next
+    var nextW = NE.currentWeek + 1;
+    if (nextW >= NE.weeks.length) {
+      if (NE.weeks.length < NE.TOTAL_WEEKS) { neAddWeek(); return; }
+      else { alert('Dosáhli jste maximálního počtu týdnů ('+NE.TOTAL_WEEKS+').'); return; }
+    }
+    NE.weeks[nextW] = JSON.parse(JSON.stringify(NE.weeks[NE.currentWeek]));
+    NE.weeks[nextW].fromTemplate = false;
+    neSwitchWeek(nextW);
+    NE.markUnsaved();
+  }
+}
+function neResetToTemplate() {
+  if (!confirm('Obnovit Týden '+(NE.currentWeek+1)+' ze šablony (Týden 1)? Změny budou ztraceny.')) return;
+  NE.weeks[NE.currentWeek] = JSON.parse(JSON.stringify(NE.weeks[0]));
+  NE.weeks[NE.currentWeek].fromTemplate = true;
+  NE.renderAll();
+  NE.markUnsaved();
+}
+function neAddMeal() {
+  var names=['Snídaně','Svačina dop.','Oběd','Svačina odp.','Večeře','2. večeře'];
+  var times=['07:30','10:30','13:00','16:30','19:00','21:00'];
+  var meals = NE.currentMeals();
+  var n = meals.length;
+  meals.push({name:names[n]||'Jídlo '+(n+1), time:times[n]||'20:00', open:true, foods:[]});
+  NE.renderMeals(); NE.updateSidebar();
+  // mark this week as modified
+  NE.weeks[NE.currentWeek].fromTemplate = false;
+  document.getElementById('ne-template-banner').style.display = 'none';
+}
+function nePublish() {
+  var filledWeeks = NE.weeks.filter(function(w){
+    return w.days.some(function(d){return d.meals.some(function(m){return m.foods.length>0;});});
+  }).length;
+  alert('Plán publikován!\n\n'+filledWeeks+' z '+NE.weeks.length+' týdnů obsahuje data.\n\nKlient Petra Horáková uvidí plán v mobilní aplikaci.');
+}
+function neShoppingList() {
+  var items = {};
+  NE.weeks[NE.currentWeek].days.forEach(function(day){
+    day.meals.forEach(function(meal){
+      meal.foods.forEach(function(fd){
+        items[fd.name] = (items[fd.name]||0) + fd.amt;
+      });
+    });
+  });
+  var list = Object.keys(items).map(function(k){return k+': '+items[k]+'g';}).join('\n');
+  alert('Nákupní seznam – Týden '+(NE.currentWeek+1)+':\n\n'+(list||'Žádné potraviny.'));
+}
+
+
+
+</script>
+</body>
+</html>

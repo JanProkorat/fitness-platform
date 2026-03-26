@@ -9,6 +9,7 @@ export default function Sidebar() {
   const logout = useAuthStore((s) => s.logout);
 
   const isNutritionist = user?.roles.some((r) => ['Nutritionist', 'Admin'].includes(r));
+  const isTrainer = user?.roles.some((r) => ['Trainer', 'Admin'].includes(r));
 
   const navItems = [
     { to: '/dashboard', icon: '\u{1F4CA}', label: t('sidebar.dashboard') },
@@ -18,6 +19,12 @@ export default function Sidebar() {
           { to: '/foods', icon: '\u{1F34E}', label: t('sidebar.foods') },
           { to: '/recipes', icon: '\u{1F4D6}', label: t('sidebar.recipes') },
           { to: '/plans', icon: '\u{1F4CB}', label: t('sidebar.plans') },
+        ]
+      : []),
+    ...(isTrainer
+      ? [
+          { to: '/exercises', icon: '\u{1F4AA}', label: t('sidebar.exercises') },
+          { to: '/training-plans', icon: '\u{1F3CB}\u{FE0F}', label: t('sidebar.trainingPlans') },
         ]
       : []),
     { to: '/profile', icon: '\u{2699}\u{FE0F}', label: t('sidebar.settings') },

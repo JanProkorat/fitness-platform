@@ -4,6 +4,7 @@ import type {
   GetCustomFoodsResponse,
   FoodSummary,
   CreateFoodRequest,
+  UpdateFoodRequest,
 } from './food-types';
 
 /** Search foods by name, with optional source filter and pagination. */
@@ -12,6 +13,7 @@ export async function searchFoods(params: {
   source?: string;
   page?: number;
   pageSize?: number;
+  excludeExternal?: boolean;
 }): Promise<SearchFoodsResponse> {
   const { data } = await api.get<SearchFoodsResponse>('/foods/search', { params });
   return data;
@@ -32,6 +34,12 @@ export async function getFoodByBarcode(barcode: string): Promise<FoodSummary> {
 /** Create a custom food (Nutritionist only). */
 export async function createFood(request: CreateFoodRequest): Promise<FoodSummary> {
   const { data } = await api.post<FoodSummary>('/foods', request);
+  return data;
+}
+
+/** Update a custom food (Nutritionist only). */
+export async function updateFood(foodId: string, request: UpdateFoodRequest): Promise<FoodSummary> {
+  const { data } = await api.put<FoodSummary>(`/foods/${foodId}`, request);
   return data;
 }
 

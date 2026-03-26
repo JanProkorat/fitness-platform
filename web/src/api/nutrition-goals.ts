@@ -59,6 +59,7 @@ export interface OnboardingData {
   proteinGrams?: number | null;
   carbsGrams?: number | null;
   fatGrams?: number | null;
+  mealDistribution?: string | null;
 }
 
 export interface ClientDashboard {
@@ -119,6 +120,7 @@ export async function updateClientData(
     proteinGrams?: number;
     carbsGrams?: number;
     fatGrams?: number;
+    mealDistribution?: string;
   },
 ): Promise<{ message: string }> {
   const { data: res } = await api.put<{ message: string }>(

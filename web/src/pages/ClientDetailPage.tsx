@@ -1,8 +1,9 @@
 import { useState, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getClientDashboard } from '@/api/nutrition-goals';
+import { createPlan, getPlans } from '@/api/plans';
 import AnamnesisForm from '@/components/nutrition/AnamnesisForm';
 import GoalCalculation from '@/components/nutrition/GoalCalculation';
 import MacroSliders from '@/components/nutrition/MacroSliders';
@@ -32,11 +33,14 @@ function Tags({ value, t }: { value: string | undefined | null; t: (key: string)
   );
 }
 
-function Field({ label, value }: { label: string; value: React.ReactNode }) {
+function Field({ label, value, changed }: { label: string; value: React.ReactNode; changed?: boolean }) {
   return (
     <div>
       <span className="text-xs text-muted">{label}</span>
-      <p className="text-sm font-semibold">{value ?? <span className="text-muted">&mdash;</span>}</p>
+      <div className="flex items-center gap-1.5">
+        {changed && <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500 flex-shrink-0" />}
+        <p className={`text-sm font-semibold ${changed ? 'text-amber-400' : ''}`}>{value ?? <span className="text-muted">&mdash;</span>}</p>
+      </div>
     </div>
   );
 }
@@ -63,6 +67,51 @@ export default function ClientDetailPage() {
   }, []);
 
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
+  // Create plan drawer state
+  const [planDrawerMounted, setPlanDrawerMounted] = useState(false);
+  const [planDrawerVisible, setPlanDrawerVisible] = useState(false);
+  const [planName, setPlanName] = useState('');
+  const [planWeeks, setPlanWeeks] = useState(1);
+  const [creatingPlan, setCreatingPlan] = useState(false);
+
+  const openPlanDrawer = useCallback(() => {
+    setPlanName('');
+    setPlanWeeks(1);
+    setPlanDrawerMounted(true);
+    requestAnimationFrame(() => requestAnimationFrame(() => setPlanDrawerVisible(true)));
+  }, []);
+
+  const closePlanDrawer = useCallback(() => {
+    setPlanDrawerVisible(false);
+    setTimeout(() => setPlanDrawerMounted(false), 300);
+  }, []);
+
+  const handleCreatePlan = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!planName.trim() || !id) return;
+    setCreatingPlan(true);
+    try {
+      const plan = await createPlan({
+        clientId: id,
+        name: planName,
+        weekCount: planWeeks,
+        globalSettings: ob?.adjustedKcal ? {
+          dailyKcal: result?.adjustedKcal ?? ob.adjustedKcal ?? 0,
+          proteinGrams: result?.macroTargets.proteinGrams ?? ob.proteinGrams ?? 0,
+          carbsGrams: result?.macroTargets.carbsGrams ?? ob.carbsGrams ?? 0,
+          fatGrams: result?.macroTargets.fatGrams ?? ob.fatGrams ?? 0,
+        } : undefined,
+      });
+      closePlanDrawer();
+      navigate(`/plans/${plan.planId}`);
+    } catch {
+      // handled by interceptor
+    } finally {
+      setCreatingPlan(false);
+    }
+  };
 
   // Nutrition calculator state
   const [isSaving, setIsSaving] = useState(false);
@@ -74,12 +123,21 @@ export default function ClientDetailPage() {
     carbs: 45,
     fat: 25,
   });
+  const [mealDist, setMealDist] = useState<Record<string, number> | null>(null);
 
   const { data: client, isLoading } = useQuery({
     queryKey: ['client-dashboard', id],
     queryFn: () => getClientDashboard(id!),
     enabled: !!id,
   });
+
+  const { data: clientPlans } = useQuery({
+    queryKey: ['client-plans', id],
+    queryFn: () => getPlans({ clientId: id!, pageSize: 1 }),
+    enabled: !!id,
+  });
+
+  const existingPlan = clientPlans?.plans?.[0];
 
   const clientName = client
     ? `${client.firstName} ${client.lastName}`
@@ -95,6 +153,17 @@ export default function ClientDetailPage() {
     return translated !== key ? translated : val;
   };
 
+  // Detect which fields were changed by the recalculation
+  const origAge = client?.dateOfBirth ? new Date(client.dateOfBirth).getFullYear() : null;
+  const diff = lastRequest ? {
+    weight: lastRequest.weightKg !== (client?.weightKg ?? 0),
+    height: lastRequest.heightCm !== (client?.heightCm ?? 0),
+    age: origAge != null && lastRequest.age !== (new Date().getFullYear() - origAge),
+    sex: ob?.sex != null && lastRequest.sex !== ob.sex,
+    activityLevel: ob?.derivedActivityLevel != null && lastRequest.activityLevel !== ob.derivedActivityLevel,
+    goal: ob?.derivedNutritionGoal != null && lastRequest.goal !== ob.derivedNutritionGoal,
+  } : null;
+
   const handleCalculate = async (data: AnamnesisData) => {
     if (!id) return;
     setIsCalculating(true);
@@ -108,6 +177,8 @@ export default function ClientDetailPage() {
       const response = await calculateGoals(id, request);
       setResult(response);
       setLastRequest(data);
+      setActiveTab('nutrition');
+      closeDrawer();
     } catch {
       // Error is handled by the API interceptor
     } finally {
@@ -138,27 +209,37 @@ export default function ClientDetailPage() {
     }
   };
 
+  const [confirmAction, setConfirmAction] = useState<'save' | 'reset' | null>(null);
+
+  const hasChanges = !!result || !!mealDist;
+
   const handleSave = async () => {
-    if (!result || !lastRequest || !id) return;
+    if (!id || !hasChanges) return;
     setIsSaving(true);
     try {
-      await updateClientData(id, {
-        weightKg: lastRequest.weightKg,
-        heightCm: lastRequest.heightCm,
-        age: lastRequest.age,
-        sex: lastRequest.sex,
-        derivedActivityLevel: lastRequest.activityLevel,
-        derivedNutritionGoal: lastRequest.goal,
-        bmr: result.bmr,
-        tdee: result.tdee,
-        adjustedKcal: result.adjustedKcal,
-        proteinGrams: result.macroTargets.proteinGrams,
-        carbsGrams: result.macroTargets.carbsGrams,
-        fatGrams: result.macroTargets.fatGrams,
-      });
+      const payload: Parameters<typeof updateClientData>[1] = {};
+      if (result && lastRequest) {
+        payload.weightKg = lastRequest.weightKg;
+        payload.heightCm = lastRequest.heightCm;
+        payload.age = lastRequest.age;
+        payload.sex = lastRequest.sex;
+        payload.derivedActivityLevel = lastRequest.activityLevel;
+        payload.derivedNutritionGoal = lastRequest.goal;
+        payload.bmr = result.bmr;
+        payload.tdee = result.tdee;
+        payload.adjustedKcal = result.adjustedKcal;
+        payload.proteinGrams = result.macroTargets.proteinGrams;
+        payload.carbsGrams = result.macroTargets.carbsGrams;
+        payload.fatGrams = result.macroTargets.fatGrams;
+      }
+      if (mealDist) {
+        payload.mealDistribution = JSON.stringify(mealDist);
+      }
+      await updateClientData(id, payload);
       await queryClient.invalidateQueries({ queryKey: ['client-dashboard', id] });
       setResult(null);
       setLastRequest(null);
+      setMealDist(null);
     } catch {
       // handled by interceptor
     } finally {
@@ -169,6 +250,7 @@ export default function ClientDetailPage() {
   const handleReset = () => {
     setResult(null);
     setLastRequest(null);
+    setMealDist(null);
   };
 
   return (
@@ -193,21 +275,69 @@ export default function ClientDetailPage() {
       </div>
 
       {/* Tab bar */}
-      <div className="flex gap-1 border-b border-border bg-[#111111] px-6">
-        {TABS.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2.5 text-xs font-semibold uppercase tracking-wide transition-colors ${
-              activeTab === tab
-                ? 'border-b-2 border-gold text-gold'
-                : 'text-muted hover:text-text2'
-            }`}
-          >
-            {t(`clients.tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`)}
-          </button>
-        ))}
+      <div className="flex items-center border-b border-border bg-[#111111] px-6">
+        <div className="flex gap-1">
+          {TABS.map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2.5 text-xs font-semibold uppercase tracking-wide transition-colors ${
+                activeTab === tab
+                  ? 'border-b-2 border-gold text-gold'
+                  : 'text-muted hover:text-text2'
+              }`}
+            >
+              {t(`clients.tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`)}
+            </button>
+          ))}
+        </div>
+        {hasChanges && (
+          <div className="ml-auto flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <span className="inline-block h-2 w-2 rounded-full bg-amber-500" />
+              <span className="text-xs font-medium text-amber-400">{t('clients.unsavedChanges')}</span>
+            </div>
+            <button type="button" onClick={() => setConfirmAction('reset')}
+              className="rounded-sm border border-border px-3 py-1.5 font-heading text-[11px] font-extrabold uppercase tracking-wide text-muted transition-colors hover:text-text">
+              {t('clients.resetTargets')}
+            </button>
+            <button type="button" onClick={() => setConfirmAction('save')} disabled={isSaving}
+              className="rounded-sm bg-green-600 px-3 py-1.5 font-heading text-[11px] font-extrabold uppercase tracking-wide text-white transition-colors hover:bg-green-500 disabled:opacity-50">
+              {isSaving ? t('common.saving') : t('clients.saveTargets')}
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* Confirmation dialog */}
+      {confirmAction && (
+        <>
+          <div className="fixed inset-0 z-40 bg-black/50" onClick={() => setConfirmAction(null)} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="w-full max-w-sm rounded-sm border border-border bg-bg p-6 shadow-2xl">
+              <h3 className="mb-2 text-sm font-bold">
+                {confirmAction === 'save' ? t('clients.confirmSaveTitle') : t('clients.confirmResetTitle')}
+              </h3>
+              <p className="mb-5 text-sm text-muted">
+                {confirmAction === 'save' ? t('clients.confirmSaveMessage') : t('clients.confirmResetMessage')}
+              </p>
+              <div className="flex justify-end gap-2">
+                <button type="button" onClick={() => setConfirmAction(null)}
+                  className="rounded-sm border border-border px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted transition-colors hover:text-text">
+                  {t('common.cancel')}
+                </button>
+                <button type="button"
+                  onClick={() => { setConfirmAction(null); confirmAction === 'save' ? handleSave() : handleReset(); }}
+                  className={`rounded-sm px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition-colors ${
+                    confirmAction === 'save' ? 'bg-green-600 hover:bg-green-500' : 'bg-red-600 hover:bg-red-500'
+                  }`}>
+                  {confirmAction === 'save' ? t('clients.saveTargets') : t('clients.resetTargets')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-6">
@@ -258,20 +388,21 @@ export default function ClientDetailPage() {
                     <SectionHeading>{t('clients.profile')}</SectionHeading>
                     <div className="rounded-sm border border-border bg-surface p-5">
                       <div className="grid grid-cols-2 gap-4">
-                        {client.dateOfBirth && (
+                        {(client.dateOfBirth || diff?.age) && (
                           <Field
                             label={t('clients.yearOfBirth')}
-                            value={new Date(client.dateOfBirth).getFullYear()}
+                            value={diff?.age && lastRequest ? new Date().getFullYear() - lastRequest.age : client.dateOfBirth ? new Date(client.dateOfBirth).getFullYear() : null}
+                            changed={diff?.age}
                           />
                         )}
-                        {client.heightCm != null && (
-                          <Field label={t('nutritionGoals.height')} value={`${client.heightCm} cm`} />
+                        {(client.heightCm != null || diff?.height) && (
+                          <Field label={t('nutritionGoals.height')} value={`${diff?.height && lastRequest ? lastRequest.heightCm : client.heightCm} cm`} changed={diff?.height} />
                         )}
-                        {client.weightKg != null && (
-                          <Field label={t('nutritionGoals.weight')} value={`${client.weightKg} kg`} />
+                        {(client.weightKg != null || diff?.weight) && (
+                          <Field label={t('nutritionGoals.weight')} value={`${diff?.weight && lastRequest ? lastRequest.weightKg : client.weightKg} kg`} changed={diff?.weight} />
                         )}
-                        {ob.sex && (
-                          <Field label={t('clients.sex')} value={v(ob.sex)} />
+                        {(ob.sex || diff?.sex) && (
+                          <Field label={t('clients.sex')} value={v(diff?.sex && lastRequest ? lastRequest.sex : ob.sex)} changed={diff?.sex} />
                         )}
                         {ob.targetWeightKg != null && (
                           <Field label={t('clients.targetWeight')} value={`${ob.targetWeightKg} kg`} />
@@ -359,16 +490,6 @@ export default function ClientDetailPage() {
                   </div>
                 )}
 
-                {/* Action buttons */}
-                <div className="flex flex-wrap gap-3">
-                  <button
-                    type="button"
-                    disabled
-                    className="rounded-sm bg-gold/30 px-4 py-2 font-heading text-[13px] font-extrabold uppercase tracking-wide text-black/40 cursor-not-allowed"
-                  >
-                    {t('clients.nutritionPlans')} &rarr;
-                  </button>
-                </div>
               </>
             )}
 
@@ -455,31 +576,18 @@ export default function ClientDetailPage() {
                     <div className="flex items-center justify-between">
                       <SectionHeading>{t('clients.nutritionTargets')}</SectionHeading>
                       <div className="flex gap-2">
-                        {result && (
-                          <>
-                            <button type="button" onClick={handleReset}
-                              className="rounded-sm border border-border px-3 py-1.5 font-heading text-[11px] font-extrabold uppercase tracking-wide text-muted transition-colors hover:text-text">
-                              {t('clients.resetTargets')}
-                            </button>
-                            <button type="button" onClick={handleSave} disabled={isSaving}
-                              className="rounded-sm bg-green-600 px-3 py-1.5 font-heading text-[11px] font-extrabold uppercase tracking-wide text-white transition-colors hover:bg-green-500 disabled:opacity-50">
-                              {isSaving ? t('common.saving') : t('clients.saveTargets')}
-                            </button>
-                          </>
-                        )}
                         <button type="button" onClick={openDrawer}
                           className="rounded-sm bg-gold px-3 py-1.5 font-heading text-[11px] font-extrabold uppercase tracking-wide text-black transition-colors hover:bg-gold-bright">
                           {t('clients.recalculate')}
                         </button>
+                        <button type="button"
+                          onClick={() => existingPlan ? navigate(`/plans/${existingPlan.planId}`) : openPlanDrawer()}
+                          className="rounded-sm bg-gold px-3 py-1.5 font-heading text-[11px] font-extrabold uppercase tracking-wide text-black transition-colors hover:bg-gold-bright">
+                          {existingPlan ? t('clients.nutritionPlans') : t('clients.createPlan')}
+                        </button>
                       </div>
                     </div>
                     <div className={`rounded-sm border ${result ? 'border-amber-500/50' : 'border-border'} bg-surface p-5 transition-colors`}>
-                      {result && (
-                        <div className="mb-3 flex items-center gap-2">
-                          <span className="inline-block h-2 w-2 rounded-full bg-amber-500" />
-                          <span className="text-xs font-medium text-amber-400">{t('clients.unsavedChanges')}</span>
-                        </div>
-                      )}
                       {/* BMR -> TDEE -> Adjusted flow -- use result if available, otherwise onboarding */}
                       <div className="mb-4 flex items-center gap-3 text-sm">
                         <div className="rounded bg-gold/10 px-3 py-2 text-center">
@@ -499,10 +607,10 @@ export default function ClientDetailPage() {
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         {(result ? lastRequest?.activityLevel : ob.derivedActivityLevel) && (
-                          <Field label={t('clients.derivedActivity')} value={v(result ? lastRequest?.activityLevel : ob.derivedActivityLevel)} />
+                          <Field label={t('clients.derivedActivity')} value={v(result ? lastRequest?.activityLevel : ob.derivedActivityLevel)} changed={!!diff?.activityLevel} />
                         )}
                         {(result ? lastRequest?.goal : ob.derivedNutritionGoal) && (
-                          <Field label={t('clients.derivedGoal')} value={v(result ? lastRequest?.goal : ob.derivedNutritionGoal)} />
+                          <Field label={t('clients.derivedGoal')} value={v(result ? lastRequest?.goal : ob.derivedNutritionGoal)} changed={!!diff?.goal} />
                         )}
                       </div>
                       <div className="mt-4 grid grid-cols-3 gap-4 text-center">
@@ -550,6 +658,8 @@ export default function ClientDetailPage() {
                         <MealDistribution
                           totalKcal={activeKcal}
                           macroTargets={activeMacros}
+                          initialDistribution={ob.mealDistribution ? JSON.parse(ob.mealDistribution) : null}
+                          onChange={setMealDist}
                         />
                       </div>
                     </>
@@ -627,56 +737,77 @@ export default function ClientDetailPage() {
                 />
               </div>
 
-              {/* Calculation Results */}
-              {result && lastRequest && (
-                <div className="rounded-sm border border-border bg-surface p-5">
-                  <GoalCalculation
-                    bmr={result.bmr}
-                    tdee={result.tdee}
-                    adjustedKcal={result.adjustedKcal}
-                    activityLevel={lastRequest.activityLevel}
-                    goal={lastRequest.goal}
-                  />
-                </div>
-              )}
-
-              {/* Macro Sliders */}
-              {result && (
-                <div className="rounded-sm border border-border bg-surface p-5">
-                  <MacroSliders
-                    proteinPercent={macros.protein}
-                    carbsPercent={macros.carbs}
-                    fatPercent={macros.fat}
-                    totalKcal={result.adjustedKcal}
-                    onChange={handleMacroChange}
-                  />
-                </div>
-              )}
-
-              {/* Meal Distribution */}
-              {result && (
-                <div className="rounded-sm border border-border bg-surface p-5">
-                  <MealDistribution
-                    totalKcal={result.adjustedKcal}
-                    macroTargets={result.macroTargets}
-                  />
-                </div>
-              )}
-
-              {/* Apply to Plan button */}
-              {result && (
-                <div className="flex justify-end">
-                  <button
-                    type="button"
-                    disabled
-                    className="rounded-sm bg-gold/30 px-4 py-2 font-heading text-[13px] font-extrabold uppercase tracking-wide text-black/40 cursor-not-allowed"
-                  >
-                    {t('nutritionGoals.applyToPlan')}
-                  </button>
-                </div>
-              )}
             </div>
           </div>
+          </div>
+        </>
+      )}
+
+      {/* Create Plan Drawer */}
+      {planDrawerMounted && (
+        <>
+          <div
+            className={`fixed inset-0 z-40 bg-black/50 transition-opacity duration-300 ${planDrawerVisible ? 'opacity-100' : 'opacity-0'}`}
+            onClick={closePlanDrawer}
+          />
+          <div
+            className={`fixed top-0 right-0 z-50 flex h-full w-[400px] flex-col border-l border-border bg-bg shadow-2xl transition-transform duration-300 ease-out ${planDrawerVisible ? 'translate-x-0' : 'translate-x-full'}`}
+          >
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <div className="text-sm font-semibold">{t('clients.createPlan')}</div>
+                <button
+                  type="button"
+                  onClick={closePlanDrawer}
+                  className="text-text3 transition-colors hover:text-text"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <form id="create-plan-form" onSubmit={handleCreatePlan} className="flex flex-col gap-4">
+                <div>
+                  <label className="mb-1 block font-heading text-xs text-text3">
+                    {t('nutrition.planName')}
+                  </label>
+                  <input
+                    type="text"
+                    value={planName}
+                    onChange={(e) => setPlanName(e.target.value)}
+                    placeholder={t('nutrition.planNamePlaceholder')}
+                    required
+                    className="w-full rounded-sm border border-border bg-surface px-4 py-2.5 text-sm text-text outline-none focus:border-gold/40"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block font-heading text-xs text-text3">
+                    {t('nutrition.weekCount')}
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={52}
+                    value={planWeeks}
+                    onChange={(e) => setPlanWeeks(Math.max(1, Number(e.target.value) || 1))}
+                    className="w-full rounded-sm border border-border bg-surface px-4 py-2.5 text-sm text-text outline-none focus:border-gold/40"
+                  />
+                </div>
+              </form>
+            </div>
+
+            <div className="shrink-0 border-t border-border bg-bg px-6 py-4">
+              <button
+                type="submit"
+                form="create-plan-form"
+                disabled={creatingPlan || !planName.trim()}
+                className="w-full rounded-sm bg-gold px-5 py-3 font-heading text-xs font-bold uppercase tracking-wide text-black transition-colors hover:bg-gold-bright disabled:opacity-50"
+              >
+                {creatingPlan ? t('nutrition.saving') : t('clients.createPlan')}
+              </button>
+            </div>
           </div>
         </>
       )}

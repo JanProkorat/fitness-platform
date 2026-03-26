@@ -20,6 +20,9 @@ import PlansPage from '@/pages/PlansPage';
 import RecipesPage from '@/pages/RecipesPage';
 import NutritionPlanPage from '@/pages/NutritionPlanPage';
 import ClientNutritionGoalsPage from '@/pages/ClientNutritionGoalsPage';
+import ExercisesPage from '@/pages/ExercisesPage';
+import TrainingPlansPage from '@/pages/TrainingPlansPage';
+import TrainingPlanPage from '@/pages/TrainingPlanPage';
 import Toaster from '@/components/layout/Toaster';
 
 function DefaultRedirect() {
@@ -36,6 +39,11 @@ const queryClient = new QueryClient({
       retry: 1,
     },
   },
+});
+
+// Refetch all queries when the app language changes so localized data (e.g. food names) updates
+window.addEventListener('app:languageChanged', () => {
+  queryClient.invalidateQueries();
 });
 
 export default function App() {
@@ -68,7 +76,7 @@ export default function App() {
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/profile" element={<ProfilePage />} />
 
-              {/* Trainer/Nutritionist only */}
+              {/* Trainer/Nutritionist shared */}
               <Route
                 element={
                   <RoleGuard allowedRoles={['Trainer', 'Nutritionist', 'Admin']} />
@@ -77,10 +85,29 @@ export default function App() {
                 <Route path="/clients" element={<ClientsPage />} />
                 <Route path="/clients/:id" element={<ClientDetailPage />} />
                 <Route path="/clients/:id/nutrition-goals" element={<ClientNutritionGoalsPage />} />
+              </Route>
+
+              {/* Nutritionist only */}
+              <Route
+                element={
+                  <RoleGuard allowedRoles={['Nutritionist', 'Admin']} />
+                }
+              >
                 <Route path="/foods" element={<FoodsPage />} />
                 <Route path="/recipes" element={<RecipesPage />} />
                 <Route path="/plans" element={<PlansPage />} />
                 <Route path="/plans/:planId" element={<NutritionPlanPage />} />
+              </Route>
+
+              {/* Trainer only */}
+              <Route
+                element={
+                  <RoleGuard allowedRoles={['Trainer', 'Admin']} />
+                }
+              >
+                <Route path="/exercises" element={<ExercisesPage />} />
+                <Route path="/training-plans" element={<TrainingPlansPage />} />
+                <Route path="/training-plans/:planId" element={<TrainingPlanPage />} />
               </Route>
             </Route>
           </Route>

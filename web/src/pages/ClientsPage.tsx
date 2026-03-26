@@ -1,15 +1,32 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { apiClient } from '@/api/client';
 import type { GetClientsResponse } from '@/api/client';
+import { showError, showSuccess } from '@/lib/api-errors';
 
 export default function ClientsPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [page, setPage] = useState(1);
-  const [showInvite, setShowInvite] = useState(false);
+
+  // Drawer
+  const [drawerMounted, setDrawerMounted] = useState(false);
+  const [drawerVisible, setDrawerVisible] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteStatus, setInviteStatus] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+
+  const openDrawer = useCallback(() => {
+    setInviteEmail('');
+    setDrawerMounted(true);
+    requestAnimationFrame(() => requestAnimationFrame(() => setDrawerVisible(true)));
+  }, []);
+
+  const closeDrawer = useCallback(() => {
+    setDrawerVisible(false);
+    setTimeout(() => setDrawerMounted(false), 300);
+  }, []);
 
   const { data, isLoading, refetch } = useQuery<GetClientsResponse>({
     queryKey: ['clients', page],
@@ -18,18 +35,25 @@ export default function ClientsPage() {
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
-    setInviteStatus(null);
+    if (!inviteEmail.trim()) return;
+
+    setSending(true);
     try {
       await apiClient.inviteClientEndpoint({ email: inviteEmail });
-      setInviteStatus(t('clients.inviteSent'));
-      setInviteEmail('');
+      showSuccess('clients.inviteSent');
+      closeDrawer();
       refetch();
     } catch {
-      setInviteStatus(t('clients.inviteError'));
+      showError('clients.inviteError');
+    } finally {
+      setSending(false);
     }
   };
 
   const totalPages = data ? Math.ceil((data.totalCount ?? 0) / (data.pageSize ?? 1)) : 0;
+
+  const inputClass =
+    'rounded-sm border border-border bg-surface px-4 py-2.5 text-sm text-text outline-none transition-colors focus:border-gold/40';
 
   return (
     <div className="flex h-full flex-col">
@@ -37,12 +61,10 @@ export default function ClientsPage() {
       <div className="flex items-center border-b border-border bg-[#111111] px-6 py-4">
         <div className="flex-1">
           <h1 className="text-lg font-bold">{t('clients.title')}</h1>
-          <p className="text-xs text-muted">
-            {t('clients.subtitle')}
-          </p>
+          <p className="text-xs text-muted">{t('clients.subtitle')}</p>
         </div>
         <button
-          onClick={() => setShowInvite(!showInvite)}
+          onClick={openDrawer}
           className="rounded-sm bg-gold px-4 py-2 font-heading text-[13px] font-extrabold uppercase tracking-wide text-black transition-colors hover:bg-gold-bright"
         >
           {t('clients.inviteClient')}
@@ -50,45 +72,6 @@ export default function ClientsPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto p-6">
-        {/* Invite dialog */}
-        {showInvite && (
-          <div className="mb-5 rounded-sm border border-gold-dim/30 bg-gold/5 p-5">
-            <div className="mb-3 text-sm font-semibold">
-              {t('clients.inviteNewClient')}
-            </div>
-            <form onSubmit={handleInvite} className="flex gap-3">
-              <input
-                type="email"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                placeholder="email@klient.cz"
-                required
-                className="flex-1 rounded-sm border border-border bg-surface px-4 py-2.5 text-sm text-text outline-none transition-colors focus:border-gold/40"
-              />
-              <button
-                type="submit"
-                className="rounded-sm bg-gold px-5 py-2.5 font-heading text-xs font-bold uppercase tracking-wide text-black transition-colors hover:bg-gold-bright"
-              >
-                {t('common.send')}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowInvite(false)}
-                className="rounded-sm border border-border px-4 py-2.5 font-heading text-xs font-semibold uppercase tracking-wide text-text3 transition-colors hover:text-text"
-              >
-                {t('common.cancel')}
-              </button>
-            </form>
-            {inviteStatus && (
-              <p
-                className={`mt-2 text-xs ${inviteStatus === t('clients.inviteError') ? 'text-red' : 'text-green-bright'}`}
-              >
-                {inviteStatus}
-              </p>
-            )}
-          </div>
-        )}
-
         {/* Client list */}
         <div className="rounded-sm border border-border bg-surface">
           {isLoading ? (
@@ -99,9 +82,7 @@ export default function ClientsPage() {
             <div className="flex flex-col items-center justify-center py-20 text-text3">
               <span className="text-4xl">&#x1F465;</span>
               <p className="mt-3 text-sm">{t('clients.noClients')}</p>
-              <p className="mt-1 text-xs text-muted">
-                {t('clients.noClientsHint')}
-              </p>
+              <p className="mt-1 text-xs text-muted">{t('clients.noClientsHint')}</p>
             </div>
           ) : (
             <>
@@ -118,7 +99,8 @@ export default function ClientsPage() {
                 return (
                   <div
                     key={client.publicId}
-                    className="grid grid-cols-[1fr_1fr_120px] items-center gap-4 border-b border-charcoal px-5 py-3 last:border-0"
+                    onClick={() => navigate(`/clients/${client.publicId}`)}
+                    className="grid grid-cols-[1fr_1fr_120px] cursor-pointer items-center gap-4 border-b border-charcoal px-5 py-3 transition-colors last:border-0 hover:bg-white/[0.02]"
                   >
                     <div className="flex items-center gap-3">
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border-[1.5px] border-gold/30 bg-gold/10 font-heading text-xs font-bold text-gold">
@@ -130,12 +112,9 @@ export default function ClientsPage() {
                     </div>
                     <span className="text-sm text-text2">{client.email}</span>
                     <div className="text-right">
-                      <a
-                        href={`/clients/${client.publicId}`}
-                        className="font-heading text-xs font-semibold uppercase tracking-wide text-gold-dim transition-colors hover:text-gold"
-                      >
+                      <span className="font-heading text-xs font-semibold uppercase tracking-wide text-gold-dim">
                         {t('common.detail')} &rarr;
-                      </a>
+                      </span>
                     </div>
                   </div>
                 );
@@ -145,7 +124,8 @@ export default function ClientsPage() {
               {totalPages > 1 && (
                 <div className="flex items-center justify-between border-t border-border px-5 py-3">
                   <span className="text-xs text-muted">
-                    {t('common.page', { current: page, total: totalPages })} &middot; {t('common.total', { count: data.totalCount })}
+                    {t('common.page', { current: page, total: totalPages })} &middot;{' '}
+                    {t('common.total', { count: data.totalCount })}
                   </span>
                   <div className="flex gap-2">
                     <button
@@ -169,6 +149,64 @@ export default function ClientsPage() {
           )}
         </div>
       </div>
+
+      {/* Right-side drawer for inviting a client */}
+      {drawerMounted && (
+        <>
+          <div
+            className={`fixed inset-0 z-40 bg-black/50 transition-opacity duration-300 ${drawerVisible ? 'opacity-100' : 'opacity-0'}`}
+            onClick={closeDrawer}
+          />
+          <div
+            className={`fixed top-0 right-0 z-50 flex h-full w-[400px] flex-col border-l border-border bg-bg shadow-2xl transition-transform duration-300 ease-out ${drawerVisible ? 'translate-x-0' : 'translate-x-full'}`}
+          >
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <div className="text-sm font-semibold">{t('clients.inviteNewClient')}</div>
+                <button
+                  type="button"
+                  onClick={closeDrawer}
+                  className="text-text3 transition-colors hover:text-text"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <p className="mb-5 text-sm text-text2">{t('clients.inviteDescription')}</p>
+
+              <form id="invite-form" onSubmit={handleInvite} className="flex flex-col gap-4">
+                <div>
+                  <label className="mb-1 block font-heading text-xs text-text3">
+                    {t('common.email')}
+                  </label>
+                  <input
+                    type="email"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    placeholder="email@client.com"
+                    required
+                    className={`w-full ${inputClass}`}
+                  />
+                </div>
+              </form>
+            </div>
+
+            {/* Sticky send button */}
+            <div className="shrink-0 border-t border-border bg-bg px-6 py-4">
+              <button
+                type="submit"
+                form="invite-form"
+                disabled={sending || !inviteEmail.trim()}
+                className="w-full rounded-sm bg-gold px-5 py-3 font-heading text-xs font-bold uppercase tracking-wide text-black transition-colors hover:bg-gold-bright disabled:opacity-50"
+              >
+                {sending ? t('common.sending') : t('clients.sendInvite')}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

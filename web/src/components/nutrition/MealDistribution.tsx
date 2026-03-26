@@ -8,6 +8,8 @@ interface MealDistributionProps {
     carbsGrams: number;
     fatGrams: number;
   };
+  initialDistribution?: Record<string, number> | null;
+  onChange?: (distribution: Record<string, number>) => void;
 }
 
 interface Meal {
@@ -27,9 +29,19 @@ const DEFAULT_MEALS: Meal[] = [
 export default function MealDistribution({
   totalKcal,
   macroTargets,
+  initialDistribution,
+  onChange,
 }: MealDistributionProps) {
   const { t } = useTranslation();
-  const [meals, setMeals] = useState<Meal[]>(DEFAULT_MEALS);
+  const [meals, setMeals] = useState<Meal[]>(() => {
+    if (initialDistribution) {
+      return DEFAULT_MEALS.map(m => ({
+        ...m,
+        percent: initialDistribution[m.key] ?? m.percent,
+      }));
+    }
+    return DEFAULT_MEALS;
+  });
 
   const handleChange = useCallback(
     (index: number, value: number) => {
@@ -66,10 +78,16 @@ export default function MealDistribution({
           }
         }
 
+        if (onChange) {
+          const dist: Record<string, number> = {};
+          updated.forEach(m => { dist[m.key] = m.percent; });
+          onChange(dist);
+        }
+
         return updated;
       });
     },
-    [],
+    [onChange],
   );
 
   return (
@@ -121,15 +139,15 @@ export default function MealDistribution({
               </div>
               <div className="mt-1 flex gap-4 text-[11px] text-muted">
                 <span>
-                  <span className="text-blue-400">P</span> {mealProtein}
+                  <span className="text-blue-400">{t('nutritionGoals.proteinShort')}</span> {mealProtein}
                   {t('nutritionGoals.grams')}
                 </span>
                 <span>
-                  <span className="text-amber-400">C</span> {mealCarbs}
+                  <span className="text-amber-400">{t('nutritionGoals.carbsShort')}</span> {mealCarbs}
                   {t('nutritionGoals.grams')}
                 </span>
                 <span>
-                  <span className="text-rose-400">F</span> {mealFat}
+                  <span className="text-rose-400">{t('nutritionGoals.fatShort')}</span> {mealFat}
                   {t('nutritionGoals.grams')}
                 </span>
               </div>

@@ -1,12 +1,13 @@
-import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { searchRecipes, getRecipe, createRecipe, updateRecipe, deleteRecipe } from '@/api/recipes';
+import { searchFoods } from '@/api/foods';
 import type { RecipeSummary, RecipeDetail } from '@/api/recipe-types';
 import type { FoodSummary } from '@/api/food-types';
-import FoodSearch from '@/components/nutrition/FoodSearch';
 import NutritionBadge from '@/components/nutrition/NutritionBadge';
 import { showApiError, showSuccess } from '@/lib/api-errors';
+import TiptapEditor from '@/components/TiptapEditor';
 
 /** Local form state for a food ingredient in the recipe editor. */
 interface IngredientRow {
@@ -18,8 +19,12 @@ interface IngredientRow {
     carbs: number;
     fat: number;
   };
-  amountGrams: number;
+  pieces: number;
+  servingWeightGrams: number;
+  servingLabel: string;
 }
+
+type DrawerMode = { type: 'add' } | { type: 'edit'; recipeId: string } | null;
 
 export default function RecipesPage() {
   const { t } = useTranslation();
@@ -29,14 +34,23 @@ export default function RecipesPage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
+  // Drawer state
+  const [drawerMode, setDrawerMode] = useState<DrawerMode>(null);
+  const [drawerVisible, setDrawerVisible] = useState(false);
+
   // Form state
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [ingredients, setIngredients] = useState<IngredientRow[]>([]);
-  const [showFoodSearch, setShowFoodSearch] = useState(false);
+  const [foodQuery, setFoodQuery] = useState('');
+  const [foodResults, setFoodResults] = useState<FoodSummary[]>([]);
+  const [foodSearchLoading, setFoodSearchLoading] = useState(false);
+  const [foodInputFocused, setFoodInputFocused] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+
+  // Delete confirmation
+  const [confirmDelete, setConfirmDelete] = useState<{ recipeId: string; name: string } | null>(null);
 
   // Debounce search
   useEffect(() => {
@@ -57,12 +71,21 @@ export default function RecipesPage() {
       }),
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: deleteRecipe,
+    onSuccess: () => {
+      showSuccess('recipes.deleted');
+      refetch();
+    },
+    onError: (error) => showApiError(error, 'recipes.deleteError'),
+  });
+
   const totalPages = data ? Math.ceil((data.totalCount ?? 0) / (data.pageSize ?? 1)) : 0;
 
   // Calculate totals from ingredients
   const totals = ingredients.reduce(
     (acc, item) => {
-      const ratio = item.amountGrams / 100;
+      const ratio = (item.pieces * item.servingWeightGrams) / 100;
       return {
         kcal: acc.kcal + item.nutrientValuePer100Grams.kcal * ratio,
         protein: acc.protein + item.nutrientValuePer100Grams.protein * ratio,
@@ -73,45 +96,97 @@ export default function RecipesPage() {
     { kcal: 0, protein: 0, carbs: 0, fat: 0 },
   );
 
+  // Load food results for the drawer search (debounced, or immediately if empty)
+  const loadFoodResults = useCallback(async (query: string) => {
+    setFoodSearchLoading(true);
+    try {
+      const data = await searchFoods({ q: query || undefined, pageSize: 15, excludeExternal: true });
+      setFoodResults(data.foods ?? []);
+    } catch {
+      setFoodResults([]);
+    } finally {
+      setFoodSearchLoading(false);
+    }
+  }, []);
+
+  // Load initial food list when drawer opens
+  useEffect(() => {
+    if (drawerMode && !loadingDetail) {
+      loadFoodResults('');
+    }
+  }, [drawerMode, loadingDetail, loadFoodResults]);
+
+  // Debounce food search as user types
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (drawerMode) loadFoodResults(foodQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [foodQuery, drawerMode, loadFoodResults]);
+
   const resetForm = () => {
-    setEditingId(null);
     setName('');
     setDescription('');
     setIngredients([]);
-    setShowFoodSearch(false);
+    setFoodQuery('');
+    setFoodResults([]);
+    setFoodInputFocused(false);
   };
+
+  const openDrawer = useCallback((mode: NonNullable<DrawerMode>) => {
+    setDrawerMode(mode);
+    requestAnimationFrame(() => requestAnimationFrame(() => setDrawerVisible(true)));
+  }, []);
+
+  const closeDrawer = useCallback(() => {
+    setDrawerVisible(false);
+    setTimeout(() => {
+      setDrawerMode(null);
+      resetForm();
+    }, 300);
+  }, []);
 
   const openCreate = () => {
     resetForm();
-    setShowForm(true);
+    openDrawer({ type: 'add' });
   };
 
   const openEdit = async (recipe: RecipeSummary) => {
+    resetForm();
+    openDrawer({ type: 'edit', recipeId: recipe.recipeId });
+    setLoadingDetail(true);
     try {
       const detail: RecipeDetail = await getRecipe(recipe.recipeId);
-      setEditingId(detail.recipeId);
       setName(detail.name);
       setDescription(detail.description);
       setIngredients(
-        detail.foods.map((f) => ({
-          foodExternalId: f.foodExternalId,
-          foodName: f.foodName,
-          nutrientValuePer100Grams: {
-            kcal: f.nutrientValuePer100Grams.kcal,
-            protein: f.nutrientValuePer100Grams.protein,
-            carbs: f.nutrientValuePer100Grams.carbs,
-            fat: f.nutrientValuePer100Grams.fat,
-          },
-          amountGrams: f.amountGrams,
-        })),
+        detail.foods.map((f) => {
+          // When loading from backend, we only have amountGrams — treat as 1 piece of that weight
+          return {
+            foodExternalId: f.foodExternalId,
+            foodName: f.foodName,
+            nutrientValuePer100Grams: {
+              kcal: f.nutrientValuePer100Grams.kcal,
+              protein: f.nutrientValuePer100Grams.protein,
+              carbs: f.nutrientValuePer100Grams.carbs,
+              fat: f.nutrientValuePer100Grams.fat,
+            },
+            pieces: 1,
+            servingWeightGrams: f.amountGrams,
+            servingLabel: `${f.amountGrams}g`,
+          };
+        }),
       );
-      setShowForm(true);
     } catch (err) {
       showApiError(err, 'recipes.updateError');
+      closeDrawer();
+    } finally {
+      setLoadingDetail(false);
     }
   };
 
   const handleFoodSelect = (food: FoodSummary) => {
+    const serving = food.commonServings?.[0];
     setIngredients((prev) => [
       ...prev,
       {
@@ -123,15 +198,16 @@ export default function RecipesPage() {
           carbs: food.nutrientValue.carbs,
           fat: food.nutrientValue.fat,
         },
-        amountGrams: 100,
+        pieces: 1,
+        servingWeightGrams: serving?.weightGrams ?? 100,
+        servingLabel: serving?.label ?? '100g',
       },
     ]);
-    setShowFoodSearch(false);
   };
 
-  const updateIngredientAmount = (index: number, grams: number) => {
+  const updateIngredientPieces = (index: number, pieces: number) => {
     setIngredients((prev) =>
-      prev.map((item, i) => (i === index ? { ...item, amountGrams: grams } : item)),
+      prev.map((item, i) => (i === index ? { ...item, pieces } : item)),
     );
   };
 
@@ -149,38 +225,41 @@ export default function RecipesPage() {
       description: description.trim(),
       foods: ingredients.map((item) => ({
         foodExternalId: item.foodExternalId,
-        amountGrams: item.amountGrams,
+        amountGrams: item.pieces * item.servingWeightGrams,
       })),
     };
 
     try {
-      if (editingId) {
-        await updateRecipe(editingId, payload);
+      if (drawerMode?.type === 'edit') {
+        await updateRecipe(drawerMode.recipeId, payload);
         showSuccess('recipes.updated');
       } else {
         await createRecipe(payload);
         showSuccess('recipes.created');
       }
-      setShowForm(false);
-      resetForm();
+      closeDrawer();
       refetch();
     } catch (err) {
-      showApiError(err, editingId ? 'recipes.updateError' : 'recipes.createError');
+      showApiError(err, drawerMode?.type === 'edit' ? 'recipes.updateError' : 'recipes.createError');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async (recipe: RecipeSummary) => {
-    if (!window.confirm(t('recipes.confirmDelete'))) return;
-    try {
-      await deleteRecipe(recipe.recipeId);
-      showSuccess('recipes.deleted');
-      refetch();
-    } catch (err) {
-      showApiError(err, 'recipes.deleteError');
+  const handleDeleteClick = (e: React.MouseEvent, recipe: RecipeSummary) => {
+    e.stopPropagation();
+    setConfirmDelete({ recipeId: recipe.recipeId, name: recipe.name });
+  };
+
+  const handleConfirmDelete = () => {
+    if (confirmDelete) {
+      deleteMutation.mutate(confirmDelete.recipeId);
+      setConfirmDelete(null);
     }
   };
+
+  const inputClass =
+    'rounded-sm border border-border bg-surface px-4 py-2.5 text-sm text-text outline-none transition-colors focus:border-gold/40';
 
   return (
     <div className="flex h-full flex-col">
@@ -191,7 +270,7 @@ export default function RecipesPage() {
           <p className="text-xs text-muted">{t('recipes.subtitle')}</p>
         </div>
         <button
-          onClick={() => (showForm ? setShowForm(false) : openCreate())}
+          onClick={openCreate}
           className="rounded-sm bg-gold px-4 py-2 font-heading text-[13px] font-extrabold uppercase tracking-wide text-black transition-colors hover:bg-gold-bright"
         >
           {t('recipes.addRecipe')}
@@ -199,167 +278,6 @@ export default function RecipesPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto p-6">
-        {/* Create / Edit form */}
-        {showForm && (
-          <div className="mb-5 rounded-sm border border-gold-dim/30 bg-gold/5 p-5">
-            <button
-              type="button"
-              onClick={() => { setShowForm(false); resetForm(); }}
-              className="mb-3 font-heading text-xs font-semibold uppercase tracking-wide text-gold-dim transition-colors hover:text-gold"
-            >
-              &larr; {t('recipes.title')}
-            </button>
-            <div className="mb-3 text-sm font-semibold">
-              {editingId ? t('recipes.editRecipe') : t('recipes.addRecipe')}
-            </div>
-            <form onSubmit={handleSave} className="flex flex-col gap-4">
-              {/* Name + Description */}
-              <div className="flex gap-3">
-                <div className="flex-1">
-                  <label className="lbl">{t('recipes.recipeName')}</label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder={t('recipes.recipeNamePlaceholder')}
-                    required
-                    className="mt-1 w-full rounded-sm border border-border bg-surface px-4 py-2.5 text-sm text-text outline-none focus:border-gold/40"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="lbl">{t('recipes.description')}</label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder={t('recipes.descriptionPlaceholder')}
-                  rows={3}
-                  className="mt-1 w-full rounded-sm border border-border bg-surface px-4 py-2.5 text-sm text-text outline-none focus:border-gold/40"
-                />
-              </div>
-
-              {/* Ingredients section */}
-              <div>
-                <label className="lbl">{t('recipes.foods')}</label>
-                {ingredients.length > 0 && (
-                  <div className="mt-2 rounded-sm border border-border bg-surface">
-                    {/* Ingredient header */}
-                    <div className="grid grid-cols-[1fr_90px_70px_70px_70px_70px_40px] gap-3 border-b border-border px-4 py-2">
-                      <span className="lbl">{t('common.name')}</span>
-                      <span className="lbl">{t('nutrition.grams')}</span>
-                      <span className="lbl">{t('foods.kcal')}</span>
-                      <span className="lbl">{t('foods.protein')}</span>
-                      <span className="lbl">{t('foods.carbs')}</span>
-                      <span className="lbl">{t('foods.fat')}</span>
-                      <span />
-                    </div>
-                    {/* Ingredient rows */}
-                    {ingredients.map((item, idx) => {
-                      const ratio = item.amountGrams / 100;
-                      return (
-                        <div
-                          key={`${item.foodExternalId}-${idx}`}
-                          className="grid grid-cols-[1fr_90px_70px_70px_70px_70px_40px] items-center gap-3 border-b border-charcoal px-4 py-2 last:border-0"
-                        >
-                          <span className="truncate text-sm">{item.foodName}</span>
-                          <input
-                            type="number"
-                            min={1}
-                            value={item.amountGrams}
-                            onChange={(e) =>
-                              updateIngredientAmount(idx, Math.max(1, Number(e.target.value) || 1))
-                            }
-                            className="w-full rounded-sm border border-border bg-dark2 px-2 py-1 text-sm text-text outline-none focus:border-gold/40"
-                          />
-                          <span className="text-xs text-text2">
-                            {Math.round(item.nutrientValuePer100Grams.kcal * ratio)}
-                          </span>
-                          <span className="text-xs text-text2">
-                            {Math.round(item.nutrientValuePer100Grams.protein * ratio)}g
-                          </span>
-                          <span className="text-xs text-text2">
-                            {Math.round(item.nutrientValuePer100Grams.carbs * ratio)}g
-                          </span>
-                          <span className="text-xs text-text2">
-                            {Math.round(item.nutrientValuePer100Grams.fat * ratio)}g
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => removeIngredient(idx)}
-                            className="text-xs text-text3 transition-colors hover:text-red-400"
-                          >
-                            &times;
-                          </button>
-                        </div>
-                      );
-                    })}
-
-                    {/* Totals row */}
-                    <div className="grid grid-cols-[1fr_90px_70px_70px_70px_70px_40px] items-center gap-3 border-t border-border bg-dark2 px-4 py-2">
-                      <span className="text-xs font-semibold uppercase tracking-wide text-text3">
-                        Total
-                      </span>
-                      <span />
-                      <span className="text-xs font-semibold text-gold">
-                        {Math.round(totals.kcal)}
-                      </span>
-                      <span className="text-xs font-semibold text-text">
-                        {Math.round(totals.protein)}g
-                      </span>
-                      <span className="text-xs font-semibold text-text">
-                        {Math.round(totals.carbs)}g
-                      </span>
-                      <span className="text-xs font-semibold text-text">
-                        {Math.round(totals.fat)}g
-                      </span>
-                      <span />
-                    </div>
-                  </div>
-                )}
-
-                {/* Add ingredient button / search */}
-                <div className="mt-2">
-                  {showFoodSearch ? (
-                    <FoodSearch
-                      onSelect={handleFoodSelect}
-                      onClose={() => setShowFoodSearch(false)}
-                    />
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setShowFoodSearch(true)}
-                      className="font-heading text-[11px] font-semibold uppercase tracking-wide text-gold-dim transition-colors hover:text-gold"
-                    >
-                      {t('recipes.addFood')}
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Save / Cancel */}
-              <div className="flex gap-3">
-                <button
-                  type="submit"
-                  disabled={saving || !name.trim() || ingredients.length === 0}
-                  className="rounded-sm bg-gold px-5 py-2.5 font-heading text-xs font-bold uppercase tracking-wide text-black transition-colors hover:bg-gold-bright disabled:opacity-50"
-                >
-                  {saving ? t('nutrition.saving') : t('common.save')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowForm(false);
-                    resetForm();
-                  }}
-                  className="rounded-sm border border-border px-4 py-2.5 font-heading text-xs font-semibold uppercase tracking-wide text-text3 transition-colors hover:text-text"
-                >
-                  {t('common.cancel')}
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
         {/* Search bar */}
         <div className="mb-4 flex gap-3">
           <div className="relative flex-1">
@@ -401,21 +319,22 @@ export default function RecipesPage() {
           ) : (
             <>
               {/* Table header */}
-              <div className="grid grid-cols-[1fr_100px_80px_80px_80px_80px_120px] gap-4 border-b border-border px-5 py-3">
+              <div className="grid grid-cols-[1fr_100px_80px_80px_80px_80px_60px] gap-4 border-b border-border px-5 py-3">
                 <span className="lbl">{t('recipes.recipeName')}</span>
                 <span className="lbl">{t('recipes.foods')}</span>
                 <span className="lbl">{t('foods.kcal')}</span>
                 <span className="lbl">{t('foods.protein')}</span>
                 <span className="lbl">{t('foods.carbs')}</span>
                 <span className="lbl">{t('foods.fat')}</span>
-                <span className="lbl text-right">{t('common.actions')}</span>
+                <span className="lbl" />
               </div>
 
               {/* Rows */}
               {data.recipes.map((recipe) => (
                 <div
                   key={recipe.recipeId}
-                  className="grid grid-cols-[1fr_100px_80px_80px_80px_80px_120px] items-center gap-4 border-b border-charcoal px-5 py-3 last:border-0"
+                  onClick={() => openEdit(recipe)}
+                  className="grid grid-cols-[1fr_100px_80px_80px_80px_80px_60px] cursor-pointer items-center gap-4 border-b border-charcoal px-5 py-3 transition-colors last:border-0 hover:bg-white/[0.02]"
                 >
                   <span className="truncate text-sm font-semibold">{recipe.name}</span>
                   <span className="text-sm text-text2">{recipe.foodCount}</span>
@@ -435,18 +354,15 @@ export default function RecipesPage() {
                   <span className="text-sm text-text2">
                     {Math.round(recipe.totalNutrients.fat)}g
                   </span>
-                  <div className="flex justify-end gap-2">
+                  <div className="text-center">
                     <button
-                      onClick={() => openEdit(recipe)}
-                      className="font-heading text-[11px] font-semibold uppercase tracking-wide text-gold-dim transition-colors hover:text-gold"
+                      onClick={(e) => handleDeleteClick(e, recipe)}
+                      disabled={deleteMutation.isPending}
+                      className="rounded-sm p-1 text-text3 transition-colors hover:text-red disabled:opacity-30"
                     >
-                      {t('nutrition.edit')}
-                    </button>
-                    <button
-                      onClick={() => handleDelete(recipe)}
-                      className="font-heading text-[11px] font-semibold uppercase tracking-wide text-text3 transition-colors hover:text-red-400"
-                    >
-                      {t('nutrition.delete')}
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
                     </button>
                   </div>
                 </div>
@@ -481,6 +397,262 @@ export default function RecipesPage() {
           )}
         </div>
       </div>
+
+      {/* Right-side drawer for create/edit */}
+      {drawerMode && (
+        <>
+          <div
+            className={`fixed inset-0 z-40 bg-black/50 transition-opacity duration-300 ${drawerVisible ? 'opacity-100' : 'opacity-0'}`}
+            onClick={closeDrawer}
+          />
+          <div
+            className={`fixed top-0 right-0 z-50 flex h-full w-[1000px] max-w-[90vw] flex-col border-l border-border bg-bg shadow-2xl transition-transform duration-300 ease-out ${drawerVisible ? 'translate-x-0' : 'translate-x-full'}`}
+          >
+            <div className="flex-1 overflow-y-auto p-6">
+              {/* Drawer header */}
+              <div className="mb-5 flex items-center justify-between">
+                <div className="text-sm font-semibold">
+                  {drawerMode.type === 'edit' ? t('recipes.editRecipe') : t('recipes.addRecipe')}
+                </div>
+                <button
+                  type="button"
+                  onClick={closeDrawer}
+                  className="text-text3 transition-colors hover:text-text"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {loadingDetail ? (
+                <div className="flex items-center justify-center py-20 text-text3">
+                  {t('common.loading')}
+                </div>
+              ) : (
+                <form id="recipe-form" onSubmit={handleSave} className="flex flex-col gap-5">
+                  {/* Name */}
+                  <div>
+                    <label className="mb-1 block font-heading text-xs text-text3">
+                      {t('recipes.recipeName')}
+                    </label>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder={t('recipes.recipeNamePlaceholder')}
+                      required
+                      className={`w-full ${inputClass}`}
+                    />
+                  </div>
+
+                  {/* Food search dropdown */}
+                  <div className="relative">
+                    <label className="mb-1 block font-heading text-xs text-text3">
+                      {t('recipes.addFood')}
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={foodQuery}
+                        onChange={(e) => setFoodQuery(e.target.value)}
+                        onFocus={() => setFoodInputFocused(true)}
+                        onBlur={() => setFoodInputFocused(false)}
+                        placeholder={t('nutrition.searchFoods')}
+                        className={`w-full pl-10 ${inputClass}`}
+                      />
+                      <svg
+                        className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text3"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                      {foodSearchLoading && (
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-text3">
+                          {t('common.loading')}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Dropdown results */}
+                    {foodInputFocused && foodResults.length > 0 && (
+                      <div
+                        className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-sm border border-border bg-surface shadow-lg"
+                        onMouseDown={(e) => e.preventDefault()}
+                      >
+                        {foodResults.map((food) => {
+                          const alreadyAdded = ingredients.some((i) => i.foodExternalId === food.foodId);
+                          return (
+                            <button
+                              key={food.foodId}
+                              type="button"
+                              disabled={alreadyAdded}
+                              onClick={() => handleFoodSelect(food)}
+                              className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition-colors ${alreadyAdded ? 'cursor-default opacity-40' : 'hover:bg-gold/5'}`}
+                            >
+                              <span className="truncate font-medium">{food.name}</span>
+                              <span className="ml-3 shrink-0 text-xs text-text3">
+                                {Math.round(food.nutrientValue.kcal)} kcal
+                                {' · '}P {Math.round(food.nutrientValue.protein)}g
+                                {' · '}C {Math.round(food.nutrientValue.carbs)}g
+                                {' · '}F {Math.round(food.nutrientValue.fat)}g
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {foodInputFocused && !foodSearchLoading && foodQuery.trim() && foodResults.length === 0 && (
+                      <div className="absolute z-10 mt-1 w-full rounded-sm border border-border bg-surface px-4 py-3 text-center text-xs text-text3 shadow-lg" onMouseDown={(e) => e.preventDefault()}>
+                        {t('foods.noFoods')}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Ingredients table */}
+                  {ingredients.length > 0 && (
+                    <div className="rounded-sm border border-border bg-surface">
+                      {/* Table header */}
+                      <div className="grid grid-cols-[1fr_70px_140px_70px_80px_80px_80px_80px_40px] gap-3 border-b border-border px-4 py-2">
+                        <span className="lbl">{t('common.name')}</span>
+                        <span className="lbl">{t('recipes.pieces')}</span>
+                        <span className="lbl">{t('recipes.serving')}</span>
+                        <span className="lbl">{t('nutrition.grams')}</span>
+                        <span className="lbl">{t('foods.kcal')}</span>
+                        <span className="lbl">{t('foods.protein')}</span>
+                        <span className="lbl">{t('foods.carbs')}</span>
+                        <span className="lbl">{t('foods.fat')}</span>
+                        <span />
+                      </div>
+
+                      {/* Ingredient rows */}
+                      {ingredients.map((item, idx) => {
+                        const grams = item.pieces * item.servingWeightGrams;
+                        const ratio = grams / 100;
+                        return (
+                          <div
+                            key={`${item.foodExternalId}-${idx}`}
+                            className="grid grid-cols-[1fr_70px_140px_70px_80px_80px_80px_80px_40px] items-center gap-3 border-b border-charcoal px-4 py-2 last:border-0"
+                          >
+                            <span className="truncate text-sm">{item.foodName}</span>
+                            <input
+                              type="number"
+                              min={1}
+                              step={1}
+                              value={item.pieces}
+                              onChange={(e) =>
+                                updateIngredientPieces(idx, Math.max(1, Number(e.target.value) || 1))
+                              }
+                              className="w-full rounded-sm border border-border bg-dark2 px-2 py-1 text-center text-sm text-text outline-none focus:border-gold/40"
+                            />
+                            <span className="truncate text-xs text-text3" title={item.servingLabel}>
+                              {item.servingLabel}
+                            </span>
+                            <span className="text-sm text-text2">
+                              {Math.round(grams)}g
+                            </span>
+                            <span className="text-sm text-text2">
+                              {Math.round(item.nutrientValuePer100Grams.kcal * ratio)}
+                            </span>
+                            <span className="text-sm text-text2">
+                              {Math.round(item.nutrientValuePer100Grams.protein * ratio)}g
+                            </span>
+                            <span className="text-sm text-text2">
+                              {Math.round(item.nutrientValuePer100Grams.carbs * ratio)}g
+                            </span>
+                            <span className="text-sm text-text2">
+                              {Math.round(item.nutrientValuePer100Grams.fat * ratio)}g
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => removeIngredient(idx)}
+                              className="rounded-sm p-1 text-text3 transition-colors hover:text-red"
+                            >
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                        );
+                      })}
+
+                      {/* Totals row */}
+                      <div className="grid grid-cols-[1fr_70px_140px_70px_80px_80px_80px_80px_40px] items-center gap-3 border-t border-border bg-dark2 px-4 py-2">
+                        <span className="text-xs font-semibold uppercase tracking-wide text-text3">Total</span>
+                        <span />
+                        <span />
+                        <span />
+                        <span className="text-sm font-semibold text-gold">{Math.round(totals.kcal)}</span>
+                        <span className="text-sm font-semibold text-text">{Math.round(totals.protein)}g</span>
+                        <span className="text-sm font-semibold text-text">{Math.round(totals.carbs)}g</span>
+                        <span className="text-sm font-semibold text-text">{Math.round(totals.fat)}g</span>
+                        <span />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Description — rich text editor */}
+                  <div>
+                    <label className="mb-1 block font-heading text-xs text-text3">
+                      {t('recipes.description')}
+                    </label>
+                    <TiptapEditor
+                      content={description}
+                      onChange={setDescription}
+                      placeholder={t('recipes.descriptionPlaceholder')}
+                    />
+                  </div>
+
+                </form>
+              )}
+            </div>
+
+            {/* Sticky save footer */}
+            {!loadingDetail && (
+              <div className="shrink-0 border-t border-border bg-bg px-6 py-4">
+                <button
+                  type="submit"
+                  form="recipe-form"
+                  disabled={saving || !name.trim() || ingredients.length === 0}
+                  className="w-full rounded-sm bg-gold px-5 py-3 font-heading text-xs font-bold uppercase tracking-wide text-black transition-colors hover:bg-gold-bright disabled:opacity-50"
+                >
+                  {saving ? t('nutrition.saving') : t('common.save')}
+                </button>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Delete confirmation dialog */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/60" onClick={() => setConfirmDelete(null)} />
+          <div className="relative z-10 w-full max-w-sm rounded-sm border border-border bg-surface p-6 shadow-2xl">
+            <h3 className="text-sm font-bold">{t('recipes.deleteConfirmTitle')}</h3>
+            <p className="mt-2 text-sm text-text2">
+              {t('recipes.deleteConfirmMessage', { name: confirmDelete.name })}
+            </p>
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                className="rounded-sm border border-border px-4 py-2 text-xs font-semibold text-text3 transition-colors hover:text-text"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="rounded-sm bg-red-500 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-red-600"
+              >
+                {t('recipes.deleteRecipe')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

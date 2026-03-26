@@ -30,6 +30,18 @@ public class ClientProfessionalLink : PublicTimestampableEntity
     public bool IsActive { get; set; } = true;
 
     /// <summary>
+    /// Whether this professional can view the client's nutrition plans.
+    /// Default true for Nutritionists, false for Trainers.
+    /// </summary>
+    public bool CanViewNutritionPlans { get; set; }
+
+    /// <summary>
+    /// Whether this professional can view the client's training plans.
+    /// Default true for Trainers, false for Nutritionists.
+    /// </summary>
+    public bool CanViewTrainingPlans { get; set; }
+
+    /// <summary>
     /// Navigation property to the client profile.
     /// </summary>
     public ClientProfile ClientProfile { get; set; } = null!;

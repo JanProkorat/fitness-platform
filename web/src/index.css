@@ -43,6 +43,25 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Tiptap editor content styles */
+.tiptap-content h2 { font-size: 1.25rem; font-weight: 700; margin: 0.75rem 0 0.25rem; }
+.tiptap-content h3 { font-size: 1.1rem; font-weight: 600; margin: 0.5rem 0 0.25rem; }
+.tiptap-content p { margin: 0.25rem 0; line-height: 1.6; }
+.tiptap-content ul { list-style: disc; padding-left: 1.25rem; margin: 0.25rem 0; }
+.tiptap-content ol { list-style: decimal; padding-left: 1.25rem; margin: 0.25rem 0; }
+.tiptap-content li { margin: 0.125rem 0; }
+.tiptap-content blockquote { border-left: 3px solid var(--color-border); padding-left: 0.75rem; margin: 0.5rem 0; color: var(--color-text2); }
+.tiptap-content strong { font-weight: 700; }
+.tiptap-content em { font-style: italic; }
+.tiptap-content u { text-decoration: underline; }
+.tiptap-content p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--color-muted);
+  pointer-events: none;
+  float: left;
+  height: 0;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 4px;
@@ -53,4 +72,37 @@ body {
 }
 ::-webkit-scrollbar-track {
   background: transparent;
+}
+
+/* Drag-and-drop animations */
+@keyframes slideIn {
+  from {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
+/* Week tab hover-switch progress bar during drag */
+@keyframes dndTabProgress {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+
+/* Collapse animation using grid-template-rows trick */
+.collapse-grid {
+  display: grid;
+  transition: grid-template-rows 200ms ease-out;
+}
+.collapse-grid[data-open="true"] {
+  grid-template-rows: 1fr;
+}
+.collapse-grid[data-open="false"] {
+  grid-template-rows: 0fr;
+}
+.collapse-grid > .collapse-content {
+  overflow: hidden;
 }

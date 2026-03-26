@@ -22,5 +22,11 @@ public class ClientProfessionalLinkConfiguration : IEntityTypeConfiguration<Clie
         builder.HasOne(cpl => cpl.ProfessionalProfile)
             .WithMany(pp => pp.ClientLinks)
             .HasForeignKey(cpl => cpl.ProfessionalProfileId);
+
+        builder.Property(cpl => cpl.CanViewNutritionPlans)
+            .HasDefaultValue(false);
+
+        builder.Property(cpl => cpl.CanViewTrainingPlans)
+            .HasDefaultValue(false);
     }
 }

@@ -28,4 +28,19 @@ public interface IMongoContext
     /// Recipes collection.
     /// </summary>
     IMongoCollection<Recipe> Recipes { get; }
+
+    /// <summary>
+    /// Exercises collection.
+    /// </summary>
+    IMongoCollection<Exercise> Exercises { get; }
+
+    /// <summary>
+    /// Training plans collection.
+    /// </summary>
+    IMongoCollection<TrainingPlan> TrainingPlans { get; }
+
+    /// <summary>
+    /// Workout log entries collection.
+    /// </summary>
+    IMongoCollection<WorkoutLog> WorkoutLogs { get; }
 }

@@ -8,6 +8,7 @@ import { showApiError, showSuccess } from '@/lib/api-errors';
 
 interface AddFoodDialogProps {
   onCreated: () => void;
+  onClose?: () => void;
 }
 
 const addFoodSchema = z.object({
@@ -16,12 +17,14 @@ const addFoodSchema = z.object({
   protein: z.coerce.number().min(0),
   carbs: z.coerce.number().min(0),
   fat: z.coerce.number().min(0),
-  barcode: z.string().optional(),
+  nameEn: z.string().optional(),
+  nameCs: z.string().optional(),
+  nameDe: z.string().optional(),
 });
 
 type AddFoodForm = z.infer<typeof addFoodSchema>;
 
-export default function AddFoodDialog({ onCreated }: AddFoodDialogProps) {
+export default function AddFoodDialog({ onCreated, onClose }: AddFoodDialogProps) {
   const { t } = useTranslation();
 
   const {
@@ -37,7 +40,9 @@ export default function AddFoodDialog({ onCreated }: AddFoodDialogProps) {
     mutationFn: (data: AddFoodForm) =>
       createFood({
         name: data.name,
-        barcode: data.barcode || null,
+        nameEn: data.nameEn || null,
+        nameCs: data.nameCs || null,
+        nameDe: data.nameDe || null,
         nutrientValue: {
           kcal: data.kcal,
           protein: data.protein,
@@ -65,29 +70,69 @@ export default function AddFoodDialog({ onCreated }: AddFoodDialogProps) {
     'rounded-sm border border-border bg-surface px-4 py-2.5 text-sm text-text outline-none transition-colors focus:border-gold/40';
 
   return (
-    <div className="mb-5 rounded-sm border border-gold-dim/30 bg-gold/5 p-5">
-      <div className="mb-3 text-sm font-semibold">
-        {t('foods.addFoodTitle')}
+    <div>
+      <div className="mb-4 flex items-center justify-between">
+        <div className="text-sm font-semibold">{t('foods.addFoodTitle')}</div>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-text3 transition-colors hover:text-text"
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
       </div>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
-        <div className="flex gap-3">
-          <div className="flex-1">
+        <div className="space-y-3">
+          <div>
+            <label className="mb-1 block font-heading text-xs text-text3">
+              {t('foods.foodName')}
+            </label>
             <input
               {...register('name')}
               placeholder={t('foods.foodName')}
               className={`w-full ${inputClass} ${errors.name ? 'border-red-500/50' : ''}`}
             />
           </div>
-          <div className="w-48">
-            <input
-              {...register('barcode')}
-              placeholder={t('foods.barcode')}
-              className={`w-full ${inputClass}`}
-            />
+
+          {/* Localized names */}
+          <div className="mt-1 border-t border-border pt-3">
+            <label className="mb-2 block font-heading text-xs text-text3">
+              {t('foods.localizedNames')}
+            </label>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="w-7 shrink-0 text-center text-[11px] font-semibold text-text3">EN</span>
+                <input
+                  {...register('nameEn')}
+                  placeholder="English name"
+                  className={`w-full ${inputClass}`}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-7 shrink-0 text-center text-[11px] font-semibold text-text3">CS</span>
+                <input
+                  {...register('nameCs')}
+                  placeholder="Český název"
+                  className={`w-full ${inputClass}`}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-7 shrink-0 text-center text-[11px] font-semibold text-text3">DE</span>
+                <input
+                  {...register('nameDe')}
+                  placeholder="Deutscher Name"
+                  className={`w-full ${inputClass}`}
+                />
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="mb-1 block font-heading text-xs text-text3">
               {t('foods.kcal')}

@@ -93,3 +93,4 @@ Thumbs.db
 .vscode/
 !.vscode/settings.json
 !.vscode/extensions.json
+.superpowers/

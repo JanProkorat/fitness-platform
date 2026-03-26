@@ -26,7 +26,6 @@ export interface FoodSummary {
   nutrientValue: FoodNutrientValue;
   allergens: string[];
   commonServings: ServingSize[];
-  isVerified: boolean;
 }
 
 export interface SearchFoodsResponse {

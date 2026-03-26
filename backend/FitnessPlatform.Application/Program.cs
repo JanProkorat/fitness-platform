@@ -63,6 +63,9 @@ builder.Services.AddSingleton<IMongoDatabase>(_ => mongoClient.GetDatabase(mongo
 builder.Services.AddSingleton<IMongoContext, MongoContext>();
 builder.Services.AddHostedService<MongoIndexInitializer>();
 
+// Blob Storage (MinIO)
+builder.Services.AddSingleton<IBlobStorageService, MinioBlobStorageService>();
+
 // ASP.NET Identity
 builder.Services.AddIdentityCore<ApplicationUser>(options =>
 {
@@ -151,6 +154,9 @@ builder.Services.AddSingleton<IMacroCalculatorService, MacroCalculatorService>()
 
 // Nutrition Auth Helper (cross-DB link verification)
 builder.Services.AddScoped<NutritionAuthHelper>();
+builder.Services.AddScoped<ProfessionalAuthHelper>();
+builder.Services.AddScoped<IPrDetectionService, PrDetectionService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 // Email
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();
@@ -190,6 +196,7 @@ app.UseRateLimiter();
 app.UseFastEndpoints(c =>
 {
     c.Endpoints.ShortNames = true;
+    c.Serializer.Options.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
     c.Errors.UseProblemDetails(x =>
     {
         x.IndicateErrorCode = true;

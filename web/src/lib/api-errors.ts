@@ -46,6 +46,13 @@ export function showApiError(error: unknown, fallbackKey: string) {
 }
 
 /**
+ * Shows an error toast with a translated message.
+ */
+export function showError(messageKey: string) {
+  useToastStore.getState().addToast(i18n.t(messageKey), 'error');
+}
+
+/**
  * Shows a success toast.
  */
 export function showSuccess(messageKey: string) {
