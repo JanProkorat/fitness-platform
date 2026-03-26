@@ -125,6 +125,7 @@ export default function NutritionScreen() {
     queryKey: ['full-plan'],
     queryFn: getFullPlan,
     staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 1000, // short cache for errors so tab switches retry quickly
     retry: (failureCount, error: any) => {
       if (error?.response?.status === 404) return false;
       return failureCount < 3;
@@ -220,13 +221,18 @@ export default function NutritionScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <Header title={t('nutrition.title')} onShoppingPress={handleShoppingPress} />
-        <View style={styles.centered}>
+        <ScrollView
+          contentContainerStyle={styles.centered}
+          refreshControl={
+            <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={Colors.dark.gold} />
+          }
+        >
           <View style={styles.emptyCard}>
             <Text style={styles.emptyCardText}>
               {t('nutrition.noPlanMessage')}
             </Text>
           </View>
-        </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
