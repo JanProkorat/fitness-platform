@@ -386,6 +386,19 @@ function DayPage({ dayInfo, data, isRefreshing, onRefresh, t }: DayPageProps) {
         />
       }
     >
+      {/* Day dots indicator */}
+      <View style={styles.swipeHintDots}>
+        {[1, 2, 3, 4, 5, 6, 7].map((d) => (
+          <View
+            key={d}
+            style={[
+              styles.swipeHintDot,
+              d === day.dayOfWeek && styles.swipeHintDotActive,
+            ]}
+          />
+        ))}
+      </View>
+
       {/* Day name + date */}
       <View style={styles.dayHeader}>
         <Text style={[styles.dayLabel, isToday && styles.dayLabelToday]}>{dayLabel}</Text>
@@ -394,17 +407,6 @@ function DayPage({ dayInfo, data, isRefreshing, onRefresh, t }: DayPageProps) {
             <Text style={styles.todayBadgeText}>{t('nutrition.today')}</Text>
           </View>
         )}
-      </View>
-
-      {/* Swipe indicator */}
-      <View style={styles.swipeHint}>
-        <Text style={styles.swipeHintText}>‹</Text>
-        <View style={styles.swipeHintDots}>
-          <View style={styles.swipeHintDot} />
-          <View style={[styles.swipeHintDot, styles.swipeHintDotActive]} />
-          <View style={styles.swipeHintDot} />
-        </View>
-        <Text style={styles.swipeHintText}>›</Text>
       </View>
 
       {/* Macro summary bar */}
@@ -687,32 +689,23 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
 
-  // Swipe hint
-  swipeHint: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    marginBottom: 12,
-  },
-  swipeHintText: {
-    fontSize: 14,
-    color: Colors.dark.text3,
-    opacity: 0.5,
-  },
+  // Day dots
   swipeHintDots: {
     flexDirection: 'row',
-    gap: 4,
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 4,
+    marginBottom: 8,
   },
   swipeHintDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 7,
+    height: 7,
+    borderRadius: 4,
     backgroundColor: Colors.dark.text3,
     opacity: 0.2,
   },
   swipeHintDotActive: {
-    opacity: 0.6,
+    opacity: 1,
     backgroundColor: Colors.dark.gold,
   },
 
