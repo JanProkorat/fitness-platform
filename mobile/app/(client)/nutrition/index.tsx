@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, useCallback, useState } from 'react';
+import React, { useRef, useMemo, useCallback, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -139,12 +139,23 @@ export default function NutritionScreen() {
       data && allDays.length > 0
         ? computeInitialPage(allDays, data, paramWeekNumber, paramDayOfWeek)
         : 0,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data, allDays],
+    [data, allDays, paramWeekNumber, paramDayOfWeek],
   );
 
   const [currentPageIndex, setCurrentPageIndex] = useState<number>(initialPage);
   const pagerRef = useRef<PagerView>(null);
+
+  useEffect(() => {
+    if (paramWeekNumber != null && paramDayOfWeek != null && allDays.length > 0) {
+      const idx = allDays.findIndex(
+        (d) => d.weekNumber === paramWeekNumber && d.dayOfWeek === paramDayOfWeek,
+      );
+      if (idx >= 0) {
+        pagerRef.current?.setPage(idx);
+        setCurrentPageIndex(idx);
+      }
+    }
+  }, [paramWeekNumber, paramDayOfWeek, allDays]);
 
   const currentDayInfo = allDays[currentPageIndex];
   const currentWeekNumber = currentDayInfo?.weekNumber ?? 1;

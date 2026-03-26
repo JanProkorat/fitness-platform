@@ -35,9 +35,9 @@ function formatShortDate(weekStartDate: string, dayOfWeek: number): string {
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
-function averageTotals(totalsArr: NutrientTotals[]): NutrientTotals {
+function sumTotals(totalsArr: NutrientTotals[]): NutrientTotals {
   if (totalsArr.length === 0) return { kcal: 0, protein: 0, carbs: 0, fat: 0 };
-  const sum = totalsArr.reduce(
+  return totalsArr.reduce(
     (acc, t) => ({
       kcal: acc.kcal + t.kcal,
       protein: acc.protein + t.protein,
@@ -46,13 +46,6 @@ function averageTotals(totalsArr: NutrientTotals[]): NutrientTotals {
     }),
     { kcal: 0, protein: 0, carbs: 0, fat: 0 },
   );
-  const n = totalsArr.length;
-  return {
-    kcal: sum.kcal / n,
-    protein: sum.protein / n,
-    carbs: sum.carbs / n,
-    fat: sum.fat / n,
-  };
 }
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
@@ -159,7 +152,7 @@ export default function WeekOverviewScreen() {
   const daysWithTotals = allDays
     .filter((d): d is PlanDay => d != null && d.dayTotals != null)
     .map((d) => d.dayTotals as NutrientTotals);
-  const avgTotals = averageTotals(daysWithTotals);
+  const weekSum = sumTotals(daysWithTotals);
 
   const weekStartDate = currentWeekObj?.weekStartDate ?? '';
   const weekEndDate = currentWeekObj?.weekEndDate ?? '';
@@ -203,12 +196,16 @@ export default function WeekOverviewScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Day cards + average */}
+      {/* Day cards + week sum */}
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* Week sum */}
+        <WeekSumRow totals={weekSum} t={t} />
+
+        {/* Day cards */}
         {allDays.map((day, index) => {
           const dayOfWeek = index + 1;
           const isToday =
@@ -229,9 +226,6 @@ export default function WeekOverviewScreen() {
             />
           );
         })}
-
-        {/* Daily Average row */}
-        <AverageRow totals={avgTotals} t={t} />
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
@@ -362,17 +356,17 @@ function MacroChip({ label, value, unit, color }: MacroChipProps) {
   );
 }
 
-// ─── Average Row ──────────────────────────────────────────────────────────────
+// ─── Week Sum Row ─────────────────────────────────────────────────────────────
 
-interface AverageRowProps {
+interface WeekSumRowProps {
   totals: NutrientTotals;
   t: (key: string) => string;
 }
 
-function AverageRow({ totals, t }: AverageRowProps) {
+function WeekSumRow({ totals, t }: WeekSumRowProps) {
   return (
     <View style={styles.averageRow}>
-      <Text style={styles.averageLabel}>{t('nutrition.dailyAverage')}</Text>
+      <Text style={styles.averageLabel}>{t('nutrition.weekTotal')}</Text>
       <View style={styles.averageMacros}>
         <MacroChip
           label={t('nutrition.kcal')}
