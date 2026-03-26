@@ -397,6 +397,17 @@ function DayPage({ dayInfo, data, isRefreshing, onRefresh, onMealPress, t }: Day
         )}
       </View>
 
+      {/* Swipe indicator */}
+      <View style={styles.swipeHint}>
+        <Text style={styles.swipeHintText}>‹</Text>
+        <View style={styles.swipeHintDots}>
+          <View style={styles.swipeHintDot} />
+          <View style={[styles.swipeHintDot, styles.swipeHintDotActive]} />
+          <View style={styles.swipeHintDot} />
+        </View>
+        <Text style={styles.swipeHintText}>›</Text>
+      </View>
+
       {/* Macro summary bar */}
       {totals && <MacroBar totals={totals} t={t} />}
 
@@ -644,6 +655,35 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: Colors.dark.background,
     letterSpacing: 0.5,
+  },
+
+  // Swipe hint
+  swipeHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  swipeHintText: {
+    fontSize: 14,
+    color: Colors.dark.text3,
+    opacity: 0.5,
+  },
+  swipeHintDots: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  swipeHintDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.dark.text3,
+    opacity: 0.2,
+  },
+  swipeHintDotActive: {
+    opacity: 0.6,
+    backgroundColor: Colors.dark.gold,
   },
 
   // Macro bar
