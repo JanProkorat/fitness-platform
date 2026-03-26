@@ -182,6 +182,12 @@
   "common": {
     "back": "Back"
   },
+  "tabs": {
+    "today": "Today",
+    "training": "Training",
+    "nutrition": "Nutrition",
+    "progress": "Progress"
+  },
   "training": {
     "title": "Training",
     "todayOverview": "Today's training session",

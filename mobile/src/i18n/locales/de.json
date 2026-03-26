@@ -182,6 +182,12 @@
   "common": {
     "back": "Zurück"
   },
+  "tabs": {
+    "today": "Heute",
+    "training": "Training",
+    "nutrition": "Ernährung",
+    "progress": "Fortschritt"
+  },
   "nutrition": {
     "title": "Ernährung",
     "noPlanMessage": "Dein Ernährungsberater wertet deine Daten aus und erstellt einen personalisierten Plan. Du wirst ggf. für weitere Informationen kontaktiert.",

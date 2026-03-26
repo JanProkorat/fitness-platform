@@ -182,6 +182,12 @@
   "common": {
     "back": "Zpět"
   },
+  "tabs": {
+    "today": "Dnes",
+    "training": "Trénink",
+    "nutrition": "Výživa",
+    "progress": "Progres"
+  },
   "nutrition": {
     "title": "Výživa",
     "noPlanMessage": "Váš nutricionista vyhodnocuje vaše data a připravuje personalizovaný plán. Mohou vás kontaktovat pro další informace.",

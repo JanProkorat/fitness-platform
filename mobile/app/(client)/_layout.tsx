@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import { Text, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Colors } from '../../constants/Colors';
 
 function TabIcon({ name, focused }: { name: string; focused: boolean }) {
@@ -13,6 +14,7 @@ function TabIcon({ name, focused }: { name: string; focused: boolean }) {
 }
 
 export default function ClientTabLayout() {
+  const { t } = useTranslation();
   return (
     <Tabs
       screenOptions={{
@@ -38,28 +40,28 @@ export default function ClientTabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Today',
+          title: t('tabs.today'),
           tabBarIcon: ({ focused }) => <TabIcon name="index" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="training/index"
         options={{
-          title: 'Training',
+          title: t('tabs.training'),
           tabBarIcon: ({ focused }) => <TabIcon name="training/index" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="nutrition/index"
         options={{
-          title: 'Nutrition',
+          title: t('tabs.nutrition'),
           tabBarIcon: ({ focused }) => <TabIcon name="nutrition/index" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="measurements/index"
         options={{
-          title: 'Progress',
+          title: t('tabs.progress'),
           tabBarIcon: ({ focused }) => <TabIcon name="measurements/index" focused={focused} />,
         }}
       />
