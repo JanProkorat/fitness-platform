@@ -115,12 +115,13 @@ export default function NutritionScreen() {
   const paramWeekNumber = params.weekNumber ? parseInt(params.weekNumber, 10) : undefined;
   const paramDayOfWeek = params.dayOfWeek ? parseInt(params.dayOfWeek, 10) : undefined;
 
+  const [isManualRefresh, setIsManualRefresh] = useState(false);
+
   const {
     data,
     isLoading,
     isError,
     refetch,
-    isRefetching,
   } = useQuery({
     queryKey: ['full-plan'],
     queryFn: getFullPlan,
@@ -131,6 +132,12 @@ export default function NutritionScreen() {
       return failureCount < 3;
     },
   });
+
+  const handleManualRefresh = useCallback(async () => {
+    setIsManualRefresh(true);
+    await refetch();
+    setIsManualRefresh(false);
+  }, [refetch]);
 
   const allDays = useMemo(() => (data ? buildDayList(data) : []), [data]);
 
@@ -225,7 +232,7 @@ export default function NutritionScreen() {
         <ScrollView
           contentContainerStyle={styles.centered}
           refreshControl={
-            <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={Colors.dark.gold} />
+            <RefreshControl refreshing={isManualRefresh} onRefresh={handleManualRefresh} tintColor={Colors.dark.gold} />
           }
         >
           <View style={styles.emptyCard}>
@@ -332,8 +339,8 @@ export default function NutritionScreen() {
               <DayPage
                 dayInfo={dayInfo}
                 data={data}
-                isRefreshing={isRefetching}
-                onRefresh={refetch}
+                isRefreshing={isManualRefresh}
+                onRefresh={handleManualRefresh}
                 t={t}
               />
             </View>
