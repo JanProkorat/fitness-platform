@@ -300,6 +300,21 @@ export default function NutritionScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* Day dots indicator */}
+      {allDays.length > 0 && (
+        <View style={styles.swipeHintDots}>
+          {[1, 2, 3, 4, 5, 6, 7].map((d) => (
+            <View
+              key={d}
+              style={[
+                styles.swipeHintDot,
+                d === (currentDayInfo?.dayOfWeek ?? 0) && styles.swipeHintDotActive,
+              ]}
+            />
+          ))}
+        </View>
+      )}
+
       {/* Day pager */}
       {allDays.length === 0 ? (
         <View style={styles.centered}>
@@ -386,19 +401,6 @@ function DayPage({ dayInfo, data, isRefreshing, onRefresh, t }: DayPageProps) {
         />
       }
     >
-      {/* Day dots indicator */}
-      <View style={styles.swipeHintDots}>
-        {[1, 2, 3, 4, 5, 6, 7].map((d) => (
-          <View
-            key={d}
-            style={[
-              styles.swipeHintDot,
-              d === day.dayOfWeek && styles.swipeHintDotActive,
-            ]}
-          />
-        ))}
-      </View>
-
       {/* Day name + date */}
       <View style={styles.dayHeader}>
         <Text style={[styles.dayLabel, isToday && styles.dayLabelToday]}>{dayLabel}</Text>
