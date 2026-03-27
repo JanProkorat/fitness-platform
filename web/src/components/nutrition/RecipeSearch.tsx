@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { searchRecipes } from '@/api/recipes';
 import type { RecipeSummary } from '@/api/recipe-types';
 
@@ -16,14 +17,22 @@ export interface RecipeSearchProps {
 
 export function RecipeSearch({
   onSelect,
-  placeholder = 'Přidat recept...',
+  placeholder,
 }: RecipeSearchProps) {
+  const { t, i18n } = useTranslation();
+  const effectivePlaceholder = placeholder ?? t('nutrition.addRecipe');
   const [query, setQuery] = useState('');
   const [allRecipes, setAllRecipes] = useState<RecipeSummary[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [loadedLang, setLoadedLang] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  if (loaded && loadedLang !== i18n.language) {
+    setLoaded(false);
+    setAllRecipes([]);
+  }
 
   const loadRecipes = useCallback(async () => {
     if (loaded) return;
@@ -31,10 +40,11 @@ export function RecipeSearch({
       const res = await searchRecipes({ pageSize: 100 });
       setAllRecipes(res.recipes);
       setLoaded(true);
+      setLoadedLang(i18n.language);
     } catch {
       // silent
     }
-  }, [loaded]);
+  }, [loaded, i18n.language]);
 
   const handleFocus = () => {
     setIsOpen(true);
@@ -85,7 +95,7 @@ export function RecipeSearch({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={handleFocus}
-          placeholder={placeholder}
+          placeholder={effectivePlaceholder}
           style={{
             flex: 1, border: 'none', outline: 'none', background: 'transparent',
             fontSize: 13, color: 'var(--text)', fontFamily: 'inherit',
@@ -102,12 +112,12 @@ export function RecipeSearch({
         }}>
           {!loaded && (
             <div style={{ padding: '8px 12px', fontSize: 12, color: 'var(--text3)' }}>
-              Načítání...
+              {t('nutrition.loading')}
             </div>
           )}
           {loaded && filtered.length === 0 && (
             <div style={{ padding: '8px 12px', fontSize: 12, color: 'var(--text3)' }}>
-              {query.length >= 3 ? 'Žádné výsledky' : 'Žádné recepty'}
+              {query.length >= 3 ? t('nutrition.noResults') : t('nutrition.noRecipes')}
             </div>
           )}
           {filtered.map((recipe) => (

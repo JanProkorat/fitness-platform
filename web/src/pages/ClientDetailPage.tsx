@@ -1,23 +1,11 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getClientDashboard } from '@/api/nutrition-goals';
-import { createPlan, getPlans } from '@/api/plans';
-import AnamnesisForm from '@/components/nutrition/AnamnesisForm';
-import GoalCalculation from '@/components/nutrition/GoalCalculation';
-import MacroSliders from '@/components/nutrition/MacroSliders';
-import MealDistribution from '@/components/nutrition/MealDistribution';
-import {
-  calculateGoals,
-  updateClientData,
-  type CalculateGoalsResponse,
-  type CalculateGoalsRequest,
-} from '@/api/nutrition-goals';
-import type { AnamnesisData } from '@/components/nutrition/AnamnesisForm';
 
 import { Breadcrumb, PageHeader } from '@/components/layout';
-import { Button, Tag, Dialog, Input, Select } from '@/components/ui';
+import { Button, Tag, Dialog, Input } from '@/components/ui';
 import { PropertyList, StatsGrid, Mention } from '@/components/data';
 import { ActivityTimeline } from '@/components/domain';
 
@@ -25,48 +13,16 @@ export default function ClientDetailPage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
 
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
-  // Nutrition Goals drawer state (reuse Dialog)
-  const [goalsDialogOpen, setGoalsDialogOpen] = useState(false);
-
-  // Create plan dialog state
-  const [planDialogOpen, setPlanDialogOpen] = useState(false);
-  const [planName, setPlanName] = useState('');
-  const [planWeeks, setPlanWeeks] = useState(1);
-  const [creatingPlan, setCreatingPlan] = useState(false);
-
-  // Nutrition calculator state
-  const [isSaving, setIsSaving] = useState(false);
-  const [isCalculating, setIsCalculating] = useState(false);
-  const [result, setResult] = useState<CalculateGoalsResponse | null>(null);
-  const [lastRequest, setLastRequest] = useState<AnamnesisData | null>(null);
-  const [macros, setMacros] = useState({
-    protein: 30,
-    carbs: 45,
-    fat: 25,
-  });
-  const [mealDist, setMealDist] = useState<Record<string, number> | null>(null);
-
-  // Confirm dialog state
-  const [confirmAction, setConfirmAction] = useState<'save' | 'reset' | null>(null);
 
   const { data: client, isLoading } = useQuery({
     queryKey: ['client-dashboard', id],
     queryFn: () => getClientDashboard(id!),
     enabled: !!id,
   });
-
-  const { data: clientPlans } = useQuery({
-    queryKey: ['client-plans', id],
-    queryFn: () => getPlans({ clientId: id!, pageSize: 1 }),
-    enabled: !!id,
-  });
-
-  const existingPlan = clientPlans?.plans?.[0];
 
   const clientName = client
     ? `${client.firstName} ${client.lastName}`
@@ -81,19 +37,6 @@ export default function ClientDetailPage() {
     const translated = t(key);
     return translated !== key ? translated : val;
   };
-
-  // Detect which fields were changed by the recalculation
-  const origAge = client?.dateOfBirth ? new Date(client.dateOfBirth).getFullYear() : null;
-  const diff = lastRequest ? {
-    weight: lastRequest.weightKg !== (client?.weightKg ?? 0),
-    height: lastRequest.heightCm !== (client?.heightCm ?? 0),
-    age: origAge != null && lastRequest.age !== (new Date().getFullYear() - origAge),
-    sex: ob?.sex != null && lastRequest.sex !== ob.sex,
-    activityLevel: ob?.derivedActivityLevel != null && lastRequest.activityLevel !== ob.derivedActivityLevel,
-    goal: ob?.derivedNutritionGoal != null && lastRequest.goal !== ob.derivedNutritionGoal,
-  } : null;
-
-  const hasChanges = !!result || !!mealDist;
 
   // Compliance color helper
   const complianceColor = useMemo(() => {
@@ -128,115 +71,6 @@ export default function ClientDetailPage() {
     if (lower.includes('bulk') || lower.includes('nabr')) return 'purple';
     return 'green';
   }, [ob]);
-
-  // Handlers
-  const handleCalculate = async (data: AnamnesisData) => {
-    if (!id) return;
-    setIsCalculating(true);
-    try {
-      const request: CalculateGoalsRequest = {
-        ...data,
-        proteinPercent: macros.protein,
-        carbsPercent: macros.carbs,
-        fatPercent: macros.fat,
-      };
-      const response = await calculateGoals(id, request);
-      setResult(response);
-      setLastRequest(data);
-      setGoalsDialogOpen(false);
-    } catch {
-      // Error is handled by the API interceptor
-    } finally {
-      setIsCalculating(false);
-    }
-  };
-
-  const handleMacroChange = async (
-    protein: number,
-    carbs: number,
-    fat: number,
-  ) => {
-    setMacros({ protein, carbs, fat });
-    if (lastRequest && id) {
-      try {
-        const request: CalculateGoalsRequest = {
-          ...lastRequest,
-          proteinPercent: protein,
-          carbsPercent: carbs,
-          fatPercent: fat,
-        };
-        const response = await calculateGoals(id, request);
-        setResult(response);
-      } catch {
-        // Silently fail on recalculation
-      }
-    }
-  };
-
-  const handleSave = async () => {
-    if (!id || !hasChanges) return;
-    setIsSaving(true);
-    try {
-      const payload: Parameters<typeof updateClientData>[1] = {};
-      if (result && lastRequest) {
-        payload.weightKg = lastRequest.weightKg;
-        payload.heightCm = lastRequest.heightCm;
-        payload.age = lastRequest.age;
-        payload.sex = lastRequest.sex;
-        payload.derivedActivityLevel = lastRequest.activityLevel;
-        payload.derivedNutritionGoal = lastRequest.goal;
-        payload.bmr = result.bmr;
-        payload.tdee = result.tdee;
-        payload.adjustedKcal = result.adjustedKcal;
-        payload.proteinGrams = result.macroTargets.proteinGrams;
-        payload.carbsGrams = result.macroTargets.carbsGrams;
-        payload.fatGrams = result.macroTargets.fatGrams;
-      }
-      if (mealDist) {
-        payload.mealDistribution = JSON.stringify(mealDist);
-      }
-      await updateClientData(id, payload);
-      await queryClient.invalidateQueries({ queryKey: ['client-dashboard', id] });
-      setResult(null);
-      setLastRequest(null);
-      setMealDist(null);
-    } catch {
-      // handled by interceptor
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleReset = () => {
-    setResult(null);
-    setLastRequest(null);
-    setMealDist(null);
-  };
-
-  const handleCreatePlan = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!planName.trim() || !id) return;
-    setCreatingPlan(true);
-    try {
-      const plan = await createPlan({
-        clientId: id,
-        name: planName,
-        weekCount: planWeeks,
-        globalSettings: ob?.adjustedKcal ? {
-          dailyKcal: result?.adjustedKcal ?? ob.adjustedKcal ?? 0,
-          proteinGrams: result?.macroTargets.proteinGrams ?? ob.proteinGrams ?? 0,
-          carbsGrams: result?.macroTargets.carbsGrams ?? ob.carbsGrams ?? 0,
-          fatGrams: result?.macroTargets.fatGrams ?? ob.fatGrams ?? 0,
-        } : undefined,
-      });
-      setPlanDialogOpen(false);
-      navigate(`/plans/${plan.planId}`);
-    } catch {
-      // handled by interceptor
-    } finally {
-      setCreatingPlan(false);
-    }
-  };
 
   // Calculate age from dateOfBirth
   const clientAge = useMemo(() => {
@@ -318,13 +152,7 @@ export default function ClientDetailPage() {
       icon: '📋',
       value: (
         <span className="flex flex-wrap items-center gap-1.5">
-          {existingPlan ? (
-            <Mention onClick={() => navigate(`/plans/${existingPlan.planId}`)}>
-              🥗 {existingPlan.name}
-            </Mention>
-          ) : (
-            <span className="text-text3">{t('clients.noPlans') !== 'clients.noPlans' ? t('clients.noPlans') : 'Žádné plány'}</span>
-          )}
+          <span className="text-text3">{t('clients.noPlans') !== 'clients.noPlans' ? t('clients.noPlans') : 'Žádné plány'}</span>
         </span>
       ),
     });
@@ -340,7 +168,7 @@ export default function ClientDetailPage() {
     }
 
     return items;
-  }, [client, clientAge, weightProgress, ob, existingPlan, navigate, t]);
+  }, [client, clientAge, weightProgress, ob, t]);
 
   // Build stats
   const statsItems = useMemo(() => {
@@ -367,12 +195,10 @@ export default function ClientDetailPage() {
 
   // Build weight progress chart data (simple bars)
   const weightChartData = useMemo(() => {
-    // We only have current weight and latest measurement; generate a simple set of placeholder bars
     if (!client?.weightKg) return null;
     const baseWeight = client.weightKg;
     const latestWeight = client.latestMeasurement?.weightKg ?? baseWeight;
     const targetWeight = ob?.targetWeightKg ?? latestWeight;
-    // Generate 5 points for visualization
     const maxVal = Math.max(baseWeight, latestWeight, targetWeight) + 2;
     const minVal = Math.min(baseWeight, latestWeight, targetWeight) - 2;
     const range = maxVal - minVal || 1;
@@ -388,7 +214,6 @@ export default function ClientDetailPage() {
 
   // Build activity timeline items
   const activityItems = useMemo(() => {
-    // Generate some items from available data
     const items: Array<{ id: string; date: string; title: string; description?: string; icon?: string }> = [];
 
     if (client?.latestMeasurement) {
@@ -514,23 +339,6 @@ export default function ClientDetailPage() {
         subtitle={undefined}
         actions={
           <div className="flex items-center gap-1.5">
-            {hasChanges && (
-              <>
-                <span className="inline-flex items-center gap-1.5 mr-2 text-xs text-orange">
-                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-orange" />
-                  {t('clients.unsavedChanges') !== 'clients.unsavedChanges' ? t('clients.unsavedChanges') : 'Neuložené změny'}
-                </span>
-                <Button variant="ghost" size="sm" onClick={() => setConfirmAction('reset')}>
-                  {t('clients.resetTargets') !== 'clients.resetTargets' ? t('clients.resetTargets') : 'Resetovat'}
-                </Button>
-                <Button variant="primary" size="sm" onClick={() => setConfirmAction('save')} disabled={isSaving}>
-                  {isSaving
-                    ? (t('common.saving') !== 'common.saving' ? t('common.saving') : 'Ukládání...')
-                    : (t('clients.saveTargets') !== 'clients.saveTargets' ? t('clients.saveTargets') : 'Uložit')
-                  }
-                </Button>
-              </>
-            )}
             <Button onClick={() => setEditDialogOpen(true)}>
               ✏ Upravit profil
             </Button>
@@ -593,106 +401,6 @@ export default function ClientDetailPage() {
           ) : (
             <p className="text-[13px] text-text3">Žádná nedávná aktivita</p>
           )}
-
-          {/* Nutrition Targets Section (when onboarding data exists) */}
-          {ob && ob.bmr != null && (
-            <>
-              <div className="h-px bg-border my-3.5" />
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-[22px] font-semibold tracking-tight text-text">
-                  {t('clients.nutritionTargets') !== 'clients.nutritionTargets' ? t('clients.nutritionTargets') : 'Nutriční cíle'}
-                </h2>
-                <div className="flex gap-1.5">
-                  <Button onClick={() => setGoalsDialogOpen(true)}>
-                    🔄 {t('clients.recalculate') !== 'clients.recalculate' ? t('clients.recalculate') : 'Přepočítat'}
-                  </Button>
-                  <Button
-                    variant="primary"
-                    onClick={() => existingPlan ? navigate(`/plans/${existingPlan.planId}`) : setPlanDialogOpen(true)}
-                  >
-                    {existingPlan
-                      ? (t('clients.nutritionPlans') !== 'clients.nutritionPlans' ? t('clients.nutritionPlans') : 'Jídelníček')
-                      : (t('clients.createPlan') !== 'clients.createPlan' ? t('clients.createPlan') : 'Vytvořit plán')
-                    }
-                  </Button>
-                </div>
-              </div>
-
-              {/* BMR -> TDEE -> Adjusted flow */}
-              <div className="rounded-md border border-border p-4 mb-4">
-                <div className="flex items-center gap-3 text-sm mb-4">
-                  <div className="rounded-md bg-accent-bg border border-accent-br px-3.5 py-2.5 text-center">
-                    <span className="text-[11px] text-text3 block">BMR</span>
-                    <span className="text-[15px] font-bold text-accent">{result?.bmr ?? ob.bmr} kcal</span>
-                  </div>
-                  <span className="text-text3">&rarr;</span>
-                  <div className="rounded-md bg-accent-bg border border-accent-br px-3.5 py-2.5 text-center">
-                    <span className="text-[11px] text-text3 block">TDEE</span>
-                    <span className="text-[15px] font-bold text-accent">{result?.tdee ?? ob.tdee} kcal</span>
-                  </div>
-                  <span className="text-text3">&rarr;</span>
-                  <div className="rounded-md bg-accent-bg border border-accent-br px-3.5 py-2.5 text-center">
-                    <span className="text-[11px] text-text3 block">Cíl</span>
-                    <span className="text-[15px] font-bold text-accent">{result?.adjustedKcal ?? ob.adjustedKcal} kcal</span>
-                  </div>
-                </div>
-
-                {/* Macros */}
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="rounded-md bg-blue-bg px-3 py-3 text-center">
-                    <span className="text-[11px] text-blue block">Bílkoviny</span>
-                    <span className="text-lg font-bold text-blue">
-                      {result?.macroTargets.proteinGrams ?? ob.proteinGrams}g
-                    </span>
-                  </div>
-                  <div className="rounded-md bg-orange-bg px-3 py-3 text-center">
-                    <span className="text-[11px] text-orange block">Sacharidy</span>
-                    <span className="text-lg font-bold text-orange">
-                      {result?.macroTargets.carbsGrams ?? ob.carbsGrams}g
-                    </span>
-                  </div>
-                  <div className="rounded-md bg-purple-bg px-3 py-3 text-center">
-                    <span className="text-[11px] text-purple block">Tuky</span>
-                    <span className="text-lg font-bold text-purple">
-                      {result?.macroTargets.fatGrams ?? ob.fatGrams}g
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Macro Sliders + Meal Distribution */}
-              {(() => {
-                const activeKcal = result?.adjustedKcal ?? ob.adjustedKcal;
-                const activeMacros = result
-                  ? result.macroTargets
-                  : ob.bmr != null
-                    ? { dailyKcal: ob.adjustedKcal ?? 0, proteinGrams: ob.proteinGrams ?? 0, carbsGrams: ob.carbsGrams ?? 0, fatGrams: ob.fatGrams ?? 0 }
-                    : null;
-                if (!activeKcal || !activeMacros) return null;
-                return (
-                  <>
-                    <div className="rounded-md border border-border p-4 mb-4">
-                      <MacroSliders
-                        proteinPercent={macros.protein}
-                        carbsPercent={macros.carbs}
-                        fatPercent={macros.fat}
-                        totalKcal={activeKcal}
-                        onChange={handleMacroChange}
-                      />
-                    </div>
-                    <div className="rounded-md border border-border p-4 mb-4">
-                      <MealDistribution
-                        totalKcal={activeKcal}
-                        macroTargets={activeMacros}
-                        initialDistribution={ob.mealDistribution ? JSON.parse(ob.mealDistribution) : null}
-                        onChange={setMealDist}
-                      />
-                    </div>
-                  </>
-                );
-              })()}
-            </>
-          )}
         </div>
       </div>
 
@@ -742,106 +450,6 @@ export default function ClientDetailPage() {
             type="number"
           />
         </div>
-      </Dialog>
-
-      {/* Nutrition Goals Dialog */}
-      <Dialog
-        open={goalsDialogOpen}
-        onClose={() => setGoalsDialogOpen(false)}
-        title={t('nutritionGoals.title') !== 'nutritionGoals.title' ? t('nutritionGoals.title') : 'Nutriční cíle'}
-        maxWidth={600}
-      >
-        {client && (
-          <div className="space-y-4">
-            <AnamnesisForm
-              client={client}
-              onSubmit={handleCalculate}
-              isLoading={isCalculating}
-            />
-          </div>
-        )}
-      </Dialog>
-
-      {/* Create Plan Dialog */}
-      <Dialog
-        open={planDialogOpen}
-        onClose={() => setPlanDialogOpen(false)}
-        title={t('clients.createPlan') !== 'clients.createPlan' ? t('clients.createPlan') : 'Vytvořit plán'}
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setPlanDialogOpen(false)}>
-              Zrušit
-            </Button>
-            <Button
-              variant="primary"
-              disabled={creatingPlan || !planName.trim()}
-              onClick={(e: React.MouseEvent<HTMLButtonElement>) => handleCreatePlan(e as unknown as React.FormEvent)}
-            >
-              {creatingPlan
-                ? (t('nutrition.saving') !== 'nutrition.saving' ? t('nutrition.saving') : 'Ukládání...')
-                : (t('clients.createPlan') !== 'clients.createPlan' ? t('clients.createPlan') : 'Vytvořit plán')
-              }
-            </Button>
-          </>
-        }
-      >
-        <form id="create-plan-form" onSubmit={handleCreatePlan}>
-          <Input
-            label={t('nutrition.planName') !== 'nutrition.planName' ? t('nutrition.planName') : 'Název plánu'}
-            value={planName}
-            onChange={(e) => setPlanName(e.target.value)}
-            placeholder={t('nutrition.planNamePlaceholder') !== 'nutrition.planNamePlaceholder' ? t('nutrition.planNamePlaceholder') : 'Např. Jídelníček březen'}
-            required
-          />
-          <Input
-            label={t('nutrition.weekCount') !== 'nutrition.weekCount' ? t('nutrition.weekCount') : 'Počet týdnů'}
-            type="number"
-            min={1}
-            max={52}
-            value={planWeeks}
-            onChange={(e) => setPlanWeeks(Math.max(1, Number(e.target.value) || 1))}
-          />
-        </form>
-      </Dialog>
-
-      {/* Confirm Action Dialog */}
-      <Dialog
-        open={confirmAction !== null}
-        onClose={() => setConfirmAction(null)}
-        title={
-          confirmAction === 'save'
-            ? (t('clients.confirmSaveTitle') !== 'clients.confirmSaveTitle' ? t('clients.confirmSaveTitle') : 'Uložit změny?')
-            : (t('clients.confirmResetTitle') !== 'clients.confirmResetTitle' ? t('clients.confirmResetTitle') : 'Resetovat změny?')
-        }
-        maxWidth={400}
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setConfirmAction(null)}>
-              {t('common.cancel') !== 'common.cancel' ? t('common.cancel') : 'Zrušit'}
-            </Button>
-            <Button
-              variant={confirmAction === 'save' ? 'primary' : 'danger'}
-              onClick={() => {
-                const action = confirmAction;
-                setConfirmAction(null);
-                if (action === 'save') handleSave();
-                else handleReset();
-              }}
-            >
-              {confirmAction === 'save'
-                ? (t('clients.saveTargets') !== 'clients.saveTargets' ? t('clients.saveTargets') : 'Uložit')
-                : (t('clients.resetTargets') !== 'clients.resetTargets' ? t('clients.resetTargets') : 'Resetovat')
-              }
-            </Button>
-          </>
-        }
-      >
-        <p className="text-[13px] text-text2">
-          {confirmAction === 'save'
-            ? (t('clients.confirmSaveMessage') !== 'clients.confirmSaveMessage' ? t('clients.confirmSaveMessage') : 'Opravdu chcete uložit všechny změny?')
-            : (t('clients.confirmResetMessage') !== 'clients.confirmResetMessage' ? t('clients.confirmResetMessage') : 'Opravdu chcete zahodit všechny neuložené změny?')
-          }
-        </p>
       </Dialog>
     </div>
   );

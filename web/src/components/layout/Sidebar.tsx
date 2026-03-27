@@ -110,7 +110,7 @@ export function Sidebar({ onToggleDark }: SidebarProps) {
           </NavLink>
           <NavLink to="/messages" className={cn('sb-item', isActive('/messages') && 'active')}>
             <span className="sbi-icon">✉</span>
-            <span className="sbi-lbl">Zprávy</span>
+            <span className="sbi-lbl">{t('sidebar.messages')}</span>
             <span className="sbi-badge">1</span>
           </NavLink>
         </div>
@@ -119,7 +119,7 @@ export function Sidebar({ onToggleDark }: SidebarProps) {
 
         {/* KLIENTI section */}
         <div className="sb-sec">
-          <div className="sb-sec-lbl">KLIENTI</div>
+          <div className="sb-sec-lbl">{t('sidebar.clientsSection')}</div>
 
           {clients.map((client) => {
             const cId = client.publicId ?? '';
@@ -160,7 +160,7 @@ export function Sidebar({ onToggleDark }: SidebarProps) {
                         style={{ paddingLeft: 28 }}
                       >
                         <span className="sbi-icon">🏋️</span>
-                        <span className="sbi-lbl">Trén. plán</span>
+                        <span className="sbi-lbl">{t('sidebar.trainingPlan')}</span>
                       </NavLink>
                     )}
                     {isNutritionist && (
@@ -170,7 +170,7 @@ export function Sidebar({ onToggleDark }: SidebarProps) {
                         style={{ paddingLeft: 28 }}
                       >
                         <span className="sbi-icon">🥗</span>
-                        <span className="sbi-lbl">Jídelníček</span>
+                        <span className="sbi-lbl">{t('sidebar.mealPlan')}</span>
                       </NavLink>
                     )}
                     <NavLink
@@ -179,7 +179,7 @@ export function Sidebar({ onToggleDark }: SidebarProps) {
                       style={{ paddingLeft: 28 }}
                     >
                       <span className="sbi-icon">🎯</span>
-                      <span className="sbi-lbl">Cíle a makra</span>
+                      <span className="sbi-lbl">{t('sidebar.goalsAndMacros')}</span>
                     </NavLink>
                   </div>
                 )}
@@ -191,7 +191,7 @@ export function Sidebar({ onToggleDark }: SidebarProps) {
           {pendingInvites.length > 0 && (
             <>
               <div style={{ padding: '6px 14px 2px', fontSize: 10, color: 'var(--text4)', letterSpacing: '0.03em' }}>
-                ČEKAJÍCÍ POZVÁNKY
+                {t('sidebar.pendingInvites')}
               </div>
               {pendingInvites.map((invite) => (
                 <button
@@ -216,7 +216,7 @@ export function Sidebar({ onToggleDark }: SidebarProps) {
             style={{ width: '100%', textAlign: 'left', fontFamily: 'inherit', color: 'var(--text3)' }}
           >
             <span className="sbi-icon" style={{ opacity: 0.5 }}>+</span>
-            <span className="sbi-lbl">Přidat klienta</span>
+            <span className="sbi-lbl">{t('sidebar.addClient')}</span>
           </button>
         </div>
 
@@ -225,7 +225,7 @@ export function Sidebar({ onToggleDark }: SidebarProps) {
         {/* DATABÁZE section */}
         {(isNutritionist || isTrainer) && (
           <div className="sb-sec">
-            <div className="sb-sec-lbl">DATABÁZE</div>
+            <div className="sb-sec-lbl">{t('sidebar.databaseSection')}</div>
 
             {isNutritionist && (
               <>

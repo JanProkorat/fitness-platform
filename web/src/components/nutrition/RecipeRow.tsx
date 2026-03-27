@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export interface RecipeRowProps {
   recipe: {
@@ -13,12 +14,15 @@ export interface RecipeRowProps {
   };
   index?: number;
   mealId?: string;
+  dayOfWeek?: number;
+  weekNumber?: number;
   onServingsChange: (servings: number) => void;
   onRemove: () => void;
   onNoteChange?: (note: string) => void;
 }
 
-export function RecipeRow({ recipe, index, mealId, onServingsChange, onRemove, onNoteChange }: RecipeRowProps) {
+export function RecipeRow({ recipe, index, mealId, dayOfWeek, weekNumber, onServingsChange, onRemove, onNoteChange }: RecipeRowProps) {
+  const { t } = useTranslation();
   const [localServings, setLocalServings] = useState(String(recipe.servings));
   const [localNote, setLocalNote] = useState(recipe.note ?? '');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -37,7 +41,8 @@ export function RecipeRow({ recipe, index, mealId, onServingsChange, onRemove, o
       draggable={!!mealId}
       onDragStart={(e) => {
         if (mealId) {
-          e.dataTransfer.setData('application/json', JSON.stringify({ type: 'recipe', recipeId: recipe.recipeId, mealId }));
+          e.stopPropagation();
+          e.dataTransfer.setData('application/json', JSON.stringify({ type: 'recipe', recipeId: recipe.recipeId, mealId, dayOfWeek, weekNumber }));
           e.dataTransfer.effectAllowed = 'move';
         }
       }}
@@ -55,7 +60,7 @@ export function RecipeRow({ recipe, index, mealId, onServingsChange, onRemove, o
           value={localNote}
           onChange={(e) => setLocalNote(e.target.value)}
           onBlur={() => onNoteChange(localNote)}
-          placeholder="poznámka..."
+          placeholder={t('nutrition.foodNotePlaceholder')}
           style={{
             width: '100%', border: 'none', outline: 'none', background: 'transparent',
             fontSize: 11, color: 'var(--text3)', fontFamily: 'inherit', fontStyle: 'italic',
@@ -79,7 +84,7 @@ export function RecipeRow({ recipe, index, mealId, onServingsChange, onRemove, o
           onKeyDown={(e) => { if (e.key === 'Enter') inputRef.current?.blur(); }}
           className="w-full bg-transparent text-xs text-text3 rounded-sm px-[3px] py-[1px] outline-none transition-colors hover:bg-bg-hover focus:bg-bg-active focus:ring-1 focus:ring-border-md"
         />
-        <span className="text-[11px] text-text4 shrink-0">porce</span>
+        <span className="text-[11px] text-text4 shrink-0">{t('nutrition.servings')}</span>
       </div>
       <div className="text-xs text-right tabular-nums">{Math.round(recipe.kcal * recipe.servings)}</div>
       <div className="text-xs text-right tabular-nums" style={{ color: 'var(--blue)' }}>{Math.round(recipe.protein * recipe.servings)}</div>

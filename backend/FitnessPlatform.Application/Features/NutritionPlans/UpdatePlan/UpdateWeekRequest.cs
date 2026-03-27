@@ -127,6 +127,13 @@ public class UpdateMealFoodRequest
     /// </summary>
     public string FoodName { get; set; } = string.Empty;
 
+    /// <summary>Czech name.</summary>
+    public string? FoodNameCs { get; set; }
+    /// <summary>English name.</summary>
+    public string? FoodNameEn { get; set; }
+    /// <summary>German name.</summary>
+    public string? FoodNameDe { get; set; }
+
     /// <summary>
     /// Nutrient values per 100 grams for this food.
     /// </summary>

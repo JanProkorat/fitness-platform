@@ -201,6 +201,23 @@
   overflow: visible;
 }
 
+/* ── TAB SWITCH ANIMATION ────────────────────────────────────────────────────── */
+
+@keyframes tabFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tab-content-transition {
+  animation: tabFadeIn 0.25s ease-out;
+}
+
 /* ── DRAG-AND-DROP ANIMATIONS ───────────────────────────────────────────────── */
 
 @keyframes slideIn {

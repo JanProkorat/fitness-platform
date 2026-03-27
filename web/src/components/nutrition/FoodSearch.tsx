@@ -1,10 +1,15 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { searchFoods } from '@/api/foods';
 import type { FoodSummary } from '@/api/food-types';
 
 export interface FoodSearchProps {
   onSelect: (food: {
     name: string;
+    nameCs?: string | null;
+    nameEn?: string | null;
+    nameDe?: string | null;
+    foodId: string;
     kcal: number;
     protein: number;
     carbs: number;
@@ -15,12 +20,21 @@ export interface FoodSearchProps {
 
 export function FoodSearch({
   onSelect,
-  placeholder = 'Přidat potravinu...',
+  placeholder,
 }: FoodSearchProps) {
+  const { t, i18n } = useTranslation();
+  const effectivePlaceholder = placeholder ?? t('nutrition.addFood');
   const [query, setQuery] = useState('');
   const [allFoods, setAllFoods] = useState<FoodSummary[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [loadedLang, setLoadedLang] = useState('');
+
+  // Reset cache when language changes
+  if (loaded && loadedLang !== i18n.language) {
+    setLoaded(false);
+    setAllFoods([]);
+  }
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -31,10 +45,11 @@ export function FoodSearch({
       const res = await searchFoods({ pageSize: 100 });
       setAllFoods(res.foods);
       setLoaded(true);
+      setLoadedLang(i18n.language);
     } catch {
       // silent
     }
-  }, [loaded]);
+  }, [loaded, i18n.language]);
 
   const handleFocus = () => {
     setIsOpen(true);
@@ -49,6 +64,10 @@ export function FoodSearch({
   function handleSelect(food: FoodSummary) {
     onSelect({
       name: food.name,
+      nameCs: food.nameCs,
+      nameEn: food.nameEn,
+      nameDe: food.nameDe,
+      foodId: food.foodId,
       kcal: food.nutrientValue.kcal,
       protein: food.nutrientValue.protein,
       carbs: food.nutrientValue.carbs,
@@ -87,7 +106,7 @@ export function FoodSearch({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={handleFocus}
-          placeholder={placeholder}
+          placeholder={effectivePlaceholder}
           style={{
             flex: 1, border: 'none', outline: 'none', background: 'transparent',
             fontSize: 13, color: 'var(--text)', fontFamily: 'inherit',
@@ -105,12 +124,12 @@ export function FoodSearch({
         }}>
           {!loaded && (
             <div style={{ padding: '8px 12px', fontSize: 12, color: 'var(--text3)' }}>
-              Načítání...
+              {t('nutrition.loading')}
             </div>
           )}
           {loaded && filtered.length === 0 && (
             <div style={{ padding: '8px 12px', fontSize: 12, color: 'var(--text3)' }}>
-              {query.length >= 3 ? 'Žádné výsledky' : 'Žádné potraviny'}
+              {query.length >= 3 ? t('nutrition.noResults') : t('nutrition.noFoods')}
             </div>
           )}
           {filtered.map((food) => (

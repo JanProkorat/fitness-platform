@@ -13,23 +13,23 @@ import {
   type CalculateGoalsResponse,
 } from '@/api/nutrition-goals';
 
-const ACTIVITY_LABELS: Record<string, string> = {
-  Sedentary: 'Sedavý',
-  LightlyActive: 'Mírná',
-  ModeratelyActive: 'Střední',
-  VeryActive: 'Vysoká',
-  ExtremelyActive: 'Extrémní',
+const ACTIVITY_KEYS: Record<string, string> = {
+  Sedentary: 'clients.values.Sedentary',
+  LightlyActive: 'clients.values.LightlyActive',
+  ModeratelyActive: 'clients.values.ModeratelyActive',
+  VeryActive: 'clients.values.VeryActive',
+  ExtremelyActive: 'clients.values.ExtremelyActive',
 };
 
-const GOAL_LABELS: Record<string, string> = {
-  Cut: 'Hubnutí (−20 %)',
-  Maintain: 'Udržení',
-  Bulk: 'Nabírání (+15 %)',
+const GOAL_KEYS: Record<string, string> = {
+  Cut: 'nutritionGoals.cutLabel',
+  Maintain: 'nutritionGoals.maintainLabel',
+  Bulk: 'nutritionGoals.bulkLabel',
 };
 
-const SEX_LABELS: Record<string, string> = {
-  Male: 'Muž',
-  Female: 'Žena',
+const SEX_KEYS: Record<string, string> = {
+  Male: 'nutritionGoals.sexMale',
+  Female: 'nutritionGoals.sexFemale',
 };
 
 export default function ClientNutritionGoalsPage() {
@@ -154,27 +154,27 @@ export default function ClientNutritionGoalsPage() {
     <div className="flex h-full flex-col overflow-y-auto">
       <Breadcrumb
         items={[
-          { label: 'Dashboard', href: '/dashboard' },
-          { label: 'Klienti', href: '/clients' },
+          { label: t('sidebar.dashboard'), href: '/dashboard' },
+          { label: t('sidebar.clients'), href: '/clients' },
           { label: clientName, href: `/clients/${id}` },
-          { label: 'Cile & Makra' },
+          { label: t('nutritionGoals.title') },
         ]}
       />
       <PageHeader
         icon="🎯"
-        title="Cile a makra"
-        subtitle={`${clientName} · Vypocet kalorickeho cile`}
+        title={t('nutritionGoals.title')}
+        subtitle={`${clientName} · ${t('nutritionGoals.subtitle')}`}
         actions={
           <div className="flex gap-1.5">
             <Button onClick={() => window.history.back()}>
-              &larr; Zpet
+              &larr; {t('nutritionGoals.back')}
             </Button>
             <Button
               variant="primary"
               onClick={handleSave}
               disabled={!result || saving}
             >
-              {saving ? 'Ukladam...' : 'Ulozit zmeny'}
+              {saving ? t('nutritionGoals.savingChanges') : t('nutritionGoals.saveChanges')}
             </Button>
           </div>
         }
@@ -186,16 +186,16 @@ export default function ClientNutritionGoalsPage() {
           {/* Left column - Anamneza */}
           <div>
             <div className="text-[12px] font-semibold uppercase tracking-[0.04em] text-text3 mb-2.5">
-              Anamneza
+              {t('nutritionGoals.anamnesis')}
             </div>
             <div className="bg-bg2 border border-border rounded-md p-2 mb-4">
               <PropertyList
                 className="mb-0"
                 items={[
                   {
-                    label: 'Vek',
+                    label: t('nutritionGoals.age'),
                     icon: '📅',
-                    value: `${age} let`,
+                    value: `${age}`,
                     editable: true,
                     onEdit: (v) => {
                       const n = parseInt(v);
@@ -203,9 +203,9 @@ export default function ClientNutritionGoalsPage() {
                     },
                   },
                   {
-                    label: 'Pohlavi',
+                    label: t('nutritionGoals.sex'),
                     icon: '👤',
-                    value: SEX_LABELS[sex] || sex,
+                    value: t(SEX_KEYS[sex] || sex),
                     editable: true,
                     onEdit: (v) => {
                       const s = v.toLowerCase().startsWith('m') ? 'Male' as const : 'Female' as const;
@@ -214,7 +214,7 @@ export default function ClientNutritionGoalsPage() {
                     },
                   },
                   {
-                    label: 'Vyska',
+                    label: t('nutritionGoals.height'),
                     icon: '📏',
                     value: `${heightCm} cm`,
                     editable: true,
@@ -224,7 +224,7 @@ export default function ClientNutritionGoalsPage() {
                     },
                   },
                   {
-                    label: 'Vaha',
+                    label: t('nutritionGoals.weight'),
                     icon: '⚖',
                     value: `${weightKg} kg`,
                     editable: true,
@@ -234,7 +234,7 @@ export default function ClientNutritionGoalsPage() {
                     },
                   },
                   {
-                    label: 'Cilova vaha',
+                    label: t('nutritionGoals.targetWeight'),
                     icon: '🎯',
                     value: `${targetWeight} kg`,
                     editable: true,
@@ -244,9 +244,9 @@ export default function ClientNutritionGoalsPage() {
                     },
                   },
                   {
-                    label: 'Aktivita',
+                    label: t('nutritionGoals.activityLevel'),
                     icon: '⚡',
-                    value: ACTIVITY_LABELS[activityLevel] || activityLevel,
+                    value: t(ACTIVITY_KEYS[activityLevel] || activityLevel),
                     editable: true,
                     onEdit: (v) => {
                       const match = Object.entries(ACTIVITY_LABELS).find(([, label]) =>
@@ -263,7 +263,7 @@ export default function ClientNutritionGoalsPage() {
               />
             </div>
 
-            <div className="text-[13px] font-semibold mb-2">Cil</div>
+            <div className="text-[13px] font-semibold mb-2">{t('nutritionGoals.goal')}</div>
             <div className="mb-4">
               <Select
                 value={goal}
@@ -273,9 +273,9 @@ export default function ClientNutritionGoalsPage() {
                   recalculate({ goal: g });
                 }}
               >
-                <option value="Cut">Hubnuti (deficit −20 %)</option>
-                <option value="Maintain">Udrzeni</option>
-                <option value="Bulk">Nabirani (+15 %)</option>
+                <option value="Cut">{t('nutritionGoals.cutLabel')}</option>
+                <option value="Maintain">{t('nutritionGoals.maintainLabel')}</option>
+                <option value="Bulk">{t('nutritionGoals.bulkLabel')}</option>
               </Select>
             </div>
 
@@ -286,27 +286,27 @@ export default function ClientNutritionGoalsPage() {
                 disabled={isCalculating}
                 className="w-full justify-center"
               >
-                {isCalculating ? 'Pocitam...' : 'Vypocitat'}
+                {isCalculating ? t('nutritionGoals.calculating') : t('nutritionGoals.calculate')}
               </Button>
             )}
 
             {result && (
               <>
-                <div className="text-[13px] font-semibold mb-2">Vypocet</div>
+                <div className="text-[13px] font-semibold mb-2">{t('nutritionGoals.calculation')}</div>
                 <Callout icon="🧮" title="Mifflin-St Jeor" variant="info" className="bg-bg2 border border-border">
                   <div className="text-[13px] text-text2">
-                    BMR = {Math.round(result.bmr).toLocaleString('cs')} kcal
+                    {t('nutritionGoals.bmr')} = {Math.round(result.bmr).toLocaleString('cs')} kcal
                     {' · '}
-                    TDEE = {Math.round(result.tdee).toLocaleString('cs')} kcal
+                    {t('nutritionGoals.tdee')} = {Math.round(result.tdee).toLocaleString('cs')} kcal
                     {' · '}
-                    {GOAL_LABELS[goal]}
+                    {t(GOAL_KEYS[goal])}
                     {' → '}
-                    <strong>cil {Math.round(result.adjustedKcal).toLocaleString('cs')} kcal</strong>
+                    <strong>{t('nutritionGoals.goalTarget')} {Math.round(result.adjustedKcal).toLocaleString('cs')} kcal</strong>
                   </div>
                 </Callout>
                 <div className="text-[11px] text-text3 mt-2 leading-relaxed">
-                  Mifflin-St Jeor: BMR = 10 × vaha + 6,25 × vyska − 5 × vek {sex === 'Female' ? '− 161' : '+ 5'}.
-                  TDEE = BMR × faktor aktivity.
+                  {t('nutritionGoals.mifflinFormula')} {sex === 'Female' ? t('nutritionGoals.mifflinFemaleOffset') : t('nutritionGoals.mifflinMaleOffset')}.
+                  {' '}{t('nutritionGoals.tdeeFormula')}
                 </div>
               </>
             )}
@@ -315,7 +315,7 @@ export default function ClientNutritionGoalsPage() {
           {/* Right column - Makra */}
           <div>
             <div className="text-[12px] font-semibold uppercase tracking-[0.04em] text-text3 mb-2.5">
-              Cilove makra
+              {t('nutritionGoals.targetMacros')}
             </div>
 
             {result ? (
@@ -325,7 +325,7 @@ export default function ClientNutritionGoalsPage() {
                     className="mb-0"
                     items={[
                       {
-                        label: 'Kalorie / den',
+                        label: t('nutritionGoals.caloriesPerDay'),
                         value: (
                           <span className="font-semibold">
                             {Math.round(kcal).toLocaleString('cs')} kcal
@@ -333,7 +333,7 @@ export default function ClientNutritionGoalsPage() {
                         ),
                       },
                       {
-                        label: 'Bilkoviny',
+                        label: t('nutritionGoals.protein'),
                         icon: '',
                         value: (
                           <span className="flex items-center gap-2">
@@ -357,7 +357,7 @@ export default function ClientNutritionGoalsPage() {
                         },
                       },
                       {
-                        label: 'Sacharidy',
+                        label: t('nutritionGoals.carbs'),
                         icon: '',
                         value: (
                           <span className="flex items-center gap-2">
@@ -381,7 +381,7 @@ export default function ClientNutritionGoalsPage() {
                         },
                       },
                       {
-                        label: 'Tuky',
+                        label: t('nutritionGoals.fat'),
                         icon: '',
                         value: (
                           <span className="flex items-center gap-2">
@@ -417,15 +417,15 @@ export default function ClientNutritionGoalsPage() {
                 <div className="flex gap-3 flex-wrap text-[11px] text-text3 mb-6">
                   <span className="flex items-center gap-1.5">
                     <span className="w-[7px] h-[7px] rounded-sm bg-blue inline-block" />
-                    Bilkoviny
+                    {t('nutritionGoals.protein')}
                   </span>
                   <span className="flex items-center gap-1.5">
                     <span className="w-[7px] h-[7px] rounded-sm bg-orange inline-block" />
-                    Sacharidy
+                    {t('nutritionGoals.carbs')}
                   </span>
                   <span className="flex items-center gap-1.5">
                     <span className="w-[7px] h-[7px] rounded-sm bg-purple inline-block" />
-                    Tuky
+                    {t('nutritionGoals.fat')}
                   </span>
                 </div>
 
@@ -435,7 +435,7 @@ export default function ClientNutritionGoalsPage() {
                     <div className="flex justify-between items-center mb-1">
                       <span className="text-xs text-text2 flex items-center gap-1.5">
                         <span className="w-[7px] h-[7px] rounded-sm bg-blue" />
-                        Bilkoviny
+                        {t('nutritionGoals.protein')}
                       </span>
                       <span className="text-xs tabular-nums">
                         <span className="font-semibold text-text">{pGrams}g</span>
@@ -448,7 +448,7 @@ export default function ClientNutritionGoalsPage() {
                     <div className="flex justify-between items-center mb-1">
                       <span className="text-xs text-text2 flex items-center gap-1.5">
                         <span className="w-[7px] h-[7px] rounded-sm bg-orange" />
-                        Sacharidy
+                        {t('nutritionGoals.carbs')}
                       </span>
                       <span className="text-xs tabular-nums">
                         <span className="font-semibold text-text">{cGrams}g</span>
@@ -461,7 +461,7 @@ export default function ClientNutritionGoalsPage() {
                     <div className="flex justify-between items-center mb-1">
                       <span className="text-xs text-text2 flex items-center gap-1.5">
                         <span className="w-[7px] h-[7px] rounded-sm bg-purple" />
-                        Tuky
+                        {t('nutritionGoals.fat')}
                       </span>
                       <span className="text-xs tabular-nums">
                         <span className="font-semibold text-text">{fGrams}g</span>
@@ -471,10 +471,46 @@ export default function ClientNutritionGoalsPage() {
                     <ProgressBar value={100} color="var(--purple)" height={4} />
                   </div>
                 </div>
+
+                {/* Macro sliders */}
+                <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                    {t('nutritionGoals.macroDistribution')}
+                  </div>
+                  {([
+                    { label: t('nutritionGoals.protein'), value: proteinPercent, set: (v: number) => {
+                      const r = 100 - v; const nc = Math.round(r * carbsPercent / (carbsPercent + fatPercent)); const nf = r - nc;
+                      setProteinPercent(v); setCarbsPercent(nc); setFatPercent(nf); recalculate({ pp: v, cp: nc, fp: nf });
+                    }, color: 'var(--blue)', max: 60 },
+                    { label: t('nutritionGoals.carbs'), value: carbsPercent, set: (v: number) => {
+                      const r = 100 - v; const np = Math.round(r * proteinPercent / (proteinPercent + fatPercent)); const nf = r - np;
+                      setCarbsPercent(v); setProteinPercent(np); setFatPercent(nf); recalculate({ pp: np, cp: v, fp: nf });
+                    }, color: 'var(--orange)', max: 70 },
+                    { label: t('nutritionGoals.fat'), value: fatPercent, set: (v: number) => {
+                      const r = 100 - v; const np = Math.round(r * proteinPercent / (proteinPercent + carbsPercent)); const nc = r - np;
+                      setFatPercent(v); setProteinPercent(np); setCarbsPercent(nc); recalculate({ pp: np, cp: nc, fp: v });
+                    }, color: 'var(--purple)', max: 50 },
+                  ] as const).map((s) => (
+                    <div key={s.label}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                        <span style={{ fontSize: 12, color: 'var(--text2)' }}>{s.label}</span>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: s.color }}>{s.value} %</span>
+                      </div>
+                      <input
+                        type="range"
+                        min={5}
+                        max={s.max}
+                        value={s.value}
+                        onChange={(e) => s.set(parseInt(e.target.value))}
+                        style={{ width: '100%', accentColor: s.color, cursor: 'pointer' }}
+                      />
+                    </div>
+                  ))}
+                </div>
               </>
             ) : (
               <div className="text-[13px] text-text3 py-8 text-center">
-                Nejprve vyplnte anamnezi a spustte vypocet.
+                {t('nutritionGoals.notCalculated')}
               </div>
             )}
           </div>

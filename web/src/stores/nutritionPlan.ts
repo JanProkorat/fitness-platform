@@ -36,6 +36,8 @@ interface NutritionPlanState {
   ) => void;
   reorderFoodsInMeal: (weekNum: number, dayOfWeek: number, mealId: string, foodIds: string[]) => void;
   moveFoodToMeal: (weekNum: number, dayOfWeek: number, fromMealId: string, toMealId: string, foodExternalId: string) => void;
+  moveFoodToDay: (weekNum: number, fromDay: number, toDay: number, fromMealId: string, toMealId: string, foodExternalId: string, fromWeek?: number) => void;
+  moveRecipeToDay: (weekNum: number, fromDay: number, toDay: number, fromMealId: string, toMealId: string, recipeId: string, fromWeek?: number) => void;
   moveRecipeToMeal: (weekNum: number, dayOfWeek: number, fromMealId: string, toMealId: string, recipeId: string) => void;
   addMeal: (weekNum: number, dayOfWeek: number, meal: PlanMeal) => void;
   removeMeal: (weekNum: number, dayOfWeek: number, mealId: string) => void;
@@ -51,12 +53,14 @@ interface NutritionPlanState {
     toDayOfWeek: number,
     mealId: string,
     targetIndex: number,
+    fromWeekNum?: number,
   ) => void;
   swapDays: (weekNum: number, fromDayOfWeek: number, toDayOfWeek: number) => void;
   reorderDay: (weekNum: number, fromDay: number, toPosition: number) => void;
   copyDayToDay: (weekNum: number, fromDayOfWeek: number, toDayOfWeek: number) => void;
   copyDayToWeek: (fromWeek: number, fromDay: number, toWeek: number, toDay: number) => void;
   addWeek: () => void;
+  reorderWeeks: (weekNumbers: number[]) => void;
   removeWeek: (weekNum: number) => void;
   setStartDate: (date: string | null) => void;
   save: () => Promise<void>;
@@ -327,6 +331,76 @@ export const useNutritionPlanStore = create<NutritionPlanState>((set, get) => ({
     set({ plan: recalculateTotals(updated), isDirty: true });
   },
 
+  moveFoodToDay: (toWeekNum, fromDay, toDay, fromMealId, toMealId, foodExternalId, fromWeekNum) => {
+    const { plan } = get();
+    if (!plan) return;
+    const srcWk = fromWeekNum ?? toWeekNum;
+    if (srcWk === toWeekNum && fromDay === toDay) return;
+
+    const srcWeek = plan.weeks.find(w => w.weekNumber === srcWk);
+    const srcDayObj = srcWeek?.days.find(d => d.dayOfWeek === fromDay);
+    const srcMeal = srcDayObj?.meals.find(m => m.mealId === fromMealId);
+    const food = srcMeal?.foods.find(f => f.foodExternalId === foodExternalId);
+    if (!food) return;
+
+    const updated = {
+      ...plan,
+      weeks: plan.weeks.map(week => {
+        const isSource = week.weekNumber === srcWk;
+        const isTarget = week.weekNumber === toWeekNum;
+        if (!isSource && !isTarget) return week;
+        return {
+          ...week,
+          days: week.days.map(day => {
+            if (isSource && day.dayOfWeek === fromDay) {
+              return { ...day, meals: day.meals.map(m => m.mealId !== fromMealId ? m : { ...m, foods: m.foods.filter(f => f.foodExternalId !== foodExternalId) }) };
+            }
+            if (isTarget && day.dayOfWeek === toDay) {
+              return { ...day, meals: day.meals.map(m => m.mealId !== toMealId ? m : { ...m, foods: [...m.foods, food] }) };
+            }
+            return day;
+          }),
+        };
+      }),
+    };
+    set({ plan: recalculateTotals(updated), isDirty: true });
+  },
+
+  moveRecipeToDay: (toWeekNum, fromDay, toDay, fromMealId, toMealId, recipeId, fromWeekNum) => {
+    const { plan } = get();
+    if (!plan) return;
+    const srcWk = fromWeekNum ?? toWeekNum;
+    if (srcWk === toWeekNum && fromDay === toDay) return;
+
+    const srcWeek = plan.weeks.find(w => w.weekNumber === srcWk);
+    const srcDayObj = srcWeek?.days.find(d => d.dayOfWeek === fromDay);
+    const srcMeal = srcDayObj?.meals.find(m => m.mealId === fromMealId);
+    const recipe = (srcMeal?.recipes ?? []).find(r => r.recipeId === recipeId);
+    if (!recipe) return;
+
+    const updated = {
+      ...plan,
+      weeks: plan.weeks.map(week => {
+        const isSource = week.weekNumber === srcWk;
+        const isTarget = week.weekNumber === toWeekNum;
+        if (!isSource && !isTarget) return week;
+        return {
+          ...week,
+          days: week.days.map(day => {
+            if (isSource && day.dayOfWeek === fromDay) {
+              return { ...day, meals: day.meals.map(m => m.mealId !== fromMealId ? m : { ...m, recipes: (m.recipes ?? []).filter(r => r.recipeId !== recipeId) }) };
+            }
+            if (isTarget && day.dayOfWeek === toDay) {
+              return { ...day, meals: day.meals.map(m => m.mealId !== toMealId ? m : { ...m, recipes: [...(m.recipes ?? []), recipe] }) };
+            }
+            return day;
+          }),
+        };
+      }),
+    };
+    set({ plan: recalculateTotals(updated), isDirty: true });
+  },
+
   addMeal: (weekNum, dayOfWeek, meal) => {
     const { plan } = get();
     if (!plan) return;
@@ -434,32 +508,34 @@ export const useNutritionPlanStore = create<NutritionPlanState>((set, get) => ({
     set({ plan: recalculateTotals(updated), isDirty: true });
   },
 
-  moveMealToDay: (weekNum, fromDayOfWeek, toDayOfWeek, mealId, targetIndex) => {
+  moveMealToDay: (toWeekNum, fromDayOfWeek, toDayOfWeek, mealId, targetIndex, fromWeekNum) => {
     const { plan } = get();
-    if (!plan || fromDayOfWeek === toDayOfWeek) return;
+    if (!plan) return;
+    const srcWk = fromWeekNum ?? toWeekNum;
+    if (srcWk === toWeekNum && fromDayOfWeek === toDayOfWeek) return;
 
-    const week = plan.weeks.find((w) => w.weekNumber === weekNum);
-    if (!week) return;
-
-    const srcDay = week.days.find((d) => d.dayOfWeek === fromDayOfWeek);
-    const meal = srcDay?.meals.find((m) => m.mealId === mealId);
+    const srcWeek = plan.weeks.find(w => w.weekNumber === srcWk);
+    const srcDay = srcWeek?.days.find(d => d.dayOfWeek === fromDayOfWeek);
+    const meal = srcDay?.meals.find(m => m.mealId === mealId);
     if (!meal) return;
 
     const updated: NutritionPlanDetail = {
       ...plan,
       weeks: plan.weeks.map((w) => {
-        if (w.weekNumber !== weekNum) return w;
+        const isSource = w.weekNumber === srcWk;
+        const isTarget = w.weekNumber === toWeekNum;
+        if (!isSource && !isTarget) return w;
         return {
           ...w,
           days: w.days.map((day) => {
-            if (day.dayOfWeek === fromDayOfWeek) {
+            if (isSource && day.dayOfWeek === fromDayOfWeek) {
               const remaining = day.meals
                 .filter((m) => m.mealId !== mealId)
                 .sort((a, b) => a.order - b.order)
                 .map((m, i) => ({ ...m, order: i + 1 }));
               return { ...day, meals: remaining };
             }
-            if (day.dayOfWeek === toDayOfWeek) {
+            if (isTarget && day.dayOfWeek === toDayOfWeek) {
               const sorted = day.meals.slice().sort((a, b) => a.order - b.order);
               const idx = Math.min(targetIndex, sorted.length);
               sorted.splice(idx, 0, meal);
@@ -631,6 +707,16 @@ export const useNutritionPlanStore = create<NutritionPlanState>((set, get) => ({
     });
   },
 
+  reorderWeeks: (weekNumbers) => {
+    const { plan } = get();
+    if (!plan) return;
+    const reordered = weekNumbers
+      .map((num) => plan.weeks.find((w) => w.weekNumber === num))
+      .filter(Boolean) as typeof plan.weeks;
+    if (reordered.length !== plan.weeks.length) return;
+    set({ plan: { ...plan, weeks: reordered }, isDirty: true });
+  },
+
   removeWeek: (weekNum) => {
     const { plan } = get();
     if (!plan || plan.weeks.length <= 1) return;
@@ -638,10 +724,11 @@ export const useNutritionPlanStore = create<NutritionPlanState>((set, get) => ({
     const week = plan.weeks.find((w) => w.weekNumber === weekNum);
     if (!week || week.status === 'Published') return;
 
-    const updated = {
-      ...plan,
-      weeks: plan.weeks.filter((w) => w.weekNumber !== weekNum),
-    };
+    const remaining = plan.weeks
+      .filter((w) => w.weekNumber !== weekNum)
+      .map((w, i) => ({ ...w, weekNumber: i + 1 }));
+
+    const updated = { ...plan, weeks: remaining };
 
     set({ plan: updated, isDirty: true, selectedWeek: 1 });
   },
@@ -657,8 +744,8 @@ export const useNutritionPlanStore = create<NutritionPlanState>((set, get) => ({
         globalSettings: plan.globalSettings,
         version: plan.version,
         startDate: plan.startDate,
-        weeks: plan.weeks.map((week) => ({
-          weekNumber: week.weekNumber,
+        weeks: plan.weeks.map((week, wi) => ({
+          weekNumber: wi + 1,
           days: week.days.map((day) => ({
             dayOfWeek: day.dayOfWeek,
             note: day.note,
@@ -671,6 +758,9 @@ export const useNutritionPlanStore = create<NutritionPlanState>((set, get) => ({
               foods: meal.foods.map((food) => ({
                 foodExternalId: food.foodExternalId,
                 foodName: food.foodName,
+                foodNameCs: food.foodNameCs,
+                foodNameEn: food.foodNameEn,
+                foodNameDe: food.foodNameDe,
                 nutrientValuePer100Grams: food.nutrientValuePer100Grams,
                 amountGrams: food.amountGrams,
                 note: food.note,

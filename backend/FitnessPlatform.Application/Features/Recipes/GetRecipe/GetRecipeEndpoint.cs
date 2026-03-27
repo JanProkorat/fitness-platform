@@ -52,6 +52,15 @@ public class GetRecipeEndpoint(IMongoContext mongo)
             return;
         }
 
-        await Send.OkAsync(GetRecipeResponse.FromDocument(recipe), ct);
+        // Resolve localized food names
+        var foodIds = recipe.Foods.Select(f => f.FoodExternalId).Distinct().ToList();
+        var foodFilter = Builders<Food>.Filter.In(f => f.ExternalId, foodIds);
+        using var foodCursor = await mongo.Foods.FindAsync(foodFilter, cancellationToken: ct);
+        var foods = await foodCursor.ToListAsync(ct);
+        var foodLookup = foods.ToDictionary(f => f.ExternalId) as IReadOnlyDictionary<Guid, Food>;
+
+        var language = HttpContext.Request.Headers.AcceptLanguage.FirstOrDefault()?.Split(',').FirstOrDefault()?.Trim().Split('-').FirstOrDefault();
+
+        await Send.OkAsync(GetRecipeResponse.FromDocument(recipe, foodLookup, language), ct);
     }
 }

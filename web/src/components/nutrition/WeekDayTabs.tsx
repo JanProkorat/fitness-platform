@@ -1,3 +1,4 @@
+import { useState, useRef } from 'react';
 import { cn } from '@/lib/cn';
 
 export interface WeekTabData {
@@ -22,6 +23,7 @@ export interface WeekDayTabsProps {
   onDayChange: (index: number) => void;
   onAddWeek?: () => void;
   onRemoveWeek?: (index: number) => void;
+  onReorderWeeks?: (weekNumbers: number[]) => void;
 }
 
 export function WeekDayTabs({
@@ -33,7 +35,12 @@ export function WeekDayTabs({
   onDayChange,
   onAddWeek,
   onRemoveWeek,
+  onReorderWeeks,
 }: WeekDayTabsProps) {
+  const [dragOverWeek, setDragOverWeek] = useState<number | null>(null);
+  const weekHoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [weekDragOver, setWeekDragOver] = useState<number | null>(null);
+
   return (
     <div>
       {/* Week tabs */}
@@ -45,7 +52,66 @@ export function WeekDayTabs({
               <div
                 key={week.index}
                 className="group relative"
-                style={{ flex: 1, display: 'flex', justifyContent: 'center' }}
+                draggable={!!onReorderWeeks}
+                onDragStart={(e) => {
+                  if (!onReorderWeeks) return;
+                  e.dataTransfer.setData('application/week-json', JSON.stringify({ type: 'week', weekNumber: week.index }));
+                  e.dataTransfer.effectAllowed = 'move';
+                }}
+                style={{
+                  flex: 1, display: 'flex', justifyContent: 'center',
+                  background: dragOverWeek === week.index || weekDragOver === week.index ? 'var(--accent-bg)' : undefined,
+                  borderLeft: weekDragOver === week.index ? '2px solid var(--accent)' : '2px solid transparent',
+                  transition: 'background 0.15s',
+                  cursor: onReorderWeeks ? 'grab' : undefined,
+                }}
+                onDragOver={(e) => {
+                  const hasWeek = e.dataTransfer.types.includes('application/week-json');
+                  const hasMeal = e.dataTransfer.types.includes('application/meal-json');
+                  const hasItem = e.dataTransfer.types.includes('application/json');
+                  if (!hasWeek && !hasMeal && !hasItem) return;
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = 'move';
+                  if (hasWeek) {
+                    setWeekDragOver(week.index);
+                  } else if (dragOverWeek !== week.index) {
+                    setDragOverWeek(week.index);
+                    if (weekHoverTimer.current) clearTimeout(weekHoverTimer.current);
+                    weekHoverTimer.current = setTimeout(() => {
+                      onWeekChange(week.index);
+                    }, 500);
+                  }
+                }}
+                onDragLeave={() => {
+                  setWeekDragOver(null);
+                  if (dragOverWeek === week.index) {
+                    setDragOverWeek(null);
+                    if (weekHoverTimer.current) { clearTimeout(weekHoverTimer.current); weekHoverTimer.current = null; }
+                  }
+                }}
+                onDrop={(e) => {
+                  setDragOverWeek(null);
+                  setWeekDragOver(null);
+                  if (weekHoverTimer.current) { clearTimeout(weekHoverTimer.current); weekHoverTimer.current = null; }
+                  if (e.dataTransfer.types.includes('application/week-json') && onReorderWeeks) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    try {
+                      const data = JSON.parse(e.dataTransfer.getData('application/week-json'));
+                      if (data.type === 'week' && data.weekNumber !== week.index) {
+                        const currentOrder = weeks.map(w => w.index);
+                        const oldIdx = currentOrder.indexOf(data.weekNumber);
+                        const newIdx = currentOrder.indexOf(week.index);
+                        if (oldIdx !== -1 && newIdx !== -1) {
+                          const reordered = [...currentOrder];
+                          reordered.splice(oldIdx, 1);
+                          reordered.splice(newIdx, 0, data.weekNumber);
+                          onReorderWeeks(reordered);
+                        }
+                      }
+                    } catch { /* ignore */ }
+                  }
+                }}
               >
                 <button
                   type="button"

@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export interface FoodRowProps {
   food: {
@@ -14,12 +15,15 @@ export interface FoodRowProps {
   };
   index?: number;
   mealId?: string;
+  dayOfWeek?: number;
+  weekNumber?: number;
   onAmountChange: (amount: number) => void;
   onRemove: () => void;
   onNoteChange?: (note: string) => void;
 }
 
-export function FoodRow({ food, index, mealId, onAmountChange, onRemove, onNoteChange }: FoodRowProps) {
+export function FoodRow({ food, index, mealId, dayOfWeek, weekNumber, onAmountChange, onRemove, onNoteChange }: FoodRowProps) {
+  const { t } = useTranslation();
   const [localAmount, setLocalAmount] = useState(String(food.amount));
   const [localNote, setLocalNote] = useState(food.note ?? '');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -50,7 +54,8 @@ export function FoodRow({ food, index, mealId, onAmountChange, onRemove, onNoteC
       draggable={!!mealId}
       onDragStart={(e) => {
         if (mealId) {
-          e.dataTransfer.setData('application/json', JSON.stringify({ type: 'food', foodId: food.id, mealId }));
+          e.stopPropagation();
+          e.dataTransfer.setData('application/json', JSON.stringify({ type: 'food', foodId: food.id, mealId, dayOfWeek, weekNumber }));
           e.dataTransfer.effectAllowed = 'move';
         }
       }}
@@ -68,7 +73,7 @@ export function FoodRow({ food, index, mealId, onAmountChange, onRemove, onNoteC
           value={localNote}
           onChange={(e) => setLocalNote(e.target.value)}
           onBlur={handleNoteBlur}
-          placeholder="poznámka..."
+          placeholder={t('nutrition.foodNotePlaceholder')}
           style={{
             width: '100%', border: 'none', outline: 'none', background: 'transparent',
             fontSize: 11, color: 'var(--text3)', fontFamily: 'inherit', fontStyle: 'italic',

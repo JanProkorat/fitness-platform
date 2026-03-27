@@ -143,6 +143,9 @@ public class UpdatePlanEndpoint(IMongoContext mongo, IMacroCalculatorService mac
                         {
                             FoodExternalId = rf.FoodExternalId,
                             FoodName = rf.FoodName,
+                            FoodNameCs = rf.FoodNameCs,
+                            FoodNameEn = rf.FoodNameEn,
+                            FoodNameDe = rf.FoodNameDe,
                             NutrientValuePer100Grams = rf.NutrientValuePer100Grams,
                             AmountGrams = rf.AmountGrams,
                             Note = rf.Note

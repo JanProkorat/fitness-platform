@@ -124,11 +124,11 @@ export default function FoodsPage() {
             <DatabaseTable
               columns={[
                 { key: 'name', label: 'Nazev', render: (food: FoodSummary) => food.name },
+                { key: 'note', label: 'Poznámka', render: (food: FoodSummary) => <span className="text-text3">{food.note || '—'}</span> },
                 { key: 'kcal', label: 'kcal/100g', width: '90px', render: (food: FoodSummary) => <span className="tabular-nums">{food.nutrientValue.kcal}</span> },
                 { key: 'protein', label: 'B', width: '70px', render: (food: FoodSummary) => <span className="tabular-nums" style={{ color: 'var(--blue)' }}>{food.nutrientValue.protein}g</span> },
                 { key: 'carbs', label: 'S', width: '70px', render: (food: FoodSummary) => <span className="tabular-nums" style={{ color: 'var(--orange)' }}>{food.nutrientValue.carbs}g</span> },
                 { key: 'fat', label: 'T', width: '70px', render: (food: FoodSummary) => <span className="tabular-nums" style={{ color: 'var(--purple)' }}>{food.nutrientValue.fat}g</span> },
-                { key: 'note', label: 'Poznámka', render: (food: FoodSummary) => <span className="text-text3">{food.note || '—'}</span> },
               ]}
               rows={data.foods}
               rowKey={(food) => food.foodId}

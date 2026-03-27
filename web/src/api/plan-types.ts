@@ -18,6 +18,9 @@ export interface GlobalNutritionSettings {
 export interface MealFood {
   foodExternalId: string;
   foodName: string;
+  foodNameCs?: string | null;
+  foodNameEn?: string | null;
+  foodNameDe?: string | null;
   nutrientValuePer100Grams: {
     kcal: number;
     protein: number;
@@ -170,6 +173,9 @@ export interface UpdateMealRecipeRequest {
 export interface UpdateMealFoodRequest {
   foodExternalId: string;
   foodName: string;
+  foodNameCs?: string | null;
+  foodNameEn?: string | null;
+  foodNameDe?: string | null;
   nutrientValuePer100Grams: {
     kcal: number;
     protein: number;

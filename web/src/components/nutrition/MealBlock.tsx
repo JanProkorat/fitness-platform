@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/cn';
 import { FoodRow } from './FoodRow';
 import { FoodSearch } from './FoodSearch';
@@ -8,7 +9,7 @@ import { RecipeSearch } from './RecipeSearch';
 function MealDropZone({ mealId, itemIds, onItemDrop, onReorder, children }: {
   mealId?: string;
   itemIds: string[];
-  onItemDrop?: (data: { type: string; foodId?: string; recipeId?: string; mealId: string }) => void;
+  onItemDrop?: (data: { type: string; foodId?: string; recipeId?: string; mealId: string; dayOfWeek?: number }) => void;
   onReorder?: (itemIds: string[]) => void;
   children: React.ReactNode;
 }) {
@@ -68,6 +69,7 @@ function MealDropZone({ mealId, itemIds, onItemDrop, onReorder, children }: {
 }
 
 function MealNoteInput({ note, onChange }: { note?: string | null; onChange: (note: string) => void }) {
+  const { t } = useTranslation();
   const [value, setValue] = useState(note ?? '');
   return (
     <div style={{ padding: '4px 8px 6px' }}>
@@ -76,7 +78,7 @@ function MealNoteInput({ note, onChange }: { note?: string | null; onChange: (no
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onBlur={() => onChange(value)}
-        placeholder="Poznámka k jídlu..."
+        placeholder={t('nutrition.mealNotePlaceholder')}
         style={{
           width: '100%', border: 'none', outline: 'none', background: 'transparent',
           fontSize: 11, color: 'var(--text3)', fontFamily: 'inherit', fontStyle: 'italic',
@@ -133,9 +135,12 @@ export interface MealBlockProps {
   mealTotalKcal: number;
   onNameChange?: (name: string) => void;
   onNoteChange?: (note: string) => void;
-  onItemDrop?: (data: { type: string; foodId?: string; recipeId?: string; mealId: string }) => void;
+  onItemDrop?: (data: { type: string; foodId?: string; recipeId?: string; mealId: string; dayOfWeek?: number }) => void;
   onReorder?: (itemIds: string[]) => void;
+  dayOfWeek?: number;
+  weekNumber?: number;
   onTimeChange?: (time: string) => void;
+  onDuplicate?: () => void;
   onRemove?: () => void;
 }
 
@@ -161,10 +166,14 @@ export function MealBlock({
   onReorder,
   onNoteChange,
   onFoodNoteChange,
+  dayOfWeek,
+  weekNumber,
   onTimeChange,
+  onDuplicate,
   onRemove,
   note,
 }: MealBlockProps) {
+  const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(name);
 
@@ -238,6 +247,22 @@ export function MealBlock({
           />
         )}
         {!onTimeChange && time && <span className="text-xs text-text3">{time}</span>}
+        {onDuplicate && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onDuplicate(); }}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px',
+              fontSize: 11, color: 'var(--text4)', borderRadius: 'var(--radius)',
+              transition: 'color 0.1s',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text2)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text4)'; }}
+            title={t('nutrition.duplicateMeal')}
+          >
+            ⧉
+          </button>
+        )}
         {onRemove && (
           <button
             type="button"
@@ -245,12 +270,11 @@ export function MealBlock({
             style={{
               background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px',
               fontSize: 11, color: 'var(--text4)', borderRadius: 'var(--radius)',
-              transition: 'color 0.1s', opacity: 0,
+              transition: 'color 0.1s',
             }}
-            className="group-hover:!opacity-100"
-            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--red)'; e.currentTarget.style.opacity = '1'; }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--red)'; }}
             onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text4)'; }}
-            title="Odebrat jídlo"
+            title={t('nutrition.removeMeal')}
           >
             ✕
           </button>
@@ -266,13 +290,13 @@ export function MealBlock({
 
           {/* Column header row */}
           <div className="grid gap-1 px-2 py-1" style={{ gridTemplateColumns: '1fr minmax(80px, 1fr) 68px 50px 36px 36px 36px 22px' }}>
-            <span className="text-[11px] text-text3 font-medium">Položka</span>
-            <span className="text-[11px] text-text3 font-medium">Poznámka</span>
-            <span className="text-[11px] text-text3 font-medium">Množství</span>
+            <span className="text-[11px] text-text3 font-medium">{t('nutrition.item')}</span>
+            <span className="text-[11px] text-text3 font-medium">{t('nutrition.note')}</span>
+            <span className="text-[11px] text-text3 font-medium">{t('nutrition.amount')}</span>
             <span className="text-[11px] text-text3 font-medium text-right">kcal</span>
-            <span className="text-[11px] font-medium text-right" style={{ color: 'var(--blue)' }}>B</span>
-            <span className="text-[11px] font-medium text-right" style={{ color: 'var(--orange)' }}>S</span>
-            <span className="text-[11px] font-medium text-right" style={{ color: 'var(--purple)' }}>T</span>
+            <span className="text-[11px] font-medium text-right" style={{ color: 'var(--blue)' }}>{t('nutrition.proteinShort')}</span>
+            <span className="text-[11px] font-medium text-right" style={{ color: 'var(--orange)' }}>{t('nutrition.carbsShort')}</span>
+            <span className="text-[11px] font-medium text-right" style={{ color: 'var(--purple)' }}>{t('nutrition.fatShort')}</span>
             <span />
           </div>
 
@@ -289,6 +313,8 @@ export function MealBlock({
                 food={food}
                 index={fi}
                 mealId={mealId}
+                dayOfWeek={dayOfWeek}
+                weekNumber={weekNumber}
                 onAmountChange={(amount) => onFoodAmountChange(food.id, amount)}
                 onRemove={() => onFoodRemove(food.id)}
                 onNoteChange={onFoodNoteChange ? (n) => onFoodNoteChange(food.id, n) : undefined}
@@ -300,6 +326,8 @@ export function MealBlock({
                 key={recipe.recipeId}
                 index={foods.length + ri}
                 mealId={mealId}
+                dayOfWeek={dayOfWeek}
+                weekNumber={weekNumber}
                 recipe={recipe}
                 onServingsChange={(s) => onRecipeServingsChange?.(recipe.recipeId, s)}
                 onRemove={() => onRecipeRemove?.(recipe.recipeId)}
@@ -326,7 +354,7 @@ export function MealBlock({
                   borderTop: '1px solid var(--border)',
                 }}
               >
-                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text2)' }}>Celkem</div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text2)' }}>{t('nutrition.total')}</div>
                 <div />
                 <div />
                 <div style={{ fontSize: 11, fontWeight: 600, textAlign: 'right', color: 'var(--text)' }}>{Math.round(totalKcal)}</div>

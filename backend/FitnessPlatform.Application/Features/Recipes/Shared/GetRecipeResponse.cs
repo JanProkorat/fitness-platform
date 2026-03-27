@@ -57,4 +57,30 @@ public class GetRecipeResponse
         DateCreated = recipe.DateCreated,
         DateUpdated = recipe.DateUpdated
     };
+
+    /// <summary>
+    /// Maps a recipe, resolving food names using localized names when available.
+    /// </summary>
+    public static GetRecipeResponse FromDocument(Recipe recipe, IReadOnlyDictionary<Guid, Food> foodLookup, string? language = null) => new()
+    {
+        RecipeId = recipe.ExternalId,
+        Name = recipe.Name,
+        Description = recipe.Description,
+        Foods = recipe.Foods.Select(f =>
+        {
+            var resolvedName = foodLookup.TryGetValue(f.FoodExternalId, out var food)
+                ? (food.LocalizedNames?.Resolve(language) ?? food.Name)
+                : f.FoodName;
+            return new MealFood
+            {
+                FoodExternalId = f.FoodExternalId,
+                FoodName = resolvedName,
+                NutrientValuePer100Grams = f.NutrientValuePer100Grams,
+                AmountGrams = f.AmountGrams
+            };
+        }).ToList(),
+        TotalNutrients = recipe.TotalNutrients,
+        DateCreated = recipe.DateCreated,
+        DateUpdated = recipe.DateUpdated
+    };
 }

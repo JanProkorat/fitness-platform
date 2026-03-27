@@ -19,6 +19,21 @@ public class MealFood
     [BsonElement("foodName")]
     public string FoodName { get; set; } = string.Empty;
 
+    /// <summary>Czech name.</summary>
+    [BsonElement("foodNameCs")]
+    [BsonIgnoreIfNull]
+    public string? FoodNameCs { get; set; }
+
+    /// <summary>English name.</summary>
+    [BsonElement("foodNameEn")]
+    [BsonIgnoreIfNull]
+    public string? FoodNameEn { get; set; }
+
+    /// <summary>German name.</summary>
+    [BsonElement("foodNameDe")]
+    [BsonIgnoreIfNull]
+    public string? FoodNameDe { get; set; }
+
     /// <summary>
     /// Snapshot of nutritional values per 100 grams at time of addition.
     /// </summary>

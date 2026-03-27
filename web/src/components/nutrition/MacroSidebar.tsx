@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/cn';
 
 export interface MacroSidebarProps {
@@ -11,12 +12,13 @@ function pct(value: number, total: number) {
 }
 
 const MACROS = [
-  { key: 'protein' as const, label: 'Bílkoviny', color: 'bg-blue', dotColor: 'bg-blue', calPerGram: 4 },
-  { key: 'carbs' as const, label: 'Sacharidy', color: 'bg-orange', dotColor: 'bg-orange', calPerGram: 4 },
-  { key: 'fat' as const, label: 'Tuky', color: 'bg-purple', dotColor: 'bg-purple', calPerGram: 9 },
+  { key: 'protein' as const, i18nKey: 'nutritionGoals.protein', color: 'bg-blue', dotColor: 'bg-blue', calPerGram: 4 },
+  { key: 'carbs' as const, i18nKey: 'nutritionGoals.carbs', color: 'bg-orange', dotColor: 'bg-orange', calPerGram: 4 },
+  { key: 'fat' as const, i18nKey: 'nutritionGoals.fat', color: 'bg-purple', dotColor: 'bg-purple', calPerGram: 9 },
 ] as const;
 
 export function MacroSidebar({ totals, targets }: MacroSidebarProps) {
+  const { t } = useTranslation();
   const kcalRemaining = targets.kcal - totals.kcal;
   const totalMacroCals =
     totals.protein * 4 + totals.carbs * 4 + totals.fat * 9 || 1;
@@ -26,7 +28,7 @@ export function MacroSidebar({ totals, targets }: MacroSidebarProps) {
       {/* Kcal section */}
       <div className="p-3 border-b border-border">
         <div className="text-[11px] font-semibold text-text3 uppercase tracking-[0.04em] mb-2">
-          Kalorie
+          {t('nutrition.calories')}
         </div>
         <div className="text-[22px] font-bold text-text tracking-tight leading-none mb-[2px]">
           {totals.kcal.toLocaleString('cs-CZ')}
@@ -38,8 +40,8 @@ export function MacroSidebar({ totals, targets }: MacroSidebarProps) {
           )}
         >
           {kcalRemaining >= 0
-            ? `Zbývá ${kcalRemaining.toLocaleString('cs-CZ')} kcal`
-            : `Překročeno o ${Math.abs(kcalRemaining).toLocaleString('cs-CZ')} kcal`}
+            ? t('nutrition.remaining', { value: kcalRemaining.toLocaleString() })
+            : t('nutrition.exceeded', { value: Math.abs(kcalRemaining).toLocaleString() })}
         </div>
 
         {/* Stacked macro bar */}
@@ -61,7 +63,7 @@ export function MacroSidebar({ totals, targets }: MacroSidebarProps) {
       {/* Macro rows */}
       <div className="p-3">
         <div className="text-[11px] font-semibold text-text3 uppercase tracking-[0.04em] mb-2">
-          Makra
+          {t('nutritionGoals.targetMacros')}
         </div>
         {MACROS.map((m) => (
           <div key={m.key} className="mb-2.5">
@@ -73,7 +75,7 @@ export function MacroSidebar({ totals, targets }: MacroSidebarProps) {
                     m.dotColor,
                   )}
                 />
-                {m.label}
+                {t(m.i18nKey)}
               </div>
               <div className="text-xs tabular-nums">
                 <span className="font-semibold text-text">
