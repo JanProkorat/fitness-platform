@@ -15,7 +15,7 @@ import { showApiError, showSuccess } from '@/lib/api-errors';
 const statusStyles: Record<string, string> = {
   Draft: 'bg-yellow-500/15 text-yellow-400',
   Active: 'bg-green-500/15 text-green-400',
-  Archived: 'bg-white/5 text-text3',
+  Archived: 'bg-bg3 text-text3',
 };
 
 export default function PlansPage() {
@@ -116,19 +116,19 @@ export default function PlansPage() {
         : t('nutrition.statusArchived');
 
   const inputClass =
-    'rounded-sm border border-border bg-surface px-4 py-2.5 text-sm text-text outline-none transition-colors focus:border-gold/40';
+    'rounded-md border border-border-md bg-bg px-4 py-2.5 text-sm text-text outline-none transition-colors placeholder:text-text3 focus:border-border-hv';
 
   return (
     <div className="flex h-full flex-col">
       {/* Top bar */}
-      <div className="flex items-center border-b border-border bg-[#111111] px-6 py-4">
+      <div className="flex items-center border-b border-border bg-bg2 px-6 py-4">
         <div className="flex-1">
           <h1 className="text-lg font-bold">{t('nutrition.title')}</h1>
-          <p className="text-xs text-muted">{t('nutrition.subtitle')}</p>
+          <p className="text-xs text-text3">{t('nutrition.subtitle')}</p>
         </div>
         <button
           onClick={openDrawer}
-          className="rounded-sm bg-gold px-4 py-2 font-heading text-[13px] font-extrabold uppercase tracking-wide text-black transition-colors hover:bg-gold-bright"
+          className="rounded-sm bg-text px-4 py-2 text-[13px] font-medium text-bg transition-colors hover:opacity-90"
         >
           {t('nutrition.createPlan')}
         </button>
@@ -136,7 +136,7 @@ export default function PlansPage() {
 
       <div className="flex-1 overflow-y-auto p-6">
         {/* Plans table */}
-        <div className="rounded-sm border border-border bg-surface">
+        <div className="rounded-sm border border-border bg-bg2">
           {isLoading ? (
             <div className="flex items-center justify-center py-20 text-text3">
               {t('common.loading')}
@@ -145,7 +145,7 @@ export default function PlansPage() {
             <div className="flex flex-col items-center justify-center py-20 text-text3">
               <span className="text-4xl">&#x1F4CB;</span>
               <p className="mt-3 text-sm">{t('nutrition.noPlans')}</p>
-              <p className="mt-1 text-xs text-muted">{t('nutrition.noPlansHint')}</p>
+              <p className="mt-1 text-xs text-text3">{t('nutrition.noPlansHint')}</p>
             </div>
           ) : (
             <>
@@ -164,7 +164,7 @@ export default function PlansPage() {
                 <div
                   key={plan.planId}
                   onClick={() => navigate(`/plans/${plan.planId}`)}
-                  className="grid grid-cols-[1fr_140px_100px_80px_120px_60px] cursor-pointer items-center gap-4 border-b border-charcoal px-5 py-3 transition-colors last:border-0 hover:bg-white/[0.02]"
+                  className="grid grid-cols-[1fr_140px_100px_80px_120px_60px] cursor-pointer items-center gap-4 border-b border-border px-5 py-3 transition-colors last:border-0 hover:bg-bg-hover"
                 >
                   <span className="truncate text-sm font-semibold">{plan.name}</span>
                   <span className="truncate text-sm text-text2">{clientMap.get(plan.clientId) || '—'}</span>
@@ -194,7 +194,7 @@ export default function PlansPage() {
               {/* Pagination */}
               {totalPages > 1 && (
                 <div className="flex items-center justify-between border-t border-border px-5 py-3">
-                  <span className="text-xs text-muted">
+                  <span className="text-xs text-text3">
                     {t('common.page', { current: page, total: totalPages })} &middot;{' '}
                     {t('common.total', { count: data.totalCount })}
                   </span>
@@ -202,14 +202,14 @@ export default function PlansPage() {
                     <button
                       disabled={page <= 1}
                       onClick={() => setPage((p) => p - 1)}
-                      className="rounded-sm border border-border px-3 py-1 text-xs text-text3 transition-colors hover:text-gold disabled:opacity-30"
+                      className="rounded-sm border border-border px-3 py-1 text-xs text-text3 transition-colors hover:text-accent disabled:opacity-30"
                     >
                       &larr; {t('common.previous')}
                     </button>
                     <button
                       disabled={page >= totalPages}
                       onClick={() => setPage((p) => p + 1)}
-                      className="rounded-sm border border-border px-3 py-1 text-xs text-text3 transition-colors hover:text-gold disabled:opacity-30"
+                      className="rounded-sm border border-border px-3 py-1 text-xs text-text3 transition-colors hover:text-accent disabled:opacity-30"
                     >
                       {t('common.next')} &rarr;
                     </button>
@@ -247,7 +247,7 @@ export default function PlansPage() {
 
               <form id="create-plan-form" onSubmit={handleCreate} className="flex flex-col gap-4">
                 <div>
-                  <label className="mb-1 block font-heading text-xs text-text3">
+                  <label className="mb-1 block text-xs text-text3">
                     {t('nutrition.planName')}
                   </label>
                   <input
@@ -261,7 +261,7 @@ export default function PlansPage() {
                 </div>
 
                 <div>
-                  <label className="mb-1 block font-heading text-xs text-text3">
+                  <label className="mb-1 block text-xs text-text3">
                     {t('nutrition.client')}
                   </label>
                   <ClientSelect
@@ -271,7 +271,7 @@ export default function PlansPage() {
                 </div>
 
                 <div>
-                  <label className="mb-1 block font-heading text-xs text-text3">
+                  <label className="mb-1 block text-xs text-text3">
                     {t('nutrition.weekCount')}
                   </label>
                   <input
@@ -287,7 +287,7 @@ export default function PlansPage() {
                 </div>
 
                 <div>
-                  <label className="mb-1 block font-heading text-xs text-text3">
+                  <label className="mb-1 block text-xs text-text3">
                     {t('nutrition.startDate')}
                   </label>
                   <input
@@ -314,7 +314,7 @@ export default function PlansPage() {
                 type="submit"
                 form="create-plan-form"
                 disabled={creating || !newPlan.name.trim() || !newPlan.clientId.trim()}
-                className="w-full rounded-sm bg-gold px-5 py-3 font-heading text-xs font-bold uppercase tracking-wide text-black transition-colors hover:bg-gold-bright disabled:opacity-50"
+                className="w-full rounded-sm bg-text px-5 py-3 text-sm font-medium text-bg transition-colors hover:opacity-90 disabled:opacity-50"
               >
                 {creating ? t('nutrition.saving') : t('nutrition.createPlan')}
               </button>
@@ -327,7 +327,7 @@ export default function PlansPage() {
       {confirmDelete && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center">
           <div className="fixed inset-0 bg-black/60" onClick={() => setConfirmDelete(null)} />
-          <div className="relative z-10 w-full max-w-sm rounded-sm border border-border bg-surface p-6 shadow-2xl">
+          <div className="relative z-10 w-full max-w-sm rounded-sm border border-border bg-bg2 p-6 shadow-2xl">
             <h3 className="text-sm font-bold">{t('nutrition.deleteConfirmTitle')}</h3>
             <p className="mt-2 text-sm text-text2">
               {t('nutrition.deleteConfirmMessage', { name: confirmDelete.name })}

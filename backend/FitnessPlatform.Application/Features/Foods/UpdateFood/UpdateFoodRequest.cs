@@ -43,6 +43,11 @@ public class UpdateFoodRequest
     public NutrientValueDto NutrientValue { get; set; } = new();
 
     /// <summary>
+    /// Updated user note.
+    /// </summary>
+    public string? Note { get; set; }
+
+    /// <summary>
     /// Updated allergen identifiers.
     /// </summary>
     public List<string> Allergens { get; set; } = [];

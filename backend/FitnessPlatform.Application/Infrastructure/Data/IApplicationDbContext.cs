@@ -64,6 +64,11 @@ public interface IApplicationDbContext
     DbSet<Notification> Notifications { get; set; }
 
     /// <summary>
+    /// Pending invitations sent by professionals to prospective clients.
+    /// </summary>
+    DbSet<PendingInvite> PendingInvites { get; set; }
+
+    /// <summary>
     /// Saves all changes made in this context to the database.
     /// </summary>
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

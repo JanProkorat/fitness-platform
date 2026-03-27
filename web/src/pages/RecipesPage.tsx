@@ -100,7 +100,7 @@ export default function RecipesPage() {
   const loadFoodResults = useCallback(async (query: string) => {
     setFoodSearchLoading(true);
     try {
-      const data = await searchFoods({ q: query || undefined, pageSize: 15, excludeExternal: true });
+      const data = await searchFoods({ q: query || undefined, pageSize: 15 });
       setFoodResults(data.foods ?? []);
     } catch {
       setFoodResults([]);
@@ -259,19 +259,19 @@ export default function RecipesPage() {
   };
 
   const inputClass =
-    'rounded-sm border border-border bg-surface px-4 py-2.5 text-sm text-text outline-none transition-colors focus:border-gold/40';
+    'rounded-md border border-border-md bg-bg px-4 py-2.5 text-sm text-text outline-none transition-colors placeholder:text-text3 focus:border-border-hv';
 
   return (
     <div className="flex h-full flex-col">
       {/* Top bar */}
-      <div className="flex items-center border-b border-border bg-[#111111] px-6 py-4">
+      <div className="flex items-center border-b border-border bg-bg2 px-6 py-4">
         <div className="flex-1">
           <h1 className="text-lg font-bold">{t('recipes.title')}</h1>
-          <p className="text-xs text-muted">{t('recipes.subtitle')}</p>
+          <p className="text-xs text-text3">{t('recipes.subtitle')}</p>
         </div>
         <button
           onClick={openCreate}
-          className="rounded-sm bg-gold px-4 py-2 font-heading text-[13px] font-extrabold uppercase tracking-wide text-black transition-colors hover:bg-gold-bright"
+          className="rounded-sm bg-text px-4 py-2 text-[13px] font-medium text-bg transition-colors hover:opacity-90"
         >
           {t('recipes.addRecipe')}
         </button>
@@ -286,7 +286,7 @@ export default function RecipesPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t('recipes.search')}
-              className="w-full rounded-sm border border-border bg-surface px-4 py-2.5 pl-10 text-sm text-text outline-none transition-colors focus:border-gold/40"
+              className="w-full rounded-md border border-border-md bg-bg px-4 py-2.5 pl-10 text-sm text-text outline-none transition-colors placeholder:text-text3 focus:border-border-hv"
             />
             <svg
               className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text3"
@@ -305,7 +305,7 @@ export default function RecipesPage() {
         </div>
 
         {/* Recipe table */}
-        <div className="rounded-sm border border-border bg-surface">
+        <div className="rounded-sm border border-border bg-bg2">
           {isLoading ? (
             <div className="flex items-center justify-center py-20 text-text3">
               {t('common.loading')}
@@ -314,7 +314,7 @@ export default function RecipesPage() {
             <div className="flex flex-col items-center justify-center py-20 text-text3">
               <span className="text-4xl">&#x1F373;</span>
               <p className="mt-3 text-sm">{t('recipes.noRecipes')}</p>
-              <p className="mt-1 text-xs text-muted">{t('recipes.noRecipesHint')}</p>
+              <p className="mt-1 text-xs text-text3">{t('recipes.noRecipesHint')}</p>
             </div>
           ) : (
             <>
@@ -334,7 +334,7 @@ export default function RecipesPage() {
                 <div
                   key={recipe.recipeId}
                   onClick={() => openEdit(recipe)}
-                  className="grid grid-cols-[1fr_100px_80px_80px_80px_80px_60px] cursor-pointer items-center gap-4 border-b border-charcoal px-5 py-3 transition-colors last:border-0 hover:bg-white/[0.02]"
+                  className="grid grid-cols-[1fr_100px_80px_80px_80px_80px_60px] cursor-pointer items-center gap-4 border-b border-border px-5 py-3 transition-colors last:border-0 hover:bg-bg-hover"
                 >
                   <span className="truncate text-sm font-semibold">{recipe.name}</span>
                   <span className="text-sm text-text2">{recipe.foodCount}</span>
@@ -371,7 +371,7 @@ export default function RecipesPage() {
               {/* Pagination */}
               {totalPages > 1 && (
                 <div className="flex items-center justify-between border-t border-border px-5 py-3">
-                  <span className="text-xs text-muted">
+                  <span className="text-xs text-text3">
                     {t('common.page', { current: page, total: totalPages })} &middot;{' '}
                     {t('common.total', { count: data.totalCount })}
                   </span>
@@ -379,14 +379,14 @@ export default function RecipesPage() {
                     <button
                       disabled={page <= 1}
                       onClick={() => setPage((p) => p - 1)}
-                      className="rounded-sm border border-border px-3 py-1 text-xs text-text3 transition-colors hover:text-gold disabled:opacity-30"
+                      className="rounded-sm border border-border px-3 py-1 text-xs text-text3 transition-colors hover:text-accent disabled:opacity-30"
                     >
                       &larr; {t('common.previous')}
                     </button>
                     <button
                       disabled={page >= totalPages}
                       onClick={() => setPage((p) => p + 1)}
-                      className="rounded-sm border border-border px-3 py-1 text-xs text-text3 transition-colors hover:text-gold disabled:opacity-30"
+                      className="rounded-sm border border-border px-3 py-1 text-xs text-text3 transition-colors hover:text-accent disabled:opacity-30"
                     >
                       {t('common.next')} &rarr;
                     </button>
@@ -433,7 +433,7 @@ export default function RecipesPage() {
                 <form id="recipe-form" onSubmit={handleSave} className="flex flex-col gap-5">
                   {/* Name */}
                   <div>
-                    <label className="mb-1 block font-heading text-xs text-text3">
+                    <label className="mb-1 block text-xs text-text3">
                       {t('recipes.recipeName')}
                     </label>
                     <input
@@ -448,7 +448,7 @@ export default function RecipesPage() {
 
                   {/* Food search dropdown */}
                   <div className="relative">
-                    <label className="mb-1 block font-heading text-xs text-text3">
+                    <label className="mb-1 block text-xs text-text3">
                       {t('recipes.addFood')}
                     </label>
                     <div className="relative">
@@ -479,7 +479,7 @@ export default function RecipesPage() {
                     {/* Dropdown results */}
                     {foodInputFocused && foodResults.length > 0 && (
                       <div
-                        className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-sm border border-border bg-surface shadow-lg"
+                        className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-sm border border-border bg-bg2 shadow-lg"
                         onMouseDown={(e) => e.preventDefault()}
                       >
                         {foodResults.map((food) => {
@@ -490,7 +490,7 @@ export default function RecipesPage() {
                               type="button"
                               disabled={alreadyAdded}
                               onClick={() => handleFoodSelect(food)}
-                              className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition-colors ${alreadyAdded ? 'cursor-default opacity-40' : 'hover:bg-gold/5'}`}
+                              className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition-colors ${alreadyAdded ? 'cursor-default opacity-40' : 'hover:bg-accent-bg'}`}
                             >
                               <span className="truncate font-medium">{food.name}</span>
                               <span className="ml-3 shrink-0 text-xs text-text3">
@@ -506,7 +506,7 @@ export default function RecipesPage() {
                     )}
 
                     {foodInputFocused && !foodSearchLoading && foodQuery.trim() && foodResults.length === 0 && (
-                      <div className="absolute z-10 mt-1 w-full rounded-sm border border-border bg-surface px-4 py-3 text-center text-xs text-text3 shadow-lg" onMouseDown={(e) => e.preventDefault()}>
+                      <div className="absolute z-10 mt-1 w-full rounded-sm border border-border bg-bg2 px-4 py-3 text-center text-xs text-text3 shadow-lg" onMouseDown={(e) => e.preventDefault()}>
                         {t('foods.noFoods')}
                       </div>
                     )}
@@ -514,7 +514,7 @@ export default function RecipesPage() {
 
                   {/* Ingredients table */}
                   {ingredients.length > 0 && (
-                    <div className="rounded-sm border border-border bg-surface">
+                    <div className="rounded-sm border border-border bg-bg2">
                       {/* Table header */}
                       <div className="grid grid-cols-[1fr_70px_140px_70px_80px_80px_80px_80px_40px] gap-3 border-b border-border px-4 py-2">
                         <span className="lbl">{t('common.name')}</span>
@@ -535,7 +535,7 @@ export default function RecipesPage() {
                         return (
                           <div
                             key={`${item.foodExternalId}-${idx}`}
-                            className="grid grid-cols-[1fr_70px_140px_70px_80px_80px_80px_80px_40px] items-center gap-3 border-b border-charcoal px-4 py-2 last:border-0"
+                            className="grid grid-cols-[1fr_70px_140px_70px_80px_80px_80px_80px_40px] items-center gap-3 border-b border-border px-4 py-2 last:border-0"
                           >
                             <span className="truncate text-sm">{item.foodName}</span>
                             <input
@@ -546,7 +546,7 @@ export default function RecipesPage() {
                               onChange={(e) =>
                                 updateIngredientPieces(idx, Math.max(1, Number(e.target.value) || 1))
                               }
-                              className="w-full rounded-sm border border-border bg-dark2 px-2 py-1 text-center text-sm text-text outline-none focus:border-gold/40"
+                              className="w-full rounded-sm border border-border bg-bg px-2 py-1 text-center text-sm text-text outline-none focus:border-border-hv"
                             />
                             <span className="truncate text-xs text-text3" title={item.servingLabel}>
                               {item.servingLabel}
@@ -580,12 +580,12 @@ export default function RecipesPage() {
                       })}
 
                       {/* Totals row */}
-                      <div className="grid grid-cols-[1fr_70px_140px_70px_80px_80px_80px_80px_40px] items-center gap-3 border-t border-border bg-dark2 px-4 py-2">
+                      <div className="grid grid-cols-[1fr_70px_140px_70px_80px_80px_80px_80px_40px] items-center gap-3 border-t border-border bg-bg px-4 py-2">
                         <span className="text-xs font-semibold uppercase tracking-wide text-text3">Total</span>
                         <span />
                         <span />
                         <span />
-                        <span className="text-sm font-semibold text-gold">{Math.round(totals.kcal)}</span>
+                        <span className="text-sm font-semibold text-accent">{Math.round(totals.kcal)}</span>
                         <span className="text-sm font-semibold text-text">{Math.round(totals.protein)}g</span>
                         <span className="text-sm font-semibold text-text">{Math.round(totals.carbs)}g</span>
                         <span className="text-sm font-semibold text-text">{Math.round(totals.fat)}g</span>
@@ -596,7 +596,7 @@ export default function RecipesPage() {
 
                   {/* Description — rich text editor */}
                   <div>
-                    <label className="mb-1 block font-heading text-xs text-text3">
+                    <label className="mb-1 block text-xs text-text3">
                       {t('recipes.description')}
                     </label>
                     <TiptapEditor
@@ -617,7 +617,7 @@ export default function RecipesPage() {
                   type="submit"
                   form="recipe-form"
                   disabled={saving || !name.trim() || ingredients.length === 0}
-                  className="w-full rounded-sm bg-gold px-5 py-3 font-heading text-xs font-bold uppercase tracking-wide text-black transition-colors hover:bg-gold-bright disabled:opacity-50"
+                  className="w-full rounded-sm bg-text px-5 py-3 text-sm font-medium text-bg transition-colors hover:opacity-90 disabled:opacity-50"
                 >
                   {saving ? t('nutrition.saving') : t('common.save')}
                 </button>
@@ -631,7 +631,7 @@ export default function RecipesPage() {
       {confirmDelete && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center">
           <div className="fixed inset-0 bg-black/60" onClick={() => setConfirmDelete(null)} />
-          <div className="relative z-10 w-full max-w-sm rounded-sm border border-border bg-surface p-6 shadow-2xl">
+          <div className="relative z-10 w-full max-w-sm rounded-sm border border-border bg-bg2 p-6 shadow-2xl">
             <h3 className="text-sm font-bold">{t('recipes.deleteConfirmTitle')}</h3>
             <p className="mt-2 text-sm text-text2">
               {t('recipes.deleteConfirmMessage', { name: confirmDelete.name })}

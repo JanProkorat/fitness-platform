@@ -20,7 +20,7 @@ export default function DownloadAppPage() {
         {user && (
           <button
             onClick={logout}
-            className="text-xs text-muted transition-colors hover:text-text"
+            className="text-xs text-text3 transition-colors hover:text-text"
           >
             {t('auth.logout')}
           </button>
@@ -30,38 +30,38 @@ export default function DownloadAppPage() {
       <div className="w-full max-w-[480px]">
         {/* Logo */}
         <div className="mb-10 text-center">
-          <span className="font-heading text-2xl font-black uppercase tracking-[3px] text-gold">
+          <span className="text-2xl font-black uppercase tracking-[3px] text-accent">
             GF
           </span>
-          <span className="font-heading text-2xl font-normal uppercase tracking-wide text-text2">
+          <span className="text-2xl font-normal uppercase tracking-wide text-text2">
             {' '}
             Platform
           </span>
         </div>
 
         {/* Card */}
-        <div className="rounded-sm border border-border bg-surface p-8 text-center">
+        <div className="rounded-sm border border-border bg-bg2 p-8 text-center">
           {/* Icon */}
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-sm border border-gold/20 bg-gold/8 text-3xl">
+          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-sm border border-accent-br bg-accent-bg text-3xl">
             &#x1F4F1;
           </div>
 
           <h1 className="mb-2 text-2xl font-bold">
             {t('downloadApp.title')}
           </h1>
-          <p className="mb-2 text-sm text-gold">
+          <p className="mb-2 text-sm text-accent">
             {t('downloadApp.subtitle')}
           </p>
-          <p className="mb-8 text-sm text-muted">
+          <p className="mb-8 text-sm text-text3">
             {t('downloadApp.description')}
           </p>
 
           {/* Coming soon notice */}
-          <div className="mb-6 rounded-sm border border-gold-dim/30 bg-gold/5 px-5 py-4">
-            <p className="text-sm font-semibold text-gold">
+          <div className="mb-6 rounded-sm border border-accent-br bg-accent-bg px-5 py-4">
+            <p className="text-sm font-semibold text-accent">
               {t('downloadApp.comingSoon')}
             </p>
-            <p className="mt-1 text-xs text-muted">
+            <p className="mt-1 text-xs text-text3">
               {t('downloadApp.comingSoonHint')}
             </p>
           </div>
@@ -70,7 +70,7 @@ export default function DownloadAppPage() {
           <div className="flex flex-col gap-3">
             <button
               disabled
-              className="flex w-full items-center justify-center gap-3 rounded-sm bg-white/10 px-6 py-4 text-sm font-semibold text-text2 opacity-40"
+              className="flex w-full items-center justify-center gap-3 rounded-sm bg-bg3 px-6 py-4 text-sm font-semibold text-text2 opacity-40"
             >
               <svg width="20" height="24" viewBox="0 0 20 24" fill="currentColor">
                 <path d="M16.52 12.26c-.03-3.19 2.6-4.72 2.72-4.8-1.48-2.16-3.79-2.46-4.61-2.5-1.96-.2-3.83 1.16-4.83 1.16-.99 0-2.53-1.13-4.16-1.1-2.14.03-4.11 1.25-5.21 3.17-2.23 3.86-.57 9.57 1.6 12.7 1.06 1.53 2.32 3.26 3.98 3.2 1.6-.06 2.2-1.03 4.13-1.03 1.93 0 2.48 1.03 4.17.99 1.72-.03 2.8-1.56 3.85-3.1 1.21-1.78 1.71-3.5 1.74-3.59-.04-.02-3.34-1.28-3.38-5.1z" />
@@ -81,7 +81,7 @@ export default function DownloadAppPage() {
 
             <button
               disabled
-              className="flex w-full items-center justify-center gap-3 rounded-sm bg-white/10 px-6 py-4 text-sm font-semibold text-text2 opacity-40"
+              className="flex w-full items-center justify-center gap-3 rounded-sm bg-bg3 px-6 py-4 text-sm font-semibold text-text2 opacity-40"
             >
               <svg width="20" height="22" viewBox="0 0 20 22" fill="currentColor">
                 <path d="M1.05.52C.74.84.56 1.34.56 1.99v18.02c0 .65.18 1.15.49 1.47l.08.07L11.6 11.08v-.16L1.13.45 1.05.52zm3.44 3.44L.98 20.49l.08.07 3.43-3.44L14.96 11 4.49 3.96zm10.47 6.96l-3.36 3.37 3.36 3.37.08-.04 3.99-2.27c1.14-.65 1.14-1.71 0-2.35l-3.99-2.27-.08.19zm-3.36-3.37L14.96 11l3.07-3.07-3.99-2.27c-.57-.32-1.07-.33-1.47-.1l-.07.04L8.24 8.55l3.36 3z" />

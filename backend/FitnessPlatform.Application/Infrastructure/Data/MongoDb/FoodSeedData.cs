@@ -154,7 +154,6 @@ public static class FoodSeedData
                 Cs = localizedNames.cs,
                 De = localizedNames.de,
             },
-            Source = "system",
             NutrientValue = new NutrientValue
             {
                 Kcal = kcal,

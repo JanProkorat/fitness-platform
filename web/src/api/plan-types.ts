@@ -29,6 +29,21 @@ export interface MealFood {
     salt?: number | null;
   };
   amountGrams: number;
+  note?: string | null;
+}
+
+/** A recipe item within a meal. */
+export interface MealRecipe {
+  recipeId: string;
+  recipeName: string;
+  nutrientValuePerServing: {
+    kcal: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  };
+  servings: number;
+  note?: string | null;
 }
 
 /** A meal within a plan day. */
@@ -37,13 +52,16 @@ export interface PlanMeal {
   name: string;
   order: number;
   time?: string | null;
+  note?: string | null;
   foods: MealFood[];
+  recipes?: MealRecipe[];
   mealTotals?: NutrientTotals | null;
 }
 
 /** A single day within a plan week. */
 export interface PlanDay {
   dayOfWeek: number; // 1=Mon, 7=Sun
+  note?: string | null;
   meals: PlanMeal[];
   dayTotals?: NutrientTotals | null;
 }
@@ -119,6 +137,7 @@ export interface UpdateWeekRequest {
 /** Day data within a full-state plan update. */
 export interface UpdateDayRequest {
   dayOfWeek: number;
+  note?: string | null;
   meals: UpdateMealRequest[];
 }
 
@@ -127,7 +146,24 @@ export interface UpdateMealRequest {
   mealId?: string | null;
   name: string;
   order: number;
+  time?: string | null;
+  note?: string | null;
   foods: UpdateMealFoodRequest[];
+  recipes: UpdateMealRecipeRequest[];
+}
+
+/** Recipe item data within a full-state plan update. */
+export interface UpdateMealRecipeRequest {
+  recipeId: string;
+  recipeName: string;
+  nutrientValuePerServing: {
+    kcal: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  };
+  servings: number;
+  note?: string | null;
 }
 
 /** Food item data within a full-state plan update. */
@@ -145,4 +181,5 @@ export interface UpdateMealFoodRequest {
     salt?: number | null;
   };
   amountGrams: number;
+  note?: string | null;
 }

@@ -20,22 +20,22 @@ export default function ProfilePage() {
   return (
     <div className="flex h-full flex-col">
       {/* Top bar */}
-      <div className="border-b border-border bg-[#111111] px-6 py-4">
+      <div className="border-b border-border bg-bg2 px-6 py-4">
         <h1 className="text-lg font-bold">{t('profile.title')}</h1>
-        <p className="text-xs text-muted">{t('profile.subtitle')}</p>
+        <p className="text-xs text-text3">{t('profile.subtitle')}</p>
       </div>
 
       {/* Tabs */}
       {isTrainer && (
-        <div className="flex border-b border-border bg-[#111111] px-6">
+        <div className="flex border-b border-border bg-bg2 px-6">
           {(['personal', 'trainer'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`border-b-2 px-4 py-2.5 text-sm font-semibold transition-colors ${
                 activeTab === tab
-                  ? 'border-gold text-gold'
-                  : 'border-transparent text-muted hover:text-text2'
+                  ? 'border-accent text-accent'
+                  : 'border-transparent text-text3 hover:text-text2'
               }`}
             >
               {t(tab === 'personal' ? 'profile.tabPersonal' : 'profile.tabTrainer')}
@@ -48,7 +48,7 @@ export default function ProfilePage() {
         <div className="max-w-[560px]">
           {/* Avatar + info */}
           <div className="mb-6 flex items-center gap-4">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-sm border-2 border-gold/30 bg-gold/10 font-heading text-xl font-bold text-gold">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-sm border-2 border-accent-br bg-accent-bg text-xl font-bold text-accent">
               {user ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase() : '??'}
             </div>
             <div>
@@ -56,7 +56,7 @@ export default function ProfilePage() {
                 {user?.firstName} {user?.lastName}
               </div>
               <div className="text-sm text-text2">{user?.email}</div>
-              <div className="mt-1 text-xs text-muted">
+              <div className="mt-1 text-xs text-text3">
                 {user?.roles.map((r) => t(`auth.role${r}`)).join(', ')}
               </div>
             </div>
@@ -121,12 +121,12 @@ function PersonalForm({
   };
 
   const inputClass =
-    'w-full rounded-sm border border-border bg-bg px-4 py-3 text-sm text-text outline-none transition-colors focus:border-gold/40';
+    'w-full rounded-sm border border-border bg-bg px-4 py-3 text-sm text-text outline-none transition-colors focus:border-border-hv';
 
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className="rounded-sm border border-border bg-surface p-6"
+      className="rounded-sm border border-border bg-bg2 p-6"
     >
       <div className="mb-5">
         <label className="lbl mb-2 block">{t('profile.firstName')}</label>
@@ -149,7 +149,7 @@ function PersonalForm({
       <button
         type="submit"
         disabled={loading}
-        className="rounded-sm bg-gold px-6 py-3 font-heading text-[13px] font-extrabold uppercase tracking-[1.5px] text-black transition-colors hover:bg-gold-bright disabled:opacity-50"
+        className="rounded-md bg-text px-6 py-3 text-[13px] font-medium text-bg transition-colors hover:opacity-90 disabled:opacity-50"
       >
         {loading ? t('common.saving') : t('common.save')}
       </button>
@@ -216,11 +216,11 @@ function TrainerForm() {
   };
 
   const inputClass =
-    'w-full rounded-sm border border-border bg-bg px-4 py-3 text-sm text-text outline-none transition-colors focus:border-gold/40';
+    'w-full rounded-sm border border-border bg-bg px-4 py-3 text-sm text-text outline-none transition-colors focus:border-border-hv';
 
   if (fetching) {
     return (
-      <div className="rounded-sm border border-border bg-surface p-6 text-sm text-muted">
+      <div className="rounded-sm border border-border bg-bg2 p-6 text-sm text-text3">
         {t('common.loading')}
       </div>
     );
@@ -229,7 +229,7 @@ function TrainerForm() {
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className="rounded-sm border border-border bg-surface p-6"
+      className="rounded-sm border border-border bg-bg2 p-6"
     >
       <div className="mb-5">
         <label className="lbl mb-2 block">{t('profile.bio')}</label>
@@ -281,7 +281,7 @@ function TrainerForm() {
       <button
         type="submit"
         disabled={loading}
-        className="rounded-sm bg-gold px-6 py-3 font-heading text-[13px] font-extrabold uppercase tracking-[1.5px] text-black transition-colors hover:bg-gold-bright disabled:opacity-50"
+        className="rounded-md bg-text px-6 py-3 text-[13px] font-medium text-bg transition-colors hover:opacity-90 disabled:opacity-50"
       >
         {loading ? t('common.saving') : t('common.save')}
       </button>
@@ -332,13 +332,13 @@ function RolesSection({
   };
 
   return (
-    <div className="mb-6 rounded-sm border border-border bg-surface p-6">
+    <div className="mb-6 rounded-sm border border-border bg-bg2 p-6">
       <h3 className="mb-3 text-sm font-semibold">{t('profile.rolesTitle')}</h3>
       <div className="mb-3 flex flex-wrap gap-2">
         {user.roles.map((role) => (
           <span
             key={role}
-            className="rounded-sm border border-gold/30 bg-gold/10 px-3 py-1 text-xs font-semibold text-gold"
+            className="rounded-sm border border-accent-br bg-accent-bg px-3 py-1 text-xs font-semibold text-accent"
           >
             {t(`auth.role${role}`)}
           </span>
@@ -349,7 +349,7 @@ function RolesSection({
           type="button"
           disabled={loading}
           onClick={() => handleAddRole(hasTrainer ? 'Nutritionist' : 'Trainer')}
-          className="rounded-sm bg-gold px-4 py-2 font-heading text-[12px] font-extrabold uppercase tracking-[1.5px] text-black transition-colors hover:bg-gold-bright disabled:opacity-50"
+          className="rounded-md bg-text px-4 py-2 text-xs font-medium text-bg transition-colors hover:opacity-90 disabled:opacity-50"
         >
           {loading
             ? t('common.saving')
@@ -379,8 +379,8 @@ function StatusMessage({
     <div
       className={`mb-4 rounded-sm border px-4 py-2.5 text-sm ${
         status === errorKey
-          ? 'border-red-dim bg-red/8 text-red'
-          : 'border-green-bright/30 bg-green-bright/8 text-green-bright'
+          ? 'border-red bg-red-bg text-red'
+          : 'border-green bg-green-bg text-green'
       }`}
     >
       {status}

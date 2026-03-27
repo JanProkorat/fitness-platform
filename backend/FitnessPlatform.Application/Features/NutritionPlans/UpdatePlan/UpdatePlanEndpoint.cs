@@ -131,17 +131,29 @@ public class UpdatePlanEndpoint(IMongoContext mongo, IMacroCalculatorService mac
                 Days = rw.Days.Select(rd => new PlanDay
                 {
                     DayOfWeek = rd.DayOfWeek,
+                    Note = rd.Note,
                     Meals = rd.Meals.Select(rm => new PlanMeal
                     {
                         MealId = rm.MealId ?? Guid.NewGuid(),
                         Name = rm.Name,
                         Order = rm.Order,
+                        Time = rm.Time,
+                        Note = rm.Note,
                         Foods = rm.Foods.Select(rf => new MealFood
                         {
                             FoodExternalId = rf.FoodExternalId,
                             FoodName = rf.FoodName,
                             NutrientValuePer100Grams = rf.NutrientValuePer100Grams,
-                            AmountGrams = rf.AmountGrams
+                            AmountGrams = rf.AmountGrams,
+                            Note = rf.Note
+                        }).ToList(),
+                        Recipes = rm.Recipes.Select(rr => new MealRecipe
+                        {
+                            RecipeId = rr.RecipeId,
+                            RecipeName = rr.RecipeName,
+                            NutrientValuePerServing = rr.NutrientValuePerServing,
+                            Servings = rr.Servings,
+                            Note = rr.Note
                         }).ToList()
                     }).ToList()
                 }).ToList()

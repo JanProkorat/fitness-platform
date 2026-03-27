@@ -18,11 +18,5 @@ public class SearchFoodsValidator : Validator<SearchFoodsRequest>
 
         RuleFor(x => x.PageSize)
             .InclusiveBetween(1, 100);
-
-        RuleFor(x => x.Source)
-            .Must(s => s is null || s.Equals("system", StringComparison.OrdinalIgnoreCase)
-                                 || s.Equals("custom", StringComparison.OrdinalIgnoreCase)
-                                 || s.Equals("openfoodfacts", StringComparison.OrdinalIgnoreCase))
-            .WithMessage("Source must be 'system', 'custom', or 'openfoodfacts'.");
     }
 }

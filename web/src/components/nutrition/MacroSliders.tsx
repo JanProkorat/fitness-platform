@@ -105,7 +105,7 @@ function DonutChart({
         x={size / 2}
         y={size / 2 + 12}
         textAnchor="middle"
-        className="fill-muted text-xs"
+        className="fill-text3 text-xs"
         fontSize="12"
       >
         kcal
@@ -207,7 +207,7 @@ export default function MacroSliders({
 
   return (
     <div className="space-y-3">
-      <h2 className="font-heading text-sm font-bold uppercase tracking-wide text-gold">
+      <h2 className="text-sm font-bold uppercase tracking-wide text-accent">
         {t('nutritionGoals.macroSplit')}
       </h2>
 
@@ -234,7 +234,7 @@ export default function MacroSliders({
                   />
                   {m.label}
                 </span>
-                <span className="font-mono text-xs text-muted">
+                <span className="font-mono text-xs text-text3">
                   {m.percent}% &middot; {m.grams}
                   {t('nutritionGoals.grams')}
                 </span>
@@ -247,7 +247,7 @@ export default function MacroSliders({
                 onChange={(e) =>
                   handleChange(m.key, parseInt(e.target.value, 10))
                 }
-                className="w-full accent-gold"
+                className="w-full accent-accent"
               />
             </div>
           ))}

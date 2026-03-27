@@ -20,6 +20,13 @@ public class PlanDay
     public List<PlanMeal> Meals { get; set; } = [];
 
     /// <summary>
+    /// Optional note for this day.
+    /// </summary>
+    [BsonElement("note")]
+    [BsonIgnoreIfNull]
+    public string? Note { get; set; }
+
+    /// <summary>
     /// Computed totals for this day.
     /// </summary>
     [BsonElement("dayTotals")]

@@ -23,7 +23,6 @@ public class DeleteFoodEndpointTests
         var foodId = Guid.NewGuid();
         var food = FoodTestHelpers.CreateFood(
             externalId: foodId,
-            source: "custom",
             nutritionistId: _nutritionistId);
         var mongo = FoodTestHelpers.CreateMockMongo(food);
 
@@ -50,7 +49,6 @@ public class DeleteFoodEndpointTests
         var foodId = Guid.NewGuid();
         var food = FoodTestHelpers.CreateFood(
             externalId: foodId,
-            source: "custom",
             nutritionistId: Guid.NewGuid()); // different owner
         var mongo = FoodTestHelpers.CreateMockMongo(food);
 

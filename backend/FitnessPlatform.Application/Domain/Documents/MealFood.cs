@@ -30,4 +30,11 @@ public class MealFood
     /// </summary>
     [BsonElement("amountGrams")]
     public decimal AmountGrams { get; set; }
+
+    /// <summary>
+    /// Optional note for this food in the plan.
+    /// </summary>
+    [BsonElement("note")]
+    [BsonIgnoreIfNull]
+    public string? Note { get; set; }
 }

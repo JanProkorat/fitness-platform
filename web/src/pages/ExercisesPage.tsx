@@ -23,7 +23,7 @@ const allEquipment: ExerciseEquipment[] = ['None', 'Dumbbells', 'Barbell', 'Mach
 const allCategories: ExerciseCategory[] = ['Strength', 'Cardio', 'Mobility', 'Technique', 'Warmup'];
 const allDifficulties: ExerciseDifficulty[] = ['Beginner', 'Intermediate', 'Advanced'];
 
-const filterClass = 'rounded-sm border border-border bg-surface px-3 py-2 text-sm text-text outline-none';
+const filterClass = 'rounded-sm border border-border bg-bg2 px-3 py-2 text-sm text-text outline-none';
 
 export default function ExercisesPage() {
   const { t } = useTranslation();
@@ -170,19 +170,19 @@ export default function ExercisesPage() {
   };
 
   const inputClass =
-    'rounded-sm border border-border bg-surface px-4 py-2.5 text-sm text-text outline-none transition-colors focus:border-gold/40';
+    'rounded-md border border-border-md bg-bg px-4 py-2.5 text-sm text-text outline-none transition-colors placeholder:text-text3 focus:border-border-hv';
 
   return (
     <div className="flex h-full flex-col">
       {/* Top bar */}
-      <div className="flex items-center border-b border-border bg-[#111111] px-6 py-4">
+      <div className="flex items-center border-b border-border bg-bg2 px-6 py-4">
         <div className="flex-1">
           <h1 className="text-lg font-bold">{t('exercises.title')}</h1>
-          <p className="text-xs text-muted">{t('exercises.subtitle')}</p>
+          <p className="text-xs text-text3">{t('exercises.subtitle')}</p>
         </div>
         <button
           onClick={openDrawer}
-          className="rounded-sm bg-gold px-4 py-2 font-heading text-[13px] font-extrabold uppercase tracking-wide text-black transition-colors hover:bg-gold-bright"
+          className="rounded-sm bg-text px-4 py-2 text-[13px] font-medium text-bg transition-colors hover:opacity-90"
         >
           {t('exercises.addExercise')}
         </button>
@@ -197,7 +197,7 @@ export default function ExercisesPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t('exercises.search')}
-              className="w-full rounded-sm border border-border bg-surface px-4 py-2.5 pl-10 text-sm text-text outline-none transition-colors focus:border-gold/40"
+              className="w-full rounded-md border border-border-md bg-bg px-4 py-2.5 pl-10 text-sm text-text outline-none transition-colors placeholder:text-text3 focus:border-border-hv"
             />
             <svg
               className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text3"
@@ -227,7 +227,7 @@ export default function ExercisesPage() {
         </div>
 
         {/* Exercises table */}
-        <div className="rounded-sm border border-border bg-surface">
+        <div className="rounded-sm border border-border bg-bg2">
           {isLoading ? (
             <div className="flex items-center justify-center py-20 text-text3">
               {t('common.loading')}
@@ -236,7 +236,7 @@ export default function ExercisesPage() {
             <div className="flex flex-col items-center justify-center py-20 text-text3">
               <span className="text-4xl">&#x1F3CB;</span>
               <p className="mt-3 text-sm">{t('exercises.noExercises')}</p>
-              <p className="mt-1 text-xs text-muted">{t('exercises.noExercisesHint')}</p>
+              <p className="mt-1 text-xs text-text3">{t('exercises.noExercisesHint')}</p>
             </div>
           ) : (
             <>
@@ -255,14 +255,14 @@ export default function ExercisesPage() {
                 <div
                   key={exercise.exerciseId}
                   onClick={() => openEditDrawer(exercise)}
-                  className="grid grid-cols-[1fr_180px_100px_100px_100px_60px] cursor-pointer items-center gap-4 border-b border-charcoal px-5 py-3 transition-colors last:border-0 hover:bg-white/[0.02]"
+                  className="grid grid-cols-[1fr_180px_100px_100px_100px_60px] cursor-pointer items-center gap-4 border-b border-border px-5 py-3 transition-colors last:border-0 hover:bg-bg-hover"
                 >
                   <span className="truncate text-sm font-semibold">{exercise.name}</span>
                   <div className="flex flex-wrap gap-1">
                     {exercise.muscleGroups?.map((mg) => (
                       <span
                         key={mg}
-                        className={`inline-flex rounded-sm px-1.5 py-0.5 text-[10px] font-semibold ${muscleGroupColors[mg] ?? 'bg-white/5 text-text3'}`}
+                        className={`inline-flex rounded-sm px-1.5 py-0.5 text-[10px] font-semibold ${muscleGroupColors[mg] ?? 'bg-bg3 text-text3'}`}
                       >
                         {t(`enums.muscleGroup.${mg}`)}
                       </span>
@@ -290,7 +290,7 @@ export default function ExercisesPage() {
               {/* Pagination */}
               {totalPages > 1 && (
                 <div className="flex items-center justify-between border-t border-border px-5 py-3">
-                  <span className="text-xs text-muted">
+                  <span className="text-xs text-text3">
                     {t('common.page', { current: page, total: totalPages })} &middot;{' '}
                     {t('common.total', { count: data.totalCount })}
                   </span>
@@ -298,14 +298,14 @@ export default function ExercisesPage() {
                     <button
                       disabled={page <= 1}
                       onClick={() => setPage((p) => p - 1)}
-                      className="rounded-sm border border-border px-3 py-1 text-xs text-text3 transition-colors hover:text-gold disabled:opacity-30"
+                      className="rounded-sm border border-border px-3 py-1 text-xs text-text3 transition-colors hover:text-accent disabled:opacity-30"
                     >
                       &larr; {t('common.previous')}
                     </button>
                     <button
                       disabled={page >= totalPages}
                       onClick={() => setPage((p) => p + 1)}
-                      className="rounded-sm border border-border px-3 py-1 text-xs text-text3 transition-colors hover:text-gold disabled:opacity-30"
+                      className="rounded-sm border border-border px-3 py-1 text-xs text-text3 transition-colors hover:text-accent disabled:opacity-30"
                     >
                       {t('common.next')} &rarr;
                     </button>
@@ -344,7 +344,7 @@ export default function ExercisesPage() {
               <form id="exercise-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
                 {/* Name */}
                 <div>
-                  <label className="mb-1 block font-heading text-xs text-text3">{t('exercises.exerciseName')}</label>
+                  <label className="mb-1 block text-xs text-text3">{t('exercises.exerciseName')}</label>
                   <input
                     type="text"
                     value={form.name}
@@ -370,15 +370,15 @@ export default function ExercisesPage() {
                   {localesOpen && (
                     <div className="mt-2 flex flex-col gap-3">
                       <div>
-                        <label className="mb-1 block font-heading text-xs text-text3">{t('exercises.nameEn')}</label>
+                        <label className="mb-1 block text-xs text-text3">{t('exercises.nameEn')}</label>
                         <input type="text" value={form.nameEn ?? ''} onChange={(e) => setForm({ ...form, nameEn: e.target.value })} placeholder={t('exercises.nameEnPlaceholder')} className={`w-full ${inputClass}`} />
                       </div>
                       <div>
-                        <label className="mb-1 block font-heading text-xs text-text3">{t('exercises.nameCs')}</label>
+                        <label className="mb-1 block text-xs text-text3">{t('exercises.nameCs')}</label>
                         <input type="text" value={form.nameCs ?? ''} onChange={(e) => setForm({ ...form, nameCs: e.target.value })} placeholder={t('exercises.nameCsPlaceholder')} className={`w-full ${inputClass}`} />
                       </div>
                       <div>
-                        <label className="mb-1 block font-heading text-xs text-text3">{t('exercises.nameDe')}</label>
+                        <label className="mb-1 block text-xs text-text3">{t('exercises.nameDe')}</label>
                         <input type="text" value={form.nameDe ?? ''} onChange={(e) => setForm({ ...form, nameDe: e.target.value })} placeholder={t('exercises.nameDePlaceholder')} className={`w-full ${inputClass}`} />
                       </div>
                     </div>
@@ -387,7 +387,7 @@ export default function ExercisesPage() {
 
                 {/* Muscle Groups */}
                 <div>
-                  <label className="mb-2 block font-heading text-xs text-text3">{t('exercises.muscleGroups')}</label>
+                  <label className="mb-2 block text-xs text-text3">{t('exercises.muscleGroups')}</label>
                   <div className="flex flex-wrap gap-2">
                     {sortedByLabel(allMuscleGroups, 'enums.muscleGroup').map((mg) => (
                       <label key={mg} className="flex cursor-pointer items-center gap-1.5 text-sm text-text2">
@@ -395,7 +395,7 @@ export default function ExercisesPage() {
                           type="checkbox"
                           checked={form.muscleGroups.includes(mg)}
                           onChange={() => toggleMuscleGroup(mg)}
-                          className="accent-gold"
+                          className="accent-accent"
                         />
                         {t(`enums.muscleGroup.${mg}`)}
                       </label>
@@ -405,7 +405,7 @@ export default function ExercisesPage() {
 
                 {/* Equipment */}
                 <div>
-                  <label className="mb-1 block font-heading text-xs text-text3">{t('exercises.equipment')}</label>
+                  <label className="mb-1 block text-xs text-text3">{t('exercises.equipment')}</label>
                   <select value={form.equipment} onChange={(e) => setForm({ ...form, equipment: e.target.value as ExerciseEquipment })} className={`w-full ${inputClass}`}>
                     <option value="">{t('exercises.selectEquipment')}</option>
                     {sortedByLabel(allEquipment, 'enums.equipment').map((eq) => <option key={eq} value={eq}>{t(`enums.equipment.${eq}`)}</option>)}
@@ -414,7 +414,7 @@ export default function ExercisesPage() {
 
                 {/* Category */}
                 <div>
-                  <label className="mb-1 block font-heading text-xs text-text3">{t('exercises.category')}</label>
+                  <label className="mb-1 block text-xs text-text3">{t('exercises.category')}</label>
                   <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value as ExerciseCategory })} className={`w-full ${inputClass}`}>
                     <option value="">{t('exercises.selectCategory')}</option>
                     {sortedByLabel(allCategories, 'enums.category').map((c) => <option key={c} value={c}>{t(`enums.category.${c}`)}</option>)}
@@ -423,7 +423,7 @@ export default function ExercisesPage() {
 
                 {/* Difficulty */}
                 <div>
-                  <label className="mb-1 block font-heading text-xs text-text3">{t('exercises.difficulty')}</label>
+                  <label className="mb-1 block text-xs text-text3">{t('exercises.difficulty')}</label>
                   <select value={form.difficulty} onChange={(e) => setForm({ ...form, difficulty: e.target.value as ExerciseDifficulty })} className={`w-full ${inputClass}`}>
                     <option value="">{t('exercises.selectDifficulty')}</option>
                     {sortedByLabel(allDifficulties, 'enums.difficulty').map((d) => <option key={d} value={d}>{t(`enums.difficulty.${d}`)}</option>)}
@@ -432,7 +432,7 @@ export default function ExercisesPage() {
 
                 {/* Technique Notes */}
                 <div>
-                  <label className="mb-1 block font-heading text-xs text-text3">{t('exercises.techniqueNotes')}</label>
+                  <label className="mb-1 block text-xs text-text3">{t('exercises.techniqueNotes')}</label>
                   <textarea
                     value={form.techniqueNotes ?? ''}
                     onChange={(e) => setForm({ ...form, techniqueNotes: e.target.value })}
@@ -450,7 +450,7 @@ export default function ExercisesPage() {
                 type="submit"
                 form="exercise-form"
                 disabled={saving || !form.name.trim() || form.muscleGroups.length === 0}
-                className="w-full rounded-sm bg-gold px-5 py-3 font-heading text-xs font-bold uppercase tracking-wide text-black transition-colors hover:bg-gold-bright disabled:opacity-50"
+                className="w-full rounded-sm bg-text px-5 py-3 text-sm font-medium text-bg transition-colors hover:opacity-90 disabled:opacity-50"
               >
                 {saving ? t('common.saving') : editingExercise ? t('exercises.saveChanges') : t('exercises.addExercise')}
               </button>
@@ -463,7 +463,7 @@ export default function ExercisesPage() {
       {confirmDelete && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center">
           <div className="fixed inset-0 bg-black/60" onClick={() => setConfirmDelete(null)} />
-          <div className="relative z-10 w-full max-w-sm rounded-sm border border-border bg-surface p-6 shadow-2xl">
+          <div className="relative z-10 w-full max-w-sm rounded-sm border border-border bg-bg2 p-6 shadow-2xl">
             <h3 className="text-sm font-bold">{t('exercises.deleteConfirmTitle')}</h3>
             <p className="mt-2 text-sm text-text2">
               {t('exercises.deleteConfirmMessage', { name: confirmDelete.name })}

@@ -4,11 +4,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/auth';
 import ProtectedRoute from '@/routes/ProtectedRoute';
 import RoleGuard from '@/routes/RoleGuard';
-import AppLayout from '@/components/layout/AppLayout';
+import { AppShell } from '@/components/layout/AppShell';
 import LoginPage from '@/pages/LoginPage';
 import RegisterPage from '@/pages/RegisterPage';
 import DashboardPage from '@/pages/DashboardPage';
-import ClientsPage from '@/pages/ClientsPage';
 import ClientDetailPage from '@/pages/ClientDetailPage';
 import ProfilePage from '@/pages/ProfilePage';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
@@ -20,10 +19,12 @@ import PlansPage from '@/pages/PlansPage';
 import RecipesPage from '@/pages/RecipesPage';
 import NutritionPlanPage from '@/pages/NutritionPlanPage';
 import ClientNutritionGoalsPage from '@/pages/ClientNutritionGoalsPage';
+import ClientNutritionPage from '@/pages/ClientNutritionPage';
 import ExercisesPage from '@/pages/ExercisesPage';
 import TrainingPlansPage from '@/pages/TrainingPlansPage';
 import TrainingPlanPage from '@/pages/TrainingPlanPage';
-import Toaster from '@/components/layout/Toaster';
+import MessagesPage from '@/pages/MessagesPage';
+import { Toaster } from '@/components/ui/Toast';
 
 function DefaultRedirect() {
   const user = useAuthStore((s) => s.user);
@@ -72,8 +73,9 @@ export default function App() {
 
           {/* Protected */}
           <Route element={<ProtectedRoute />}>
-            <Route element={<AppLayout />}>
+            <Route element={<AppShell />}>
               <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/messages" element={<MessagesPage />} />
               <Route path="/profile" element={<ProfilePage />} />
 
               {/* Trainer/Nutritionist shared */}
@@ -82,9 +84,9 @@ export default function App() {
                   <RoleGuard allowedRoles={['Trainer', 'Nutritionist', 'Admin']} />
                 }
               >
-                <Route path="/clients" element={<ClientsPage />} />
                 <Route path="/clients/:id" element={<ClientDetailPage />} />
                 <Route path="/clients/:id/nutrition-goals" element={<ClientNutritionGoalsPage />} />
+                <Route path="/clients/:id/nutrition" element={<ClientNutritionPage />} />
               </Route>
 
               {/* Nutritionist only */}
@@ -96,7 +98,7 @@ export default function App() {
                 <Route path="/foods" element={<FoodsPage />} />
                 <Route path="/recipes" element={<RecipesPage />} />
                 <Route path="/plans" element={<PlansPage />} />
-                <Route path="/plans/:planId" element={<NutritionPlanPage />} />
+                <Route path="/clients/:id/plans/:planId" element={<NutritionPlanPage />} />
               </Route>
 
               {/* Trainer only */}

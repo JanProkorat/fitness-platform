@@ -53,19 +53,19 @@ export default function ClientsPage() {
   const totalPages = data ? Math.ceil((data.totalCount ?? 0) / (data.pageSize ?? 1)) : 0;
 
   const inputClass =
-    'rounded-sm border border-border bg-surface px-4 py-2.5 text-sm text-text outline-none transition-colors focus:border-gold/40';
+    'rounded-md border border-border-md bg-bg px-4 py-2.5 text-sm text-text outline-none transition-colors placeholder:text-text3 focus:border-border-hv';
 
   return (
     <div className="flex h-full flex-col">
       {/* Top bar */}
-      <div className="flex items-center border-b border-border bg-[#111111] px-6 py-4">
+      <div className="flex items-center border-b border-border bg-bg2 px-6 py-4">
         <div className="flex-1">
           <h1 className="text-lg font-bold">{t('clients.title')}</h1>
-          <p className="text-xs text-muted">{t('clients.subtitle')}</p>
+          <p className="text-xs text-text3">{t('clients.subtitle')}</p>
         </div>
         <button
           onClick={openDrawer}
-          className="rounded-sm bg-gold px-4 py-2 font-heading text-[13px] font-extrabold uppercase tracking-wide text-black transition-colors hover:bg-gold-bright"
+          className="rounded-sm bg-text px-4 py-2 text-[13px] font-medium text-bg transition-colors hover:opacity-90"
         >
           {t('clients.inviteClient')}
         </button>
@@ -73,7 +73,7 @@ export default function ClientsPage() {
 
       <div className="flex-1 overflow-y-auto p-6">
         {/* Client list */}
-        <div className="rounded-sm border border-border bg-surface">
+        <div className="rounded-sm border border-border bg-bg2">
           {isLoading ? (
             <div className="flex items-center justify-center py-20 text-text3">
               {t('common.loading')}
@@ -82,7 +82,7 @@ export default function ClientsPage() {
             <div className="flex flex-col items-center justify-center py-20 text-text3">
               <span className="text-4xl">&#x1F465;</span>
               <p className="mt-3 text-sm">{t('clients.noClients')}</p>
-              <p className="mt-1 text-xs text-muted">{t('clients.noClientsHint')}</p>
+              <p className="mt-1 text-xs text-text3">{t('clients.noClientsHint')}</p>
             </div>
           ) : (
             <>
@@ -100,10 +100,10 @@ export default function ClientsPage() {
                   <div
                     key={client.publicId}
                     onClick={() => navigate(`/clients/${client.publicId}`)}
-                    className="grid grid-cols-[1fr_1fr_120px] cursor-pointer items-center gap-4 border-b border-charcoal px-5 py-3 transition-colors last:border-0 hover:bg-white/[0.02]"
+                    className="grid grid-cols-[1fr_1fr_120px] cursor-pointer items-center gap-4 border-b border-border px-5 py-3 transition-colors last:border-0 hover:bg-bg-hover"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border-[1.5px] border-gold/30 bg-gold/10 font-heading text-xs font-bold text-gold">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border-[1.5px] border-accent-br bg-accent-bg text-xs font-bold text-accent">
                         {initials}
                       </div>
                       <span className="text-sm font-semibold">
@@ -112,7 +112,7 @@ export default function ClientsPage() {
                     </div>
                     <span className="text-sm text-text2">{client.email}</span>
                     <div className="text-right">
-                      <span className="font-heading text-xs font-semibold uppercase tracking-wide text-gold-dim">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-accent-dim">
                         {t('common.detail')} &rarr;
                       </span>
                     </div>
@@ -123,7 +123,7 @@ export default function ClientsPage() {
               {/* Pagination */}
               {totalPages > 1 && (
                 <div className="flex items-center justify-between border-t border-border px-5 py-3">
-                  <span className="text-xs text-muted">
+                  <span className="text-xs text-text3">
                     {t('common.page', { current: page, total: totalPages })} &middot;{' '}
                     {t('common.total', { count: data.totalCount })}
                   </span>
@@ -131,14 +131,14 @@ export default function ClientsPage() {
                     <button
                       disabled={page <= 1}
                       onClick={() => setPage((p) => p - 1)}
-                      className="rounded-sm border border-border px-3 py-1 text-xs text-text3 transition-colors hover:text-gold disabled:opacity-30"
+                      className="rounded-sm border border-border px-3 py-1 text-xs text-text3 transition-colors hover:text-accent disabled:opacity-30"
                     >
                       &larr; {t('common.previous')}
                     </button>
                     <button
                       disabled={page >= totalPages}
                       onClick={() => setPage((p) => p + 1)}
-                      className="rounded-sm border border-border px-3 py-1 text-xs text-text3 transition-colors hover:text-gold disabled:opacity-30"
+                      className="rounded-sm border border-border px-3 py-1 text-xs text-text3 transition-colors hover:text-accent disabled:opacity-30"
                     >
                       {t('common.next')} &rarr;
                     </button>
@@ -178,7 +178,7 @@ export default function ClientsPage() {
 
               <form id="invite-form" onSubmit={handleInvite} className="flex flex-col gap-4">
                 <div>
-                  <label className="mb-1 block font-heading text-xs text-text3">
+                  <label className="mb-1 block text-xs text-text3">
                     {t('common.email')}
                   </label>
                   <input
@@ -199,7 +199,7 @@ export default function ClientsPage() {
                 type="submit"
                 form="invite-form"
                 disabled={sending || !inviteEmail.trim()}
-                className="w-full rounded-sm bg-gold px-5 py-3 font-heading text-xs font-bold uppercase tracking-wide text-black transition-colors hover:bg-gold-bright disabled:opacity-50"
+                className="w-full rounded-sm bg-text px-5 py-3 text-sm font-medium text-bg transition-colors hover:opacity-90 disabled:opacity-50"
               >
                 {sending ? t('common.sending') : t('clients.sendInvite')}
               </button>

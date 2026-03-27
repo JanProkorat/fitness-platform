@@ -16,7 +16,6 @@ public static class FoodTestHelpers
     public static Food CreateFood(
         Guid? externalId = null,
         string name = "Test Food",
-        string source = "system",
         string? barcode = null,
         Guid? nutritionistId = null,
         bool isDeleted = false,
@@ -29,7 +28,6 @@ public static class FoodTestHelpers
         {
             ExternalId = externalId ?? Guid.NewGuid(),
             Name = name,
-            Source = source,
             Barcode = barcode,
             NutritionistId = nutritionistId,
             IsDeleted = isDeleted,

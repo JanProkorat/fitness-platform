@@ -748,6 +748,70 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.ToTable("notifications", (string)null);
                 });
 
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.PendingInvite", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_created");
+
+                    b.Property<DateTime?>("DateUpdated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_updated");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("email");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("first_name");
+
+                    b.Property<bool>("IsAccepted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_accepted");
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("last_name");
+
+                    b.Property<long>("ProfessionalProfileId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("professional_profile_id");
+
+                    b.Property<Guid>("PublicId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("public_id");
+
+                    b.Property<DateTime>("SentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("sent_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_pending_invites");
+
+                    b.HasIndex("ProfessionalProfileId")
+                        .HasDatabaseName("ix_pending_invites_professional_profile_id");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_pending_invites_public_id");
+
+                    b.ToTable("pending_invites", (string)null);
+                });
+
             modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.ProfessionalProfile", b =>
                 {
                     b.Property<long>("Id")
@@ -1110,6 +1174,18 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Navigation("Recipient");
                 });
 
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.PendingInvite", b =>
+                {
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.ProfessionalProfile", "ProfessionalProfile")
+                        .WithMany("PendingInvites")
+                        .HasForeignKey("ProfessionalProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_pending_invites_professional_profiles_professional_profile_");
+
+                    b.Navigation("ProfessionalProfile");
+                });
+
             modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.ProfessionalProfile", b =>
                 {
                     b.HasOne("FitnessPlatform.Application.Domain.Entities.ApplicationUser", "User")
@@ -1228,6 +1304,8 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Navigation("ClientLinks");
 
                     b.Navigation("InvitationTokens");
+
+                    b.Navigation("PendingInvites");
                 });
 #pragma warning restore 612, 618
         }

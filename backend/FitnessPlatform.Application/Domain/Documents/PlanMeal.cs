@@ -38,6 +38,19 @@ public class PlanMeal
     public List<MealFood> Foods { get; set; } = [];
 
     /// <summary>
+    /// Recipes included in this meal.
+    /// </summary>
+    [BsonElement("recipes")]
+    public List<MealRecipe> Recipes { get; set; } = [];
+
+    /// <summary>
+    /// Optional note for this meal.
+    /// </summary>
+    [BsonElement("note")]
+    [BsonIgnoreIfNull]
+    public string? Note { get; set; }
+
+    /// <summary>
     /// Computed totals for this meal.
     /// </summary>
     [BsonElement("mealTotals")]

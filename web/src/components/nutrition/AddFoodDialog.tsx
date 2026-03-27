@@ -17,6 +17,7 @@ const addFoodSchema = z.object({
   protein: z.coerce.number().min(0),
   carbs: z.coerce.number().min(0),
   fat: z.coerce.number().min(0),
+  note: z.string().optional(),
   nameEn: z.string().optional(),
   nameCs: z.string().optional(),
   nameDe: z.string().optional(),
@@ -49,6 +50,7 @@ export default function AddFoodDialog({ onCreated, onClose }: AddFoodDialogProps
           carbs: data.carbs,
           fat: data.fat,
         },
+        note: data.note || null,
         allergens: [],
         commonServings: [],
       }),
@@ -67,7 +69,7 @@ export default function AddFoodDialog({ onCreated, onClose }: AddFoodDialogProps
   };
 
   const inputClass =
-    'rounded-sm border border-border bg-surface px-4 py-2.5 text-sm text-text outline-none transition-colors focus:border-gold/40';
+    'rounded-sm border border-border-md bg-bg px-4 py-2.5 text-sm text-text outline-none transition-colors focus:border-border-hv';
 
   return (
     <div>
@@ -88,7 +90,7 @@ export default function AddFoodDialog({ onCreated, onClose }: AddFoodDialogProps
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
         <div className="space-y-3">
           <div>
-            <label className="mb-1 block font-heading text-xs text-text3">
+            <label className="mb-1 block text-xs text-text3">
               {t('foods.foodName')}
             </label>
             <input
@@ -100,7 +102,7 @@ export default function AddFoodDialog({ onCreated, onClose }: AddFoodDialogProps
 
           {/* Localized names */}
           <div className="mt-1 border-t border-border pt-3">
-            <label className="mb-2 block font-heading text-xs text-text3">
+            <label className="mb-2 block text-xs text-text3">
               {t('foods.localizedNames')}
             </label>
             <div className="space-y-2">
@@ -134,7 +136,7 @@ export default function AddFoodDialog({ onCreated, onClose }: AddFoodDialogProps
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="mb-1 block font-heading text-xs text-text3">
+            <label className="mb-1 block text-xs text-text3">
               {t('foods.kcal')}
             </label>
             <input
@@ -147,7 +149,7 @@ export default function AddFoodDialog({ onCreated, onClose }: AddFoodDialogProps
             />
           </div>
           <div>
-            <label className="mb-1 block font-heading text-xs text-text3">
+            <label className="mb-1 block text-xs text-text3">
               {t('foods.protein')}
             </label>
             <input
@@ -160,7 +162,7 @@ export default function AddFoodDialog({ onCreated, onClose }: AddFoodDialogProps
             />
           </div>
           <div>
-            <label className="mb-1 block font-heading text-xs text-text3">
+            <label className="mb-1 block text-xs text-text3">
               {t('foods.carbs')}
             </label>
             <input
@@ -173,7 +175,7 @@ export default function AddFoodDialog({ onCreated, onClose }: AddFoodDialogProps
             />
           </div>
           <div>
-            <label className="mb-1 block font-heading text-xs text-text3">
+            <label className="mb-1 block text-xs text-text3">
               {t('foods.fat')}
             </label>
             <input
@@ -187,11 +189,21 @@ export default function AddFoodDialog({ onCreated, onClose }: AddFoodDialogProps
           </div>
         </div>
 
+        <div>
+          <label className="mb-1 block text-xs text-text3">Poznámka</label>
+          <textarea
+            {...register('note')}
+            placeholder="Volitelná poznámka k potravině..."
+            rows={2}
+            className={`w-full ${inputClass} resize-none`}
+          />
+        </div>
+
         <div className="flex gap-3">
           <button
             type="submit"
             disabled={mutation.isPending}
-            className="rounded-sm bg-gold px-5 py-2.5 font-heading text-xs font-bold uppercase tracking-wide text-black transition-colors hover:bg-gold-bright disabled:opacity-50"
+            className="rounded-sm bg-accent px-5 py-2.5 text-xs font-bold uppercase tracking-wide text-bg transition-colors hover:bg-accent/90 disabled:opacity-50"
           >
             {mutation.isPending ? t('common.saving') : t('foods.createFood')}
           </button>

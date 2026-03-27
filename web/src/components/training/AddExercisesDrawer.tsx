@@ -167,7 +167,7 @@ export default function AddExercisesDrawer({ open, onClose, onAdd }: AddExercise
         <div className="flex-1 overflow-y-auto p-6">
           {/* Exercise search */}
           <div className="mb-6">
-            <label className="mb-2 block font-heading text-xs font-semibold uppercase tracking-wide text-text3">
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-text3">
               {t('training.searchExercises')}
             </label>
             <input
@@ -176,7 +176,7 @@ export default function AddExercisesDrawer({ open, onClose, onAdd }: AddExercise
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t('training.searchExercisesPlaceholder')}
-              className="w-full rounded-sm border border-border bg-surface px-3 py-2 text-sm text-text outline-none focus:border-gold/40"
+              className="w-full rounded-md border border-border-md bg-bg px-3 py-2 text-sm text-text outline-none placeholder:text-text3 focus:border-border-hv"
             />
 
             {loading && (
@@ -194,8 +194,8 @@ export default function AddExercisesDrawer({ open, onClose, onAdd }: AddExercise
                       disabled={isSelected}
                       className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors ${
                         isSelected
-                          ? 'bg-gold/10 text-gold opacity-60'
-                          : 'hover:bg-gold/5'
+                          ? 'bg-accent-bg text-accent opacity-60'
+                          : 'hover:bg-bg-hover'
                       }`}
                     >
                       <div className="flex flex-col">
@@ -207,7 +207,7 @@ export default function AddExercisesDrawer({ open, onClose, onAdd }: AddExercise
                           {t(`enums.equipment.${exercise.equipment}`)}
                         </span>
                       </div>
-                      <span className="ml-3 shrink-0 rounded-sm bg-white/5 px-1.5 py-0.5 text-[10px] text-text3">
+                      <span className="ml-3 shrink-0 rounded-sm bg-bg3 px-1.5 py-0.5 text-[10px] text-text3">
                         {t(`enums.difficulty.${exercise.difficulty}`)}
                       </span>
                     </button>
@@ -224,12 +224,12 @@ export default function AddExercisesDrawer({ open, onClose, onAdd }: AddExercise
           {/* Staged exercises with sets configuration */}
           {staged.length > 0 && (
             <div>
-              <label className="mb-2 block font-heading text-xs font-semibold uppercase tracking-wide text-text3">
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-text3">
                 {t('training.selectedExercises')} ({staged.length})
               </label>
               <div className="flex flex-col gap-3">
                 {staged.map((ex) => (
-                  <div key={ex.exerciseExternalId} className="rounded-sm border border-border bg-surface">
+                  <div key={ex.exerciseExternalId} className="rounded-sm border border-border bg-bg2">
                     {/* Exercise header */}
                     <div className="flex items-center justify-between border-b border-border px-3 py-2">
                       <span className="text-sm font-semibold text-text truncate">{ex.exerciseName}</span>
@@ -252,7 +252,7 @@ export default function AddExercisesDrawer({ open, onClose, onAdd }: AddExercise
                             max={20}
                             value={ex.sets.length}
                             onChange={(e) => updateSetCount(ex.exerciseExternalId, Number(e.target.value) || 1)}
-                            className="w-14 rounded-sm border border-border bg-bg px-2 py-0.5 text-center text-xs text-text outline-none focus:border-gold/40"
+                            className="w-14 rounded-sm border border-border bg-bg px-2 py-0.5 text-center text-xs text-text outline-none focus:border-border-hv"
                           />
                         </div>
                         <div className="flex items-center gap-2">
@@ -265,7 +265,7 @@ export default function AddExercisesDrawer({ open, onClose, onAdd }: AddExercise
                             value={ex.restSeconds ?? ''}
                             onChange={(e) => updateRestSeconds(ex.exerciseExternalId, e.target.value ? Number(e.target.value) : null)}
                             placeholder="s"
-                            className="w-16 rounded-sm border border-border bg-bg px-2 py-0.5 text-center text-xs text-text outline-none focus:border-gold/40"
+                            className="w-16 rounded-sm border border-border bg-bg px-2 py-0.5 text-center text-xs text-text outline-none focus:border-border-hv"
                           />
                           <span className="text-[10px] text-text3">s</span>
                         </div>
@@ -295,7 +295,7 @@ export default function AddExercisesDrawer({ open, onClose, onAdd }: AddExercise
                                     updateSetField(ex.exerciseExternalId, sIdx, 'reps', e.target.value ? Number(e.target.value) : null)
                                   }
                                   placeholder="—"
-                                  className="w-16 rounded-sm border border-charcoal bg-bg px-1.5 py-0.5 text-center text-xs text-text outline-none focus:border-gold/40"
+                                  className="w-16 rounded-sm border border-border bg-bg px-1.5 py-0.5 text-center text-xs text-text outline-none focus:border-border-hv"
                                 />
                               </td>
                               {!isBodyweight(ex.equipment) && (
@@ -309,7 +309,7 @@ export default function AddExercisesDrawer({ open, onClose, onAdd }: AddExercise
                                       updateSetField(ex.exerciseExternalId, sIdx, 'weightKg', e.target.value ? Number(e.target.value) : null)
                                     }
                                     placeholder="kg"
-                                    className="w-16 rounded-sm border border-charcoal bg-bg px-1.5 py-0.5 text-center text-xs text-text outline-none focus:border-gold/40"
+                                    className="w-16 rounded-sm border border-border bg-bg px-1.5 py-0.5 text-center text-xs text-text outline-none focus:border-border-hv"
                                   />
                                 </td>
                               )}
@@ -330,7 +330,7 @@ export default function AddExercisesDrawer({ open, onClose, onAdd }: AddExercise
           <button
             onClick={handleAdd}
             disabled={staged.length === 0}
-            className="w-full rounded-sm bg-gold px-5 py-3 font-heading text-xs font-bold uppercase tracking-wide text-black transition-colors hover:bg-gold-bright disabled:opacity-50"
+            className="w-full rounded-sm bg-accent px-5 py-3 text-xs font-bold uppercase tracking-wide text-bg transition-colors hover:bg-accent/90 disabled:opacity-50"
           >
             {t('training.addToSession')} ({staged.length})
           </button>

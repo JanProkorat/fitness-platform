@@ -10,16 +10,25 @@ export default function LanguageSwitcher() {
   const { i18n } = useTranslation();
 
   return (
-    <div className="flex gap-1">
+    <div style={{ display: 'flex', gap: 4 }}>
       {languages.map((lang) => (
         <button
           key={lang.code}
           onClick={() => i18n.changeLanguage(lang.code)}
-          className={`rounded-sm px-2.5 py-1 font-heading text-[10px] font-bold uppercase tracking-wide transition-colors ${
-            i18n.language === lang.code
-              ? 'bg-gold/15 text-gold'
-              : 'text-text3 hover:text-gold'
-          }`}
+          style={{
+            padding: '3px 8px',
+            borderRadius: 'var(--radius)',
+            fontSize: 10,
+            fontWeight: 700,
+            fontFamily: 'inherit',
+            letterSpacing: '0.05em',
+            textTransform: 'uppercase' as const,
+            border: 'none',
+            cursor: 'pointer',
+            transition: 'background 0.1s, color 0.1s',
+            background: i18n.language === lang.code ? 'var(--accent-bg)' : 'transparent',
+            color: i18n.language === lang.code ? 'var(--accent)' : 'var(--text3)',
+          }}
         >
           {lang.label}
         </button>

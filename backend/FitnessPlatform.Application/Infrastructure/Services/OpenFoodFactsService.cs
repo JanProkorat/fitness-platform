@@ -128,7 +128,6 @@ public class OpenFoodFactsService : IFoodExternalService
                 Cs = product.ProductNameCs?.Trim().NullIfEmpty(),
                 De = product.ProductNameDe?.Trim().NullIfEmpty(),
             },
-            Source = "openfoodfacts",
             Barcode = barcode,
             NutrientValue = new NutrientValue
             {

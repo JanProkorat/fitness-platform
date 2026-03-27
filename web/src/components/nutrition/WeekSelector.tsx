@@ -80,7 +80,7 @@ export default function WeekSelector({
   const canRemove = !isPublished && weeks.length > 1;
 
   return (
-    <div className="flex items-center gap-2 border-b border-border bg-[#111111] px-6 py-2.5">
+    <div className="flex items-center gap-2 border-b border-border bg-bg2 px-6 py-2.5">
       {/* Week tabs */}
       <div className="flex flex-1 items-center gap-1.5 overflow-x-auto">
         {weeks.map(({ weekNumber, status }) =>
@@ -93,11 +93,11 @@ export default function WeekSelector({
               onDragOver={onWeekDragOver ? (e) => { e.preventDefault(); onWeekDragOver(weekNumber); } : undefined}
               onDragLeave={onWeekDragLeave}
               onDrop={onWeekDrop ? (e) => { e.preventDefault(); onWeekDrop(weekNumber); } : undefined}
-              className={`flex shrink-0 items-center gap-1.5 rounded-sm px-3 py-1.5 font-heading text-[11px] font-semibold uppercase tracking-wide transition-colors ${
+              className={`flex shrink-0 items-center gap-1.5 rounded-sm px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide transition-colors ${
                 weekNumber === selectedWeek
-                  ? 'bg-gold/15 text-gold'
+                  ? 'bg-accent-bg text-accent'
                   : dragOverWeek === weekNumber
-                    ? 'bg-gold/10 text-gold'
+                    ? 'bg-accent-bg text-accent'
                     : 'text-text3 hover:text-text2'
               }`}
             >
@@ -122,7 +122,7 @@ export default function WeekSelector({
         {selected?.status === 'Draft' && (
           <button
             onClick={onPublishWeek}
-            className="rounded-sm bg-green-500/15 px-3 py-1.5 font-heading text-[11px] font-semibold uppercase tracking-wide text-green-400 transition-colors hover:bg-green-500/25"
+            className="rounded-sm bg-green-500/15 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-green-400 transition-colors hover:bg-green-500/25"
           >
             {t('nutrition.publishWeek', { number: selectedWeek })}
           </button>
@@ -130,7 +130,7 @@ export default function WeekSelector({
 
         <button
           onClick={onAddWeek}
-          className="rounded-sm border border-border px-3 py-1.5 font-heading text-[11px] font-semibold uppercase tracking-wide text-text3 transition-colors hover:text-gold"
+          className="rounded-sm border border-border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-text3 transition-colors hover:text-accent"
         >
           {t('nutrition.addWeek')}
         </button>
@@ -145,7 +145,7 @@ export default function WeekSelector({
                 ? t('nutrition.removeWeek')
                 : undefined
           }
-          className="rounded-sm border border-border px-3 py-1.5 font-heading text-[11px] font-semibold uppercase tracking-wide text-text3 transition-colors hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-30"
+          className="rounded-sm border border-border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-text3 transition-colors hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-30"
         >
           {t('nutrition.removeWeek')}
         </button>

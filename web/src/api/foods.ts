@@ -7,13 +7,11 @@ import type {
   UpdateFoodRequest,
 } from './food-types';
 
-/** Search foods by name, with optional source filter and pagination. */
+/** Search foods by name with pagination. */
 export async function searchFoods(params: {
   q?: string;
-  source?: string;
   page?: number;
   pageSize?: number;
-  excludeExternal?: boolean;
 }): Promise<SearchFoodsResponse> {
   const { data } = await api.get<SearchFoodsResponse>('/foods/search', { params });
   return data;

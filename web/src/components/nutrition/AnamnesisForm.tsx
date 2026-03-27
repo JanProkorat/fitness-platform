@@ -85,12 +85,12 @@ export default function AnamnesisForm({
   const currentSex = watch('sex');
 
   const inputClass =
-    'w-full rounded-sm border border-border bg-surface px-4 py-2.5 text-sm text-text outline-none focus:border-gold/40';
+    'w-full rounded-sm border border-border-md bg-bg px-4 py-2.5 text-sm text-text outline-none focus:border-border-hv';
   const errorClass = 'mt-1 text-xs text-red-400';
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-      <h2 className="font-heading text-sm font-bold uppercase tracking-wide text-gold">
+      <h2 className="text-sm font-bold uppercase tracking-wide text-accent">
         {t('nutritionGoals.anamnesis')}
       </h2>
 
@@ -144,8 +144,8 @@ export default function AnamnesisForm({
               key={s}
               className={`flex cursor-pointer items-center gap-2 rounded-sm border px-4 py-2 text-sm transition-colors ${
                 currentSex === s
-                  ? 'border-gold bg-gold/10 text-gold'
-                  : 'border-border bg-surface text-text2 hover:border-gold/30'
+                  ? 'border-accent-br bg-accent-bg text-accent'
+                  : 'border-border bg-bg2 text-text2 hover:border-accent-br'
               }`}
             >
               <input
@@ -189,8 +189,8 @@ export default function AnamnesisForm({
               key={g}
               className={`flex cursor-pointer items-center gap-2 rounded-sm border px-4 py-2 text-sm transition-colors ${
                 currentGoal === g
-                  ? 'border-gold bg-gold/10 text-gold'
-                  : 'border-border bg-surface text-text2 hover:border-gold/30'
+                  ? 'border-accent-br bg-accent-bg text-accent'
+                  : 'border-border bg-bg2 text-text2 hover:border-accent-br'
               }`}
             >
               <input
@@ -209,7 +209,7 @@ export default function AnamnesisForm({
       <button
         type="submit"
         disabled={isLoading}
-        className="rounded-sm bg-gold px-4 py-2 font-heading text-[13px] font-extrabold uppercase tracking-wide text-black transition-colors hover:bg-gold-bright disabled:opacity-50"
+        className="rounded-sm bg-accent px-4 py-2 text-[13px] font-extrabold uppercase tracking-wide text-bg transition-colors hover:bg-accent/90 disabled:opacity-50"
       >
         {isLoading
           ? t('nutritionGoals.calculating')

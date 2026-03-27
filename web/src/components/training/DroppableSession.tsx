@@ -22,7 +22,7 @@ export default function DroppableSession({ sessionId, dayOfWeek, children }: Dro
       ref={ref}
       data-session-id={sessionId}
       className={`flex flex-col gap-1.5 p-2 transition-colors duration-200 ${
-        isDropTarget ? 'bg-gold/5 rounded-sm' : ''
+        isDropTarget ? 'bg-accent-bg rounded-sm' : ''
       }`}
     >
       {children}

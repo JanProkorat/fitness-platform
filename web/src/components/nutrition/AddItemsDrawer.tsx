@@ -27,7 +27,6 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
 
   // Food search state
   const [foodQuery, setFoodQuery] = useState('');
-  const [foodSource, setFoodSource] = useState('');
   const [foodResults, setFoodResults] = useState<FoodSummary[]>([]);
   const [foodLoading, setFoodLoading] = useState(false);
   const foodInputRef = useRef<HTMLInputElement>(null);
@@ -45,7 +44,6 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
       setStaged([]);
       setStagedRecipes([]);
       setFoodQuery('');
-      setFoodSource('');
       setFoodResults([]);
       setRecipeQuery('');
       setRecipeResults([]);
@@ -67,7 +65,7 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
     const timer = setTimeout(async () => {
       setFoodLoading(true);
       try {
-        const data = await searchFoods({ q: foodQuery || undefined, source: foodSource || undefined, pageSize: 15 });
+        const data = await searchFoods({ q: foodQuery || undefined, pageSize: 15 });
         setFoodResults(data.foods ?? []);
       } catch {
         setFoodResults([]);
@@ -76,7 +74,7 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
       }
     }, foodQuery.trim() ? 300 : 0);
     return () => clearTimeout(timer);
-  }, [foodQuery, foodSource, foodOpen]);
+  }, [foodQuery, foodOpen]);
 
   // Recipe search — loads on focus, stays open until drawer closes
   const [recipeOpen, setRecipeOpen] = useState(false);
@@ -216,31 +214,19 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
         <div className="flex-1 overflow-y-auto p-6">
           {/* Food search */}
           <div className="relative mb-6">
-            <label className="mb-2 block font-heading text-xs font-semibold uppercase tracking-wide text-text3">
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-text3">
               {t('nutrition.searchFoods')}
             </label>
-            <div className="flex gap-2">
-              <input
-                ref={foodInputRef}
-                type="text"
-                value={foodQuery}
-                onChange={(e) => setFoodQuery(e.target.value)}
-                onFocus={() => setFoodOpen(true)}
-                onBlur={() => setTimeout(() => setFoodOpen(false), 200)}
-                placeholder={t('nutrition.searchFoods')}
-                className="flex-1 rounded-sm border border-border bg-surface px-3 py-2 text-sm text-text outline-none focus:border-gold/40"
-              />
-              <select
-                value={foodSource}
-                onChange={(e) => setFoodSource(e.target.value)}
-                className="rounded-sm border border-border bg-surface px-2 py-2 text-xs text-text outline-none focus:border-gold/40"
-              >
-                <option value="">{t('foods.sourceAll')}</option>
-                <option value="system">{t('foods.sourceSystem')}</option>
-                <option value="custom">{t('foods.sourceCustom')}</option>
-                <option value="openfoodfacts">{t('foods.sourceOpenFoodFacts')}</option>
-              </select>
-            </div>
+            <input
+              ref={foodInputRef}
+              type="text"
+              value={foodQuery}
+              onChange={(e) => setFoodQuery(e.target.value)}
+              onFocus={() => setFoodOpen(true)}
+              onBlur={() => setTimeout(() => setFoodOpen(false), 200)}
+              placeholder={t('nutrition.searchFoods')}
+              className="w-full rounded-md border border-border-md bg-bg px-3 py-2 text-sm text-text outline-none placeholder:text-text3 focus:border-border-hv"
+            />
 
             {foodLoading && (
               <div className="absolute left-0 right-0 z-10 mt-2 rounded-sm border border-border bg-bg px-3 py-2 text-center text-xs text-text3 shadow-lg">{t('common.loading')}</div>
@@ -257,8 +243,8 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
                       disabled={isSelected}
                       className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors ${
                         isSelected
-                          ? 'bg-gold/10 text-gold opacity-60'
-                          : 'hover:bg-gold/5'
+                          ? 'bg-accent-bg text-accent opacity-60'
+                          : 'hover:bg-bg-hover'
                       }`}
                     >
                       <span className="truncate font-medium">{food.name}</span>
@@ -278,7 +264,7 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
 
           {/* Recipe search */}
           <div className="relative mb-6">
-            <label className="mb-2 block font-heading text-xs font-semibold uppercase tracking-wide text-text3">
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-text3">
               {t('recipes.searchRecipes')}
             </label>
             <input
@@ -288,7 +274,7 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
               onFocus={() => setRecipeOpen(true)}
               onBlur={() => setTimeout(() => setRecipeOpen(false), 200)}
               placeholder={t('recipes.searchRecipes')}
-              className="w-full rounded-sm border border-border bg-surface px-3 py-2 text-sm text-text outline-none focus:border-gold/40"
+              className="w-full rounded-md border border-border-md bg-bg px-3 py-2 text-sm text-text outline-none placeholder:text-text3 focus:border-border-hv"
             />
 
             {recipeLoading && (
@@ -306,8 +292,8 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
                       disabled={isSelected}
                       className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors ${
                         isSelected
-                          ? 'bg-gold/10 text-gold opacity-60'
-                          : 'hover:bg-gold/5'
+                          ? 'bg-accent-bg text-accent opacity-60'
+                          : 'hover:bg-bg-hover'
                       }`}
                     >
                       <span className="truncate font-medium">{recipe.name}</span>
@@ -328,7 +314,7 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
           {/* Staged foods table */}
           {staged.length > 0 && (
             <div className="mb-6">
-              <label className="mb-2 block font-heading text-xs font-semibold uppercase tracking-wide text-text3">
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-text3">
                 {t('nutrition.searchFoods')} ({staged.length})
               </label>
               <div className="rounded-sm border border-border">
@@ -348,7 +334,7 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
                     {staged.map((item) => {
                       const scale = item.amountGrams / 100;
                       return (
-                        <tr key={item.foodExternalId} className="border-t border-charcoal">
+                        <tr key={item.foodExternalId} className="border-t border-border">
                           <td className="truncate px-3 py-2 text-text2">{item.foodName}</td>
                           <td className="px-2 py-2">
                             <input
@@ -361,7 +347,7 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
                                   Math.max(1, Number(e.target.value) || 1),
                                 )
                               }
-                              className="w-16 rounded-sm border border-border bg-surface px-1.5 py-0.5 text-xs text-text outline-none focus:border-gold/40"
+                              className="w-16 rounded-sm border border-border bg-bg2 px-1.5 py-0.5 text-xs text-text outline-none focus:border-border-hv"
                             />
                           </td>
                           <td className="px-2 py-2 text-right text-text3">
@@ -396,7 +382,7 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
           {/* Staged recipes table */}
           {stagedRecipes.length > 0 && (
             <div>
-              <label className="mb-2 block font-heading text-xs font-semibold uppercase tracking-wide text-text3">
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-text3">
                 {t('recipes.fromRecipe')} ({stagedRecipes.length})
               </label>
               <div className="rounded-sm border border-border">
@@ -416,7 +402,7 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
                     {stagedRecipes.map((sr) => {
                       const tn = sr.recipe.totalNutrients;
                       return (
-                        <tr key={sr.recipe.recipeId} className="border-t border-charcoal">
+                        <tr key={sr.recipe.recipeId} className="border-t border-border">
                           <td className="truncate px-3 py-2 text-text2">{sr.recipe.name}</td>
                           <td className="px-2 py-2">
                             <input
@@ -430,7 +416,7 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
                                   Math.max(0.25, Number(e.target.value) || 1),
                                 )
                               }
-                              className="w-16 rounded-sm border border-border bg-surface px-1.5 py-0.5 text-xs text-text outline-none focus:border-gold/40"
+                              className="w-16 rounded-sm border border-border bg-bg2 px-1.5 py-0.5 text-xs text-text outline-none focus:border-border-hv"
                             />
                           </td>
                           <td className="px-2 py-2 text-right text-text3">
@@ -468,7 +454,7 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
           <button
             onClick={handleAdd}
             disabled={totalItemCount === 0}
-            className="w-full rounded-sm bg-gold px-5 py-3 font-heading text-xs font-bold uppercase tracking-wide text-black transition-colors hover:bg-gold-bright disabled:opacity-50"
+            className="w-full rounded-sm bg-accent px-5 py-3 text-xs font-bold uppercase tracking-wide text-bg transition-colors hover:bg-accent/90 disabled:opacity-50"
           >
             {t('nutrition.addToMeal', 'Add to Meal')} ({totalItemCount})
           </button>

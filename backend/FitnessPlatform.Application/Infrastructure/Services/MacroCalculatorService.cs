@@ -105,6 +105,14 @@ public class MacroCalculatorService : IMacroCalculatorService
             totals.Fat += food.NutrientValuePer100Grams.Fat * ratio;
         }
 
+        foreach (var recipe in meal.Recipes)
+        {
+            totals.Kcal += recipe.NutrientValuePerServing.Kcal * recipe.Servings;
+            totals.Protein += recipe.NutrientValuePerServing.Protein * recipe.Servings;
+            totals.Carbs += recipe.NutrientValuePerServing.Carbs * recipe.Servings;
+            totals.Fat += recipe.NutrientValuePerServing.Fat * recipe.Servings;
+        }
+
         totals.Kcal = Math.Round(totals.Kcal, 1);
         totals.Protein = Math.Round(totals.Protein, 1);
         totals.Carbs = Math.Round(totals.Carbs, 1);

@@ -28,7 +28,7 @@ export default function NutritionGoalsTab({ clientId }: NutritionGoalsTabProps) 
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12 text-sm text-muted">
+      <div className="flex items-center justify-center py-12 text-sm text-text3">
         {t('common.loading', 'Loading…')}
       </div>
     );
@@ -38,7 +38,7 @@ export default function NutritionGoalsTab({ clientId }: NutritionGoalsTabProps) 
 
   if (!ob || ob.bmr == null) {
     return (
-      <p className="text-center text-sm text-muted">
+      <p className="text-center text-sm text-text3">
         {t('nutrition.noNutritionGoals')}
       </p>
     );
@@ -83,22 +83,22 @@ export default function NutritionGoalsTab({ clientId }: NutritionGoalsTabProps) 
   return (
     <div className="flex flex-col gap-4">
       {/* Nutrition Targets */}
-      <div className="rounded-sm border border-border bg-surface p-5">
+      <div className="rounded-sm border border-border bg-bg2 p-5">
         {/* BMR -> TDEE -> Adjusted flow */}
         <div className="mb-4 flex items-center gap-3 text-sm">
-          <div className="rounded bg-gold/10 px-3 py-2 text-center">
-            <span className="text-xs text-muted">BMR</span>
-            <p className="font-bold text-gold">{ob.bmr} kcal</p>
+          <div className="rounded bg-accent-bg px-3 py-2 text-center">
+            <span className="text-xs text-text3">BMR</span>
+            <p className="font-bold text-accent">{ob.bmr} kcal</p>
           </div>
-          <span className="text-muted">&rarr;</span>
-          <div className="rounded bg-gold/10 px-3 py-2 text-center">
-            <span className="text-xs text-muted">TDEE</span>
-            <p className="font-bold text-gold">{ob.tdee} kcal</p>
+          <span className="text-text3">&rarr;</span>
+          <div className="rounded bg-accent-bg px-3 py-2 text-center">
+            <span className="text-xs text-text3">TDEE</span>
+            <p className="font-bold text-accent">{ob.tdee} kcal</p>
           </div>
-          <span className="text-muted">&rarr;</span>
-          <div className="rounded bg-gold/10 px-3 py-2 text-center">
-            <span className="text-xs text-muted">{t('clients.adjustedKcal')}</span>
-            <p className="font-bold text-gold">{ob.adjustedKcal} kcal</p>
+          <span className="text-text3">&rarr;</span>
+          <div className="rounded bg-accent-bg px-3 py-2 text-center">
+            <span className="text-xs text-text3">{t('clients.adjustedKcal')}</span>
+            <p className="font-bold text-accent">{ob.adjustedKcal} kcal</p>
           </div>
         </div>
 
@@ -106,13 +106,13 @@ export default function NutritionGoalsTab({ clientId }: NutritionGoalsTabProps) 
         <div className="grid grid-cols-2 gap-4 text-sm">
           {ob.derivedActivityLevel && (
             <div>
-              <span className="text-xs text-muted">{t('clients.derivedActivity')}</span>
+              <span className="text-xs text-text3">{t('clients.derivedActivity')}</span>
               <p className="font-medium">{v(ob.derivedActivityLevel)}</p>
             </div>
           )}
           {ob.derivedNutritionGoal && (
             <div>
-              <span className="text-xs text-muted">{t('clients.derivedGoal')}</span>
+              <span className="text-xs text-text3">{t('clients.derivedGoal')}</span>
               <p className="font-medium">{v(ob.derivedNutritionGoal)}</p>
             </div>
           )}
@@ -137,7 +137,7 @@ export default function NutritionGoalsTab({ clientId }: NutritionGoalsTabProps) 
 
       {/* MacroSliders — read-only */}
       {adjustedKcal > 0 && (
-        <div className="rounded-sm border border-border bg-surface p-5">
+        <div className="rounded-sm border border-border bg-bg2 p-5">
           <div className="pointer-events-none">
             <MacroSliders
               proteinPercent={proteinPercent}
@@ -152,7 +152,7 @@ export default function NutritionGoalsTab({ clientId }: NutritionGoalsTabProps) 
 
       {/* MealDistribution — read-only */}
       {adjustedKcal > 0 && (
-        <div className="rounded-sm border border-border bg-surface p-5">
+        <div className="rounded-sm border border-border bg-bg2 p-5">
           <div className="pointer-events-none">
             <MealDistribution
               totalKcal={adjustedKcal}

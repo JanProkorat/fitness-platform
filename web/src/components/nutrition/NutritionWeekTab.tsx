@@ -50,11 +50,11 @@ export default function NutritionWeekTab({ weekNumber, status, isSelected }: Wee
     <button
       ref={ref}
       onClick={handleClick}
-      className={`relative flex shrink-0 items-center gap-1.5 overflow-hidden rounded-sm px-3 py-1.5 font-heading text-[11px] font-semibold uppercase tracking-wide transition-colors ${
+      className={`relative flex shrink-0 items-center gap-1.5 overflow-hidden rounded-sm px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide transition-colors ${
         isSelected
-          ? 'bg-gold/15 text-gold'
+          ? 'bg-accent-bg text-accent'
           : isDropTarget && isDragging
-            ? 'bg-gold/10 text-gold'
+            ? 'bg-accent-bg text-accent'
             : 'text-text3 hover:text-text2'
       }`}
     >
@@ -66,7 +66,7 @@ export default function NutritionWeekTab({ weekNumber, status, isSelected }: Wee
       </span>
       {isDropTarget && isDragging && !isSelected && (
         <span
-          className="absolute bottom-0 left-0 h-0.5 bg-gold"
+          className="absolute bottom-0 left-0 h-0.5 bg-accent"
           style={{ animation: 'dndTabProgress 500ms linear forwards' }}
         />
       )}

@@ -42,12 +42,12 @@ export default function MealCard({ meal, weekNumber, dayOfWeek, targetKcal }: Me
   const excess = isOverTarget ? totalKcal - targetKcal! : 0;
 
   return (
-    <div className={`flex min-h-0 flex-1 flex-col rounded-sm border bg-dark2 ${isOverTarget ? 'border-l-red-500 border-l-2 border-border' : 'border-border'}`}>
+    <div className={`flex min-h-0 flex-1 flex-col rounded-sm border bg-bg ${isOverTarget ? 'border-l-red-500 border-l-2 border-border' : 'border-border'}`}>
       {/* Header */}
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
         <button
           onClick={() => setExpanded(!expanded)}
-          className="text-xs text-text3 transition-colors hover:text-gold"
+          className="text-xs text-text3 transition-colors hover:text-accent"
         >
           {expanded ? '\u25BC' : '\u25B6'}
         </button>
@@ -59,18 +59,18 @@ export default function MealCard({ meal, weekNumber, dayOfWeek, targetKcal }: Me
             onChange={(e) => setNameValue(e.target.value)}
             onBlur={handleNameSave}
             onKeyDown={(e) => e.key === 'Enter' && handleNameSave()}
-            className="flex-1 rounded-sm border border-border bg-surface px-2 py-0.5 text-sm text-text outline-none focus:border-gold/40"
+            className="flex-1 rounded-sm border border-border bg-bg2 px-2 py-0.5 text-sm text-text outline-none focus:border-border-hv"
           />
         ) : (
           <div className="flex flex-1 items-center gap-1.5 min-w-0">
             <button
               onClick={() => setEditingName(true)}
-              className="text-left text-sm font-semibold transition-colors hover:text-gold truncate"
+              className="text-left text-sm font-semibold transition-colors hover:text-accent truncate"
             >
               {meal.name}
             </button>
             {targetKcal != null && (
-              <span className="text-[9px] text-muted shrink-0">target {Math.round(targetKcal)}</span>
+              <span className="text-[9px] text-text3 shrink-0">target {Math.round(targetKcal)}</span>
             )}
           </div>
         )}
@@ -115,7 +115,7 @@ export default function MealCard({ meal, weekNumber, dayOfWeek, targetKcal }: Me
                 {meal.foods.map((food) => {
                   const scale = food.amountGrams / 100;
                   return (
-                    <tr key={food.foodExternalId} className="border-t border-charcoal">
+                    <tr key={food.foodExternalId} className="border-t border-border">
                       <td className="truncate py-1.5 pr-2 text-text2">{food.foodName}</td>
                       <td className="py-1.5 pr-2">
                         <input
@@ -131,7 +131,7 @@ export default function MealCard({ meal, weekNumber, dayOfWeek, targetKcal }: Me
                               Math.max(0, Number(e.target.value) || 0),
                             )
                           }
-                          className="w-14 rounded-sm border border-border bg-surface px-1.5 py-0.5 text-xs text-text outline-none focus:border-gold/40"
+                          className="w-14 rounded-sm border border-border bg-bg2 px-1.5 py-0.5 text-xs text-text outline-none focus:border-border-hv"
                         />
                       </td>
                       <td className="py-1.5 pr-1 text-right text-text3">
@@ -172,7 +172,7 @@ export default function MealCard({ meal, weekNumber, dayOfWeek, targetKcal }: Me
       {/* Add items button — always visible at bottom */}
       <button
         onClick={() => setDrawerOpen(true)}
-        className="shrink-0 w-full border-t border-border bg-[#222] py-1.5 text-[9px] font-semibold uppercase text-text3 transition-colors hover:text-gold"
+        className="shrink-0 w-full border-t border-border bg-bg3 py-1.5 text-[9px] font-semibold uppercase text-text3 transition-colors hover:text-accent"
       >
         + {t('nutrition.addItems', 'Add Items')}
       </button>

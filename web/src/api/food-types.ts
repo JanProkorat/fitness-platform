@@ -24,9 +24,9 @@ export interface FoodSummary {
   nameEn?: string | null;
   nameCs?: string | null;
   nameDe?: string | null;
-  source?: string | null;
   barcode?: string | null;
   nutrientValue: NutrientValueDto;
+  note?: string | null;
   allergens: string[];
   commonServings: ServingSizeDto[];
 }
@@ -55,6 +55,7 @@ export interface UpdateFoodRequest {
   nameCs?: string | null;
   nameDe?: string | null;
   nutrientValue: NutrientValueDto;
+  note?: string | null;
   allergens: string[];
   commonServings: ServingSizeDto[];
 }
@@ -67,6 +68,7 @@ export interface CreateFoodRequest {
   nameCs?: string | null;
   nameDe?: string | null;
   nutrientValue: NutrientValueDto;
+  note?: string | null;
   allergens: string[];
   commonServings: ServingSizeDto[];
 }

@@ -47,7 +47,6 @@ public class CreateFoodEndpoint(IMongoContext mongo) : Endpoint<CreateFoodReques
                 Cs = req.NameCs?.Trim().NullIfEmpty(),
                 De = req.NameDe?.Trim().NullIfEmpty(),
             } : null,
-            Source = "custom",
             Barcode = req.Barcode?.Trim(),
             NutrientValue = new NutrientValue
             {
@@ -60,6 +59,7 @@ public class CreateFoodEndpoint(IMongoContext mongo) : Endpoint<CreateFoodReques
                 SaturatedFat = req.NutrientValue.SaturatedFat,
                 Salt = req.NutrientValue.Salt
             },
+            Note = req.Note,
             Allergens = req.Allergens,
             CommonServings = req.CommonServings
                 .Select(s => new ServingSize { Label = s.Label, WeightGrams = s.WeightGrams })

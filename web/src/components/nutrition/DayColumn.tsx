@@ -145,12 +145,12 @@ export default function DayColumn({
   const sortedMeals = day.meals.slice().sort((a, b) => a.order - b.order);
 
   return (
-    <div className="flex w-[336px] shrink-0 flex-1 flex-col rounded-sm border border-border bg-surface transition-colors">
+    <div className="flex w-[336px] shrink-0 flex-1 flex-col rounded-sm border border-border bg-bg2 transition-colors">
       {/* Day header — optionally a drag handle */}
       {isDraggable ? (
       <DraggableDayHeader weekNumber={weekNumber} dayOfWeek={day.dayOfWeek}>
         <div className="flex items-center justify-between">
-          <span className="font-heading text-xs font-bold uppercase tracking-wide">
+          <span className="text-xs font-bold uppercase tracking-wide">
             {dayLabel}
           </span>
           <span className={`text-xs font-medium ${isOverTarget ? 'text-red-400' : 'text-green-400'}`}>
@@ -161,7 +161,7 @@ export default function DayColumn({
       ) : (
       <div className="border-b border-border px-3 py-2.5">
         <div className="flex items-center justify-between">
-          <span className="font-heading text-xs font-bold uppercase tracking-wide">
+          <span className="text-xs font-bold uppercase tracking-wide">
             {dayLabel}
           </span>
           <span className={`text-xs font-medium ${isOverTarget ? 'text-red-400' : 'text-green-400'}`}>
@@ -174,7 +174,7 @@ export default function DayColumn({
       <div className="px-3 py-2.5">
         {/* Day macro totals */}
         <div className="flex justify-center gap-2 mb-2.5 pb-2 border-b border-border">
-          <span className="text-[10px] font-semibold text-gold">{dayTotals.kcal} kcal</span>
+          <span className="text-[10px] font-semibold text-accent">{dayTotals.kcal} kcal</span>
           <span className="text-[10px] text-blue-400">P {dayTotals.protein}g</span>
           <span className="text-[10px] text-amber-400">C {dayTotals.carbs}g</span>
           <span className="text-[10px] text-rose-400">F {dayTotals.fat}g</span>
@@ -259,18 +259,18 @@ export default function DayColumn({
 
               // Placeholder for a meal that doesn't exist yet
               return (
-                <div key={mealName} className="flex flex-1 flex-col rounded-sm border border-border bg-[#1a1a1a]">
+                <div key={mealName} className="flex flex-1 flex-col rounded-sm border border-border bg-bg2">
                   <div className="flex items-center gap-2 border-b border-border px-3 py-2">
                     <span className="flex-1 text-sm font-semibold text-text">{getMealLabel(mealName)}</span>
                     {target != null && (
-                      <span className="text-[9px] text-muted">target {target}</span>
+                      <span className="text-[9px] text-text3">target {target}</span>
                     )}
                   </div>
                   <div className="px-3 py-2">
                     <div className="mb-2 text-xs italic text-text3">{t('nutrition.noFoods', 'No foods added')}</div>
                     <button
                       onClick={() => setPlaceholderDrawerKey(mealName)}
-                      className="w-full rounded-sm border border-border bg-[#222] py-1.5 text-[9px] font-semibold uppercase text-text3 transition-colors hover:text-gold"
+                      className="w-full rounded-sm border border-border bg-bg3 py-1.5 text-[9px] font-semibold uppercase text-text3 transition-colors hover:text-accent"
                     >
                       + {t('nutrition.addItems', 'Add Items')}
                     </button>
@@ -323,11 +323,11 @@ export default function DayColumn({
               onChange={(e) => setNewMealName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleAddMeal()}
               placeholder={t('nutrition.mealNamePlaceholder')}
-              className="flex-1 rounded-sm border border-border bg-surface px-2 py-1.5 text-xs text-text outline-none focus:border-gold/40"
+              className="flex-1 rounded-sm border border-border bg-bg2 px-2 py-1.5 text-xs text-text outline-none focus:border-border-hv"
             />
             <button
               onClick={handleAddMeal}
-              className="rounded-sm bg-gold px-2 py-1.5 text-[10px] font-bold text-black"
+              className="rounded-sm bg-accent px-2 py-1.5 text-[10px] font-bold text-bg"
             >
               +
             </button>
@@ -344,7 +344,7 @@ export default function DayColumn({
         ) : (
           <button
             onClick={() => setShowAddMeal(true)}
-            className="py-1 text-xs font-semibold text-gold-dim transition-colors hover:text-gold"
+            className="py-1 text-xs font-semibold text-accent transition-colors hover:text-accent"
           >
             {t('nutrition.addMeal')}
           </button>

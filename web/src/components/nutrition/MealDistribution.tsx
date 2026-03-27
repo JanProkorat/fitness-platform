@@ -92,7 +92,7 @@ export default function MealDistribution({
 
   return (
     <div className="space-y-3">
-      <h2 className="font-heading text-sm font-bold uppercase tracking-wide text-gold">
+      <h2 className="text-sm font-bold uppercase tracking-wide text-accent">
         {t('nutritionGoals.mealDistribution')}
       </h2>
 
@@ -112,13 +112,13 @@ export default function MealDistribution({
           return (
             <div
               key={meal.key}
-              className="rounded-sm border border-border bg-surface p-3"
+              className="rounded-sm border border-border bg-bg2 p-3"
             >
               <div className="flex items-center justify-between">
                 <span className="text-sm font-semibold text-text">
                   {t(meal.i18nKey)}
                 </span>
-                <span className="font-mono text-sm text-gold">
+                <span className="font-mono text-sm text-accent">
                   {mealKcal} kcal
                 </span>
               </div>
@@ -131,13 +131,13 @@ export default function MealDistribution({
                   onChange={(e) =>
                     handleChange(index, parseInt(e.target.value, 10))
                   }
-                  className="flex-1 accent-gold"
+                  className="flex-1 accent-accent"
                 />
-                <span className="w-10 text-right font-mono text-xs text-muted">
+                <span className="w-10 text-right font-mono text-xs text-text3">
                   {meal.percent}%
                 </span>
               </div>
-              <div className="mt-1 flex gap-4 text-[11px] text-muted">
+              <div className="mt-1 flex gap-4 text-[11px] text-text3">
                 <span>
                   <span className="text-blue-400">{t('nutritionGoals.proteinShort')}</span> {mealProtein}
                   {t('nutritionGoals.grams')}

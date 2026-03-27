@@ -19,8 +19,8 @@ export default function DroppableDay({ dayOfWeek, children }: DroppableDayProps)
     <div
       ref={ref}
       data-day={dayOfWeek}
-      className={`flex w-[336px] shrink-0 flex-col rounded-sm border bg-surface transition-all duration-200 ease-out ${
-        isDropTarget ? 'border-gold bg-gold/5 scale-[1.01]' : 'border-border scale-100'
+      className={`flex w-[336px] shrink-0 flex-col rounded-sm border bg-bg2 transition-all duration-200 ease-out ${
+        isDropTarget ? 'border-accent-br bg-accent-bg scale-[1.01]' : 'border-border scale-100'
       }`}
     >
       {children}

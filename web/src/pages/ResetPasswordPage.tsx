@@ -1,18 +1,103 @@
-import { useState } from 'react';
+import { forwardRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { apiClient, ApiException } from '@/api/client';
+import { cn } from '@/lib/cn';
+
+const PasswordInput = forwardRef<
+  HTMLInputElement,
+  { id: string; placeholder: string } & React.InputHTMLAttributes<HTMLInputElement>
+>(({ id, placeholder, ...props }, ref) => {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="auth-password-wrap">
+      <input
+        ref={ref}
+        id={id}
+        type={show ? 'text' : 'password'}
+        className="auth-input"
+        placeholder={placeholder}
+        {...props}
+      />
+      <button
+        type="button"
+        tabIndex={-1}
+        onClick={() => setShow(!show)}
+        className="auth-eye-btn"
+      >
+        {show ? (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        ) : (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        )}
+      </button>
+    </div>
+  );
+});
+PasswordInput.displayName = 'PasswordInput';
+
+function PasswordStrength({ password }: { password: string }) {
+  let score = 0;
+  if (password.length >= 8) score++;
+  if (/[A-Z]/.test(password)) score++;
+  if (/[0-9]/.test(password)) score++;
+  if (/[^A-Za-z0-9]/.test(password)) score++;
+
+  const strengthClass = (i: number) => {
+    if (i >= score) return '';
+    if (score === 1) return 'weak';
+    if (score === 2) return 'medium';
+    return 'strong';
+  };
+
+  return (
+    <div className="auth-strength">
+      {[0, 1, 2, 3].map((i) => (
+        <div
+          key={i}
+          className={cn('auth-strength-bar', strengthClass(i))}
+        />
+      ))}
+    </div>
+  );
+}
+
+const reqs = [
+  { test: (v: string) => v.length >= 8, label: 'Alespoň 8 znaků' },
+  { test: (v: string) => /[A-Z]/.test(v), label: 'Alespoň jedno velké písmeno (A–Z)' },
+  { test: (v: string) => /[a-z]/.test(v), label: 'Alespoň jedno malé písmeno (a–z)' },
+  { test: (v: string) => /[0-9]/.test(v), label: 'Alespoň jedna číslice (0–9)' },
+];
+
+function PasswordRequirements({ password }: { password: string }) {
+  return (
+    <div className="auth-pw-reqs">
+      {reqs.map(({ test, label }) => {
+        const met = test(password);
+        return (
+          <div key={label} className={cn('auth-pw-req', met && 'met')}>
+            <span className="auth-pw-req-dot">
+              {met ? '✓' : ''}
+            </span>
+            {label}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function ResetPasswordPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
   const email = searchParams.get('email');
-  const [status, setStatus] = useState<'form' | 'success' | 'error'>('form');
+  const [step, setStep] = useState<'form' | 'success' | 'error'>('form');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -32,35 +117,29 @@ export default function ResetPasswordPage() {
     register,
     handleSubmit,
     formState: { errors },
+    watch,
   } = useForm<ResetForm>({
     resolver: zodResolver(schema),
+    mode: 'onChange',
   });
 
+  const watchedPassword = watch('newPassword') || '';
+
+  // Invalid link state
   if (!token || !email) {
     return (
-      <div
-        className="relative flex min-h-screen items-center justify-center px-4"
-        style={{
-          background:
-            'radial-gradient(ellipse at 50% 30%, rgba(201,168,76,0.05), transparent 60%)',
-        }}
-      >
+      <div className="auth-wrap">
         <div className="absolute top-4 right-4">
           <LanguageSwitcher />
         </div>
-        <div className="w-full max-w-[400px]">
-          <div className="rounded-sm border border-border bg-surface p-8 text-center">
-            <div className="mb-4 text-4xl">&#x1F512;</div>
-            <p className="mb-6 text-sm text-red">
-              {t('auth.resetPasswordInvalidLink')}
-            </p>
-            <Link
-              to="/login"
-              className="text-sm text-gold transition-colors hover:text-gold-bright"
-            >
-              {t('auth.backToLogin')}
-            </Link>
-          </div>
+        <div className="auth-card" style={{ textAlign: 'center' }}>
+          <div className="mb-4 text-4xl">&#x1F512;</div>
+          <p className="mb-6 text-sm text-red">
+            {t('auth.resetPasswordInvalidLink')}
+          </p>
+          <Link to="/login" className="auth-back">
+            Zpět na přihlášení
+          </Link>
         </div>
       </div>
     );
@@ -76,158 +155,122 @@ export default function ResetPasswordPage() {
         newPassword: data.newPassword,
         confirmPassword: data.confirmPassword,
       });
-      setStatus('success');
+      setStep('success');
     } catch (err) {
       if (ApiException.isApiException(err) && err.status === 400) {
         setErrorMsg(t('auth.resetPasswordError'));
       } else {
         setErrorMsg(t('auth.resetPasswordError'));
       }
-      setStatus('error');
+      setStep('error');
     } finally {
       setLoading(false);
     }
   };
 
-  if (status === 'success') {
+  // Success state
+  if (step === 'success') {
     return (
-      <div
-        className="relative flex min-h-screen items-center justify-center px-4"
-        style={{
-          background:
-            'radial-gradient(ellipse at 50% 30%, rgba(201,168,76,0.05), transparent 60%)',
-        }}
-      >
+      <div className="auth-wrap">
         <div className="absolute top-4 right-4">
           <LanguageSwitcher />
         </div>
-        <div className="w-full max-w-[400px]">
-          <div className="mb-10 text-center">
-            <span className="font-heading text-2xl font-black uppercase tracking-[3px] text-gold">
-              GF
-            </span>
-            <span className="font-heading text-2xl font-normal uppercase tracking-wide text-text2">
-              {' '}
-              Platform
-            </span>
-          </div>
-          <div className="rounded-sm border border-border bg-surface p-8 text-center">
-            <div className="mb-4 text-4xl">&#x2705;</div>
-            <p className="mb-6 text-sm text-green-bright">
-              {t('auth.resetPasswordSuccess')}
+        <div className="auth-card">
+          <div className="auth-success">
+            <div className="auth-success-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </div>
+            <h1 className="auth-success-title">
+              Heslo bylo změněno!
+            </h1>
+            <p className="auth-success-text">
+              Vaše heslo bylo úspěšně změněno. Nyní se můžete přihlásit s novým heslem.
             </p>
-            <Link
-              to="/login"
-              className="inline-block rounded-sm bg-gold px-6 py-3 font-heading text-[13px] font-extrabold uppercase tracking-[1.5px] text-black transition-colors hover:bg-gold-bright"
-            >
-              {t('auth.login')}
-            </Link>
           </div>
+
+          <button
+            type="button"
+            onClick={() => navigate('/login')}
+            className="btn-auth-primary"
+            style={{ marginTop: '24px' }}
+          >
+            Přejít na přihlášení
+          </button>
         </div>
       </div>
     );
   }
 
+  // Form state (also handles error state — shows form with error message)
   return (
-    <div
-      className="relative flex min-h-screen items-center justify-center px-4"
-      style={{
-        background:
-          'radial-gradient(ellipse at 50% 30%, rgba(201,168,76,0.05), transparent 60%)',
-      }}
-    >
+    <div className="auth-wrap">
       <div className="absolute top-4 right-4">
         <LanguageSwitcher />
       </div>
 
-      <div className="w-full max-w-[400px]">
-        {/* Logo */}
-        <div className="mb-10 text-center">
-          <span className="font-heading text-2xl font-black uppercase tracking-[3px] text-gold">
-            GF
-          </span>
-          <span className="font-heading text-2xl font-normal uppercase tracking-wide text-text2">
-            {' '}
-            Platform
-          </span>
-        </div>
+      <div className="auth-card">
+        {/* Title */}
+        <h1 className="auth-title">
+          Nové <span>heslo</span>
+        </h1>
+        <p className="auth-sub">
+          Zadejte nové heslo pro váš účet.
+        </p>
 
-        {/* Card */}
-        <div className="rounded-sm border border-border bg-surface p-8">
-          <h1 className="mb-1 text-2xl font-bold">
-            {t('auth.resetPasswordTitle')}
-          </h1>
-          <p className="mb-8 text-sm text-muted">
-            {t('auth.resetPasswordSubtitle')}
-          </p>
+        {errorMsg && (
+          <div className="mb-4 rounded-md border border-red bg-red-bg px-4 py-3 text-sm text-red">
+            {errorMsg}
+          </div>
+        )}
 
-          {errorMsg && (
-            <div className="mb-4 rounded-sm border border-red-dim bg-red/8 px-4 py-3 text-sm text-red">
-              {errorMsg}
-            </div>
-          )}
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+          {/* New password */}
+          <div className="form-group">
+            <label htmlFor="newPassword" className="form-label">
+              Nové heslo
+            </label>
+            <PasswordInput
+              id="newPassword"
+              placeholder="Zadejte nové heslo"
+              {...register('newPassword')}
+            />
+            <PasswordStrength password={watchedPassword} />
+            <PasswordRequirements password={watchedPassword} />
+            {errors.newPassword && (
+              <p className="mt-1 text-xs text-red">
+                {errors.newPassword.message}
+              </p>
+            )}
+          </div>
 
-          <form
-            onSubmit={handleSubmit(onSubmit)}
-            className="flex flex-col gap-4"
+          {/* Confirm password */}
+          <div className="form-group">
+            <label htmlFor="confirmPassword" className="form-label">
+              Potvrzení hesla
+            </label>
+            <PasswordInput
+              id="confirmPassword"
+              placeholder="Zopakujte nové heslo"
+              {...register('confirmPassword')}
+            />
+            {errors.confirmPassword && (
+              <p className="mt-1 text-xs text-red">
+                {errors.confirmPassword.message}
+              </p>
+            )}
+          </div>
+
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-auth-primary"
           >
-            {/* New password */}
-            <div>
-              <label className="lbl mb-2 block">
-                {t('auth.newPassword')}
-              </label>
-              <input
-                type="password"
-                {...register('newPassword')}
-                className="w-full rounded-sm border border-border bg-surface px-4 py-3.5 text-sm text-text outline-none transition-colors focus:border-gold/40"
-                placeholder={t('auth.passwordPlaceholder')}
-              />
-              {errors.newPassword && (
-                <p className="mt-1 text-xs text-red">
-                  {errors.newPassword.message}
-                </p>
-              )}
-            </div>
-
-            {/* Confirm password */}
-            <div>
-              <label className="lbl mb-2 block">
-                {t('auth.confirmPassword')}
-              </label>
-              <input
-                type="password"
-                {...register('confirmPassword')}
-                className="w-full rounded-sm border border-border bg-surface px-4 py-3.5 text-sm text-text outline-none transition-colors focus:border-gold/40"
-                placeholder={t('auth.confirmPasswordPlaceholder')}
-              />
-              {errors.confirmPassword && (
-                <p className="mt-1 text-xs text-red">
-                  {errors.confirmPassword.message}
-                </p>
-              )}
-            </div>
-
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="mt-2 w-full rounded-sm bg-gold px-4 py-4 font-heading text-[15px] font-extrabold uppercase tracking-[1.5px] text-black transition-colors hover:bg-gold-bright disabled:opacity-50"
-            >
-              {loading
-                ? t('auth.resetPasswordLoading')
-                : t('auth.resetPasswordSubmit')}
-            </button>
-          </form>
-
-          <p className="mt-6 text-center text-sm text-muted">
-            <Link
-              to="/login"
-              className="text-gold transition-colors hover:text-gold-bright"
-            >
-              {t('auth.backToLogin')}
-            </Link>
-          </p>
-        </div>
+            {loading ? 'Ukládání...' : 'Uložit nové heslo'}
+          </button>
+        </form>
       </div>
     </div>
   );

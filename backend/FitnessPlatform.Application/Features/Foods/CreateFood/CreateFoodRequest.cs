@@ -38,6 +38,11 @@ public class CreateFoodRequest
     public NutrientValueDto NutrientValue { get; set; } = new();
 
     /// <summary>
+    /// Optional user note.
+    /// </summary>
+    public string? Note { get; set; }
+
+    /// <summary>
     /// Allergen identifiers.
     /// </summary>
     public List<string> Allergens { get; set; } = [];

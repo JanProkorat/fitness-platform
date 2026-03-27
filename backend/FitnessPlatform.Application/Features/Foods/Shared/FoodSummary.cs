@@ -38,11 +38,6 @@ public class FoodSummary
     public string? NameDe { get; set; }
 
     /// <summary>
-    /// Data source: "system", "custom", or "openfoodfacts".
-    /// </summary>
-    public string? Source { get; set; }
-
-    /// <summary>
     /// EAN/UPC barcode, if available.
     /// </summary>
     public string? Barcode { get; set; }
@@ -63,6 +58,11 @@ public class FoodSummary
     public List<ServingSizeDto> CommonServings { get; set; } = [];
 
     /// <summary>
+    /// Optional user note.
+    /// </summary>
+    public string? Note { get; set; }
+
+    /// <summary>
     /// Maps a <see cref="Food"/> document to a <see cref="FoodSummary"/> DTO.
     /// </summary>
     /// <param name="food">The food document.</param>
@@ -75,7 +75,6 @@ public class FoodSummary
         NameEn = food.LocalizedNames?.En,
         NameCs = food.LocalizedNames?.Cs,
         NameDe = food.LocalizedNames?.De,
-        Source = food.Source,
         Barcode = food.Barcode,
         NutrientValue = new NutrientValueDto
         {
@@ -88,6 +87,7 @@ public class FoodSummary
             SaturatedFat = food.NutrientValue.SaturatedFat,
             Salt = food.NutrientValue.Salt
         },
+        Note = food.Note,
         Allergens = food.Allergens,
         CommonServings = food.CommonServings
             .Select(s => new ServingSizeDto { Label = s.Label, WeightGrams = s.WeightGrams })

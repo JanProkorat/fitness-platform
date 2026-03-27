@@ -37,12 +37,6 @@ public class Food
     public LocalizedNames? LocalizedNames { get; set; }
 
     /// <summary>
-    /// Data source: "system", "custom", or "openfoodfacts".
-    /// </summary>
-    [BsonElement("source")]
-    public string? Source { get; set; }
-
-    /// <summary>
     /// EAN/UPC barcode, if available.
     /// </summary>
     [BsonElement("barcode")]
@@ -72,6 +66,13 @@ public class Food
     /// </summary>
     [BsonElement("nutritionistId")]
     public Guid? NutritionistId { get; set; }
+
+    /// <summary>
+    /// Optional user note for this food item.
+    /// </summary>
+    [BsonElement("note")]
+    [BsonIgnoreIfNull]
+    public string? Note { get; set; }
 
     /// <summary>
     /// Soft-delete flag.

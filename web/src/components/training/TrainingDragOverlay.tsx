@@ -20,7 +20,7 @@ export default function TrainingDragOverlay() {
   return (
     <DragOverlay dropAnimation={null}>
       {data.type === 'exercise' && (
-        <div className="rounded-sm border border-gold/40 bg-bg p-2 shadow-lg shadow-black/40 max-w-[300px]">
+        <div className="rounded-sm border border-accent-br bg-bg p-2 shadow-lg shadow-black/40 max-w-[300px]">
           <span className="text-[11px] font-semibold text-text2">{data.exercise.exerciseName}</span>
           <span className="ml-2 text-[9px] text-text3">{data.exercise.sets.length}s</span>
         </div>
@@ -31,8 +31,8 @@ export default function TrainingDragOverlay() {
       )}
 
       {data.type === 'day' && (
-        <div className="rounded-sm border border-gold/40 bg-surface px-3 py-2 shadow-lg shadow-black/40">
-          <span className="font-heading text-xs font-bold uppercase tracking-wide text-gold">
+        <div className="rounded-sm border border-accent-br bg-bg2 px-3 py-2 shadow-lg shadow-black/40">
+          <span className="text-xs font-bold uppercase tracking-wide text-accent">
             {t(`nutrition.${DAY_KEYS[data.dayOfWeek - 1]}`)}
           </span>
         </div>
@@ -57,7 +57,7 @@ function SessionOverlay({
   const session = week?.sessions.find((s) => s.sessionId === sessionId);
 
   return (
-    <div className="rounded-sm border border-gold/40 bg-[#1a1a1a] shadow-lg shadow-black/40 max-w-[300px]">
+    <div className="rounded-sm border border-accent-br bg-bg2 shadow-lg shadow-black/40 max-w-[300px]">
       <div className="flex items-center gap-2 px-3 py-2">
         <span className="text-sm font-semibold text-text truncate">
           {session?.name ?? 'Session'}

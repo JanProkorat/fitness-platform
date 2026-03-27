@@ -80,7 +80,6 @@ public class OpenFoodFactsServiceTests
 
         result.Should().NotBeNull();
         result!.Name.Should().Be("Fresh Product");
-        result.Source.Should().Be("openfoodfacts");
 
         await _foodsCollection.Received(1).ReplaceOneAsync(
             Arg.Any<FilterDefinition<Food>>(),
@@ -204,7 +203,6 @@ public class OpenFoodFactsServiceTests
         results[1].Name.Should().Be("Banana Smoothie");
         results.Should().AllSatisfy(f =>
         {
-            f.Source.Should().Be("openfoodfacts");
             f.ExternalId.Should().NotBeEmpty();
         });
     }

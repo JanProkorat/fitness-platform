@@ -59,23 +59,23 @@ export default function GoalCalculation({
 
   return (
     <div className="space-y-3">
-      <h2 className="font-heading text-sm font-bold uppercase tracking-wide text-gold">
+      <h2 className="text-sm font-bold uppercase tracking-wide text-accent">
         {t('nutritionGoals.results')}
       </h2>
 
       <div className="flex items-center gap-2 overflow-x-auto py-2">
         {steps.map((step, i) => (
           <div key={step.label} className="flex items-center gap-2">
-            <div className="flex min-w-[140px] flex-col rounded-sm border border-border bg-surface p-4 text-center">
-              <span className="text-xs text-muted">{step.label}</span>
+            <div className="flex min-w-[140px] flex-col rounded-sm border border-border bg-bg2 p-4 text-center">
+              <span className="text-xs text-text3">{step.label}</span>
               <span className="mt-1 text-2xl font-bold text-text">
                 {step.value}
               </span>
-              <span className="text-[11px] text-gold-dim">{step.detail}</span>
+              <span className="text-[11px] text-accent">{step.detail}</span>
             </div>
             {i < steps.length - 1 && (
               <svg
-                className="h-5 w-5 shrink-0 text-gold-dim"
+                className="h-5 w-5 shrink-0 text-accent"
                 viewBox="0 0 20 20"
                 fill="currentColor"
               >

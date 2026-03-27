@@ -43,7 +43,7 @@ export default function MacroProgressBar({
           )}
         </span>
       </div>
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/5">
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-bg3">
         <div
           className={`h-full rounded-full transition-all ${isOver ? 'bg-red-400' : colorMap[color]}`}
           style={{ width: `${clampedPct}%` }}

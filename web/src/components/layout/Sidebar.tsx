@@ -1,96 +1,343 @@
-import { NavLink } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/auth';
+import { apiClient } from '@/api/client';
+import type { ClientSummary } from '@/api/client';
+import { getPendingInvites, deletePendingInvite, type PendingInviteDto } from '@/api/pending-invites';
+import { cn } from '@/lib/cn';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { NewClientDialog } from '@/components/NewClientDialog';
+import { Dialog } from '@/components/ui/Dialog';
+import { Button } from '@/components/ui/Button';
 
-export default function Sidebar() {
+interface SidebarProps {
+  onToggleDark?: () => void;
+}
+
+export function Sidebar({ onToggleDark }: SidebarProps) {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const isNutritionist = user?.roles.some((r) => ['Nutritionist', 'Admin'].includes(r));
   const isTrainer = user?.roles.some((r) => ['Trainer', 'Admin'].includes(r));
 
-  const navItems = [
-    { to: '/dashboard', icon: '\u{1F4CA}', label: t('sidebar.dashboard') },
-    { to: '/clients', icon: '\u{1F465}', label: t('sidebar.clients') },
-    ...(isNutritionist
-      ? [
-          { to: '/foods', icon: '\u{1F34E}', label: t('sidebar.foods') },
-          { to: '/recipes', icon: '\u{1F4D6}', label: t('sidebar.recipes') },
-          { to: '/plans', icon: '\u{1F4CB}', label: t('sidebar.plans') },
-        ]
-      : []),
-    ...(isTrainer
-      ? [
-          { to: '/exercises', icon: '\u{1F4AA}', label: t('sidebar.exercises') },
-          { to: '/training-plans', icon: '\u{1F3CB}\u{FE0F}', label: t('sidebar.trainingPlans') },
-        ]
-      : []),
-    { to: '/profile', icon: '\u{2699}\u{FE0F}', label: t('sidebar.settings') },
-  ];
-
-  const initials = user
+  const userInitials = user
     ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase()
     : '??';
 
+  const roleName = user?.roles.map((r) => t(`auth.role${r}`)).join(' & ');
+
+  // Fetch clients
+  const { data: clientsData } = useQuery({
+    queryKey: ['sidebar-clients'],
+    queryFn: () => apiClient.getClientsEndpoint(1, 50),
+    staleTime: 60_000,
+  });
+  const clients: ClientSummary[] = clientsData?.clients ?? [];
+
+  // Fetch pending invites
+  const { data: invitesData } = useQuery({
+    queryKey: ['pending-invites'],
+    queryFn: getPendingInvites,
+    staleTime: 30_000,
+  });
+  const pendingInvites: PendingInviteDto[] = invitesData?.invites ?? [];
+
+  // Delete invite mutation
+  const deleteMutation = useMutation({
+    mutationFn: deletePendingInvite,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pending-invites'] });
+      setSelectedInvite(null);
+    },
+  });
+
+  // State
+  const [newClientOpen, setNewClientOpen] = useState(false);
+  const [expandedClientId, setExpandedClientId] = useState<string | null>(null);
+  const [selectedInvite, setSelectedInvite] = useState<PendingInviteDto | null>(null);
+
+  const clientMatch = location.pathname.match(/^\/clients\/([^/]+)/);
+  const activeClientId = clientMatch?.[1] ?? null;
+
+  // Auto-expand when navigating to a client page (but not collapse when leaving)
+  useEffect(() => {
+    if (activeClientId) {
+      setExpandedClientId(activeClientId);
+    }
+  }, [activeClientId]);
+
+  const toggleClient = (id: string) => {
+    setExpandedClientId(prev => prev === id ? null : id);
+  };
+
+  const isActive = (path: string) =>
+    location.pathname === path || location.pathname.startsWith(path + '/');
+
   return (
-    <aside className="flex w-[220px] shrink-0 flex-col border-r border-border bg-dark2 min-h-screen">
-      {/* Logo */}
-      <div className="border-b border-border px-5 py-4 font-heading text-base font-black uppercase tracking-wide">
-        GoodFellas <span className="text-gold">Platform</span>
+    <aside className="sb">
+      {/* Workspace header */}
+      <div className="sb-ws">
+        <div className="sb-ws-icon">GF</div>
+        <div className="sb-ws-name">GoodFellas</div>
+        {onToggleDark && (
+          <button
+            type="button"
+            onClick={onToggleDark}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--text3)', padding: '2px 4px', borderRadius: 'var(--radius)', transition: 'background 0.1s' }}
+            title="Tmavý režim"
+          >
+            ◑
+          </button>
+        )}
       </div>
 
-      {/* Nav */}
-      <nav className="flex flex-col gap-0.5 py-2">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            className={({ isActive }) =>
-              `relative mx-2 flex items-center gap-2.5 rounded-sm px-4 py-2.5 font-heading text-xs font-semibold uppercase tracking-wide transition-all ${
-                isActive
-                  ? 'bg-gold/8 text-gold before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-gold'
-                  : 'text-text3 hover:bg-[#1a1712] hover:text-gold'
-              }`
-            }
-          >
-            <span className="w-[22px] text-center text-base">{item.icon}</span>
-            {item.label}
+      <div className="sb-div" />
+
+      {/* Main navigation */}
+      <nav style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', padding: '4px 0' }}>
+        {/* Dashboard & Messages */}
+        <div className="sb-sec">
+          <NavLink to="/dashboard" className={cn('sb-item', isActive('/dashboard') && 'active')}>
+            <span className="sbi-icon">⊞</span>
+            <span className="sbi-lbl">{t('sidebar.dashboard')}</span>
           </NavLink>
-        ))}
+          <NavLink to="/messages" className={cn('sb-item', isActive('/messages') && 'active')}>
+            <span className="sbi-icon">✉</span>
+            <span className="sbi-lbl">Zprávy</span>
+            <span className="sbi-badge">1</span>
+          </NavLink>
+        </div>
+
+        <div className="sb-div" />
+
+        {/* KLIENTI section */}
+        <div className="sb-sec">
+          <div className="sb-sec-lbl">KLIENTI</div>
+
+          {clients.map((client) => {
+            const cId = client.publicId ?? '';
+            const isExpanded = expandedClientId === cId;
+            const isClientActive = activeClientId === cId;
+
+            return (
+              <div key={cId}>
+                <div className={cn('sb-item', isClientActive && 'active')} style={{ cursor: 'pointer' }}>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); toggleClient(cId); }}
+                    style={{
+                      background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                      fontSize: 10, color: 'var(--text3)', width: 18, display: 'flex',
+                      alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                      transition: 'transform 0.15s',
+                      transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                    }}
+                  >
+                    ▶
+                  </button>
+                  <span
+                    className="sbi-lbl"
+                    onClick={() => navigate(`/clients/${cId}`)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    {client.firstName} {client.lastName}
+                  </span>
+                </div>
+
+                {isExpanded && (
+                  <div>
+                    {isTrainer && (
+                      <NavLink
+                        to={`/training-plans`}
+                        className={cn('sb-item', isActive(`/training-plans`) && 'active')}
+                        style={{ paddingLeft: 28 }}
+                      >
+                        <span className="sbi-icon">🏋️</span>
+                        <span className="sbi-lbl">Trén. plán</span>
+                      </NavLink>
+                    )}
+                    {isNutritionist && (
+                      <NavLink
+                        to={`/clients/${cId}/nutrition`}
+                        className={cn('sb-item', (isActive(`/clients/${cId}/nutrition`) || isActive(`/clients/${cId}/plans`)) && 'active')}
+                        style={{ paddingLeft: 28 }}
+                      >
+                        <span className="sbi-icon">🥗</span>
+                        <span className="sbi-lbl">Jídelníček</span>
+                      </NavLink>
+                    )}
+                    <NavLink
+                      to={`/clients/${cId}/nutrition-goals`}
+                      className={cn('sb-item', isActive(`/clients/${cId}/nutrition-goals`) && 'active')}
+                      style={{ paddingLeft: 28 }}
+                    >
+                      <span className="sbi-icon">🎯</span>
+                      <span className="sbi-lbl">Cíle a makra</span>
+                    </NavLink>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Pending invites */}
+          {pendingInvites.length > 0 && (
+            <>
+              <div style={{ padding: '6px 14px 2px', fontSize: 10, color: 'var(--text4)', letterSpacing: '0.03em' }}>
+                ČEKAJÍCÍ POZVÁNKY
+              </div>
+              {pendingInvites.map((invite) => (
+                <button
+                  key={invite.publicId}
+                  type="button"
+                  className="sb-item"
+                  onClick={() => setSelectedInvite(invite)}
+                  style={{ width: '100%', textAlign: 'left', fontFamily: 'inherit', opacity: 0.7 }}
+                >
+                  <span className="sbi-icon" style={{ opacity: 0.5 }}>✉</span>
+                  <span className="sbi-lbl">{invite.firstName} {invite.lastName}</span>
+                </button>
+              ))}
+            </>
+          )}
+
+          {/* Add client */}
+          <button
+            type="button"
+            className="sb-item"
+            onClick={() => setNewClientOpen(true)}
+            style={{ width: '100%', textAlign: 'left', fontFamily: 'inherit', color: 'var(--text3)' }}
+          >
+            <span className="sbi-icon" style={{ opacity: 0.5 }}>+</span>
+            <span className="sbi-lbl">Přidat klienta</span>
+          </button>
+        </div>
+
+        <div className="sb-div" />
+
+        {/* DATABÁZE section */}
+        {(isNutritionist || isTrainer) && (
+          <div className="sb-sec">
+            <div className="sb-sec-lbl">DATABÁZE</div>
+
+            {isNutritionist && (
+              <>
+                <NavLink to="/foods" className={cn('sb-item', isActive('/foods') && 'active')}>
+                  <span className="sbi-icon">📦</span>
+                  <span className="sbi-lbl">{t('sidebar.foods')}</span>
+                </NavLink>
+                <NavLink to="/recipes" className={cn('sb-item', isActive('/recipes') && 'active')}>
+                  <span className="sbi-icon">📖</span>
+                  <span className="sbi-lbl">{t('sidebar.recipes')}</span>
+                </NavLink>
+              </>
+            )}
+
+            {isTrainer && (
+              <NavLink to="/exercises" className={cn('sb-item', isActive('/exercises') && 'active')}>
+                <span className="sbi-icon">💪</span>
+                <span className="sbi-lbl">{t('sidebar.exercises')}</span>
+              </NavLink>
+            )}
+          </div>
+        )}
       </nav>
 
-      {/* Spacer */}
-      <div className="flex-1" />
-
       {/* Language switcher */}
-      <div className="flex justify-center border-t border-border px-4 py-3">
+      <div style={{ padding: '8px 12px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'center' }}>
         <LanguageSwitcher />
       </div>
 
-      {/* User + Logout */}
-      <div className="border-t border-border p-4">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border-[1.5px] border-gold/30 bg-gold/10 font-heading text-xs font-bold text-gold">
-            {initials}
+      {/* User card */}
+      <div className="sb-user" style={{ borderTop: '1px solid var(--border)' }}>
+        <div className="sb-avatar">{userInitials}</div>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {user?.firstName} {user?.lastName}
           </div>
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-xs font-semibold">
-              {user?.firstName} {user?.lastName}
-            </div>
-            <div className="text-[11px] text-muted">
-              {user?.roles.map((r) => t(`auth.role${r}`)).join(', ')}
-            </div>
+          <div style={{ fontSize: 11, color: 'var(--text3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {roleName}
           </div>
         </div>
+      </div>
+
+      {/* Logout */}
+      <div style={{ padding: '8px 12px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'center' }}>
         <button
+          type="button"
           onClick={logout}
-          className="mt-3 w-full rounded-sm border border-border bg-transparent px-3 py-1.5 font-heading text-[11px] font-semibold uppercase tracking-wide text-text3 transition-colors hover:border-red hover:text-red"
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '6px 16px', border: 'none', borderRadius: 'var(--radius-md)',
+            background: 'var(--red-bg)', color: 'var(--red)',
+            fontSize: 12, fontWeight: 500, fontFamily: 'inherit',
+            cursor: 'pointer', transition: 'background 0.15s, opacity 0.15s',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.8'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
         >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
           {t('auth.logout')}
         </button>
       </div>
+
+      {/* New client dialog */}
+      <NewClientDialog open={newClientOpen} onClose={() => setNewClientOpen(false)} />
+
+      {/* Pending invite detail dialog */}
+      {selectedInvite && (
+        <Dialog
+          open={true}
+          onClose={() => setSelectedInvite(null)}
+          title="Čekající pozvánka"
+          maxWidth={400}
+          footer={
+            <>
+              <Button
+                variant="danger"
+                onClick={() => deleteMutation.mutate(selectedInvite.publicId)}
+                disabled={deleteMutation.isPending}
+              >
+                {deleteMutation.isPending ? 'Mazání...' : 'Smazat pozvánku'}
+              </Button>
+              <Button onClick={() => setSelectedInvite(null)}>Zavřít</Button>
+            </>
+          }
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text3)', marginBottom: 4 }}>Jméno</div>
+              <div style={{ fontSize: 14, color: 'var(--text)' }}>{selectedInvite.firstName} {selectedInvite.lastName}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text3)', marginBottom: 4 }}>Email</div>
+              <div style={{ fontSize: 14, color: 'var(--text)' }}>{selectedInvite.email}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text3)', marginBottom: 4 }}>Pozvánka odeslána</div>
+              <div style={{ fontSize: 14, color: 'var(--text)' }}>
+                {new Date(selectedInvite.sentAt).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              </div>
+            </div>
+            <div style={{ padding: '10px 12px', background: 'var(--accent-bg)', borderRadius: 'var(--radius-md)', fontSize: 13, color: 'var(--text2)' }}>
+              Klient zatím nepřijal pozvánku. Pokud ji chcete zrušit, klikněte na „Smazat pozvánku".
+            </div>
+          </div>
+        </Dialog>
+      )}
     </aside>
   );
 }
+
+export default Sidebar;

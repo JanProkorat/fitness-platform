@@ -29,6 +29,11 @@ public class UpdateDayRequest
     public int DayOfWeek { get; set; }
 
     /// <summary>
+    /// Optional note for this day.
+    /// </summary>
+    public string? Note { get; set; }
+
+    /// <summary>
     /// Meals planned for this day.
     /// </summary>
     public List<UpdateMealRequest> Meals { get; set; } = [];
@@ -56,9 +61,55 @@ public class UpdateMealRequest
     public int Order { get; set; }
 
     /// <summary>
+    /// Suggested time for the meal (e.g. "08:00").
+    /// </summary>
+    public string? Time { get; set; }
+
+    /// <summary>
+    /// Optional note for this meal.
+    /// </summary>
+    public string? Note { get; set; }
+
+    /// <summary>
     /// Foods included in this meal.
     /// </summary>
     public List<UpdateMealFoodRequest> Foods { get; set; } = [];
+
+    /// <summary>
+    /// Recipes included in this meal.
+    /// </summary>
+    public List<UpdateMealRecipeRequest> Recipes { get; set; } = [];
+}
+
+/// <summary>
+/// Represents a recipe entry submitted in a full-state plan update.
+/// </summary>
+public class UpdateMealRecipeRequest
+{
+    /// <summary>
+    /// Recipe identifier.
+    /// </summary>
+    public Guid RecipeId { get; set; }
+
+    /// <summary>
+    /// Display name of the recipe.
+    /// </summary>
+    public string RecipeName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Nutrient values per one serving.
+    /// </summary>
+    public NutrientValue NutrientValuePerServing { get; set; } = new();
+
+    /// <summary>
+    /// Number of servings.
+    /// </summary>
+    public decimal Servings { get; set; } = 1;
+
+    /// <summary>
+    /// Optional note.
+    /// </summary>
+    public string? Note { get; set; }
 }
 
 /// <summary>
@@ -85,4 +136,9 @@ public class UpdateMealFoodRequest
     /// Amount in grams to include in this meal.
     /// </summary>
     public decimal AmountGrams { get; set; }
+
+    /// <summary>
+    /// Optional note for this food in the plan.
+    /// </summary>
+    public string? Note { get; set; }
 }

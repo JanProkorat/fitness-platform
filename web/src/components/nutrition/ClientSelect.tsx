@@ -57,7 +57,7 @@ export default function ClientSelect({ value, onChange }: ClientSelectProps) {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="mt-1 flex w-full items-center justify-between rounded-sm border border-border bg-surface px-4 py-2.5 text-left text-sm text-text outline-none transition-colors focus:border-gold/40"
+        className="mt-1 flex w-full items-center justify-between rounded-sm border border-border-md bg-bg2 px-4 py-2.5 text-left text-sm text-text outline-none transition-colors focus:border-border-hv"
       >
         <span className={displayValue ? 'text-text' : 'text-text3'}>
           {displayValue || t('nutrition.selectClient')}
@@ -73,7 +73,7 @@ export default function ClientSelect({ value, onChange }: ClientSelectProps) {
       </button>
 
       {open && (
-        <div className="absolute z-20 mt-1 w-full rounded-sm border border-border bg-surface shadow-lg">
+        <div className="absolute z-20 mt-1 w-full rounded-sm border border-border bg-bg2 shadow-lg">
           <div className="border-b border-border p-2">
             <input
               type="text"
@@ -81,7 +81,7 @@ export default function ClientSelect({ value, onChange }: ClientSelectProps) {
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t('nutrition.searchClient')}
               autoFocus
-              className="w-full rounded-sm border border-border bg-bg px-3 py-2 text-sm text-text outline-none focus:border-gold/40"
+              className="w-full rounded-sm border border-border-md bg-bg px-3 py-2 text-sm text-text outline-none focus:border-border-hv"
             />
           </div>
           <div className="max-h-48 overflow-y-auto">
@@ -95,11 +95,11 @@ export default function ClientSelect({ value, onChange }: ClientSelectProps) {
                   key={client.publicId}
                   type="button"
                   onClick={() => handleSelect(client)}
-                  className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors hover:bg-gold/5 ${
-                    client.publicId === value ? 'bg-gold/10 text-gold' : 'text-text'
+                  className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors hover:bg-bg-hover ${
+                    client.publicId === value ? 'bg-accent-bg text-accent' : 'text-text'
                   }`}
                 >
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-sm bg-gold/10 text-[10px] font-bold text-gold">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-sm bg-accent-bg text-[10px] font-bold text-accent">
                     {client.firstName[0]}{client.lastName[0]}
                   </div>
                   <div className="min-w-0 flex-1">

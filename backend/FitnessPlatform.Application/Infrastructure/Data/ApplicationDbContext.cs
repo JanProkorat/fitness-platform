@@ -62,6 +62,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     /// <inheritdoc />
     public virtual DbSet<Notification> Notifications { get; set; } = null!;
 
+    /// <summary>
+    /// Pending invitations sent by professionals to prospective clients.
+    /// </summary>
+    public virtual DbSet<PendingInvite> PendingInvites { get; set; } = null!;
+
     /// <inheritdoc />
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {

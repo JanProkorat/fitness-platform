@@ -28,8 +28,8 @@ function ToolbarButton({
       }}
       className={`rounded px-2 py-1 text-xs font-semibold transition-colors ${
         active
-          ? 'bg-gold/20 text-gold'
-          : 'text-text3 hover:bg-white/5 hover:text-text'
+          ? 'bg-accent-bg text-accent'
+          : 'text-text3 hover:bg-bg-hover hover:text-text'
       }`}
     >
       {children}
@@ -69,7 +69,7 @@ export default function TiptapEditor({ content, onChange, placeholder }: TiptapE
   if (!editor) return null;
 
   return (
-    <div className="rounded-sm border border-border bg-surface">
+    <div className="rounded-sm border border-border bg-bg2">
       {/* Toolbar */}
       <div className="flex flex-wrap gap-0.5 border-b border-border px-2 py-1.5">
         <ToolbarButton

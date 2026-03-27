@@ -39,4 +39,9 @@ public class ProfessionalProfile : PublicTimestampableEntity
     /// Collection of invitation tokens sent by this professional.
     /// </summary>
     public ICollection<InvitationToken> InvitationTokens { get; set; } = [];
+
+    /// <summary>
+    /// Collection of pending invites sent by this professional.
+    /// </summary>
+    public ICollection<PendingInvite> PendingInvites { get; set; } = [];
 }

@@ -50,7 +50,6 @@ public class CreateFoodEndpointTests
         await mongo.Foods.Received(1).InsertOneAsync(
             Arg.Is<Food>(f =>
                 f.Name == "Custom Protein Bar" &&
-                f.Source == "custom" &&
                 f.NutritionistId == _nutritionistId),
             Arg.Any<InsertOneOptions>(),
             Arg.Any<CancellationToken>());

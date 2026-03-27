@@ -17,8 +17,8 @@ public class GetCustomFoodsEndpointTests
     [Fact]
     public async Task HandleAsync_HasCustomFoods_ReturnsList()
     {
-        var food1 = FoodTestHelpers.CreateFood(name: "Custom A", source: "custom", nutritionistId: _nutritionistId);
-        var food2 = FoodTestHelpers.CreateFood(name: "Custom B", source: "custom", nutritionistId: _nutritionistId);
+        var food1 = FoodTestHelpers.CreateFood(name: "Custom A", nutritionistId: _nutritionistId);
+        var food2 = FoodTestHelpers.CreateFood(name: "Custom B", nutritionistId: _nutritionistId);
         var mongo = FoodTestHelpers.CreateMockMongo(food1, food2);
 
         var ep = Factory.Create<GetCustomFoodsEndpoint>(

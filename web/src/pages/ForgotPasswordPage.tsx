@@ -2,16 +2,19 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { apiClient } from '@/api/client';
 
 export default function ForgotPasswordPage() {
   const { t } = useTranslation();
-  const [status, setStatus] = useState<'form' | 'sent'>('form');
+  const navigate = useNavigate();
+  const [step, setStep] = useState<'form' | 'sent'>('form');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [sentEmail, setSentEmail] = useState('');
+  const [resending, setResending] = useState(false);
 
   const schema = z.object({
     email: z.string().email(t('validation.invalidEmail')),
@@ -23,6 +26,7 @@ export default function ForgotPasswordPage() {
     register,
     handleSubmit,
     formState: { errors },
+    getValues,
   } = useForm<ForgotForm>({
     resolver: zodResolver(schema),
   });
@@ -32,7 +36,8 @@ export default function ForgotPasswordPage() {
     setLoading(true);
     try {
       await apiClient.requestPasswordResetEndpoint({ email: data.email });
-      setStatus('sent');
+      setSentEmail(data.email);
+      setStep('sent');
     } catch {
       setError(t('auth.forgotPasswordError'));
     } finally {
@@ -40,103 +45,109 @@ export default function ForgotPasswordPage() {
     }
   };
 
+  const handleResend = async () => {
+    setResending(true);
+    try {
+      await apiClient.requestPasswordResetEndpoint({ email: sentEmail || getValues('email') });
+    } catch {
+      // silently fail on resend
+    } finally {
+      setResending(false);
+    }
+  };
+
   return (
-    <div
-      className="relative flex min-h-screen items-center justify-center px-4"
-      style={{
-        background:
-          'radial-gradient(ellipse at 50% 30%, rgba(201,168,76,0.05), transparent 60%)',
-      }}
-    >
-      <div className="absolute top-4 right-4">
+    <div className="auth-wrap" style={{ position: 'relative' }}>
+      <div style={{ position: 'absolute', top: 16, right: 16 }}>
         <LanguageSwitcher />
       </div>
 
-      <div className="w-full max-w-[400px]">
-        {/* Logo */}
-        <div className="mb-10 text-center">
-          <span className="font-heading text-2xl font-black uppercase tracking-[3px] text-gold">
-            GF
-          </span>
-          <span className="font-heading text-2xl font-normal uppercase tracking-wide text-text2">
-            {' '}
-            Platform
-          </span>
-        </div>
+      <div className="auth-card">
+        {step === 'form' ? (
+          <>
+            <button type="button" className="auth-back" onClick={() => navigate('/login')}>
+              ← Zpět na přihlášení
+            </button>
 
-        {/* Card */}
-        <div className="rounded-sm border border-border bg-surface p-8">
-          <h1 className="mb-1 text-2xl font-bold">
-            {t('auth.forgotPasswordTitle')}
-          </h1>
-          <p className="mb-8 text-sm text-muted">
-            {t('auth.forgotPasswordSubtitle')}
-          </p>
-
-          {status === 'sent' ? (
-            <div className="text-center">
-              <div className="mb-4 text-4xl">&#x2709;&#xFE0F;</div>
-              <p className="mb-6 text-sm text-green-bright">
-                {t('auth.forgotPasswordSuccess')}
-              </p>
-              <Link
-                to="/login"
-                className="text-sm text-gold transition-colors hover:text-gold-bright"
-              >
-                {t('auth.backToLogin')}
-              </Link>
+            <div className="auth-title">
+              Zapomenuté <span>heslo</span>
             </div>
-          ) : (
-            <>
-              {error && (
-                <div className="mb-4 rounded-sm border border-red-dim bg-red/8 px-4 py-3 text-sm text-red">
-                  {error}
-                </div>
-              )}
+            <div className="auth-sub">
+              Zadejte svůj email a pošleme vám odkaz pro reset hesla.
+            </div>
 
-              <form
-                onSubmit={handleSubmit(onSubmit)}
-                className="flex flex-col gap-4"
+            {error && (
+              <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--red)', background: 'var(--red-bg)', fontSize: 13, color: 'var(--red)' }}>
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div className="form-group">
+                <label className="form-label">Email</label>
+                <input
+                  type="email"
+                  {...register('email')}
+                  className="auth-input"
+                  placeholder="vas@email.cz"
+                  autoComplete="email"
+                />
+                {errors.email && (
+                  <p style={{ marginTop: 4, fontSize: 12, color: 'var(--red)' }}>{errors.email.message}</p>
+                )}
+              </div>
+
+              <button type="submit" disabled={loading} className="btn-auth-primary" style={{ marginBottom: 12 }}>
+                {loading ? 'Odesílání...' : 'Odeslat odkaz pro reset'}
+              </button>
+            </form>
+
+            <div className="auth-footer">
+              Vzpomněli jste si?{' '}
+              <Link to="/login">Přihlaste se</Link>
+            </div>
+          </>
+        ) : (
+          <>
+            <button type="button" className="auth-back" onClick={() => navigate('/login')}>
+              ← Zpět na přihlášení
+            </button>
+
+            <div className="auth-success">
+              <div className="auth-success-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                  <polyline points="22,6 12,13 2,6"/>
+                </svg>
+              </div>
+              <div className="auth-success-title">Email odeslán</div>
+              <div className="auth-success-text">
+                Poslali jsme vám instrukce pro reset hesla. Zkontrolujte svou schránku — email by měl dorazit do pár minut.
+              </div>
+            </div>
+
+            <div style={{ marginTop: 16, padding: '12px 14px', background: 'var(--bg2)', borderRadius: 'var(--radius-md)', fontSize: 13, color: 'var(--text2)', textAlign: 'left' as const }}>
+              <span style={{ color: 'var(--text3)', fontSize: 11, display: 'block', marginBottom: 3 }}>Odkaz odeslán na:</span>
+              <span style={{ fontWeight: 500, color: 'var(--text)' }}>{sentEmail}</span>
+            </div>
+
+            <div style={{ marginTop: 12, fontSize: 13, color: 'var(--text3)', textAlign: 'center' as const }}>
+              Email nedorazil?{' '}
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={resending}
+                style={{ color: 'var(--blue)', cursor: 'pointer', background: 'none', border: 'none', fontFamily: 'inherit', fontSize: 'inherit', padding: 0 }}
               >
-                <div>
-                  <label className="lbl mb-2 block">
-                    {t('common.email')}
-                  </label>
-                  <input
-                    type="email"
-                    {...register('email')}
-                    className="w-full rounded-sm border border-border bg-surface px-4 py-3.5 text-sm text-text outline-none transition-colors focus:border-gold/40"
-                    placeholder="email@example.cz"
-                  />
-                  {errors.email && (
-                    <p className="mt-1 text-xs text-red">
-                      {errors.email.message}
-                    </p>
-                  )}
-                </div>
+                {resending ? 'Odesílání...' : 'Odeslat znovu'}
+              </button>
+            </div>
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="mt-2 w-full rounded-sm bg-gold px-4 py-4 font-heading text-[15px] font-extrabold uppercase tracking-[1.5px] text-black transition-colors hover:bg-gold-bright disabled:opacity-50"
-                >
-                  {loading
-                    ? t('auth.forgotPasswordLoading')
-                    : t('auth.forgotPasswordSubmit')}
-                </button>
-              </form>
-
-              <p className="mt-6 text-center text-sm text-muted">
-                <Link
-                  to="/login"
-                  className="text-gold transition-colors hover:text-gold-bright"
-                >
-                  {t('auth.backToLogin')}
-                </Link>
-              </p>
-            </>
-          )}
-        </div>
+            <button type="button" className="btn-auth-primary" style={{ marginTop: 16 }} onClick={() => navigate('/login')}>
+              Zpět na přihlášení
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
