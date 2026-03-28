@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { DarkModeToggle } from '@/components/DarkModeToggle';
 import { apiClient } from '@/api/client';
 
 export default function ForgotPasswordPage() {
@@ -58,7 +59,8 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="auth-wrap" style={{ position: 'relative' }}>
-      <div style={{ position: 'absolute', top: 16, right: 16 }}>
+      <div style={{ position: 'absolute', top: 16, right: 16, display: 'flex', alignItems: 'center', gap: 4 }}>
+        <DarkModeToggle />
         <LanguageSwitcher />
       </div>
 

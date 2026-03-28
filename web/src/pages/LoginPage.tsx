@@ -6,6 +6,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/stores/auth';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { DarkModeToggle } from '@/components/DarkModeToggle';
 import { apiClient } from '@/api/client';
 import { showError } from '@/lib/api-errors';
 import type { LoginResponse } from '@/api/client';
@@ -84,7 +85,8 @@ export default function LoginPage() {
 
   return (
     <div className="auth-wrap" style={{ position: 'relative' }}>
-      <div style={{ position: 'absolute', top: 16, right: 16 }}>
+      <div style={{ position: 'absolute', top: 16, right: 16, display: 'flex', alignItems: 'center', gap: 4 }}>
+        <DarkModeToggle />
         <LanguageSwitcher />
       </div>
 

@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { DarkModeToggle } from '@/components/DarkModeToggle';
 import { apiClient, ApiException } from '@/api/client';
 import { cn } from '@/lib/cn';
 
@@ -129,7 +130,8 @@ export default function ResetPasswordPage() {
   if (!token || !email) {
     return (
       <div className="auth-wrap">
-        <div className="absolute top-4 right-4">
+        <div className="absolute top-4 right-4" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <DarkModeToggle />
           <LanguageSwitcher />
         </div>
         <div className="auth-card" style={{ textAlign: 'center' }}>
@@ -172,7 +174,8 @@ export default function ResetPasswordPage() {
   if (step === 'success') {
     return (
       <div className="auth-wrap">
-        <div className="absolute top-4 right-4">
+        <div className="absolute top-4 right-4" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <DarkModeToggle />
           <LanguageSwitcher />
         </div>
         <div className="auth-card">
