@@ -727,7 +727,7 @@
     "discardTitle": "Änderungen verwerfen",
     "discardMessage": "Möchten Sie wirklich alle nicht gespeicherten Änderungen verwerfen? Diese Aktion kann nicht rückgängig gemacht werden.",
     "cancel": "Abbrechen",
-    "exerciseSummary": "{{exercises}} Üb · {{sets}} S",
+    "exerciseSummary": "{{exercises}} Übungen · {{sets}} Sätze",
     "addSessionButton": "Einheit hinzufügen",
     "addButton": "Hinzufügen",
     "cancelButton": "Abbrechen",

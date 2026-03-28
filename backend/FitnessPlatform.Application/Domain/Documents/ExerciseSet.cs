@@ -56,4 +56,11 @@ public class ExerciseSet
     [BsonElement("distanceMeters")]
     [BsonIgnoreIfNull]
     public decimal? DistanceMeters { get; set; }
+
+    /// <summary>
+    /// Rest time after this set in seconds.
+    /// </summary>
+    [BsonElement("restSeconds")]
+    [BsonIgnoreIfNull]
+    public int? RestSeconds { get; set; }
 }

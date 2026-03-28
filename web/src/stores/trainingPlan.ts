@@ -660,6 +660,7 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
                 durationSeconds: st.durationSeconds,
                 rpe: st.rpe,
                 distanceMeters: st.distanceMeters,
+                restSeconds: st.restSeconds,
               })),
             })),
           })),

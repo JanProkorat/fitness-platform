@@ -150,7 +150,8 @@ public class UpdateTrainingPlanEndpoint(IMongoContext mongo)
                             WeightKg = rset.WeightKg,
                             DurationSeconds = rset.DurationSeconds,
                             Rpe = rset.Rpe,
-                            DistanceMeters = rset.DistanceMeters
+                            DistanceMeters = rset.DistanceMeters,
+                            RestSeconds = rset.RestSeconds
                         }).ToList()
                     }).ToList()
                 }).ToList()

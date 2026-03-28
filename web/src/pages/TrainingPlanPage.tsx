@@ -3,6 +3,8 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getTrainingPlan } from '@/api/training-plans';
+import { getExercise } from '@/api/exercises';
+import type { MuscleGroup } from '@/api/exercise-types';
 import { apiClient } from '@/api/client';
 import { useTrainingPlanStore } from '@/stores/trainingPlan';
 import { Breadcrumb, PageHeader } from '@/components/layout';
@@ -14,6 +16,24 @@ import { TrainingSidebar } from '@/components/training/TrainingSidebar';
 import { cn } from '@/lib/cn';
 
 const DAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
+
+const MUSCLE_ICONS: Record<string, string> = {
+  Chest: '🫁', Back: '🔙', Shoulders: '🏔️', Biceps: '💪', Triceps: '💪',
+  Forearms: '🦾', Quadriceps: '🦵', Hamstrings: '🦵', Glutes: '🍑', Calves: '🦶',
+  Abs: '🧱', Obliques: '🧱', LowerBack: '🔙', Traps: '🏔️', FullBody: '🏋️',
+};
+
+const MUSCLE_COLORS: Record<string, string> = {
+  Chest: 'var(--blue)', Back: 'var(--green)', Shoulders: 'var(--orange)', Biceps: 'var(--purple)', Triceps: 'var(--purple)',
+  Forearms: 'var(--purple)', Quadriceps: 'var(--blue)', Hamstrings: 'var(--blue)', Glutes: 'var(--green)', Calves: 'var(--green)',
+  Abs: 'var(--orange)', Obliques: 'var(--orange)', LowerBack: 'var(--orange)', Traps: 'var(--green)', FullBody: 'var(--accent)',
+};
+
+const MUSCLE_BG_COLORS: Record<string, string> = {
+  Chest: 'var(--blue-bg)', Back: 'var(--green-bg)', Shoulders: 'var(--orange-bg)', Biceps: 'var(--purple-bg)', Triceps: 'var(--purple-bg)',
+  Forearms: 'var(--purple-bg)', Quadriceps: 'var(--blue-bg)', Hamstrings: 'var(--blue-bg)', Glutes: 'var(--green-bg)', Calves: 'var(--green-bg)',
+  Abs: 'var(--orange-bg)', Obliques: 'var(--orange-bg)', LowerBack: 'var(--orange-bg)', Traps: 'var(--green-bg)', FullBody: 'var(--accent-bg)',
+};
 
 /** Day-level note input — identical to the one in NutritionPlanPage */
 function DayNoteInput({ note, onChange, addLabel, placeholder }: { note?: string | null; onChange: (note: string) => void; addLabel: string; placeholder: string }) {
@@ -216,6 +236,7 @@ export default function TrainingPlanPage() {
   // ── Local UI state ──
   const [selectedDay, setSelectedDay] = useState(1);
   const [collapsedSessions, setCollapsedSessions] = useState<Set<string>>(new Set());
+  const [collapsedExercises, setCollapsedExercises] = useState<Set<string>>(new Set());
   const [addingSessionDay, setAddingSessionDay] = useState<number | null>(null);
   const [newSessionName, setNewSessionName] = useState('');
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
@@ -235,6 +256,41 @@ export default function TrainingPlanPage() {
     const client = clientsData.clients.find((c) => c.publicId === plan.clientId);
     return client ? `${client.firstName ?? ''} ${client.lastName ?? ''}`.trim() : null;
   }, [plan?.clientId, clientsData]);
+
+  // ── Fetch muscle groups for exercises ──
+  const allExerciseIds = useMemo(() => {
+    if (!plan) return [];
+    const ids = new Set<string>();
+    for (const w of plan.weeks) {
+      for (const s of w.sessions) {
+        for (const e of s.exercises) {
+          ids.add(e.exerciseExternalId);
+        }
+      }
+    }
+    return [...ids];
+  }, [plan]);
+
+  const { data: exerciseDetailsData } = useQuery({
+    queryKey: ['exercise-details-plan', allExerciseIds],
+    queryFn: async () => {
+      const results = await Promise.allSettled(allExerciseIds.map((id) => getExercise(id)));
+      const muscleMap = new Map<string, MuscleGroup[]>();
+      const fullMap = new Map<string, { muscleGroups: MuscleGroup[]; difficulty: string }>();
+      for (const r of results) {
+        if (r.status === 'fulfilled') {
+          muscleMap.set(r.value.exerciseId, r.value.muscleGroups);
+          fullMap.set(r.value.exerciseId, { muscleGroups: r.value.muscleGroups, difficulty: r.value.difficulty });
+        }
+      }
+      return { muscleMap, fullMap };
+    },
+    enabled: allExerciseIds.length > 0,
+    staleTime: 5 * 60_000,
+  });
+
+  const exerciseDetailsMap = exerciseDetailsData?.muscleMap;
+  const exerciseFullMap = exerciseDetailsData?.fullMap;
 
   // ── Load plan on mount ──
   useEffect(() => {
@@ -298,6 +354,15 @@ export default function TrainingPlanPage() {
   };
 
   // ── Toggle helpers ──
+  const toggleExercise = useCallback((key: string) => {
+    setCollapsedExercises((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+
   const toggleSession = useCallback((sessionId: string) => {
     setCollapsedSessions((prev) => {
       const next = new Set(prev);
@@ -374,12 +439,16 @@ export default function TrainingPlanPage() {
     });
   }, [currentWeek, t]);
 
-  // Open all sessions of the current day on first load / day change
+  // Open all sessions but collapse all exercises on day/week change or initial load
+  const [planLoaded, setPlanLoaded] = useState(false);
+  useEffect(() => {
+    if (plan && !planLoaded) setPlanLoaded(true);
+  }, [plan, planLoaded]);
+
   useEffect(() => {
     if (!plan) return;
     const week = plan.weeks.find((w) => w.weekNumber === selectedWeek);
     const sessions = (week?.sessions ?? []).filter((s) => s.dayOfWeek === selectedDay);
-    // Don't collapse any sessions by default — remove from collapsed set
     setCollapsedSessions((prev) => {
       const next = new Set(prev);
       for (const s of sessions) {
@@ -387,7 +456,15 @@ export default function TrainingPlanPage() {
       }
       return next;
     });
-  }, [plan, selectedWeek, selectedDay]);
+    const exKeys = new Set<string>();
+    for (const s of sessions) {
+      for (let i = 0; i < s.exercises.length; i++) {
+        exKeys.add(`${s.sessionId}-${i}`);
+      }
+    }
+    setCollapsedExercises(exKeys);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedWeek, selectedDay, planLoaded]);
 
   // ── Loading state ──
   if (!plan) {
@@ -580,9 +657,13 @@ export default function TrainingPlanPage() {
                   selectedDay={selectedDay}
                   selectedWeek={selectedWeek}
                 >
-                  {/* Session header — MealBlock style */}
+                  <div className="rounded-md border border-border bg-bg transition-all duration-100 hover:border-border-md">
+                  {/* Session header */}
                   <div
-                    className="group flex items-center gap-1.5 py-[5px] border-b border-border mb-[2px] cursor-grab active:cursor-grabbing select-none"
+                    className={cn(
+                      'group flex items-center gap-1.5 px-3 py-2 cursor-grab active:cursor-grabbing select-none transition-colors hover:bg-bg3',
+                      isSessionOpen && 'border-b border-border',
+                    )}
                     onClick={() => toggleSession(session.sessionId)}
                   >
                     <span
@@ -683,18 +764,8 @@ export default function TrainingPlanPage() {
                         />
                       </div>
 
-                      {/* Column headers — grid like MealBlock */}
-                      <div className="grid gap-1 px-2 py-1" style={{ gridTemplateColumns: '1fr minmax(80px, 1fr) 50px 68px 68px 84px 22px' }}>
-                        <span className="text-[11px] text-text3 font-medium">{t('training.exerciseLabel')}</span>
-                        <span className="text-[11px] text-text3 font-medium">{t('training.noteLabel')}</span>
-                        <span className="text-[11px] text-text3 font-medium text-right">{t('training.setsLabel')}</span>
-                        <span className="text-[11px] text-text3 font-medium text-right">{t('training.repsLabel')}</span>
-                        <span className="text-[11px] text-text3 font-medium text-right">{t('training.weightLabel')}</span>
-                        <span className="text-[11px] text-text3 font-medium text-right">{t('training.restSecondsLabel')}</span>
-                        <span />
-                      </div>
-
-                      {/* Exercise rows — wrapped in drop zone like MealDropZone */}
+                      {/* Exercise cards — collapsible list */}
+                      <div className="px-2 pt-1.5">
                       <ExerciseDropZone
                         sessionId={session.sessionId}
                         exerciseIds={session.exercises.map((_, i) => String(i))}
@@ -709,10 +780,32 @@ export default function TrainingPlanPage() {
                         }}
                       >
                       {session.exercises.map((ex, exIdx) => {
+                        const exKey = `${session.sessionId}-${exIdx}`;
+                        const isExOpen = !collapsedExercises.has(exKey);
                         const firstSet = ex.sets[0];
+                        const setsCount = ex.sets.length;
+                        const repsValues = ex.sets.map((s) => s.reps).filter((r): r is number => r != null);
+                        const weightValues = ex.sets.map((s) => s.weightKg).filter((w): w is number => w != null);
+                        const repsMin = repsValues.length > 0 ? Math.min(...repsValues) : null;
+                        const repsMax = repsValues.length > 0 ? Math.max(...repsValues) : null;
+                        const weightMin = weightValues.length > 0 ? Math.min(...weightValues) : null;
+                        const weightMax = weightValues.length > 0 ? Math.max(...weightValues) : null;
+                        const repsStr = repsMin == null ? '–' : repsMin === repsMax ? `${repsMin}` : `${repsMin}-${repsMax}`;
+                        const weightStr = weightMin == null ? '–' : weightMin === weightMax ? `${weightMin}` : `${weightMin}-${weightMax}`;
+                        const totalVolume = ex.sets.reduce((sum, s) => sum + ((s.reps ?? 0) * (s.weightKg ?? 0)), 0);
+
+                        const muscleGroups = exerciseDetailsMap?.get(ex.exerciseExternalId) ?? [];
+                        const primaryMuscle = muscleGroups[0] as string | undefined;
+                        const muscleColor = primaryMuscle ? MUSCLE_COLORS[primaryMuscle] ?? 'var(--accent)' : 'var(--accent)';
+                        const muscleBg = primaryMuscle ? MUSCLE_BG_COLORS[primaryMuscle] ?? 'var(--accent-bg)' : 'var(--accent-bg)';
+                        const muscleIcon = primaryMuscle ? MUSCLE_ICONS[primaryMuscle] ?? '🏋️' : '🏋️';
+                        const difficulty = exerciseFullMap?.get(ex.exerciseExternalId)?.difficulty;
+                        const diffLevel = difficulty === 'Beginner' ? 1 : difficulty === 'Intermediate' ? 2 : difficulty === 'Advanced' ? 3 : 0;
+                        const diffColor = difficulty === 'Beginner' ? 'var(--green)' : difficulty === 'Intermediate' ? 'var(--orange)' : difficulty === 'Advanced' ? 'var(--red)' : 'var(--text4)';
+
                         return (
                           <div
-                            key={`${session.sessionId}-${exIdx}`}
+                            key={exKey}
                             draggable
                             onDragStart={(e) => {
                               e.stopPropagation();
@@ -723,127 +816,180 @@ export default function TrainingPlanPage() {
                               e.dataTransfer.effectAllowed = 'move';
                             }}
                             data-item-id={String(exIdx)}
-                            className="grid gap-1 px-2 py-[5px] items-center group/row transition-colors hover:bg-bg-hover cursor-grab active:cursor-grabbing"
-                            style={{ gridTemplateColumns: '1fr minmax(80px, 1fr) 50px 68px 68px 84px 22px' }}
+                            className="rounded-md border border-border bg-bg mb-1.5 overflow-hidden transition-all duration-100 hover:border-border-md cursor-grab active:cursor-grabbing"
                           >
-                            {/* Exercise name */}
-                            <span className="text-[13px] text-text truncate">{ex.exerciseName}</span>
-                            {/* Note */}
-                            <input
-                              type="text"
-                              value={ex.notes ?? ''}
-                              onChange={(e) => updateExerciseNotes(selectedWeek, session.sessionId, exIdx, e.target.value)}
-                              placeholder={t('training.notePlaceholder')}
-                              style={{
-                                width: '100%', border: 'none', outline: 'none', background: 'transparent',
-                                fontSize: 11, color: 'var(--text3)', fontFamily: 'inherit', fontStyle: 'italic',
-                                padding: '1px 3px', borderRadius: 'var(--radius)', transition: 'background 0.1s',
-                                minWidth: 0,
-                              }}
-                              onFocus={(e) => { e.target.style.background = 'var(--bg-hover)'; }}
-                              onBlur={(e) => { e.target.style.background = 'transparent'; }}
-                            />
-                            {/* Sets count — editable */}
-                            <input
-                              type="number"
-                              min={1}
-                              value={ex.sets.length}
-                              onChange={(e) => {
-                                const target = Math.max(1, Number(e.target.value) || 1);
-                                const current = ex.sets.length;
-                                if (target > current) {
-                                  for (let i = 0; i < target - current; i++) addSet(selectedWeek, session.sessionId, exIdx);
-                                } else if (target < current) {
-                                  for (let i = current - 1; i >= target; i--) removeSet(selectedWeek, session.sessionId, exIdx, i);
-                                }
-                              }}
-                              style={{
-                                border: 'none', outline: 'none', background: 'transparent',
-                                fontSize: 12, color: 'var(--text)', fontFamily: 'inherit',
-                                padding: '2px 6px', borderRadius: 'var(--radius)',
-                                textAlign: 'right', transition: 'background 0.1s',
-                              }}
-                              onFocus={(e) => { e.target.style.background = 'var(--bg-active)'; }}
-                              onBlur={(e) => { e.target.style.background = 'transparent'; }}
-                            />
-                            {/* Reps — edits first set, and all sets uniformly */}
-                            <input
-                              type="number"
-                              placeholder="--"
-                              value={firstSet?.reps ?? ''}
-                              onChange={(e) => {
-                                const val = e.target.value ? Number(e.target.value) : null;
-                                for (let i = 0; i < ex.sets.length; i++) {
-                                  updateSet(selectedWeek, session.sessionId, exIdx, i, { reps: val });
-                                }
-                              }}
-                              style={{
-                                border: 'none', outline: 'none', background: 'transparent',
-                                fontSize: 12, color: 'var(--text)', fontFamily: 'inherit',
-                                padding: '2px 6px', borderRadius: 'var(--radius)',
-                                textAlign: 'right', transition: 'background 0.1s',
-                              }}
-                              onFocus={(e) => { e.target.style.background = 'var(--bg-active)'; }}
-                              onBlur={(e) => { e.target.style.background = 'transparent'; }}
-                            />
-                            {/* Weight — edits all sets uniformly */}
-                            <input
-                              type="number"
-                              placeholder="--"
-                              value={firstSet?.weightKg ?? ''}
-                              onChange={(e) => {
-                                const val = e.target.value ? Number(e.target.value) : null;
-                                for (let i = 0; i < ex.sets.length; i++) {
-                                  updateSet(selectedWeek, session.sessionId, exIdx, i, { weightKg: val });
-                                }
-                              }}
-                              style={{
-                                border: 'none', outline: 'none', background: 'transparent',
-                                fontSize: 12, color: 'var(--text)', fontFamily: 'inherit',
-                                padding: '2px 6px', borderRadius: 'var(--radius)',
-                                textAlign: 'right', transition: 'background 0.1s',
-                              }}
-                              onFocus={(e) => { e.target.style.background = 'var(--bg-active)'; }}
-                              onBlur={(e) => { e.target.style.background = 'transparent'; }}
-                            />
-                            {/* Rest seconds */}
-                            <input
-                              type="number"
-                              placeholder="--"
-                              value={ex.restSeconds ?? ''}
-                              onChange={(e) =>
-                                updateExerciseRestSeconds(
-                                  selectedWeek, session.sessionId, exIdx,
-                                  e.target.value ? Number(e.target.value) : 0,
-                                )
-                              }
-                              style={{
-                                border: 'none', outline: 'none', background: 'transparent',
-                                fontSize: 12, color: 'var(--text3)', fontFamily: 'inherit',
-                                padding: '2px 6px', borderRadius: 'var(--radius)',
-                                textAlign: 'right', transition: 'background 0.1s',
-                              }}
-                              onFocus={(e) => { e.target.style.background = 'var(--bg-active)'; }}
-                              onBlur={(e) => { e.target.style.background = 'transparent'; }}
-                            />
-                            {/* Remove exercise */}
-                            <button
-                              onClick={() => removeExercise(selectedWeek, session.sessionId, exIdx)}
-                              style={{
-                                background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-                                fontSize: 11, color: 'var(--text4)', borderRadius: 'var(--radius)',
-                                transition: 'color 0.1s', opacity: 0,
-                              }}
-                              className="group-hover/row:!opacity-100"
-                              onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--red)'; }}
-                              onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text4)'; }}
+                            {/* Exercise card header */}
+                            <div
+                              className={cn(
+                                'group/ex flex items-center gap-2 py-2 pl-2 pr-3 select-none transition-colors hover:bg-bg-hover',
+                                isExOpen && 'border-b border-border',
+                              )}
+                              onClick={() => toggleExercise(exKey)}
                             >
-                              ✕
-                            </button>
+                              {/* Colored left bar */}
+                              <div className="w-[4px] self-stretch shrink-0 rounded-full" style={{ background: muscleColor }} />
+
+                              {/* Muscle icon */}
+                              <span className="text-[20px] leading-none shrink-0">{muscleIcon}</span>
+
+                              <span
+                                className={cn(
+                                  'text-[10px] text-text3 transition-transform duration-150 w-3 inline-flex items-center justify-center shrink-0',
+                                  isExOpen && 'rotate-90',
+                                )}
+                              >
+                                ▶
+                              </span>
+
+                              {/* Name + badge + summary */}
+                              <div className="flex-1 min-w-0">
+                                <div className="text-[13px] font-semibold text-text truncate">{ex.exerciseName}</div>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  {primaryMuscle && (
+                                    <span
+                                      className="text-[10px] font-medium rounded-sm px-1.5 py-[1px]"
+                                      style={{ background: muscleBg, color: muscleColor }}
+                                    >
+                                      {t(`training.muscle${primaryMuscle}`)}
+                                    </span>
+                                  )}
+                                  <span className="text-[11px] text-text3 tabular-nums">
+                                    {setsCount}×{repsStr} · {weightStr} kg
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Difficulty bar + Total volume */}
+                              <div className="flex items-center gap-2 shrink-0">
+                                {diffLevel > 0 && (
+                                  <div className="flex items-center gap-[3px]">
+                                    {[1, 2, 3].map((level) => (
+                                      <div
+                                        key={level}
+                                        className="rounded-full"
+                                        style={{
+                                          width: 14, height: 4,
+                                          background: level <= diffLevel ? diffColor : 'var(--bg3)',
+                                        }}
+                                      />
+                                    ))}
+                                  </div>
+                                )}
+                              {totalVolume > 0 && (
+                                <span className="text-[12px] text-accent font-semibold tabular-nums">
+                                  {totalVolume.toLocaleString()} kg
+                                </span>
+                              )}
+                              </div>
+
+                              {/* Actions — hover visible */}
+                              <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+                                <button
+                                  onClick={() => duplicateExercise(selectedWeek, session.sessionId, exIdx)}
+                                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', fontSize: 11, color: 'var(--text4)', borderRadius: 'var(--radius)', transition: 'color 0.1s' }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text2)'; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text4)'; }}
+                                  title={t('training.duplicateExercise')}
+                                >⧉</button>
+                                <button
+                                  onClick={() => removeExercise(selectedWeek, session.sessionId, exIdx)}
+                                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', fontSize: 11, color: 'var(--text4)', borderRadius: 'var(--radius)', transition: 'color 0.1s' }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--red)'; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text4)'; }}
+                                  title={t('training.removeExercise')}
+                                >✕</button>
+                              </div>
+                            </div>
+
+                            {/* Exercise card body — sets table */}
+                            <div className="collapse-grid" data-open={isExOpen}>
+                              <div className="collapse-content">
+                                <div className="px-3 py-2">
+                                  {/* Sets table header */}
+                                  <div className="grid gap-2 mb-1" style={{ gridTemplateColumns: '28px 1fr 68px 68px 90px 20px' }}>
+                                    <span className="text-[10px] font-medium text-text3 uppercase text-center">#</span>
+                                    <span className="text-[10px] font-medium text-text3 uppercase">{t('training.exerciseLabel')}</span>
+                                    <span className="text-[10px] font-medium text-text3 uppercase text-right">{t('training.weightLabel')}</span>
+                                    <span className="text-[10px] font-medium text-text3 uppercase text-right">{t('training.repsLabel')}</span>
+                                    <span className="text-[10px] font-medium text-text3 uppercase text-right">{t('training.restSecondsLabel')}</span>
+                                    <span />
+                                  </div>
+
+                                  {/* Set rows */}
+                                  {ex.sets.map((s, sIdx) => (
+                                    <div key={sIdx} className="grid gap-2 mb-[2px] group/set" style={{ gridTemplateColumns: '28px 1fr 68px 68px 90px 20px' }}>
+                                      <span className="text-center text-[11px] font-mono text-text4 self-center">{s.setNumber}</span>
+                                      <span className="text-[12px] text-text2 self-center truncate">{ex.exerciseName}</span>
+                                      <input
+                                        type="number" placeholder="--" value={s.weightKg ?? ''}
+                                        onClick={(e) => e.stopPropagation()}
+                                        onChange={(e) => updateSet(selectedWeek, session.sessionId, exIdx, sIdx, { weightKg: e.target.value ? Number(e.target.value) : null })}
+                                        style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: 12, color: 'var(--text)', fontFamily: 'inherit', padding: '2px 6px', borderRadius: 'var(--radius)', textAlign: 'right', transition: 'background 0.1s' }}
+                                        onFocus={(e) => { e.target.style.background = 'var(--bg-active)'; }}
+                                        onBlur={(e) => { e.target.style.background = 'transparent'; }}
+                                      />
+                                      <input
+                                        type="number" placeholder="--" value={s.reps ?? ''}
+                                        onClick={(e) => e.stopPropagation()}
+                                        onChange={(e) => updateSet(selectedWeek, session.sessionId, exIdx, sIdx, { reps: e.target.value ? Number(e.target.value) : null })}
+                                        style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: 12, color: 'var(--text)', fontFamily: 'inherit', padding: '2px 6px', borderRadius: 'var(--radius)', textAlign: 'right', transition: 'background 0.1s' }}
+                                        onFocus={(e) => { e.target.style.background = 'var(--bg-active)'; }}
+                                        onBlur={(e) => { e.target.style.background = 'transparent'; }}
+                                      />
+                                      <input
+                                        type="number" placeholder="--" value={s.restSeconds ?? ''}
+                                        onClick={(e) => e.stopPropagation()}
+                                        onChange={(e) => updateSet(selectedWeek, session.sessionId, exIdx, sIdx, { restSeconds: e.target.value ? Number(e.target.value) : null })}
+                                        style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: 12, color: 'var(--text)', fontFamily: 'inherit', padding: '2px 6px', borderRadius: 'var(--radius)', textAlign: 'right', transition: 'background 0.1s' }}
+                                        onFocus={(e) => { e.target.style.background = 'var(--bg-active)'; }}
+                                        onBlur={(e) => { e.target.style.background = 'transparent'; }}
+                                      />
+                                      <button
+                                        onClick={() => removeSet(selectedWeek, session.sessionId, exIdx, sIdx)}
+                                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 11, color: 'var(--text4)', borderRadius: 'var(--radius)', transition: 'color 0.1s', opacity: 0 }}
+                                        className="group-hover/set:!opacity-100"
+                                        onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--red)'; }}
+                                        onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text4)'; }}
+                                      >✕</button>
+                                    </div>
+                                  ))}
+
+                                  {/* Add set */}
+                                  <button
+                                    type="button"
+                                    onClick={() => addSet(selectedWeek, session.sessionId, exIdx)}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', fontSize: 11, color: 'var(--text4)', fontFamily: 'inherit', transition: 'color 0.1s' }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text3)'; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text4)'; }}
+                                  >
+                                    + {t('training.addSet')}
+                                  </button>
+
+                                  {/* Exercise note */}
+                                  <div style={{ marginTop: 6, borderTop: '1px solid var(--border)', paddingTop: 6 }}>
+                                    <input
+                                      type="text"
+                                      value={ex.notes ?? ''}
+                                      onChange={(e) => updateExerciseNotes(selectedWeek, session.sessionId, exIdx, e.target.value)}
+                                      placeholder={t('training.notePlaceholder')}
+                                      style={{
+                                        width: '100%', border: 'none', outline: 'none', background: 'transparent',
+                                        fontSize: 11, color: 'var(--text3)', fontFamily: 'inherit', fontStyle: 'italic',
+                                        padding: '2px 4px', borderRadius: 'var(--radius)', transition: 'background 0.1s',
+                                      }}
+                                      onFocus={(e) => { e.target.style.background = 'var(--bg-hover)'; }}
+                                      onBlur={(e) => { e.target.style.background = 'transparent'; }}
+                                    />
+                                  </div>
+
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         );
                       })}
                       </ExerciseDropZone>
+                      </div>
 
                       {/* Add exercise — inline dropdown search */}
                       <ExerciseSearch
@@ -852,6 +998,7 @@ export default function TrainingPlanPage() {
                         }}
                       />
                     </div>
+                  </div>
                   </div>
                 </SessionDragWrapper>
               );

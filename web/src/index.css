@@ -186,19 +186,15 @@
 
 .collapse-grid {
   display: grid;
+  grid-template-rows: 0fr;
   transition: grid-template-rows 200ms ease-out;
 }
 .collapse-grid[data-open="true"] {
   grid-template-rows: 1fr;
 }
-.collapse-grid[data-open="false"] {
-  grid-template-rows: 0fr;
-}
-.collapse-grid[data-open="false"] > .collapse-content {
+.collapse-grid > .collapse-content {
+  min-height: 0;
   overflow: hidden;
-}
-.collapse-grid[data-open="true"] > .collapse-content {
-  overflow: visible;
 }
 
 /* ── TAB SWITCH ANIMATION ────────────────────────────────────────────────────── */

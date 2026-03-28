@@ -727,7 +727,7 @@
     "discardTitle": "Zahodit změny",
     "discardMessage": "Opravdu chcete zahodit všechny neuložené změny? Tato akce nelze vrátit.",
     "cancel": "Zrušit",
-    "exerciseSummary": "{{exercises}} cv · {{sets}} s",
+    "exerciseSummary": "{{exercises}} cviků · {{sets}} sérií",
     "addSessionButton": "Přidat trénink",
     "addButton": "Přidat",
     "cancelButton": "Zrušit",

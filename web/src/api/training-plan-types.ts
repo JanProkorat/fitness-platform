@@ -10,6 +10,7 @@ export interface ExerciseSet {
   durationSeconds?: number | null;
   rpe?: number | null;
   distanceMeters?: number | null;
+  restSeconds?: number | null;
 }
 
 /** An exercise within a training session (denormalized snapshot). */
@@ -132,6 +133,7 @@ export interface UpdateExerciseSetRequest {
   durationSeconds?: number | null;
   rpe?: number | null;
   distanceMeters?: number | null;
+  restSeconds?: number | null;
 }
 
 /** Exercise progress data point. */

@@ -728,7 +728,7 @@
     "discardTitle": "Discard changes",
     "discardMessage": "Are you sure you want to discard all unsaved changes? This action cannot be undone.",
     "cancel": "Cancel",
-    "exerciseSummary": "{{exercises}} ex · {{sets}} s",
+    "exerciseSummary": "{{exercises}} exercises · {{sets}} sets",
     "addSessionButton": "Add session",
     "addButton": "Add",
     "cancelButton": "Cancel",

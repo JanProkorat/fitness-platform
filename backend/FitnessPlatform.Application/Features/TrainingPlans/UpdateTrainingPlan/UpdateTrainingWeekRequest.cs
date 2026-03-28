@@ -134,4 +134,9 @@ public class UpdateExerciseSetRequest
     /// Target distance in meters.
     /// </summary>
     public decimal? DistanceMeters { get; set; }
+
+    /// <summary>
+    /// Rest time after this set in seconds.
+    /// </summary>
+    public int? RestSeconds { get; set; }
 }
