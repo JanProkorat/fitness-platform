@@ -36,4 +36,11 @@ public class TrainingWeek
     /// </summary>
     [BsonElement("sessions")]
     public List<TrainingSession> Sessions { get; set; } = [];
+
+    /// <summary>
+    /// Optional day-level notes keyed by day of week (1 = Monday … 7 = Sunday).
+    /// </summary>
+    [BsonElement("dayNotes")]
+    [BsonIgnoreIfNull]
+    public Dictionary<int, string>? DayNotes { get; set; }
 }

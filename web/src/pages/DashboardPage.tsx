@@ -250,7 +250,7 @@ export default function DashboardPage() {
   // -- render ---------------------------------------------------------------
   return (
     <div className="flex h-full flex-col">
-      <PageHeader icon="⊞" title="Dashboard" subtitle={subtitle} />
+      <PageHeader icon="📊" title="Dashboard" subtitle={subtitle} />
 
       <Toolbar
         views={views}

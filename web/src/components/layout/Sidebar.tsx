@@ -105,11 +105,11 @@ export function Sidebar({ onToggleDark }: SidebarProps) {
         {/* Dashboard & Messages */}
         <div className="sb-sec">
           <NavLink to="/dashboard" className={cn('sb-item', isActive('/dashboard') && 'active')}>
-            <span className="sbi-icon">⊞</span>
+            <span className="sbi-icon">📊</span>
             <span className="sbi-lbl">{t('sidebar.dashboard')}</span>
           </NavLink>
           <NavLink to="/messages" className={cn('sb-item', isActive('/messages') && 'active')}>
-            <span className="sbi-icon">✉</span>
+            <span className="sbi-icon">💬</span>
             <span className="sbi-lbl">{t('sidebar.messages')}</span>
             <span className="sbi-badge">1</span>
           </NavLink>
@@ -155,8 +155,8 @@ export function Sidebar({ onToggleDark }: SidebarProps) {
                   <div>
                     {isTrainer && (
                       <NavLink
-                        to={`/training-plans`}
-                        className={cn('sb-item', isActive(`/training-plans`) && 'active')}
+                        to={`/clients/${cId}/training`}
+                        className={cn('sb-item', (isActive(`/clients/${cId}/training`) || isActive(`/clients/${cId}/training-plans`)) && 'active')}
                         style={{ paddingLeft: 28 }}
                       >
                         <span className="sbi-icon">🏋️</span>

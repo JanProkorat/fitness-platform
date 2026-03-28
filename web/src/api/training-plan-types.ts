@@ -38,6 +38,7 @@ export interface TrainingWeek {
   status: 'Draft' | 'Published';
   datePublished?: string | null;
   sessions: TrainingSession[];
+  dayNotes?: Record<number, string> | null;
 }
 
 /** Full training plan detail. */
@@ -99,6 +100,7 @@ export interface UpdateTrainingPlanRequest {
 export interface UpdateTrainingWeekRequest {
   weekNumber: number;
   sessions: UpdateSessionRequest[];
+  dayNotes?: Record<number, string> | null;
 }
 
 /** Session data within a full-state plan update. */

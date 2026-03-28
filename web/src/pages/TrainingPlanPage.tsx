@@ -1,90 +1,185 @@
-import { useEffect, useCallback, useState, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useEffect, useCallback, useState, useMemo, useRef } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getTrainingPlan } from '@/api/training-plans';
 import { apiClient } from '@/api/client';
 import { useTrainingPlanStore } from '@/stores/trainingPlan';
 import { Breadcrumb, PageHeader } from '@/components/layout';
-import { Button, Dialog, Input, Tag } from '@/components/ui';
-import { ExerciseBlock } from '@/components/training';
-import WeekSelector from '@/components/nutrition/WeekSelector';
-import AddExercisesDrawer from '@/components/training/AddExercisesDrawer';
-import type { StagedExercise } from '@/components/training/AddExercisesDrawer';
-import TrainingDragProvider from '@/components/training/TrainingDragProvider';
-import DraggableDayHeader from '@/components/training/DraggableDayHeader';
-import DraggableSession from '@/components/training/DraggableSession';
-import DraggableExercise from '@/components/training/DraggableExercise';
-import DroppableSession from '@/components/training/DroppableSession';
-import DroppableDay from '@/components/training/DroppableDay';
-import WeekTab from '@/components/training/WeekTab';
-import { useTrainingDrag } from '@/components/training/TrainingDragContext';
+import { Button, Dialog } from '@/components/ui';
+import { ExerciseSearch } from '@/components/training/ExerciseSearch';
+import { WeekDayTabs } from '@/components/nutrition';
+import type { WeekTabData } from '@/components/nutrition/WeekDayTabs';
+import { TrainingSidebar } from '@/components/training/TrainingSidebar';
 import { cn } from '@/lib/cn';
 
 const DAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
 
-// ---------------------------------------------------------------------------
-// Drop indicator components (used inside DnD context)
-// ---------------------------------------------------------------------------
+/** Day-level note input — identical to the one in NutritionPlanPage */
+function DayNoteInput({ note, onChange, addLabel, placeholder }: { note?: string | null; onChange: (note: string) => void; addLabel: string; placeholder: string }) {
+  const [value, setValue] = useState(note ?? '');
+  const [open, setOpen] = useState(!!note);
 
-/** Gold indicator line shown at session insertion point during drag. */
-function SessionDropLine() {
+  // Sync when day changes
+  useEffect(() => {
+    setValue(note ?? '');
+    if (note) setOpen(true);
+    else setOpen(false);
+  }, [note]);
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        style={{
+          background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0 8px',
+          fontSize: 11, color: 'var(--text4)', fontFamily: 'inherit', transition: 'color 0.1s',
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text3)'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text4)'; }}
+      >
+        {addLabel}
+      </button>
+    );
+  }
+
+  return (
+    <div style={{ marginBottom: 8 }}>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={() => onChange(value)}
+        placeholder={placeholder}
+        style={{
+          width: '100%', border: '1px dashed var(--border-md)', outline: 'none',
+          background: 'transparent', fontSize: 12, color: 'var(--text2)',
+          fontFamily: 'inherit', fontStyle: 'italic', padding: '5px 8px',
+          borderRadius: 'var(--radius-md)', transition: 'border-color 0.15s',
+        }}
+        onFocus={(e) => { e.target.style.borderColor = 'var(--accent-br)'; }}
+        onBlurCapture={(e) => { e.target.style.borderColor = 'var(--border-md)'; }}
+      />
+    </div>
+  );
+}
+
+/** Draggable session wrapper — mirrors SortableMealItem from the nutrition plan. */
+function SessionDragWrapper({
+  sessionId, selectedDay, selectedWeek, children,
+}: {
+  sessionId: string; selectedDay: number; selectedWeek: number; children: React.ReactNode;
+}) {
+  const [over, setOver] = useState(false);
+
   return (
     <div
-      className="h-[2px] rounded-full bg-accent animate-[slideIn_150ms_ease-out]"
-      style={{ margin: '2px 4px' }}
-    />
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.setData('application/session-json', JSON.stringify({ type: 'session', sessionId, fromDay: selectedDay, fromWeek: selectedWeek }));
+        e.dataTransfer.effectAllowed = 'move';
+      }}
+      onDragOver={(e) => {
+        if (e.dataTransfer.types.includes('application/session-json')) {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          setOver(true);
+        }
+      }}
+      onDragLeave={() => setOver(false)}
+      onDrop={(e) => {
+        setOver(false);
+        if (!e.dataTransfer.types.includes('application/session-json')) return;
+        e.preventDefault();
+        // reorder handled by parent container
+      }}
+      data-session-id={sessionId}
+      className="mb-4"
+      style={{
+        borderTop: over ? '2px solid var(--accent)' : '2px solid transparent',
+        transition: 'border-color 0.1s',
+      }}
+    >
+      {children}
+    </div>
   );
 }
 
-/** Reads the drag context and renders the indicator line at the correct position. */
-function SessionDropIndicatorLine({ dayOfWeek, index }: { dayOfWeek: number; index: number }) {
-  const { sessionIndicator } = useTrainingDrag();
-  if (
-    !sessionIndicator ||
-    sessionIndicator.dayOfWeek !== dayOfWeek ||
-    sessionIndicator.insertIndex !== index
-  ) {
-    return null;
-  }
-  return <SessionDropLine />;
-}
-
-/** Vertical gold line shown between day columns during day reorder drag. */
-function DayGapIndicatorLine({ gapPosition }: { gapPosition: number }) {
-  const { dayGapIndicator } = useTrainingDrag();
-  if (dayGapIndicator !== gapPosition) return null;
-  return (
-    <div className="w-1.5 shrink-0 self-stretch rounded-full bg-accent animate-[slideIn_150ms_ease-out]" />
-  );
-}
-
-/** Reads the drag context and renders the indicator line for exercises. */
-function ExerciseDropIndicatorLine({
-  sessionId,
-  index,
+/** Drop zone wrapping exercise rows — mirrors MealDropZone from the nutrition plan. */
+function ExerciseDropZone({
+  sessionId, exerciseIds, selectedWeek, onReorder, onCrossSessionMove, children,
 }: {
   sessionId: string;
-  index: number;
+  exerciseIds: string[];
+  selectedWeek: number;
+  onReorder: (fromIndex: number, toIndex: number) => void;
+  onCrossSessionMove: (fromSessionId: string, fromIndex: number, toIndex: number, fromWeek: number) => void;
+  children: React.ReactNode;
 }) {
-  const { exerciseIndicator } = useTrainingDrag();
-  if (
-    !exerciseIndicator ||
-    exerciseIndicator.sessionId !== sessionId ||
-    exerciseIndicator.insertIndex !== index
-  ) {
-    return null;
-  }
-  return <SessionDropLine />;
-}
+  const [over, setOver] = useState(false);
 
-// ---------------------------------------------------------------------------
-// Main page component
-// ---------------------------------------------------------------------------
+  return (
+    <div
+      style={{
+        minHeight: 24,
+        borderRadius: 'var(--radius)',
+        transition: 'background 0.15s',
+        background: over ? 'var(--accent-bg)' : undefined,
+      }}
+      onDragOver={(e) => {
+        if (e.dataTransfer.types.includes('application/exercise-json')) {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          setOver(true);
+        }
+      }}
+      onDragLeave={() => setOver(false)}
+      onDrop={(e) => {
+        setOver(false);
+        if (!e.dataTransfer.types.includes('application/exercise-json')) return;
+        e.preventDefault();
+        try {
+          const data = JSON.parse(e.dataTransfer.getData('application/exercise-json'));
+          if (data.type !== 'exercise') return;
+
+          // Find target index from mouse position
+          const container = e.currentTarget;
+          const rows = Array.from(container.querySelectorAll('[data-item-id]'));
+          let targetIndex = rows.length;
+          for (let i = 0; i < rows.length; i++) {
+            const rect = rows[i].getBoundingClientRect();
+            if (e.clientY < rect.top + rect.height / 2) {
+              targetIndex = i;
+              break;
+            }
+          }
+
+          const fromWeek = data.fromWeek ?? selectedWeek;
+
+          if (data.sessionId === sessionId && fromWeek === selectedWeek) {
+            // Same session reorder
+            const fromIndex = data.exerciseIndex;
+            if (fromIndex !== targetIndex) {
+              onReorder(fromIndex, targetIndex > fromIndex ? targetIndex - 1 : targetIndex);
+            }
+          } else {
+            // Cross-session or cross-week move
+            onCrossSessionMove(data.sessionId, data.exerciseIndex, targetIndex, fromWeek);
+          }
+        } catch { /* ignore */ }
+      }}
+    >
+      {children}
+    </div>
+  );
+}
 
 export default function TrainingPlanPage() {
   const { planId } = useParams<{ planId: string }>();
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   // ── Store selectors ──
   const plan = useTrainingPlanStore((s) => s.plan);
@@ -97,8 +192,6 @@ export default function TrainingPlanPage() {
   const publishWeek = useTrainingPlanStore((s) => s.publishWeek);
   const addWeek = useTrainingPlanStore((s) => s.addWeek);
   const removeWeek = useTrainingPlanStore((s) => s.removeWeek);
-  const copyDayToDay = useTrainingPlanStore((s) => s.copyDayToDay);
-  const copyDayToWeek = useTrainingPlanStore((s) => s.copyDayToWeek);
   const addSession = useTrainingPlanStore((s) => s.addSession);
   const removeSession = useTrainingPlanStore((s) => s.removeSession);
   const addExercise = useTrainingPlanStore((s) => s.addExercise);
@@ -107,12 +200,28 @@ export default function TrainingPlanPage() {
   const addSet = useTrainingPlanStore((s) => s.addSet);
   const removeSet = useTrainingPlanStore((s) => s.removeSet);
   const updateSet = useTrainingPlanStore((s) => s.updateSet);
+  const updateSessionName = useTrainingPlanStore((s) => s.updateSessionName);
   const updateSessionNotes = useTrainingPlanStore((s) => s.updateSessionNotes);
-  const updateExerciseRestSeconds = useTrainingPlanStore(
-    (s) => s.updateExerciseRestSeconds,
-  );
+  const updateExerciseNotes = useTrainingPlanStore((s) => s.updateExerciseNotes);
+  const updateExerciseRestSeconds = useTrainingPlanStore((s) => s.updateExerciseRestSeconds);
   const revert = useTrainingPlanStore((s) => s.revert);
+  const updateDayNote = useTrainingPlanStore((s) => s.updateDayNote);
   const setStartDate = useTrainingPlanStore((s) => s.setStartDate);
+  const moveSessionToDay = useTrainingPlanStore((s) => s.moveSessionToDay);
+  const moveSessionToWeek = useTrainingPlanStore((s) => s.moveSessionToWeek);
+  const moveExerciseToSession = useTrainingPlanStore((s) => s.moveExerciseToSession);
+  const moveExerciseToWeek = useTrainingPlanStore((s) => s.moveExerciseToWeek);
+  const reorderExercises = useTrainingPlanStore((s) => s.reorderExercises);
+
+  // ── Local UI state ──
+  const [selectedDay, setSelectedDay] = useState(1);
+  const [collapsedSessions, setCollapsedSessions] = useState<Set<string>>(new Set());
+  const [addingSessionDay, setAddingSessionDay] = useState<number | null>(null);
+  const [newSessionName, setNewSessionName] = useState('');
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+  const [pendingNav, setPendingNav] = useState<string | null>(null);
+  const [dragOverDay, setDragOverDay] = useState<number | null>(null);
+  const dayHoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Resolve client name ──
   const { data: clientsData } = useQuery({
@@ -123,12 +232,8 @@ export default function TrainingPlanPage() {
 
   const clientName = useMemo(() => {
     if (!plan?.clientId || !clientsData?.clients) return null;
-    const client = clientsData.clients.find(
-      (c) => c.publicId === plan.clientId,
-    );
-    return client
-      ? `${client.firstName ?? ''} ${client.lastName ?? ''}`.trim()
-      : null;
+    const client = clientsData.clients.find((c) => c.publicId === plan.clientId);
+    return client ? `${client.firstName ?? ''} ${client.lastName ?? ''}`.trim() : null;
   }, [plan?.clientId, clientsData]);
 
   // ── Load plan on mount ──
@@ -143,74 +248,56 @@ export default function TrainingPlanPage() {
         // Plan load failed
       }
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [planId, setPlan]);
 
   // ── Unsaved changes warning ──
   useEffect(() => {
     if (!isDirty) return;
-    const handler = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-    };
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); };
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
   }, [isDirty]);
 
-  const handleSave = useCallback(() => save(), [save]);
+  // ── Block in-app navigation when dirty ──
+  useEffect(() => {
+    if (!isDirty) return;
+    const handler = () => {
+      window.history.pushState(null, '', location.pathname + location.search);
+      setPendingNav('__back__');
+    };
+    window.addEventListener('popstate', handler);
+    window.history.pushState(null, '', location.pathname + location.search);
+    return () => window.removeEventListener('popstate', handler);
+  }, [isDirty, location.pathname, location.search]);
 
-  const handlePublishWeek = async () => {
-    if (
-      !window.confirm(
-        t('training.confirmPublish', { number: selectedWeek }),
-      )
-    )
-      return;
-    await publishWeek(selectedWeek);
-  };
+  useEffect(() => {
+    if (!isDirty) return;
+    const origPush = window.history.pushState.bind(window.history);
+    const currentPath = location.pathname + location.search;
+    window.history.pushState = function (...args: Parameters<typeof origPush>) {
+      const url = typeof args[2] === 'string' ? args[2] : '';
+      if (url && url !== currentPath && !url.startsWith(currentPath + '#')) {
+        setPendingNav(url);
+        return;
+      }
+      return origPush(...args);
+    };
+    return () => { window.history.pushState = origPush; };
+  }, [isDirty, location.pathname, location.search]);
 
-  // ── Copy day dialog ──
-  const [copyDialog, setCopyDialog] = useState<{
-    fromWeek: number;
-    from: number;
-    toWeek: number;
-    to: number;
-  } | null>(null);
-
-  const handleCopyDayDialog = useCallback(
-    (fromWeek: number, fromDay: number, toWeek: number, toDay: number) => {
-      setCopyDialog({ fromWeek, from: fromDay, toWeek, to: toDay });
-    },
-    [],
-  );
-
-  const handleCopyConfirm = () => {
-    if (!copyDialog) return;
-    if (copyDialog.fromWeek === copyDialog.toWeek) {
-      copyDayToDay(copyDialog.fromWeek, copyDialog.from, copyDialog.to);
-    } else {
-      copyDayToWeek(
-        copyDialog.fromWeek,
-        copyDialog.from,
-        copyDialog.toWeek,
-        copyDialog.to,
-      );
+  const confirmLeave = () => {
+    const target = pendingNav;
+    setPendingNav(null);
+    useTrainingPlanStore.setState({ isDirty: false });
+    if (target === '__back__') {
+      window.history.back();
+    } else if (target) {
+      navigate(target);
     }
-    setCopyDialog(null);
   };
 
-  // ── Revert confirmation ──
-  const [confirmRevert, setConfirmRevert] = useState(false);
-
-  // ── Collapse state ──
-  const [collapsedSessions, setCollapsedSessions] = useState<Set<string>>(
-    new Set(),
-  );
-  const [collapsedExercises, setCollapsedExercises] = useState<Set<string>>(
-    new Set(),
-  );
-
+  // ── Toggle helpers ──
   const toggleSession = useCallback((sessionId: string) => {
     setCollapsedSessions((prev) => {
       const next = new Set(prev);
@@ -220,74 +307,26 @@ export default function TrainingPlanPage() {
     });
   }, []);
 
-  const toggleExercise = useCallback((key: string) => {
-    setCollapsedExercises((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  }, []);
 
-  // ── Add-session inline form ──
-  const [addingSessionDay, setAddingSessionDay] = useState<number | null>(
-    null,
-  );
-  const [newSessionName, setNewSessionName] = useState('');
+  // ── Handlers ──
+  const handleSave = async () => {
+    await save();
+  };
 
-  // ── Add-exercises drawer ──
-  const [exerciseDrawerSessionId, setExerciseDrawerSessionId] = useState<
-    string | null
-  >(null);
+  const handleReset = async () => {
+    if (!planId) return;
+    try {
+      const data = await getTrainingPlan(planId);
+      setPlan(data);
+    } catch {
+      showApiError(undefined, 'common.error');
+    }
+  };
 
-  const handleAddExercisesFromDrawer = useCallback(
-    (exercises: StagedExercise[]) => {
-      if (!exerciseDrawerSessionId) return;
-      for (const ex of exercises) {
-        addExercise(selectedWeek, exerciseDrawerSessionId, {
-          exerciseExternalId: ex.exerciseExternalId,
-          exerciseName: ex.exerciseName,
-        });
-        const store = useTrainingPlanStore.getState();
-        const week = store.plan?.weeks.find(
-          (w) => w.weekNumber === selectedWeek,
-        );
-        const session = week?.sessions.find(
-          (s) => s.sessionId === exerciseDrawerSessionId,
-        );
-        if (session) {
-          const exIdx = session.exercises.length - 1;
-          for (let i = 1; i < ex.sets.length; i++) {
-            addSet(selectedWeek, exerciseDrawerSessionId, exIdx);
-          }
-          for (let i = 0; i < ex.sets.length; i++) {
-            const s = ex.sets[i];
-            updateSet(selectedWeek, exerciseDrawerSessionId, exIdx, i, {
-              reps: s.reps,
-              weightKg: s.weightKg,
-            });
-          }
-          if (ex.restSeconds != null) {
-            updateExerciseRestSeconds(
-              selectedWeek,
-              exerciseDrawerSessionId,
-              exIdx,
-              ex.restSeconds,
-            );
-          }
-        }
-      }
-      setExerciseDrawerSessionId(null);
-    },
-    [
-      exerciseDrawerSessionId,
-      selectedWeek,
-      addExercise,
-      addSet,
-      updateSet,
-      updateExerciseRestSeconds,
-    ],
-  );
+  const handlePublish = async () => {
+    if (!window.confirm(t('training.confirmPublish', { number: selectedWeek }))) return;
+    await publishWeek(selectedWeek);
+  };
 
   const handleAddSession = (dow: number) => {
     if (!newSessionName.trim()) return;
@@ -296,698 +335,627 @@ export default function TrainingPlanPage() {
     setAddingSessionDay(null);
   };
 
-  // ── WeekTab renderTab for WeekSelector ──
-  const renderWeekTab = useCallback(
-    (props: {
-      weekNumber: number;
-      status: 'Draft' | 'Published';
-      isSelected: boolean;
-    }) => <WeekTab {...props} />,
-    [],
+
+  // ── Derived data ──
+  const currentWeek = plan?.weeks.find((w) => w.weekNumber === selectedWeek) ?? plan?.weeks[0];
+  const isWeekPublished = currentWeek?.status === 'Published';
+
+  const daySessions = useMemo(
+    () =>
+      (currentWeek?.sessions ?? [])
+        .filter((s) => s.dayOfWeek === selectedDay)
+        .sort((a, b) => a.order - b.order),
+    [currentWeek, selectedDay],
   );
+
+  // Week tab data
+  const weekTabs: WeekTabData[] = useMemo(() => {
+    if (!plan) return [];
+    return plan.weeks.map((w) => ({
+      index: w.weekNumber,
+      label: t('nutrition.weekLabel', { number: w.weekNumber }),
+      isTemplate: w.status === 'Published',
+    }));
+  }, [plan, t]);
+
+  // Day tab data
+  const dayTabs = useMemo(() => {
+    if (!currentWeek) return [];
+    return DAY_KEYS.map((key, idx) => {
+      const dayOfWeek = idx + 1;
+      const sessions = (currentWeek.sessions ?? []).filter((s) => s.dayOfWeek === dayOfWeek);
+      const exerciseCount = sessions.reduce((sum, s) => sum + s.exercises.length, 0);
+      return {
+        index: dayOfWeek,
+        key,
+        label: t(`nutrition.${key}`),
+        badge: sessions.length > 0 ? `${sessions.length}t · ${exerciseCount}cv` : '—',
+      };
+    });
+  }, [currentWeek, t]);
+
+  // Open all sessions of the current day on first load / day change
+  useEffect(() => {
+    if (!plan) return;
+    const week = plan.weeks.find((w) => w.weekNumber === selectedWeek);
+    const sessions = (week?.sessions ?? []).filter((s) => s.dayOfWeek === selectedDay);
+    // Don't collapse any sessions by default — remove from collapsed set
+    setCollapsedSessions((prev) => {
+      const next = new Set(prev);
+      for (const s of sessions) {
+        next.delete(s.sessionId);
+      }
+      return next;
+    });
+  }, [plan, selectedWeek, selectedDay]);
 
   // ── Loading state ──
   if (!plan) {
     return (
-      <div className="flex h-full items-center justify-center text-text3">
+      <div className="flex items-center justify-center text-text3" style={{ height: '100vh' }}>
         {t('common.loading')}
       </div>
     );
   }
 
-  const currentWeek =
-    plan.weeks.find((w) => w.weekNumber === selectedWeek) ?? plan.weeks[0];
-  const currentWeekStatus = currentWeek?.status ?? 'Draft';
-
-  // ── Breadcrumb items ──
-  const breadcrumbItems = [
-    { label: 'Dashboard', href: '/dashboard' },
-    { label: 'Klienti', href: '/clients' },
-    ...(clientName
-      ? [
-          {
-            label: clientName,
-            href: plan.clientId ? `/clients/${plan.clientId}` : undefined,
-          },
-        ]
-      : []),
-    { label: 'Treninkovy plan' },
-  ];
-
   return (
-    <TrainingDragProvider onCopyDayDialog={handleCopyDayDialog}>
-      <div className="flex h-full flex-col bg-bg">
-        {/* ── Breadcrumb ── */}
-        <Breadcrumb items={breadcrumbItems} />
+    <div className="flex flex-col overflow-hidden" style={{ height: '100vh' }}>
+      {/* ── Header ── */}
+      <div className="shrink-0">
+      <PageHeader
+        icon="🏋️"
+        title={t('sidebar.trainingPlan')}
+        subtitle={`${clientName ?? '...'} · ${t('training.planSubtitle')}`}
+        actions={
+          <div className="flex items-center gap-1.5">
+            {isDirty && (
+              <span style={{ fontSize: 11, color: 'var(--orange)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--orange)' }} />
+                {t('training.unsavedChanges')}
+              </span>
+            )}
+            {isSaving && (
+              <span style={{ fontSize: 11, color: 'var(--text3)' }}>{t('training.saving')}</span>
+            )}
+            <Button variant="default" size="sm" onClick={() => setResetConfirmOpen(true)} disabled={!isDirty}>
+              {t('training.discardChanges')}
+            </Button>
+            <Button variant="default" size="sm" onClick={handleSave} disabled={!isDirty || isSaving}>
+              {isSaving ? t('training.saving') : t('training.save')}
+            </Button>
+            <Button variant="primary" size="sm" onClick={handlePublish} disabled={isWeekPublished || isDirty}>
+              {isWeekPublished ? t('training.published') : t('training.publishWeek', { number: selectedWeek })}
+            </Button>
+          </div>
+        }
+      />
+      </div>
 
-        {/* ── Page header ── */}
-        <PageHeader
-          icon="🏋️"
-          title={plan.name}
-          subtitle={
-            [
-              clientName,
-              currentWeekStatus === 'Published' ? 'Publikovano' : 'Koncept',
-            ]
-              .filter(Boolean)
-              .join(' · ')
-          }
-          actions={
-            <div className="flex items-center gap-2">
-              {/* Save indicator */}
-              {isSaving && (
-                <span className="text-xs text-text3">Ukladani...</span>
-              )}
-              {!isSaving && !isDirty && plan && (
-                <span className="text-xs text-text4">Ulozeno</span>
-              )}
-              {isDirty && !isSaving && (
-                <Tag variant="orange">Neulozen zmeny</Tag>
-              )}
+      {/* ── Week tabs ── */}
+      <WeekDayTabs
+        weeks={weekTabs}
+        days={[]}
+        selectedWeek={selectedWeek}
+        selectedDay={selectedDay}
+        onWeekChange={setSelectedWeek}
+        onDayChange={setSelectedDay}
+        onAddWeek={addWeek}
+        onRemoveWeek={removeWeek}
+      />
 
-              {/* Start date */}
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] text-text3">Start:</span>
-                <input
-                  type="date"
-                  value={plan.startDate?.slice(0, 10) ?? ''}
-                  onChange={(e) => {
-                    const val = e.target.value || null;
-                    if (val) {
-                      const d = new Date(val + 'T00:00:00');
-                      if (d.getDay() !== 1) return;
+      {/* ── Two-column body ── */}
+      <div className="flex-1 overflow-hidden" style={{ display: 'grid', gridTemplateColumns: '1fr 256px' }}>
+        {/* Left: Day tabs + Sessions */}
+        <div className="flex flex-col overflow-hidden" style={{ borderRight: '1px solid var(--border)', minWidth: 0 }}>
+          {/* Day tabs */}
+          <div className="flex items-center border-b border-border shrink-0">
+            {dayTabs.map((day) => (
+              <button
+                key={day.index}
+                type="button"
+                onClick={() => setSelectedDay(day.index)}
+                onDragOver={(e) => {
+                  const hasSession = e.dataTransfer.types.includes('application/session-json');
+                  const hasExercise = e.dataTransfer.types.includes('application/exercise-json');
+                  if (!hasSession && !hasExercise) return;
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = 'move';
+                  if (dragOverDay !== day.index) {
+                    setDragOverDay(day.index);
+                    if (dayHoverTimer.current) clearTimeout(dayHoverTimer.current);
+                    dayHoverTimer.current = setTimeout(() => {
+                      setSelectedDay(day.index);
+                    }, 500);
+                  }
+                }}
+                onDragLeave={() => {
+                  if (dragOverDay === day.index) {
+                    setDragOverDay(null);
+                    if (dayHoverTimer.current) { clearTimeout(dayHoverTimer.current); dayHoverTimer.current = null; }
+                  }
+                }}
+                onDrop={(e) => {
+                  setDragOverDay(null);
+                  if (dayHoverTimer.current) { clearTimeout(dayHoverTimer.current); dayHoverTimer.current = null; }
+                  if (!e.dataTransfer.types.includes('application/session-json')) return;
+                  e.preventDefault();
+                  try {
+                    const data = JSON.parse(e.dataTransfer.getData('application/session-json'));
+                    if (data.type === 'session' && data.sessionId) {
+                      const fromWeek = data.fromWeek ?? selectedWeek;
+                      if (fromWeek !== selectedWeek) {
+                        moveSessionToWeek(fromWeek, selectedWeek, data.sessionId, day.index, 999);
+                      } else {
+                        moveSessionToDay(selectedWeek, data.sessionId, day.index, 999);
+                      }
+                      setSelectedDay(day.index);
                     }
-                    setStartDate(val);
-                  }}
-                  disabled={Boolean(
-                    plan.startDate &&
-                      plan.startDate.slice(0, 10) <
-                        new Date().toISOString().slice(0, 10),
-                  )}
-                  className="rounded-md border border-border-md bg-bg px-2 py-[5px] text-[13px] text-text outline-none transition-colors duration-150 focus:border-border-hv disabled:cursor-not-allowed disabled:opacity-40"
-                />
-              </div>
-
-              {/* Revert */}
-              {isDirty && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setConfirmRevert(true)}
-                  disabled={isSaving}
-                >
-                  Zahodit zmeny
-                </Button>
-              )}
-
-              {/* Save */}
-              <Button
-                variant="primary"
-                onClick={handleSave}
-                disabled={!isDirty || isSaving}
+                  } catch { /* ignore */ }
+                }}
+                style={{
+                  flex: 1, border: 'none', fontFamily: 'inherit',
+                  borderBottom: day.index === selectedDay ? '2px solid var(--text)' : '2px solid transparent',
+                  marginBottom: -1, padding: '7px 0', fontSize: 12,
+                  color: day.index === selectedDay ? 'var(--text)' : 'var(--text3)',
+                  fontWeight: day.index === selectedDay ? 500 : 400,
+                  cursor: 'pointer', textAlign: 'center', whiteSpace: 'nowrap',
+                  transition: 'color 0.1s, background 0.15s',
+                  background: dragOverDay === day.index ? 'var(--accent-bg)' : 'none',
+                }}
               >
-                {isSaving ? 'Ukladani...' : 'Ulozit'}
-              </Button>
-            </div>
-          }
-        />
+                {day.label}
+                {day.badge && (
+                  <span
+                    className={cn(
+                      'text-[10px] rounded-full px-[5px] ml-1',
+                      'bg-accent-bg text-accent',
+                    )}
+                  >
+                    {day.badge}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
 
-        {/* ── Week tabs (toolbar area) ── */}
-        <div className="flex items-center gap-2 border-b border-border px-20 py-2">
-          {/* Week selector tabs */}
-          <div className="flex flex-1 items-center gap-1 overflow-x-auto">
-            {plan.weeks.map(({ weekNumber, status }) => {
-              const isActive = weekNumber === selectedWeek;
+          {/* Sessions list */}
+          <div
+            key={`${selectedWeek}-${selectedDay}`}
+            className="tab-content-transition flex-1 overflow-y-auto"
+            style={{ padding: '12px 20px' }}
+            onDragOver={(e) => {
+              if (e.dataTransfer.types.includes('application/session-json')) {
+                e.preventDefault();
+              }
+            }}
+            onDrop={(e) => {
+              if (!e.dataTransfer.types.includes('application/session-json')) return;
+              e.preventDefault();
+              try {
+                const data = JSON.parse(e.dataTransfer.getData('application/session-json'));
+                if (data.type !== 'session' || !data.sessionId) return;
+                const fromWeek = data.fromWeek ?? selectedWeek;
+
+                // Find target position from mouse
+                const container = e.currentTarget;
+                const sessionEls = Array.from(container.querySelectorAll('[data-session-id]'));
+                let targetIndex = sessionEls.length;
+                for (let i = 0; i < sessionEls.length; i++) {
+                  const rect = sessionEls[i].getBoundingClientRect();
+                  if (e.clientY < rect.top + rect.height / 2) {
+                    targetIndex = i;
+                    break;
+                  }
+                }
+
+                if (fromWeek !== selectedWeek) {
+                  moveSessionToWeek(fromWeek, selectedWeek, data.sessionId, selectedDay, targetIndex);
+                } else {
+                  moveSessionToDay(selectedWeek, data.sessionId, selectedDay, targetIndex);
+                }
+              } catch { /* ignore */ }
+            }}
+          >
+            {/* Day note */}
+            <DayNoteInput
+              note={currentWeek?.dayNotes?.[selectedDay]}
+              onChange={(n) => updateDayNote(selectedWeek, selectedDay, n)}
+              addLabel={t('training.addDayNote')}
+              placeholder={t('training.dayNotePlaceholder')}
+            />
+
+            {daySessions.length === 0 && (
+              <div className="py-12 text-center text-[13px] text-text3">
+                {t('training.restDay')}
+              </div>
+            )}
+
+            {daySessions.map((session) => {
+              const isSessionOpen = !collapsedSessions.has(session.sessionId);
+
               return (
-                <div key={weekNumber}>
-                  {renderWeekTab({
-                    weekNumber,
-                    status,
-                    isSelected: isActive,
-                  })}
-                </div>
+                <SessionDragWrapper
+                  key={session.sessionId}
+                  sessionId={session.sessionId}
+                  selectedDay={selectedDay}
+                  selectedWeek={selectedWeek}
+                >
+                  {/* Session header — MealBlock style */}
+                  <div
+                    className="group flex items-center gap-1.5 py-[5px] border-b border-border mb-[2px] cursor-grab active:cursor-grabbing select-none"
+                    onClick={() => toggleSession(session.sessionId)}
+                  >
+                    <span
+                      className={cn(
+                        'text-[10px] text-text3 transition-transform duration-150 w-3 inline-flex items-center justify-center',
+                        isSessionOpen && 'rotate-90',
+                      )}
+                    >
+                      ▶
+                    </span>
+                    <span
+                      className="text-[13px] font-semibold flex-1"
+                      onClick={(e) => e.stopPropagation()}
+                      style={{ cursor: 'text', borderRadius: 'var(--radius)', padding: '1px 4px', transition: 'background 0.1s' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = ''; }}
+                    >
+                      <input
+                        type="text"
+                        value={session.name}
+                        onChange={(e) => updateSessionName(selectedWeek, session.sessionId, e.target.value)}
+                        className="w-full bg-transparent text-[13px] font-semibold text-text outline-none"
+                        style={{ fontFamily: 'inherit' }}
+                      />
+                    </span>
+                    <span className="text-xs text-text3 tabular-nums">
+                      {t('training.exerciseSummary', { exercises: session.exercises.length, sets: session.exercises.reduce((s, e) => s + e.sets.length, 0) })}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const clone = {
+                          ...session,
+                          sessionId: crypto.randomUUID(),
+                          name: `${session.name} (kopie)`,
+                          order: daySessions.length + 1,
+                          exercises: session.exercises.map((ex) => ({ ...ex, sets: ex.sets.map((s) => ({ ...s })) })),
+                        };
+                        const store = useTrainingPlanStore.getState();
+                        if (!store.plan) return;
+                        useTrainingPlanStore.setState({
+                          plan: {
+                            ...store.plan,
+                            weeks: store.plan.weeks.map((w) =>
+                              w.weekNumber === selectedWeek
+                                ? { ...w, sessions: [...w.sessions, clone] }
+                                : w,
+                            ),
+                          },
+                          isDirty: true,
+                        });
+                      }}
+                      style={{
+                        background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px',
+                        fontSize: 11, color: 'var(--text4)', borderRadius: 'var(--radius)',
+                        transition: 'color 0.1s',
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text2)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text4)'; }}
+                      title={t('training.duplicateSession')}
+                    >
+                      ⧉
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); removeSession(selectedWeek, session.sessionId); }}
+                      style={{
+                        background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px',
+                        fontSize: 11, color: 'var(--text4)', borderRadius: 'var(--radius)',
+                        transition: 'color 0.1s',
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--red)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text4)'; }}
+                      title={t('training.removeSession')}
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  {/* Session body — animated collapse */}
+                  <div className="collapse-grid" data-open={isSessionOpen}>
+                    <div className="collapse-content">
+                      {/* Session note */}
+                      <div style={{ padding: '4px 8px 6px' }}>
+                        <input
+                          type="text"
+                          value={session.notes ?? ''}
+                          onChange={(e) => updateSessionNotes(selectedWeek, session.sessionId, e.target.value)}
+                          placeholder={t('training.sessionNotesPlaceholder')}
+                          style={{
+                            width: '100%', border: 'none', outline: 'none', background: 'transparent',
+                            fontSize: 11, color: 'var(--text3)', fontFamily: 'inherit', fontStyle: 'italic',
+                            padding: '2px 4px', borderRadius: 'var(--radius)', transition: 'background 0.1s',
+                          }}
+                          onFocus={(e) => { e.target.style.background = 'var(--bg-hover)'; }}
+                          onBlur={(e) => { e.target.style.background = 'transparent'; }}
+                        />
+                      </div>
+
+                      {/* Column headers — grid like MealBlock */}
+                      <div className="grid gap-1 px-2 py-1" style={{ gridTemplateColumns: '1fr minmax(80px, 1fr) 50px 68px 68px 84px 22px' }}>
+                        <span className="text-[11px] text-text3 font-medium">{t('training.exerciseLabel')}</span>
+                        <span className="text-[11px] text-text3 font-medium">{t('training.noteLabel')}</span>
+                        <span className="text-[11px] text-text3 font-medium text-right">{t('training.setsLabel')}</span>
+                        <span className="text-[11px] text-text3 font-medium text-right">{t('training.repsLabel')}</span>
+                        <span className="text-[11px] text-text3 font-medium text-right">{t('training.weightLabel')}</span>
+                        <span className="text-[11px] text-text3 font-medium text-right">{t('training.restSecondsLabel')}</span>
+                        <span />
+                      </div>
+
+                      {/* Exercise rows — wrapped in drop zone like MealDropZone */}
+                      <ExerciseDropZone
+                        sessionId={session.sessionId}
+                        exerciseIds={session.exercises.map((_, i) => String(i))}
+                        selectedWeek={selectedWeek}
+                        onReorder={(fromIdx, toIdx) => reorderExercises(selectedWeek, session.sessionId, fromIdx, toIdx)}
+                        onCrossSessionMove={(fromSessionId, fromIdx, toIdx, fromWeek) => {
+                          if (fromWeek !== selectedWeek) {
+                            moveExerciseToWeek(fromWeek, selectedWeek, fromSessionId, session.sessionId, fromIdx, toIdx);
+                          } else {
+                            moveExerciseToSession(selectedWeek, fromSessionId, session.sessionId, fromIdx, toIdx);
+                          }
+                        }}
+                      >
+                      {session.exercises.map((ex, exIdx) => {
+                        const firstSet = ex.sets[0];
+                        return (
+                          <div
+                            key={`${session.sessionId}-${exIdx}`}
+                            draggable
+                            onDragStart={(e) => {
+                              e.stopPropagation();
+                              e.dataTransfer.setData('application/exercise-json', JSON.stringify({
+                                type: 'exercise', sessionId: session.sessionId, exerciseIndex: exIdx,
+                                fromWeek: selectedWeek,
+                              }));
+                              e.dataTransfer.effectAllowed = 'move';
+                            }}
+                            data-item-id={String(exIdx)}
+                            className="grid gap-1 px-2 py-[5px] items-center group/row transition-colors hover:bg-bg-hover cursor-grab active:cursor-grabbing"
+                            style={{ gridTemplateColumns: '1fr minmax(80px, 1fr) 50px 68px 68px 84px 22px' }}
+                          >
+                            {/* Exercise name */}
+                            <span className="text-[13px] text-text truncate">{ex.exerciseName}</span>
+                            {/* Note */}
+                            <input
+                              type="text"
+                              value={ex.notes ?? ''}
+                              onChange={(e) => updateExerciseNotes(selectedWeek, session.sessionId, exIdx, e.target.value)}
+                              placeholder={t('training.notePlaceholder')}
+                              style={{
+                                width: '100%', border: 'none', outline: 'none', background: 'transparent',
+                                fontSize: 11, color: 'var(--text3)', fontFamily: 'inherit', fontStyle: 'italic',
+                                padding: '1px 3px', borderRadius: 'var(--radius)', transition: 'background 0.1s',
+                                minWidth: 0,
+                              }}
+                              onFocus={(e) => { e.target.style.background = 'var(--bg-hover)'; }}
+                              onBlur={(e) => { e.target.style.background = 'transparent'; }}
+                            />
+                            {/* Sets count — editable */}
+                            <input
+                              type="number"
+                              min={1}
+                              value={ex.sets.length}
+                              onChange={(e) => {
+                                const target = Math.max(1, Number(e.target.value) || 1);
+                                const current = ex.sets.length;
+                                if (target > current) {
+                                  for (let i = 0; i < target - current; i++) addSet(selectedWeek, session.sessionId, exIdx);
+                                } else if (target < current) {
+                                  for (let i = current - 1; i >= target; i--) removeSet(selectedWeek, session.sessionId, exIdx, i);
+                                }
+                              }}
+                              style={{
+                                border: 'none', outline: 'none', background: 'transparent',
+                                fontSize: 12, color: 'var(--text)', fontFamily: 'inherit',
+                                padding: '2px 6px', borderRadius: 'var(--radius)',
+                                textAlign: 'right', transition: 'background 0.1s',
+                              }}
+                              onFocus={(e) => { e.target.style.background = 'var(--bg-active)'; }}
+                              onBlur={(e) => { e.target.style.background = 'transparent'; }}
+                            />
+                            {/* Reps — edits first set, and all sets uniformly */}
+                            <input
+                              type="number"
+                              placeholder="--"
+                              value={firstSet?.reps ?? ''}
+                              onChange={(e) => {
+                                const val = e.target.value ? Number(e.target.value) : null;
+                                for (let i = 0; i < ex.sets.length; i++) {
+                                  updateSet(selectedWeek, session.sessionId, exIdx, i, { reps: val });
+                                }
+                              }}
+                              style={{
+                                border: 'none', outline: 'none', background: 'transparent',
+                                fontSize: 12, color: 'var(--text)', fontFamily: 'inherit',
+                                padding: '2px 6px', borderRadius: 'var(--radius)',
+                                textAlign: 'right', transition: 'background 0.1s',
+                              }}
+                              onFocus={(e) => { e.target.style.background = 'var(--bg-active)'; }}
+                              onBlur={(e) => { e.target.style.background = 'transparent'; }}
+                            />
+                            {/* Weight — edits all sets uniformly */}
+                            <input
+                              type="number"
+                              placeholder="--"
+                              value={firstSet?.weightKg ?? ''}
+                              onChange={(e) => {
+                                const val = e.target.value ? Number(e.target.value) : null;
+                                for (let i = 0; i < ex.sets.length; i++) {
+                                  updateSet(selectedWeek, session.sessionId, exIdx, i, { weightKg: val });
+                                }
+                              }}
+                              style={{
+                                border: 'none', outline: 'none', background: 'transparent',
+                                fontSize: 12, color: 'var(--text)', fontFamily: 'inherit',
+                                padding: '2px 6px', borderRadius: 'var(--radius)',
+                                textAlign: 'right', transition: 'background 0.1s',
+                              }}
+                              onFocus={(e) => { e.target.style.background = 'var(--bg-active)'; }}
+                              onBlur={(e) => { e.target.style.background = 'transparent'; }}
+                            />
+                            {/* Rest seconds */}
+                            <input
+                              type="number"
+                              placeholder="--"
+                              value={ex.restSeconds ?? ''}
+                              onChange={(e) =>
+                                updateExerciseRestSeconds(
+                                  selectedWeek, session.sessionId, exIdx,
+                                  e.target.value ? Number(e.target.value) : 0,
+                                )
+                              }
+                              style={{
+                                border: 'none', outline: 'none', background: 'transparent',
+                                fontSize: 12, color: 'var(--text3)', fontFamily: 'inherit',
+                                padding: '2px 6px', borderRadius: 'var(--radius)',
+                                textAlign: 'right', transition: 'background 0.1s',
+                              }}
+                              onFocus={(e) => { e.target.style.background = 'var(--bg-active)'; }}
+                              onBlur={(e) => { e.target.style.background = 'transparent'; }}
+                            />
+                            {/* Remove exercise */}
+                            <button
+                              onClick={() => removeExercise(selectedWeek, session.sessionId, exIdx)}
+                              style={{
+                                background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                                fontSize: 11, color: 'var(--text4)', borderRadius: 'var(--radius)',
+                                transition: 'color 0.1s', opacity: 0,
+                              }}
+                              className="group-hover/row:!opacity-100"
+                              onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--red)'; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text4)'; }}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        );
+                      })}
+                      </ExerciseDropZone>
+
+                      {/* Add exercise — inline dropdown search */}
+                      <ExerciseSearch
+                        onSelect={(exercise) => {
+                          addExercise(selectedWeek, session.sessionId, exercise);
+                        }}
+                      />
+                    </div>
+                  </div>
+                </SessionDragWrapper>
               );
             })}
 
-            {/* Add week */}
-            <button
-              onClick={addWeek}
-              className="ml-1 rounded-md px-2 py-[5px] text-xs text-text4 transition-colors duration-100 hover:bg-bg-hover hover:text-text3"
-            >
-              + Pridat tyden
-            </button>
-          </div>
-
-          {/* Week actions */}
-          <div className="flex shrink-0 items-center gap-2">
-            {currentWeekStatus === 'Draft' && (
-              <Button variant="primary" size="sm" onClick={handlePublishWeek}>
-                Publikovat tyden {selectedWeek}
-              </Button>
-            )}
-            {currentWeekStatus === 'Published' && (
-              <Tag variant="green">Publikovano</Tag>
-            )}
-            {plan.weeks.length > 1 && currentWeekStatus !== 'Published' && (
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={() => removeWeek(selectedWeek)}
-              >
-                Odstranit tyden
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* ── Day columns (7-column week grid) ── */}
-        <div className="flex flex-1 overflow-x-auto px-5 py-3">
-          {DAY_KEYS.map((key, idx) => {
-            const dayOfWeek = idx + 1;
-            const sessions = (currentWeek?.sessions ?? [])
-              .filter((s) => s.dayOfWeek === dayOfWeek)
-              .sort((a, b) => a.order - b.order);
-            const sessionCount = sessions.length;
-            const exerciseCount = sessions.reduce(
-              (sum, s) => sum + s.exercises.length,
-              0,
-            );
-            const today = new Date().getDay();
-            const isToday = (today === 0 ? 7 : today) === dayOfWeek;
-
-            return (
-              <div key={dayOfWeek} className="flex flex-1 min-w-[160px]">
-                {/* Gap indicator / spacer before this column */}
-                {idx > 0 && (
-                  <div className="flex w-[6px] shrink-0 items-stretch justify-center">
-                    <DayGapIndicatorLine gapPosition={dayOfWeek} />
-                  </div>
-                )}
-
-                <DroppableDay dayOfWeek={dayOfWeek}>
-                  {/* Day header */}
-                  <DraggableDayHeader
-                    weekNumber={selectedWeek}
-                    dayOfWeek={dayOfWeek}
-                  >
-                    <div
-                      className={cn(
-                        'flex items-center justify-between px-2 py-1.5 border-b border-border text-[11px] font-semibold uppercase tracking-[0.04em]',
-                        isToday
-                          ? 'text-blue bg-blue-bg'
-                          : 'text-text3 bg-bg2',
-                      )}
-                    >
-                      <span>{t(`nutrition.${key}`)}</span>
-                      <span className="text-[10px] font-normal text-text4">
-                        {sessionCount}s · {exerciseCount}cv
-                      </span>
-                    </div>
-                  </DraggableDayHeader>
-
-                  {/* Session list */}
-                  <div className="flex flex-1 flex-col gap-1 overflow-y-auto p-1.5">
-                    {sessions.length === 0 && (
-                      <div className="py-6 text-center text-xs text-text4">
-                        Odpocinek
-                      </div>
-                    )}
-
-                    {sessions.map((session, sessionIdx) => (
-                      <div
-                        key={session.sessionId}
-                        data-session-idx={sessionIdx}
-                      >
-                        {/* Drop indicator before this session */}
-                        <SessionDropIndicatorLine
-                          dayOfWeek={dayOfWeek}
-                          index={sessionIdx}
-                        />
-
-                        <DraggableSession
-                          weekNumber={selectedWeek}
-                          sessionId={session.sessionId}
-                          dayOfWeek={dayOfWeek}
-                        >
-                          <div className="flex flex-col rounded-md border border-border bg-bg2 transition-all duration-100 hover:border-border-md">
-                            {/* Session header — click to collapse */}
-                            <div
-                              className={cn(
-                                'flex items-center gap-1.5 px-2.5 py-[6px] cursor-grab active:cursor-grabbing select-none transition-colors hover:bg-bg3',
-                                !collapsedSessions.has(session.sessionId) &&
-                                  'border-b border-border',
-                              )}
-                              onClick={() =>
-                                toggleSession(session.sessionId)
-                              }
-                            >
-                              <span
-                                className={cn(
-                                  'text-[10px] text-text3 transition-transform duration-150 w-3 inline-flex items-center justify-center',
-                                  !collapsedSessions.has(
-                                    session.sessionId,
-                                  ) && 'rotate-90',
-                                )}
-                              >
-                                ▶
-                              </span>
-                              <span className="flex-1 text-[11px] font-semibold text-text truncate">
-                                {session.name}
-                              </span>
-                              <span className="text-[9px] text-text4">
-                                {session.exercises.length} cv
-                              </span>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  removeSession(
-                                    selectedWeek,
-                                    session.sessionId,
-                                  );
-                                }}
-                                className="opacity-0 group-hover:opacity-100 text-text4 transition-all duration-100 hover:text-red rounded-sm p-0.5"
-                              >
-                                <svg
-                                  className="h-3 w-3"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M6 18L18 6M6 6l12 12"
-                                  />
-                                </svg>
-                              </button>
-                            </div>
-
-                            {/* Session body — animated collapse */}
-                            <div
-                              className="collapse-grid"
-                              data-open={
-                                !collapsedSessions.has(session.sessionId)
-                              }
-                            >
-                              <div className="collapse-content">
-                                {/* Session notes */}
-                                <div className="border-b border-border px-2.5 py-1.5">
-                                  <textarea
-                                    value={session.notes ?? ''}
-                                    onChange={(e) =>
-                                      updateSessionNotes(
-                                        selectedWeek,
-                                        session.sessionId,
-                                        e.target.value,
-                                      )
-                                    }
-                                    placeholder="Poznamky k treninku..."
-                                    rows={1}
-                                    className="w-full resize-none bg-transparent text-[11px] text-text3 outline-none placeholder:text-text4"
-                                    onClick={(e) => e.stopPropagation()}
-                                  />
-                                </div>
-
-                                {/* Exercises — droppable container */}
-                                <DroppableSession
-                                  sessionId={session.sessionId}
-                                  dayOfWeek={dayOfWeek}
-                                >
-                                  {session.exercises.map((ex, exIdx) => (
-                                    <div
-                                      key={`ex-${session.sessionId}-${exIdx}`}
-                                      data-exercise-idx={exIdx}
-                                    >
-                                      <ExerciseDropIndicatorLine
-                                        sessionId={session.sessionId}
-                                        index={exIdx}
-                                      />
-                                      <DraggableExercise
-                                        weekNumber={selectedWeek}
-                                        sessionId={session.sessionId}
-                                        exerciseIndex={exIdx}
-                                        exercise={ex}
-                                      >
-                                        <div className="rounded-md border border-border bg-bg p-1.5 cursor-grab active:cursor-grabbing transition-all duration-100 hover:border-border-md">
-                                          {/* Exercise header */}
-                                          <div
-                                            className="flex items-center justify-between cursor-pointer select-none"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              toggleExercise(
-                                                `${session.sessionId}-${exIdx}`,
-                                              );
-                                            }}
-                                          >
-                                            <div className="flex items-center gap-1 min-w-0 flex-1">
-                                              <span
-                                                className={cn(
-                                                  'text-[9px] text-text3 transition-transform duration-150 w-2.5 inline-flex items-center justify-center',
-                                                  !collapsedExercises.has(
-                                                    `${session.sessionId}-${exIdx}`,
-                                                  ) && 'rotate-90',
-                                                )}
-                                              >
-                                                ▶
-                                              </span>
-                                              <span className="text-[11px] font-semibold text-text2 truncate">
-                                                {ex.exerciseName}
-                                              </span>
-                                              {ex.restSeconds != null &&
-                                                ex.restSeconds > 0 && (
-                                                  <span className="shrink-0 text-[9px] text-accent">
-                                                    {ex.restSeconds}s
-                                                  </span>
-                                                )}
-                                              <span className="shrink-0 text-[9px] text-text4">
-                                                {ex.sets.length}s
-                                              </span>
-                                            </div>
-                                            <div
-                                              className="flex items-center gap-0.5"
-                                              onClick={(e) =>
-                                                e.stopPropagation()
-                                              }
-                                            >
-                                              <button
-                                                onClick={() =>
-                                                  duplicateExercise(
-                                                    selectedWeek,
-                                                    session.sessionId,
-                                                    exIdx,
-                                                  )
-                                                }
-                                                className="opacity-0 group-hover:opacity-100 text-text4 transition-all duration-100 hover:text-accent rounded-sm p-0.5"
-                                                title="Duplikovat"
-                                              >
-                                                <svg
-                                                  className="h-2.5 w-2.5"
-                                                  fill="none"
-                                                  stroke="currentColor"
-                                                  viewBox="0 0 24 24"
-                                                >
-                                                  <path
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    strokeWidth={2}
-                                                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                                                  />
-                                                </svg>
-                                              </button>
-                                              <button
-                                                onClick={() =>
-                                                  removeExercise(
-                                                    selectedWeek,
-                                                    session.sessionId,
-                                                    exIdx,
-                                                  )
-                                                }
-                                                className="opacity-0 group-hover:opacity-100 text-text4 transition-all duration-100 hover:text-red rounded-sm p-0.5"
-                                                title="Odstranit"
-                                              >
-                                                <svg
-                                                  className="h-2.5 w-2.5"
-                                                  fill="none"
-                                                  stroke="currentColor"
-                                                  viewBox="0 0 24 24"
-                                                >
-                                                  <path
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    strokeWidth={2}
-                                                    d="M6 18L18 6M6 6l12 12"
-                                                  />
-                                                </svg>
-                                              </button>
-                                            </div>
-                                          </div>
-
-                                          {/* Sets table — animated collapse */}
-                                          <div
-                                            className="collapse-grid"
-                                            data-open={
-                                              !collapsedExercises.has(
-                                                `${session.sessionId}-${exIdx}`,
-                                              )
-                                            }
-                                          >
-                                            <div className="collapse-content">
-                                              {/* Sets header */}
-                                              <div className="flex items-center gap-2 mb-0.5 px-0.5 mt-1.5">
-                                                <span className="w-4 text-[9px] font-medium text-text3 uppercase">
-                                                  #
-                                                </span>
-                                                <span className="flex-1 text-[9px] font-medium text-text3 uppercase">
-                                                  Opak.
-                                                </span>
-                                                <span className="flex-1 text-[9px] font-medium text-text3 uppercase">
-                                                  Vaha
-                                                </span>
-                                                <span className="w-4" />
-                                              </div>
-
-                                              {/* Set rows */}
-                                              {ex.sets.map((s, sIdx) => (
-                                                <div
-                                                  key={sIdx}
-                                                  className="flex items-center gap-2 mb-0.5 group/set"
-                                                >
-                                                  <span className="w-4 text-center text-[10px] font-mono text-text4">
-                                                    {s.setNumber}
-                                                  </span>
-                                                  <input
-                                                    type="number"
-                                                    placeholder="--"
-                                                    value={s.reps ?? ''}
-                                                    onChange={(e) =>
-                                                      updateSet(
-                                                        selectedWeek,
-                                                        session.sessionId,
-                                                        exIdx,
-                                                        sIdx,
-                                                        {
-                                                          reps: e.target.value
-                                                            ? Number(
-                                                                e.target.value,
-                                                              )
-                                                            : null,
-                                                        },
-                                                      )
-                                                    }
-                                                    className="flex-1 rounded-sm bg-transparent px-1 py-[1px] text-center text-[11px] text-text outline-none transition-colors hover:bg-bg-hover focus:bg-bg-active focus:ring-1 focus:ring-border-md"
-                                                  />
-                                                  <input
-                                                    type="number"
-                                                    placeholder="--"
-                                                    value={s.weightKg ?? ''}
-                                                    onChange={(e) =>
-                                                      updateSet(
-                                                        selectedWeek,
-                                                        session.sessionId,
-                                                        exIdx,
-                                                        sIdx,
-                                                        {
-                                                          weightKg: e.target
-                                                            .value
-                                                            ? Number(
-                                                                e.target.value,
-                                                              )
-                                                            : null,
-                                                        },
-                                                      )
-                                                    }
-                                                    className="flex-1 rounded-sm bg-transparent px-1 py-[1px] text-center text-[11px] text-text outline-none transition-colors hover:bg-bg-hover focus:bg-bg-active focus:ring-1 focus:ring-border-md"
-                                                  />
-                                                  <button
-                                                    onClick={() =>
-                                                      removeSet(
-                                                        selectedWeek,
-                                                        session.sessionId,
-                                                        exIdx,
-                                                        sIdx,
-                                                      )
-                                                    }
-                                                    className="w-4 text-center text-[10px] text-text4 opacity-0 group-hover/set:opacity-100 transition-all duration-100 hover:text-red"
-                                                  >
-                                                    &times;
-                                                  </button>
-                                                </div>
-                                              ))}
-
-                                              {/* Add set */}
-                                              <div
-                                                className="mt-1 text-[10px] text-text4 cursor-pointer transition-colors hover:text-text3"
-                                                onClick={() =>
-                                                  addSet(
-                                                    selectedWeek,
-                                                    session.sessionId,
-                                                    exIdx,
-                                                  )
-                                                }
-                                              >
-                                                + Pridat serii
-                                              </div>
-                                            </div>
-                                          </div>
-                                        </div>
-                                      </DraggableExercise>
-                                    </div>
-                                  ))}
-
-                                  {/* Drop indicator after last exercise */}
-                                  <ExerciseDropIndicatorLine
-                                    sessionId={session.sessionId}
-                                    index={session.exercises.length}
-                                  />
-
-                                  {/* Add exercise button */}
-                                  <div
-                                    className="text-xs text-text4 text-center p-1 cursor-pointer rounded-sm transition-colors duration-100 hover:bg-bg-hover hover:text-text3"
-                                    onClick={() =>
-                                      setExerciseDrawerSessionId(
-                                        session.sessionId,
-                                      )
-                                    }
-                                  >
-                                    + Pridat cvik
-                                  </div>
-                                </DroppableSession>
-                              </div>
-                            </div>
-                          </div>
-                        </DraggableSession>
-                      </div>
-                    ))}
-
-                    {/* Drop indicator after last session */}
-                    <SessionDropIndicatorLine
-                      dayOfWeek={dayOfWeek}
-                      index={sessions.length}
-                    />
-
-                    {/* Add session */}
-                    {addingSessionDay === dayOfWeek ? (
-                      <div className="flex gap-1">
-                        <input
-                          autoFocus
-                          value={newSessionName}
-                          onChange={(e) => setNewSessionName(e.target.value)}
-                          onKeyDown={(e) =>
-                            e.key === 'Enter' && handleAddSession(dayOfWeek)
-                          }
-                          placeholder="Nazev treninku..."
-                          className="flex-1 rounded-md border border-border-md bg-bg px-2 py-[5px] text-[13px] text-text outline-none transition-colors duration-150 placeholder:text-text3 focus:border-border-hv"
-                        />
-                        <Button
-                          size="sm"
-                          variant="primary"
-                          onClick={() => handleAddSession(dayOfWeek)}
-                        >
-                          +
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            setAddingSessionDay(null);
-                            setNewSessionName('');
-                          }}
-                        >
-                          &times;
-                        </Button>
-                      </div>
-                    ) : (
-                      <div
-                        className="text-xs text-text4 text-center p-1 cursor-pointer rounded-sm transition-colors duration-100 hover:bg-bg-hover hover:text-text3"
-                        onClick={() => setAddingSessionDay(dayOfWeek)}
-                      >
-                        + Pridat
-                      </div>
-                    )}
-                  </div>
-                </DroppableDay>
+            {/* Add session */}
+            {addingSessionDay === selectedDay ? (
+              <div className="flex gap-2 mt-2">
+                <input
+                  autoFocus
+                  value={newSessionName}
+                  onChange={(e) => setNewSessionName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddSession(selectedDay)}
+                  placeholder={t('training.sessionNamePlaceholder')}
+                  className="flex-1 rounded-md border border-border-md bg-bg px-3 py-2 text-[13px] text-text outline-none transition-colors duration-150 placeholder:text-text3 focus:border-border-hv"
+                  style={{ fontFamily: 'inherit' }}
+                />
+                <Button size="sm" variant="primary" onClick={() => handleAddSession(selectedDay)}>
+                  {t('training.addButton')}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => { setAddingSessionDay(null); setNewSessionName(''); }}
+                >
+                  {t('training.cancelButton')}
+                </Button>
               </div>
-            );
-          })}
-
-          {/* Gap indicator after last column */}
-          <div className="flex w-[6px] shrink-0 items-stretch justify-center">
-            <DayGapIndicatorLine gapPosition={8} />
+            ) : (
+              <div
+                className="flex items-center gap-1.5 px-3 py-2 mt-2 border border-dashed border-border rounded-md cursor-pointer text-text3 text-[13px] transition-colors hover:bg-bg-hover hover:text-text"
+                onClick={() => setAddingSessionDay(selectedDay)}
+              >
+                <span>+</span>
+                <span>{t('training.addSessionButton')}</span>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* ── Revert confirmation dialog ── */}
-        <Dialog
-          open={confirmRevert}
-          onClose={() => setConfirmRevert(false)}
-          title="Zahodit zmeny"
-          footer={
-            <>
-              <Button variant="ghost" onClick={() => setConfirmRevert(false)}>
-                Zrusit
-              </Button>
-              <Button
-                variant="danger"
-                onClick={() => {
-                  revert();
-                  setConfirmRevert(false);
-                }}
-              >
-                Zahodit zmeny
-              </Button>
-            </>
-          }
-        >
-          <p className="text-[13px] text-text2">
-            Opravdu chcete zahodit vsechny neulozen zmeny? Tato akce nelze
-            vratit.
-          </p>
-        </Dialog>
+        {/* Right: Training sidebar */}
+        <div className="flex flex-col overflow-y-auto bg-bg2">
+          {/* Start date picker */}
+          <div className="p-3 border-b border-border">
+            <div className="text-[11px] font-semibold text-text3 uppercase tracking-[0.04em] mb-1.5">
+              {t('training.startDate')}
+            </div>
+            <input
+              type="date"
+              value={plan.startDate?.split('T')[0] ?? ''}
+              onChange={(e) => setStartDate(e.target.value || null)}
+              className="auth-input"
+              style={{ fontSize: 13, padding: '7px 10px', cursor: 'pointer', width: '100%' }}
+            />
+          </div>
 
-        {/* ── Copy day confirmation dialog ── */}
-        <Dialog
-          open={copyDialog !== null}
-          onClose={() => setCopyDialog(null)}
-          title="Kopirovat den"
-          footer={
-            <>
-              <Button variant="ghost" onClick={() => setCopyDialog(null)}>
-                Zrusit
-              </Button>
-              <Button variant="primary" onClick={handleCopyConfirm}>
-                Kopirovat
-              </Button>
-            </>
-          }
-        >
-          <p className="text-[13px] text-text2">
-            {copyDialog &&
-              (copyDialog.fromWeek !== copyDialog.toWeek
-                ? t('training.copyDayToWeek', {
-                    fromDay: t(
-                      `nutrition.${DAY_KEYS[copyDialog.from - 1]}`,
-                    ),
-                    fromWeek: copyDialog.fromWeek,
-                    toDay: t(`nutrition.${DAY_KEYS[copyDialog.to - 1]}`),
-                    toWeek: copyDialog.toWeek,
-                  })
-                : t('training.copyDayMessage', {
-                    from: t(
-                      `nutrition.${DAY_KEYS[copyDialog.from - 1]}`,
-                    ),
-                    to: t(`nutrition.${DAY_KEYS[copyDialog.to - 1]}`),
-                  }))}
-          </p>
-        </Dialog>
-
-        {/* ── Add exercises drawer ── */}
-        <AddExercisesDrawer
-          open={exerciseDrawerSessionId !== null}
-          onClose={() => setExerciseDrawerSessionId(null)}
-          onAdd={handleAddExercisesFromDrawer}
-        />
+          <TrainingSidebar
+            sessions={daySessions}
+            planStatus={currentWeek?.status ?? 'Draft'}
+            clientName={clientName}
+          />
+        </div>
       </div>
-    </TrainingDragProvider>
+
+      {/* ── Leave Page Confirmation Dialog ── */}
+      <Dialog
+        open={!!pendingNav}
+        onClose={() => setPendingNav(null)}
+        title={t('training.leaveTitle')}
+        maxWidth={400}
+        footer={
+          <>
+            <Button onClick={() => setPendingNav(null)}>{t('training.stay')}</Button>
+            <Button variant="danger" onClick={confirmLeave}>
+              {t('training.leaveWithoutSaving')}
+            </Button>
+          </>
+        }
+      >
+        <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
+          {t('training.leaveMessage')}
+        </p>
+      </Dialog>
+
+      {/* ── Reset Confirmation Dialog ── */}
+      <Dialog
+        open={resetConfirmOpen}
+        onClose={() => setResetConfirmOpen(false)}
+        title={t('training.discardTitle')}
+        maxWidth={380}
+        footer={
+          <>
+            <Button onClick={() => setResetConfirmOpen(false)}>{t('training.cancel')}</Button>
+            <Button variant="danger" onClick={() => { setResetConfirmOpen(false); handleReset(); }}>
+              {t('training.discardChanges')}
+            </Button>
+          </>
+        }
+      >
+        <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
+          {t('training.discardMessage')}
+        </p>
+      </Dialog>
+
+    </div>
   );
 }

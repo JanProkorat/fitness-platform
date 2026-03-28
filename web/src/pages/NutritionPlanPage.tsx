@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useNutritionPlanStore } from '@/stores/nutritionPlan';
 import { getPlan } from '@/api/plans';
 import { getClientDashboard } from '@/api/nutrition-goals';
+import { Breadcrumb, PageHeader, Toolbar } from '@/components/layout';
 import { Button, Dialog, Input } from '@/components/ui';
 import { MacroSidebar, MealBlock, WeekDayTabs } from '@/components/nutrition';
 import type { MealBlockFood } from '@/components/nutrition';
@@ -601,31 +602,35 @@ export default function NutritionPlanPage() {
 
   return (
     <div className="flex flex-col overflow-hidden" style={{ height: '100vh' }}>
-      {/* ── Topbar ── */}
-      <div className="flex items-center gap-2 px-4 shrink-0 border-b border-border bg-bg" style={{ height: 44 }}>
-        <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>
-          {clientDashboard ? `${clientDashboard.firstName} ${clientDashboard.lastName}` : '...'} — {t('nutrition.tabMealPlan')}
-        </span>
-        <div className="ml-auto flex items-center gap-1.5">
-          {isDirty && (
-            <span style={{ fontSize: 11, color: 'var(--orange)', display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--orange)' }} />
-              {t('nutrition.unsavedWarning')}
-            </span>
-          )}
-          {isSaving && (
-            <span style={{ fontSize: 11, color: 'var(--text3)' }}>{t('nutrition.saving')}</span>
-          )}
-          <Button variant="default" size="sm" onClick={() => setResetConfirmOpen(true)} disabled={!isDirty}>
-            {t('nutrition.discardChanges')}
-          </Button>
-          <Button variant="default" size="sm" onClick={handleSave} disabled={!isDirty || isSaving}>
-            {t('nutrition.save')}
-          </Button>
-          <Button variant="primary" size="sm" onClick={handlePublish} disabled={isWeekPublished || isDirty}>
-            {isWeekPublished ? t('nutrition.published') : t('nutrition.publishWeekButton')}
-          </Button>
-        </div>
+      {/* ── Header ── */}
+      <div className="shrink-0">
+      <PageHeader
+        icon="🥗"
+        title={t('nutrition.tabMealPlan')}
+        subtitle={`${clientDashboard ? `${clientDashboard.firstName} ${clientDashboard.lastName}` : '...'} · ${t('nutrition.planSubtitle')}`}
+        actions={
+          <div className="flex items-center gap-1.5">
+            {isDirty && (
+              <span style={{ fontSize: 11, color: 'var(--orange)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--orange)' }} />
+                {t('nutrition.unsavedWarning')}
+              </span>
+            )}
+            {isSaving && (
+              <span style={{ fontSize: 11, color: 'var(--text3)' }}>{t('nutrition.saving')}</span>
+            )}
+            <Button variant="default" size="sm" onClick={() => setResetConfirmOpen(true)} disabled={!isDirty}>
+              {t('nutrition.discardChanges')}
+            </Button>
+            <Button variant="default" size="sm" onClick={handleSave} disabled={!isDirty || isSaving}>
+              {t('nutrition.save')}
+            </Button>
+            <Button variant="primary" size="sm" onClick={handlePublish} disabled={isWeekPublished || isDirty}>
+              {isWeekPublished ? t('nutrition.published') : t('nutrition.publishWeekButton')}
+            </Button>
+          </div>
+        }
+      />
       </div>
 
       {/* ── Week tabs ── */}

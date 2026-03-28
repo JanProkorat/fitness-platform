@@ -9,21 +9,23 @@ export interface PageHeaderProps {
 
 export function PageHeader({ icon, title, subtitle, actions }: PageHeaderProps) {
   return (
-    <div className="flex items-start justify-between px-20 pt-7 pb-2.5">
-      <div className="min-w-0 flex-1">
+    <div className="flex items-center justify-between px-5 pt-4 pb-2.5 border-b border-border">
+      <div className="min-w-0 flex-1 flex items-center gap-3">
         {icon && (
-          <div className="mb-1.5 text-[32px] leading-none">{icon}</div>
+          <span className="text-[32px] leading-none shrink-0">{icon}</span>
         )}
-        <h1 className="mb-1 text-[28px] font-bold leading-tight tracking-tight text-text">
-          {title}
-        </h1>
-        {subtitle && (
-          <p className="text-sm text-text3">{subtitle}</p>
-        )}
+        <div>
+          <h1 className="mb-1 text-[28px] font-bold leading-tight tracking-tight text-text">
+            {title}
+          </h1>
+          {subtitle && (
+            <p className="text-sm text-text3">{subtitle}</p>
+          )}
+        </div>
       </div>
 
       {actions && (
-        <div className="ml-4 flex shrink-0 items-center gap-2">
+        <div className="ml-4 flex shrink-0 items-end gap-2">
           {actions}
         </div>
       )}

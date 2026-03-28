@@ -21,8 +21,8 @@ import NutritionPlanPage from '@/pages/NutritionPlanPage';
 import ClientNutritionGoalsPage from '@/pages/ClientNutritionGoalsPage';
 import ClientNutritionPage from '@/pages/ClientNutritionPage';
 import ExercisesPage from '@/pages/ExercisesPage';
-import TrainingPlansPage from '@/pages/TrainingPlansPage';
 import TrainingPlanPage from '@/pages/TrainingPlanPage';
+import ClientTrainingPage from '@/pages/ClientTrainingPage';
 import MessagesPage from '@/pages/MessagesPage';
 import { Toaster } from '@/components/ui/Toast';
 
@@ -87,6 +87,7 @@ export default function App() {
                 <Route path="/clients/:id" element={<ClientDetailPage />} />
                 <Route path="/clients/:id/nutrition-goals" element={<ClientNutritionGoalsPage />} />
                 <Route path="/clients/:id/nutrition" element={<ClientNutritionPage />} />
+                <Route path="/clients/:id/training" element={<ClientTrainingPage />} />
               </Route>
 
               {/* Nutritionist only */}
@@ -108,8 +109,7 @@ export default function App() {
                 }
               >
                 <Route path="/exercises" element={<ExercisesPage />} />
-                <Route path="/training-plans" element={<TrainingPlansPage />} />
-                <Route path="/training-plans/:planId" element={<TrainingPlanPage />} />
+                <Route path="/clients/:id/training-plans/:planId" element={<TrainingPlanPage />} />
               </Route>
             </Route>
           </Route>

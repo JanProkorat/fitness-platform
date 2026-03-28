@@ -69,7 +69,9 @@ export function WeekDayTabs({
                   const hasWeek = e.dataTransfer.types.includes('application/week-json');
                   const hasMeal = e.dataTransfer.types.includes('application/meal-json');
                   const hasItem = e.dataTransfer.types.includes('application/json');
-                  if (!hasWeek && !hasMeal && !hasItem) return;
+                  const hasSession = e.dataTransfer.types.includes('application/session-json');
+                  const hasExercise = e.dataTransfer.types.includes('application/exercise-json');
+                  if (!hasWeek && !hasMeal && !hasItem && !hasSession && !hasExercise) return;
                   e.preventDefault();
                   e.dataTransfer.dropEffect = 'move';
                   if (hasWeek) {
@@ -122,6 +124,7 @@ export function WeekDayTabs({
                     active && 'text-text border-b-text font-medium',
                   )}
                 >
+                  <span className="text-[11px]">📅</span>
                   {week.label}
                   {week.isTemplate && (
                     <span className="text-[10px] rounded-full px-[5px] bg-green-bg text-green">
@@ -129,7 +132,7 @@ export function WeekDayTabs({
                     </span>
                   )}
                 </button>
-                {onRemoveWeek && weeks.length > 1 && (
+                {onRemoveWeek && weeks.length > 1 && !week.isTemplate && (
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); onRemoveWeek(week.index); }}

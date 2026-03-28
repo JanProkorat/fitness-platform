@@ -16,6 +16,11 @@ public class UpdateTrainingWeekRequest
     /// Sessions in this week.
     /// </summary>
     public List<UpdateSessionRequest> Sessions { get; set; } = [];
+
+    /// <summary>
+    /// Optional day-level notes keyed by day of week (1 = Monday … 7 = Sunday).
+    /// </summary>
+    public Dictionary<int, string>? DayNotes { get; set; }
 }
 
 /// <summary>

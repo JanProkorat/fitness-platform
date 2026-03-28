@@ -49,6 +49,7 @@ interface TrainingPlanState {
   copyDayToWeek: (fromWeek: number, fromDay: number, toWeek: number, toDay: number) => void;
 
   // Day mutations
+  updateDayNote: (weekNumber: number, dayOfWeek: number, note: string) => void;
   swapDays: (weekNumber: number, dayA: number, dayB: number) => void;
   copyDayToDay: (weekNumber: number, fromDay: number, toDay: number) => void;
   reorderDay: (weekNumber: number, fromDay: number, toPosition: number) => void;
@@ -496,6 +497,28 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
     });
   },
 
+  updateDayNote: (weekNumber, dayOfWeek, note) => {
+    const { plan } = get();
+    if (!plan) return;
+    set({
+      plan: {
+        ...plan,
+        weeks: plan.weeks.map((w) =>
+          w.weekNumber === weekNumber
+            ? {
+                ...w,
+                dayNotes: {
+                  ...(w.dayNotes ?? {}),
+                  [dayOfWeek]: note,
+                },
+              }
+            : w,
+        ),
+      },
+      isDirty: true,
+    });
+  },
+
   swapDays: (weekNumber, dayA, dayB) => {
     const { plan } = get();
     if (!plan || dayA === dayB) return;
@@ -616,6 +639,7 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
         startDate: plan.startDate,
         weeks: plan.weeks.map((w) => ({
           weekNumber: w.weekNumber,
+          dayNotes: w.dayNotes,
           sessions: w.sessions.map((s) => ({
             sessionId: s.sessionId,
             dayOfWeek: s.dayOfWeek,

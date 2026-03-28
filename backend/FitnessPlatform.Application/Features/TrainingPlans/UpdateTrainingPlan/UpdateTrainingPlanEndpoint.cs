@@ -126,6 +126,8 @@ public class UpdateTrainingPlanEndpoint(IMongoContext mongo)
                 WeekNumber = rw.WeekNumber,
                 Status = existing?.Status ?? WeekStatus.Draft,
                 DatePublished = existing?.DatePublished,
+                DayNotes = rw.DayNotes?.Where(kv => !string.IsNullOrWhiteSpace(kv.Value))
+                    .ToDictionary(kv => kv.Key, kv => kv.Value.Trim()),
                 Sessions = rw.Sessions.Select(rs => new TrainingSession
                 {
                     SessionId = rs.SessionId ?? Guid.NewGuid(),

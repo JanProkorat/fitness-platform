@@ -12,7 +12,7 @@ export interface BreadcrumbProps {
 export function Breadcrumb({ items }: BreadcrumbProps) {
   return (
     <nav
-      className="flex items-center gap-1 px-20 pt-2.5 text-[13px] text-text3"
+      className="flex items-center gap-1 px-5 pt-2.5 text-[13px] text-text3"
       aria-label="Breadcrumb"
     >
       {items.map((item, i) => {

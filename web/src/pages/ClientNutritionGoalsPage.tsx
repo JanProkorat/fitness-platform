@@ -2,7 +2,8 @@ import { useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Breadcrumb, PageHeader, Toolbar } from '@/components/layout';
+import { useAuthStore } from '@/stores/auth';
+import { PageHeader } from '@/components/layout';
 import { Button, Select, ProgressBar } from '@/components/ui';
 import { PropertyList, Callout } from '@/components/data';
 import {
@@ -27,6 +28,50 @@ const GOAL_KEYS: Record<string, string> = {
   Bulk: 'nutritionGoals.bulkLabel',
 };
 
+const TRAINING_FREQ_KEYS: Record<string, string> = {
+  None: 'nutritionGoals.trainingFreq_None',
+  Occasional: 'nutritionGoals.trainingFreq_Occasional',
+  Regular: 'nutritionGoals.trainingFreq_Regular',
+  High: 'nutritionGoals.trainingFreq_High',
+};
+
+const DESIRED_FREQ_KEYS: Record<string, string> = {
+  TwoPerWeek: 'nutritionGoals.desiredFreq_TwoPerWeek',
+  ThreePerWeek: 'nutritionGoals.desiredFreq_ThreePerWeek',
+  FourPerWeek: 'nutritionGoals.desiredFreq_FourPerWeek',
+  FivePerWeek: 'nutritionGoals.desiredFreq_FivePerWeek',
+};
+
+const BODY_TYPE_KEYS: Record<string, string> = {
+  Ectomorph: 'nutritionGoals.bodyType_Ectomorph',
+  Mesomorph: 'nutritionGoals.bodyType_Mesomorph',
+  Endomorph: 'nutritionGoals.bodyType_Endomorph',
+};
+
+const PRIMARY_GOAL_KEYS: Record<string, string> = {
+  LoseFat: 'nutritionGoals.goal_LoseFat',
+  GainMuscle: 'nutritionGoals.goal_GainMuscle',
+  Recomposition: 'nutritionGoals.goal_Recomposition',
+  Fitness: 'nutritionGoals.goal_Fitness',
+  Health: 'nutritionGoals.goal_Health',
+};
+
+const MOTIVATION_KEYS: Record<string, string> = {
+  Appearance: 'nutritionGoals.motivation_Appearance',
+  Health: 'nutritionGoals.motivation_Health',
+  Performance: 'nutritionGoals.motivation_Performance',
+  Confidence: 'nutritionGoals.motivation_Confidence',
+};
+
+const ACTIVITY_ITEM_KEYS: Record<string, string> = {
+  strength: 'nutritionGoals.activity_strength',
+  cardio: 'nutritionGoals.activity_cardio',
+  hiit: 'nutritionGoals.activity_hiit',
+  yoga: 'nutritionGoals.activity_yoga',
+  cycling: 'nutritionGoals.activity_cycling',
+  martial_arts: 'nutritionGoals.activity_martial_arts',
+};
+
 const SEX_KEYS: Record<string, string> = {
   Male: 'nutritionGoals.sexMale',
   Female: 'nutritionGoals.sexFemale',
@@ -35,6 +80,10 @@ const SEX_KEYS: Record<string, string> = {
 export default function ClientNutritionGoalsPage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
+
+  const user = useAuthStore((s) => s.user);
+  const isTrainer = user?.roles?.includes('Trainer') || user?.roles?.includes('Admin');
+  const isNutritionist = user?.roles?.includes('Nutritionist') || user?.roles?.includes('Admin');
 
   const { data: client } = useQuery({
     queryKey: ['client-dashboard', id],
@@ -152,18 +201,10 @@ export default function ClientNutritionGoalsPage() {
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">
-      <Breadcrumb
-        items={[
-          { label: t('sidebar.dashboard'), href: '/dashboard' },
-          { label: t('sidebar.clients'), href: '/clients' },
-          { label: clientName, href: `/clients/${id}` },
-          { label: t('nutritionGoals.title') },
-        ]}
-      />
       <PageHeader
         icon="🎯"
         title={t('nutritionGoals.title')}
-        subtitle={`${clientName} · ${t('nutritionGoals.subtitle')}`}
+        subtitle={`${clientName} · ${t(isTrainer && isNutritionist ? 'nutritionGoals.subtitleBoth' : isNutritionist ? 'nutritionGoals.subtitle' : 'nutritionGoals.subtitleTrainer')}`}
         actions={
           <div className="flex gap-1.5">
             <Button onClick={() => window.history.back()}>
@@ -179,10 +220,9 @@ export default function ClientNutritionGoalsPage() {
           </div>
         }
       />
-      <Toolbar />
 
       <div className="px-20 py-3">
-        <div className="grid grid-cols-[1fr_1fr] gap-8">
+        <div className="grid gap-8" style={{ gridTemplateColumns: isTrainer && isNutritionist ? '1fr 1fr 1fr' : '1fr 1fr' }}>
           {/* Left column - Anamneza */}
           <div>
             <div className="text-[12px] font-semibold uppercase tracking-[0.04em] text-text3 mb-2.5">
@@ -279,7 +319,7 @@ export default function ClientNutritionGoalsPage() {
               </Select>
             </div>
 
-            {!result && (
+            {!result && isNutritionist && (
               <Button
                 variant="primary"
                 onClick={() => recalculate()}
@@ -290,7 +330,7 @@ export default function ClientNutritionGoalsPage() {
               </Button>
             )}
 
-            {result && (
+            {result && isNutritionist && (
               <>
                 <div className="text-[13px] font-semibold mb-2">{t('nutritionGoals.calculation')}</div>
                 <Callout icon="🧮" title="Mifflin-St Jeor" variant="info" className="bg-bg2 border border-border">
@@ -312,7 +352,92 @@ export default function ClientNutritionGoalsPage() {
             )}
           </div>
 
-          {/* Right column - Makra */}
+          {/* Training profile column — visible to trainers */}
+          {isTrainer && (
+            <div>
+              <div className="text-[12px] font-semibold uppercase tracking-[0.04em] text-text3 mb-2.5">
+                {t('nutritionGoals.trainingProfile')}
+              </div>
+              <div className="bg-bg2 border border-border rounded-md p-2">
+                <PropertyList
+                  className="mb-0"
+                  items={[
+                    {
+                      label: t('nutritionGoals.currentTrainingFrequency'),
+                      icon: '🏋️',
+                      value: client?.onboarding?.currentTrainingFrequency
+                        ? t(TRAINING_FREQ_KEYS[client.onboarding.currentTrainingFrequency] ?? client.onboarding.currentTrainingFrequency)
+                        : t('nutritionGoals.noData'),
+                    },
+                    {
+                      label: t('nutritionGoals.desiredTrainingFrequency'),
+                      icon: '📈',
+                      value: client?.onboarding?.desiredTrainingFrequency
+                        ? t(DESIRED_FREQ_KEYS[client.onboarding.desiredTrainingFrequency] ?? client.onboarding.desiredTrainingFrequency)
+                        : t('nutritionGoals.noData'),
+                    },
+                    {
+                      label: t('nutritionGoals.fitnessRating'),
+                      icon: '💪',
+                      value: client?.onboarding?.fitnessRating != null
+                        ? t('nutritionGoals.fitnessRatingValue', { value: client.onboarding.fitnessRating })
+                        : t('nutritionGoals.noData'),
+                    },
+                    {
+                      label: t('nutritionGoals.preferredActivities'),
+                      icon: '🎯',
+                      value: client?.onboarding?.preferredActivities
+                        ? client.onboarding.preferredActivities.split(',').map((a) => t(ACTIVITY_ITEM_KEYS[a.trim()] ?? a.trim())).join(', ')
+                        : t('nutritionGoals.noData'),
+                    },
+                    {
+                      label: t('nutritionGoals.injuries'),
+                      icon: '🩹',
+                      value: client?.onboarding?.injuries || t('nutritionGoals.noData'),
+                    },
+                    {
+                      label: t('nutritionGoals.bodyType'),
+                      icon: '🧍',
+                      value: client?.onboarding?.bodyType
+                        ? t(BODY_TYPE_KEYS[client.onboarding.bodyType] ?? client.onboarding.bodyType)
+                        : t('nutritionGoals.noData'),
+                    },
+                    {
+                      label: t('nutritionGoals.sleepHours'),
+                      icon: '😴',
+                      value: client?.onboarding?.sleepHours != null
+                        ? t('nutritionGoals.sleepHoursValue', { value: client.onboarding.sleepHours })
+                        : t('nutritionGoals.noData'),
+                    },
+                    {
+                      label: t('nutritionGoals.stressLevel'),
+                      icon: '🧠',
+                      value: client?.onboarding?.stressLevel != null
+                        ? t('nutritionGoals.stressLevelValue', { value: client.onboarding.stressLevel })
+                        : t('nutritionGoals.noData'),
+                    },
+                    {
+                      label: t('nutritionGoals.primaryGoal'),
+                      icon: '🎯',
+                      value: client?.onboarding?.primaryGoal
+                        ? t(PRIMARY_GOAL_KEYS[client.onboarding.primaryGoal] ?? client.onboarding.primaryGoal)
+                        : t('nutritionGoals.noData'),
+                    },
+                    {
+                      label: t('nutritionGoals.primaryMotivation'),
+                      icon: '🔥',
+                      value: client?.onboarding?.primaryMotivation
+                        ? t(MOTIVATION_KEYS[client.onboarding.primaryMotivation] ?? client.onboarding.primaryMotivation)
+                        : t('nutritionGoals.noData'),
+                    },
+                  ]}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Macros column — visible to nutritionists */}
+          {isNutritionist && (
           <div>
             <div className="text-[12px] font-semibold uppercase tracking-[0.04em] text-text3 mb-2.5">
               {t('nutritionGoals.targetMacros')}
@@ -514,6 +639,7 @@ export default function ClientNutritionGoalsPage() {
               </div>
             )}
           </div>
+          )}
         </div>
       </div>
     </div>
