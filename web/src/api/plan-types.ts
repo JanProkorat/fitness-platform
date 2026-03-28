@@ -21,6 +21,7 @@ export interface MealFood {
   foodNameCs?: string | null;
   foodNameEn?: string | null;
   foodNameDe?: string | null;
+  foodCategory?: string | null;
   nutrientValuePer100Grams: {
     kcal: number;
     protein: number;

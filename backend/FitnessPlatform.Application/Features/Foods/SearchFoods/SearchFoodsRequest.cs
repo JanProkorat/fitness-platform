@@ -1,4 +1,5 @@
 using FastEndpoints;
+using FitnessPlatform.Application.Domain.Enums;
 
 namespace FitnessPlatform.Application.Features.Foods.SearchFoods;
 
@@ -12,6 +13,11 @@ public class SearchFoodsRequest
     /// </summary>
     [BindFrom("q")]
     public string? Query { get; set; }
+
+    /// <summary>
+    /// Optional category filter.
+    /// </summary>
+    public FoodCategory? Category { get; set; }
 
     /// <summary>
     /// Page number (1-based). Defaults to 1.

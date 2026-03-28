@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { searchRecipes } from '@/api/recipes';
 import type { RecipeSummary } from '@/api/recipe-types';
@@ -28,6 +29,9 @@ export function RecipeSearch({
   const [loadedLang, setLoadedLang] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number; openUp: boolean }>({ top: 0, left: 0, width: 0, openUp: false });
+  const DROPDOWN_MAX_HEIGHT = 240;
 
   if (loaded && loadedLang !== i18n.language) {
     setLoaded(false);
@@ -47,6 +51,12 @@ export function RecipeSearch({
   }, [loaded, i18n.language]);
 
   const handleFocus = () => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const openUp = spaceBelow < DROPDOWN_MAX_HEIGHT && rect.top > spaceBelow;
+      setDropdownPos({ top: openUp ? rect.top : rect.bottom, left: rect.left, width: rect.width, openUp });
+    }
     setIsOpen(true);
     loadRecipes();
   };
@@ -71,7 +81,11 @@ export function RecipeSearch({
   useEffect(() => {
     if (!isOpen) return;
     function onClickOutside(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (
+        containerRef.current && !containerRef.current.contains(target) &&
+        dropdownRef.current && !dropdownRef.current.contains(target)
+      ) {
         setIsOpen(false);
       }
     }
@@ -103,12 +117,14 @@ export function RecipeSearch({
         />
       </div>
 
-      {isOpen && (
-        <div style={{
-          position: 'absolute', left: 0, right: 0, top: '100%', zIndex: 200,
+      {isOpen && createPortal(
+        <div ref={dropdownRef} style={{
+          position: 'fixed',
+          left: dropdownPos.left, width: dropdownPos.width, zIndex: 1000,
+          ...(dropdownPos.openUp ? { bottom: window.innerHeight - dropdownPos.top } : { top: dropdownPos.top }),
           border: '1px solid var(--border-md)', borderRadius: 'var(--radius-md)',
           background: 'var(--bg)', boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
-          maxHeight: 240, overflowY: 'auto',
+          maxHeight: DROPDOWN_MAX_HEIGHT, overflowY: 'auto',
         }}>
           {!loaded && (
             <div style={{ padding: '8px 12px', fontSize: 12, color: 'var(--text3)' }}>
@@ -143,7 +159,8 @@ export function RecipeSearch({
               </span>
             </div>
           ))}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

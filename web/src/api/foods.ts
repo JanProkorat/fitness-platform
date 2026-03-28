@@ -3,6 +3,7 @@ import type {
   SearchFoodsResponse,
   GetCustomFoodsResponse,
   FoodSummary,
+  FoodCategory,
   CreateFoodRequest,
   UpdateFoodRequest,
 } from './food-types';
@@ -10,6 +11,7 @@ import type {
 /** Search foods by name with pagination. */
 export async function searchFoods(params: {
   q?: string;
+  category?: FoodCategory;
   page?: number;
   pageSize?: number;
 }): Promise<SearchFoodsResponse> {

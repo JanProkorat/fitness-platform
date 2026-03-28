@@ -34,6 +34,11 @@ public class MealFood
     [BsonIgnoreIfNull]
     public string? FoodNameDe { get; set; }
 
+    /// <summary>Snapshot of food category at time of addition.</summary>
+    [BsonElement("foodCategory")]
+    [BsonIgnoreIfNull]
+    public string? FoodCategory { get; set; }
+
     /// <summary>
     /// Snapshot of nutritional values per 100 grams at time of addition.
     /// </summary>

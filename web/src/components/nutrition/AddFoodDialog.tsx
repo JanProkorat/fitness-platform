@@ -4,7 +4,14 @@ import { z } from 'zod';
 import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { createFood } from '@/api/foods';
+import type { FoodCategory } from '@/api/food-types';
 import { showApiError, showSuccess } from '@/lib/api-errors';
+
+const FOOD_CATEGORIES: FoodCategory[] = [
+  'Other', 'Fruit', 'Vegetables', 'Meat', 'FishAndSeafood', 'Dairy',
+  'GrainsAndCereals', 'Legumes', 'NutsAndSeeds', 'OilsAndFats',
+  'SweetsAndSnacks', 'Beverages', 'Supplements',
+];
 
 interface AddFoodDialogProps {
   onCreated: () => void;
@@ -13,6 +20,7 @@ interface AddFoodDialogProps {
 
 const addFoodSchema = z.object({
   name: z.string().min(2),
+  category: z.string().default('Other'),
   kcal: z.coerce.number().min(0),
   protein: z.coerce.number().min(0),
   carbs: z.coerce.number().min(0),
@@ -50,6 +58,7 @@ export default function AddFoodDialog({ onCreated, onClose }: AddFoodDialogProps
           carbs: data.carbs,
           fat: data.fat,
         },
+        category: data.category as FoodCategory,
         note: data.note || null,
         allergens: [],
         commonServings: [],
@@ -98,6 +107,20 @@ export default function AddFoodDialog({ onCreated, onClose }: AddFoodDialogProps
               placeholder={t('foods.foodName')}
               className={`w-full ${inputClass} ${errors.name ? 'border-red-500/50' : ''}`}
             />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs text-text3">
+              {t('foods.category')}
+            </label>
+            <select
+              {...register('category')}
+              className={`w-full ${inputClass}`}
+            >
+              {FOOD_CATEGORIES.map((cat) => (
+                <option key={cat} value={cat}>{t(`foods.category${cat}`)}</option>
+              ))}
+            </select>
           </div>
 
           {/* Localized names */}

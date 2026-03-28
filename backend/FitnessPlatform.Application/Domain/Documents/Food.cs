@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+using FitnessPlatform.Application.Domain.Enums;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
@@ -48,6 +50,14 @@ public class Food
     /// </summary>
     [BsonElement("nutrientValue")]
     public NutrientValue NutrientValue { get; set; } = new();
+
+    /// <summary>
+    /// Food category (e.g. Fruit, Meat, Dairy).
+    /// </summary>
+    [BsonElement("category")]
+    [BsonRepresentation(BsonType.String)]
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public FoodCategory Category { get; set; } = FoodCategory.Other;
 
     /// <summary>
     /// List of allergen identifiers (e.g. "gluten", "milk").

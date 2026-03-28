@@ -83,6 +83,7 @@ public class UpdateFoodEndpoint(IMongoContext mongo) : Endpoint<UpdateFoodReques
                 SaturatedFat = req.NutrientValue.SaturatedFat,
                 Salt = req.NutrientValue.Salt
             })
+            .Set(f => f.Category, req.Category)
             .Set(f => f.Note, req.Note)
             .Set(f => f.Allergens, req.Allergens)
             .Set(f => f.CommonServings, req.CommonServings

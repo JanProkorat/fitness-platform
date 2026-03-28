@@ -15,7 +15,8 @@
     "page": "Page {{current}} of {{total}}",
     "total": "Total {{count}}",
     "error": "Error",
-    "success": "Success"
+    "success": "Success",
+    "clear": "Clear"
   },
   "validation": {
     "required": "Required",
@@ -336,7 +337,23 @@
     "createError": "Failed to create food",
     "deleteConfirm": "Are you sure you want to delete this food?",
     "deleted": "Food deleted",
-    "deleteError": "Failed to delete food"
+    "deleteError": "Failed to delete food",
+    "note": "Note",
+    "category": "Category",
+    "categoryAll": "All categories",
+    "categoryOther": "Other",
+    "categoryFruit": "Fruit",
+    "categoryVegetables": "Vegetables",
+    "categoryMeat": "Meat",
+    "categoryFishAndSeafood": "Fish & Seafood",
+    "categoryDairy": "Dairy",
+    "categoryGrainsAndCereals": "Grains & Cereals",
+    "categoryLegumes": "Legumes",
+    "categoryNutsAndSeeds": "Nuts & Seeds",
+    "categoryOilsAndFats": "Oils & Fats",
+    "categorySweetsAndSnacks": "Sweets & Snacks",
+    "categoryBeverages": "Beverages",
+    "categorySupplements": "Supplements"
   },
   "recipes": {
     "title": "Recipes",

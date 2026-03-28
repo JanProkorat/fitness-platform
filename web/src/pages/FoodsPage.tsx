@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/stores/auth';
 import { searchFoods, deleteFood } from '@/api/foods';
 import { showApiError, showSuccess } from '@/lib/api-errors';
-import type { FoodSummary } from '@/api/food-types';
+import type { FoodSummary, FoodCategory } from '@/api/food-types';
 import AddFoodDialog from '@/components/nutrition/AddFoodDialog';
 import EditFoodDrawer from '@/components/nutrition/EditFoodDrawer';
 import { PageHeader, Toolbar } from '@/components/layout';
@@ -12,6 +12,22 @@ import { Button, Dialog, SearchInput } from '@/components/ui';
 import { DatabaseTable, CardGrid, Card, CardCover, CardBody, CardPropRow } from '@/components/data';
 
 type DrawerMode = { type: 'add' } | { type: 'edit'; food: FoodSummary } | null;
+
+const CATEGORY_COLORS: Record<string, { color: string; bg: string }> = {
+  Fruit: { color: 'var(--green)', bg: 'var(--green-bg)' },
+  Vegetables: { color: 'var(--green)', bg: 'var(--green-bg)' },
+  Meat: { color: 'var(--red)', bg: 'var(--red-bg)' },
+  FishAndSeafood: { color: 'var(--blue)', bg: 'var(--blue-bg)' },
+  Dairy: { color: 'var(--purple)', bg: 'var(--purple-bg)' },
+  GrainsAndCereals: { color: 'var(--orange)', bg: 'var(--orange-bg)' },
+  Legumes: { color: 'var(--green)', bg: 'var(--green-bg)' },
+  NutsAndSeeds: { color: 'var(--orange)', bg: 'var(--orange-bg)' },
+  OilsAndFats: { color: 'var(--purple)', bg: 'var(--purple-bg)' },
+  SweetsAndSnacks: { color: 'var(--red)', bg: 'var(--red-bg)' },
+  Beverages: { color: 'var(--blue)', bg: 'var(--blue-bg)' },
+  Supplements: { color: 'var(--accent)', bg: 'var(--accent-bg)' },
+  Other: { color: 'var(--text3)', bg: 'var(--bg3)' },
+};
 
 
 export default function FoodsPage() {
@@ -23,6 +39,7 @@ export default function FoodsPage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [view, setView] = useState<'table' | 'cards'>('table');
+  const [categoryFilter, setCategoryFilter] = useState<FoodCategory | ''>('');
 
   const [drawerMode, setDrawerMode] = useState<DrawerMode>(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
@@ -46,10 +63,11 @@ export default function FoodsPage() {
   }, [search]);
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['foods', debouncedSearch, page],
+    queryKey: ['foods', debouncedSearch, categoryFilter, page],
     queryFn: () =>
       searchFoods({
         q: debouncedSearch || undefined,
+        category: categoryFilter || undefined,
         page,
         pageSize: 20,
       }),
@@ -96,11 +114,21 @@ export default function FoodsPage() {
         onViewChange={(v) => setView(v as 'table' | 'cards')}
       >
         <SearchInput
-          placeholder="Hledat potraviny..."
+          placeholder={t('foods.search')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-[240px]"
         />
+        <select
+          value={categoryFilter}
+          onChange={(e) => { setCategoryFilter(e.target.value as FoodCategory | ''); setPage(1); }}
+          className="rounded-md border border-border-md bg-bg px-3 py-[6px] text-[13px] text-text outline-none transition-colors focus:border-border-hv"
+        >
+          <option value="">{t('foods.categoryAll')}</option>
+          {(['Fruit', 'Vegetables', 'Meat', 'FishAndSeafood', 'Dairy', 'GrainsAndCereals', 'Legumes', 'NutsAndSeeds', 'OilsAndFats', 'SweetsAndSnacks', 'Beverages', 'Supplements', 'Other'] as FoodCategory[]).map((cat) => (
+            <option key={cat} value={cat}>{t(`foods.category${cat}`)}</option>
+          ))}
+        </select>
         {isNutritionist && (
           <Button variant="primary" onClick={() => openDrawer({ type: 'add' })}>
             + Nova potravina
@@ -123,12 +151,24 @@ export default function FoodsPage() {
           <>
             <DatabaseTable
               columns={[
-                { key: 'name', label: 'Nazev', render: (food: FoodSummary) => food.name },
-                { key: 'note', label: 'Poznámka', render: (food: FoodSummary) => <span className="text-text3">{food.note || '—'}</span> },
+                { key: 'name', label: t('foods.foodName'), render: (food: FoodSummary) => food.name },
+                { key: 'note', label: t('foods.note'), render: (food: FoodSummary) => <span className="text-text3 text-[12px] italic truncate">{food.note || '—'}</span> },
                 { key: 'kcal', label: 'kcal/100g', width: '90px', render: (food: FoodSummary) => <span className="tabular-nums">{food.nutrientValue.kcal}</span> },
                 { key: 'protein', label: 'B', width: '70px', render: (food: FoodSummary) => <span className="tabular-nums" style={{ color: 'var(--blue)' }}>{food.nutrientValue.protein}g</span> },
                 { key: 'carbs', label: 'S', width: '70px', render: (food: FoodSummary) => <span className="tabular-nums" style={{ color: 'var(--orange)' }}>{food.nutrientValue.carbs}g</span> },
                 { key: 'fat', label: 'T', width: '70px', render: (food: FoodSummary) => <span className="tabular-nums" style={{ color: 'var(--purple)' }}>{food.nutrientValue.fat}g</span> },
+                { key: 'category', label: t('foods.category'), width: '140px', render: (food: FoodSummary) => {
+                  const cat = food.category ?? 'Other';
+                  const colors = CATEGORY_COLORS[cat] ?? CATEGORY_COLORS.Other;
+                  return (
+                    <span
+                      className="text-[10px] font-medium rounded-sm px-1.5 py-[1px]"
+                      style={{ background: colors.bg, color: colors.color }}
+                    >
+                      {t(`foods.category${cat}`)}
+                    </span>
+                  );
+                }},
               ]}
               rows={data.foods}
               rowKey={(food) => food.foodId}

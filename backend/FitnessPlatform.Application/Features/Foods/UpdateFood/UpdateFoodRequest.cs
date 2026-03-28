@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.Foods.Shared;
 
 namespace FitnessPlatform.Application.Features.Foods.UpdateFood;
@@ -41,6 +42,11 @@ public class UpdateFoodRequest
     /// Updated nutritional values per 100 grams.
     /// </summary>
     public NutrientValueDto NutrientValue { get; set; } = new();
+
+    /// <summary>
+    /// Updated food category.
+    /// </summary>
+    public FoodCategory Category { get; set; } = FoodCategory.Other;
 
     /// <summary>
     /// Updated user note.

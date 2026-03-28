@@ -96,6 +96,12 @@ public sealed class OffProduct
     /// </summary>
     [JsonPropertyName("product_name_de")]
     public string? ProductNameDe { get; set; }
+
+    /// <summary>
+    /// Category tags (e.g. "en:meats", "en:fruits").
+    /// </summary>
+    [JsonPropertyName("categories_tags")]
+    public List<string>? CategoriesTags { get; set; }
 }
 
 /// <summary>

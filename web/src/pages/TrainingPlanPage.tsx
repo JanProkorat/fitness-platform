@@ -9,6 +9,7 @@ import { apiClient } from '@/api/client';
 import { useTrainingPlanStore } from '@/stores/trainingPlan';
 import { Breadcrumb, PageHeader } from '@/components/layout';
 import { Button, Dialog } from '@/components/ui';
+import { MondayDatePicker } from '@/components/ui/MondayDatePicker';
 import { ExerciseSearch } from '@/components/training/ExerciseSearch';
 import { WeekDayTabs } from '@/components/nutrition';
 import type { WeekTabData } from '@/components/nutrition/WeekDayTabs';
@@ -1137,12 +1138,11 @@ export default function TrainingPlanPage() {
             <div className="text-[11px] font-semibold text-text3 uppercase tracking-[0.04em] mb-1.5">
               {t('training.startDate')}
             </div>
-            <input
-              type="date"
-              value={plan.startDate?.split('T')[0] ?? ''}
-              onChange={(e) => setStartDate(e.target.value || null)}
+            <MondayDatePicker
+              value={plan.startDate?.split('T')[0] ?? null}
+              onChange={(val) => setStartDate(val)}
               className="auth-input"
-              style={{ fontSize: 13, padding: '7px 10px', cursor: 'pointer', width: '100%' }}
+              style={{ fontSize: 13, padding: '7px 10px', width: '100%' }}
             />
           </div>
 

@@ -6,7 +6,13 @@ import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { updateFood } from '@/api/foods';
 import { showApiError, showSuccess } from '@/lib/api-errors';
-import type { FoodSummary } from '@/api/food-types';
+import type { FoodSummary, FoodCategory } from '@/api/food-types';
+
+const FOOD_CATEGORIES: FoodCategory[] = [
+  'Other', 'Fruit', 'Vegetables', 'Meat', 'FishAndSeafood', 'Dairy',
+  'GrainsAndCereals', 'Legumes', 'NutsAndSeeds', 'OilsAndFats',
+  'SweetsAndSnacks', 'Beverages', 'Supplements',
+];
 
 interface EditFoodDrawerProps {
   food: FoodSummary;
@@ -16,6 +22,7 @@ interface EditFoodDrawerProps {
 
 const editFoodSchema = z.object({
   name: z.string().min(2),
+  category: z.string().default('Other'),
   kcal: z.coerce.number().min(0),
   protein: z.coerce.number().min(0),
   carbs: z.coerce.number().min(0),
@@ -40,6 +47,7 @@ export default function EditFoodDrawer({ food, onSaved, onClose }: EditFoodDrawe
     resolver: zodResolver(editFoodSchema),
     defaultValues: {
       name: food.rawName,
+      category: food.category ?? 'Other',
       kcal: food.nutrientValue.kcal,
       protein: food.nutrientValue.protein,
       carbs: food.nutrientValue.carbs,
@@ -54,6 +62,7 @@ export default function EditFoodDrawer({ food, onSaved, onClose }: EditFoodDrawe
   useEffect(() => {
     reset({
       name: food.rawName,
+      category: food.category ?? 'Other',
       kcal: food.nutrientValue.kcal,
       protein: food.nutrientValue.protein,
       carbs: food.nutrientValue.carbs,
@@ -78,6 +87,7 @@ export default function EditFoodDrawer({ food, onSaved, onClose }: EditFoodDrawe
           carbs: data.carbs,
           fat: data.fat,
         },
+        category: data.category as FoodCategory,
         note: data.note || null,
         allergens: food.allergens,
         commonServings: food.commonServings,
@@ -118,6 +128,20 @@ export default function EditFoodDrawer({ food, onSaved, onClose }: EditFoodDrawe
             {...register('name')}
             className={`w-full ${inputClass} ${errors.name ? 'border-red-500/50' : ''}`}
           />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-xs text-text3">
+            {t('foods.category')}
+          </label>
+          <select
+            {...register('category')}
+            className={`w-full ${inputClass}`}
+          >
+            {FOOD_CATEGORIES.map((cat) => (
+              <option key={cat} value={cat}>{t(`foods.category${cat}`)}</option>
+            ))}
+          </select>
         </div>
 
         {/* Localized names */}

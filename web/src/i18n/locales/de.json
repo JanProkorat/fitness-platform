@@ -15,7 +15,8 @@
     "page": "Seite {{current}} von {{total}}",
     "total": "Gesamt {{count}}",
     "error": "Fehler",
-    "success": "Erfolg"
+    "success": "Erfolg",
+    "clear": "Löschen"
   },
   "validation": {
     "required": "Pflichtfeld",
@@ -335,7 +336,23 @@
     "createError": "Fehler beim Erstellen",
     "deleteConfirm": "Möchten Sie dieses Lebensmittel wirklich löschen?",
     "deleted": "Lebensmittel gelöscht",
-    "deleteError": "Fehler beim Löschen"
+    "deleteError": "Fehler beim Löschen",
+    "note": "Notiz",
+    "category": "Kategorie",
+    "categoryAll": "Alle Kategorien",
+    "categoryOther": "Sonstiges",
+    "categoryFruit": "Obst",
+    "categoryVegetables": "Gemüse",
+    "categoryMeat": "Fleisch",
+    "categoryFishAndSeafood": "Fisch & Meeresfrüchte",
+    "categoryDairy": "Milchprodukte",
+    "categoryGrainsAndCereals": "Getreide",
+    "categoryLegumes": "Hülsenfrüchte",
+    "categoryNutsAndSeeds": "Nüsse & Samen",
+    "categoryOilsAndFats": "Öle & Fette",
+    "categorySweetsAndSnacks": "Süßigkeiten & Snacks",
+    "categoryBeverages": "Getränke",
+    "categorySupplements": "Nahrungsergänzung"
   },
   "recipes": {
     "title": "Rezepte",

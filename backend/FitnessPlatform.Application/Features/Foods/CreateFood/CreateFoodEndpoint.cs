@@ -59,6 +59,7 @@ public class CreateFoodEndpoint(IMongoContext mongo) : Endpoint<CreateFoodReques
                 SaturatedFat = req.NutrientValue.SaturatedFat,
                 Salt = req.NutrientValue.Salt
             },
+            Category = req.Category,
             Note = req.Note,
             Allergens = req.Allergens,
             CommonServings = req.CommonServings

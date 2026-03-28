@@ -761,6 +761,7 @@ export const useNutritionPlanStore = create<NutritionPlanState>((set, get) => ({
                 foodNameCs: food.foodNameCs,
                 foodNameEn: food.foodNameEn,
                 foodNameDe: food.foodNameDe,
+                foodCategory: food.foodCategory,
                 nutrientValuePer100Grams: food.nutrientValuePer100Grams,
                 amountGrams: food.amountGrams,
                 note: food.note,

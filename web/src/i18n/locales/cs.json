@@ -15,7 +15,8 @@
     "page": "Stránka {{current}} z {{total}}",
     "total": "Celkem {{count}}",
     "error": "Chyba",
-    "success": "Úspěch"
+    "success": "Úspěch",
+    "clear": "Vymazat"
   },
   "validation": {
     "required": "Povinné pole",
@@ -335,7 +336,23 @@
     "createError": "Nepodařilo se vytvořit potravinu",
     "deleteConfirm": "Opravdu chcete tuto potravinu smazat?",
     "deleted": "Potravina smazána",
-    "deleteError": "Nepodařilo se smazat potravinu"
+    "deleteError": "Nepodařilo se smazat potravinu",
+    "note": "Poznámka",
+    "category": "Kategorie",
+    "categoryAll": "Všechny kategorie",
+    "categoryOther": "Ostatní",
+    "categoryFruit": "Ovoce",
+    "categoryVegetables": "Zelenina",
+    "categoryMeat": "Maso",
+    "categoryFishAndSeafood": "Ryby a mořské plody",
+    "categoryDairy": "Mléčné výrobky",
+    "categoryGrainsAndCereals": "Obiloviny",
+    "categoryLegumes": "Luštěniny",
+    "categoryNutsAndSeeds": "Ořechy a semena",
+    "categoryOilsAndFats": "Oleje a tuky",
+    "categorySweetsAndSnacks": "Sladkosti a svačiny",
+    "categoryBeverages": "Nápoje",
+    "categorySupplements": "Doplňky stravy"
   },
   "recipes": {
     "title": "Recepty",

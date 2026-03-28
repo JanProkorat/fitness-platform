@@ -101,6 +101,7 @@ export interface MealBlockFood {
   carbs: number;
   fat: number;
   note?: string | null;
+  category?: string | null;
 }
 
 export interface MealBlockRecipe {
@@ -194,10 +195,13 @@ export function MealBlock({
   };
 
   return (
-    <div className="mb-4">
+    <div className="mb-3 rounded-md border border-border bg-bg transition-all duration-100 hover:border-border-md">
       {/* Header */}
       <div
-        className="group flex items-center gap-1.5 py-[5px] border-b border-border mb-[2px] cursor-pointer select-none"
+        className={cn(
+          'group flex items-center gap-1.5 px-3 py-2 cursor-pointer select-none transition-colors hover:bg-bg-hover',
+          isOpen && 'border-b border-border',
+        )}
         onClick={onToggle}
       >
         <span
@@ -208,28 +212,30 @@ export function MealBlock({
         >
           ▶
         </span>
-        {editing ? (
-          <input
-            autoFocus
-            value={editValue}
-            onChange={(e) => setEditValue(e.target.value)}
-            onBlur={handleFinishEdit}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleFinishEdit(); if (e.key === 'Escape') setEditing(false); }}
-            onClick={(e) => e.stopPropagation()}
-            className="auth-input"
-            style={{ flex: 1, fontSize: 13, fontWeight: 600, padding: '1px 4px' }}
-          />
-        ) : (
-          <span
-            className="text-[13px] font-semibold flex-1"
-            onClick={(e) => { if (onNameChange) { e.stopPropagation(); handleStartEdit(e); } }}
-            style={onNameChange ? { cursor: 'text', borderRadius: 'var(--radius)', padding: '1px 4px', transition: 'background 0.1s' } : undefined}
-            onMouseEnter={(e) => { if (onNameChange) e.currentTarget.style.background = 'var(--bg-hover)'; }}
-            onMouseLeave={(e) => { if (onNameChange) e.currentTarget.style.background = ''; }}
-          >
-            {name}
-          </span>
-        )}
+        <div className="flex-1 min-w-0">
+          {editing ? (
+            <input
+              autoFocus
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              onBlur={handleFinishEdit}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleFinishEdit(); if (e.key === 'Escape') setEditing(false); }}
+              onClick={(e) => e.stopPropagation()}
+              className="auth-input"
+              style={{ width: '100%', fontSize: 13, fontWeight: 600, padding: '1px 4px' }}
+            />
+          ) : (
+            <span
+              className="text-[13px] font-semibold block truncate"
+              onClick={(e) => { if (onNameChange) { e.stopPropagation(); handleStartEdit(e); } }}
+              style={onNameChange ? { cursor: 'text', borderRadius: 'var(--radius)', padding: '1px 4px', transition: 'background 0.1s' } : undefined}
+              onMouseEnter={(e) => { if (onNameChange) e.currentTarget.style.background = 'var(--bg-hover)'; }}
+              onMouseLeave={(e) => { if (onNameChange) e.currentTarget.style.background = ''; }}
+            >
+              {name}
+            </span>
+          )}
+        </div>
         {onTimeChange && (
           <input
             type="time"
@@ -289,7 +295,7 @@ export function MealBlock({
           )}
 
           {/* Column header row */}
-          <div className="grid gap-1 px-2 py-1" style={{ gridTemplateColumns: '1fr minmax(80px, 1fr) 68px 50px 36px 36px 36px 22px' }}>
+          <div className="grid gap-1 px-2 py-1" style={{ gridTemplateColumns: '1fr minmax(80px, 1fr) 68px 50px 40px 40px 40px 22px' }}>
             <span className="text-[11px] text-text3 font-medium">{t('nutrition.item')}</span>
             <span className="text-[11px] text-text3 font-medium">{t('nutrition.note')}</span>
             <span className="text-[11px] text-text3 font-medium">{t('nutrition.amount')}</span>
@@ -350,7 +356,7 @@ export function MealBlock({
               <div
                 className="grid gap-1 px-2 py-[5px] items-center"
                 style={{
-                  gridTemplateColumns: '1fr minmax(80px, 1fr) 68px 50px 36px 36px 36px 22px',
+                  gridTemplateColumns: '1fr minmax(80px, 1fr) 68px 50px 40px 40px 40px 22px',
                   borderTop: '1px solid var(--border)',
                 }}
               >

@@ -34,6 +34,11 @@ public class SearchFoodsEndpoint(
         var filterBuilder = Builders<Food>.Filter;
         var filter = filterBuilder.Eq(f => f.IsDeleted, false);
 
+        if (req.Category.HasValue)
+        {
+            filter &= filterBuilder.Eq(f => f.Category, req.Category.Value);
+        }
+
         if (!string.IsNullOrWhiteSpace(req.Query))
         {
             var escaped = Regex.Escape(req.Query);

@@ -7,6 +7,7 @@ import { getPlan } from '@/api/plans';
 import { getClientDashboard } from '@/api/nutrition-goals';
 import { Breadcrumb, PageHeader, Toolbar } from '@/components/layout';
 import { Button, Dialog, Input } from '@/components/ui';
+import { MondayDatePicker } from '@/components/ui/MondayDatePicker';
 import { MacroSidebar, MealBlock, WeekDayTabs } from '@/components/nutrition';
 import type { MealBlockFood } from '@/components/nutrition';
 import type { WeekTabData, DayTabData } from '@/components/nutrition/WeekDayTabs';
@@ -141,6 +142,7 @@ function SortableMealItem({
       carbs: f.nutrientValuePer100Grams.carbs * scale,
       fat: f.nutrientValuePer100Grams.fat * scale,
       note: f.note,
+      category: f.foodCategory,
     };
   });
 
@@ -448,7 +450,7 @@ export default function NutritionPlanPage() {
   }, []);
 
   const handleFoodSelect = useCallback(
-    (mealId: string, food: { name: string; nameCs?: string | null; nameEn?: string | null; nameDe?: string | null; foodId?: string; kcal: number; protein: number; carbs: number; fat: number }) => {
+    (mealId: string, food: { name: string; nameCs?: string | null; nameEn?: string | null; nameDe?: string | null; foodId?: string; kcal: number; protein: number; carbs: number; fat: number; category?: string | null }) => {
       if (!plan) return;
       const mealFood: MealFood = {
         foodExternalId: food.foodId || crypto.randomUUID(),
@@ -456,6 +458,7 @@ export default function NutritionPlanPage() {
         foodNameCs: food.nameCs,
         foodNameEn: food.nameEn,
         foodNameDe: food.nameDe,
+        foodCategory: food.category,
         nutrientValuePer100Grams: {
           kcal: food.kcal,
           protein: food.protein,
@@ -863,12 +866,11 @@ export default function NutritionPlanPage() {
             <div className="text-[11px] font-semibold text-text3 uppercase tracking-[0.04em] mb-1.5">
               {t('nutrition.planStartDate')}
             </div>
-            <input
-              type="date"
-              value={plan.startDate?.split('T')[0] ?? ''}
-              onChange={(e) => setStartDate(e.target.value || null)}
+            <MondayDatePicker
+              value={plan.startDate?.split('T')[0] ?? null}
+              onChange={(val) => setStartDate(val)}
               className="auth-input"
-              style={{ fontSize: 13, padding: '7px 10px', cursor: 'pointer', width: '100%' }}
+              style={{ fontSize: 13, padding: '7px 10px', width: '100%' }}
             />
           </div>
 

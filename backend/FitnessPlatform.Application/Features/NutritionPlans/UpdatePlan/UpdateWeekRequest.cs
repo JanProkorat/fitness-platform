@@ -133,6 +133,8 @@ public class UpdateMealFoodRequest
     public string? FoodNameEn { get; set; }
     /// <summary>German name.</summary>
     public string? FoodNameDe { get; set; }
+    /// <summary>Food category snapshot.</summary>
+    public string? FoodCategory { get; set; }
 
     /// <summary>
     /// Nutrient values per 100 grams for this food.

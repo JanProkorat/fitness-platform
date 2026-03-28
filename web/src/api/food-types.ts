@@ -1,3 +1,9 @@
+/** Food category enum. */
+export type FoodCategory =
+  | 'Other' | 'Fruit' | 'Vegetables' | 'Meat' | 'FishAndSeafood'
+  | 'Dairy' | 'GrainsAndCereals' | 'Legumes' | 'NutsAndSeeds'
+  | 'OilsAndFats' | 'SweetsAndSnacks' | 'Beverages' | 'Supplements';
+
 /** Nutrient values per 100 grams. */
 export interface NutrientValueDto {
   kcal: number;
@@ -26,6 +32,7 @@ export interface FoodSummary {
   nameDe?: string | null;
   barcode?: string | null;
   nutrientValue: NutrientValueDto;
+  category?: FoodCategory;
   note?: string | null;
   allergens: string[];
   commonServings: ServingSizeDto[];
@@ -55,6 +62,7 @@ export interface UpdateFoodRequest {
   nameCs?: string | null;
   nameDe?: string | null;
   nutrientValue: NutrientValueDto;
+  category?: FoodCategory;
   note?: string | null;
   allergens: string[];
   commonServings: ServingSizeDto[];
@@ -68,6 +76,7 @@ export interface CreateFoodRequest {
   nameCs?: string | null;
   nameDe?: string | null;
   nutrientValue: NutrientValueDto;
+  category?: FoodCategory;
   note?: string | null;
   allergens: string[];
   commonServings: ServingSizeDto[];

@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.Foods.Shared;
 
 namespace FitnessPlatform.Application.Features.Foods.CreateFood;
@@ -36,6 +37,11 @@ public class CreateFoodRequest
     /// Nutritional values per 100 grams.
     /// </summary>
     public NutrientValueDto NutrientValue { get; set; } = new();
+
+    /// <summary>
+    /// Food category.
+    /// </summary>
+    public FoodCategory Category { get; set; } = FoodCategory.Other;
 
     /// <summary>
     /// Optional user note.

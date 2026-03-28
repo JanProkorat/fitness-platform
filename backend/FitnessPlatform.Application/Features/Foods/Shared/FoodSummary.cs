@@ -1,4 +1,5 @@
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 
 namespace FitnessPlatform.Application.Features.Foods.Shared;
 
@@ -58,6 +59,11 @@ public class FoodSummary
     public List<ServingSizeDto> CommonServings { get; set; } = [];
 
     /// <summary>
+    /// Food category.
+    /// </summary>
+    public FoodCategory Category { get; set; }
+
+    /// <summary>
     /// Optional user note.
     /// </summary>
     public string? Note { get; set; }
@@ -87,6 +93,7 @@ public class FoodSummary
             SaturatedFat = food.NutrientValue.SaturatedFat,
             Salt = food.NutrientValue.Salt
         },
+        Category = food.Category,
         Note = food.Note,
         Allergens = food.Allergens,
         CommonServings = food.CommonServings

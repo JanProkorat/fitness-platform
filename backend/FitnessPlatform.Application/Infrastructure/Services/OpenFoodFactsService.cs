@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Driver;
@@ -140,12 +141,34 @@ public class OpenFoodFactsService : IFoodExternalService
                 SaturatedFat = n?.SaturatedFatPer100Grams,
                 Salt = n?.SaltPer100Grams
             },
+            Category = InferCategory(product.CategoriesTags),
             Allergens = ParseAllergens(product.AllergensTags),
             CommonServings = ParseServings(product),
             DateCreated = now
         };
 
         return food;
+    }
+
+    private static FoodCategory InferCategory(List<string>? tags)
+    {
+        if (tags is null || tags.Count == 0) return FoodCategory.Other;
+        var joined = string.Join(",", tags).ToLowerInvariant();
+
+        if (joined.Contains("fruit")) return FoodCategory.Fruit;
+        if (joined.Contains("vegetable") || joined.Contains("legume") is false && joined.Contains("veget")) return FoodCategory.Vegetables;
+        if (joined.Contains("meat") || joined.Contains("poultry") || joined.Contains("beef") || joined.Contains("pork") || joined.Contains("chicken")) return FoodCategory.Meat;
+        if (joined.Contains("fish") || joined.Contains("seafood") || joined.Contains("shrimp") || joined.Contains("tuna") || joined.Contains("salmon")) return FoodCategory.FishAndSeafood;
+        if (joined.Contains("dairy") || joined.Contains("milk") || joined.Contains("cheese") || joined.Contains("yogurt")) return FoodCategory.Dairy;
+        if (joined.Contains("cereal") || joined.Contains("grain") || joined.Contains("bread") || joined.Contains("pasta") || joined.Contains("rice") || joined.Contains("flour")) return FoodCategory.GrainsAndCereals;
+        if (joined.Contains("legume") || joined.Contains("lentil") || joined.Contains("bean") || joined.Contains("chickpea")) return FoodCategory.Legumes;
+        if (joined.Contains("nut") || joined.Contains("seed") || joined.Contains("almond") || joined.Contains("peanut")) return FoodCategory.NutsAndSeeds;
+        if (joined.Contains("oil") || joined.Contains("fat") || joined.Contains("butter") || joined.Contains("margarine")) return FoodCategory.OilsAndFats;
+        if (joined.Contains("sweet") || joined.Contains("snack") || joined.Contains("chocolate") || joined.Contains("candy") || joined.Contains("biscuit") || joined.Contains("cookie")) return FoodCategory.SweetsAndSnacks;
+        if (joined.Contains("beverage") || joined.Contains("drink") || joined.Contains("juice") || joined.Contains("water") || joined.Contains("soda") || joined.Contains("coffee") || joined.Contains("tea")) return FoodCategory.Beverages;
+        if (joined.Contains("supplement") || joined.Contains("protein-powder") || joined.Contains("vitamin")) return FoodCategory.Supplements;
+
+        return FoodCategory.Other;
     }
 
     /// <summary>
