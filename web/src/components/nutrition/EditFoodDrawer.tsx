@@ -22,11 +22,11 @@ interface EditFoodDrawerProps {
 
 const editFoodSchema = z.object({
   name: z.string().min(2),
-  category: z.string().default('Other'),
-  kcal: z.coerce.number().min(0),
-  protein: z.coerce.number().min(0),
-  carbs: z.coerce.number().min(0),
-  fat: z.coerce.number().min(0),
+  category: z.string(),
+  kcal: z.number().min(0),
+  protein: z.number().min(0),
+  carbs: z.number().min(0),
+  fat: z.number().min(0),
   note: z.string().optional(),
   nameEn: z.string().optional(),
   nameCs: z.string().optional(),

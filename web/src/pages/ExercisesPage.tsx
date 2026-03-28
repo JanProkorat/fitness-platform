@@ -107,10 +107,10 @@ export default function ExercisesPage() {
     queryFn: () =>
       searchExercises({
         q: debouncedSearch || undefined,
-        muscleGroup: muscleGroup || undefined,
-        equipment: equipment || undefined,
-        category: category || undefined,
-        difficulty: difficulty || undefined,
+        muscleGroup: (muscleGroup || undefined) as MuscleGroup | undefined,
+        equipment: (equipment || undefined) as ExerciseEquipment | undefined,
+        category: (category || undefined) as ExerciseCategory | undefined,
+        difficulty: (difficulty || undefined) as ExerciseDifficulty | undefined,
         page,
         pageSize: 20,
       }),

@@ -21,7 +21,7 @@ export interface RecipeRowProps {
   onNoteChange?: (note: string) => void;
 }
 
-export function RecipeRow({ recipe, index, mealId, dayOfWeek, weekNumber, onServingsChange, onRemove, onNoteChange }: RecipeRowProps) {
+export function RecipeRow({ recipe, index: _index, mealId, dayOfWeek, weekNumber, onServingsChange, onRemove, onNoteChange }: RecipeRowProps) {
   const { t } = useTranslation();
   const [localServings, setLocalServings] = useState(String(recipe.servings));
   const [localNote, setLocalNote] = useState(recipe.note ?? '');

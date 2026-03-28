@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useNutritionPlanStore } from '@/stores/nutritionPlan';
 import { getPlan } from '@/api/plans';
 import { getClientDashboard } from '@/api/nutrition-goals';
-import { Breadcrumb, PageHeader, Toolbar } from '@/components/layout';
+import { PageHeader } from '@/components/layout';
 import { Button, Dialog, Input } from '@/components/ui';
 import { MondayDatePicker } from '@/components/ui/MondayDatePicker';
 import { MacroSidebar, MealBlock, WeekDayTabs } from '@/components/nutrition';
@@ -76,7 +76,7 @@ function resolveLocalizedName(food: { foodName: string; foodNameCs?: string | nu
 /** Sortable wrapper for a meal in the day list */
 function SortableMealItem({
   meal,
-  index,
+  index: _index,
   dayOfWeek,
   weekNumber: weekNum,
   isOpen,
@@ -487,7 +487,6 @@ export default function NutritionPlanPage() {
   const weekTabs: WeekTabData[] = useMemo(() => {
     if (!plan) return [];
     return plan.weeks.map((w) => {
-      const avgKcal = w.days.reduce((sum, d) => sum + (d.dayTotals?.kcal ?? 0), 0) / Math.max(w.days.length, 1);
       return {
         index: w.weekNumber,
         label: t('nutrition.weekLabel', { number: w.weekNumber }),
@@ -552,7 +551,7 @@ export default function NutritionPlanPage() {
 
       if (cancelled) return;
 
-      function aggregateDays(days: typeof week.days) {
+      function aggregateDays(days: NonNullable<typeof week>['days']) {
         const agg = new Map<string, { name: string; amount: number }>();
         for (const day of days) {
           for (const meal of day.meals) {

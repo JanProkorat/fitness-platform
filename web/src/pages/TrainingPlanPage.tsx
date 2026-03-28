@@ -7,7 +7,8 @@ import { getExercise } from '@/api/exercises';
 import type { MuscleGroup } from '@/api/exercise-types';
 import { apiClient } from '@/api/client';
 import { useTrainingPlanStore } from '@/stores/trainingPlan';
-import { Breadcrumb, PageHeader } from '@/components/layout';
+import { PageHeader } from '@/components/layout';
+import { showApiError } from '@/lib/api-errors';
 import { Button, Dialog } from '@/components/ui';
 import { MondayDatePicker } from '@/components/ui/MondayDatePicker';
 import { ExerciseSearch } from '@/components/training/ExerciseSearch';
@@ -129,7 +130,7 @@ function SessionDragWrapper({
 
 /** Drop zone wrapping exercise rows — mirrors MealDropZone from the nutrition plan. */
 function ExerciseDropZone({
-  sessionId, exerciseIds, selectedWeek, onReorder, onCrossSessionMove, children,
+  sessionId, exerciseIds: _exerciseIds, selectedWeek, onReorder, onCrossSessionMove, children,
 }: {
   sessionId: string;
   exerciseIds: string[];
@@ -224,8 +225,7 @@ export default function TrainingPlanPage() {
   const updateSessionName = useTrainingPlanStore((s) => s.updateSessionName);
   const updateSessionNotes = useTrainingPlanStore((s) => s.updateSessionNotes);
   const updateExerciseNotes = useTrainingPlanStore((s) => s.updateExerciseNotes);
-  const updateExerciseRestSeconds = useTrainingPlanStore((s) => s.updateExerciseRestSeconds);
-  const revert = useTrainingPlanStore((s) => s.revert);
+  // updateExerciseRestSeconds and revert available via useTrainingPlanStore when needed
   const updateDayNote = useTrainingPlanStore((s) => s.updateDayNote);
   const setStartDate = useTrainingPlanStore((s) => s.setStartDate);
   const moveSessionToDay = useTrainingPlanStore((s) => s.moveSessionToDay);
@@ -616,7 +616,7 @@ export default function TrainingPlanPage() {
           style={{ boxShadow: '0 8px 24px rgba(0,0,0,0.1)' }}
         >
             <div className="grid grid-cols-7 gap-0">
-              {DAY_KEYS.map((key, idx) => {
+              {DAY_KEYS.map((_key, idx) => {
                 const dayOfWeek = idx + 1;
                 const sessions = (currentWeek?.sessions ?? [])
                   .filter((s) => s.dayOfWeek === dayOfWeek)
@@ -870,7 +870,6 @@ export default function TrainingPlanPage() {
                       {session.exercises.map((ex, exIdx) => {
                         const exKey = `${session.sessionId}-${exIdx}`;
                         const isExOpen = !collapsedExercises.has(exKey);
-                        const firstSet = ex.sets[0];
                         const setsCount = ex.sets.length;
                         const repsValues = ex.sets.map((s) => s.reps).filter((r): r is number => r != null);
                         const weightValues = ex.sets.map((s) => s.weightKg).filter((w): w is number => w != null);
@@ -885,7 +884,7 @@ export default function TrainingPlanPage() {
                         const muscleGroups = exerciseDetailsMap?.get(ex.exerciseExternalId) ?? [];
                         const primaryMuscle = muscleGroups[0] as string | undefined;
                         const muscleColor = primaryMuscle ? MUSCLE_COLORS[primaryMuscle] ?? 'var(--accent)' : 'var(--accent)';
-                        const muscleBg = primaryMuscle ? MUSCLE_BG_COLORS[primaryMuscle] ?? 'var(--accent-bg)' : 'var(--accent-bg)';
+                        // muscleBg available: primaryMuscle ? MUSCLE_BG_COLORS[primaryMuscle] ?? 'var(--accent-bg)' : 'var(--accent-bg)'
                         const muscleIcon = primaryMuscle ? MUSCLE_ICONS[primaryMuscle] ?? '🏋️' : '🏋️';
                         const difficulty = exerciseFullMap?.get(ex.exerciseExternalId)?.difficulty;
                         const diffLevel = difficulty === 'Beginner' ? 1 : difficulty === 'Intermediate' ? 2 : difficulty === 'Advanced' ? 3 : 0;

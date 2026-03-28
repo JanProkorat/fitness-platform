@@ -1,6 +1,5 @@
 import { type ReactNode, useCallback, useRef, useState, useMemo } from 'react';
 import { DragDropProvider } from '@dnd-kit/react';
-import type { DragEndEvent, DragMoveEvent, DragStartEvent } from '@dnd-kit/dom';
 import { useTrainingPlanStore } from '@/stores/trainingPlan';
 import type { DragData } from './dnd-types';
 import TrainingDragOverlay from './TrainingDragOverlay';
@@ -25,7 +24,7 @@ export default function TrainingDragProvider({ children, onCopyDayDialog }: Trai
   // Stash drag data at drag start so it survives DOM re-mounts (week switch).
   const activeDragRef = useRef<DragData | null>(null);
 
-  const handleDragStart = useCallback((event: DragStartEvent) => {
+  const handleDragStart = useCallback((event: { operation: { source: { data: unknown } | null } }) => {
     const source = event.operation.source;
     if (source) {
       activeDragRef.current = source.data as DragData;
@@ -52,7 +51,7 @@ export default function TrainingDragProvider({ children, onCopyDayDialog }: Trai
     }
   };
 
-  const handleDragMove = useCallback((event: DragMoveEvent) => {
+  const handleDragMove = useCallback((event: { operation: { position: { current: { x: number; y: number } } } }) => {
     const { operation } = event;
     const dragData = activeDragRef.current;
     if (!dragData) {
@@ -189,7 +188,6 @@ export default function TrainingDragProvider({ children, onCopyDayDialog }: Trai
       // Between this column and the next
       if (i < dayCols.length - 1) {
         const nextRect = dayCols[i + 1].getBoundingClientRect();
-        const gapCenter = (rect.right + nextRect.left) / 2;
         if (pointerX >= rect.right - GAP_ZONE && pointerX <= nextRect.left + GAP_ZONE) {
           const pos = dayNum + 1;
           // Skip no-op positions (adjacent to source)
@@ -207,7 +205,7 @@ export default function TrainingDragProvider({ children, onCopyDayDialog }: Trai
     }
   }
 
-  const handleDragEnd = useCallback((event: DragEndEvent) => {
+  const handleDragEnd = useCallback((event: { operation: { target: { data: unknown } | null; position: { current: { x: number; y: number } } }; canceled: boolean }) => {
     const { operation, canceled } = event;
 
     // Capture stashed data + indicators before clearing

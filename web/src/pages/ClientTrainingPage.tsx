@@ -8,7 +8,8 @@ import { getTrainingPlans, createTrainingPlan } from '@/api/training-plans';
  * - If not → auto-create an empty plan (1 week) and redirect
  */
 export default function ClientTrainingPage() {
-  const { id: clientId } = useParams<{ id: string }>();
+  const { id } = useParams<{ id: string }>();
+  const clientId = id ?? '';
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
 

@@ -1,4 +1,3 @@
-import { cn } from '@/lib/cn';
 
 export interface PageHeaderProps {
   icon?: string;

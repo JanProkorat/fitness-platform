@@ -302,7 +302,7 @@ export default function DayColumn({
               const n = m.name.toLowerCase();
               return n === key.toLowerCase() || n === getMealLabel(key).toLowerCase();
             }))
-            .map((meal, idx) => (
+            .map((meal, _idx) => (
               <SortableMealCard
                 key={meal.mealId}
                 meal={meal}

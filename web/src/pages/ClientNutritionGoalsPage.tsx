@@ -289,7 +289,7 @@ export default function ClientNutritionGoalsPage() {
                     value: t(ACTIVITY_KEYS[activityLevel] || activityLevel),
                     editable: true,
                     onEdit: (v) => {
-                      const match = Object.entries(ACTIVITY_LABELS).find(([, label]) =>
+                      const match = Object.entries(ACTIVITY_KEYS).find(([, label]) =>
                         label.toLowerCase().startsWith(v.toLowerCase()),
                       );
                       if (match) {

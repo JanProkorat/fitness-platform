@@ -8,7 +8,8 @@ import { getPlans, createPlan } from '@/api/plans';
  * - If not → auto-create an empty plan (1 week) and redirect
  */
 export default function ClientNutritionPage() {
-  const { id: clientId } = useParams<{ id: string }>();
+  const { id } = useParams<{ id: string }>();
+  const clientId = id ?? '';
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
 

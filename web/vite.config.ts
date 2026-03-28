@@ -1,16 +1,16 @@
-import { defineConfig } from 'vite'
+import { defineConfig, type ProxyOptions } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 
 /** Proxy API requests to the backend but let browser navigations fall through to index.html. */
-function apiProxy(route: string) {
+function apiProxy(_route: string): ProxyOptions {
   return {
     target: 'https://localhost:5001',
     changeOrigin: true,
     secure: false,
-    bypass(req: { headers: Record<string, string | undefined> }) {
-      if (req.headers.accept?.includes('text/html')) {
+    bypass(req) {
+      if ((req.headers.accept as string | undefined)?.includes('text/html')) {
         return '/index.html'
       }
     },

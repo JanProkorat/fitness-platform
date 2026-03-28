@@ -6,7 +6,7 @@ import { getClientDashboard } from '@/api/nutrition-goals';
 
 import { Breadcrumb, PageHeader } from '@/components/layout';
 import { Button, Tag, Dialog, Input } from '@/components/ui';
-import { PropertyList, StatsGrid, Mention } from '@/components/data';
+import { PropertyList, StatsGrid } from '@/components/data';
 import { ActivityTimeline } from '@/components/domain';
 
 export default function ClientDetailPage() {

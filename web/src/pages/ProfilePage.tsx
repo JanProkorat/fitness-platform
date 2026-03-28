@@ -166,7 +166,7 @@ function TrainerForm() {
   const schema = z.object({
     bio: z.string().max(1000).optional().or(z.literal('')),
     specialization: z.string().max(100).optional().or(z.literal('')),
-    yearsOfExperience: z.coerce.number().int().min(0).max(80),
+    yearsOfExperience: z.number().int().min(0).max(80),
   });
 
   type Form = z.infer<typeof schema>;

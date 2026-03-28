@@ -279,7 +279,7 @@ export const useNutritionPlanStore = create<NutritionPlanState>((set, get) => ({
         if (meal.mealId !== mealId) return meal;
         const reordered = foodIds
           .map((id) => meal.foods.find((f) => f.foodExternalId === id) ?? (meal.recipes ?? []).find((r) => r.recipeId === id))
-          .filter(Boolean);
+          .filter((item): item is NonNullable<typeof item> => item != null);
         // Separate back into foods and recipes preserving new order
         const newFoods = reordered.filter((item): item is MealFood => 'foodExternalId' in item);
         const newRecipes = reordered.filter((item): item is MealRecipe => 'recipeId' in item);

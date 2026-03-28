@@ -41,7 +41,7 @@ export default function ClientSelect({ value, onChange }: ClientSelectProps) {
 
   const handleSelect = (client: ClientSummary) => {
     setSelected(client);
-    onChange(client.publicId);
+    onChange(client.publicId ?? '');
     setSearch('');
     setOpen(false);
   };
@@ -100,7 +100,7 @@ export default function ClientSelect({ value, onChange }: ClientSelectProps) {
                   }`}
                 >
                   <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-sm bg-accent-bg text-[10px] font-bold text-accent">
-                    {client.firstName[0]}{client.lastName[0]}
+                    {client.firstName?.[0]}{client.lastName?.[0]}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-medium">

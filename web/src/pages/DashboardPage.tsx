@@ -27,12 +27,6 @@ type ViewType = 'table' | 'list' | 'cards';
 
 // -- helpers ----------------------------------------------------------------
 
-function complianceVariant(c: number): 'green' | 'orange' | 'red' {
-  if (c >= 80) return 'green';
-  if (c >= 60) return 'orange';
-  return 'red';
-}
-
 function complianceColor(c: number): string {
   if (c >= 80) return 'var(--green)';
   if (c >= 60) return 'var(--orange)';

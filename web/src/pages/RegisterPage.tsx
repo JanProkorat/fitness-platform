@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { DarkModeToggle } from '@/components/DarkModeToggle';
@@ -42,7 +42,6 @@ function strengthClass(s: number): string {
 
 export default function RegisterPage() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const location = useLocation();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);

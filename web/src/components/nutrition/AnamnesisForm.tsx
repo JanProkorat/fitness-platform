@@ -6,9 +6,9 @@ import { useTranslation } from 'react-i18next';
 import type { ClientDashboard } from '@/api/nutrition-goals';
 
 const schema = z.object({
-  weightKg: z.coerce.number().min(30).max(300),
-  heightCm: z.coerce.number().min(100).max(250),
-  age: z.coerce.number().int().min(10).max(120),
+  weightKg: z.number().min(30).max(300),
+  heightCm: z.number().min(100).max(250),
+  age: z.number().int().min(10).max(120),
   sex: z.enum(['Male', 'Female']),
   activityLevel: z.enum([
     'Sedentary',
