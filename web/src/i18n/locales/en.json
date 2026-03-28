@@ -768,7 +768,9 @@
     "exerciseSearchEmpty": "No exercises",
     "addDayNote": "+ Add day note",
     "dayNotePlaceholder": "Day note...",
-    "planSubtitle": "Create and manage client's training plan"
+    "planSubtitle": "Create and manage client's training plan",
+    "expandWeekView": "Show week overview",
+    "collapseWeekView": "Hide week overview"
   },
   "exercises": {
     "title": "Exercises",

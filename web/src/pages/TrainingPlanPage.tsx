@@ -243,6 +243,7 @@ export default function TrainingPlanPage() {
   const [pendingNav, setPendingNav] = useState<string | null>(null);
   const [dragOverDay, setDragOverDay] = useState<number | null>(null);
   const dayHoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [weekViewExpanded, setWeekViewExpanded] = useState(false);
 
   // ── Resolve client name ──
   const { data: clientsData } = useQuery({
@@ -524,76 +525,162 @@ export default function TrainingPlanPage() {
       <div className="flex-1 overflow-hidden" style={{ display: 'grid', gridTemplateColumns: '1fr 256px' }}>
         {/* Left: Day tabs + Sessions */}
         <div className="flex flex-col overflow-hidden" style={{ borderRight: '1px solid var(--border)', minWidth: 0 }}>
-          {/* Day tabs */}
-          <div className="flex items-center border-b border-border shrink-0">
-            {dayTabs.map((day) => (
-              <button
-                key={day.index}
-                type="button"
-                onClick={() => setSelectedDay(day.index)}
-                onDragOver={(e) => {
-                  const hasSession = e.dataTransfer.types.includes('application/session-json');
-                  const hasExercise = e.dataTransfer.types.includes('application/exercise-json');
-                  if (!hasSession && !hasExercise) return;
-                  e.preventDefault();
-                  e.dataTransfer.dropEffect = 'move';
-                  if (dragOverDay !== day.index) {
-                    setDragOverDay(day.index);
-                    if (dayHoverTimer.current) clearTimeout(dayHoverTimer.current);
-                    dayHoverTimer.current = setTimeout(() => {
-                      setSelectedDay(day.index);
-                    }, 500);
-                  }
-                }}
-                onDragLeave={() => {
-                  if (dragOverDay === day.index) {
-                    setDragOverDay(null);
-                    if (dayHoverTimer.current) { clearTimeout(dayHoverTimer.current); dayHoverTimer.current = null; }
-                  }
-                }}
-                onDrop={(e) => {
+
+      {/* ── Day bar with expand toggle ── */}
+      <div className="relative shrink-0">
+      <div className="flex items-center border-b border-border">
+        <div className="flex items-center flex-1">
+          {dayTabs.map((day) => (
+            <button
+              key={day.index}
+              type="button"
+              onClick={() => setSelectedDay(day.index)}
+              onDragOver={(e) => {
+                const hasSession = e.dataTransfer.types.includes('application/session-json');
+                const hasExercise = e.dataTransfer.types.includes('application/exercise-json');
+                if (!hasSession && !hasExercise) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                if (dragOverDay !== day.index) {
+                  setDragOverDay(day.index);
+                  if (dayHoverTimer.current) clearTimeout(dayHoverTimer.current);
+                  dayHoverTimer.current = setTimeout(() => {
+                    setSelectedDay(day.index);
+                  }, 500);
+                }
+              }}
+              onDragLeave={() => {
+                if (dragOverDay === day.index) {
                   setDragOverDay(null);
                   if (dayHoverTimer.current) { clearTimeout(dayHoverTimer.current); dayHoverTimer.current = null; }
-                  if (!e.dataTransfer.types.includes('application/session-json')) return;
-                  e.preventDefault();
-                  try {
-                    const data = JSON.parse(e.dataTransfer.getData('application/session-json'));
-                    if (data.type === 'session' && data.sessionId) {
-                      const fromWeek = data.fromWeek ?? selectedWeek;
-                      if (fromWeek !== selectedWeek) {
-                        moveSessionToWeek(fromWeek, selectedWeek, data.sessionId, day.index, 999);
-                      } else {
-                        moveSessionToDay(selectedWeek, data.sessionId, day.index, 999);
-                      }
-                      setSelectedDay(day.index);
+                }
+              }}
+              onDrop={(e) => {
+                setDragOverDay(null);
+                if (dayHoverTimer.current) { clearTimeout(dayHoverTimer.current); dayHoverTimer.current = null; }
+                if (!e.dataTransfer.types.includes('application/session-json')) return;
+                e.preventDefault();
+                try {
+                  const data = JSON.parse(e.dataTransfer.getData('application/session-json'));
+                  if (data.type === 'session' && data.sessionId) {
+                    const fromWeek = data.fromWeek ?? selectedWeek;
+                    if (fromWeek !== selectedWeek) {
+                      moveSessionToWeek(fromWeek, selectedWeek, data.sessionId, day.index, 999);
+                    } else {
+                      moveSessionToDay(selectedWeek, data.sessionId, day.index, 999);
                     }
-                  } catch { /* ignore */ }
-                }}
-                style={{
-                  flex: 1, border: 'none', fontFamily: 'inherit',
-                  borderBottom: day.index === selectedDay ? '2px solid var(--text)' : '2px solid transparent',
-                  marginBottom: -1, padding: '7px 0', fontSize: 12,
-                  color: day.index === selectedDay ? 'var(--text)' : 'var(--text3)',
-                  fontWeight: day.index === selectedDay ? 500 : 400,
-                  cursor: 'pointer', textAlign: 'center', whiteSpace: 'nowrap',
-                  transition: 'color 0.1s, background 0.15s',
-                  background: dragOverDay === day.index ? 'var(--accent-bg)' : 'none',
-                }}
-              >
-                {day.label}
-                {day.badge && (
-                  <span
+                    setSelectedDay(day.index);
+                  }
+                } catch { /* ignore */ }
+              }}
+              style={{
+                flex: 1, border: 'none', fontFamily: 'inherit',
+                borderBottom: !weekViewExpanded && day.index === selectedDay ? '2px solid var(--text)' : '2px solid transparent',
+                marginBottom: -1, padding: '7px 0', fontSize: 12,
+                color: !weekViewExpanded && day.index === selectedDay ? 'var(--text)' : 'var(--text3)',
+                fontWeight: !weekViewExpanded && day.index === selectedDay ? 500 : 400,
+                cursor: 'pointer', textAlign: 'center', whiteSpace: 'nowrap',
+                transition: 'color 0.1s, background 0.15s',
+                background: dragOverDay === day.index ? 'var(--accent-bg)' : 'none',
+              }}
+            >
+              {day.label}
+              {day.badge && (
+                <span
+                  className={cn(
+                    'text-[10px] rounded-full px-[5px] ml-1',
+                    'bg-accent-bg text-accent',
+                  )}
+                >
+                  {day.badge}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => setWeekViewExpanded((v) => !v)}
+          className="shrink-0 px-3 py-1.5 text-[11px] text-text3 transition-colors hover:text-text"
+          title={weekViewExpanded ? t('training.collapseWeekView') : t('training.expandWeekView')}
+        >
+          {weekViewExpanded ? '⊟' : '⊞'}
+        </button>
+      </div>
+
+      {/* ── Expandable week grid overview (dropdown overlay) ── */}
+      {weekViewExpanded && (
+        <div
+          className="absolute left-0 right-0 top-full z-50 border-b border-border bg-bg"
+          style={{ boxShadow: '0 8px 24px rgba(0,0,0,0.1)' }}
+        >
+            <div className="grid grid-cols-7 gap-0">
+              {DAY_KEYS.map((key, idx) => {
+                const dayOfWeek = idx + 1;
+                const sessions = (currentWeek?.sessions ?? [])
+                  .filter((s) => s.dayOfWeek === dayOfWeek)
+                  .sort((a, b) => a.order - b.order);
+                const isSelected = dayOfWeek === selectedDay;
+
+                return (
+                  <div
+                    key={dayOfWeek}
                     className={cn(
-                      'text-[10px] rounded-full px-[5px] ml-1',
-                      'bg-accent-bg text-accent',
+                      'flex flex-col border-r border-border last:border-r-0',
+                      isSelected && 'bg-accent-bg',
                     )}
                   >
-                    {day.badge}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
+                    {/* Session cards */}
+                    <div className="p-1.5 flex flex-col gap-1.5" style={{ minHeight: 60 }}>
+                      {sessions.length === 0 && (
+                        <div className="text-[10px] text-text4 text-center py-3">{t('training.restDay')}</div>
+                      )}
+                      {sessions.map((session) => {
+                        const sessionMuscles = new Set<string>();
+                        for (const ex of session.exercises) {
+                          const groups = exerciseDetailsMap?.get(ex.exerciseExternalId) ?? [];
+                          for (const g of groups) sessionMuscles.add(g);
+                        }
+
+                        return (
+                          <div
+                            key={session.sessionId}
+                            className={cn(
+                              'rounded-md border bg-bg p-2',
+                              isSelected ? 'border-border-md' : 'border-border',
+                            )}
+                          >
+                            <div className="text-[12px] font-semibold text-text truncate">{session.name}</div>
+                            <div className="text-[10px] text-text3 mt-0.5">
+                              {session.exercises.length} {t('training.exercisesCount')}
+                            </div>
+                            {sessionMuscles.size > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-1.5">
+                                {[...sessionMuscles].map((g) => (
+                                  <span
+                                    key={g}
+                                    className="text-[9px] font-medium rounded-sm px-1 py-[1px]"
+                                    style={{
+                                      background: MUSCLE_BG_COLORS[g] ?? 'var(--accent-bg)',
+                                      color: MUSCLE_COLORS[g] ?? 'var(--accent)',
+                                    }}
+                                  >
+                                    {t(`training.muscle${g}`)}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+        </div>
+      )}
+      </div>
 
           {/* Sessions list */}
           <div
@@ -845,14 +932,18 @@ export default function TrainingPlanPage() {
                               <div className="flex-1 min-w-0">
                                 <div className="text-[13px] font-semibold text-text truncate">{ex.exerciseName}</div>
                                 <div className="flex items-center gap-2 mt-0.5">
-                                  {primaryMuscle && (
+                                  {muscleGroups.map((g) => (
                                     <span
+                                      key={g}
                                       className="text-[10px] font-medium rounded-sm px-1.5 py-[1px]"
-                                      style={{ background: muscleBg, color: muscleColor }}
+                                      style={{
+                                        background: MUSCLE_BG_COLORS[g] ?? 'var(--accent-bg)',
+                                        color: MUSCLE_COLORS[g] ?? 'var(--accent)',
+                                      }}
                                     >
-                                      {t(`training.muscle${primaryMuscle}`)}
+                                      {t(`training.muscle${g}`)}
                                     </span>
-                                  )}
+                                  ))}
                                   <span className="text-[11px] text-text3 tabular-nums">
                                     {setsCount}×{repsStr} · {weightStr} kg
                                   </span>

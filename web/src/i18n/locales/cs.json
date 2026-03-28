@@ -767,7 +767,9 @@
     "exerciseSearchEmpty": "Žádné cviky",
     "addDayNote": "+ Přidat poznámku ke dni",
     "dayNotePlaceholder": "Poznámka ke dni...",
-    "planSubtitle": "Tvorba a správa tréninkového plánu klienta"
+    "planSubtitle": "Tvorba a správa tréninkového plánu klienta",
+    "expandWeekView": "Zobrazit týdenní přehled",
+    "collapseWeekView": "Skrýt týdenní přehled"
   },
   "exercises": {
     "title": "Cviky",

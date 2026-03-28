@@ -767,7 +767,9 @@
     "exerciseSearchEmpty": "Keine Übungen",
     "addDayNote": "+ Tagesnotiz hinzufügen",
     "dayNotePlaceholder": "Tagesnotiz...",
-    "planSubtitle": "Trainingsplan des Klienten erstellen und verwalten"
+    "planSubtitle": "Trainingsplan des Klienten erstellen und verwalten",
+    "expandWeekView": "Wochenübersicht anzeigen",
+    "collapseWeekView": "Wochenübersicht ausblenden"
   },
   "exercises": {
     "title": "Übungen",
