@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GoodFellas – Mobilní aplikace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+/* ── PROTOTYPE NAV ── */
+#pnav{position:fixed;top:0;left:0;right:0;z-index:2000;height:40px;background:#fff;border-bottom:1px solid rgba(55,53,47,.09);display:flex;align-items:center;gap:2px;padding:0 12px;overflow-x:auto;font-family:'Inter',sans-serif}
+#pnav .pl{font-size:12px;font-weight:600;color:#c9a84c;margin-right:10px;white-space:nowrap;flex-shrink:0}
+#pnav .ps{width:1px;height:16px;background:rgba(55,53,47,.16);margin:0 8px;flex-shrink:0}
+#pnav .pg{font-size:11px;color:#9b9a97;padding:0 6px;white-space:nowrap;flex-shrink:0}
+.pb{padding:4px 8px;border-radius:4px;border:none;background:transparent;color:#6b6860;font-size:12px;font-family:'Inter',sans-serif;cursor:pointer;white-space:nowrap;transition:background .1s,color .1s}
+.pb:hover{background:#f1f0ee;color:#37352f}
+.pb.active{background:#e9e8e3;color:#37352f;font-weight:500}
+#pnav .pr{margin-left:auto;display:flex;align-items:center;gap:4px}
+.picon{width:28px;height:28px;border-radius:4px;border:1px solid rgba(55,53,47,.16);background:transparent;color:#6b6860;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:background .1s}
+.picon:hover{background:#f1f0ee}
+
+body{font-family:'Inter',-apple-system,sans-serif;background:#f0ede8;min-height:100vh;-webkit-font-smoothing:antialiased}
+body.dark-proto{background:#1a1a1a}
+
+/* ── PHONE STAGE ── */
+#stage{padding-top:40px;display:flex;align-items:flex-start;justify-content:center;flex-wrap:wrap;gap:32px;padding:60px 24px 80px;padding-top:80px;min-height:100vh}
+.phone-wrap{display:flex;flex-direction:column;align-items:center;gap:10px}
+.phone-label{font-size:11px;color:#9b9a97;font-weight:500;letter-spacing:.04em;text-transform:uppercase}
+
+/* ── PHONE SHELL – iOS 26 style ── */
+.phone{
+  width:390px;height:844px;
+  border-radius:54px;
+  background:#f2f2f7;
+  position:relative;overflow:hidden;
+  box-shadow:0 0 0 1px rgba(0,0,0,.08),0 2px 2px rgba(0,0,0,.06),0 8px 24px rgba(0,0,0,.12),0 24px 64px rgba(0,0,0,.1);
+  flex-shrink:0;
+}
+body.dark-proto .phone{background:#000}
+
+/* Dynamic island */
+.di{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:126px;height:37px;background:#000;border-radius:20px;z-index:100}
+
+/* Status bar */
+.status-bar{position:absolute;top:0;left:0;right:0;height:59px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 8px;z-index:50;pointer-events:none}
+.sb-time{font-size:15px;font-weight:600;color:#000;letter-spacing:-.3px}
+.sb-icons{display:flex;align-items:center;gap:6px}
+.sb-icons svg{fill:#000}
+body.dark-proto .sb-time{color:#fff}
+body.dark-proto .sb-icons svg{fill:#fff}
+
+/* Tab bar */
+.tab-bar{
+  position:absolute;bottom:0;left:0;right:0;height:84px;
+  background:rgba(242,242,247,.85);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-top:0.5px solid rgba(0,0,0,.12);
+  display:flex;align-items:flex-start;justify-content:space-around;
+  padding-top:12px;z-index:100;
+}
+body.dark-proto .tab-bar{background:rgba(28,28,30,.85);border-top-color:rgba(255,255,255,.1)}
+.tab{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;min-width:60px;transition:opacity .15s}
+.tab-icon{width:24px;height:24px;display:flex;align-items:center;justify-content:center}
+.tab-icon svg{width:24px;height:24px}
+.tab-lbl{font-size:10px;font-weight:500;color:#8e8e93;letter-spacing:.01em}
+.tab.active .tab-lbl{color:#c9a84c}
+.tab.active .tab-icon svg path,.tab.active .tab-icon svg rect,.tab.active .tab-icon svg circle{fill:#c9a84c}
+body.dark-proto .tab-lbl{color:#636366}
+body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
+
+/* Scroll area */
+.scroll-area{position:absolute;top:59px;left:0;right:0;bottom:84px;overflow-y:auto;overflow-x:hidden}
+.scroll-area::-webkit-scrollbar{display:none}
+
+/* ── iOS 26 DESIGN TOKENS ── */
+:root{
+  --ios-bg:#f2f2f7;
+  --ios-bg2:#fff;
+  --ios-bg3:#f2f2f7;
+  --ios-sep:rgba(60,60,67,.18);
+  --ios-sep2:rgba(60,60,67,.09);
+  --ios-label:#000;
+  --ios-label2:rgba(60,60,67,.6);
+  --ios-label3:rgba(60,60,67,.3);
+  --ios-label4:rgba(60,60,67,.18);
+  --ios-fill:rgba(120,120,128,.12);
+  --ios-fill2:rgba(120,120,128,.08);
+  --ios-blue:#007aff;
+  --ios-green:#34c759;
+  --ios-red:#ff3b30;
+  --ios-orange:#ff9500;
+  --ios-purple:#af52de;
+  --ios-gold:#c9a84c;
+  --ios-r:13px;
+  --ios-r-lg:20px;
+  --ios-r-xl:28px;
+  --sf-heavy:700;
+  --sf-semi:600;
+  --sf-med:500;
+  --sf-reg:400;
+}
+
+/* Dark mode overrides for phone content */
+.dark .ios-bg{background:#1c1c1e}
+.dark .ios-bg2{background:#2c2c2e}
+.dark .ios-label{color:#fff}
+.dark .ios-label2{color:rgba(235,235,245,.6)}
+
+/* ── iOS COMPONENTS ── */
+
+/* Page header (large title) */
+.ios-page-header{padding:8px 20px 4px}
+.ios-page-title{font-size:34px;font-weight:var(--sf-heavy);color:var(--ios-label);letter-spacing:-.5px;line-height:1.1}
+.ios-page-sub{font-size:15px;color:var(--ios-label2);margin-top:3px}
+
+/* Section header */
+.ios-section-hdr{padding:8px 20px 6px;display:flex;align-items:center;justify-content:space-between}
+.ios-section-title{font-size:20px;font-weight:var(--sf-heavy);color:var(--ios-label);letter-spacing:-.3px}
+.ios-section-action{font-size:15px;color:var(--ios-blue);font-weight:var(--sf-med)}
+
+/* Grouped list (iOS 26 inset style) */
+.ios-list{margin:0 20px 24px;border-radius:var(--ios-r);overflow:hidden;background:var(--ios-bg2)}
+.ios-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:.5px solid var(--ios-sep2);position:relative;cursor:pointer;transition:background .12s;min-height:48px}
+.ios-row:last-child{border-bottom:none}
+.ios-row:active{background:var(--ios-fill2)}
+.ios-row-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.ios-row-body{flex:1;min-width:0}
+.ios-row-title{font-size:17px;font-weight:var(--sf-reg);color:var(--ios-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ios-row-sub{font-size:13px;color:var(--ios-label2);margin-top:1px}
+.ios-row-right{display:flex;align-items:center;gap:4px;flex-shrink:0}
+.ios-row-val{font-size:17px;color:var(--ios-label2)}
+.ios-row-chev{color:var(--ios-label3);font-size:16px;font-weight:600}
+.ios-badge{font-size:12px;font-weight:var(--sf-semi);padding:2px 8px;border-radius:99px}
+
+/* Cards (iOS 26 glass-ish) */
+.ios-card{margin:0 20px 16px;border-radius:var(--ios-r-lg);background:var(--ios-bg2);overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06),0 4px 12px rgba(0,0,0,.05)}
+.ios-card-hero{height:140px;position:relative;overflow:hidden}
+.ios-card-body{padding:14px 16px}
+.ios-card-tag{position:absolute;top:12px;right:12px;font-size:12px;font-weight:var(--sf-semi);padding:4px 10px;border-radius:99px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.ios-card-title{font-size:18px;font-weight:var(--sf-heavy);color:var(--ios-label);letter-spacing:-.2px;margin-bottom:4px}
+.ios-card-sub{font-size:13px;color:var(--ios-label2)}
+
+/* Progress ring */
+.prog-ring{position:relative;width:56px;height:56px;flex-shrink:0}
+.prog-ring svg{transform:rotate(-90deg)}
+.prog-ring-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:var(--sf-semi);color:var(--ios-label)}
+
+/* Macro bars */
+.macro-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.macro-label{font-size:13px;color:var(--ios-label2);width:72px;flex-shrink:0}
+.macro-track{flex:1;height:6px;background:var(--ios-fill);border-radius:99px;overflow:hidden}
+.macro-fill{height:100%;border-radius:99px;transition:width .4s}
+.macro-val{font-size:13px;font-weight:var(--sf-med);color:var(--ios-label);min-width:52px;text-align:right}
+
+/* Activity rings (workout) */
+.activity-block{display:flex;align-items:center;gap:16px;padding:14px 16px;background:var(--ios-bg2);border-radius:var(--ios-r-lg);margin:0 20px 16px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+
+/* Search bar */
+.ios-search{margin:8px 20px 12px;display:flex;align-items:center;gap:8px;background:var(--ios-fill);border-radius:10px;padding:8px 12px}
+.ios-search-icon{color:var(--ios-label3);font-size:14px;flex-shrink:0}
+.ios-search input{flex:1;border:none;outline:none;background:transparent;font-size:17px;color:var(--ios-label);font-family:'Inter',sans-serif}
+.ios-search input::placeholder{color:var(--ios-label3)}
+
+/* Trainer card (marketplace) */
+.trainer-card{margin:0 20px 12px;border-radius:var(--ios-r-lg);background:var(--ios-bg2);overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06),0 4px 12px rgba(0,0,0,.05)}
+.trainer-card-top{display:flex;align-items:center;gap:14px;padding:16px 16px 12px}
+.trainer-avatar{width:56px;height:56px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;flex-shrink:0}
+.trainer-info{flex:1;min-width:0}
+.trainer-name{font-size:17px;font-weight:var(--sf-semi);color:var(--ios-label);letter-spacing:-.2px}
+.trainer-role{font-size:13px;color:var(--ios-label2);margin-top:1px}
+.trainer-rating{display:flex;align-items:center;gap:3px;margin-top:3px}
+.trainer-stars{color:#ff9500;font-size:12px;letter-spacing:1px}
+.trainer-rating-num{font-size:12px;color:var(--ios-label2)}
+.trainer-tags{display:flex;gap:6px;flex-wrap:wrap;padding:0 16px 12px}
+.trainer-tag{font-size:12px;font-weight:var(--sf-med);padding:4px 10px;border-radius:99px;background:var(--ios-fill);color:var(--ios-label2)}
+.trainer-footer{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-top:.5px solid var(--ios-sep2)}
+
+/* Stats grid */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 20px 16px}
+.stat-card{background:var(--ios-bg2);border-radius:var(--ios-r);padding:14px 14px 12px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.stat-card-icon{font-size:20px;margin-bottom:6px}
+.stat-card-val{font-size:24px;font-weight:var(--sf-heavy);color:var(--ios-label);letter-spacing:-.5px;line-height:1}
+.stat-card-lbl{font-size:12px;color:var(--ios-label2);margin-top:3px}
+.stat-card-sub{font-size:12px;margin-top:2px;font-weight:var(--sf-med)}
+
+/* Exercise row */
+.ex-ios-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:.5px solid var(--ios-sep2)}
+.ex-ios-row:last-child{border-bottom:none}
+.ex-ios-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.ex-ios-info{flex:1}
+.ex-ios-name{font-size:15px;font-weight:var(--sf-med);color:var(--ios-label)}
+.ex-ios-sets{font-size:13px;color:var(--ios-label2);margin-top:1px}
+.ex-ios-done{width:24px;height:24px;border-radius:50%;border:2px solid var(--ios-sep);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ex-ios-done.done{background:var(--ios-green);border-color:var(--ios-green);color:#fff;font-size:13px}
+
+/* Gradient backgrounds for cards */
+.grad-push{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%)}
+.grad-nutrition{background:linear-gradient(135deg,#0d2137 0%,#1a3a52 100%)}
+.grad-progress{background:linear-gradient(135deg,#1a2a1a 0%,#0d2a0d 100%)}
+.grad-rest{background:linear-gradient(135deg,#2a1a2a 0%,#1a0d2a 100%)}
+
+/* Chart bar */
+.chart-bars{display:flex;align-items:flex-end;gap:4px;height:60px;margin:8px 0}
+.chart-bar{flex:1;border-radius:4px 4px 0 0;min-width:0;transition:height .3s}
+.chart-day{font-size:10px;color:var(--ios-label3);text-align:center;margin-top:4px}
+
+/* CTA button */
+.ios-btn{display:flex;align-items:center;justify-content:center;padding:14px;border-radius:var(--ios-r);font-size:17px;font-weight:var(--sf-semi);font-family:'Inter',sans-serif;cursor:pointer;border:none;transition:opacity .15s}
+.ios-btn:active{opacity:.7}
+.ios-btn-primary{background:var(--ios-gold);color:#fff}
+.ios-btn-secondary{background:var(--ios-fill);color:var(--ios-label)}
+.ios-btn-tint{background:rgba(199,168,76,.12);color:var(--ios-gold)}
+
+/* Segmented control */
+.seg-ctrl{display:flex;background:var(--ios-fill);border-radius:9px;padding:2px;margin:0 20px 16px}
+.seg-opt{flex:1;text-align:center;padding:7px 0;border-radius:7px;font-size:13px;font-weight:var(--sf-med);color:var(--ios-label2);cursor:pointer;transition:background .15s,color .15s}
+.seg-opt.active{background:var(--ios-bg2);color:var(--ios-label);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+
+/* Pill tab */
+.pill-tabs{display:flex;gap:8px;padding:4px 20px 8px;overflow-x:auto}
+.pill-tabs::-webkit-scrollbar{display:none}
+.pill-tab{padding:6px 14px;border-radius:99px;font-size:14px;font-weight:var(--sf-med);white-space:nowrap;cursor:pointer;transition:background .15s,color .15s;flex-shrink:0}
+.pill-tab.active{background:var(--ios-gold);color:#fff}
+.pill-tab:not(.active){background:var(--ios-fill);color:var(--ios-label2)}
+
+/* Notice banner */
+.ios-notice{margin:8px 20px;padding:12px 14px;border-radius:var(--ios-r);display:flex;align-items:flex-start;gap:10px}
+.ios-notice-icon{font-size:18px;flex-shrink:0}
+.ios-notice-body{flex:1}
+.ios-notice-title{font-size:15px;font-weight:var(--sf-semi);color:var(--ios-label);margin-bottom:2px}
+.ios-notice-text{font-size:13px;color:var(--ios-label2);line-height:1.4}
+
+/* Avatar pill for profile */
+.avatar-xl{width:80px;height:80px;border-radius:26px;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:700;margin:0 auto 10px}
+
+/* Week strip */
+.week-strip{display:flex;gap:6px;padding:4px 20px 12px;overflow-x:auto}
+.week-strip::-webkit-scrollbar{display:none}
+.week-day{display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;width:40px;cursor:pointer}
+.week-day-lbl{font-size:11px;color:var(--ios-label3);font-weight:var(--sf-med);text-transform:uppercase;letter-spacing:.04em}
+.week-day-num{width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:var(--sf-semi);color:var(--ios-label2)}
+.week-day.today .week-day-num{background:var(--ios-gold);color:#fff}
+.week-day.has-content .week-day-lbl{color:var(--ios-gold)}
+.week-day-dot{width:5px;height:5px;border-radius:50%}
+
+/* ── CHAT ── */
+.conv-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:.5px solid var(--ios-sep2);cursor:pointer;transition:background .1s;position:relative}
+.conv-row:active{background:var(--ios-fill2)}
+.conv-av{width:50px;height:50px;border-radius:17px;display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:700;flex-shrink:0;position:relative}
+.conv-av-badge{position:absolute;bottom:-2px;right:-2px;width:16px;height:16px;border-radius:50%;border:2.5px solid var(--ios-bg2);display:flex;align-items:center;justify-content:center;font-size:9px}
+.conv-body{flex:1;min-width:0}
+.conv-name{font-size:16px;font-weight:600;color:var(--ios-label);letter-spacing:-.2px}
+.conv-preview{font-size:14px;color:var(--ios-label2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.conv-preview.unread{color:var(--ios-label);font-weight:500}
+.conv-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
+.conv-time{font-size:12px;color:var(--ios-label3)}
+.conv-unread{min-width:20px;height:20px;border-radius:10px;background:var(--ios-gold);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 6px}
+/* chat detail */
+.chat-header{position:absolute;top:0;left:0;right:0;z-index:20;background:rgba(242,242,247,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:.5px solid var(--ios-sep2)}
+.chat-header-inner{display:flex;align-items:center;gap:10px;padding:8px 14px 10px}
+.chat-back{display:flex;align-items:center;gap:2px;cursor:pointer;color:var(--ios-blue);font-size:16px;flex-shrink:0}
+.chat-av-sm{width:34px;height:34px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.chat-hdr-name{font-size:15px;font-weight:600;color:var(--ios-label)}
+.chat-hdr-sub{font-size:12px;color:var(--ios-label2)}
+.chat-hdr-actions{margin-left:auto;display:flex;gap:10px}
+.chat-hdr-btn{width:32px;height:32px;border-radius:50%;background:var(--ios-fill);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.chat-scroll{position:absolute;left:0;right:0;bottom:72px;overflow-y:auto;overflow-x:hidden;padding:12px 0 4px}
+.chat-scroll::-webkit-scrollbar{display:none}
+.msg-group{margin-bottom:2px}
+.msg-date-sep{text-align:center;font-size:12px;color:var(--ios-label3);margin:12px 0 8px;font-weight:500}
+.msg-row{display:flex;align-items:flex-end;gap:6px;padding:1px 14px}
+.msg-row.me{justify-content:flex-end}
+.msg-row.them{justify-content:flex-start}
+.msg-av-tiny{width:26px;height:26px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-bottom:1px}
+.msg-bubble{max-width:240px;padding:9px 13px;border-radius:18px;font-size:15px;line-height:1.4;position:relative}
+.msg-bubble.me{background:var(--ios-gold);color:#fff;border-bottom-right-radius:5px}
+.msg-bubble.them{background:var(--ios-bg2);color:var(--ios-label);border-bottom-left-radius:5px;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.msg-time{font-size:10px;color:var(--ios-label3);text-align:right;margin-top:3px}
+.msg-time.me{color:rgba(255,255,255,.65)}
+/* attachment bubble */
+.msg-attach{max-width:220px;background:var(--ios-bg2);border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.msg-attach-img{width:100%;height:140px;object-fit:cover;background:linear-gradient(135deg,#1a1a2e,#16213e);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.4);font-size:13px}
+.msg-attach-body{padding:8px 10px}
+.msg-attach-title{font-size:13px;font-weight:600;color:var(--ios-label)}
+.msg-attach-sub{font-size:11px;color:var(--ios-label2);margin-top:1px}
+/* plan attachment */
+.msg-plan-card{max-width:220px;border-radius:14px;overflow:hidden;border:.5px solid var(--ios-sep2);cursor:pointer}
+.msg-plan-hero{height:70px;display:flex;align-items:center;padding:12px 14px}
+.msg-plan-label{font-size:11px;font-weight:600;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+.msg-plan-name{font-size:16px;font-weight:700;color:#fff;letter-spacing:-.2px}
+.msg-plan-body{background:var(--ios-bg2);padding:8px 12px;display:flex;align-items:center;justify-content:space-between}
+.msg-plan-meta{font-size:12px;color:var(--ios-label2)}
+/* typing indicator */
+.typing-indicator{display:flex;align-items:center;gap:4px;padding:10px 14px;background:var(--ios-bg2);border-radius:18px;border-bottom-left-radius:5px;width:56px}
+.typing-dot{width:7px;height:7px;border-radius:50%;background:var(--ios-label3);animation:typingBounce 1.2s infinite}
+.typing-dot:nth-child(2){animation-delay:.2s}
+.typing-dot:nth-child(3){animation-delay:.4s}
+@keyframes typingBounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+/* input bar */
+.chat-input-bar{position:absolute;bottom:0;left:0;right:0;padding:8px 12px 20px;background:rgba(242,242,247,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:.5px solid var(--ios-sep2);display:flex;align-items:flex-end;gap:8px}
+.chat-input-attach{width:32px;height:32px;border-radius:50%;background:var(--ios-fill);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.chat-input-wrap{flex:1;background:var(--ios-bg2);border-radius:20px;border:.5px solid var(--ios-sep);padding:7px 14px;display:flex;align-items:center;min-height:36px;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.chat-input-placeholder{font-size:16px;color:var(--ios-label3)}
+.chat-send{width:32px;height:32px;border-radius:50%;background:var(--ios-gold);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+/* context banner (plan/check-in card in chat) */
+.chat-ctx-banner{margin:6px 14px;padding:10px 12px;background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.2);border-radius:12px;display:flex;align-items:center;gap:10px}
+.chat-ctx-icon{font-size:18px;flex-shrink:0}
+.chat-ctx-body{flex:1}
+.chat-ctx-title{font-size:13px;font-weight:600;color:var(--ios-label)}
+.chat-ctx-sub{font-size:12px;color:var(--ios-label2);margin-top:1px}
+.chat-ctx-action{font-size:13px;font-weight:600;color:var(--ios-gold);flex-shrink:0;cursor:pointer}
+
+
+/* ── NOTIFICATIONS ─────────────────────────────────────────── */
+.bell-btn{position:relative;width:36px;height:36px;border-radius:12px;background:var(--ios-fill);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.bell-badge{position:absolute;top:-3px;right:-3px;min-width:16px;height:16px;border-radius:8px;background:var(--ios-red);border:2px solid var(--ios-bg2);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px}
+
+/* Bottom sheet overlay */
+.notif-overlay{position:absolute;inset:0;background:rgba(0,0,0,.4);z-index:200;display:none;align-items:flex-end}
+.notif-overlay.open{display:flex}
+.notif-sheet{width:100%;background:var(--ios-bg2);border-radius:20px 20px 0 0;max-height:82%;display:flex;flex-direction:column;overflow:hidden}
+.notif-sheet-handle{width:36px;height:4px;border-radius:99px;background:var(--ios-sep);margin:10px auto 0}
+.notif-sheet-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 10px}
+.notif-sheet-title{font-size:20px;font-weight:700;color:var(--ios-label);letter-spacing:-.3px}
+.notif-sheet-action{font-size:14px;color:var(--ios-blue);cursor:pointer}
+.notif-list{overflow-y:auto;flex:1}
+.notif-list::-webkit-scrollbar{display:none}
+
+/* Notification row */
+.notif-row{display:flex;align-items:flex-start;gap:12px;padding:12px 20px;border-bottom:.5px solid var(--ios-sep2);cursor:pointer;transition:background .1s;position:relative}
+.notif-row:last-child{border-bottom:none}
+.notif-row:active{background:var(--ios-fill2)}
+.notif-row.unread{background:rgba(201,168,76,.04)}
+.notif-unread-dot{position:absolute;left:8px;top:18px;width:7px;height:7px;border-radius:50%;background:var(--ios-gold)}
+.notif-icon-wrap{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.notif-body{flex:1;min-width:0}
+.notif-title{font-size:14px;font-weight:600;color:var(--ios-label);line-height:1.3}
+.notif-text{font-size:13px;color:var(--ios-label2);margin-top:2px;line-height:1.4}
+.notif-time{font-size:11px;color:var(--ios-label3);margin-top:4px}
+.notif-actions{display:flex;gap:8px;margin-top:8px}
+.notif-action-btn{padding:6px 14px;border-radius:99px;font-size:13px;font-weight:600;cursor:pointer}
+.notif-action-primary{background:var(--ios-gold);color:#fff}
+.notif-action-secondary{background:var(--ios-fill);color:var(--ios-label2)}
+
+/* Inline invitation card on Today */
+.invite-card{margin:12px 20px 4px;border-radius:16px;overflow:hidden;border:1px solid rgba(201,168,76,.25);background:var(--ios-bg2);box-shadow:0 2px 12px rgba(201,168,76,.12)}
+.invite-card-top{display:flex;align-items:center;gap:12px;padding:14px 16px 10px}
+.invite-av{width:46px;height:46px;border-radius:15px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;flex-shrink:0}
+.invite-info{flex:1}
+.invite-title{font-size:15px;font-weight:600;color:var(--ios-label)}
+.invite-sub{font-size:13px;color:var(--ios-label2);margin-top:2px}
+.invite-card-body{padding:0 16px 8px;font-size:13px;color:var(--ios-label2);line-height:1.5}
+.invite-card-footer{display:flex;gap:8px;padding:10px 16px 14px;border-top:.5px solid var(--ios-sep2)}
+.invite-btn{flex:1;padding:10px;border-radius:10px;text-align:center;font-size:14px;font-weight:600;cursor:pointer}
+.invite-accept{background:var(--ios-gold);color:#fff}
+.invite-decline{background:var(--ios-fill);color:var(--ios-label2)}
+
+/* Toast */
+.ios-toast{position:absolute;bottom:96px;left:50%;transform:translateX(-50%) translateY(20px);white-space:nowrap;background:rgba(50,50,50,.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;font-size:14px;font-weight:500;padding:10px 18px;border-radius:99px;z-index:300;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none}
+.ios-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+</style>
+</head>
+<body>
+
+<!-- ══ PROTOTYPE NAV ════════════════════════════════════════════════════════ -->
+<div id="pnav">
+  <div class="pl">GF Mobile</div>
+  <div class="ps"></div>
+  <div class="pg">Klient</div>
+  <button class="pb active" onclick="showPhone('ph-today')">Dnes</button>
+  <button class="pb" onclick="showPhone('ph-discover')">Hledat trenéra</button>
+  <button class="pb" onclick="showPhone('ph-plans')">Plány</button>
+  <button class="pb" onclick="showPhone('ph-messages')">Zprávy</button>
+  <button class="pb" onclick="showPhone('ph-chat')">Chat detail</button>
+  <button class="pb" onclick="showPhone('ph-profile')">Profil</button>
+  <div class="ps"></div>
+  <div class="pg">Stav</div>
+  <button class="pb active" id="btn-has-trainer" onclick="setHasTrainer(true)">Má trenéra</button>
+  <button class="pb" id="btn-no-trainer" onclick="setHasTrainer(false)">Bez trenéra</button>
+  <div class="pr">
+    <button class="picon" onclick="toggleDark()" id="dark-btn" title="Tmavý režim">☾</button>
+  </div>
+</div>
+
+<!-- ══ STAGE ════════════════════════════════════════════════════════════════ -->
+<div id="stage">
+
+<!-- ═══════════════════════════════════════════
+     DNEŠNÍ PŘEHLED
+═══════════════════════════════════════════ -->
+<div class="phone-wrap">
+<div class="phone-label">Dnešní přehled</div>
+<div class="phone" id="ph-today">
+  <div class="di"></div>
+  <div class="status-bar">
+    <span class="sb-time">9:41</span>
+    <div class="sb-icons">
+      <svg width="17" height="12" viewBox="0 0 17 12"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0" width="3" height="12" rx="1"/><rect x="13.5" y="1" width="3" height="11" rx="1"/></svg>
+      <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 2.5C10.5 2.5 12.7 3.6 14.2 5.3L15.5 4C13.6 1.9 11 .5 8 .5S2.4 1.9.5 4L1.8 5.3C3.3 3.6 5.5 2.5 8 2.5ZM8 6C9.7 6 11.2 6.7 12.3 7.8L13.6 6.5C12.1 5.1 10.1 4 8 4S3.9 5.1 2.4 6.5L3.7 7.8C4.8 6.7 6.3 6 8 6ZM8 9.5C9 9.5 9.9 9.9 10.5 10.6L8 13.5 5.5 10.6C6.1 9.9 7 9.5 8 9.5Z"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12"><rect x="0" y="1" width="21" height="10" rx="3.5" stroke="#000" stroke-width="1" fill="none"/><rect x="22" y="4" width="2.5" height="4" rx="1" fill="#000" opacity=".4"/><rect x="1.5" y="2.5" width="15" height="7" rx="2" fill="#000"/></svg>
+    </div>
+  </div>
+  <div class="scroll-area" id="today-scroll">
+
+    <!-- Header -->
+    <div style="padding:8px 20px 4px;display:flex;align-items:flex-start;justify-content:space-between">
+      <div>
+        <div style="font-size:13px;color:var(--ios-label2);font-weight:500;margin-bottom:2px">Pondělí, 30. března</div>
+        <div style="font-size:34px;font-weight:700;color:var(--ios-label);letter-spacing:-.5px;line-height:1.1">Dobré ráno,<br>Petro 👋</div>
+      </div>
+      <div class="bell-btn" style="margin-top:16px" onclick="openNotifSheet('ph-today')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+        <div class="bell-badge">3</div>
+      </div>
+    </div>
+
+    <!-- Inline invitation card (no-trainer state) -->
+    <div id="invite-card-wrap" style="display:none">
+      <div class="invite-card">
+        <div class="invite-card-top">
+          <div class="invite-av" style="background:rgba(201,168,76,.15);color:var(--ios-gold)">MT</div>
+          <div class="invite-info">
+            <div class="invite-title">Marek Trenér tě pozval</div>
+            <div class="invite-sub">Osobní trenér & výživový poradce · Praha</div>
+          </div>
+        </div>
+        <div class="invite-card-body">
+          Marek by s tebou rád zahájil spolupráci. Po přijetí vyplníš krátký dotazník a dostaneš přístup k tréninkovému plánu.
+        </div>
+        <div class="invite-card-footer">
+          <div class="invite-btn invite-accept" onclick="acceptInvite('ph-today')">Přijmout pozvánku</div>
+          <div class="invite-btn invite-decline" onclick="declineInvite('ph-today')">Odmítnout</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- With-trainer view -->
+    <div id="today-has-trainer">
+
+      <!-- Today summary strip -->
+      <div style="margin:12px 20px;display:flex;gap:10px">
+        <div style="flex:1;background:var(--ios-bg2);border-radius:var(--ios-r);padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)">
+          <div style="font-size:11px;color:var(--ios-label2);font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Kalorie</div>
+          <div style="font-size:22px;font-weight:700;color:var(--ios-label);letter-spacing:-.3px">1 547</div>
+          <div style="font-size:11px;color:var(--ios-label3);margin-top:1px">/ 1 700 kcal</div>
+          <div style="height:4px;background:var(--ios-fill);border-radius:99px;margin-top:6px;overflow:hidden"><div style="width:91%;height:100%;background:var(--ios-gold);border-radius:99px"></div></div>
+        </div>
+        <div style="flex:1;background:var(--ios-bg2);border-radius:var(--ios-r);padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)">
+          <div style="font-size:11px;color:var(--ios-label2);font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Trénink</div>
+          <div style="font-size:22px;font-weight:700;color:var(--ios-label);letter-spacing:-.3px">Push A</div>
+          <div style="font-size:11px;color:var(--ios-label3);margin-top:1px">5 cviků · 60 min</div>
+          <div style="margin-top:6px;display:inline-flex;align-items:center;gap:4px;background:rgba(52,199,89,.12);border-radius:99px;padding:2px 8px">
+            <div style="width:5px;height:5px;border-radius:50%;background:var(--ios-green)"></div>
+            <span style="font-size:11px;font-weight:600;color:var(--ios-green)">Čeká</span>
+          </div>
+        </div>
+        <div style="flex:1;background:var(--ios-bg2);border-radius:var(--ios-r);padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)">
+          <div style="font-size:11px;color:var(--ios-label2);font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Streak</div>
+          <div style="font-size:22px;font-weight:700;color:var(--ios-orange);letter-spacing:-.3px">21</div>
+          <div style="font-size:11px;color:var(--ios-label3);margin-top:1px">dní v řadě</div>
+          <div style="font-size:18px;margin-top:4px">🔥</div>
+        </div>
+      </div>
+
+      <!-- Training card -->
+      <div class="ios-section-hdr"><div class="ios-section-title">Dnešní trénink</div><span class="ios-section-action">Detail</span></div>
+      <div class="ios-card">
+        <div class="ios-card-hero grad-push" style="display:flex;align-items:center;padding:20px">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Silový A/B · Týden 3</div>
+            <div style="font-size:26px;font-weight:700;color:#fff;letter-spacing:-.3px">Push A</div>
+            <div style="font-size:14px;color:rgba(255,255,255,.7);margin-top:4px">5 cviků · 60 min · odpočinek 90s</div>
+            <div style="display:flex;gap:6px;margin-top:10px">
+              <span style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:99px;background:rgba(201,168,76,.2);color:#c9a84c">Hrudník</span>
+              <span style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:99px;background:rgba(175,82,222,.2);color:#af52de">Ramena</span>
+              <span style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:99px;background:rgba(255,149,0,.2);color:#ff9500">Paže</span>
+            </div>
+          </div>
+          <div style="margin-left:auto;flex-shrink:0">
+            <div class="prog-ring">
+              <svg width="56" height="56" viewBox="0 0 56 56">
+                <circle cx="28" cy="28" r="23" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="5"/>
+                <circle cx="28" cy="28" r="23" fill="none" stroke="#c9a84c" stroke-width="5" stroke-dasharray="144" stroke-dashoffset="72" stroke-linecap="round"/>
+              </svg>
+              <div class="prog-ring-label" style="color:#fff;font-size:12px">3/5</div>
+            </div>
+          </div>
+        </div>
+        <div style="background:var(--ios-bg2)">
+          <div class="ex-ios-row">
+            <div class="ex-ios-dot" style="background:#0b6e99"></div>
+            <div class="ex-ios-info"><div class="ex-ios-name">Bench press s činkou</div><div class="ex-ios-sets">4 série · 8–10 opak. · 80 kg</div></div>
+            <div class="ex-ios-done done">✓</div>
+          </div>
+          <div class="ex-ios-row">
+            <div class="ex-ios-dot" style="background:#0b6e99"></div>
+            <div class="ex-ios-info"><div class="ex-ios-name">Vojenský tlak</div><div class="ex-ios-sets">3 série · 10–12 opak. · 55 kg</div></div>
+            <div class="ex-ios-done done">✓</div>
+          </div>
+          <div class="ex-ios-row">
+            <div class="ex-ios-dot" style="background:#af52de"></div>
+            <div class="ex-ios-info"><div class="ex-ios-name">Kliky na bradlech</div><div class="ex-ios-sets">3 série · 12 opak. · BW</div></div>
+            <div class="ex-ios-done done">✓</div>
+          </div>
+          <div class="ex-ios-row">
+            <div class="ex-ios-dot" style="background:#ff9500"></div>
+            <div class="ex-ios-info"><div class="ex-ios-name">Laterální zdvihy</div><div class="ex-ios-sets">3 série · 15 opak. · 12 kg</div></div>
+            <div class="ex-ios-done"></div>
+          </div>
+          <div class="ex-ios-row">
+            <div class="ex-ios-dot" style="background:#ff9500"></div>
+            <div class="ex-ios-info"><div class="ex-ios-name">Tricepsový pushdown</div><div class="ex-ios-sets">3 série · 12–15 opak. · 25 kg</div></div>
+            <div class="ex-ios-done"></div>
+          </div>
+          <div style="padding:12px 16px">
+            <div class="ios-btn ios-btn-primary" style="font-size:15px;padding:12px">Pokračovat v tréninku</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nutrition card -->
+      <div class="ios-section-hdr"><div class="ios-section-title">Dnešní jídelníček</div><span class="ios-section-action">Vše</span></div>
+      <div class="ios-card">
+        <div style="padding:14px 16px 10px;background:var(--ios-bg2)">
+          <div class="macro-row">
+            <div class="macro-label">Bílkoviny</div>
+            <div class="macro-track"><div class="macro-fill" style="width:78%;background:#007aff"></div></div>
+            <div class="macro-val">102 / 130 g</div>
+          </div>
+          <div class="macro-row">
+            <div class="macro-label">Sacharidy</div>
+            <div class="macro-track"><div class="macro-fill" style="width:84%;background:#ff9500"></div></div>
+            <div class="macro-val">152 / 180 g</div>
+          </div>
+          <div class="macro-row" style="margin-bottom:0">
+            <div class="macro-label">Tuky</div>
+            <div class="macro-track"><div class="macro-fill" style="width:80%;background:#af52de"></div></div>
+            <div class="macro-val">44 / 55 g</div>
+          </div>
+        </div>
+        <div class="ios-list" style="margin:0;border-radius:0">
+          <div class="ios-row">
+            <div class="ios-row-icon" style="background:rgba(201,168,76,.12);font-size:16px">🌅</div>
+            <div class="ios-row-body"><div class="ios-row-title">Snídaně</div><div class="ios-row-sub">431 kcal · splněno</div></div>
+            <div class="ios-row-right"><span style="color:var(--ios-green);font-size:13px;font-weight:600">✓</span><span class="ios-row-chev">›</span></div>
+          </div>
+          <div class="ios-row">
+            <div class="ios-row-icon" style="background:rgba(0,122,255,.12);font-size:16px">🌞</div>
+            <div class="ios-row-body"><div class="ios-row-title">Oběd</div><div class="ios-row-sub">540 kcal · splněno</div></div>
+            <div class="ios-row-right"><span style="color:var(--ios-green);font-size:13px;font-weight:600">✓</span><span class="ios-row-chev">›</span></div>
+          </div>
+          <div class="ios-row">
+            <div class="ios-row-icon" style="background:rgba(175,82,222,.12);font-size:16px">🌙</div>
+            <div class="ios-row-body"><div class="ios-row-title">Večeře</div><div class="ios-row-sub">576 kcal · čeká</div></div>
+            <div class="ios-row-right"><span class="ios-row-chev">›</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="height:8px"></div>
+    </div>
+
+    <!-- No-trainer view -->
+    <div id="today-no-trainer" style="display:none">
+      <div class="ios-notice" style="background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.25);margin-top:12px">
+        <div class="ios-notice-icon">🏋️</div>
+        <div class="ios-notice-body">
+          <div class="ios-notice-title">Zatím nemáte trenéra</div>
+          <div class="ios-notice-text">Najděte si trenéra nebo výživového poradce a začněte pracovat na svých cílech.</div>
+        </div>
+      </div>
+      <div style="padding:0 20px;margin-top:8px">
+        <div class="ios-btn ios-btn-primary" onclick="showPhone('ph-discover')">Najít trenéra</div>
+      </div>
+      <div style="padding:20px 20px 8px;text-align:center">
+        <div style="font-size:64px;margin-bottom:12px">🎯</div>
+        <div style="font-size:22px;font-weight:700;color:var(--ios-label);letter-spacing:-.3px;margin-bottom:6px">Co vás čeká?</div>
+        <div style="font-size:15px;color:var(--ios-label2);line-height:1.5">Po navázání spolupráce s trenérem uvidíte svůj tréninkový a výživový plán přímo tady.</div>
+      </div>
+      <div class="ios-list">
+        <div class="ios-row"><div class="ios-row-icon" style="background:rgba(0,122,255,.12)">🏋️</div><div class="ios-row-body"><div class="ios-row-title">Tréninkový plán</div><div class="ios-row-sub">Personalizované cvičení</div></div><div class="ios-row-right"><span class="ios-row-chev">›</span></div></div>
+        <div class="ios-row"><div class="ios-row-icon" style="background:rgba(52,199,89,.12)">🥗</div><div class="ios-row-body"><div class="ios-row-title">Výživový plán</div><div class="ios-row-sub">Jídelníček na míru</div></div><div class="ios-row-right"><span class="ios-row-chev">›</span></div></div>
+        <div class="ios-row"><div class="ios-row-icon" style="background:rgba(255,149,0,.12)">📈</div><div class="ios-row-body"><div class="ios-row-title">Sledování pokroku</div><div class="ios-row-sub">Grafy a statistiky</div></div><div class="ios-row-right"><span class="ios-row-chev">›</span></div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Notification sheet -->
+  <div class="notif-overlay" id="notif-overlay-ph-today" onclick="if(event.target===this)closeNotifSheet('ph-today')">
+    <div class="notif-sheet">
+      <div class="notif-sheet-handle"></div>
+      <div class="notif-sheet-hdr">
+        <div class="notif-sheet-title">Notifikace</div>
+        <div class="notif-sheet-action" onclick="markAllRead('ph-today')">Označit vše jako přečtené</div>
+      </div>
+      <div class="notif-list">
+        
+        <div class="notif-row unread" onclick="closeNotifSheet('ph-today');showToastOn('ph-today','Dotazník otevřen')">
+          <div class="notif-unread-dot"></div>
+          <div class="notif-icon-wrap" style="background:rgba(201,168,76,.12)">📋</div>
+          <div class="notif-body">
+            <div class="notif-title">Vstupní dotazník čeká</div>
+            <div class="notif-text">Marek Trenér připravil krátký dotazník před zahájením spolupráce.</div>
+            <div class="notif-time">před 5 minutami</div>
+            <div class="notif-actions">
+              <div class="notif-action-btn notif-action-primary" onclick="event.stopPropagation();showToastOn('ph-today','Dotazník otevřen')">Vyplnit</div>
+              <div class="notif-action-btn notif-action-secondary" onclick="event.stopPropagation()">Později</div>
+            </div>
+          </div>
+        </div>
+        <div class="notif-row unread">
+          <div class="notif-unread-dot"></div>
+          <div class="notif-icon-wrap" style="background:rgba(11,110,153,.1)">🏋️</div>
+          <div class="notif-body">
+            <div class="notif-title">Nový tréninkový plán</div>
+            <div class="notif-text">Silový A/B — Marek Trenér publikoval týden 5.</div>
+            <div class="notif-time">před 1 hodinou</div>
+          </div>
+        </div>
+        <div class="notif-row">
+          <div class="notif-icon-wrap" style="background:rgba(52,199,89,.1)">✓</div>
+          <div class="notif-body">
+            <div class="notif-title">Trénink splněn</div>
+            <div class="notif-text">Výborně! Dnešní Push A je za tebou. Streak: 21 dní 🔥</div>
+            <div class="notif-time">dnes 10:23</div>
+          </div>
+        </div>
+        <div class="notif-row">
+          <div class="notif-icon-wrap" style="background:rgba(0,122,255,.1)">💬</div>
+          <div class="notif-body">
+            <div class="notif-title">Marek Trenér</div>
+            <div class="notif-text">Jak se cítíš po dnešním tréninku? 💪</div>
+            <div class="notif-time">dnes 13:52</div>
+          </div>
+        </div>
+        <div style="height:20px"></div>
+      </div>
+    </div>
+  </div>
+  <div class="ios-toast"></div>
+  <!-- Tab bar -->
+  <div class="tab-bar">
+    <div class="tab active" onclick="showPhone('ph-today')">
+      <div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" fill="#8e8e93"/><path d="M9 22V12h6v10" fill="#8e8e93"/></svg></div>
+      <div class="tab-lbl">Dnes</div>
+    </div>
+    <div class="tab" onclick="showPhone('ph-discover')">
+      <div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="#8e8e93" stroke-width="2"/><path d="m21 21-4.35-4.35" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div>
+      <div class="tab-lbl">Trenéři</div>
+    </div>
+    <div class="tab" onclick="showPhone('ph-plans')">
+      <div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#8e8e93" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div>
+      <div class="tab-lbl">Plány</div>
+    </div>
+    <div class="tab" onclick="showPhone('ph-messages')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="#8e8e93" stroke-width="2" stroke-linejoin="round"/></svg></div><div class="tab-lbl">Zprávy</div></div>
+    <div class="tab" onclick="showPhone('ph-profile')">
+      <div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="#8e8e93" stroke-width="2"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div>
+      <div class="tab-lbl">Profil</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     HLEDAT TRENÉRA
+═══════════════════════════════════════════ -->
+<div class="phone-wrap">
+<div class="phone-label">Hledat trenéra</div>
+<div class="phone" id="ph-discover" style="display:none">
+  <div class="di"></div>
+  <div class="status-bar"><span class="sb-time">9:41</span><div class="sb-icons"><svg width="17" height="12" viewBox="0 0 17 12"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0" width="3" height="12" rx="1"/><rect x="13.5" y="1" width="3" height="11" rx="1"/></svg><svg width="25" height="12" viewBox="0 0 25 12"><rect x="0" y="1" width="21" height="10" rx="3.5" stroke="#000" stroke-width="1" fill="none"/><rect x="22" y="4" width="2.5" height="4" rx="1" fill="#000" opacity=".4"/><rect x="1.5" y="2.5" width="15" height="7" rx="2" fill="#000"/></svg></div></div>
+  <div class="scroll-area">
+    <div class="ios-page-header">
+      <div class="ios-page-title">Najít trenéra</div>
+      <div class="ios-page-sub">Procházejte profily odborníků</div>
+    </div>
+    <div class="ios-search">
+      <div class="ios-search-icon">🔍</div>
+      <input placeholder="Hledat jméno, specializace...">
+    </div>
+    <div class="seg-ctrl">
+      <div class="seg-opt active">Všichni</div>
+      <div class="seg-opt">Trenéři</div>
+      <div class="seg-opt">Poradci</div>
+    </div>
+    <div class="pill-tabs">
+      <div class="pill-tab active">Všechny cíle</div>
+      <div class="pill-tab">Hubnutí</div>
+      <div class="pill-tab">Nabírání</div>
+      <div class="pill-tab">Kondice</div>
+      <div class="pill-tab">Rehabilitace</div>
+    </div>
+
+    <!-- Trainer cards -->
+    <div class="trainer-card">
+      <div class="trainer-card-top">
+        <div class="trainer-avatar" style="background:rgba(0,122,255,.12);color:#007aff">MK</div>
+        <div class="trainer-info">
+          <div class="trainer-name">Marek Kovář</div>
+          <div class="trainer-role">Osobní trenér · Praha</div>
+          <div class="trainer-rating"><span class="trainer-stars">★★★★★</span><span class="trainer-rating-num">4.9 (38)</span></div>
+        </div>
+        <div style="font-size:13px;font-weight:600;color:var(--ios-label2);text-align:right"><div style="font-size:16px;font-weight:700;color:var(--ios-label)">2 500</div><div>Kč/měs.</div></div>
+      </div>
+      <div class="trainer-tags">
+        <div class="trainer-tag">Silový trénink</div>
+        <div class="trainer-tag">Hubnutí</div>
+        <div class="trainer-tag">Online</div>
+      </div>
+      <div class="trainer-footer">
+        <div style="font-size:13px;color:var(--ios-label2)">🟢 Přijímá klienty</div>
+        <div style="display:flex;gap:8px">
+          <div style="padding:8px 14px;border-radius:99px;background:var(--ios-fill);font-size:14px;font-weight:600;color:var(--ios-label);cursor:pointer">Profil</div>
+          <div style="padding:8px 14px;border-radius:99px;background:var(--ios-gold);font-size:14px;font-weight:600;color:#fff;cursor:pointer">Oslovit</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="trainer-card">
+      <div class="trainer-card-top">
+        <div class="trainer-avatar" style="background:rgba(52,199,89,.12);color:#34c759">LP</div>
+        <div class="trainer-info">
+          <div class="trainer-name">Lucie Procházková</div>
+          <div class="trainer-role">Výž. poradce · Brno / online</div>
+          <div class="trainer-rating"><span class="trainer-stars">★★★★★</span><span class="trainer-rating-num">5.0 (21)</span></div>
+        </div>
+        <div style="font-size:13px;font-weight:600;color:var(--ios-label2);text-align:right"><div style="font-size:16px;font-weight:700;color:var(--ios-label)">1 800</div><div>Kč/měs.</div></div>
+      </div>
+      <div class="trainer-tags">
+        <div class="trainer-tag">Výživa</div>
+        <div class="trainer-tag">Rekomposice</div>
+        <div class="trainer-tag">Vegani</div>
+        <div class="trainer-tag">Online</div>
+      </div>
+      <div class="trainer-footer">
+        <div style="font-size:13px;color:var(--ios-label2)">🟢 Přijímá klienty</div>
+        <div style="display:flex;gap:8px">
+          <div style="padding:8px 14px;border-radius:99px;background:var(--ios-fill);font-size:14px;font-weight:600;color:var(--ios-label);cursor:pointer">Profil</div>
+          <div style="padding:8px 14px;border-radius:99px;background:var(--ios-gold);font-size:14px;font-weight:600;color:#fff;cursor:pointer">Oslovit</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="trainer-card">
+      <div class="trainer-card-top">
+        <div class="trainer-avatar" style="background:rgba(255,149,0,.12);color:#ff9500">TN</div>
+        <div class="trainer-info">
+          <div class="trainer-name">Tomáš Novotný</div>
+          <div class="trainer-role">Trenér & poradce · Liberec</div>
+          <div class="trainer-rating"><span class="trainer-stars">★★★★</span><span class="trainer-rating-num">4.7 (54)</span></div>
+        </div>
+        <div style="font-size:13px;font-weight:600;color:var(--ios-label2);text-align:right"><div style="font-size:16px;font-weight:700;color:var(--ios-label)">3 200</div><div>Kč/měs.</div></div>
+      </div>
+      <div class="trainer-tags">
+        <div class="trainer-tag">Silový trénink</div>
+        <div class="trainer-tag">Výživa</div>
+        <div class="trainer-tag">Nabírání</div>
+      </div>
+      <div class="trainer-footer">
+        <div style="font-size:13px;color:rgba(255,59,48,.8)">🔴 Plná kapacita</div>
+        <div style="display:flex;gap:8px">
+          <div style="padding:8px 14px;border-radius:99px;background:var(--ios-fill);font-size:14px;font-weight:600;color:var(--ios-label);cursor:pointer">Profil</div>
+          <div style="padding:8px 14px;border-radius:99px;background:var(--ios-fill);font-size:14px;font-weight:600;color:var(--ios-label2);cursor:pointer">Čekat</div>
+        </div>
+      </div>
+    </div>
+    <div style="height:8px"></div>
+  </div>
+  <div class="tab-bar">
+    <div class="tab" onclick="showPhone('ph-today')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" fill="#8e8e93"/><path d="M9 22V12h6v10" fill="#8e8e93"/></svg></div><div class="tab-lbl">Dnes</div></div>
+    <div class="tab active" onclick="showPhone('ph-discover')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="#c9a84c" stroke-width="2"/><path d="m21 21-4.35-4.35" stroke="#c9a84c" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl" style="color:#c9a84c">Trenéři</div></div>
+    <div class="tab" onclick="showPhone('ph-plans')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#8e8e93" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Plány</div></div>
+    <div class="tab" onclick="showPhone('ph-messages')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="#8e8e93" stroke-width="2" stroke-linejoin="round"/></svg></div><div class="tab-lbl">Zprávy</div></div>
+    <div class="tab" onclick="showPhone('ph-profile')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="#8e8e93" stroke-width="2"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Profil</div></div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PLÁNY
+═══════════════════════════════════════════ -->
+<div class="phone-wrap">
+<div class="phone-label">Plány</div>
+<div class="phone" id="ph-plans" style="display:none">
+  <div class="di"></div>
+  <div class="status-bar"><span class="sb-time">9:41</span><div class="sb-icons"><svg width="17" height="12" viewBox="0 0 17 12"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0" width="3" height="12" rx="1"/><rect x="13.5" y="1" width="3" height="11" rx="1"/></svg><svg width="25" height="12" viewBox="0 0 25 12"><rect x="0" y="1" width="21" height="10" rx="3.5" stroke="#000" stroke-width="1" fill="none"/><rect x="22" y="4" width="2.5" height="4" rx="1" fill="#000" opacity=".4"/><rect x="1.5" y="2.5" width="15" height="7" rx="2" fill="#000"/></svg></div></div>
+  <div class="scroll-area">
+    <div class="ios-page-header">
+      <div class="ios-page-title">Moje plány</div>
+    </div>
+    <div class="seg-ctrl">
+      <div class="seg-opt active">Aktuální</div>
+      <div class="seg-opt">Archiv</div>
+    </div>
+
+    <!-- Active training plan -->
+    <div class="ios-section-hdr"><div class="ios-section-title">Trénink</div></div>
+    <div class="ios-card">
+      <div class="ios-card-hero grad-push" style="padding:20px;display:flex;flex-direction:column;justify-content:flex-end">
+        <div class="ios-card-tag" style="background:rgba(52,199,89,.2);color:#34c759">● Aktivní</div>
+        <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Tréninkový plán</div>
+        <div style="font-size:22px;font-weight:700;color:#fff;letter-spacing:-.3px">Silový A/B</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.6);margin-top:3px">4× týdně · 12 týdnů · Marek Trenér</div>
+        <div style="height:4px;background:rgba(255,255,255,.15);border-radius:99px;margin-top:12px;overflow:hidden"><div style="width:33%;height:100%;background:#c9a84c;border-radius:99px"></div></div>
+        <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:4px">Týden 4 z 12</div>
+      </div>
+      <div style="padding:12px 16px;background:var(--ios-bg2)">
+        <div style="display:flex;gap:10px;margin-bottom:10px">
+          <div style="flex:1;text-align:center"><div style="font-size:18px;font-weight:700;color:var(--ios-label)">28</div><div style="font-size:11px;color:var(--ios-label2)">odcvičeno</div></div>
+          <div style="width:1px;background:var(--ios-sep2)"></div>
+          <div style="flex:1;text-align:center"><div style="font-size:18px;font-weight:700;color:var(--ios-label)">16</div><div style="font-size:11px;color:var(--ios-label2)">zbývá</div></div>
+          <div style="width:1px;background:var(--ios-sep2)"></div>
+          <div style="flex:1;text-align:center"><div style="font-size:18px;font-weight:700;color:var(--ios-green)">94 %</div><div style="font-size:11px;color:var(--ios-label2)">plnění</div></div>
+        </div>
+
+        <!-- Week strip -->
+        <div style="font-size:12px;font-weight:600;color:var(--ios-label2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em">Tento týden</div>
+        <div class="week-strip" style="padding:0 0 4px">
+          <div class="week-day has-content"><div class="week-day-lbl">Po</div><div class="week-day-num" style="background:rgba(52,199,89,.15);color:var(--ios-green);font-size:14px">✓</div><div class="week-day-dot" style="background:var(--ios-green)"></div></div>
+          <div class="week-day has-content"><div class="week-day-lbl">Út</div><div class="week-day-num" style="background:rgba(52,199,89,.15);color:var(--ios-green);font-size:14px">✓</div><div class="week-day-dot" style="background:var(--ios-green)"></div></div>
+          <div class="week-day"><div class="week-day-lbl">St</div><div class="week-day-num" style="color:var(--ios-label3)">—</div><div class="week-day-dot" style="background:transparent"></div></div>
+          <div class="week-day today has-content"><div class="week-day-lbl">Čt</div><div class="week-day-num">30</div><div class="week-day-dot" style="background:var(--ios-gold)"></div></div>
+          <div class="week-day has-content"><div class="week-day-lbl">Pá</div><div class="week-day-num" style="color:var(--ios-label3)">31</div><div class="week-day-dot" style="background:var(--ios-fill)"></div></div>
+          <div class="week-day"><div class="week-day-lbl">So</div><div class="week-day-num" style="color:var(--ios-label3)">1</div><div class="week-day-dot" style="background:transparent"></div></div>
+          <div class="week-day has-content"><div class="week-day-lbl">Ne</div><div class="week-day-num" style="color:var(--ios-label3)">2</div><div class="week-day-dot" style="background:var(--ios-fill)"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active nutrition plan -->
+    <div class="ios-section-hdr"><div class="ios-section-title">Výživa</div></div>
+    <div class="ios-card">
+      <div class="ios-card-hero grad-nutrition" style="padding:20px;display:flex;flex-direction:column;justify-content:flex-end">
+        <div class="ios-card-tag" style="background:rgba(52,199,89,.2);color:#34c759">● Aktivní</div>
+        <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Výživový plán</div>
+        <div style="font-size:22px;font-weight:700;color:#fff;letter-spacing:-.3px">Únor / Březen</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.6);margin-top:3px">1 700 kcal · 12 týdnů · Marek Trenér</div>
+        <div style="height:4px;background:rgba(255,255,255,.15);border-radius:99px;margin-top:12px;overflow:hidden"><div style="width:33%;height:100%;background:#c9a84c;border-radius:99px"></div></div>
+        <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:4px">Týden 4 z 12 · průměr 1 618 kcal/den</div>
+      </div>
+      <div style="padding:12px 16px;background:var(--ios-bg2)">
+        <div style="display:flex;gap:10px">
+          <div style="flex:1;text-align:center"><div style="font-size:18px;font-weight:700;color:var(--ios-label)">22</div><div style="font-size:11px;color:var(--ios-label2)">dní splněno</div></div>
+          <div style="width:1px;background:var(--ios-sep2)"></div>
+          <div style="flex:1;text-align:center"><div style="font-size:18px;font-weight:700;color:var(--ios-green)">95 %</div><div style="font-size:11px;color:var(--ios-label2)">compliance</div></div>
+          <div style="width:1px;background:var(--ios-sep2)"></div>
+          <div style="flex:1;text-align:center"><div style="font-size:18px;font-weight:700;color:var(--ios-green)">−2,4</div><div style="font-size:11px;color:var(--ios-label2)">kg pokrok</div></div>
+        </div>
+      </div>
+    </div>
+    <div style="height:8px"></div>
+  </div>
+  <div class="tab-bar">
+    <div class="tab" onclick="showPhone('ph-today')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" fill="#8e8e93"/><path d="M9 22V12h6v10" fill="#8e8e93"/></svg></div><div class="tab-lbl">Dnes</div></div>
+    <div class="tab" onclick="showPhone('ph-discover')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="#8e8e93" stroke-width="2"/><path d="m21 21-4.35-4.35" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Trenéři</div></div>
+    <div class="tab active" onclick="showPhone('ph-plans')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#c9a84c" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="#c9a84c" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl" style="color:#c9a84c">Plány</div></div>
+    <div class="tab" onclick="showPhone('ph-messages')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="#8e8e93" stroke-width="2" stroke-linejoin="round"/></svg></div><div class="tab-lbl">Zprávy</div></div>
+    <div class="tab" onclick="showPhone('ph-profile')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="#8e8e93" stroke-width="2"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Profil</div></div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PROFIL & POKROK
+═══════════════════════════════════════════ -->
+<div class="phone-wrap">
+<div class="phone-label">Profil & pokrok</div>
+<div class="phone" id="ph-profile" style="display:none">
+  <div class="di"></div>
+  <div class="status-bar"><span class="sb-time">9:41</span><div class="sb-icons"><svg width="17" height="12" viewBox="0 0 17 12"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0" width="3" height="12" rx="1"/><rect x="13.5" y="1" width="3" height="11" rx="1"/></svg><svg width="25" height="12" viewBox="0 0 25 12"><rect x="0" y="1" width="21" height="10" rx="3.5" stroke="#000" stroke-width="1" fill="none"/><rect x="22" y="4" width="2.5" height="4" rx="1" fill="#000" opacity=".4"/><rect x="1.5" y="2.5" width="15" height="7" rx="2" fill="#000"/></svg></div></div>
+  <div class="scroll-area">
+    <!-- Profile header -->
+    <div style="padding:16px 20px 8px;text-align:center">
+      <div class="avatar-xl" style="background:rgba(201,168,76,.15);color:var(--ios-gold)">PH</div>
+      <div style="font-size:24px;font-weight:700;color:var(--ios-label);letter-spacing:-.3px">Petra Horáková</div>
+      <div style="font-size:14px;color:var(--ios-label2);margin-top:2px">Klient · Silový trénink & hubnutí</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:6px">
+        <div style="display:flex;align-items:center;gap:4px;background:var(--ios-fill);padding:5px 12px;border-radius:99px;font-size:13px;font-weight:500;color:var(--ios-label2)">🔥 21 dní streak</div>
+        <div style="display:flex;align-items:center;gap:4px;background:rgba(52,199,89,.1);padding:5px 12px;border-radius:99px;font-size:13px;font-weight:500;color:var(--ios-green)">95 % compliance</div>
+      </div>
+    </div>
+
+    <!-- Stats grid -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-card-icon">⚖️</div>
+        <div class="stat-card-val">63,1</div>
+        <div class="stat-card-lbl">kg aktuální váha</div>
+        <div class="stat-card-sub" style="color:var(--ios-green)">↓ 2,4 kg od startu</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-icon">🎯</div>
+        <div class="stat-card-val">58,0</div>
+        <div class="stat-card-lbl">kg cílová váha</div>
+        <div class="stat-card-sub" style="color:var(--ios-label2)">zbývá 5,1 kg</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-icon">🏋️</div>
+        <div class="stat-card-val">28</div>
+        <div class="stat-card-lbl">tréninků celkem</div>
+        <div class="stat-card-sub" style="color:var(--ios-label2)">tento plán</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-icon">📅</div>
+        <div class="stat-card-val">34</div>
+        <div class="stat-card-lbl">dní s trenérem</div>
+        <div class="stat-card-sub" style="color:var(--ios-gold)">od 25. 2. 2026</div>
+      </div>
+    </div>
+
+    <!-- Weight chart -->
+    <div class="ios-section-hdr"><div class="ios-section-title">Váhový pokrok</div><span class="ios-section-action">Vše</span></div>
+    <div class="ios-card">
+      <div style="padding:14px 16px;background:var(--ios-bg2)">
+        <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:14px">
+          <div style="font-size:32px;font-weight:700;color:var(--ios-label);letter-spacing:-.5px">63,1</div>
+          <div style="font-size:14px;color:var(--ios-label2)">kg</div>
+          <div style="font-size:14px;font-weight:600;color:var(--ios-green);margin-left:auto">↓ 2,4 kg</div>
+        </div>
+        <div class="chart-bars">
+          <div style="display:flex;flex-direction:column;align-items:center;flex:1"><div class="chart-bar" style="height:48px;background:var(--ios-fill);width:100%"></div><div class="chart-day">T1</div></div>
+          <div style="display:flex;flex-direction:column;align-items:center;flex:1"><div class="chart-bar" style="height:42px;background:var(--ios-fill);width:100%"></div><div class="chart-day">T2</div></div>
+          <div style="display:flex;flex-direction:column;align-items:center;flex:1"><div class="chart-bar" style="height:38px;background:var(--ios-fill);width:100%"></div><div class="chart-day">T3</div></div>
+          <div style="display:flex;flex-direction:column;align-items:center;flex:1"><div class="chart-bar" style="height:32px;background:var(--ios-fill);width:100%"></div><div class="chart-day">T4</div></div>
+          <div style="display:flex;flex-direction:column;align-items:center;flex:1"><div class="chart-bar" style="height:28px;background:var(--ios-fill);width:100%"></div><div class="chart-day">T5</div></div>
+          <div style="display:flex;flex-direction:column;align-items:center;flex:1"><div class="chart-bar" style="height:22px;background:var(--ios-fill);width:100%"></div><div class="chart-day">T6</div></div>
+          <div style="display:flex;flex-direction:column;align-items:center;flex:1"><div class="chart-bar" style="height:16px;background:var(--ios-gold);width:100%"></div><div class="chart-day" style="color:var(--ios-gold);font-weight:600">T7</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Profile settings -->
+    <div class="ios-section-hdr"><div class="ios-section-title">Profil</div><span class="ios-section-action">Upravit</span></div>
+    <div class="ios-list">
+      <div class="ios-row"><div class="ios-row-icon" style="background:rgba(0,122,255,.12)">📏</div><div class="ios-row-body"><div class="ios-row-title">Výška / váha</div></div><div class="ios-row-right"><span class="ios-row-val">168 cm · 63,1 kg</span><span class="ios-row-chev">›</span></div></div>
+      <div class="ios-row"><div class="ios-row-icon" style="background:rgba(255,149,0,.12)">🎯</div><div class="ios-row-body"><div class="ios-row-title">Cíl</div></div><div class="ios-row-right"><span class="ios-row-val">Hubnutí</span><span class="ios-row-chev">›</span></div></div>
+      <div class="ios-row"><div class="ios-row-icon" style="background:rgba(52,199,89,.12)">⚡</div><div class="ios-row-body"><div class="ios-row-title">Úroveň aktivity</div></div><div class="ios-row-right"><span class="ios-row-val">Střední</span><span class="ios-row-chev">›</span></div></div>
+      <div class="ios-row"><div class="ios-row-icon" style="background:rgba(175,82,222,.12)">🌾</div><div class="ios-row-body"><div class="ios-row-title">Alergie</div></div><div class="ios-row-right"><span class="ios-row-val">Laktóza</span><span class="ios-row-chev">›</span></div></div>
+    </div>
+
+    <div class="ios-section-hdr" style="margin-top:4px"><div class="ios-section-title">Trenér</div></div>
+    <div class="ios-list">
+      <div class="ios-row"><div class="ios-row-icon" style="background:rgba(201,168,76,.12);font-size:16px">👤</div><div class="ios-row-body"><div class="ios-row-title">Marek Trenér</div><div class="ios-row-sub">Trenér & výživa · od 25. 2. 2026</div></div><div class="ios-row-right"><span class="ios-row-chev">›</span></div></div>
+      <div class="ios-row"><div class="ios-row-icon" style="background:rgba(255,59,48,.12);font-size:16px">↗</div><div class="ios-row-body"><div class="ios-row-title" style="color:var(--ios-red)">Ukončit spolupráci</div></div></div>
+    </div>
+
+    <div style="height:8px"></div>
+  </div>
+  <div class="tab-bar">
+    <div class="tab" onclick="showPhone('ph-today')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" fill="#8e8e93"/><path d="M9 22V12h6v10" fill="#8e8e93"/></svg></div><div class="tab-lbl">Dnes</div></div>
+    <div class="tab" onclick="showPhone('ph-discover')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="#8e8e93" stroke-width="2"/><path d="m21 21-4.35-4.35" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Trenéři</div></div>
+    <div class="tab" onclick="showPhone('ph-plans')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#8e8e93" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Plány</div></div>
+    <div class="tab active" onclick="showPhone('ph-profile')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="#c9a84c" stroke-width="2"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#c9a84c" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl" style="color:#c9a84c">Profil</div></div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     ZPRÁVY — seznam konverzací (klient)
+════════════════════════════════════════════ -->
+<div class="phone-wrap">
+<div class="phone-label">Zprávy — klient</div>
+<div class="phone" id="ph-messages" style="display:none">
+  <div class="di"></div>
+  <div class="status-bar"><span class="sb-time">9:41</span><div class="sb-icons"><svg width="17" height="12" viewBox="0 0 17 12"><rect x="0" y="3" width="3" height="9" rx="1" fill="#000"/><rect x="4.5" y="2" width="3" height="10" rx="1" fill="#000"/><rect x="9" y="0" width="3" height="12" rx="1" fill="#000"/><rect x="13.5" y="1" width="3" height="11" rx="1" fill="#000"/></svg><svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0" y="1" width="21" height="10" rx="3.5" stroke="#000" stroke-width="1"/><rect x="22" y="4" width="2.5" height="4" rx="1" fill="#000" opacity=".4"/><rect x="1.5" y="2.5" width="15" height="7" rx="2" fill="#000"/></svg></div></div>
+
+  <div class="scroll-area">
+    <div style="padding:8px 20px 4px;display:flex;align-items:flex-end;justify-content:space-between">
+      <div style="font-size:34px;font-weight:700;color:var(--ios-label);letter-spacing:-.5px">Zprávy</div>
+      <div style="width:32px;height:32px;border-radius:50%;background:var(--ios-fill);display:flex;align-items:center;justify-content:center;cursor:pointer">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <div style="margin:8px 16px 12px;display:flex;align-items:center;gap:8px;background:var(--ios-fill);border-radius:10px;padding:8px 12px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="color:var(--ios-label3)"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <span style="font-size:16px;color:var(--ios-label3)">Hledat</span>
+    </div>
+
+    <!-- Conversations -->
+    <div style="background:var(--ios-bg2);border-radius:13px;margin:0 16px 16px;overflow:hidden">
+
+      <!-- Marek Trenér — unread -->
+      <div class="conv-row" onclick="showPhone('ph-chat')">
+        <div class="conv-av" style="background:rgba(201,168,76,.15);color:var(--ios-gold)">
+          MT
+          <div class="conv-av-badge" style="background:var(--ios-green)">
+            <svg width="8" height="8" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="white"/></svg>
+          </div>
+        </div>
+        <div class="conv-body">
+          <div style="display:flex;align-items:center;gap:6px">
+            <div class="conv-name">Marek Trenér</div>
+            <div style="font-size:11px;font-weight:500;padding:1px 6px;border-radius:99px;background:rgba(52,199,89,.12);color:var(--ios-green)">Trenér</div>
+          </div>
+          <div class="conv-preview unread">Jak se cítíš po tréninku? 💪</div>
+        </div>
+        <div class="conv-right">
+          <div class="conv-time">13:52</div>
+          <div class="conv-unread">2</div>
+        </div>
+      </div>
+
+      <!-- Lucie Poradce -->
+      <div class="conv-row" onclick="showPhone('ph-chat')">
+        <div class="conv-av" style="background:rgba(52,199,89,.12);color:var(--ios-green)">LP</div>
+        <div class="conv-body">
+          <div style="display:flex;align-items:center;gap:6px">
+            <div class="conv-name">Lucie Procházková</div>
+            <div style="font-size:11px;font-weight:500;padding:1px 6px;border-radius:99px;background:rgba(52,199,89,.12);color:var(--ios-green)">Poradce</div>
+          </div>
+          <div class="conv-preview">Odeslala nový jídelníček na únor</div>
+        </div>
+        <div class="conv-right">
+          <div class="conv-time">Včera</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Archived -->
+    <div style="padding:0 20px;margin-bottom:6px">
+      <div style="font-size:13px;color:var(--ios-blue);cursor:pointer">Archivované konverzace</div>
+    </div>
+
+    <div style="height:16px"></div>
+  </div>
+
+  <!-- Tab bar -->
+  <div class="tab-bar">
+    <div class="tab" onclick="showPhone('ph-today')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" fill="#8e8e93"/><path d="M9 22V12h6v10" fill="#8e8e93"/></svg></div><div class="tab-lbl">Dnes</div></div>
+    <div class="tab" onclick="showPhone('ph-discover')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="#8e8e93" stroke-width="2"/><path d="m21 21-4.35-4.35" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Trenéři</div></div>
+    <div class="tab" onclick="showPhone('ph-plans')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#8e8e93" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Plány</div></div>
+    <div class="tab active"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" fill="#c9a84c"/></svg></div><div class="tab-lbl" style="color:#c9a84c">Zprávy</div></div>
+    <div class="tab" onclick="showPhone('ph-messages')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="#8e8e93" stroke-width="2" stroke-linejoin="round"/></svg></div><div class="tab-lbl">Zprávy</div></div>
+    <div class="tab" onclick="showPhone('ph-profile')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="#8e8e93" stroke-width="2"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Profil</div></div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     CHAT DETAIL (klient ↔ trenér)
+════════════════════════════════════════════ -->
+<div class="phone-wrap">
+<div class="phone-label">Chat detail</div>
+<div class="phone" id="ph-chat" style="display:none">
+  <div class="di"></div>
+  <div class="status-bar"><span class="sb-time">9:41</span><div class="sb-icons"><svg width="17" height="12" viewBox="0 0 17 12"><rect x="0" y="3" width="3" height="9" rx="1" fill="#000"/><rect x="4.5" y="2" width="3" height="10" rx="1" fill="#000"/><rect x="9" y="0" width="3" height="12" rx="1" fill="#000"/></svg><svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0" y="1" width="21" height="10" rx="3.5" stroke="#000" stroke-width="1"/><rect x="1.5" y="2.5" width="15" height="7" rx="2" fill="#000"/></svg></div></div>
+
+  <!-- Fixed header -->
+  <div class="chat-header">
+    <div style="height:59px"></div>
+    <div class="chat-header-inner">
+      <div class="chat-back" onclick="showPhone('ph-messages')">
+        <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M8.5 1.5L2 8l6.5 6.5" stroke="#007aff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span style="font-size:16px;color:var(--ios-blue);margin-left:2px">Zprávy</span>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center">
+        <div class="chat-av-sm" style="background:rgba(201,168,76,.15);color:var(--ios-gold);margin-bottom:2px">MT</div>
+        <div class="chat-hdr-name">Marek Trenér</div>
+        <div class="chat-hdr-sub" style="color:var(--ios-green)">● Online</div>
+      </div>
+      <div class="chat-hdr-actions">
+        <div class="chat-hdr-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="color:var(--ios-blue)"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8 19.79 19.79 0 01.22 1.18 2 2 0 012.22 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.09a16 16 0 006 6l.56-.56a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg>
+        </div>
+        <div class="chat-hdr-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="color:var(--ios-blue)"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scrollable messages -->
+  <div class="chat-scroll" style="top:140px">
+
+    <!-- Context banner — nový plán -->
+    <div class="chat-ctx-banner">
+      <div class="chat-ctx-icon">📋</div>
+      <div class="chat-ctx-body">
+        <div class="chat-ctx-title">Nový tréninkový plán</div>
+        <div class="chat-ctx-sub">Silový A/B · Týden 1 spuštěn dnes</div>
+      </div>
+      <div class="chat-ctx-action">Otevřít</div>
+    </div>
+
+    <div class="msg-date-sep">Pondělí 30. března</div>
+
+    <!-- Them -->
+    <div class="msg-group">
+      <div class="msg-row them">
+        <div class="msg-av-tiny" style="background:rgba(201,168,76,.15);color:var(--ios-gold)">MT</div>
+        <div>
+          <div class="msg-bubble them">Ahoj Petro! Připravil jsem ti nový plán na tento týden. Mrkni na to 💪</div>
+          <div class="msg-time">13:20</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Plan card attachment -->
+    <div class="msg-row them" style="margin-top:4px">
+      <div style="width:32px;flex-shrink:0"></div>
+      <div class="msg-plan-card">
+        <div class="msg-plan-hero" style="background:linear-gradient(135deg,#1a1a2e,#16213e)">
+          <div>
+            <div class="msg-plan-label">Tréninkový plán</div>
+            <div class="msg-plan-name">Silový A/B</div>
+          </div>
+        </div>
+        <div class="msg-plan-body">
+          <div class="msg-plan-meta">4× týdně · 12 týdnů</div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--ios-label3)"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Me -->
+    <div class="msg-group" style="margin-top:6px">
+      <div class="msg-row me">
+        <div>
+          <div class="msg-bubble me">Wow, to vypadá skvěle! Díky moc 🙏</div>
+          <div class="msg-time me">13:35</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="msg-row me" style="margin-top:4px">
+      <div>
+        <div class="msg-bubble me">Mám otázku k bench pressu — mám dávat 80 kg hned od první série?</div>
+        <div class="msg-time me" style="display:flex;justify-content:flex-end;align-items:center;gap:3px">
+          13:36
+          <svg width="14" height="8" viewBox="0 0 16 9" fill="none"><path d="M1 4.5l3.5 3.5L14.5 1" stroke="rgba(255,255,255,.6)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 4.5l3.5 3.5L14.5 1" stroke="rgba(255,255,255,.6)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Them reply -->
+    <div class="msg-group" style="margin-top:6px">
+      <div class="msg-row them">
+        <div class="msg-av-tiny" style="background:rgba(201,168,76,.15);color:var(--ios-gold)">MT</div>
+        <div>
+          <div class="msg-bubble them">Ne, začni s rozcvičovacími sériemi. Třeba 50 % × 10, pak 70 % × 5, až pak 80 kg.</div>
+          <div class="msg-time">13:48</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="msg-row them" style="margin-top:4px">
+      <div style="width:32px;flex-shrink:0"></div>
+      <div>
+        <div class="msg-bubble them">Jak se cítíš po dnešním tréninku? 💪</div>
+        <div class="msg-time">13:52</div>
+      </div>
+    </div>
+
+    <!-- Typing indicator -->
+    <div class="msg-row them" style="margin-top:8px">
+      <div class="msg-av-tiny" style="background:rgba(201,168,76,.15);color:var(--ios-gold)">MT</div>
+      <div class="typing-indicator">
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+      </div>
+    </div>
+
+    <div style="height:8px"></div>
+  </div>
+
+  <!-- Input bar -->
+  <div class="chat-input-bar">
+    <div class="chat-input-attach">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="color:var(--ios-label2)"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+    </div>
+    <div class="chat-input-wrap">
+      <span class="chat-input-placeholder">iMessage</span>
+    </div>
+    <div class="chat-send">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M22 2L11 13M22 2L15 22 11 13 2 9l20-7z"/></svg>
+    </div>
+  </div>
+
+  <!-- Tab bar -->
+  <div class="tab-bar" style="bottom:0">
+    <div class="tab" onclick="showPhone('ph-today')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" fill="#8e8e93"/><path d="M9 22V12h6v10" fill="#8e8e93"/></svg></div><div class="tab-lbl">Dnes</div></div>
+    <div class="tab" onclick="showPhone('ph-discover')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="#8e8e93" stroke-width="2"/><path d="m21 21-4.35-4.35" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Trenéři</div></div>
+    <div class="tab" onclick="showPhone('ph-plans')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#8e8e93" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Plány</div></div>
+    <div class="tab active" onclick="showPhone('ph-messages')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" fill="#c9a84c"/></svg></div><div class="tab-lbl" style="color:#c9a84c">Zprávy</div></div>
+    <div class="tab" onclick="showPhone('ph-profile')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="#8e8e93" stroke-width="2"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Profil</div></div>
+  </div>
+</div>
+</div>
+
+</div><!-- /stage -->
+
+<script>
+var _hasTrainer = true;
+var _dark = false;
+
+function showPhone(id){
+  document.querySelectorAll('.phone').forEach(function(p){ p.style.display='none'; });
+  var el = document.getElementById(id); if(el) el.style.display='block';
+  document.querySelectorAll('.pb').forEach(function(b){ b.classList.remove('active'); });
+  var map = {'ph-today':'Dnes','ph-discover':'Hledat trenéra','ph-plans':'Plány','ph-profile':'Profil','ph-messages':'Zprávy','ph-chat':'Chat detail'};
+  document.querySelectorAll('.pb').forEach(function(b){
+    if(b.textContent.trim() === map[id]) b.classList.add('active');
+  });
+}
+
+function setHasTrainer(v){
+  _hasTrainer = v;
+  var ht = document.getElementById('today-has-trainer');
+  var nt = document.getElementById('today-no-trainer');
+  var ic = document.getElementById('invite-card-wrap');
+  if(ht) ht.style.display = v ? '' : 'none';
+  if(nt) nt.style.display = v ? 'none' : '';
+  if(ic) ic.style.display = v ? 'none' : '';
+  document.getElementById('btn-has-trainer').classList.toggle('active', v);
+  document.getElementById('btn-no-trainer').classList.toggle('active', !v);
+}
+
+function toggleDark(){
+  _dark = !_dark;
+  document.body.classList.toggle('dark-proto', _dark);
+  document.getElementById('dark-btn').textContent = _dark ? '☀' : '☾';
+  // Swap status bar color for dark
+  document.querySelectorAll('.sb-time').forEach(function(el){
+    el.style.color = _dark ? '#fff' : '#000';
+  });
+  document.querySelectorAll('.sb-icons svg').forEach(function(el){
+    el.style.fill = _dark ? '#fff' : '#000';
+  });
+  // Swap CSS variables on phones
+  document.querySelectorAll('.phone').forEach(function(p){
+    if(_dark){
+      p.style.setProperty('--ios-bg','#1c1c1e');
+      p.style.setProperty('--ios-bg2','#2c2c2e');
+      p.style.setProperty('--ios-bg3','#3a3a3c');
+      p.style.setProperty('--ios-label','#ffffff');
+      p.style.setProperty('--ios-label2','rgba(235,235,245,.6)');
+      p.style.setProperty('--ios-label3','rgba(235,235,245,.3)');
+      p.style.setProperty('--ios-label4','rgba(235,235,245,.18)');
+      p.style.setProperty('--ios-fill','rgba(120,120,128,.24)');
+      p.style.setProperty('--ios-fill2','rgba(120,120,128,.16)');
+      p.style.setProperty('--ios-sep','rgba(84,84,88,.65)');
+      p.style.setProperty('--ios-sep2','rgba(84,84,88,.4)');
+      p.style.background = '#000';
+    } else {
+      p.style.removeProperty('--ios-bg');
+      p.style.removeProperty('--ios-bg2');
+      p.style.removeProperty('--ios-bg3');
+      p.style.removeProperty('--ios-label');
+      p.style.removeProperty('--ios-label2');
+      p.style.removeProperty('--ios-label3');
+      p.style.removeProperty('--ios-label4');
+      p.style.removeProperty('--ios-fill');
+      p.style.removeProperty('--ios-fill2');
+      p.style.removeProperty('--ios-sep');
+      p.style.removeProperty('--ios-sep2');
+      p.style.background = '#f2f2f7';
+    }
+  });
+}
+
+// ── NOTIFICATIONS ─────────────────────────────────────────────────────────────
+function openNotifSheet(phoneId) {
+  var el = document.querySelector('#' + phoneId + ' .notif-overlay');
+  if (el) el.classList.add('open');
+}
+function closeNotifSheet(phoneId) {
+  var el = document.querySelector('#' + phoneId + ' .notif-overlay');
+  if (el) el.classList.remove('open');
+}
+function markAllRead(phoneId) {
+  var phone = document.getElementById(phoneId);
+  if (!phone) return;
+  phone.querySelectorAll('.notif-row.unread').forEach(function(r) {
+    r.classList.remove('unread');
+    var dot = r.querySelector('.notif-unread-dot');
+    if (dot) dot.remove();
+  });
+  var badge = phone.querySelector('.bell-badge');
+  if (badge) badge.style.display = 'none';
+}
+function acceptInvite(phoneId) {
+  var card = document.querySelector('#' + phoneId + ' .invite-card');
+  if (card) {
+    card.style.transition = 'opacity .3s, max-height .4s';
+    card.style.opacity = '0';
+    card.style.maxHeight = '0';
+    card.style.overflow = 'hidden';
+    setTimeout(function() { card.remove(); }, 400);
+  }
+  showToastOn(phoneId, '✓ Pozvánka přijata');
+}
+function declineInvite(phoneId) {
+  var card = document.querySelector('#' + phoneId + ' .invite-card');
+  if (card) { card.style.transition = 'opacity .25s'; card.style.opacity = '0'; setTimeout(function() { card.remove(); }, 260); }
+  showToastOn(phoneId, 'Pozvánka odmítnuta');
+}
+function showToastOn(phoneId, msg) {
+  var phone = document.getElementById(phoneId); if (!phone) return;
+  var t = phone.querySelector('.ios-toast');
+  if (!t) { t = document.createElement('div'); t.className = 'ios-toast'; phone.appendChild(t); }
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(function() { t.classList.remove('show'); }, 2500);
+}
+
+// Init
+showPhone('ph-today');
+</script>
+</body>
+</html>

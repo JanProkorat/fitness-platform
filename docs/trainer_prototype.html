@@ -1,0 +1,1414 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GoodFellas – Trenér / Poradce</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+/* ── PROTOTYPE NAV ── */
+#pnav{position:fixed;top:0;left:0;right:0;z-index:2000;height:40px;background:#fff;border-bottom:1px solid rgba(55,53,47,.09);display:flex;align-items:center;gap:2px;padding:0 12px;overflow-x:auto;font-family:'Inter',sans-serif}
+#pnav .pl{font-size:12px;font-weight:600;color:#c9a84c;margin-right:10px;white-space:nowrap;flex-shrink:0}
+#pnav .ps{width:1px;height:16px;background:rgba(55,53,47,.16);margin:0 8px;flex-shrink:0}
+#pnav .pg{font-size:11px;color:#9b9a97;padding:0 6px;white-space:nowrap;flex-shrink:0;letter-spacing:.03em}
+.pb{padding:4px 8px;border-radius:4px;border:none;background:transparent;color:#6b6860;font-size:12px;font-family:'Inter',sans-serif;cursor:pointer;white-space:nowrap;transition:background .1s,color .1s}
+.pb:hover{background:#f1f0ee;color:#37352f}
+.pb.active{background:#e9e8e3;color:#37352f;font-weight:500}
+#pnav .pr{margin-left:auto;display:flex;align-items:center;gap:4px;flex-shrink:0}
+.picon{width:28px;height:28px;border-radius:4px;border:1px solid rgba(55,53,47,.16);background:transparent;color:#6b6860;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:background .1s}
+.picon:hover{background:#f1f0ee}
+
+body{font-family:'Inter',-apple-system,sans-serif;background:#e8e5e0;min-height:100vh;-webkit-font-smoothing:antialiased}
+body.dark-proto{background:#111}
+
+/* ── STAGE ── */
+#stage{padding:68px 24px 80px;display:flex;align-items:flex-start;justify-content:center;flex-wrap:wrap;gap:32px;min-height:100vh}
+.phone-wrap{display:flex;flex-direction:column;align-items:center;gap:10px}
+.phone-label{font-size:11px;color:#9b9a97;font-weight:500;letter-spacing:.05em;text-transform:uppercase}
+
+/* ── PHONE SHELL ── */
+.phone{
+  width:390px;height:844px;border-radius:54px;
+  background:#f2f2f7;position:relative;overflow:hidden;
+  box-shadow:0 0 0 1px rgba(0,0,0,.08),0 2px 2px rgba(0,0,0,.06),0 8px 24px rgba(0,0,0,.12),0 24px 64px rgba(0,0,0,.1);
+  flex-shrink:0;
+}
+body.dark-proto .phone{background:#000}
+
+.di{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:126px;height:37px;background:#000;border-radius:20px;z-index:100}
+.status-bar{position:absolute;top:0;left:0;right:0;height:59px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 8px;z-index:50;pointer-events:none}
+.sb-time{font-size:15px;font-weight:600;color:#000;letter-spacing:-.3px}
+.sb-icons{display:flex;align-items:center;gap:6px}
+
+.tab-bar{
+  position:absolute;bottom:0;left:0;right:0;height:84px;
+  background:rgba(242,242,247,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-top:.5px solid rgba(0,0,0,.12);
+  display:flex;align-items:flex-start;justify-content:space-around;padding-top:12px;z-index:100;
+  transform:translateZ(0);will-change:transform;
+}
+.tab{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;min-width:60px}
+.tab-icon{width:24px;height:24px;display:flex;align-items:center;justify-content:center}
+.tab-icon svg{width:24px;height:24px}
+.tab-lbl{font-size:10px;font-weight:500;color:#8e8e93;letter-spacing:.01em}
+
+.scroll-area{position:absolute;top:59px;left:0;right:0;bottom:84px;overflow-y:auto;overflow-x:hidden}
+.scroll-area::-webkit-scrollbar{display:none}
+
+/* ── iOS DESIGN TOKENS ── */
+:root{
+  --ios-bg:#f2f2f7;--ios-bg2:#fff;--ios-bg3:#f2f2f7;
+  --ios-sep:rgba(60,60,67,.18);--ios-sep2:rgba(60,60,67,.09);
+  --ios-label:#000;--ios-label2:rgba(60,60,67,.6);--ios-label3:rgba(60,60,67,.3);
+  --ios-fill:rgba(120,120,128,.12);--ios-fill2:rgba(120,120,128,.08);
+  --ios-blue:#007aff;--ios-green:#34c759;--ios-red:#ff3b30;
+  --ios-orange:#ff9500;--ios-purple:#af52de;--ios-gold:#c9a84c;
+  --ios-r:13px;--ios-r-lg:20px;
+}
+
+/* ── REUSABLE COMPONENTS ── */
+.ios-page-header{padding:8px 20px 4px}
+.ios-page-title{font-size:34px;font-weight:700;color:var(--ios-label);letter-spacing:-.5px;line-height:1.1}
+.ios-page-sub{font-size:15px;color:var(--ios-label2);margin-top:3px}
+.ios-section-hdr{padding:8px 20px 6px;display:flex;align-items:center;justify-content:space-between}
+.ios-section-title{font-size:20px;font-weight:700;color:var(--ios-label);letter-spacing:-.3px}
+.ios-section-action{font-size:15px;color:var(--ios-blue)}
+.ios-search{margin:8px 20px 12px;display:flex;align-items:center;gap:8px;background:var(--ios-fill);border-radius:10px;padding:8px 12px}
+.ios-search input{flex:1;border:none;outline:none;background:transparent;font-size:17px;color:var(--ios-label);font-family:'Inter',sans-serif}
+.ios-search input::placeholder{color:var(--ios-label3)}
+.ios-list{margin:0 20px 16px;border-radius:var(--ios-r);overflow:hidden;background:var(--ios-bg2)}
+.ios-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:.5px solid var(--ios-sep2);cursor:pointer;transition:background .1s;min-height:52px}
+.ios-row:last-child{border-bottom:none}
+.ios-row:active{background:var(--ios-fill2)}
+.ios-row-icon{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.ios-row-body{flex:1;min-width:0}
+.ios-row-title{font-size:17px;color:var(--ios-label)}
+.ios-row-sub{font-size:13px;color:var(--ios-label2);margin-top:1px}
+.ios-row-right{display:flex;align-items:center;gap:5px;flex-shrink:0}
+.ios-row-val{font-size:15px;color:var(--ios-label2)}
+.ios-row-chev{color:var(--ios-label3);font-size:17px;font-weight:400;line-height:1}
+.ios-card{margin:0 20px 14px;border-radius:var(--ios-r-lg);background:var(--ios-bg2);overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06),0 4px 12px rgba(0,0,0,.04)}
+.seg-ctrl{display:flex;background:var(--ios-fill);border-radius:9px;padding:2px;margin:0 20px 14px}
+.seg-opt{flex:1;text-align:center;padding:7px 0;border-radius:7px;font-size:13px;font-weight:500;color:var(--ios-label2);cursor:pointer;transition:background .15s,color .15s}
+.seg-opt.active{background:var(--ios-bg2);color:var(--ios-label);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.pill-tabs{display:flex;gap:8px;padding:2px 20px 10px;overflow-x:auto}
+.pill-tabs::-webkit-scrollbar{display:none}
+.pill-tab{padding:6px 14px;border-radius:99px;font-size:14px;font-weight:500;white-space:nowrap;cursor:pointer;flex-shrink:0}
+.pill-tab.active{background:var(--ios-gold);color:#fff}
+.pill-tab:not(.active){background:var(--ios-fill);color:var(--ios-label2)}
+.ios-btn{display:flex;align-items:center;justify-content:center;padding:14px;border-radius:var(--ios-r);font-size:17px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;border:none;width:100%}
+.ios-btn-primary{background:var(--ios-gold);color:#fff}
+.ios-btn-secondary{background:var(--ios-fill);color:var(--ios-label)}
+
+/* macro bar */
+.macro-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.macro-label{font-size:12px;color:var(--ios-label2);width:64px;flex-shrink:0}
+.macro-track{flex:1;height:5px;background:var(--ios-fill);border-radius:99px;overflow:hidden}
+.macro-fill{height:100%;border-radius:99px}
+.macro-val{font-size:12px;font-weight:500;color:var(--ios-label);min-width:48px;text-align:right}
+
+/* client card */
+.client-card{margin:0 20px 10px;border-radius:var(--ios-r-lg);background:var(--ios-bg2);overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06),0 2px 8px rgba(0,0,0,.04);cursor:pointer;transition:opacity .12s}
+.client-card:active{opacity:.75}
+.client-card-top{display:flex;align-items:center;gap:12px;padding:14px 14px 10px}
+.client-av{width:46px;height:46px;border-radius:15px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;flex-shrink:0}
+.client-info{flex:1;min-width:0}
+.client-name{font-size:16px;font-weight:600;color:var(--ios-label);letter-spacing:-.2px}
+.client-meta{font-size:13px;color:var(--ios-label2);margin-top:1px}
+.client-badge{font-size:11px;font-weight:600;padding:3px 8px;border-radius:99px}
+.client-stats{display:flex;border-top:.5px solid var(--ios-sep2)}
+.client-stat{flex:1;padding:8px 0;text-align:center;border-right:.5px solid var(--ios-sep2)}
+.client-stat:last-child{border-right:none}
+.client-stat-val{font-size:15px;font-weight:700;color:var(--ios-label);letter-spacing:-.2px}
+.client-stat-lbl{font-size:10px;color:var(--ios-label3);margin-top:1px;text-transform:uppercase;letter-spacing:.04em}
+.alert-dot{width:8px;height:8px;border-radius:50%;background:var(--ios-red);flex-shrink:0}
+
+/* detail header */
+.detail-back{display:flex;align-items:center;gap:4px;padding:8px 20px 0;cursor:pointer}
+.detail-back-lbl{font-size:17px;color:var(--ios-blue)}
+.detail-hero{padding:16px 20px 12px;display:flex;align-items:center;gap:14px}
+.detail-av{width:64px;height:64px;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;flex-shrink:0}
+.detail-name{font-size:22px;font-weight:700;color:var(--ios-label);letter-spacing:-.3px}
+.detail-sub{font-size:14px;color:var(--ios-label2);margin-top:2px}
+.detail-badges{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+
+/* stat strip */
+.stat-strip{display:flex;gap:8px;padding:0 20px 14px;overflow-x:auto}
+.stat-strip::-webkit-scrollbar{display:none}
+.stat-pill{background:var(--ios-bg2);border-radius:var(--ios-r);padding:10px 12px;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,.06);min-width:80px}
+.stat-pill-val{font-size:18px;font-weight:700;color:var(--ios-label);letter-spacing:-.3px}
+.stat-pill-lbl{font-size:11px;color:var(--ios-label2);margin-top:2px}
+.stat-pill-sub{font-size:11px;font-weight:600;margin-top:1px}
+
+/* plan preview */
+.plan-day-row{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:.5px solid var(--ios-sep2)}
+.plan-day-row:last-child{border-bottom:none}
+.plan-day-label{font-size:13px;font-weight:600;color:var(--ios-label2);width:28px;flex-shrink:0}
+.plan-session-chip{padding:4px 10px;border-radius:99px;font-size:12px;font-weight:600;margin-right:6px;flex-shrink:0}
+.plan-rest{font-size:13px;color:var(--ios-label3);font-style:italic}
+
+/* progress chart */
+.mini-chart{display:flex;align-items:flex-end;gap:3px;height:44px}
+.mini-bar{flex:1;border-radius:3px 3px 0 0;min-width:0}
+
+/* questionnaire answer row */
+.qa-row{padding:10px 16px;border-bottom:.5px solid var(--ios-sep2)}
+.qa-row:last-child{border-bottom:none}
+.qa-q{font-size:12px;color:var(--ios-label2);margin-bottom:3px}
+.qa-a{font-size:15px;font-weight:500;color:var(--ios-label)}
+.qa-mapped{font-size:11px;font-weight:600;color:var(--ios-gold);margin-top:2px}
+
+/* prospect card */
+.prospect-card{margin:0 20px 10px;border-radius:var(--ios-r-lg);background:var(--ios-bg2);box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden}
+.prospect-top{display:flex;align-items:center;gap:12px;padding:14px 14px 10px}
+.prospect-tags{display:flex;gap:6px;flex-wrap:wrap;padding:0 14px 10px}
+.prospect-tag{font-size:12px;font-weight:500;padding:3px 9px;border-radius:99px;background:var(--ios-fill);color:var(--ios-label2)}
+.prospect-footer{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-top:.5px solid var(--ios-sep2)}
+
+/* notification badge */
+.notif-badge{min-width:18px;height:18px;border-radius:9px;background:var(--ios-red);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 5px}
+
+/* gradient */
+.grad-dark{background:linear-gradient(135deg,#1a1a2e,#16213e)}
+.grad-green{background:linear-gradient(135deg,#0d2a1a,#1a4a2a)}
+.grad-gold{background:linear-gradient(135deg,#2a1e00,#3d2e00)}
+
+/* trainer profile */
+.trainer-stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 20px 14px}
+.trainer-stat{background:var(--ios-bg2);border-radius:var(--ios-r);padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.trainer-stat-val{font-size:22px;font-weight:700;color:var(--ios-label);letter-spacing:-.3px}
+.trainer-stat-lbl{font-size:11px;color:var(--ios-label2);margin-top:2px}
+/* ── CHAT ── */
+.conv-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:.5px solid var(--ios-sep2);cursor:pointer;transition:background .1s;position:relative}
+.conv-row:active{background:var(--ios-fill2)}
+.conv-av{width:50px;height:50px;border-radius:17px;display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:700;flex-shrink:0;position:relative}
+.conv-av-badge{position:absolute;bottom:-2px;right:-2px;width:16px;height:16px;border-radius:50%;border:2.5px solid var(--ios-bg2);display:flex;align-items:center;justify-content:center;font-size:9px}
+.conv-body{flex:1;min-width:0}
+.conv-name{font-size:16px;font-weight:600;color:var(--ios-label);letter-spacing:-.2px}
+.conv-preview{font-size:14px;color:var(--ios-label2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.conv-preview.unread{color:var(--ios-label);font-weight:500}
+.conv-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
+.conv-time{font-size:12px;color:var(--ios-label3)}
+.conv-unread{min-width:20px;height:20px;border-radius:10px;background:var(--ios-gold);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 6px}
+/* chat detail */
+.chat-header{position:absolute;top:0;left:0;right:0;z-index:20;background:rgba(242,242,247,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:.5px solid var(--ios-sep2)}
+.chat-header-inner{display:flex;align-items:center;gap:10px;padding:8px 14px 10px}
+.chat-back{display:flex;align-items:center;gap:2px;cursor:pointer;color:var(--ios-blue);font-size:16px;flex-shrink:0}
+.chat-av-sm{width:34px;height:34px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.chat-hdr-name{font-size:15px;font-weight:600;color:var(--ios-label)}
+.chat-hdr-sub{font-size:12px;color:var(--ios-label2)}
+.chat-hdr-actions{margin-left:auto;display:flex;gap:10px}
+.chat-hdr-btn{width:32px;height:32px;border-radius:50%;background:var(--ios-fill);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.chat-scroll{position:absolute;left:0;right:0;bottom:72px;overflow-y:auto;overflow-x:hidden;padding:12px 0 4px}
+.chat-scroll::-webkit-scrollbar{display:none}
+.msg-group{margin-bottom:2px}
+.msg-date-sep{text-align:center;font-size:12px;color:var(--ios-label3);margin:12px 0 8px;font-weight:500}
+.msg-row{display:flex;align-items:flex-end;gap:6px;padding:1px 14px}
+.msg-row.me{justify-content:flex-end}
+.msg-row.them{justify-content:flex-start}
+.msg-av-tiny{width:26px;height:26px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-bottom:1px}
+.msg-bubble{max-width:240px;padding:9px 13px;border-radius:18px;font-size:15px;line-height:1.4;position:relative}
+.msg-bubble.me{background:var(--ios-gold);color:#fff;border-bottom-right-radius:5px}
+.msg-bubble.them{background:var(--ios-bg2);color:var(--ios-label);border-bottom-left-radius:5px;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.msg-time{font-size:10px;color:var(--ios-label3);text-align:right;margin-top:3px}
+.msg-time.me{color:rgba(255,255,255,.65)}
+/* attachment bubble */
+.msg-attach{max-width:220px;background:var(--ios-bg2);border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.msg-attach-img{width:100%;height:140px;object-fit:cover;background:linear-gradient(135deg,#1a1a2e,#16213e);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.4);font-size:13px}
+.msg-attach-body{padding:8px 10px}
+.msg-attach-title{font-size:13px;font-weight:600;color:var(--ios-label)}
+.msg-attach-sub{font-size:11px;color:var(--ios-label2);margin-top:1px}
+/* plan attachment */
+.msg-plan-card{max-width:220px;border-radius:14px;overflow:hidden;border:.5px solid var(--ios-sep2);cursor:pointer}
+.msg-plan-hero{height:70px;display:flex;align-items:center;padding:12px 14px}
+.msg-plan-label{font-size:11px;font-weight:600;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+.msg-plan-name{font-size:16px;font-weight:700;color:#fff;letter-spacing:-.2px}
+.msg-plan-body{background:var(--ios-bg2);padding:8px 12px;display:flex;align-items:center;justify-content:space-between}
+.msg-plan-meta{font-size:12px;color:var(--ios-label2)}
+/* typing indicator */
+.typing-indicator{display:flex;align-items:center;gap:4px;padding:10px 14px;background:var(--ios-bg2);border-radius:18px;border-bottom-left-radius:5px;width:56px}
+.typing-dot{width:7px;height:7px;border-radius:50%;background:var(--ios-label3);animation:typingBounce 1.2s infinite}
+.typing-dot:nth-child(2){animation-delay:.2s}
+.typing-dot:nth-child(3){animation-delay:.4s}
+@keyframes typingBounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+/* input bar */
+.chat-input-bar{position:absolute;bottom:0;left:0;right:0;padding:8px 12px 20px;background:rgba(242,242,247,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:.5px solid var(--ios-sep2);display:flex;align-items:flex-end;gap:8px}
+.chat-input-attach{width:32px;height:32px;border-radius:50%;background:var(--ios-fill);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.chat-input-wrap{flex:1;background:var(--ios-bg2);border-radius:20px;border:.5px solid var(--ios-sep);padding:7px 14px;display:flex;align-items:center;min-height:36px;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.chat-input-placeholder{font-size:16px;color:var(--ios-label3)}
+.chat-send{width:32px;height:32px;border-radius:50%;background:var(--ios-gold);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+/* context banner (plan/check-in card in chat) */
+.chat-ctx-banner{margin:6px 14px;padding:10px 12px;background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.2);border-radius:12px;display:flex;align-items:center;gap:10px}
+.chat-ctx-icon{font-size:18px;flex-shrink:0}
+.chat-ctx-body{flex:1}
+.chat-ctx-title{font-size:13px;font-weight:600;color:var(--ios-label)}
+.chat-ctx-sub{font-size:12px;color:var(--ios-label2);margin-top:1px}
+.chat-ctx-action{font-size:13px;font-weight:600;color:var(--ios-gold);flex-shrink:0;cursor:pointer}
+
+
+/* ── NOTIFICATIONS ─────────────────────────────────────────── */
+.bell-btn{position:relative;width:36px;height:36px;border-radius:12px;background:var(--ios-fill);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.bell-badge{position:absolute;top:-3px;right:-3px;min-width:16px;height:16px;border-radius:8px;background:var(--ios-red);border:2px solid var(--ios-bg2);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px}
+
+/* Bottom sheet overlay */
+.notif-overlay{position:absolute;inset:0;background:rgba(0,0,0,.4);z-index:200;display:none;align-items:flex-end}
+.notif-overlay.open{display:flex}
+.notif-sheet{width:100%;background:var(--ios-bg2);border-radius:20px 20px 0 0;max-height:82%;display:flex;flex-direction:column;overflow:hidden}
+.notif-sheet-handle{width:36px;height:4px;border-radius:99px;background:var(--ios-sep);margin:10px auto 0}
+.notif-sheet-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 10px}
+.notif-sheet-title{font-size:20px;font-weight:700;color:var(--ios-label);letter-spacing:-.3px}
+.notif-sheet-action{font-size:14px;color:var(--ios-blue);cursor:pointer}
+.notif-list{overflow-y:auto;flex:1}
+.notif-list::-webkit-scrollbar{display:none}
+
+/* Notification row */
+.notif-row{display:flex;align-items:flex-start;gap:12px;padding:12px 20px;border-bottom:.5px solid var(--ios-sep2);cursor:pointer;transition:background .1s;position:relative}
+.notif-row:last-child{border-bottom:none}
+.notif-row:active{background:var(--ios-fill2)}
+.notif-row.unread{background:rgba(201,168,76,.04)}
+.notif-unread-dot{position:absolute;left:8px;top:18px;width:7px;height:7px;border-radius:50%;background:var(--ios-gold)}
+.notif-icon-wrap{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.notif-body{flex:1;min-width:0}
+.notif-title{font-size:14px;font-weight:600;color:var(--ios-label);line-height:1.3}
+.notif-text{font-size:13px;color:var(--ios-label2);margin-top:2px;line-height:1.4}
+.notif-time{font-size:11px;color:var(--ios-label3);margin-top:4px}
+.notif-actions{display:flex;gap:8px;margin-top:8px}
+.notif-action-btn{padding:6px 14px;border-radius:99px;font-size:13px;font-weight:600;cursor:pointer}
+.notif-action-primary{background:var(--ios-gold);color:#fff}
+.notif-action-secondary{background:var(--ios-fill);color:var(--ios-label2)}
+
+/* Inline invitation card on Today */
+.invite-card{margin:12px 20px 4px;border-radius:16px;overflow:hidden;border:1px solid rgba(201,168,76,.25);background:var(--ios-bg2);box-shadow:0 2px 12px rgba(201,168,76,.12)}
+.invite-card-top{display:flex;align-items:center;gap:12px;padding:14px 16px 10px}
+.invite-av{width:46px;height:46px;border-radius:15px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;flex-shrink:0}
+.invite-info{flex:1}
+.invite-title{font-size:15px;font-weight:600;color:var(--ios-label)}
+.invite-sub{font-size:13px;color:var(--ios-label2);margin-top:2px}
+.invite-card-body{padding:0 16px 8px;font-size:13px;color:var(--ios-label2);line-height:1.5}
+.invite-card-footer{display:flex;gap:8px;padding:10px 16px 14px;border-top:.5px solid var(--ios-sep2)}
+.invite-btn{flex:1;padding:10px;border-radius:10px;text-align:center;font-size:14px;font-weight:600;cursor:pointer}
+.invite-accept{background:var(--ios-gold);color:#fff}
+.invite-decline{background:var(--ios-fill);color:var(--ios-label2)}
+
+/* Toast */
+.ios-toast{position:absolute;bottom:96px;left:50%;transform:translateX(-50%) translateY(20px);white-space:nowrap;background:rgba(50,50,50,.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;font-size:14px;font-weight:500;padding:10px 18px;border-radius:99px;z-index:300;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none}
+.ios-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+</style>
+</head>
+<body>
+
+<!-- ══ PROTOTYPE NAV ══════════════════════════════════════════════════════════ -->
+<div id="pnav">
+  <div class="pl">GF Trenér</div>
+  <div class="ps"></div>
+  <div class="pg">Obrazovky</div>
+  <button class="pb" onclick="nav('dnes')">Dnes</button>
+  <button class="pb active" onclick="nav('klienti')">Klienti</button>
+  <button class="pb" onclick="nav('detail')">Detail klienta</button>
+  <button class="pb" onclick="nav('plan-trenink')">Náhled plánu</button>
+  <button class="pb" onclick="nav('zpravy')">Zprávy</button>
+  <button class="pb" onclick="nav('chat')">Chat detail</button>
+  <button class="pb" onclick="nav('ziadosti')">Hledat klienty</button>
+  <button class="pb" onclick="nav('profil')">Profil</button>
+  <div class="ps"></div>
+  <div class="pg">Sekce detailu</div>
+  <button class="pb" id="dtab-progress" onclick="switchDetailTab('progress')">Pokrok</button>
+  <button class="pb" id="dtab-plan" onclick="switchDetailTab('plan')">Plán</button>
+  <button class="pb" id="dtab-dotaznik" onclick="switchDetailTab('dotaznik')">Dotazník</button>
+  <div class="pr">
+    <button class="picon" onclick="toggleDark()" id="dark-btn" title="Tmavý režim">☾</button>
+  </div>
+</div>
+
+<div id="stage">
+
+<!-- ═══════════════════════════════
+     1. PŘEHLED KLIENTŮ
+════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════
+     DNES — trenérský přehled dne
+════════════════════════════════════════════ -->
+<div class="phone-wrap">
+<div class="phone-label">Dnes — trenér</div>
+<div class="phone" id="ph-dnes" style="display:none">
+  <div class="di"></div>
+  <div class="status-bar"><span class="sb-time">9:41</span><div class="sb-icons"><svg width="17" height="12" viewBox="0 0 17 12" fill="#000"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0" width="3" height="12" rx="1"/><rect x="13.5" y="1" width="3" height="11" rx="1"/></svg><svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0" y="1" width="21" height="10" rx="3.5" stroke="#000" stroke-width="1"/><rect x="1.5" y="2.5" width="15" height="7" rx="2" fill="#000"/></svg></div></div>
+  <div class="scroll-area">
+    <div style="padding:8px 20px 4px;display:flex;align-items:flex-start;justify-content:space-between">
+      <div>
+        <div style="font-size:13px;color:var(--ios-label2);font-weight:500">Pondělí, 30. března</div>
+        <div style="font-size:34px;font-weight:700;color:var(--ios-label);letter-spacing:-.5px;line-height:1.1">Dobrý den,<br>Marku 👋</div>
+      </div>
+      <div class="bell-btn" style="margin-top:16px" onclick="openNotifSheet('ph-dnes')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+        <div class="bell-badge">4</div>
+      </div>
+    </div>
+    <div class="stat-strip" style="margin-top:10px">
+      <div class="stat-pill"><div class="stat-pill-val">8</div><div class="stat-pill-lbl">Klientů</div></div>
+      <div class="stat-pill" style="background:rgba(255,59,48,.07);border:1px solid rgba(255,59,48,.15)"><div class="stat-pill-val" style="color:var(--ios-red)">2</div><div class="stat-pill-lbl">Alarmy</div></div>
+      <div class="stat-pill"><div class="stat-pill-val">3</div><div class="stat-pill-lbl">Nové zprávy</div></div>
+    </div>
+    <div class="ios-section-hdr"><div class="ios-section-title">Vyžadují pozornost</div></div>
+    <div class="ios-card" style="border:1px solid rgba(255,59,48,.18)">
+      <div class="ios-row" style="min-height:auto;padding:10px 14px;background:rgba(255,59,48,.03)" onclick="nav('detail')">
+        <div style="width:36px;height:36px;border-radius:11px;background:rgba(255,149,0,.12);color:var(--ios-orange);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0">MK</div>
+        <div class="ios-row-body"><div style="font-size:15px;font-weight:500;color:var(--ios-label)">Martin Krejčí</div><div style="font-size:12px;color:var(--ios-red);margin-top:2px">Compliance 34 % · 3 vynechané tréninky</div></div>
+        <div style="padding:6px 10px;border-radius:99px;background:rgba(255,59,48,.1);color:var(--ios-red);font-size:12px;font-weight:600;cursor:pointer">Napsat</div>
+      </div>
+      <div class="ios-row" style="min-height:auto;padding:10px 14px;background:rgba(255,59,48,.03)" onclick="nav('detail')">
+        <div style="width:36px;height:36px;border-radius:11px;background:rgba(255,59,48,.12);color:var(--ios-red);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0">JM</div>
+        <div class="ios-row-body"><div style="font-size:15px;font-weight:500;color:var(--ios-label)">Jakub Malý</div><div style="font-size:12px;color:var(--ios-red);margin-top:2px">Nevyplnil vstupní dotazník · 3 dny</div></div>
+        <div style="padding:6px 10px;border-radius:99px;background:rgba(255,59,48,.1);color:var(--ios-red);font-size:12px;font-weight:600;cursor:pointer">Připomenout</div>
+      </div>
+    </div>
+    <div class="ios-section-hdr"><div class="ios-section-title">Klienti trénují dnes</div></div>
+    <div class="ios-card">
+      <div class="ios-row" style="min-height:auto;padding:10px 14px" onclick="nav('detail')">
+        <div style="width:36px;height:36px;border-radius:11px;background:rgba(0,122,255,.12);color:var(--ios-blue);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0">PH</div>
+        <div class="ios-row-body">
+          <div style="font-size:15px;font-weight:500;color:var(--ios-label)">Petra Horáková</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:3px">
+            <span style="font-size:11px;font-weight:600;padding:1px 7px;border-radius:99px;background:rgba(11,110,153,.1);color:#0b6e99">Push A</span>
+            <span style="font-size:12px;color:var(--ios-label2)">5 cviků · 60 min</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+          <div style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;background:rgba(52,199,89,.12);color:var(--ios-green)">3/5 ✓</div>
+          <div style="font-size:10px;color:var(--ios-label3)">V tréninku</div>
+        </div>
+      </div>
+      <div class="ios-row" style="min-height:auto;padding:10px 14px" onclick="nav('detail')">
+        <div style="width:36px;height:36px;border-radius:11px;background:rgba(52,199,89,.12);color:var(--ios-green);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0">TN</div>
+        <div class="ios-row-body">
+          <div style="font-size:15px;font-weight:500;color:var(--ios-label)">Tomáš Navrátil</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:3px">
+            <span style="font-size:11px;font-weight:600;padding:1px 7px;border-radius:99px;background:rgba(15,123,108,.1);color:#0f7b6c">Pull B</span>
+            <span style="font-size:12px;color:var(--ios-label2)">4 cviky · 50 min</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+          <div style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;background:rgba(52,199,89,.12);color:var(--ios-green)">✓ Hotovo</div>
+          <div style="font-size:10px;color:var(--ios-label3)">před 2 hod.</div>
+        </div>
+      </div>
+    </div>
+    <div class="ios-section-hdr"><div class="ios-section-title">Nové zprávy</div><span class="ios-section-action" onclick="nav('zpravy')">Vše</span></div>
+    <div class="ios-list">
+      <div class="ios-row" onclick="nav('chat')">
+        <div style="width:40px;height:40px;border-radius:13px;background:rgba(0,122,255,.12);color:var(--ios-blue);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex-shrink:0;position:relative">PH<div style="position:absolute;top:-3px;right:-3px;width:12px;height:12px;border-radius:50%;background:var(--ios-red);border:2px solid var(--ios-bg2)"></div></div>
+        <div class="ios-row-body"><div style="font-size:15px;font-weight:600;color:var(--ios-label)">Petra Horáková</div><div style="font-size:13px;color:var(--ios-label2)">Mám otázku k bench pressu...</div></div>
+        <div style="font-size:12px;color:var(--ios-label3)">13:36</div>
+      </div>
+      <div class="ios-row" onclick="nav('chat')">
+        <div style="width:40px;height:40px;border-radius:13px;background:rgba(175,82,222,.12);color:var(--ios-purple);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex-shrink:0;position:relative">LP<div style="position:absolute;top:-3px;right:-3px;width:12px;height:12px;border-radius:50%;background:var(--ios-red);border:2px solid var(--ios-bg2)"></div></div>
+        <div class="ios-row-body"><div style="font-size:15px;font-weight:600;color:var(--ios-label)">Lukáš Pospíšil</div><div style="font-size:13px;color:var(--ios-label2)">Díky za plán, mám jen otázku...</div></div>
+        <div style="font-size:12px;color:var(--ios-label3)">11:02</div>
+      </div>
+    </div>
+    <div class="ios-section-hdr"><div class="ios-section-title">Příchozí žádosti</div><span class="ios-section-action" onclick="nav('ziadosti')">Vše</span></div>
+    <div class="ios-list">
+      <div class="ios-row" onclick="nav('ziadosti')">
+        <div style="width:40px;height:40px;border-radius:13px;background:rgba(201,168,76,.12);color:var(--ios-gold);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex-shrink:0">KL</div>
+        <div class="ios-row-body"><div style="font-size:15px;font-weight:500;color:var(--ios-label)">Klára Léblová</div><div style="font-size:13px;color:var(--ios-label2)">Hubnutí · Praha · Začátečník</div></div>
+        <div style="display:flex;gap:6px">
+          <div style="padding:6px 10px;border-radius:99px;background:var(--ios-fill);font-size:13px;font-weight:500;color:var(--ios-label2);cursor:pointer">✕</div>
+          <div style="padding:6px 10px;border-radius:99px;background:var(--ios-gold);font-size:13px;font-weight:600;color:#fff;cursor:pointer">✓</div>
+        </div>
+      </div>
+    </div>
+    <div style="height:8px"></div>
+  </div>
+
+  <!-- Notification sheet -->
+  <div class="notif-overlay" id="notif-overlay-ph-dnes" onclick="if(event.target===this)closeNotifSheet('ph-dnes')">
+    <div class="notif-sheet">
+      <div class="notif-sheet-handle"></div>
+      <div class="notif-sheet-hdr">
+        <div class="notif-sheet-title">Notifikace</div>
+        <div class="notif-sheet-action" onclick="markAllRead('ph-dnes')">Označit vše jako přečtené</div>
+      </div>
+      <div class="notif-list">
+        
+        <div class="notif-row unread">
+          <div class="notif-unread-dot"></div>
+          <div class="notif-icon-wrap" style="background:rgba(52,199,89,.12)">👤</div>
+          <div class="notif-body">
+            <div class="notif-title">Klára Léblová přijala pozvánku</div>
+            <div class="notif-text">Nový klient připraven ke spolupráci. Nezapomeňte odeslat dotazník.</div>
+            <div class="notif-time">před 2 minutami</div>
+            <div class="notif-actions">
+              <div class="notif-action-btn notif-action-primary" onclick="event.stopPropagation();showToastOn('ph-dnes','Dotazník odeslán')">Odeslat dotazník</div>
+              <div class="notif-action-btn notif-action-secondary" onclick="event.stopPropagation()">Profil</div>
+            </div>
+          </div>
+        </div>
+        <div class="notif-row unread">
+          <div class="notif-unread-dot"></div>
+          <div class="notif-icon-wrap" style="background:rgba(255,59,48,.1)">⚠️</div>
+          <div class="notif-body">
+            <div class="notif-title">Alarm — Martin Krejčí</div>
+            <div class="notif-text">Compliance klesla na 34 %. 3 tréninky vynechány tento týden.</div>
+            <div class="notif-time">před 30 minutami</div>
+            <div class="notif-actions">
+              <div class="notif-action-btn notif-action-primary" onclick="event.stopPropagation();showToastOn('ph-dnes','Zpráva odeslána')">Napsat zprávu</div>
+            </div>
+          </div>
+        </div>
+        <div class="notif-row">
+          <div class="notif-icon-wrap" style="background:rgba(201,168,76,.12)">📋</div>
+          <div class="notif-body">
+            <div class="notif-title">Petra Horáková vyplnila dotazník</div>
+            <div class="notif-text">Odpovědi jsou k dispozici v profilu klientky.</div>
+            <div class="notif-time">dnes 9:14</div>
+          </div>
+        </div>
+        <div class="notif-row">
+          <div class="notif-icon-wrap" style="background:rgba(0,122,255,.1)">💬</div>
+          <div class="notif-body">
+            <div class="notif-title">Petra Horáková</div>
+            <div class="notif-text">Mám otázku k bench pressu — mám dávat 80 kg hned od první série?</div>
+            <div class="notif-time">dnes 13:36</div>
+          </div>
+        </div>
+        <div style="height:20px"></div>
+      </div>
+    </div>
+  </div>
+  <div class="ios-toast"></div>
+  <div class="tab-bar">
+    <div class="tab active"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" fill="#c9a84c"/><path d="M9 22V12h6v10" fill="#c9a84c"/></svg></div><div class="tab-lbl" style="color:#c9a84c">Dnes</div></div>
+    <div class="tab" onclick="nav('klienti')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="9" cy="7" r="4" stroke="#8e8e93" stroke-width="2"/><path d="M2 21c0-4 3-7 7-7h5" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Klienti</div></div>
+    <div class="tab" onclick="nav('zpravy')" style="position:relative"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="#8e8e93" stroke-width="2" stroke-linejoin="round"/></svg><div style="position:absolute;top:0;right:6px;width:8px;height:8px;border-radius:50%;background:var(--ios-red);border:1.5px solid var(--ios-bg)"></div></div><div class="tab-lbl">Zprávy</div></div>
+    <div class="tab" onclick="nav('profil')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="#8e8e93" stroke-width="2"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Profil</div></div>
+  </div>
+</div>
+</div>
+
+<div class="phone-wrap">
+<div class="phone-label">Klienti</div>
+<div class="phone" id="ph-klienti">
+  <div class="di"></div>
+  <div class="status-bar">
+    <span class="sb-time">9:41</span>
+    <div class="sb-icons">
+      <svg width="17" height="12" viewBox="0 0 17 12" fill="#000"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0" width="3" height="12" rx="1"/><rect x="13.5" y="1" width="3" height="11" rx="1"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0" y="1" width="21" height="10" rx="3.5" stroke="#000" stroke-width="1"/><rect x="22" y="4" width="2.5" height="4" rx="1" fill="#000" opacity=".4"/><rect x="1.5" y="2.5" width="15" height="7" rx="2" fill="#000"/></svg>
+    </div>
+  </div>
+  <div class="scroll-area">
+
+    <!-- Header -->
+    <div style="padding:8px 20px 4px;display:flex;align-items:flex-end;justify-content:space-between">
+      <div>
+        <div style="font-size:13px;color:var(--ios-label2);font-weight:500">Pondělí, 30. března</div>
+        <div style="font-size:34px;font-weight:700;color:var(--ios-label);letter-spacing:-.5px;line-height:1.1">Moji klienti</div>
+      </div>
+      <div style="width:36px;height:36px;border-radius:12px;background:var(--ios-fill);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+      </div>
+    </div>
+
+    <!-- Summary strip -->
+    <div class="stat-strip" style="margin-top:8px">
+      <div class="stat-pill">
+        <div class="stat-pill-val">8</div>
+        <div class="stat-pill-lbl">Klientů</div>
+        <div class="stat-pill-sub" style="color:var(--ios-green)">+1 tento měsíc</div>
+      </div>
+      <div class="stat-pill">
+        <div class="stat-pill-val" style="color:var(--ios-green)">87 %</div>
+        <div class="stat-pill-lbl">Avg. compliance</div>
+        <div class="stat-pill-sub" style="color:var(--ios-green)">↑ oproti min. týdnu</div>
+      </div>
+      <div class="stat-pill" style="background:rgba(255,59,48,.08);border:1px solid rgba(255,59,48,.15)">
+        <div class="stat-pill-val" style="color:var(--ios-red)">2</div>
+        <div class="stat-pill-lbl">Alarmy</div>
+        <div class="stat-pill-sub" style="color:var(--ios-red)">Vyžadují pozornost</div>
+      </div>
+
+    </div>
+
+    <!-- Alerts -->
+    <div class="ios-section-hdr"><div class="ios-section-title">⚠ Alarmy</div></div>
+    <div class="ios-card" style="border:1px solid rgba(255,59,48,.2)">
+      <div class="ios-row" style="background:rgba(255,59,48,.04)" onclick="nav('detail')">
+        <div class="client-av" style="background:rgba(255,59,48,.12);color:var(--ios-red);width:36px;height:36px;border-radius:11px;font-size:14px">JM</div>
+        <div class="ios-row-body"><div class="ios-row-title" style="font-size:15px">Jakub Malý</div><div class="ios-row-sub">Nevyplnil vstupní dotazník · 3 dny</div></div>
+        <div class="alert-dot"></div><div class="ios-row-chev">›</div>
+      </div>
+      <div class="ios-row" style="background:rgba(255,59,48,.04)" onclick="nav('detail')">
+        <div class="client-av" style="background:rgba(255,149,0,.12);color:var(--ios-orange);width:36px;height:36px;border-radius:11px;font-size:14px">MK</div>
+        <div class="ios-row-body"><div class="ios-row-title" style="font-size:15px">Martin Krejčí</div><div class="ios-row-sub">Compliance 34 % tento týden</div></div>
+        <div class="alert-dot"></div><div class="ios-row-chev">›</div>
+      </div>
+    </div>
+
+    <!-- All clients -->
+    <div class="ios-search"><span style="color:var(--ios-label3);font-size:14px">🔍</span><input placeholder="Hledat klienta..."></div>
+
+    <div class="ios-section-hdr"><div class="ios-section-title">Všichni</div><span class="ios-section-action">Filtr</span></div>
+
+    <!-- Client card 1 -->
+    <div class="client-card" onclick="nav('detail')">
+      <div class="client-card-top">
+        <div class="client-av" style="background:rgba(0,122,255,.12);color:var(--ios-blue)">PH</div>
+        <div class="client-info">
+          <div style="display:flex;align-items:center;gap:7px">
+            <div class="client-name">Petra Horáková</div>
+            <div class="client-badge" style="background:rgba(52,199,89,.12);color:var(--ios-green)">✓ Aktivní</div>
+          </div>
+          <div class="client-meta">Hubnutí · Trénink + výživa · Týden 4</div>
+        </div>
+        <div class="ios-row-chev">›</div>
+      </div>
+      <div class="client-stats">
+        <div class="client-stat"><div class="client-stat-val" style="color:var(--ios-green)">95 %</div><div class="client-stat-lbl">Compliance</div></div>
+        <div class="client-stat"><div class="client-stat-val">21</div><div class="client-stat-lbl">Streak 🔥</div></div>
+        <div class="client-stat"><div class="client-stat-val" style="color:var(--ios-green)">−2,4 kg</div><div class="client-stat-lbl">Pokrok</div></div>
+      </div>
+      <div style="padding:8px 14px 10px;display:flex;gap:8px;border-top:.5px solid var(--ios-sep2)">
+        <div onclick="nav('chat')" style="flex:1;padding:7px;border-radius:9px;background:var(--ios-fill);text-align:center;font-size:12px;font-weight:500;color:var(--ios-label2);cursor:pointer">💬 Napsat</div>
+        <div onclick="nav('detail')" style="flex:1;padding:7px;border-radius:9px;background:var(--ios-fill);text-align:center;font-size:12px;font-weight:500;color:var(--ios-label2);cursor:pointer">📋 Plán</div>
+        <div onclick="nav('detail')" style="flex:1;padding:7px;border-radius:9px;background:rgba(201,168,76,.1);text-align:center;font-size:12px;font-weight:600;color:var(--ios-gold);cursor:pointer">📊 Detail</div>
+      </div>
+    </div>
+
+    <!-- Client card 2 — alert -->
+    <div class="client-card" onclick="nav('detail')" style="border:1px solid rgba(255,149,0,.25)">
+      <div class="client-card-top">
+        <div class="client-av" style="background:rgba(255,149,0,.12);color:var(--ios-orange)">MK</div>
+        <div class="client-info">
+          <div style="display:flex;align-items:center;gap:7px">
+            <div class="client-name">Martin Krejčí</div>
+            <div class="client-badge" style="background:rgba(255,149,0,.12);color:var(--ios-orange)">⚠ Pozor</div>
+          </div>
+          <div class="client-meta">Nabírání · Trénink · Týden 2</div>
+        </div>
+        <div class="ios-row-chev">›</div>
+      </div>
+      <div class="client-stats">
+        <div class="client-stat"><div class="client-stat-val" style="color:var(--ios-red)">34 %</div><div class="client-stat-lbl">Compliance</div></div>
+        <div class="client-stat"><div class="client-stat-val">3</div><div class="client-stat-lbl">Streak</div></div>
+        <div class="client-stat"><div class="client-stat-val">+0,3 kg</div><div class="client-stat-lbl">Pokrok</div></div>
+      </div>
+    </div>
+
+    <!-- Client card 3 -->
+    <div class="client-card" onclick="nav('detail')">
+      <div class="client-card-top">
+        <div class="client-av" style="background:rgba(52,199,89,.12);color:var(--ios-green)">TN</div>
+        <div class="client-info">
+          <div style="display:flex;align-items:center;gap:7px">
+            <div class="client-name">Tomáš Navrátil</div>
+            <div class="client-badge" style="background:rgba(52,199,89,.12);color:var(--ios-green)">✓ Aktivní</div>
+          </div>
+          <div class="client-meta">Kondice · Výživa · Týden 7</div>
+        </div>
+        <div class="ios-row-chev">›</div>
+      </div>
+      <div class="client-stats">
+        <div class="client-stat"><div class="client-stat-val" style="color:var(--ios-green)">91 %</div><div class="client-stat-lbl">Compliance</div></div>
+        <div class="client-stat"><div class="client-stat-val">14</div><div class="client-stat-lbl">Streak 🔥</div></div>
+        <div class="client-stat"><div class="client-stat-val" style="color:var(--ios-green)">−1,8 kg</div><div class="client-stat-lbl">Pokrok</div></div>
+      </div>
+    </div>
+
+    <!-- Client 4 -->
+    <div class="client-card" onclick="nav('detail')">
+      <div class="client-card-top">
+        <div class="client-av" style="background:rgba(175,82,222,.12);color:var(--ios-purple)">LP</div>
+        <div class="client-info">
+          <div style="display:flex;align-items:center;gap:7px">
+            <div class="client-name">Lukáš Pospíšil</div>
+            <div class="client-badge" style="background:rgba(52,199,89,.12);color:var(--ios-green)">✓ Aktivní</div>
+          </div>
+          <div class="client-meta">Nabírání · Výživa · Týden 3</div>
+        </div>
+        <div class="ios-row-chev">›</div>
+      </div>
+      <div class="client-stats">
+        <div class="client-stat"><div class="client-stat-val" style="color:var(--ios-green)">88 %</div><div class="client-stat-lbl">Compliance</div></div>
+        <div class="client-stat"><div class="client-stat-val">9</div><div class="client-stat-lbl">Streak 🔥</div></div>
+        <div class="client-stat"><div class="client-stat-val" style="color:var(--ios-green)">+1,2 kg</div><div class="client-stat-lbl">Pokrok</div></div>
+      </div>
+    </div>
+
+    <!-- Client 5 — new, questionnaire pending -->
+    <div class="client-card" onclick="nav('detail')" style="border:1px solid rgba(255,59,48,.2)">
+      <div class="client-card-top">
+        <div class="client-av" style="background:rgba(255,59,48,.1);color:var(--ios-red)">JM</div>
+        <div class="client-info">
+          <div style="display:flex;align-items:center;gap:7px">
+            <div class="client-name">Jakub Malý</div>
+            <div class="client-badge" style="background:rgba(255,59,48,.1);color:var(--ios-red)">⚠ Dotazník</div>
+          </div>
+          <div class="client-meta">Hubnutí · Trénink · Nový klient</div>
+        </div>
+        <div class="ios-row-chev">›</div>
+      </div>
+      <div style="padding:8px 14px 10px;display:flex;align-items:center;gap:8px;border-top:.5px solid var(--ios-sep2)">
+        <div style="flex:1;font-size:12px;color:var(--ios-red)">Čeká na vyplnění vstupního dotazníku</div>
+        <div style="padding:6px 12px;border-radius:99px;background:rgba(255,59,48,.1);color:var(--ios-red);font-size:12px;font-weight:600;cursor:pointer">Připomenout</div>
+      </div>
+    </div>
+
+    <div style="height:8px"></div>
+  </div>
+  <!-- Tab bar -->
+  <div class="tab-bar">
+    <div class="tab" onclick="nav('dnes')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="#8e8e93" stroke-width="2"/><path d="M9 22V12h6v10" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Dnes</div></div>
+    <div class="tab active" style="position:relative" onclick="nav('klienti')">
+      <div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="9" cy="7" r="4" stroke="#c9a84c" stroke-width="2"/><path d="M2 21c0-4 3-7 7-7h.5" stroke="#c9a84c" stroke-width="2" stroke-linecap="round"/><circle cx="17" cy="15" r="4" stroke="#c9a84c" stroke-width="2"/><path d="M17 12v3l2 2" stroke="#c9a84c" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+      <div class="tab-lbl" style="color:#c9a84c">Klienti</div>
+    </div>
+    <div class="tab" onclick="nav('ziadosti')">
+      <div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="#8e8e93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="tab-lbl">Žádosti</div>
+    </div>
+    <div class="tab" onclick="nav('zpravy')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="#8e8e93" stroke-width="2" stroke-linejoin="round"/></svg></div><div class="tab-lbl">Zprávy</div></div>
+    <div class="tab" onclick="nav('profil')">
+      <div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="#8e8e93" stroke-width="2"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div>
+      <div class="tab-lbl">Profil</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════
+     2. DETAIL KLIENTA
+════════════════════════════════ -->
+<div class="phone-wrap">
+<div class="phone-label">Detail klienta</div>
+<div class="phone" id="ph-detail" style="display:none">
+  <div class="di"></div>
+  <div class="status-bar"><span class="sb-time">9:41</span><div class="sb-icons"><svg width="17" height="12" viewBox="0 0 17 12" fill="#000"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0" width="3" height="12" rx="1"/></svg><svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0" y="1" width="21" height="10" rx="3.5" stroke="#000" stroke-width="1"/><rect x="1.5" y="2.5" width="15" height="7" rx="2" fill="#000"/></svg></div></div>
+
+  <!-- Fixed header zone: back + hero + tabs -->
+  <div style="position:absolute;top:59px;left:0;right:0;z-index:10;background:var(--ios-bg)">
+    <div class="detail-back" onclick="nav('klienti')">
+      <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M8.5 1.5L2 8l6.5 6.5" stroke="#007aff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="detail-back-lbl">Klienti</span>
+    </div>
+    <div class="detail-hero">
+      <div class="detail-av" style="background:rgba(0,122,255,.12);color:var(--ios-blue)">PH</div>
+      <div>
+        <div class="detail-name">Petra Horáková</div>
+        <div class="detail-sub">Hubnutí · Trénink + výživa</div>
+        <div class="detail-badges">
+          <div style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:99px;background:rgba(52,199,89,.12);color:var(--ios-green)">✓ Aktivní</div>
+          <div style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:99px;background:rgba(255,149,0,.12);color:var(--ios-orange)">🔥 21 dní streak</div>
+        </div>
+      </div>
+    </div>
+    <div class="pill-tabs" id="detail-pill-tabs" style="padding-bottom:6px;border-bottom:.5px solid var(--ios-sep2)">
+      <div class="pill-tab active" id="dtab-btn-progress" onclick="switchDetailTab('progress')">Pokrok</div>
+      <div class="pill-tab" id="dtab-btn-plan" onclick="switchDetailTab('plan')">Plán</div>
+      <div class="pill-tab" id="dtab-btn-dotaznik" onclick="switchDetailTab('dotaznik')">Dotazník</div>
+    </div>
+  </div>
+
+  <!-- Scrollable content — top offset calculated by JS after render -->
+  <div id="detail-scroll" style="position:absolute;left:0;right:0;bottom:84px;overflow-y:auto;overflow-x:hidden">
+    <div id="detail-scroll-spacer"></div>
+
+    <!-- TAB: POKROK -->
+    <div id="dtab-content-progress">
+      <div class="stat-strip">
+        <div class="stat-pill"><div class="stat-pill-val">95 %</div><div class="stat-pill-lbl">Compliance</div><div class="stat-pill-sub" style="color:var(--ios-green)">↑ výborné</div></div>
+        <div class="stat-pill"><div class="stat-pill-val" style="color:var(--ios-green)">−2,4 kg</div><div class="stat-pill-lbl">Pokrok váhy</div><div class="stat-pill-sub" style="color:var(--ios-label2)">za 34 dní</div></div>
+        <div class="stat-pill"><div class="stat-pill-val">28</div><div class="stat-pill-lbl">Tréninků</div><div class="stat-pill-sub" style="color:var(--ios-label2)">tento plán</div></div>
+      </div>
+
+      <div class="ios-section-hdr"><div class="ios-section-title">Váha</div><span class="ios-section-action">Vše</span></div>
+      <div class="ios-card">
+        <div style="padding:14px 16px">
+          <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:12px">
+            <div style="font-size:30px;font-weight:700;color:var(--ios-label);letter-spacing:-.5px">63,1 kg</div>
+            <div style="font-size:14px;font-weight:600;color:var(--ios-green)">↓ 2,4 kg</div>
+            <div style="margin-left:auto;font-size:13px;color:var(--ios-label2)">Cíl: 58,0 kg</div>
+          </div>
+          <div class="mini-chart">
+            <div class="mini-bar" style="height:40px;background:var(--ios-fill)"></div>
+            <div class="mini-bar" style="height:36px;background:var(--ios-fill)"></div>
+            <div class="mini-bar" style="height:33px;background:var(--ios-fill)"></div>
+            <div class="mini-bar" style="height:30px;background:var(--ios-fill)"></div>
+            <div class="mini-bar" style="height:27px;background:var(--ios-fill)"></div>
+            <div class="mini-bar" style="height:24px;background:var(--ios-fill)"></div>
+            <div class="mini-bar" style="height:20px;background:var(--ios-fill)"></div>
+            <div class="mini-bar" style="height:16px;background:var(--ios-gold)"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--ios-label3);margin-top:4px"><span>T1</span><span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span>Dnes</span></div>
+        </div>
+      </div>
+
+      <div class="ios-section-hdr"><div class="ios-section-title">Compliance</div></div>
+      <div class="ios-card">
+        <div style="padding:14px 16px">
+          <div style="display:flex;gap:10px;margin-bottom:12px">
+            <div style="flex:1;text-align:center"><div style="font-size:22px;font-weight:700;color:var(--ios-green)">95 %</div><div style="font-size:11px;color:var(--ios-label2)">Trénink</div></div>
+            <div style="width:1px;background:var(--ios-sep2)"></div>
+            <div style="flex:1;text-align:center"><div style="font-size:22px;font-weight:700;color:var(--ios-green)">91 %</div><div style="font-size:11px;color:var(--ios-label2)">Výživa</div></div>
+            <div style="width:1px;background:var(--ios-sep2)"></div>
+            <div style="flex:1;text-align:center"><div style="font-size:22px;font-weight:700;color:var(--ios-green)">93 %</div><div style="font-size:11px;color:var(--ios-label2)">Celkem</div></div>
+          </div>
+          <div class="mini-chart">
+            <div class="mini-bar" style="height:38px;background:var(--ios-green);opacity:.3"></div>
+            <div class="mini-bar" style="height:42px;background:var(--ios-green);opacity:.5"></div>
+            <div class="mini-bar" style="height:44px;background:var(--ios-green);opacity:.7"></div>
+            <div class="mini-bar" style="height:40px;background:var(--ios-green);opacity:.6"></div>
+            <div class="mini-bar" style="height:44px;background:var(--ios-green)"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--ios-label3);margin-top:4px"><span>T1</span><span>T2</span><span>T3</span><span>T4</span><span>Tento</span></div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 20px 14px">
+        <div class="ios-btn ios-btn-secondary" style="font-size:14px;padding:12px" onclick="switchDetailTab('plan')">📋 Náhled plánu</div>
+        <div class="ios-btn ios-btn-secondary" style="font-size:14px;padding:12px" onclick="switchDetailTab('dotaznik')">📝 Dotazník</div>
+      </div>
+
+      <div style="margin:0 20px 14px;padding:12px 14px;background:var(--ios-bg2);border-radius:var(--ios-r);font-size:13px;color:var(--ios-label2);border-left:3px solid var(--ios-gold);box-shadow:0 1px 3px rgba(0,0,0,.06)">
+        <span style="font-weight:600;color:var(--ios-label)">Trenérská poznámka: </span>Petře jde výborně. Zvážit zvýšení kalorického deficitu o 50 kcal v týdnu 5.
+      </div>
+      <div style="height:16px"></div>
+    </div>
+
+    <!-- TAB: PLÁN -->
+    <div id="dtab-content-plan" style="display:none">
+      <div style="margin:12px 20px 12px;padding:10px 14px;background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.2);border-radius:var(--ios-r)">
+        <div style="font-size:12px;font-weight:600;color:var(--ios-gold);margin-bottom:2px">Pouze náhled</div>
+        <div style="font-size:12px;color:var(--ios-label2)">Editace plánů probíhá ve webovém portálu.</div>
+      </div>
+      <div class="seg-ctrl" style="margin-bottom:12px">
+        <div class="seg-opt active" id="plan-seg-trenink" onclick="switchPlanTab('trenink')">Trénink</div>
+        <div class="seg-opt" id="plan-seg-nutr" onclick="switchPlanTab('nutr')">Výživa</div>
+      </div>
+
+      <div id="plan-trenink-view">
+        <div class="ios-section-hdr" style="padding-top:0"><div class="ios-section-title">Silový A/B</div><span style="font-size:13px;color:var(--ios-label2)">Týden 4 / 12</span></div>
+        <div style="height:4px;background:var(--ios-fill);border-radius:99px;margin:0 20px 14px;overflow:hidden"><div style="width:33%;height:100%;background:var(--ios-gold);border-radius:99px"></div></div>
+        <div class="ios-card">
+          <div class="plan-day-row"><div class="plan-day-label">Po</div><div style="display:flex;gap:6px;flex-wrap:wrap"><div class="plan-session-chip" style="background:rgba(11,110,153,.1);color:#0b6e99">Push A</div><div class="plan-session-chip" style="background:rgba(15,123,108,.1);color:#0f7b6c">Kardio</div></div></div>
+          <div class="plan-day-row"><div class="plan-day-label">Út</div><div class="plan-session-chip" style="background:rgba(15,123,108,.1);color:#0f7b6c">Pull A</div></div>
+          <div class="plan-day-row"><div class="plan-day-label">St</div><div class="plan-rest">Odpočinek</div></div>
+          <div class="plan-day-row"><div class="plan-day-label">Čt</div><div class="plan-session-chip" style="background:rgba(173,87,0,.1);color:#ad5700">Legs A</div></div>
+          <div class="plan-day-row"><div class="plan-day-label">Pá</div><div style="display:flex;gap:6px;flex-wrap:wrap"><div class="plan-session-chip" style="background:rgba(11,110,153,.1);color:#0b6e99">Push B</div><div class="plan-session-chip" style="background:rgba(192,57,43,.1);color:#c0392b">Core</div></div></div>
+          <div class="plan-day-row"><div class="plan-day-label">So</div><div class="plan-rest">Odpočinek</div></div>
+          <div class="plan-day-row"><div class="plan-day-label">Ne</div><div class="plan-session-chip" style="background:rgba(15,123,108,.1);color:#0f7b6c">Pull B</div></div>
+        </div>
+        <div class="ios-section-hdr"><div class="ios-section-title">Push A — cviky</div></div>
+        <div class="ios-card">
+          <div class="ios-row" style="min-height:auto;padding:10px 14px"><div style="width:8px;height:8px;border-radius:50%;background:#0b6e99;flex-shrink:0"></div><div class="ios-row-body"><div style="font-size:15px;font-weight:500;color:var(--ios-label)">Bench press s činkou</div><div style="font-size:12px;color:var(--ios-label2)">4 série · 8–10 opak. · 80 kg · 90s</div></div></div>
+          <div class="ios-row" style="min-height:auto;padding:10px 14px"><div style="width:8px;height:8px;border-radius:50%;background:#6940a5;flex-shrink:0"></div><div class="ios-row-body"><div style="font-size:15px;font-weight:500;color:var(--ios-label)">Vojenský tlak</div><div style="font-size:12px;color:var(--ios-label2)">3 série · 10–12 opak. · 55 kg · 90s</div></div></div>
+          <div class="ios-row" style="min-height:auto;padding:10px 14px"><div style="width:8px;height:8px;border-radius:50%;background:#c9a84c;flex-shrink:0"></div><div class="ios-row-body"><div style="font-size:15px;font-weight:500;color:var(--ios-label)">Laterální zdvihy</div><div style="font-size:12px;color:var(--ios-label2)">3 série · 15 opak. · 12 kg · 60s</div></div></div>
+          <div class="ios-row" style="min-height:auto;padding:10px 14px"><div style="width:8px;height:8px;border-radius:50%;background:#c9a84c;flex-shrink:0"></div><div class="ios-row-body"><div style="font-size:15px;font-weight:500;color:var(--ios-label)">Kliky na bradlech</div><div style="font-size:12px;color:var(--ios-label2)">3 série · 12 opak. · BW · 60s</div></div></div>
+          <div class="ios-row" style="min-height:auto;padding:10px 14px"><div style="width:8px;height:8px;border-radius:50%;background:#c9a84c;flex-shrink:0"></div><div class="ios-row-body"><div style="font-size:15px;font-weight:500;color:var(--ios-label)">Tricepsový pushdown</div><div style="font-size:12px;color:var(--ios-label2)">3 série · 12–15 opak. · 25 kg · 60s</div></div></div>
+        </div>
+      </div>
+
+      <div id="plan-nutr-view" style="display:none">
+        <div class="ios-section-hdr" style="padding-top:0"><div class="ios-section-title">Únor / Březen</div><span style="font-size:13px;color:var(--ios-label2)">Týden 4 / 12</span></div>
+        <div style="height:4px;background:var(--ios-fill);border-radius:99px;margin:0 20px 14px;overflow:hidden"><div style="width:33%;height:100%;background:var(--ios-blue);border-radius:99px"></div></div>
+        <div style="margin:0 20px 10px;display:flex;gap:10px">
+          <div style="flex:1;background:var(--ios-bg2);border-radius:var(--ios-r);padding:10px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.06)"><div style="font-size:18px;font-weight:700;color:var(--ios-label)">1 700</div><div style="font-size:11px;color:var(--ios-label2)">kcal / den</div></div>
+          <div style="flex:1;background:var(--ios-bg2);border-radius:var(--ios-r);padding:10px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.06)"><div style="font-size:18px;font-weight:700;color:var(--ios-blue)">130 g</div><div style="font-size:11px;color:var(--ios-label2)">Bílkoviny</div></div>
+          <div style="flex:1;background:var(--ios-bg2);border-radius:var(--ios-r);padding:10px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.06)"><div style="font-size:18px;font-weight:700;color:var(--ios-purple)">55 g</div><div style="font-size:11px;color:var(--ios-label2)">Tuky</div></div>
+        </div>
+        <div class="ios-section-hdr"><div class="ios-section-title">Pondělí — jídla</div></div>
+        <div class="ios-card">
+          <div class="ios-row" style="min-height:auto;padding:11px 14px"><div style="width:28px;height:28px;border-radius:9px;background:rgba(201,168,76,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0">🌅</div><div class="ios-row-body"><div style="font-size:15px;font-weight:500;color:var(--ios-label)">Snídaně</div><div style="font-size:12px;color:var(--ios-label2)">431 kcal · B32 S48 T12</div></div><div style="font-size:11px;font-weight:600;color:var(--ios-label3)">07:30</div></div>
+          <div class="ios-row" style="min-height:auto;padding:11px 14px"><div style="width:28px;height:28px;border-radius:9px;background:rgba(0,122,255,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0">🌞</div><div class="ios-row-body"><div style="font-size:15px;font-weight:500;color:var(--ios-label)">Oběd</div><div style="font-size:12px;color:var(--ios-label2)">580 kcal · B48 S62 T18</div></div><div style="font-size:11px;font-weight:600;color:var(--ios-label3)">13:00</div></div>
+          <div class="ios-row" style="min-height:auto;padding:11px 14px"><div style="width:28px;height:28px;border-radius:9px;background:rgba(15,123,108,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0">🥗</div><div class="ios-row-body"><div style="font-size:15px;font-weight:500;color:var(--ios-label)">Svačina</div><div style="font-size:12px;color:var(--ios-label2)">218 kcal · B22 S24 T4</div></div><div style="font-size:11px;font-weight:600;color:var(--ios-label3)">16:30</div></div>
+          <div class="ios-row" style="min-height:auto;padding:11px 14px"><div style="width:28px;height:28px;border-radius:9px;background:rgba(105,64,165,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0">🌙</div><div class="ios-row-body"><div style="font-size:15px;font-weight:500;color:var(--ios-label)">Večeře</div><div style="font-size:12px;color:var(--ios-label2)">471 kcal · B38 S46 T21</div></div><div style="font-size:11px;font-weight:600;color:var(--ios-label3)">19:00</div></div>
+        </div>
+      </div>
+      <div style="height:16px"></div>
+    </div>
+
+    <!-- TAB: DOTAZNÍK -->
+    <div id="dtab-content-dotaznik" style="display:none">
+      <div style="margin:12px 20px 14px;display:flex;align-items:center;gap:10px;padding:12px 14px;background:rgba(52,199,89,.08);border:1px solid rgba(52,199,89,.2);border-radius:var(--ios-r)">
+        <div style="font-size:20px">✓</div>
+        <div><div style="font-size:13px;font-weight:600;color:var(--ios-green)">Dotazník vyplněn</div><div style="font-size:12px;color:var(--ios-label2)">12. 3. 2026 · 14:23</div></div>
+      </div>
+      <div class="ios-section-hdr"><div class="ios-section-title">Odpovědi</div></div>
+      <div class="ios-card">
+        <div class="qa-row"><div class="qa-q">Jak dlouho cvičíte?</div><div class="qa-a">1–3 roky</div></div>
+        <div class="qa-row"><div class="qa-q">Aktuální váha (kg)</div><div class="qa-a">63,1 kg</div><div class="qa-mapped">→ synchronizováno s profilem</div></div>
+        <div class="qa-row"><div class="qa-q">Výška (cm)</div><div class="qa-a">168 cm</div><div class="qa-mapped">→ synchronizováno s profilem</div></div>
+        <div class="qa-row"><div class="qa-q">Primární cíl</div><div class="qa-a">Zhubnout</div><div class="qa-mapped">→ synchronizováno s profilem</div></div>
+        <div class="qa-row"><div class="qa-q">Zdravotní omezení nebo zranění</div><div class="qa-a">Občasné bolesti bederní páteře</div><div class="qa-mapped">→ synchronizováno s profilem</div></div>
+        <div class="qa-row"><div class="qa-q">Motivace (škála 1–10)</div><div class="qa-a">8 / 10</div></div>
+      </div>
+      <div style="height:16px"></div>
+    </div>
+
+  </div><!-- /detail-scroll -->
+
+  <div class="tab-bar">
+    <div class="tab" onclick="nav('dnes')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="#8e8e93" stroke-width="2"/><path d="M9 22V12h6v10" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Dnes</div></div>
+    <div class="tab" onclick="nav('klienti')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="9" cy="7" r="4" stroke="#c9a84c" stroke-width="2"/><path d="M2 21c0-4 3-7 7-7h.5" stroke="#c9a84c" stroke-width="2" stroke-linecap="round"/><circle cx="17" cy="15" r="4" stroke="#c9a84c" stroke-width="2"/></svg></div><div class="tab-lbl" style="color:#c9a84c">Klienti</div></div>
+    <div class="tab" onclick="nav('ziadosti')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="#8e8e93" stroke-width="2"/></svg></div><div class="tab-lbl">Žádosti</div></div>
+    <div class="tab" onclick="nav('zpravy')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="#8e8e93" stroke-width="2" stroke-linejoin="round"/></svg></div><div class="tab-lbl">Zprávy</div></div>
+    <div class="tab" onclick="nav('profil')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="#8e8e93" stroke-width="2"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Profil</div></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+     3. ŽÁDOSTI O SPOLUPRÁCI
+════════════════════════════════ -->
+<div class="phone-wrap">
+<div class="phone-label">Žádosti & Hledání</div>
+<div class="phone" id="ph-ziadosti" style="display:none">
+  <div class="di"></div>
+  <div class="status-bar"><span class="sb-time">9:41</span><div class="sb-icons"><svg width="17" height="12" viewBox="0 0 17 12" fill="#000"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0" width="3" height="12" rx="1"/></svg><svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0" y="1" width="21" height="10" rx="3.5" stroke="#000" stroke-width="1"/><rect x="1.5" y="2.5" width="15" height="7" rx="2" fill="#000"/></svg></div></div>
+  <div class="scroll-area">
+    <div class="ios-page-header">
+      <div class="ios-page-title">Hledat klienty</div>
+    </div>
+
+
+
+
+
+    <!-- Browse prospects -->
+    <div class="ios-section-hdr"><div class="ios-section-title">Uživatelé bez trenéra</div><span class="ios-section-action">Filtr</span></div>
+    <div class="ios-search"><span style="color:var(--ios-label3);font-size:14px">🔍</span><input placeholder="Cíl, věk, lokalita..."></div>
+    <div class="pill-tabs">
+      <div class="pill-tab active">Vše</div>
+      <div class="pill-tab">Hubnutí</div>
+      <div class="pill-tab">Nabírání</div>
+      <div class="pill-tab">Kondice</div>
+    </div>
+
+    <div class="ios-list">
+      <div class="ios-row" style="min-height:auto;padding:12px 14px">
+        <div class="client-av" style="width:40px;height:40px;border-radius:12px;font-size:15px;background:rgba(0,122,255,.12);color:var(--ios-blue)">JP</div>
+        <div class="ios-row-body"><div class="ios-row-title" style="font-size:15px">Jana Procházková</div><div class="ios-row-sub">28 let · Praha · Hubnutí · Začátečník</div></div>
+        <div style="padding:6px 12px;border-radius:99px;background:rgba(201,168,76,.12);color:var(--ios-gold);font-size:13px;font-weight:600;cursor:pointer">Oslovit</div>
+      </div>
+      <div class="ios-row" style="min-height:auto;padding:12px 14px">
+        <div class="client-av" style="width:40px;height:40px;border-radius:12px;font-size:15px;background:rgba(255,149,0,.12);color:var(--ios-orange)">OP</div>
+        <div class="ios-row-body"><div class="ios-row-title" style="font-size:15px">Ondřej Pospíšil</div><div class="ios-row-sub">31 let · Online · Nabírání · Střední</div></div>
+        <div style="padding:6px 12px;border-radius:99px;background:rgba(201,168,76,.12);color:var(--ios-gold);font-size:13px;font-weight:600;cursor:pointer">Oslovit</div>
+      </div>
+      <div class="ios-row" style="min-height:auto;padding:12px 14px">
+        <div class="client-av" style="width:40px;height:40px;border-radius:12px;font-size:15px;background:rgba(175,82,222,.12);color:var(--ios-purple)">KL</div>
+        <div class="ios-row-body"><div class="ios-row-title" style="font-size:15px">Klára Léblová</div><div class="ios-row-sub">26 let · Praha · Hubnutí · Začátečník</div></div>
+        <div style="padding:6px 12px;border-radius:99px;background:rgba(201,168,76,.12);color:var(--ios-gold);font-size:13px;font-weight:600;cursor:pointer">Oslovit</div>
+      </div>
+      <div class="ios-row" style="min-height:auto;padding:12px 14px">
+        <div class="client-av" style="width:40px;height:40px;border-radius:12px;font-size:15px;background:rgba(52,199,89,.12);color:var(--ios-green)">RV</div>
+        <div class="ios-row-body"><div class="ios-row-title" style="font-size:15px">Roman Váša</div><div class="ios-row-sub">34 let · Brno · Nabírání · Pokročilý</div></div>
+        <div style="padding:6px 12px;border-radius:99px;background:rgba(201,168,76,.12);color:var(--ios-gold);font-size:13px;font-weight:600;cursor:pointer">Oslovit</div>
+      </div>
+      <div class="ios-row" style="min-height:auto;padding:12px 14px">
+        <div class="client-av" style="width:40px;height:40px;border-radius:12px;font-size:15px;background:rgba(0,122,255,.12);color:var(--ios-blue)">MH</div>
+        <div class="ios-row-body"><div class="ios-row-title" style="font-size:15px">Miroslava Horáková</div><div class="ios-row-sub">41 let · Liberec · Kondice · Začátečník</div></div>
+        <div style="padding:6px 12px;border-radius:99px;background:rgba(201,168,76,.12);color:var(--ios-gold);font-size:13px;font-weight:600;cursor:pointer">Oslovit</div>
+      </div>
+    </div>
+    <div style="height:8px"></div>
+  </div>
+  <div class="tab-bar">
+    <div class="tab" onclick="nav('dnes')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="#8e8e93" stroke-width="2"/><path d="M9 22V12h6v10" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Dnes</div></div>
+    <div class="tab" onclick="nav('klienti')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="9" cy="7" r="4" stroke="#8e8e93" stroke-width="2"/><path d="M2 21c0-4 3-7 7-7h5" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Klienti</div></div>
+    <div class="tab" onclick="nav('ziadosti')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="#c9a84c" stroke-width="2"/></svg></div><div class="tab-lbl" style="color:#c9a84c">Žádosti</div></div>
+    <div class="tab" onclick="nav('zpravy')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="#8e8e93" stroke-width="2" stroke-linejoin="round"/></svg></div><div class="tab-lbl">Zprávy</div></div>
+    <div class="tab" onclick="nav('profil')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="#8e8e93" stroke-width="2"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Profil</div></div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════
+     4. PROFIL TRENÉRA
+════════════════════════════════ -->
+<div class="phone-wrap">
+<div class="phone-label">Profil trenéra</div>
+<div class="phone" id="ph-profil" style="display:none">
+  <div class="di"></div>
+  <div class="status-bar"><span class="sb-time">9:41</span><div class="sb-icons"><svg width="17" height="12" viewBox="0 0 17 12" fill="#000"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0" width="3" height="12" rx="1"/></svg><svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0" y="1" width="21" height="10" rx="3.5" stroke="#000" stroke-width="1"/><rect x="1.5" y="2.5" width="15" height="7" rx="2" fill="#000"/></svg></div></div>
+  <div class="scroll-area">
+    <!-- Header -->
+    <div style="padding:16px 20px 12px;text-align:center">
+      <div style="width:80px;height:80px;border-radius:26px;background:rgba(201,168,76,.15);color:var(--ios-gold);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:700;margin:0 auto 10px">MT</div>
+      <div style="font-size:24px;font-weight:700;color:var(--ios-label);letter-spacing:-.3px">Marek Trenér</div>
+      <div style="font-size:14px;color:var(--ios-label2);margin-top:2px">Osobní trenér & výživový poradce</div>
+      <div style="display:flex;justify-content:center;gap:6px;margin-top:8px;flex-wrap:wrap">
+        <div style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:99px;background:rgba(52,199,89,.1);color:var(--ios-green)">🟢 Přijímám klienty</div>
+        <div style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:99px;background:rgba(255,149,0,.1);color:var(--ios-orange)">★ 4.9 hodnocení</div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="trainer-stat-grid">
+      <div class="trainer-stat">
+        <div class="trainer-stat-val">8</div>
+        <div class="trainer-stat-lbl">Aktivních klientů</div>
+      </div>
+      <div class="trainer-stat">
+        <div class="trainer-stat-val" style="color:var(--ios-green)">87 %</div>
+        <div class="trainer-stat-lbl">Avg. compliance</div>
+      </div>
+      <div class="trainer-stat">
+        <div class="trainer-stat-val">38</div>
+        <div class="trainer-stat-lbl">Hodnocení</div>
+      </div>
+      <div class="trainer-stat">
+        <div class="trainer-stat-val">2,5 K</div>
+        <div class="trainer-stat-lbl">Kč / měsíc</div>
+      </div>
+    </div>
+
+    <!-- Profile info -->
+    <div class="ios-section-hdr"><div class="ios-section-title">Veřejný profil</div><span class="ios-section-action" onclick="alert('Editace na webu')">Upravit na webu</span></div>
+
+    <div style="margin:0 20px 14px;padding:10px 14px;background:rgba(201,168,76,.07);border:1px solid rgba(201,168,76,.2);border-radius:var(--ios-r)">
+      <div style="font-size:12px;font-weight:600;color:var(--ios-gold);margin-bottom:3px">Pouze náhled</div>
+      <div style="font-size:12px;color:var(--ios-label2)">Profil se edituje ve webovém portálu v sekci Nastavení.</div>
+    </div>
+
+    <div class="ios-list">
+      <div class="ios-row">
+        <div class="ios-row-icon" style="background:rgba(0,122,255,.1)">📝</div>
+        <div class="ios-row-body"><div class="ios-row-title">Bio</div><div class="ios-row-sub">Certifikovaný trenér, 8 let zkušeností...</div></div>
+        <div class="ios-row-chev">›</div>
+      </div>
+      <div class="ios-row">
+        <div class="ios-row-icon" style="background:rgba(52,199,89,.1)">🎓</div>
+        <div class="ios-row-body"><div class="ios-row-title">Certifikáty</div><div class="ios-row-sub">EREPS L3 · FitCoach · Precision Nutrition</div></div>
+        <div class="ios-row-chev">›</div>
+      </div>
+      <div class="ios-row">
+        <div class="ios-row-icon" style="background:rgba(175,82,222,.1)">⚡</div>
+        <div class="ios-row-body"><div class="ios-row-title">Specializace</div><div class="ios-row-sub">Silový trénink · Výživa · Hubnutí</div></div>
+        <div class="ios-row-chev">›</div>
+      </div>
+      <div class="ios-row">
+        <div class="ios-row-icon" style="background:rgba(255,149,0,.1)">📍</div>
+        <div class="ios-row-body"><div class="ios-row-title">Dostupnost</div><div class="ios-row-sub">Praha · Online · Max 15 klientů</div></div>
+        <div class="ios-row-chev">›</div>
+      </div>
+    </div>
+
+    <!-- Subscription -->
+    <div class="ios-section-hdr" style="margin-top:4px"><div class="ios-section-title">Předplatné</div></div>
+    <div class="ios-card" style="margin-bottom:14px">
+      <div style="padding:14px 16px;background:linear-gradient(135deg,rgba(201,168,76,.12),rgba(201,168,76,.06));border-radius:13px 13px 0 0">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <div style="font-size:16px;font-weight:700;color:var(--ios-label)">GoodFellas Pro</div>
+          <div style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;background:rgba(201,168,76,.2);color:var(--ios-gold)">Aktivní</div>
+        </div>
+        <div style="font-size:13px;color:var(--ios-label2)">Neomezený počet klientů · Marketplace · Analytics</div>
+        <div style="font-size:12px;color:var(--ios-label3);margin-top:6px">Obnovení 1. 5. 2026 · 990 Kč / měsíc</div>
+      </div>
+      <div style="padding:10px 16px;display:flex;gap:8px;border-top:.5px solid var(--ios-sep2)">
+        <div style="flex:1;padding:8px;border-radius:9px;background:var(--ios-fill);text-align:center;font-size:13px;font-weight:500;color:var(--ios-label2);cursor:pointer">Spravovat</div>
+        <div style="flex:1;padding:8px;border-radius:9px;background:rgba(201,168,76,.12);text-align:center;font-size:13px;font-weight:600;color:var(--ios-gold);cursor:pointer">Faktura</div>
+      </div>
+    </div>
+
+    <!-- Výkonnostní statistiky -->
+    <div class="ios-section-hdr"><div class="ios-section-title">Statistiky praxe</div></div>
+    <div class="ios-list" style="margin-bottom:14px">
+      <div class="ios-row">
+        <div class="ios-row-icon" style="background:rgba(0,122,255,.1)">📈</div>
+        <div class="ios-row-body"><div class="ios-row-title">Celkem klientů</div><div class="ios-row-sub">od začátku praxe</div></div>
+        <div class="ios-row-val">47</div>
+      </div>
+      <div class="ios-row">
+        <div class="ios-row-icon" style="background:rgba(52,199,89,.1)">⭐</div>
+        <div class="ios-row-body"><div class="ios-row-title">Průměrné hodnocení</div><div class="ios-row-sub">38 recenzí</div></div>
+        <div class="ios-row-val" style="color:var(--ios-orange)">4,9 ★</div>
+      </div>
+      <div class="ios-row">
+        <div class="ios-row-icon" style="background:rgba(201,168,76,.1)">💰</div>
+        <div class="ios-row-body"><div class="ios-row-title">Měsíční příjem</div><div class="ios-row-sub">8 aktivních klientů</div></div>
+        <div class="ios-row-val">20 K Kč</div>
+      </div>
+      <div class="ios-row">
+        <div class="ios-row-icon" style="background:rgba(175,82,222,.1)">🏆</div>
+        <div class="ios-row-body"><div class="ios-row-title">Avg. compliance klientů</div><div class="ios-row-sub">tento měsíc</div></div>
+        <div class="ios-row-val" style="color:var(--ios-green)">87 %</div>
+      </div>
+    </div>
+
+    <div class="ios-section-hdr" style="margin-top:4px"><div class="ios-section-title">Nastavení</div></div>
+    <div class="ios-list">
+      <div class="ios-row"><div class="ios-row-icon" style="background:var(--ios-fill)">🔔</div><div class="ios-row-body"><div class="ios-row-title">Notifikace</div></div><div class="ios-row-right"><div style="width:44px;height:26px;border-radius:13px;background:var(--ios-green);position:relative;cursor:pointer"><div style="position:absolute;right:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2)"></div></div></div></div>
+      <div class="ios-row"><div class="ios-row-icon" style="background:var(--ios-fill)">🌙</div><div class="ios-row-body"><div class="ios-row-title">Tmavý režim</div></div><div class="ios-row-right"><div style="width:44px;height:26px;border-radius:13px;background:var(--ios-fill);position:relative;cursor:pointer" onclick="toggleDark()"><div style="position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2)"></div></div></div></div>
+      <div class="ios-row"><div class="ios-row-icon" style="background:var(--ios-fill)">🌐</div><div class="ios-row-body"><div class="ios-row-title">Jazyk aplikace</div></div><div class="ios-row-right"><div style="font-size:15px;color:var(--ios-label2)">Čeština</div><div class="ios-row-chev">›</div></div></div>
+      <div class="ios-row"><div class="ios-row-icon" style="background:rgba(255,59,48,.1)">↗</div><div class="ios-row-body"><div class="ios-row-title" style="color:var(--ios-red)">Odhlásit se</div></div></div>
+    </div>
+
+    <div style="height:8px"></div>
+  </div>
+  <div class="tab-bar">
+    <div class="tab" onclick="nav('dnes')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="#8e8e93" stroke-width="2"/><path d="M9 22V12h6v10" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Dnes</div></div>
+    <div class="tab" onclick="nav('klienti')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="9" cy="7" r="4" stroke="#8e8e93" stroke-width="2"/><path d="M2 21c0-4 3-7 7-7h5" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Klienti</div></div>
+    <div class="tab" onclick="nav('ziadosti')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="#8e8e93" stroke-width="2"/></svg></div><div class="tab-lbl">Žádosti</div></div>
+    <div class="tab" onclick="nav('zpravy')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="#8e8e93" stroke-width="2" stroke-linejoin="round"/></svg></div><div class="tab-lbl">Zprávy</div></div>
+    <div class="tab" onclick="nav('profil')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="#c9a84c" stroke-width="2"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#c9a84c" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl" style="color:#c9a84c">Profil</div></div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     ZPRÁVY — seznam (trenér)
+════════════════════════════════════════════ -->
+<div class="phone-wrap">
+<div class="phone-label">Zprávy — trenér</div>
+<div class="phone" id="ph-trainer-zpravy" style="display:none">
+  <div class="di"></div>
+  <div class="status-bar"><span class="sb-time">9:41</span><div class="sb-icons"><svg width="17" height="12" viewBox="0 0 17 12" fill="#000"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0" width="3" height="12" rx="1"/></svg><svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0" y="1" width="21" height="10" rx="3.5" stroke="#000" stroke-width="1"/><rect x="1.5" y="2.5" width="15" height="7" rx="2" fill="#000"/></svg></div></div>
+  <div class="scroll-area">
+    <div style="padding:8px 20px 4px;display:flex;align-items:flex-end;justify-content:space-between">
+      <div style="font-size:34px;font-weight:700;color:var(--ios-label);letter-spacing:-.5px">Zprávy</div>
+      <div style="display:flex;gap:8px">
+        <div style="font-size:14px;color:var(--ios-blue);cursor:pointer;padding:4px">Nová</div>
+      </div>
+    </div>
+
+    <div style="margin:8px 16px 12px;display:flex;align-items:center;gap:8px;background:var(--ios-fill);border-radius:10px;padding:8px 12px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="color:var(--ios-label3)"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <span style="font-size:16px;color:var(--ios-label3)">Hledat</span>
+    </div>
+
+    <div style="background:var(--ios-bg2);border-radius:13px;margin:0 16px 16px;overflow:hidden">
+
+      <!-- Unread — Petra -->
+      <div class="conv-row" onclick="nav('chat')">
+        <div class="conv-av" style="background:rgba(0,122,255,.12);color:var(--ios-blue)">
+          PH
+          <div class="conv-av-badge" style="background:var(--ios-green)"><div style="width:8px;height:8px;border-radius:50%;background:white"></div></div>
+        </div>
+        <div class="conv-body">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div class="conv-name">Petra Horáková</div>
+          </div>
+          <div class="conv-preview unread">Super! Mám otázku k bench pressu...</div>
+          <div style="display:flex;gap:4px;margin-top:3px">
+            <div style="font-size:10px;font-weight:500;padding:1px 6px;border-radius:99px;background:rgba(52,199,89,.1);color:var(--ios-green)">95% compliance</div>
+            <div style="font-size:10px;font-weight:500;padding:1px 6px;border-radius:99px;background:rgba(255,149,0,.1);color:var(--ios-orange)">🔥 21 dní</div>
+          </div>
+        </div>
+        <div class="conv-right">
+          <div class="conv-time">13:36</div>
+          <div class="conv-unread">1</div>
+        </div>
+      </div>
+
+      <!-- Martin — alert -->
+      <div class="conv-row" onclick="nav('chat')" style="background:rgba(255,59,48,.02)">
+        <div class="conv-av" style="background:rgba(255,149,0,.12);color:var(--ios-orange)">MK</div>
+        <div class="conv-body">
+          <div class="conv-name">Martin Krejčí</div>
+          <div class="conv-preview">Ok, zkusím to příště...</div>
+          <div style="display:flex;gap:4px;margin-top:3px">
+            <div style="font-size:10px;font-weight:500;padding:1px 6px;border-radius:99px;background:rgba(255,59,48,.1);color:var(--ios-red)">34% compliance</div>
+          </div>
+        </div>
+        <div class="conv-right">
+          <div class="conv-time">Včera</div>
+        </div>
+      </div>
+
+      <!-- Tomáš -->
+      <div class="conv-row" onclick="nav('chat')">
+        <div class="conv-av" style="background:rgba(52,199,89,.12);color:var(--ios-green)">TN</div>
+        <div class="conv-body">
+          <div class="conv-name">Tomáš Navrátil</div>
+          <div class="conv-preview">Díky za plán, vypadá skvěle!</div>
+        </div>
+        <div class="conv-right">
+          <div class="conv-time">Út</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <div class="tab-bar">
+    <div class="tab" onclick="nav('dnes')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="#8e8e93" stroke-width="2"/><path d="M9 22V12h6v10" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Dnes</div></div>
+    <div class="tab" onclick="nav('klienti')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="9" cy="7" r="4" stroke="#8e8e93" stroke-width="2"/><path d="M2 21c0-4 3-7 7-7h5" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Klienti</div></div>
+    <div class="tab active"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" fill="#c9a84c"/></svg></div><div class="tab-lbl" style="color:#c9a84c">Zprávy</div></div>
+    <div class="tab" onclick="nav('ziadosti')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="#8e8e93" stroke-width="2"/></svg></div><div class="tab-lbl">Žádosti</div></div>
+    <div class="tab" onclick="nav('profil')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="#8e8e93" stroke-width="2"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Profil</div></div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     CHAT DETAIL — trenér (s kontextovým panelem)
+════════════════════════════════════════════ -->
+<div class="phone-wrap">
+<div class="phone-label">Chat — trenér pohled</div>
+<div class="phone" id="ph-trainer-chat" style="display:none">
+  <div class="di"></div>
+  <div class="status-bar"><span class="sb-time">9:41</span><div class="sb-icons"><svg width="17" height="12" viewBox="0 0 17 12" fill="#000"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0" width="3" height="12" rx="1"/></svg><svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0" y="1" width="21" height="10" rx="3.5" stroke="#000" stroke-width="1"/><rect x="1.5" y="2.5" width="15" height="7" rx="2" fill="#000"/></svg></div></div>
+
+  <!-- Fixed header -->
+  <div class="chat-header">
+    <div style="height:59px"></div>
+    <div class="chat-header-inner">
+      <div class="chat-back" onclick="nav('zpravy')">
+        <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M8.5 1.5L2 8l6.5 6.5" stroke="#007aff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span style="font-size:16px;color:var(--ios-blue);margin-left:2px">Zprávy</span>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center">
+        <div class="chat-av-sm" style="background:rgba(0,122,255,.12);color:var(--ios-blue);margin-bottom:2px">PH</div>
+        <div class="chat-hdr-name">Petra Horáková</div>
+        <div class="chat-hdr-sub" style="display:flex;align-items:center;gap:5px">
+          <span style="color:var(--ios-green)">● Online</span>
+          <span style="color:var(--ios-label3)">·</span>
+          <span style="font-size:11px;font-weight:600;color:var(--ios-green)">95 % compliance</span>
+        </div>
+      </div>
+      <div class="chat-hdr-actions">
+        <div class="chat-hdr-btn" onclick="toggleCtxPanel()" id="ctx-toggle-btn" style="background:rgba(201,168,76,.15)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c9a84c" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Context panel (toggleable) -->
+  <div id="trainer-ctx-panel" style="position:absolute;top:140px;right:0;width:200px;bottom:72px;background:var(--ios-bg2);border-left:.5px solid var(--ios-sep2);z-index:15;overflow-y:auto;display:none">
+    <div style="padding:14px 12px">
+      <div style="font-size:11px;font-weight:600;color:var(--ios-label3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Petra Horáková</div>
+
+      <!-- Quick stats -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px">
+        <div style="background:var(--ios-bg);border-radius:10px;padding:8px;text-align:center">
+          <div style="font-size:16px;font-weight:700;color:var(--ios-green)">95%</div>
+          <div style="font-size:10px;color:var(--ios-label3)">Compliance</div>
+        </div>
+        <div style="background:var(--ios-bg);border-radius:10px;padding:8px;text-align:center">
+          <div style="font-size:16px;font-weight:700;color:var(--ios-orange)">🔥21</div>
+          <div style="font-size:10px;color:var(--ios-label3)">Streak</div>
+        </div>
+        <div style="background:var(--ios-bg);border-radius:10px;padding:8px;text-align:center">
+          <div style="font-size:16px;font-weight:700;color:var(--ios-green)">−2,4</div>
+          <div style="font-size:10px;color:var(--ios-label3)">kg pokrok</div>
+        </div>
+        <div style="background:var(--ios-bg);border-radius:10px;padding:8px;text-align:center">
+          <div style="font-size:16px;font-weight:700;color:var(--ios-label)">63,1</div>
+          <div style="font-size:10px;color:var(--ios-label3)">kg váha</div>
+        </div>
+      </div>
+
+      <div style="font-size:11px;font-weight:600;color:var(--ios-label3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Dnešní plán</div>
+      <div style="background:var(--ios-bg);border-radius:10px;padding:8px 10px;margin-bottom:8px">
+        <div style="font-size:12px;font-weight:600;color:var(--ios-label)">Push A</div>
+        <div style="font-size:11px;color:var(--ios-label2);margin-top:2px">3/5 cviků ✓</div>
+        <div style="height:3px;background:var(--ios-fill);border-radius:99px;margin-top:6px;overflow:hidden"><div style="width:60%;height:100%;background:var(--ios-gold);border-radius:99px"></div></div>
+      </div>
+
+      <div style="font-size:11px;font-weight:600;color:var(--ios-label3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Rychlé akce</div>
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <div style="padding:8px 10px;background:rgba(201,168,76,.1);border-radius:9px;font-size:12px;font-weight:600;color:var(--ios-gold);cursor:pointer;text-align:center">📋 Otevřít profil</div>
+        <div style="padding:8px 10px;background:var(--ios-fill);border-radius:9px;font-size:12px;font-weight:500;color:var(--ios-label2);cursor:pointer;text-align:center">🎯 Upravit plán</div>
+        <div style="padding:8px 10px;background:var(--ios-fill);border-radius:9px;font-size:12px;font-weight:500;color:var(--ios-label2);cursor:pointer;text-align:center">📊 Sdílet pokrok</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Messages -->
+  <div class="chat-scroll" id="trainer-chat-scroll" style="top:140px">
+
+    <div class="chat-ctx-banner">
+      <div class="chat-ctx-icon">📋</div>
+      <div class="chat-ctx-body">
+        <div class="chat-ctx-title">Silový A/B — odeslán</div>
+        <div class="chat-ctx-sub">Petra dnes trénuje Push A · 3/5 ✓</div>
+      </div>
+      <div class="chat-ctx-action">Detail</div>
+    </div>
+
+    <div class="msg-date-sep">Dnes</div>
+
+    <!-- Me (trenér) -->
+    <div class="msg-row me">
+      <div>
+        <div class="msg-bubble me">Ahoj Petro! Jak se cítíš po dnešním tréninku? 💪</div>
+        <div class="msg-time me">13:20</div>
+      </div>
+    </div>
+
+    <!-- Plan attachment (from trainer) -->
+    <div class="msg-row me" style="margin-top:4px">
+      <div class="msg-plan-card" style="border-radius:14px;overflow:hidden;border:.5px solid var(--ios-sep2);max-width:220px">
+        <div class="msg-plan-hero" style="background:linear-gradient(135deg,#1a1a2e,#16213e)">
+          <div><div class="msg-plan-label">Tréninkový plán</div><div class="msg-plan-name">Silový A/B</div></div>
+        </div>
+        <div class="msg-plan-body">
+          <div class="msg-plan-meta">4× týdně · Týden 4/12</div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--ios-label3)"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Them (klient) -->
+    <div class="msg-group" style="margin-top:8px">
+      <div class="msg-row them">
+        <div class="msg-av-tiny" style="background:rgba(0,122,255,.12);color:var(--ios-blue)">PH</div>
+        <div>
+          <div class="msg-bubble them">Wow, to vypadá skvěle! Díky moc 🙏</div>
+          <div class="msg-time">13:35</div>
+        </div>
+      </div>
+    </div>
+    <div class="msg-row them" style="margin-top:4px">
+      <div style="width:32px;flex-shrink:0"></div>
+      <div>
+        <div class="msg-bubble them">Mám otázku k bench pressu — mám dávat 80 kg hned od první série?</div>
+        <div class="msg-time">13:36</div>
+      </div>
+    </div>
+
+    <!-- Me reply -->
+    <div class="msg-row me" style="margin-top:8px">
+      <div>
+        <div class="msg-bubble me">Ne, začni s rozcvičovacími sériemi. 50 % × 10, pak 70 % × 5, až pak 80 kg.</div>
+        <div class="msg-time me">13:48</div>
+      </div>
+    </div>
+
+    <div style="height:8px"></div>
+  </div>
+
+  <!-- Input bar -->
+  <div class="chat-input-bar">
+    <div class="chat-input-attach">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="color:var(--ios-label2)"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+    </div>
+    <div class="chat-input-wrap">
+      <span class="chat-input-placeholder">Zpráva...</span>
+    </div>
+    <div class="chat-send">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M22 2L11 13M22 2L15 22 11 13 2 9l20-7z"/></svg>
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <div class="tab" onclick="nav('dnes')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="#8e8e93" stroke-width="2"/><path d="M9 22V12h6v10" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Dnes</div></div>
+    <div class="tab" onclick="nav('klienti')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="9" cy="7" r="4" stroke="#8e8e93" stroke-width="2"/><path d="M2 21c0-4 3-7 7-7h5" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Klienti</div></div>
+    <div class="tab active" onclick="nav('zpravy')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" fill="#c9a84c"/></svg></div><div class="tab-lbl" style="color:#c9a84c">Zprávy</div></div>
+    <div class="tab" onclick="nav('ziadosti')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="#8e8e93" stroke-width="2"/></svg></div><div class="tab-lbl">Žádosti</div></div>
+    <div class="tab" onclick="nav('profil')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="#8e8e93" stroke-width="2"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Profil</div></div>
+  </div>
+</div>
+</div>
+
+</div><!-- /stage -->
+
+<script>
+var _dark = false;
+var _activeDetailTab = 'progress';
+
+var SCREENS = {
+  'dnes':        'ph-dnes',
+  'klienti':     'ph-klienti',
+  'detail':      'ph-detail',
+  'plan-trenink':'ph-detail',
+  'ziadosti':    'ph-ziadosti',
+  'profil':      'ph-profil',
+  'zpravy':      'ph-trainer-zpravy',
+  'chat':        'ph-trainer-chat',
+};
+
+var NAV_LABELS = {
+  'dnes':'Dnes','klienti':'Klienti','detail':'Detail klienta','plan-trenink':'Náhled plánu',
+  'ziadosti':'Hledat klienty','profil':'Profil','zpravy':'Zprávy','chat':'Chat detail'
+};
+
+function nav(id){
+  // Show correct phone
+  var phoneId = SCREENS[id];
+  document.querySelectorAll('.phone').forEach(function(p){ p.style.display='none'; });
+  var ph = document.getElementById(phoneId); if(ph) ph.style.display='block';
+
+  // Highlight nav btn
+  document.querySelectorAll('.pb').forEach(function(b){ b.classList.remove('active'); });
+  document.querySelectorAll('.pb').forEach(function(b){
+    if(b.textContent.trim() === NAV_LABELS[id]) b.classList.add('active');
+  });
+
+  // If navigating to plan, auto-switch to plan tab
+  if(id === 'plan-trenink') switchDetailTab('plan');
+  else if(id === 'detail')  { switchDetailTab(_activeDetailTab); setTimeout(setDetailScrollTop, 0); }
+}
+
+function switchDetailTab(tab){
+  _activeDetailTab = tab;
+  ['progress','plan','dotaznik'].forEach(function(t){
+    var el = document.getElementById('dtab-content-'+t);
+    if(el) el.style.display = t===tab ? '' : 'none';
+    var btn = document.getElementById('dtab-btn-'+t);
+    if(btn) btn.classList.toggle('active', t===tab);
+    var nb = document.getElementById('dtab-'+t);
+    if(nb && nb.tagName === 'BUTTON') nb.classList.toggle('active', t===tab);
+  });
+  // Scroll content to top
+  var ds = document.getElementById('detail-scroll');
+  if(ds) ds.scrollTop = 0;
+  // Show detail phone if hidden
+  var ph = document.getElementById('ph-detail');
+  if(ph && ph.style.display === 'none'){
+    document.querySelectorAll('.phone').forEach(function(p){ p.style.display='none'; });
+    ph.style.display = 'block';
+  }
+  // Set scroll area top based on fixed header height
+  setDetailScrollTop();
+}
+
+function setDetailScrollTop(){
+  var header = document.querySelector('#ph-detail > div[style*="position:absolute"][style*="top:59px"]');
+  var ds = document.getElementById('detail-scroll');
+  if(header && ds){
+    var h = header.offsetHeight;
+    ds.style.top = (59 + h) + 'px';
+    // Also update spacer to 0 (we handle offset via top)
+  }
+}
+
+function toggleDark(){
+  _dark = !_dark;
+  document.body.classList.toggle('dark-proto', _dark);
+  document.getElementById('dark-btn').textContent = _dark ? '☀' : '☾';
+  document.querySelectorAll('.sb-time').forEach(function(el){ el.style.color = _dark?'#fff':'#000'; });
+  document.querySelectorAll('.phone').forEach(function(p){
+    if(_dark){
+      p.style.setProperty('--ios-bg','#1c1c1e'); p.style.setProperty('--ios-bg2','#2c2c2e');
+      p.style.setProperty('--ios-label','#ffffff'); p.style.setProperty('--ios-label2','rgba(235,235,245,.6)');
+      p.style.setProperty('--ios-label3','rgba(235,235,245,.3)');
+      p.style.setProperty('--ios-fill','rgba(120,120,128,.24)'); p.style.setProperty('--ios-fill2','rgba(120,120,128,.16)');
+      p.style.setProperty('--ios-sep','rgba(84,84,88,.65)'); p.style.setProperty('--ios-sep2','rgba(84,84,88,.4)');
+      p.style.background = '#000';
+    } else {
+      ['--ios-bg','--ios-bg2','--ios-label','--ios-label2','--ios-label3','--ios-fill','--ios-fill2','--ios-sep','--ios-sep2'].forEach(function(v){ p.style.removeProperty(v); });
+      p.style.background = '#f2f2f7';
+    }
+  });
+}
+
+nav('klienti');
+
+function switchPlanTab(tab){
+  var tView = document.getElementById('plan-trenink-view');
+  var nView = document.getElementById('plan-nutr-view');
+  var tSeg  = document.getElementById('plan-seg-trenink');
+  var nSeg  = document.getElementById('plan-seg-nutr');
+  if(!tView||!nView) return;
+  tView.style.display = tab==='trenink' ? '' : 'none';
+  nView.style.display = tab==='nutr'    ? '' : 'none';
+  if(tSeg) tSeg.classList.toggle('active', tab==='trenink');
+  if(nSeg) nSeg.classList.toggle('active', tab==='nutr');
+}
+</script>
+</body>
+</html>
