@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
 import { View, TextInput, Pressable, StyleSheet } from 'react-native'
-import { BlurView } from 'expo-blur'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/hooks/useTheme'
@@ -30,7 +29,7 @@ export function ChatInputBar({ onSend, onAttachPress, onTyping }: ChatInputBarPr
   }
 
   return (
-    <BlurView intensity={80} tint="default" style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.bg }]}>
       <View
         style={[
           styles.inner,
@@ -82,7 +81,7 @@ export function ChatInputBar({ onSend, onAttachPress, onTyping }: ChatInputBarPr
           <Ionicons name="arrow-up" size={18} color="#ffffff" />
         </Pressable>
       </View>
-    </BlurView>
+    </View>
   )
 }
 

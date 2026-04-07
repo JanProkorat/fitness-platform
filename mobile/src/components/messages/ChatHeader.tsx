@@ -1,6 +1,5 @@
 import React from 'react'
 import { View, Text, Pressable, StyleSheet } from 'react-native'
-import { BlurView } from 'expo-blur'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/hooks/useTheme'
 import type { Participant } from '../../types/messages'
@@ -23,7 +22,7 @@ export function ChatHeader({ participant, onBack, onInfoPress }: ChatHeaderProps
   const colors = useTheme()
 
   return (
-    <BlurView intensity={80} tint="default" style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.bg }]}>
       <View style={[styles.inner, { borderBottomColor: colors.sep2 }]}>
         {/* Left: Back button */}
         <Pressable onPress={onBack} hitSlop={8} style={styles.backBtn}>
@@ -56,7 +55,7 @@ export function ChatHeader({ participant, onBack, onInfoPress }: ChatHeaderProps
           </Pressable>
         </View>
       </View>
-    </BlurView>
+    </View>
   )
 }
 
