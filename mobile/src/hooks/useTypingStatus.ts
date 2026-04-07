@@ -6,8 +6,11 @@ export function useTypingStatus(threadId: string) {
   // Read typing state written by the global handler in _layout
   const { data: isTyping } = useQuery({
     queryKey: ['typing', threadId],
+    queryFn: () => false,
     initialData: false,
     staleTime: Infinity,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
   })
 
   // Send typing indicator via SignalR hub method
