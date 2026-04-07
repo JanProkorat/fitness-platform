@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
   backBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    flexShrink: 0,
+    width: 100,
   },
   center: {
     flex: 1,
@@ -100,8 +100,9 @@ const styles = StyleSheet.create({
   },
   rightActions: {
     flexDirection: 'row',
+    justifyContent: 'flex-end',
     gap: 10,
-    flexShrink: 0,
+    width: 100,
   },
   actionBtn: {
     width: 32,
