@@ -42,7 +42,7 @@ export default function ArchivedMessagesScreen() {
       <View style={[styles.container, { backgroundColor: colors.bg, paddingTop: insets.top }]}>
         {/* Header */}
         <View style={[styles.header, { backgroundColor: colors.bg, borderBottomColor: colors.sep2 }]}>
-          <Pressable onPress={() => router.navigate('/(client)/messages' as never)} style={styles.backBtn}>
+          <Pressable onPress={() => router.back()} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={24} color={colors.blue} />
             <Text style={{ fontSize: 16, color: colors.blue }}>Messages</Text>
           </Pressable>

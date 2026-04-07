@@ -237,8 +237,6 @@ export default function ClientTabLayout() {
       <Tabs.Screen name="measurements/index" options={{ href: null }} />
       <Tabs.Screen name="measurements/new" options={{ href: null }} />
       <Tabs.Screen name="plans/[planId]" options={{ href: null }} />
-      <Tabs.Screen name="messages/[threadId]" options={{ href: null, tabBarStyle: { display: 'none' } }} />
-      <Tabs.Screen name="messages/archived" options={{ href: null, tabBarStyle: { display: 'none' } }} />
     </Tabs>
   );
 }
