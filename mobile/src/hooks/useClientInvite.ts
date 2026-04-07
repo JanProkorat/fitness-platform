@@ -12,16 +12,16 @@ export interface TrainerInvite {
 }
 
 async function fetchPendingInvite(): Promise<TrainerInvite | null> {
-  const { data } = await api.get('/api/client/invites/pending')
+  const { data } = await api.get('/client/invites/pending')
   return data ?? null
 }
 
 async function acceptInvite(id: string): Promise<void> {
-  await api.post(`/api/client/invites/${id}/accept`)
+  await api.post(`/client/invites/${id}/accept`)
 }
 
 async function declineInvite(id: string): Promise<void> {
-  await api.post(`/api/client/invites/${id}/decline`)
+  await api.post(`/client/invites/${id}/decline`)
 }
 
 export function useClientInvite(enabled: boolean) {
@@ -42,6 +42,8 @@ export function useClientInvite(enabled: boolean) {
       await refreshProfile()
       queryClient.invalidateQueries({ queryKey: ['today-plan'] })
       queryClient.invalidateQueries({ queryKey: ['today-training'] })
+      queryClient.invalidateQueries({ queryKey: ['conversation-context'] })
+      queryClient.invalidateQueries({ queryKey: ['conversations'] })
     },
   })
 
@@ -49,6 +51,8 @@ export function useClientInvite(enabled: boolean) {
     mutationFn: declineInvite,
     onSuccess: () => {
       queryClient.setQueryData(['client-invite'], null)
+      queryClient.invalidateQueries({ queryKey: ['conversation-context'] })
+      queryClient.invalidateQueries({ queryKey: ['conversations'] })
     },
   })
 
