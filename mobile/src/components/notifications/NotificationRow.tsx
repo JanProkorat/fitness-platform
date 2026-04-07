@@ -60,11 +60,14 @@ export function NotificationRow({ notification, onAction, onDismiss }: Notificat
         !read && { backgroundColor: 'rgba(201,168,76,0.04)' },
       ]}
     >
-      {!read && <View style={styles.unreadDot} />}
-
-      <View style={[styles.icon, { backgroundColor: NOTIF_ICON_BG[type] }]}>
-        <Ionicons name={NOTIF_ICON[type]} size={22} color={NOTIF_ICON_COLOR[type]} />
-      </View>
+      {!read && (
+        <>
+          <View style={styles.unreadDot} />
+          <View style={[styles.icon, { backgroundColor: NOTIF_ICON_BG[type] }]}>
+            <Ionicons name={NOTIF_ICON[type]} size={22} color={NOTIF_ICON_COLOR[type]} />
+          </View>
+        </>
+      )}
 
       <View style={styles.body}>
         <View style={styles.titleRow}>
