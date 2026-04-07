@@ -55,7 +55,7 @@ export async function sendMessage(
 export async function markConversationRead(
   conversationId: string,
 ): Promise<void> {
-  await api.post(`/conversations/${conversationId}/read`, {});
+  await api.post(`/conversations/${conversationId}/read`);
 }
 
 export async function startConversation(

@@ -4,7 +4,6 @@ import { useAuthStore } from '@/stores/auth';
 
 const api = axios.create({
   baseURL: '/',
-  headers: { 'Content-Type': 'application/json' },
 });
 
 // Axios instance for NSwag-generated client — returns raw text so NSwag's JSON.parse() works

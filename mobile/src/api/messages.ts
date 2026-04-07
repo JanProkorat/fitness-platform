@@ -43,7 +43,7 @@ export async function sendMessage(
 export async function markConversationRead(
   conversationId: string,
 ): Promise<void> {
-  await api.post(`/conversations/${conversationId}/read`, {})
+  await api.post(`/conversations/${conversationId}/read`)
 }
 
 export async function fetchConversationContext(
@@ -65,7 +65,7 @@ export async function fetchTypingStatus(
 export async function sendTypingIndicator(
   conversationId: string,
 ): Promise<void> {
-  await api.post(`/conversations/${conversationId}/typing`, {})
+  await api.post(`/conversations/${conversationId}/typing`)
 }
 
 export async function startConversation(

@@ -25,11 +25,11 @@ async function fetchNotifications(): Promise<NotificationsResponse> {
 }
 
 async function markAllRead(): Promise<void> {
-  await api.post('/client/notifications/read-all', {})
+  await api.post('/client/notifications/read-all')
 }
 
 async function markOneRead(id: string): Promise<void> {
-  await api.post(`/client/notifications/${id}/read`, {})
+  await api.post(`/client/notifications/${id}/read`)
 }
 
 export function useNotifications() {
