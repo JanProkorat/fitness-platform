@@ -60,16 +60,10 @@ export function InviteCard({ invite, onAccept, onDecline }: InviteCardProps) {
           </View>
         </View>
 
-        {/* Message */}
-        {invite.message ? (
-          <Text style={[Type.subheadline, { color: colors.label2, marginTop: 10 }]}>
-            {invite.message}
-          </Text>
-        ) : (
-          <Text style={[Type.subheadline, { color: colors.label2, marginTop: 10 }]}>
-            {invite.trainerName} would like to work with you as your {invite.trainerRole.toLowerCase()}.
-          </Text>
-        )}
+        {/* Invite text — personal message now lives in the chat */}
+        <Text style={[Type.subheadline, { color: colors.label2, marginTop: 10 }]}>
+          {invite.trainerName} invites you to collaborate
+        </Text>
 
         {/* Actions */}
         <View style={styles.actions}>
