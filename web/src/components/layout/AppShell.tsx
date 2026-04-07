@@ -56,6 +56,16 @@ export function AppShell() {
       queryClient.invalidateQueries({ queryKey: ['pending-invites'] });
       queryClient.invalidateQueries({ queryKey: ['sidebar-clients'] });
     },
+    inviteDeclined: (payload: unknown) => {
+      const data = payload as { clientName?: string } | undefined;
+      addToast(
+        data?.clientName
+          ? `${data.clientName} declined your invitation`
+          : 'Your invitation was declined',
+        'error',
+      );
+      queryClient.invalidateQueries({ queryKey: ['pending-invites'] });
+    },
     questionnaireSubmitted: () => {
       addToast(t('notifications.questionnaireSubmitted'), 'success');
       queryClient.invalidateQueries({ queryKey: ['sidebar-clients'] });

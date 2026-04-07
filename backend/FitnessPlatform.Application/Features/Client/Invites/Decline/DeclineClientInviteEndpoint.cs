@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,7 +10,7 @@ namespace FitnessPlatform.Application.Features.Client.Invites.Decline;
 /// <summary>
 /// Client declines a pending invite. Marks it as accepted (consumed) without creating a link.
 /// </summary>
-public class DeclineClientInviteEndpoint(IApplicationDbContext db) : Endpoint<DeclineClientInviteRequest>
+public class DeclineClientInviteEndpoint(IApplicationDbContext db, IRealtimeNotifier notifier) : Endpoint<DeclineClientInviteRequest>
 {
     public override void Configure()
     {
@@ -28,6 +29,7 @@ public class DeclineClientInviteEndpoint(IApplicationDbContext db) : Endpoint<De
         if (userId is null) { await Send.UnauthorizedAsync(ct); return; }
 
         var invite = await db.PendingInvites
+            .Include(pi => pi.ProfessionalProfile)
             .FirstOrDefaultAsync(pi => pi.PublicId == req.Id && !pi.IsAccepted, ct);
 
         if (invite is null)
@@ -39,6 +41,19 @@ public class DeclineClientInviteEndpoint(IApplicationDbContext db) : Endpoint<De
         // Mark as consumed so it no longer appears as pending
         invite.IsAccepted = true;
         await db.SaveChangesAsync(ct);
+
+        // Notify the professional that the invite was declined
+        var clientUser = await db.Users.AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == Guid.Parse(userId), ct);
+        var clientName = clientUser is not null
+            ? $"{clientUser.FirstName} {clientUser.LastName}"
+            : invite.Email;
+
+        await notifier.NotifyAsync(
+            invite.ProfessionalProfile.UserId,
+            "inviteDeclined",
+            new { clientName, inviteId = invite.PublicId },
+            ct);
 
         await Send.NoContentAsync(ct);
     }
