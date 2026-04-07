@@ -58,6 +58,7 @@ export function AppShell() {
     },
     inviteDeclined: (payload: unknown) => {
       const data = payload as { clientName?: string } | undefined;
+      console.log('[SignalR] inviteDeclined received:', data);
       addToast(
         data?.clientName
           ? `${data.clientName} declined your invitation`
@@ -65,6 +66,7 @@ export function AppShell() {
         'error',
       );
       queryClient.invalidateQueries({ queryKey: ['pending-invites'] });
+      queryClient.invalidateQueries({ queryKey: ['sidebar-clients'] });
     },
     questionnaireSubmitted: () => {
       addToast(t('notifications.questionnaireSubmitted'), 'success');

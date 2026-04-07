@@ -23,6 +23,8 @@ import { NutritionCard } from '@/components/nutrition/NutritionCard'
 import { BellButton } from '@/components/ui/BellButton'
 import { NotificationSheet } from '@/components/notifications/NotificationSheet'
 import { InviteCard } from '@/components/notifications/InviteCard'
+import { InviteBanner } from '@/components/notifications/InviteBanner'
+import { useMessagesStore } from '@/stores/messagesStore'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useClientInvite } from '@/hooks/useClientInvite'
 import { Toast } from '@/lib/toast'
@@ -106,6 +108,8 @@ export default function TodayScreen() {
   const user = useAuthStore((s) => s.user)
   const hasTrainer = user?.hasActiveLink ?? false
   const [sheetOpen, setSheetOpen] = useState(false)
+  const pendingInviteBanner = useMessagesStore((s) => s.pendingInviteBanner)
+  const dismissInviteBanner = useMessagesStore((s) => s.dismissInviteBanner)
 
   // Notifications
   const {
@@ -275,6 +279,18 @@ export default function TodayScreen() {
             onPress={() => setSheetOpen(true)}
           />
         </View>
+
+        {/* Invite arrival banner */}
+        {pendingInviteBanner && (
+          <InviteBanner
+            trainerName={pendingInviteBanner}
+            onPress={() => {
+              dismissInviteBanner()
+              // Scroll to the invite card below
+            }}
+            onDismiss={dismissInviteBanner}
+          />
+        )}
 
         {/* Pending invite */}
         {invite && (

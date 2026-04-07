@@ -106,8 +106,12 @@ export default function ClientTabLayout() {
         queryClient.invalidateQueries({ queryKey: ['my-requests'] });
         queryClient.invalidateQueries({ queryKey: ['notifications'] });
       }),
-      onEvent('invitationReceived', () => {
-        localNotify('New invitation', 'You received a new invitation.');
+      onEvent('invitationReceived', (raw: unknown) => {
+        const data = raw as { trainerName?: string } | undefined;
+        localNotify('New invitation', data?.trainerName
+          ? `${data.trainerName} invited you`
+          : 'You received a new invitation.');
+        useMessagesStore.getState().showInviteBanner(data?.trainerName ?? 'Your trainer');
         queryClient.invalidateQueries({ queryKey: ['client-invite'] });
         queryClient.invalidateQueries({ queryKey: ['notifications'] });
       }),
