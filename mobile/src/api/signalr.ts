@@ -69,6 +69,7 @@ export async function disconnect(): Promise<void> {
 
 export function onEvent(eventType: string, callback: (payload: unknown) => void): () => void {
   const conn = getConnection();
-  conn.on(eventType, callback);
-  return () => conn.off(eventType, callback);
+  const key = eventType.toLowerCase();
+  conn.on(key, callback);
+  return () => conn.off(key, callback);
 }
