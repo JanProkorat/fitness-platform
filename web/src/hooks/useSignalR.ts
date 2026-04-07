@@ -7,6 +7,15 @@ import {
 } from '@microsoft/signalr';
 import { useAuthStore } from '@/stores/auth';
 
+let _connection: HubConnection | null = null;
+
+/** Invoke a hub method on the current SignalR connection (fire-and-forget). */
+export function invokeHub(method: string, ...args: unknown[]): void {
+  if (_connection?.state === HubConnectionState.Connected) {
+    _connection.invoke(method, ...args).catch(() => {});
+  }
+}
+
 /**
  * Manages a SignalR connection to the notification hub.
  * Connects when the user is authenticated, disconnects on logout.
@@ -16,13 +25,12 @@ import { useAuthStore } from '@/stores/auth';
 export function useSignalR(handlers: Record<string, (payload: unknown) => void>) {
   const connectionRef = useRef<HubConnection | null>(null);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const accessToken = useAuthStore((s) => s.accessToken);
   const handlersRef = useRef(handlers);
   handlersRef.current = handlers;
 
+  // Connect/disconnect based on auth state only (not token changes)
   useEffect(() => {
-    if (!isAuthenticated || !accessToken) {
-      // Disconnect if we were connected
+    if (!isAuthenticated) {
       if (connectionRef.current) {
         connectionRef.current.stop();
         connectionRef.current = null;
@@ -39,11 +47,12 @@ export function useSignalR(handlers: Record<string, (payload: unknown) => void>)
       .build();
 
     connectionRef.current = connection;
+    _connection = connection;
 
-    // Register all event handlers
-    const eventNames = Object.keys(handlersRef.current);
-    for (const event of eventNames) {
-      connection.on(event, (payload: unknown) => {
+    // SignalR JS client lowercases method names — register with lowercase
+    // but dispatch to the original-cased handler
+    for (const event of Object.keys(handlersRef.current)) {
+      connection.on(event.toLowerCase(), (payload: unknown) => {
         handlersRef.current[event]?.(payload);
       });
     }
@@ -52,23 +61,28 @@ export function useSignalR(handlers: Record<string, (payload: unknown) => void>)
       console.warn('[SignalR] Connection failed:', err);
     });
 
+    connection.onreconnected(() => {
+      console.log('[SignalR] Reconnected');
+    });
+
     return () => {
       if (connection.state !== HubConnectionState.Disconnected) {
         connection.stop();
       }
       connectionRef.current = null;
+      _connection = null;
     };
-  }, [isAuthenticated, accessToken]);
+  }, [isAuthenticated]);
 
-  // Update handlers when they change (new events added)
+  // Update handlers when they change
   useEffect(() => {
     const conn = connectionRef.current;
     if (!conn) return;
 
-    const eventNames = Object.keys(handlers);
-    for (const event of eventNames) {
-      conn.off(event);
-      conn.on(event, (payload: unknown) => {
+    for (const event of Object.keys(handlers)) {
+      const key = event.toLowerCase();
+      conn.off(key);
+      conn.on(key, (payload: unknown) => {
         handlersRef.current[event]?.(payload);
       });
     }

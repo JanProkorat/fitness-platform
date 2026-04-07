@@ -120,6 +120,9 @@ export default function ClientTabLayout() {
           queryClient.invalidateQueries({ queryKey: ['messages', payload.threadId] });
         }
       }),
+      onEvent('userPresence', () => {
+        queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      }),
     ];
 
     return () => {

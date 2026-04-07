@@ -7,6 +7,7 @@ using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Application.Infrastructure.Hubs;
 using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Application.Middleware;
 using MongoDB.Bson;
@@ -98,6 +99,27 @@ builder.Services
         };
     });
 
+// SignalR JWT: extract token from query string for hub connections
+builder.Services.AddOptions<Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerOptions>(
+    Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme)
+    .Configure(options =>
+    {
+        options.Events ??= new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents();
+        var existingOnMessageReceived = options.Events.OnMessageReceived;
+        options.Events.OnMessageReceived = async context =>
+        {
+            if (existingOnMessageReceived is not null)
+                await existingOnMessageReceived(context);
+
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+            {
+                context.Token = accessToken;
+            }
+        };
+    });
+
 // Rate Limiting
 var rateLimitingDisabled = builder.Configuration.GetValue<bool>("RateLimiting:Disabled");
 
@@ -131,6 +153,10 @@ builder.Services.AddCors(options =>
     });
 });
 
+// SignalR
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<PresenceTracker>();
+
 // Open Food Facts
 var offBaseUrl = builder.Configuration[ConfigKeys.OpenFoodFactsBaseUrl] ?? "https://world.openfoodfacts.org/";
 var offTimeout = builder.Configuration.GetValue(ConfigKeys.OpenFoodFactsTimeoutSeconds, 5);
@@ -157,9 +183,14 @@ builder.Services.AddScoped<NutritionAuthHelper>();
 builder.Services.AddScoped<ProfessionalAuthHelper>();
 builder.Services.AddScoped<IPrDetectionService, PrDetectionService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IPushNotificationService, ExpoPushNotificationService>();
+builder.Services.AddScoped<IProfileMapperService, ProfileMapperService>();
 
 // Email
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();
+
+// Realtime notifications (SignalR)
+builder.Services.AddScoped<IRealtimeNotifier, SignalRNotifier>();
 
 // Compliance
 builder.Services.AddScoped<IComplianceService, ComplianceService>();
@@ -192,6 +223,7 @@ if (!app.Environment.IsDevelopment())
 app.UseCors(AppPolicies.AllowWebApp);
 app.UseAuthentication();
 app.UseAuthorization();
+app.MapHub<NotificationHub>("/hubs/notifications");
 app.UseRateLimiter();
 app.UseFastEndpoints(c =>
 {

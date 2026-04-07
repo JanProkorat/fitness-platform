@@ -1,259 +1,430 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/cn';
-import { Button, SearchInput } from '@/components/ui';
 import { MessageBubble } from '@/components/domain';
+import { useAuthStore } from '@/stores/auth';
+import { invokeHub } from '@/hooks/useSignalR';
+import {
+  fetchConversations,
+  fetchMessages,
+  sendMessage,
+  markConversationRead,
+  startConversation,
+  type ConversationDto,
+  type MessageDto,
+} from '@/api/messages';
 
-interface Conversation {
-  id: string;
-  name: string;
-  initials: string;
-  avatarColor: string;
-  lastMessage: string;
-  time: string;
-  unread: number;
-}
-
-interface Message {
-  id: string;
-  name: string;
-  initials: string;
-  avatarColor: string;
-  text: string;
-  time: string;
-  isOwn: boolean;
-}
-
-const MOCK_CONVERSATIONS: Conversation[] = [
-  {
-    id: '1',
-    name: 'Petra Horakova',
-    initials: 'PH',
-    avatarColor: 'bg-red-bg text-red',
-    lastMessage: 'Splneno! 💪',
-    time: '14:32',
-    unread: 0,
-  },
-  {
-    id: '2',
-    name: 'Martin Cervenka',
-    initials: 'MC',
-    avatarColor: 'bg-blue-bg text-blue',
-    lastMessage: 'Omlouvam se za vypadek...',
-    time: '12:10',
-    unread: 1,
-  },
-  {
-    id: '3',
-    name: 'Jana Kovarova',
-    initials: 'JK',
-    avatarColor: 'bg-green-bg text-green',
-    lastMessage: 'Dekuji za plan!',
-    time: 'vce',
-    unread: 0,
-  },
-  {
-    id: '4',
-    name: 'Tomas Dvorak',
-    initials: 'TD',
-    avatarColor: 'bg-purple-bg text-purple',
-    lastMessage: 'Mohu zmenit trenink na patek?',
-    time: 'vce',
-    unread: 2,
-  },
+// ── Avatar color palette ──
+const AVATAR_COLORS = [
+  '#0b6e99', '#ad5700', '#0f7b6c', '#6940a5',
+  '#c9a84c', '#d44d2c', '#2d7d9a', '#8854d0',
 ];
 
-const MOCK_MESSAGES: Record<string, Message[]> = {
-  '1': [
-    { id: 'm1', name: 'Petra Horakova', initials: 'PH', avatarColor: 'bg-red-bg text-red', text: 'Ahoj Marku! Novy treninkovy plan vypada skvele 💪', time: '13:48', isOwn: false },
-    { id: 'm2', name: 'Marek Trener', initials: 'MT', avatarColor: 'bg-bg3 text-text', text: 'Diky Petro! Jak se citis po prvnim treninku?', time: '13:52', isOwn: true },
-    { id: 'm3', name: 'Petra Horakova', initials: 'PH', avatarColor: 'bg-red-bg text-red', text: 'Super! Mam otazku ohledne jidelnicku – 80 g ryze je sucha nebo uvarena?', time: '14:11', isOwn: false },
-    { id: 'm4', name: 'Marek Trener', initials: 'MT', avatarColor: 'bg-bg3 text-text', text: 'Vzdy sucha gramaz 😊 Uvarena vazi priblizne 2,5× vice.', time: '14:22', isOwn: true },
-    { id: 'm5', name: 'Petra Horakova', initials: 'PH', avatarColor: 'bg-red-bg text-red', text: 'Splneno! 💪', time: '14:32', isOwn: false },
-  ],
-  '2': [
-    { id: 'm6', name: 'Martin Cervenka', initials: 'MC', avatarColor: 'bg-blue-bg text-blue', text: 'Ahoj, tento tyden jsem nestihl 2 treninky.', time: '11:20', isOwn: false },
-    { id: 'm7', name: 'Marek Trener', initials: 'MT', avatarColor: 'bg-bg3 text-text', text: 'Nevadi, zkus to dohnat o vikendu. Poslu ti upraveny plan.', time: '11:45', isOwn: true },
-    { id: 'm8', name: 'Martin Cervenka', initials: 'MC', avatarColor: 'bg-blue-bg text-blue', text: 'Omlouvam se za vypadek...', time: '12:10', isOwn: false },
-  ],
-  '3': [
-    { id: 'm9', name: 'Jana Kovarova', initials: 'JK', avatarColor: 'bg-green-bg text-green', text: 'Dekuji za plan!', time: 'vce 16:30', isOwn: false },
-  ],
-  '4': [
-    { id: 'm10', name: 'Tomas Dvorak', initials: 'TD', avatarColor: 'bg-purple-bg text-purple', text: 'Mohu zmenit trenink na patek?', time: 'vce 09:15', isOwn: false },
-    { id: 'm11', name: 'Tomas Dvorak', initials: 'TD', avatarColor: 'bg-purple-bg text-purple', text: 'A jeste bych chtel pridat cardio.', time: 'vce 09:16', isOwn: false },
-  ],
-};
+function colorForName(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
 
-export default function MessagesPage() {
-  const [activeConversation, setActiveConversation] = useState('1');
-  const [conversationSearch, setConversationSearch] = useState('');
-  const [messageInput, setMessageInput] = useState('');
-  const [messages, setMessages] = useState(MOCK_MESSAGES);
-  const listRef = useRef<HTMLDivElement>(null);
+function formatTime(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
 
-  const activeConv = MOCK_CONVERSATIONS.find((c) => c.id === activeConversation);
-  const activeMessages = messages[activeConversation] || [];
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - d.getTime()) / 86400000);
+  if (diffDays === 0) return 'Dnes';
+  if (diffDays === 1) return 'Včera';
+  return d.toLocaleDateString('cs', { weekday: 'long', day: 'numeric', month: 'long' });
+}
 
-  // Filter conversations by search
-  const filteredConversations = MOCK_CONVERSATIONS.filter((c) =>
-    c.name.toLowerCase().includes(conversationSearch.toLowerCase()),
-  );
+function formatConvTime(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - d.getTime()) / 86400000);
+  if (diffDays === 0) return formatTime(iso);
+  if (diffDays === 1) return 'Včera';
+  if (diffDays < 7) return d.toLocaleDateString('cs', { weekday: 'short' });
+  return d.toLocaleDateString('cs', { day: 'numeric', month: 'short' });
+}
 
-  // Auto-scroll to bottom
-  useEffect(() => {
-    if (listRef.current) {
-      listRef.current.scrollTop = listRef.current.scrollHeight;
-    }
-  }, [activeMessages.length, activeConversation]);
-
-  const handleSend = () => {
-    const text = messageInput.trim();
-    if (!text) return;
-
-    const now = new Date();
-    const time = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
-    const newMsg: Message = {
-      id: `m-${Date.now()}`,
-      name: 'Marek Trener',
-      initials: 'MT',
-      avatarColor: 'bg-bg3 text-text',
-      text,
-      time,
-      isOwn: true,
-    };
-
-    setMessages((prev) => ({
-      ...prev,
-      [activeConversation]: [...(prev[activeConversation] || []), newMsg],
-    }));
-    setMessageInput('');
-  };
+// ── Conversation Item ──
+function ConversationItem({
+  conv,
+  isActive,
+  onClick,
+}: {
+  conv: ConversationDto;
+  isActive: boolean;
+  onClick: () => void;
+}) {
+  const color = colorForName(conv.participant.name);
+  const hasUnread = conv.unreadCount > 0;
 
   return (
-    <div className="flex h-full overflow-hidden">
-      {/* Left panel - Conversation list */}
-      <div className="w-[280px] shrink-0 border-r border-border flex flex-col bg-bg">
-        <div className="p-3 border-b border-border">
-          <SearchInput
-            placeholder="Hledat konverzace..."
-            value={conversationSearch}
-            onChange={(e) => setConversationSearch(e.target.value)}
-          />
+    <div
+      onClick={onClick}
+      className={cn(
+        'flex items-center gap-2.5 px-3.5 py-2.5 cursor-pointer transition-colors border-b border-border relative',
+        isActive ? 'bg-bg-active' : 'hover:bg-bg-hover',
+      )}
+    >
+      {/* Avatar */}
+      <div
+        className="w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-[13px] font-semibold text-white relative"
+        style={{ backgroundColor: color }}
+      >
+        {conv.participant.initials}
+        {conv.participant.online && (
+          <div className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-green border-2 border-bg2" />
+        )}
+      </div>
+
+      {/* Body */}
+      <div className="flex-1 min-w-0">
+        <div className="text-[13px] font-medium text-text truncate">
+          {conv.participant.name}
         </div>
-        <div className="flex-1 overflow-y-auto">
-          {filteredConversations.map((conv) => (
-            <div
-              key={conv.id}
-              onClick={() => setActiveConversation(conv.id)}
-              className={cn(
-                'flex items-start gap-2.5 px-3 py-2.5 cursor-pointer transition-colors duration-100',
-                conv.id === activeConversation
-                  ? 'bg-bg-active'
-                  : 'hover:bg-bg-hover',
-              )}
-            >
-              {/* Avatar */}
-              <div
-                className={cn(
-                  'w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-[11px] font-semibold mt-0.5',
-                  conv.avatarColor,
-                )}
-              >
-                {conv.initials}
-              </div>
-              {/* Info */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-0.5">
-                  <span className="text-[13px] font-medium text-text truncate">
-                    {conv.name}
-                  </span>
-                  <span className="text-[11px] text-text3 shrink-0 ml-2">
-                    {conv.time}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs text-text3 truncate flex-1">
-                    {conv.lastMessage}
-                  </span>
-                  {conv.unread > 0 && (
-                    <span className="shrink-0 w-[18px] h-[18px] rounded-full bg-accent text-[10px] font-semibold text-bg flex items-center justify-center">
-                      {conv.unread}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
+        <div
+          className={cn(
+            'text-xs truncate mt-px',
+            hasUnread ? 'text-text font-medium' : 'text-text3',
+          )}
+        >
+          {conv.lastMessageIsOwn ? 'Vy: ' : ''}
+          {conv.lastMessage}
         </div>
       </div>
 
-      {/* Right panel - Message thread */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Header */}
-        {activeConv && (
-          <div className="px-5 py-3 border-b border-border flex items-center gap-3 shrink-0">
-            <div
-              className={cn(
-                'w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-[11px] font-semibold',
-                activeConv.avatarColor,
-              )}
-            >
-              {activeConv.initials}
-            </div>
-            <div>
-              <div className="text-[15px] font-semibold text-text">
-                {activeConv.name}
-              </div>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="w-2 h-2 rounded-full bg-green inline-block" />
-                <span className="text-[12px] text-text3">online</span>
-              </div>
-            </div>
+      {/* Right column */}
+      <div className="flex flex-col items-end gap-1 shrink-0">
+        <div className="text-[11px] text-text3">
+          {formatConvTime(conv.lastMessageAt)}
+        </div>
+        {hasUnread && (
+          <div className="min-w-[18px] h-[18px] rounded-full bg-accent text-white text-[11px] font-semibold flex items-center justify-center px-1">
+            {conv.unreadCount}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
 
-        {/* Messages */}
-        <div
-          ref={listRef}
-          className="flex-1 overflow-y-auto px-3 py-2"
-        >
-          <div className="flex flex-col gap-0.5">
-            {activeMessages.map((msg) => (
-              <MessageBubble
-                key={msg.id}
-                name={msg.name}
-                initials={msg.initials}
-                avatarColor={msg.avatarColor}
-                time={msg.time}
-                text={msg.text}
-                isOwn={msg.isOwn}
-              />
-            ))}
-          </div>
-        </div>
+// ── Main Page ──
+export default function MessagesPage() {
+  const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const userId = useAuthStore((s) => s.user?.publicId);
+  const [activeConvId, setActiveConvId] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [messageInput, setMessageInput] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const openedClientRef = useRef<string | null>(null);
 
-        {/* Input area */}
-        <div className="px-4 py-3 border-t border-border flex gap-2 shrink-0">
-          <div className="flex-1 flex items-center gap-2 border border-border-md rounded-md py-1.5 px-2.5 bg-bg transition-colors duration-150 focus-within:border-border-hv">
-            <span className="text-text3 text-sm">✎</span>
+  // ── Conversations ──
+  const { data: rawConversations } = useQuery({
+    queryKey: ['conversations'],
+    queryFn: fetchConversations,
+    staleTime: 10_000,
+    refetchInterval: 15_000,
+  });
+  const conversations = Array.isArray(rawConversations) ? rawConversations : [];
+
+  // Start or open conversation when ?clientId= is present
+  const clientIdParam = searchParams.get('clientId');
+
+  const startConvMutation = useMutation({
+    mutationFn: startConversation,
+    onSuccess: async (conv) => {
+      await queryClient.refetchQueries({ queryKey: ['conversations'] });
+      setActiveConvId(String(conv.id));
+      navigate('/messages', { replace: true });
+    },
+    onError: (err) => {
+      console.error('[Messages] Failed to start conversation:', err);
+      navigate('/messages', { replace: true });
+    },
+  });
+
+  useEffect(() => {
+    if (!clientIdParam || openedClientRef.current === clientIdParam) return;
+    openedClientRef.current = clientIdParam;
+    startConvMutation.mutate(clientIdParam);
+  }, [clientIdParam]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-select first conversation (when no clientId param)
+  useEffect(() => {
+    if (!activeConvId && conversations.length > 0 && !clientIdParam) {
+      setActiveConvId(conversations[0].id);
+    }
+  }, [conversations, activeConvId, clientIdParam]);
+
+  const activeConv = conversations.find((c) => c.id === activeConvId);
+
+  // Filter + sort conversations
+  const filteredConvs = useMemo(() => {
+    let list = conversations;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter((c) => c.participant.name.toLowerCase().includes(q));
+    }
+    return [...list].sort((a, b) => {
+      if (a.unreadCount > 0 && b.unreadCount === 0) return -1;
+      if (a.unreadCount === 0 && b.unreadCount > 0) return 1;
+      return new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime();
+    });
+  }, [conversations, search]);
+
+  // ── Messages ──
+  const {
+    data: messagesData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ['messages', activeConvId],
+    queryFn: ({ pageParam }) => fetchMessages(activeConvId!, pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.cursor ?? undefined,
+    enabled: !!activeConvId,
+    refetchInterval: 5_000,
+  });
+
+  const messages = useMemo(
+    () => (messagesData?.pages.flatMap((p) => p.items) ?? []).slice().reverse(),
+    [messagesData],
+  );
+
+  // Scroll to bottom on new messages or conversation switch
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+  }, [messages.length, activeConvId]);
+
+  // Mark as read when opening a conversation
+  useEffect(() => {
+    if (activeConvId && activeConv && activeConv.unreadCount > 0) {
+      markConversationRead(activeConvId).then(() => {
+        queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      });
+    }
+  }, [activeConvId]);
+
+  // ── Send message ──
+  const sendMutation = useMutation({
+    mutationFn: (text: string) => sendMessage(activeConvId!, text),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['messages', activeConvId] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    },
+  });
+
+  const handleSend = useCallback(() => {
+    const text = messageInput.trim();
+    if (!text || !activeConvId) return;
+    sendMutation.mutate(text);
+    setMessageInput('');
+  }, [messageInput, activeConvId, sendMutation]);
+
+  // ── Typing indicator ──
+  const lastTypingSentRef = useRef(0);
+  const handleTyping = useCallback(() => {
+    if (!activeConvId) return;
+    const now = Date.now();
+    if (now - lastTypingSentRef.current < 2000) return;
+    lastTypingSentRef.current = now;
+    invokeHub('SendTyping', activeConvId);
+  }, [activeConvId]);
+
+  // ── Group messages by date ──
+  const groupedMessages = useMemo(() => {
+    const groups: { date: string; messages: MessageDto[] }[] = [];
+    let lastDate = '';
+    for (const msg of messages) {
+      const date = new Date(msg.timestamp).toDateString();
+      if (date !== lastDate) {
+        groups.push({ date: formatDate(msg.timestamp), messages: [msg] });
+        lastDate = date;
+      } else {
+        groups[groups.length - 1].messages.push(msg);
+      }
+    }
+    return groups;
+  }, [messages]);
+
+  const avatarColor = activeConv ? colorForName(activeConv.participant.name) : '#0b6e99';
+
+  return (
+    <div className="flex h-full overflow-hidden">
+      {/* ── Conversation panel ── */}
+      <div className="w-[280px] shrink-0 border-r border-border flex flex-col bg-bg2 overflow-hidden">
+        <div className="px-3.5 pt-3 pb-2 border-b border-border shrink-0">
+          <div className="text-[15px] font-semibold text-text mb-2">Zprávy</div>
+          <div className="flex items-center gap-1.5 bg-bg3 rounded-md px-2.5 py-[5px]">
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              className="text-text4 shrink-0"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
             <input
-              type="text"
-              value={messageInput}
-              onChange={(e) => setMessageInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend();
-                }
-              }}
-              placeholder={activeConv ? `Napsat zpravu ${activeConv.name.split(' ')[0]}...` : 'Napsat zpravu...'}
-              className="border-none outline-none bg-transparent text-[13px] text-text flex-1 font-[inherit] placeholder:text-text3"
+              placeholder="Hledat..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="flex-1 border-none outline-none bg-transparent text-[13px] text-text font-[inherit] placeholder:text-text4"
             />
           </div>
-          <Button variant="primary" onClick={handleSend}>
-            Odeslat
-          </Button>
         </div>
+        <div className="flex-1 overflow-y-auto">
+          {filteredConvs.map((conv) => (
+            <ConversationItem
+              key={conv.id}
+              conv={conv}
+              isActive={conv.id === activeConvId}
+              onClick={() => setActiveConvId(conv.id)}
+            />
+          ))}
+          {filteredConvs.length === 0 && (
+            <div className="p-6 text-center text-[13px] text-text3">
+              {search ? 'Žádné konverzace nenalezeny' : 'Zatím žádné zprávy'}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Chat panel ── */}
+      <div className="flex-1 flex flex-col overflow-hidden bg-bg">
+        {activeConv ? (
+          <>
+            {/* Header */}
+            <div className="flex items-center gap-2.5 px-4 py-2.5 border-b border-border shrink-0">
+              <div
+                className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-xs font-semibold text-white"
+                style={{ backgroundColor: avatarColor }}
+              >
+                {activeConv.participant.initials}
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-text">
+                  {activeConv.participant.name}
+                </div>
+                <div className="flex items-center gap-1 mt-px text-xs text-text3">
+                  {activeConv.participant.online ? (
+                    <>
+                      <span className="w-[7px] h-[7px] rounded-full bg-green inline-block" />
+                      Online
+                    </>
+                  ) : (
+                    'Offline'
+                  )}
+                </div>
+              </div>
+              <div className="ml-auto flex gap-1">
+                <button
+                  className="w-7 h-7 rounded flex items-center justify-center text-[13px] text-text3 hover:bg-bg-hover hover:text-text transition-colors"
+                  title="Profil klienta"
+                >
+                  👤
+                </button>
+                <button
+                  className="w-7 h-7 rounded flex items-center justify-center text-[13px] text-text3 hover:bg-bg-hover hover:text-text transition-colors"
+                  title="Více"
+                >
+                  ···
+                </button>
+              </div>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-0.5">
+              {/* Load more */}
+              {hasNextPage && (
+                <button
+                  onClick={() => fetchNextPage()}
+                  disabled={isFetchingNextPage}
+                  className="text-xs text-text3 hover:text-text mb-2 self-center"
+                >
+                  {isFetchingNextPage ? 'Načítání...' : 'Načíst starší zprávy'}
+                </button>
+              )}
+
+              {groupedMessages.map((group, gi) => (
+                <div key={gi}>
+                  <div className="text-center text-[11px] text-text4 font-medium my-2.5">
+                    {group.date}
+                  </div>
+                  {group.messages.map((msg, mi) => {
+                    const isOwn = msg.senderId === userId;
+                    const nextMsg = group.messages[mi + 1];
+                    const showAvatar = !nextMsg || nextMsg.senderId !== msg.senderId;
+
+                    return (
+                      <MessageBubble
+                        key={msg.id}
+                        text={msg.text}
+                        time={formatTime(msg.timestamp)}
+                        isOwn={isOwn}
+                        initials={activeConv.participant.initials}
+                        avatarColor={avatarColor}
+                        showAvatar={showAvatar}
+                      />
+                    );
+                  })}
+                </div>
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input bar */}
+            <div className="px-3.5 py-2.5 border-t border-border flex items-end gap-2 shrink-0">
+              <div className="flex-1 flex items-center gap-1.5 bg-bg2 border border-border-md rounded-lg px-3 py-[7px] transition-colors focus-within:border-border-hv">
+                <button
+                  className="w-5 h-5 flex items-center justify-center text-text3 hover:text-text text-sm shrink-0"
+                  title="Připojit plán"
+                >
+                  📎
+                </button>
+                <input
+                  value={messageInput}
+                  onChange={(e) => { setMessageInput(e.target.value); handleTyping(); }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSend();
+                    }
+                  }}
+                  placeholder={`Napsat ${activeConv.participant.name.split(' ')[0]}...`}
+                  className="flex-1 border-none outline-none bg-transparent text-[13px] text-text font-[inherit] placeholder:text-text4"
+                />
+              </div>
+              <button
+                onClick={handleSend}
+                disabled={!messageInput.trim() || sendMutation.isPending}
+                className="h-8 px-3.5 rounded-md bg-accent text-white border-none text-[13px] font-medium font-[inherit] cursor-pointer transition-colors hover:bg-[#b8933d] disabled:bg-bg3 disabled:text-text3 disabled:cursor-default shrink-0"
+              >
+                Odeslat
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center text-text3 gap-2">
+            <div className="text-4xl opacity-30">💬</div>
+            <div className="text-[13px]">Vyberte konverzaci</div>
+          </div>
+        )}
       </div>
     </div>
   );
