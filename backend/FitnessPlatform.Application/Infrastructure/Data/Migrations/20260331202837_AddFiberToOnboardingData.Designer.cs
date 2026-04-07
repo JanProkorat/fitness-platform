@@ -3,6 +3,7 @@ using System;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260331202837_AddFiberToOnboardingData")]
+    partial class AddFiberToOnboardingData
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -314,61 +317,6 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasDatabaseName("ix_body_measurements_public_id");
 
                     b.ToTable("body_measurements", (string)null);
-                });
-
-            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.ChatMessage", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<long>("ConversationId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("conversation_id");
-
-                    b.Property<DateTime>("DateCreated")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("date_created");
-
-                    b.Property<DateTime?>("DateUpdated")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("date_updated");
-
-                    b.Property<bool>("IsRead")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_read");
-
-                    b.Property<Guid>("PublicId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("public_id");
-
-                    b.Property<Guid>("SenderUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("sender_user_id");
-
-                    b.Property<string>("Text")
-                        .IsRequired()
-                        .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)")
-                        .HasColumnName("text");
-
-                    b.HasKey("Id")
-                        .HasName("pk_chat_messages");
-
-                    b.HasIndex("PublicId")
-                        .IsUnique()
-                        .HasDatabaseName("ix_chat_messages_public_id");
-
-                    b.HasIndex("SenderUserId")
-                        .HasDatabaseName("ix_chat_messages_sender_user_id");
-
-                    b.HasIndex("ConversationId", "DateCreated")
-                        .HasDatabaseName("ix_chat_messages_conversation_id_date_created");
-
-                    b.ToTable("chat_messages", (string)null);
                 });
 
             modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.ClientOnboardingData", b =>
@@ -769,77 +717,6 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.ToTable("client_requests", (string)null);
                 });
 
-            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.Conversation", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<DateTime?>("ArchivedByClientAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("archived_by_client_at");
-
-                    b.Property<DateTime?>("ArchivedByProfessionalAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("archived_by_professional_at");
-
-                    b.Property<Guid>("ClientUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("client_user_id");
-
-                    b.Property<DateTime>("DateCreated")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("date_created");
-
-                    b.Property<DateTime?>("DateUpdated")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("date_updated");
-
-                    b.Property<bool>("IsFormer")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_former");
-
-                    b.Property<DateTime?>("LastMessageAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("last_message_at");
-
-                    b.Property<Guid?>("LastMessageSenderId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("last_message_sender_id");
-
-                    b.Property<string>("LastMessageText")
-                        .HasMaxLength(300)
-                        .HasColumnType("character varying(300)")
-                        .HasColumnName("last_message_text");
-
-                    b.Property<Guid>("ProfessionalUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("professional_user_id");
-
-                    b.Property<Guid>("PublicId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("public_id");
-
-                    b.HasKey("Id")
-                        .HasName("pk_conversations");
-
-                    b.HasIndex("ClientUserId")
-                        .HasDatabaseName("ix_conversations_client_user_id");
-
-                    b.HasIndex("PublicId")
-                        .IsUnique()
-                        .HasDatabaseName("ix_conversations_public_id");
-
-                    b.HasIndex("ProfessionalUserId", "ClientUserId")
-                        .IsUnique()
-                        .HasDatabaseName("ix_conversations_professional_user_id_client_user_id");
-
-                    b.ToTable("conversations", (string)null);
-                });
-
             modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.DevicePushToken", b =>
                 {
                     b.Property<long>("Id")
@@ -1092,11 +969,6 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("last_name");
-
-                    b.Property<string>("Message")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("message");
 
                     b.Property<long>("ProfessionalProfileId")
                         .HasColumnType("bigint")
@@ -1734,27 +1606,6 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Navigation("ClientProfile");
                 });
 
-            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.ChatMessage", b =>
-                {
-                    b.HasOne("FitnessPlatform.Application.Domain.Entities.Conversation", "Conversation")
-                        .WithMany("Messages")
-                        .HasForeignKey("ConversationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_chat_messages_conversations_conversation_id");
-
-                    b.HasOne("FitnessPlatform.Application.Domain.Entities.ApplicationUser", "Sender")
-                        .WithMany()
-                        .HasForeignKey("SenderUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("fk_chat_messages_users_sender_user_id");
-
-                    b.Navigation("Conversation");
-
-                    b.Navigation("Sender");
-                });
-
             modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.ClientOnboardingData", b =>
                 {
                     b.HasOne("FitnessPlatform.Application.Domain.Entities.ClientProfile", "ClientProfile")
@@ -1833,27 +1684,6 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Navigation("ProfessionalProfile");
 
                     b.Navigation("Questionnaire");
-                });
-
-            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.Conversation", b =>
-                {
-                    b.HasOne("FitnessPlatform.Application.Domain.Entities.ApplicationUser", "Client")
-                        .WithMany()
-                        .HasForeignKey("ClientUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("fk_conversations_users_client_user_id");
-
-                    b.HasOne("FitnessPlatform.Application.Domain.Entities.ApplicationUser", "Professional")
-                        .WithMany()
-                        .HasForeignKey("ProfessionalUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("fk_conversations_users_professional_user_id");
-
-                    b.Navigation("Client");
-
-                    b.Navigation("Professional");
                 });
 
             modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.DevicePushToken", b =>
@@ -2100,11 +1930,6 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Navigation("ProfessionalLinks");
 
                     b.Navigation("ProgressPhotos");
-                });
-
-            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.Conversation", b =>
-                {
-                    b.Navigation("Messages");
                 });
 
             modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.ProfessionalProfile", b =>

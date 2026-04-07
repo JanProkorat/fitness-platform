@@ -3,6 +3,7 @@ using System;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260401210414_AddMessaging")]
+    partial class AddMessaging
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -778,14 +781,6 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
-                    b.Property<DateTime?>("ArchivedByClientAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("archived_by_client_at");
-
-                    b.Property<DateTime?>("ArchivedByProfessionalAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("archived_by_professional_at");
-
                     b.Property<Guid>("ClientUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("client_user_id");
@@ -797,10 +792,6 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("DateUpdated")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("date_updated");
-
-                    b.Property<bool>("IsFormer")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_former");
 
                     b.Property<DateTime?>("LastMessageAt")
                         .HasColumnType("timestamp with time zone")
