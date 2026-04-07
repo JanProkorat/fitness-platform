@@ -7,8 +7,21 @@ const API_BASE_URL = __DEV__
 
 let connection: HubConnection | null = null;
 
+// All event names the server may send — registered as no-ops at creation
+// to suppress "No client method" warnings. Real handlers add via onEvent().
+const KNOWN_EVENTS = [
+  'newmessage',
+  'invitationreceived',
+  'clientrequestaccepted',
+  'clientrequestrejected',
+  'questionnaireassigned',
+  'typing',
+  'userpresence',
+  'conversationunarchived',
+]
+
 function createConnection(): HubConnection {
-  return new HubConnectionBuilder()
+  const conn = new HubConnectionBuilder()
     .withUrl(`${API_BASE_URL}/hubs/notifications`, {
       accessTokenFactory: () => {
         const token = useAuthStore.getState().accessToken;
@@ -18,6 +31,13 @@ function createConnection(): HubConnection {
     .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
     .configureLogging(LogLevel.Warning)
     .build();
+
+  // Pre-register no-ops so SignalR doesn't warn before real handlers attach
+  for (const event of KNOWN_EVENTS) {
+    conn.on(event, () => {});
+  }
+
+  return conn;
 }
 
 export function getConnection(): HubConnection {
