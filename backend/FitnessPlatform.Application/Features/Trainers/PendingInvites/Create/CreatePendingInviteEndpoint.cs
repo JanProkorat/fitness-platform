@@ -122,7 +122,6 @@ public class CreatePendingInviteEndpoint(
                     ClientUserId = existingUser.Id,
                 };
                 db.Conversations.Add(conversation);
-                await db.SaveChangesAsync(ct);
             }
 
             // If a message was provided, create a chat message in the conversation
@@ -130,7 +129,7 @@ public class CreatePendingInviteEndpoint(
             {
                 var chatMessage = new ChatMessage
                 {
-                    ConversationId = conversation.Id,
+                    Conversation = conversation,
                     SenderUserId = professionalUserId,
                     Text = req.Message.Trim(),
                     IsRead = false,
@@ -157,6 +156,10 @@ public class CreatePendingInviteEndpoint(
                     text = chatMessage.Text,
                     timestamp = chatMessage.DateCreated,
                 }, ct);
+            }
+            else if (conversation.Id == 0)
+            {
+                await db.SaveChangesAsync(ct);
             }
 
             // Existing notification + invitationReceived event logic
