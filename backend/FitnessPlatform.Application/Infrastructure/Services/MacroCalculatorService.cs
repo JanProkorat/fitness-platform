@@ -103,6 +103,7 @@ public class MacroCalculatorService : IMacroCalculatorService
             totals.Protein += food.NutrientValuePer100Grams.Protein * ratio;
             totals.Carbs += food.NutrientValuePer100Grams.Carbs * ratio;
             totals.Fat += food.NutrientValuePer100Grams.Fat * ratio;
+            totals.Fiber += (food.NutrientValuePer100Grams.Fiber ?? 0m) * ratio;
         }
 
         foreach (var recipe in meal.Recipes)
@@ -111,12 +112,14 @@ public class MacroCalculatorService : IMacroCalculatorService
             totals.Protein += recipe.NutrientValuePerServing.Protein * recipe.Servings;
             totals.Carbs += recipe.NutrientValuePerServing.Carbs * recipe.Servings;
             totals.Fat += recipe.NutrientValuePerServing.Fat * recipe.Servings;
+            totals.Fiber += (recipe.NutrientValuePerServing.Fiber ?? 0m) * recipe.Servings;
         }
 
         totals.Kcal = Math.Round(totals.Kcal, 1);
         totals.Protein = Math.Round(totals.Protein, 1);
         totals.Carbs = Math.Round(totals.Carbs, 1);
         totals.Fat = Math.Round(totals.Fat, 1);
+        totals.Fiber = Math.Round(totals.Fiber, 1);
 
         return totals;
     }
@@ -136,12 +139,14 @@ public class MacroCalculatorService : IMacroCalculatorService
             totals.Protein += meal.MealTotals.Protein;
             totals.Carbs += meal.MealTotals.Carbs;
             totals.Fat += meal.MealTotals.Fat;
+            totals.Fiber += meal.MealTotals.Fiber;
         }
 
         totals.Kcal = Math.Round(totals.Kcal, 1);
         totals.Protein = Math.Round(totals.Protein, 1);
         totals.Carbs = Math.Round(totals.Carbs, 1);
         totals.Fat = Math.Round(totals.Fat, 1);
+        totals.Fiber = Math.Round(totals.Fiber, 1);
 
         return totals;
     }

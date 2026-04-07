@@ -47,6 +47,7 @@ public class GetPendingInvitesEndpoint(IApplicationDbContext db) : EndpointWitho
 
         var invites = await db.PendingInvites
             .AsNoTracking()
+            .Include(pi => pi.Questionnaire)
             .Where(pi => pi.ProfessionalProfileId == professionalProfile.Id && !pi.IsAccepted)
             .OrderByDescending(pi => pi.SentAt)
             .Select(pi => new PendingInviteDto
@@ -55,8 +56,11 @@ public class GetPendingInvitesEndpoint(IApplicationDbContext db) : EndpointWitho
                 FirstName = pi.FirstName,
                 LastName = pi.LastName,
                 Email = pi.Email,
+                Message = pi.Message,
                 SentAt = pi.SentAt,
-                IsAccepted = pi.IsAccepted
+                IsAccepted = pi.IsAccepted,
+                QuestionnairePublicId = pi.Questionnaire != null ? pi.Questionnaire.PublicId : null,
+                QuestionnaireTitle = pi.Questionnaire != null ? pi.Questionnaire.Title : null
             })
             .ToListAsync(ct);
 

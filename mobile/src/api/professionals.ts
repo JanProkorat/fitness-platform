@@ -66,6 +66,7 @@ export async function sendClientRequest(professionalPublicId: string, message?: 
 
 export interface ClientRequestDto {
   publicId: string;
+  professionalPublicId: string;
   professionalName: string;
   message: string | null;
   status: string;
@@ -75,7 +76,7 @@ export interface ClientRequestDto {
 
 export async function getMyRequests(): Promise<ClientRequestDto[]> {
   const { data } = await api.get('/client/requests');
-  return data.items;
+  return data.requests ?? [];
 }
 
 export async function cancelClientRequest(publicId: string): Promise<void> {

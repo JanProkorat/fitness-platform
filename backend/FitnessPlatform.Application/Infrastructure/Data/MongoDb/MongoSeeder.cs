@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -8,7 +10,7 @@ namespace FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 public static class MongoSeeder
 {
     /// <summary>
-    /// Inserts seed foods into the foods collection if it is empty.
+    /// Seeds foods, recipes, and exercises into MongoDB if their collections are empty.
     /// </summary>
     /// <param name="serviceProvider">The application service provider.</param>
     public static async Task SeedAsync(IServiceProvider serviceProvider)
@@ -28,6 +30,49 @@ public static class MongoSeeder
             var foods = FoodSeedData.GetFoods();
             await mongo.Foods.InsertManyAsync(foods);
             logger.LogInformation("Seeded {Count} foods into MongoDB", foods.Count);
+        }
+
+        // Seed recipes (after foods so we can resolve references)
+        var existingRecipeCount = await mongo.Recipes.CountDocumentsAsync(FilterDefinition<Domain.Documents.Recipe>.Empty);
+        if (existingRecipeCount > 0)
+        {
+            logger.LogInformation("MongoDB recipes collection already has {Count} documents, skipping seed", existingRecipeCount);
+        }
+        else
+        {
+            var allFoods = await mongo.Foods.Find(FilterDefinition<Domain.Documents.Food>.Empty).ToListAsync();
+            var foodLookup = new Dictionary<string, Domain.Documents.Food>(StringComparer.OrdinalIgnoreCase);
+            foreach (var food in allFoods)
+            {
+                if (food.LocalizedNames?.Cs is not null)
+                    foodLookup.TryAdd(food.LocalizedNames.Cs, food);
+            }
+
+            var userManager = scope.ServiceProvider.GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<Domain.Entities.ApplicationUser>>();
+            var nutritionists = await userManager.GetUsersInRoleAsync("Nutritionist");
+
+            if (nutritionists.Count == 0)
+            {
+                logger.LogWarning("No nutritionists found — skipping recipe seed");
+            }
+            else
+            {
+                var entries = RecipeSeedData.GetRecipes();
+                var allRecipes = new List<Domain.Documents.Recipe>();
+
+                foreach (var nutritionist in nutritionists)
+                {
+                    var recipes = RecipeSeedData.BuildRecipes(entries, foodLookup, nutritionist.Id);
+                    allRecipes.AddRange(recipes);
+                }
+
+                if (allRecipes.Count > 0)
+                {
+                    await mongo.Recipes.InsertManyAsync(allRecipes);
+                    logger.LogInformation("Seeded {Count} recipes for {Users} nutritionists into MongoDB",
+                        allRecipes.Count, nutritionists.Count);
+                }
+            }
         }
 
         // Seed exercises

@@ -16,8 +16,9 @@ namespace FitnessPlatform.Application.Features.Trainers.ClientRequests.RejectCli
 public class RejectClientRequestEndpoint(
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
+    INotificationService notificationService,
     ILogger<RejectClientRequestEndpoint> logger)
-    : EndpointWithoutRequest
+    : Endpoint<RejectClientRequestRequest>
 {
     public override void Configure()
     {
@@ -30,7 +31,7 @@ public class RejectClientRequestEndpoint(
         });
     }
 
-    public override async Task HandleAsync(CancellationToken ct)
+    public override async Task HandleAsync(RejectClientRequestRequest req, CancellationToken ct)
     {
         var userId = User.FindFirstValue(AppClaims.UserId);
 
@@ -41,7 +42,7 @@ public class RejectClientRequestEndpoint(
         }
 
         var userGuid = Guid.Parse(userId);
-        var publicId = Route<Guid>("PublicId");
+        var publicId = req.PublicId;
 
         var professionalProfile = await db.ProfessionalProfiles
             .AsNoTracking()
@@ -77,17 +78,20 @@ public class RejectClientRequestEndpoint(
 
         clientRequest.Status = ClientRequestStatus.Rejected;
         clientRequest.RespondedAt = DateTime.UtcNow;
+        clientRequest.Statement = req.Statement;
 
-        var notification = new Notification
-        {
-            RecipientUserId = clientRequest.ClientProfile.UserId,
-            Type = NotificationType.ClientRequestRejected,
-            Title = "Request declined",
-            Body = "Your request has been declined."
-        };
+        var profUser = await db.Users.FirstAsync(u => u.Id == userGuid, ct);
+        var profName = $"{profUser.FirstName} {profUser.LastName}";
 
-        db.Notifications.Add(notification);
+        // Save entity changes (status update) before creating notification
         await db.SaveChangesAsync(ct);
+
+        await notificationService.CreateAsync(
+            clientRequest.ClientProfile.UserId,
+            NotificationType.InvitationDeclined,
+            "Invitation declined",
+            $"{profName} declined your invitation.",
+            ct: ct);
 
         await notifier.NotifyAsync(clientRequest.ClientProfile.UserId, "clientRequestRejected", new
         {
@@ -98,6 +102,6 @@ public class RejectClientRequestEndpoint(
             "Client request {RequestId} rejected by professional {ProfessionalId}",
             clientRequest.PublicId, professionalProfile.PublicId);
 
-        await Send.OkAsync(ct);
+        await Send.NoContentAsync(ct);
     }
 }

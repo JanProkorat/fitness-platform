@@ -56,6 +56,11 @@ public class ApplicationUser : IdentityUser<Guid>
     public ClientProfile? ClientProfile { get; set; }
 
     /// <summary>
+    /// Number of verification emails sent to this user (including the original). Max 4.
+    /// </summary>
+    public int VerificationEmailsSent { get; set; }
+
+    /// <summary>
     /// Collection of refresh tokens issued to this user.
     /// </summary>
     public ICollection<RefreshToken> RefreshTokens { get; set; } = [];

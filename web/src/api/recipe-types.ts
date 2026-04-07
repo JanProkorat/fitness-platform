@@ -3,13 +3,16 @@ export interface RecipeSummary {
   recipeId: string;
   name: string;
   foodCount: number;
+  prepTimeMinutes?: number | null;
   totalNutrients: {
     kcal: number;
     protein: number;
     carbs: number;
     fat: number;
+    fiber: number;
   };
   dateCreated: string;
+  foodCategories?: string[];
 }
 
 /** Full recipe detail. */
@@ -17,6 +20,9 @@ export interface RecipeDetail {
   recipeId: string;
   name: string;
   description: string;
+  prepTimeMinutes?: number | null;
+  steps?: string[] | null;
+  note?: string | null;
   foods: {
     foodExternalId: string;
     foodName: string;
@@ -37,6 +43,7 @@ export interface RecipeDetail {
     protein: number;
     carbs: number;
     fat: number;
+    fiber: number;
   };
   dateCreated: string;
   dateUpdated?: string | null;
@@ -60,6 +67,9 @@ export interface RecipeFoodInput {
 export interface CreateRecipeRequest {
   name: string;
   description: string;
+  prepTimeMinutes?: number | null;
+  steps?: string[] | null;
+  note?: string | null;
   foods: RecipeFoodInput[];
 }
 
@@ -67,5 +77,8 @@ export interface CreateRecipeRequest {
 export interface UpdateRecipeRequest {
   name: string;
   description: string;
+  prepTimeMinutes?: number | null;
+  steps?: string[] | null;
+  note?: string | null;
   foods: RecipeFoodInput[];
 }

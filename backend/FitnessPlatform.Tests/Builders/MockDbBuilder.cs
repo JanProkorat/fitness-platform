@@ -19,6 +19,11 @@ public class MockDbBuilder
     private readonly List<BodyMeasurement> _bodyMeasurements = [];
     private readonly List<ProgressPhoto> _progressPhotos = [];
     private readonly List<ClientOnboardingData> _clientOnboardingData = [];
+    private readonly List<PendingInvite> _pendingInvites = [];
+    private readonly List<ClientRequest> _clientRequests = [];
+    private readonly List<QuestionnaireResponse> _questionnaireResponses = [];
+    private readonly List<EmailVerificationToken> _emailVerificationTokens = [];
+    private readonly List<DevicePushToken> _devicePushTokens = [];
 
     /// <summary>
     /// Adds an <see cref="ApplicationUser"/> to the mock context.
@@ -66,6 +71,21 @@ public class MockDbBuilder
     public MockDbBuilder With(ClientOnboardingData data) { _clientOnboardingData.Add(data); return this; }
 
     /// <summary>
+    /// Adds a <see cref="PendingInvite"/> to the mock context.
+    /// </summary>
+    public MockDbBuilder With(PendingInvite invite) { _pendingInvites.Add(invite); return this; }
+
+    /// <summary>
+    /// Adds a <see cref="ClientRequest"/> to the mock context.
+    /// </summary>
+    public MockDbBuilder With(ClientRequest request) { _clientRequests.Add(request); return this; }
+
+    /// <summary>
+    /// Adds a <see cref="QuestionnaireResponse"/> to the mock context.
+    /// </summary>
+    public MockDbBuilder With(QuestionnaireResponse response) { _questionnaireResponses.Add(response); return this; }
+
+    /// <summary>
     /// Builds a mocked <see cref="IApplicationDbContext"/> with all registered entities as queryable DbSets.
     /// </summary>
     public IApplicationDbContext Build()
@@ -81,6 +101,11 @@ public class MockDbBuilder
         var bodyMeasurementsSet = _bodyMeasurements.BuildMockDbSet();
         var progressPhotosSet = _progressPhotos.BuildMockDbSet();
         var clientOnboardingDataSet = _clientOnboardingData.BuildMockDbSet();
+        var pendingInvitesSet = _pendingInvites.BuildMockDbSet();
+        var clientRequestsSet = _clientRequests.BuildMockDbSet();
+        var questionnaireResponsesSet = _questionnaireResponses.BuildMockDbSet();
+        var emailVerificationTokensSet = _emailVerificationTokens.BuildMockDbSet();
+        var devicePushTokensSet = _devicePushTokens.BuildMockDbSet();
 
         var db = Substitute.For<IApplicationDbContext>();
 
@@ -93,6 +118,11 @@ public class MockDbBuilder
         db.BodyMeasurements.Returns(bodyMeasurementsSet);
         db.ProgressPhotos.Returns(progressPhotosSet);
         db.ClientOnboardingData.Returns(clientOnboardingDataSet);
+        db.PendingInvites.Returns(pendingInvitesSet);
+        db.ClientRequests.Returns(clientRequestsSet);
+        db.QuestionnaireResponses.Returns(questionnaireResponsesSet);
+        db.EmailVerificationTokens.Returns(emailVerificationTokensSet);
+        db.DevicePushTokens.Returns(devicePushTokensSet);
 
         db.SaveChangesAsync(Arg.Any<CancellationToken>()).Returns(1);
 

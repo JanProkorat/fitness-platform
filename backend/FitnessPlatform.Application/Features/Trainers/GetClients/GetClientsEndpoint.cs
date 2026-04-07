@@ -48,7 +48,7 @@ public class GetClientsEndpoint(IApplicationDbContext db) : Endpoint<GetClientsR
 
         var query = db.ClientProfessionalLinks
             .AsNoTracking()
-            .Where(ctl => ctl.ProfessionalProfileId == professionalProfile.Id)
+            .Where(ctl => ctl.ProfessionalProfileId == professionalProfile.Id && ctl.IsActive)
             .Include(ctl => ctl.ClientProfile)
             .ThenInclude(cp => cp.User)
             .AsQueryable();

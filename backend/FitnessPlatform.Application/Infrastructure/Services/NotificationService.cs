@@ -6,9 +6,9 @@ using FitnessPlatform.Application.Infrastructure.Data;
 namespace FitnessPlatform.Application.Infrastructure.Services;
 
 /// <summary>
-/// Creates notifications in PostgreSQL for later delivery by the background service.
+/// Creates notifications in PostgreSQL and sends push notifications to mobile devices.
 /// </summary>
-public class NotificationService(IApplicationDbContext db) : INotificationService
+public class NotificationService(IApplicationDbContext db, IPushNotificationService push) : INotificationService
 {
     /// <inheritdoc />
     public async Task CreateAsync(Guid recipientUserId, NotificationType type, string title, string body, string? data = null, CancellationToken ct = default)
@@ -24,5 +24,10 @@ public class NotificationService(IApplicationDbContext db) : INotificationServic
 
         db.Notifications.Add(notification);
         await db.SaveChangesAsync(ct);
+
+        // Send push notification to the user's mobile devices
+        await push.SendAsync(recipientUserId, title, body, data != null
+            ? new { type = type.ToString(), payload = data }
+            : new { type = type.ToString() } as object, ct);
     }
 }

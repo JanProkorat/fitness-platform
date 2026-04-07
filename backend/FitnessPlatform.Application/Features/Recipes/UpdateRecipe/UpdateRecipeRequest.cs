@@ -23,6 +23,19 @@ public class UpdateRecipeRequest
     public string? Description { get; set; }
 
     /// <summary>
+    /// Estimated preparation/cooking time in minutes.
+    /// </summary>
+    public int? PrepTimeMinutes { get; set; }
+
+    /// <summary>
+    /// Ordered preparation steps.
+    /// </summary>
+    public List<string>? Steps { get; set; }
+
+    /// <summary>Optional tip or note.</summary>
+    public string? Note { get; set; }
+
+    /// <summary>
     /// Updated list of food items in the recipe.
     /// </summary>
     public List<RecipeFoodDto> Foods { get; set; } = [];

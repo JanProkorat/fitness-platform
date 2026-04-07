@@ -20,5 +20,9 @@ public class UpdateProfileValidator : Validator<UpdateProfileRequest>
         RuleFor(x => x.LastName)
             .NotEmpty()
             .MaximumLength(50);
+
+        RuleFor(x => x.PhoneNumber)
+            .MaximumLength(30)
+            .When(x => x.PhoneNumber is not null);
     }
 }

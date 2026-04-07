@@ -7,7 +7,6 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.NutritionPlans.UpdatePlan;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
-using FitnessPlatform.Tests.Endpoints;
 using MongoDB.Driver;
 using NSubstitute;
 
@@ -53,7 +52,7 @@ public class UpdatePlanFullStateTests
                 [
                     new UpdateMealRequest
                     {
-                        Name = "Breakfast",
+                        Kind = MealKind.Breakfast,
                         Order = 1,
                         Foods = mealFoods
                     }

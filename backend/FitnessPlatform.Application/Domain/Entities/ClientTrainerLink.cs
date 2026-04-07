@@ -42,6 +42,16 @@ public class ClientProfessionalLink : PublicTimestampableEntity
     public bool CanViewTrainingPlans { get; set; }
 
     /// <summary>
+    /// Optional override: specific questionnaire assigned to this client. If null, the professional's default questionnaire is used.
+    /// </summary>
+    public long? QuestionnaireId { get; set; }
+
+    /// <summary>
+    /// Navigation property to the assigned questionnaire.
+    /// </summary>
+    public Questionnaire? Questionnaire { get; set; }
+
+    /// <summary>
     /// Navigation property to the client profile.
     /// </summary>
     public ClientProfile ClientProfile { get; set; } = null!;

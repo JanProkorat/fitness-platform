@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -50,11 +51,30 @@ public class GetProfileEndpoint(UserManager<ApplicationUser> userManager, IAppli
         var roles = await userManager.GetRolesAsync(user);
 
         bool? isOnboardingComplete = null;
+        var hasActiveLink = false;
+        var hasPendingQuestionnaire = false;
+        var linkedRoles = new List<string>();
+
         if (roles.Contains("Client"))
         {
             var clientProfile = await dbContext.ClientProfiles
                 .FirstOrDefaultAsync(cp => cp.UserId == user.Id, ct);
             isOnboardingComplete = clientProfile?.IsOnboardingComplete ?? false;
+
+            if (clientProfile is not null)
+            {
+                var activeLinks = await dbContext.ClientProfessionalLinks
+                    .Where(l => l.ClientProfileId == clientProfile.Id && l.IsActive)
+                    .Select(l => l.ProfessionalRole)
+                    .Distinct()
+                    .ToListAsync(ct);
+
+                hasActiveLink = activeLinks.Count > 0;
+                linkedRoles = activeLinks.Select(r => r.ToString()).ToList();
+            }
+
+            hasPendingQuestionnaire = await dbContext.QuestionnaireResponses
+                .AnyAsync(r => r.ClientId == user.Id && r.Status != QuestionnaireResponseStatus.Submitted, ct);
         }
 
         await Send.OkAsync(new GetProfileResponse
@@ -63,9 +83,14 @@ public class GetProfileEndpoint(UserManager<ApplicationUser> userManager, IAppli
             Email = user.Email!,
             FirstName = user.FirstName,
             LastName = user.LastName,
+            PhoneNumber = user.PhoneNumber,
             Roles = roles.ToList(),
             DateCreated = user.DateCreated,
-            IsOnboardingComplete = isOnboardingComplete
+            IsOnboardingComplete = isOnboardingComplete,
+            EmailConfirmed = user.EmailConfirmed,
+            HasActiveLink = hasActiveLink,
+            HasPendingQuestionnaire = hasPendingQuestionnaire,
+            LinkedRoles = linkedRoles
         }, ct);
     }
 }

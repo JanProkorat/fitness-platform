@@ -14,4 +14,9 @@ public class UpdateProfileRequest
     /// Updated last name.
     /// </summary>
     public string LastName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Updated phone number (optional).
+    /// </summary>
+    public string? PhoneNumber { get; set; }
 }

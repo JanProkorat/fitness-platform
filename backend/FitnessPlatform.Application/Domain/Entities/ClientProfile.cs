@@ -41,6 +41,12 @@ public class ClientProfile : PublicTimestampableEntity
     public string? MedicalNotes { get; set; }
 
     /// <summary>
+    /// Known injuries or physical limitations.
+    /// </summary>
+    [MaxLength(500)]
+    public string? Injuries { get; set; }
+
+    /// <summary>
     /// Whether the client has completed the onboarding questionnaire.
     /// </summary>
     public bool IsOnboardingComplete { get; set; }

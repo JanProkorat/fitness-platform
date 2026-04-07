@@ -7,6 +7,7 @@ import MacroProgressBar from './MacroProgressBar';
 import MealCard from './MealCard';
 import AddItemsDrawer from './AddItemsDrawer';
 import DraggableDayHeader from '@/components/training/DraggableDayHeader';
+import { MEAL_KINDS, type MealKind } from './meal-kind';
 
 interface DayColumnProps {
   day: PlanDay;
@@ -68,7 +69,7 @@ export default function DayColumn({
   const { t } = useTranslation();
   const addMeal = useNutritionPlanStore((s) => s.addMeal);
   const [showAddMeal, setShowAddMeal] = useState(false);
-  const [newMealName, setNewMealName] = useState('');
+  const [newMealKind, setNewMealKind] = useState<MealKind>('Breakfast');
 
   const dayKcal = Math.round(day.dayTotals?.kcal ?? 0);
   const hasTargets =
@@ -82,6 +83,7 @@ export default function DayColumn({
     protein: Math.round(day.dayTotals?.protein ?? 0),
     carbs: Math.round(day.dayTotals?.carbs ?? 0),
     fat: Math.round(day.dayTotals?.fat ?? 0),
+    fiber: Math.round(day.dayTotals?.fiber ?? 0),
   };
 
   // Distribution entries with non-zero percentages
@@ -113,14 +115,13 @@ export default function DayColumn({
   };
 
   const handleAddMeal = () => {
-    if (!newMealName.trim()) return;
     addMeal(weekNumber, day.dayOfWeek, {
       mealId: crypto.randomUUID(),
-      name: newMealName.trim(),
+      kind: newMealKind,
       order: day.meals.length + 1,
       foods: [],
     });
-    setNewMealName('');
+    setNewMealKind('Breakfast');
     setShowAddMeal(false);
   };
 
@@ -131,7 +132,7 @@ export default function DayColumn({
     const mealId = crypto.randomUUID();
     addMeal(weekNumber, day.dayOfWeek, {
       mealId,
-      name: getMealLabel(mealKey),
+      kind: mealKey,
       order: day.meals.length + 1,
       foods: [],
     });
@@ -178,6 +179,7 @@ export default function DayColumn({
           <span className="text-[10px] text-blue-400">P {dayTotals.protein}g</span>
           <span className="text-[10px] text-amber-400">C {dayTotals.carbs}g</span>
           <span className="text-[10px] text-rose-400">F {dayTotals.fat}g</span>
+          <span className="text-[10px] text-green-400">Fi {dayTotals.fiber}g</span>
         </div>
 
         {isOverTarget && (
@@ -221,6 +223,14 @@ export default function DayColumn({
                 color="fat"
               />
             )}
+            {globalSettings.fiberGrams != null && globalSettings.fiberGrams > 0 && (
+              <MacroProgressBar
+                label={t('foods.fiber')}
+                current={day.dayTotals?.fiber ?? 0}
+                target={globalSettings.fiberGrams}
+                color="fiber"
+              />
+            )}
           </div>
         )}
       </div>
@@ -238,8 +248,8 @@ export default function DayColumn({
               const label = getMealLabel(mealName).toLowerCase();
               const existingMeal = sortedMeals.find(
                 (m) => {
-                  const n = m.name.toLowerCase();
-                  return n === mealName.toLowerCase() || n === label;
+                  const k = m.kind.toLowerCase();
+                  return k === mealName.toLowerCase() || k === label;
                 },
               );
 
@@ -290,7 +300,7 @@ export default function DayColumn({
                 weekNumber={weekNumber}
                 dayOfWeek={day.dayOfWeek}
                 index={idx}
-                targetKcal={getMealTargetKcal(meal.name)}
+                targetKcal={getMealTargetKcal(meal.kind)}
               />
             ))
         }
@@ -299,8 +309,8 @@ export default function DayColumn({
         {distributionEntries.length > 0 &&
           sortedMeals
             .filter((m) => !distributionEntries.some(([key]) => {
-              const n = m.name.toLowerCase();
-              return n === key.toLowerCase() || n === getMealLabel(key).toLowerCase();
+              const k = m.kind.toLowerCase();
+              return k === key.toLowerCase() || k === getMealLabel(key).toLowerCase();
             }))
             .map((meal, _idx) => (
               <SortableMealCard
@@ -317,14 +327,15 @@ export default function DayColumn({
         {/* Add meal */}
         {showAddMeal ? (
           <div className="flex gap-1.5">
-            <input
-              autoFocus
-              value={newMealName}
-              onChange={(e) => setNewMealName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAddMeal()}
-              placeholder={t('nutrition.mealNamePlaceholder')}
-              className="flex-1 rounded-sm border border-border bg-bg2 px-2 py-1.5 text-xs text-text outline-none focus:border-border-hv"
-            />
+            <select
+              value={newMealKind}
+              onChange={(e) => setNewMealKind(e.target.value as MealKind)}
+              className="form-select flex-1 rounded-sm border border-border bg-bg2 px-2 py-1.5 text-xs text-text outline-none focus:border-border-hv"
+            >
+              {MEAL_KINDS.map((k) => (
+                <option key={k} value={k}>{t(`mealKind.${k}`)}</option>
+              ))}
+            </select>
             <button
               onClick={handleAddMeal}
               className="rounded-sm bg-accent px-2 py-1.5 text-[10px] font-bold text-bg"
@@ -334,7 +345,7 @@ export default function DayColumn({
             <button
               onClick={() => {
                 setShowAddMeal(false);
-                setNewMealName('');
+                setNewMealKind('Breakfast');
               }}
               className="rounded-sm border border-border px-2 py-1.5 text-[10px] text-text3"
             >

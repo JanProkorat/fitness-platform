@@ -67,6 +67,45 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     /// </summary>
     public virtual DbSet<PendingInvite> PendingInvites { get; set; } = null!;
 
+    /// <summary>
+    /// Questionnaire templates created by professionals.
+    /// </summary>
+    public virtual DbSet<Questionnaire> Questionnaires { get; set; } = null!;
+
+    /// <summary>
+    /// Questions within questionnaire templates.
+    /// </summary>
+    public virtual DbSet<QuestionnaireQuestion> QuestionnaireQuestions { get; set; } = null!;
+
+    /// <summary>
+    /// Client responses to questionnaires.
+    /// </summary>
+    public virtual DbSet<QuestionnaireResponse> QuestionnaireResponses { get; set; } = null!;
+
+    /// <summary>
+    /// Individual answers within questionnaire responses.
+    /// </summary>
+    public virtual DbSet<QuestionnaireAnswer> QuestionnaireAnswers { get; set; } = null!;
+
+    /// <summary>
+    /// Client requests to join a professional's roster.
+    /// </summary>
+    public virtual DbSet<ClientRequest> ClientRequests { get; set; } = null!;
+
+    /// <summary>
+    /// Email verification tokens.
+    /// </summary>
+    public virtual DbSet<EmailVerificationToken> EmailVerificationTokens { get; set; } = null!;
+
+    /// <inheritdoc />
+    public virtual DbSet<DevicePushToken> DevicePushTokens { get; set; } = null!;
+
+    /// <inheritdoc />
+    public virtual DbSet<Conversation> Conversations { get; set; } = null!;
+
+    /// <inheritdoc />
+    public virtual DbSet<ChatMessage> ChatMessages { get; set; } = null!;
+
     /// <inheritdoc />
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -88,6 +127,23 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         builder.Entity<IdentityUserLogin<Guid>>().ToTable("user_logins");
         builder.Entity<IdentityUserToken<Guid>>().ToTable("user_tokens");
         builder.Entity<IdentityRoleClaim<Guid>>().ToTable("role_claims");
+
+        builder.Entity<Questionnaire>()
+            .HasIndex(q => q.ProfessionalId);
+
+        builder.Entity<Conversation>(e =>
+        {
+            e.HasIndex(c => new { c.ProfessionalUserId, c.ClientUserId }).IsUnique();
+            e.HasOne(c => c.Professional).WithMany().HasForeignKey(c => c.ProfessionalUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(c => c.Client).WithMany().HasForeignKey(c => c.ClientUserId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<ChatMessage>(e =>
+        {
+            e.HasOne(m => m.Conversation).WithMany(c => c.Messages).HasForeignKey(m => m.ConversationId);
+            e.HasOne(m => m.Sender).WithMany().HasForeignKey(m => m.SenderUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(m => new { m.ConversationId, m.DateCreated });
+        });
 
         builder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
     }

@@ -1,40 +1,56 @@
 import { cn } from '@/lib/cn';
 
 export interface MessageBubbleProps {
-  name: string;
-  avatarColor?: string;
-  initials: string;
-  time: string;
   text: string;
-  isOwn?: boolean;
+  time: string;
+  isOwn: boolean;
+  initials?: string;
+  avatarColor?: string;
+  showAvatar?: boolean;
 }
 
 export function MessageBubble({
-  name,
-  avatarColor = 'bg-blue-bg text-blue',
-  initials,
-  time,
   text,
+  time,
+  isOwn,
+  initials,
+  avatarColor = '#0b6e99',
+  showAvatar = true,
 }: MessageBubbleProps) {
   return (
-    <div className="flex items-start gap-2.5 px-2.5 py-[7px] rounded-md transition-colors hover:bg-bg-hover">
-      {/* Avatar */}
+    <div className={cn('flex items-end gap-[7px] mb-0.5', isOwn && 'flex-row-reverse')}>
+      {/* Avatar for received messages */}
+      {!isOwn && (
+        <div
+          className={cn(
+            'w-[26px] h-[26px] rounded-lg shrink-0 flex items-center justify-center text-[10px] font-semibold text-white mb-[1px]',
+            !showAvatar && 'invisible',
+          )}
+          style={{ backgroundColor: avatarColor }}
+        >
+          {initials}
+        </div>
+      )}
+
+      {/* Bubble */}
       <div
         className={cn(
-          'w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-[11px] font-semibold mt-[1px]',
-          avatarColor,
+          'max-w-[420px] px-3 py-2 text-[13px] leading-relaxed break-words',
+          isOwn
+            ? 'bg-accent text-white rounded-[14px] rounded-br-[4px]'
+            : 'bg-bg2 text-text rounded-[14px] rounded-bl-[4px] border border-border',
         )}
       >
-        {initials}
-      </div>
-
-      {/* Body */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-baseline gap-2 mb-[2px]">
-          <span className="text-[13px] font-semibold">{name}</span>
-          <span className="text-[11px] text-text3">{time}</span>
-        </div>
-        <div className="text-[13px] text-text leading-relaxed">{text}</div>
+        {text}
+        <span
+          className={cn(
+            'block text-[10px] mt-[3px]',
+            isOwn ? 'text-right opacity-60' : 'text-left text-text3',
+          )}
+        >
+          {time}
+          {isOwn && ' \u2713\u2713'}
+        </span>
       </div>
     </div>
   );

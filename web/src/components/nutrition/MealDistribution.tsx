@@ -19,11 +19,11 @@ interface Meal {
 }
 
 const DEFAULT_MEALS: Meal[] = [
-  { key: 'breakfast', i18nKey: 'nutritionGoals.breakfast', percent: 25 },
-  { key: 'snack1', i18nKey: 'nutritionGoals.snack1', percent: 10 },
-  { key: 'lunch', i18nKey: 'nutritionGoals.lunch', percent: 30 },
-  { key: 'snack2', i18nKey: 'nutritionGoals.snack2', percent: 10 },
-  { key: 'dinner', i18nKey: 'nutritionGoals.dinner', percent: 25 },
+  { key: 'Breakfast', i18nKey: 'mealKind.Breakfast', percent: 25 },
+  { key: 'MorningSnack', i18nKey: 'mealKind.MorningSnack', percent: 10 },
+  { key: 'Lunch', i18nKey: 'mealKind.Lunch', percent: 30 },
+  { key: 'AfternoonSnack', i18nKey: 'mealKind.AfternoonSnack', percent: 10 },
+  { key: 'Dinner', i18nKey: 'mealKind.Dinner', percent: 25 },
 ];
 
 export default function MealDistribution({

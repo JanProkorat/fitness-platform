@@ -69,6 +69,51 @@ public interface IApplicationDbContext
     DbSet<PendingInvite> PendingInvites { get; set; }
 
     /// <summary>
+    /// Questionnaire templates created by professionals.
+    /// </summary>
+    DbSet<Questionnaire> Questionnaires { get; set; }
+
+    /// <summary>
+    /// Questions within questionnaire templates.
+    /// </summary>
+    DbSet<QuestionnaireQuestion> QuestionnaireQuestions { get; set; }
+
+    /// <summary>
+    /// Client responses to questionnaires.
+    /// </summary>
+    DbSet<QuestionnaireResponse> QuestionnaireResponses { get; set; }
+
+    /// <summary>
+    /// Individual answers within questionnaire responses.
+    /// </summary>
+    DbSet<QuestionnaireAnswer> QuestionnaireAnswers { get; set; }
+
+    /// <summary>
+    /// Client requests to join a professional's roster.
+    /// </summary>
+    DbSet<ClientRequest> ClientRequests { get; set; }
+
+    /// <summary>
+    /// Email verification tokens.
+    /// </summary>
+    DbSet<EmailVerificationToken> EmailVerificationTokens { get; set; }
+
+    /// <summary>
+    /// Device push tokens for mobile notifications.
+    /// </summary>
+    DbSet<DevicePushToken> DevicePushTokens { get; set; }
+
+    /// <summary>
+    /// Messaging conversations between professionals and clients.
+    /// </summary>
+    DbSet<Conversation> Conversations { get; set; }
+
+    /// <summary>
+    /// Chat messages within conversations.
+    /// </summary>
+    DbSet<ChatMessage> ChatMessages { get; set; }
+
+    /// <summary>
     /// Saves all changes made in this context to the database.
     /// </summary>
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

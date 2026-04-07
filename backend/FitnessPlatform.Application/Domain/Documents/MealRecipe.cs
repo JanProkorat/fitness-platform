@@ -37,4 +37,11 @@ public class MealRecipe
     [BsonElement("note")]
     [BsonIgnoreIfNull]
     public string? Note { get; set; }
+
+    /// <summary>
+    /// Distinct food categories from the recipe's ingredients (snapshot).
+    /// </summary>
+    [BsonElement("foodCategories")]
+    [BsonIgnoreIfNull]
+    public List<string>? FoodCategories { get; set; }
 }

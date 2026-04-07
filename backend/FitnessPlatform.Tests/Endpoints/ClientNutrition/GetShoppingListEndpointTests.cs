@@ -2,8 +2,11 @@ using System.Security.Claims;
 using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.ClientNutrition.GetShoppingList;
+using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints.NutritionPlans;
 
 namespace FitnessPlatform.Tests.Endpoints.ClientNutrition;
@@ -15,6 +18,11 @@ public class GetShoppingListEndpointTests
 {
     private readonly Guid _clientId = Guid.NewGuid();
 
+    private IApplicationDbContext CreateMockDb() =>
+        new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .Build();
+
     [Fact]
     public async Task HandleAsync_ValidPlan_ReturnsAggregatedFoods()
     {
@@ -24,8 +32,8 @@ public class GetShoppingListEndpointTests
         var chickenFood2 = PlanTestHelpers.CreateMealFood(foodExternalId: chickenId, foodName: "Chicken", amountGrams: 150);
         var riceFood = PlanTestHelpers.CreateMealFood(foodExternalId: riceId, foodName: "Rice", amountGrams: 100);
 
-        var meal1 = PlanTestHelpers.CreateMeal(name: "Lunch", order: 1, foods: [chickenFood1, riceFood]);
-        var meal2 = PlanTestHelpers.CreateMeal(name: "Dinner", order: 2, foods: [chickenFood2]);
+        var meal1 = PlanTestHelpers.CreateMeal(kind: MealKind.Lunch, order: 1, foods: [chickenFood1, riceFood]);
+        var meal2 = PlanTestHelpers.CreateMeal(kind: MealKind.Dinner, order: 2, foods: [chickenFood2]);
 
         var plan = PlanTestHelpers.CreatePlan(
             clientId: _clientId,
@@ -37,11 +45,13 @@ public class GetShoppingListEndpointTests
 
         var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
 
+        var db = CreateMockDb();
+
         var ep = Factory.Create<GetShoppingListEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo);
+                    EndpointTestHelpers.FakeUserClaims(_clientId))),
+            mongo, db);
 
         await ep.HandleAsync(
             new GetShoppingListRequest(),
@@ -63,11 +73,13 @@ public class GetShoppingListEndpointTests
     {
         var mongo = PlanTestHelpers.CreateMockMongo();
 
+        var db = CreateMockDb();
+
         var ep = Factory.Create<GetShoppingListEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo);
+            mongo, db);
 
         await ep.HandleAsync(
             new GetShoppingListRequest(),
@@ -81,10 +93,12 @@ public class GetShoppingListEndpointTests
     {
         var mongo = PlanTestHelpers.CreateMockMongo();
 
+        var db = CreateMockDb();
+
         var ep = Factory.Create<GetShoppingListEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity()),
-            mongo);
+            mongo, db);
 
         await ep.HandleAsync(
             new GetShoppingListRequest(),

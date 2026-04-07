@@ -39,15 +39,16 @@ function formatShortDate(weekStartDate: string, dayOfWeek: number): string {
 }
 
 function sumTotals(totalsArr: NutrientTotals[]): NutrientTotals {
-  if (totalsArr.length === 0) return { kcal: 0, protein: 0, carbs: 0, fat: 0 };
+  if (totalsArr.length === 0) return { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 };
   return totalsArr.reduce(
     (acc, t) => ({
       kcal: acc.kcal + t.kcal,
       protein: acc.protein + t.protein,
       carbs: acc.carbs + t.carbs,
       fat: acc.fat + t.fat,
+      fiber: acc.fiber + t.fiber,
     }),
-    { kcal: 0, protein: 0, carbs: 0, fat: 0 },
+    { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 },
   );
 }
 

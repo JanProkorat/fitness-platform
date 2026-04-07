@@ -53,6 +53,7 @@ public class GetMyRequestsEndpoint(IApplicationDbContext db) : EndpointWithoutRe
             .Select(r => new ClientRequestDto
             {
                 PublicId = r.PublicId,
+                ProfessionalPublicId = r.ProfessionalProfile.PublicId,
                 ProfessionalName = r.ProfessionalProfile.User.FirstName + " " + r.ProfessionalProfile.User.LastName,
                 Message = r.Message,
                 Status = r.Status,

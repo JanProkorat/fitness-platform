@@ -29,4 +29,9 @@ public class CreatePendingInviteResponse
     /// Timestamp when the invitation was sent.
     /// </summary>
     public DateTime SentAt { get; set; }
+
+    /// <summary>
+    /// Public ID of the assigned questionnaire, if any.
+    /// </summary>
+    public Guid? QuestionnairePublicId { get; set; }
 }

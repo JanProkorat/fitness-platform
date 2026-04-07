@@ -14,6 +14,7 @@ interface NutritionCardProps {
     protein: number
     carbs: number
     fat: number
+    fiber: number
   }
   meals: PlanMeal[]
   eatenMealIds: Set<string>
@@ -52,6 +53,12 @@ export function NutritionCard({
           current={consumed.fat}
           target={targets.fat}
           color={colors.purple}
+        />
+        <MacroBar
+          label="Fiber"
+          current={consumed.fiber}
+          target={targets.fiber}
+          color={colors.green}
         />
       </View>
 

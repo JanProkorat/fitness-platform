@@ -50,9 +50,8 @@ public class UpdatePlanValidator : Validator<UpdatePlanRequest>
 
                 day.RuleForEach(d => d.Meals).ChildRules(meal =>
                 {
-                    meal.RuleFor(m => m.Name)
-                        .NotEmpty()
-                        .MaximumLength(100);
+                    meal.RuleFor(m => m.Kind)
+                        .IsInEnum();
 
                     meal.RuleFor(m => m.Order)
                         .GreaterThanOrEqualTo(1).WithMessage("Meal Order must be >= 1.");

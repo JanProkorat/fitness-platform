@@ -26,6 +26,11 @@ public class GetProfileResponse
     public string LastName { get; set; } = string.Empty;
 
     /// <summary>
+    /// User's phone number.
+    /// </summary>
+    public string? PhoneNumber { get; set; }
+
+    /// <summary>
     /// User's assigned roles.
     /// </summary>
     public List<string> Roles { get; set; } = [];
@@ -39,4 +44,25 @@ public class GetProfileResponse
     /// Whether the client has completed onboarding. Null for non-client users.
     /// </summary>
     public bool? IsOnboardingComplete { get; set; }
+
+    /// <summary>
+    /// Whether the user's email address has been verified.
+    /// </summary>
+    public bool EmailConfirmed { get; set; }
+
+    /// <summary>
+    /// Whether the client has an active link to a professional. Null/false for non-client users.
+    /// </summary>
+    public bool HasActiveLink { get; set; }
+
+    /// <summary>
+    /// Whether the client has a pending (not yet submitted) questionnaire. Null/false for non-client users.
+    /// </summary>
+    public bool HasPendingQuestionnaire { get; set; }
+
+    /// <summary>
+    /// Roles of professionals the client is actively linked with (e.g. ["Trainer"], ["Nutritionist"], or both).
+    /// Empty for non-client users.
+    /// </summary>
+    public List<string> LinkedRoles { get; set; } = [];
 }

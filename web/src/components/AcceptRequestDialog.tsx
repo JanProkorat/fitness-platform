@@ -11,9 +11,10 @@ interface AcceptRequestDialogProps {
   onClose: () => void;
   requestPublicId: string;
   clientName: string;
+  statement?: string;
 }
 
-export function AcceptRequestDialog({ open, onClose, requestPublicId, clientName }: AcceptRequestDialogProps) {
+export function AcceptRequestDialog({ open, onClose, requestPublicId, clientName, statement }: AcceptRequestDialogProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [selectedQuestionnaireId, setSelectedQuestionnaireId] = useState<string>('');
@@ -37,7 +38,7 @@ export function AcceptRequestDialog({ open, onClose, requestPublicId, clientName
 
   const mutation = useMutation({
     mutationFn: () =>
-      acceptClientRequest(requestPublicId, selectedQuestionnaireId || null),
+      acceptClientRequest(requestPublicId, selectedQuestionnaireId || null, statement),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['client-requests'] });
       queryClient.invalidateQueries({ queryKey: ['sidebar-clients'] });
@@ -83,23 +84,21 @@ export function AcceptRequestDialog({ open, onClose, requestPublicId, clientName
         </p>
 
         {/* Questionnaire selector */}
-        {activeQuestionnaires.length > 0 && (
-          <div>
-            <label className="form-label">{t('clientRequests.selectQuestionnaire')}</label>
-            <select
-              className="form-select"
-              value={selectedQuestionnaireId}
-              onChange={(e) => setSelectedQuestionnaireId(e.target.value)}
-            >
-              <option value="">{t('clientRequests.noQuestionnaire')}</option>
-              {activeQuestionnaires.map((q) => (
-                <option key={q.publicId} value={q.publicId}>
-                  {q.title}{q.isDefault ? ` (${t('questionnaire.default')})` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
+        <div>
+          <label className="form-label">{t('clientRequests.selectQuestionnaire')}</label>
+          <select
+            className="form-select"
+            value={selectedQuestionnaireId}
+            onChange={(e) => setSelectedQuestionnaireId(e.target.value)}
+          >
+            <option value="">{t('clientRequests.noQuestionnaire')}</option>
+            {activeQuestionnaires.map((q) => (
+              <option key={q.publicId} value={q.publicId}>
+                {q.title}{q.isDefault ? ` (${t('questionnaire.default')})` : ''}
+              </option>
+            ))}
+          </select>
+        </div>
 
         {mutation.isError && (
           <p style={{ fontSize: 12, color: 'var(--red)', margin: 0 }}>

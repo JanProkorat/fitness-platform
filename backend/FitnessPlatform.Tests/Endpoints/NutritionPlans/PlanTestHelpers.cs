@@ -52,7 +52,7 @@ public static class PlanTestHelpers
     /// </summary>
     public static PlanMeal CreateMeal(
         Guid? mealId = null,
-        string name = "Test Meal",
+        MealKind kind = MealKind.Breakfast,
         int order = 1,
         string? time = null,
         params MealFood[] foods)
@@ -60,7 +60,7 @@ public static class PlanTestHelpers
         return new PlanMeal
         {
             MealId = mealId ?? Guid.NewGuid(),
-            Name = name,
+            Kind = kind,
             Order = order,
             Time = time,
             Foods = foods.ToList()
@@ -115,7 +115,7 @@ public static class PlanTestHelpers
     /// <summary>
     /// Creates a mock <see cref="IMongoCollection{NutritionPlan}"/> supporting FindAsync, CountDocumentsAsync, and ReplaceOneAsync.
     /// </summary>
-    public static IMongoCollection<NutritionPlan> CreateMockCollection(List<NutritionPlan> plans)
+    private static IMongoCollection<NutritionPlan> CreateMockCollection(List<NutritionPlan> plans)
     {
         var collection = Substitute.For<IMongoCollection<NutritionPlan>>();
 
@@ -123,7 +123,7 @@ public static class PlanTestHelpers
                 Arg.Any<FilterDefinition<NutritionPlan>>(),
                 Arg.Any<FindOptions<NutritionPlan, NutritionPlan>>(),
                 Arg.Any<CancellationToken>())
-            .Returns(ci => CreateCursor(plans));
+            .Returns(_ => CreateCursor(plans));
 
         collection.CountDocumentsAsync(
                 Arg.Any<FilterDefinition<NutritionPlan>>(),

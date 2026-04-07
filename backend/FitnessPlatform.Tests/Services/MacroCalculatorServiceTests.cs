@@ -120,7 +120,7 @@ public class MacroCalculatorServiceTests
         // Protein: 2400 * 0.35 / 4 = 210g
         // Carbs:   2400 * 0.40 / 4 = 240g
         // Fat:     2400 * 0.25 / 9 ≈ 67g
-        var settings = _sut.CalculateMacroSplit(2400m, 35m, 40m, 25m);
+        var settings = _sut.CalculateMacroSplit(2400m, 35m, 40m);
 
         settings.DailyKcal.Should().Be(2400m);
         settings.ProteinGrams.Should().Be(210m);
@@ -196,7 +196,7 @@ public class MacroCalculatorServiceTests
                                 new PlanMeal
                                 {
                                     MealId = Guid.NewGuid(),
-                                    Name = "Breakfast",
+                                    Kind = MealKind.Breakfast,
                                     Order = 1,
                                     Foods =
                                     [
@@ -211,7 +211,7 @@ public class MacroCalculatorServiceTests
                                 new PlanMeal
                                 {
                                     MealId = Guid.NewGuid(),
-                                    Name = "Lunch",
+                                    Kind = MealKind.Breakfast,
                                     Order = 2,
                                     Foods =
                                     [
@@ -335,7 +335,7 @@ public class MacroCalculatorServiceTests
                                 new PlanMeal
                                 {
                                     MealId = Guid.NewGuid(),
-                                    Name = "Test Meal",
+                                    Kind = MealKind.Breakfast,
                                     Order = 1,
                                     Foods = foods.ToList()
                                 }

@@ -4,10 +4,11 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getClientDashboard } from '@/api/nutrition-goals';
 
-import { Breadcrumb, PageHeader } from '@/components/layout';
+import { PageHeader } from '@/components/layout';
 import { Button, Tag, Dialog, Input } from '@/components/ui';
 import { PropertyList, StatsGrid } from '@/components/data';
 import { ActivityTimeline } from '@/components/domain';
+import { QuestionnaireAnswersSection } from '@/components/questionnaire';
 
 export default function ClientDetailPage() {
   const { t } = useTranslation();
@@ -274,13 +275,7 @@ export default function ClientDetailPage() {
   if (isPending) {
     return (
       <div className="flex h-full flex-col">
-        <Breadcrumb
-          items={[
-            { label: 'Dashboard', href: '/dashboard' },
-            { label: clientName },
-          ]}
-        />
-        <PageHeader icon="👤" title={clientName} />
+        <PageHeader icon="👤" title={clientName} subtitle={client.email ?? undefined} />
         <div style={{ padding: '40px 80px', maxWidth: 600 }}>
           <div style={{
             background: 'var(--accent-bg)',
@@ -324,41 +319,34 @@ export default function ClientDetailPage() {
 
   return (
     <div className="flex h-full flex-col">
-      {/* Breadcrumb */}
-      <Breadcrumb
-        items={[
-          { label: 'Dashboard', href: '/dashboard' },
-          { label: clientName },
-        ]}
-      />
-
       {/* Page Header */}
       <PageHeader
         icon="👤"
         title={clientName}
-        subtitle={undefined}
+        subtitle={client.email ?? undefined}
         actions={
           <div className="flex items-center gap-1.5">
+            {subtitleNode}
             <Button onClick={() => setEditDialogOpen(true)}>
-              ✏ Upravit profil
+              ✏ {t('clients.editProfile')}
             </Button>
-            <Button variant="primary" onClick={() => navigate('/messages')}>
-              ✉ Napsat zprávu
+            <Button variant="primary" onClick={() => navigate(`/messages?clientId=${id}`)}>
+              ✉ {t('clients.sendMessage')}
             </Button>
           </div>
         }
       />
-
-      {/* Subtitle tags below header */}
-      <div className="px-20 pb-2">
-        {subtitleNode}
-      </div>
 
       {/* Page Content */}
       <div className="flex-1 overflow-y-auto">
         <div className="px-20 py-3 max-w-[1200px]">
           {/* Property List */}
           <PropertyList items={propertyItems} />
+
+          {/* Questionnaire Answers */}
+          <div className="my-3.5">
+            <QuestionnaireAnswersSection clientId={id!} />
+          </div>
 
           {/* Divider */}
           <div className="h-px bg-border my-3.5" />

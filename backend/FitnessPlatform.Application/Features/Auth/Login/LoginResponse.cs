@@ -19,4 +19,9 @@ public class LoginResponse
     /// Access token expiration time in UTC.
     /// </summary>
     public DateTime ExpiresAt { get; set; }
+
+    /// <summary>
+    /// Whether the user's email address has been verified.
+    /// </summary>
+    public bool EmailConfirmed { get; set; }
 }

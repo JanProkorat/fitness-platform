@@ -7,7 +7,9 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useAuthStore } from '../src/stores/auth';
 import { useOfflineMutations } from '../src/hooks/useOfflineMutations';
 import { OfflineBanner } from '../src/components/OfflineBanner';
-import { Colors } from '../constants/Colors';
+import { ToastProvider } from '@/components/ui/Toast';
+import { Colors } from '@/constants/colors';
+import { useTheme } from '@/hooks/useTheme';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -17,7 +19,7 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 5 * 60_000,
-      gcTime: 7 * 24 * 60 * 60_000, // 7 days
+      gcTime: 7 * 24 * 60 * 60_000,
       retry: 1,
       networkMode: 'offlineFirst',
     },
@@ -27,12 +29,12 @@ const queryClient = new QueryClient({
 function AuthGate() {
   const router = useRouter();
   const segments = useSegments();
+  const colors = useTheme();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const isInitialized = useAuthStore((s) => s.isInitialized);
   const restoreSession = useAuthStore((s) => s.restoreSession);
   const user = useAuthStore((s) => s.user);
 
-  // Process offline mutations
   useOfflineMutations();
 
   useEffect(() => {
@@ -44,23 +46,26 @@ function AuthGate() {
     SplashScreen.hideAsync();
 
     const inAuthGroup = segments[0] === '(auth)';
-    const onOnboardingScreen = inAuthGroup && segments[1] === 'onboarding';
-    const isClient = user?.roles.includes('Client') && !user.roles.some(r => ['Trainer', 'Nutritionist', 'Admin'].includes(r));
-    const needsOnboarding = isClient && user?.isOnboardingComplete === false;
+    const currentScreen = segments[1] as string | undefined;
+    const onVerifyScreen = inAuthGroup && currentScreen === 'verify-email';
+    const onQuestionnaireScreen = inAuthGroup && currentScreen === 'questionnaire';
+    const onInviteScreen = inAuthGroup && currentScreen === 'invite';
 
     if (!isAuthenticated && !inAuthGroup) {
       router.replace('/(auth)/login');
-    } else if (isAuthenticated && needsOnboarding && !onOnboardingScreen) {
-      router.replace('/(auth)/onboarding');
-    } else if (isAuthenticated && inAuthGroup && !needsOnboarding && !onOnboardingScreen) {
+    } else if (isAuthenticated && !user?.emailConfirmed && !onVerifyScreen) {
+      router.replace('/(auth)/verify-email' as never);
+    } else if (isAuthenticated && user?.emailConfirmed && user?.hasPendingQuestionnaire && !onQuestionnaireScreen && !inAuthGroup) {
+      router.replace('/(auth)/questionnaire' as never);
+    } else if (isAuthenticated && user?.emailConfirmed && inAuthGroup && !onQuestionnaireScreen && !onInviteScreen) {
       router.replace('/(client)');
     }
   }, [isAuthenticated, isInitialized, segments, router, user]);
 
   if (!isInitialized) {
     return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" color={Colors.dark.gold} />
+      <View style={[styles.loading, { backgroundColor: colors.bg }]}>
+        <ActivityIndicator size="large" color={colors.gold} />
       </View>
     );
   }
@@ -68,6 +73,7 @@ function AuthGate() {
   return (
     <>
       <OfflineBanner />
+      <ToastProvider />
       <Slot />
     </>
   );
@@ -86,6 +92,5 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.dark.background,
   },
 });

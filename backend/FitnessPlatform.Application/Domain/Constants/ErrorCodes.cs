@@ -28,6 +28,18 @@ public static class ErrorCodes
     /// <summary>Invitation has expired.</summary>
     public const string InvitationExpired = "INVITATION_EXPIRED";
 
+    /// <summary>Invalid or expired email verification token.</summary>
+    public const string InvalidVerificationToken = "INVALID_VERIFICATION_TOKEN";
+
+    /// <summary>Email verification token has expired.</summary>
+    public const string VerificationTokenExpired = "VERIFICATION_TOKEN_EXPIRED";
+
+    /// <summary>Maximum number of verification emails has been reached.</summary>
+    public const string VerificationResendLimitReached = "VERIFICATION_RESEND_LIMIT_REACHED";
+
+    /// <summary>Email is already verified.</summary>
+    public const string EmailAlreadyVerified = "EMAIL_ALREADY_VERIFIED";
+
     // ── Users ────────────────────────────────────────────────────────
     /// <summary>User already has the requested role.</summary>
     public const string RoleAlreadyAssigned = "ROLE_ALREADY_ASSIGNED";
@@ -84,6 +96,22 @@ public static class ErrorCodes
 
     /// <summary>The target week's start Monday is in the past.</summary>
     public const string WeekStartInPast = "WEEK_START_IN_PAST";
+
+    // ── Client Requests ───────────────────────────────────────────────
+    /// <summary>Professional profile not found.</summary>
+    public const string ProfessionalNotFound = "PROFESSIONAL_NOT_FOUND";
+
+    /// <summary>Client and professional are already linked.</summary>
+    public const string AlreadyLinked = "ALREADY_LINKED";
+
+    /// <summary>A pending request already exists for this professional.</summary>
+    public const string RequestAlreadyPending = "REQUEST_ALREADY_PENDING";
+
+    /// <summary>Professional is not accepting new clients.</summary>
+    public const string ProfessionalNotAccepting = "PROFESSIONAL_NOT_ACCEPTING";
+
+    /// <summary>Client request not found.</summary>
+    public const string ClientRequestNotFound = "CLIENT_REQUEST_NOT_FOUND";
 
     // ── Validation (generic) ─────────────────────────────────────────
     /// <summary>Required field is missing.</summary>

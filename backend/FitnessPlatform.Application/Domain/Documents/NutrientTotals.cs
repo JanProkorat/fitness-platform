@@ -30,4 +30,10 @@ public class NutrientTotals
     /// </summary>
     [BsonElement("fat")]
     public decimal Fat { get; set; }
+
+    /// <summary>
+    /// Total dietary fiber in grams.
+    /// </summary>
+    [BsonElement("fiber")]
+    public decimal Fiber { get; set; }
 }

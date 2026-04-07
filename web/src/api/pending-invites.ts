@@ -5,14 +5,19 @@ export interface PendingInviteDto {
   firstName: string;
   lastName: string;
   email: string;
+  message?: string | null;
   sentAt: string;
   isAccepted: boolean;
+  questionnairePublicId?: string | null;
+  questionnaireTitle?: string | null;
 }
 
 export interface CreatePendingInviteRequest {
   firstName: string;
   lastName: string;
   email: string;
+  message?: string | null;
+  questionnairePublicId?: string | null;
 }
 
 export interface CreatePendingInviteResponse {
@@ -21,6 +26,7 @@ export interface CreatePendingInviteResponse {
   lastName: string;
   email: string;
   sentAt: string;
+  questionnairePublicId?: string | null;
 }
 
 export interface GetPendingInvitesResponse {

@@ -213,6 +213,11 @@ export default function NutritionScreen() {
     router.push('/nutrition/shopping' as any);
   }, [router]);
 
+  const publishedWeekNumbers = useMemo(
+    () => data?.weeks.map((w) => w.weekNumber) ?? [],
+    [data],
+  );
+
   // ── Loading state ──────────────────────────────────────────────────────────
 
   if (isLoading) {
@@ -250,10 +255,6 @@ export default function NutritionScreen() {
 
   // ── Main view ──────────────────────────────────────────────────────────────
 
-  const publishedWeekNumbers = useMemo(
-    () => data?.weeks.map((w) => w.weekNumber) ?? [],
-    [data],
-  );
   const hasPrevWeek = publishedWeekNumbers.some((w) => w < currentWeekNumber);
   const hasNextWeek = publishedWeekNumbers.some((w) => w > currentWeekNumber);
 

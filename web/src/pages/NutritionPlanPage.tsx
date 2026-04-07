@@ -14,6 +14,7 @@ import type { WeekTabData, DayTabData } from '@/components/nutrition/WeekDayTabs
 import type { PlanMeal, MealFood, NutrientTotals } from '@/api/plan-types';
 import { showSuccess, showApiError } from '@/lib/api-errors';
 import { cn } from '@/lib/cn';
+import { MEAL_KINDS, type MealKind } from '@/components/nutrition/meal-kind';
 
 
 /** Day-level note input */
@@ -88,7 +89,6 @@ function SortableMealItem({
   onRecipeServingsChange,
   onRecipeRemove,
   onRecipeNoteChange,
-  onNameChange,
   onNoteChange,
   onFoodNoteChange,
   onItemDrop,
@@ -111,11 +111,10 @@ function SortableMealItem({
   onFoodAmountChange: (foodId: string, amount: number) => void;
   onFoodRemove: (foodId: string) => void;
   onFoodSelect: (food: { name: string; kcal: number; protein: number; carbs: number; fat: number }) => void;
-  onRecipeSelect: (recipe: { recipeId: string; name: string; kcal: number; protein: number; carbs: number; fat: number }) => void;
+  onRecipeSelect: (recipe: { recipeId: string; name: string; kcal: number; protein: number; carbs: number; fat: number; foodCategories?: string[] }) => void;
   onRecipeServingsChange: (recipeId: string, servings: number) => void;
   onRecipeRemove: (recipeId: string) => void;
   onRecipeNoteChange: (recipeId: string, note: string) => void;
-  onNameChange: (name: string) => void;
   onNoteChange: (note: string) => void;
   onFoodNoteChange: (foodId: string, note: string) => void;
   onItemDrop: (data: { type: string; foodId?: string; recipeId?: string; mealId: string; dayOfWeek?: number }) => void;
@@ -155,6 +154,7 @@ function SortableMealItem({
     carbs: r.nutrientValuePerServing.carbs,
     fat: r.nutrientValuePerServing.fat,
     note: r.note,
+    foodCategories: r.foodCategories,
   }));
 
   const [confirmRemove, setConfirmRemove] = useState(false);
@@ -192,7 +192,7 @@ function SortableMealItem({
         mealId={meal.mealId}
         dayOfWeek={dayOfWeek}
         weekNumber={weekNum}
-        name={meal.name}
+        kind={meal.kind}
         time={meal.time ?? undefined}
         note={meal.note}
         foods={mealFoods}
@@ -208,7 +208,6 @@ function SortableMealItem({
         onRecipeRemove={onRecipeRemove}
         onRecipeNoteChange={onRecipeNoteChange}
         mealTotalKcal={meal.mealTotals?.kcal ?? 0}
-        onNameChange={onNameChange}
         onNoteChange={onNoteChange}
         onItemDrop={onItemDrop}
         onReorder={onReorder}
@@ -259,7 +258,7 @@ export default function NutritionPlanPage() {
   const updateFoodAmount = useNutritionPlanStore((s) => s.updateFoodAmount);
   const removeFoodFromMeal = useNutritionPlanStore((s) => s.removeFoodFromMeal);
   const addFoodToMeal = useNutritionPlanStore((s) => s.addFoodToMeal);
-  const updateMealName = useNutritionPlanStore((s) => s.updateMealName);
+
   const reorderMeals = useNutritionPlanStore((s) => s.reorderMeals);
   const updateMealNote = useNutritionPlanStore((s) => s.updateMealNote);
   const updateFoodNote = useNutritionPlanStore((s) => s.updateFoodNote);
@@ -279,11 +278,12 @@ export default function NutritionPlanPage() {
 
   // ── Local UI state ──
   const [selectedDay, setSelectedDay] = useState(1);
+  const [weekViewExpanded, setWeekViewExpanded] = useState(false);
   const [dragOverDay, setDragOverDay] = useState<number | null>(null);
   const dayHoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [openMeals, setOpenMeals] = useState<Set<string>>(new Set());
   const [addMealOpen, setAddMealOpen] = useState(false);
-  const [newMealName, setNewMealName] = useState('');
+  const [newMealKind, setNewMealKind] = useState<MealKind>('Breakfast');
   const [newMealTime, setNewMealTime] = useState('');
   const [shoppingListOpen, setShoppingListOpen] = useState(false);
   const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
@@ -319,6 +319,7 @@ export default function NutritionPlanPage() {
       protein: gs?.proteinGrams ?? 130,
       carbs: gs?.carbsGrams ?? 180,
       fat: gs?.fatGrams ?? 55,
+      fiber: gs?.fiberGrams ?? ob?.fiberGrams ?? 25,
     };
   }, [plan?.globalSettings, clientDashboard]);
 
@@ -420,13 +421,13 @@ export default function NutritionPlanPage() {
   };
 
   const handleAddMeal = () => {
-    if (!plan || !newMealName.trim()) return;
+    if (!plan) return;
     const week = plan.weeks.find((w) => w.weekNumber === selectedWeek);
     const day = week?.days.find((d) => d.dayOfWeek === selectedDay);
     const order = (day?.meals.length ?? 0) + 1;
     const meal: PlanMeal = {
       mealId: crypto.randomUUID(),
-      name: newMealName.trim(),
+      kind: newMealKind,
       order,
       time: newMealTime || null,
       foods: [],
@@ -435,7 +436,7 @@ export default function NutritionPlanPage() {
     };
     addMeal(selectedWeek, selectedDay, meal);
     setOpenMeals((prev) => new Set([...prev, meal.mealId]));
-    setNewMealName('');
+    setNewMealKind('Breakfast');
     setNewMealTime('');
     setAddMealOpen(false);
   };
@@ -481,7 +482,7 @@ export default function NutritionPlanPage() {
     [currentDay],
   );
 
-  const dayTotals: NutrientTotals = currentDay?.dayTotals ?? { kcal: 0, protein: 0, carbs: 0, fat: 0 };
+  const dayTotals: NutrientTotals = currentDay?.dayTotals ?? { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 };
 
   // ── Week/Day tabs data ──
   const weekTabs: WeekTabData[] = useMemo(() => {
@@ -653,7 +654,7 @@ export default function NutritionPlanPage() {
         {/* Left: Day tabs + Meals */}
         <div className="flex flex-col overflow-hidden" style={{ borderRight: '1px solid var(--border)', minWidth: 0 }}>
           {/* Day tabs inside meals column */}
-          <div className="flex items-center border-b border-border shrink-0">
+          <div className="relative flex items-center border-b border-border shrink-0">
             {dayTabs.map((day) => (
               <button
                 key={day.index}
@@ -721,7 +722,86 @@ export default function NutritionPlanPage() {
                 )}
               </button>
             ))}
+            {/* Expand week overview toggle */}
+            <button
+              type="button"
+              className="shrink-0 px-2 text-text3 hover:text-text transition-colors"
+              style={{ border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 14 }}
+              onClick={() => setWeekViewExpanded((v) => !v)}
+              title={weekViewExpanded ? t('nutrition.collapseWeekView') : t('nutrition.expandWeekView')}
+            >
+              {weekViewExpanded ? '⊟' : '⊞'}
+            </button>
+
+            {/* ── Expandable week overview ── */}
+            {weekViewExpanded && (
+            <div
+              className="absolute left-0 right-0 top-full z-50 border-b border-border bg-bg"
+              style={{ boxShadow: '0 8px 24px rgba(0,0,0,0.1)' }}
+            >
+              <div className="grid grid-cols-7 gap-0">
+                {[1, 2, 3, 4, 5, 6, 7].map((dayOfWeek) => {
+                  const day = currentWeek?.days.find((d) => d.dayOfWeek === dayOfWeek);
+                  const dayMeals = (day?.meals ?? []).slice().sort((a, b) => a.order - b.order);
+                  const isSelected = dayOfWeek === selectedDay;
+
+                  return (
+                    <div
+                      key={dayOfWeek}
+                      className={cn(
+                        'flex flex-col border-r border-border last:border-r-0 cursor-pointer',
+                        isSelected && 'bg-accent-bg',
+                      )}
+                      onClick={() => { setSelectedDay(dayOfWeek); setWeekViewExpanded(false); }}
+                    >
+                      <div className="p-1.5 flex flex-col gap-1" style={{ minHeight: 60 }}>
+                        {dayMeals.length === 0 && (
+                          <div className="text-[10px] text-text4 text-center py-3">—</div>
+                        )}
+                        {dayMeals.map((meal) => {
+                          const mealKcal = meal.foods.reduce((s, f) => {
+                            const scale = f.amountGrams / 100;
+                            return s + f.nutrientValuePer100Grams.kcal * scale;
+                          }, 0) + (meal.recipes ?? []).reduce((s, r) => s + r.nutrientValuePerServing.kcal * r.servings, 0);
+                          const mealP = meal.foods.reduce((s, f) => s + f.nutrientValuePer100Grams.protein * (f.amountGrams / 100), 0)
+                            + (meal.recipes ?? []).reduce((s, r) => s + r.nutrientValuePerServing.protein * r.servings, 0);
+                          const mealC = meal.foods.reduce((s, f) => s + f.nutrientValuePer100Grams.carbs * (f.amountGrams / 100), 0)
+                            + (meal.recipes ?? []).reduce((s, r) => s + r.nutrientValuePerServing.carbs * r.servings, 0);
+                          const mealF = meal.foods.reduce((s, f) => s + f.nutrientValuePer100Grams.fat * (f.amountGrams / 100), 0)
+                            + (meal.recipes ?? []).reduce((s, r) => s + r.nutrientValuePerServing.fat * r.servings, 0);
+
+                          return (
+                            <div
+                              key={meal.mealId}
+                              className={cn(
+                                'rounded-md border bg-bg p-1.5',
+                                isSelected ? 'border-border-md' : 'border-border',
+                              )}
+                            >
+                              <div className="text-[11px] font-semibold text-text truncate">{t(`mealKind.${meal.kind}`)}</div>
+                              <div className="text-[10px] text-text3 mt-0.5">
+                                {meal.foods.length + (meal.recipes ?? []).length} {t('nutrition.itemsCount')}
+                              </div>
+                              {(meal.foods.length > 0 || (meal.recipes ?? []).length > 0) && (
+                                <div className="flex items-center gap-1.5 mt-1 text-[9px] tabular-nums">
+                                  <span className="font-semibold text-text2">{Math.round(mealKcal)}</span>
+                                  <span style={{ color: 'var(--blue)' }}>{Math.round(mealP)}{t('nutrition.proteinShort')}</span>
+                                  <span style={{ color: 'var(--orange)' }}>{Math.round(mealC)}{t('nutrition.carbsShort')}</span>
+                                  <span style={{ color: 'var(--purple)' }}>{Math.round(mealF)}{t('nutrition.fatShort')}</span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            )}
           </div>
+
           <div key={`${selectedWeek}-${selectedDay}`} className="tab-content-transition flex-1 overflow-y-auto" style={{ padding: '12px 20px' }}>
             {/* Day note */}
             <DayNoteInput
@@ -731,13 +811,8 @@ export default function NutritionPlanPage() {
               placeholder={t('nutrition.dayNotePlaceholder')}
             />
 
-            {meals.length === 0 && (
-              <div className="py-12 text-center text-[13px] text-text3">
-                {t('nutrition.noMealsMessage')}
-              </div>
-            )}
-
             <div
+              style={{ minHeight: 120, paddingBottom: meals.length > 0 ? 48 : undefined }}
               onDragOver={(e) => {
                 if (e.dataTransfer.types.includes('application/meal-json')) {
                   e.preventDefault();
@@ -780,6 +855,11 @@ export default function NutritionPlanPage() {
                 } catch { /* ignore */ }
               }}
             >
+            {meals.length === 0 && (
+              <div className="py-12 text-center text-[13px] text-text3">
+                {t('nutrition.noMealsMessage')}
+              </div>
+            )}
             {meals.map((meal, index) => (
               <SortableMealItem
                 key={meal.mealId}
@@ -801,11 +881,12 @@ export default function NutritionPlanPage() {
                   recipeName: recipe.name,
                   nutrientValuePerServing: { kcal: recipe.kcal, protein: recipe.protein, carbs: recipe.carbs, fat: recipe.fat },
                   servings: 1,
+                  foodCategories: recipe.foodCategories,
                 })}
                 onRecipeServingsChange={(recipeId, s) => updateRecipeServings(selectedWeek, selectedDay, meal.mealId, recipeId, s)}
                 onRecipeRemove={(recipeId) => removeRecipeFromMeal(selectedWeek, selectedDay, meal.mealId, recipeId)}
                 onRecipeNoteChange={(recipeId, n) => updateRecipeNote(selectedWeek, selectedDay, meal.mealId, recipeId, n)}
-                onNameChange={(newName) => updateMealName(selectedWeek, selectedDay, meal.mealId, newName)}
+
                 onNoteChange={(n) => updateMealNote(selectedWeek, selectedDay, meal.mealId, n)}
                 onFoodNoteChange={(foodId, n) => updateFoodNote(selectedWeek, selectedDay, meal.mealId, foodId, n)}
                 onItemDrop={(data) => {
@@ -832,7 +913,7 @@ export default function NutritionPlanPage() {
                   const clone: PlanMeal = {
                     ...meal,
                     mealId: crypto.randomUUID(),
-                    name: `${meal.name} (kopie)`,
+                    kind: meal.kind,
                     order: meals.length + 1,
                   };
                   addMeal(selectedWeek, selectedDay, clone);
@@ -840,7 +921,7 @@ export default function NutritionPlanPage() {
                 onRemove={() => removeMeal(selectedWeek, selectedDay, meal.mealId)}
                 lang={i18n.language}
                 removeMealTitle={t('nutrition.removeMealTitle')}
-                removeMealMessage={t('nutrition.removeMealMessage', { name: meal.name })}
+                removeMealMessage={t('nutrition.removeMealMessage', { name: t(`mealKind.${meal.kind}`) })}
                 cancelLabel={t('common.cancel')}
                 removeLabel={t('nutrition.remove')}
               />
@@ -850,7 +931,7 @@ export default function NutritionPlanPage() {
             {/* Add meal button */}
             <div
               className="flex items-center gap-1.5 px-3 py-2 mt-2 border border-dashed border-border rounded-md cursor-pointer text-text3 text-[13px] transition-colors hover:bg-bg-hover hover:text-text"
-              onClick={() => { setNewMealName(''); setNewMealTime(''); setAddMealOpen(true); }}
+              onClick={() => { setNewMealKind('Breakfast'); setNewMealTime(''); setAddMealOpen(true); }}
             >
               <span>+</span>
               <span>{t('nutrition.addMealButton')}</span>
@@ -968,17 +1049,24 @@ export default function NutritionPlanPage() {
         footer={
           <>
             <Button variant="ghost" onClick={() => setAddMealOpen(false)}>{t('common.cancel')}</Button>
-            <Button variant="primary" onClick={handleAddMeal} disabled={!newMealName.trim()}>{t('nutrition.addMealButton')}</Button>
+            <Button variant="primary" onClick={handleAddMeal}>{t('nutrition.addMealButton')}</Button>
           </>
         }
       >
-        <Input
-          label={t('nutrition.mealName')}
-          placeholder={t('nutrition.mealNamePlaceholder')}
-          value={newMealName}
-          onChange={(e) => setNewMealName(e.target.value)}
-          autoFocus
-        />
+        <div className="form-group">
+          <label className="form-label">{t('nutrition.mealKind')}</label>
+          <select
+            className="form-select auth-input"
+            style={{ fontSize: 13, padding: '7px 10px', cursor: 'pointer', width: '100%' }}
+            value={newMealKind}
+            onChange={(e) => setNewMealKind(e.target.value as MealKind)}
+            autoFocus
+          >
+            {MEAL_KINDS.map((k) => (
+              <option key={k} value={k}>{t(`mealKind.${k}`)}</option>
+            ))}
+          </select>
+        </div>
         <div className="form-group">
           <label className="form-label">{t('nutrition.mealTime')}</label>
           <input

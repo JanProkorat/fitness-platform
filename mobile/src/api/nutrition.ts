@@ -7,6 +7,7 @@ export interface NutrientTotals {
   protein: number;
   carbs: number;
   fat: number;
+  fiber: number;
 }
 
 export interface GlobalNutritionSettings {
@@ -14,6 +15,7 @@ export interface GlobalNutritionSettings {
   proteinGrams?: number | null;
   carbsGrams?: number | null;
   fatGrams?: number | null;
+  fiberGrams?: number | null;
 }
 
 export interface MealFood {

@@ -21,9 +21,76 @@ public class ProfessionalProfile : PublicTimestampableEntity
 
     /// <summary>
     /// Area of specialization (e.g., strength training, yoga, nutrition).
+    /// Kept for backwards compatibility. New code should prefer Specializations (JSON array).
     /// </summary>
     [MaxLength(100)]
     public string? Specialization { get; set; }
+
+    /// <summary>
+    /// City where the professional is based.
+    /// </summary>
+    [MaxLength(100)]
+    public string? City { get; set; }
+
+    /// <summary>
+    /// Estimated price per month (free-text, e.g. "3 500 Kč").
+    /// </summary>
+    [MaxLength(100)]
+    public string? EstimatedPrice { get; set; }
+
+    /// <summary>
+    /// Specializations stored as JSON array (e.g. ["Silový trénink","Výživa"]).
+    /// </summary>
+    public string? Specializations { get; set; }
+
+    /// <summary>
+    /// Certificates and education stored as JSON array.
+    /// </summary>
+    public string? Certificates { get; set; }
+
+    /// <summary>
+    /// Spoken languages stored as JSON array.
+    /// </summary>
+    public string? Languages { get; set; }
+
+    /// <summary>
+    /// Collaboration type: "both", "online", or "inperson".
+    /// </summary>
+    [MaxLength(20)]
+    public string? CollaborationType { get; set; }
+
+    /// <summary>
+    /// Maximum number of clients the professional can handle.
+    /// </summary>
+    public int? MaxClients { get; set; }
+
+    /// <summary>
+    /// LinkedIn profile URL or handle.
+    /// </summary>
+    [MaxLength(200)]
+    public string? LinkedIn { get; set; }
+
+    /// <summary>
+    /// Instagram handle.
+    /// </summary>
+    [MaxLength(200)]
+    public string? Instagram { get; set; }
+
+    /// <summary>
+    /// Website URL.
+    /// </summary>
+    [MaxLength(200)]
+    public string? Website { get; set; }
+
+    /// <summary>
+    /// Whether the profile is visible in the marketplace search.
+    /// </summary>
+    public bool ShowInSearch { get; set; } = true;
+
+    /// <summary>
+    /// Whether the professional is currently accepting new clients.
+    /// </summary>
+    public bool AcceptNewClients { get; set; } = true;
 
     /// <summary>
     /// Navigation property to the associated user.

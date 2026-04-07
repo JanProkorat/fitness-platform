@@ -10,6 +10,10 @@ interface User {
   lastName: string;
   roles: string[];
   isOnboardingComplete: boolean | null;
+  emailConfirmed: boolean;
+  hasActiveLink: boolean;
+  hasPendingQuestionnaire: boolean;
+  linkedRoles: string[];
 }
 
 interface AuthState {
@@ -22,6 +26,7 @@ interface AuthState {
   login: (user: User, accessToken: string, refreshToken: string) => void;
   logout: () => void;
   restoreSession: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -75,6 +80,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           lastName: profile.lastName,
           roles: profile.roles ?? [],
           isOnboardingComplete: profile.isOnboardingComplete ?? null,
+          emailConfirmed: profile.emailConfirmed ?? false,
+          hasActiveLink: profile.hasActiveLink ?? false,
+          hasPendingQuestionnaire: profile.hasPendingQuestionnaire ?? false,
+          linkedRoles: profile.linkedRoles ?? [],
         },
         isAuthenticated: true,
         isInitialized: true,
@@ -88,6 +97,31 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isAuthenticated: false,
         isInitialized: true,
       });
+    }
+  },
+
+  refreshProfile: async () => {
+    const { accessToken } = get();
+    if (!accessToken) return;
+    try {
+      const api = (await import('../api/client')).default;
+      const { data: profile } = await api.get('/users/me');
+      set({
+        user: {
+          publicId: profile.userId,
+          email: profile.email,
+          firstName: profile.firstName,
+          lastName: profile.lastName,
+          roles: profile.roles ?? [],
+          isOnboardingComplete: profile.isOnboardingComplete ?? null,
+          emailConfirmed: profile.emailConfirmed ?? false,
+          hasActiveLink: profile.hasActiveLink ?? false,
+          hasPendingQuestionnaire: profile.hasPendingQuestionnaire ?? false,
+          linkedRoles: profile.linkedRoles ?? [],
+        },
+      });
+    } catch {
+      // silently fail - user can retry
     }
   },
 }));

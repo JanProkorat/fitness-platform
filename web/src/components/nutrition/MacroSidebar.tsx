@@ -2,8 +2,8 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/cn';
 
 export interface MacroSidebarProps {
-  totals: { kcal: number; protein: number; carbs: number; fat: number };
-  targets: { kcal: number; protein: number; carbs: number; fat: number };
+  totals: { kcal: number; protein: number; carbs: number; fat: number; fiber: number };
+  targets: { kcal: number; protein: number; carbs: number; fat: number; fiber: number };
 }
 
 function pct(value: number, total: number) {
@@ -15,6 +15,7 @@ const MACROS = [
   { key: 'protein' as const, i18nKey: 'nutritionGoals.protein', color: 'bg-blue', dotColor: 'bg-blue', calPerGram: 4 },
   { key: 'carbs' as const, i18nKey: 'nutritionGoals.carbs', color: 'bg-orange', dotColor: 'bg-orange', calPerGram: 4 },
   { key: 'fat' as const, i18nKey: 'nutritionGoals.fat', color: 'bg-purple', dotColor: 'bg-purple', calPerGram: 9 },
+  { key: 'fiber' as const, i18nKey: 'nutritionGoals.fiber', color: 'bg-green', dotColor: 'bg-green', calPerGram: 0 },
 ] as const;
 
 export function MacroSidebar({ totals, targets }: MacroSidebarProps) {

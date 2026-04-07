@@ -16,6 +16,7 @@ namespace FitnessPlatform.Application.Features.Trainers.AssignQuestionnaire;
 public class AssignQuestionnaireEndpoint(
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
+    INotificationService notificationService,
     ILogger<AssignQuestionnaireEndpoint> logger)
     : Endpoint<AssignQuestionnaireRequest>
 {
@@ -97,17 +98,15 @@ public class AssignQuestionnaireEndpoint(
 
         db.QuestionnaireResponses.Add(questionnaireResponse);
 
-        // Create notification
-        var notification = new Notification
-        {
-            RecipientUserId = clientProfile.UserId,
-            Type = NotificationType.QuestionnaireAssigned,
-            Title = "Questionnaire assigned",
-            Body = $"You have been assigned a questionnaire: {questionnaire.Title}"
-        };
-
-        db.Notifications.Add(notification);
+        // Save entity changes (link update + questionnaire response) before creating notification
         await db.SaveChangesAsync(ct);
+
+        await notificationService.CreateAsync(
+            clientProfile.UserId,
+            NotificationType.QuestionnaireAssigned,
+            "Questionnaire assigned",
+            $"You have been assigned a questionnaire: {questionnaire.Title}",
+            ct: ct);
 
         await notifier.NotifyAsync(clientProfile.UserId, "questionnaireAssigned", new
         {

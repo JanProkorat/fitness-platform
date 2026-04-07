@@ -24,6 +24,7 @@ import ExercisesPage from '@/pages/ExercisesPage';
 import TrainingPlanPage from '@/pages/TrainingPlanPage';
 import ClientTrainingPage from '@/pages/ClientTrainingPage';
 import MessagesPage from '@/pages/MessagesPage';
+import VerifyEmailPage from '@/pages/VerifyEmailPage';
 import { Toaster } from '@/components/ui/Toast';
 
 function DefaultRedirect() {
@@ -69,6 +70,7 @@ export default function App() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
           <Route path="/invite/accept" element={<InviteAcceptPage />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/download-app" element={<DownloadAppPage />} />
 
           {/* Protected */}

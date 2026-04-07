@@ -47,7 +47,19 @@ public class GetProfessionalProfileEndpoint(IApplicationDbContext db) : Endpoint
         await Send.OkAsync(new GetProfessionalProfileResponse
         {
             Bio = profile.Bio,
-            Specialization = profile.Specialization
+            Specialization = profile.Specialization,
+            City = profile.City,
+            EstimatedPrice = profile.EstimatedPrice,
+            Specializations = profile.Specializations,
+            Certificates = profile.Certificates,
+            Languages = profile.Languages,
+            CollaborationType = profile.CollaborationType,
+            MaxClients = profile.MaxClients,
+            LinkedIn = profile.LinkedIn,
+            Instagram = profile.Instagram,
+            Website = profile.Website,
+            ShowInSearch = profile.ShowInSearch,
+            AcceptNewClients = profile.AcceptNewClients
         }, ct);
     }
 }

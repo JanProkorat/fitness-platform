@@ -50,9 +50,9 @@ export default function MealDetailScreen() {
           mealId: id,
           mealName: meal.name,
           eatenAt: new Date().toISOString(),
-          totals: meal.mealTotals ?? { kcal: 0, protein: 0, carbs: 0, fat: 0 },
+          totals: meal.mealTotals ?? { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 },
         };
-        const totals = meal.mealTotals ?? { kcal: 0, protein: 0, carbs: 0, fat: 0 };
+        const totals = meal.mealTotals ?? { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 };
         queryClient.setQueryData<TodayLogResponse>(['today-log'], {
           ...previous,
           mealsEaten: [...previous.mealsEaten, newEntry],
@@ -61,6 +61,7 @@ export default function MealDetailScreen() {
             protein: previous.totalConsumed.protein + totals.protein,
             carbs: previous.totalConsumed.carbs + totals.carbs,
             fat: previous.totalConsumed.fat + totals.fat,
+            fiber: previous.totalConsumed.fiber + totals.fiber,
           },
         });
       }
@@ -90,7 +91,7 @@ export default function MealDetailScreen() {
       // Optimistic offline update
       const previous = queryClient.getQueryData<TodayLogResponse>(['today-log']);
       if (previous && meal) {
-        const totals = meal.mealTotals ?? { kcal: 0, protein: 0, carbs: 0, fat: 0 };
+        const totals = meal.mealTotals ?? { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 };
         queryClient.setQueryData<TodayLogResponse>(['today-log'], {
           ...previous,
           mealsEaten: [
@@ -107,6 +108,7 @@ export default function MealDetailScreen() {
             protein: previous.totalConsumed.protein + totals.protein,
             carbs: previous.totalConsumed.carbs + totals.carbs,
             fat: previous.totalConsumed.fat + totals.fat,
+            fiber: previous.totalConsumed.fiber + totals.fiber,
           },
         });
       }
@@ -128,7 +130,7 @@ export default function MealDetailScreen() {
     );
   }
 
-  const mealTotals = meal.mealTotals ?? { kcal: 0, protein: 0, carbs: 0, fat: 0 };
+  const mealTotals = meal.mealTotals ?? { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 };
 
   const renderFoodItem = ({ item }: { item: MealFood }) => {
     const factor = item.amountGrams / 100;

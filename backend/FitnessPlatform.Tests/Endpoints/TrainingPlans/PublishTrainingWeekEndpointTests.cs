@@ -20,6 +20,7 @@ public class PublishTrainingWeekEndpointTests
         var planId = Guid.NewGuid();
         var plan = TrainingPlanTestHelpers.CreatePlan(
             externalId: planId, trainerId: _trainerId, weekCount: 2);
+        plan.StartDate = DateTime.UtcNow.Date;
         var mongo = TrainingPlanTestHelpers.CreateMockMongo(plan);
 
         var ep = Factory.Create<PublishTrainingWeekEndpoint>(

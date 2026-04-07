@@ -4,6 +4,7 @@ export interface NutrientTotals {
   protein: number;
   carbs: number;
   fat: number;
+  fiber: number;
 }
 
 /** Global nutrition targets for the plan. */
@@ -12,6 +13,7 @@ export interface GlobalNutritionSettings {
   proteinGrams?: number | null;
   carbsGrams?: number | null;
   fatGrams?: number | null;
+  fiberGrams?: number | null;
 }
 
 /** A single food item within a meal. */
@@ -48,12 +50,13 @@ export interface MealRecipe {
   };
   servings: number;
   note?: string | null;
+  foodCategories?: string[];
 }
 
 /** A meal within a plan day. */
 export interface PlanMeal {
   mealId: string;
-  name: string;
+  kind: string;
   order: number;
   time?: string | null;
   note?: string | null;
@@ -148,7 +151,7 @@ export interface UpdateDayRequest {
 /** Meal data within a full-state plan update. */
 export interface UpdateMealRequest {
   mealId?: string | null;
-  name: string;
+  kind: string;
   order: number;
   time?: string | null;
   note?: string | null;
@@ -168,7 +171,9 @@ export interface UpdateMealRecipeRequest {
   };
   servings: number;
   note?: string | null;
+  foodCategories?: string[];
 }
+
 
 /** Food item data within a full-state plan update. */
 export interface UpdateMealFoodRequest {

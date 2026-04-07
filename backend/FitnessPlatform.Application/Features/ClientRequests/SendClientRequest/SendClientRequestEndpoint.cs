@@ -16,6 +16,7 @@ namespace FitnessPlatform.Application.Features.ClientRequests.SendClientRequest;
 public class SendClientRequestEndpoint(
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
+    INotificationService notificationService,
     ILogger<SendClientRequestEndpoint> logger)
     : Endpoint<SendClientRequestRequest, SendClientRequestResponse>
 {
@@ -105,16 +106,14 @@ public class SendClientRequestEndpoint(
         // Get client user for notification
         var clientUser = await db.Users.FirstAsync(u => u.Id == userGuid, ct);
 
-        var notification = new Notification
-        {
-            RecipientUserId = professionalProfile.UserId,
-            Type = NotificationType.ClientRequestReceived,
-            Title = "New client request",
-            Body = $"{clientUser.FirstName} {clientUser.LastName} wants to work with you"
-        };
+        var clientName = $"{clientUser.FirstName} {clientUser.LastName}";
 
-        db.Notifications.Add(notification);
-        await db.SaveChangesAsync(ct);
+        await notificationService.CreateAsync(
+            professionalProfile.UserId,
+            NotificationType.ClientRequestReceived,
+            "New client request",
+            $"{clientName} wants to work with you",
+            ct: ct);
 
         await notifier.NotifyAsync(professionalProfile.UserId, "clientRequestReceived", new
         {

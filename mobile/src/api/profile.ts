@@ -33,3 +33,23 @@ export async function getComplianceScore(params?: {
 export async function updateProfile(body: UpdateProfileRequest): Promise<void> {
   await api.put('/users/me', body)
 }
+
+// --- Collaborations ---
+
+export interface CollaborationDto {
+  publicId: string
+  professionalPublicId: string
+  professionalName: string
+  professionalCity: string | null
+  role: string
+  since: string
+}
+
+export async function getCollaborations(): Promise<CollaborationDto[]> {
+  const { data } = await api.get('/client/collaborations')
+  return data.collaborations ?? []
+}
+
+export async function endCollaboration(publicId: string): Promise<void> {
+  await api.delete(`/client/collaborations/${publicId}`)
+}

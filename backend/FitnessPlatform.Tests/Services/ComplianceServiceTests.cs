@@ -30,7 +30,7 @@ public class ComplianceServiceTests
                 Arg.Any<FilterDefinition<MealLog>>(),
                 Arg.Any<FindOptions<MealLog, MealLog>>(),
                 Arg.Any<CancellationToken>())
-            .Returns(ci => CreateMealLogCursor(mealLogs ?? []));
+            .Returns(_ => CreateMealLogCursor(mealLogs ?? []));
         mongo.MealLogs.Returns(mealLogCollection);
 
         return mongo;
@@ -88,9 +88,9 @@ public class ComplianceServiceTests
         // Add 3 meals to day 1 (DayOfWeek=1, index 0 after cycling)
         plan.Weeks[0].Days[0].Meals =
         [
-            PlanTestHelpers.CreateMeal(name: "Breakfast"),
-            PlanTestHelpers.CreateMeal(name: "Lunch"),
-            PlanTestHelpers.CreateMeal(name: "Dinner")
+            PlanTestHelpers.CreateMeal(kind: MealKind.Breakfast),
+            PlanTestHelpers.CreateMeal(kind: MealKind.Lunch),
+            PlanTestHelpers.CreateMeal(kind: MealKind.Dinner)
         ];
 
         // 2 meal logs for today

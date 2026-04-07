@@ -52,6 +52,18 @@ public class UpdateProfessionalProfileEndpoint(IApplicationDbContext db, IAuditS
 
         profile.Bio = req.Bio;
         profile.Specialization = req.Specialization;
+        profile.City = req.City;
+        profile.EstimatedPrice = req.EstimatedPrice;
+        profile.Specializations = req.Specializations;
+        profile.Certificates = req.Certificates;
+        profile.Languages = req.Languages;
+        profile.CollaborationType = req.CollaborationType;
+        profile.MaxClients = req.MaxClients;
+        profile.LinkedIn = req.LinkedIn;
+        profile.Instagram = req.Instagram;
+        profile.Website = req.Website;
+        profile.ShowInSearch = req.ShowInSearch;
+        profile.AcceptNewClients = req.AcceptNewClients;
 
         await db.SaveChangesAsync(ct);
 

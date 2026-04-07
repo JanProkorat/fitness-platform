@@ -19,4 +19,14 @@ public class CreatePendingInviteRequest
     /// Email address of the invited client.
     /// </summary>
     public string Email { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Optional introduction message from the professional.
+    /// </summary>
+    public string? Message { get; set; }
+
+    /// <summary>
+    /// Optional public ID of a questionnaire to assign to the client.
+    /// </summary>
+    public Guid? QuestionnairePublicId { get; set; }
 }

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useNutritionPlanStore } from '@/stores/nutritionPlan';
 import type { PlanMeal, MealFood } from '@/api/plan-types';
 import AddItemsDrawer from './AddItemsDrawer';
+import { MealKindBadge } from './MealKindBadge';
 
 interface MealCardProps {
   meal: PlanMeal;
@@ -15,21 +16,11 @@ export default function MealCard({ meal, weekNumber, dayOfWeek, targetKcal }: Me
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [editingName, setEditingName] = useState(false);
-  const [nameValue, setNameValue] = useState(meal.name);
 
   const updateFoodAmount = useNutritionPlanStore((s) => s.updateFoodAmount);
   const addFood = useNutritionPlanStore((s) => s.addFoodToMeal);
   const removeFood = useNutritionPlanStore((s) => s.removeFoodFromMeal);
-  const updateMealName = useNutritionPlanStore((s) => s.updateMealName);
   const removeMeal = useNutritionPlanStore((s) => s.removeMeal);
-
-  const handleNameSave = () => {
-    if (nameValue.trim() && nameValue !== meal.name) {
-      updateMealName(weekNumber, dayOfWeek, meal.mealId, nameValue.trim());
-    }
-    setEditingName(false);
-  };
 
   const handleAddItems = (items: MealFood[]) => {
     for (const item of items) {
@@ -52,28 +43,12 @@ export default function MealCard({ meal, weekNumber, dayOfWeek, targetKcal }: Me
           {expanded ? '\u25BC' : '\u25B6'}
         </button>
 
-        {editingName ? (
-          <input
-            autoFocus
-            value={nameValue}
-            onChange={(e) => setNameValue(e.target.value)}
-            onBlur={handleNameSave}
-            onKeyDown={(e) => e.key === 'Enter' && handleNameSave()}
-            className="flex-1 rounded-sm border border-border bg-bg2 px-2 py-0.5 text-sm text-text outline-none focus:border-border-hv"
-          />
-        ) : (
-          <div className="flex flex-1 items-center gap-1.5 min-w-0">
-            <button
-              onClick={() => setEditingName(true)}
-              className="text-left text-sm font-semibold transition-colors hover:text-accent truncate"
-            >
-              {meal.name}
-            </button>
-            {targetKcal != null && (
-              <span className="text-[9px] text-text3 shrink-0">target {Math.round(targetKcal)}</span>
-            )}
-          </div>
-        )}
+        <div className="flex flex-1 items-center gap-1.5 min-w-0">
+          <MealKindBadge kind={meal.kind} />
+          {targetKcal != null && (
+            <span className="text-[9px] text-text3 shrink-0">target {Math.round(targetKcal)}</span>
+          )}
+        </div>
 
         {meal.time && <span className="text-[11px] text-text3 shrink-0">{meal.time}</span>}
 
@@ -108,6 +83,7 @@ export default function MealCard({ meal, weekNumber, dayOfWeek, targetKcal }: Me
                   <th className="w-10 pb-1 pr-1 text-right font-medium">P</th>
                   <th className="w-10 pb-1 pr-1 text-right font-medium">C</th>
                   <th className="w-10 pb-1 pr-1 text-right font-medium">F</th>
+                  <th className="w-10 pb-1 pr-1 text-right font-medium">Fi</th>
                   <th className="w-6 pb-1" />
                 </tr>
               </thead>
@@ -145,6 +121,9 @@ export default function MealCard({ meal, weekNumber, dayOfWeek, targetKcal }: Me
                       </td>
                       <td className="py-1.5 pr-1 text-right text-rose-400">
                         {Math.round(food.nutrientValuePer100Grams.fat * scale)}
+                      </td>
+                      <td className="py-1.5 pr-1 text-right text-green-400">
+                        {Math.round((food.nutrientValuePer100Grams.fiber ?? 0) * scale)}
                       </td>
                       <td className="py-1.5 text-right">
                         <button

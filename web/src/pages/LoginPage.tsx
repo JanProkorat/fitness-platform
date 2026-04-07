@@ -46,6 +46,8 @@ export default function LoginPage() {
       const res: LoginResponse = await apiClient.loginEndpoint(data);
       setTokens(res.accessToken!, res.refreshToken!);
       const profile = await apiClient.getProfileEndpoint();
+      const emailConfirmed = res.emailConfirmed ?? true;
+
       login(
         {
           publicId: profile.userId!,
@@ -53,10 +55,17 @@ export default function LoginPage() {
           firstName: profile.firstName!,
           lastName: profile.lastName!,
           roles: profile.roles ?? [],
+          emailConfirmed,
         },
         res.accessToken!,
         res.refreshToken!,
       );
+
+      // Redirect to email verification if not confirmed
+      if (!emailConfirmed) {
+        navigate('/verify-email', { replace: true });
+        return;
+      }
 
       const roles = profile.roles ?? [];
       const isClientOnly = roles.includes('Client') && !roles.some((r: string) => ['Trainer', 'Nutritionist', 'Admin'].includes(r));

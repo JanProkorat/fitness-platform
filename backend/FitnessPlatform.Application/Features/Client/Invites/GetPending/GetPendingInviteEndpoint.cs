@@ -80,7 +80,7 @@ public class GetPendingInviteEndpoint(IApplicationDbContext db, UserManager<Appl
             TrainerName = $"{profUser.FirstName} {profUser.LastName}",
             TrainerRole = role,
             TrainerCity = prof.City ?? string.Empty,
-            Message = null
+            Message = invite.Message
         }, ct);
     }
 }

@@ -6,6 +6,7 @@ interface MacroSlidersProps {
   carbsPercent: number;
   fatPercent: number;
   totalKcal: number;
+  fiberGrams?: number;
   onChange: (protein: number, carbs: number, fat: number) => void;
 }
 
@@ -119,6 +120,7 @@ export default function MacroSliders({
   carbsPercent,
   fatPercent,
   totalKcal,
+  fiberGrams,
   onChange,
 }: MacroSlidersProps) {
   const { t } = useTranslation();
@@ -253,6 +255,22 @@ export default function MacroSliders({
           ))}
         </div>
       </div>
+
+      {/* Fiber — fixed gram target, not percentage-based */}
+      {fiberGrams != null && fiberGrams > 0 && (
+        <div className="flex items-center justify-between rounded-sm border border-border bg-bg2 px-3 py-2 text-sm">
+          <span className="flex items-center gap-2">
+            <span
+              className="inline-block h-3 w-3 rounded-sm"
+              style={{ backgroundColor: '#4ade80' }}
+            />
+            {t('nutritionGoals.fiber')}
+          </span>
+          <span className="font-mono text-xs text-text3">
+            {fiberGrams}{t('nutritionGoals.grams')}
+          </span>
+        </div>
+      )}
     </div>
   );
 }

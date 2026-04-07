@@ -68,6 +68,7 @@ export default function NutritionGoalsTab({ clientId }: NutritionGoalsTabProps) 
     proteinGrams: ob.proteinGrams ?? 0,
     carbsGrams: ob.carbsGrams ?? 0,
     fatGrams: ob.fatGrams ?? 0,
+    fiberGrams: ob.fiberGrams ?? 0,
   };
 
   const mealDistribution = ob.mealDistribution
@@ -119,7 +120,7 @@ export default function NutritionGoalsTab({ clientId }: NutritionGoalsTabProps) 
         </div>
 
         {/* Macro targets */}
-        <div className="mt-4 grid grid-cols-3 gap-4 text-center">
+        <div className={`mt-4 grid gap-4 text-center ${ob.fiberGrams != null && ob.fiberGrams > 0 ? 'grid-cols-4' : 'grid-cols-3'}`}>
           <div className="rounded bg-blue-500/10 px-3 py-3">
             <span className="text-xs text-blue-400">{t('clients.protein')}</span>
             <p className="text-lg font-bold text-blue-400">{ob.proteinGrams}g</p>
@@ -132,6 +133,12 @@ export default function NutritionGoalsTab({ clientId }: NutritionGoalsTabProps) 
             <span className="text-xs text-rose-400">{t('clients.fat')}</span>
             <p className="text-lg font-bold text-rose-400">{ob.fatGrams}g</p>
           </div>
+          {ob.fiberGrams != null && ob.fiberGrams > 0 && (
+            <div className="rounded bg-green-500/10 px-3 py-3">
+              <span className="text-xs text-green-400">{t('clients.fiber')}</span>
+              <p className="text-lg font-bold text-green-400">{ob.fiberGrams}g</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -144,6 +151,7 @@ export default function NutritionGoalsTab({ clientId }: NutritionGoalsTabProps) 
               carbsPercent={carbsPercent}
               fatPercent={fatPercent}
               totalKcal={adjustedKcal}
+              fiberGrams={ob.fiberGrams ?? 0}
               onChange={() => {}}
             />
           </div>

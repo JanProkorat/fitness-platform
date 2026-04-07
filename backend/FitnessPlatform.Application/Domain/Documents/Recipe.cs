@@ -42,6 +42,27 @@ public class Recipe
     public string? Description { get; set; }
 
     /// <summary>
+    /// Estimated preparation/cooking time in minutes.
+    /// </summary>
+    [BsonElement("prepTimeMinutes")]
+    [BsonIgnoreIfNull]
+    public int? PrepTimeMinutes { get; set; }
+
+    /// <summary>
+    /// Ordered preparation steps.
+    /// </summary>
+    [BsonElement("steps")]
+    [BsonIgnoreIfNull]
+    public List<string>? Steps { get; set; }
+
+    /// <summary>
+    /// Optional tip or note about the recipe.
+    /// </summary>
+    [BsonElement("note")]
+    [BsonIgnoreIfNull]
+    public string? Note { get; set; }
+
+    /// <summary>
     /// List of food items in this recipe with denormalized nutrient snapshots.
     /// </summary>
     [BsonElement("foods")]

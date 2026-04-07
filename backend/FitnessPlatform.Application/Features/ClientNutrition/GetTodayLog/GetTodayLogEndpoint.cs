@@ -77,7 +77,7 @@ public class GetTodayLogEndpoint(IMongoContext mongo, IApplicationDbContext db) 
         {
             foreach (var meal in plan.Weeks.SelectMany(w => w.Days).SelectMany(d => d.Meals))
             {
-                mealNames.TryAdd(meal.MealId, meal.Name);
+                mealNames.TryAdd(meal.MealId, meal.Kind.ToString());
             }
         }
 
@@ -102,7 +102,8 @@ public class GetTodayLogEndpoint(IMongoContext mongo, IApplicationDbContext db) 
             Kcal = mealsEaten.Sum(m => m.Totals.Kcal),
             Protein = mealsEaten.Sum(m => m.Totals.Protein),
             Carbs = mealsEaten.Sum(m => m.Totals.Carbs),
-            Fat = mealsEaten.Sum(m => m.Totals.Fat)
+            Fat = mealsEaten.Sum(m => m.Totals.Fat),
+            Fiber = mealsEaten.Sum(m => m.Totals.Fiber)
         };
 
         // Calculate remaining if global settings exist
@@ -115,7 +116,8 @@ public class GetTodayLogEndpoint(IMongoContext mongo, IApplicationDbContext db) 
                 Kcal = (gs.DailyKcal ?? 0) - totalConsumed.Kcal,
                 Protein = (gs.ProteinGrams ?? 0) - totalConsumed.Protein,
                 Carbs = (gs.CarbsGrams ?? 0) - totalConsumed.Carbs,
-                Fat = (gs.FatGrams ?? 0) - totalConsumed.Fat
+                Fat = (gs.FatGrams ?? 0) - totalConsumed.Fat,
+                Fiber = (gs.FiberGrams ?? 0) - totalConsumed.Fiber
             };
         }
 

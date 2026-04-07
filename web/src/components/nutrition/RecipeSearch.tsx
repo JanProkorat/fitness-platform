@@ -12,6 +12,7 @@ export interface RecipeSearchProps {
     protein: number;
     carbs: number;
     fat: number;
+    foodCategories?: string[];
   }) => void;
   placeholder?: string;
 }
@@ -73,6 +74,7 @@ export function RecipeSearch({
       protein: recipe.totalNutrients.protein,
       carbs: recipe.totalNutrients.carbs,
       fat: recipe.totalNutrients.fat,
+      foodCategories: recipe.foodCategories,
     });
     setQuery('');
     setIsOpen(false);

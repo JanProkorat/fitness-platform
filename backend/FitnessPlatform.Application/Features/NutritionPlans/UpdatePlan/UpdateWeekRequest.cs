@@ -1,4 +1,5 @@
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 
 namespace FitnessPlatform.Application.Features.NutritionPlans.UpdatePlan;
 
@@ -51,9 +52,9 @@ public class UpdateMealRequest
     public Guid? MealId { get; set; }
 
     /// <summary>
-    /// Display name of the meal (e.g. "Breakfast").
+    /// Kind of meal (Breakfast, Lunch, Dinner, etc.).
     /// </summary>
-    public string Name { get; set; } = string.Empty;
+    public MealKind Kind { get; set; }
 
     /// <summary>
     /// Display order within the day (1-based).
@@ -110,6 +111,11 @@ public class UpdateMealRecipeRequest
     /// Optional note.
     /// </summary>
     public string? Note { get; set; }
+
+    /// <summary>
+    /// Distinct food categories from the recipe's ingredients (snapshot).
+    /// </summary>
+    public List<string>? FoodCategories { get; set; }
 }
 
 /// <summary>

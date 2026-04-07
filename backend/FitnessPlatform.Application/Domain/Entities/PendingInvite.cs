@@ -33,6 +33,12 @@ public class PendingInvite : PublicTimestampableEntity
     public string Email { get; set; } = string.Empty;
 
     /// <summary>
+    /// Optional introduction message from the professional.
+    /// </summary>
+    [MaxLength(500)]
+    public string? Message { get; set; }
+
+    /// <summary>
     /// Date and time when the invitation was sent.
     /// </summary>
     public DateTime SentAt { get; set; }
@@ -41,6 +47,16 @@ public class PendingInvite : PublicTimestampableEntity
     /// Indicates whether this invitation has been accepted by the recipient.
     /// </summary>
     public bool IsAccepted { get; set; }
+
+    /// <summary>
+    /// Optional questionnaire to assign to the client when they accept.
+    /// </summary>
+    public long? QuestionnaireId { get; set; }
+
+    /// <summary>
+    /// Navigation property to the assigned questionnaire.
+    /// </summary>
+    public Questionnaire? Questionnaire { get; set; }
 
     /// <summary>
     /// Navigation property to the professional who sent this invitation.

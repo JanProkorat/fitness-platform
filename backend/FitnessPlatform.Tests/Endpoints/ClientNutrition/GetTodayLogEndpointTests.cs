@@ -3,8 +3,11 @@ using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.ClientNutrition.GetTodayLog;
+using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints.NutritionPlans;
 using MongoDB.Driver;
 using NSubstitute;
@@ -18,6 +21,11 @@ public class GetTodayLogEndpointTests
 {
     private readonly Guid _clientId = Guid.NewGuid();
 
+    private IApplicationDbContext CreateMockDb() =>
+        new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .Build();
+
     [Fact]
     public async Task HandleAsync_WithLogs_ReturnsTotals()
     {
@@ -29,7 +37,7 @@ public class GetTodayLogEndpointTests
             protein: 31,
             carbs: 0,
             fat: 3.6m);
-        var meal = PlanTestHelpers.CreateMeal(mealId: mealId, name: "Lunch", foods: food);
+        var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.Lunch, foods: food);
 
         var plan = PlanTestHelpers.CreatePlan(
             clientId: _clientId,
@@ -67,11 +75,13 @@ public class GetTodayLogEndpointTests
             .Returns(_ => CreateMealLogCursor(logs));
         mongo.MealLogs.Returns(mealLogCollection);
 
+        var db = CreateMockDb();
+
         var ep = Factory.Create<GetTodayLogEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo);
+            mongo, db);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -106,11 +116,13 @@ public class GetTodayLogEndpointTests
             .Returns(_ => CreateMealLogCursor([]));
         mongo.MealLogs.Returns(mealLogCollection);
 
+        var db = CreateMockDb();
+
         var ep = Factory.Create<GetTodayLogEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo);
+            mongo, db);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -125,10 +137,12 @@ public class GetTodayLogEndpointTests
     {
         var mongo = PlanTestHelpers.CreateMockMongo();
 
+        var db = CreateMockDb();
+
         var ep = Factory.Create<GetTodayLogEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity()),
-            mongo);
+            mongo, db);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 

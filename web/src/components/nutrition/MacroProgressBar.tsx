@@ -4,13 +4,14 @@ interface MacroProgressBarProps {
   label: string;
   current: number;
   target: number;
-  color: 'protein' | 'carbs' | 'fat' | 'kcal';
+  color: 'protein' | 'carbs' | 'fat' | 'fiber' | 'kcal';
 }
 
 const colorMap: Record<MacroProgressBarProps['color'], string> = {
   protein: 'bg-blue-400',
   carbs: 'bg-amber-400',
   fat: 'bg-rose-400',
+  fiber: 'bg-green-400',
   kcal: 'bg-green-400',
 };
 
@@ -18,6 +19,7 @@ const textColorMap: Record<MacroProgressBarProps['color'], string> = {
   protein: 'text-blue-400',
   carbs: 'text-amber-400',
   fat: 'text-rose-400',
+  fiber: 'text-green-400',
   kcal: 'text-green-400',
 };
 

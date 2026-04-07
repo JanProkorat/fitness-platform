@@ -28,9 +28,19 @@ public class RecipeSummaryDto
     public NutrientTotals TotalNutrients { get; set; } = new();
 
     /// <summary>
+    /// Estimated preparation/cooking time in minutes.
+    /// </summary>
+    public int? PrepTimeMinutes { get; set; }
+
+    /// <summary>
     /// When the recipe was created.
     /// </summary>
     public DateTime DateCreated { get; set; }
+
+    /// <summary>
+    /// Distinct food categories from the recipe's ingredients.
+    /// </summary>
+    public List<string> FoodCategories { get; set; } = [];
 
     /// <summary>
     /// Maps a <see cref="Recipe"/> document to a <see cref="RecipeSummaryDto"/>.
@@ -43,6 +53,12 @@ public class RecipeSummaryDto
         Name = recipe.Name,
         FoodCount = recipe.Foods.Count,
         TotalNutrients = recipe.TotalNutrients,
-        DateCreated = recipe.DateCreated
+        PrepTimeMinutes = recipe.PrepTimeMinutes,
+        DateCreated = recipe.DateCreated,
+        FoodCategories = recipe.Foods
+            .Where(f => !string.IsNullOrEmpty(f.FoodCategory))
+            .Select(f => f.FoodCategory!)
+            .Distinct()
+            .ToList()
     };
 }

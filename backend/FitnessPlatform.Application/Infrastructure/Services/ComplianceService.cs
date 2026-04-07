@@ -139,7 +139,7 @@ public class ComplianceService : IComplianceService
         var logs = await logCursor.ToListAsync(ct);
 
         if (logs.Count == 0)
-            return new NutrientTotals { Kcal = 0, Protein = 0, Carbs = 0, Fat = 0 };
+            return new NutrientTotals { Kcal = 0, Protein = 0, Carbs = 0, Fat = 0, Fiber = 0 };
 
         var dailyTotals = logs
             .GroupBy(l => l.EatenAt.Date)
@@ -149,6 +149,7 @@ public class ComplianceService : IComplianceService
                 var dayProtein = 0m;
                 var dayCarbs = 0m;
                 var dayFat = 0m;
+                var dayFiber = 0m;
 
                 foreach (var log in group)
                 {
@@ -159,10 +160,11 @@ public class ComplianceService : IComplianceService
                         dayProtein += food.NutrientValuePer100Grams.Protein * factor;
                         dayCarbs += food.NutrientValuePer100Grams.Carbs * factor;
                         dayFat += food.NutrientValuePer100Grams.Fat * factor;
+                        dayFiber += (food.NutrientValuePer100Grams.Fiber ?? 0m) * factor;
                     }
                 }
 
-                return new { Kcal = dayKcal, Protein = dayProtein, Carbs = dayCarbs, Fat = dayFat };
+                return new { Kcal = dayKcal, Protein = dayProtein, Carbs = dayCarbs, Fat = dayFat, Fiber = dayFiber };
             })
             .ToList();
 
@@ -173,7 +175,8 @@ public class ComplianceService : IComplianceService
             Kcal = Math.Round(dailyTotals.Sum(d => d.Kcal) / dayCount, 1),
             Protein = Math.Round(dailyTotals.Sum(d => d.Protein) / dayCount, 1),
             Carbs = Math.Round(dailyTotals.Sum(d => d.Carbs) / dayCount, 1),
-            Fat = Math.Round(dailyTotals.Sum(d => d.Fat) / dayCount, 1)
+            Fat = Math.Round(dailyTotals.Sum(d => d.Fat) / dayCount, 1),
+            Fiber = Math.Round(dailyTotals.Sum(d => d.Fiber) / dayCount, 1)
         };
     }
 

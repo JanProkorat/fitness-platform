@@ -23,6 +23,21 @@ public class GetRecipeResponse
     public string? Description { get; set; }
 
     /// <summary>
+    /// Estimated preparation/cooking time in minutes.
+    /// </summary>
+    public int? PrepTimeMinutes { get; set; }
+
+    /// <summary>
+    /// Ordered preparation steps.
+    /// </summary>
+    public List<string>? Steps { get; set; }
+
+    /// <summary>
+    /// Optional tip or note.
+    /// </summary>
+    public string? Note { get; set; }
+
+    /// <summary>
     /// List of food items with denormalized nutrient snapshots.
     /// </summary>
     public List<MealFood> Foods { get; set; } = [];
@@ -52,6 +67,9 @@ public class GetRecipeResponse
         RecipeId = recipe.ExternalId,
         Name = recipe.Name,
         Description = recipe.Description,
+        PrepTimeMinutes = recipe.PrepTimeMinutes,
+        Steps = recipe.Steps,
+        Note = recipe.Note,
         Foods = recipe.Foods,
         TotalNutrients = recipe.TotalNutrients,
         DateCreated = recipe.DateCreated,
@@ -66,6 +84,9 @@ public class GetRecipeResponse
         RecipeId = recipe.ExternalId,
         Name = recipe.Name,
         Description = recipe.Description,
+        PrepTimeMinutes = recipe.PrepTimeMinutes,
+        Steps = recipe.Steps,
+        Note = recipe.Note,
         Foods = recipe.Foods.Select(f =>
         {
             var resolvedName = foodLookup.TryGetValue(f.FoodExternalId, out var food)

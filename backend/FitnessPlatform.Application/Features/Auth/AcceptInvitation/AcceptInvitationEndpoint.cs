@@ -99,19 +99,39 @@ public class AcceptInvitationEndpoint(IApplicationDbContext db, UserManager<Appl
                 ? UserRole.Nutritionist
                 : UserRole.Trainer;
 
+            // Find matching pending invite to get questionnaire assignment
+            var pendingInvite = await db.PendingInvites
+                .FirstOrDefaultAsync(pi => pi.ProfessionalProfileId == invitation.ProfessionalProfileId
+                    && pi.Email == invitation.Email
+                    && !pi.IsAccepted, ct);
+
             var link = new ClientProfessionalLink
             {
                 ClientProfileId = clientProfile.Id,
                 ProfessionalProfileId = invitation.ProfessionalProfileId,
                 ProfessionalRole = professionalRole,
-                IsActive = true
+                IsActive = true,
+                QuestionnaireId = pendingInvite?.QuestionnaireId
             };
 
             db.ClientProfessionalLinks.Add(link);
+
+            // Mark the pending invite as accepted
+            if (pendingInvite is not null)
+            {
+                pendingInvite.IsAccepted = true;
+            }
         }
 
         // Mark invitation as used
         invitation.IsUsed = true;
+
+        // Auto-confirm email since user clicked the invitation link
+        var currentUser = await userManager.FindByIdAsync(userGuid.ToString());
+        if (currentUser is not null && !currentUser.EmailConfirmed)
+        {
+            currentUser.EmailConfirmed = true;
+        }
 
         await db.SaveChangesAsync(ct);
 

@@ -6,6 +6,7 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitnessPlatform.Application.Features.Trainers.ClientRequests.AcceptClientRequest;
@@ -16,6 +17,8 @@ namespace FitnessPlatform.Application.Features.Trainers.ClientRequests.AcceptCli
 public class AcceptClientRequestEndpoint(
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
+    INotificationService notificationService,
+    UserManager<ApplicationUser> userManager,
     ILogger<AcceptClientRequestEndpoint> logger)
     : Endpoint<AcceptClientRequestRequest>
 {
@@ -82,6 +85,7 @@ public class AcceptClientRequestEndpoint(
         // Update request status
         clientRequest.Status = ClientRequestStatus.Accepted;
         clientRequest.RespondedAt = DateTime.UtcNow;
+        clientRequest.Statement = req.Statement;
 
         // Create the client-professional link
         var link = new ClientProfessionalLink
@@ -129,17 +133,16 @@ public class AcceptClientRequestEndpoint(
             await db.SaveChangesAsync(ct);
         }
 
-        // Create notification for client
-        var notification = new Notification
-        {
-            RecipientUserId = clientRequest.ClientProfile.UserId,
-            Type = NotificationType.ClientRequestAccepted,
-            Title = "Request accepted",
-            Body = "Your request has been accepted."
-        };
+        // Notify client of acceptance
+        var profUser = await db.Users.FirstAsync(u => u.Id == userGuid, ct);
+        var profName = $"{profUser.FirstName} {profUser.LastName}";
 
-        db.Notifications.Add(notification);
-        await db.SaveChangesAsync(ct);
+        await notificationService.CreateAsync(
+            clientRequest.ClientProfile.UserId,
+            NotificationType.InvitationAccepted,
+            "Invitation accepted",
+            $"{profName} accepted your invitation.",
+            ct: ct);
 
         await notifier.NotifyAsync(clientRequest.ClientProfile.UserId, "clientRequestAccepted", new
         {
@@ -147,18 +150,58 @@ public class AcceptClientRequestEndpoint(
             ProfessionalProfilePublicId = professionalProfile.PublicId
         }, ct);
 
+        // Auto-cancel other pending requests from the same client for the same role
+        var roleString = professionalRole == UserRole.Nutritionist ? AppRoles.Nutritionist : AppRoles.Trainer;
+        var otherPending = await db.ClientRequests
+            .Include(r => r.ProfessionalProfile)
+                .ThenInclude(pp => pp.User)
+            .Where(r => r.ClientProfileId == clientRequest.ClientProfileId
+                     && r.Id != clientRequest.Id
+                     && r.Status == ClientRequestStatus.Pending)
+            .ToListAsync(ct);
+
+        // Filter by role — need to check each professional's identity role
+        var clientUser = clientRequest.ClientProfile.User;
+        var clientName = $"{clientUser.FirstName} {clientUser.LastName}";
+
+        foreach (var other in otherPending)
+        {
+            var otherProfRoles = await userManager.GetRolesAsync(other.ProfessionalProfile.User);
+            if (!otherProfRoles.Contains(roleString)) continue;
+
+            other.Status = ClientRequestStatus.Cancelled;
+            other.RespondedAt = DateTime.UtcNow;
+
+            await notifier.NotifyAsync(other.ProfessionalProfile.UserId, "clientRequestCancelled", new
+            {
+                RequestPublicId = other.PublicId,
+                ClientName = clientName
+            }, ct);
+        }
+
+        // Save status changes for cancelled requests
+        await db.SaveChangesAsync(ct);
+
+        // Now create notifications for cancelled professionals
+        foreach (var other in otherPending.Where(o => o.Status == ClientRequestStatus.Cancelled))
+        {
+            await notificationService.CreateAsync(
+                other.ProfessionalProfile.UserId,
+                NotificationType.InvitationCancelled,
+                "Invitation cancelled",
+                $"{clientName} accepted another {roleString.ToLowerInvariant()}, so your invitation was cancelled.",
+                ct: ct);
+        }
+
+        // Questionnaire notification
         if (questionnaire is not null)
         {
-            var qNotification = new Notification
-            {
-                RecipientUserId = clientRequest.ClientProfile.UserId,
-                Type = NotificationType.QuestionnaireAssigned,
-                Title = "Questionnaire assigned",
-                Body = $"You have been assigned a questionnaire: {questionnaire.Title}"
-            };
-
-            db.Notifications.Add(qNotification);
-            await db.SaveChangesAsync(ct);
+            await notificationService.CreateAsync(
+                clientRequest.ClientProfile.UserId,
+                NotificationType.QuestionnaireAssigned,
+                "Questionnaire assigned",
+                $"You have been assigned a questionnaire: {questionnaire.Title}",
+                ct: ct);
 
             await notifier.NotifyAsync(clientRequest.ClientProfile.UserId, "questionnaireAssigned", new
             {
@@ -171,6 +214,6 @@ public class AcceptClientRequestEndpoint(
             "Client request {RequestId} accepted by professional {ProfessionalId}",
             clientRequest.PublicId, professionalProfile.PublicId);
 
-        await Send.OkAsync(ct);
+        await Send.NoContentAsync(ct);
     }
 }

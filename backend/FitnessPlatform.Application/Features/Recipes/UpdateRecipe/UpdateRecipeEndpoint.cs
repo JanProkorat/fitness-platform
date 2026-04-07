@@ -75,6 +75,7 @@ public class UpdateRecipeEndpoint(IMongoContext mongo)
             {
                 FoodExternalId = food.ExternalId,
                 FoodName = food.Name,
+                FoodCategory = food.Category.ToString(),
                 NutrientValuePer100Grams = new NutrientValue
                 {
                     Kcal = food.NutrientValue.Kcal,
@@ -95,6 +96,9 @@ public class UpdateRecipeEndpoint(IMongoContext mongo)
         // Update recipe fields
         recipe.Name = req.Name;
         recipe.Description = req.Description;
+        recipe.PrepTimeMinutes = req.PrepTimeMinutes;
+        recipe.Steps = req.Steps;
+        recipe.Note = req.Note;
         recipe.Foods = mealFoods;
         recipe.TotalNutrients = CalculateTotals(mealFoods);
         recipe.DateUpdated = DateTime.UtcNow;
@@ -122,6 +126,7 @@ public class UpdateRecipeEndpoint(IMongoContext mongo)
             totals.Protein += food.NutrientValuePer100Grams.Protein * ratio;
             totals.Carbs += food.NutrientValuePer100Grams.Carbs * ratio;
             totals.Fat += food.NutrientValuePer100Grams.Fat * ratio;
+            totals.Fiber += (food.NutrientValuePer100Grams.Fiber ?? 0m) * ratio;
         }
 
         return totals;

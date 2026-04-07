@@ -72,6 +72,10 @@ export default function RegisterScreen() {
           lastName: profile.lastName,
           roles: profile.roles ?? [],
           isOnboardingComplete: profile.isOnboardingComplete ?? null,
+          emailConfirmed: false,
+          hasActiveLink: false,
+          hasPendingQuestionnaire: false,
+          linkedRoles: [],
         },
         data.accessToken,
         data.refreshToken

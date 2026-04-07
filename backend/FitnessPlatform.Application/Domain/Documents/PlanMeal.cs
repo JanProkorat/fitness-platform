@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace FitnessPlatform.Application.Domain.Documents;
@@ -14,10 +16,11 @@ public class PlanMeal
     public Guid MealId { get; set; }
 
     /// <summary>
-    /// Display name (e.g. "Breakfast", "Morning Snack").
+    /// Kind of meal (Breakfast, Lunch, Dinner, etc.).
     /// </summary>
-    [BsonElement("name")]
-    public string Name { get; set; } = string.Empty;
+    [BsonElement("kind")]
+    [BsonRepresentation(BsonType.String)]
+    public MealKind Kind { get; set; }
 
     /// <summary>
     /// Display order within the day (1-based).

@@ -37,6 +37,11 @@ public class PendingInviteDto
     public string Email { get; set; } = string.Empty;
 
     /// <summary>
+    /// Optional introduction message.
+    /// </summary>
+    public string? Message { get; set; }
+
+    /// <summary>
     /// Timestamp when the invitation was sent.
     /// </summary>
     public DateTime SentAt { get; set; }
@@ -45,4 +50,14 @@ public class PendingInviteDto
     /// Whether the invitation has been accepted.
     /// </summary>
     public bool IsAccepted { get; set; }
+
+    /// <summary>
+    /// Public ID of the assigned questionnaire, if any.
+    /// </summary>
+    public Guid? QuestionnairePublicId { get; set; }
+
+    /// <summary>
+    /// Title of the assigned questionnaire, if any.
+    /// </summary>
+    public string? QuestionnaireTitle { get; set; }
 }

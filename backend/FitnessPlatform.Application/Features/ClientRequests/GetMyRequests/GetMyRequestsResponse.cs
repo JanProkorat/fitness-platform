@@ -13,6 +13,7 @@ public class GetMyRequestsResponse
 public class ClientRequestDto
 {
     public Guid PublicId { get; set; }
+    public Guid ProfessionalPublicId { get; set; }
     public string ProfessionalName { get; set; } = string.Empty;
     public string? Message { get; set; }
     public ClientRequestStatus Status { get; set; }

@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
@@ -14,7 +15,8 @@ namespace FitnessPlatform.Application.Features.Auth.Register;
 /// <param name="userManager">ASP.NET Identity user manager.</param>
 /// <param name="dbContext">Database context.</param>
 /// <param name="audit">Audit logging service.</param>
-public class RegisterEndpoint(UserManager<ApplicationUser> userManager, IApplicationDbContext dbContext, IAuditService audit) : Endpoint<RegisterRequest, RegisterResponse>
+/// <param name="emailService">Email sending service.</param>
+public class RegisterEndpoint(UserManager<ApplicationUser> userManager, IApplicationDbContext dbContext, IAuditService audit, IEmailService emailService) : Endpoint<RegisterRequest, RegisterResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -73,7 +75,22 @@ public class RegisterEndpoint(UserManager<ApplicationUser> userManager, IApplica
                 break;
         }
 
+        // Generate email verification token
+        var tokenValue = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+        var verificationToken = new EmailVerificationToken
+        {
+            UserId = user.Id,
+            Token = tokenValue,
+            ExpiresAt = DateTime.UtcNow.AddHours(24)
+        };
+        dbContext.EmailVerificationTokens.Add(verificationToken);
+        user.VerificationEmailsSent = 1;
+
         await dbContext.SaveChangesAsync(ct);
+
+        // Send verification email
+        var language = HttpContext.Request.Headers.AcceptLanguage.FirstOrDefault() ?? "en";
+        await emailService.SendEmailVerificationAsync(user.Email!, tokenValue, language, ct);
 
         // Audit: GDPR consent recorded at registration
         await audit.LogAsync(

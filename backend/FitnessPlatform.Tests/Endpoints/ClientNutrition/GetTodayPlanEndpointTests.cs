@@ -2,8 +2,11 @@ using System.Security.Claims;
 using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.ClientNutrition.GetTodayPlan;
+using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints.NutritionPlans;
 
 namespace FitnessPlatform.Tests.Endpoints.ClientNutrition;
@@ -15,27 +18,35 @@ public class GetTodayPlanEndpointTests
 {
     private readonly Guid _clientId = Guid.NewGuid();
 
+    private IApplicationDbContext CreateMockDb() =>
+        new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .Build();
+
     [Fact]
     public async Task HandleAsync_ActivePlan_ReturnsTodayMeals()
     {
         var mealId = Guid.NewGuid();
         var food = PlanTestHelpers.CreateMealFood(foodName: "Chicken Breast", amountGrams: 200);
-        var meal = PlanTestHelpers.CreateMeal(mealId: mealId, name: "Lunch", foods: food);
+        var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.Lunch, foods: food);
 
         var plan = PlanTestHelpers.CreatePlan(
             clientId: _clientId,
             status: NutritionPlanStatus.Active,
             weekCount: 1);
         plan.DatePublished = DateTime.UtcNow.Date;
+        foreach (var w in plan.Weeks) w.Status = WeekStatus.Published;
         plan.Weeks[0].Days[0].Meals.Add(meal);
 
         var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+
+        var db = CreateMockDb();
 
         var ep = Factory.Create<GetTodayPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo);
+            mongo, db);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -51,11 +62,13 @@ public class GetTodayPlanEndpointTests
     {
         var mongo = PlanTestHelpers.CreateMockMongo();
 
+        var db = CreateMockDb();
+
         var ep = Factory.Create<GetTodayPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo);
+            mongo, db);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -67,10 +80,12 @@ public class GetTodayPlanEndpointTests
     {
         var mongo = PlanTestHelpers.CreateMockMongo();
 
+        var db = CreateMockDb();
+
         var ep = Factory.Create<GetTodayPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity()),
-            mongo);
+            mongo, db);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -86,14 +101,17 @@ public class GetTodayPlanEndpointTests
             weekCount: 1);
         // 1-week plan published 8 days ago => day index = 8 % 7 = 1 => week 0, day index 1 => DayOfWeek=2
         plan.DatePublished = DateTime.UtcNow.Date.AddDays(-8);
+        foreach (var w in plan.Weeks) w.Status = WeekStatus.Published;
 
         var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+
+        var db = CreateMockDb();
 
         var ep = Factory.Create<GetTodayPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo);
+            mongo, db);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 

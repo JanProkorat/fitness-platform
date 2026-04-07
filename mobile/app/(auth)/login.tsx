@@ -37,6 +37,10 @@ export default function LoginScreen() {
           lastName: profile.lastName,
           roles: profile.roles ?? [],
           isOnboardingComplete: profile.isOnboardingComplete ?? null,
+          emailConfirmed: data.emailConfirmed ?? profile.emailConfirmed ?? false,
+          hasActiveLink: profile.hasActiveLink ?? false,
+          hasPendingQuestionnaire: profile.hasPendingQuestionnaire ?? false,
+          linkedRoles: profile.linkedRoles ?? [],
         },
         data.accessToken,
         data.refreshToken

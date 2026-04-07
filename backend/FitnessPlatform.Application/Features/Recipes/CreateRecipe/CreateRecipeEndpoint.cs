@@ -63,6 +63,7 @@ public class CreateRecipeEndpoint(IMongoContext mongo)
             {
                 FoodExternalId = food.ExternalId,
                 FoodName = food.Name,
+                FoodCategory = food.Category.ToString(),
                 NutrientValuePer100Grams = new NutrientValue
                 {
                     Kcal = food.NutrientValue.Kcal,
@@ -89,6 +90,9 @@ public class CreateRecipeEndpoint(IMongoContext mongo)
             NutritionistId = nutritionistId,
             Name = req.Name,
             Description = req.Description,
+            PrepTimeMinutes = req.PrepTimeMinutes,
+            Steps = req.Steps,
+            Note = req.Note,
             Foods = mealFoods,
             TotalNutrients = totalNutrients,
             Visibility = RecipeVisibility.Private,
@@ -116,6 +120,7 @@ public class CreateRecipeEndpoint(IMongoContext mongo)
             totals.Protein += food.NutrientValuePer100Grams.Protein * ratio;
             totals.Carbs += food.NutrientValuePer100Grams.Carbs * ratio;
             totals.Fat += food.NutrientValuePer100Grams.Fat * ratio;
+            totals.Fiber += (food.NutrientValuePer100Grams.Fiber ?? 0m) * ratio;
         }
 
         return totals;

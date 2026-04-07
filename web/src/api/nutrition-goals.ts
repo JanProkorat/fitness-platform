@@ -22,6 +22,7 @@ export interface MacroTargets {
   proteinGrams: number;
   carbsGrams: number;
   fatGrams: number;
+  fiberGrams: number;
 }
 
 export interface CalculateGoalsResponse {
@@ -59,6 +60,7 @@ export interface OnboardingData {
   proteinGrams?: number | null;
   carbsGrams?: number | null;
   fatGrams?: number | null;
+  fiberGrams?: number | null;
   mealDistribution?: string | null;
 }
 

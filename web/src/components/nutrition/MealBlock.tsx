@@ -5,6 +5,7 @@ import { FoodRow } from './FoodRow';
 import { FoodSearch } from './FoodSearch';
 import { RecipeRow } from './RecipeRow';
 import { RecipeSearch } from './RecipeSearch';
+import { MEAL_KIND_CONFIG, type MealKind } from './meal-kind';
 
 function MealDropZone({ mealId, itemIds, onItemDrop, onReorder, children }: {
   mealId?: string;
@@ -22,6 +23,9 @@ function MealDropZone({ mealId, itemIds, onItemDrop, onReorder, children }: {
         borderRadius: 'var(--radius)',
         transition: 'background 0.15s',
         background: over ? 'var(--accent-bg)' : undefined,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 4,
       }}
       onDragOver={(e) => {
         e.preventDefault();
@@ -100,6 +104,7 @@ export interface MealBlockFood {
   protein: number;
   carbs: number;
   fat: number;
+  fiber?: number;
   note?: string | null;
   category?: string | null;
 }
@@ -112,12 +117,14 @@ export interface MealBlockRecipe {
   protein: number;
   carbs: number;
   fat: number;
+  fiber?: number;
   note?: string | null;
+  foodCategories?: string[];
 }
 
 export interface MealBlockProps {
   mealId?: string;
-  name: string;
+  kind: string;
   time?: string;
   note?: string | null;
   foods: MealBlockFood[];
@@ -134,7 +141,6 @@ export interface MealBlockProps {
   onRecipeRemove?: (recipeId: string) => void;
   onRecipeNoteChange?: (recipeId: string, note: string) => void;
   mealTotalKcal: number;
-  onNameChange?: (name: string) => void;
   onNoteChange?: (note: string) => void;
   onItemDrop?: (data: { type: string; foodId?: string; recipeId?: string; mealId: string; dayOfWeek?: number }) => void;
   onReorder?: (itemIds: string[]) => void;
@@ -147,7 +153,7 @@ export interface MealBlockProps {
 
 export function MealBlock({
   mealId,
-  name,
+  kind,
   time,
   foods,
   isOpen,
@@ -162,7 +168,6 @@ export function MealBlock({
   onRecipeRemove,
   onRecipeNoteChange,
   mealTotalKcal: _mealTotalKcal,
-  onNameChange,
   onItemDrop,
   onReorder,
   onNoteChange,
@@ -175,24 +180,14 @@ export function MealBlock({
   note,
 }: MealBlockProps) {
   const { t } = useTranslation();
-  const [editing, setEditing] = useState(false);
-  const [editValue, setEditValue] = useState(name);
+  const accentColor = MEAL_KIND_CONFIG[kind as MealKind]?.color;
 
-  const handleStartEdit = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onNameChange) {
-      setEditValue(name);
-      setEditing(true);
-    }
-  };
-
-  const handleFinishEdit = () => {
-    setEditing(false);
-    const trimmed = editValue.trim();
-    if (trimmed && trimmed !== name && onNameChange) {
-      onNameChange(trimmed);
-    }
-  };
+  const totalKcal = foods.reduce((s, f) => s + f.kcal, 0) + (recipes ?? []).reduce((s, r) => s + r.kcal * r.servings, 0);
+  const totalP = foods.reduce((s, f) => s + f.protein, 0) + (recipes ?? []).reduce((s, r) => s + r.protein * r.servings, 0);
+  const totalC = foods.reduce((s, f) => s + f.carbs, 0) + (recipes ?? []).reduce((s, r) => s + r.carbs * r.servings, 0);
+  const totalF = foods.reduce((s, f) => s + f.fat, 0) + (recipes ?? []).reduce((s, r) => s + r.fat * r.servings, 0);
+  const totalFi = foods.reduce((s, f) => s + (f.fiber ?? 0), 0) + (recipes ?? []).reduce((s, r) => s + (r.fiber ?? 0) * r.servings, 0);
+  const hasItems = foods.length > 0 || (recipes ?? []).length > 0;
 
   return (
     <div className="mb-3 rounded-md border border-border bg-bg transition-all duration-100 hover:border-border-md">
@@ -212,30 +207,7 @@ export function MealBlock({
         >
           ▶
         </span>
-        <div className="flex-1 min-w-0">
-          {editing ? (
-            <input
-              autoFocus
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
-              onBlur={handleFinishEdit}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleFinishEdit(); if (e.key === 'Escape') setEditing(false); }}
-              onClick={(e) => e.stopPropagation()}
-              className="auth-input"
-              style={{ width: '100%', fontSize: 13, fontWeight: 600, padding: '1px 4px' }}
-            />
-          ) : (
-            <span
-              className="text-[13px] font-semibold block truncate"
-              onClick={(e) => { if (onNameChange) { e.stopPropagation(); handleStartEdit(e); } }}
-              style={onNameChange ? { cursor: 'text', borderRadius: 'var(--radius)', padding: '1px 4px', transition: 'background 0.1s' } : undefined}
-              onMouseEnter={(e) => { if (onNameChange) e.currentTarget.style.background = 'var(--bg-hover)'; }}
-              onMouseLeave={(e) => { if (onNameChange) e.currentTarget.style.background = ''; }}
-            >
-              {name}
-            </span>
-          )}
-        </div>
+        <span className="flex-1 min-w-0 text-[13px] font-semibold truncate">{t(`mealKind.${kind}`)}</span>
         {onTimeChange && (
           <input
             type="time"
@@ -253,6 +225,15 @@ export function MealBlock({
           />
         )}
         {!onTimeChange && time && <span className="text-xs text-text3">{time}</span>}
+        {hasItems && (
+          <div className="flex items-center gap-2 text-[11px] tabular-nums" onClick={(e) => e.stopPropagation()}>
+            <span className="font-semibold text-text2">{Math.round(totalKcal)} kcal</span>
+            <span style={{ color: 'var(--blue)' }}>{Math.round(totalP)}{t('nutrition.proteinShort')}</span>
+            <span style={{ color: 'var(--orange)' }}>{Math.round(totalC)}{t('nutrition.carbsShort')}</span>
+            <span style={{ color: 'var(--purple)' }}>{Math.round(totalF)}{t('nutrition.fatShort')}</span>
+            <span style={{ color: 'var(--green)' }}>{Math.round(totalFi)}{t('nutrition.fiberShort')}</span>
+          </div>
+        )}
         {onDuplicate && (
           <button
             type="button"
@@ -288,23 +269,11 @@ export function MealBlock({
       </div>
 
       <div className="collapse-grid" data-open={isOpen}>
-        <div className="collapse-content">
+        <div className="collapse-content px-2 pb-2">
           {/* Meal note */}
           {onNoteChange && (
             <MealNoteInput note={note} onChange={onNoteChange} />
           )}
-
-          {/* Column header row */}
-          <div className="grid gap-1 px-2 py-1" style={{ gridTemplateColumns: '1fr minmax(80px, 1fr) 68px 50px 40px 40px 40px 22px' }}>
-            <span className="text-[11px] text-text3 font-medium">{t('nutrition.item')}</span>
-            <span className="text-[11px] text-text3 font-medium">{t('nutrition.note')}</span>
-            <span className="text-[11px] text-text3 font-medium">{t('nutrition.amount')}</span>
-            <span className="text-[11px] text-text3 font-medium text-right">kcal</span>
-            <span className="text-[11px] font-medium text-right" style={{ color: 'var(--blue)' }}>{t('nutrition.proteinShort')}</span>
-            <span className="text-[11px] font-medium text-right" style={{ color: 'var(--orange)' }}>{t('nutrition.carbsShort')}</span>
-            <span className="text-[11px] font-medium text-right" style={{ color: 'var(--purple)' }}>{t('nutrition.fatShort')}</span>
-            <span />
-          </div>
 
           {/* Droppable zone for foods & recipes */}
           <MealDropZone
@@ -324,6 +293,7 @@ export function MealBlock({
                 onAmountChange={(amount) => onFoodAmountChange(food.id, amount)}
                 onRemove={() => onFoodRemove(food.id)}
                 onNoteChange={onFoodNoteChange ? (n) => onFoodNoteChange(food.id, n) : undefined}
+                accentColor={accentColor}
               />
             ))}
 
@@ -338,39 +308,10 @@ export function MealBlock({
                 onServingsChange={(s) => onRecipeServingsChange?.(recipe.recipeId, s)}
                 onRemove={() => onRecipeRemove?.(recipe.recipeId)}
                 onNoteChange={onRecipeNoteChange ? (n) => onRecipeNoteChange(recipe.recipeId, n) : undefined}
+                accentColor={accentColor}
               />
             ))}
           </MealDropZone>
-
-          {/* Summary row */}
-          {(foods.length > 0 || (recipes ?? []).length > 0) && (() => {
-            const totalKcal = foods.reduce((s, f) => s + f.kcal, 0)
-              + (recipes ?? []).reduce((s, r) => s + r.kcal * r.servings, 0);
-            const totalP = foods.reduce((s, f) => s + f.protein, 0)
-              + (recipes ?? []).reduce((s, r) => s + r.protein * r.servings, 0);
-            const totalC = foods.reduce((s, f) => s + f.carbs, 0)
-              + (recipes ?? []).reduce((s, r) => s + r.carbs * r.servings, 0);
-            const totalF = foods.reduce((s, f) => s + f.fat, 0)
-              + (recipes ?? []).reduce((s, r) => s + r.fat * r.servings, 0);
-            return (
-              <div
-                className="grid gap-1 px-2 py-[5px] items-center"
-                style={{
-                  gridTemplateColumns: '1fr minmax(80px, 1fr) 68px 50px 40px 40px 40px 22px',
-                  borderTop: '1px solid var(--border)',
-                }}
-              >
-                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text2)' }}>{t('nutrition.total')}</div>
-                <div />
-                <div />
-                <div style={{ fontSize: 11, fontWeight: 600, textAlign: 'right', color: 'var(--text)' }}>{Math.round(totalKcal)}</div>
-                <div style={{ fontSize: 11, fontWeight: 600, textAlign: 'right', color: 'var(--blue)' }}>{Math.round(totalP)}</div>
-                <div style={{ fontSize: 11, fontWeight: 600, textAlign: 'right', color: 'var(--orange)' }}>{Math.round(totalC)}</div>
-                <div style={{ fontSize: 11, fontWeight: 600, textAlign: 'right', color: 'var(--purple)' }}>{Math.round(totalF)}</div>
-                <div />
-              </div>
-            );
-          })()}
 
           {/* Add food dropdown */}
           {onFoodSelect && <FoodSearch onSelect={onFoodSelect} />}

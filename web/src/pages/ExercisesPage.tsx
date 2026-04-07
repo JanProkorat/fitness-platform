@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { searchExercises, createExercise, updateExercise, deleteExercise } from '@/api/exercises';
 import type { CreateExerciseRequest, ExerciseSummary, MuscleGroup, ExerciseEquipment, ExerciseCategory, ExerciseDifficulty } from '@/api/exercise-types';
 import { showApiError, showSuccess } from '@/lib/api-errors';
+import { PageHeader } from '@/components/layout';
+import { Button } from '@/components/ui';
 
 const muscleGroupColors: Record<string, string> = {
   Chest: 'bg-red-500/15 text-red-400',
@@ -174,19 +176,16 @@ export default function ExercisesPage() {
 
   return (
     <div className="flex h-full flex-col">
-      {/* Top bar */}
-      <div className="flex items-center border-b border-border bg-bg2 px-6 py-4">
-        <div className="flex-1">
-          <h1 className="text-lg font-bold">{t('exercises.title')}</h1>
-          <p className="text-xs text-text3">{t('exercises.subtitle')}</p>
-        </div>
-        <button
-          onClick={openDrawer}
-          className="rounded-sm bg-text px-4 py-2 text-[13px] font-medium text-bg transition-colors hover:opacity-90"
-        >
-          {t('exercises.addExercise')}
-        </button>
-      </div>
+      <PageHeader
+        icon="💪"
+        title={t('exercises.title')}
+        subtitle={t('exercises.subtitle')}
+        actions={
+          <Button variant="primary" onClick={openDrawer}>
+            + {t('exercises.addExercise')}
+          </Button>
+        }
+      />
 
       <div className="flex-1 overflow-y-auto p-6">
         {/* Search / filter bar */}

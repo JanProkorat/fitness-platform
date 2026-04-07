@@ -3,8 +3,11 @@ using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.ClientNutrition.LogMealEaten;
+using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints.NutritionPlans;
 using MongoDB.Driver;
 using NSubstitute;
@@ -18,12 +21,17 @@ public class LogMealEatenEndpointTests
 {
     private readonly Guid _clientId = Guid.NewGuid();
 
+    private IApplicationDbContext CreateMockDb() =>
+        new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .Build();
+
     [Fact]
     public async Task HandleAsync_ValidMeal_LogsMeal()
     {
         var mealId = Guid.NewGuid();
         var food = PlanTestHelpers.CreateMealFood(foodName: "Rice");
-        var meal = PlanTestHelpers.CreateMeal(mealId: mealId, name: "Dinner", foods: food);
+        var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.Dinner, foods: food);
 
         var plan = PlanTestHelpers.CreatePlan(
             clientId: _clientId,
@@ -37,11 +45,13 @@ public class LogMealEatenEndpointTests
         var mealLogCollection = Substitute.For<IMongoCollection<MealLog>>();
         mongo.MealLogs.Returns(mealLogCollection);
 
+        var db = CreateMockDb();
+
         var ep = Factory.Create<LogMealEatenEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo);
+            mongo, db);
 
         await ep.HandleAsync(
             new LogMealEatenRequest { MealId = mealId },
@@ -70,11 +80,13 @@ public class LogMealEatenEndpointTests
         var mealLogCollection = Substitute.For<IMongoCollection<MealLog>>();
         mongo.MealLogs.Returns(mealLogCollection);
 
+        var db = CreateMockDb();
+
         var ep = Factory.Create<LogMealEatenEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo);
+            mongo, db);
 
         await ep.HandleAsync(
             new LogMealEatenRequest { MealId = Guid.NewGuid() },
@@ -90,11 +102,13 @@ public class LogMealEatenEndpointTests
         var mealLogCollection = Substitute.For<IMongoCollection<MealLog>>();
         mongo.MealLogs.Returns(mealLogCollection);
 
+        var db = CreateMockDb();
+
         var ep = Factory.Create<LogMealEatenEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo);
+            mongo, db);
 
         await ep.HandleAsync(
             new LogMealEatenRequest { MealId = Guid.NewGuid() },
@@ -108,10 +122,12 @@ public class LogMealEatenEndpointTests
     {
         var mongo = PlanTestHelpers.CreateMockMongo();
 
+        var db = CreateMockDb();
+
         var ep = Factory.Create<LogMealEatenEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity()),
-            mongo);
+            mongo, db);
 
         await ep.HandleAsync(
             new LogMealEatenRequest { MealId = Guid.NewGuid() },

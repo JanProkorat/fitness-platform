@@ -50,6 +50,7 @@ public class UpdateProfileEndpoint(UserManager<ApplicationUser> userManager, IAu
 
         user.FirstName = req.FirstName;
         user.LastName = req.LastName;
+        user.PhoneNumber = req.PhoneNumber;
         user.DateUpdated = DateTime.UtcNow;
 
         await userManager.UpdateAsync(user);

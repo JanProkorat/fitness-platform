@@ -135,7 +135,7 @@ public class UpdatePlanEndpoint(IMongoContext mongo, IMacroCalculatorService mac
                     Meals = rd.Meals.Select(rm => new PlanMeal
                     {
                         MealId = rm.MealId ?? Guid.NewGuid(),
-                        Name = rm.Name,
+                        Kind = rm.Kind,
                         Order = rm.Order,
                         Time = rm.Time,
                         Note = rm.Note,
@@ -157,7 +157,8 @@ public class UpdatePlanEndpoint(IMongoContext mongo, IMacroCalculatorService mac
                             RecipeName = rr.RecipeName,
                             NutrientValuePerServing = rr.NutrientValuePerServing,
                             Servings = rr.Servings,
-                            Note = rr.Note
+                            Note = rr.Note,
+                            FoodCategories = rr.FoodCategories
                         }).ToList()
                     }).ToList()
                 }).ToList()

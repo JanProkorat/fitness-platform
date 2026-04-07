@@ -1,15 +1,18 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/auth';
 import { apiClient } from '@/api/client';
 import type { ClientSummary } from '@/api/client';
+import { getIncomingRequests, acceptClientRequest, rejectClientRequest, type IncomingRequest } from '@/api/client-requests';
+import { getTrainerQuestionnaires, type QuestionnaireSummaryDto } from '@/api/questionnaires';
 
 import { PageHeader } from '@/components/layout';
 import { Toolbar } from '@/components/layout';
 import { Button, Tag, ProgressBar } from '@/components/ui';
 import { NewClientDialog } from '@/components/NewClientDialog';
+import { Dialog } from '@/components/ui/Dialog';
 import {
   DatabaseTable,
   ListView,
@@ -90,10 +93,52 @@ function enrichClient(c: ClientSummary, idx: number): EnrichedClient {
 export default function DashboardPage() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
   // -- state ----------------------------------------------------------------
   const [view, setView] = useState<ViewType>('table');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [managedRequest, setManagedRequest] = useState<IncomingRequest | null>(null);
+  const [statementText, setStatementText] = useState('');
+  const [questionnaires, setQuestionnaires] = useState<QuestionnaireSummaryDto[]>([]);
+  const [selectedQuestionnaireId, setSelectedQuestionnaireId] = useState<string>('');
+
+  // -- incoming client requests ---------------------------------------------
+  const { data: incomingRequests } = useQuery({
+    queryKey: ['client-requests'],
+    queryFn: getIncomingRequests,
+    staleTime: 30_000,
+  });
+
+  const openManageDialog = (req: IncomingRequest) => {
+    setManagedRequest(req);
+    setStatementText('');
+    setSelectedQuestionnaireId('');
+    getTrainerQuestionnaires().then((data) => {
+      setQuestionnaires(data);
+      const defaultQ = data.find((q) => q.isDefault && q.isActive);
+      setSelectedQuestionnaireId(defaultQ?.publicId ?? '');
+    }).catch(() => setQuestionnaires([]));
+  };
+
+  const dashAcceptMutation = useMutation({
+    mutationFn: ({ publicId, questionnaireId, statement }: { publicId: string; questionnaireId?: string; statement?: string }) =>
+      acceptClientRequest(publicId, questionnaireId || null, statement),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['client-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['sidebar-clients'] });
+      setManagedRequest(null);
+    },
+  });
+
+  const dashRejectMutation = useMutation({
+    mutationFn: ({ publicId, statement }: { publicId: string; statement?: string }) =>
+      rejectClientRequest(publicId, statement),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['client-requests'] });
+      setManagedRequest(null);
+    },
+  });
 
   // -- data -----------------------------------------------------------------
   const { data: clientsData } = useQuery({
@@ -253,15 +298,65 @@ export default function DashboardPage() {
       >
         <Button variant="ghost" size="sm">⊞ Filtr</Button>
         <Button variant="ghost" size="sm">↕ Seřadit</Button>
-        {user?.roles.includes('Trainer') && (
-          <Button variant="primary" onClick={() => setDialogOpen(true)}>
-            + Nový klient
-          </Button>
-        )}
       </Toolbar>
 
       <div className="flex-1 overflow-y-auto">
         <div className="px-20 py-3">
+          {/* Incoming client requests */}
+          {incomingRequests && incomingRequests.length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>
+                {t('clientRequests.title')} ({incomingRequests.length})
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {incomingRequests.map((req) => (
+                  <div
+                    key={req.publicId}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      padding: '10px 14px',
+                      background: 'var(--accent-bg)',
+                      border: '1px solid var(--accent-br)',
+                      borderLeft: '3px solid var(--accent)',
+                      borderRadius: 'var(--radius-md)',
+                      transition: 'background 0.1s',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--accent-bg)'; e.currentTarget.style.opacity = '0.85'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--accent-bg)'; e.currentTarget.style.opacity = '1'; }}
+                  >
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--accent-bg)', border: '1px solid var(--accent-br)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'var(--accent)', flexShrink: 0 }}>
+                      {(req.clientFirstName[0] ?? '').toUpperCase()}{(req.clientLastName[0] ?? '').toUpperCase()}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>
+                        {req.clientFirstName} {req.clientLastName}
+                      </div>
+                      {req.message && (
+                        <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {req.message}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text4)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                      {new Date(req.sentAt).toLocaleDateString(i18n.language, { day: 'numeric', month: 'short' })}
+                    </div>
+                    <div style={{ flexShrink: 0 }}>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => openManageDialog(req)}
+                      >
+                        {t('clientRequests.manage')}
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Stats */}
           <StatsGrid stats={stats} />
 
@@ -274,7 +369,7 @@ export default function DashboardPage() {
               title={`${client.firstName} ${client.lastName} — ${client.compliance < 40 ? 'nízká compliance' : 'vyžaduje pozornost'}`}
             >
               Compliance {client.compliance} %, plní {client.trains}/{client.trainsGoal} tréninků.{' '}
-              <Mention onClick={() => navigate('/messages')}>
+              <Mention onClick={() => navigate(`/messages?clientId=${client.publicId}`)}>
                 ✉ Napsat zprávu
               </Mention>
             </Callout>
@@ -315,7 +410,7 @@ export default function DashboardPage() {
                     size="sm"
                     onClick={(e) => {
                       e.stopPropagation();
-                      navigate('/messages');
+                      navigate(`/messages?clientId=${row.publicId}`);
                     }}
                   >
                     Zpráva
@@ -381,7 +476,7 @@ export default function DashboardPage() {
                     size="sm"
                     onClick={(e) => {
                       e.stopPropagation();
-                      navigate('/messages');
+                      navigate(`/messages?clientId=${item.publicId}`);
                     }}
                   >
                     Zpráva
@@ -436,6 +531,94 @@ export default function DashboardPage() {
       </div>
 
       <NewClientDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
+
+      {managedRequest && (
+        <Dialog
+          open={true}
+          onClose={() => setManagedRequest(null)}
+          title={t('clientRequests.title')}
+          maxWidth={420}
+          footer={
+            <>
+              <Button
+                variant="danger"
+                onClick={() => dashRejectMutation.mutate({ publicId: managedRequest.publicId, statement: statementText || undefined })}
+                disabled={dashRejectMutation.isPending}
+              >
+                {dashRejectMutation.isPending ? t('common.loading') : t('clientRequests.reject')}
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => dashAcceptMutation.mutate({
+                  publicId: managedRequest.publicId,
+                  questionnaireId: selectedQuestionnaireId || undefined,
+                  statement: statementText || undefined,
+                })}
+                disabled={dashAcceptMutation.isPending}
+              >
+                {dashAcceptMutation.isPending ? t('common.saving') : t('clientRequests.accept')}
+              </Button>
+            </>
+          }
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text3)', marginBottom: 4 }}>{t('common.name')}</div>
+              <div style={{ fontSize: 14, color: 'var(--text)', fontWeight: 500 }}>{managedRequest.clientFirstName} {managedRequest.clientLastName}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text3)', marginBottom: 4 }}>Email</div>
+              <div style={{ fontSize: 14, color: 'var(--text)' }}>{managedRequest.clientEmail}</div>
+            </div>
+            {managedRequest.message && (
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text3)', marginBottom: 4 }}>{t('clientRequests.message')}</div>
+                <div style={{ fontSize: 14, color: 'var(--text)' }}>{managedRequest.message}</div>
+              </div>
+            )}
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text3)', marginBottom: 4 }}>{t('clientRequests.sentAt')}</div>
+              <div style={{ fontSize: 14, color: 'var(--text)' }}>
+                {new Date(managedRequest.sentAt).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text3)', marginBottom: 4 }}>{t('clientRequests.selectQuestionnaire')}</div>
+              <select
+                value={selectedQuestionnaireId}
+                onChange={(e) => setSelectedQuestionnaireId(e.target.value)}
+                style={{
+                  width: '100%', padding: '7px 10px', fontSize: 13, fontFamily: 'inherit',
+                  borderRadius: 'var(--radius)', border: '1px solid var(--border)',
+                  background: 'var(--bg3)', color: 'var(--text)', outline: 'none',
+                }}
+              >
+                <option value="">{t('clientRequests.noQuestionnaire')}</option>
+                {questionnaires.filter((q) => q.isActive).map((q) => (
+                  <option key={q.publicId} value={q.publicId}>
+                    {q.title}{q.isDefault ? ` (${t('questionnaire.default')})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text3)', marginBottom: 4 }}>{t('clientRequests.statement')}</div>
+              <textarea
+                value={statementText}
+                onChange={(e) => setStatementText(e.target.value)}
+                placeholder={t('clientRequests.statementPlaceholder')}
+                maxLength={1000}
+                rows={3}
+                style={{
+                  width: '100%', padding: '8px 10px', fontSize: 13, fontFamily: 'inherit',
+                  borderRadius: 'var(--radius)', border: '1px solid var(--border)',
+                  background: 'var(--bg3)', color: 'var(--text)', resize: 'vertical', outline: 'none',
+                }}
+              />
+            </div>
+          </div>
+        </Dialog>
+      )}
     </div>
   );
 }

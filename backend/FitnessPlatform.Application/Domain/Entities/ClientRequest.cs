@@ -15,6 +15,13 @@ public class ClientRequest : PublicTimestampableEntity
     public ClientRequestStatus Status { get; set; } = ClientRequestStatus.Pending;
     public DateTime SentAt { get; set; } = DateTime.UtcNow;
     public DateTime? RespondedAt { get; set; }
+
+    /// <summary>
+    /// Optional statement from the professional when accepting or declining (saved for future display in chat).
+    /// </summary>
+    [MaxLength(1000)]
+    public string? Statement { get; set; }
+
     public long? QuestionnaireId { get; set; }
 
     public ClientProfile ClientProfile { get; set; } = null!;

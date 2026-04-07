@@ -1,11 +1,10 @@
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
   TextInput,
-  ScrollView,
   Pressable,
   ActivityIndicator,
   Alert,
@@ -21,13 +20,19 @@ import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
 import { Badge } from '@/components/ui/Badge'
 import { TrainerCard } from '@/components/trainers/TrainerCard'
+import { SendInviteSheet } from '@/components/trainers/SendInviteSheet'
+import { InviteDetailSheet } from '@/components/trainers/InviteDetailSheet'
+import { Toast } from '@/lib/toast'
 import {
   searchProfessionals,
   sendClientRequest,
+  cancelClientRequest,
   getMyRequests,
   type ProfessionalSummary,
   type ClientRequestDto,
 } from '../../src/api/professionals'
+import { getCollaborations } from '../../src/api/profile'
+import { startConversation } from '../../src/api/messages'
 
 const ROLE_SEGMENTS = ['All', 'Trainers', 'Nutritionists'] as const
 const ROLE_VALUES: Record<string, string | undefined> = {
@@ -36,13 +41,6 @@ const ROLE_VALUES: Record<string, string | undefined> = {
   Nutritionists: 'Nutritionist',
 }
 
-const SPECIALIZATION_FILTERS = [
-  'All',
-  'Weight loss',
-  'Muscle gain',
-  'Fitness',
-  'Rehabilitation',
-] as const
 
 // ─── Active Collaboration View ────────────────────────────────────────
 
@@ -75,20 +73,23 @@ function ActiveCollaborationView() {
 
 function SearchMarketplace() {
   const colors = useTheme()
+  const router = useRouter()
   const queryClient = useQueryClient()
+  const linkedRoles = useAuthStore((s) => s.user?.linkedRoles ?? [])
   const [search, setSearch] = useState('')
   const [roleIdx, setRoleIdx] = useState(0)
-  const [specFilter, setSpecFilter] = useState('All')
-
   const roleValue = ROLE_VALUES[ROLE_SEGMENTS[roleIdx]]
 
+  // Sheets state
+  const [inviteTarget, setInviteTarget] = useState<ProfessionalSummary | null>(null)
+  const [detailTarget, setDetailTarget] = useState<{ request: ClientRequestDto; profName: string } | null>(null)
+
   const professionalsQuery = useQuery({
-    queryKey: ['professionals', search, roleValue, specFilter],
+    queryKey: ['professionals', search, roleValue],
     queryFn: () =>
       searchProfessionals({
         search: search || undefined,
         role: roleValue,
-        specialization: specFilter === 'All' ? undefined : specFilter,
         pageSize: 30,
       }),
   })
@@ -98,59 +99,132 @@ function SearchMarketplace() {
     queryFn: getMyRequests,
   })
 
-  const pendingRequestIds = useMemo(() => {
-    const set = new Set<string>()
+  // Map professionalPublicId → pending request for quick lookup
+  const requestByProfId = useMemo(() => {
+    const map = new Map<string, ClientRequestDto>()
     requestsQuery.data?.forEach((r) => {
-      if (r.status === 'Pending') set.add(r.publicId)
+      if (r.status === 'Pending') {
+        map.set(r.professionalPublicId, r)
+      }
     })
-    return set
+    return map
   }, [requestsQuery.data])
 
+  // Active collaborations — source of truth for "connected" state
+  const collabQuery = useQuery({
+    queryKey: ['collaborations'],
+    queryFn: getCollaborations,
+  })
+
+  const connectedProfIds = useMemo(() => {
+    const set = new Set<string>()
+    collabQuery.data?.forEach((c) => set.add(c.professionalPublicId))
+    return set
+  }, [collabQuery.data])
+
+  const [optimisticIds, setOptimisticIds] = useState<Set<string>>(new Set())
+
+  // Clear optimistic IDs that are no longer pending (rejected, cancelled, accepted)
+  useEffect(() => {
+    if (optimisticIds.size === 0) return
+    const stillPending = new Set<string>()
+    optimisticIds.forEach((id) => {
+      if (requestByProfId.has(id)) stillPending.add(id)
+    })
+    if (stillPending.size !== optimisticIds.size) {
+      setOptimisticIds(stillPending)
+    }
+  }, [requestByProfId])
+
   const contactMutation = useMutation({
-    mutationFn: (id: string) => sendClientRequest(id),
+    mutationFn: ({ id, message }: { id: string; message?: string }) =>
+      sendClientRequest(id, message),
+    onMutate: ({ id }) => {
+      setOptimisticIds((prev) => new Set(prev).add(id))
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-requests'] })
-      Alert.alert('Request sent', 'Your request has been sent to the trainer.')
+      setInviteTarget(null)
+      Toast.show('Invitation sent')
     },
-    onError: () => {
-      Alert.alert('Error', 'Could not send request. Please try again.')
+    onError: (_err, { id }) => {
+      setOptimisticIds((prev) => {
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
+      Alert.alert('Error', 'Could not send invitation. Please try again.')
     },
   })
 
-  const handleContact = useCallback(
-    (prof: ProfessionalSummary) => {
-      Alert.alert(
-        'Send request',
-        `Send a collaboration request to ${prof.firstName} ${prof.lastName}?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Send',
-            onPress: () => contactMutation.mutate(prof.publicId),
-          },
-        ],
-      )
+  const revokeMutation = useMutation({
+    mutationFn: (publicId: string) => cancelClientRequest(publicId),
+    onSuccess: (_data, publicId) => {
+      // Find the professionalPublicId from the revoked request and clear optimistic state
+      const revokedRequest = requestsQuery.data?.find((r) => r.publicId === publicId)
+      if (revokedRequest) {
+        setOptimisticIds((prev) => {
+          const next = new Set(prev)
+          next.delete(revokedRequest.professionalPublicId)
+          return next
+        })
+      }
+      queryClient.invalidateQueries({ queryKey: ['my-requests'] })
+      setDetailTarget(null)
+      Toast.show('Invitation revoked')
     },
-    [contactMutation],
-  )
+    onError: () => {
+      Alert.alert('Error', 'Could not revoke invitation.')
+    },
+  })
 
   const isRefreshing = professionalsQuery.isRefetching
   const onRefresh = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['professionals'] })
     queryClient.invalidateQueries({ queryKey: ['my-requests'] })
+    queryClient.invalidateQueries({ queryKey: ['collaborations'] })
   }, [queryClient])
 
   const renderItem = ({ item }: { item: ProfessionalSummary }) => {
-    const hasPending = pendingRequestIds.has(item.publicId)
+    const existingRequest = requestByProfId.get(item.publicId)
+    const hasPending = existingRequest?.status === 'Pending' || optimisticIds.has(item.publicId)
+    const isConnected = connectedProfIds.has(item.publicId)
+
+    let contactLabel = 'Invite'
+    let contactDisabled = false
+    let onContact = () => setInviteTarget(item)
+
+    if (isConnected) {
+      contactLabel = 'Message'
+      contactDisabled = false
+      onContact = () => {
+        startConversation(item.publicId).then((conv) => {
+          router.push(`/(client)/messages/${conv.id}` as never)
+        })
+      }
+    } else if (hasPending) {
+      contactLabel = 'Detail'
+      contactDisabled = false
+      onContact = () => {
+        const req = existingRequest ?? requestsQuery.data?.find(
+          (r) => r.professionalPublicId === item.publicId && r.status === 'Pending',
+        )
+        if (req) {
+          setDetailTarget({
+            request: req,
+            profName: `${item.firstName} ${item.lastName}`,
+          })
+        }
+      }
+    }
+
     return (
       <TrainerCard
         professional={item}
-        onProfile={() => {
-          // TODO: navigate to professional detail
-        }}
-        onContact={() => handleContact(item)}
-        contactDisabled={hasPending || contactMutation.isPending}
-        contactLabel={hasPending ? 'Pending' : 'Contact'}
+        onProfile={() => {}}
+        onContact={onContact}
+        contactDisabled={contactDisabled}
+        contactLabel={contactLabel}
       />
     )
   }
@@ -200,33 +274,6 @@ function SearchMarketplace() {
         </View>
       </View>
 
-      {/* Pill filters */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.pills}
-      >
-        {SPECIALIZATION_FILTERS.map((f) => {
-          const active = f === specFilter
-          return (
-            <Pressable
-              key={f}
-              onPress={() => setSpecFilter(f)}
-              style={[
-                styles.pill,
-                { backgroundColor: active ? colors.gold : colors.fill },
-              ]}
-            >
-              <Text
-                style={[styles.pillText, { color: active ? '#000' : colors.label2 }]}
-              >
-                {f}
-              </Text>
-            </Pressable>
-          )
-        })}
-      </ScrollView>
-
       {/* Results */}
       {professionalsQuery.isLoading ? (
         <View style={styles.centered}>
@@ -234,7 +281,23 @@ function SearchMarketplace() {
         </View>
       ) : (
         <FlatList
-          data={professionalsQuery.data?.items ?? []}
+          data={(() => {
+            const items = professionalsQuery.data?.items ?? []
+            // Filter out professionals whose role is already linked, except the connected one
+            const filtered = items.filter((item) => {
+              const profRoles = item.roles?.length ? item.roles : item.role ? [item.role] : []
+              const isConnected = connectedProfIds.has(item.publicId)
+              const isRoleLinked = profRoles.some((r) => linkedRoles.includes(r))
+              // Keep: not role-linked, OR this is the actual connected professional
+              return !isRoleLinked || isConnected
+            })
+            // Sort connected coach to top
+            return filtered.sort((a, b) => {
+              const aConnected = connectedProfIds.has(a.publicId) ? 0 : 1
+              const bConnected = connectedProfIds.has(b.publicId) ? 0 : 1
+              return aConnected - bConnected
+            })
+          })()}
           keyExtractor={(item) => item.publicId}
           renderItem={renderItem}
           contentContainerStyle={styles.list}
@@ -264,6 +327,25 @@ function SearchMarketplace() {
           }
         />
       )}
+
+      {/* Send invite sheet */}
+      <SendInviteSheet
+        visible={inviteTarget !== null}
+        professional={inviteTarget}
+        onClose={() => setInviteTarget(null)}
+        onSend={(id, message) => contactMutation.mutate({ id, message })}
+        isSending={contactMutation.isPending}
+      />
+
+      {/* Invite detail sheet */}
+      <InviteDetailSheet
+        visible={detailTarget !== null}
+        request={detailTarget?.request ?? null}
+        professionalName={detailTarget?.profName ?? ''}
+        onClose={() => setDetailTarget(null)}
+        onRevoke={(publicId) => revokeMutation.mutate(publicId)}
+        isRevoking={revokeMutation.isPending}
+      />
     </>
   )
 }
@@ -272,15 +354,16 @@ function SearchMarketplace() {
 
 export default function DiscoverScreen() {
   const colors = useTheme()
-  const hasTrainer = useAuthStore((s) => s.user?.hasActiveLink ?? false)
+  const linkedRoles = useAuthStore((s) => s.user?.linkedRoles ?? [])
+  const hasBothRoles = linkedRoles.includes('Trainer') && linkedRoles.includes('Nutritionist')
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={['top']}>
       <View style={styles.header}>
-        <Text style={[Type.largeTitle, { color: colors.label }]}>Trainers</Text>
+        <Text style={[Type.largeTitle, { color: colors.label }]}>Coaches</Text>
       </View>
 
-      {hasTrainer ? <ActiveCollaborationView /> : <SearchMarketplace />}
+      {hasBothRoles ? <ActiveCollaborationView /> : <SearchMarketplace />}
     </SafeAreaView>
   )
 }
@@ -343,22 +426,6 @@ const styles = StyleSheet.create({
   },
   segmentText: {
     ...Type.subheadline,
-    fontWeight: '600',
-  },
-  // Pill filters
-  pills: {
-    paddingHorizontal: 16,
-    gap: 8,
-    paddingBottom: 12,
-  },
-  pill: {
-    paddingHorizontal: 16,
-    height: 36,
-    justifyContent: 'center',
-    borderRadius: Radius.full,
-  },
-  pillText: {
-    fontSize: 14,
     fontWeight: '600',
   },
   // List

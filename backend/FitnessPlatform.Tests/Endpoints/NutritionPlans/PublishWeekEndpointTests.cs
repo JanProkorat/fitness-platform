@@ -37,6 +37,7 @@ public class PublishWeekEndpointTests
             status: NutritionPlanStatus.Draft,
             weekCount: 2,
             version: 1);
+        plan.StartDate = DateTime.UtcNow.Date;
 
         // Both weeks are Draft (default from CreatePlan)
         var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);

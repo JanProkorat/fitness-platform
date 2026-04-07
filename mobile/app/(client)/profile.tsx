@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react'
+import React, { useCallback, useMemo, useState, useRef, useEffect } from 'react'
 import {
   View,
   Text,
@@ -8,10 +8,13 @@ import {
   Alert,
   ActivityIndicator,
   Pressable,
+  Animated,
+  Dimensions,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
 import { useAuthStore } from '../../src/stores/auth'
 import { useThemeStore, type ThemePreference } from '@/stores/themeStore'
@@ -23,6 +26,7 @@ import { Badge } from '@/components/ui/Badge'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { Separator } from '@/components/ui/Separator'
 import { WeightChart } from '@/components/ui/WeightChart'
+import { Toast } from '@/lib/toast'
 import {
   getMeasurements,
   getMeasurementStats,
@@ -31,8 +35,14 @@ import {
 } from '../../src/api/measurements'
 import {
   getComplianceScore,
+  getCollaborations,
+  endCollaboration,
   type ComplianceScoreResponse,
+  type CollaborationDto,
 } from '../../src/api/profile'
+import { startConversation } from '../../src/api/messages'
+
+const SCREEN_HEIGHT = Dimensions.get('window').height
 
 // ─── Stats Grid ───────────────────────────────────────────────────────
 
@@ -127,6 +137,89 @@ function ProfileRow({
   )
 }
 
+// ─── End Collaboration Sheet ──────────────────────────────────────────
+
+function EndCollaborationSheet({
+  visible,
+  professionalName,
+  role,
+  onClose,
+  onConfirm,
+  isEnding,
+}: {
+  visible: boolean
+  professionalName: string
+  role: string
+  onClose: () => void
+  onConfirm: () => void
+  isEnding: boolean
+}) {
+  const colors = useTheme()
+  const insets = useSafeAreaInsets()
+  const [mounted, setMounted] = useState(false)
+  const translateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current
+  const overlayOpacity = useRef(new Animated.Value(0)).current
+
+  useEffect(() => {
+    if (visible) {
+      setMounted(true)
+      translateY.setValue(SCREEN_HEIGHT)
+      overlayOpacity.setValue(0)
+      Animated.parallel([
+        Animated.timing(overlayOpacity, { toValue: 1, duration: 250, useNativeDriver: true }),
+        Animated.spring(translateY, { toValue: 0, useNativeDriver: true, damping: 20, stiffness: 200 }),
+      ]).start()
+    } else if (mounted) {
+      Animated.parallel([
+        Animated.timing(overlayOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
+        Animated.timing(translateY, { toValue: SCREEN_HEIGHT, duration: 250, useNativeDriver: true }),
+      ]).start(() => setMounted(false))
+    }
+  }, [visible])
+
+  if (!mounted) return null
+
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+      <Animated.View style={[styles.sheetOverlay, { opacity: overlayOpacity }]}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+      </Animated.View>
+
+      <Animated.View style={[styles.sheet, { backgroundColor: colors.bg2, paddingBottom: insets.bottom + 60, transform: [{ translateY }] }]}>
+        <View style={styles.sheetHandle}>
+          <View style={[styles.sheetHandleBar, { backgroundColor: colors.sep }]} />
+        </View>
+
+        <View style={styles.sheetContent}>
+          <Ionicons name="warning-outline" size={40} color={colors.red} style={{ alignSelf: 'center' }} />
+          <Text style={[Type.title2, { color: colors.label, textAlign: 'center', marginTop: 12 }]}>
+            End collaboration?
+          </Text>
+          <Text style={[Type.subheadline, { color: colors.label2, textAlign: 'center', marginTop: 8 }]}>
+            This will permanently end your collaboration with{' '}
+            <Text style={{ fontWeight: '600', color: colors.label }}>{professionalName}</Text>
+            {' '}({role}). This action cannot be undone.
+          </Text>
+
+          <Pressable
+            onPress={onConfirm}
+            disabled={isEnding}
+            style={[styles.confirmEndBtn, { backgroundColor: colors.red }]}
+          >
+            <Text style={styles.confirmEndText}>
+              {isEnding ? 'Ending...' : 'End collaboration'}
+            </Text>
+          </Pressable>
+
+          <Pressable onPress={onClose} style={[styles.cancelBtn, { backgroundColor: colors.fill }]}>
+            <Text style={[styles.cancelBtnText, { color: colors.label }]}>Cancel</Text>
+          </Pressable>
+        </View>
+      </Animated.View>
+    </View>
+  )
+}
+
 // ─── Main Screen ──────────────────────────────────────────────────────
 
 export default function ProfileScreen() {
@@ -138,6 +231,29 @@ export default function ProfileScreen() {
   const hasTrainer = user?.hasActiveLink ?? false
   const themePreference = useThemeStore((s) => s.preference)
   const setThemePreference = useThemeStore((s) => s.setPreference)
+  const insets = useSafeAreaInsets()
+
+  // Collaborations
+  const [endTarget, setEndTarget] = useState<CollaborationDto | null>(null)
+
+  const collabQuery = useQuery({
+    queryKey: ['collaborations'],
+    queryFn: getCollaborations,
+    enabled: hasTrainer,
+  })
+
+  const endMutation = useMutation({
+    mutationFn: endCollaboration,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['collaborations'] })
+      useAuthStore.getState().refreshProfile()
+      setEndTarget(null)
+      Toast.show('Collaboration ended')
+    },
+    onError: () => {
+      Alert.alert('Error', 'Could not end collaboration.')
+    },
+  })
 
   const statsQuery = useQuery({
     queryKey: ['measurement-stats'],
@@ -162,6 +278,7 @@ export default function ProfileScreen() {
     queryClient.invalidateQueries({ queryKey: ['measurement-stats'] })
     queryClient.invalidateQueries({ queryKey: ['measurements-recent'] })
     queryClient.invalidateQueries({ queryKey: ['compliance-score'] })
+    queryClient.invalidateQueries({ queryKey: ['collaborations'] })
   }, [queryClient])
 
   const weightEntries = useMemo(() => {
@@ -291,18 +408,49 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Trainer section */}
-        {hasTrainer && (
+        {/* Active collaborations */}
+        {(collabQuery.data?.length ?? 0) > 0 && (
           <View style={styles.section}>
-            <SectionHeader title="Trainer" />
+            <SectionHeader title="Active Collaborations" />
             <View style={[styles.groupedList, { backgroundColor: colors.bg2 }]}>
-              <View style={[styles.profileRow, { borderBottomColor: colors.sep2 }]}>
-                <Ionicons name="fitness-outline" size={20} color={colors.gold} style={styles.profileRowIcon} />
-                <Text style={[Type.body, { color: colors.label, flex: 1 }]}>
-                  Active collaboration
-                </Text>
-                <Badge label="Active" variant="active" />
-              </View>
+              {collabQuery.data!.map((collab, idx) => (
+                <View
+                  key={collab.publicId}
+                  style={[
+                    styles.collabRow,
+                    idx < collabQuery.data!.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.sep2 },
+                  ]}
+                >
+                  <Ionicons
+                    name={collab.role === 'Trainer' ? 'barbell-outline' : 'nutrition-outline'}
+                    size={20}
+                    color={colors.gold}
+                    style={styles.profileRowIcon}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[Type.body, { color: colors.label }]}>{collab.professionalName}</Text>
+                    <Text style={[Type.caption1, { color: colors.label3 }]}>
+                      {collab.role}{collab.professionalCity ? ` · ${collab.professionalCity}` : ''}
+                    </Text>
+                  </View>
+                  <Pressable
+                    onPress={() => {
+                      startConversation(collab.professionalPublicId).then((conv) => {
+                        router.push(`/(client)/messages/${conv.id}` as never)
+                      })
+                    }}
+                    style={[styles.endBtn, { backgroundColor: colors.gold + '18' }]}
+                  >
+                    <Ionicons name="chatbubble-outline" size={14} color={colors.gold} />
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setEndTarget(collab)}
+                    style={[styles.endBtn, { backgroundColor: colors.red + '18' }]}
+                  >
+                    <Text style={[styles.endBtnText, { color: colors.red }]}>End</Text>
+                  </Pressable>
+                </View>
+              ))}
             </View>
           </View>
         )}
@@ -323,6 +471,18 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
       </ScrollView>
+
+      {/* End collaboration confirmation sheet */}
+      <EndCollaborationSheet
+        visible={endTarget !== null}
+        professionalName={endTarget?.professionalName ?? ''}
+        role={endTarget?.role ?? ''}
+        onClose={() => setEndTarget(null)}
+        onConfirm={() => {
+          if (endTarget) endMutation.mutate(endTarget.publicId)
+        }}
+        isEnding={endMutation.isPending}
+      />
     </SafeAreaView>
   )
 }
@@ -397,5 +557,67 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     padding: 16,
     borderRadius: Radius.md,
+  },
+  collabRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  endBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: Radius.full,
+  },
+  endBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  // Sheet
+  sheetOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  sheet: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  sheetHandle: {
+    alignItems: 'center',
+    paddingTop: 10,
+    paddingBottom: 6,
+  },
+  sheetHandleBar: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+  },
+  sheetContent: {
+    padding: 24,
+  },
+  confirmEndBtn: {
+    paddingVertical: 14,
+    borderRadius: Radius.sm,
+    alignItems: 'center',
+    marginTop: 24,
+  },
+  confirmEndText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  cancelBtn: {
+    paddingVertical: 14,
+    borderRadius: Radius.sm,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  cancelBtnText: {
+    fontSize: 16,
+    fontWeight: '500',
   },
 })

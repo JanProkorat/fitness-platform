@@ -37,6 +37,13 @@ export default defineConfig({
       '/client': apiProxy('/client'),
       '/exercises': apiProxy('/exercises'),
       '/training': apiProxy('/training'),
+      '/conversations': apiProxy('/conversations'),
+      '/hubs': {
+        target: 'https://localhost:5001',
+        changeOrigin: true,
+        secure: false,
+        ws: true,
+      },
     },
   },
 })

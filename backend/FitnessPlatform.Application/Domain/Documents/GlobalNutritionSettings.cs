@@ -30,4 +30,10 @@ public class GlobalNutritionSettings
     /// </summary>
     [BsonElement("fatGrams")]
     public decimal? FatGrams { get; set; }
+
+    /// <summary>
+    /// Target daily dietary fiber in grams.
+    /// </summary>
+    [BsonElement("fiberGrams")]
+    public decimal? FiberGrams { get; set; }
 }

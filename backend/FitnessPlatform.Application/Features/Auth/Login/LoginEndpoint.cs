@@ -80,7 +80,8 @@ public class LoginEndpoint(
         {
             AccessToken = accessToken,
             RefreshToken = refreshTokenValue,
-            ExpiresAt = expiresAt
+            ExpiresAt = expiresAt,
+            EmailConfirmed = user.EmailConfirmed
         }, ct);
     }
 

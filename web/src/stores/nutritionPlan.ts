@@ -41,7 +41,7 @@ interface NutritionPlanState {
   moveRecipeToMeal: (weekNum: number, dayOfWeek: number, fromMealId: string, toMealId: string, recipeId: string) => void;
   addMeal: (weekNum: number, dayOfWeek: number, meal: PlanMeal) => void;
   removeMeal: (weekNum: number, dayOfWeek: number, mealId: string) => void;
-  updateMealName: (weekNum: number, dayOfWeek: number, mealId: string, name: string) => void;
+  updateMealKind: (weekNum: number, dayOfWeek: number, mealId: string, kind: string) => void;
   updateMealTime: (weekNum: number, dayOfWeek: number, mealId: string, time: string) => void;
   updateMealNote: (weekNum: number, dayOfWeek: number, mealId: string, note: string) => void;
   updateFoodNote: (weekNum: number, dayOfWeek: number, mealId: string, foodExternalId: string, note: string) => void;
@@ -73,6 +73,7 @@ function calculateMealTotals(meal: PlanMeal): NutrientTotals {
   let protein = 0;
   let carbs = 0;
   let fat = 0;
+  let fiber = 0;
 
   for (const food of meal.foods) {
     const scale = food.amountGrams / 100;
@@ -82,6 +83,7 @@ function calculateMealTotals(meal: PlanMeal): NutrientTotals {
     protein += p;
     carbs += c;
     fat += f;
+    fiber += (food.nutrientValuePer100Grams.fiber ?? 0) * scale;
     kcal += p * 4 + c * 4 + f * 9;
   }
 
@@ -90,6 +92,7 @@ function calculateMealTotals(meal: PlanMeal): NutrientTotals {
     protein += recipe.nutrientValuePerServing.protein * s;
     carbs += recipe.nutrientValuePerServing.carbs * s;
     fat += recipe.nutrientValuePerServing.fat * s;
+    fiber += (recipe.nutrientValuePerServing.fiber ?? 0) * s;
     kcal += recipe.nutrientValuePerServing.kcal * s;
   }
 
@@ -98,6 +101,7 @@ function calculateMealTotals(meal: PlanMeal): NutrientTotals {
     protein: Math.round(protein * 10) / 10,
     carbs: Math.round(carbs * 10) / 10,
     fat: Math.round(fat * 10) / 10,
+    fiber: Math.round(fiber * 10) / 10,
   };
 }
 
@@ -118,6 +122,7 @@ function recalculateTotals(plan: NutritionPlanDetail): NutritionPlanDetail {
           protein: meals.reduce((sum, m) => sum + (m.mealTotals?.protein ?? 0), 0),
           carbs: meals.reduce((sum, m) => sum + (m.mealTotals?.carbs ?? 0), 0),
           fat: meals.reduce((sum, m) => sum + (m.mealTotals?.fat ?? 0), 0),
+          fiber: meals.reduce((sum, m) => sum + (m.mealTotals?.fiber ?? 0), 0),
         };
 
         return { ...day, meals, dayTotals };
@@ -419,13 +424,13 @@ export const useNutritionPlanStore = create<NutritionPlanState>((set, get) => ({
     set({ plan: recalculateTotals(updated), isDirty: true });
   },
 
-  updateMealName: (weekNum, dayOfWeek, mealId, name) => {
+  updateMealKind: (weekNum, dayOfWeek, mealId, kind) => {
     const { plan } = get();
     if (!plan) return;
 
     const updated = updateDay(plan, weekNum, dayOfWeek, (meals) =>
       meals.map((meal) =>
-        meal.mealId !== mealId ? meal : { ...meal, name },
+        meal.mealId !== mealId ? meal : { ...meal, kind },
       ),
     );
     set({ plan: recalculateTotals(updated), isDirty: true });
@@ -751,7 +756,7 @@ export const useNutritionPlanStore = create<NutritionPlanState>((set, get) => ({
             note: day.note,
             meals: day.meals.map((meal) => ({
               mealId: meal.mealId,
-              name: meal.name,
+              kind: meal.kind,
               order: meal.order,
               time: meal.time,
               note: meal.note,
@@ -772,6 +777,7 @@ export const useNutritionPlanStore = create<NutritionPlanState>((set, get) => ({
                 nutrientValuePerServing: recipe.nutrientValuePerServing,
                 servings: recipe.servings,
                 note: recipe.note,
+                foodCategories: recipe.foodCategories,
               })),
             })),
           })),
