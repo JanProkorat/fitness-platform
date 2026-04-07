@@ -11,6 +11,7 @@ import { Type } from '@/constants/typography';
 import { useAuthStore } from '@/stores/auth';
 import { connect, disconnect, onEvent } from '@/api/signalr';
 import { useUnreadCount } from '@/hooks/useUnreadCount';
+import { useMessagesStore } from '@/stores/messagesStore';
 import api from '../../src/api/client';
 
 const TABS = [
@@ -138,6 +139,14 @@ export default function ClientTabLayout() {
       }),
       onEvent('userPresence', () => {
         queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      }),
+      onEvent('conversationUnarchived', (raw: unknown) => {
+        const data = raw as { conversationId?: string; senderName?: string; isFormer?: boolean } | undefined;
+        if (data?.conversationId && !data.isFormer) {
+          useMessagesStore.getState().markAutoUnarchived(data.conversationId, data.senderName ?? '');
+          queryClient.invalidateQueries({ queryKey: ['conversations'] });
+          queryClient.invalidateQueries({ queryKey: ['archived-conversations'] });
+        }
       }),
     ];
 

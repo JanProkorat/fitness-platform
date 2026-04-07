@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   View,
   FlatList,
@@ -19,6 +19,7 @@ import { ChatHeader } from '@/components/messages/ChatHeader'
 import { ChatInputBar } from '@/components/messages/ChatInputBar'
 import { MessageBubble } from '@/components/messages/MessageBubble'
 import { ContextBanner } from '@/components/messages/ContextBanner'
+import { FormerTrainerBanner } from '@/components/messages/FormerTrainerBanner'
 import { TypingIndicator } from '@/components/messages/TypingIndicator'
 import { DateSeparator } from '@/components/messages/DateSeparator'
 import type { Message } from '../../../src/types/messages'
@@ -39,6 +40,7 @@ export default function ChatScreen() {
 
   const conversation = conversations?.find((c) => c.id === threadId)
   const participant = conversation?.participant
+  const [showFormerBanner, setShowFormerBanner] = useState(true)
 
   // Context banner
   const { data: context } = useQuery({
@@ -181,6 +183,20 @@ export default function ChatScreen() {
           onInfoPress={() => {}}
         />
       </View>
+
+      {/* Former trainer warning banner */}
+      {conversation?.isFormer && showFormerBanner && (
+        <FormerTrainerBanner
+          trainerName={participant?.name ?? ''}
+          onShow={() => setShowFormerBanner(false)}
+          onIgnore={() => {
+            if (threadId) {
+              markConversationRead(threadId).catch(() => {})
+            }
+            router.back()
+          }}
+        />
+      )}
 
       {/* Fixed invite/context banner */}
       {context?.type === 'invite' && context.inviteId && (

@@ -17,6 +17,8 @@ import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
 import { ConversationRow } from '@/components/messages/ConversationRow'
+import { AutoUnarchiveBanner } from '@/components/messages/AutoUnarchiveBanner'
+import { useMessagesStore } from '@/stores/messagesStore'
 import { fetchConversations, archiveConversation } from '../../src/api/messages'
 
 export default function MessagesScreen() {
@@ -25,6 +27,9 @@ export default function MessagesScreen() {
   const router = useRouter()
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
+  const autoUnarchivedIds = useMessagesStore((s) => s.autoUnarchivedIds)
+  const autoUnarchivedNames = useMessagesStore((s) => s.autoUnarchivedNames)
+  const dismissAutoUnarchive = useMessagesStore((s) => s.dismissAutoUnarchive)
 
   const { data: conversations, isLoading } = useQuery({
     queryKey: ['conversations'],
@@ -107,6 +112,19 @@ export default function MessagesScreen() {
           </View>
         ) : (
           <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 60 }}>
+            {/* Auto-unarchive banners */}
+            {autoUnarchivedIds.map((id) => (
+              <AutoUnarchiveBanner
+                key={id}
+                conversationName={autoUnarchivedNames[id] ?? ''}
+                onPress={() => {
+                  dismissAutoUnarchive(id)
+                  router.push(`/(client)/messages/${id}` as never)
+                }}
+                onDismiss={() => dismissAutoUnarchive(id)}
+              />
+            ))}
+
             {/* Conversations card */}
             <View style={[styles.listCard, { backgroundColor: colors.bg2 }]}>
               {filtered.map((item, index) => (
