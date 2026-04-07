@@ -4,7 +4,6 @@ import {
   FlatList,
   ActivityIndicator,
   StyleSheet,
-  LayoutChangeEvent,
 } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -31,9 +30,6 @@ export default function ChatScreen() {
   const insets = useSafeAreaInsets()
   const userId = useAuthStore((s) => s.user?.publicId)
 
-  const [headerHeight, setHeaderHeight] = useState(0)
-  const [inputHeight, setInputHeight] = useState(0)
-
   // Find conversation participant info
   const { data: conversations } = useQuery({
     queryKey: ['conversations'],
@@ -53,8 +49,6 @@ export default function ChatScreen() {
 
   const queryClient = useQueryClient()
   const refreshProfile = useAuthStore((s) => s.refreshProfile)
-
-  const [bannerHeight, setBannerHeight] = useState(0)
 
   const acceptMutation = useMutation({
     mutationFn: (inviteId: string) => api.post(`/client/invites/${inviteId}/accept`),
@@ -90,18 +84,9 @@ export default function ChatScreen() {
   // Typing status
   const { isTyping, notifyTyping } = useTypingStatus(threadId!)
 
-  const handleHeaderLayout = useCallback((e: LayoutChangeEvent) => {
-    setHeaderHeight(e.nativeEvent.layout.height)
-  }, [])
-
-  const handleInputLayout = useCallback((e: LayoutChangeEvent) => {
-    setInputHeight(e.nativeEvent.layout.height)
-  }, [])
-
   // Check if a message is the last in a consecutive group from the same sender
   const isLastInGroup = useCallback(
     (index: number) => {
-      // Inverted list: index 0 = newest. "Next" visually below = index - 1
       if (index === 0) return true
       const current = messages[index]
       const next = messages[index - 1]
@@ -113,7 +98,6 @@ export default function ChatScreen() {
   // Check if we need a date separator before this message
   const needsDateSep = useCallback(
     (index: number) => {
-      // Inverted list: older messages are at higher indices
       if (index === messages.length - 1) return true
       const current = new Date(messages[index].timestamp)
       const prev = new Date(messages[index + 1].timestamp)
@@ -142,16 +126,14 @@ export default function ChatScreen() {
         </View>
       )
     },
-    [userId, isLastInGroup, needsDateSep, participant, retry, router],
+    [userId, isLastInGroup, needsDateSep, participant, retry],
   )
 
-  // List header = bottom of inverted list (newest messages area)
   const listHeader = useMemo(() => {
     if (!isTyping) return null
     return <TypingIndicator />
   }, [isTyping])
 
-  // List footer = top of inverted list (oldest messages area)
   const listFooter = useMemo(() => {
     if (!isFetchingNextPage) return null
     return (
@@ -180,10 +162,7 @@ export default function ChatScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
       {/* Fixed header */}
-      <View
-        onLayout={handleHeaderLayout}
-        style={{ paddingTop: insets.top }}
-      >
+      <View style={{ paddingTop: insets.top }}>
         <ChatHeader
           participant={participant}
           onBack={() => router.back()}
@@ -191,57 +170,47 @@ export default function ChatScreen() {
         />
       </View>
 
-      {/* Fixed invite/context banner between header and message list */}
-      <View onLayout={(e) => setBannerHeight(e.nativeEvent.layout.height)}>
-        {context?.type === 'invite' && context.inviteId && (
-          <ContextBanner
-            icon={context.icon}
-            title={context.title}
-            sub={context.sub}
-            actionLabel={context.actionLabel}
-            onAction={() => {}}
-            onAccept={() => acceptMutation.mutate(context.inviteId!)}
-            onDecline={() => declineMutation.mutate(context.inviteId!)}
-          />
-        )}
-        {context && context.type !== 'invite' && (
-          <ContextBanner
-            icon={context.icon}
-            title={context.title}
-            sub={context.sub}
-            actionLabel={context.actionLabel}
-            onAction={() => router.push(context.actionRoute as never)}
-          />
-        )}
-      </View>
-
-      {/* Scrollable message list */}
-      {headerHeight > 0 && (
-        <FlatList
-          data={messages}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          inverted
-          style={[
-            styles.messageList,
-            {
-              top: headerHeight + bannerHeight,
-              bottom: inputHeight,
-            },
-          ]}
-          contentContainerStyle={{ paddingVertical: 8 }}
-          ListHeaderComponent={listHeader}
-          ListFooterComponent={listFooter}
-          onEndReached={() => {
-            if (hasNextPage && !isFetchingNextPage) {
-              fetchNextPage()
-            }
-          }}
-          onEndReachedThreshold={0.3}
-          keyboardDismissMode="interactive"
-          keyboardShouldPersistTaps="handled"
+      {/* Fixed invite/context banner */}
+      {context?.type === 'invite' && context.inviteId && (
+        <ContextBanner
+          icon={context.icon}
+          title={context.title}
+          sub={context.sub}
+          actionLabel={context.actionLabel}
+          onAction={() => {}}
+          onAccept={() => acceptMutation.mutate(context.inviteId!)}
+          onDecline={() => declineMutation.mutate(context.inviteId!)}
         />
       )}
+      {context && context.type !== 'invite' && (
+        <ContextBanner
+          icon={context.icon}
+          title={context.title}
+          sub={context.sub}
+          actionLabel={context.actionLabel}
+          onAction={() => router.push(context.actionRoute as never)}
+        />
+      )}
+
+      {/* Scrollable message list — flex: 1 fills remaining space */}
+      <FlatList
+        data={messages}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        inverted
+        style={styles.messageList}
+        contentContainerStyle={{ paddingVertical: 8 }}
+        ListHeaderComponent={listHeader}
+        ListFooterComponent={listFooter}
+        onEndReached={() => {
+          if (hasNextPage && !isFetchingNextPage) {
+            fetchNextPage()
+          }
+        }}
+        onEndReachedThreshold={0.3}
+        keyboardDismissMode="interactive"
+        keyboardShouldPersistTaps="handled"
+      />
 
       {isLoading && (
         <View style={styles.loadingOverlay}>
@@ -250,13 +219,11 @@ export default function ChatScreen() {
       )}
 
       {/* Fixed input bar */}
-      <View onLayout={handleInputLayout}>
-        <ChatInputBar
-          onSend={handleSend}
-          onAttachPress={() => {}}
-          onTyping={notifyTyping}
-        />
-      </View>
+      <ChatInputBar
+        onSend={handleSend}
+        onAttachPress={() => {}}
+        onTyping={notifyTyping}
+      />
     </View>
   )
 }
@@ -266,20 +233,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   messageList: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
+    flex: 1,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  attachWrap: {
-    paddingHorizontal: 12,
-    marginBottom: 4,
-  },
-  attachOwn: {
-    alignItems: 'flex-end',
   },
 })
