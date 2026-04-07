@@ -1,9 +1,9 @@
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import {
   View,
   Text,
   TextInput,
-  FlatList,
+  ScrollView,
   Pressable,
   StyleSheet,
   ActivityIndicator,
@@ -61,17 +61,6 @@ export default function MessagesScreen() {
     })
   }, [conversations, search])
 
-  const renderItem = useCallback(
-    ({ item }: { item: Conversation }) => (
-      <ConversationRow
-        conversation={item}
-        onPress={() => router.push(`/(client)/messages/${item.id}` as never)}
-        onArchive={() => archiveMutation.mutate(item.id)}
-      />
-    ),
-    [router, archiveMutation],
-  )
-
   return (
     <View style={[styles.container, { backgroundColor: colors.bg, paddingTop: insets.top }]}>
       {/* Header */}
@@ -122,18 +111,24 @@ export default function MessagesScreen() {
           </Text>
         </View>
       ) : (
-        <FlatList
-          data={filtered}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          ItemSeparatorComponent={() => (
-            <View style={{ paddingLeft: 78 }}>
-              <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.sep2 }} />
-            </View>
-          )}
-          style={[styles.listCard, { backgroundColor: colors.bg2 }]}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 60 }}
-        />
+        <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 60 }}>
+          <View style={[styles.listCard, { backgroundColor: colors.bg2 }]}>
+            {filtered.map((item, index) => (
+              <React.Fragment key={item.id}>
+                {index > 0 && (
+                  <View style={{ paddingLeft: 78 }}>
+                    <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.sep2 }} />
+                  </View>
+                )}
+                <ConversationRow
+                  conversation={item}
+                  onPress={() => router.push(`/(client)/messages/${item.id}` as never)}
+                  onArchive={() => archiveMutation.mutate(item.id)}
+                />
+              </React.Fragment>
+            ))}
+          </View>
+        </ScrollView>
       )}
     </View>
   )
