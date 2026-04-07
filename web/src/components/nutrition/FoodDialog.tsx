@@ -1,0 +1,318 @@
+import { useState, useEffect, useRef } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { useMutation } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
+import { createFood, updateFood } from '@/api/foods';
+import { showApiError, showSuccess } from '@/lib/api-errors';
+import type { FoodSummary, FoodCategory } from '@/api/food-types';
+
+const FOOD_CATEGORIES: FoodCategory[] = [
+  'Other', 'Fruit', 'Vegetables', 'Meat', 'FishAndSeafood', 'Dairy',
+  'GrainsAndCereals', 'Legumes', 'NutsAndSeeds', 'OilsAndFats',
+  'SweetsAndSnacks', 'Beverages', 'Supplements',
+];
+
+const CATEGORY_COLORS: Record<string, { color: string; bg: string }> = {
+  Fruit: { color: 'var(--green)', bg: 'var(--green-bg)' },
+  Vegetables: { color: 'var(--green)', bg: 'var(--green-bg)' },
+  Meat: { color: 'var(--red)', bg: 'var(--red-bg)' },
+  FishAndSeafood: { color: 'var(--blue)', bg: 'var(--blue-bg)' },
+  Dairy: { color: 'var(--purple)', bg: 'var(--purple-bg)' },
+  GrainsAndCereals: { color: 'var(--orange)', bg: 'var(--orange-bg)' },
+  Legumes: { color: 'var(--green)', bg: 'var(--green-bg)' },
+  NutsAndSeeds: { color: 'var(--orange)', bg: 'var(--orange-bg)' },
+  OilsAndFats: { color: 'var(--purple)', bg: 'var(--purple-bg)' },
+  SweetsAndSnacks: { color: 'var(--red)', bg: 'var(--red-bg)' },
+  Beverages: { color: 'var(--blue)', bg: 'var(--blue-bg)' },
+  Supplements: { color: 'var(--accent)', bg: 'var(--accent-bg)' },
+  Other: { color: 'var(--text3)', bg: 'var(--bg3)' },
+};
+
+const foodSchema = z.object({
+  name: z.string().min(2),
+  category: z.string(),
+  kcal: z.coerce.number().min(0),
+  protein: z.coerce.number().min(0),
+  carbs: z.coerce.number().min(0),
+  fat: z.coerce.number().min(0),
+  fiber: z.coerce.number().min(0).optional(),
+  note: z.string().optional(),
+  nameEn: z.string().optional(),
+  nameCs: z.string().optional(),
+  nameDe: z.string().optional(),
+});
+
+type FoodForm = z.infer<typeof foodSchema>;
+type Mode = 'view' | 'edit';
+
+interface FoodDialogProps {
+  open: boolean;
+  food?: FoodSummary | null;
+  onClose: () => void;
+  onSaved: () => void;
+}
+
+export function FoodDialog({ open, food, onClose, onSaved }: FoodDialogProps) {
+  const { t } = useTranslation();
+  const isNew = !food;
+  const [mode, setMode] = useState<Mode>('view');
+  const [transitioning, setTransitioning] = useState(false);
+  const bodyRef = useRef<HTMLDivElement>(null);
+
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<FoodForm>({
+    resolver: zodResolver(foodSchema),
+  });
+
+  const populateForm = (f: FoodSummary) => {
+    reset({
+      name: f.rawName, category: f.category ?? 'Other',
+      kcal: f.nutrientValue.kcal, protein: f.nutrientValue.protein,
+      carbs: f.nutrientValue.carbs, fat: f.nutrientValue.fat,
+      fiber: f.nutrientValue.fiber ?? 0, note: f.note ?? '',
+      nameEn: f.nameEn ?? '', nameCs: f.nameCs ?? '', nameDe: f.nameDe ?? '',
+    });
+  };
+
+  useEffect(() => {
+    if (!open) { setMode('view'); return; }
+    if (isNew) {
+      setMode('edit');
+      reset({ name: '', category: 'Other', kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, note: '', nameEn: '', nameCs: '', nameDe: '' });
+    } else {
+      setMode('view');
+    }
+  }, [open, food?.foodId]);
+
+  const switchMode = (to: Mode) => {
+    setTransitioning(true);
+    setTimeout(() => {
+      if (to === 'edit' && food) populateForm(food);
+      setMode(to);
+      if (bodyRef.current) bodyRef.current.scrollTop = 0;
+      setTimeout(() => setTransitioning(false), 20);
+    }, 150);
+  };
+
+  const mutation = useMutation({
+    mutationFn: (data: FoodForm) => {
+      const payload = {
+        name: data.name, nameEn: data.nameEn || null, nameCs: data.nameCs || null, nameDe: data.nameDe || null,
+        nutrientValue: { kcal: data.kcal, protein: data.protein, carbs: data.carbs, fat: data.fat, fiber: data.fiber ?? 0 },
+        category: data.category as FoodCategory, note: data.note || null,
+        allergens: food?.allergens ?? [], commonServings: food?.commonServings ?? [],
+      };
+      return isNew ? createFood(payload) : updateFood(food!.foodId, payload);
+    },
+    onSuccess: () => {
+      showSuccess(isNew ? 'foods.created' : 'foods.updated');
+      onSaved();
+      if (isNew) { onClose(); } else { setMode('view'); }
+    },
+    onError: (error) => showApiError(error, isNew ? 'foods.createError' : 'foods.updateError'),
+  });
+
+  if (!open) return null;
+
+  const nv = food?.nutrientValue;
+  const cat = food?.category ?? 'Other';
+  const catColors = CATEGORY_COLORS[cat] ?? CATEGORY_COLORS.Other;
+  const inp = 'rounded-md border border-border-md bg-bg px-3 py-2 text-[13px] text-text outline-none transition-colors placeholder:text-text3 focus:border-border-hv w-full';
+
+  const contentStyle: React.CSSProperties = {
+    opacity: transitioning ? 0 : 1,
+    transform: transitioning ? 'translateY(6px)' : 'translateY(0)',
+    transition: 'opacity .15s ease, transform .15s ease',
+  };
+
+  return (
+    <>
+      <style>{`
+        @keyframes dlg-fade-in { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes dlg-slide-up { from { opacity: 0; transform: translateY(16px) } to { opacity: 1; transform: translateY(0) } }
+      `}</style>
+      <div className="fixed inset-0 z-[60] bg-black/50" onClick={onClose} style={{ animation: 'dlg-fade-in .4s ease-out' }} />
+      <div className="fixed inset-0 z-[61] flex items-start justify-center pt-[5vh] pointer-events-none">
+        <div
+          className="pointer-events-auto flex flex-col border border-border shadow-2xl overflow-hidden"
+          style={{ width: mode === 'edit' ? 560 : 500, maxWidth: '95vw', maxHeight: '90vh', background: 'var(--bg)', borderRadius: 10, animation: 'dlg-slide-up .4s ease-out', transition: 'width .3s ease' }}
+        >
+          {/* Hero */}
+          <div className="flex items-center justify-center" style={{ height: mode === 'edit' ? 100 : 120, background: 'var(--bg3)', position: 'relative', transition: 'height .3s ease' }}>
+            <span style={{ fontSize: 40, opacity: 0.2 }}>📦</span>
+            {mode === 'view' && food && (
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.4))', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '12px 20px' }}>
+                <div style={{ fontSize: 20, fontWeight: 700, color: '#fff', letterSpacing: '-0.02em' }}>{food.name}</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ padding: '1px 6px', borderRadius: 3, background: catColors.bg, color: catColors.color, fontSize: 10, fontWeight: 500 }}>
+                    {t(`foods.category${cat}`)}
+                  </span>
+                  <span>{t('foods.per100g')}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Header */}
+          <div className="flex items-center gap-3 px-5 py-3 border-b border-border" style={{ flexShrink: 0 }}>
+            {mode === 'edit' ? (
+              <input {...register('name')} placeholder={t('foods.foodNamePlaceholder')}
+                className={`flex-1 text-[15px] font-semibold bg-transparent border-none outline-none text-text placeholder:text-text3 ${errors.name ? 'text-red' : ''}`} />
+            ) : (
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>{food?.name}</div>
+                {food?.note && <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>{food.note}</div>}
+              </div>
+            )}
+            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: 'var(--text3)', padding: 4 }}>✕</button>
+          </div>
+
+          {/* Body */}
+          <div ref={bodyRef} className="flex-1 overflow-y-auto px-5 py-3" style={{ minHeight: 0 }}>
+            <div style={contentStyle}>
+
+              {/* ── VIEW MODE ── */}
+              {mode === 'view' && food && nv && (
+                <>
+                  {/* Macro strip */}
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+                    {[
+                      { label: 'kcal', value: nv.kcal, color: 'var(--accent)' },
+                      { label: t('foods.protein'), value: `${nv.protein}g`, color: 'var(--blue)' },
+                      { label: t('foods.carbs'), value: `${nv.carbs}g`, color: 'var(--orange)' },
+                      { label: t('foods.fat'), value: `${nv.fat}g`, color: 'var(--purple)' },
+                      { label: t('foods.fiber'), value: `${nv.fiber ?? 0}g`, color: 'var(--green)' },
+                    ].map((m) => (
+                      <div key={m.label} style={{ flex: 1, textAlign: 'center', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 6, padding: '8px 4px' }}>
+                        <div style={{ fontSize: 16, fontWeight: 700, color: m.color, letterSpacing: '-0.02em' }}>{m.value}</div>
+                        <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>{m.label}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Details */}
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8, marginTop: 14 }}>
+                    {t('foods.localizedNames')}
+                  </div>
+                  {[
+                    { label: 'EN', value: food.nameEn },
+                    { label: 'CS', value: food.nameCs },
+                    { label: 'DE', value: food.nameDe },
+                  ].map((l) => l.value && (
+                    <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', fontSize: 13 }}>
+                      <span style={{ width: 24, textAlign: 'center', fontSize: 10, fontWeight: 600, color: 'var(--text3)' }}>{l.label}</span>
+                      <span style={{ color: 'var(--text)' }}>{l.value}</span>
+                    </div>
+                  ))}
+
+                  {food.note && (
+                    <div style={{ background: 'var(--accent-bg)', border: '1px solid var(--accent-br)', borderRadius: 6, padding: '10px 12px', fontSize: 13, color: 'var(--text2)', lineHeight: 1.5, marginTop: 14, display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <span style={{ fontSize: 16, flexShrink: 0 }}>💡</span>
+                      <span>{food.note}</span>
+                    </div>
+                  )}
+
+                  <div style={{ height: 16 }} />
+                </>
+              )}
+
+              {/* ── EDIT MODE ── */}
+              {mode === 'edit' && (
+                <div className="flex flex-col gap-4">
+                  {/* Category pill */}
+                  <div className="flex flex-wrap gap-2">
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[12px]" style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}>
+                      <span className="font-medium text-text3">{t('foods.category')}</span>
+                      <select {...register('category')} className="bg-transparent border-none outline-none text-[12px] text-text" style={{ fontFamily: 'inherit' }}>
+                        {FOOD_CATEGORIES.map((c) => <option key={c} value={c}>{t(`foods.category${c}`)}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Editable macros */}
+                  <div>
+                    <label className="mb-2 block text-xs font-medium text-text3">{t('foods.macrosPerHundred')}</label>
+                    <div className="flex gap-1.5">
+                      {[
+                        { key: 'kcal' as const, label: 'kcal', color: 'var(--accent)', error: errors.kcal },
+                        { key: 'protein' as const, label: `${t('nutrition.proteinShort')} (g)`, color: 'var(--blue)', error: errors.protein },
+                        { key: 'carbs' as const, label: `${t('nutrition.carbsShort')} (g)`, color: 'var(--orange)', error: errors.carbs },
+                        { key: 'fat' as const, label: `${t('nutrition.fatShort')} (g)`, color: 'var(--purple)', error: errors.fat },
+                        { key: 'fiber' as const, label: `${t('nutrition.fiberShort')} (g)`, color: 'var(--green)', error: undefined },
+                      ].map((m) => (
+                        <div key={m.key} className="flex-1 text-center rounded-md" style={{ background: 'var(--bg2)', border: `1px solid ${m.error ? 'var(--red)' : 'var(--border)'}`, padding: '6px 4px' }}>
+                          <input {...register(m.key)} type="number" min={0} step="any"
+                            className="w-full text-center text-sm font-bold bg-transparent border-none outline-none"
+                            style={{ color: m.color, letterSpacing: '-0.01em' }} />
+                          <div className="text-[10px] mt-0.5" style={{ color: 'var(--text3)' }}>{m.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Localized names */}
+                  <div>
+                    <label className="mb-2 block text-xs font-medium text-text3">{t('foods.localizedNames')}</label>
+                    <div className="flex flex-col gap-1.5">
+                      {[
+                        { key: 'nameEn' as const, label: 'EN', placeholder: 'English name' },
+                        { key: 'nameCs' as const, label: 'CS', placeholder: 'Český název' },
+                        { key: 'nameDe' as const, label: 'DE', placeholder: 'Deutscher Name' },
+                      ].map((l) => (
+                        <div key={l.key} className="flex items-center gap-2">
+                          <span className="text-[10px] font-semibold text-text3 w-6 text-center shrink-0">{l.label}</span>
+                          <input {...register(l.key)} placeholder={l.placeholder} className={inp} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Note */}
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-text3">
+                      {t('foods.note')} <span className="font-normal" style={{ color: 'var(--text4)' }}>({t('common.optional')})</span>
+                    </label>
+                    <textarea {...register('note')} placeholder={t('foods.notePlaceholder')} rows={2} className={`${inp} resize-vertical`} />
+                  </div>
+
+                  {mutation.isError && (
+                    <p style={{ fontSize: 12, color: 'var(--red)', margin: 0 }}>{t('common.error')}</p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="flex items-center justify-between px-5 py-3 border-t border-border" style={{ flexShrink: 0 }}>
+            {mode === 'edit' && !isNew ? (
+              <button onClick={() => switchMode('view')} className="px-4 py-2 rounded-md text-[13px] font-medium text-text3 hover:bg-bg-hover transition-colors">
+                ← {t('recipes.discardChanges')}
+              </button>
+            ) : <div />}
+            <div className="flex items-center gap-2">
+              {mode === 'view' ? (
+                <>
+                  <button onClick={onClose} className="px-4 py-2 rounded-md text-[13px] font-medium text-text3 hover:bg-bg-hover transition-colors">{t('common.close')}</button>
+                  <button onClick={() => switchMode('edit')} className="px-4 py-2 rounded-md text-[13px] font-medium transition-colors" style={{ background: 'var(--accent)', color: '#fff' }}>
+                    ✏ {t('foods.editFoodTitle')}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button onClick={onClose} className="px-4 py-2 rounded-md text-[13px] font-medium text-text3 hover:bg-bg-hover transition-colors">{t('common.cancel')}</button>
+                  <button onClick={handleSubmit((data) => mutation.mutate(data))} disabled={mutation.isPending}
+                    className="px-5 py-2 rounded-md text-[13px] font-medium transition-colors disabled:opacity-50"
+                    style={{ background: 'var(--accent)', color: '#fff' }}>
+                    {mutation.isPending ? t('common.saving') : isNew ? t('foods.createFood') : t('foods.saveChanges')}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
