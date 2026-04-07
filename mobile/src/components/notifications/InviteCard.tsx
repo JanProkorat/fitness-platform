@@ -1,4 +1,4 @@
-import React, { useRef, useCallback } from 'react'
+import React, { useRef, useCallback, useEffect } from 'react'
 import { View, Text, StyleSheet, Pressable, Animated } from 'react-native'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
@@ -14,8 +14,25 @@ interface InviteCardProps {
 
 export function InviteCard({ invite, onAccept, onDecline }: InviteCardProps) {
   const colors = useTheme()
-  const opacity = useRef(new Animated.Value(1)).current
+  const opacity = useRef(new Animated.Value(0)).current
+  const translateY = useRef(new Animated.Value(-40)).current
   const maxHeight = useRef(new Animated.Value(300)).current
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(translateY, {
+        toValue: 0,
+        damping: 18,
+        stiffness: 200,
+        useNativeDriver: false,
+      }),
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: false,
+      }),
+    ]).start()
+  }, [])
 
   const animateOut = useCallback(
     (callback: () => void) => {
@@ -36,7 +53,7 @@ export function InviteCard({ invite, onAccept, onDecline }: InviteCardProps) {
   )
 
   return (
-    <Animated.View style={[styles.wrapper, { opacity, maxHeight }]}>
+    <Animated.View style={[styles.wrapper, { opacity, maxHeight, transform: [{ translateY }] }]}>
       <View
         style={[
           styles.card,
