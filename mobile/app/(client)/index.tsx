@@ -273,7 +273,6 @@ export default function TodayScreen() {
           <BellButton
             count={unreadCount}
             onPress={() => setSheetOpen(true)}
-            style={{ marginTop: 16 }}
           />
         </View>
 
