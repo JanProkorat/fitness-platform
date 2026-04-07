@@ -8,6 +8,7 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -15,11 +16,8 @@ import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
-import { Separator } from '@/components/ui/Separator'
 import { ConversationRow } from '@/components/messages/ConversationRow'
-import { fetchConversations } from '../../src/api/messages'
-import api from '../../src/api/client'
-import type { Conversation } from '../../src/types/messages'
+import { fetchConversations, archiveConversation } from '../../src/api/messages'
 
 export default function MessagesScreen() {
   const colors = useTheme()
@@ -30,16 +28,16 @@ export default function MessagesScreen() {
 
   const { data: conversations, isLoading } = useQuery({
     queryKey: ['conversations'],
-    queryFn: fetchConversations,
+    queryFn: () => fetchConversations(false),
     staleTime: 10_000,
     refetchInterval: 15_000,
   })
 
   const archiveMutation = useMutation({
-    mutationFn: (conversationId: string) =>
-      api.post(`/conversations/${conversationId}/archive`, {}),
+    mutationFn: archiveConversation,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['conversations'] })
+      queryClient.invalidateQueries({ queryKey: ['archived-conversations'] })
     },
   })
 
@@ -62,75 +60,85 @@ export default function MessagesScreen() {
   }, [conversations, search])
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.bg, paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={[Type.largeTitle, { color: colors.label }]}>Messages</Text>
-        <Pressable style={[styles.composeBtn, { backgroundColor: colors.fill }]}>
-          <Ionicons name="create-outline" size={18} color={colors.blue} />
-        </Pressable>
-      </View>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <View style={[styles.container, { backgroundColor: colors.bg, paddingTop: insets.top }]}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={[Type.largeTitle, { color: colors.label }]}>Messages</Text>
+          <Pressable style={[styles.composeBtn, { backgroundColor: colors.fill }]}>
+            <Ionicons name="create-outline" size={18} color={colors.blue} />
+          </Pressable>
+        </View>
 
-      {/* Search bar */}
-      <View style={styles.searchWrap}>
-        <View style={[styles.searchBar, { backgroundColor: colors.fill }]}>
-          <Ionicons name="search" size={16} color={colors.label3} />
-          <TextInput
-            style={[styles.searchInput, { color: colors.label }]}
-            placeholder="Search"
-            placeholderTextColor={colors.label3}
-            value={search}
-            onChangeText={setSearch}
-            autoCorrect={false}
-          />
-          {search.length > 0 && (
-            <Ionicons
-              name="close-circle"
-              size={16}
-              color={colors.label3}
-              onPress={() => setSearch('')}
+        {/* Search bar */}
+        <View style={styles.searchWrap}>
+          <View style={[styles.searchBar, { backgroundColor: colors.fill }]}>
+            <Ionicons name="search" size={16} color={colors.label3} />
+            <TextInput
+              style={[styles.searchInput, { color: colors.label }]}
+              placeholder="Search"
+              placeholderTextColor={colors.label3}
+              value={search}
+              onChangeText={setSearch}
+              autoCorrect={false}
             />
-          )}
-        </View>
-      </View>
-
-      {/* List */}
-      {isLoading ? (
-        <View style={styles.center}>
-          <ActivityIndicator color={colors.gold} />
-        </View>
-      ) : filtered.length === 0 ? (
-        <View style={styles.center}>
-          <Ionicons
-            name="chatbubbles-outline"
-            size={48}
-            color={colors.label3}
-          />
-          <Text style={[Type.body, { color: colors.label2, marginTop: 12 }]}>
-            {search ? 'No conversations found' : 'No messages yet'}
-          </Text>
-        </View>
-      ) : (
-        <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 60 }}>
-          <View style={[styles.listCard, { backgroundColor: colors.bg2 }]}>
-            {filtered.map((item, index) => (
-              <React.Fragment key={item.id}>
-                {index > 0 && (
-                  <View style={{ paddingLeft: 78 }}>
-                    <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.sep2 }} />
-                  </View>
-                )}
-                <ConversationRow
-                  conversation={item}
-                  onPress={() => router.push(`/(client)/messages/${item.id}` as never)}
-                  onArchive={() => archiveMutation.mutate(item.id)}
-                />
-              </React.Fragment>
-            ))}
+            {search.length > 0 && (
+              <Ionicons
+                name="close-circle"
+                size={16}
+                color={colors.label3}
+                onPress={() => setSearch('')}
+              />
+            )}
           </View>
-        </ScrollView>
-      )}
-    </View>
+        </View>
+
+        {/* List */}
+        {isLoading ? (
+          <View style={styles.center}>
+            <ActivityIndicator color={colors.gold} />
+          </View>
+        ) : filtered.length === 0 ? (
+          <View style={styles.center}>
+            <Ionicons name="chatbubbles-outline" size={48} color={colors.label3} />
+            <Text style={[Type.body, { color: colors.label2, marginTop: 12 }]}>
+              {search ? 'No conversations found' : 'No messages yet'}
+            </Text>
+          </View>
+        ) : (
+          <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 60 }}>
+            {/* Conversations card */}
+            <View style={[styles.listCard, { backgroundColor: colors.bg2 }]}>
+              {filtered.map((item, index) => (
+                <React.Fragment key={item.id}>
+                  {index > 0 && (
+                    <View style={{ paddingLeft: 78 }}>
+                      <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.sep2 }} />
+                    </View>
+                  )}
+                  <ConversationRow
+                    conversation={item}
+                    onPress={() => router.push(`/(client)/messages/${item.id}` as never)}
+                    onArchive={() => archiveMutation.mutate(item.id)}
+                  />
+                </React.Fragment>
+              ))}
+            </View>
+
+            {/* Archived conversations link */}
+            <Pressable
+              style={styles.archivedLink}
+              onPress={() => router.push('/(client)/messages/archived' as never)}
+            >
+              <Text style={[styles.archivedText, { color: colors.blue }]}>
+                Archived conversations
+              </Text>
+              <Ionicons name="chevron-forward" size={14} color={colors.blue} />
+            </Pressable>
+          </ScrollView>
+        )}
+      </View>
+    </GestureHandlerRootView>
   )
 }
 
@@ -175,6 +183,17 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     borderRadius: 13,
     overflow: 'hidden',
+  },
+  archivedLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 14,
+  },
+  archivedText: {
+    fontSize: 13,
+    fontWeight: '500',
   },
   center: {
     flex: 1,

@@ -33,7 +33,7 @@ export default function ChatScreen() {
   // Find conversation participant info
   const { data: conversations } = useQuery({
     queryKey: ['conversations'],
-    queryFn: fetchConversations,
+    queryFn: () => fetchConversations(false),
     staleTime: 30_000,
   })
 

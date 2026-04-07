@@ -12,6 +12,7 @@ export interface Conversation {
   lastMessageAt: string
   lastMessageIsOwn: boolean
   unreadCount: number
+  isFormer: boolean
 }
 
 export type MessageStatus = 'sent' | 'sending' | 'error'

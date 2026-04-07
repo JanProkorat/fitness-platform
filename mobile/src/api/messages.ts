@@ -6,9 +6,17 @@ interface MessagesResponse {
   cursor: string | null
 }
 
-export async function fetchConversations(): Promise<Conversation[]> {
-  const { data } = await api.get('/conversations')
+export async function fetchConversations(archived = false): Promise<Conversation[]> {
+  const { data } = await api.get('/conversations', { params: { archived } })
   return data
+}
+
+export async function archiveConversation(conversationId: string): Promise<void> {
+  await api.patch(`/conversations/${conversationId}/archive`, {})
+}
+
+export async function unarchiveConversation(conversationId: string): Promise<void> {
+  await api.patch(`/conversations/${conversationId}/unarchive`, {})
 }
 
 export async function fetchMessages(

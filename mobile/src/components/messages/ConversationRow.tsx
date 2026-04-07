@@ -1,5 +1,7 @@
-import React, { useCallback } from 'react'
-import { View, Text, Pressable, Alert, StyleSheet } from 'react-native'
+import React, { useRef } from 'react'
+import { View, Text, Pressable, StyleSheet, Animated } from 'react-native'
+import { Swipeable } from 'react-native-gesture-handler'
+import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/hooks/useTheme'
 import type { Conversation } from '../../types/messages'
 
@@ -7,6 +9,8 @@ interface ConversationRowProps {
   conversation: Conversation
   onPress: () => void
   onArchive?: () => void
+  onUnarchive?: () => void
+  variant?: 'default' | 'archived'
 }
 
 function getInitials(name: string): string {
@@ -33,59 +37,98 @@ function formatTimestamp(iso: string): string {
   return date.toLocaleDateString([], { month: 'short', day: 'numeric' })
 }
 
-export function ConversationRow({ conversation, onPress, onArchive }: ConversationRowProps) {
+export function ConversationRow({
+  conversation,
+  onPress,
+  onArchive,
+  onUnarchive,
+  variant = 'default',
+}: ConversationRowProps) {
   const colors = useTheme()
+  const swipeRef = useRef<Swipeable>(null)
   const { participant, lastMessage, lastMessageIsOwn, lastMessageAt, unreadCount } = conversation
   const hasUnread = unreadCount > 0
+  const isArchived = variant === 'archived'
 
-  const preview = lastMessageIsOwn
-    ? `You: ${lastMessage}`
-    : lastMessage
+  const preview = lastMessageIsOwn ? `You: ${lastMessage}` : lastMessage
 
-  const handleLongPress = useCallback(() => {
-    if (!onArchive) return
-    Alert.alert(
-      'Archive conversation',
-      `Archive your chat with ${participant.name}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Archive', style: 'destructive', onPress: onArchive },
-      ],
+  const renderRightActions = (
+    _progress: Animated.AnimatedInterpolation<number>,
+    dragX: Animated.AnimatedInterpolation<number>,
+  ) => {
+    const scale = dragX.interpolate({
+      inputRange: [-80, 0],
+      outputRange: [1, 0.5],
+      extrapolate: 'clamp',
+    })
+
+    const isUnarchiveAction = isArchived && onUnarchive
+    const actionColor = isUnarchiveAction ? colors.green : '#636366'
+    const actionLabel = isUnarchiveAction ? 'Unarchive' : 'Archive'
+    const actionHandler = isUnarchiveAction ? onUnarchive : onArchive
+
+    return (
+      <Pressable
+        onPress={() => {
+          swipeRef.current?.close()
+          actionHandler?.()
+        }}
+        style={[styles.swipeAction, { backgroundColor: actionColor }]}
+      >
+        <Animated.View style={{ transform: [{ scale }], alignItems: 'center', gap: 3 }}>
+          <Ionicons name="archive-outline" size={18} color="#fff" />
+          <Text style={styles.swipeLabel}>{actionLabel}</Text>
+        </Animated.View>
+      </Pressable>
     )
-  }, [onArchive, participant.name])
+  }
 
-  return (
+  const content = (
     <Pressable
       style={({ pressed }) => [
         styles.row,
         { backgroundColor: pressed ? colors.fill2 : colors.bg2 },
       ]}
       onPress={onPress}
-      onLongPress={handleLongPress}
     >
-      {/* Avatar with online dot */}
+      {/* Avatar */}
       <View style={styles.avatarWrap}>
-        <View style={[styles.avatar, { backgroundColor: 'rgba(201,168,76,0.15)' }]}>
+        <View
+          style={[
+            styles.avatar,
+            { backgroundColor: 'rgba(201,168,76,0.15)', opacity: isArchived ? 0.6 : 1 },
+          ]}
+        >
           <Text style={[styles.avatarText, { color: colors.gold }]}>
             {getInitials(participant.name)}
           </Text>
         </View>
-        {participant.online && (
+        {!isArchived && participant.online && (
           <View style={[styles.onlineDot, { borderColor: colors.bg2, backgroundColor: colors.green }]} />
         )}
       </View>
 
-      {/* Body column */}
+      {/* Body */}
       <View style={styles.body}>
-        <Text style={[styles.name, { color: colors.label }]} numberOfLines={1}>
-          {participant.name}
-        </Text>
+        <View style={styles.nameRow}>
+          <Text
+            style={[styles.name, { color: isArchived ? colors.label2 : colors.label, opacity: isArchived ? 0.7 : 1 }]}
+            numberOfLines={1}
+          >
+            {participant.name}
+          </Text>
+          {isArchived && (
+            <View style={[styles.badge, { backgroundColor: colors.fill }]}>
+              <Text style={[styles.badgeText, { color: colors.label3 }]}>archived</Text>
+            </View>
+          )}
+        </View>
         <Text
           style={[
             styles.preview,
             {
-              color: hasUnread ? colors.label : colors.label2,
-              fontWeight: hasUnread ? '500' : '400',
+              color: isArchived ? colors.label3 : hasUnread ? colors.label : colors.label2,
+              fontWeight: !isArchived && hasUnread ? '500' : '400',
             },
           ]}
           numberOfLines={1}
@@ -99,7 +142,7 @@ export function ConversationRow({ conversation, onPress, onArchive }: Conversati
         <Text style={[styles.time, { color: colors.label3 }]}>
           {formatTimestamp(lastMessageAt)}
         </Text>
-        {hasUnread && (
+        {!isArchived && hasUnread && (
           <View style={[styles.unreadBadge, { backgroundColor: colors.gold }]}>
             <Text style={styles.unreadText}>
               {unreadCount > 99 ? '99+' : unreadCount}
@@ -109,6 +152,21 @@ export function ConversationRow({ conversation, onPress, onArchive }: Conversati
       </View>
     </Pressable>
   )
+
+  if (onArchive || onUnarchive) {
+    return (
+      <Swipeable
+        ref={swipeRef}
+        renderRightActions={renderRightActions}
+        overshootRight={false}
+        friction={2}
+      >
+        {content}
+      </Swipeable>
+    )
+  }
+
+  return content
 }
 
 const styles = StyleSheet.create({
@@ -149,10 +207,25 @@ const styles = StyleSheet.create({
     minWidth: 0,
     gap: 2,
   },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   name: {
     fontSize: 16,
     fontWeight: '600',
     letterSpacing: -0.2,
+    flexShrink: 1,
+  },
+  badge: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 99,
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: '500',
   },
   preview: {
     fontSize: 14,
@@ -177,6 +250,16 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 12,
     fontWeight: '700',
+  },
+  swipeAction: {
+    width: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  swipeLabel: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '600',
   },
 })
 
