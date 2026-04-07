@@ -24,6 +24,7 @@ import { BellButton } from '@/components/ui/BellButton'
 import { NotificationSheet } from '@/components/notifications/NotificationSheet'
 import { InviteCard } from '@/components/notifications/InviteCard'
 import { InviteBanner } from '@/components/notifications/InviteBanner'
+import { useMessagesStore } from '@/stores/messagesStore'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useClientInvite } from '@/hooks/useClientInvite'
 import { Toast } from '@/lib/toast'
@@ -107,15 +108,8 @@ export default function TodayScreen() {
   const user = useAuthStore((s) => s.user)
   const hasTrainer = user?.hasActiveLink ?? false
   const [sheetOpen, setSheetOpen] = useState(false)
-  const { data: pendingInviteBanner } = useQuery({
-    queryKey: ['invite-banner'],
-    queryFn: () => null as string | null,
-    initialData: null,
-    staleTime: Infinity,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-  })
-  const dismissInviteBanner = () => queryClient.setQueryData(['invite-banner'], null)
+  const pendingInviteBanner = useMessagesStore((s) => s.pendingInviteBanner)
+  const dismissInviteBanner = useMessagesStore((s) => s.dismissInviteBanner)
 
   // Notifications
   const {

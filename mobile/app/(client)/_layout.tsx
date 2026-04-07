@@ -111,8 +111,7 @@ export default function ClientTabLayout() {
         localNotify('New invitation', data?.trainerName
           ? `${data.trainerName} invited you`
           : 'You received a new invitation.');
-        // Store banner data for home screen display
-        queryClient.setQueryData(['invite-banner'], data?.trainerName ?? 'Your trainer');
+        useMessagesStore.getState().showInviteBanner(data?.trainerName ?? 'Your trainer');
         queryClient.invalidateQueries({ queryKey: ['client-invite'] });
         queryClient.invalidateQueries({ queryKey: ['notifications'] });
       }),
