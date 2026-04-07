@@ -36,22 +36,24 @@ export function NotificationSheet({
   const colors = useTheme()
   const translateY = useRef(new Animated.Value(MAX_HEIGHT)).current
   const overlayOpacity = useRef(new Animated.Value(0)).current
+  const [mounted, setMounted] = React.useState(false)
 
   useEffect(() => {
     if (visible) {
+      setMounted(true)
       Animated.parallel([
-        Animated.timing(overlayOpacity, {
+        Animated.spring(overlayOpacity, {
           toValue: 1,
-          duration: 250,
           useNativeDriver: true,
         }),
-        Animated.timing(translateY, {
+        Animated.spring(translateY, {
           toValue: 0,
-          duration: 300,
+          damping: 20,
+          stiffness: 200,
           useNativeDriver: true,
         }),
       ]).start()
-    } else {
+    } else if (mounted) {
       Animated.parallel([
         Animated.timing(overlayOpacity, {
           toValue: 0,
@@ -63,11 +65,13 @@ export function NotificationSheet({
           duration: 250,
           useNativeDriver: true,
         }),
-      ]).start()
+      ]).start(({ finished }) => {
+        if (finished) setMounted(false)
+      })
     }
   }, [visible])
 
-  if (!visible) return null
+  if (!mounted) return null
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
