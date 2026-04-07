@@ -17,11 +17,11 @@ async function fetchPendingInvite(): Promise<TrainerInvite | null> {
 }
 
 async function acceptInvite(id: string): Promise<void> {
-  await api.post(`/client/invites/${id}/accept`)
+  await api.post(`/client/invites/${id}/accept`, {})
 }
 
 async function declineInvite(id: string): Promise<void> {
-  await api.post(`/client/invites/${id}/decline`)
+  await api.post(`/client/invites/${id}/decline`, {})
 }
 
 export function useClientInvite(enabled: boolean) {

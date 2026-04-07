@@ -18,18 +18,18 @@ interface NotificationsResponse {
 }
 
 async function fetchNotifications(): Promise<NotificationsResponse> {
-  const { data } = await api.get('/api/client/notifications', {
+  const { data } = await api.get('/client/notifications', {
     params: { limit: 20 },
   })
   return data
 }
 
 async function markAllRead(): Promise<void> {
-  await api.post('/api/client/notifications/read-all')
+  await api.post('/client/notifications/read-all', {})
 }
 
 async function markOneRead(id: string): Promise<void> {
-  await api.post(`/api/client/notifications/${id}/read`)
+  await api.post(`/client/notifications/${id}/read`, {})
 }
 
 export function useNotifications() {
