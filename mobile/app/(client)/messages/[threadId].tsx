@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react'
+import React, { useCallback, useEffect, useMemo } from 'react'
 import {
   View,
   FlatList,
@@ -14,7 +14,7 @@ import { useTypingStatus } from '../../../src/hooks/useTypingStatus'
 import { useAuthStore } from '../../../src/stores/auth'
 import api from '../../../src/api/client'
 import { Toast } from '@/lib/toast'
-import { fetchConversations, fetchConversationContext } from '../../../src/api/messages'
+import { fetchConversations, fetchConversationContext, markConversationRead } from '../../../src/api/messages'
 import { ChatHeader } from '@/components/messages/ChatHeader'
 import { ChatInputBar } from '@/components/messages/ChatInputBar'
 import { MessageBubble } from '@/components/messages/MessageBubble'
@@ -80,6 +80,14 @@ export default function ChatScreen() {
     send,
     retry,
   } = useMessages(threadId!)
+
+  // Mark messages as read when viewing this conversation
+  useEffect(() => {
+    if (threadId && messages.length > 0) {
+      markConversationRead(threadId).catch(() => {})
+      queryClient.invalidateQueries({ queryKey: ['conversations'] })
+    }
+  }, [threadId, messages.length, queryClient])
 
   // Typing status
   const { isTyping, notifyTyping } = useTypingStatus(threadId!)
