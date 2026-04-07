@@ -34,6 +34,7 @@ public class GetConversationsEndpoint(IApplicationDbContext db, PresenceTracker 
         var conversations = await db.Conversations
             .AsNoTracking()
             .Where(c => isProfessional ? c.ProfessionalUserId == userGuid : c.ClientUserId == userGuid)
+            .Where(c => isProfessional ? !c.IsArchivedByProfessional : !c.IsArchivedByClient)
             .OrderByDescending(c => c.LastMessageAt ?? c.DateCreated)
             .Select(c => new ConversationDto
             {
