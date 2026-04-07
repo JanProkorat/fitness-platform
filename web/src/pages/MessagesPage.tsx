@@ -233,6 +233,20 @@ export default function MessagesPage() {
   }, [messageInput, activeConvId, sendMutation]);
 
   // ── Typing indicator ──
+  const typingData = queryClient.getQueryData<{ isTyping: boolean }>(['typing', activeConvId]);
+  const peerIsTyping = typingData?.isTyping ?? false;
+
+  // Force re-render when typing state changes
+  const [, forceUpdate] = useState(0);
+  useEffect(() => {
+    const unsub = queryClient.getQueryCache().subscribe((event) => {
+      if (event?.query?.queryKey?.[0] === 'typing' && event?.query?.queryKey?.[1] === activeConvId) {
+        forceUpdate((n) => n + 1);
+      }
+    });
+    return () => unsub();
+  }, [activeConvId, queryClient]);
+
   const lastTypingSentRef = useRef(0);
   const handleTyping = useCallback(() => {
     if (!activeConvId) return;
@@ -385,6 +399,15 @@ export default function MessagesPage() {
                   })}
                 </div>
               ))}
+              {peerIsTyping && (
+                <div className="flex items-center gap-1 px-4 py-1.5">
+                  <div className="flex items-center gap-[3px] bg-bg2 rounded-[18px] rounded-bl-[5px] px-3.5 py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
+                    <span className="w-[7px] h-[7px] rounded-full bg-text4 animate-bounce [animation-delay:0ms]" />
+                    <span className="w-[7px] h-[7px] rounded-full bg-text4 animate-bounce [animation-delay:200ms]" />
+                    <span className="w-[7px] h-[7px] rounded-full bg-text4 animate-bounce [animation-delay:400ms]" />
+                  </div>
+                </div>
+              )}
               <div ref={messagesEndRef} />
             </div>
 
