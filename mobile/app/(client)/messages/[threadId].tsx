@@ -84,8 +84,9 @@ export default function ChatScreen() {
   // Mark messages as read when viewing this conversation
   useEffect(() => {
     if (threadId && messages.length > 0) {
-      markConversationRead(threadId).catch(() => {})
-      queryClient.invalidateQueries({ queryKey: ['conversations'] })
+      markConversationRead(threadId)
+        .then(() => queryClient.invalidateQueries({ queryKey: ['conversations'] }))
+        .catch(() => {})
     }
   }, [threadId, messages.length, queryClient])
 
