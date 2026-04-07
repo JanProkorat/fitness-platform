@@ -90,7 +90,8 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingHorizontal: 16,
+    paddingLeft: 12,
+    paddingRight: 16,
     paddingVertical: 12,
   },
   unreadDot: {
