@@ -79,22 +79,6 @@ export function NotificationRow({ notification, onAction, onDismiss }: Notificat
           {body}
         </Text>
 
-        {actionLabel && (
-          <View style={styles.actions}>
-            <Pressable
-              style={[styles.actionBtn, { backgroundColor: colors.gold }]}
-              onPress={() => onAction(notification)}
-            >
-              <Text style={styles.actionTextPrimary}>{actionLabel}</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.actionBtn, { backgroundColor: colors.fill }]}
-              onPress={() => onDismiss(notification)}
-            >
-              <Text style={[styles.actionTextSecondary, { color: colors.label2 }]}>Later</Text>
-            </Pressable>
-          </View>
-        )}
       </View>
     </View>
   )
