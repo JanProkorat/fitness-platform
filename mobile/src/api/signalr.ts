@@ -1,4 +1,4 @@
-import { HubConnectionBuilder, HubConnection, LogLevel } from '@microsoft/signalr';
+import { HubConnectionBuilder, HubConnection, LogLevel, HubConnectionState } from '@microsoft/signalr';
 import { useAuthStore } from '../stores/auth';
 
 const API_BASE_URL = __DEV__
@@ -7,10 +7,8 @@ const API_BASE_URL = __DEV__
 
 let connection: HubConnection | null = null;
 
-export function getConnection(): HubConnection {
-  if (connection) return connection;
-
-  connection = new HubConnectionBuilder()
+function createConnection(): HubConnection {
+  return new HubConnectionBuilder()
     .withUrl(`${API_BASE_URL}/hubs/notifications`, {
       accessTokenFactory: () => {
         const token = useAuthStore.getState().accessToken;
@@ -20,20 +18,52 @@ export function getConnection(): HubConnection {
     .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
     .configureLogging(LogLevel.Warning)
     .build();
+}
 
+export function getConnection(): HubConnection {
+  if (!connection) {
+    connection = createConnection();
+  }
   return connection;
 }
 
 export async function connect(): Promise<void> {
-  const conn = getConnection();
-  if (conn.state === 'Disconnected') {
+  // If there's no auth token yet, don't attempt connection
+  const token = useAuthStore.getState().accessToken;
+  if (!token) {
+    console.log('[SignalR] No auth token, skipping connection');
+    return;
+  }
+
+  let conn = getConnection();
+
+  // If previous connection is in a broken state, recreate it
+  if (conn.state !== HubConnectionState.Disconnected && conn.state !== HubConnectionState.Connected) {
+    try { await conn.stop(); } catch { /* ignore */ }
+    connection = null;
+    conn = getConnection();
+  }
+
+  if (conn.state === HubConnectionState.Connected) return;
+
+  try {
     await conn.start();
+    console.log('[SignalR] Connected');
+  } catch (err) {
+    console.warn('[SignalR] Connection failed, retrying in 3s...', err);
+    connection = null; // Reset so next attempt creates a fresh connection
+    setTimeout(() => {
+      connect().catch(() => {});
+    }, 3000);
   }
 }
 
 export async function disconnect(): Promise<void> {
-  if (connection && connection.state !== 'Disconnected') {
-    await connection.stop();
+  if (connection) {
+    try {
+      await connection.stop();
+    } catch { /* ignore */ }
+    connection = null;
   }
 }
 
