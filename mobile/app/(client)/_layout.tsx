@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { StyleSheet, View, Platform } from 'react-native';
-import { Tabs, useRouter } from 'expo-router';
+import { Tabs, useRouter, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
@@ -54,6 +54,9 @@ export default function ClientTabLayout() {
   const colors = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const pathname = usePathname();
+  const pathnameRef = useRef(pathname);
+  pathnameRef.current = pathname;
   const queryClient = useQueryClient();
   const registeredRef = useRef(false);
   const unreadMessages = useUnreadCount();
@@ -113,11 +116,15 @@ export default function ClientTabLayout() {
         useAuthStore.getState().refreshProfile();
       }),
       onEvent('newMessage', (raw: unknown) => {
-        const payload = raw as { threadId?: string; senderName?: string };
-        localNotify('New message', payload.senderName ? `${payload.senderName} sent you a message` : 'You have a new message');
+        const payload = raw as { conversationId?: string; senderName?: string };
+        const currentPath = pathnameRef.current;
+        const viewingThisChat = payload.conversationId && currentPath.includes(`/messages/${payload.conversationId}`);
+        if (!viewingThisChat) {
+          localNotify('New message', payload.senderName ? `${payload.senderName} sent you a message` : 'You have a new message');
+        }
         queryClient.invalidateQueries({ queryKey: ['conversations'] });
-        if (payload.threadId) {
-          queryClient.invalidateQueries({ queryKey: ['messages', payload.threadId] });
+        if (payload.conversationId) {
+          queryClient.invalidateQueries({ queryKey: ['messages', payload.conversationId] });
         }
       }),
       onEvent('userPresence', () => {
