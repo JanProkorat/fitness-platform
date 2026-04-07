@@ -127,7 +127,15 @@ export default function ClientTabLayout() {
           queryClient.invalidateQueries({ queryKey: ['messages', payload.conversationId] });
         }
       }),
-      onEvent('typing', () => {}), // registered globally so SignalR doesn't warn; useTypingStatus handles the actual logic
+      onEvent('typing', (raw: unknown) => {
+        const data = raw as { conversationId?: string } | undefined;
+        if (data?.conversationId) {
+          queryClient.setQueryData(['typing', data.conversationId], true);
+          setTimeout(() => {
+            queryClient.setQueryData(['typing', data.conversationId], false);
+          }, 3000);
+        }
+      }),
       onEvent('userPresence', () => {
         queryClient.invalidateQueries({ queryKey: ['conversations'] });
       }),

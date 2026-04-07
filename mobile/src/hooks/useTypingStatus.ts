@@ -1,28 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { getConnection, onEvent } from '../api/signalr'
+import { useCallback, useRef } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { getConnection } from '../api/signalr'
 
 export function useTypingStatus(threadId: string) {
-  const [isTyping, setIsTyping] = useState(false)
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  // Listen for typing events from the other participant
-  useEffect(() => {
-    const unsubscribe = onEvent('typing', (raw: unknown) => {
-      const data = raw as { conversationId?: string } | undefined
-      if (data?.conversationId !== threadId) return
-
-      setIsTyping(true)
-
-      // Clear after 3 seconds of no typing
-      if (timeoutRef.current) clearTimeout(timeoutRef.current)
-      timeoutRef.current = setTimeout(() => setIsTyping(false), 3000)
-    })
-
-    return () => {
-      unsubscribe()
-      if (timeoutRef.current) clearTimeout(timeoutRef.current)
-    }
-  }, [threadId])
+  // Read typing state written by the global handler in _layout
+  const { data: isTyping } = useQuery({
+    queryKey: ['typing', threadId],
+    initialData: false,
+    staleTime: Infinity,
+  })
 
   // Send typing indicator via SignalR hub method
   const lastSentRef = useRef(0)
@@ -36,7 +22,7 @@ export function useTypingStatus(threadId: string) {
   }, [threadId])
 
   return {
-    isTyping,
+    isTyping: isTyping ?? false,
     notifyTyping,
   }
 }
