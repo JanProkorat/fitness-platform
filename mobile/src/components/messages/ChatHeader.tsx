@@ -47,9 +47,6 @@ export function ChatHeader({ participant, onBack, onInfoPress }: ChatHeaderProps
 
         {/* Right: Action buttons in circles */}
         <View style={styles.rightActions}>
-          <Pressable style={[styles.actionBtn, { backgroundColor: colors.fill }]}>
-            <Ionicons name="call-outline" size={16} color={colors.blue} />
-          </Pressable>
           <Pressable onPress={onInfoPress} style={[styles.actionBtn, { backgroundColor: colors.fill }]}>
             <Ionicons name="information-circle-outline" size={16} color={colors.blue} />
           </Pressable>
@@ -99,6 +96,7 @@ const styles = StyleSheet.create({
   },
   status: {
     fontSize: 12,
+    marginTop: 2,
   },
   rightActions: {
     flexDirection: 'row',
