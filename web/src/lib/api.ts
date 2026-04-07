@@ -20,6 +20,13 @@ function attachToken(config: import('axios').InternalAxiosRequestConfig) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   config.headers['Accept-Language'] = i18n.language;
+
+  // Ensure POST/PUT/PATCH without body still send Content-Type for FastEndpoints binding
+  const method = config.method?.toLowerCase();
+  if ((method === 'post' || method === 'put' || method === 'patch') && config.data == null) {
+    config.headers['Content-Type'] = 'application/json';
+  }
+
   return config;
 }
 

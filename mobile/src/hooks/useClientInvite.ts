@@ -21,9 +21,7 @@ async function acceptInvite(id: string): Promise<void> {
 }
 
 async function declineInvite(id: string): Promise<void> {
-  console.log('[Invite] declining', id)
-  const res = await api.post(`/client/invites/${id}/decline`)
-  console.log('[Invite] decline response', res.status)
+  await api.post(`/client/invites/${id}/decline`)
 }
 
 export function useClientInvite(enabled: boolean) {

@@ -11,7 +11,7 @@ const api = axios.create({
   timeout: 15000,
 });
 
-// Attach access token and device locale to every request
+// Attach access token, locale, and ensure POST/PUT/PATCH have a JSON body
 api.interceptors.request.use((config) => {
   const token = useAuthStore.getState().accessToken;
   if (token) {
@@ -19,6 +19,15 @@ api.interceptors.request.use((config) => {
   }
   const locale = getLocales()[0]?.languageCode ?? 'en';
   config.headers['Accept-Language'] = locale;
+
+  // FastEndpoints requires Content-Type for request binding.
+  // When no body is provided on POST/PUT/PATCH, send empty JSON object
+  // so route params bind correctly without the body overwriting them.
+  const method = config.method?.toLowerCase();
+  if ((method === 'post' || method === 'put' || method === 'patch') && config.data == null) {
+    config.headers['Content-Type'] = 'application/json';
+  }
+
   return config;
 });
 

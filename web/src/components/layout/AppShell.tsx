@@ -58,7 +58,6 @@ export function AppShell() {
     },
     inviteDeclined: (payload: unknown) => {
       const data = payload as { clientName?: string } | undefined;
-      console.log('[SignalR] inviteDeclined received:', data);
       addToast(
         data?.clientName
           ? `${data.clientName} declined your invitation`

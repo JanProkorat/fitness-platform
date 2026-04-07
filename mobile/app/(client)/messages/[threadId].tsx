@@ -87,11 +87,8 @@ export default function ChatScreen() {
   useEffect(() => {
     if (threadId && messages.length > 0) {
       markConversationRead(threadId)
-        .then(() => {
-          console.log('[Chat] markConversationRead succeeded, invalidating conversations')
-          return queryClient.invalidateQueries({ queryKey: ['conversations'] })
-        })
-        .catch((err) => console.warn('[Chat] markConversationRead failed:', err))
+        .then(() => queryClient.invalidateQueries({ queryKey: ['conversations'] }))
+        .catch(() => {})
     }
   }, [threadId, messages.length, queryClient])
 
