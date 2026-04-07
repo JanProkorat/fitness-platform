@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: '#c9a84c',
     marginTop: 18,
-    marginRight: 4,
+    marginRight: -2,
   },
   icon: {
     width: 44,
