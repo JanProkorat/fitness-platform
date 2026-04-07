@@ -4,26 +4,26 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace FitnessPlatform.Application.Features.Messaging.ArchiveConversation;
+namespace FitnessPlatform.Application.Features.Messaging.UnarchiveConversation;
 
 /// <summary>
-/// Archives a conversation for the authenticated user.
-/// Each participant can independently archive a conversation.
+/// Unarchives a conversation for the authenticated user.
+/// Each participant can independently unarchive a conversation.
 /// </summary>
-public class ArchiveConversationEndpoint(IApplicationDbContext db) : Endpoint<ArchiveConversationRequest>
+public class UnarchiveConversationEndpoint(IApplicationDbContext db) : Endpoint<UnarchiveConversationRequest>
 {
     public override void Configure()
     {
-        Patch("/conversations/{ConversationId}/archive");
+        Patch("/conversations/{ConversationId}/unarchive");
         Roles(AppRoles.Trainer, AppRoles.Nutritionist, AppRoles.Client);
         Summary(s =>
         {
-            s.Summary = "Archive conversation";
-            s.Description = "Archives a conversation for the authenticated user. The other participant is not affected.";
+            s.Summary = "Unarchive conversation";
+            s.Description = "Unarchives a conversation for the authenticated user. The other participant is not affected.";
         });
     }
 
-    public override async Task HandleAsync(ArchiveConversationRequest req, CancellationToken ct)
+    public override async Task HandleAsync(UnarchiveConversationRequest req, CancellationToken ct)
     {
         var userId = User.FindFirstValue(AppClaims.UserId);
         if (userId is null) { await Send.UnauthorizedAsync(ct); return; }
@@ -42,16 +42,16 @@ public class ArchiveConversationEndpoint(IApplicationDbContext db) : Endpoint<Ar
         }
 
         if (conversation.ProfessionalUserId == userGuid)
-            conversation.ArchivedByProfessionalAt = DateTime.UtcNow;
+            conversation.ArchivedByProfessionalAt = null;
         else
-            conversation.ArchivedByClientAt = DateTime.UtcNow;
+            conversation.ArchivedByClientAt = null;
 
         await db.SaveChangesAsync(ct);
         await Send.OkAsync(ct);
     }
 }
 
-public class ArchiveConversationRequest
+public class UnarchiveConversationRequest
 {
     public Guid ConversationId { get; set; }
 }

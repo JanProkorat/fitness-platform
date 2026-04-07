@@ -45,14 +45,20 @@ public class Conversation : PublicTimestampableEntity
     public ApplicationUser Client { get; set; } = null!;
 
     /// <summary>
-    /// Whether the professional has archived this conversation.
+    /// When the professional archived this conversation. Null = not archived.
     /// </summary>
-    public bool IsArchivedByProfessional { get; set; }
+    public DateTime? ArchivedByProfessionalAt { get; set; }
 
     /// <summary>
-    /// Whether the client has archived this conversation.
+    /// When the client archived this conversation. Null = not archived.
     /// </summary>
-    public bool IsArchivedByClient { get; set; }
+    public DateTime? ArchivedByClientAt { get; set; }
+
+    /// <summary>
+    /// Whether the professional-client collaboration has ended.
+    /// When true, new messages from the former trainer don't auto-unarchive.
+    /// </summary>
+    public bool IsFormer { get; set; }
 
     /// <summary>
     /// Messages in this conversation.

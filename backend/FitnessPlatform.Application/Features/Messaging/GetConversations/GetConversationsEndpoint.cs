@@ -10,7 +10,7 @@ namespace FitnessPlatform.Application.Features.Messaging.GetConversations;
 /// <summary>
 /// Returns conversations for the authenticated user (professional or client).
 /// </summary>
-public class GetConversationsEndpoint(IApplicationDbContext db, PresenceTracker presence) : EndpointWithoutRequest<List<ConversationDto>>
+public class GetConversationsEndpoint(IApplicationDbContext db, PresenceTracker presence) : Endpoint<GetConversationsRequest, List<ConversationDto>>
 {
     public override void Configure()
     {
@@ -23,7 +23,7 @@ public class GetConversationsEndpoint(IApplicationDbContext db, PresenceTracker 
         });
     }
 
-    public override async Task HandleAsync(CancellationToken ct)
+    public override async Task HandleAsync(GetConversationsRequest req, CancellationToken ct)
     {
         var userId = User.FindFirstValue(AppClaims.UserId);
         if (userId is null) { await Send.UnauthorizedAsync(ct); return; }
@@ -34,7 +34,9 @@ public class GetConversationsEndpoint(IApplicationDbContext db, PresenceTracker 
         var conversations = await db.Conversations
             .AsNoTracking()
             .Where(c => isProfessional ? c.ProfessionalUserId == userGuid : c.ClientUserId == userGuid)
-            .Where(c => isProfessional ? !c.IsArchivedByProfessional : !c.IsArchivedByClient)
+            .Where(c => isProfessional
+                ? (req.Archived ? c.ArchivedByProfessionalAt != null : c.ArchivedByProfessionalAt == null)
+                : (req.Archived ? c.ArchivedByClientAt != null : c.ArchivedByClientAt == null))
             .OrderByDescending(c => c.LastMessageAt ?? c.DateCreated)
             .Select(c => new ConversationDto
             {
@@ -58,6 +60,7 @@ public class GetConversationsEndpoint(IApplicationDbContext db, PresenceTracker 
                 LastMessageAt = c.LastMessageAt ?? c.DateCreated,
                 LastMessageIsOwn = c.LastMessageSenderId == userGuid,
                 UnreadCount = c.Messages.Count(m => !m.IsRead && m.SenderUserId != userGuid),
+                IsFormer = c.IsFormer,
             })
             .ToListAsync(ct);
 
@@ -69,6 +72,12 @@ public class GetConversationsEndpoint(IApplicationDbContext db, PresenceTracker 
     }
 }
 
+public class GetConversationsRequest
+{
+    [QueryParam]
+    public bool Archived { get; set; } = false;
+}
+
 public class ConversationDto
 {
     public Guid Id { get; set; }
@@ -77,6 +86,7 @@ public class ConversationDto
     public DateTime LastMessageAt { get; set; }
     public bool LastMessageIsOwn { get; set; }
     public int UnreadCount { get; set; }
+    public bool IsFormer { get; set; }
 }
 
 public class ParticipantDto
