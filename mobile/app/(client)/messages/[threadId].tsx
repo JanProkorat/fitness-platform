@@ -177,7 +177,7 @@ export default function ChatScreen() {
       <View style={{ paddingTop: insets.top }}>
         <ChatHeader
           participant={participant}
-          onBack={() => router.back()}
+          onBack={() => router.navigate('/(client)/messages' as never)}
           onInfoPress={() => {}}
         />
       </View>
