@@ -21,10 +21,11 @@ function attachToken(config: import('axios').InternalAxiosRequestConfig) {
   }
   config.headers['Accept-Language'] = i18n.language;
 
-  // Ensure POST/PUT/PATCH without body still send Content-Type for FastEndpoints binding
+  // FastEndpoints requires a JSON body for request binding on POST/PUT/PATCH.
+  // When no body is provided, send empty object so route params still bind.
   const method = config.method?.toLowerCase();
   if ((method === 'post' || method === 'put' || method === 'patch') && config.data == null) {
-    config.headers['Content-Type'] = 'application/json';
+    config.data = {};
   }
 
   return config;

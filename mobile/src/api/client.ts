@@ -20,12 +20,11 @@ api.interceptors.request.use((config) => {
   const locale = getLocales()[0]?.languageCode ?? 'en';
   config.headers['Accept-Language'] = locale;
 
-  // FastEndpoints requires Content-Type for request binding.
-  // When no body is provided on POST/PUT/PATCH, send empty JSON object
-  // so route params bind correctly without the body overwriting them.
+  // FastEndpoints requires a JSON body for request binding on POST/PUT/PATCH.
+  // When no body is provided, send empty object so route params still bind.
   const method = config.method?.toLowerCase();
   if ((method === 'post' || method === 'put' || method === 'patch') && config.data == null) {
-    config.headers['Content-Type'] = 'application/json';
+    config.data = {};
   }
 
   return config;
