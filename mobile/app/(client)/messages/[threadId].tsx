@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useMemo } from 'react'
 import {
   View,
   FlatList,
@@ -134,15 +134,45 @@ export default function ChatScreen() {
     return <TypingIndicator />
   }, [isTyping])
 
+  // List footer = top of inverted list (oldest messages / banner area)
   const listFooter = useMemo(() => {
-    if (!isFetchingNextPage) return null
-    return (
-      <ActivityIndicator
-        color={colors.gold}
-        style={{ paddingVertical: 12 }}
-      />
-    )
-  }, [isFetchingNextPage, colors.gold])
+    const items: React.ReactNode[] = []
+    if (isFetchingNextPage) {
+      items.push(
+        <ActivityIndicator
+          key="loader"
+          color={colors.gold}
+          style={{ paddingVertical: 12 }}
+        />,
+      )
+    }
+    if (context?.type === 'invite' && context.inviteId) {
+      items.push(
+        <ContextBanner
+          key="context"
+          icon={context.icon}
+          title={context.title}
+          sub={context.sub}
+          actionLabel={context.actionLabel}
+          onAction={() => {}}
+          onAccept={() => acceptMutation.mutate(context.inviteId!)}
+          onDecline={() => declineMutation.mutate(context.inviteId!)}
+        />,
+      )
+    } else if (context) {
+      items.push(
+        <ContextBanner
+          key="context"
+          icon={context.icon}
+          title={context.title}
+          sub={context.sub}
+          actionLabel={context.actionLabel}
+          onAction={() => router.push(context.actionRoute as never)}
+        />,
+      )
+    }
+    return items.length > 0 ? <>{items}</> : null
+  }, [isFetchingNextPage, colors.gold, context, acceptMutation, declineMutation, router])
 
   const handleSend = useCallback(
     (text: string) => {
@@ -170,28 +200,6 @@ export default function ChatScreen() {
         />
       </View>
 
-      {/* Fixed invite/context banner */}
-      {context?.type === 'invite' && context.inviteId && (
-        <ContextBanner
-          icon={context.icon}
-          title={context.title}
-          sub={context.sub}
-          actionLabel={context.actionLabel}
-          onAction={() => {}}
-          onAccept={() => acceptMutation.mutate(context.inviteId!)}
-          onDecline={() => declineMutation.mutate(context.inviteId!)}
-        />
-      )}
-      {context && context.type !== 'invite' && (
-        <ContextBanner
-          icon={context.icon}
-          title={context.title}
-          sub={context.sub}
-          actionLabel={context.actionLabel}
-          onAction={() => router.push(context.actionRoute as never)}
-        />
-      )}
-
       {/* Scrollable message list — flex: 1 fills remaining space */}
       <FlatList
         data={messages}
@@ -199,7 +207,7 @@ export default function ChatScreen() {
         renderItem={renderItem}
         inverted
         style={styles.messageList}
-        contentContainerStyle={{ paddingVertical: 8 }}
+        contentContainerStyle={{ paddingVertical: 8, flexGrow: 1 }}
         ListHeaderComponent={listHeader}
         ListFooterComponent={listFooter}
         onEndReached={() => {
