@@ -68,7 +68,7 @@ public class InviteClientEndpoint(IApplicationDbContext db, IEmailService emailS
         await db.SaveChangesAsync(ct);
 
         var language = HttpContext.Request.Headers.AcceptLanguage.FirstOrDefault() ?? "en";
-        await emailService.SendInvitationEmailAsync(req.Email, trainerName, tokenValue, language, ct);
+        await emailService.SendInvitationEmailAsync(req.Email, trainerName, tokenValue, language, null, ct);
 
         logger.LogInformation(
             "Invitation sent from trainer {TrainerId} to {Email}",

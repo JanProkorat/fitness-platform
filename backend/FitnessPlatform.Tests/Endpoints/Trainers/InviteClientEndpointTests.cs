@@ -44,7 +44,7 @@ public class InviteClientEndpointTests
 
         db.InvitationTokens.Received(1).Add(Arg.Is<InvitationToken>(t => t.Email == "client@test.com"));
         await emailService.Received(1).SendInvitationEmailAsync(
-            "client@test.com", "Train Er", Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+            "client@test.com", "Train Er", Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]

@@ -49,6 +49,16 @@ public class SmtpEmailService(IConfiguration configuration, ILogger<SmtpEmailSer
     };
 
     /// <summary>
+    /// Localized email subjects for email verification emails.
+    /// </summary>
+    private static readonly Dictionary<string, string> EmailVerificationSubjects = new()
+    {
+        ["en"] = "Verify your GF Platform email",
+        ["cs"] = "Ověřte svůj e-mail na GF Platform",
+        ["de"] = "Bestätigen Sie Ihre E-Mail für GF Platform"
+    };
+
+    /// <summary>
     /// Polly retry pipeline: 3 retries with exponential backoff (1s, 2s, 4s).
     /// </summary>
     private static readonly ResiliencePipeline RetryPipeline = new ResiliencePipelineBuilder()
@@ -61,7 +71,7 @@ public class SmtpEmailService(IConfiguration configuration, ILogger<SmtpEmailSer
         .Build();
 
     /// <inheritdoc />
-    public async Task SendInvitationEmailAsync(string toEmail, string trainerName, string invitationToken, string language, CancellationToken ct)
+    public async Task SendInvitationEmailAsync(string toEmail, string trainerName, string invitationToken, string language, string? personalMessage, CancellationToken ct)
     {
         var lang = NormalizeLanguage(language);
         var baseUrl = configuration[ConfigKeys.AppBaseUrl] ?? "http://localhost:5173";
@@ -71,7 +81,18 @@ public class SmtpEmailService(IConfiguration configuration, ILogger<SmtpEmailSer
         var template = LoadTemplate("Invitation", lang);
         var html = template
             .Replace("{{TrainerName}}", WebUtility.HtmlEncode(trainerName))
-            .Replace("{{AcceptUrl}}", acceptUrl);
+            .Replace("{{AcceptUrl}}", acceptUrl)
+            .Replace("{{PersonalMessage}}", string.IsNullOrWhiteSpace(personalMessage)
+                ? ""
+                : $"""
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+                    <tr>
+                      <td style="background:rgba(201,168,76,0.06);border-left:3px solid #c9a84c;border-radius:4px;padding:16px 20px;font-size:14px;line-height:1.6;color:#a89f8c;font-style:italic;">
+                        &ldquo;{WebUtility.HtmlEncode(personalMessage)}&rdquo;
+                      </td>
+                    </tr>
+                  </table>
+                  """);
 
         var subject = InvitationSubjects.GetValueOrDefault(lang, InvitationSubjects["en"]);
 
@@ -97,6 +118,24 @@ public class SmtpEmailService(IConfiguration configuration, ILogger<SmtpEmailSer
         await SendEmailAsync(toEmail, subject, html, ct);
 
         logger.LogInformation("Password reset email sent to {Email} (lang={Language})", toEmail, lang);
+    }
+
+    /// <inheritdoc />
+    public async Task SendEmailVerificationAsync(string toEmail, string verificationToken, string language, CancellationToken ct)
+    {
+        var lang = NormalizeLanguage(language);
+        var baseUrl = configuration[ConfigKeys.AppBaseUrl] ?? "http://localhost:5173";
+        var encodedToken = WebUtility.UrlEncode(verificationToken);
+        var verifyUrl = $"{baseUrl}/verify-email?token={encodedToken}";
+
+        var template = LoadTemplate("EmailVerification", lang);
+        var html = template.Replace("{{VerifyUrl}}", verifyUrl);
+
+        var subject = EmailVerificationSubjects.GetValueOrDefault(lang, EmailVerificationSubjects["en"]);
+
+        await SendEmailAsync(toEmail, subject, html, ct);
+
+        logger.LogInformation("Email verification sent to {Email} (lang={Language})", toEmail, lang);
     }
 
     /// <summary>

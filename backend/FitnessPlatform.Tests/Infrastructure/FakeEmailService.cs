@@ -10,17 +10,22 @@ public class FakeEmailService : IEmailService
     /// <summary>
     /// List of invitation emails sent during the test.
     /// </summary>
-    public static List<(string Email, string TrainerName, string Token, string Language)> SentInvitations { get; } = [];
+    public static List<(string Email, string TrainerName, string Token, string Language, string? PersonalMessage)> SentInvitations { get; } = [];
 
     /// <summary>
     /// List of password reset emails sent during the test.
     /// </summary>
     public static List<(string Email, string Token, string Language)> SentPasswordResets { get; } = [];
 
+    /// <summary>
+    /// List of email verification emails sent during the test.
+    /// </summary>
+    public static List<(string Email, string Token, string Language)> SentVerifications { get; } = [];
+
     /// <inheritdoc />
-    public Task SendInvitationEmailAsync(string toEmail, string trainerName, string invitationToken, string language, CancellationToken ct)
+    public Task SendInvitationEmailAsync(string toEmail, string trainerName, string invitationToken, string language, string? personalMessage, CancellationToken ct)
     {
-        SentInvitations.Add((toEmail, trainerName, invitationToken, language));
+        SentInvitations.Add((toEmail, trainerName, invitationToken, language, personalMessage));
         return Task.CompletedTask;
     }
 
@@ -31,6 +36,13 @@ public class FakeEmailService : IEmailService
         return Task.CompletedTask;
     }
 
+    /// <inheritdoc />
+    public Task SendEmailVerificationAsync(string toEmail, string verificationToken, string language, CancellationToken ct)
+    {
+        SentVerifications.Add((toEmail, verificationToken, language));
+        return Task.CompletedTask;
+    }
+
     /// <summary>
     /// Clears all recorded emails.
     /// </summary>
@@ -38,5 +50,6 @@ public class FakeEmailService : IEmailService
     {
         SentInvitations.Clear();
         SentPasswordResets.Clear();
+        SentVerifications.Clear();
     }
 }

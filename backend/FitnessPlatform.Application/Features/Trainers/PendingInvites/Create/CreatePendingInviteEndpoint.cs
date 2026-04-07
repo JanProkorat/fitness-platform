@@ -97,7 +97,7 @@ public class CreatePendingInviteEndpoint(
         var trainerName = $"{trainerUser.FirstName} {trainerUser.LastName}";
 
         var language = HttpContext.Request.Headers.AcceptLanguage.FirstOrDefault() ?? "en";
-        await emailService.SendInvitationEmailAsync(req.Email, trainerName, tokenValue, language, ct);
+        await emailService.SendInvitationEmailAsync(req.Email, trainerName, tokenValue, language, req.Message, ct);
 
         // If the invited client already has an account, create an in-app notification + real-time event
         var existingUser = await db.Users
