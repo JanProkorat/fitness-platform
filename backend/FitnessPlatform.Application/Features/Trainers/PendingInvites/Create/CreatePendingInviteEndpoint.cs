@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -12,11 +13,14 @@ namespace FitnessPlatform.Application.Features.Trainers.PendingInvites.Create;
 /// <summary>
 /// Endpoint for creating a pending client invitation.
 /// Creates both a PendingInvite record and an InvitationToken, then sends the invitation email.
+/// Also creates an in-app notification and sends a real-time event if the client already has an account.
 /// </summary>
-/// <param name="db">Database context.</param>
-/// <param name="emailService">Email service for sending invitation emails.</param>
-/// <param name="logger">Logger instance.</param>
-public class CreatePendingInviteEndpoint(IApplicationDbContext db, IEmailService emailService, ILogger<CreatePendingInviteEndpoint> logger) : Endpoint<CreatePendingInviteRequest, CreatePendingInviteResponse>
+public class CreatePendingInviteEndpoint(
+    IApplicationDbContext db,
+    IEmailService emailService,
+    INotificationService notificationService,
+    IRealtimeNotifier notifier,
+    ILogger<CreatePendingInviteEndpoint> logger) : Endpoint<CreatePendingInviteRequest, CreatePendingInviteResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -50,6 +54,16 @@ public class CreatePendingInviteEndpoint(IApplicationDbContext db, IEmailService
             return;
         }
 
+        // Resolve optional questionnaire
+        long? questionnaireId = null;
+        if (req.QuestionnairePublicId.HasValue)
+        {
+            var questionnaire = await db.Questionnaires
+                .FirstOrDefaultAsync(q => q.PublicId == req.QuestionnairePublicId.Value
+                    && q.ProfessionalId == Guid.Parse(userId), ct);
+            questionnaireId = questionnaire?.Id;
+        }
+
         // Create the PendingInvite record
         var pendingInvite = new PendingInvite
         {
@@ -57,7 +71,9 @@ public class CreatePendingInviteEndpoint(IApplicationDbContext db, IEmailService
             FirstName = req.FirstName,
             LastName = req.LastName,
             Email = req.Email,
-            SentAt = DateTime.UtcNow
+            Message = req.Message,
+            SentAt = DateTime.UtcNow,
+            QuestionnaireId = questionnaireId
         };
 
         db.PendingInvites.Add(pendingInvite);
@@ -83,6 +99,86 @@ public class CreatePendingInviteEndpoint(IApplicationDbContext db, IEmailService
         var language = HttpContext.Request.Headers.AcceptLanguage.FirstOrDefault() ?? "en";
         await emailService.SendInvitationEmailAsync(req.Email, trainerName, tokenValue, language, ct);
 
+        // If the invited client already has an account, create an in-app notification + real-time event
+        var existingUser = await db.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Email == req.Email, ct);
+
+        if (existingUser is not null)
+        {
+            // Find or create a conversation between the professional and the existing user
+            var professionalUserId = professionalProfile.UserId;
+
+            var conversation = await db.Conversations
+                .FirstOrDefaultAsync(c =>
+                    c.ProfessionalUserId == professionalUserId &&
+                    c.ClientUserId == existingUser.Id, ct);
+
+            if (conversation is null)
+            {
+                conversation = new Conversation
+                {
+                    ProfessionalUserId = professionalUserId,
+                    ClientUserId = existingUser.Id,
+                };
+                db.Conversations.Add(conversation);
+                await db.SaveChangesAsync(ct);
+            }
+
+            // If a message was provided, create a chat message in the conversation
+            if (!string.IsNullOrWhiteSpace(req.Message))
+            {
+                var chatMessage = new ChatMessage
+                {
+                    ConversationId = conversation.Id,
+                    SenderUserId = professionalUserId,
+                    Text = req.Message.Trim(),
+                    IsRead = false,
+                };
+
+                db.ChatMessages.Add(chatMessage);
+
+                // Update conversation preview fields
+                conversation.LastMessageText = chatMessage.Text.Length > 300
+                    ? chatMessage.Text[..300]
+                    : chatMessage.Text;
+                conversation.LastMessageAt = DateTime.UtcNow;
+                conversation.LastMessageSenderId = professionalUserId;
+
+                await db.SaveChangesAsync(ct);
+
+                // Send newMessage SignalR event to the client
+                await notifier.NotifyAsync(existingUser.Id, "newMessage", new
+                {
+                    conversationId = conversation.PublicId,
+                    messageId = chatMessage.PublicId,
+                    senderId = professionalUserId,
+                    senderName = trainerName,
+                    text = chatMessage.Text,
+                    timestamp = chatMessage.DateCreated,
+                }, ct);
+            }
+
+            // Existing notification + invitationReceived event logic
+            var notifBody = string.IsNullOrWhiteSpace(req.Message)
+                ? $"{trainerName} invited you to join as their client."
+                : $"{trainerName} invited you to join as their client: \"{req.Message}\"";
+
+            await notificationService.CreateAsync(
+                existingUser.Id,
+                NotificationType.InvitationReceived,
+                "New invitation",
+                notifBody,
+                System.Text.Json.JsonSerializer.Serialize(new { inviteId = pendingInvite.PublicId }),
+                ct);
+
+            await notifier.NotifyAsync(
+                existingUser.Id,
+                "invitationReceived",
+                new { inviteId = pendingInvite.PublicId, trainerName },
+                ct);
+        }
+
         logger.LogInformation(
             "Pending invitation created from professional {ProfessionalId} to {Email}",
             professionalProfile.PublicId, req.Email);
@@ -93,7 +189,8 @@ public class CreatePendingInviteEndpoint(IApplicationDbContext db, IEmailService
             FirstName = pendingInvite.FirstName,
             LastName = pendingInvite.LastName,
             Email = pendingInvite.Email,
-            SentAt = pendingInvite.SentAt
+            SentAt = pendingInvite.SentAt,
+            QuestionnairePublicId = req.QuestionnairePublicId
         }, cancellation: ct);
     }
 }
