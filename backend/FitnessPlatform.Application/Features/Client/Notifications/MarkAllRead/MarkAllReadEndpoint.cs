@@ -14,7 +14,7 @@ public class MarkAllReadEndpoint(IApplicationDbContext db) : EndpointWithoutRequ
     public override void Configure()
     {
         Post("/client/notifications/read-all");
-        Roles(AppRoles.Client);
+        Roles(AppRoles.Client, AppRoles.Trainer, AppRoles.Nutritionist);
         Summary(s =>
         {
             s.Summary = "Mark all notifications as read";

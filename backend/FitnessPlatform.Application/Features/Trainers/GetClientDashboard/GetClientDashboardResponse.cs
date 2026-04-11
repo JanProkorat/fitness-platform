@@ -56,6 +56,31 @@ public class GetClientDashboardResponse
     public bool IsActive { get; set; }
 
     /// <summary>
+    /// Whether the client has registered an account (email confirmed).
+    /// </summary>
+    public bool HasRegistered { get; set; }
+
+    /// <summary>
+    /// Status of the client's questionnaire: "none", "pending", or "submitted".
+    /// </summary>
+    public string QuestionnaireStatus { get; set; } = "none";
+
+    /// <summary>
+    /// Title of the pending or submitted questionnaire, if any.
+    /// </summary>
+    public string? QuestionnaireTitle { get; set; }
+
+    /// <summary>
+    /// PublicId of the questionnaire response, if any.
+    /// </summary>
+    public Guid? QuestionnaireResponsePublicId { get; set; }
+
+    /// <summary>
+    /// When the questionnaire was submitted, if submitted.
+    /// </summary>
+    public DateTime? QuestionnaireSubmittedAt { get; set; }
+
+    /// <summary>
     /// Total number of body measurements recorded for the client.
     /// </summary>
     public int TotalMeasurements { get; set; }

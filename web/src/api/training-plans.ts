@@ -44,6 +44,31 @@ export async function deleteTrainingPlan(planId: string): Promise<void> {
   await api.delete(`/training/plans/${planId}`);
 }
 
+/** Mark a training plan as completed. */
+export async function completeTrainingPlan(
+  planId: string,
+  version: number,
+): Promise<TrainingPlanDetail> {
+  const { data } = await api.post<TrainingPlanDetail>(
+    `/training/plans/${planId}/complete`,
+    { version },
+  );
+  return data;
+}
+
+/** Link or unlink a questionnaire response to a training plan. */
+export async function linkTrainingQuestionnaire(
+  planId: string,
+  questionnaireResponseId: string | null,
+  version: number,
+): Promise<TrainingPlanDetail> {
+  const { data } = await api.put<TrainingPlanDetail>(
+    `/training/plans/${planId}/link-questionnaire`,
+    { questionnaireResponseId, version },
+  );
+  return data;
+}
+
 /** Publish a single week of a training plan. */
 export async function publishTrainingWeek(
   planId: string,

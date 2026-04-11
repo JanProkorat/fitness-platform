@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react'
+import React, { useRef, useState, useEffect } from 'react'
 import {
   View,
   Text,
@@ -8,34 +8,42 @@ import {
   Animated,
   Dimensions,
 } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
+import { Avatar } from '@/components/ui/Avatar'
 import { GoldButton } from '@/components/ui/GoldButton'
-import type { ProfessionalSummary } from '@/api/professionals'
 
 const SCREEN_HEIGHT = Dimensions.get('window').height
 
+export interface InviteTarget {
+  id: string
+  name: string
+  role: string
+  city: string
+}
+
 interface SendInviteSheetProps {
   visible: boolean
-  professional: ProfessionalSummary | null
+  target: InviteTarget | null
   onClose: () => void
-  onSend: (professionalId: string, message?: string) => void
+  onSend: (trainerId: string, message?: string) => void
   isSending: boolean
 }
 
-export function SendInviteSheet({ visible, professional, onClose, onSend, isSending }: SendInviteSheetProps) {
+export function SendInviteSheet({ visible, target, onClose, onSend, isSending }: SendInviteSheetProps) {
   const colors = useTheme()
+  const { t } = useTranslation()
   const insets = useSafeAreaInsets()
   const [message, setMessage] = useState('')
   const [mounted, setMounted] = useState(false)
   const translateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current
   const overlayOpacity = useRef(new Animated.Value(0)).current
-  const profRef = useRef(professional)
+  const targetRef = useRef(target)
 
-  // Keep a ref to the last non-null professional so content stays during close animation
-  if (professional) profRef.current = professional
+  if (target) targetRef.current = target
 
   useEffect(() => {
     if (visible) {
@@ -57,11 +65,8 @@ export function SendInviteSheet({ visible, professional, onClose, onSend, isSend
 
   if (!mounted) return null
 
-  const prof = profRef.current
+  const prof = targetRef.current
   if (!prof) return null
-
-  const fullName = `${prof.firstName} ${prof.lastName}`
-  const roles = prof.roles?.length ? prof.roles : prof.role ? [prof.role] : []
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
@@ -75,14 +80,15 @@ export function SendInviteSheet({ visible, professional, onClose, onSend, isSend
         </View>
 
         <Text style={[Type.title2, { color: colors.label, paddingHorizontal: 16 }]}>
-          Send Invitation
+          {t('collab.contactName', { name: prof.name.split(' ')[0] })}
         </Text>
 
         <View style={[styles.profRow, { borderBottomColor: colors.sep2 }]}>
-          <View>
-            <Text style={[Type.headline, { color: colors.label }]}>{fullName}</Text>
+          <Avatar name={prof.name} size="sm" />
+          <View style={{ flex: 1 }}>
+            <Text style={[Type.headline, { color: colors.label }]}>{prof.name}</Text>
             <Text style={[Type.caption1, { color: colors.label2 }]}>
-              {roles.join(' & ')}{prof.city ? ` · ${prof.city}` : ''}
+              {prof.role}{prof.city ? ` · ${prof.city}` : ''}
             </Text>
           </View>
         </View>
@@ -90,7 +96,7 @@ export function SendInviteSheet({ visible, professional, onClose, onSend, isSend
         <View style={styles.inputWrap}>
           <TextInput
             style={[styles.input, { backgroundColor: colors.fill, color: colors.label, borderColor: colors.sep }]}
-            placeholder="Write an introduction message (optional)..."
+            placeholder={t('collab.introPlaceholder')}
             placeholderTextColor={colors.label3}
             value={message}
             onChangeText={setMessage}
@@ -105,8 +111,8 @@ export function SendInviteSheet({ visible, professional, onClose, onSend, isSend
 
         <View style={styles.actions}>
           <GoldButton
-            title={isSending ? 'Sending...' : 'Send Invitation'}
-            onPress={() => onSend(prof.publicId, message || undefined)}
+            title={isSending ? t('collab.sending') : t('collab.sendRequest')}
+            onPress={() => onSend(prof.id, message || undefined)}
             disabled={isSending}
             style={{ flex: 1 }}
           />
@@ -142,6 +148,9 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   profRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,

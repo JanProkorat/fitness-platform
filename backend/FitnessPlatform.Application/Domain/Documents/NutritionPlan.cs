@@ -84,9 +84,24 @@ public class NutritionPlan
     public DateTime? DatePublished { get; set; }
 
     /// <summary>
+    /// When this plan was marked as completed by the professional.
+    /// </summary>
+    [BsonElement("dateCompleted")]
+    [BsonIgnoreIfNull]
+    public DateTime? DateCompleted { get; set; }
+
+    /// <summary>
     /// The Monday when Week 1 begins. Stored as midnight UTC. Null until set.
     /// </summary>
     [BsonElement("startDate")]
     [BsonIgnoreIfNull]
     public DateTime? StartDate { get; set; }
+
+    /// <summary>
+    /// Optional cross-database reference to a QuestionnaireResponse (PostgreSQL PublicId).
+    /// Links this plan to the questionnaire the client filled out for this specific plan cycle.
+    /// </summary>
+    [BsonElement("questionnaireResponseId")]
+    [BsonIgnoreIfNull]
+    public Guid? QuestionnaireResponseId { get; set; }
 }

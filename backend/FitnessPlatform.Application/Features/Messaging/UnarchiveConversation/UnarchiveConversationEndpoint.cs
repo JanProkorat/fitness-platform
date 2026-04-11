@@ -47,7 +47,7 @@ public class UnarchiveConversationEndpoint(IApplicationDbContext db) : Endpoint<
             conversation.ArchivedByClientAt = null;
 
         await db.SaveChangesAsync(ct);
-        await Send.OkAsync(ct);
+        await Send.NoContentAsync(ct);
     }
 }
 

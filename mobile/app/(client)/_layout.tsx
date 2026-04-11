@@ -6,26 +6,32 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/hooks/useTheme';
 import { Type } from '@/constants/typography';
 import { useAuthStore } from '@/stores/auth';
 import { connect, disconnect, onEvent } from '@/api/signalr';
 import { useUnreadCount } from '@/hooks/useUnreadCount';
 import { useMessagesStore } from '@/stores/messagesStore';
+import { useTodayStore } from '@/stores/todayStore';
+import { Toast } from '@/lib/toast';
 import api from '../../src/api/client';
 
 const TABS = [
-  { name: 'index', label: 'Today', icon: 'home' as const, iconFocused: 'home' as const },
-  { name: 'messages', label: 'Messages', icon: 'chatbubble-outline' as const, iconFocused: 'chatbubble' as const },
-  { name: 'discover', label: 'Coaches', icon: 'search-outline' as const, iconFocused: 'search' as const },
-  { name: 'plans', label: 'Plans', icon: 'calendar-outline' as const, iconFocused: 'calendar' as const },
-  { name: 'profile', label: 'Profile', icon: 'person-outline' as const, iconFocused: 'person' as const },
+  { name: 'index', i18nKey: 'tabs.today', icon: 'home' as const, iconFocused: 'home' as const },
+  { name: 'messages', i18nKey: 'tabs.messages', icon: 'chatbubble-outline' as const, iconFocused: 'chatbubble' as const },
+  { name: 'discover', i18nKey: 'tabs.collab', icon: 'search-outline' as const, iconFocused: 'search' as const },
+  { name: 'plans', i18nKey: 'tabs.plans', icon: 'calendar-outline' as const, iconFocused: 'calendar' as const },
+  { name: 'profile', i18nKey: 'tabs.profile', icon: 'person-outline' as const, iconFocused: 'person' as const },
 ] as const;
 
 interface NotificationPayload {
-  type?: 'invitation' | 'new_plan' | 'message' | 'questionnaire'
+  type?: 'invitation' | 'new_plan' | 'message' | 'questionnaire' | 'trainingPlanPublished' | 'nutritionPlanPublished'
   planId?: string
   threadId?: string
+  planName?: string
+  trainerName?: string
+  startDate?: string
 }
 
 Notifications.setNotificationHandler({
@@ -53,6 +59,7 @@ async function registerPushToken() {
 
 export default function ClientTabLayout() {
   const colors = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const pathname = usePathname();
@@ -69,14 +76,25 @@ export default function ClientTabLayout() {
     registerPushToken();
   }, []);
 
-  // Foreground: refresh queries when push notification arrives (system banner shows automatically)
+  // Foreground: refresh queries when push notification arrives
   useEffect(() => {
-    const sub = Notifications.addNotificationReceivedListener(() => {
+    const sub = Notifications.addNotificationReceivedListener((notification) => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       queryClient.invalidateQueries({ queryKey: ['my-requests'] });
+
+      const data = notification.request.content.data as NotificationPayload;
+      if (data.type === 'trainingPlanPublished' || data.type === 'nutritionPlanPublished') {
+        queryClient.invalidateQueries({ queryKey: ['nutrition-plan-full'] });
+        queryClient.invalidateQueries({ queryKey: ['today-training'] });
+        queryClient.invalidateQueries({ queryKey: ['collaborations'] });
+        const label = data.type === 'trainingPlanPublished'
+          ? t('notifications.trainingPlanPublished')
+          : t('notifications.nutritionPlanPublished');
+        Toast.show(label);
+      }
     });
     return () => sub.remove();
-  }, [queryClient]);
+  }, [queryClient, t]);
 
   // SignalR: connect and listen for real-time events
   useEffect(() => {
@@ -95,37 +113,80 @@ export default function ClientTabLayout() {
 
     const unsubs = [
       onEvent('clientRequestAccepted', () => {
-        localNotify('Invitation accepted', 'Your invitation was accepted!');
+        localNotify(t('notifications.inviteAccepted'), t('notifications.inviteAcceptedBody'));
         queryClient.invalidateQueries({ queryKey: ['my-requests'] });
         queryClient.invalidateQueries({ queryKey: ['notifications'] });
         queryClient.invalidateQueries({ queryKey: ['collaborations'] });
+        queryClient.invalidateQueries({ queryKey: ['collaboration'] });
+        useAuthStore.getState().setPendingRequests([]);
         useAuthStore.getState().refreshProfile();
       }),
-      onEvent('clientRequestRejected', () => {
-        localNotify('Invitation declined', 'Your invitation was declined.');
+      onEvent('clientRequestRejected', (raw: unknown) => {
+        localNotify(t('notifications.inviteDeclined'), t('notifications.inviteDeclinedBody'));
         queryClient.invalidateQueries({ queryKey: ['my-requests'] });
         queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        queryClient.invalidateQueries({ queryKey: ['collaboration'] });
+        // Clear all pending requests and let the refetch repopulate
+        useAuthStore.getState().setPendingRequests([]);
       }),
       onEvent('invitationReceived', (raw: unknown) => {
-        const data = raw as { trainerName?: string } | undefined;
-        localNotify('New invitation', data?.trainerName
-          ? `${data.trainerName} invited you`
-          : 'You received a new invitation.');
+        const data = raw as {
+          id?: string
+          trainerId?: string
+          trainerName?: string
+          trainerRole?: string
+          trainerCity?: string
+          message?: string
+        } | undefined;
+        localNotify(t('notifications.newInvite'), data?.trainerName
+          ? t('notifications.invitedBy', { name: data.trainerName })
+          : t('notifications.newInviteFallback'));
         useMessagesStore.getState().showInviteBanner(data?.trainerName ?? 'Your trainer');
-        queryClient.invalidateQueries({ queryKey: ['client-invite'] });
+
+        // Set invite data directly in the cache from the event payload
+        // so the InviteCard appears immediately without waiting for an API round-trip.
+        // Do NOT invalidateQueries for client-invite here — that would trigger a
+        // background refetch that could overwrite our cache with null if the API
+        // endpoint has issues. The 30s polling interval handles eventual consistency.
+        if (data?.id && data.trainerName) {
+          queryClient.setQueryData(['client-invite'], {
+            id: data.id,
+            trainerId: data.trainerId ?? '',
+            trainerName: data.trainerName,
+            trainerRole: data.trainerRole ?? 'Trainer',
+            trainerCity: data.trainerCity ?? '',
+            message: data.message,
+          });
+        } else {
+          // Fallback: if event payload is missing data, force a refetch
+          queryClient.invalidateQueries({ queryKey: ['client-invite'] });
+        }
+
         queryClient.invalidateQueries({ queryKey: ['notifications'] });
       }),
       onEvent('questionnaireAssigned', () => {
-        localNotify('Questionnaire assigned', 'You have a new questionnaire to fill.');
+        localNotify(t('notifications.questionnaireAssigned'), t('notifications.questionnaireBody'));
         queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        queryClient.invalidateQueries({ queryKey: ['pending-questionnaires'] });
         useAuthStore.getState().refreshProfile();
+      }),
+      onEvent('questionnaireCancelled', () => {
+        localNotify(t('notifications.questionnaireCancelled'), t('notifications.questionnaireCancelledBody'));
+        queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        queryClient.invalidateQueries({ queryKey: ['pending-questionnaires'] });
+        useAuthStore.getState().refreshProfile();
+      }),
+      onEvent('invitationCancelled', () => {
+        localNotify(t('notifications.invitationCancelled'), t('notifications.invitationCancelledBody'));
+        queryClient.invalidateQueries({ queryKey: ['client-invite'] });
+        queryClient.invalidateQueries({ queryKey: ['notifications'] });
       }),
       onEvent('newMessage', (raw: unknown) => {
         const payload = raw as { conversationId?: string; senderName?: string };
         const currentPath = pathnameRef.current;
         const viewingThisChat = payload.conversationId && currentPath.includes(`/messages/${payload.conversationId}`);
         if (!viewingThisChat) {
-          localNotify('New message', payload.senderName ? `${payload.senderName} sent you a message` : 'You have a new message');
+          localNotify(t('notifications.newMessage'), payload.senderName ? t('notifications.newMessageBy', { name: payload.senderName }) : t('notifications.newMessageFallback'));
         }
         queryClient.invalidateQueries({ queryKey: ['conversations'] });
         if (payload.conversationId) {
@@ -143,6 +204,33 @@ export default function ClientTabLayout() {
       }),
       onEvent('userPresence', () => {
         queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      }),
+      onEvent('nutritionPlanPublished', () => {
+        localNotify(t('notifications.nutritionPlanPublished'), t('notifications.nutritionPlanPublishedBody'));
+        queryClient.invalidateQueries({ queryKey: ['nutrition-plan-full'] });
+        queryClient.invalidateQueries({ queryKey: ['today-plan'] });
+        queryClient.invalidateQueries({ queryKey: ['today-log'] });
+        queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      }),
+      onEvent('trainingPlanPublished', (raw: unknown) => {
+        const data = raw as {
+          planId?: string; planName?: string;
+          trainerName?: string; startDate?: string;
+        } | undefined;
+        localNotify(t('notifications.trainingPlanPublished'), t('notifications.trainingPlanPublishedBody'));
+        if (data?.planId && data?.startDate) {
+          useTodayStore.getState().addPendingTrainingPlan({
+            planId: data.planId,
+            type: 'training',
+            name: data.planName ?? '',
+            trainerName: data.trainerName ?? '',
+            chips: [],
+            startDate: data.startDate,
+            accentColor: '#c9a84c',
+          });
+        }
+        queryClient.invalidateQueries({ queryKey: ['today-training'] });
+        queryClient.invalidateQueries({ queryKey: ['notifications'] });
       }),
       onEvent('conversationUnarchived', (raw: unknown) => {
         const data = raw as { conversationId?: string; senderName?: string; isFormer?: boolean } | undefined;
@@ -177,24 +265,41 @@ export default function ClientTabLayout() {
         case 'questionnaire':
           router.push('/(client)/questionnaire' as never);
           break;
+        case 'trainingPlanPublished':
+        case 'nutritionPlanPublished':
+          queryClient.invalidateQueries({ queryKey: ['nutrition-plan-full'] });
+          queryClient.invalidateQueries({ queryKey: ['today-training'] });
+          queryClient.invalidateQueries({ queryKey: ['collaborations'] });
+          router.push('/(client)');
+          break;
       }
     });
     return () => sub.remove();
   }, [router]);
 
+  // Hide tab bar on sub-screens (chat detail, trainer profile, invite detail)
+  const hideTabBar =
+    pathname.match(/\/messages\/[^/]+$/) && !pathname.endsWith('/messages/archived') ||
+    pathname.match(/\/discover\/[^/]+$/) && !pathname.endsWith('/discover') ||
+    pathname.match(/\/plans\/[^/]+$/) && !pathname.endsWith('/plans') ||
+    pathname.endsWith('/pending-questionnaires') ||
+    pathname.endsWith('/nutrition/plan-detail')
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: {
-          position: 'absolute',
-          borderTopWidth: StyleSheet.hairlineWidth,
-          borderTopColor: colors.sep2,
-          height: 50 + insets.bottom,
-          paddingBottom: insets.bottom,
-          backgroundColor: 'transparent',
-          elevation: 0,
-        },
+        tabBarStyle: hideTabBar
+          ? { display: 'none' }
+          : {
+              position: 'absolute',
+              borderTopWidth: StyleSheet.hairlineWidth,
+              borderTopColor: colors.sep2,
+              height: 50 + insets.bottom,
+              paddingBottom: insets.bottom,
+              backgroundColor: 'transparent',
+              elevation: 0,
+            },
         tabBarBackground: () => (
           <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.bg + 'F2' }]} />
         ),
@@ -211,7 +316,7 @@ export default function ClientTabLayout() {
           key={tab.name}
           name={tab.name}
           options={{
-            title: tab.label,
+            title: t(tab.i18nKey),
             tabBarIcon: ({ focused, color }) => (
               <Ionicons
                 name={focused ? tab.iconFocused : tab.icon}
@@ -235,12 +340,13 @@ export default function ClientTabLayout() {
       <Tabs.Screen name="training/history" options={{ href: null }} />
       <Tabs.Screen name="training/progress" options={{ href: null }} />
       <Tabs.Screen name="nutrition/index" options={{ href: null }} />
+      <Tabs.Screen name="nutrition/plan-detail" options={{ href: null }} />
       <Tabs.Screen name="nutrition/[mealId]" options={{ href: null }} />
       <Tabs.Screen name="nutrition/shopping" options={{ href: null }} />
       <Tabs.Screen name="nutrition/week-overview" options={{ href: null }} />
       <Tabs.Screen name="measurements/index" options={{ href: null }} />
       <Tabs.Screen name="measurements/new" options={{ href: null }} />
-      <Tabs.Screen name="plans/[planId]" options={{ href: null }} />
+      <Tabs.Screen name="pending-questionnaires" options={{ href: null }} />
     </Tabs>
   );
 }

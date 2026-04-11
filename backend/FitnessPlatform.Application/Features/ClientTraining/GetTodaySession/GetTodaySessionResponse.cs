@@ -24,4 +24,13 @@ public class GetTodaySessionResponse
 
     /// <summary>Total number of weeks in the plan.</summary>
     public int? TotalWeeks { get; set; }
+
+    /// <summary>Plan status (Active, Completed, Archived).</summary>
+    public string? Status { get; set; }
+
+    /// <summary>Linked questionnaire response public ID, if any.</summary>
+    public Guid? QuestionnaireResponseId { get; set; }
+
+    /// <summary>When this plan was marked as completed, if applicable.</summary>
+    public DateTime? DateCompleted { get; set; }
 }

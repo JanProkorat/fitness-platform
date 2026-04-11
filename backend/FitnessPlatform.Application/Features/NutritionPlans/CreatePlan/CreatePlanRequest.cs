@@ -32,4 +32,10 @@ public class CreatePlanRequest
     /// Transmitted as ISO date string (e.g. "2026-03-30"), stored as midnight UTC.
     /// </summary>
     public DateTime? StartDate { get; set; }
+
+    /// <summary>
+    /// Optional questionnaire response to link to this plan (cross-DB reference).
+    /// Must be a submitted response owned by this professional for the same client.
+    /// </summary>
+    public Guid? QuestionnaireResponseId { get; set; }
 }

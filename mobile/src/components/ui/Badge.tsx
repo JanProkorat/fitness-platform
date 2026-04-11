@@ -4,7 +4,7 @@ import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
 
-type BadgeVariant = 'active' | 'warning' | 'inactive' | 'gold'
+type BadgeVariant = 'active' | 'warning' | 'inactive' | 'gold' | 'success' | 'muted'
 
 interface BadgeProps {
   label: string
@@ -19,6 +19,8 @@ export function Badge({ label, variant = 'active' }: BadgeProps) {
     warning: { bg: colors.orange + '20', text: colors.orange },
     inactive: { bg: colors.fill, text: colors.label3 },
     gold: { bg: colors.goldBg, text: colors.gold },
+    success: { bg: colors.gold + '20', text: colors.gold },
+    muted: { bg: 'rgba(255,255,255,0.12)', text: 'rgba(255,255,255,0.5)' },
   }
 
   const { bg, text } = variantStyles[variant]

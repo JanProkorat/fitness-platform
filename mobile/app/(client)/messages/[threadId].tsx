@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   View,
   FlatList,
@@ -19,6 +20,7 @@ import { ChatHeader } from '@/components/messages/ChatHeader'
 import { ChatInputBar } from '@/components/messages/ChatInputBar'
 import { MessageBubble } from '@/components/messages/MessageBubble'
 import { ContextBanner } from '@/components/messages/ContextBanner'
+import { QuestionnaireBanner } from '@/components/notifications/QuestionnaireBanner'
 import { FormerTrainerBanner } from '@/components/messages/FormerTrainerBanner'
 import { TypingIndicator } from '@/components/messages/TypingIndicator'
 import { DateSeparator } from '@/components/messages/DateSeparator'
@@ -28,8 +30,10 @@ export default function ChatScreen() {
   const { threadId } = useLocalSearchParams<{ threadId: string }>()
   const router = useRouter()
   const colors = useTheme()
+  const { t } = useTranslation()
   const insets = useSafeAreaInsets()
   const userId = useAuthStore((s) => s.user?.publicId)
+  const hasPendingQuestionnaire = useAuthStore((s) => s.user?.hasPendingQuestionnaire ?? false)
 
   // Find conversation participant info
   const { data: conversations } = useQuery({
@@ -55,7 +59,7 @@ export default function ChatScreen() {
   const acceptMutation = useMutation({
     mutationFn: (inviteId: string) => api.post(`/client/invites/${inviteId}/accept`),
     onSuccess: async () => {
-      Toast.show(`You and ${participant?.name} are now connected`)
+      Toast.show(t('messages.connected', { name: participant?.name }))
       queryClient.invalidateQueries({ queryKey: ['conversation-context'] })
       queryClient.invalidateQueries({ queryKey: ['client-invite'] })
       queryClient.invalidateQueries({ queryKey: ['conversations'] })
@@ -214,6 +218,17 @@ export default function ChatScreen() {
           sub={context.sub}
           actionLabel={context.actionLabel}
           onAction={() => router.push(context.actionRoute as never)}
+        />
+      )}
+
+      {/* Pending questionnaire banner */}
+      {hasPendingQuestionnaire && (
+        <ContextBanner
+          icon="clipboard-outline"
+          title={t('today.questionnaireTitle')}
+          sub={t('today.questionnaireDesc')}
+          actionLabel={t('today.questionnaireFill')}
+          onAction={() => router.push('/(auth)/questionnaire' as never)}
         />
       )}
 

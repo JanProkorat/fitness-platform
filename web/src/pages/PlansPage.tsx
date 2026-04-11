@@ -10,11 +10,13 @@ import {
 import type { CreatePlanRequest, PlanSummary } from '@/api/plan-types';
 import { apiClient } from '@/api/client';
 import ClientSelect from '@/components/nutrition/ClientSelect';
+import { QuestionnaireResponseSelect } from '@/components/questionnaire/QuestionnaireResponseSelect';
 import { showApiError, showSuccess } from '@/lib/api-errors';
 
 const statusStyles: Record<string, string> = {
   Draft: 'bg-yellow-500/15 text-yellow-400',
   Active: 'bg-green-500/15 text-green-400',
+  Completed: 'bg-accent/15 text-accent',
   Archived: 'bg-bg3 text-text3',
 };
 
@@ -40,7 +42,7 @@ export default function PlansPage() {
   const [confirmDelete, setConfirmDelete] = useState<{ planId: string; name: string } | null>(null);
 
   const openDrawer = useCallback(() => {
-    setNewPlan({ clientId: clientIdParam ?? '', name: '', weekCount: 1, startDate: null });
+    setNewPlan({ clientId: clientIdParam ?? '', name: '', weekCount: 1, startDate: null, questionnaireResponseId: null });
     setDrawerMounted(true);
     requestAnimationFrame(() => requestAnimationFrame(() => setDrawerVisible(true)));
   }, [clientIdParam]);
@@ -113,7 +115,9 @@ export default function PlansPage() {
       ? t('nutrition.statusDraft')
       : status === 'Active'
         ? t('nutrition.statusActive')
-        : t('nutrition.statusArchived');
+        : status === 'Completed'
+          ? t('nutrition.statusCompleted')
+          : t('nutrition.statusArchived');
 
   const inputClass =
     'rounded-md border border-border-md bg-bg px-4 py-2.5 text-sm text-text outline-none transition-colors placeholder:text-text3 focus:border-border-hv';
@@ -304,6 +308,18 @@ export default function PlansPage() {
                     className={`w-full ${inputClass}`}
                   />
                   <p className="mt-1 text-[10px] text-text3">{t('nutrition.startDateHint')}</p>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs text-text3">
+                    {t('nutrition.linkedQuestionnaire')}
+                  </label>
+                  <QuestionnaireResponseSelect
+                    clientId={newPlan.clientId}
+                    value={newPlan.questionnaireResponseId ?? ''}
+                    onChange={(id) => setNewPlan({ ...newPlan, questionnaireResponseId: id || null })}
+                    ns="nutrition"
+                  />
                 </div>
               </form>
             </div>

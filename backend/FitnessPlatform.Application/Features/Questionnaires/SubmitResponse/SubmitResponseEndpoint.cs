@@ -47,11 +47,11 @@ public class SubmitResponseEndpoint(IApplicationDbContext db, IProfileMapperServ
             return;
         }
 
-        // 3. Verify status is InProgress
-        if (response.Status != QuestionnaireResponseStatus.InProgress)
+        // 3. Verify status allows submission (Pending or InProgress)
+        if (response.Status != QuestionnaireResponseStatus.Pending && response.Status != QuestionnaireResponseStatus.InProgress)
         {
             await HttpContext.Response.SendAsync(
-                new { Error = "Response is not in progress and cannot be submitted." },
+                new { Error = "Response cannot be submitted in its current state." },
                 409, cancellation: ct);
             return;
         }

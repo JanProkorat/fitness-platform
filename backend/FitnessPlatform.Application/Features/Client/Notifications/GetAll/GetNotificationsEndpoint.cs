@@ -14,7 +14,7 @@ public class GetNotificationsEndpoint(IApplicationDbContext db) : Endpoint<GetNo
     public override void Configure()
     {
         Get("/client/notifications");
-        Roles(AppRoles.Client);
+        Roles(AppRoles.Client, AppRoles.Trainer, AppRoles.Nutritionist);
         Summary(s =>
         {
             s.Summary = "Get client notifications";

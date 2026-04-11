@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,8 +12,10 @@ namespace FitnessPlatform.Application.Features.Trainers.PendingInvites.Delete;
 /// Endpoint for deleting a pending invitation.
 /// Only the professional who created the invitation can delete it.
 /// </summary>
-/// <param name="db">Database context.</param>
-public class DeletePendingInviteEndpoint(IApplicationDbContext db) : Endpoint<DeletePendingInviteRequest>
+public class DeletePendingInviteEndpoint(
+    IApplicationDbContext db,
+    INotificationService notificationService,
+    IRealtimeNotifier notifier) : Endpoint<DeletePendingInviteRequest>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -67,8 +71,35 @@ public class DeletePendingInviteEndpoint(IApplicationDbContext db) : Endpoint<De
             return;
         }
 
+        // Look up the invited client by email to send notification
+        var invitedUser = await db.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Email == pendingInvite.Email, ct);
+
         db.PendingInvites.Remove(pendingInvite);
         await db.SaveChangesAsync(ct);
+
+        if (invitedUser is not null)
+        {
+            var profUser = await db.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == professionalProfile.UserId, ct);
+            var trainerName = profUser is not null
+                ? $"{profUser.FirstName} {profUser.LastName}"
+                : "Your trainer";
+
+            await notificationService.CreateAsync(
+                invitedUser.Id,
+                NotificationType.InvitationCancelled,
+                "Invitation cancelled",
+                $"{trainerName} has cancelled their invitation.",
+                ct: ct);
+
+            await notifier.NotifyAsync(invitedUser.Id, "invitationCancelled", new
+            {
+                InviteId = pendingInvite.PublicId,
+            }, ct);
+        }
 
         await Send.NoContentAsync(ct);
     }

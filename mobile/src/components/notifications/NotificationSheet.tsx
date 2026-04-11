@@ -125,6 +125,7 @@ export function NotificationSheet({
             ItemSeparatorComponent={() => (
               <View style={[styles.sep, { backgroundColor: colors.sep2 }]} />
             )}
+            contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
           />
         )}
@@ -168,6 +169,9 @@ const styles = StyleSheet.create({
   empty: {
     padding: 40,
     alignItems: 'center',
+  },
+  listContent: {
+    paddingBottom: 100,
   },
   sep: {
     height: StyleSheet.hairlineWidth,

@@ -12,9 +12,13 @@ let connection: HubConnection | null = null;
 const KNOWN_EVENTS = [
   'newmessage',
   'invitationreceived',
+  'invitationcancelled',
   'clientrequestaccepted',
   'clientrequestrejected',
   'questionnaireassigned',
+  'nutritionplanpublished',
+  'nutritionplanupdated',
+  'trainingplanpublished',
   'typing',
   'userpresence',
   'conversationunarchived',

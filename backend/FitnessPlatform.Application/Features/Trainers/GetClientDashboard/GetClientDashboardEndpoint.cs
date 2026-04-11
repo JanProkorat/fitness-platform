@@ -128,6 +128,29 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
             HttpContext.Connection.RemoteIpAddress?.ToString(),
             ct: ct);
 
+        // Determine questionnaire status
+        var questionnaireStatus = "none";
+        string? questionnaireTitle = null;
+        Guid? questionnaireResponsePublicId = null;
+
+        var qResponse = await db.QuestionnaireResponses
+            .AsNoTracking()
+            .Include(r => r.Questionnaire)
+            .Where(r => r.ClientId == clientProfile.UserId
+                     && r.ProfessionalId == Guid.Parse(userId)
+                     && r.Status != Domain.Enums.QuestionnaireResponseStatus.Cancelled)
+            .OrderByDescending(r => r.DateCreated)
+            .FirstOrDefaultAsync(ct);
+
+        if (qResponse is not null)
+        {
+            questionnaireStatus = qResponse.Status == Domain.Enums.QuestionnaireResponseStatus.Submitted
+                ? "submitted"
+                : "pending";
+            questionnaireTitle = qResponse.Questionnaire.Title;
+            questionnaireResponsePublicId = qResponse.PublicId;
+        }
+
         OnboardingDataDto? onboarding = null;
         if (clientProfile.OnboardingData is { } od)
         {
@@ -174,8 +197,13 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
             HeightCm = clientProfile.HeightCm,
             WeightKg = clientProfile.WeightKg,
             Goals = clientProfile.Goals,
-            LinkedAt = link.DateCreated,
+            LinkedAt = link.DateUpdated ?? link.DateCreated,
             IsActive = link.IsActive,
+            HasRegistered = clientProfile.User.EmailConfirmed,
+            QuestionnaireStatus = questionnaireStatus,
+            QuestionnaireTitle = questionnaireTitle,
+            QuestionnaireResponsePublicId = questionnaireResponsePublicId,
+            QuestionnaireSubmittedAt = qResponse?.SubmittedAt,
             TotalMeasurements = totalMeasurements,
             TotalProgressPhotos = totalProgressPhotos,
             LatestMeasurement = latestMeasurement,

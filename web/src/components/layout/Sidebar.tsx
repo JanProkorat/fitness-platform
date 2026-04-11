@@ -11,6 +11,7 @@ import { fetchConversations } from '@/api/messages';
 import { getTrainerQuestionnaires, type QuestionnaireSummaryDto } from '@/api/questionnaires';
 import { cn } from '@/lib/cn';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { NotificationBell } from '@/components/layout/NotificationBell';
 import { NewClientDialog } from '@/components/NewClientDialog';
 import { Dialog } from '@/components/ui/Dialog';
 import { Button } from '@/components/ui/Button';
@@ -140,6 +141,7 @@ export function Sidebar({ onToggleDark }: SidebarProps) {
       <div className="sb-ws">
         <div className="sb-ws-icon">GF</div>
         <div className="sb-ws-name">GoodFellas</div>
+        <NotificationBell />
       </div>
 
       <div className="sb-div" />

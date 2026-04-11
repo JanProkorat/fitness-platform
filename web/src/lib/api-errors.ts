@@ -14,12 +14,16 @@ interface ProblemDetails {
 
 /**
  * Extracts the first error code from a ProblemDetails API response.
+ *
+ * FastEndpoints returns errors as { name, reason, code } where:
+ *   - `reason` contains the error code string (e.g. "START_DATE_REQUIRED")
+ *   - `code`   contains the human-readable message
  */
 export function getErrorCode(error: unknown): string | null {
   const axiosError = error as AxiosError<ProblemDetails>;
   const errors = axiosError?.response?.data?.errors;
   if (errors?.length) {
-    return errors[0].code ?? null;
+    return errors[0].reason ?? null;
   }
   return null;
 }

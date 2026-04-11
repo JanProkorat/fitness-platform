@@ -49,12 +49,14 @@ export interface TrainingPlanDetail {
   trainerId: string;
   name: string;
   description?: string | null;
-  status: 'Draft' | 'Active' | 'Archived';
+  status: 'Draft' | 'Active' | 'Completed' | 'Archived';
   weeks: TrainingWeek[];
   version: number;
   dateCreated: string;
   dateUpdated?: string | null;
   startDate?: string | null;
+  dateCompleted?: string | null;
+  questionnaireResponseId?: string | null;
 }
 
 /** Training plan summary for list views. */
@@ -63,12 +65,14 @@ export interface TrainingPlanSummary {
   name: string;
   description?: string | null;
   clientId: string;
-  status: 'Draft' | 'Active' | 'Archived';
+  status: 'Draft' | 'Active' | 'Completed' | 'Archived';
   weekCount: number;
   version: number;
   dateCreated: string;
   dateUpdated?: string | null;
   startDate?: string | null;
+  dateCompleted?: string | null;
+  questionnaireResponseId?: string | null;
 }
 
 /** Paginated training plan list response. */
@@ -86,6 +90,7 @@ export interface CreateTrainingPlanRequest {
   description?: string | null;
   weekCount?: number;
   startDate?: string | null;
+  questionnaireResponseId?: string | null;
 }
 
 /** Request to update a training plan (full state). */

@@ -48,7 +48,7 @@ public class MarkConversationReadEndpoint(IApplicationDbContext db) : Endpoint<M
                      && !m.IsRead)
             .ExecuteUpdateAsync(s => s.SetProperty(m => m.IsRead, true), ct);
 
-        await Send.OkAsync(ct);
+        await Send.NoContentAsync(ct);
     }
 }
 

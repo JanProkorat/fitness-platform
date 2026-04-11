@@ -3,8 +3,11 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.NutritionPlans.GetPlan;
+using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.NutritionPlans.PublishWeek;
@@ -13,8 +16,11 @@ namespace FitnessPlatform.Application.Features.NutritionPlans.PublishWeek;
 /// Publishes a single week of a nutrition plan, making it visible to the client.
 /// Archives other active plans for the same client when the first week is published.
 /// </summary>
-/// <param name="mongo">MongoDB context.</param>
-public class PublishWeekEndpoint(IMongoContext mongo) : Endpoint<PublishWeekRequest, GetPlanResponse>
+public class PublishWeekEndpoint(
+    IMongoContext mongo,
+    IApplicationDbContext db,
+    INotificationService notificationService,
+    IRealtimeNotifier notifier) : Endpoint<PublishWeekRequest, GetPlanResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -123,6 +129,27 @@ public class PublishWeekEndpoint(IMongoContext mongo) : Endpoint<PublishWeekRequ
             await HttpContext.Response.SendAsync(
                 new { Error = "Version conflict." }, 409, cancellation: ct);
             return;
+        }
+
+        // Notify the client about the published week
+        var clientProfile = await db.ClientProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cp => cp.PublicId == plan.ClientId, ct);
+
+        if (clientProfile is not null)
+        {
+            await notificationService.CreateAsync(
+                clientProfile.UserId,
+                NotificationType.PlanPublished,
+                "Nutrition plan updated",
+                $"Week {req.WeekNumber} of your nutrition plan has been published.",
+                ct: ct);
+
+            await notifier.NotifyAsync(clientProfile.UserId, "nutritionPlanPublished", new
+            {
+                PlanId = plan.ExternalId,
+                req.WeekNumber,
+            }, ct);
         }
 
         await Send.OkAsync(GetPlanResponse.FromDocument(plan), ct);

@@ -675,7 +675,7 @@ body.dark .btn-auth-primary { color: #0d0900; }
       <div class="prop-row"><div class="prop-key">📏 Výška / váha</div><div class="prop-val">168 cm · <span class="editable-val">63,1 kg</span> <span style="color:var(--green);font-size:12px">↓ 2,4 kg</span></div></div>
       <div class="prop-row"><div class="prop-key">🎯 Cílová váha</div><div class="prop-val"><span class="editable-val">58,0 kg</span></div></div>
       <div class="prop-row"><div class="prop-key">✉ Email</div><div class="prop-val" style="color:var(--blue)">petra@example.cz</div></div>
-      <div class="prop-row"><div class="prop-key">📋 Aktivní plány</div><div class="prop-val"><span class="mention" onclick="showScreen('s-nutrition')">🥗 Jídelníček únor/březen</span>&nbsp;<span class="mention" onclick="showScreen('s-training')">🏋️ Silový A/B</span></div></div>
+      <div class="prop-row"><div class="prop-key">📋 Plány</div><div class="prop-val"><span class="mention" onclick="showScreen('s-nutrition')">🥗 Jídelníček únor/březen</span>&nbsp;<span class="tag tag-green" style="font-size:11px">Aktivní</span>&nbsp;&nbsp;<span class="mention" onclick="showScreen('s-training')">🏋️ Silový A/B</span>&nbsp;<span class="tag tag-green" style="font-size:11px">Aktivní</span>&nbsp;&nbsp;<span style="color:var(--t3);font-size:12px">🥗 Jídelníček leden</span>&nbsp;<span class="tag tag-acc" style="font-size:11px">Dokončený</span></div></div>
       <div class="prop-row"><div class="prop-key">⚠ Alergie</div><div class="prop-val"><span class="editable-val">Laktóza (mírná)</span></div></div>
     </div>
     <div class="divider"></div>
@@ -714,6 +714,7 @@ body.dark .btn-auth-primary { color: #0d0900; }
     <div class="tb-view">📅 Týden 4</div>
     <div style="margin-left:auto;display:flex;gap:6px">
       <button class="btn">Náhled klienta</button>
+      <button class="btn" style="color:var(--acc);border-color:var(--acc-br)" onclick="openDialog('dlg-complete-plan')">✓ Dokončit plán</button>
       <button class="btn primary">Publikovat</button>
     </div>
   </div>
@@ -782,6 +783,7 @@ body.dark .btn-auth-primary { color: #0d0900; }
       <span id="nutr-save-ind" style="font-size:11px;color:var(--green)">Uloženo</span>
       <button class="btn" onclick="openDialog('dlg-shopping-list')">🛒 Nákupní seznam</button>
       <button class="btn" onclick="openDialog('dlg-add-meal')">+ Jídlo</button>
+      <button class="btn" style="color:var(--acc);border-color:var(--acc-br)" onclick="openDialog('dlg-complete-plan')">✓ Dokončit plán</button>
       <button class="btn primary" onclick="publishPlan()">Publikovat</button>
     </div>
   </div>
@@ -1521,6 +1523,33 @@ body.dark .btn-auth-primary { color: #0d0900; }
   </div>
 </div>
 
+<!-- Dokončit plán — confirmation -->
+<div class="overlay" id="dlg-complete-plan" onclick="closeOnOverlay(event,'dlg-complete-plan')">
+  <div class="dialog" style="max-width:420px">
+    <div class="dlg-hdr"><div class="dlg-title">Dokončit plán</div><button class="dlg-close" onclick="closeDialog('dlg-complete-plan')">✕</button></div>
+    <div class="dlg-body">
+      <div style="display:flex;align-items:flex-start;gap:12px">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--acc-bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">✓</div>
+        <div>
+          <div style="font-size:14px;font-weight:500;margin-bottom:6px">Opravdu chcete tento plán označit jako dokončený?</div>
+          <div style="font-size:13px;color:var(--t2);line-height:1.6">
+            Plán bude přesunut do stavu <span class="tag tag-acc" style="font-size:11px">Dokončený</span> a klient bude informován.<br>
+            Po dokončení můžete vytvořit nový plán s novým dotazníkem.
+          </div>
+          <div style="margin-top:12px;padding:10px 12px;border-radius:var(--rm);background:var(--bg2);border:1px solid var(--br);font-size:12px;color:var(--t2)">
+            <div style="font-weight:500;color:var(--t);margin-bottom:4px">⚠ Tuto akci nelze vrátit</div>
+            Dokončený plán nebude možné znovu aktivovat. Místo toho vytvořte nový plán.
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="dlg-footer">
+      <button class="btn" onclick="closeDialog('dlg-complete-plan')">Zrušit</button>
+      <button class="btn" style="background:var(--acc);color:#fff;border-color:var(--acc)" onclick="completePlan()">Dokončit plán</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div id="toast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#37352f;color:#fff;padding:8px 16px;border-radius:6px;font-size:13px;font-weight:500;z-index:2000;opacity:0;transition:opacity .2s;pointer-events:none"></div>
 
@@ -2126,6 +2155,16 @@ function updateNutrSidebar(){
 }
 
 function publishPlan(){showToast('Plán publikován — Petra Horáková ho uvidí v mobilní aplikaci');}
+function completePlan(){
+  closeDialog('dlg-complete-plan');
+  // Update status tag in training screen
+  var tTag=document.querySelector('#s-training .tag.tag-green');
+  if(tTag){tTag.className='tag tag-acc';tTag.textContent='Dokončený';}
+  // Update client detail plan mentions
+  var plansRow=document.querySelector('#s-client .prop-val .mention');
+  // Show toast
+  showToast('Plán označen jako dokončený — klient byl informován');
+}
 
 // ── SHOPPING LIST ─────────────────────────────────────────────────────────────
 function renderShoppingList(){

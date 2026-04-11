@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   View,
   Text,
@@ -23,6 +24,7 @@ import { fetchConversations, archiveConversation } from '../../../src/api/messag
 
 export default function MessagesScreen() {
   const colors = useTheme()
+  const { t } = useTranslation()
   const insets = useSafeAreaInsets()
   const router = useRouter()
   const queryClient = useQueryClient()
@@ -35,7 +37,6 @@ export default function MessagesScreen() {
     queryKey: ['conversations'],
     queryFn: () => fetchConversations(false),
     staleTime: 10_000,
-    refetchInterval: 15_000,
   })
 
   const archiveMutation = useMutation({
@@ -69,7 +70,7 @@ export default function MessagesScreen() {
       <View style={[styles.container, { backgroundColor: colors.bg, paddingTop: insets.top }]}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={[Type.largeTitle, { color: colors.label }]}>Messages</Text>
+          <Text style={[Type.largeTitle, { color: colors.label }]}>{t('messages.title')}</Text>
           <Pressable style={[styles.composeBtn, { backgroundColor: colors.fill }]}>
             <Ionicons name="create-outline" size={18} color={colors.blue} />
           </Pressable>
@@ -81,7 +82,7 @@ export default function MessagesScreen() {
             <Ionicons name="search" size={16} color={colors.label3} />
             <TextInput
               style={[styles.searchInput, { color: colors.label }]}
-              placeholder="Search"
+              placeholder={t('messages.search')}
               placeholderTextColor={colors.label3}
               value={search}
               onChangeText={setSearch}
@@ -107,7 +108,7 @@ export default function MessagesScreen() {
           <View style={styles.center}>
             <Ionicons name="chatbubbles-outline" size={48} color={colors.label3} />
             <Text style={[Type.body, { color: colors.label2, marginTop: 12 }]}>
-              {search ? 'No conversations found' : 'No messages yet'}
+              {search ? t('messages.noConversations') : t('messages.noMessages')}
             </Text>
           </View>
         ) : (
@@ -149,7 +150,7 @@ export default function MessagesScreen() {
               onPress={() => router.push('/(client)/messages/archived' as never)}
             >
               <Text style={[styles.archivedText, { color: colors.blue }]}>
-                Archived conversations
+                {t('messages.archivedConversations')}
               </Text>
               <Ionicons name="chevron-forward" size={14} color={colors.blue} />
             </Pressable>

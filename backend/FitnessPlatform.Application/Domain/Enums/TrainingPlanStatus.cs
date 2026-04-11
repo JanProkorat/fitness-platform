@@ -16,6 +16,12 @@ public enum TrainingPlanStatus
     Active,
 
     /// <summary>
+    /// Plan has been completed by the professional (finished lifecycle).
+    /// A new plan can now be created for the same client.
+    /// </summary>
+    Completed,
+
+    /// <summary>
     /// Plan is no longer in use (soft-deleted).
     /// </summary>
     Archived

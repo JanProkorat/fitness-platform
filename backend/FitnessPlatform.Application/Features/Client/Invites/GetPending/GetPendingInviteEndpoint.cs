@@ -10,9 +10,11 @@ namespace FitnessPlatform.Application.Features.Client.Invites.GetPending;
 
 /// <summary>
 /// Returns the most recent pending invite for the authenticated client (by email match).
-/// Returns null body when no invite exists.
+/// Returns 204 No Content when no invite exists.
 /// </summary>
-public class GetPendingInviteEndpoint(IApplicationDbContext db, UserManager<ApplicationUser> userManager) : EndpointWithoutRequest<PendingInviteResponse?>
+public class GetPendingInviteEndpoint(
+    IApplicationDbContext db,
+    UserManager<ApplicationUser> userManager) : EndpointWithoutRequest<PendingInviteResponse>
 {
     public override void Configure()
     {
@@ -21,7 +23,7 @@ public class GetPendingInviteEndpoint(IApplicationDbContext db, UserManager<Appl
         Summary(s =>
         {
             s.Summary = "Get pending invite";
-            s.Description = "Returns the most recent pending invitation for the authenticated client, or null if none.";
+            s.Description = "Returns the most recent pending invitation for the authenticated client, or 204 if none.";
         });
     }
 
@@ -35,35 +37,22 @@ public class GetPendingInviteEndpoint(IApplicationDbContext db, UserManager<Appl
 
         if (user is null) { await Send.UnauthorizedAsync(ct); return; }
 
-        // Check if client already has an active link — if so, no pending invite matters
-        var clientProfile = await db.ClientProfiles
-            .AsNoTracking()
-            .FirstOrDefaultAsync(cp => cp.UserId == userGuid, ct);
+        // Use NormalizedEmail (uppercase, set by Identity) for reliable matching.
+        // PendingInvite.Email stores the original casing from the trainer, so compare
+        // using UPPER() on both sides.
+        var normalizedEmail = user.NormalizedEmail ?? user.Email?.ToUpper() ?? string.Empty;
 
-        if (clientProfile is not null)
-        {
-            var hasActiveLink = await db.ClientProfessionalLinks
-                .AnyAsync(l => l.ClientProfileId == clientProfile.Id && l.IsActive, ct);
-
-            if (hasActiveLink)
-            {
-                await Send.OkAsync(null, ct);
-                return;
-            }
-        }
-
-        // Find pending invite by email
         var invite = await db.PendingInvites
             .AsNoTracking()
             .Include(pi => pi.ProfessionalProfile)
                 .ThenInclude(pp => pp.User)
-            .Where(pi => pi.Email == user.Email && !pi.IsAccepted)
+            .Where(pi => pi.Email.ToUpper() == normalizedEmail && !pi.IsAccepted)
             .OrderByDescending(pi => pi.SentAt)
             .FirstOrDefaultAsync(ct);
 
         if (invite is null)
         {
-            await Send.OkAsync(null, ct);
+            await Send.NoContentAsync(ct);
             return;
         }
 

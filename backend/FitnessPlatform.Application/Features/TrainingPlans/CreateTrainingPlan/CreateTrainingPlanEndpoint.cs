@@ -4,8 +4,10 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.TrainingPlans.Shared;
+using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace FitnessPlatform.Application.Features.TrainingPlans.CreateTrainingPlan;
 
@@ -14,7 +16,8 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.CreateTrainingPlan;
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="authHelper">Validates trainer-client relationship.</param>
-public class CreateTrainingPlanEndpoint(IMongoContext mongo, ProfessionalAuthHelper authHelper)
+/// <param name="db">PostgreSQL context for cross-DB validation.</param>
+public class CreateTrainingPlanEndpoint(IMongoContext mongo, ProfessionalAuthHelper authHelper, IApplicationDbContext db)
     : Endpoint<CreateTrainingPlanRequest, TrainingPlanSummaryDto>
 {
     /// <inheritdoc />
@@ -50,6 +53,23 @@ public class CreateTrainingPlanEndpoint(IMongoContext mongo, ProfessionalAuthHel
             return;
         }
 
+        // Validate questionnaire response link if provided
+        if (req.QuestionnaireResponseId.HasValue)
+        {
+            var responseExists = await db.QuestionnaireResponses
+                .AsNoTracking()
+                .AnyAsync(r => r.PublicId == req.QuestionnaireResponseId.Value
+                               && r.ProfessionalId == trainerId
+                               && r.ClientId == req.ClientId
+                               && r.Status == QuestionnaireResponseStatus.Submitted, ct);
+
+            if (!responseExists)
+            {
+                ThrowError("QuestionnaireResponseId", "Questionnaire response not found or not submitted.");
+                return;
+            }
+        }
+
         var now = DateTime.UtcNow;
 
         var plan = new TrainingPlan
@@ -60,6 +80,7 @@ public class CreateTrainingPlanEndpoint(IMongoContext mongo, ProfessionalAuthHel
             Name = req.Name,
             Description = req.Description?.Trim(),
             Status = TrainingPlanStatus.Draft,
+            QuestionnaireResponseId = req.QuestionnaireResponseId,
             Weeks = Enumerable.Range(1, req.WeekCount).Select(w => new TrainingWeek
             {
                 WeekNumber = w,

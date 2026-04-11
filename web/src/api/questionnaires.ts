@@ -92,7 +92,39 @@ export interface ClientResponseDto {
   answers: ResponseAnswerDto[];
 }
 
+export interface ClientResponseItem {
+  responsePublicId: string;
+  questionnaireTitle: string;
+  status: string;
+  submittedAt?: string | null;
+  dateCreated: string;
+  answerCount: number;
+  answers: ResponseAnswerDto[];
+}
+
+export interface ClientResponsesDto {
+  responses: ClientResponseItem[];
+}
+
+export async function assignQuestionnaire(clientPublicId: string, questionnairePublicId: string): Promise<void> {
+  await api.post(`/trainer/clients/${clientPublicId}/assign-questionnaire`, { questionnairePublicId });
+}
+
+export async function cancelQuestionnaire(clientPublicId: string): Promise<void> {
+  await api.post(`/trainer/clients/${clientPublicId}/cancel-questionnaire`);
+}
+
+export async function replaceQuestionnaire(clientPublicId: string, questionnairePublicId: string): Promise<void> {
+  await api.post(`/trainer/clients/${clientPublicId}/replace-questionnaire`, { questionnairePublicId });
+}
+
+/** @deprecated Use getClientQuestionnaireResponses (plural) instead */
 export async function getClientQuestionnaireResponse(clientId: string): Promise<ClientResponseDto> {
   const { data } = await api.get(`/trainer/clients/${clientId}/questionnaire-response`);
+  return data;
+}
+
+export async function getClientQuestionnaireResponses(clientId: string): Promise<ClientResponsesDto> {
+  const { data } = await api.get(`/trainer/clients/${clientId}/questionnaire-responses`);
   return data;
 }

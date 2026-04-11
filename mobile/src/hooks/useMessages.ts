@@ -8,9 +8,6 @@ import { fetchMessages, sendMessage } from '../api/messages'
 import type { Message } from '../types/messages'
 import { useAuthStore } from '../stores/auth'
 
-// TODO: replace polling with WebSocket (socket.io or native WS)
-// POST /api/conversations/{id}/typing  (debounced, on input change)
-
 interface MessagesPage {
   items: Message[]
   cursor: string | null
@@ -25,7 +22,6 @@ export function useMessages(conversationId: string) {
     queryFn: ({ pageParam }) => fetchMessages(conversationId, pageParam),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage: MessagesPage) => lastPage.cursor ?? undefined,
-    refetchInterval: 5_000,
   })
 
   const allMessages = query.data?.pages.flatMap((p) => p.items) ?? []

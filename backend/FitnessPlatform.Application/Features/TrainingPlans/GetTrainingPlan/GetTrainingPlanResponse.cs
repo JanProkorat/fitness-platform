@@ -63,6 +63,17 @@ public class GetTrainingPlanResponse
     public DateTime? StartDate { get; set; }
 
     /// <summary>
+    /// When this plan was marked as completed, if applicable.
+    /// </summary>
+    public DateTime? DateCompleted { get; set; }
+
+    /// <summary>
+    /// Linked questionnaire response (cross-DB reference to PostgreSQL QuestionnaireResponse.PublicId).
+    /// Null if no questionnaire is linked to this plan.
+    /// </summary>
+    public Guid? QuestionnaireResponseId { get; set; }
+
+    /// <summary>
     /// Maps a <see cref="TrainingPlan"/> document to a detailed response DTO.
     /// </summary>
     public static GetTrainingPlanResponse FromDocument(TrainingPlan plan) => new()
@@ -77,6 +88,8 @@ public class GetTrainingPlanResponse
         Version = plan.Version,
         DateCreated = plan.DateCreated,
         DateUpdated = plan.DateUpdated,
-        StartDate = plan.StartDate
+        StartDate = plan.StartDate,
+        DateCompleted = plan.DateCompleted,
+        QuestionnaireResponseId = plan.QuestionnaireResponseId
     };
 }

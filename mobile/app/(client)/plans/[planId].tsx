@@ -11,11 +11,13 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
+import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { MacroBar } from '@/components/ui/MacroBar'
+import { Badge } from '@/components/ui/Badge'
 import { SessionChip } from '@/components/training/SessionChip'
 import { ExerciseRow } from '@/components/training/ExerciseRow'
 import { MealRow } from '@/components/nutrition/MealRow'
@@ -23,13 +25,119 @@ import {
   getFullPlan,
   type FullPlanResponse,
   type PlanDay,
+  type PlanStatus,
 } from '../../../src/api/nutrition'
 import {
   getTodaySession,
   type TodayTrainingResponse,
 } from '../../../src/api/training'
+import {
+  getSubmittedQuestionnairesByCoach,
+  type SubmittedAnswer,
+} from '../../../src/api/questionnaire'
 
 const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
+// ─── Linked Questionnaire Section ─────────────────────────────────────
+
+function LinkedQuestionnaireSection({
+  questionnaireResponseId,
+}: {
+  questionnaireResponseId: string
+}) {
+  const colors = useTheme()
+  const { t } = useTranslation()
+  const [expanded, setExpanded] = useState(false)
+
+  const { data: coachData } = useQuery({
+    queryKey: ['submitted-questionnaires-by-coach'],
+    queryFn: getSubmittedQuestionnairesByCoach,
+    enabled: !!questionnaireResponseId,
+  })
+
+  // Find the matching response across all coaches
+  const matchedResponse = useMemo(() => {
+    if (!coachData?.coaches) return null
+    for (const coach of coachData.coaches) {
+      const found = coach.responses.find(
+        (r) => r.responsePublicId === questionnaireResponseId,
+      )
+      if (found) return { ...found, coachName: coach.professionalName }
+    }
+    return null
+  }, [coachData, questionnaireResponseId])
+
+  if (!matchedResponse) {
+    return (
+      <View style={[styles.linkedQSection, { backgroundColor: colors.bg2 }]}>
+        <View style={styles.linkedQHeader}>
+          <Text style={{ fontSize: 18 }}>📋</Text>
+          <Text style={[Type.subheadline, { color: colors.label2, fontWeight: '500' }]}>
+            {t('planDetail.linkedQuestionnaire')}
+          </Text>
+        </View>
+      </View>
+    )
+  }
+
+  return (
+    <View style={[styles.linkedQSection, { backgroundColor: colors.bg2 }]}>
+      <Pressable
+        onPress={() => setExpanded(!expanded)}
+        style={styles.linkedQHeader}
+      >
+        <Text style={{ fontSize: 18 }}>📋</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={[Type.headline, { color: colors.label }]}>
+            {matchedResponse.questionnaireTitle}
+          </Text>
+          {matchedResponse.submittedAt && (
+            <Text style={[Type.caption1, { color: colors.label3, marginTop: 2 }]}>
+              {t('profile.submittedAt', {
+                date: new Date(matchedResponse.submittedAt).toLocaleDateString(),
+              })}
+            </Text>
+          )}
+        </View>
+        <Ionicons
+          name={expanded ? 'chevron-up' : 'chevron-down'}
+          size={18}
+          color={colors.label3}
+        />
+      </Pressable>
+
+      {expanded && matchedResponse.answers.length > 0 && (
+        <View style={[styles.answersWrap, { borderTopColor: colors.sep2 }]}>
+          {matchedResponse.answers.map((answer, idx) => (
+            <View key={idx} style={styles.answerRow}>
+              <Text style={[Type.caption1, { color: colors.label3, marginBottom: 2 }]}>
+                {answer.label}
+              </Text>
+              <Text style={[Type.body, { color: colors.label }]}>
+                {formatAnswer(answer)}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
+    </View>
+  )
+}
+
+function formatAnswer(answer: SubmittedAnswer): string {
+  if (answer.valueText) return answer.valueText
+  if (answer.valueNumber != null) return String(answer.valueNumber)
+  if (answer.valueJson) {
+    try {
+      const parsed = JSON.parse(answer.valueJson)
+      if (Array.isArray(parsed)) return parsed.join(', ')
+      return answer.valueJson
+    } catch {
+      return answer.valueJson
+    }
+  }
+  return '—'
+}
 
 // ─── Nutrition Plan Detail ────────────────────────────────────────────
 
@@ -115,6 +223,15 @@ function NutritionPlanDetail({ plan }: { plan: FullPlanResponse }) {
         </View>
       )}
 
+      {/* Linked questionnaire */}
+      {plan.questionnaireResponseId && (
+        <View style={styles.section}>
+          <LinkedQuestionnaireSection
+            questionnaireResponseId={plan.questionnaireResponseId}
+          />
+        </View>
+      )}
+
       {/* Meals */}
       {meals.length > 0 ? (
         <View style={[styles.mealList, { backgroundColor: colors.bg2 }]}>
@@ -148,15 +265,29 @@ function TrainingPlanDetail({ training }: { training: TodayTrainingResponse }) {
     <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
       {/* Plan info */}
       <View style={[styles.planInfoCard, { backgroundColor: colors.bg2 }]}>
-        <Text style={[Type.headline, { color: colors.label }]}>
-          {training.planName ?? 'Training Plan'}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Text style={[Type.headline, { color: colors.label, flex: 1 }]}>
+            {training.planName ?? 'Training Plan'}
+          </Text>
+          {training.status === 'Completed' && (
+            <Badge label="✓ Completed" variant="success" />
+          )}
+        </View>
         {training.currentWeek != null && training.totalWeeks != null && (
           <Text style={[Type.subheadline, { color: colors.label2, marginTop: 4 }]}>
             Week {training.currentWeek} of {training.totalWeeks}
           </Text>
         )}
       </View>
+
+      {/* Linked questionnaire */}
+      {training.questionnaireResponseId && (
+        <View style={styles.section}>
+          <LinkedQuestionnaireSection
+            questionnaireResponseId={training.questionnaireResponseId}
+          />
+        </View>
+      )}
 
       {/* Today's session */}
       {session ? (
@@ -342,5 +473,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 12,
+  },
+  // Linked questionnaire
+  linkedQSection: {
+    marginHorizontal: 16,
+    borderRadius: Radius.md,
+    overflow: 'hidden',
+  },
+  linkedQHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 14,
+  },
+  answersWrap: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: 14,
+    gap: 10,
+  },
+  answerRow: {
+    gap: 1,
   },
 })

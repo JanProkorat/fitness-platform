@@ -75,6 +75,11 @@ export interface ClientDashboard {
   goals?: string | null;
   linkedAt: string;
   isActive: boolean;
+  hasRegistered: boolean;
+  questionnaireStatus: 'none' | 'pending' | 'submitted';
+  questionnaireTitle?: string | null;
+  questionnaireResponsePublicId?: string | null;
+  questionnaireSubmittedAt?: string | null;
   totalMeasurements: number;
   totalProgressPhotos: number;
   latestMeasurement?: {

@@ -81,6 +81,9 @@ public static class ErrorCodes
     /// <summary>Only draft plans can be published.</summary>
     public const string PlanNotDraft = "PLAN_NOT_DRAFT";
 
+    /// <summary>Only active plans can be completed.</summary>
+    public const string PlanNotActive = "PLAN_NOT_ACTIVE";
+
     // ── Plan Start Date ────────────────────────────────────────────
     /// <summary>Start date is not a Monday.</summary>
     public const string StartDateNotMonday = "START_DATE_NOT_MONDAY";

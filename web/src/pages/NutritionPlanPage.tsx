@@ -3,7 +3,8 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useNutritionPlanStore } from '@/stores/nutritionPlan';
-import { getPlan } from '@/api/plans';
+import { getPlan, completePlan } from '@/api/plans';
+import { PlanQuestionnairePanel } from '@/components/questionnaire/PlanQuestionnairePanel';
 import { getClientDashboard } from '@/api/nutrition-goals';
 import { PageHeader } from '@/components/layout';
 import { Button, Dialog, Input } from '@/components/ui';
@@ -288,6 +289,10 @@ export default function NutritionPlanPage() {
   const [shoppingListOpen, setShoppingListOpen] = useState(false);
   const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+  const [publishDialogOpen, setPublishDialogOpen] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
+  const [isCompleting, setIsCompleting] = useState(false);
 
   // ── Load plan ──
   useEffect(() => {
@@ -395,8 +400,8 @@ export default function NutritionPlanPage() {
     try {
       await save();
       showSuccess(t('nutrition.planSaved'));
-    } catch {
-      showApiError(undefined, 'nutrition.versionConflict');
+    } catch (err) {
+      showApiError(err, 'nutrition.versionConflict');
     }
   };
 
@@ -405,18 +410,36 @@ export default function NutritionPlanPage() {
     try {
       const data = await getPlan(planId);
       setPlan(data);
-    } catch {
-      showApiError(undefined, 'common.error');
+    } catch (err) {
+      showApiError(err, 'common.error');
     }
   };
 
   const handlePublish = async () => {
-    if (!window.confirm(t('nutrition.confirmPublishWeek'))) return;
+    setIsPublishing(true);
     try {
       await publishWeek(selectedWeek);
+      setPublishDialogOpen(false);
       showSuccess(t('nutrition.weekPublished_success', { number: selectedWeek }));
-    } catch {
-      showApiError(undefined, 'common.error');
+    } catch (err) {
+      showApiError(err, 'common.error');
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
+  const handleComplete = async () => {
+    if (!plan || !planId) return;
+    setIsCompleting(true);
+    try {
+      const updated = await completePlan(planId, plan.version);
+      setPlan(updated);
+      setCompleteDialogOpen(false);
+      showSuccess(t('nutrition.planCompleted'));
+    } catch (err) {
+      showApiError(err, 'common.error');
+    } finally {
+      setIsCompleting(false);
     }
   };
 
@@ -628,7 +651,12 @@ export default function NutritionPlanPage() {
             <Button variant="default" size="sm" onClick={handleSave} disabled={!isDirty || isSaving}>
               {t('nutrition.save')}
             </Button>
-            <Button variant="primary" size="sm" onClick={handlePublish} disabled={isWeekPublished || isDirty}>
+            {plan?.status === 'Active' && (
+              <Button variant="default" size="sm" onClick={() => setCompleteDialogOpen(true)} disabled={isDirty}>
+                {t('nutrition.completePlan')}
+              </Button>
+            )}
+            <Button variant="primary" size="sm" onClick={() => setPublishDialogOpen(true)} disabled={isWeekPublished || isDirty || plan?.status === 'Completed'}>
               {isWeekPublished ? t('nutrition.published') : t('nutrition.publishWeekButton')}
             </Button>
           </div>
@@ -940,7 +968,7 @@ export default function NutritionPlanPage() {
         </div>
 
         {/* Right: Macro sidebar */}
-        <div className="flex flex-col overflow-y-auto bg-bg2">
+        <div className="flex flex-col overflow-y-auto bg-bg2" style={{ scrollbarGutter: 'stable' }}>
           {/* Start date picker */}
           <div className="p-3 border-b border-border">
             <div className="text-[11px] font-semibold text-text3 uppercase tracking-[0.04em] mb-1.5">
@@ -998,6 +1026,13 @@ export default function NutritionPlanPage() {
               🛒 {t('nutrition.shoppingList')}
             </button>
           </div>
+
+          <PlanQuestionnairePanel
+            clientId={plan.clientId}
+            questionnaireResponseId={plan.questionnaireResponseId}
+            planStatus={plan.status}
+            ns="nutrition"
+          />
         </div>
       </div>
 
@@ -1020,6 +1055,82 @@ export default function NutritionPlanPage() {
           {t('nutrition.leaveMessage')}
         </p>
       </Dialog>
+
+      {/* ── Publish Week Confirmation Dialog ── */}
+      {publishDialogOpen && (
+        <>
+          <style>{`
+            @keyframes dlg-fade-in { from { opacity: 0 } to { opacity: 1 } }
+            @keyframes dlg-slide-up { from { opacity: 0; transform: translateY(16px) } to { opacity: 1; transform: translateY(0) } }
+          `}</style>
+          <div className="fixed inset-0 z-[60] bg-black/50" onClick={() => setPublishDialogOpen(false)} style={{ animation: 'dlg-fade-in .4s ease-out' }} />
+          <div className="fixed inset-0 z-[61] flex items-start justify-center pt-[5vh] pointer-events-none">
+            <div
+              className="pointer-events-auto flex flex-col border border-border shadow-2xl overflow-hidden"
+              style={{ width: 440, maxWidth: '95vw', background: 'var(--bg)', borderRadius: 10, animation: 'dlg-slide-up .4s ease-out' }}
+            >
+              <div className="flex items-center justify-center" style={{ height: 80, background: 'var(--accent-bg)', borderRadius: '10px 10px 0 0' }}>
+                <span style={{ fontSize: 32, opacity: 0.6 }}>📤</span>
+              </div>
+              <div className="px-5 py-4">
+                <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>{t('nutrition.publishWeek', { number: selectedWeek })}</div>
+                <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>{t('nutrition.confirmPublishWeek')}</div>
+              </div>
+              <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-border">
+                <button onClick={() => setPublishDialogOpen(false)} className="px-4 py-2 rounded-md text-[13px] font-medium text-text3 hover:bg-bg-hover transition-colors">
+                  {t('common.cancel')}
+                </button>
+                <button
+                  onClick={handlePublish}
+                  disabled={isPublishing}
+                  className="px-5 py-2 rounded-md text-[13px] font-medium text-white transition-colors disabled:opacity-50"
+                  style={{ background: 'var(--accent)' }}
+                >
+                  {isPublishing ? t('nutrition.publishingWeek') : t('nutrition.publishWeekButton')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── Complete Plan Confirmation Dialog ── */}
+      {completeDialogOpen && (
+        <>
+          <style>{`
+            @keyframes dlg-fade-in { from { opacity: 0 } to { opacity: 1 } }
+            @keyframes dlg-slide-up { from { opacity: 0; transform: translateY(16px) } to { opacity: 1; transform: translateY(0) } }
+          `}</style>
+          <div className="fixed inset-0 z-[60] bg-black/50" onClick={() => setCompleteDialogOpen(false)} style={{ animation: 'dlg-fade-in .4s ease-out' }} />
+          <div className="fixed inset-0 z-[61] flex items-start justify-center pt-[5vh] pointer-events-none">
+            <div
+              className="pointer-events-auto flex flex-col border border-border shadow-2xl overflow-hidden"
+              style={{ width: 440, maxWidth: '95vw', background: 'var(--bg)', borderRadius: 10, animation: 'dlg-slide-up .4s ease-out' }}
+            >
+              <div className="flex items-center justify-center" style={{ height: 80, background: 'var(--accent-bg)', borderRadius: '10px 10px 0 0' }}>
+                <span style={{ fontSize: 32, opacity: 0.6 }}>✓</span>
+              </div>
+              <div className="px-5 py-4">
+                <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>{t('nutrition.completePlan')}</div>
+                <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>{t('nutrition.confirmComplete')}</div>
+              </div>
+              <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-border">
+                <button onClick={() => setCompleteDialogOpen(false)} className="px-4 py-2 rounded-md text-[13px] font-medium text-text3 hover:bg-bg-hover transition-colors">
+                  {t('common.cancel')}
+                </button>
+                <button
+                  onClick={handleComplete}
+                  disabled={isCompleting}
+                  className="px-5 py-2 rounded-md text-[13px] font-medium text-white transition-colors disabled:opacity-50"
+                  style={{ background: 'var(--accent)' }}
+                >
+                  {isCompleting ? '...' : t('nutrition.completePlan')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* ── Reset Confirmation Dialog ── */}
       <Dialog

@@ -47,7 +47,7 @@ public class ArchiveConversationEndpoint(IApplicationDbContext db) : Endpoint<Ar
             conversation.ArchivedByClientAt = DateTime.UtcNow;
 
         await db.SaveChangesAsync(ct);
-        await Send.OkAsync(ct);
+        await Send.NoContentAsync(ct);
     }
 }
 

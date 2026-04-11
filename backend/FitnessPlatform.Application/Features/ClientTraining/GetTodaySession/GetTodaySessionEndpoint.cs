@@ -124,7 +124,10 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
             PlanName = plan.Name,
             Session = todaySession,
             CurrentWeek = currentWeek.WeekNumber,
-            TotalWeeks = plan.Weeks.Count
+            TotalWeeks = plan.Weeks.Count,
+            Status = plan.Status.ToString(),
+            QuestionnaireResponseId = plan.QuestionnaireResponseId,
+            DateCompleted = plan.DateCompleted
         }, ct);
     }
 }

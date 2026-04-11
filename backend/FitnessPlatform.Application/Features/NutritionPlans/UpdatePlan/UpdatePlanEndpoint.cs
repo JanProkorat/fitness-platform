@@ -5,7 +5,9 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.NutritionPlans.GetPlan;
+using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.NutritionPlans.UpdatePlan;
@@ -16,7 +18,7 @@ namespace FitnessPlatform.Application.Features.NutritionPlans.UpdatePlan;
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="macroCalculator">Service to recalculate nutrient totals.</param>
-public class UpdatePlanEndpoint(IMongoContext mongo, IMacroCalculatorService macroCalculator)
+public class UpdatePlanEndpoint(IMongoContext mongo, IMacroCalculatorService macroCalculator, IApplicationDbContext db, IRealtimeNotifier notifier)
     : Endpoint<UpdatePlanRequest, GetPlanResponse>
 {
     /// <inheritdoc />
@@ -189,6 +191,22 @@ public class UpdatePlanEndpoint(IMongoContext mongo, IMacroCalculatorService mac
                 new { Error = "Version conflict. The plan was modified by another request." },
                 409, cancellation: ct);
             return;
+        }
+
+        // Notify the client in real-time when published weeks were modified
+        if (plan.Weeks.Any(w => w.Status == WeekStatus.Published))
+        {
+            var clientProfile = await db.ClientProfiles
+                .AsNoTracking()
+                .FirstOrDefaultAsync(cp => cp.PublicId == plan.ClientId, ct);
+
+            if (clientProfile is not null)
+            {
+                await notifier.NotifyAsync(clientProfile.UserId, "nutritionPlanUpdated", new
+                {
+                    PlanId = plan.ExternalId,
+                }, ct);
+            }
         }
 
         await Send.OkAsync(GetPlanResponse.FromDocument(plan), ct);

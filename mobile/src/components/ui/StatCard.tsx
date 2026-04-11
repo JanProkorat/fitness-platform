@@ -10,19 +10,33 @@ interface StatCardProps {
   sub?: string
   color?: string
   icon?: ReactNode
+  /** 0–1 ratio; when provided, a thin progress bar renders at the bottom */
+  progress?: number
+  progressColor?: string
 }
 
-export function StatCard({ label, value, sub, color, icon }: StatCardProps) {
+export function StatCard({ label, value, sub, color, icon, progress, progressColor }: StatCardProps) {
   const colors = useTheme()
+  const barColor = progressColor ?? color ?? colors.gold
 
   return (
     <View style={[styles.card, { backgroundColor: colors.bg2 }]}>
       {icon && <View style={styles.iconRow}>{icon}</View>}
+      <Text style={[styles.label, { color: colors.label2 }]}>{label}</Text>
       <Text style={[styles.value, { color: color ?? colors.label }]}>
         {value}
       </Text>
       {sub && <Text style={[styles.sub, { color: colors.label3 }]}>{sub}</Text>}
-      <Text style={[styles.label, { color: colors.label2 }]}>{label}</Text>
+      {progress != null && (
+        <View style={[styles.track, { backgroundColor: colors.fill, marginTop: 6 }]}>
+          <View
+            style={[
+              styles.fill,
+              { width: `${Math.min(progress, 1) * 100}%`, backgroundColor: barColor },
+            ]}
+          />
+        </View>
+      )}
     </View>
   )
 }
@@ -36,16 +50,28 @@ const styles = StyleSheet.create({
   iconRow: {
     marginBottom: 6,
   },
+  label: {
+    ...Type.caption2,
+    fontWeight: '500',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
   value: {
     ...Type.title2,
   },
   sub: {
     ...Type.caption1,
-    marginTop: 2,
+    marginTop: 1,
   },
-  label: {
-    ...Type.caption1,
-    marginTop: 4,
+  track: {
+    height: 4,
+    borderRadius: Radius.full,
+    overflow: 'hidden',
+  },
+  fill: {
+    height: 4,
+    borderRadius: Radius.full,
   },
 })
 

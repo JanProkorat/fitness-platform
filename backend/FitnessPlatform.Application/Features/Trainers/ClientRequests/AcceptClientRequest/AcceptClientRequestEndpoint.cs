@@ -87,18 +87,32 @@ public class AcceptClientRequestEndpoint(
         clientRequest.RespondedAt = DateTime.UtcNow;
         clientRequest.Statement = req.Statement;
 
-        // Create the client-professional link
-        var link = new ClientProfessionalLink
-        {
-            ClientProfileId = clientRequest.ClientProfileId,
-            ProfessionalProfileId = professionalProfile.Id,
-            ProfessionalRole = professionalRole,
-            IsActive = true,
-            CanViewNutritionPlans = professionalRole == UserRole.Nutritionist,
-            CanViewTrainingPlans = professionalRole == UserRole.Trainer
-        };
+        // Create or reactivate the client-professional link
+        var link = await db.ClientProfessionalLinks
+            .FirstOrDefaultAsync(l =>
+                l.ClientProfileId == clientRequest.ClientProfileId &&
+                l.ProfessionalProfileId == professionalProfile.Id, ct);
 
-        db.ClientProfessionalLinks.Add(link);
+        if (link is not null)
+        {
+            link.IsActive = true;
+            link.ProfessionalRole = professionalRole;
+            link.CanViewNutritionPlans = professionalRole == UserRole.Nutritionist;
+            link.CanViewTrainingPlans = professionalRole == UserRole.Trainer;
+        }
+        else
+        {
+            link = new ClientProfessionalLink
+            {
+                ClientProfileId = clientRequest.ClientProfileId,
+                ProfessionalProfileId = professionalProfile.Id,
+                ProfessionalRole = professionalRole,
+                IsActive = true,
+                CanViewNutritionPlans = professionalRole == UserRole.Nutritionist,
+                CanViewTrainingPlans = professionalRole == UserRole.Trainer
+            };
+            db.ClientProfessionalLinks.Add(link);
+        }
 
         // Handle optional questionnaire assignment
         Questionnaire? questionnaire = null;
@@ -207,6 +221,49 @@ public class AcceptClientRequestEndpoint(
             {
                 QuestionnairePublicId = questionnaire.PublicId,
                 questionnaire.Title
+            }, ct);
+        }
+
+        // Send statement as a chat message if provided
+        if (!string.IsNullOrWhiteSpace(req.Statement))
+        {
+            var conversation = await db.Conversations
+                .FirstOrDefaultAsync(c =>
+                    c.ProfessionalUserId == userGuid &&
+                    c.ClientUserId == clientRequest.ClientProfile.UserId, ct);
+
+            if (conversation is null)
+            {
+                conversation = new Conversation
+                {
+                    ProfessionalUserId = userGuid,
+                    ClientUserId = clientRequest.ClientProfile.UserId,
+                };
+                db.Conversations.Add(conversation);
+                await db.SaveChangesAsync(ct);
+            }
+
+            var chatMessage = new ChatMessage
+            {
+                ConversationId = conversation.Id,
+                SenderUserId = userGuid,
+                Text = req.Statement,
+                IsRead = false,
+            };
+            db.ChatMessages.Add(chatMessage);
+
+            conversation.LastMessageText = req.Statement.Length > 300
+                ? req.Statement[..300]
+                : req.Statement;
+            conversation.LastMessageAt = DateTime.UtcNow;
+            conversation.LastMessageSenderId = userGuid;
+
+            await db.SaveChangesAsync(ct);
+
+            await notifier.NotifyAsync(clientRequest.ClientProfile.UserId, "newMessage", new
+            {
+                ConversationId = conversation.PublicId,
+                SenderName = profName,
             }, ct);
         }
 

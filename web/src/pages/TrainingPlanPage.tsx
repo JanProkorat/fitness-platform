@@ -2,13 +2,14 @@ import { useEffect, useCallback, useState, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { getTrainingPlan } from '@/api/training-plans';
+import { getTrainingPlan, completeTrainingPlan } from '@/api/training-plans';
+import { PlanQuestionnairePanel } from '@/components/questionnaire/PlanQuestionnairePanel';
 import { getExercise } from '@/api/exercises';
 import type { MuscleGroup } from '@/api/exercise-types';
 import { apiClient } from '@/api/client';
 import { useTrainingPlanStore } from '@/stores/trainingPlan';
 import { PageHeader } from '@/components/layout';
-import { showApiError } from '@/lib/api-errors';
+import { showApiError, showSuccess } from '@/lib/api-errors';
 import { Button, Dialog } from '@/components/ui';
 import { MondayDatePicker } from '@/components/ui/MondayDatePicker';
 import { ExerciseSearch } from '@/components/training/ExerciseSearch';
@@ -241,6 +242,8 @@ export default function TrainingPlanPage() {
   const [addingSessionDay, setAddingSessionDay] = useState<number | null>(null);
   const [newSessionName, setNewSessionName] = useState('');
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+  const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
+  const [isCompleting, setIsCompleting] = useState(false);
   const [pendingNav, setPendingNav] = useState<string | null>(null);
   const [dragOverDay, setDragOverDay] = useState<number | null>(null);
   const dayHoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -385,14 +388,29 @@ export default function TrainingPlanPage() {
     try {
       const data = await getTrainingPlan(planId);
       setPlan(data);
-    } catch {
-      showApiError(undefined, 'common.error');
+    } catch (err) {
+      showApiError(err, 'common.error');
     }
   };
 
   const handlePublish = async () => {
     if (!window.confirm(t('training.confirmPublish', { number: selectedWeek }))) return;
     await publishWeek(selectedWeek);
+  };
+
+  const handleComplete = async () => {
+    if (!plan || !planId) return;
+    setIsCompleting(true);
+    try {
+      const updated = await completeTrainingPlan(planId, plan.version);
+      setPlan(updated);
+      setCompleteDialogOpen(false);
+      showSuccess(t('training.planCompleted'));
+    } catch (err) {
+      showApiError(err, 'common.error');
+    } finally {
+      setIsCompleting(false);
+    }
   };
 
   const handleAddSession = (dow: number) => {
@@ -502,7 +520,12 @@ export default function TrainingPlanPage() {
             <Button variant="default" size="sm" onClick={handleSave} disabled={!isDirty || isSaving}>
               {isSaving ? t('training.saving') : t('training.save')}
             </Button>
-            <Button variant="primary" size="sm" onClick={handlePublish} disabled={isWeekPublished || isDirty}>
+            {plan?.status === 'Active' && (
+              <Button variant="default" size="sm" onClick={() => setCompleteDialogOpen(true)} disabled={isDirty}>
+                {t('training.completePlan')}
+              </Button>
+            )}
+            <Button variant="primary" size="sm" onClick={handlePublish} disabled={isWeekPublished || isDirty || plan?.status === 'Completed'}>
               {isWeekPublished ? t('training.published') : t('training.publishWeek', { number: selectedWeek })}
             </Button>
           </div>
@@ -1131,7 +1154,7 @@ export default function TrainingPlanPage() {
         </div>
 
         {/* Right: Training sidebar */}
-        <div className="flex flex-col overflow-y-auto bg-bg2">
+        <div className="flex flex-col overflow-y-auto bg-bg2" style={{ scrollbarGutter: 'stable' }}>
           {/* Start date picker */}
           <div className="p-3 border-b border-border">
             <div className="text-[11px] font-semibold text-text3 uppercase tracking-[0.04em] mb-1.5">
@@ -1149,6 +1172,13 @@ export default function TrainingPlanPage() {
             sessions={daySessions}
             planStatus={currentWeek?.status ?? 'Draft'}
             clientName={clientName}
+          />
+
+          <PlanQuestionnairePanel
+            clientId={plan.clientId}
+            questionnaireResponseId={plan.questionnaireResponseId}
+            planStatus={plan.status}
+            ns="training"
           />
         </div>
       </div>
@@ -1170,6 +1200,31 @@ export default function TrainingPlanPage() {
       >
         <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
           {t('training.leaveMessage')}
+        </p>
+      </Dialog>
+
+      {/* ── Complete Plan Confirmation Dialog ── */}
+      <Dialog
+        open={completeDialogOpen}
+        onClose={() => setCompleteDialogOpen(false)}
+        title={t('training.completePlan')}
+        maxWidth={420}
+        footer={
+          <>
+            <Button onClick={() => setCompleteDialogOpen(false)}>{t('common.cancel')}</Button>
+            <button
+              onClick={handleComplete}
+              disabled={isCompleting}
+              className="px-5 py-2 rounded-md text-[13px] font-medium text-white transition-colors disabled:opacity-50"
+              style={{ background: 'var(--accent)' }}
+            >
+              {isCompleting ? '...' : t('training.completePlan')}
+            </button>
+          </>
+        }
+      >
+        <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
+          {t('training.confirmComplete')}
         </p>
       </Dialog>
 

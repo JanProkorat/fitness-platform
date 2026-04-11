@@ -160,10 +160,15 @@ export default function ClientDetailPage() {
 
     // Alergie
     if (ob?.allergies) {
+      let allergiesDisplay = ob.allergies;
+      try {
+        const arr = JSON.parse(ob.allergies);
+        if (Array.isArray(arr)) allergiesDisplay = arr.join(', ');
+      } catch { /* use as-is */ }
       items.push({
         label: 'Alergie',
         icon: '⚠',
-        value: ob.allergies,
+        value: allergiesDisplay,
         editable: true,
       });
     }
@@ -229,6 +234,16 @@ export default function ClientDetailPage() {
       });
     }
 
+    if (client?.questionnaireSubmittedAt) {
+      items.push({
+        id: 'questionnaire',
+        date: new Date(client.questionnaireSubmittedAt).toLocaleDateString('cs-CZ'),
+        title: 'Dotazník vyplněn',
+        icon: '📋',
+        description: client.questionnaireTitle ?? undefined,
+      });
+    }
+
     if (client?.linkedAt) {
       items.push({
         id: 'linked',
@@ -270,7 +285,7 @@ export default function ClientDetailPage() {
   if (!client) return null;
 
   // Client has not registered yet — show pending invite state
-  const isPending = !client.onboarding && !client.heightCm && !client.weightKg && !client.dateOfBirth;
+  const isPending = client.hasRegistered === false;
 
   if (isPending) {
     return (
@@ -339,7 +354,7 @@ export default function ClientDetailPage() {
 
       {/* Page Content */}
       <div className="flex-1 overflow-y-auto">
-        <div className="px-20 py-3 max-w-[1200px]">
+        <div className="px-20 py-3">
           {/* Property List */}
           <PropertyList items={propertyItems} />
 

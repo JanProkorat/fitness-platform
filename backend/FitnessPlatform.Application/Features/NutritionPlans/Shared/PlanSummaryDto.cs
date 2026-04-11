@@ -54,6 +54,16 @@ public class PlanSummaryDto
     public DateTime? StartDate { get; set; }
 
     /// <summary>
+    /// When this plan was marked as completed, if applicable.
+    /// </summary>
+    public DateTime? DateCompleted { get; set; }
+
+    /// <summary>
+    /// Linked questionnaire response ID, if any.
+    /// </summary>
+    public Guid? QuestionnaireResponseId { get; set; }
+
+    /// <summary>
     /// Maps a <see cref="NutritionPlan"/> document to a summary DTO.
     /// </summary>
     public static PlanSummaryDto FromDocument(NutritionPlan plan) => new()
@@ -66,6 +76,8 @@ public class PlanSummaryDto
         Version = plan.Version,
         DateCreated = plan.DateCreated,
         DateUpdated = plan.DateUpdated,
-        StartDate = plan.StartDate
+        StartDate = plan.StartDate,
+        DateCompleted = plan.DateCompleted,
+        QuestionnaireResponseId = plan.QuestionnaireResponseId
     };
 }

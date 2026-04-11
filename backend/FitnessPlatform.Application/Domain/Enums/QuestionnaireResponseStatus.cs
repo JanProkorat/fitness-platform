@@ -7,5 +7,6 @@ public enum QuestionnaireResponseStatus
 {
     Pending = 0,
     InProgress = 1,
-    Submitted = 2
+    Submitted = 2,
+    Cancelled = 3
 }

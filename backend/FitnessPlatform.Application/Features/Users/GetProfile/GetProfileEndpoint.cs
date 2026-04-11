@@ -74,7 +74,8 @@ public class GetProfileEndpoint(UserManager<ApplicationUser> userManager, IAppli
             }
 
             hasPendingQuestionnaire = await dbContext.QuestionnaireResponses
-                .AnyAsync(r => r.ClientId == user.Id && r.Status != QuestionnaireResponseStatus.Submitted, ct);
+                .AnyAsync(r => r.ClientId == user.Id
+                    && (r.Status == QuestionnaireResponseStatus.Pending || r.Status == QuestionnaireResponseStatus.InProgress), ct);
         }
 
         await Send.OkAsync(new GetProfileResponse

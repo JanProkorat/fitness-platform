@@ -118,6 +118,6 @@ public class AssignQuestionnaireEndpoint(
             "Questionnaire {QuestionnaireId} assigned to client {ClientId} by professional {ProfessionalId}",
             questionnaire.PublicId, clientProfile.PublicId, professionalProfile.PublicId);
 
-        await Send.OkAsync(ct);
+        await Send.NoContentAsync(ct);
     }
 }

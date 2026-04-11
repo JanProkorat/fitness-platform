@@ -1,0 +1,147 @@
+using System.Security.Claims;
+using FastEndpoints;
+using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using Microsoft.EntityFrameworkCore;
+using MongoDB.Driver;
+
+namespace FitnessPlatform.Application.Features.Client.Plans.GetClientPlans;
+
+/// <summary>
+/// Returns a list of the authenticated client's plans (nutrition + training),
+/// optionally filtered by status.
+/// </summary>
+/// <param name="mongo">MongoDB context.</param>
+/// <param name="db">Relational database context.</param>
+public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext db)
+    : Endpoint<GetClientPlansRequest, GetClientPlansResponse>
+{
+    /// <inheritdoc />
+    public override void Configure()
+    {
+        Get("/client/plans");
+        Roles(AppRoles.Client);
+        Summary(s =>
+        {
+            s.Summary = "List client plans";
+            s.Description =
+                "Returns a combined list of nutrition and training plans for the authenticated client, optionally filtered by status.";
+        });
+    }
+
+    /// <inheritdoc />
+    public override async Task HandleAsync(GetClientPlansRequest req, CancellationToken ct)
+    {
+        var userId = User.FindFirstValue(AppClaims.UserId);
+        if (userId is null)
+        {
+            await Send.UnauthorizedAsync(ct);
+            return;
+        }
+
+        var clientProfile = await db.ClientProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cp => cp.UserId == Guid.Parse(userId), ct);
+
+        if (clientProfile is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        var clientId = clientProfile.PublicId;
+
+        // Parse status filter
+        NutritionPlanStatus? nutritionStatus = null;
+        TrainingPlanStatus? trainingStatus = null;
+
+        if (!string.IsNullOrWhiteSpace(req.Status))
+        {
+            if (Enum.TryParse<NutritionPlanStatus>(req.Status, ignoreCase: true, out var ns))
+                nutritionStatus = ns;
+            if (Enum.TryParse<TrainingPlanStatus>(req.Status, ignoreCase: true, out var ts))
+                trainingStatus = ts;
+        }
+
+        var items = new List<ClientPlanItem>();
+
+        // ── Nutrition plans ──
+        {
+            var filter = Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientId);
+
+            if (nutritionStatus.HasValue)
+            {
+                filter &= Builders<NutritionPlan>.Filter.Eq(p => p.Status, nutritionStatus.Value);
+            }
+            else
+            {
+                // Exclude drafts by default
+                filter &= Builders<NutritionPlan>.Filter.Ne(p => p.Status, NutritionPlanStatus.Draft);
+            }
+
+            using var nCursor = await mongo.NutritionPlans.FindAsync(filter, cancellationToken: ct);
+            var nutritionPlans = await nCursor.ToListAsync(ct);
+
+            foreach (var plan in nutritionPlans)
+            {
+                var publishedCount = plan.Weeks.Count(w => w.Status == WeekStatus.Published);
+                items.Add(new ClientPlanItem
+                {
+                    PlanId = plan.ExternalId,
+                    PlanName = plan.Name,
+                    Type = "nutrition",
+                    Status = plan.Status.ToString(),
+                    StartDate = plan.StartDate,
+                    TotalWeeks = plan.Weeks.Count,
+                    PublishedWeekCount = publishedCount,
+                    DateCompleted = plan.DateCompleted,
+                    QuestionnaireResponseId = plan.QuestionnaireResponseId
+                });
+            }
+        }
+
+        // ── Training plans ──
+        {
+            var filter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientId);
+
+            if (trainingStatus.HasValue)
+            {
+                filter &= Builders<TrainingPlan>.Filter.Eq(p => p.Status, trainingStatus.Value);
+            }
+            else
+            {
+                filter &= Builders<TrainingPlan>.Filter.Ne(p => p.Status, TrainingPlanStatus.Draft);
+            }
+
+            using var tCursor = await mongo.TrainingPlans.FindAsync(filter, cancellationToken: ct);
+            var trainingPlans = await tCursor.ToListAsync(ct);
+
+            foreach (var plan in trainingPlans)
+            {
+                var publishedCount = plan.Weeks.Count(w => w.Status == WeekStatus.Published);
+                items.Add(new ClientPlanItem
+                {
+                    PlanId = plan.ExternalId,
+                    PlanName = plan.Name,
+                    Type = "training",
+                    Status = plan.Status.ToString(),
+                    StartDate = plan.StartDate,
+                    TotalWeeks = plan.Weeks.Count,
+                    PublishedWeekCount = publishedCount,
+                    DateCompleted = plan.DateCompleted,
+                    QuestionnaireResponseId = plan.QuestionnaireResponseId
+                });
+            }
+        }
+
+        // Sort by completion date descending, then creation
+        items = items
+            .OrderByDescending(i => i.DateCompleted ?? DateTime.MinValue)
+            .ToList();
+
+        await Send.OkAsync(new GetClientPlansResponse { Items = items }, ct);
+    }
+}

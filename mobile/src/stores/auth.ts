@@ -16,17 +16,86 @@ interface User {
   linkedRoles: string[];
 }
 
+// ─── Collaboration types ─────────────────────────────────────────────
+
+export interface ActiveCollaborator {
+  id: string;
+  name: string;
+  initials: string;
+  role: string;
+  city: string;
+  since: string;
+  avatarColor: string;
+  avatarBg: string;
+}
+
+export interface TrainerInvite {
+  id: string;
+  trainerId: string;
+  trainerName: string;
+  trainerInitials: string;
+  trainerRole: string;
+  trainerCity: string;
+  message: string;
+  price: number;
+  pricePeriod: string;
+  sentAt: string;
+}
+
+export interface PendingRequest {
+  id: string;
+  trainerId: string;
+  name: string;
+  initials: string;
+  role: string;
+  city: string;
+  avatarColor: string;
+  avatarBg: string;
+  sentAt: string;
+}
+
+export type CollabState = 'none' | 'trainer' | 'coach' | 'both';
+
+export function getCollabState(hasTrainer: boolean, hasCoach: boolean): CollabState {
+  if (hasTrainer && hasCoach) return 'both';
+  if (hasTrainer) return 'trainer';
+  if (hasCoach) return 'coach';
+  return 'none';
+}
+
+// ─── Auth store ──────────────────────────────────────────────────────
+
 interface AuthState {
   user: User | null;
   accessToken: string | null;
   refreshToken: string | null;
   isAuthenticated: boolean;
   isInitialized: boolean;
+
+  // Collaboration state
+  hasTrainer: boolean;
+  hasCoach: boolean;
+  trainer: ActiveCollaborator | null;
+  coach: ActiveCollaborator | null;
+  pendingInvite: TrainerInvite | null;
+  pendingRequests: PendingRequest[];
+
+  // Auth actions
   setTokens: (accessToken: string, refreshToken: string) => void;
   login: (user: User, accessToken: string, refreshToken: string) => void;
   logout: () => void;
   restoreSession: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+
+  // Collaboration actions
+  setTrainer: (trainer: ActiveCollaborator | null) => void;
+  setCoach: (coach: ActiveCollaborator | null) => void;
+  setHasTrainer: (v: boolean) => void;
+  setHasCoach: (v: boolean) => void;
+  setPendingInvite: (invite: TrainerInvite | null) => void;
+  setPendingRequests: (requests: PendingRequest[]) => void;
+  addPendingRequest: (request: PendingRequest) => void;
+  removePendingRequest: (id: string) => void;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -35,6 +104,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   refreshToken: storage.getString('refreshToken') ?? null,
   isAuthenticated: false,
   isInitialized: false,
+
+  // Collaboration defaults
+  hasTrainer: false,
+  hasCoach: false,
+  trainer: null,
+  coach: null,
+  pendingInvite: null,
+  pendingRequests: [],
 
   setTokens: (accessToken, refreshToken) => {
     storage.set('refreshToken', refreshToken);
@@ -47,12 +124,28 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   logout: () => {
-    storage.remove('refreshToken');
+    // Clear all persisted and in-memory caches to prevent data leaking between users
+    storage.clearAll();
+    import('../stores/todayStore').then(({ useTodayStore }) => {
+      useTodayStore.getState().reset();
+    });
+    import('../stores/offline').then(({ clearPendingMutations }) => {
+      clearPendingMutations();
+    });
+    import('../lib/queryClient').then(({ queryClient }) => {
+      queryClient.clear();
+    });
     set({
       user: null,
       accessToken: null,
       refreshToken: null,
       isAuthenticated: false,
+      hasTrainer: false,
+      hasCoach: false,
+      trainer: null,
+      coach: null,
+      pendingInvite: null,
+      pendingRequests: [],
     });
   },
 
@@ -124,4 +217,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // silently fail - user can retry
     }
   },
+
+  // Collaboration actions
+  setTrainer: (trainer) => set({ trainer, hasTrainer: trainer !== null }),
+  setCoach: (coach) => set({ coach, hasCoach: coach !== null }),
+  setHasTrainer: (v) => set({ hasTrainer: v, ...(!v && { trainer: null }) }),
+  setHasCoach: (v) => set({ hasCoach: v, ...(!v && { coach: null }) }),
+  setPendingInvite: (invite) => set({ pendingInvite: invite }),
+  setPendingRequests: (requests) => set({ pendingRequests: requests }),
+  addPendingRequest: (request) =>
+    set((s) => ({ pendingRequests: [...s.pendingRequests, request] })),
+  removePendingRequest: (id) =>
+    set((s) => ({ pendingRequests: s.pendingRequests.filter((r) => r.id !== id) })),
 }));

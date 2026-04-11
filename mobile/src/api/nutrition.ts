@@ -21,21 +21,57 @@ export interface GlobalNutritionSettings {
 export interface MealFood {
   foodExternalId: string;
   foodName: string;
+  foodNameCs?: string | null;
+  foodNameEn?: string | null;
+  foodNameDe?: string | null;
+  foodCategory?: string | null;
   nutrientValuePer100Grams: {
     kcal: number;
     protein: number;
     carbs: number;
     fat: number;
+    fiber?: number;
+    sugar?: number;
+    saturatedFat?: number;
+    salt?: number;
   };
   amountGrams: number;
+  note?: string | null;
 }
+
+export interface MealRecipe {
+  recipeId: string;
+  recipeName: string;
+  nutrientValuePerServing: {
+    kcal: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    fiber?: number;
+  };
+  servings: number;
+  note?: string | null;
+  foodCategories?: string[] | null;
+}
+
+export type MealKind =
+  | 'Breakfast'
+  | 'MorningSnack'
+  | 'Lunch'
+  | 'AfternoonSnack'
+  | 'Dinner'
+  | 'PreWorkout'
+  | 'PostWorkout';
 
 export interface PlanMeal {
   mealId: string;
+  kind?: MealKind;
   name: string;
   order: number;
   time?: string | null;
   foods: MealFood[];
+  recipes?: MealRecipe[];
+  note?: string | null;
   mealTotals?: NutrientTotals | null;
 }
 
@@ -98,6 +134,7 @@ export async function getWeeklyOverview(): Promise<WeeklyOverviewResponse> {
 export interface PlanDay {
   dayOfWeek: number;
   meals: PlanMeal[];
+  note?: string | null;
   dayTotals: NutrientTotals | null;
 }
 
@@ -146,6 +183,8 @@ export interface FullPlanWeek {
   days: PlanDay[];
 }
 
+export type PlanStatus = 'Draft' | 'Active' | 'Completed' | 'Archived';
+
 export interface FullPlanResponse {
   planId: string;
   planName: string;
@@ -156,6 +195,33 @@ export interface FullPlanResponse {
   totalWeeks: number;
   currentWeek: number | null;
   currentDayOfWeek: number | null;
+  status?: PlanStatus;
+  questionnaireResponseId?: string | null;
+  dateCompleted?: string | null;
+}
+
+/** Lightweight plan summary for listing active + completed plans. */
+export interface ClientPlanSummary {
+  planId: string;
+  planName: string;
+  type: 'nutrition' | 'training';
+  status: PlanStatus;
+  startDate: string | null;
+  totalWeeks: number;
+  publishedWeekCount: number;
+  dateCompleted: string | null;
+  questionnaireResponseId: string | null;
+}
+
+export interface ClientPlansResponse {
+  items: ClientPlanSummary[];
+}
+
+export async function getClientPlans(status?: PlanStatus): Promise<ClientPlansResponse> {
+  const { data } = await api.get<ClientPlansResponse>('/client/plans', {
+    params: status ? { status } : undefined,
+  });
+  return data;
 }
 
 export async function getFullPlan(): Promise<FullPlanResponse> {

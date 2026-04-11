@@ -1,83 +1,151 @@
 import React from 'react'
-import { View, Text, StyleSheet, Pressable } from 'react-native'
+import { View, Text, StyleSheet, Pressable, ScrollView, Alert } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
 import { Avatar } from '@/components/ui/Avatar'
-import { GoldButton } from '@/components/ui/GoldButton'
-import { SecondaryButton } from '@/components/ui/SecondaryButton'
-import type { ProfessionalSummary } from '@/api/professionals'
+
+export type RequestStatus = 'none' | 'pending' | 'active'
+
+const ROLE_BADGE_COLORS: Record<string, { bg: string; text: string }> = {
+  'Osobní trenér': { bg: 'rgba(0,122,255,0.10)', text: '#007aff' },
+  'Výž. poradce': { bg: 'rgba(52,199,89,0.10)', text: '#34c759' },
+  'Výživový poradce': { bg: 'rgba(52,199,89,0.10)', text: '#34c759' },
+  'Trenér & poradce': { bg: 'rgba(201,168,76,0.10)', text: '#c9a84c' },
+  Trainer: { bg: 'rgba(0,122,255,0.10)', text: '#007aff' },
+  Nutritionist: { bg: 'rgba(52,199,89,0.10)', text: '#34c759' },
+}
+
+export interface TrainerCardData {
+  id: string
+  name: string
+  role: string
+  roles: string[]
+  city: string
+  rating: number
+  reviewCount: number
+  priceMonthly: string
+  tags: string[]
+  accepting: boolean
+  avatarColor?: string
+  avatarBg?: string
+}
 
 interface TrainerCardProps {
-  professional: ProfessionalSummary
-  onProfile: () => void
-  onContact: () => void
-  contactDisabled?: boolean
-  contactLabel?: string
+  trainer: TrainerCardData
+  requestStatus?: RequestStatus
+  onProfilePress: () => void
+  onContactPress: () => void
+  onRevokePress?: () => void
 }
 
 export function TrainerCard({
-  professional,
-  onProfile,
-  onContact,
-  contactDisabled,
-  contactLabel = 'Contact',
+  trainer,
+  requestStatus = 'none',
+  onProfilePress,
+  onContactPress,
+  onRevokePress,
 }: TrainerCardProps) {
   const colors = useTheme()
-  const fullName = `${professional.firstName} ${professional.lastName}`
-  const roles = professional.roles?.length
-    ? professional.roles
-    : professional.role
-      ? [professional.role]
-      : []
-  const roleLabel = roles.join(' & ')
+  const { t } = useTranslation()
+
+  const stars = '★'.repeat(Math.round(trainer.rating)) + '☆'.repeat(5 - Math.round(trainer.rating))
+
+  const contactLabel = t('collab.contact')
+  const contactDisabled = requestStatus === 'pending' || !trainer.accepting
+  const waitlist = !trainer.accepting && requestStatus === 'none'
 
   return (
     <View style={[styles.card, { backgroundColor: colors.bg2 }]}>
       {/* Top section */}
       <View style={styles.top}>
-        <Avatar name={fullName} size="md" />
+        <Avatar name={trainer.name} size="md" color={trainer.avatarColor} />
         <View style={styles.info}>
           <Text style={[Type.headline, { color: colors.label }]} numberOfLines={1}>
-            {fullName}
+            {trainer.name}
           </Text>
-          <Text style={[Type.subheadline, { color: colors.label2 }]} numberOfLines={1}>
-            {roleLabel}
-            {professional.city ? ` · ${professional.city}` : ''}
-          </Text>
-          {professional.estimatedPrice && (
-            <Text style={[styles.price, { color: colors.gold }]}>
-              {professional.estimatedPrice}
+          {trainer.city.length > 0 && (
+            <Text style={[Type.subheadline, { color: colors.label2 }]} numberOfLines={1}>
+              {trainer.city}
             </Text>
+          )}
+          <View style={styles.roleBadges}>
+            {trainer.roles.map((r) => {
+              const c = ROLE_BADGE_COLORS[r] ?? { bg: colors.fill, text: colors.label2 }
+              return (
+                <View key={r} style={[styles.roleBadge, { backgroundColor: c.bg }]}>
+                  <Text style={[styles.roleBadgeText, { color: c.text }]}>{r}</Text>
+                </View>
+              )
+            })}
+          </View>
+          {trainer.rating > 0 && trainer.reviewCount > 0 && (
+            <View style={styles.ratingRow}>
+              <Text style={[styles.stars, { color: colors.orange }]}>{stars}</Text>
+              <Text style={[Type.caption1, { color: colors.label2 }]}>
+                {trainer.rating} ({trainer.reviewCount})
+              </Text>
+            </View>
           )}
         </View>
       </View>
 
-      {/* Specialization tags */}
-      {professional.specializations.length > 0 && (
-        <View style={[styles.tags, { borderTopColor: colors.sep2 }]}>
-          {professional.specializations.map((tag) => (
-            <View key={tag} style={[styles.tag, { backgroundColor: colors.fill }]}>
-              <Text style={[styles.tagText, { color: colors.label2 }]}>{tag}</Text>
-            </View>
-          ))}
-        </View>
-      )}
-
       {/* Footer */}
       <View style={[styles.footer, { borderTopColor: colors.sep2 }]}>
-        <View style={styles.status}>
-          <View style={[styles.statusDot, { backgroundColor: colors.green }]} />
-          <Text style={[Type.caption1, { color: colors.label3 }]}>Accepting clients</Text>
+        <View style={styles.priceBlock}>
+          {trainer.priceMonthly ? (
+            <>
+              <Text style={[styles.priceValue, { color: colors.gold }]} numberOfLines={1}>
+                {trainer.priceMonthly}
+              </Text>
+              <Text style={[styles.priceUnit, { color: colors.gold }]}>
+                {t('collab.pricePerMonth')}
+              </Text>
+            </>
+          ) : (
+            <Text style={[styles.priceUnit, { color: colors.label3 }]}>
+              {t('collab.priceOnRequest')}
+            </Text>
+          )}
         </View>
         <View style={styles.actions}>
-          <SecondaryButton title="Profile" onPress={onProfile} style={styles.actionBtn} />
-          <GoldButton
-            title={contactLabel}
-            onPress={onContact}
-            disabled={contactDisabled}
-            style={styles.actionBtn}
-          />
+          <Pressable
+            onPress={onProfilePress}
+            style={({ pressed }) => [
+              styles.actionBtn,
+              { backgroundColor: colors.fill, opacity: pressed ? 0.7 : 1 },
+            ]}
+          >
+            <Text style={[styles.actionText, { color: colors.label }]}>{t('collab.profile')}</Text>
+          </Pressable>
+
+          {requestStatus === 'none' && (
+            <Pressable
+              onPress={onContactPress}
+              style={({ pressed }) => [
+                styles.actionBtn,
+                { backgroundColor: colors.gold, opacity: pressed ? 0.8 : 1 },
+              ]}
+            >
+              <Text style={[styles.actionText, { color: '#ffffff' }]}>
+                {contactLabel}
+              </Text>
+            </Pressable>
+          )}
+          {requestStatus === 'pending' && (
+            <Pressable
+              onPress={onRevokePress}
+              style={({ pressed }) => [
+                styles.actionBtn,
+                { backgroundColor: 'rgba(255,59,48,0.08)', opacity: pressed ? 0.8 : 1 },
+              ]}
+            >
+              <Text style={[styles.actionText, { color: colors.red }]}>
+                {t('collab.cancelRequest')}
+              </Text>
+            </Pressable>
+          )}
         </View>
       </View>
     </View>
@@ -93,24 +161,56 @@ const styles = StyleSheet.create({
   top: {
     flexDirection: 'row',
     padding: 16,
-    gap: 14,
+    gap: 12,
   },
   info: {
     flex: 1,
     justifyContent: 'center',
   },
-  price: {
-    ...Type.caption1,
-    fontWeight: '600',
+  roleBadges: {
+    flexDirection: 'row',
+    gap: 6,
     marginTop: 4,
+  },
+  roleBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: Radius.full,
+  },
+  roleBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
+  },
+  stars: {
+    fontSize: 12,
+    letterSpacing: 1,
+  },
+  priceBlock: {
+    flexShrink: 1,
+    marginRight: 8,
+  },
+  priceValue: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  priceUnit: {
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  tagsScroll: {
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   tags: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 6,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderTopWidth: StyleSheet.hairlineWidth,
   },
   tag: {
     paddingHorizontal: 10,
@@ -125,26 +225,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  status: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
   },
   actions: {
     flexDirection: 'row',
     gap: 8,
   },
   actionBtn: {
-    height: 36,
     paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: Radius.full,
+  },
+  actionText: {
+    ...Type.subheadline,
+    fontWeight: '600',
   },
 })
 

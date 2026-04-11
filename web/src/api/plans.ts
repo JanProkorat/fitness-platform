@@ -43,6 +43,31 @@ export async function deletePlan(planId: string): Promise<void> {
   await api.delete(`/nutrition/plans/${planId}`);
 }
 
+/** Mark a nutrition plan as completed. */
+export async function completePlan(
+  planId: string,
+  version: number,
+): Promise<NutritionPlanDetail> {
+  const { data } = await api.post<NutritionPlanDetail>(
+    `/nutrition/plans/${planId}/complete`,
+    { version },
+  );
+  return data;
+}
+
+/** Link or unlink a questionnaire response to a nutrition plan. */
+export async function linkQuestionnaire(
+  planId: string,
+  questionnaireResponseId: string | null,
+  version: number,
+): Promise<NutritionPlanDetail> {
+  const { data } = await api.put<NutritionPlanDetail>(
+    `/nutrition/plans/${planId}/link-questionnaire`,
+    { questionnaireResponseId, version },
+  );
+  return data;
+}
+
 /** Publish a single week of a nutrition plan. */
 export async function publishWeek(
   planId: string,

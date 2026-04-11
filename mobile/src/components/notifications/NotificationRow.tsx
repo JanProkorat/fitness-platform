@@ -60,14 +60,9 @@ export function NotificationRow({ notification, onAction, onDismiss }: Notificat
         !read && { backgroundColor: 'rgba(201,168,76,0.04)' },
       ]}
     >
-      {!read && (
-        <>
-          <View style={styles.unreadDot} />
-          <View style={[styles.icon, { backgroundColor: NOTIF_ICON_BG[type] }]}>
-            <Ionicons name={NOTIF_ICON[type]} size={22} color={NOTIF_ICON_COLOR[type]} />
-          </View>
-        </>
-      )}
+      <View style={styles.dotCol}>
+        {!read && <View style={styles.unreadDot} />}
+      </View>
 
       <View style={styles.body}>
         <View style={styles.titleRow}>
@@ -93,25 +88,20 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingLeft: 12,
     paddingRight: 16,
     paddingVertical: 12,
+  },
+  dotCol: {
+    width: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'stretch',
   },
   unreadDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: '#c9a84c',
-    marginTop: 14,
-    marginRight: -2,
-  },
-  icon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
   },
   body: {
     flex: 1,

@@ -53,6 +53,10 @@ public class UpdateResponseEndpoint(IApplicationDbContext db)
             return;
         }
 
+        // Transition from Pending to InProgress on first answer save
+        if (response.Status == QuestionnaireResponseStatus.Pending)
+            response.Status = QuestionnaireResponseStatus.InProgress;
+
         // 2. Resolve question PublicIds to internal Ids
         var questionPublicIds = req.Answers.Select(a => a.QuestionPublicId).ToList();
         var questionMap = await db.QuestionnaireQuestions
@@ -94,6 +98,6 @@ public class UpdateResponseEndpoint(IApplicationDbContext db)
 
         await db.SaveChangesAsync(ct);
 
-        await Send.OkAsync(ct);
+        await Send.NoContentAsync(ct);
     }
 }

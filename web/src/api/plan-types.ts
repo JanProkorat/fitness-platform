@@ -87,13 +87,15 @@ export interface NutritionPlanDetail {
   clientId: string;
   nutritionistId: string;
   name: string;
-  status: 'Draft' | 'Active' | 'Archived';
+  status: 'Draft' | 'Active' | 'Completed' | 'Archived';
   globalSettings?: GlobalNutritionSettings | null;
   weeks: PlanWeek[];
   version: number;
   dateCreated: string;
   dateUpdated?: string | null;
   startDate?: string | null;
+  dateCompleted?: string | null;
+  questionnaireResponseId?: string | null;
 }
 
 /** Plan summary for list views. */
@@ -101,12 +103,14 @@ export interface PlanSummary {
   planId: string;
   name: string;
   clientId: string;
-  status: 'Draft' | 'Active' | 'Archived';
+  status: 'Draft' | 'Active' | 'Completed' | 'Archived';
   weekCount: number;
   version: number;
   dateCreated: string;
   dateUpdated?: string | null;
   startDate?: string | null;
+  dateCompleted?: string | null;
+  questionnaireResponseId?: string | null;
 }
 
 /** Paginated plan list response. */
@@ -124,6 +128,7 @@ export interface CreatePlanRequest {
   globalSettings?: GlobalNutritionSettings | null;
   weekCount?: number;
   startDate?: string | null;
+  questionnaireResponseId?: string | null;
 }
 
 /** Request to update an existing plan with full state (includes version for optimistic locking). */

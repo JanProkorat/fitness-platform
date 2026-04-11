@@ -176,6 +176,8 @@ export function MondayDatePicker({ value, onChange, placeholder, className, styl
               if (!d) return <div key={`empty-${i}`} />;
               const isMonday = d.getDay() === 1;
               const dateStr = formatDate(d);
+              const isPast = dateStr < today;
+              const enabled = isMonday && !isPast;
               const isSelected = value === dateStr;
               const isToday = dateStr === today;
 
@@ -183,19 +185,19 @@ export function MondayDatePicker({ value, onChange, placeholder, className, styl
                 <button
                   key={dateStr}
                   type="button"
-                  disabled={!isMonday}
+                  disabled={!enabled}
                   onClick={() => handleSelect(d)}
                   style={{
                     width: '100%', aspectRatio: '1', border: 'none', borderRadius: 'var(--radius)',
-                    fontSize: 12, fontFamily: 'inherit', cursor: isMonday ? 'pointer' : 'default',
+                    fontSize: 12, fontFamily: 'inherit', cursor: enabled ? 'pointer' : 'default',
                     fontWeight: isSelected ? 600 : 400,
-                    color: !isMonday ? 'var(--text4)' : isSelected ? 'var(--bg)' : isToday ? 'var(--accent)' : 'var(--text)',
+                    color: !enabled ? 'var(--text4)' : isSelected ? 'var(--bg)' : isToday ? 'var(--accent)' : 'var(--text)',
                     background: isSelected ? 'var(--accent)' : 'transparent',
                     transition: 'background 0.1s, color 0.1s',
-                    opacity: isMonday ? 1 : 0.4,
+                    opacity: enabled ? 1 : 0.4,
                   }}
-                  onMouseEnter={(e) => { if (isMonday && !isSelected) e.currentTarget.style.background = 'var(--bg-hover)'; }}
-                  onMouseLeave={(e) => { if (isMonday && !isSelected) e.currentTarget.style.background = 'transparent'; }}
+                  onMouseEnter={(e) => { if (enabled && !isSelected) e.currentTarget.style.background = 'var(--bg-hover)'; }}
+                  onMouseLeave={(e) => { if (enabled && !isSelected) e.currentTarget.style.background = 'transparent'; }}
                 >
                   {d.getDate()}
                 </button>

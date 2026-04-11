@@ -17,7 +17,9 @@ public class GetClientQuestionnaireEndpoint(IApplicationDbContext db)
         Summary(s =>
         {
             s.Summary = "Get client questionnaire";
-            s.Description = "Returns the active questionnaire from the client's professional, including any existing in-progress response.";
+            s.Description = "Returns the active questionnaire for a specific professional link. " +
+                            "Pass ?linkPublicId= to select which coach's questionnaire to load. " +
+                            "If omitted, falls back to the first active link (legacy behaviour).";
         });
     }
 
@@ -37,10 +39,26 @@ public class GetClientQuestionnaireEndpoint(IApplicationDbContext db)
             return;
         }
 
-        // 2. Get the client's active professional link
-        var link = await db.ClientProfessionalLinks
-            .Where(l => l.ClientProfileId == clientProfile.Id && l.IsActive)
-            .FirstOrDefaultAsync(ct);
+        // 2. Resolve the professional link — prefer explicit linkPublicId, fall back to first active
+        var linkPublicIdParam = Query<Guid?>("linkPublicId", isRequired: false);
+
+        Domain.Entities.ClientProfessionalLink? link;
+
+        if (linkPublicIdParam.HasValue)
+        {
+            link = await db.ClientProfessionalLinks
+                .Where(l => l.ClientProfileId == clientProfile.Id
+                         && l.PublicId == linkPublicIdParam.Value
+                         && l.IsActive)
+                .FirstOrDefaultAsync(ct);
+        }
+        else
+        {
+            // Legacy fallback: first active link
+            link = await db.ClientProfessionalLinks
+                .Where(l => l.ClientProfileId == clientProfile.Id && l.IsActive)
+                .FirstOrDefaultAsync(ct);
+        }
 
         if (link is null)
         {
@@ -50,6 +68,7 @@ public class GetClientQuestionnaireEndpoint(IApplicationDbContext db)
 
         // 3. Get the professional's profile
         var professionalProfile = await db.ProfessionalProfiles
+            .Include(p => p.User)
             .FirstOrDefaultAsync(p => p.Id == link.ProfessionalProfileId, ct);
 
         if (professionalProfile is null)
@@ -58,8 +77,7 @@ public class GetClientQuestionnaireEndpoint(IApplicationDbContext db)
             return;
         }
 
-        // 4. Get the active questionnaire with visible questions
-        // Check if the link has a specific questionnaire assigned
+        // 4. Resolve questionnaire: link override → professional default
         Domain.Entities.Questionnaire? questionnaire = null;
         if (link.QuestionnaireId.HasValue)
         {
@@ -70,7 +88,6 @@ public class GetClientQuestionnaireEndpoint(IApplicationDbContext db)
                 .FirstOrDefaultAsync(q => q.Id == link.QuestionnaireId.Value && q.IsActive, ct);
         }
 
-        // Fall back to the professional's default questionnaire
         questionnaire ??= await db.Questionnaires
             .Include(q => q.Questions
                 .Where(qq => !qq.IsHidden)
@@ -83,15 +100,15 @@ public class GetClientQuestionnaireEndpoint(IApplicationDbContext db)
             return;
         }
 
-        // 5. Check for an existing in-progress response
+        // 5. Check for an existing pending/in-progress response scoped to this link
         var existingResponse = await db.QuestionnaireResponses
             .Include(r => r.Answers)
             .FirstOrDefaultAsync(r =>
                 r.ClientId == userGuid
+                && r.LinkId == link.Id
                 && r.QuestionnaireId == questionnaire.Id
-                && r.Status != QuestionnaireResponseStatus.Submitted, ct);
+                && (r.Status == QuestionnaireResponseStatus.Pending || r.Status == QuestionnaireResponseStatus.InProgress), ct);
 
-        // Build question lookup for answer mapping
         var questionLookup = questionnaire.Questions.ToDictionary(q => q.Id, q => q.PublicId);
 
         await Send.OkAsync(new GetClientQuestionnaireResponse
@@ -99,6 +116,10 @@ public class GetClientQuestionnaireEndpoint(IApplicationDbContext db)
             QuestionnairePublicId = questionnaire.PublicId,
             Title = questionnaire.Title,
             Description = questionnaire.Description,
+            LinkPublicId = link.PublicId,
+            ProfessionalName = $"{professionalProfile.User.FirstName} {professionalProfile.User.LastName}",
+            ProfessionalRole = link.ProfessionalRole.ToString(),
+            ProfessionalCity = professionalProfile.City,
             QuestionCount = questionnaire.Questions.Count,
             Questions = questionnaire.Questions.Select(qq => new ClientQuestionDto
             {

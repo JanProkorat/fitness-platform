@@ -38,7 +38,6 @@ export function useNotifications() {
   const query = useQuery({
     queryKey: ['notifications'],
     queryFn: fetchNotifications,
-    refetchInterval: 30_000,
   })
 
   const notifications = query.data?.items ?? []

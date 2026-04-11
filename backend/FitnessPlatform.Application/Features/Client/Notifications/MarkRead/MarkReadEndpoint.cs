@@ -14,7 +14,7 @@ public class MarkReadEndpoint(IApplicationDbContext db) : Endpoint<MarkReadReque
     public override void Configure()
     {
         Post("/client/notifications/{Id}/read");
-        Roles(AppRoles.Client);
+        Roles(AppRoles.Client, AppRoles.Trainer, AppRoles.Nutritionist);
         Summary(s =>
         {
             s.Summary = "Mark notification as read";

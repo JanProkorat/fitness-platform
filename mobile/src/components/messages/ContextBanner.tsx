@@ -1,5 +1,5 @@
-import React from 'react'
-import { View, Text, Pressable, StyleSheet } from 'react-native'
+import React, { useEffect, useRef } from 'react'
+import { View, Text, Pressable, StyleSheet, Animated } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
@@ -26,9 +26,27 @@ export function ContextBanner({
 }: ContextBannerProps) {
   const colors = useTheme()
   const hasInviteActions = !!onAccept && !!onDecline
+  const opacity = useRef(new Animated.Value(0)).current
+  const translateY = useRef(new Animated.Value(-40)).current
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(translateY, {
+        toValue: 0,
+        damping: 16,
+        stiffness: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+    ]).start()
+  }, [])
 
   return (
-    <View style={styles.container}>
+    <Animated.View style={[styles.container, { opacity, transform: [{ translateY }] }]}>
       <View style={styles.row}>
         <View style={styles.iconWrap}>
           <Ionicons
@@ -67,7 +85,7 @@ export function ContextBanner({
           </Pressable>
         </View>
       )}
-    </View>
+    </Animated.View>
   )
 }
 

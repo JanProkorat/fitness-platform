@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   View,
   Text,
@@ -19,6 +20,7 @@ import { fetchConversations, unarchiveConversation } from '../../../src/api/mess
 
 export default function ArchivedMessagesScreen() {
   const colors = useTheme()
+  const { t } = useTranslation()
   const insets = useSafeAreaInsets()
   const router = useRouter()
   const queryClient = useQueryClient()
@@ -44,9 +46,9 @@ export default function ArchivedMessagesScreen() {
         <View style={[styles.header, { backgroundColor: colors.bg, borderBottomColor: colors.sep2 }]}>
           <Pressable onPress={() => router.back()} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={24} color={colors.blue} />
-            <Text style={{ fontSize: 16, color: colors.blue }}>Messages</Text>
+            <Text style={{ fontSize: 16, color: colors.blue }}>{t('messages.title')}</Text>
           </Pressable>
-          <Text style={[styles.title, { color: colors.label }]}>Archived</Text>
+          <Text style={[styles.title, { color: colors.label }]}>{t('messages.archived')}</Text>
           <View style={{ width: 90 }} />
         </View>
 
@@ -58,10 +60,10 @@ export default function ArchivedMessagesScreen() {
           <View style={styles.center}>
             <Ionicons name="archive-outline" size={48} color={colors.label3} style={{ opacity: 0.4 }} />
             <Text style={[styles.emptyTitle, { color: colors.label2 }]}>
-              No archived conversations
+              {t('messages.noArchived')}
             </Text>
             <Text style={[styles.emptySub, { color: colors.label3 }]}>
-              Conversations you archive will appear here.
+              {t('messages.noArchivedDesc')}
             </Text>
           </View>
         ) : (

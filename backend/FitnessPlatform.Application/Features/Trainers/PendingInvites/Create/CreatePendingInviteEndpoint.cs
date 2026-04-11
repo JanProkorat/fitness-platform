@@ -100,9 +100,10 @@ public class CreatePendingInviteEndpoint(
         await emailService.SendInvitationEmailAsync(req.Email, trainerName, tokenValue, language, req.Message, ct);
 
         // If the invited client already has an account, create an in-app notification + real-time event
+        var reqEmailLower = req.Email.ToLower();
         var existingUser = await db.Users
             .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Email == req.Email, ct);
+            .FirstOrDefaultAsync(u => u.Email!.ToLower() == reqEmailLower, ct);
 
         if (existingUser is not null)
         {
@@ -162,10 +163,7 @@ public class CreatePendingInviteEndpoint(
                 await db.SaveChangesAsync(ct);
             }
 
-            // Existing notification + invitationReceived event logic
-            var notifBody = string.IsNullOrWhiteSpace(req.Message)
-                ? $"{trainerName} invited you to join as their client."
-                : $"{trainerName} invited you to join as their client: \"{req.Message}\"";
+            var notifBody = $"{trainerName} invited you to join as their client.";
 
             await notificationService.CreateAsync(
                 existingUser.Id,
@@ -175,10 +173,20 @@ public class CreatePendingInviteEndpoint(
                 System.Text.Json.JsonSerializer.Serialize(new { inviteId = pendingInvite.PublicId }),
                 ct);
 
+            var senderRole = User.IsInRole(AppRoles.Nutritionist) ? "Nutritionist" : "Trainer";
+
             await notifier.NotifyAsync(
                 existingUser.Id,
                 "invitationReceived",
-                new { inviteId = pendingInvite.PublicId, trainerName },
+                new
+                {
+                    id = pendingInvite.PublicId,
+                    trainerId = professionalProfile.PublicId,
+                    trainerName,
+                    trainerRole = senderRole,
+                    trainerCity = professionalProfile.City ?? string.Empty,
+                    message = pendingInvite.Message
+                },
                 ct);
         }
 

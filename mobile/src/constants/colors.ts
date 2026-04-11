@@ -27,6 +27,12 @@ const light = {
   // Brand
   gold: '#c9a84c',
   goldBg: 'rgba(201,168,76,0.10)',
+
+  // Macros
+  macroProtein: '#ff6b6b',
+  macroCarbs: '#ffd93d',
+  macroFat: '#6bcb77',
+  macroFiber: '#4d96ff',
 } as const
 
 const dark = {
@@ -52,6 +58,12 @@ const dark = {
 
   gold: '#c9a84c',
   goldBg: 'rgba(201,168,76,0.15)',
+
+  // Macros
+  macroProtein: '#ff6b6b',
+  macroCarbs: '#ffd93d',
+  macroFat: '#6bcb77',
+  macroFiber: '#4d96ff',
 } as const
 
 export interface ColorScheme {
@@ -72,6 +84,10 @@ export interface ColorScheme {
   readonly purple: string
   readonly gold: string
   readonly goldBg: string
+  readonly macroProtein: string
+  readonly macroCarbs: string
+  readonly macroFat: string
+  readonly macroFiber: string
 }
 
 export const Colors = { light, dark } as const

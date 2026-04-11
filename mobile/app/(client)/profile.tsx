@@ -26,6 +26,7 @@ import { Badge } from '@/components/ui/Badge'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { Separator } from '@/components/ui/Separator'
 import { WeightChart } from '@/components/ui/WeightChart'
+import { useTranslation } from 'react-i18next'
 import { Toast } from '@/lib/toast'
 import {
   getMeasurements,
@@ -54,11 +55,12 @@ function StatsGrid({
   compliance: ComplianceScoreResponse | undefined
 }) {
   const colors = useTheme()
+  const { t } = useTranslation()
 
   const items = useMemo(
     () => [
       {
-        label: 'Current weight',
+        label: t('profile.currentWeight'),
         value: stats?.latestWeight != null ? `${stats.latestWeight.toFixed(1)} kg` : '—',
         sub:
           stats?.weightChange30Days != null && stats.weightChange30Days !== 0
@@ -72,23 +74,23 @@ function StatsGrid({
             : undefined,
       },
       {
-        label: 'Measurements',
+        label: t('profile.measurements'),
         value: String(stats?.totalCount ?? 0),
-        sub: 'total records',
+        sub: t('profile.totalRecords'),
       },
       {
-        label: 'Compliance',
+        label: t('profile.compliance'),
         value: compliance ? `${Math.round(compliance.compliancePercent)}%` : '—',
-        sub: compliance ? `${compliance.currentStreak}d streak` : undefined,
+        sub: compliance ? t('profile.streak', { count: compliance.currentStreak }) : undefined,
         subColor: colors.gold,
       },
       {
-        label: 'Meals logged',
+        label: t('profile.mealsLogged'),
         value: compliance ? `${compliance.mealsLogged}` : '—',
-        sub: compliance ? `/ ${compliance.mealsPlanned} planned` : undefined,
+        sub: compliance ? t('profile.planned', { count: compliance.mealsPlanned }) : undefined,
       },
     ],
-    [stats, compliance, colors],
+    [stats, compliance, colors, t],
   )
 
   return (
@@ -155,6 +157,7 @@ function EndCollaborationSheet({
   isEnding: boolean
 }) {
   const colors = useTheme()
+  const { t } = useTranslation()
   const insets = useSafeAreaInsets()
   const [mounted, setMounted] = useState(false)
   const translateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current
@@ -193,12 +196,10 @@ function EndCollaborationSheet({
         <View style={styles.sheetContent}>
           <Ionicons name="warning-outline" size={40} color={colors.red} style={{ alignSelf: 'center' }} />
           <Text style={[Type.title2, { color: colors.label, textAlign: 'center', marginTop: 12 }]}>
-            End collaboration?
+            {t('profile.endCollabQuestion')}
           </Text>
           <Text style={[Type.subheadline, { color: colors.label2, textAlign: 'center', marginTop: 8 }]}>
-            This will permanently end your collaboration with{' '}
-            <Text style={{ fontWeight: '600', color: colors.label }}>{professionalName}</Text>
-            {' '}({role}). This action cannot be undone.
+            {t('profile.endCollabDesc', { name: professionalName, role })}
           </Text>
 
           <Pressable
@@ -207,15 +208,72 @@ function EndCollaborationSheet({
             style={[styles.confirmEndBtn, { backgroundColor: colors.red }]}
           >
             <Text style={styles.confirmEndText}>
-              {isEnding ? 'Ending...' : 'End collaboration'}
+              {isEnding ? t('profile.ending') : t('profile.endCollabBtn')}
             </Text>
           </Pressable>
 
           <Pressable onPress={onClose} style={[styles.cancelBtn, { backgroundColor: colors.fill }]}>
-            <Text style={[styles.cancelBtnText, { color: colors.label }]}>Cancel</Text>
+            <Text style={[styles.cancelBtnText, { color: colors.label }]}>{t('common.cancel')}</Text>
           </Pressable>
         </View>
       </Animated.View>
+    </View>
+  )
+}
+
+// ─── Answer display helper ───────────────────────────────────────────
+
+// ─── Coach Card ──────────────────────────────────────────────────────
+
+function CoachCard({
+  collab,
+  isLast,
+  onMessage,
+  onEnd,
+}: {
+  collab: CollaborationDto
+  isLast: boolean
+  onMessage: () => void
+  onEnd: () => void
+}) {
+  const colors = useTheme()
+  const { t } = useTranslation()
+
+  return (
+    <View
+      style={[
+        styles.coachCard,
+        !isLast && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.sep2 },
+      ]}
+    >
+      {/* Coach header row */}
+      <View style={styles.collabRow}>
+        <Ionicons
+          name={collab.role === 'Trainer' ? 'barbell-outline' : 'nutrition-outline'}
+          size={20}
+          color={colors.gold}
+          style={styles.profileRowIcon}
+        />
+        <View style={{ flex: 1 }}>
+          <Text style={[Type.body, { color: colors.label }]}>{collab.professionalName}</Text>
+          <Text style={[Type.caption1, { color: colors.label3 }]}>
+            {collab.role}{collab.professionalCity ? ` · ${collab.professionalCity}` : ''}
+          </Text>
+        </View>
+        <Pressable
+          onPress={onMessage}
+          style={[styles.endBtn, { backgroundColor: colors.gold + '18' }]}
+        >
+          <Ionicons name="chatbubble-outline" size={14} color={colors.gold} />
+        </Pressable>
+        <Pressable
+          onPress={onEnd}
+          style={[styles.endBtn, { backgroundColor: colors.red + '18' }]}
+        >
+          <Text style={[styles.endBtnText, { color: colors.red }]}>{t('profile.endCollab')}</Text>
+        </Pressable>
+      </View>
+
     </View>
   )
 }
@@ -224,6 +282,7 @@ function EndCollaborationSheet({
 
 export default function ProfileScreen() {
   const colors = useTheme()
+  const { t, i18n } = useTranslation()
   const router = useRouter()
   const queryClient = useQueryClient()
   const user = useAuthStore((s) => s.user)
@@ -248,10 +307,10 @@ export default function ProfileScreen() {
       queryClient.invalidateQueries({ queryKey: ['collaborations'] })
       useAuthStore.getState().refreshProfile()
       setEndTarget(null)
-      Toast.show('Collaboration ended')
+      Toast.show(t('profile.collabEnded'))
     },
     onError: () => {
-      Alert.alert('Error', 'Could not end collaboration.')
+      Alert.alert(t('common.error'), t('profile.collabEndError'))
     },
   })
 
@@ -292,10 +351,10 @@ export default function ProfileScreen() {
   const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(' ')
 
   const handleLogout = useCallback(() => {
-    Alert.alert('Sign out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('profile.signOut'), t('profile.signOutConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Sign out',
+        text: t('profile.signOut'),
         style: 'destructive',
         onPress: () => {
           logout()
@@ -303,7 +362,7 @@ export default function ProfileScreen() {
         },
       },
     ])
-  }, [logout, router])
+  }, [logout, router, t])
 
   const isLoading = statsQuery.isLoading || measurementsQuery.isLoading
 
@@ -317,6 +376,8 @@ export default function ProfileScreen() {
     )
   }
 
+  const collaborations = collabQuery.data ?? []
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={['top']}>
       <ScrollView
@@ -328,7 +389,7 @@ export default function ProfileScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Avatar name={fullName || 'User'} size="lg" />
+          <Avatar name={fullName || t('profile.client')} size="lg" />
           <Text style={[Type.title1, { color: colors.label, marginTop: 12 }]}>
             {fullName}
           </Text>
@@ -356,7 +417,7 @@ export default function ProfileScreen() {
 
         {/* Weight progress */}
         <View style={styles.section}>
-          <SectionHeader title="Weight Progress" />
+          <SectionHeader title={t('profile.weightProgress')} />
           <WeightChart
             entries={weightEntries}
             currentWeight={statsQuery.data?.latestWeight}
@@ -364,25 +425,54 @@ export default function ProfileScreen() {
           />
         </View>
 
+        {/* Coaches section (replaces separate Collaborations + Questionnaire sections) */}
+        <View style={styles.section}>
+          <SectionHeader title={t('profile.coaches')} />
+          {collaborations.length === 0 ? (
+            <View style={[styles.groupedList, { backgroundColor: colors.bg2, padding: 20, alignItems: 'center' }]}>
+              <Ionicons name="people-outline" size={28} color={colors.label3} />
+              <Text style={[Type.subheadline, { color: colors.label3, marginTop: 8, textAlign: 'center' }]}>
+                {t('profile.noCoaches')}
+              </Text>
+            </View>
+          ) : (
+            <View style={[styles.groupedList, { backgroundColor: colors.bg2 }]}>
+              {collaborations.map((collab, idx) => (
+                <CoachCard
+                  key={collab.publicId}
+                  collab={collab}
+                  isLast={idx === collaborations.length - 1}
+                  onMessage={() => {
+                    startConversation(collab.professionalPublicId).then((conv) => {
+                      router.push(`/(client)/messages/${conv.id}` as never)
+                    })
+                  }}
+                  onEnd={() => setEndTarget(collab)}
+                />
+              ))}
+            </View>
+          )}
+        </View>
+
         {/* Profile section */}
         <View style={styles.section}>
-          <SectionHeader title="Profile" />
+          <SectionHeader title={t('profile.title')} />
           <View style={[styles.groupedList, { backgroundColor: colors.bg2 }]}>
-            <ProfileRow label="Name" value={fullName || '—'} icon="person-outline" />
-            <ProfileRow label="Email" value={user?.email ?? '—'} icon="mail-outline" />
-            <ProfileRow label="Role" value={user?.roles?.[0] ?? 'Client'} icon="shield-outline" />
+            <ProfileRow label={t('profile.name')} value={fullName || '—'} icon="person-outline" />
+            <ProfileRow label={t('profile.email')} value={user?.email ?? '—'} icon="mail-outline" />
+            <ProfileRow label={t('profile.role')} value={user?.roles?.[0] ?? t('profile.client')} icon="shield-outline" />
           </View>
         </View>
 
         {/* Appearance */}
         <View style={styles.section}>
-          <SectionHeader title="Appearance" />
+          <SectionHeader title={t('profile.appearance')} />
           <View style={[styles.groupedList, { backgroundColor: colors.bg2 }]}>
             {(['system', 'light', 'dark'] as const).map((pref) => {
               const labels: Record<ThemePreference, { label: string; icon: string }> = {
-                system: { label: 'System', icon: 'phone-portrait-outline' },
-                light: { label: 'Light', icon: 'sunny-outline' },
-                dark: { label: 'Dark', icon: 'moon-outline' },
+                system: { label: t('profile.system'), icon: 'phone-portrait-outline' },
+                light: { label: t('profile.light'), icon: 'sunny-outline' },
+                dark: { label: t('profile.dark'), icon: 'moon-outline' },
               }
               const { label, icon } = labels[pref]
               const selected = themePreference === pref
@@ -408,53 +498,6 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Active collaborations */}
-        {(collabQuery.data?.length ?? 0) > 0 && (
-          <View style={styles.section}>
-            <SectionHeader title="Active Collaborations" />
-            <View style={[styles.groupedList, { backgroundColor: colors.bg2 }]}>
-              {collabQuery.data!.map((collab, idx) => (
-                <View
-                  key={collab.publicId}
-                  style={[
-                    styles.collabRow,
-                    idx < collabQuery.data!.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.sep2 },
-                  ]}
-                >
-                  <Ionicons
-                    name={collab.role === 'Trainer' ? 'barbell-outline' : 'nutrition-outline'}
-                    size={20}
-                    color={colors.gold}
-                    style={styles.profileRowIcon}
-                  />
-                  <View style={{ flex: 1 }}>
-                    <Text style={[Type.body, { color: colors.label }]}>{collab.professionalName}</Text>
-                    <Text style={[Type.caption1, { color: colors.label3 }]}>
-                      {collab.role}{collab.professionalCity ? ` · ${collab.professionalCity}` : ''}
-                    </Text>
-                  </View>
-                  <Pressable
-                    onPress={() => {
-                      startConversation(collab.professionalPublicId).then((conv) => {
-                        router.push(`/(client)/messages/${conv.id}` as never)
-                      })
-                    }}
-                    style={[styles.endBtn, { backgroundColor: colors.gold + '18' }]}
-                  >
-                    <Ionicons name="chatbubble-outline" size={14} color={colors.gold} />
-                  </Pressable>
-                  <Pressable
-                    onPress={() => setEndTarget(collab)}
-                    style={[styles.endBtn, { backgroundColor: colors.red + '18' }]}
-                  >
-                    <Text style={[styles.endBtnText, { color: colors.red }]}>End</Text>
-                  </Pressable>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
-
         {/* Sign out */}
         <View style={styles.section}>
           <Pressable
@@ -466,7 +509,7 @@ export default function ProfileScreen() {
           >
             <Ionicons name="log-out-outline" size={20} color={colors.red} />
             <Text style={[Type.body, { color: colors.red, marginLeft: 12 }]}>
-              Sign out
+              {t('profile.signOut')}
             </Text>
           </Pressable>
         </View>
@@ -572,6 +615,10 @@ const styles = StyleSheet.create({
   endBtnText: {
     fontSize: 13,
     fontWeight: '600',
+  },
+  // Coach card
+  coachCard: {
+    paddingBottom: 4,
   },
   // Sheet
   sheetOverlay: {

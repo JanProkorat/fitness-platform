@@ -44,6 +44,7 @@ export function AppShell() {
       );
       queryClient.invalidateQueries({ queryKey: ['client-requests'] });
       queryClient.invalidateQueries({ queryKey: ['sidebar-clients'] });
+      queryClient.invalidateQueries({ queryKey: ['web-notifications'] });
     },
     inviteAccepted: (payload: unknown) => {
       const data = payload as { clientName?: string } | undefined;
@@ -55,6 +56,7 @@ export function AppShell() {
       );
       queryClient.invalidateQueries({ queryKey: ['pending-invites'] });
       queryClient.invalidateQueries({ queryKey: ['sidebar-clients'] });
+      queryClient.invalidateQueries({ queryKey: ['web-notifications'] });
     },
     inviteDeclined: (payload: unknown) => {
       const data = payload as { clientName?: string } | undefined;
@@ -66,10 +68,21 @@ export function AppShell() {
       );
       queryClient.invalidateQueries({ queryKey: ['pending-invites'] });
       queryClient.invalidateQueries({ queryKey: ['sidebar-clients'] });
+      queryClient.invalidateQueries({ queryKey: ['web-notifications'] });
     },
-    questionnaireSubmitted: () => {
-      addToast(t('notifications.questionnaireSubmitted'), 'success');
+    questionnaireSubmitted: (payload: unknown) => {
+      const data = payload as { ClientPublicId?: string; ClientName?: string; ResponsePublicId?: string } | undefined;
+      const msg = data?.ClientName
+        ? `${data.ClientName} — ${t('notifications.questionnaireSubmitted')}`
+        : t('notifications.questionnaireSubmitted');
+      addToast(msg, 'success');
       queryClient.invalidateQueries({ queryKey: ['sidebar-clients'] });
+      queryClient.invalidateQueries({ queryKey: ['web-notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['client-dashboard'] });
+      // Invalidate all questionnaire-responses queries — plan.clientId may
+      // be the user GUID while ClientPublicId is the profile PublicId, so
+      // a targeted invalidation can miss. This event is rare (only on submit).
+      queryClient.invalidateQueries({ queryKey: ['questionnaire-responses'] });
     },
     clientRequestCancelled: (payload: unknown) => {
       const data = payload as { ClientName?: string } | undefined;
@@ -80,6 +93,7 @@ export function AppShell() {
         'success',
       );
       queryClient.invalidateQueries({ queryKey: ['client-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['web-notifications'] });
     },
     collaborationEnded: (payload: unknown) => {
       const data = payload as { ClientName?: string } | undefined;
@@ -90,6 +104,7 @@ export function AppShell() {
         'error',
       );
       queryClient.invalidateQueries({ queryKey: ['sidebar-clients'] });
+      queryClient.invalidateQueries({ queryKey: ['web-notifications'] });
     },
     newMessage: (payload: unknown) => {
       const data = payload as { conversationId?: string; senderName?: string } | undefined;

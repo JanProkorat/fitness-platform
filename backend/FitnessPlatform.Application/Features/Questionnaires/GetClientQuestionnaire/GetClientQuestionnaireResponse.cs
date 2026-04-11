@@ -5,6 +5,10 @@ public class GetClientQuestionnaireResponse
     public Guid QuestionnairePublicId { get; set; }
     public string Title { get; set; } = null!;
     public string? Description { get; set; }
+    public Guid LinkPublicId { get; set; }
+    public string ProfessionalName { get; set; } = string.Empty;
+    public string? ProfessionalRole { get; set; }
+    public string? ProfessionalCity { get; set; }
     public int QuestionCount { get; set; }
     public List<ClientQuestionDto> Questions { get; set; } = [];
     public Guid? ExistingResponsePublicId { get; set; }

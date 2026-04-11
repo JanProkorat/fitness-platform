@@ -33,6 +33,15 @@ public class GetFullPlanResponse
 
     /// <summary>Current day of week 1-7 (null if plan is upcoming).</summary>
     public int? CurrentDayOfWeek { get; set; }
+
+    /// <summary>Plan status (Active, Completed, Archived).</summary>
+    public string Status { get; set; } = string.Empty;
+
+    /// <summary>Linked questionnaire response public ID, if any.</summary>
+    public Guid? QuestionnaireResponseId { get; set; }
+
+    /// <summary>When this plan was marked as completed, if applicable.</summary>
+    public DateTime? DateCompleted { get; set; }
 }
 
 /// <summary>

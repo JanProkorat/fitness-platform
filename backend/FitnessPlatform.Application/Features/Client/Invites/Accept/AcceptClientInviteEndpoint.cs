@@ -65,6 +65,8 @@ public class AcceptClientInviteEndpoint(
             .AnyAsync(l => l.ClientProfileId == clientProfile.Id
                            && l.ProfessionalProfileId == invite.ProfessionalProfileId, ct);
 
+        ClientProfessionalLink? newLink = null;
+
         if (!existingLink)
         {
             var professionalUser = await userManager.FindByIdAsync(
@@ -76,7 +78,7 @@ public class AcceptClientInviteEndpoint(
                 ? UserRole.Nutritionist
                 : UserRole.Trainer;
 
-            var link = new ClientProfessionalLink
+            newLink = new ClientProfessionalLink
             {
                 ClientProfileId = clientProfile.Id,
                 ProfessionalProfileId = invite.ProfessionalProfileId,
@@ -84,7 +86,7 @@ public class AcceptClientInviteEndpoint(
                 IsActive = true,
                 QuestionnaireId = invite.QuestionnaireId
             };
-            db.ClientProfessionalLinks.Add(link);
+            db.ClientProfessionalLinks.Add(newLink);
         }
 
         invite.IsAccepted = true;
@@ -99,7 +101,24 @@ public class AcceptClientInviteEndpoint(
         foreach (var token in matchingTokens)
             token.IsUsed = true;
 
+        // Save link first so it gets a generated Id for the questionnaire response
         await db.SaveChangesAsync(ct);
+
+        // If the invite included a questionnaire, create a pending response
+        // so the web portal immediately shows the "waiting" state.
+        if (newLink is not null && invite.QuestionnaireId.HasValue)
+        {
+            var questionnaireResponse = new QuestionnaireResponse
+            {
+                QuestionnaireId = invite.QuestionnaireId.Value,
+                ClientId = userGuid,
+                ProfessionalId = invite.ProfessionalProfile.UserId,
+                LinkId = newLink.Id,
+                Status = QuestionnaireResponseStatus.Pending,
+            };
+            db.QuestionnaireResponses.Add(questionnaireResponse);
+            await db.SaveChangesAsync(ct);
+        }
 
         // Notify the professional that their invite was accepted
         var clientUser = await db.Users.FirstAsync(u => u.Id == userGuid, ct);

@@ -37,6 +37,9 @@ export interface TodayTrainingResponse {
   session?: TrainingSession | null;
   currentWeek?: number | null;
   totalWeeks?: number | null;
+  status?: 'Draft' | 'Active' | 'Completed' | 'Archived';
+  questionnaireResponseId?: string | null;
+  dateCompleted?: string | null;
 }
 
 // --- API calls ---

@@ -28,15 +28,20 @@ export function useSignalR(handlers: Record<string, (payload: unknown) => void>)
   const handlersRef = useRef(handlers);
   handlersRef.current = handlers;
 
-  // Connect/disconnect based on auth state only (not token changes)
+  // Connect/disconnect based on auth state only (not token changes).
+  // React 18 StrictMode runs effects twice (mount → cleanup → mount),
+  // so we track cancellation to avoid "stopped during negotiation" errors.
   useEffect(() => {
     if (!isAuthenticated) {
       if (connectionRef.current) {
         connectionRef.current.stop();
         connectionRef.current = null;
+        _connection = null;
       }
       return;
     }
+
+    let cancelled = false;
 
     const connection = new HubConnectionBuilder()
       .withUrl('/hubs/notifications', {
@@ -46,9 +51,6 @@ export function useSignalR(handlers: Record<string, (payload: unknown) => void>)
       .configureLogging(LogLevel.Warning)
       .build();
 
-    connectionRef.current = connection;
-    _connection = connection;
-
     // SignalR JS client lowercases method names — register with lowercase
     // but dispatch to the original-cased handler
     for (const event of Object.keys(handlersRef.current)) {
@@ -57,20 +59,37 @@ export function useSignalR(handlers: Record<string, (payload: unknown) => void>)
       });
     }
 
-    connection.start().catch((err) => {
-      console.warn('[SignalR] Connection failed:', err);
-    });
-
     connection.onreconnected(() => {
       console.log('[SignalR] Reconnected');
     });
 
+    // Start the connection. If cleanup runs mid-negotiation (React 18
+    // StrictMode), we let start() finish and then stop — calling stop()
+    // during negotiation triggers an internal SignalR error log.
+    const startPromise = connection.start().then(() => {
+      if (cancelled) {
+        connection.stop();
+        return;
+      }
+      connectionRef.current = connection;
+      _connection = connection;
+    }).catch((err) => {
+      if (!cancelled) {
+        console.warn('[SignalR] Connection failed:', err);
+      }
+    });
+
     return () => {
-      if (connection.state !== HubConnectionState.Disconnected) {
+      cancelled = true;
+      if (connectionRef.current === connection) {
+        connectionRef.current = null;
+        _connection = null;
+      }
+      // If already connected, stop immediately. If still negotiating,
+      // the startPromise .then() will stop it once negotiation finishes.
+      if (connection.state === HubConnectionState.Connected) {
         connection.stop();
       }
-      connectionRef.current = null;
-      _connection = null;
     };
   }, [isAuthenticated]);
 

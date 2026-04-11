@@ -27,11 +27,44 @@ public class GetClientResponseEndpoint(IApplicationDbContext db) : EndpointWitho
         var userGuid = Guid.Parse(userId);
         var clientPublicId = Route<Guid>("clientPublicId");
 
+        // Resolve ClientProfile.PublicId → UserId
+        var clientProfile = await db.ClientProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cp => cp.PublicId == clientPublicId, ct);
+
+        if (clientProfile is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        // Verify active link exists between this professional and client
+        var professionalProfile = await db.ProfessionalProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(pp => pp.UserId == userGuid, ct);
+
+        if (professionalProfile is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        var hasLink = await db.ClientProfessionalLinks
+            .AsNoTracking()
+            .AnyAsync(l => l.ClientProfileId == clientProfile.Id
+                        && l.ProfessionalProfileId == professionalProfile.Id, ct);
+
+        if (!hasLink)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
         var response = await db.QuestionnaireResponses
             .Include(r => r.Answers).ThenInclude(a => a.Question)
             .Include(r => r.Questionnaire)
-            .Where(r => r.ClientId == clientPublicId
-                     && r.ProfessionalId == userGuid
+            .Where(r => r.ClientId == clientProfile.UserId
+                     && r.ProfessionalId == professionalProfile.UserId
                      && r.Status == QuestionnaireResponseStatus.Submitted)
             .OrderByDescending(r => r.SubmittedAt)
             .FirstOrDefaultAsync(ct);

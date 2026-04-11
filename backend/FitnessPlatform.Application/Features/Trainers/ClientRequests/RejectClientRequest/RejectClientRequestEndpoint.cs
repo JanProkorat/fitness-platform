@@ -98,6 +98,49 @@ public class RejectClientRequestEndpoint(
             RequestPublicId = clientRequest.PublicId
         }, ct);
 
+        // Send statement as a chat message if provided
+        if (!string.IsNullOrWhiteSpace(req.Statement))
+        {
+            var conversation = await db.Conversations
+                .FirstOrDefaultAsync(c =>
+                    c.ProfessionalUserId == userGuid &&
+                    c.ClientUserId == clientRequest.ClientProfile.UserId, ct);
+
+            if (conversation is null)
+            {
+                conversation = new Conversation
+                {
+                    ProfessionalUserId = userGuid,
+                    ClientUserId = clientRequest.ClientProfile.UserId,
+                };
+                db.Conversations.Add(conversation);
+                await db.SaveChangesAsync(ct);
+            }
+
+            var chatMessage = new ChatMessage
+            {
+                ConversationId = conversation.Id,
+                SenderUserId = userGuid,
+                Text = req.Statement,
+                IsRead = false,
+            };
+            db.ChatMessages.Add(chatMessage);
+
+            conversation.LastMessageText = req.Statement.Length > 300
+                ? req.Statement[..300]
+                : req.Statement;
+            conversation.LastMessageAt = DateTime.UtcNow;
+            conversation.LastMessageSenderId = userGuid;
+
+            await db.SaveChangesAsync(ct);
+
+            await notifier.NotifyAsync(clientRequest.ClientProfile.UserId, "newMessage", new
+            {
+                ConversationId = conversation.PublicId,
+                SenderName = profName,
+            }, ct);
+        }
+
         logger.LogInformation(
             "Client request {RequestId} rejected by professional {ProfessionalId}",
             clientRequest.PublicId, professionalProfile.PublicId);

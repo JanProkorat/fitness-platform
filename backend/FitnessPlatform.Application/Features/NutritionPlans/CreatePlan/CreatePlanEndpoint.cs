@@ -4,8 +4,10 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.NutritionPlans.Shared;
+using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace FitnessPlatform.Application.Features.NutritionPlans.CreatePlan;
 
@@ -14,7 +16,8 @@ namespace FitnessPlatform.Application.Features.NutritionPlans.CreatePlan;
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="authHelper">Validates nutritionist-client relationship.</param>
-public class CreatePlanEndpoint(IMongoContext mongo, NutritionAuthHelper authHelper)
+/// <param name="db">PostgreSQL context for cross-DB validation.</param>
+public class CreatePlanEndpoint(IMongoContext mongo, NutritionAuthHelper authHelper, IApplicationDbContext db)
     : Endpoint<CreatePlanRequest, PlanSummaryDto>
 {
     /// <inheritdoc />
@@ -50,6 +53,23 @@ public class CreatePlanEndpoint(IMongoContext mongo, NutritionAuthHelper authHel
             return;
         }
 
+        // Validate questionnaire response link if provided
+        if (req.QuestionnaireResponseId.HasValue)
+        {
+            var responseExists = await db.QuestionnaireResponses
+                .AsNoTracking()
+                .AnyAsync(r => r.PublicId == req.QuestionnaireResponseId.Value
+                               && r.ProfessionalId == nutritionistId
+                               && r.ClientId == req.ClientId
+                               && r.Status == QuestionnaireResponseStatus.Submitted, ct);
+
+            if (!responseExists)
+            {
+                ThrowError("QuestionnaireResponseId", "Questionnaire response not found or not submitted.");
+                return;
+            }
+        }
+
         var now = DateTime.UtcNow;
 
         var plan = new NutritionPlan
@@ -60,6 +80,7 @@ public class CreatePlanEndpoint(IMongoContext mongo, NutritionAuthHelper authHel
             Name = req.Name,
             Status = NutritionPlanStatus.Draft,
             GlobalSettings = req.GlobalSettings,
+            QuestionnaireResponseId = req.QuestionnaireResponseId,
             Weeks = Enumerable.Range(1, req.WeekCount).Select(w => new PlanWeek
             {
                 WeekNumber = w,
