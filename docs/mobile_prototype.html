@@ -548,6 +548,77 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
 .pnav-items{display:none;align-items:center;gap:2px}
 .pnav-items.open{display:flex}
 
+/* ── FOOD / RECIPE DETAIL ─────────────────────────────────── */
+.fd-header{position:relative;padding:8px 14px 4px;display:flex;align-items:center;gap:8px}
+.fd-back{font-size:17px;color:var(--ios-blue);cursor:pointer;flex-shrink:0;padding-right:4px}
+.fd-title-area{flex:1;min-width:0;text-align:center}
+.fd-screen-title{font-size:16px;font-weight:600;color:var(--ios-label);letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fd-spacer{width:40px;flex-shrink:0}
+
+/* Hero icon section */
+.fd-hero{display:flex;flex-direction:column;align-items:center;padding:20px 20px 16px;gap:10px}
+.fd-hero-icon{width:72px;height:72px;border-radius:22px;display:flex;align-items:center;justify-content:center;font-size:34px;flex-shrink:0}
+.fd-hero-name{font-size:22px;font-weight:700;color:var(--ios-label);letter-spacing:-.3px;text-align:center;line-height:1.2}
+.fd-hero-sub{font-size:14px;color:var(--ios-label2);text-align:center;display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center}
+.fd-category-badge{font-size:12px;font-weight:600;padding:3px 10px;border-radius:99px;background:var(--ios-fill);color:var(--ios-label2)}
+
+/* Macros donut area */
+.fd-macros-card{margin:0 20px 16px;background:var(--ios-bg2);border-radius:var(--ios-r-lg);padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.06),0 4px 12px rgba(0,0,0,.05)}
+.fd-macros-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.fd-macros-title{font-size:15px;font-weight:600;color:var(--ios-label)}
+.fd-kcal-badge{font-size:20px;font-weight:700;color:var(--ios-label);letter-spacing:-.3px}
+.fd-kcal-badge span{font-size:13px;font-weight:400;color:var(--ios-label2)}
+.fd-macro-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.fd-macro-item{background:var(--ios-fill2);border-radius:var(--ios-r);padding:10px 12px}
+.fd-macro-item-label{font-size:11px;font-weight:600;color:var(--ios-label3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}
+.fd-macro-item-val{font-size:18px;font-weight:700;letter-spacing:-.3px}
+.fd-macro-item-bar{height:4px;border-radius:99px;background:var(--ios-fill);margin-top:6px;overflow:hidden}
+.fd-macro-item-bar-fill{height:100%;border-radius:99px}
+
+/* Info section */
+.fd-info-section{margin:0 20px 16px}
+.fd-info-section-title{font-size:13px;font-weight:600;color:var(--ios-label3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;padding:0 4px}
+.fd-info-list{background:var(--ios-bg2);border-radius:var(--ios-r);overflow:hidden}
+.fd-info-row{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:.5px solid var(--ios-sep2)}
+.fd-info-row:last-child{border-bottom:none}
+.fd-info-label{font-size:15px;color:var(--ios-label)}
+.fd-info-val{font-size:15px;color:var(--ios-label2);font-weight:500}
+
+/* Servings chips */
+.fd-servings{display:flex;flex-wrap:wrap;gap:8px;padding:4px 16px 12px}
+.fd-serving-chip{padding:6px 14px;border-radius:99px;background:var(--ios-fill);font-size:13px;font-weight:500;color:var(--ios-label2);cursor:pointer;transition:background .15s,color .15s}
+.fd-serving-chip.active{background:rgba(201,168,76,.15);color:var(--ios-gold);font-weight:600}
+
+/* Allergen tags */
+.fd-allergens{display:flex;flex-wrap:wrap;gap:6px;padding:4px 16px 12px}
+.fd-allergen-tag{padding:4px 10px;border-radius:99px;font-size:12px;font-weight:600;background:rgba(255,59,48,.08);color:var(--ios-red)}
+
+/* Trainer note */
+.fd-note{margin:0 20px 16px;padding:12px 14px;background:var(--ios-bg2);border-radius:var(--ios-r);position:relative;overflow:hidden}
+.fd-note::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--ios-gold);border-radius:0 99px 99px 0}
+.fd-note-label{font-size:12px;font-weight:600;color:var(--ios-gold);margin-bottom:3px}
+.fd-note-text{font-size:14px;color:var(--ios-label2);line-height:1.5}
+
+/* Recipe: ingredients list */
+.fd-ingredient-row{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:.5px solid var(--ios-sep2);cursor:pointer;transition:background .12s}
+.fd-ingredient-row:last-child{border-bottom:none}
+.fd-ingredient-row:active{background:var(--ios-fill2)}
+.fd-ingredient-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.fd-ingredient-name{flex:1;font-size:15px;color:var(--ios-label);font-weight:var(--sf-med)}
+.fd-ingredient-amount{font-size:13px;color:var(--ios-label2);font-weight:500;flex-shrink:0}
+.fd-ingredient-kcal{font-size:12px;color:var(--ios-label3);flex-shrink:0;min-width:50px;text-align:right}
+
+/* Recipe: steps */
+.fd-step{display:flex;gap:12px;padding:12px 16px;border-bottom:.5px solid var(--ios-sep2)}
+.fd-step:last-child{border-bottom:none}
+.fd-step-num{width:26px;height:26px;border-radius:50%;background:var(--ios-gold);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.fd-step-text{flex:1;font-size:15px;color:var(--ios-label);line-height:1.5}
+
+/* Language switcher */
+.fd-lang-switch{display:flex;gap:4px;flex-shrink:0}
+.fd-lang-btn{width:28px;height:20px;border-radius:4px;border:1px solid var(--ios-sep);background:transparent;font-size:10px;font-weight:600;color:var(--ios-label3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s,border-color .15s;font-family:'Inter',sans-serif}
+.fd-lang-btn.active{background:var(--ios-gold);color:#fff;border-color:var(--ios-gold)}
+
 </style>
 </head>
 <body>
@@ -575,6 +646,8 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
       <button class="pb" onclick="showPhone('ph-plan-history')">Archiv plánů</button>
       <button class="pb" onclick="showPhone('ph-plan-detail-complete')">Dokončený plán</button>
       <button class="pb" onclick="showPhone('ph-nutrition-plan-detail')">Detail výživového plánu</button>
+      <button class="pb" onclick="showPhone('ph-food-detail')">Detail potraviny</button>
+      <button class="pb" onclick="showPhone('ph-recipe-detail')">Detail receptu</button>
       <button class="pb" onclick="showPhone('ph-onb-intro')">Dotazník — intro</button>
       <button class="pb" onclick="showPhone('ph-onb-s1')">Dotazník — krok</button>
     </div>
@@ -3017,6 +3090,9 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
   <div class="di"></div>
   <div class="status-bar"><span class="sb-time">9:41</span><div class="sb-icons"><svg width="17" height="12" viewBox="0 0 17 12"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0" width="3" height="12" rx="1"/><rect x="13.5" y="1" width="3" height="11" rx="1"/></svg><svg width="25" height="12" viewBox="0 0 25 12"><rect x="0" y="1" width="21" height="10" rx="3.5" stroke="#000" stroke-width="1" fill="none"/><rect x="22" y="4" width="2.5" height="4" rx="1" fill="#000" opacity=".4"/><rect x="1.5" y="2.5" width="15" height="7" rx="2" fill="#000"/></svg></div></div>
 
+  <!-- Full-height flex wrapper below status bar -->
+  <div style="position:absolute;top:59px;left:0;right:0;bottom:0;display:flex;flex-direction:column;overflow:hidden">
+
   <!-- Fixed header area (does not scroll) -->
   <div style="flex-shrink:0">
     <!-- Nav header with stepper + action icons -->
@@ -3057,7 +3133,7 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
   </div>
 
   <!-- Scrollable content area -->
-  <div class="scroll-area" id="np-scroll" style="bottom:0">
+  <div id="np-scroll" style="flex:1;overflow-y:auto;overflow-x:hidden;padding-top:8px">
 
     <!-- ── DAY OVERVIEW CARD ── -->
     <div id="np-day-content">
@@ -3117,7 +3193,7 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
         <div class="np-meal-body" style="display:none;border-top:.5px solid var(--ios-sep2)">
           <!-- Food item 1 -->
           <div style="border-bottom:.5px solid var(--ios-sep2)">
-            <div style="display:flex;align-items:center;gap:12px;padding:11px 16px">
+            <div onclick="showPhone('ph-food-detail')" style="display:flex;align-items:center;gap:12px;padding:11px 16px;cursor:pointer;transition:background .12s" onmousedown="this.style.background='var(--ios-fill2)'" onmouseup="this.style.background=''" onmouseleave="this.style.background=''">
               <div style="flex:1;min-width:0">
                 <div style="font-size:15px;font-weight:500;color:var(--ios-label)">Ovesná kaše s proteinem</div>
                 <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">Obiloviny</div>
@@ -3126,6 +3202,7 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
                 <div style="font-size:13px;font-weight:600;color:var(--ios-label)">340 kcal</div>
                 <div style="font-size:10px;color:var(--ios-label3)">110 g</div>
               </div>
+              <span style="color:var(--ios-label3);font-size:14px;font-weight:600">›</span>
             </div>
             <!-- Food item note -->
             <div style="padding:0 16px 10px">
@@ -3320,15 +3397,16 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
         <div class="np-meal-body" style="display:none;border-top:.5px solid var(--ios-sep2)">
           <!-- Recipe item (same style as food rows) -->
           <div style="border-bottom:.5px solid var(--ios-sep2)">
-            <div style="display:flex;align-items:center;gap:12px;padding:11px 16px">
+            <div onclick="showPhone('ph-recipe-detail')" style="display:flex;align-items:center;gap:12px;padding:11px 16px;cursor:pointer;transition:background .12s" onmousedown="this.style.background='var(--ios-fill2)'" onmouseup="this.style.background=''" onmouseleave="this.style.background=''">
               <div style="flex:1;min-width:0">
                 <div style="font-size:15px;font-weight:500;color:var(--ios-label)">Losos s quinoou</div>
-                <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">Recept</div>
+                <div style="font-size:12px;color:var(--ios-gold);margin-top:1px;font-weight:500">Recept</div>
               </div>
               <div style="text-align:right;flex-shrink:0">
                 <div style="font-size:13px;font-weight:600;color:var(--ios-label)">195 kcal</div>
                 <div style="font-size:10px;color:var(--ios-label3)">1× porce</div>
               </div>
+              <span style="color:var(--ios-label3);font-size:14px;font-weight:600">›</span>
             </div>
           </div>
           <div style="border-bottom:.5px solid var(--ios-sep2)">
@@ -3362,6 +3440,318 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
 
     <div style="height:34px"></div>
   </div>
+  </div><!-- /flex wrapper -->
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     FOOD DETAIL (from nutrition plan)
+═══════════════════════════════════════════ -->
+<div class="phone-wrap">
+<div class="phone-label" data-i18n="food-detail-label">Detail potraviny</div>
+<div class="phone" id="ph-food-detail" style="display:none">
+  <div class="di"></div>
+  <div class="status-bar"><span class="sb-time">9:41</span><div class="sb-icons"><svg width="17" height="12" viewBox="0 0 17 12"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0" width="3" height="12" rx="1"/><rect x="13.5" y="1" width="3" height="11" rx="1"/></svg><svg width="25" height="12" viewBox="0 0 25 12"><rect x="0" y="1" width="21" height="10" rx="3.5" stroke="#000" stroke-width="1" fill="none"/><rect x="22" y="4" width="2.5" height="4" rx="1" fill="#000" opacity=".4"/><rect x="1.5" y="2.5" width="15" height="7" rx="2" fill="#000"/></svg></div></div>
+
+  <div class="scroll-area" style="top:59px;bottom:0">
+    <!-- Nav header -->
+    <div class="fd-header">
+      <span class="fd-back" onclick="showPhone('ph-nutrition-plan-detail')">‹</span>
+      <div class="fd-title-area">
+        <div class="fd-screen-title" data-i18n="food-detail-nav">Snídaně</div>
+      </div>
+      <div class="fd-lang-switch">
+        <button class="fd-lang-btn active" onclick="setFdLang('cs',this)">CS</button>
+        <button class="fd-lang-btn" onclick="setFdLang('en',this)">EN</button>
+        <button class="fd-lang-btn" onclick="setFdLang('de',this)">DE</button>
+      </div>
+    </div>
+
+    <!-- Hero -->
+    <div class="fd-hero">
+      <div class="fd-hero-icon" style="background:rgba(255,149,0,.12)">🥣</div>
+      <div class="fd-hero-name" data-i18n="food-name">Ovesná kaše s proteinem</div>
+      <div class="fd-hero-sub">
+        <span class="fd-category-badge" data-i18n="food-category">Obiloviny</span>
+        <span style="font-size:13px;color:var(--ios-label3)">·</span>
+        <span style="font-size:13px;color:var(--ios-label2)">110 g</span>
+      </div>
+    </div>
+
+    <!-- Macros card -->
+    <div class="fd-macros-card">
+      <div class="fd-macros-header">
+        <div class="fd-macros-title" data-i18n="macros-title">Nutriční hodnoty</div>
+        <div class="fd-kcal-badge">340 <span>kcal</span></div>
+      </div>
+      <div class="fd-macro-grid">
+        <div class="fd-macro-item">
+          <div class="fd-macro-item-label" data-i18n="macro-protein">Bílkoviny</div>
+          <div class="fd-macro-item-val" style="color:#ff6b6b">24.2 g</div>
+          <div class="fd-macro-item-bar"><div class="fd-macro-item-bar-fill" style="width:72%;background:#ff6b6b"></div></div>
+        </div>
+        <div class="fd-macro-item">
+          <div class="fd-macro-item-label" data-i18n="macro-carbs">Sacharidy</div>
+          <div class="fd-macro-item-val" style="color:#ffd93d">42.0 g</div>
+          <div class="fd-macro-item-bar"><div class="fd-macro-item-bar-fill" style="width:58%;background:#ffd93d"></div></div>
+        </div>
+        <div class="fd-macro-item">
+          <div class="fd-macro-item-label" data-i18n="macro-fat">Tuky</div>
+          <div class="fd-macro-item-val" style="color:#6bcb77">8.5 g</div>
+          <div class="fd-macro-item-bar"><div class="fd-macro-item-bar-fill" style="width:40%;background:#6bcb77"></div></div>
+        </div>
+        <div class="fd-macro-item">
+          <div class="fd-macro-item-label" data-i18n="macro-fiber">Vláknina</div>
+          <div class="fd-macro-item-val" style="color:#4d96ff">3.8 g</div>
+          <div class="fd-macro-item-bar"><div class="fd-macro-item-bar-fill" style="width:32%;background:#4d96ff"></div></div>
+        </div>
+      </div>
+      <!-- Extended nutrient rows -->
+      <div style="border-top:.5px solid var(--ios-sep2);padding-top:10px">
+        <div class="fd-info-row" style="padding:6px 0">
+          <span class="fd-info-label" style="font-size:14px" data-i18n="nutrient-sugar">Cukry</span>
+          <span class="fd-info-val" style="font-size:14px">4.2 g</span>
+        </div>
+        <div class="fd-info-row" style="padding:6px 0;border-bottom:none">
+          <span class="fd-info-label" style="font-size:14px" data-i18n="nutrient-saturated">Nasycené tuky</span>
+          <span class="fd-info-val" style="font-size:14px">1.8 g</span>
+        </div>
+        <div class="fd-info-row" style="padding:6px 0;border-bottom:none">
+          <span class="fd-info-label" style="font-size:14px" data-i18n="nutrient-salt">Sůl</span>
+          <span class="fd-info-val" style="font-size:14px">0.12 g</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Per 100g reference -->
+    <div class="fd-info-section">
+      <div class="fd-info-section-title" data-i18n="per-100g-title">Na 100 g</div>
+      <div class="fd-info-list">
+        <div class="fd-info-row">
+          <span class="fd-info-label" data-i18n="per100-energy">Energie</span>
+          <span class="fd-info-val">309 kcal</span>
+        </div>
+        <div class="fd-info-row">
+          <span class="fd-info-label" data-i18n="macro-protein">Bílkoviny</span>
+          <span class="fd-info-val">22.0 g</span>
+        </div>
+        <div class="fd-info-row">
+          <span class="fd-info-label" data-i18n="macro-carbs">Sacharidy</span>
+          <span class="fd-info-val">38.2 g</span>
+        </div>
+        <div class="fd-info-row">
+          <span class="fd-info-label" data-i18n="macro-fat">Tuky</span>
+          <span class="fd-info-val">7.7 g</span>
+        </div>
+        <div class="fd-info-row">
+          <span class="fd-info-label" data-i18n="macro-fiber">Vláknina</span>
+          <span class="fd-info-val">3.5 g</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Common servings -->
+    <div class="fd-info-section">
+      <div class="fd-info-section-title" data-i18n="servings-title">Běžné porce</div>
+      <div class="fd-info-list">
+        <div class="fd-servings">
+          <div class="fd-serving-chip active" data-i18n="serving-planned">Dle plánu (110 g)</div>
+          <div class="fd-serving-chip" data-i18n="serving-small">Malá porce (80 g)</div>
+          <div class="fd-serving-chip" data-i18n="serving-large">Velká porce (150 g)</div>
+          <div class="fd-serving-chip">1 cup (90 g)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Allergens -->
+    <div class="fd-info-section">
+      <div class="fd-info-section-title" data-i18n="allergens-title">Alergeny</div>
+      <div class="fd-info-list">
+        <div class="fd-allergens">
+          <span class="fd-allergen-tag" data-i18n="allergen-gluten">Lepek</span>
+          <span class="fd-allergen-tag" data-i18n="allergen-milk">Mléko</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trainer note -->
+    <div class="fd-note">
+      <div class="fd-note-label" data-i18n="trainer-note-label">Poznámka trenéra</div>
+      <div class="fd-note-text" data-i18n="food-note">Použij jemné vločky, lépe se připraví. Můžeš přidat lžíci arašídového másla navíc pro vyšší tuky.</div>
+    </div>
+
+    <!-- Barcode -->
+    <div class="fd-info-section">
+      <div class="fd-info-list">
+        <div class="fd-info-row">
+          <span class="fd-info-label" style="display:flex;align-items:center;gap:6px">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ios-label2)" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="7" y1="7" x2="7" y2="17"/><line x1="10" y1="7" x2="10" y2="17"/><line x1="13" y1="7" x2="13" y2="13"/><line x1="16" y1="7" x2="16" y2="17"/></svg>
+            <span data-i18n="barcode-label">Čárový kód</span>
+          </span>
+          <span class="fd-info-val" style="font-family:monospace;font-size:13px">8594001234567</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="height:20px"></div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     RECIPE DETAIL (from nutrition plan)
+═══════════════════════════════════════════ -->
+<div class="phone-wrap">
+<div class="phone-label" data-i18n="recipe-detail-label">Detail receptu</div>
+<div class="phone" id="ph-recipe-detail" style="display:none">
+  <div class="di"></div>
+  <div class="status-bar"><span class="sb-time">9:41</span><div class="sb-icons"><svg width="17" height="12" viewBox="0 0 17 12"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0" width="3" height="12" rx="1"/><rect x="13.5" y="1" width="3" height="11" rx="1"/></svg><svg width="25" height="12" viewBox="0 0 25 12"><rect x="0" y="1" width="21" height="10" rx="3.5" stroke="#000" stroke-width="1" fill="none"/><rect x="22" y="4" width="2.5" height="4" rx="1" fill="#000" opacity=".4"/><rect x="1.5" y="2.5" width="15" height="7" rx="2" fill="#000"/></svg></div></div>
+
+  <div class="scroll-area" style="top:59px;bottom:0">
+    <!-- Nav header -->
+    <div class="fd-header">
+      <span class="fd-back" onclick="showPhone('ph-nutrition-plan-detail')">‹</span>
+      <div class="fd-title-area">
+        <div class="fd-screen-title" data-i18n="recipe-nav">Večeře</div>
+      </div>
+      <div class="fd-lang-switch">
+        <button class="fd-lang-btn active" onclick="setFdLang('cs',this)">CS</button>
+        <button class="fd-lang-btn" onclick="setFdLang('en',this)">EN</button>
+        <button class="fd-lang-btn" onclick="setFdLang('de',this)">DE</button>
+      </div>
+    </div>
+
+    <!-- Hero -->
+    <div class="fd-hero">
+      <div class="fd-hero-icon" style="background:rgba(0,122,255,.1)">🐟</div>
+      <div class="fd-hero-name" data-i18n="recipe-name">Losos s quinoou a grilovanou zeleninou</div>
+      <div class="fd-hero-sub">
+        <span class="fd-category-badge" data-i18n="recipe-badge">Recept</span>
+        <span style="font-size:13px;color:var(--ios-label3)">·</span>
+        <span style="font-size:13px;color:var(--ios-label2)" data-i18n="recipe-servings">1× porce</span>
+        <span style="font-size:13px;color:var(--ios-label3)">·</span>
+        <span style="font-size:13px;color:var(--ios-label2)">⏱ 25 min</span>
+      </div>
+    </div>
+
+    <!-- Total macros card -->
+    <div class="fd-macros-card">
+      <div class="fd-macros-header">
+        <div class="fd-macros-title" data-i18n="recipe-macros-title">Celkové hodnoty</div>
+        <div class="fd-kcal-badge">485 <span>kcal</span></div>
+      </div>
+      <div class="fd-macro-grid">
+        <div class="fd-macro-item">
+          <div class="fd-macro-item-label" data-i18n="macro-protein">Bílkoviny</div>
+          <div class="fd-macro-item-val" style="color:#ff6b6b">38.4 g</div>
+          <div class="fd-macro-item-bar"><div class="fd-macro-item-bar-fill" style="width:82%;background:#ff6b6b"></div></div>
+        </div>
+        <div class="fd-macro-item">
+          <div class="fd-macro-item-label" data-i18n="macro-carbs">Sacharidy</div>
+          <div class="fd-macro-item-val" style="color:#ffd93d">36.0 g</div>
+          <div class="fd-macro-item-bar"><div class="fd-macro-item-bar-fill" style="width:50%;background:#ffd93d"></div></div>
+        </div>
+        <div class="fd-macro-item">
+          <div class="fd-macro-item-label" data-i18n="macro-fat">Tuky</div>
+          <div class="fd-macro-item-val" style="color:#6bcb77">18.6 g</div>
+          <div class="fd-macro-item-bar"><div class="fd-macro-item-bar-fill" style="width:65%;background:#6bcb77"></div></div>
+        </div>
+        <div class="fd-macro-item">
+          <div class="fd-macro-item-label" data-i18n="macro-fiber">Vláknina</div>
+          <div class="fd-macro-item-val" style="color:#4d96ff">6.2 g</div>
+          <div class="fd-macro-item-bar"><div class="fd-macro-item-bar-fill" style="width:48%;background:#4d96ff"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ingredients -->
+    <div class="fd-info-section">
+      <div class="fd-info-section-title" data-i18n="ingredients-title">Ingredience</div>
+      <div class="fd-info-list">
+        <div class="fd-ingredient-row" onclick="showPhone('ph-food-detail')">
+          <div class="fd-ingredient-dot" style="background:#ff6b6b"></div>
+          <div class="fd-ingredient-name" data-i18n="ing-salmon">Losos filet</div>
+          <div class="fd-ingredient-amount">150 g</div>
+          <div class="fd-ingredient-kcal">280 kcal</div>
+          <span style="color:var(--ios-label3);font-size:14px;margin-left:2px">›</span>
+        </div>
+        <div class="fd-ingredient-row">
+          <div class="fd-ingredient-dot" style="background:#ffd93d"></div>
+          <div class="fd-ingredient-name" data-i18n="ing-quinoa">Quinoa</div>
+          <div class="fd-ingredient-amount">60 g</div>
+          <div class="fd-ingredient-kcal">110 kcal</div>
+          <span style="color:var(--ios-label3);font-size:14px;margin-left:2px">›</span>
+        </div>
+        <div class="fd-ingredient-row">
+          <div class="fd-ingredient-dot" style="background:#6bcb77"></div>
+          <div class="fd-ingredient-name" data-i18n="ing-zucchini">Cuketa</div>
+          <div class="fd-ingredient-amount">100 g</div>
+          <div class="fd-ingredient-kcal">17 kcal</div>
+          <span style="color:var(--ios-label3);font-size:14px;margin-left:2px">›</span>
+        </div>
+        <div class="fd-ingredient-row">
+          <div class="fd-ingredient-dot" style="background:#6bcb77"></div>
+          <div class="fd-ingredient-name" data-i18n="ing-pepper">Paprika</div>
+          <div class="fd-ingredient-amount">80 g</div>
+          <div class="fd-ingredient-kcal">26 kcal</div>
+          <span style="color:var(--ios-label3);font-size:14px;margin-left:2px">›</span>
+        </div>
+        <div class="fd-ingredient-row">
+          <div class="fd-ingredient-dot" style="background:#6bcb77"></div>
+          <div class="fd-ingredient-name" data-i18n="ing-olive-oil">Olivový olej</div>
+          <div class="fd-ingredient-amount">10 ml</div>
+          <div class="fd-ingredient-kcal">88 kcal</div>
+          <span style="color:var(--ios-label3);font-size:14px;margin-left:2px">›</span>
+        </div>
+        <div class="fd-ingredient-row">
+          <div class="fd-ingredient-dot" style="background:var(--ios-label3)"></div>
+          <div class="fd-ingredient-name" data-i18n="ing-lemon">Citrón</div>
+          <div class="fd-ingredient-amount">15 g</div>
+          <div class="fd-ingredient-kcal">4 kcal</div>
+          <span style="color:var(--ios-label3);font-size:14px;margin-left:2px">›</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preparation steps -->
+    <div class="fd-info-section">
+      <div class="fd-info-section-title" data-i18n="steps-title">Postup přípravy</div>
+      <div class="fd-info-list">
+        <div class="fd-step">
+          <div class="fd-step-num">1</div>
+          <div class="fd-step-text" data-i18n="step-1">Quinou propláchni a vař 15 minut ve dvojnásobku vody. Nech odpočinout pod pokličkou.</div>
+        </div>
+        <div class="fd-step">
+          <div class="fd-step-num">2</div>
+          <div class="fd-step-text" data-i18n="step-2">Lososa osoľ, opepři a potři olivovým olejem. Griluj na pánvi z každé strany 4 minuty.</div>
+        </div>
+        <div class="fd-step">
+          <div class="fd-step-num">3</div>
+          <div class="fd-step-text" data-i18n="step-3">Cuketu a papriku nakrájej na plátky, griluj na pánvi 3–4 minuty z každé strany.</div>
+        </div>
+        <div class="fd-step">
+          <div class="fd-step-num">4</div>
+          <div class="fd-step-text" data-i18n="step-4">Servíruj lososa na lůžku z quinoy s grilovanou zeleninou. Zakápni citrónem.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trainer note -->
+    <div class="fd-note">
+      <div class="fd-note-label" data-i18n="trainer-note-label">Poznámka trenéra</div>
+      <div class="fd-note-text" data-i18n="recipe-note">Lososa nekupuj farmového — ideálně divoký aljašský. Pokud nemáš quinou, nahraď bulghurem.</div>
+    </div>
+
+    <!-- Description -->
+    <div class="fd-info-section">
+      <div class="fd-info-section-title" data-i18n="description-title">Popis</div>
+      <div class="fd-info-list" style="padding:12px 16px">
+        <div style="font-size:14px;color:var(--ios-label2);line-height:1.55" data-i18n="recipe-description">Vyvážené jídlo bohaté na omega-3 mastné kyseliny a kvalitní bílkoviny. Ideální po tréninku pro regeneraci svalů.</div>
+      </div>
+    </div>
+
+    <div style="height:20px"></div>
+  </div>
 </div>
 </div>
 
@@ -3386,7 +3776,7 @@ function showPhone(id){
   document.querySelectorAll('.phone').forEach(function(p){ p.style.display='none'; });
   var el = document.getElementById(id); if(el) el.style.display='block';
   document.querySelectorAll('.pb').forEach(function(b){ b.classList.remove('active'); });
-  var map = {'ph-today':'Dnes','ph-invite-detail':'Detail pozvánky','ph-discover':'Spolupráce','ph-trainer-profile':'Profil trenéra','ph-plans':'Plány','ph-plan-history':'Archiv plánů','ph-plan-detail-complete':'Dokončený plán','ph-nutrition-plan-detail':'Detail výživového plánu','ph-pending-questionnaires':'Čekající dotazníky','ph-profile':'Profil','ph-messages':'Zprávy','ph-archive':'Archiv','ph-chat':'Chat detail','ph-chat-former':'Chat — bývalý trenér'};
+  var map = {'ph-today':'Dnes','ph-invite-detail':'Detail pozvánky','ph-discover':'Spolupráce','ph-trainer-profile':'Profil trenéra','ph-plans':'Plány','ph-plan-history':'Archiv plánů','ph-plan-detail-complete':'Dokončený plán','ph-nutrition-plan-detail':'Detail výživového plánu','ph-food-detail':'Detail potraviny','ph-recipe-detail':'Detail receptu','ph-pending-questionnaires':'Čekající dotazníky','ph-profile':'Profil','ph-messages':'Zprávy','ph-archive':'Archiv','ph-chat':'Chat detail','ph-chat-former':'Chat — bývalý trenér'};
   document.querySelectorAll('.pb').forEach(function(b){
     if(b.textContent.trim() === map[id]) b.classList.add('active');
   });
@@ -4465,6 +4855,109 @@ function npToggleMeal(headerEl) {
   var isOpen = body.style.display !== 'none';
   body.style.display = isOpen ? 'none' : '';
   if (chev) chev.style.transform = isOpen ? '' : 'rotate(180deg)';
+}
+
+// ── FOOD / RECIPE DETAIL: i18n ──────────────────────────
+var _fdLang = 'cs';
+var _fdTranslations = {
+  cs: {
+    'food-detail-label':'Detail potraviny','recipe-detail-label':'Detail receptu',
+    'food-detail-nav':'Snídaně','recipe-nav':'Večeře',
+    'food-name':'Ovesná kaše s proteinem','food-category':'Obiloviny',
+    'macros-title':'Nutriční hodnoty','macro-protein':'Bílkoviny','macro-carbs':'Sacharidy',
+    'macro-fat':'Tuky','macro-fiber':'Vláknina','nutrient-sugar':'Cukry',
+    'nutrient-saturated':'Nasycené tuky','nutrient-salt':'Sůl',
+    'per-100g-title':'Na 100 g','per100-energy':'Energie',
+    'servings-title':'Běžné porce','serving-planned':'Dle plánu (110 g)',
+    'serving-small':'Malá porce (80 g)','serving-large':'Velká porce (150 g)',
+    'allergens-title':'Alergeny','allergen-gluten':'Lepek','allergen-milk':'Mléko',
+    'trainer-note-label':'Poznámka trenéra',
+    'food-note':'Použij jemné vločky, lépe se připraví. Můžeš přidat lžíci arašídového másla navíc pro vyšší tuky.',
+    'barcode-label':'Čárový kód',
+    'recipe-name':'Losos s quinoou a grilovanou zeleninou','recipe-badge':'Recept',
+    'recipe-servings':'1× porce','recipe-macros-title':'Celkové hodnoty',
+    'ingredients-title':'Ingredience',
+    'ing-salmon':'Losos filet','ing-quinoa':'Quinoa','ing-zucchini':'Cuketa',
+    'ing-pepper':'Paprika','ing-olive-oil':'Olivový olej','ing-lemon':'Citrón',
+    'steps-title':'Postup přípravy',
+    'step-1':'Quinou propláchni a vař 15 minut ve dvojnásobku vody. Nech odpočinout pod pokličkou.',
+    'step-2':'Lososa osoľ, opepři a potři olivovým olejem. Griluj na pánvi z každé strany 4 minuty.',
+    'step-3':'Cuketu a papriku nakrájej na plátky, griluj na pánvi 3–4 minuty z každé strany.',
+    'step-4':'Servíruj lososa na lůžku z quinoy s grilovanou zeleninou. Zakápni citrónem.',
+    'recipe-note':'Lososa nekupuj farmového — ideálně divoký aljašský. Pokud nemáš quinou, nahraď bulghurem.',
+    'description-title':'Popis',
+    'recipe-description':'Vyvážené jídlo bohaté na omega-3 mastné kyseliny a kvalitní bílkoviny. Ideální po tréninku pro regeneraci svalů.'
+  },
+  en: {
+    'food-detail-label':'Food Detail','recipe-detail-label':'Recipe Detail',
+    'food-detail-nav':'Breakfast','recipe-nav':'Dinner',
+    'food-name':'Protein Oat Porridge','food-category':'Grains',
+    'macros-title':'Nutritional Values','macro-protein':'Protein','macro-carbs':'Carbs',
+    'macro-fat':'Fat','macro-fiber':'Fiber','nutrient-sugar':'Sugars',
+    'nutrient-saturated':'Saturated Fat','nutrient-salt':'Salt',
+    'per-100g-title':'Per 100 g','per100-energy':'Energy',
+    'servings-title':'Common Servings','serving-planned':'As planned (110 g)',
+    'serving-small':'Small serving (80 g)','serving-large':'Large serving (150 g)',
+    'allergens-title':'Allergens','allergen-gluten':'Gluten','allergen-milk':'Milk',
+    'trainer-note-label':'Trainer\'s Note',
+    'food-note':'Use fine oats — they cook faster. You can add a spoon of peanut butter for extra fats.',
+    'barcode-label':'Barcode',
+    'recipe-name':'Salmon with Quinoa & Grilled Vegetables','recipe-badge':'Recipe',
+    'recipe-servings':'1× serving','recipe-macros-title':'Total Values',
+    'ingredients-title':'Ingredients',
+    'ing-salmon':'Salmon fillet','ing-quinoa':'Quinoa','ing-zucchini':'Zucchini',
+    'ing-pepper':'Bell pepper','ing-olive-oil':'Olive oil','ing-lemon':'Lemon',
+    'steps-title':'Preparation Steps',
+    'step-1':'Rinse quinoa and cook for 15 minutes in double the water. Let it rest covered.',
+    'step-2':'Season the salmon, brush with olive oil. Grill on a pan 4 minutes per side.',
+    'step-3':'Slice zucchini and pepper, grill on a pan for 3–4 minutes per side.',
+    'step-4':'Serve salmon on a bed of quinoa with grilled vegetables. Finish with a squeeze of lemon.',
+    'recipe-note':'Go for wild Alaskan salmon, not farmed. If you don\'t have quinoa, use bulgur instead.',
+    'description-title':'Description',
+    'recipe-description':'A balanced meal rich in omega-3 fatty acids and high-quality protein. Ideal post-workout for muscle recovery.'
+  },
+  de: {
+    'food-detail-label':'Lebensmittel-Detail','recipe-detail-label':'Rezept-Detail',
+    'food-detail-nav':'Frühstück','recipe-nav':'Abendessen',
+    'food-name':'Protein-Haferbrei','food-category':'Getreide',
+    'macros-title':'Nährwerte','macro-protein':'Eiweiß','macro-carbs':'Kohlenhydrate',
+    'macro-fat':'Fett','macro-fiber':'Ballaststoffe','nutrient-sugar':'Zucker',
+    'nutrient-saturated':'Gesättigte Fette','nutrient-salt':'Salz',
+    'per-100g-title':'Pro 100 g','per100-energy':'Energie',
+    'servings-title':'Übliche Portionen','serving-planned':'Laut Plan (110 g)',
+    'serving-small':'Kleine Portion (80 g)','serving-large':'Große Portion (150 g)',
+    'allergens-title':'Allergene','allergen-gluten':'Gluten','allergen-milk':'Milch',
+    'trainer-note-label':'Trainer-Hinweis',
+    'food-note':'Verwende feine Haferflocken — sie kochen schneller. Du kannst einen Löffel Erdnussbutter für mehr Fett hinzufügen.',
+    'barcode-label':'Barcode',
+    'recipe-name':'Lachs mit Quinoa & gegrilltem Gemüse','recipe-badge':'Rezept',
+    'recipe-servings':'1× Portion','recipe-macros-title':'Gesamtwerte',
+    'ingredients-title':'Zutaten',
+    'ing-salmon':'Lachsfilet','ing-quinoa':'Quinoa','ing-zucchini':'Zucchini',
+    'ing-pepper':'Paprika','ing-olive-oil':'Olivenöl','ing-lemon':'Zitrone',
+    'steps-title':'Zubereitung',
+    'step-1':'Quinoa abspülen und 15 Minuten in doppelter Menge Wasser kochen. Zugedeckt ruhen lassen.',
+    'step-2':'Lachs würzen und mit Olivenöl bestreichen. In der Pfanne je 4 Minuten pro Seite braten.',
+    'step-3':'Zucchini und Paprika in Scheiben schneiden, 3–4 Minuten pro Seite grillen.',
+    'step-4':'Lachs auf einem Bett aus Quinoa mit gegrilltem Gemüse servieren. Mit Zitrone beträufeln.',
+    'recipe-note':'Kaufe Wildlachs aus Alaska, keinen Zuchtlachs. Falls du keine Quinoa hast, nimm Bulgur.',
+    'description-title':'Beschreibung',
+    'recipe-description':'Eine ausgewogene Mahlzeit reich an Omega-3-Fettsäuren und hochwertigem Protein. Ideal nach dem Training für die Muskelregeneration.'
+  }
+};
+
+function setFdLang(lang, btn) {
+  _fdLang = lang;
+  // Update active state on all lang buttons (both screens)
+  document.querySelectorAll('.fd-lang-btn').forEach(function(b) {
+    b.classList.toggle('active', b.textContent.trim().toLowerCase() === lang);
+  });
+  // Apply translations
+  var t = _fdTranslations[lang] || _fdTranslations.cs;
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var key = el.getAttribute('data-i18n');
+    if (t[key] !== undefined) el.textContent = t[key];
+  });
 }
 
 // Init

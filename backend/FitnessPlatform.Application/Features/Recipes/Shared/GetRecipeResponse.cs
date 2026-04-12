@@ -97,7 +97,8 @@ public class GetRecipeResponse
                 FoodExternalId = f.FoodExternalId,
                 FoodName = resolvedName,
                 NutrientValuePer100Grams = f.NutrientValuePer100Grams,
-                AmountGrams = f.AmountGrams
+                AmountGrams = f.AmountGrams,
+                Note = f.Note
             };
         }).ToList(),
         TotalNutrients = recipe.TotalNutrients,

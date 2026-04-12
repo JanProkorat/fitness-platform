@@ -108,7 +108,26 @@ export interface WeeklyOverviewResponse {
   currentStreak: number;
 }
 
+/** Full recipe detail returned by /client/recipes/{id}. */
+export interface RecipeDetail {
+  recipeId: string;
+  name: string;
+  description?: string | null;
+  prepTimeMinutes?: number | null;
+  steps?: string[] | null;
+  note?: string | null;
+  foods: MealFood[];
+  totalNutrients: NutrientTotals;
+  dateCreated: string;
+  dateUpdated?: string | null;
+}
+
 // --- API calls ---
+
+export async function getRecipeDetail(recipeId: string): Promise<RecipeDetail> {
+  const { data } = await api.get<RecipeDetail>(`/client/recipes/${recipeId}`);
+  return data;
+}
 
 export async function getTodayPlan(): Promise<TodayPlanResponse> {
   const { data } = await api.get<TodayPlanResponse>('/client/nutrition/plan/today');

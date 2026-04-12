@@ -83,7 +83,7 @@ export function RecipeRow({ recipe, index: _index, mealId, dayOfWeek, weekNumber
         </div>
 
         {/* Right: note + servings + remove */}
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-1 shrink min-w-0">
           {onNoteChange && (
             <input
               type="text"
@@ -95,7 +95,7 @@ export function RecipeRow({ recipe, index: _index, mealId, dayOfWeek, weekNumber
                 border: 'none', outline: 'none', background: 'transparent',
                 fontSize: 11, color: 'var(--text3)', fontFamily: 'inherit', fontStyle: 'italic',
                 padding: '1px 3px', borderRadius: 'var(--radius)', transition: 'background 0.1s',
-                width: 360,
+                flex: '0 1 360px', minWidth: 80,
               }}
               onFocus={(e) => { e.target.style.background = 'var(--bg-hover)'; }}
               onBlurCapture={(e) => { e.target.style.background = 'transparent'; }}

@@ -2,10 +2,10 @@ import React, { useMemo } from 'react'
 import { View, StyleSheet } from 'react-native'
 import { useQuery } from '@tanstack/react-query'
 import { useTodayStore } from '@/stores/todayStore'
-import { getFullPlan } from '@/api/nutrition'
+import { getFullPlan, type FullPlanResponse } from '@/api/nutrition'
 import { getCollaborations, type CollaborationDto } from '@/api/profile'
 import { PlanBanner } from './PlanBanner'
-import { DailyMealStructureSection } from './DailyMealStructureSection'
+import { ShoppingPrepBanner } from './ShoppingPrepBanner'
 import { PrepTipsSection } from './PrepTipsSection'
 import { WaitingForPlanCard } from './WaitingForPlanCard'
 
@@ -26,23 +26,22 @@ export function PlanPendingState() {
   const waitingForNutrition = !hasNutrition && hasNutritionistLink
   const isWaitingForAnyPlan = waitingForTraining || waitingForNutrition
 
-  // Reuse the cached full nutrition plan for meal structure preview
-  const { data: nutritionPlan } = useQuery({
-    queryKey: ['nutrition-plan-full'],
+  // Fetch full plan to check if week 1 is published
+  const { data: fullPlan } = useQuery<FullPlanResponse>({
+    queryKey: ['nutrition', 'full-plan'],
     queryFn: getFullPlan,
     enabled: hasNutrition,
+    staleTime: 60_000,
   })
 
-  // Get first day's meals from the first published week
-  const firstDayData = useMemo(() => {
-    if (!nutritionPlan?.weeks?.length) return null
-    const week = nutritionPlan.weeks[0]
-    if (!week?.days?.length) return null
-    // Find day 1 (Monday) or the first available day
-    const day = week.days.find((d) => d.dayOfWeek === 1) ?? week.days[0]
-    if (!day?.meals?.length) return null
-    return day
-  }, [nutritionPlan])
+  // Show shopping banner on Friday+ when the plan has published weeks
+  const showShoppingBanner = useMemo(() => {
+    if (!hasNutrition || !fullPlan) return false
+    // JS: 0=Sun, 1=Mon, ..., 5=Fri, 6=Sat
+    const jsDay = new Date().getDay()
+    const isFridayOrLater = jsDay >= 5 || jsDay === 0 // Fri, Sat, Sun
+    return isFridayOrLater && fullPlan.publishedWeekCount >= 1
+  }, [hasNutrition, fullPlan])
 
   return (
     <View style={styles.container}>
@@ -53,6 +52,13 @@ export function PlanPendingState() {
         ))}
       </View>
 
+      {/* Shopping prep banner for week 1 */}
+      {showShoppingBanner && (
+        <View style={styles.section}>
+          <ShoppingPrepBanner week={1} />
+        </View>
+      )}
+
       {/* Waiting for plan card (linked professional without a pending plan) */}
       {isWaitingForAnyPlan && (
         <View style={styles.section}>
@@ -60,19 +66,6 @@ export function PlanPendingState() {
             waitingForTraining={waitingForTraining}
             waitingForNutrition={waitingForNutrition}
             hasExistingPlan
-          />
-        </View>
-      )}
-
-      {/* Weekly schedule — rendered when training plan data available (Phase 5) */}
-      {/* {hasTraining && trainingWeekData && <WeeklyScheduleSection ... />} */}
-
-      {/* Daily meal structure */}
-      {hasNutrition && firstDayData && (
-        <View style={styles.section}>
-          <DailyMealStructureSection
-            meals={firstDayData.meals}
-            dayTotals={firstDayData.dayTotals}
           />
         </View>
       )}

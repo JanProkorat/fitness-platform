@@ -12,12 +12,15 @@ import { TrainingCard } from '@/components/training/TrainingCard'
 import { NutritionCard } from '@/components/nutrition/NutritionCard'
 import { PrepTipsSection } from '@/components/today/PrepTipsSection'
 import { WaitingForPlanCard } from '@/components/today/WaitingForPlanCard'
+import { ShoppingPrepBanner } from '@/components/today/ShoppingPrepBanner'
 import {
   getTodayPlan,
   getTodayLog,
   logMealEaten,
+  getFullPlan,
   type TodayPlanResponse,
   type TodayLogResponse,
+  type FullPlanResponse,
 } from '@/api/nutrition'
 import { getTodaySession, type TodayTrainingResponse } from '@/api/training'
 import {
@@ -61,6 +64,12 @@ export function HasTrainerState() {
     queryFn: getCollaborations,
   })
 
+  const fullPlanQuery = useQuery<FullPlanResponse>({
+    queryKey: ['nutrition', 'full-plan'],
+    queryFn: getFullPlan,
+    staleTime: 60_000,
+  })
+
   // ── Derived data ──
   const plan = planQuery.data
   const log = logQuery.data
@@ -79,6 +88,18 @@ export function HasTrainerState() {
   const waitingForTraining = !training?.hasSession && hasTrainerLink
   const waitingForNutrition = !plan && hasNutritionistLink
   const isWaitingForAnyPlan = waitingForTraining || waitingForNutrition
+
+  // ── Next-week shopping prep banner ──
+  const showShoppingBanner = useMemo(() => {
+    const fp = fullPlanQuery.data
+    if (!fp?.currentWeek || !fp.currentDayOfWeek) return null
+    // Only show on Friday (5), Saturday (6), or Sunday (7)
+    if (fp.currentDayOfWeek < 5) return null
+    const nextWeek = fp.currentWeek + 1
+    // Check if next week is published
+    if (nextWeek > fp.publishedWeekCount) return null
+    return nextWeek
+  }, [fullPlanQuery.data])
 
   const eatenMealIds = useMemo(() => {
     const set = new Set<string>()
@@ -231,6 +252,13 @@ export function HasTrainerState() {
             }
             onMarkEaten={handleMarkEaten}
           />
+        </View>
+      )}
+
+      {/* Next-week shopping prep banner */}
+      {showShoppingBanner !== null && (
+        <View style={styles.section}>
+          <ShoppingPrepBanner week={showShoppingBanner} />
         </View>
       )}
 

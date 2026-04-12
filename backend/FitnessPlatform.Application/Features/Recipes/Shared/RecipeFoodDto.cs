@@ -14,4 +14,9 @@ public class RecipeFoodDto
     /// Amount of this food in grams.
     /// </summary>
     public decimal AmountGrams { get; set; }
+
+    /// <summary>
+    /// Optional note for this ingredient (e.g. preparation tip, substitution hint).
+    /// </summary>
+    public string? Note { get; set; }
 }

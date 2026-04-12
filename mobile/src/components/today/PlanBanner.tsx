@@ -153,11 +153,11 @@ const styles = StyleSheet.create({
   ctaButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
+    justifyContent: 'center',
     gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 999,
+    marginTop: 12,
+    paddingVertical: 12,
+    borderRadius: Radius.md,
   },
   ctaText: {
     fontSize: 13,

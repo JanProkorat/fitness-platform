@@ -475,7 +475,9 @@
     "searchRecipes": "Hledat recepty...",
     "noResults": "Žádné recepty nenalezeny",
     "foodCount": "{{count}} ingrediencí",
-    "totalKcal": "{{kcal}} kcal"
+    "totalKcal": "{{kcal}} kcal",
+    "ingredientNote": "Poznámka",
+    "ingredientNotePlaceholder": "např. jemně nakrájené, pokojová teplota..."
   },
   "nutrition": {
     "title": "Nutriční plány",

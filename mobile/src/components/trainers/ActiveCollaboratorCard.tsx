@@ -1,5 +1,6 @@
 import React from 'react'
 import { View, Text, StyleSheet, Pressable, Alert } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
@@ -49,15 +50,26 @@ export function ActiveCollaboratorCard({
     <View style={[styles.card, { backgroundColor: colors.bg2 }]}>
       {/* Header row */}
       <View style={styles.header}>
-        <Avatar name={collaborator.name} size="sm" color={collaborator.avatarColor} />
+        <View style={{ flexShrink: 0 }}>
+          <Avatar name={collaborator.name} size="md" />
+        </View>
         <View style={styles.info}>
           <Text style={[styles.name, { color: colors.label }]}>{collaborator.name}</Text>
-          <Text style={[styles.role, { color: colors.label2 }]}>
-            {collaborator.role} · {sinceLabel}
-          </Text>
+          <View style={styles.roleRow}>
+            <Ionicons
+              name={collaborator.role === 'Trainer' ? 'barbell-outline' : 'nutrition-outline'}
+              size={14}
+              color={colors.gold}
+            />
+            <Text style={[styles.role, { color: colors.label2 }]}>
+              {collaborator.role} · {sinceLabel}
+            </Text>
+          </View>
         </View>
-        <View style={[styles.badge, { backgroundColor: colors.green + '20' }]}>
-          <Text style={[styles.badgeText, { color: colors.green }]}>{t('collab.active')}</Text>
+        <View style={[styles.badgeContainer]}>
+          <View style={[styles.badge, { backgroundColor: colors.green + '20' }]}>
+            <Text style={[styles.badgeText, { color: colors.green }]}>{t('collab.active')}</Text>
+          </View>
         </View>
       </View>
 
@@ -138,10 +150,14 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 14,
     paddingHorizontal: 14,
-    paddingTop: 14,
+    paddingTop: 10,
     paddingBottom: 10,
+    minHeight: 80,
+  },
+  badgeContainer: {
+    justifyContent: 'center',
   },
   info: {
     flex: 1,
@@ -150,9 +166,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  roleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 1,
+  },
   role: {
     ...Type.caption1,
-    marginTop: 1,
   },
   badge: {
     paddingHorizontal: 9,

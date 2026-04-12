@@ -700,3 +700,168 @@ following the 5-phase plan in `docs/plan-nutrition-detail.md`.
 error in `training/index.tsx`).
 
 **Pending**: Wire navigation from Plans tab / nutrition index to the new screen.
+
+---
+
+## Nutrition Plan Detail — UI Polish & Features (2026-04-11)
+
+**Navigation & routing:**
+- Wired navigation from Plans tab (`plans/index.tsx`) to `/(client)/nutrition/plan-detail`
+- Back button uses `router.navigate('/(client)/plans')` for reliable return
+- Tab bar hidden on plan-detail screen
+
+**Day picker (fixed):**
+- Moved day strip outside ScrollView so it stays visible while content scrolls
+- Added hairline bottom border separator (`rgba(0,0,0,0.08)`)
+
+**Day overview card:**
+- Simplified to show `0 / target` values (will fill when meal-eaten tracking is implemented)
+- Horizontal `MacroBar` layout (label | track | values in single row)
+- Macro values in default label color (no per-macro colors on values)
+
+**Day note:**
+- Moved above meals (between macro overview and meal cards)
+- Golden "Pozn:" label instead of chat emoji icon
+- Background: `bg2` base + transparent `goldBg` overlay (matches meal note appearance)
+
+**Meal cards:**
+- Stronger shadow/elevation (`shadowOffset: {0, 4}`, `shadowRadius: 12`, `elevation: 6`)
+- Hairline bottom separator on header (`StyleSheet.hairlineWidth`, `rgba(0,0,0,0.08)`)
+- Colored macro shortcuts in header (protein red, carbs yellow, fat green, fiber blue)
+- Added fiber (V) to macro summary line
+- Accordion animation using Reanimated (250ms, bezier easing, always-rendered content)
+- Multiple meals can be expanded simultaneously (Set-based tracking)
+- Expanded state preserved per day when switching days (keyed by `week-day`)
+
+**Food/recipe item rows:**
+- Removed food emoji icons from rows (cleaner layout)
+- Food subtitle shows translated category label (`t('nutrition.foodCategory.${food.foodCategory}')`)
+- Recipe row: removed gold RECEPT badge, shows "Recept" as subtitle (like food category)
+- Recipe serving display moved under kcal (matches food grams placement)
+- Food/recipe item notes: golden "Pozn:" line below item row when note exists
+
+**Meal notes:**
+- Changed label from "Tip:" to "Pozn:" (Czech i18n)
+
+**Real-time updates:**
+- Backend `UpdatePlanEndpoint`: sends `nutritionPlanUpdated` SignalR event to client when saving a plan with published weeks
+- Mobile `signalr.ts`: registered `nutritionplanupdated` event
+- Mobile plan-detail: listens for both `nutritionplanpublished` and `nutritionplanupdated` SignalR events, invalidates query cache
+- Reduced `staleTime` from 5 minutes to 30 seconds
+- Added `refetchOnWindowFocus: true`
+
+**Swipe gesture:**
+- Swipe left/right on content area to switch days
+- Uses `react-native-gesture-handler` (Pan gesture) + Reanimated
+- Slide-out/slide-in animation (150ms out + 200ms in) with opacity fade
+- `GestureHandlerRootView` wrapper (same pattern as messages screens)
+
+**i18n updates (cs/en/de):**
+- `fiberShort`: V / Fb / Ba
+- `foodCategory`: 13 category translations
+- `tip`: changed to "Pozn:" in Czech
+- `recipe`: lowercase "Recept" / "Recipe" / "Rezept"
+
+**Prototype updated (`docs/mobile_prototype.html`):**
+- Nutrition plan detail screen updated to match all mobile app changes
+- Fixed day picker (outside scroll area, with flex layout)
+- Day overview: simplified `0 / target` format, "Denní přehled" header
+- Daily note: above meals with golden "Pozn:" label, matching goldBg background
+- Meal cards: stronger shadow, hairline header separator, colored macro shortcuts with fiber
+- Food rows: category labels as subtitles, no emoji icons
+- Recipe rows: "Recept" subtitle instead of gold badge
+- Food item notes: example note on first food item
+- Meal notes: "Pozn:" instead of "Tip:"
+
+---
+
+## Resend Email Integration (2026-04-11)
+
+**Added Resend .NET SDK** as an alternative email provider, switchable via config flag.
+
+**Files changed:**
+- `FitnessPlatform.Application.csproj` — added `Resend 0.2.2` NuGet package
+- `Domain/Constants/ConfigKeys.cs` — added `Email:Provider` and `Resend:ApiToken` keys
+- `Infrastructure/Services/ResendEmailService.cs` — new `IEmailService` implementation using Resend HTTP API, same template loading as `SmtpEmailService`
+- `Program.cs` — conditional DI registration based on `Email:Provider` config (`"Smtp"` default → MailHog, `"Resend"` → Resend API)
+- `appsettings.json` — added `Email:Provider` field and `Resend:ApiToken` section
+
+**How it works:**
+- `Email:Provider = "Smtp"` (default) → uses existing `SmtpEmailService` with MailHog for local dev
+- `Email:Provider = "Resend"` → uses `ResendEmailService` with Resend HTTP API; requires `Resend:ApiToken` to be set
+- Tests unaffected — they use `FakeEmailService` which implements `IEmailService` directly
+
+---
+
+## Mobile Prototype: Food Detail & Recipe Detail Screens (2026-04-11)
+
+**Added two new prototype screens** to `docs/mobile_prototype.html` for viewing food/recipe details from a nutrition plan.
+
+### Food Detail screen (`ph-food-detail`)
+- Hero section with food name, category badge, and serving amount
+- Full macro breakdown card (protein, carbs, fat, fiber) with visual bars
+- Extended nutrients (sugars, saturated fat, salt)
+- Per-100g reference table
+- Common servings chips (selectable)
+- Allergen tags
+- Trainer's note section
+- Barcode display
+
+### Recipe Detail screen (`ph-recipe-detail`)
+- Hero section with recipe name, serving count, and prep time
+- Total macro breakdown card with visual bars
+- Ingredients list with color-coded dots, amounts, and per-ingredient calories — each ingredient tappable to navigate to food detail
+- Numbered preparation steps
+- Trainer's note section
+- Description section
+
+### Localization
+- Both screens support tri-lingual switching (CS / EN / DE) via language toggle buttons in the header
+- All text labels and content translated in a `_fdTranslations` JS object
+- Language switch is shared across both screens
+
+### Navigation
+- Food items in the Nutrition Plan Detail (Breakfast → "Ovesná kaše s proteinem") now navigate to Food Detail on tap
+- Recipe items in the Nutrition Plan Detail (Dinner → "Losos s quinoou") now navigate to Recipe Detail on tap
+- Both detail screens have back navigation to the Nutrition Plan Detail
+- Nav buttons added under "Plány & Dotazníky" category in the prototype navbar
+- Fixed a pre-existing unclosed `<div>` for the nutrition-plan-detail phone-wrap
+
+---
+
+## Session – 2026-04-11: Food Detail & Recipe Detail Screens (Mobile)
+
+Implemented the food detail and recipe detail screens from the prototype specifications, accessible from the nutrition plan detail's food/recipe rows.
+
+### New Files
+- `mobile/app/(client)/nutrition/food-detail.tsx` — Food detail screen
+  - Hero section: icon, localized food name, category badge, grams
+  - Macros card: 2×2 grid with colored bars (protein/carbs/fat/fiber)
+  - Extended nutrients: sugar, saturated fat, salt (when available)
+  - Per 100g reference table
+  - Common servings chips (planned amount + 100g)
+  - Trainer note with gold left-border accent
+- `mobile/app/(client)/nutrition/recipe-detail.tsx` — Recipe detail screen
+  - Hero section: icon, recipe name, "Recept" badge, servings
+  - Total macros card: same 2×2 grid as food detail
+  - Ingredients section: food categories with colored dots
+  - Trainer note with gold left-border accent
+
+### Modified Files
+- `mobile/app/(client)/nutrition/plan-detail.tsx`
+  - FoodItemRow: now Pressable, navigates to food-detail with serialized food data + mealName
+  - RecipeItemRow: now Pressable, navigates to recipe-detail with serialized recipe data + mealName
+  - Both rows show chevron-forward indicator
+- `mobile/app/(client)/_layout.tsx`
+  - Registered `nutrition/food-detail` and `nutrition/recipe-detail` screens (href: null)
+  - Tab bar hidden on both detail screens
+- `mobile/src/i18n/locales/cs.json` — Added `foodDetail` and `recipeDetail` sections
+- `mobile/src/i18n/locales/en.json` — Added `foodDetail` and `recipeDetail` sections
+- `mobile/src/i18n/locales/de.json` — Added `foodDetail` and `recipeDetail` sections
+
+### Design Details
+- Both screens follow the prototype design (fd-* CSS classes)
+- Use theme colors from design tokens (macroProtein, macroCarbs, macroFat, macroFiber)
+- Data passed via Expo Router search params (serialized JSON)
+- Header shows the parent meal name (e.g. "Snídaně", "Večeře")
+- Back navigation returns to plan-detail

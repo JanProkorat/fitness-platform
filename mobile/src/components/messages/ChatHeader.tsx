@@ -26,8 +26,8 @@ export function ChatHeader({ participant, onBack, onInfoPress }: ChatHeaderProps
       <View style={[styles.inner, { borderBottomColor: colors.sep2 }]}>
         {/* Left: Back button */}
         <Pressable onPress={onBack} hitSlop={8} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={28} color={colors.blue} />
-          <Text style={{ fontSize: 16, color: colors.blue, marginLeft: 2 }}>Messages</Text>
+          <Ionicons name="chevron-back" size={28} color={colors.gold} />
+          <Text style={{ fontSize: 16, color: colors.gold, marginLeft: 2 }}>Messages</Text>
         </Pressable>
 
         {/* Center: Avatar + name + status — stacked vertically */}

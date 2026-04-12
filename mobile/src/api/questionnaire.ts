@@ -67,3 +67,10 @@ export async function getPendingQuestionnaires(): Promise<PendingQuestionnairesR
   const { data } = await api.get('/client/questionnaires/pending')
   return data
 }
+
+// ─── Single response by ID ──────────────────────────────────────────
+
+export async function getQuestionnaireResponseById(responseId: string): Promise<SubmittedQuestionnaire> {
+  const { data } = await api.get(`/client/questionnaire/response/${responseId}`)
+  return data
+}

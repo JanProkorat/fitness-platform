@@ -3,18 +3,28 @@ using Microsoft.EntityFrameworkCore.Design;
 
 namespace FitnessPlatform.Application.Infrastructure.Data;
 
-/// <summary>
-/// Factory for creating <see cref="ApplicationDbContext"/> at design time (e.g., for EF Core migrations).
-/// </summary>
 public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<ApplicationDbContext>
 {
-    /// <inheritdoc />
     public ApplicationDbContext CreateDbContext(string[] args)
     {
+        var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.json", optional: false)
+            .AddJsonFile($"appsettings.{environment}.json", optional: true)
+            .AddEnvironmentVariables()
+            .Build();
+
+        var connectionString = ConnectionStringFactory.BuildPostgres(configuration);
+
         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
-        optionsBuilder.UseNpgsql(
-            "Host=localhost;Port=5432;Database=fitness_dev;Username=fitness_admin;Password=fitness_dev_password")
+        optionsBuilder.UseNpgsql(connectionString)
             .UseSnakeCaseNamingConvention();
+
+        Console.WriteLine($"[EF] ENV: {environment}");
+        Console.WriteLine($"[EF] DB: {connectionString}");
+
         return new ApplicationDbContext(optionsBuilder.Options);
     }
 }

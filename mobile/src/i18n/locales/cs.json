@@ -281,7 +281,10 @@
     "waiting": "Čeká",
     "mealsProgress": "{{done}}/{{total}}",
     "eaten": "Snědeno",
-    "done": "Splněno"
+    "done": "Splněno",
+    "shoppingBannerTitle": "Připravte se na další týden",
+    "shoppingBannerLabel": "Váš plán na další týden je připraven. Nakupte si potřebné ingredience.",
+    "shoppingBannerButton": "Zobrazit nákupní seznam"
   },
   "questionnaire": {
     "allDone": "Hotovo!",
@@ -305,6 +308,26 @@
     "reviewDesc": "Před odesláním si vše ještě jednou projdi. Odpovědi lze upravit klepnutím na sekci.",
     "sectionLabel": "Sekce",
     "edit": "Upravit"
+  },
+  "questionnaireResponse": {
+    "title": "Dotazník",
+    "submittedOn": "Odesláno {{date}}",
+    "error": "Nepodařilo se načíst odpovědi."
+  },
+  "shopping": {
+    "title": "Nákupní seznam",
+    "weekTitle": "Týden {{week}}",
+    "checked": "{{checked}} z {{total}} zaškrtnuto",
+    "share": "Sdílet",
+    "clearAll": "Smazat vše",
+    "error": "Nepodařilo se načíst nákupní seznam",
+    "retry": "Zkusit znovu",
+    "empty": "Žádné položky",
+    "emptyHint": "V plánu na tento týden zatím nejsou žádné potraviny.",
+    "monToThu": "Pondělí — Čtvrtek",
+    "friToSun": "Pátek — Neděle",
+    "loadingIngredients": "Načítám ingredience…",
+    "noItems": "Pro tyto dny nejsou žádné položky"
   },
   "messages": {
     "title": "Zprávy",
@@ -511,6 +534,7 @@
     "meal": "{{count}} jídlo",
     "weekOverview": "Přehled týdne",
     "back": "Zpět",
+    "plan": "Plán",
     "dailyAverage": "Denní průměr",
     "weekTotal": "Týdenní součet",
     "shopping": "Nákupní seznam",
@@ -558,6 +582,32 @@
       "PreWorkout": "Před tréninkem",
       "PostWorkout": "Po tréninku"
     }
+  },
+  "foodDetail": {
+    "nutritionValues": "Nutriční hodnoty",
+    "protein": "Bílkoviny",
+    "carbs": "Sacharidy",
+    "fat": "Tuky",
+    "fiber": "Vláknina",
+    "sugar": "Cukry",
+    "saturatedFat": "Nasycené tuky",
+    "salt": "Sůl",
+    "energy": "Energie",
+    "per100g": "Na 100 g",
+    "commonServings": "Běžné porce",
+    "asPlanned": "Dle plánu ({{grams}} g)",
+    "trainerNote": "Poznámka trenéra"
+  },
+  "recipeDetail": {
+    "recipe": "Recept",
+    "totalValues": "Celkové hodnoty",
+    "ingredients": "Ingredience",
+    "trainerNote": "Pozn.",
+    "steps": "Postup přípravy",
+    "description": "Popis",
+    "prepTime": "{{minutes}} min",
+    "loading": "Načítám recept...",
+    "error": "Nepodařilo se načíst detail receptu"
   },
   "training": {
     "title": "Trénink",

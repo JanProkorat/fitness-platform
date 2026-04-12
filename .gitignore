@@ -69,6 +69,7 @@ android/
 .env.*.local
 !.env.example
 appsettings.Development.json
+appsettings.Development.Local.json
 appsettings.Production.json
 
 # =========================

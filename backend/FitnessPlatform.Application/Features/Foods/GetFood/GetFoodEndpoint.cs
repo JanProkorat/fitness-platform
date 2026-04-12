@@ -38,6 +38,9 @@ public class GetFoodEndpoint(IMongoContext mongo) : Endpoint<GetFoodRequest, Foo
             return;
         }
 
-        await Send.OkAsync(FoodSummary.FromDocument(food), ct);
+        var language = HttpContext.Request.Headers.AcceptLanguage.FirstOrDefault()
+            ?.Split(',').FirstOrDefault()?.Trim().Split('-').FirstOrDefault();
+
+        await Send.OkAsync(FoodSummary.FromDocument(food, language), ct);
     }
 }

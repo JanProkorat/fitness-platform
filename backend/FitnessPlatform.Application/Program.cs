@@ -16,9 +16,15 @@ using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Resend;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Configuration.AddJsonFile(
+    $"appsettings.{builder.Environment.EnvironmentName}.Local.json",
+    optional: true,
+    reloadOnChange: true);
 
 // Serilog
 builder.Host.UseSerilog((context, config) => config
@@ -43,11 +49,8 @@ builder.Configuration["MinIO:AccessKey"] = minioAccessKey;
 builder.Configuration["MinIO:SecretKey"] = minioSecretKey;
 
 // Build connection strings with injected passwords
-var postgresConnection = builder.Configuration.GetConnectionString(ConfigKeys.PostgreSql)
-    + $";Password={postgresPassword}";
-var mongoConnection = string.Format(
-    builder.Configuration.GetConnectionString("MongoDB")!,
-    mongoPassword);
+var postgresConnection = ConnectionStringFactory.BuildPostgres(builder.Configuration);
+var mongoConnection = ConnectionStringFactory.BuildMongo(builder.Configuration);
 
 // PostgreSQL + EF Core
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -186,8 +189,24 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IPushNotificationService, ExpoPushNotificationService>();
 builder.Services.AddScoped<IProfileMapperService, ProfileMapperService>();
 
-// Email
-builder.Services.AddScoped<IEmailService, SmtpEmailService>();
+// Email — switch provider via Email:Provider config ("Resend" or "Smtp", default: Smtp)
+var emailProvider = builder.Configuration[ConfigKeys.EmailProvider] ?? "Smtp";
+if (string.Equals(emailProvider, "Resend", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.AddOptions();
+    builder.Services.AddHttpClient<ResendClient>();
+    builder.Services.Configure<ResendClientOptions>(o =>
+    {
+        o.ApiToken = builder.Configuration[ConfigKeys.ResendApiToken]
+            ?? throw new InvalidOperationException("Resend:ApiToken must be configured when Email:Provider is set to Resend.");
+    });
+    builder.Services.AddTransient<IResend, ResendClient>();
+    builder.Services.AddScoped<IEmailService, ResendEmailService>();
+}
+else
+{
+    builder.Services.AddScoped<IEmailService, SmtpEmailService>();
+}
 
 // Realtime notifications (SignalR)
 builder.Services.AddScoped<IRealtimeNotifier, SignalRNotifier>();

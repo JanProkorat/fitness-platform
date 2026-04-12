@@ -476,7 +476,9 @@
     "searchRecipes": "Search recipes...",
     "noResults": "No recipes found",
     "foodCount": "{{count}} ingredients",
-    "totalKcal": "{{kcal}} kcal"
+    "totalKcal": "{{kcal}} kcal",
+    "ingredientNote": "Note",
+    "ingredientNotePlaceholder": "e.g. finely chopped, room temperature..."
   },
   "nutrition": {
     "title": "Nutrition Plans",

@@ -279,7 +279,10 @@
     "waiting": "Waiting",
     "mealsProgress": "{{done}}/{{total}}",
     "eaten": "Eaten",
-    "done": "Done"
+    "done": "Done",
+    "shoppingBannerTitle": "Prepare for next week",
+    "shoppingBannerLabel": "Your plan for next week is ready. Get your ingredients for the upcoming week.",
+    "shoppingBannerButton": "View shopping list"
   },
   "questionnaire": {
     "allDone": "All done!",
@@ -303,6 +306,26 @@
     "reviewDesc": "Check everything one more time before submitting. Tap a section to edit.",
     "sectionLabel": "Section",
     "edit": "Edit"
+  },
+  "questionnaireResponse": {
+    "title": "Questionnaire",
+    "submittedOn": "Submitted {{date}}",
+    "error": "Could not load questionnaire answers."
+  },
+  "shopping": {
+    "title": "Shopping List",
+    "weekTitle": "Week {{week}}",
+    "checked": "{{checked}} of {{total}} checked",
+    "share": "Share",
+    "clearAll": "Clear all",
+    "error": "Failed to load shopping list",
+    "retry": "Try again",
+    "empty": "No items",
+    "emptyHint": "Your plan doesn't have any foods for this week yet.",
+    "monToThu": "Monday — Thursday",
+    "friToSun": "Friday — Sunday",
+    "loadingIngredients": "Loading ingredients…",
+    "noItems": "No items for these days"
   },
   "messages": {
     "title": "Messages",
@@ -530,6 +553,32 @@
     "revokeMessage": "Revoke the request sent to {{name}}?",
     "revokeConfirm": "Revoke"
   },
+  "foodDetail": {
+    "nutritionValues": "Nutrition Values",
+    "protein": "Protein",
+    "carbs": "Carbs",
+    "fat": "Fat",
+    "fiber": "Fiber",
+    "sugar": "Sugars",
+    "saturatedFat": "Saturated Fat",
+    "salt": "Salt",
+    "energy": "Energy",
+    "per100g": "Per 100 g",
+    "commonServings": "Common Servings",
+    "asPlanned": "As planned ({{grams}} g)",
+    "trainerNote": "Trainer's Note"
+  },
+  "recipeDetail": {
+    "recipe": "Recipe",
+    "totalValues": "Total Values",
+    "ingredients": "Ingredients",
+    "trainerNote": "Trainer's Note",
+    "steps": "Preparation Steps",
+    "description": "Description",
+    "prepTime": "{{minutes}} min",
+    "loading": "Loading recipe...",
+    "error": "Could not load recipe detail"
+  },
   "nutrition": {
     "title": "Nutrition",
     "noPlanMessage": "Your nutritionist is reviewing your data and preparing a personalized plan. They may reach out for additional information.",
@@ -540,6 +589,7 @@
     "meal": "{{count}} meal",
     "weekOverview": "Week Overview",
     "back": "Back",
+    "plan": "Plan",
     "dailyAverage": "Daily Avg",
     "weekTotal": "Week Total",
     "shopping": "Shopping List",

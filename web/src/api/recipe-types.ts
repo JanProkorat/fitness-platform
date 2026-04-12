@@ -37,6 +37,7 @@ export interface RecipeDetail {
       salt?: number | null;
     };
     amountGrams: number;
+    note?: string | null;
   }[];
   totalNutrients: {
     kcal: number;
@@ -61,6 +62,7 @@ export interface SearchRecipesResponse {
 export interface RecipeFoodInput {
   foodExternalId: string;
   amountGrams: number;
+  note?: string | null;
 }
 
 /** Request to create a recipe. */

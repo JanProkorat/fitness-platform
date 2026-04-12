@@ -87,7 +87,8 @@ public class UpdateRecipeEndpoint(IMongoContext mongo)
                     SaturatedFat = food.NutrientValue.SaturatedFat,
                     Salt = food.NutrientValue.Salt
                 },
-                AmountGrams = item.AmountGrams
+                AmountGrams = item.AmountGrams,
+                Note = item.Note
             });
         }
 

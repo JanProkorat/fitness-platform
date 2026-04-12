@@ -279,7 +279,10 @@
     "waiting": "Wartend",
     "mealsProgress": "{{done}}/{{total}}",
     "eaten": "Gegessen",
-    "done": "Erledigt"
+    "done": "Erledigt",
+    "shoppingBannerTitle": "Bereite dich auf nächste Woche vor",
+    "shoppingBannerLabel": "Dein Ernährungsplan für nächste Woche ist bereit. Besorge die notwendigen Zutaten.",
+    "shoppingBannerButton": "Einkaufsliste anzeigen"
   },
   "questionnaire": {
     "allDone": "Fertig!",
@@ -303,6 +306,26 @@
     "reviewDesc": "Prüfe alles noch einmal vor dem Absenden. Tippe auf einen Abschnitt zum Bearbeiten.",
     "sectionLabel": "Abschnitt",
     "edit": "Bearbeiten"
+  },
+  "questionnaireResponse": {
+    "title": "Fragebogen",
+    "submittedOn": "Eingereicht am {{date}}",
+    "error": "Antworten konnten nicht geladen werden."
+  },
+  "shopping": {
+    "title": "Einkaufsliste",
+    "weekTitle": "Woche {{week}}",
+    "checked": "{{checked}} von {{total}} abgehakt",
+    "share": "Teilen",
+    "clearAll": "Alle löschen",
+    "error": "Einkaufsliste konnte nicht geladen werden",
+    "retry": "Erneut versuchen",
+    "empty": "Keine Artikel",
+    "emptyHint": "Dein Plan hat für diese Woche noch keine Lebensmittel.",
+    "monToThu": "Montag — Donnerstag",
+    "friToSun": "Freitag — Sonntag",
+    "loadingIngredients": "Zutaten werden geladen…",
+    "noItems": "Keine Artikel für diese Tage"
   },
   "messages": {
     "title": "Nachrichten",
@@ -497,6 +520,32 @@
     "revokeMessage": "Die Anfrage an {{name}} zurückziehen?",
     "revokeConfirm": "Zurückziehen"
   },
+  "foodDetail": {
+    "nutritionValues": "Nährwerte",
+    "protein": "Eiweiß",
+    "carbs": "Kohlenhydrate",
+    "fat": "Fett",
+    "fiber": "Ballaststoffe",
+    "sugar": "Zucker",
+    "saturatedFat": "Gesättigte Fette",
+    "salt": "Salz",
+    "energy": "Energie",
+    "per100g": "Pro 100 g",
+    "commonServings": "Übliche Portionen",
+    "asPlanned": "Laut Plan ({{grams}} g)",
+    "trainerNote": "Hinweis vom Trainer"
+  },
+  "recipeDetail": {
+    "recipe": "Rezept",
+    "totalValues": "Gesamtwerte",
+    "ingredients": "Zutaten",
+    "trainerNote": "Hinweis vom Trainer",
+    "steps": "Zubereitungsschritte",
+    "description": "Beschreibung",
+    "prepTime": "{{minutes}} Min.",
+    "loading": "Rezept wird geladen...",
+    "error": "Rezeptdetails konnten nicht geladen werden"
+  },
   "nutrition": {
     "title": "Ernährung",
     "noPlanMessage": "Dein Ernährungsberater wertet deine Daten aus und erstellt einen personalisierten Plan. Du wirst ggf. für weitere Informationen kontaktiert.",
@@ -507,6 +556,7 @@
     "meal": "{{count}} Mahlzeit",
     "weekOverview": "Wochenübersicht",
     "back": "Zurück",
+    "plan": "Plan",
     "dailyAverage": "Tagesdurchschnitt",
     "weekTotal": "Wochensumme",
     "shopping": "Einkaufsliste",

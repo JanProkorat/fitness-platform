@@ -475,7 +475,9 @@
     "searchRecipes": "Rezepte suchen...",
     "noResults": "Keine Rezepte gefunden",
     "foodCount": "{{count}} Zutaten",
-    "totalKcal": "{{kcal}} kcal"
+    "totalKcal": "{{kcal}} kcal",
+    "ingredientNote": "Notiz",
+    "ingredientNotePlaceholder": "z.B. fein gehackt, Zimmertemperatur..."
   },
   "nutrition": {
     "title": "Ernährungspläne",

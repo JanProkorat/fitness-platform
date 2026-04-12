@@ -56,6 +56,16 @@ public static class ConfigKeys
     public const string EmailFromName = "Email:FromName";
 
     /// <summary>
+    /// Email provider selection. Use "Resend" for Resend API or "Smtp" (default) for SMTP/MailHog.
+    /// </summary>
+    public const string EmailProvider = "Email:Provider";
+
+    /// <summary>
+    /// Resend API token for sending emails via Resend.
+    /// </summary>
+    public const string ResendApiToken = "Resend:ApiToken";
+
+    /// <summary>
     /// MongoDB connection string key.
     /// </summary>
     public const string MongoDb = "MongoDB";

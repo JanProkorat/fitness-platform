@@ -26,6 +26,8 @@ export interface FoodSummary {
   nutrientValue: FoodNutrientValue;
   allergens: string[];
   commonServings: ServingSize[];
+  category?: string | null;
+  note?: string | null;
 }
 
 export interface SearchFoodsResponse {
@@ -36,6 +38,11 @@ export interface SearchFoodsResponse {
 }
 
 // --- API calls ---
+
+export async function getFoodById(foodId: string): Promise<FoodSummary> {
+  const { data } = await api.get<FoodSummary>(`/foods/${foodId}`);
+  return data;
+}
 
 export async function getFoodByBarcode(barcode: string): Promise<FoodSummary> {
   const { data } = await api.get<FoodSummary>(`/foods/barcode/${barcode}`);
