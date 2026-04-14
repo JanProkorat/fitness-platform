@@ -3,6 +3,7 @@ import { View, Text, Pressable, StyleSheet, Animated } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
+import { goldAlpha } from '@/constants/colors'
 import { Radius } from '@/constants/radius'
 
 interface ContextBannerProps {
@@ -75,7 +76,7 @@ export function ContextBanner({
             style={[styles.btn, { backgroundColor: colors.gold, flex: 1 }]}
             onPress={onAccept}
           >
-            <Text style={styles.btnTextPrimary}>Accept</Text>
+            <Text style={[styles.btnTextPrimary, { color: colors.onAccent }]}>Accept</Text>
           </Pressable>
           <Pressable
             style={[styles.btn, { backgroundColor: colors.fill, flex: 1 }]}
@@ -96,10 +97,10 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(201,168,76,0.2)',
+    borderColor: goldAlpha['20'],
     borderLeftWidth: 3,
-    borderLeftColor: 'rgba(201,168,76,1)',
-    backgroundColor: 'rgba(201,168,76,0.08)',
+    borderLeftColor: goldAlpha.solid,
+    backgroundColor: goldAlpha['08'],
     gap: 10,
   },
   row: {
@@ -113,7 +114,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(201,168,76,0.12)',
+    backgroundColor: goldAlpha['12'],
   },
   body: {
     flex: 1,
@@ -130,7 +131,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   btnTextPrimary: {
-    color: '#ffffff',
     fontSize: 14,
     fontWeight: '600',
   },

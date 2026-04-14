@@ -15,7 +15,7 @@ export interface ExerciseBlockProps {
   meta?: string;
   isOpen: boolean;
   onToggle: () => void;
-  onSetChange?: (setIndex: number, field: string, value: any) => void;
+  onSetChange?: (setIndex: number, field: string, value: string | number) => void;
   onAddSet?: () => void;
   onRemoveSet?: (setIndex: number) => void;
 }
@@ -62,8 +62,17 @@ export function ExerciseBlock({
     <div className="border border-border rounded-md overflow-hidden mb-1.5">
       {/* Header */}
       <div
+        role="button"
+        tabIndex={0}
         className="flex items-center gap-2 px-3 py-2 bg-bg2 cursor-pointer transition-colors hover:bg-bg3 select-none"
         onClick={onToggle}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onToggle();
+          }
+        }}
+        aria-label={`${name} - ${isOpen ? 'Collapse' : 'Expand'}`}
       >
         <span
           className={cn(
@@ -134,8 +143,17 @@ export function ExerciseBlock({
           {/* Add set */}
           {onAddSet && (
             <div
+              role="button"
+              tabIndex={0}
               className="flex items-center gap-1.5 py-[5px] text-text4 text-xs cursor-pointer transition-colors hover:text-text3 mt-1"
               onClick={onAddSet}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onAddSet();
+                }
+              }}
+              aria-label="Přidat sérii"
             >
               <span>+</span>
               <span>Přidat sérii</span>

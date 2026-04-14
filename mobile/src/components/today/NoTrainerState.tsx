@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
+import { goldAlpha } from '@/constants/colors'
 import { Radius } from '@/constants/radius'
 import { GoldButton } from '@/components/ui/GoldButton'
 
@@ -21,8 +22,8 @@ export function NoTrainerState() {
   return (
     <View style={styles.container}>
       {/* Gold notice banner */}
-      <View style={[styles.notice, { backgroundColor: colors.goldBg, borderColor: 'rgba(201,168,76,0.25)' }]}>
-        <View style={[styles.noticeIcon, { backgroundColor: 'rgba(201,168,76,0.15)' }]}>
+      <View style={[styles.notice, { backgroundColor: colors.goldBg, borderColor: goldAlpha['25'] }]}>
+        <View style={[styles.noticeIcon, { backgroundColor: goldAlpha['15'] }]}>
           <Text style={styles.noticeEmoji}>🏋️</Text>
         </View>
         <View style={styles.noticeBody}>

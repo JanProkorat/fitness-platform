@@ -2,10 +2,9 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { updateFood } from '@/api/foods';
-import { showApiError, showSuccess } from '@/lib/api-errors';
+import { useApiMutation } from '@/hooks/useApiMutation';
 import type { FoodSummary, FoodCategory } from '@/api/food-types';
 
 const FOOD_CATEGORIES: FoodCategory[] = [
@@ -74,8 +73,8 @@ export default function EditFoodDrawer({ food, onSaved, onClose }: EditFoodDrawe
     });
   }, [food, reset]);
 
-  const mutation = useMutation({
-    mutationFn: (data: EditFoodForm) =>
+  const mutation = useApiMutation(
+    (data: EditFoodForm) =>
       updateFood(food.foodId, {
         name: data.name,
         nameEn: data.nameEn || null,
@@ -92,14 +91,12 @@ export default function EditFoodDrawer({ food, onSaved, onClose }: EditFoodDrawe
         allergens: food.allergens,
         commonServings: food.commonServings,
       }),
-    onSuccess: () => {
-      showSuccess('foods.updated');
-      onSaved();
-    },
-    onError: (error) => {
-      showApiError(error, 'foods.updateError');
-    },
-  });
+    {
+      successKey: 'foods.updated',
+      errorKey: 'foods.updateError',
+      onSuccess: () => onSaved(),
+    }
+  );
 
   const inputClass =
     'rounded-sm border border-border-md bg-bg px-4 py-2.5 text-sm text-text outline-none transition-colors focus:border-border-hv';

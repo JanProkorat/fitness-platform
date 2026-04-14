@@ -111,7 +111,7 @@ export function FoodSearch({
     setIsOpen(false);
   }
 
-  // Close on outside click
+  // Close on outside click or Escape
   useEffect(() => {
     if (!isOpen) return;
     function onClickOutside(e: MouseEvent) {
@@ -123,8 +123,17 @@ export function FoodSearch({
         setIsOpen(false);
       }
     }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setIsOpen(false);
+      }
+    }
     document.addEventListener('mousedown', onClickOutside);
-    return () => document.removeEventListener('mousedown', onClickOutside);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onClickOutside);
+      document.removeEventListener('keydown', onKeyDown);
+    };
   }, [isOpen]);
 
   return (
@@ -178,7 +187,15 @@ export function FoodSearch({
             return (
               <div
                 key={food.foodId}
+                role="button"
+                tabIndex={0}
                 onClick={() => handleSelect(food)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleSelect(food);
+                  }
+                }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 10,
                   padding: '7px 12px', cursor: 'pointer', fontSize: 13,
@@ -186,6 +203,7 @@ export function FoodSearch({
                 }}
                 onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover)'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = ''; }}
+                aria-label={`Select ${food.name}`}
               >
                 <span style={{ fontSize: 16, lineHeight: 1, flexShrink: 0 }}>
                   {CATEGORY_ICONS[cat] ?? '🍽️'}

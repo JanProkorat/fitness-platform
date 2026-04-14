@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getClientDashboard } from '@/api/nutrition-goals';
+import { getClientTimeline } from '@/api/timeline';
 
 import { PageHeader } from '@/components/layout';
 import { Button, Tag, Dialog, Input } from '@/components/ui';
@@ -22,6 +23,12 @@ export default function ClientDetailPage() {
   const { data: client, isLoading } = useQuery({
     queryKey: ['client-dashboard', id],
     queryFn: () => getClientDashboard(id!),
+    enabled: !!id,
+  });
+
+  const { data: timeline } = useQuery({
+    queryKey: ['client-timeline', id],
+    queryFn: () => getClientTimeline(id!, 30),
     enabled: !!id,
   });
 
@@ -46,14 +53,6 @@ export default function ClientDetailPage() {
     if (cp >= 80) return 'text-green';
     if (cp >= 60) return 'text-orange';
     return 'text-red';
-  }, [client?.compliancePercent]);
-
-  const complianceVariant = useMemo((): 'green' | 'orange' | 'red' | 'gray' => {
-    const cp = client?.compliancePercent;
-    if (cp == null) return 'gray';
-    if (cp >= 80) return 'green';
-    if (cp >= 60) return 'orange';
-    return 'red';
   }, [client?.compliancePercent]);
 
   // Weight progress
@@ -181,80 +180,62 @@ export default function ClientDetailPage() {
     if (!client) return [];
     return [
       {
-        label: 'Compliance',
-        value: client.compliancePercent != null ? `${client.compliancePercent} %` : '—',
-        valueColor: complianceColor,
+        label: '🔥 Série',
+        value: client.currentStreak,
+        sub: 'dní v řadě',
+        valueColor: client.currentStreak > 0 ? 'text-orange' : undefined,
       },
       {
-        label: 'Streak',
-        value: client.currentStreak > 0 ? `${client.currentStreak} dní` : '0',
+        label: 'Compliance',
+        value: client.compliancePercent != null ? `${client.compliancePercent} %` : '—',
+        sub: 'za posledních 7 dní',
+        valueColor: complianceColor,
       },
       {
         label: 'Pokrok váhy',
         value: weightProgress != null && weightProgress !== 0
           ? `${weightProgress > 0 ? '+' : ''}${weightProgress} kg`
           : '—',
+        sub: weightProgress != null && weightProgress !== 0
+          ? (weightProgress < 0 ? 'úbytek' : 'přírůstek')
+          : 'beze změny',
         valueColor: weightProgress != null && weightProgress < 0 ? 'text-green' : weightProgress != null && weightProgress > 0 ? 'text-orange' : undefined,
       },
     ];
   }, [client, complianceColor, weightProgress]);
 
-  // Build weight progress chart data (simple bars)
+  // Build weight progress chart data (bar chart)
   const weightChartData = useMemo(() => {
     if (!client?.weightKg) return null;
-    const baseWeight = client.weightKg;
-    const latestWeight = client.latestMeasurement?.weightKg ?? baseWeight;
-    const targetWeight = ob?.targetWeightKg ?? latestWeight;
-    const maxVal = Math.max(baseWeight, latestWeight, targetWeight) + 2;
-    const minVal = Math.min(baseWeight, latestWeight, targetWeight) - 2;
-    const range = maxVal - minVal || 1;
+    const startWeight = client.weightKg;
+    const currentWeight = client.latestMeasurement?.weightKg ?? startWeight;
+    const targetWeight = ob?.targetWeightKg ?? currentWeight;
 
-    return {
-      bars: [
-        { label: 'Start', value: baseWeight, pct: ((baseWeight - minVal) / range) * 100 },
-        { label: 'Aktuální', value: latestWeight, pct: ((latestWeight - minVal) / range) * 100 },
-        { label: 'Cíl', value: targetWeight, pct: ((targetWeight - minVal) / range) * 100 },
-      ],
-    };
+    const values = [startWeight, currentWeight, targetWeight];
+    const maxVal = Math.max(...values);
+    const minVal = Math.min(...values);
+    // Use 0 as the floor so bars reflect absolute scale, not just relative diff
+    const floor = Math.max(0, minVal - (maxVal - minVal) * 0.5);
+    const range = maxVal - floor || 1;
+
+    return [
+      { label: 'Start', value: startWeight, pct: ((startWeight - floor) / range) * 100 },
+      { label: 'Aktuální', value: currentWeight, pct: ((currentWeight - floor) / range) * 100, highlight: true },
+      { label: 'Cíl', value: targetWeight, pct: ((targetWeight - floor) / range) * 100 },
+    ];
   }, [client, ob]);
 
-  // Build activity timeline items
+  // Activity timeline — composed server-side, newest first.
   const activityItems = useMemo(() => {
-    const items: Array<{ id: string; date: string; title: string; description?: string; icon?: string }> = [];
-
-    if (client?.latestMeasurement) {
-      items.push({
-        id: 'measurement',
-        date: new Date(client.latestMeasurement.measuredAt).toLocaleDateString('cs-CZ'),
-        title: 'Tělesné míry zadány',
-        icon: '📏',
-        description: client.latestMeasurement.weightKg != null
-          ? `Váha: ${client.latestMeasurement.weightKg} kg`
-          : undefined,
-      });
-    }
-
-    if (client?.questionnaireSubmittedAt) {
-      items.push({
-        id: 'questionnaire',
-        date: new Date(client.questionnaireSubmittedAt).toLocaleDateString('cs-CZ'),
-        title: 'Dotazník vyplněn',
-        icon: '📋',
-        description: client.questionnaireTitle ?? undefined,
-      });
-    }
-
-    if (client?.linkedAt) {
-      items.push({
-        id: 'linked',
-        date: new Date(client.linkedAt).toLocaleDateString('cs-CZ'),
-        title: 'Klient propojen',
-        icon: '🔗',
-      });
-    }
-
-    return items;
-  }, [client]);
+    if (!timeline?.items) return [];
+    return timeline.items.map((it) => ({
+      id: it.id,
+      date: new Date(it.occurredAt).toLocaleDateString('cs-CZ'),
+      title: it.title,
+      description: it.description ?? undefined,
+      icon: it.icon ?? undefined,
+    }));
+  }, [timeline]);
 
   // Subtitle for PageHeader
   const subtitleNode = useMemo(() => {
@@ -263,15 +244,9 @@ export default function ClientDetailPage() {
     return (
       <div className="flex items-center gap-2 mt-1.5">
         {goal && <Tag variant={goalTagVariant}>{v(goal)}</Tag>}
-        {client.currentStreak > 0 && (
-          <Tag variant="green">{'🔥'} {client.currentStreak} dní streak</Tag>
-        )}
-        {client.compliancePercent != null && (
-          <Tag variant={complianceVariant}>{client.compliancePercent} % compliance</Tag>
-        )}
       </div>
     );
-  }, [client, ob, goalTagVariant, complianceVariant]);
+  }, [client, ob, goalTagVariant]);
 
   // Loading state
   if (isLoading) {
@@ -375,14 +350,19 @@ export default function ClientDetailPage() {
               <div className="text-[11px] text-text3 font-medium uppercase tracking-[0.04em] mb-2">
                 Váhový progres
               </div>
-              <div className="flex items-end gap-3 h-[80px]">
-                {weightChartData.bars.map((bar) => (
+              <div className="flex gap-3">
+                {weightChartData.map((bar) => (
                   <div key={bar.label} className="flex flex-col items-center gap-1 flex-1">
                     <div className="text-[11px] text-text2 font-medium">{bar.value} kg</div>
-                    <div
-                      className="w-full rounded-sm bg-accent-bg border border-accent-br transition-all"
-                      style={{ height: `${Math.max(bar.pct, 10)}%` }}
-                    />
+                    <div className="w-full relative" style={{ height: 80 }}>
+                      <div
+                        className="absolute bottom-0 left-0 right-0 rounded"
+                        style={{
+                          height: `${Math.max(bar.pct, 8)}%`,
+                          backgroundColor: bar.highlight ? 'var(--accent)' : 'var(--bg3)',
+                        }}
+                      />
+                    </div>
                     <div className="text-[11px] text-text3">{bar.label}</div>
                   </div>
                 ))}

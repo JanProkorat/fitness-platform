@@ -2,6 +2,8 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace FitnessPlatform.Application.Features.Client.Progress.GetComplianceScore;
 
@@ -10,7 +12,8 @@ namespace FitnessPlatform.Application.Features.Client.Progress.GetComplianceScor
 /// Returns compliance percentage, meal counts, and current streak.
 /// </summary>
 /// <param name="complianceService">Service for calculating compliance metrics.</param>
-public class GetComplianceScoreEndpoint(IComplianceService complianceService)
+/// <param name="db">Relational database context.</param>
+public class GetComplianceScoreEndpoint(IComplianceService complianceService, IApplicationDbContext db)
     : Endpoint<GetComplianceScoreRequest, GetComplianceScoreResponse>
 {
     /// <inheritdoc />
@@ -36,7 +39,19 @@ public class GetComplianceScoreEndpoint(IComplianceService complianceService)
             return;
         }
 
-        var clientId = Guid.Parse(userId);
+        // MealLogs and NutritionPlans in Mongo are keyed by ClientProfile.PublicId,
+        // not the ApplicationUser.Id — we must resolve the profile first.
+        var clientProfile = await db.ClientProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cp => cp.UserId == Guid.Parse(userId), ct);
+
+        if (clientProfile is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        var clientId = clientProfile.PublicId;
         var from = req.From ?? DateTime.UtcNow.Date.AddDays(-7);
         var to = req.To ?? DateTime.UtcNow.Date.AddDays(1).AddTicks(-1);
 

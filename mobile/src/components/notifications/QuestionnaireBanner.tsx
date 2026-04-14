@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Pressable, Animated } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
+import { goldAlpha } from '@/constants/colors'
 import { Radius } from '@/constants/radius'
 
 interface QuestionnaireBannerProps {
@@ -51,13 +52,13 @@ export function QuestionnaireBanner({ count = 1, coachNames, onFill }: Questionn
           styles.card,
           {
             backgroundColor: colors.goldBg,
-            borderColor: 'rgba(201,168,76,0.25)',
+            borderColor: goldAlpha['25'],
             opacity: isMultiple && pressed ? 0.85 : 1,
           },
         ]}
       >
         <View style={styles.iconRow}>
-          <View style={[styles.iconCircle, { backgroundColor: colors.gold + '20' }]}>
+          <View style={[styles.iconCircle, { backgroundColor: goldAlpha['20'] }]}>
             <Text style={{ fontSize: 22 }}>📋</Text>
           </View>
           <View style={styles.textBlock}>
@@ -83,7 +84,7 @@ export function QuestionnaireBanner({ count = 1, coachNames, onFill }: Questionn
               { backgroundColor: colors.gold, opacity: pressed ? 0.8 : 1 },
             ]}
           >
-            <Text style={styles.btnText}>{t('today.questionnaireFill')}</Text>
+            <Text style={[styles.btnText, { color: colors.onAccent }]}>{t('today.questionnaireFill')}</Text>
           </Pressable>
         )}
       </Pressable>
@@ -123,7 +124,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   btnText: {
-    color: '#ffffff',
     fontSize: 15,
     fontWeight: '600',
   },

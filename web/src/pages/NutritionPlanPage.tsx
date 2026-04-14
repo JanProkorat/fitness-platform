@@ -7,236 +7,19 @@ import { getPlan, completePlan } from '@/api/plans';
 import { PlanQuestionnairePanel } from '@/components/questionnaire/PlanQuestionnairePanel';
 import { getClientDashboard } from '@/api/nutrition-goals';
 import { PageHeader } from '@/components/layout';
-import { Button, Dialog, Input } from '@/components/ui';
+import { Button, Dialog } from '@/components/ui';
 import { MondayDatePicker } from '@/components/ui/MondayDatePicker';
-import { MacroSidebar, MealBlock, WeekDayTabs } from '@/components/nutrition';
-import type { MealBlockFood } from '@/components/nutrition';
+import { MacroSidebar, WeekDayTabs } from '@/components/nutrition';
 import type { WeekTabData, DayTabData } from '@/components/nutrition/WeekDayTabs';
 import type { PlanMeal, MealFood, NutrientTotals } from '@/api/plan-types';
+import { SortableMealItem } from '@/components/nutrition/SortableMealItem';
+import { ShoppingListDrawer } from '@/components/nutrition/ShoppingListDrawer';
+import { PublishWeekDialog, CompletePlanDialog, AddMealDialog } from '@/components/nutrition/PlanDialogs';
 import { showSuccess, showApiError } from '@/lib/api-errors';
 import { cn } from '@/lib/cn';
+import { CANCEL_BUTTON_CLASS } from '@/lib/styles';
 import { MEAL_KINDS, type MealKind } from '@/components/nutrition/meal-kind';
-
-
-/** Day-level note input */
-function DayNoteInput({ note, onChange, addLabel, placeholder }: { note?: string | null; onChange: (note: string) => void; addLabel: string; placeholder: string }) {
-  const [value, setValue] = useState(note ?? '');
-  const [open, setOpen] = useState(!!note);
-
-  // Sync when day changes
-  useEffect(() => {
-    setValue(note ?? '');
-    if (note) setOpen(true);
-  }, [note]);
-
-  if (!open) {
-    return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        style={{
-          background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0 8px',
-          fontSize: 11, color: 'var(--text4)', fontFamily: 'inherit', transition: 'color 0.1s',
-        }}
-        onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text3)'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text4)'; }}
-      >
-        {addLabel}
-      </button>
-    );
-  }
-
-  return (
-    <div style={{ marginBottom: 8 }}>
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        onBlur={() => onChange(value)}
-        placeholder={placeholder}
-        style={{
-          width: '100%', border: '1px dashed var(--border-md)', outline: 'none',
-          background: 'transparent', fontSize: 12, color: 'var(--text2)',
-          fontFamily: 'inherit', fontStyle: 'italic', padding: '5px 8px',
-          borderRadius: 'var(--radius-md)', transition: 'border-color 0.15s',
-        }}
-        onFocus={(e) => { e.target.style.borderColor = 'var(--accent-br)'; }}
-        onBlurCapture={(e) => { e.target.style.borderColor = 'var(--border-md)'; }}
-      />
-    </div>
-  );
-}
-
-/** Resolve localized food name based on current language */
-function resolveLocalizedName(food: { foodName: string; foodNameCs?: string | null; foodNameEn?: string | null; foodNameDe?: string | null }, lang: string): string {
-  if (lang.startsWith('cs') && food.foodNameCs) return food.foodNameCs;
-  if (lang.startsWith('de') && food.foodNameDe) return food.foodNameDe;
-  if (lang.startsWith('en') && food.foodNameEn) return food.foodNameEn;
-  return food.foodName;
-}
-
-/** Sortable wrapper for a meal in the day list */
-function SortableMealItem({
-  meal,
-  index: _index,
-  dayOfWeek,
-  weekNumber: weekNum,
-  isOpen,
-  onToggle,
-  onFoodAmountChange,
-  onFoodRemove,
-  onFoodSelect,
-  onRecipeSelect,
-  onRecipeServingsChange,
-  onRecipeRemove,
-  onRecipeNoteChange,
-  onNoteChange,
-  onFoodNoteChange,
-  onItemDrop,
-  onReorder,
-  onTimeChange,
-  onDuplicate,
-  onRemove,
-  lang,
-  removeMealTitle,
-  removeMealMessage,
-  cancelLabel,
-  removeLabel,
-}: {
-  meal: PlanMeal;
-  index: number;
-  dayOfWeek: number;
-  weekNumber: number;
-  isOpen: boolean;
-  onToggle: () => void;
-  onFoodAmountChange: (foodId: string, amount: number) => void;
-  onFoodRemove: (foodId: string) => void;
-  onFoodSelect: (food: { name: string; kcal: number; protein: number; carbs: number; fat: number }) => void;
-  onRecipeSelect: (recipe: { recipeId: string; name: string; kcal: number; protein: number; carbs: number; fat: number; foodCategories?: string[] }) => void;
-  onRecipeServingsChange: (recipeId: string, servings: number) => void;
-  onRecipeRemove: (recipeId: string) => void;
-  onRecipeNoteChange: (recipeId: string, note: string) => void;
-  onNoteChange: (note: string) => void;
-  onFoodNoteChange: (foodId: string, note: string) => void;
-  onItemDrop: (data: { type: string; foodId?: string; recipeId?: string; mealId: string; dayOfWeek?: number }) => void;
-  onReorder: (itemIds: string[]) => void;
-  onTimeChange: (time: string) => void;
-  onDuplicate: () => void;
-  onRemove: () => void;
-  lang: string;
-  removeMealTitle: string;
-  removeMealMessage: string;
-  cancelLabel: string;
-  removeLabel: string;
-}) {
-
-  const mealFoods: MealBlockFood[] = meal.foods.map((f) => {
-    const scale = f.amountGrams / 100;
-    return {
-      id: f.foodExternalId,
-      name: resolveLocalizedName(f, lang),
-      amount: f.amountGrams,
-      unit: 'g',
-      kcal: f.nutrientValuePer100Grams.kcal * scale,
-      protein: f.nutrientValuePer100Grams.protein * scale,
-      carbs: f.nutrientValuePer100Grams.carbs * scale,
-      fat: f.nutrientValuePer100Grams.fat * scale,
-      note: f.note,
-      category: f.foodCategory,
-    };
-  });
-
-  const mealRecipes = (meal.recipes ?? []).map((r) => ({
-    recipeId: r.recipeId,
-    recipeName: r.recipeName,
-    servings: r.servings,
-    kcal: r.nutrientValuePerServing.kcal,
-    protein: r.nutrientValuePerServing.protein,
-    carbs: r.nutrientValuePerServing.carbs,
-    fat: r.nutrientValuePerServing.fat,
-    note: r.note,
-    foodCategories: r.foodCategories,
-  }));
-
-  const [confirmRemove, setConfirmRemove] = useState(false);
-  const [mealOver, setMealOver] = useState(false);
-
-  return (
-    <div
-      draggable
-      onDragStart={(e) => {
-        e.dataTransfer.setData('application/meal-json', JSON.stringify({ type: 'meal', mealId: meal.mealId, fromDay: dayOfWeek, fromWeek: weekNum }));
-        e.dataTransfer.effectAllowed = 'move';
-      }}
-      onDragOver={(e) => {
-        // Only accept meal drags (not food/recipe)
-        if (e.dataTransfer.types.includes('application/meal-json')) {
-          e.preventDefault();
-          e.dataTransfer.dropEffect = 'move';
-          setMealOver(true);
-        }
-      }}
-      onDragLeave={() => setMealOver(false)}
-      onDrop={(e) => {
-        setMealOver(false);
-        if (!e.dataTransfer.types.includes('application/meal-json')) return;
-        e.preventDefault();
-        // meal reorder handled by parent
-      }}
-      data-meal-id={meal.mealId}
-      style={{
-        borderTop: mealOver ? '2px solid var(--accent)' : '2px solid transparent',
-        transition: 'border-color 0.1s',
-      }}
-    >
-      <MealBlock
-        mealId={meal.mealId}
-        dayOfWeek={dayOfWeek}
-        weekNumber={weekNum}
-        kind={meal.kind}
-        time={meal.time ?? undefined}
-        note={meal.note}
-        foods={mealFoods}
-        recipes={mealRecipes}
-        isOpen={isOpen}
-        onToggle={onToggle}
-        onFoodAmountChange={onFoodAmountChange}
-        onFoodRemove={onFoodRemove}
-        onFoodNoteChange={onFoodNoteChange}
-        onFoodSelect={onFoodSelect}
-        onRecipeSelect={onRecipeSelect}
-        onRecipeServingsChange={onRecipeServingsChange}
-        onRecipeRemove={onRecipeRemove}
-        onRecipeNoteChange={onRecipeNoteChange}
-        mealTotalKcal={meal.mealTotals?.kcal ?? 0}
-        onNoteChange={onNoteChange}
-        onItemDrop={onItemDrop}
-        onReorder={onReorder}
-        onTimeChange={onTimeChange}
-        onDuplicate={onDuplicate}
-        onRemove={() => setConfirmRemove(true)}
-      />
-      <Dialog
-        open={confirmRemove}
-        onClose={() => setConfirmRemove(false)}
-        title={removeMealTitle}
-        maxWidth={380}
-        footer={
-          <>
-            <Button onClick={() => setConfirmRemove(false)}>{cancelLabel}</Button>
-            <Button variant="danger" onClick={() => { setConfirmRemove(false); onRemove(); }}>
-              {removeLabel}
-            </Button>
-          </>
-        }
-      >
-        <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
-          {removeMealMessage}
-        </p>
-      </Dialog>
-    </div>
-  );
-}
+import { DayNoteInput } from '@/components/common/DayNoteInput';
 
 export default function NutritionPlanPage() {
   const { t, i18n } = useTranslation();
@@ -287,7 +70,6 @@ export default function NutritionPlanPage() {
   const [newMealKind, setNewMealKind] = useState<MealKind>('Breakfast');
   const [newMealTime, setNewMealTime] = useState('');
   const [shoppingListOpen, setShoppingListOpen] = useState(false);
-  const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const [publishDialogOpen, setPublishDialogOpen] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
@@ -533,89 +315,6 @@ export default function NutritionPlanPage() {
       };
     });
   }, [currentWeek, t]);
-
-  // ── Shopping list aggregation ──
-  // Shopping list: aggregate foods + recipe ingredients for the selected week
-  type ShoppingItem = { id: string; name: string; amount: number; unit: string };
-  const [shoppingData, setShoppingData] = useState<{ firstHalf: ShoppingItem[]; secondHalf: ShoppingItem[] }>({ firstHalf: [], secondHalf: [] });
-  const [shoppingLoading, setShoppingLoading] = useState(false);
-
-  useEffect(() => {
-    if (!shoppingListOpen || !plan) return;
-    let cancelled = false;
-
-    async function buildShoppingList() {
-      setShoppingLoading(true);
-      const week = plan!.weeks.find(w => w.weekNumber === selectedWeek);
-      if (!week) { setShoppingData({ firstHalf: [], secondHalf: [] }); setShoppingLoading(false); return; }
-
-      // Collect all unique recipe IDs used in this week
-      const recipeIds = new Set<string>();
-      for (const day of week.days) {
-        for (const meal of day.meals) {
-          for (const recipe of (meal.recipes ?? [])) {
-            recipeIds.add(recipe.recipeId);
-          }
-        }
-      }
-
-      // Fetch recipe details to get their ingredients
-      const recipeMap = new Map<string, { foodExternalId: string; foodName: string; amountGrams: number }[]>();
-      if (recipeIds.size > 0) {
-        const { getRecipe } = await import('@/api/recipes');
-        const results = await Promise.allSettled(
-          Array.from(recipeIds).map(id => getRecipe(id))
-        );
-        for (const r of results) {
-          if (r.status === 'fulfilled') {
-            recipeMap.set(r.value.recipeId, r.value.foods);
-          }
-        }
-      }
-
-      if (cancelled) return;
-
-      function aggregateDays(days: NonNullable<typeof week>['days']) {
-        const agg = new Map<string, { name: string; amount: number }>();
-        for (const day of days) {
-          for (const meal of day.meals) {
-            // Direct foods
-            for (const food of meal.foods) {
-              const key = food.foodExternalId;
-              const existing = agg.get(key);
-              if (existing) existing.amount += food.amountGrams;
-              else agg.set(key, { name: resolveLocalizedName(food, i18n.language), amount: food.amountGrams });
-            }
-            // Recipe ingredients (scaled by servings)
-            for (const recipe of (meal.recipes ?? [])) {
-              const ingredients = recipeMap.get(recipe.recipeId);
-              if (!ingredients) continue;
-              for (const ing of ingredients) {
-                const key = ing.foodExternalId;
-                const scaledAmount = ing.amountGrams * recipe.servings;
-                const existing = agg.get(key);
-                if (existing) existing.amount += scaledAmount;
-                else agg.set(key, { name: ing.foodName, amount: scaledAmount });
-              }
-            }
-          }
-        }
-        return Array.from(agg.entries()).map(([id, val]) => ({ id, name: val.name, amount: val.amount, unit: 'g' }));
-      }
-
-      const firstDays = week.days.filter(d => d.dayOfWeek >= 1 && d.dayOfWeek <= 4);
-      const secondDays = week.days.filter(d => d.dayOfWeek >= 5 && d.dayOfWeek <= 7);
-
-      setShoppingData({
-        firstHalf: aggregateDays(firstDays),
-        secondHalf: aggregateDays(secondDays),
-      });
-      setShoppingLoading(false);
-    }
-
-    buildShoppingList();
-    return () => { cancelled = true; };
-  }, [shoppingListOpen, plan, selectedWeek, i18n.language]);
 
   // ── Loading state ──
   if (!plan) {
@@ -1012,7 +711,7 @@ export default function NutritionPlanPage() {
             </div>
             <button
               type="button"
-              onClick={() => { setCheckedItems(new Set()); setShoppingListOpen(true); }}
+              onClick={() => setShoppingListOpen(true)}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                 width: '100%', padding: '7px 0',
@@ -1057,80 +756,21 @@ export default function NutritionPlanPage() {
       </Dialog>
 
       {/* ── Publish Week Confirmation Dialog ── */}
-      {publishDialogOpen && (
-        <>
-          <style>{`
-            @keyframes dlg-fade-in { from { opacity: 0 } to { opacity: 1 } }
-            @keyframes dlg-slide-up { from { opacity: 0; transform: translateY(16px) } to { opacity: 1; transform: translateY(0) } }
-          `}</style>
-          <div className="fixed inset-0 z-[60] bg-black/50" onClick={() => setPublishDialogOpen(false)} style={{ animation: 'dlg-fade-in .4s ease-out' }} />
-          <div className="fixed inset-0 z-[61] flex items-start justify-center pt-[5vh] pointer-events-none">
-            <div
-              className="pointer-events-auto flex flex-col border border-border shadow-2xl overflow-hidden"
-              style={{ width: 440, maxWidth: '95vw', background: 'var(--bg)', borderRadius: 10, animation: 'dlg-slide-up .4s ease-out' }}
-            >
-              <div className="flex items-center justify-center" style={{ height: 80, background: 'var(--accent-bg)', borderRadius: '10px 10px 0 0' }}>
-                <span style={{ fontSize: 32, opacity: 0.6 }}>📤</span>
-              </div>
-              <div className="px-5 py-4">
-                <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>{t('nutrition.publishWeek', { number: selectedWeek })}</div>
-                <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>{t('nutrition.confirmPublishWeek')}</div>
-              </div>
-              <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-border">
-                <button onClick={() => setPublishDialogOpen(false)} className="px-4 py-2 rounded-md text-[13px] font-medium text-text3 hover:bg-bg-hover transition-colors">
-                  {t('common.cancel')}
-                </button>
-                <button
-                  onClick={handlePublish}
-                  disabled={isPublishing}
-                  className="px-5 py-2 rounded-md text-[13px] font-medium text-white transition-colors disabled:opacity-50"
-                  style={{ background: 'var(--accent)' }}
-                >
-                  {isPublishing ? t('nutrition.publishingWeek') : t('nutrition.publishWeekButton')}
-                </button>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
+      <PublishWeekDialog
+        isOpen={publishDialogOpen}
+        selectedWeek={selectedWeek}
+        isPublishing={isPublishing}
+        onPublish={handlePublish}
+        onClose={() => setPublishDialogOpen(false)}
+      />
 
       {/* ── Complete Plan Confirmation Dialog ── */}
-      {completeDialogOpen && (
-        <>
-          <style>{`
-            @keyframes dlg-fade-in { from { opacity: 0 } to { opacity: 1 } }
-            @keyframes dlg-slide-up { from { opacity: 0; transform: translateY(16px) } to { opacity: 1; transform: translateY(0) } }
-          `}</style>
-          <div className="fixed inset-0 z-[60] bg-black/50" onClick={() => setCompleteDialogOpen(false)} style={{ animation: 'dlg-fade-in .4s ease-out' }} />
-          <div className="fixed inset-0 z-[61] flex items-start justify-center pt-[5vh] pointer-events-none">
-            <div
-              className="pointer-events-auto flex flex-col border border-border shadow-2xl overflow-hidden"
-              style={{ width: 440, maxWidth: '95vw', background: 'var(--bg)', borderRadius: 10, animation: 'dlg-slide-up .4s ease-out' }}
-            >
-              <div className="flex items-center justify-center" style={{ height: 80, background: 'var(--accent-bg)', borderRadius: '10px 10px 0 0' }}>
-                <span style={{ fontSize: 32, opacity: 0.6 }}>✓</span>
-              </div>
-              <div className="px-5 py-4">
-                <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>{t('nutrition.completePlan')}</div>
-                <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>{t('nutrition.confirmComplete')}</div>
-              </div>
-              <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-border">
-                <button onClick={() => setCompleteDialogOpen(false)} className="px-4 py-2 rounded-md text-[13px] font-medium text-text3 hover:bg-bg-hover transition-colors">
-                  {t('common.cancel')}
-                </button>
-                <button
-                  onClick={handleComplete}
-                  disabled={isCompleting}
-                  className="px-5 py-2 rounded-md text-[13px] font-medium text-white transition-colors disabled:opacity-50"
-                  style={{ background: 'var(--accent)' }}
-                >
-                  {isCompleting ? '...' : t('nutrition.completePlan')}
-                </button>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
+      <CompletePlanDialog
+        isOpen={completeDialogOpen}
+        isCompleting={isCompleting}
+        onComplete={handleComplete}
+        onClose={() => setCompleteDialogOpen(false)}
+      />
 
       {/* ── Reset Confirmation Dialog ── */}
       <Dialog
@@ -1153,174 +793,23 @@ export default function NutritionPlanPage() {
       </Dialog>
 
       {/* ── Add Meal Dialog ── */}
-      <Dialog
-        open={addMealOpen}
+      <AddMealDialog
+        isOpen={addMealOpen}
+        mealKind={newMealKind}
+        mealTime={newMealTime}
+        onMealKindChange={setNewMealKind}
+        onMealTimeChange={setNewMealTime}
+        onAdd={handleAddMeal}
         onClose={() => setAddMealOpen(false)}
-        title={t('nutrition.addMealButton')}
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setAddMealOpen(false)}>{t('common.cancel')}</Button>
-            <Button variant="primary" onClick={handleAddMeal}>{t('nutrition.addMealButton')}</Button>
-          </>
-        }
-      >
-        <div className="form-group">
-          <label className="form-label">{t('nutrition.mealKind')}</label>
-          <select
-            className="form-select auth-input"
-            style={{ fontSize: 13, padding: '7px 10px', cursor: 'pointer', width: '100%' }}
-            value={newMealKind}
-            onChange={(e) => setNewMealKind(e.target.value as MealKind)}
-            autoFocus
-          >
-            {MEAL_KINDS.map((k) => (
-              <option key={k} value={k}>{t(`mealKind.${k}`)}</option>
-            ))}
-          </select>
-        </div>
-        <div className="form-group">
-          <label className="form-label">{t('nutrition.mealTime')}</label>
-          <input
-            type="time"
-            className="auth-input"
-            style={{ fontSize: 13, padding: '7px 10px', cursor: 'pointer', width: '100%' }}
-            value={newMealTime}
-            onChange={(e) => setNewMealTime(e.target.value)}
-          />
-        </div>
-      </Dialog>
+      />
 
       {/* ── Shopping List Drawer ── */}
-      {shoppingListOpen && (
-        <div
-          style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', justifyContent: 'flex-end' }}
-          onClick={() => setShoppingListOpen(false)}
-        >
-          {/* Backdrop */}
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)' }} />
-          {/* Drawer */}
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              position: 'relative', width: 420, maxWidth: '90vw', height: '100vh',
-              background: 'var(--bg)', borderLeft: '1px solid var(--border)',
-              boxShadow: '-8px 0 32px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column',
-              animation: 'authStepIn 0.2s ease-out',
-            }}
-          >
-            {/* Header */}
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-              <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>🛒 {t('nutrition.shoppingListWeek', { week: selectedWeek })}</div>
-              <button
-                type="button"
-                onClick={() => setShoppingListOpen(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: 'var(--text3)', padding: 4, borderRadius: 'var(--radius)' }}
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Content */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
-              {shoppingLoading && (
-                <div style={{ textAlign: 'center', padding: '24px 0', fontSize: 13, color: 'var(--text3)' }}>{t('nutrition.loadingIngredients')}</div>
-              )}
-              {!shoppingLoading && <>
-              {/* First half: Mon-Thu */}
-              <div style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>
-                  {t('nutrition.monToThu')}
-                </div>
-                {shoppingData.firstHalf.length === 0 ? (
-                  <div style={{ fontSize: 13, color: 'var(--text4)', padding: '8px 0' }}>{t('nutrition.noItems')}</div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    {shoppingData.firstHalf.map((item) => (
-                      <label
-                        key={item.id}
-                        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', borderRadius: 'var(--radius-md)', cursor: 'pointer', transition: 'background 0.1s' }}
-                        onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover)'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = ''; }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={checkedItems.has(item.id)}
-                          onChange={() => setCheckedItems(prev => { const n = new Set(prev); if (n.has(item.id)) n.delete(item.id); else n.add(item.id); return n; })}
-                          style={{ accentColor: 'var(--green)' }}
-                        />
-                        <span style={{ flex: 1, fontSize: 13, color: 'var(--text)', textDecoration: checkedItems.has(item.id) ? 'line-through' : undefined, opacity: checkedItems.has(item.id) ? 0.5 : 1 }}>
-                          {item.name}
-                        </span>
-                        <span style={{ fontSize: 12, color: 'var(--text3)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-                          {Math.round(item.amount)} {item.unit}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Divider */}
-              <div style={{ height: 1, background: 'var(--border)', margin: '4px 0 16px' }} />
-
-              {/* Second half: Fri-Sun */}
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>
-                  {t('nutrition.friToSun')}
-                </div>
-                {shoppingData.secondHalf.length === 0 ? (
-                  <div style={{ fontSize: 13, color: 'var(--text4)', padding: '8px 0' }}>{t('nutrition.noItems')}</div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    {shoppingData.secondHalf.map((item) => (
-                      <label
-                        key={item.id}
-                        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', borderRadius: 'var(--radius-md)', cursor: 'pointer', transition: 'background 0.1s' }}
-                        onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover)'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = ''; }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={checkedItems.has(item.id + '-2')}
-                          onChange={() => setCheckedItems(prev => { const k = item.id + '-2'; const n = new Set(prev); if (n.has(k)) n.delete(k); else n.add(k); return n; })}
-                          style={{ accentColor: 'var(--green)' }}
-                        />
-                        <span style={{ flex: 1, fontSize: 13, color: 'var(--text)', textDecoration: checkedItems.has(item.id + '-2') ? 'line-through' : undefined, opacity: checkedItems.has(item.id + '-2') ? 0.5 : 1 }}>
-                          {item.name}
-                        </span>
-                        <span style={{ fontSize: 12, color: 'var(--text3)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-                          {Math.round(item.amount)} {item.unit}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-              </>}
-            </div>
-
-            {/* Footer */}
-            <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 8, flexShrink: 0 }}>
-              <Button
-                variant="default"
-                size="sm"
-                onClick={() => {
-                  const format = (items: typeof shoppingData.firstHalf, suffix: string) =>
-                    items.map(item => {
-                      const key = suffix ? item.id + suffix : item.id;
-                      return `${checkedItems.has(key) ? '☑' : '☐'} ${item.name} – ${Math.round(item.amount)} ${item.unit}`;
-                    }).join('\n');
-                  const text = `${t('nutrition.monToThu').toUpperCase()}\n${format(shoppingData.firstHalf, '')}\n\n${t('nutrition.friToSun').toUpperCase()}\n${format(shoppingData.secondHalf, '-2')}`;
-                  navigator.clipboard.writeText(text);
-                  showSuccess(t('nutrition.shoppingList'));
-                }}
-              >
-                📋 {t('nutrition.copy')}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ShoppingListDrawer
+        open={shoppingListOpen}
+        onClose={() => setShoppingListOpen(false)}
+        plan={plan}
+        selectedWeek={selectedWeek}
+      />
     </div>
   );
 }

@@ -6,12 +6,8 @@ import { useTranslation } from 'react-i18next';
 import { createFood } from '@/api/foods';
 import type { FoodCategory } from '@/api/food-types';
 import { showApiError, showSuccess } from '@/lib/api-errors';
-
-const FOOD_CATEGORIES: FoodCategory[] = [
-  'Other', 'Fruit', 'Vegetables', 'Meat', 'FishAndSeafood', 'Dairy',
-  'GrainsAndCereals', 'Legumes', 'NutsAndSeeds', 'OilsAndFats',
-  'SweetsAndSnacks', 'Beverages', 'Supplements',
-];
+import { FOOD_CATEGORIES } from '@/components/nutrition/food-category';
+import { INPUT_CLASS } from '@/lib/styles';
 
 interface AddFoodDialogProps {
   onCreated: () => void;
@@ -78,8 +74,6 @@ export default function AddFoodDialog({ onCreated, onClose }: AddFoodDialogProps
     mutation.mutate(data);
   };
 
-  const inputClass =
-    'rounded-sm border border-border-md bg-bg px-4 py-2.5 text-sm text-text outline-none transition-colors focus:border-border-hv';
 
   return (
     <div>
@@ -106,7 +100,7 @@ export default function AddFoodDialog({ onCreated, onClose }: AddFoodDialogProps
             <input
               {...register('name')}
               placeholder={t('foods.foodName')}
-              className={`w-full ${inputClass} ${errors.name ? 'border-red-500/50' : ''}`}
+              className={`w-full ${INPUT_CLASS} ${errors.name ? 'border-red-500/50' : ''}`}
             />
           </div>
 
@@ -116,7 +110,7 @@ export default function AddFoodDialog({ onCreated, onClose }: AddFoodDialogProps
             </label>
             <select
               {...register('category')}
-              className={`w-full ${inputClass}`}
+              className={`w-full ${INPUT_CLASS}`}
             >
               {FOOD_CATEGORIES.map((cat) => (
                 <option key={cat} value={cat}>{t(`foods.category${cat}`)}</option>
@@ -135,7 +129,7 @@ export default function AddFoodDialog({ onCreated, onClose }: AddFoodDialogProps
                 <input
                   {...register('nameEn')}
                   placeholder="English name"
-                  className={`w-full ${inputClass}`}
+                  className={`w-full ${INPUT_CLASS}`}
                 />
               </div>
               <div className="flex items-center gap-2">
@@ -143,7 +137,7 @@ export default function AddFoodDialog({ onCreated, onClose }: AddFoodDialogProps
                 <input
                   {...register('nameCs')}
                   placeholder="Český název"
-                  className={`w-full ${inputClass}`}
+                  className={`w-full ${INPUT_CLASS}`}
                 />
               </div>
               <div className="flex items-center gap-2">
@@ -151,7 +145,7 @@ export default function AddFoodDialog({ onCreated, onClose }: AddFoodDialogProps
                 <input
                   {...register('nameDe')}
                   placeholder="Deutscher Name"
-                  className={`w-full ${inputClass}`}
+                  className={`w-full ${INPUT_CLASS}`}
                 />
               </div>
             </div>
@@ -169,7 +163,7 @@ export default function AddFoodDialog({ onCreated, onClose }: AddFoodDialogProps
               min={0}
               step="any"
               placeholder="0"
-              className={`w-full ${inputClass} ${errors.kcal ? 'border-red-500/50' : ''}`}
+              className={`w-full ${INPUT_CLASS} ${errors.kcal ? 'border-red-500/50' : ''}`}
             />
           </div>
           <div>
@@ -182,7 +176,7 @@ export default function AddFoodDialog({ onCreated, onClose }: AddFoodDialogProps
               min={0}
               step="any"
               placeholder="0"
-              className={`w-full ${inputClass} ${errors.protein ? 'border-red-500/50' : ''}`}
+              className={`w-full ${INPUT_CLASS} ${errors.protein ? 'border-red-500/50' : ''}`}
             />
           </div>
           <div>
@@ -195,7 +189,7 @@ export default function AddFoodDialog({ onCreated, onClose }: AddFoodDialogProps
               min={0}
               step="any"
               placeholder="0"
-              className={`w-full ${inputClass} ${errors.carbs ? 'border-red-500/50' : ''}`}
+              className={`w-full ${INPUT_CLASS} ${errors.carbs ? 'border-red-500/50' : ''}`}
             />
           </div>
           <div>
@@ -208,7 +202,7 @@ export default function AddFoodDialog({ onCreated, onClose }: AddFoodDialogProps
               min={0}
               step="any"
               placeholder="0"
-              className={`w-full ${inputClass} ${errors.fat ? 'border-red-500/50' : ''}`}
+              className={`w-full ${INPUT_CLASS} ${errors.fat ? 'border-red-500/50' : ''}`}
             />
           </div>
         </div>
@@ -219,7 +213,7 @@ export default function AddFoodDialog({ onCreated, onClose }: AddFoodDialogProps
             {...register('note')}
             placeholder="Volitelná poznámka k potravině..."
             rows={2}
-            className={`w-full ${inputClass} resize-none`}
+            className={`w-full ${INPUT_CLASS} resize-none`}
           />
         </div>
 

@@ -1,15 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import {
   getClientQuestionnaireResponses,
-  getTrainerQuestionnaires,
   assignQuestionnaire,
   cancelQuestionnaire,
   replaceQuestionnaire,
   type ClientResponseItem,
-  type ResponseAnswerDto,
 } from '@/api/questionnaires';
+import { QuestionnaireSelectDialog } from './QuestionnaireSelectDialog';
+import { RevokeConfirmDialog } from './RevokeConfirmDialog';
+import { formatAnswerValue } from './questionnaire-helpers';
 
 interface Props {
   clientId: string;
@@ -17,189 +18,6 @@ interface Props {
   planStatus: string;
   /** i18n namespace prefix — 'nutrition' or 'training' */
   ns: 'nutrition' | 'training';
-}
-
-function formatAnswerValue(answer: ResponseAnswerDto): React.ReactNode {
-  switch (answer.questionType) {
-    case 'short_text':
-    case 'single_choice':
-      return answer.valueText ?? '—';
-    case 'multi_select': {
-      if (!answer.valueJson) return '—';
-      try {
-        const arr = JSON.parse(answer.valueJson) as string[];
-        return Array.isArray(arr) ? arr.join(', ') : answer.valueJson;
-      } catch {
-        return answer.valueJson;
-      }
-    }
-    case 'number':
-      return answer.valueNumber != null ? String(answer.valueNumber) : '—';
-    case 'scale':
-      return answer.valueNumber != null ? `${answer.valueNumber} / 10` : '—';
-    case 'file_upload':
-      if (!answer.fileUrl) return '—';
-      return (
-        <a
-          href={answer.fileUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ color: 'var(--blue)', textDecoration: 'underline', fontSize: 11 }}
-        >
-          {answer.fileUrl.split('/').pop()}
-        </a>
-      );
-    default:
-      return answer.valueText ?? answer.valueNumber?.toString() ?? '—';
-  }
-}
-
-// ─── Questionnaire Select Dialog ────────────────────────────────────
-
-function QuestionnaireSelectDialog({
-  open,
-  onClose,
-  onConfirm,
-  title,
-  description,
-  confirmLabel,
-  isPending,
-  icon,
-}: {
-  open: boolean;
-  onClose: () => void;
-  onConfirm: (questionnairePublicId: string) => void;
-  title: string;
-  description: string;
-  confirmLabel: string;
-  isPending: boolean;
-  icon: string;
-}) {
-  const { t } = useTranslation();
-  const [selectedQId, setSelectedQId] = useState('');
-
-  const questionnairesQuery = useQuery({
-    queryKey: ['trainer-questionnaires'],
-    queryFn: getTrainerQuestionnaires,
-    enabled: open,
-  });
-
-  useEffect(() => { if (!open) setSelectedQId(''); }, [open]);
-
-  if (!open) return null;
-
-  return (
-    <>
-      <style>{`
-        @keyframes dlg-fade-in { from { opacity: 0 } to { opacity: 1 } }
-        @keyframes dlg-slide-up { from { opacity: 0; transform: translateY(16px) } to { opacity: 1; transform: translateY(0) } }
-      `}</style>
-      <div className="fixed inset-0 z-[60] bg-black/50" onClick={onClose} style={{ animation: 'dlg-fade-in .4s ease-out' }} />
-      <div className="fixed inset-0 z-[61] flex items-start justify-center pt-[5vh] pointer-events-none">
-        <div
-          className="pointer-events-auto flex flex-col border border-border shadow-2xl overflow-hidden"
-          style={{ width: 480, maxWidth: '95vw', maxHeight: '90vh', background: 'var(--bg)', borderRadius: 10, animation: 'dlg-slide-up .4s ease-out' }}
-        >
-          <div className="flex items-center justify-center" style={{ height: 90, background: 'var(--accent-bg)', borderRadius: '10px 10px 0 0' }}>
-            <span style={{ fontSize: 36, opacity: 0.6 }}>{icon}</span>
-          </div>
-          <div className="flex items-center gap-3 px-5 py-3 border-b border-border" style={{ flexShrink: 0 }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>{title}</div>
-              <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>{description}</div>
-            </div>
-            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: 'var(--text3)', padding: 4 }}>✕</button>
-          </div>
-          <div className="flex-1 overflow-y-auto px-5 py-4" style={{ minHeight: 0 }}>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-text3">{t('questionnaire.selectQuestionnaire')}</label>
-              <select
-                value={selectedQId}
-                onChange={(e) => setSelectedQId(e.target.value)}
-                className="rounded-md border border-border-md bg-bg px-3 py-2 text-[13px] text-text outline-none transition-colors placeholder:text-text3 focus:border-border-hv w-full"
-                style={{ fontFamily: 'inherit' }}
-              >
-                <option value="">{t('questionnaire.selectPlaceholder')}</option>
-                {questionnairesQuery.data?.filter(q => q.isActive).map((q) => (
-                  <option key={q.publicId} value={q.publicId}>
-                    {q.title} ({q.questionCount} {t('questionnaire.questions')})
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-border" style={{ flexShrink: 0 }}>
-            <button onClick={onClose} className="px-4 py-2 rounded-md text-[13px] font-medium text-text3 hover:bg-bg-hover transition-colors">
-              {t('common.cancel')}
-            </button>
-            <button
-              onClick={() => { if (selectedQId) onConfirm(selectedQId); }}
-              disabled={!selectedQId || isPending}
-              className="px-5 py-2 rounded-md text-[13px] font-medium transition-colors disabled:opacity-50"
-              style={{ background: 'var(--accent)', color: '#fff' }}
-            >
-              {confirmLabel}
-            </button>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-}
-
-// ─── Revoke Confirmation Dialog ─────────────────────────────────────
-
-function RevokeConfirmDialog({
-  open,
-  onClose,
-  onConfirm,
-  isPending,
-}: {
-  open: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-  isPending: boolean;
-}) {
-  const { t } = useTranslation();
-
-  if (!open) return null;
-
-  return (
-    <>
-      <style>{`
-        @keyframes dlg-fade-in { from { opacity: 0 } to { opacity: 1 } }
-        @keyframes dlg-slide-up { from { opacity: 0; transform: translateY(16px) } to { opacity: 1; transform: translateY(0) } }
-      `}</style>
-      <div className="fixed inset-0 z-[60] bg-black/50" onClick={onClose} style={{ animation: 'dlg-fade-in .4s ease-out' }} />
-      <div className="fixed inset-0 z-[61] flex items-start justify-center pt-[5vh] pointer-events-none">
-        <div
-          className="pointer-events-auto flex flex-col border border-border shadow-2xl overflow-hidden"
-          style={{ width: 440, maxWidth: '95vw', background: 'var(--bg)', borderRadius: 10, animation: 'dlg-slide-up .4s ease-out' }}
-        >
-          <div className="flex items-center justify-center" style={{ height: 80, background: 'var(--red-bg, rgba(255,59,48,0.08))', borderRadius: '10px 10px 0 0' }}>
-            <span style={{ fontSize: 32, opacity: 0.7 }}>🗑️</span>
-          </div>
-          <div className="px-5 py-4">
-            <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>{t('questionnaire.revokeConfirmTitle')}</div>
-            <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>{t('questionnaire.revokeConfirmDesc')}</div>
-          </div>
-          <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-border">
-            <button onClick={onClose} className="px-4 py-2 rounded-md text-[13px] font-medium text-text3 hover:bg-bg-hover transition-colors">
-              {t('common.cancel')}
-            </button>
-            <button
-              onClick={onConfirm}
-              disabled={isPending}
-              className="px-5 py-2 rounded-md text-[13px] font-medium text-white transition-colors disabled:opacity-50"
-              style={{ background: 'var(--red)' }}
-            >
-              {isPending ? t('questionnaire.revoking') : t('questionnaire.revokeQuestionnaire')}
-            </button>
-          </div>
-        </div>
-      </div>
-    </>
-  );
 }
 
 /**

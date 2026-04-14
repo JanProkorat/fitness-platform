@@ -66,7 +66,8 @@ export type MealKind =
 export interface PlanMeal {
   mealId: string;
   kind?: MealKind;
-  name: string;
+  /** Optional — the `/client/nutrition/today` endpoint returns `kind` only, no `name`. Clients should fall back to a localised label for `kind`. */
+  name?: string;
   order: number;
   time?: string | null;
   foods: MealFood[];
@@ -83,6 +84,7 @@ export interface TodayPlanResponse {
   meals: PlanMeal[];
   dayTotals: NutrientTotals | null;
   globalSettings: GlobalNutritionSettings | null;
+  dayNote?: string | null;
 }
 
 export interface MealLogDto {
@@ -141,6 +143,10 @@ export async function getTodayLog(): Promise<TodayLogResponse> {
 
 export async function logMealEaten(mealId: string): Promise<void> {
   await api.post(`/client/nutrition/log/meals/${mealId}/eaten`);
+}
+
+export async function unlogMealEaten(mealId: string): Promise<void> {
+  await api.delete(`/client/nutrition/log/meals/${mealId}/eaten`);
 }
 
 export async function getWeeklyOverview(): Promise<WeeklyOverviewResponse> {
@@ -217,6 +223,8 @@ export interface FullPlanResponse {
   status?: PlanStatus;
   questionnaireResponseId?: string | null;
   dateCompleted?: string | null;
+  /** Meal IDs that the client has logged as eaten (flat set, unique across the plan). */
+  eatenMealIds?: string[];
 }
 
 /** Lightweight plan summary for listing active + completed plans. */

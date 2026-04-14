@@ -6,13 +6,9 @@ import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { createFood, updateFood } from '@/api/foods';
 import { showApiError, showSuccess } from '@/lib/api-errors';
+import { CANCEL_BUTTON_CLASS } from '@/lib/styles';
 import type { FoodSummary, FoodCategory } from '@/api/food-types';
-
-const FOOD_CATEGORIES: FoodCategory[] = [
-  'Other', 'Fruit', 'Vegetables', 'Meat', 'FishAndSeafood', 'Dairy',
-  'GrainsAndCereals', 'Legumes', 'NutsAndSeeds', 'OilsAndFats',
-  'SweetsAndSnacks', 'Beverages', 'Supplements',
-];
+import { FOOD_CATEGORIES } from '@/components/nutrition/food-category';
 
 const foodSchema = z.object({
   name: z.string().min(2),
@@ -102,10 +98,6 @@ export function FoodFormDialog({ open, food, onClose, onSaved }: FoodFormDialogP
 
   return (
     <>
-      <style>{`
-        @keyframes dlg-fade-in { from { opacity: 0 } to { opacity: 1 } }
-        @keyframes dlg-slide-up { from { opacity: 0; transform: translateY(16px) } to { opacity: 1; transform: translateY(0) } }
-      `}</style>
       <div className="fixed inset-0 z-[60] bg-black/50" onClick={onClose} style={{ animation: 'dlg-fade-in .4s ease-out' }} />
       <div className="fixed inset-0 z-[61] flex items-start justify-center pt-[5vh] pointer-events-none">
         <div
@@ -201,7 +193,7 @@ export function FoodFormDialog({ open, food, onClose, onSaved }: FoodFormDialogP
 
           {/* Footer */}
           <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-border" style={{ flexShrink: 0 }}>
-            <button onClick={onClose} className="px-4 py-2 rounded-md text-[13px] font-medium text-text3 hover:bg-bg-hover transition-colors">
+            <button onClick={onClose} className={CANCEL_BUTTON_CLASS}>
               {t('common.cancel')}
             </button>
             <button

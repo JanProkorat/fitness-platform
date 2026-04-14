@@ -13,6 +13,14 @@ export default function ClientLayout() {
         name="today-shopping"
         options={{ animation: 'slide_from_right' }}
       />
+      <Stack.Screen
+        name="food-detail"
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="recipe-detail"
+        options={{ animation: 'slide_from_right' }}
+      />
     </Stack>
   )
 }

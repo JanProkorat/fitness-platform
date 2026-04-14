@@ -39,6 +39,7 @@ export interface MeasurementStatsResponse {
   latestWeight?: number | null;
   weightChange30Days?: number | null;
   totalCount: number;
+  targetWeightKg?: number | null;
 }
 
 export async function addMeasurement(request: AddMeasurementRequest): Promise<MeasurementDto> {

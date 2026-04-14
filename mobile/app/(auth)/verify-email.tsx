@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAuthStore } from '../../src/stores/auth';
-import { Colors } from '../../constants/Colors';
-import { resendVerification } from '../../src/api/verification';
-import { connect, onEvent, disconnect } from '../../src/api/signalr';
+import { useAuthStore } from '@/stores/auth';
+import { useTheme } from '@/hooks/useTheme';
+import { resendVerification } from '@/api/verification';
+import { connect, onEvent, disconnect } from '@/api/signalr';
 
 export default function VerifyEmailScreen() {
+  const colors = useTheme();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const refreshProfile = useAuthStore((s) => s.refreshProfile);
@@ -64,12 +65,12 @@ export default function VerifyEmailScreen() {
   }, [logout, router]);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.bg }]}>
       <View style={styles.card}>
         {/* Logo */}
         <Text style={styles.logo}>
-          <Text style={styles.logoGf}>GF</Text>
-          <Text style={styles.logoPlatform}> PLATFORM</Text>
+          <Text style={[styles.logoGf, { color: colors.gold }]}>GF</Text>
+          <Text style={[styles.logoPlatform, { color: colors.label2 }]}> PLATFORM</Text>
         </Text>
 
         {/* Icon */}
@@ -77,28 +78,28 @@ export default function VerifyEmailScreen() {
           <Text style={styles.icon}>✉️</Text>
         </View>
 
-        <Text style={styles.title}>Ověřte svůj e-mail</Text>
-        <Text style={styles.subtitle}>
+        <Text style={[styles.title, { color: colors.label }]}>Ověřte svůj e-mail</Text>
+        <Text style={[styles.subtitle, { color: colors.label2 }]}>
           Na váš e-mail jsme odeslali ověřovací odkaz. Klikněte na něj pro
           aktivaci účtu.
         </Text>
 
         {/* Email box */}
         {user?.email && (
-          <View style={styles.emailBox}>
-            <Text style={styles.emailLabel}>E-mail:</Text>
-            <Text style={styles.emailValue}>{user.email}</Text>
+          <View style={[styles.emailBox, { backgroundColor: colors.bg2 }]}>
+            <Text style={[styles.emailLabel, { color: colors.label3 }]}>E-mail:</Text>
+            <Text style={[styles.emailValue, { color: colors.label }]}>{user.email}</Text>
           </View>
         )}
 
-        {error && <Text style={styles.errorText}>{error}</Text>}
+        {error && <Text style={[styles.errorText, { color: colors.red }]}>{error}</Text>}
         {resendSuccess && (
-          <Text style={styles.successText}>
+          <Text style={[styles.successText, { color: colors.green }]}>
             Ověřovací e-mail byl odeslán znovu.
           </Text>
         )}
 
-        <Text style={styles.hint}>Zkontrolujte i složku se spamem.</Text>
+        <Text style={[styles.hint, { color: colors.label3 }]}>Zkontrolujte i složku se spamem.</Text>
 
         {/* Resend button */}
         {remainingResends === 0 ? (
@@ -109,7 +110,7 @@ export default function VerifyEmailScreen() {
           </View>
         ) : (
           <TouchableOpacity
-            style={styles.primaryBtn}
+            style={[styles.primaryBtn, { backgroundColor: colors.gold }]}
             onPress={handleResend}
             disabled={resending}
           >
@@ -120,25 +121,25 @@ export default function VerifyEmailScreen() {
         )}
 
         {remainingResends !== null && remainingResends > 0 && (
-          <Text style={styles.remainingText}>
+          <Text style={[styles.remainingText, { color: colors.label3 }]}>
             Zbývá odeslání: {remainingResends}
           </Text>
         )}
 
         {/* Manual check button */}
         <TouchableOpacity
-          style={styles.secondaryBtn}
+          style={[styles.secondaryBtn, { borderColor: colors.sep }]}
           onPress={handleCheckManually}
           disabled={checking}
         >
-          <Text style={styles.secondaryBtnText}>
+          <Text style={[styles.secondaryBtnText, { color: colors.label2 }]}>
             {checking ? 'Kontroluji...' : 'Již jsem ověřil/a'}
           </Text>
         </TouchableOpacity>
 
         {/* Logout */}
         <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
-          <Text style={styles.logoutText}>Odhlásit se</Text>
+          <Text style={[styles.logoutText, { color: colors.label3 }]}>Odhlásit se</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -148,7 +149,6 @@ export default function VerifyEmailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.dark.background,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
@@ -163,13 +163,11 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '800',
     letterSpacing: 3,
-    color: Colors.dark.gold,
   },
   logoPlatform: {
     fontSize: 22,
     fontWeight: '400',
     letterSpacing: 1,
-    color: Colors.dark.text2,
   },
   iconWrap: {
     width: 56,
@@ -186,12 +184,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: '700',
-    color: Colors.dark.text,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 14,
-    color: Colors.dark.text2,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 20,
@@ -200,14 +196,13 @@ const styles = StyleSheet.create({
     width: '100%',
     padding: 12,
     borderRadius: 8,
-    backgroundColor: Colors.dark.surface,
     marginBottom: 12,
   },
-  emailLabel: { fontSize: 11, color: Colors.dark.text3, marginBottom: 2 },
-  emailValue: { fontSize: 14, fontWeight: '500', color: Colors.dark.text },
-  errorText: { fontSize: 13, color: Colors.dark.red, marginBottom: 8 },
-  successText: { fontSize: 13, color: Colors.dark.green, marginBottom: 8 },
-  hint: { fontSize: 13, color: Colors.dark.text3, marginBottom: 16 },
+  emailLabel: { fontSize: 11, marginBottom: 2 },
+  emailValue: { fontSize: 14, fontWeight: '500' },
+  errorText: { fontSize: 13, marginBottom: 8 },
+  successText: { fontSize: 13, marginBottom: 8 },
+  hint: { fontSize: 13, marginBottom: 16 },
   warningBox: {
     width: '100%',
     padding: 12,
@@ -222,7 +217,6 @@ const styles = StyleSheet.create({
     width: '100%',
     paddingVertical: 14,
     borderRadius: 4,
-    backgroundColor: Colors.dark.gold,
     alignItems: 'center',
     marginBottom: 8,
   },
@@ -238,20 +232,17 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: Colors.dark.border,
     alignItems: 'center',
     marginBottom: 16,
   },
-  secondaryBtnText: { fontSize: 13, color: Colors.dark.text2 },
+  secondaryBtnText: { fontSize: 13 },
   remainingText: {
     fontSize: 12,
-    color: Colors.dark.text3,
     marginBottom: 8,
   },
   logoutBtn: { marginTop: 8 },
   logoutText: {
     fontSize: 13,
-    color: Colors.dark.text3,
     textDecorationLine: 'underline',
   },
 });

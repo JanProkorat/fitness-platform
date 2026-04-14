@@ -4,19 +4,21 @@ import { useRouter } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
+import { href } from '@/lib/navigation'
 import { StatStrip } from '@/components/ui/StatStrip'
 import { StatCard } from '@/components/ui/StatCard'
+import { WeightStatCard } from '@/components/today/WeightStatCard'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { Badge } from '@/components/ui/Badge'
 import { TrainingCard } from '@/components/training/TrainingCard'
 import { NutritionCard } from '@/components/nutrition/NutritionCard'
-import { PrepTipsSection } from '@/components/today/PrepTipsSection'
 import { WaitingForPlanCard } from '@/components/today/WaitingForPlanCard'
 import { ShoppingPrepBanner } from '@/components/today/ShoppingPrepBanner'
 import {
   getTodayPlan,
   getTodayLog,
   logMealEaten,
+  unlogMealEaten,
   getFullPlan,
   type TodayPlanResponse,
   type TodayLogResponse,
@@ -29,6 +31,7 @@ import {
   type ComplianceScoreResponse,
   type CollaborationDto,
 } from '@/api/profile'
+import { getMeasurementStats, getMeasurements, type MeasurementStatsResponse } from '@/api/measurements'
 
 // ─── Component ──────────────────────────────────────────────────────
 
@@ -64,6 +67,18 @@ export function HasTrainerState() {
     queryFn: getCollaborations,
   })
 
+  const statsQuery = useQuery<MeasurementStatsResponse>({
+    queryKey: ['measurement-stats'],
+    queryFn: getMeasurementStats,
+    retry: false,
+  })
+
+  const recentMeasurementsQuery = useQuery({
+    queryKey: ['measurements-recent-7'],
+    queryFn: () => getMeasurements({ pageSize: 7 }),
+    retry: false,
+  })
+
   const fullPlanQuery = useQuery<FullPlanResponse>({
     queryKey: ['nutrition', 'full-plan'],
     queryFn: getFullPlan,
@@ -76,18 +91,48 @@ export function HasTrainerState() {
   const training = trainingQuery.data
   const streak = streakQuery.data?.currentStreak ?? 0
 
+  // Weight trend from measurement stats
+  const weightTrend = useMemo(() => {
+    const stats = statsQuery.data
+    if (!stats?.latestWeight) return null
+    const change = stats.weightChange30Days ?? null
+    return { latest: stats.latestWeight, change }
+  }, [statsQuery.data])
+
+  // Recent weight entries for sparkline (last 7)
+  const recentWeightEntries = useMemo(() => {
+    const items = recentMeasurementsQuery.data?.items ?? []
+    return items
+      .filter((m): m is typeof m & { weightKg: number } => m.weightKg != null)
+      .map((m) => ({ date: m.measuredAt, weight: m.weightKg }))
+      .reverse()
+  }, [recentMeasurementsQuery.data])
+
   const consumed = log?.totalConsumed ?? { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 }
   const settings = plan?.globalSettings
-  const targetKcal = settings?.dailyKcal ?? 0
-  const kcalProgress = targetKcal > 0 ? consumed.kcal / targetKcal : 0
-
+  const dayTotals = plan?.dayTotals
+  // Prefer explicit daily macro targets from globalSettings; otherwise fall
+  // back to the sum of macros planned for the day (dayTotals). This makes the
+  // macro progress bars meaningful even for plans without explicit targets.
+  const nutritionTargets = useMemo(
+    () => ({
+      kcal: settings?.dailyKcal ?? dayTotals?.kcal ?? 0,
+      protein: settings?.proteinGrams ?? dayTotals?.protein ?? 0,
+      carbs: settings?.carbsGrams ?? dayTotals?.carbs ?? 0,
+      fat: settings?.fatGrams ?? dayTotals?.fat ?? 0,
+      fiber: settings?.fiberGrams ?? dayTotals?.fiber ?? 0,
+    }),
+    [settings, dayTotals],
+  )
   // ── Waiting-for-plan logic ──
-  const collabs = collabQuery.data ?? []
-  const hasTrainerLink = collabs.some((c) => c.role === 'Trainer')
-  const hasNutritionistLink = collabs.some((c) => c.role === 'Nutritionist')
-  const waitingForTraining = !training?.hasSession && hasTrainerLink
-  const waitingForNutrition = !plan && hasNutritionistLink
-  const isWaitingForAnyPlan = waitingForTraining || waitingForNutrition
+  const collabs = useMemo(() => collabQuery.data ?? [], [collabQuery.data])
+  const { waitingForTraining, waitingForNutrition, isWaitingForAnyPlan } = useMemo(() => {
+    const hasTrainerLink = collabs.some((c) => c.role === 'Trainer')
+    const hasNutritionistLink = collabs.some((c) => c.role === 'Nutritionist')
+    const wTraining = !training?.hasSession && hasTrainerLink
+    const wNutrition = !plan && hasNutritionistLink
+    return { waitingForTraining: wTraining, waitingForNutrition: wNutrition, isWaitingForAnyPlan: wTraining || wNutrition }
+  }, [collabs, training?.hasSession, plan])
 
   // ── Next-week shopping prep banner ──
   const showShoppingBanner = useMemo(() => {
@@ -133,64 +178,183 @@ export function HasTrainerState() {
     return t('today.exercisesCount', { count: exerciseCount })
   }, [training, exerciseCount, t])
 
-  // ── Mutation: mark meal eaten ──
-  const markEatenMutation = useMutation({
-    mutationFn: logMealEaten,
-    onMutate: async (mealId: string) => {
+  // ── Mutation: toggle meal eaten/uneaten ──
+  // `eaten: true`  → POST   /client/nutrition/log/meals/{id}/eaten
+  // `eaten: false` → DELETE /client/nutrition/log/meals/{id}/eaten
+  // Optimistically adds / removes the meal from today's log in cache.
+  const toggleEatenMutation = useMutation({
+    mutationFn: async ({ mealId, eaten }: { mealId: string; eaten: boolean }) => {
+      if (eaten) await logMealEaten(mealId)
+      else await unlogMealEaten(mealId)
+    },
+    onMutate: async ({ mealId, eaten }) => {
       await queryClient.cancelQueries({ queryKey: ['today-log'] })
       const previous = queryClient.getQueryData<TodayLogResponse>(['today-log'])
       if (previous) {
         const meal = plan?.meals.find((m) => m.mealId === mealId)
         const totals = meal?.mealTotals ?? { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 }
+        if (eaten) {
+          queryClient.setQueryData<TodayLogResponse>(['today-log'], {
+            ...previous,
+            mealsEaten: [
+              ...previous.mealsEaten,
+              { mealId, mealName: meal?.name ?? '', eatenAt: new Date().toISOString(), totals },
+            ],
+            totalConsumed: {
+              kcal: previous.totalConsumed.kcal + totals.kcal,
+              protein: previous.totalConsumed.protein + totals.protein,
+              carbs: previous.totalConsumed.carbs + totals.carbs,
+              fat: previous.totalConsumed.fat + totals.fat,
+              fiber: previous.totalConsumed.fiber + totals.fiber,
+            },
+          })
+        } else {
+          // Remove every entry for this meal (there can be more than one if
+          // the user double-logged before). Subtract all of their totals.
+          const removed = previous.mealsEaten.filter((m) => m.mealId === mealId)
+          const kept = previous.mealsEaten.filter((m) => m.mealId !== mealId)
+          const removedTotals = removed.reduce(
+            (sum, m) => ({
+              kcal: sum.kcal + m.totals.kcal,
+              protein: sum.protein + m.totals.protein,
+              carbs: sum.carbs + m.totals.carbs,
+              fat: sum.fat + m.totals.fat,
+              fiber: sum.fiber + m.totals.fiber,
+            }),
+            { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 },
+          )
+          // Clamp to 0 — float subtraction of the same values we added can
+          // leave behind tiny residues (e.g. -1.4e-14 or a signed zero), which
+          // Math.round turns into "-0" in the UI. Consumed totals are
+          // physically non-negative, so `Math.max(0, …)` is safe.
+          const clamp = (n: number): number => (n > 0 ? n : 0)
+          queryClient.setQueryData<TodayLogResponse>(['today-log'], {
+            ...previous,
+            mealsEaten: kept,
+            totalConsumed: {
+              kcal: clamp(previous.totalConsumed.kcal - removedTotals.kcal),
+              protein: clamp(previous.totalConsumed.protein - removedTotals.protein),
+              carbs: clamp(previous.totalConsumed.carbs - removedTotals.carbs),
+              fat: clamp(previous.totalConsumed.fat - removedTotals.fat),
+              fiber: clamp(previous.totalConsumed.fiber - removedTotals.fiber),
+            },
+          })
+        }
+      }
+      return { previous }
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['today-log'], context.previous)
+      }
+      // On failure, pull fresh server state so the UI reflects reality.
+      queryClient.invalidateQueries({ queryKey: ['today-log'] })
+    },
+    onSuccess: () => {
+      // Refresh streak only (cheap, backend-computed). The `today-log` cache
+      // is already optimistically correct — see comment below — so we don't
+      // invalidate it.
+      queryClient.invalidateQueries({ queryKey: ['compliance-score'] })
+    },
+    // Intentionally NO success/settled invalidation of `today-log`: the
+    // optimistic cache is already correct, and refetching would replace our
+    // values with server totals that can differ by a rounding step (server
+    // totals are computed from stored FoodsEaten, we use plan.mealTotals) —
+    // that second update makes the hero ring/kcal flicker. Drift is
+    // reconciled on the next natural refetch (tab focus, pull-to-refresh,
+    // SignalR invalidation).
+  })
+
+  const handleToggleEaten = useCallback(
+    (mealId: string) => {
+      const currentlyEaten = eatenMealIds.has(mealId)
+      toggleEatenMutation.mutate({ mealId, eaten: !currentlyEaten })
+    },
+    [toggleEatenMutation, eatenMealIds],
+  )
+
+  // ── Mutation: mark all remaining meals eaten (fan-out) ──
+  // The backend has no batch endpoint today, so we parallelise
+  // `logMealEaten` for every meal not yet logged. Optimistic update mirrors
+  // the single-toggle path — we add each remaining meal to the cache with
+  // its plan `mealTotals` and bump `totalConsumed` once. We intentionally do
+  // NOT invalidate `today-log` on success: the server recomputes totals from
+  // each log's stored `FoodsEaten` (per-food × grams), which rounds
+  // differently from `plan.mealTotals` and would make consumed visibly jump
+  // from the optimistic value to the server value when the batch settles.
+  // Drift is reconciled on natural refetch (tab focus / pull-to-refresh).
+  const markAllEatenMutation = useMutation({
+    mutationFn: async (mealIds: string[]) => {
+      await Promise.all(mealIds.map((id) => logMealEaten(id)))
+    },
+    onMutate: async (mealIds: string[]) => {
+      await queryClient.cancelQueries({ queryKey: ['today-log'] })
+      const previous = queryClient.getQueryData<TodayLogResponse>(['today-log'])
+      if (previous && plan) {
+        const now = new Date().toISOString()
+        const newEntries = mealIds
+          .map((id) => {
+            const meal = plan.meals.find((m) => m.mealId === id)
+            const totals = meal?.mealTotals ?? { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 }
+            return { mealId: id, mealName: meal?.name ?? '', eatenAt: now, totals }
+          })
+        const addedTotals = newEntries.reduce(
+          (sum, e) => ({
+            kcal: sum.kcal + e.totals.kcal,
+            protein: sum.protein + e.totals.protein,
+            carbs: sum.carbs + e.totals.carbs,
+            fat: sum.fat + e.totals.fat,
+            fiber: sum.fiber + e.totals.fiber,
+          }),
+          { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 },
+        )
         queryClient.setQueryData<TodayLogResponse>(['today-log'], {
           ...previous,
-          mealsEaten: [
-            ...previous.mealsEaten,
-            { mealId, mealName: meal?.name ?? '', eatenAt: new Date().toISOString(), totals },
-          ],
+          mealsEaten: [...previous.mealsEaten, ...newEntries],
           totalConsumed: {
-            kcal: previous.totalConsumed.kcal + totals.kcal,
-            protein: previous.totalConsumed.protein + totals.protein,
-            carbs: previous.totalConsumed.carbs + totals.carbs,
-            fat: previous.totalConsumed.fat + totals.fat,
-            fiber: previous.totalConsumed.fiber + totals.fiber,
+            kcal: previous.totalConsumed.kcal + addedTotals.kcal,
+            protein: previous.totalConsumed.protein + addedTotals.protein,
+            carbs: previous.totalConsumed.carbs + addedTotals.carbs,
+            fat: previous.totalConsumed.fat + addedTotals.fat,
+            fiber: previous.totalConsumed.fiber + addedTotals.fiber,
           },
         })
       }
       return { previous }
     },
-    onError: (_err, _mealId, context) => {
+    onError: (_err, _vars, context) => {
       if (context?.previous) {
         queryClient.setQueryData(['today-log'], context.previous)
       }
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['today-plan'] })
       queryClient.invalidateQueries({ queryKey: ['today-log'] })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['compliance-score'] })
     },
   })
 
-  const handleMarkEaten = useCallback(
-    (mealId: string) => markEatenMutation.mutate(mealId),
-    [markEatenMutation],
-  )
+  const handleMarkAllEaten = useCallback(() => {
+    if (!plan) return
+    const remaining = plan.meals
+      .map((m) => m.mealId)
+      .filter((id) => !eatenMealIds.has(id))
+    if (remaining.length === 0) return
+    markAllEatenMutation.mutate(remaining)
+  }, [plan, eatenMealIds, markAllEatenMutation])
 
   // ── Render ──
   return (
     <>
       {/* Stat strip */}
       <StatStrip>
-        <StatCard
-          label={t('today.calories')}
-          value={Math.round(consumed.kcal)}
-          sub={targetKcal > 0 ? `/ ${targetKcal} kcal` : undefined}
-          color={colors.gold}
-          progress={kcalProgress}
-          progressColor={colors.gold}
+        <WeightStatCard
+          latestWeight={weightTrend?.latest ?? null}
+          weightDelta={weightTrend?.change ?? null}
+          entries={recentWeightEntries}
         />
         <StatCard
           label={t('today.training')}
-          value={training?.session?.name ?? t('today.restDay')}
+          value={training?.session?.name ?? (waitingForTraining ? t('today.preparing') : t('today.restDay'))}
           sub={trainingSubText}
           icon={
             training?.hasSession ? (
@@ -203,7 +367,7 @@ export function HasTrainerState() {
           value={streak}
           sub={t('today.daysInRow')}
           color={colors.orange}
-          icon={<Text style={{ fontSize: 18 }}>🔥</Text>}
+          headerIcon="🔥"
         />
       </StatStrip>
 
@@ -218,7 +382,7 @@ export function HasTrainerState() {
             onContinue={() => {
               if (training.session) {
                 router.push(
-                  `/(client)/training/session/${training.session.sessionId}` as never,
+                  href(`/(client)/training/session/${training.session.sessionId}`),
                 )
               }
             }}
@@ -238,19 +402,15 @@ export function HasTrainerState() {
           />
           <NutritionCard
             consumed={consumed}
-            targets={{
-              kcal: targetKcal,
-              protein: settings?.proteinGrams ?? 0,
-              carbs: settings?.carbsGrams ?? 0,
-              fat: settings?.fatGrams ?? 0,
-              fiber: settings?.fiberGrams ?? 0,
-            }}
+            targets={nutritionTargets}
             meals={sortedMeals}
             eatenMealIds={eatenMealIds}
-            onMealPress={(mealId) =>
-              router.push(`/(client)/nutrition/${mealId}` as never)
-            }
-            onMarkEaten={handleMarkEaten}
+            eyebrow={t('today.nutritionEyebrow', { week: plan.weekNumber })}
+            subline=""
+            dayNote={plan.dayNote}
+            onToggleEaten={handleToggleEaten}
+            onMarkAllEaten={handleMarkAllEaten}
+            isMarkAllLoading={markAllEatenMutation.isPending}
           />
         </View>
       )}
@@ -273,15 +433,6 @@ export function HasTrainerState() {
         </View>
       )}
 
-      {/* Prep tips when waiting */}
-      {isWaitingForAnyPlan && (
-        <View style={styles.section}>
-          <PrepTipsSection
-            hasTraining={waitingForTraining}
-            hasNutrition={waitingForNutrition}
-          />
-        </View>
-      )}
     </>
   )
 }

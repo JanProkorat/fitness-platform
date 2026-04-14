@@ -1,0 +1,256 @@
+using System.Security.Claims;
+using FastEndpoints;
+using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using Microsoft.EntityFrameworkCore;
+using MongoDB.Driver;
+
+namespace FitnessPlatform.Application.Features.Trainers.GetClientTimeline;
+
+/// <summary>
+/// Returns a merged, chronological activity timeline for a single client,
+/// composed on-read from existing sources (meal logs, workout logs, body
+/// measurements, questionnaire responses, plan publish events, linking).
+/// The requesting trainer must have an active link to the client.
+/// </summary>
+/// <param name="db">Relational data source.</param>
+/// <param name="mongo">Document data source.</param>
+/// <param name="audit">Audit logging service.</param>
+public class GetClientTimelineEndpoint(
+    IApplicationDbContext db,
+    IMongoContext mongo,
+    IAuditService audit)
+    : Endpoint<GetClientTimelineRequest, GetClientTimelineResponse>
+{
+    /// <inheritdoc />
+    public override void Configure()
+    {
+        Get("/trainer/clients/{ClientId}/timeline");
+        Roles(AppRoles.Trainer, AppRoles.Nutritionist);
+        Summary(s =>
+        {
+            s.Summary = "Get client activity timeline";
+            s.Description = "Returns a merged timeline of recent client activity (meals, workouts, measurements, plan events) for a specific client managed by the authenticated trainer.";
+        });
+    }
+
+    /// <inheritdoc />
+    public override async Task HandleAsync(GetClientTimelineRequest req, CancellationToken ct)
+    {
+        var userId = User.FindFirstValue(AppClaims.UserId);
+
+        if (userId is null)
+        {
+            await Send.UnauthorizedAsync(ct);
+            return;
+        }
+
+        var trainerUserId = Guid.Parse(userId);
+
+        // Locate the trainer profile
+        var professionalProfile = await db.ProfessionalProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(tp => tp.UserId == trainerUserId, ct);
+
+        if (professionalProfile is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        // Locate the client profile (req.ClientId is the ClientProfile.PublicId)
+        var clientProfile = await db.ClientProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cp => cp.PublicId == req.ClientId, ct);
+
+        if (clientProfile is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        // Verify active trainer-client link
+        var link = await db.ClientProfessionalLinks
+            .AsNoTracking()
+            .FirstOrDefaultAsync(ctl =>
+                ctl.ProfessionalProfileId == professionalProfile.Id &&
+                ctl.ClientProfileId == clientProfile.Id &&
+                ctl.IsActive, ct);
+
+        if (link is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        var clientUserId = clientProfile.UserId;
+
+        // Look back up to 90 days; we'll take the top `Limit` overall.
+        var from = DateTime.UtcNow.Date.AddDays(-90);
+
+        var items = new List<ClientTimelineItem>();
+
+        // ── 1. Meal logs — aggregate per day to avoid dozens of rows ──
+        var mealFilter = Builders<MealLog>.Filter.Eq(l => l.ClientId, clientUserId)
+            & Builders<MealLog>.Filter.Gte(l => l.EatenAt, from);
+
+        using (var cursor = await mongo.MealLogs.FindAsync(mealFilter, cancellationToken: ct))
+        {
+            var logs = await cursor.ToListAsync(ct);
+            var perDay = logs
+                .GroupBy(l => l.EatenAt.Date)
+                .OrderByDescending(g => g.Key);
+
+            foreach (var day in perDay)
+            {
+                items.Add(new ClientTimelineItem
+                {
+                    Id = $"meals:{day.Key:yyyy-MM-dd}",
+                    Type = "meal_day",
+                    OccurredAt = day.Max(l => l.EatenAt),
+                    Title = $"Zaznamenáno {day.Count()} jídel",
+                    Icon = "🍽",
+                });
+            }
+        }
+
+        // ── 2. Workout logs (completed) ──
+        var workoutFilter = Builders<WorkoutLog>.Filter.Eq(l => l.ClientId, clientUserId)
+            & Builders<WorkoutLog>.Filter.Gte(l => l.StartedAt, from)
+            & Builders<WorkoutLog>.Filter.Eq(l => l.IsCompleted, true);
+
+        using (var cursor = await mongo.WorkoutLogs.FindAsync(workoutFilter, cancellationToken: ct))
+        {
+            var logs = await cursor.ToListAsync(ct);
+            foreach (var log in logs)
+            {
+                items.Add(new ClientTimelineItem
+                {
+                    Id = $"workout:{log.ExternalId}",
+                    Type = "workout",
+                    OccurredAt = log.CompletedAt ?? log.StartedAt,
+                    Title = "Dokončil trénink",
+                    Description = log.Exercises.Count > 0
+                        ? $"{log.Exercises.Count} cviků"
+                        : null,
+                    Icon = "🏋",
+                });
+            }
+        }
+
+        // ── 3. Body measurements ──
+        var measurements = await db.BodyMeasurements
+            .AsNoTracking()
+            .Where(bm => bm.ClientProfileId == clientProfile.Id && bm.MeasuredAt >= from)
+            .OrderByDescending(bm => bm.MeasuredAt)
+            .Select(bm => new { bm.PublicId, bm.MeasuredAt, bm.WeightKg })
+            .ToListAsync(ct);
+
+        foreach (var m in measurements)
+        {
+            items.Add(new ClientTimelineItem
+            {
+                Id = $"measurement:{m.PublicId}",
+                Type = "measurement",
+                OccurredAt = m.MeasuredAt,
+                Title = "Zapsal tělesné míry",
+                Description = m.WeightKg.HasValue ? $"Váha: {m.WeightKg.Value} kg" : null,
+                Icon = "📏",
+            });
+        }
+
+        // ── 4. Questionnaire responses (submitted only) ──
+        var questionnaires = await db.QuestionnaireResponses
+            .AsNoTracking()
+            .Include(r => r.Questionnaire)
+            .Where(r => r.ClientId == clientUserId
+                     && r.SubmittedAt != null
+                     && r.SubmittedAt >= from)
+            .OrderByDescending(r => r.SubmittedAt)
+            .Select(r => new { r.PublicId, r.SubmittedAt, QuestionnaireTitle = r.Questionnaire.Title })
+            .ToListAsync(ct);
+
+        foreach (var q in questionnaires)
+        {
+            items.Add(new ClientTimelineItem
+            {
+                Id = $"questionnaire:{q.PublicId}",
+                Type = "questionnaire",
+                OccurredAt = q.SubmittedAt!.Value,
+                Title = "Vyplnil dotazník",
+                Description = q.QuestionnaireTitle,
+                Icon = "📋",
+            });
+        }
+
+        // ── 5. Nutrition & training plan publish events ──
+        var nutritionPlanFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientUserId)
+            & Builders<NutritionPlan>.Filter.Gte(p => p.DatePublished, from);
+
+        using (var cursor = await mongo.NutritionPlans.FindAsync(nutritionPlanFilter, cancellationToken: ct))
+        {
+            var plans = await cursor.ToListAsync(ct);
+            foreach (var plan in plans.Where(p => p.DatePublished.HasValue))
+            {
+                items.Add(new ClientTimelineItem
+                {
+                    Id = $"nutrition_plan:{plan.ExternalId}",
+                    Type = "nutrition_plan_published",
+                    OccurredAt = plan.DatePublished!.Value,
+                    Title = "Zveřejněn jídelníček",
+                    Description = string.IsNullOrWhiteSpace(plan.Name) ? null : plan.Name,
+                    Icon = "🥗",
+                });
+            }
+        }
+
+        var trainingPlanFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientUserId)
+            & Builders<TrainingPlan>.Filter.Gte(p => p.DatePublished, from);
+
+        using (var cursor = await mongo.TrainingPlans.FindAsync(trainingPlanFilter, cancellationToken: ct))
+        {
+            var plans = await cursor.ToListAsync(ct);
+            foreach (var plan in plans.Where(p => p.DatePublished.HasValue))
+            {
+                items.Add(new ClientTimelineItem
+                {
+                    Id = $"training_plan:{plan.ExternalId}",
+                    Type = "training_plan_published",
+                    OccurredAt = plan.DatePublished!.Value,
+                    Title = "Zveřejněn tréninkový plán",
+                    Description = string.IsNullOrWhiteSpace(plan.Name) ? null : plan.Name,
+                    Icon = "🏋",
+                });
+            }
+        }
+
+        // ── 6. Trainer-client link (the "klient propojen" event) ──
+        items.Add(new ClientTimelineItem
+        {
+            Id = $"linked:{link.PublicId}",
+            Type = "linked",
+            OccurredAt = link.DateCreated,
+            Title = "Klient propojen",
+            Icon = "🔗",
+        });
+
+        // Audit the trainer read of client activity.
+        await audit.LogAsync(
+            trainerUserId,
+            "Read",
+            "ClientTimeline",
+            req.ClientId,
+            HttpContext.Connection.RemoteIpAddress?.ToString(),
+            ct: ct);
+
+        var ordered = items
+            .OrderByDescending(i => i.OccurredAt)
+            .Take(req.Limit)
+            .ToList();
+
+        await Send.OkAsync(new GetClientTimelineResponse { Items = ordered }, ct);
+    }
+}

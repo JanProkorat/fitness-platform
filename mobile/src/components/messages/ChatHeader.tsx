@@ -2,20 +2,14 @@ import React from 'react'
 import { View, Text, Pressable, StyleSheet } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/hooks/useTheme'
+import { goldAlpha } from '@/constants/colors'
+import { getInitials } from '@/lib/initials'
 import type { Participant } from '../../types/messages'
 
 interface ChatHeaderProps {
   participant: Participant
   onBack: () => void
   onInfoPress: () => void
-}
-
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/)
-  if (parts.length >= 2) {
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-  }
-  return (parts[0]?.[0] ?? '').toUpperCase()
 }
 
 export function ChatHeader({ participant, onBack, onInfoPress }: ChatHeaderProps) {
@@ -32,7 +26,7 @@ export function ChatHeader({ participant, onBack, onInfoPress }: ChatHeaderProps
 
         {/* Center: Avatar + name + status — stacked vertically */}
         <View style={styles.center}>
-          <View style={[styles.avatar, { backgroundColor: 'rgba(201,168,76,0.15)' }]}>
+          <View style={[styles.avatar, { backgroundColor: goldAlpha['15'] }]}>
             <Text style={[styles.avatarText, { color: colors.gold }]}>
               {getInitials(participant.name)}
             </Text>

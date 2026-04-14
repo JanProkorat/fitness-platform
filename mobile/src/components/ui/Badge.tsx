@@ -2,6 +2,7 @@ import React from 'react'
 import { View, Text, StyleSheet } from 'react-native'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
+import { goldAlpha } from '@/constants/colors'
 import { Radius } from '@/constants/radius'
 
 type BadgeVariant = 'active' | 'warning' | 'inactive' | 'gold' | 'success' | 'muted'
@@ -11,7 +12,7 @@ interface BadgeProps {
   variant?: BadgeVariant
 }
 
-export function Badge({ label, variant = 'active' }: BadgeProps) {
+export const Badge = React.memo(function Badge({ label, variant = 'active' }: BadgeProps) {
   const colors = useTheme()
 
   const variantStyles: Record<BadgeVariant, { bg: string; text: string }> = {
@@ -19,7 +20,7 @@ export function Badge({ label, variant = 'active' }: BadgeProps) {
     warning: { bg: colors.orange + '20', text: colors.orange },
     inactive: { bg: colors.fill, text: colors.label3 },
     gold: { bg: colors.goldBg, text: colors.gold },
-    success: { bg: colors.gold + '20', text: colors.gold },
+    success: { bg: goldAlpha['20'], text: colors.gold },
     muted: { bg: 'rgba(255,255,255,0.12)', text: 'rgba(255,255,255,0.5)' },
   }
 
@@ -30,7 +31,7 @@ export function Badge({ label, variant = 'active' }: BadgeProps) {
       <Text style={[styles.label, { color: text }]}>{label}</Text>
     </View>
   )
-}
+})
 
 const styles = StyleSheet.create({
   badge: {

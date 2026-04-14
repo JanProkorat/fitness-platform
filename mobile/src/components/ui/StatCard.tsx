@@ -10,19 +10,28 @@ interface StatCardProps {
   sub?: string
   color?: string
   icon?: ReactNode
+  /** Emoji or small element rendered in the top-right corner of the card */
+  headerIcon?: string
   /** 0–1 ratio; when provided, a thin progress bar renders at the bottom */
   progress?: number
   progressColor?: string
 }
 
-export function StatCard({ label, value, sub, color, icon, progress, progressColor }: StatCardProps) {
+export const StatCard = React.memo(function StatCard({ label, value, sub, color, icon, headerIcon, progress, progressColor }: StatCardProps) {
   const colors = useTheme()
   const barColor = progressColor ?? color ?? colors.gold
 
   return (
     <View style={[styles.card, { backgroundColor: colors.bg2 }]}>
       {icon && <View style={styles.iconRow}>{icon}</View>}
-      <Text style={[styles.label, { color: colors.label2 }]}>{label}</Text>
+      {headerIcon ? (
+        <View style={styles.headerRow}>
+          <Text style={[styles.label, { color: colors.label2, marginBottom: 0 }]}>{label}</Text>
+          <Text style={styles.headerIconText}>{headerIcon}</Text>
+        </View>
+      ) : (
+        <Text style={[styles.label, { color: colors.label2 }]}>{label}</Text>
+      )}
       <Text style={[styles.value, { color: color ?? colors.label }]}>
         {value}
       </Text>
@@ -39,7 +48,7 @@ export function StatCard({ label, value, sub, color, icon, progress, progressCol
       )}
     </View>
   )
-}
+})
 
 const styles = StyleSheet.create({
   card: {
@@ -49,6 +58,15 @@ const styles = StyleSheet.create({
   },
   iconRow: {
     marginBottom: 6,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  headerIconText: {
+    fontSize: 14,
   },
   label: {
     ...Type.caption2,

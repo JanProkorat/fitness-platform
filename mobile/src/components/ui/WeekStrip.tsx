@@ -40,7 +40,7 @@ export function WeekStrip({ days }: WeekStripProps) {
               ]}
             >
               {isDone && (
-                <Ionicons name="checkmark" size={12} color="#fff" />
+                <Ionicons name="checkmark" size={12} color={colors.onAccent} />
               )}
               {isToday && (
                 <View style={[styles.todayInner, { backgroundColor: colors.gold }]} />

@@ -2,6 +2,9 @@ import React from 'react'
 import { View, Text, Pressable, StyleSheet, Platform } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/hooks/useTheme'
+import { goldAlpha } from '@/constants/colors'
+import { getInitials } from '@/lib/initials'
+import { formatTime } from '@/lib/dateFormatting'
 import type { Message } from '../../types/messages'
 
 interface MessageBubbleProps {
@@ -12,20 +15,7 @@ interface MessageBubbleProps {
   onRetry?: (id: string) => void
 }
 
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/)
-  if (parts.length >= 2) {
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-  }
-  return (parts[0]?.[0] ?? '').toUpperCase()
-}
-
-function formatTime(iso: string): string {
-  const date = new Date(iso)
-  return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
-}
-
-export function MessageBubble({
+export const MessageBubble = React.memo(function MessageBubble({
   message,
   isOwn,
   showAvatar,
@@ -41,7 +31,7 @@ export function MessageBubble({
       {/* Avatar slot for received messages */}
       {!isOwn && (
         showAvatar ? (
-          <View style={[styles.tinyAvatar, { backgroundColor: 'rgba(201,168,76,0.15)' }]}>
+          <View style={[styles.tinyAvatar, { backgroundColor: goldAlpha['15'] }]}>
             <Text style={[styles.tinyAvatarText, { color: colors.gold }]}>
               {getInitials(participantName)}
             </Text>
@@ -75,7 +65,7 @@ export function MessageBubble({
             isError && { opacity: 0.6 },
           ]}
         >
-          <Text style={[styles.bubbleText, { color: isOwn ? '#ffffff' : colors.label }]}>
+          <Text style={[styles.bubbleText, { color: isOwn ? colors.onAccent : colors.label }]}>
             {message.text}
           </Text>
           {/* Timestamp inside bubble area */}
@@ -92,7 +82,7 @@ export function MessageBubble({
                 <Text
                   style={[
                     styles.timeText,
-                    { color: isOwn ? 'rgba(255,255,255,0.65)' : colors.label3 },
+                    { color: isOwn ? colors.onAccent : colors.label3, opacity: isOwn ? 0.65 : 1 },
                   ]}
                 >
                   {formatTime(message.timestamp)}
@@ -101,8 +91,8 @@ export function MessageBubble({
                   <Ionicons
                     name="checkmark-done"
                     size={14}
-                    color="rgba(255,255,255,0.6)"
-                    style={{ marginLeft: 3 }}
+                    color={colors.onAccent}
+                    style={{ marginLeft: 3, opacity: 0.6 }}
                   />
                 )}
               </>
@@ -112,7 +102,7 @@ export function MessageBubble({
       </View>
     </View>
   )
-}
+})
 
 const styles = StyleSheet.create({
   row: {

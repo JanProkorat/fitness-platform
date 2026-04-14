@@ -5,6 +5,7 @@ import { searchFoods } from '@/api/foods';
 import type { RecipeSummary, RecipeDetail } from '@/api/recipe-types';
 import type { FoodSummary } from '@/api/food-types';
 import { showApiError, showSuccess } from '@/lib/api-errors';
+import { INPUT_CLASS_SM, CANCEL_BUTTON_CLASS } from '@/lib/styles';
 
 interface IngredientRow {
   foodExternalId: string;
@@ -70,6 +71,19 @@ export function RecipeDialog({ open, recipe, onClose, onSaved }: RecipeDialogPro
     if (isNew) { setMode('edit'); resetForm(); }
     else { setMode('view'); loadDetail(recipe!.recipeId); }
   }, [open, recipe?.recipeId]);
+
+  // Handle Escape key
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [open, onClose]);
 
   // Populate form from detail
   const populateForm = (d: RecipeDetail) => {
@@ -151,8 +165,6 @@ export function RecipeDialog({ open, recipe, onClose, onSaved }: RecipeDialogPro
     ? (detail?.totalNutrients ?? recipe?.totalNutrients ?? { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 })
     : totals;
 
-  const inp = 'rounded-md border border-border-md bg-bg px-3 py-2 text-[13px] text-text outline-none transition-colors placeholder:text-text3 focus:border-border-hv w-full';
-
   const contentStyle: React.CSSProperties = {
     opacity: transitioning ? 0 : 1,
     transform: transitioning ? 'translateY(6px)' : 'translateY(0)',
@@ -161,10 +173,6 @@ export function RecipeDialog({ open, recipe, onClose, onSaved }: RecipeDialogPro
 
   return (
     <>
-      <style>{`
-        @keyframes dlg-fade-in { from { opacity: 0 } to { opacity: 1 } }
-        @keyframes dlg-slide-up { from { opacity: 0; transform: translateY(16px) } to { opacity: 1; transform: translateY(0) } }
-      `}</style>
       <div className="fixed inset-0 z-[60] bg-black/50" onClick={onClose} style={{ animation: 'dlg-fade-in .4s ease-out' }} />
       <div className="fixed inset-0 z-[61] flex items-start justify-center pt-[2vh] pointer-events-none">
         <div
@@ -198,7 +206,7 @@ export function RecipeDialog({ open, recipe, onClose, onSaved }: RecipeDialogPro
                 </div>
               </div>
             )}
-            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: 'var(--text3)', padding: 4 }}>✕</button>
+            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: 'var(--text3)', padding: 4 }} aria-label="Close recipe dialog">✕</button>
           </div>
 
           {/* Body */}
@@ -288,7 +296,7 @@ export function RecipeDialog({ open, recipe, onClose, onSaved }: RecipeDialogPro
                     {/* Description */}
                     <div>
                       <label className="mb-1 block text-xs font-medium text-text3">{t('recipes.description')}</label>
-                      <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t('recipes.descriptionPlaceholder')} className={inp} />
+                      <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t('recipes.descriptionPlaceholder')} className={INPUT_CLASS_SM} />
                     </div>
 
                     {/* Auto-calculated macros */}
@@ -317,7 +325,7 @@ export function RecipeDialog({ open, recipe, onClose, onSaved }: RecipeDialogPro
                     <div>
                       <label className="mb-1.5 block text-xs font-medium text-text3">{t('recipes.foods')}</label>
                       <div className="relative mb-2">
-                        <input value={foodQuery} onChange={(e) => setFoodQuery(e.target.value)} onFocus={() => setFoodInputFocused(true)} onBlur={() => setFoodInputFocused(false)} placeholder={t('nutrition.searchFoods')} className={`${inp} pl-8`} />
+                        <input value={foodQuery} onChange={(e) => setFoodQuery(e.target.value)} onFocus={() => setFoodInputFocused(true)} onBlur={() => setFoodInputFocused(false)} placeholder={t('nutrition.searchFoods')} className={`${INPUT_CLASS_SM} pl-8`} />
                         <svg className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                         {foodInputFocused && foodResults.length > 0 && (
                           <div className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-border bg-bg2 shadow-lg" onMouseDown={(e) => e.preventDefault()}>
@@ -402,7 +410,7 @@ export function RecipeDialog({ open, recipe, onClose, onSaved }: RecipeDialogPro
                       <label className="mb-1 block text-xs font-medium text-text3">
                         {t('recipes.note')} <span className="font-normal" style={{ color: 'var(--text4)' }}>({t('common.optional')})</span>
                       </label>
-                      <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('recipes.notePlaceholder')} rows={2} className={`${inp} resize-vertical`} />
+                      <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('recipes.notePlaceholder')} rows={2} className={`${INPUT_CLASS_SM} resize-vertical`} />
                     </div>
                   </div>
                 )}
@@ -414,21 +422,21 @@ export function RecipeDialog({ open, recipe, onClose, onSaved }: RecipeDialogPro
           {!loading && (
             <div className="flex items-center justify-between px-5 py-3 border-t border-border" style={{ flexShrink: 0 }}>
               {mode === 'edit' && !isNew ? (
-                <button onClick={() => switchMode('view')} className="px-4 py-2 rounded-md text-[13px] font-medium text-text3 hover:bg-bg-hover transition-colors">
+                <button onClick={() => switchMode('view')} className={CANCEL_BUTTON_CLASS}>
                   ← {t('recipes.discardChanges')}
                 </button>
               ) : <div />}
               <div className="flex items-center gap-2">
                 {mode === 'view' ? (
                   <>
-                    <button onClick={onClose} className="px-4 py-2 rounded-md text-[13px] font-medium text-text3 hover:bg-bg-hover transition-colors">{t('common.close')}</button>
+                    <button onClick={onClose} className={CANCEL_BUTTON_CLASS}>{t('common.close')}</button>
                     <button onClick={() => switchMode('edit')} className="px-4 py-2 rounded-md text-[13px] font-medium transition-colors" style={{ background: 'var(--accent)', color: '#fff' }}>
                       ✏ {t('recipes.editRecipe')}
                     </button>
                   </>
                 ) : (
                   <>
-                    <button onClick={onClose} className="px-4 py-2 rounded-md text-[13px] font-medium text-text3 hover:bg-bg-hover transition-colors">{t('common.cancel')}</button>
+                    <button onClick={onClose} className={CANCEL_BUTTON_CLASS}>{t('common.cancel')}</button>
                     <button onClick={handleSave} disabled={saving || !name.trim() || ingredients.length === 0} className="px-5 py-2 rounded-md text-[13px] font-medium transition-colors disabled:opacity-50" style={{ background: 'var(--accent)', color: '#fff' }}>
                       {saving ? t('common.saving') : isNew ? t('recipes.createRecipe') : t('common.save')}
                     </button>

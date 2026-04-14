@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/hooks/useTheme'
 import { Radius } from '@/constants/radius'
+import { href } from '@/lib/navigation'
 import type { PendingPlan } from '@/stores/todayStore'
 
 interface PlanBannerProps {
@@ -73,10 +74,10 @@ export function PlanBanner({ plan }: PlanBannerProps) {
       {/* CTA pill button */}
       <Pressable
         style={[styles.ctaButton, { backgroundColor: accent }]}
-        onPress={() => router.push('/(client)/plans' as never)}
+        onPress={() => router.push(href('/(client)/plans'))}
       >
-        <Ionicons name="calendar-outline" size={14} color="#fff" />
-        <Text style={styles.ctaText}>{t('today.viewPlan')}</Text>
+        <Ionicons name="calendar-outline" size={14} color={colors.onAccent} />
+        <Text style={[styles.ctaText, { color: colors.onAccent }]}>{t('today.viewPlan')}</Text>
       </Pressable>
     </View>
   )
@@ -162,6 +163,5 @@ const styles = StyleSheet.create({
   ctaText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#fff',
   },
 })

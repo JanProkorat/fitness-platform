@@ -30,10 +30,6 @@ export function RecipeDetailDialog({ open, recipe, onClose, onEdit }: RecipeDeta
 
   return (
     <>
-      <style>{`
-        @keyframes dlg-fade-in { from { opacity: 0 } to { opacity: 1 } }
-        @keyframes dlg-slide-up { from { opacity: 0; transform: translateY(16px) } to { opacity: 1; transform: translateY(0) } }
-      `}</style>
       <div className="fixed inset-0 z-[60] bg-black/50" onClick={onClose} style={{ animation: 'dlg-fade-in .6s ease-out' }} />
       <div className="fixed inset-0 z-[61] flex items-start justify-center pt-[5vh] pointer-events-none">
         <div

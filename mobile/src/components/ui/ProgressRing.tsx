@@ -1,8 +1,18 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { View, Text, StyleSheet } from 'react-native'
 import Svg, { Circle } from 'react-native-svg'
+import Animated, {
+  Easing,
+  useAnimatedProps,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle)
+const RING_ANIM_DURATION = 400
+const RING_ANIM_EASING = Easing.bezier(0.25, 0.1, 0.25, 1)
 
 interface ProgressRingProps {
   current: number
@@ -26,7 +36,20 @@ export function ProgressRing({
   const radius = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
   const ratio = total > 0 ? Math.min(current / total, 1) : 0
-  const offset = circumference * (1 - ratio)
+
+  // Drive strokeDashoffset through a SharedValue so the arc tweens between
+  // states instead of snapping (e.g. when a meal is toggled eaten/uneaten).
+  const offset = useSharedValue(circumference * (1 - ratio))
+  useEffect(() => {
+    offset.value = withTiming(circumference * (1 - ratio), {
+      duration: RING_ANIM_DURATION,
+      easing: RING_ANIM_EASING,
+    })
+  }, [ratio, circumference, offset])
+
+  const animatedProps = useAnimatedProps(() => ({
+    strokeDashoffset: offset.value,
+  }))
 
   return (
     <View style={[styles.container, { width: size, height: size }]}>
@@ -39,7 +62,7 @@ export function ProgressRing({
           strokeWidth={strokeWidth}
           fill="none"
         />
-        <Circle
+        <AnimatedCircle
           cx={size / 2}
           cy={size / 2}
           r={radius}
@@ -47,7 +70,7 @@ export function ProgressRing({
           strokeWidth={strokeWidth}
           fill="none"
           strokeDasharray={circumference}
-          strokeDashoffset={offset}
+          animatedProps={animatedProps}
           strokeLinecap="round"
           rotation={-90}
           origin={`${size / 2}, ${size / 2}`}

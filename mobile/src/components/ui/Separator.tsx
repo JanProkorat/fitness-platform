@@ -7,7 +7,7 @@ interface SeparatorProps {
   style?: ViewStyle
 }
 
-export function Separator({ inset = 0, style }: SeparatorProps) {
+export const Separator = React.memo(function Separator({ inset = 0, style }: SeparatorProps) {
   const colors = useTheme()
 
   return (
@@ -19,7 +19,7 @@ export function Separator({ inset = 0, style }: SeparatorProps) {
       ]}
     />
   )
-}
+})
 
 const styles = StyleSheet.create({
   separator: {

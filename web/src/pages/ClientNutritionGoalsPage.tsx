@@ -4,8 +4,10 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/stores/auth';
 import { PageHeader } from '@/components/layout';
-import { Button, Select, ProgressBar } from '@/components/ui';
-import { PropertyList, Callout } from '@/components/data';
+import { Button } from '@/components/ui';
+import { PropertyList } from '@/components/data';
+import { AnamnesisSectionPanel } from '@/components/nutrition/AnamnesisSectionPanel';
+import { GoalsMacroPanel } from '@/components/nutrition/GoalsMacroPanel';
 import {
   calculateGoals,
   getClientDashboard,
@@ -13,20 +15,6 @@ import {
   type CalculateGoalsRequest,
   type CalculateGoalsResponse,
 } from '@/api/nutrition-goals';
-
-const ACTIVITY_KEYS: Record<string, string> = {
-  Sedentary: 'clients.values.Sedentary',
-  LightlyActive: 'clients.values.LightlyActive',
-  ModeratelyActive: 'clients.values.ModeratelyActive',
-  VeryActive: 'clients.values.VeryActive',
-  ExtremelyActive: 'clients.values.ExtremelyActive',
-};
-
-const GOAL_KEYS: Record<string, string> = {
-  Cut: 'nutritionGoals.cutLabel',
-  Maintain: 'nutritionGoals.maintainLabel',
-  Bulk: 'nutritionGoals.bulkLabel',
-};
 
 const TRAINING_FREQ_KEYS: Record<string, string> = {
   None: 'nutritionGoals.trainingFreq_None',
@@ -70,11 +58,6 @@ const ACTIVITY_ITEM_KEYS: Record<string, string> = {
   yoga: 'nutritionGoals.activity_yoga',
   cycling: 'nutritionGoals.activity_cycling',
   martial_arts: 'nutritionGoals.activity_martial_arts',
-};
-
-const SEX_KEYS: Record<string, string> = {
-  Male: 'nutritionGoals.sexMale',
-  Female: 'nutritionGoals.sexFemale',
 };
 
 export default function ClientNutritionGoalsPage() {
@@ -134,6 +117,7 @@ export default function ClientNutritionGoalsPage() {
           proteinGrams: ob.proteinGrams || 130,
           carbsGrams: ob.carbsGrams || 180,
           fatGrams: ob.fatGrams || 55,
+          fiberGrams: ob.fiberGrams || 30,
         },
       });
     }
@@ -224,133 +208,44 @@ export default function ClientNutritionGoalsPage() {
       <div className="px-20 py-3">
         <div className="grid gap-8" style={{ gridTemplateColumns: isTrainer && isNutritionist ? '1fr 1fr 1fr' : '1fr 1fr' }}>
           {/* Left column - Anamneza */}
-          <div>
-            <div className="text-[12px] font-semibold uppercase tracking-[0.04em] text-text3 mb-2.5">
-              {t('nutritionGoals.anamnesis')}
-            </div>
-            <div className="bg-bg2 border border-border rounded-md p-2 mb-4">
-              <PropertyList
-                className="mb-0"
-                items={[
-                  {
-                    label: t('nutritionGoals.age'),
-                    icon: '📅',
-                    value: `${age}`,
-                    editable: true,
-                    onEdit: (v) => {
-                      const n = parseInt(v);
-                      if (!isNaN(n)) { setAge(n); recalculate({ age: n }); }
-                    },
-                  },
-                  {
-                    label: t('nutritionGoals.sex'),
-                    icon: '👤',
-                    value: t(SEX_KEYS[sex] || sex),
-                    editable: true,
-                    onEdit: (v) => {
-                      const s = v.toLowerCase().startsWith('m') ? 'Male' as const : 'Female' as const;
-                      setSex(s);
-                      recalculate({ sex: s });
-                    },
-                  },
-                  {
-                    label: t('nutritionGoals.height'),
-                    icon: '📏',
-                    value: `${heightCm} cm`,
-                    editable: true,
-                    onEdit: (v) => {
-                      const n = parseFloat(v);
-                      if (!isNaN(n)) { setHeightCm(n); recalculate({ heightCm: n }); }
-                    },
-                  },
-                  {
-                    label: t('nutritionGoals.weight'),
-                    icon: '⚖',
-                    value: `${weightKg} kg`,
-                    editable: true,
-                    onEdit: (v) => {
-                      const n = parseFloat(v);
-                      if (!isNaN(n)) { setWeightKg(n); recalculate({ weightKg: n }); }
-                    },
-                  },
-                  {
-                    label: t('nutritionGoals.targetWeight'),
-                    icon: '🎯',
-                    value: `${targetWeight} kg`,
-                    editable: true,
-                    onEdit: (v) => {
-                      const n = parseFloat(v);
-                      if (!isNaN(n)) setTargetWeight(n);
-                    },
-                  },
-                  {
-                    label: t('nutritionGoals.activityLevel'),
-                    icon: '⚡',
-                    value: t(ACTIVITY_KEYS[activityLevel] || activityLevel),
-                    editable: true,
-                    onEdit: (v) => {
-                      const match = Object.entries(ACTIVITY_KEYS).find(([, label]) =>
-                        label.toLowerCase().startsWith(v.toLowerCase()),
-                      );
-                      if (match) {
-                        const al = match[0] as CalculateGoalsRequest['activityLevel'];
-                        setActivityLevel(al);
-                        recalculate({ activityLevel: al });
-                      }
-                    },
-                  },
-                ]}
-              />
-            </div>
-
-            <div className="text-[13px] font-semibold mb-2">{t('nutritionGoals.goal')}</div>
-            <div className="mb-4">
-              <Select
-                value={goal}
-                onChange={(e) => {
-                  const g = e.target.value as CalculateGoalsRequest['goal'];
-                  setGoal(g);
-                  recalculate({ goal: g });
-                }}
-              >
-                <option value="Cut">{t('nutritionGoals.cutLabel')}</option>
-                <option value="Maintain">{t('nutritionGoals.maintainLabel')}</option>
-                <option value="Bulk">{t('nutritionGoals.bulkLabel')}</option>
-              </Select>
-            </div>
-
-            {!result && isNutritionist && (
-              <Button
-                variant="primary"
-                onClick={() => recalculate()}
-                disabled={isCalculating}
-                className="w-full justify-center"
-              >
-                {isCalculating ? t('nutritionGoals.calculating') : t('nutritionGoals.calculate')}
-              </Button>
-            )}
-
-            {result && isNutritionist && (
-              <>
-                <div className="text-[13px] font-semibold mb-2">{t('nutritionGoals.calculation')}</div>
-                <Callout icon="🧮" title="Mifflin-St Jeor" variant="info" className="bg-bg2 border border-border">
-                  <div className="text-[13px] text-text2">
-                    {t('nutritionGoals.bmr')} = {Math.round(result.bmr).toLocaleString('cs')} kcal
-                    {' · '}
-                    {t('nutritionGoals.tdee')} = {Math.round(result.tdee).toLocaleString('cs')} kcal
-                    {' · '}
-                    {t(GOAL_KEYS[goal])}
-                    {' → '}
-                    <strong>{t('nutritionGoals.goalTarget')} {Math.round(result.adjustedKcal).toLocaleString('cs')} kcal</strong>
-                  </div>
-                </Callout>
-                <div className="text-[11px] text-text3 mt-2 leading-relaxed">
-                  {t('nutritionGoals.mifflinFormula')} {sex === 'Female' ? t('nutritionGoals.mifflinFemaleOffset') : t('nutritionGoals.mifflinMaleOffset')}.
-                  {' '}{t('nutritionGoals.tdeeFormula')}
-                </div>
-              </>
-            )}
-          </div>
+          <AnamnesisSectionPanel
+            age={age}
+            sex={sex}
+            heightCm={heightCm}
+            weightKg={weightKg}
+            targetWeight={targetWeight}
+            activityLevel={activityLevel}
+            goal={goal}
+            isCalculating={isCalculating}
+            result={result}
+            isNutritionist={isNutritionist}
+            onAgeChange={(n) => {
+              setAge(n);
+              recalculate({ age: n });
+            }}
+            onSexChange={(s) => {
+              setSex(s);
+              recalculate({ sex: s });
+            }}
+            onHeightChange={(n) => {
+              setHeightCm(n);
+              recalculate({ heightCm: n });
+            }}
+            onWeightChange={(n) => {
+              setWeightKg(n);
+              recalculate({ weightKg: n });
+            }}
+            onTargetWeightChange={setTargetWeight}
+            onActivityLevelChange={(al) => {
+              setActivityLevel(al);
+              recalculate({ activityLevel: al });
+            }}
+            onGoalChange={(g) => {
+              setGoal(g);
+              recalculate({ goal: g });
+            }}
+            onCalculate={() => recalculate()}
+          />
 
           {/* Training profile column — visible to trainers */}
           {isTrainer && (
@@ -438,207 +333,73 @@ export default function ClientNutritionGoalsPage() {
 
           {/* Macros column — visible to nutritionists */}
           {isNutritionist && (
-          <div>
-            <div className="text-[12px] font-semibold uppercase tracking-[0.04em] text-text3 mb-2.5">
-              {t('nutritionGoals.targetMacros')}
-            </div>
-
-            {result ? (
-              <>
-                <div className="bg-bg2 border border-border rounded-md p-2 mb-3.5">
-                  <PropertyList
-                    className="mb-0"
-                    items={[
-                      {
-                        label: t('nutritionGoals.caloriesPerDay'),
-                        value: (
-                          <span className="font-semibold">
-                            {Math.round(kcal).toLocaleString('cs')} kcal
-                          </span>
-                        ),
-                      },
-                      {
-                        label: t('nutritionGoals.protein'),
-                        icon: '',
-                        value: (
-                          <span className="flex items-center gap-2">
-                            <span className="w-[7px] h-[7px] rounded-sm bg-blue shrink-0" />
-                            <span className="font-semibold text-blue">{pGrams} g</span>
-                            <span className="text-xs text-text3">{pPct} %</span>
-                          </span>
-                        ),
-                        editable: true,
-                        onEdit: (v) => {
-                          const n = parseInt(v);
-                          if (!isNaN(n) && n >= 5 && n <= 60) {
-                            const remainder = 100 - n;
-                            const newCarbs = Math.round(remainder * carbsPercent / (carbsPercent + fatPercent));
-                            const newFat = remainder - newCarbs;
-                            setProteinPercent(n);
-                            setCarbsPercent(newCarbs);
-                            setFatPercent(newFat);
-                            recalculate({ pp: n, cp: newCarbs, fp: newFat });
-                          }
-                        },
-                      },
-                      {
-                        label: t('nutritionGoals.carbs'),
-                        icon: '',
-                        value: (
-                          <span className="flex items-center gap-2">
-                            <span className="w-[7px] h-[7px] rounded-sm bg-orange shrink-0" />
-                            <span className="font-semibold text-orange">{cGrams} g</span>
-                            <span className="text-xs text-text3">{cPct} %</span>
-                          </span>
-                        ),
-                        editable: true,
-                        onEdit: (v) => {
-                          const n = parseInt(v);
-                          if (!isNaN(n) && n >= 5 && n <= 70) {
-                            const remainder = 100 - n;
-                            const newProtein = Math.round(remainder * proteinPercent / (proteinPercent + fatPercent));
-                            const newFat = remainder - newProtein;
-                            setCarbsPercent(n);
-                            setProteinPercent(newProtein);
-                            setFatPercent(newFat);
-                            recalculate({ pp: newProtein, cp: n, fp: newFat });
-                          }
-                        },
-                      },
-                      {
-                        label: t('nutritionGoals.fat'),
-                        icon: '',
-                        value: (
-                          <span className="flex items-center gap-2">
-                            <span className="w-[7px] h-[7px] rounded-sm bg-purple shrink-0" />
-                            <span className="font-semibold text-purple">{fGrams} g</span>
-                            <span className="text-xs text-text3">{fPct} %</span>
-                          </span>
-                        ),
-                        editable: true,
-                        onEdit: (v) => {
-                          const n = parseInt(v);
-                          if (!isNaN(n) && n >= 5 && n <= 50) {
-                            const remainder = 100 - n;
-                            const newProtein = Math.round(remainder * proteinPercent / (proteinPercent + carbsPercent));
-                            const newCarbs = remainder - newProtein;
-                            setFatPercent(n);
-                            setProteinPercent(newProtein);
-                            setCarbsPercent(newCarbs);
-                            recalculate({ pp: newProtein, cp: newCarbs, fp: n });
-                          }
-                        },
-                      },
-                    ]}
-                  />
-                </div>
-
-                {/* Stacked macro bar */}
-                <div className="h-[10px] rounded-full overflow-hidden flex mb-1.5">
-                  <div style={{ width: `${pPct}%` }} className="bg-blue" />
-                  <div style={{ width: `${cPct}%` }} className="bg-orange" />
-                  <div style={{ width: `${fPct}%` }} className="bg-purple" />
-                </div>
-                <div className="flex gap-3 flex-wrap text-[11px] text-text3 mb-6">
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-[7px] h-[7px] rounded-sm bg-blue inline-block" />
-                    {t('nutritionGoals.protein')}
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-[7px] h-[7px] rounded-sm bg-orange inline-block" />
-                    {t('nutritionGoals.carbs')}
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-[7px] h-[7px] rounded-sm bg-purple inline-block" />
-                    {t('nutritionGoals.fat')}
-                  </span>
-                </div>
-
-                {/* Detailed macro progress bars */}
-                <div className="space-y-3">
-                  <div>
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-xs text-text2 flex items-center gap-1.5">
-                        <span className="w-[7px] h-[7px] rounded-sm bg-blue" />
-                        {t('nutritionGoals.protein')}
-                      </span>
-                      <span className="text-xs tabular-nums">
-                        <span className="font-semibold text-text">{pGrams}g</span>
-                        <span className="text-text3"> / {pGrams}g</span>
-                      </span>
-                    </div>
-                    <ProgressBar value={100} color="var(--blue)" height={4} />
-                  </div>
-                  <div>
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-xs text-text2 flex items-center gap-1.5">
-                        <span className="w-[7px] h-[7px] rounded-sm bg-orange" />
-                        {t('nutritionGoals.carbs')}
-                      </span>
-                      <span className="text-xs tabular-nums">
-                        <span className="font-semibold text-text">{cGrams}g</span>
-                        <span className="text-text3"> / {cGrams}g</span>
-                      </span>
-                    </div>
-                    <ProgressBar value={100} color="var(--orange)" height={4} />
-                  </div>
-                  <div>
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-xs text-text2 flex items-center gap-1.5">
-                        <span className="w-[7px] h-[7px] rounded-sm bg-purple" />
-                        {t('nutritionGoals.fat')}
-                      </span>
-                      <span className="text-xs tabular-nums">
-                        <span className="font-semibold text-text">{fGrams}g</span>
-                        <span className="text-text3"> / {fGrams}g</span>
-                      </span>
-                    </div>
-                    <ProgressBar value={100} color="var(--purple)" height={4} />
-                  </div>
-                </div>
-
-                {/* Macro sliders */}
-                <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-                    {t('nutritionGoals.macroDistribution')}
-                  </div>
-                  {([
-                    { label: t('nutritionGoals.protein'), value: proteinPercent, set: (v: number) => {
-                      const r = 100 - v; const nc = Math.round(r * carbsPercent / (carbsPercent + fatPercent)); const nf = r - nc;
-                      setProteinPercent(v); setCarbsPercent(nc); setFatPercent(nf); recalculate({ pp: v, cp: nc, fp: nf });
-                    }, color: 'var(--blue)', max: 60 },
-                    { label: t('nutritionGoals.carbs'), value: carbsPercent, set: (v: number) => {
-                      const r = 100 - v; const np = Math.round(r * proteinPercent / (proteinPercent + fatPercent)); const nf = r - np;
-                      setCarbsPercent(v); setProteinPercent(np); setFatPercent(nf); recalculate({ pp: np, cp: v, fp: nf });
-                    }, color: 'var(--orange)', max: 70 },
-                    { label: t('nutritionGoals.fat'), value: fatPercent, set: (v: number) => {
-                      const r = 100 - v; const np = Math.round(r * proteinPercent / (proteinPercent + carbsPercent)); const nc = r - np;
-                      setFatPercent(v); setProteinPercent(np); setCarbsPercent(nc); recalculate({ pp: np, cp: nc, fp: v });
-                    }, color: 'var(--purple)', max: 50 },
-                  ] as const).map((s) => (
-                    <div key={s.label}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                        <span style={{ fontSize: 12, color: 'var(--text2)' }}>{s.label}</span>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: s.color }}>{s.value} %</span>
-                      </div>
-                      <input
-                        type="range"
-                        min={5}
-                        max={s.max}
-                        value={s.value}
-                        onChange={(e) => s.set(parseInt(e.target.value))}
-                        style={{ width: '100%', accentColor: s.color, cursor: 'pointer' }}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <div className="text-[13px] text-text3 py-8 text-center">
-                {t('nutritionGoals.notCalculated')}
-              </div>
-            )}
-          </div>
+            <GoalsMacroPanel
+              kcal={kcal}
+              proteinGrams={pGrams}
+              carbsGrams={cGrams}
+              fatGrams={fGrams}
+              proteinPercent={pPct}
+              carbsPercent={cPct}
+              fatPercent={fPct}
+              proteinDistributionPercent={proteinPercent}
+              carbsDistributionPercent={carbsPercent}
+              fatDistributionPercent={fatPercent}
+              result={result}
+              onProteinGramsChange={(n) => {
+                const remainder = 100 - n;
+                const newCarbs = Math.round(remainder * carbsPercent / (carbsPercent + fatPercent));
+                const newFat = remainder - newCarbs;
+                setProteinPercent(n);
+                setCarbsPercent(newCarbs);
+                setFatPercent(newFat);
+                recalculate({ pp: n, cp: newCarbs, fp: newFat });
+              }}
+              onCarbsGramsChange={(n) => {
+                const remainder = 100 - n;
+                const newProtein = Math.round(remainder * proteinPercent / (proteinPercent + fatPercent));
+                const newFat = remainder - newProtein;
+                setCarbsPercent(n);
+                setProteinPercent(newProtein);
+                setFatPercent(newFat);
+                recalculate({ pp: newProtein, cp: n, fp: newFat });
+              }}
+              onFatGramsChange={(n) => {
+                const remainder = 100 - n;
+                const newProtein = Math.round(remainder * proteinPercent / (proteinPercent + carbsPercent));
+                const newCarbs = remainder - newProtein;
+                setFatPercent(n);
+                setProteinPercent(newProtein);
+                setCarbsPercent(newCarbs);
+                recalculate({ pp: newProtein, cp: newCarbs, fp: n });
+              }}
+              onProteinDistributionChange={(v) => {
+                const r = 100 - v;
+                const nc = Math.round(r * carbsPercent / (carbsPercent + fatPercent));
+                const nf = r - nc;
+                setProteinPercent(v);
+                setCarbsPercent(nc);
+                setFatPercent(nf);
+                recalculate({ pp: v, cp: nc, fp: nf });
+              }}
+              onCarbsDistributionChange={(v) => {
+                const r = 100 - v;
+                const np = Math.round(r * proteinPercent / (proteinPercent + fatPercent));
+                const nf = r - np;
+                setCarbsPercent(v);
+                setProteinPercent(np);
+                setFatPercent(nf);
+                recalculate({ pp: np, cp: v, fp: nf });
+              }}
+              onFatDistributionChange={(v) => {
+                const r = 100 - v;
+                const np = Math.round(r * proteinPercent / (proteinPercent + carbsPercent));
+                const nc = r - np;
+                setFatPercent(v);
+                setProteinPercent(np);
+                setCarbsPercent(nc);
+                recalculate({ pp: np, cp: nc, fp: v });
+              }}
+            />
           )}
         </div>
       </div>

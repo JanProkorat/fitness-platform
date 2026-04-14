@@ -12,6 +12,8 @@ interface MacroBarProps {
   unit?: string
   /** Horizontal layout: label | bar | value in a single row (prototype style) */
   horizontal?: boolean
+  /** Render `current / target` even when target is 0 (e.g. "0 / 0 g") instead of hiding the target portion. */
+  alwaysShowTarget?: boolean
 }
 
 export function MacroBar({
@@ -21,6 +23,7 @@ export function MacroBar({
   color,
   unit = 'g',
   horizontal = false,
+  alwaysShowTarget = false,
 }: MacroBarProps) {
   const colors = useTheme()
   const ratio = target > 0 ? current / target : 0
@@ -40,11 +43,13 @@ export function MacroBar({
             ]}
           />
         </View>
-        <Text style={[styles.hValues, { color: colors.label2 }]}>
+        <Text style={[styles.hValues, { color: colors.label }]}>
           <Text style={styles.hCurrent}>
             {Math.round(current)}
           </Text>
-          {target > 0 ? ` / ${Math.round(target)} ${unit}` : ` ${unit}`}
+          {target > 0 || alwaysShowTarget
+            ? ` / ${Math.round(target)} ${unit}`
+            : ` ${unit}`}
         </Text>
       </View>
     )
@@ -58,7 +63,9 @@ export function MacroBar({
           <Text style={[styles.current, { color: barColor }]}>
             {Math.round(current)}
           </Text>
-          {target > 0 ? ` / ${Math.round(target)}${unit}` : ` ${unit}`}
+          {target > 0 || alwaysShowTarget
+            ? ` / ${Math.round(target)}${unit}`
+            : ` ${unit}`}
         </Text>
       </View>
       <View style={[styles.track, { backgroundColor: colors.fill }]}>
@@ -127,11 +134,14 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: Radius.full,
   },
+  // Matches the `{kcal} kcal` label on the right of a meal row: footnote size,
+  // weight 600, primary label color.
   hValues: {
-    ...Type.caption1,
+    ...Type.footnote,
     textAlign: 'right',
-    minWidth: 75,
+    minWidth: 80,
     flexShrink: 0,
+    fontWeight: '600',
   },
   hCurrent: {
     fontWeight: '600',

@@ -91,8 +91,17 @@ export function RecipeSearch({
         setIsOpen(false);
       }
     }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setIsOpen(false);
+      }
+    }
     document.addEventListener('mousedown', onClickOutside);
-    return () => document.removeEventListener('mousedown', onClickOutside);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onClickOutside);
+      document.removeEventListener('keydown', onKeyDown);
+    };
   }, [isOpen]);
 
   return (
@@ -141,7 +150,15 @@ export function RecipeSearch({
           {filtered.map((recipe) => (
             <div
               key={recipe.recipeId}
+              role="button"
+              tabIndex={0}
               onClick={() => handleSelect(recipe)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleSelect(recipe);
+                }
+              }}
               style={{
                 display: 'grid', gridTemplateColumns: '1fr auto', gap: 12,
                 padding: '7px 12px', cursor: 'pointer', fontSize: 13,
@@ -149,6 +166,7 @@ export function RecipeSearch({
               }}
               onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = ''; }}
+              aria-label={`Select recipe ${recipe.name}`}
             >
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 📖 {recipe.name}

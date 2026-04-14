@@ -2,6 +2,8 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace FitnessPlatform.Application.Features.Client.Progress.GetWeeklyOverview;
 
@@ -10,7 +12,8 @@ namespace FitnessPlatform.Application.Features.Client.Progress.GetWeeklyOverview
 /// Returns compliance, average macros, and streak for the current week (Monday–Sunday).
 /// </summary>
 /// <param name="complianceService">Service for calculating compliance metrics.</param>
-public class GetWeeklyOverviewEndpoint(IComplianceService complianceService)
+/// <param name="db">Relational database context.</param>
+public class GetWeeklyOverviewEndpoint(IComplianceService complianceService, IApplicationDbContext db)
     : EndpointWithoutRequest<GetWeeklyOverviewResponse>
 {
     /// <inheritdoc />
@@ -36,7 +39,18 @@ public class GetWeeklyOverviewEndpoint(IComplianceService complianceService)
             return;
         }
 
-        var clientId = Guid.Parse(userId);
+        // MealLogs and NutritionPlans in Mongo are keyed by ClientProfile.PublicId.
+        var clientProfile = await db.ClientProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cp => cp.UserId == Guid.Parse(userId), ct);
+
+        if (clientProfile is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        var clientId = clientProfile.PublicId;
         var today = DateTime.UtcNow.Date;
 
         // Calculate Monday of the current week (handle Sunday as day 0)

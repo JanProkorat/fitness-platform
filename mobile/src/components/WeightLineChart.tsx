@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, LayoutChangeEvent } from 'react-native';
 import Svg, { Line, Circle, Polyline, Text as SvgText, G } from 'react-native-svg';
-import { Colors } from '../../constants/Colors';
+import { useTheme } from '@/hooks/useTheme';
 
 interface WeightChartProps {
   data: { date: string; weight: number }[];
@@ -18,12 +18,15 @@ function formatDateLabel(iso: string): string {
   return `${d.getDate()}.${d.getMonth() + 1}.`;
 }
 
-export function WeightChart({ data }: WeightChartProps) {
+export function WeightLineChart({ data }: WeightChartProps) {
+  const colors = useTheme();
   const [containerWidth, setContainerWidth] = React.useState(0);
 
   const onLayout = (e: LayoutChangeEvent) => {
     setContainerWidth(e.nativeEvent.layout.width);
   };
+
+  const styles = useMemo(() => getStyles(colors), [colors]);
 
   if (data.length < 2) {
     return (
@@ -79,7 +82,7 @@ export function WeightChart({ data }: WeightChartProps) {
             y1={gy}
             x2={containerWidth - PADDING_RIGHT}
             y2={gy}
-            stroke={Colors.dark.border}
+            stroke={colors.sep}
             strokeWidth={1}
           />
         ))}
@@ -90,7 +93,7 @@ export function WeightChart({ data }: WeightChartProps) {
             key={`y-${i}`}
             x={PADDING_LEFT - 8}
             y={l.y + 4}
-            fill={Colors.dark.text3}
+            fill={colors.label3}
             fontSize={11}
             textAnchor="end"
           >
@@ -104,7 +107,7 @@ export function WeightChart({ data }: WeightChartProps) {
             key={`x-${idx}`}
             x={toX(idx)}
             y={CHART_HEIGHT - 6}
-            fill={Colors.dark.text3}
+            fill={colors.label3}
             fontSize={11}
             textAnchor="middle"
           >
@@ -116,7 +119,7 @@ export function WeightChart({ data }: WeightChartProps) {
         <Polyline
           points={points}
           fill="none"
-          stroke={Colors.dark.gold}
+          stroke={colors.gold}
           strokeWidth={2}
           strokeLinejoin="round"
           strokeLinecap="round"
@@ -130,7 +133,7 @@ export function WeightChart({ data }: WeightChartProps) {
               cx={toX(i)}
               cy={toY(d.weight)}
               r={3.5}
-              fill={Colors.dark.gold}
+              fill={colors.gold}
             />
           ))}
         </G>
@@ -139,18 +142,20 @@ export function WeightChart({ data }: WeightChartProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    width: '100%',
-    height: CHART_HEIGHT,
-  },
-  empty: {
-    height: CHART_HEIGHT,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 14,
-    color: Colors.dark.text3,
-  },
-});
+function getStyles(colors: ReturnType<typeof useTheme>) {
+  return StyleSheet.create({
+    container: {
+      width: '100%',
+      height: CHART_HEIGHT,
+    },
+    empty: {
+      height: CHART_HEIGHT,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    emptyText: {
+      fontSize: 14,
+      color: colors.label3,
+    },
+  });
+}

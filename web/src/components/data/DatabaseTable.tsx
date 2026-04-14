@@ -1,6 +1,6 @@
 import { cn } from '@/lib/cn';
 
-interface Column<T = any> {
+interface Column<T = Record<string, unknown>> {
   key: string;
   label: string;
   render?: (row: T) => React.ReactNode;
@@ -8,7 +8,7 @@ interface Column<T = any> {
   className?: string;
 }
 
-interface DatabaseTableProps<T = any> {
+interface DatabaseTableProps<T = Record<string, unknown>> {
   columns: Column<T>[];
   rows: T[];
   rowKey: (row: T) => string;
@@ -58,15 +58,23 @@ export function DatabaseTable<T>({
                     col.className,
                   )}
                   onClick={colIdx === 0 && onRowClick ? () => onRowClick(row) : undefined}
+                  role={colIdx === 0 && onRowClick ? 'button' : undefined}
+                  tabIndex={colIdx === 0 && onRowClick ? 0 : undefined}
+                  onKeyDown={colIdx === 0 && onRowClick ? (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onRowClick(row);
+                    }
+                  } : undefined}
                 >
                   {colIdx === 0 ? (
                     <span className="hover:underline">
-                      {col.render ? col.render(row) : String((row as any)[col.key] ?? '')}
+                      {col.render ? col.render(row) : String((row as Record<string, unknown>)[col.key] ?? '')}
                     </span>
                   ) : col.render ? (
                     col.render(row)
                   ) : (
-                    String((row as any)[col.key] ?? '')
+                    String((row as Record<string, unknown>)[col.key] ?? '')
                   )}
                 </td>
               ))}
@@ -83,8 +91,17 @@ export function DatabaseTable<T>({
       </table>
       {onAddRow && (
         <div
+          role="button"
+          tabIndex={0}
           className="px-3 py-[7px] text-[13px] text-text3 cursor-pointer flex items-center gap-1.5 border-b border-border transition-colors hover:bg-bg-hover hover:text-text"
           onClick={onAddRow}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onAddRow();
+            }
+          }}
+          aria-label={addRowLabel}
         >
           {addRowLabel}
         </div>

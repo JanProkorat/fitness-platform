@@ -3,12 +3,12 @@ import { useEffect } from 'react';
 import { ActivityIndicator, View, StyleSheet } from 'react-native';
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { QueryClientProvider } from '@tanstack/react-query';
+import { href } from '@/lib/navigation';
 import * as SplashScreen from 'expo-splash-screen';
-import { useAuthStore } from '../src/stores/auth';
-import { useOfflineMutations } from '../src/hooks/useOfflineMutations';
-import { OfflineBanner } from '../src/components/OfflineBanner';
+import { useAuthStore } from '@/stores/auth';
+import { useOfflineMutations } from '@/hooks/useOfflineMutations';
+import { OfflineBanner } from '@/components/OfflineBanner';
 import { ToastProvider } from '@/components/ui/Toast';
-import { Colors } from '@/constants/colors';
 import { useTheme } from '@/hooks/useTheme';
 import { queryClient } from '@/lib/queryClient';
 
@@ -44,7 +44,7 @@ function AuthGate() {
     if (!isAuthenticated && !inAuthGroup) {
       router.replace('/(auth)/login');
     } else if (isAuthenticated && !user?.emailConfirmed && !onVerifyScreen) {
-      router.replace('/(auth)/verify-email' as never);
+      router.replace(href('/(auth)/verify-email'));
     } else if (isAuthenticated && user?.emailConfirmed && inAuthGroup && !onQuestionnaireScreen && !onInviteScreen) {
       router.replace('/(client)');
     }

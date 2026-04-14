@@ -1,5 +1,7 @@
 import React from 'react'
-import { View, Text, StyleSheet } from 'react-native'
+import { View, Text, StyleSheet, Pressable } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
+import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
@@ -13,17 +15,23 @@ interface WeightChartProps {
   entries: WeightEntry[]
   currentWeight?: number | null
   weightDelta?: number | null
+  /** Client's target weight from onboarding. Shows goal line when set. */
+  targetWeight?: number | null
+  /** Callback when user taps "View History" */
+  onViewHistory?: () => void
+  /** Total number of measurement entries */
+  entryCount?: number
 }
 
-export function WeightChart({ entries, currentWeight, weightDelta }: WeightChartProps) {
+export function WeightBarChart({ entries, currentWeight, weightDelta, targetWeight, onViewHistory, entryCount }: WeightChartProps) {
   const colors = useTheme()
+  const { t } = useTranslation()
 
   if (entries.length === 0) {
     return (
       <View style={[styles.card, { backgroundColor: colors.bg2 }]}>
-        <Text style={[Type.headline, { color: colors.label }]}>Weight</Text>
-        <Text style={[Type.subheadline, { color: colors.label3, marginTop: 8 }]}>
-          No measurements yet
+        <Text style={[Type.subheadline, { color: colors.label3 }]}>
+          {t('profile.noWeightRecords')}
         </Text>
       </View>
     )
@@ -34,12 +42,17 @@ export function WeightChart({ entries, currentWeight, weightDelta }: WeightChart
   const maxW = Math.max(...weights)
   const range = maxW - minW || 1
 
+  // Goal progress
+  const remaining = currentWeight != null && targetWeight != null
+    ? currentWeight - targetWeight
+    : null
+  const goalReached = remaining != null && remaining <= 0
+
   return (
     <View style={[styles.card, { backgroundColor: colors.bg2 }]}>
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={[Type.headline, { color: colors.label2 }]}>Weight</Text>
           {currentWeight != null && (
             <Text style={[styles.currentWeight, { color: colors.label }]}>
               {currentWeight.toFixed(1)} kg
@@ -65,6 +78,23 @@ export function WeightChart({ entries, currentWeight, weightDelta }: WeightChart
         )}
       </View>
 
+      {/* Goal sub-header */}
+      {targetWeight != null && remaining != null && (
+        <View style={styles.goalRow}>
+          {goalReached ? (
+            <View style={[styles.goalBadge, { backgroundColor: colors.green + '20' }]}>
+              <Text style={[styles.goalBadgeText, { color: colors.green }]}>
+                {t('profile.goalReached')}
+              </Text>
+            </View>
+          ) : (
+            <Text style={[styles.goalText, { color: colors.label3 }]}>
+              {t('profile.goal')}: {targetWeight.toFixed(1).replace('.', ',')} kg · {t('profile.remaining')}: {remaining.toFixed(1).replace('.', ',')} kg
+            </Text>
+          )}
+        </View>
+      )}
+
       {/* Bar chart */}
       <View style={styles.chart}>
         {entries.map((entry, idx) => {
@@ -83,12 +113,34 @@ export function WeightChart({ entries, currentWeight, weightDelta }: WeightChart
                 ]}
               />
               <Text style={[styles.barLabel, { color: colors.label3 }]}>
-                {new Date(entry.date).getDate()}
+                {`${new Date(entry.date).getDate()}.${new Date(entry.date).getMonth() + 1}`}
               </Text>
             </View>
           )
         })}
       </View>
+
+      {/* View history button */}
+      {onViewHistory && (
+        <Pressable
+          onPress={onViewHistory}
+          style={({ pressed }) => [
+            styles.historyBtn,
+            { backgroundColor: colors.fill, opacity: pressed ? 0.7 : 1 },
+          ]}
+        >
+          <Ionicons name="time-outline" size={18} color={colors.label2} />
+          <Text style={[styles.historyBtnText, { color: colors.label }]}>
+            {t('profile.viewHistory')}
+          </Text>
+          {entryCount != null && (
+            <Text style={[styles.historyBtnCount, { color: colors.label3 }]}>
+              {entryCount}
+            </Text>
+          )}
+          <Ionicons name="chevron-forward" size={16} color={colors.label3} />
+        </Pressable>
+      )}
     </View>
   )
 }
@@ -107,7 +159,6 @@ const styles = StyleSheet.create({
   },
   currentWeight: {
     ...Type.title1,
-    marginTop: 4,
   },
   deltaBadge: {
     paddingHorizontal: 10,
@@ -115,6 +166,23 @@ const styles = StyleSheet.create({
     borderRadius: Radius.full,
   },
   deltaText: {
+    ...Type.caption1,
+    fontWeight: '600',
+  },
+  goalRow: {
+    marginTop: -8,
+    marginBottom: 12,
+  },
+  goalText: {
+    ...Type.caption1,
+  },
+  goalBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: Radius.full,
+  },
+  goalBadgeText: {
     ...Type.caption1,
     fontWeight: '600',
   },
@@ -138,6 +206,21 @@ const styles = StyleSheet.create({
     ...Type.caption2,
     marginTop: 4,
   },
+  historyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: Radius.sm,
+    marginTop: 14,
+    gap: 10,
+  },
+  historyBtnText: {
+    ...Type.body,
+    flex: 1,
+  },
+  historyBtnCount: {
+    ...Type.caption1,
+  },
 })
 
-export default WeightChart
+export default WeightBarChart

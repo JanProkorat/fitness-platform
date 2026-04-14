@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,12 +14,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Colors } from '../../constants/Colors';
+import { useTheme } from '@/hooks/useTheme';
 import {
   getProfessionalProfile,
   sendClientRequest,
   type ProfessionalProfile,
-} from '../../src/api/professionals';
+} from '@/api/professionals';
 
 const ROLE_LABELS: Record<string, string> = {
   Trainer: 'Trener',
@@ -28,6 +28,7 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 export default function ProfessionalProfileScreen() {
+  const colors = useTheme();
   const { professionalId } = useLocalSearchParams<{ professionalId: string }>();
   const queryClient = useQueryClient();
   const [showRequestModal, setShowRequestModal] = useState(false);
@@ -57,6 +58,8 @@ export default function ProfessionalProfileScreen() {
     requestMutation.mutate();
   }, [requestMutation]);
 
+  const styles = useMemo(() => getStyles(colors), [colors]);
+
   const openLink = useCallback((url: string) => {
     const fullUrl = url.startsWith('http') ? url : `https://${url}`;
     Linking.openURL(fullUrl).catch(() => {
@@ -68,7 +71,7 @@ export default function ProfessionalProfileScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['bottom']}>
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={Colors.dark.gold} />
+          <ActivityIndicator size="large" color={colors.gold} />
         </View>
       </SafeAreaView>
     );
@@ -270,7 +273,7 @@ export default function ProfessionalProfileScreen() {
             <TextInput
               style={styles.modalInput}
               placeholder="Napiste zpravu..."
-              placeholderTextColor={Colors.dark.text3}
+              placeholderTextColor={colors.label3}
               value={requestMessage}
               onChangeText={setRequestMessage}
               multiline
@@ -314,6 +317,8 @@ function InfoRow({
   value: string;
   isLast?: boolean;
 }) {
+  const colors = useTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   return (
     <View style={[styles.infoRow, !isLast && styles.infoRowBorder]}>
       <Text style={styles.infoLabel}>{label}</Text>
@@ -322,276 +327,277 @@ function InfoRow({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.dark.background,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyIcon: {
-    fontSize: 40,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: Colors.dark.text3,
-    marginTop: 12,
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-  },
-  profileHeader: {
-    alignItems: 'center',
-    marginBottom: 28,
-  },
-  avatarPlaceholder: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: Colors.dark.surface,
-    borderWidth: 2,
-    borderColor: Colors.dark.gold,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 14,
-  },
-  avatarText: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: Colors.dark.gold,
-  },
-  profileName: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: Colors.dark.text,
-    marginBottom: 8,
-  },
-  roleBadge: {
-    backgroundColor: 'rgba(200, 169, 78, 0.15)',
-    paddingHorizontal: 14,
-    paddingVertical: 5,
-    borderRadius: 14,
-  },
-  roleBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.dark.gold,
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: Colors.dark.text3,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 10,
-  },
-  bioText: {
-    fontSize: 14,
-    color: Colors.dark.text2,
-    lineHeight: 22,
-  },
-  tagsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  tag: {
-    backgroundColor: Colors.dark.surface,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-  },
-  tagText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: Colors.dark.text2,
-  },
-  certTag: {
-    backgroundColor: 'rgba(34, 197, 94, 0.1)',
-    borderColor: 'rgba(34, 197, 94, 0.25)',
-  },
-  certTagText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: Colors.dark.green,
-  },
-  infoCard: {
-    backgroundColor: Colors.dark.card,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    overflow: 'hidden',
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 13,
-  },
-  infoRowBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.dark.border,
-  },
-  infoLabel: {
-    fontSize: 13,
-    color: Colors.dark.text3,
-    fontWeight: '500',
-  },
-  infoValue: {
-    fontSize: 13,
-    color: Colors.dark.text,
-    fontWeight: '500',
-    flexShrink: 1,
-    textAlign: 'right',
-    marginLeft: 16,
-  },
-  linkRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 13,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.dark.border,
-  },
-  linkRowLast: {
-    borderBottomWidth: 0,
-  },
-  linkIcon: {
-    fontSize: 16,
-    marginRight: 10,
-  },
-  linkLabel: {
-    fontSize: 13,
-    color: Colors.dark.text,
-    fontWeight: '500',
-    flex: 1,
-  },
-  linkArrow: {
-    fontSize: 14,
-    color: Colors.dark.text3,
-  },
-  bottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    paddingBottom: 32,
-    backgroundColor: Colors.dark.background,
-    borderTopWidth: 1,
-    borderTopColor: Colors.dark.border,
-  },
-  actionButton: {
-    backgroundColor: Colors.dark.gold,
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  actionButtonText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#000',
-  },
-  actionButtonDisabled: {
-    backgroundColor: Colors.dark.surface,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-  },
-  actionButtonTextDisabled: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: Colors.dark.text3,
-  },
-  actionButtonLinked: {
-    backgroundColor: 'rgba(34, 197, 94, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(34, 197, 94, 0.3)',
-  },
-  actionButtonTextLinked: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: Colors.dark.green,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  modalContent: {
-    backgroundColor: Colors.dark.card,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    padding: 24,
-    width: '100%',
-    maxWidth: 400,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: Colors.dark.text,
-    marginBottom: 6,
-  },
-  modalSubtitle: {
-    fontSize: 13,
-    color: Colors.dark.text3,
-    marginBottom: 16,
-    lineHeight: 20,
-  },
-  modalInput: {
-    backgroundColor: Colors.dark.surface,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 14,
-    color: Colors.dark.text,
-    minHeight: 100,
-    marginBottom: 20,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  modalCancelBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    alignItems: 'center',
-  },
-  modalCancelText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.dark.text2,
-  },
-  modalSendBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: Colors.dark.gold,
-    alignItems: 'center',
-  },
-  modalSendText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#000',
-  },
-});
+const getStyles = (colors: ReturnType<typeof useTheme>) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bg,
+    },
+    centered: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    emptyIcon: {
+      fontSize: 40,
+    },
+    emptyText: {
+      fontSize: 14,
+      color: colors.label3,
+      marginTop: 12,
+    },
+    scrollContent: {
+      paddingHorizontal: 20,
+      paddingTop: 20,
+    },
+    profileHeader: {
+      alignItems: 'center',
+      marginBottom: 28,
+    },
+    avatarPlaceholder: {
+      width: 72,
+      height: 72,
+      borderRadius: 36,
+      backgroundColor: colors.bg2,
+      borderWidth: 2,
+      borderColor: colors.gold,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 14,
+    },
+    avatarText: {
+      fontSize: 24,
+      fontWeight: '700',
+      color: colors.gold,
+    },
+    profileName: {
+      fontSize: 22,
+      fontWeight: '800',
+      color: colors.label,
+      marginBottom: 8,
+    },
+    roleBadge: {
+      backgroundColor: 'rgba(200, 169, 78, 0.15)',
+      paddingHorizontal: 14,
+      paddingVertical: 5,
+      borderRadius: 14,
+    },
+    roleBadgeText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.gold,
+      textTransform: 'uppercase',
+      letterSpacing: 0.3,
+    },
+    section: {
+      marginBottom: 24,
+    },
+    sectionTitle: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: colors.label3,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      marginBottom: 10,
+    },
+    bioText: {
+      fontSize: 14,
+      color: colors.label2,
+      lineHeight: 22,
+    },
+    tagsRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    tag: {
+      backgroundColor: colors.bg2,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.sep,
+    },
+    tagText: {
+      fontSize: 13,
+      fontWeight: '500',
+      color: colors.label2,
+    },
+    certTag: {
+      backgroundColor: 'rgba(34, 197, 94, 0.1)',
+      borderColor: 'rgba(34, 197, 94, 0.25)',
+    },
+    certTagText: {
+      fontSize: 13,
+      fontWeight: '500',
+      color: colors.green,
+    },
+    infoCard: {
+      backgroundColor: colors.bg2,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.sep,
+      overflow: 'hidden',
+    },
+    infoRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      paddingVertical: 13,
+    },
+    infoRowBorder: {
+      borderBottomWidth: 1,
+      borderBottomColor: colors.sep,
+    },
+    infoLabel: {
+      fontSize: 13,
+      color: colors.label3,
+      fontWeight: '500',
+    },
+    infoValue: {
+      fontSize: 13,
+      color: colors.label,
+      fontWeight: '500',
+      flexShrink: 1,
+      textAlign: 'right',
+      marginLeft: 16,
+    },
+    linkRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      paddingVertical: 13,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.sep,
+    },
+    linkRowLast: {
+      borderBottomWidth: 0,
+    },
+    linkIcon: {
+      fontSize: 16,
+      marginRight: 10,
+    },
+    linkLabel: {
+      fontSize: 13,
+      color: colors.label,
+      fontWeight: '500',
+      flex: 1,
+    },
+    linkArrow: {
+      fontSize: 14,
+      color: colors.label3,
+    },
+    bottomBar: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      paddingBottom: 32,
+      backgroundColor: colors.bg,
+      borderTopWidth: 1,
+      borderTopColor: colors.sep,
+    },
+    actionButton: {
+      backgroundColor: colors.gold,
+      borderRadius: 10,
+      paddingVertical: 14,
+      alignItems: 'center',
+    },
+    actionButtonText: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: '#000',
+    },
+    actionButtonDisabled: {
+      backgroundColor: colors.bg2,
+      borderWidth: 1,
+      borderColor: colors.sep,
+    },
+    actionButtonTextDisabled: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.label3,
+    },
+    actionButtonLinked: {
+      backgroundColor: 'rgba(34, 197, 94, 0.12)',
+      borderWidth: 1,
+      borderColor: 'rgba(34, 197, 94, 0.3)',
+    },
+    actionButtonTextLinked: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.green,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 24,
+    },
+    modalContent: {
+      backgroundColor: colors.bg2,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.sep,
+      padding: 24,
+      width: '100%',
+      maxWidth: 400,
+    },
+    modalTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: colors.label,
+      marginBottom: 6,
+    },
+    modalSubtitle: {
+      fontSize: 13,
+      color: colors.label3,
+      marginBottom: 16,
+      lineHeight: 20,
+    },
+    modalInput: {
+      backgroundColor: colors.bg,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: colors.sep,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      fontSize: 14,
+      color: colors.label,
+      minHeight: 100,
+      marginBottom: 20,
+    },
+    modalButtons: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    modalCancelBtn: {
+      flex: 1,
+      paddingVertical: 12,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: colors.sep,
+      alignItems: 'center',
+    },
+    modalCancelText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.label2,
+    },
+    modalSendBtn: {
+      flex: 1,
+      paddingVertical: 12,
+      borderRadius: 8,
+      backgroundColor: colors.gold,
+      alignItems: 'center',
+    },
+    modalSendText: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: '#000',
+    },
+  });

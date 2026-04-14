@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
@@ -59,6 +60,33 @@ public class SubmitResponseEndpoint(IApplicationDbContext db, IProfileMapperServ
         // 4. Update status
         response.Status = QuestionnaireResponseStatus.Submitted;
         response.SubmittedAt = DateTime.UtcNow;
+
+        // 5. Auto-create a BodyMeasurement if any answer maps to weight.
+        //    This makes questionnaire-reported weight appear in the weight
+        //    progress history, chart, sparkline, and stats automatically.
+        var weightAnswer = await db.QuestionnaireAnswers
+            .Include(a => a.Question)
+            .Where(a => a.ResponseId == response.Id
+                        && a.Question.MappedField == "WeightKg"
+                        && a.ValueNumber != null)
+            .FirstOrDefaultAsync(ct);
+
+        if (weightAnswer is not null)
+        {
+            var clientProfile = await db.ClientProfiles
+                .FirstOrDefaultAsync(cp => cp.UserId == userGuid, ct);
+
+            if (clientProfile is not null)
+            {
+                db.BodyMeasurements.Add(new BodyMeasurement
+                {
+                    ClientProfileId = clientProfile.Id,
+                    MeasuredAt = response.SubmittedAt.Value,
+                    WeightKg = weightAnswer.ValueNumber,
+                    Notes = "questionnaire",
+                });
+            }
+        }
 
         // Map answers to client profile and notify professional (also calls SaveChangesAsync)
         await mapper.MapResponseToProfileAsync(response, ct);

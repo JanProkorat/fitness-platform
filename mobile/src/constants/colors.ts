@@ -1,3 +1,17 @@
+/** Shared gold alpha values used across components */
+export const goldAlpha = {
+  '04': 'rgba(201,168,76,0.04)',
+  '06': 'rgba(201,168,76,0.06)',
+  '07': 'rgba(201,168,76,0.07)',
+  '08': 'rgba(201,168,76,0.08)',
+  '10': 'rgba(201,168,76,0.10)',
+  '12': 'rgba(201,168,76,0.12)',
+  '15': 'rgba(201,168,76,0.15)',
+  '20': 'rgba(201,168,76,0.20)',
+  '25': 'rgba(201,168,76,0.25)',
+  solid: 'rgba(201,168,76,1)',
+} as const
+
 const light = {
   // Backgrounds
   bg: '#f2f2f7',
@@ -28,11 +42,18 @@ const light = {
   gold: '#c9a84c',
   goldBg: 'rgba(201,168,76,0.10)',
 
-  // Macros
-  macroProtein: '#ff6b6b',
-  macroCarbs: '#ffd93d',
-  macroFat: '#6bcb77',
-  macroFiber: '#4d96ff',
+  // Static (constant regardless of theme)
+  onAccent: '#ffffff',   // Text/icons on accent backgrounds (gold buttons, dark heroes)
+  heroBg: '#1a2332',     // Dark hero section background (training card)
+  nutritionHeroStart: '#3d2c12', // Nutrition hero gradient start (dark gold-brown)
+  nutritionHeroEnd: '#5e421a',   // Nutrition hero gradient end (warm gold-brown)
+  systemGray: '#8e8e93', // Neutral gray (swipe actions, secondary UI)
+
+  // Macros — match the system colours used in the NutritionCardHero chips
+  macroProtein: '#007aff',  // blue
+  macroCarbs: '#ff9500',    // orange
+  macroFat: '#af52de',      // purple
+  macroFiber: '#34c759',    // green
 } as const
 
 const dark = {
@@ -59,11 +80,18 @@ const dark = {
   gold: '#c9a84c',
   goldBg: 'rgba(201,168,76,0.15)',
 
-  // Macros
-  macroProtein: '#ff6b6b',
-  macroCarbs: '#ffd93d',
-  macroFat: '#6bcb77',
-  macroFiber: '#4d96ff',
+  // Static (constant regardless of theme)
+  onAccent: '#ffffff',
+  heroBg: '#1a2332',
+  nutritionHeroStart: '#3d2c12',
+  nutritionHeroEnd: '#5e421a',
+  systemGray: '#636366',
+
+  // Macros — match the system colours used in the NutritionCardHero chips
+  macroProtein: '#0a84ff',  // blue
+  macroCarbs: '#ff9f0a',    // orange
+  macroFat: '#bf5af2',      // purple
+  macroFiber: '#30d158',    // green
 } as const
 
 export interface ColorScheme {
@@ -84,6 +112,11 @@ export interface ColorScheme {
   readonly purple: string
   readonly gold: string
   readonly goldBg: string
+  readonly onAccent: string
+  readonly heroBg: string
+  readonly nutritionHeroStart: string
+  readonly nutritionHeroEnd: string
+  readonly systemGray: string
   readonly macroProtein: string
   readonly macroCarbs: string
   readonly macroFat: string

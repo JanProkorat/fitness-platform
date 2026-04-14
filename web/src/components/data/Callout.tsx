@@ -5,6 +5,7 @@ interface CalloutProps {
   icon?: string;
   title?: string;
   children: React.ReactNode;
+  action?: React.ReactNode;
   className?: string;
 }
 
@@ -20,25 +21,29 @@ export function Callout({
   icon,
   title,
   children,
+  action,
   className,
 }: CalloutProps) {
   return (
     <div
       className={cn(
-        'flex gap-2.5 p-2.5 px-3.5 rounded-md mb-2',
+        'flex items-center gap-2.5 p-2.5 px-3.5 rounded-md mb-2',
         variantStyles[variant],
         className,
       )}
     >
       {icon && (
-        <span className="text-base shrink-0 mt-[1px]">{icon}</span>
+        <span className="text-base shrink-0">{icon}</span>
       )}
-      <div className="flex-1">
+      <div className="flex-1 min-w-0">
         {title && (
           <div className="text-[13px] font-semibold mb-[2px]">{title}</div>
         )}
         <div className="text-[13px] text-text2 leading-normal">{children}</div>
       </div>
+      {action && (
+        <div className="shrink-0">{action}</div>
+      )}
     </div>
   );
 }

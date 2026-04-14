@@ -34,4 +34,9 @@ public class MeasurementStatsResponse
     /// Total number of measurement records.
     /// </summary>
     public int TotalCount { get; set; }
+
+    /// <summary>
+    /// Client's target weight from onboarding data, if set. Null when no goal was specified.
+    /// </summary>
+    public decimal? TargetWeightKg { get; set; }
 }

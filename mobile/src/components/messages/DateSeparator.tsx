@@ -15,7 +15,7 @@ function formatDate(iso: string): string {
   })
 }
 
-export function DateSeparator({ timestamp }: DateSeparatorProps) {
+export const DateSeparator = React.memo(function DateSeparator({ timestamp }: DateSeparatorProps) {
   const colors = useTheme()
 
   return (
@@ -25,7 +25,7 @@ export function DateSeparator({ timestamp }: DateSeparatorProps) {
       </Text>
     </View>
   )
-}
+})
 
 const styles = StyleSheet.create({
   container: {

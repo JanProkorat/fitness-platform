@@ -130,6 +130,22 @@ public class SubmitOnboardingEndpoint(IApplicationDbContext dbContext, IAuditSer
         profile.DateOfBirth = dateOfBirth;
         profile.IsOnboardingComplete = true;
 
+        // Auto-create a BodyMeasurement from the onboarding weight so it
+        // appears in the weight progress history, chart, and stats.
+        var existingOnboardingMeasurement = await dbContext.BodyMeasurements
+            .AnyAsync(m => m.ClientProfileId == profile.Id && m.Notes == "onboarding", ct);
+
+        if (!existingOnboardingMeasurement)
+        {
+            dbContext.BodyMeasurements.Add(new BodyMeasurement
+            {
+                ClientProfileId = profile.Id,
+                MeasuredAt = DateTime.UtcNow,
+                WeightKg = req.WeightKg,
+                Notes = "onboarding",
+            });
+        }
+
         await dbContext.SaveChangesAsync(ct);
 
         await audit.LogAsync(

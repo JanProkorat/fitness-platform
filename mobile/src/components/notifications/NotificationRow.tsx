@@ -3,33 +3,20 @@ import { View, Text, StyleSheet, Pressable } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
+import { goldAlpha } from '@/constants/colors'
 import type { Notification } from '@/hooks/useNotifications'
 
-const NOTIF_ICON_BG: Record<Notification['type'], string> = {
-  invitation: 'rgba(201,168,76,0.12)',
-  questionnaire: 'rgba(201,168,76,0.12)',
-  new_plan: 'rgba(11,110,153,0.10)',
-  message: 'rgba(0,122,255,0.10)',
-  training_done: 'rgba(52,199,89,0.10)',
-  alarm: 'rgba(255,59,48,0.10)',
-}
-
-const NOTIF_ICON: Record<Notification['type'], keyof typeof Ionicons.glyphMap> = {
-  invitation: 'person-add',
-  questionnaire: 'clipboard',
-  new_plan: 'calendar',
-  message: 'chatbubble',
-  training_done: 'checkmark-circle',
-  alarm: 'alert-circle',
-}
-
-const NOTIF_ICON_COLOR: Record<Notification['type'], string> = {
-  invitation: '#c9a84c',
-  questionnaire: '#c9a84c',
-  new_plan: '#0b6e99',
-  message: '#007aff',
-  training_done: '#34c759',
-  alarm: '#ff3b30',
+const NOTIF_CONFIG: Record<Notification['type'], {
+  bg: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  color: string;
+}> = {
+  invitation:    { bg: goldAlpha['12'], icon: 'person-add',       color: '#c9a84c' },
+  questionnaire: { bg: goldAlpha['12'], icon: 'clipboard',        color: '#c9a84c' },
+  new_plan:      { bg: 'rgba(11,110,153,0.10)', icon: 'calendar',        color: '#0b6e99' },
+  message:       { bg: 'rgba(0,122,255,0.10)',  icon: 'chatbubble',      color: '#007aff' },
+  training_done: { bg: 'rgba(52,199,89,0.10)',  icon: 'checkmark-circle', color: '#34c759' },
+  alarm:         { bg: 'rgba(255,59,48,0.10)',  icon: 'alert-circle',     color: '#ff3b30' },
 }
 
 function timeAgo(timestamp: string): string {
@@ -49,7 +36,7 @@ interface NotificationRowProps {
   onDismiss: (notification: Notification) => void
 }
 
-export function NotificationRow({ notification, onAction, onDismiss }: NotificationRowProps) {
+export const NotificationRow = React.memo(function NotificationRow({ notification, onAction, onDismiss }: NotificationRowProps) {
   const colors = useTheme()
   const { type, title, body, timestamp, read, actionLabel } = notification
 
@@ -57,7 +44,7 @@ export function NotificationRow({ notification, onAction, onDismiss }: Notificat
     <View
       style={[
         styles.row,
-        !read && { backgroundColor: 'rgba(201,168,76,0.04)' },
+        !read && { backgroundColor: goldAlpha['04'] },
       ]}
     >
       <View style={styles.dotCol}>
@@ -80,7 +67,7 @@ export function NotificationRow({ notification, onAction, onDismiss }: Notificat
       </View>
     </View>
   )
-}
+})
 
 export default NotificationRow
 
@@ -121,7 +108,6 @@ const styles = StyleSheet.create({
     borderRadius: 99,
   },
   actionTextPrimary: {
-    color: '#ffffff',
     fontSize: 13,
     fontWeight: '600',
   },

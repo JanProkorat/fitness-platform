@@ -5,6 +5,7 @@ import { searchFoods } from '@/api/foods';
 import type { RecipeSummary, RecipeDetail } from '@/api/recipe-types';
 import type { FoodSummary } from '@/api/food-types';
 import { showApiError, showSuccess } from '@/lib/api-errors';
+import { CANCEL_BUTTON_CLASS } from '@/lib/styles';
 
 interface IngredientRow {
   foodExternalId: string;
@@ -114,10 +115,6 @@ export function RecipeFormDialog({ open, recipe, onClose, onSaved, onDiscard }: 
 
   return (
     <>
-      <style>{`
-        @keyframes dlg-fade-in { from { opacity: 0 } to { opacity: 1 } }
-        @keyframes dlg-slide-up { from { opacity: 0; transform: translateY(16px) } to { opacity: 1; transform: translateY(0) } }
-      `}</style>
       <div className="fixed inset-0 z-[60] bg-black/50" onClick={onClose} style={{ animation: 'dlg-fade-in .6s ease-out' }} />
       <div className="fixed inset-0 z-[61] flex items-start justify-center pt-[5vh] pointer-events-none">
         <div className="pointer-events-auto flex flex-col border border-border shadow-2xl overflow-hidden" style={{ width: 680, maxWidth: '95vw', maxHeight: '90vh', background: 'var(--bg)', borderRadius: 10, animation: 'dlg-slide-up .6s ease-out' }}>
@@ -272,13 +269,13 @@ export function RecipeFormDialog({ open, recipe, onClose, onSaved, onDiscard }: 
             <div className="flex items-center justify-between px-5 py-3 border-t border-border" style={{ flexShrink: 0 }}>
               <div>
                 {isEdit && onDiscard && (
-                  <button onClick={onDiscard} className="px-4 py-2 rounded-md text-[13px] font-medium text-text3 hover:bg-bg-hover transition-colors">
+                  <button onClick={onDiscard} className={CANCEL_BUTTON_CLASS}>
                     ← {t('recipes.discardChanges')}
                   </button>
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={onClose} className="px-4 py-2 rounded-md text-[13px] font-medium text-text3 hover:bg-bg-hover transition-colors">{t('common.cancel')}</button>
+                <button onClick={onClose} className={CANCEL_BUTTON_CLASS}>{t('common.cancel')}</button>
                 <button onClick={handleSave} disabled={saving || !name.trim() || ingredients.length === 0} className="px-5 py-2 rounded-md text-[13px] font-medium transition-colors disabled:opacity-50" style={{ background: 'var(--accent)', color: '#fff' }}>
                   {saving ? t('common.saving') : isEdit ? t('common.save') : t('recipes.createRecipe')}
                 </button>

@@ -22,11 +22,19 @@ interface CardProps {
 export function Card({ onClick, children, className }: CardProps) {
   return (
     <div
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
       className={cn(
         'border border-border rounded-md bg-bg cursor-pointer overflow-hidden transition-[box-shadow,border-color] duration-150 hover:border-border-md hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)]',
         className,
       )}
       onClick={onClick}
+      onKeyDown={onClick ? (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      } : undefined}
     >
       {children}
     </div>

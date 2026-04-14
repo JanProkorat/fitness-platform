@@ -19,7 +19,7 @@ public interface IComplianceService
     Task<ComplianceResult> CalculateComplianceAsync(Guid clientId, DateTime from, DateTime to, CancellationToken ct);
 
     /// <summary>
-    /// Calculates the current streak of consecutive days with compliance >= 80%.
+    /// Calculates the current streak of consecutive days where at least one meal was logged.
     /// </summary>
     /// <param name="clientId">The client's ApplicationUser.Id.</param>
     /// <param name="ct">Cancellation token.</param>

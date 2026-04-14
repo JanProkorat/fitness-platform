@@ -9,7 +9,7 @@ interface CardProps {
   style?: ViewStyle
 }
 
-export function Card({ hero, children, style }: CardProps) {
+export const Card = React.memo(function Card({ hero, children, style }: CardProps) {
   const colors = useTheme()
 
   return (
@@ -18,7 +18,7 @@ export function Card({ hero, children, style }: CardProps) {
       <View style={styles.body}>{children}</View>
     </View>
   )
-}
+})
 
 const styles = StyleSheet.create({
   card: {

@@ -5,19 +5,13 @@ import { searchFoods } from '@/api/foods';
 import { searchRecipes, getRecipe } from '@/api/recipes';
 import type { FoodSummary } from '@/api/food-types';
 import type { RecipeSummary } from '@/api/recipe-types';
-import type { RecipeDetail } from '@/api/recipe-types';
 import type { MealFood } from '@/api/plan-types';
-
-interface StagedRecipe {
-  recipe: RecipeDetail;
-  portions: number;
-}
-
-interface AddItemsDrawerProps {
-  open: boolean;
-  onClose: () => void;
-  onAdd: (items: MealFood[]) => void;
-}
+import { FoodSearchDropdown } from './FoodSearchDropdown';
+import { RecipeSearchDropdown } from './RecipeSearchDropdown';
+import { StagedFoodsTable } from './StagedFoodsTable';
+import { StagedRecipesTable } from './StagedRecipesTable';
+import { foodToMealFood, expandRecipesIntoFoods, isFoodAlreadyStaged, isRecipeAlreadyStaged } from './AddItemsDrawer-helpers';
+import type { StagedRecipe, AddItemsDrawerProps } from './AddItemsDrawer-types';
 
 export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerProps) {
   const { t } = useTranslation();
@@ -53,6 +47,19 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
       setVisible(false);
     }
   }, [open]);
+
+  // Handle Escape key
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [open, onClose]);
 
 
   // Food search — loads on focus, stays open until drawer closes
@@ -98,30 +105,12 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
   }, [recipeQuery, recipeOpen]);
 
   const addFoodToStaged = useCallback((food: FoodSummary) => {
-    // Check if already staged
-    if (staged.some((s) => s.foodExternalId === food.foodId)) return;
-    setStaged((prev) => [
-      ...prev,
-      {
-        foodExternalId: food.foodId,
-        foodName: food.name,
-        nutrientValuePer100Grams: {
-          kcal: food.nutrientValue.kcal,
-          protein: food.nutrientValue.protein,
-          carbs: food.nutrientValue.carbs,
-          fat: food.nutrientValue.fat,
-          fiber: food.nutrientValue.fiber,
-          sugar: food.nutrientValue.sugar,
-          saturatedFat: food.nutrientValue.saturatedFat,
-          salt: food.nutrientValue.salt,
-        },
-        amountGrams: 100,
-      },
-    ]);
+    if (isFoodAlreadyStaged(food, staged)) return;
+    setStaged((prev) => [...prev, foodToMealFood(food)]);
   }, [staged]);
 
   const addRecipeToStaged = useCallback(async (recipe: RecipeSummary) => {
-    if (stagedRecipes.some((s) => s.recipe.recipeId === recipe.recipeId)) return;
+    if (isRecipeAlreadyStaged(recipe, stagedRecipes)) return;
     try {
       const detail = await getRecipe(recipe.recipeId);
       setStagedRecipes((prev) => [...prev, { recipe: detail, portions: 1 }]);
@@ -154,25 +143,7 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
     const totalItems = staged.length + stagedRecipes.length;
     if (totalItems === 0) return;
 
-    // Expand recipes into individual foods, multiplying amounts by portions
-    const recipeFoods: MealFood[] = stagedRecipes.flatMap((sr) =>
-      sr.recipe.foods.map((f) => ({
-        foodExternalId: f.foodExternalId,
-        foodName: f.foodName,
-        nutrientValuePer100Grams: {
-          kcal: f.nutrientValuePer100Grams.kcal,
-          protein: f.nutrientValuePer100Grams.protein,
-          carbs: f.nutrientValuePer100Grams.carbs,
-          fat: f.nutrientValuePer100Grams.fat,
-          fiber: f.nutrientValuePer100Grams.fiber,
-          sugar: f.nutrientValuePer100Grams.sugar,
-          saturatedFat: f.nutrientValuePer100Grams.saturatedFat,
-          salt: f.nutrientValuePer100Grams.salt,
-        },
-        amountGrams: Math.round(f.amountGrams * sr.portions),
-      })),
-    );
-
+    const recipeFoods = expandRecipesIntoFoods(stagedRecipes);
     onAdd([...staged, ...recipeFoods]);
     onClose();
   };
@@ -203,6 +174,7 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
           <button
             onClick={handleClose}
             className="text-text3 transition-colors hover:text-text"
+            aria-label="Close drawer"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -212,241 +184,40 @@ export default function AddItemsDrawer({ open, onClose, onAdd }: AddItemsDrawerP
 
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto p-6">
-          {/* Food search */}
-          <div className="relative mb-6">
-            <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-text3">
-              {t('nutrition.searchFoods')}
-            </label>
-            <input
-              ref={foodInputRef}
-              type="text"
-              value={foodQuery}
-              onChange={(e) => setFoodQuery(e.target.value)}
-              onFocus={() => setFoodOpen(true)}
-              onBlur={() => setTimeout(() => setFoodOpen(false), 200)}
-              placeholder={t('nutrition.searchFoods')}
-              className="w-full rounded-md border border-border-md bg-bg px-3 py-2 text-sm text-text outline-none placeholder:text-text3 focus:border-border-hv"
-            />
+          <FoodSearchDropdown
+            query={foodQuery}
+            onQueryChange={setFoodQuery}
+            onFocus={() => setFoodOpen(true)}
+            onBlur={() => setFoodOpen(false)}
+            inputRef={foodInputRef}
+            loading={foodLoading}
+            results={foodResults}
+            staged={staged}
+            onSelectFood={addFoodToStaged}
+          />
 
-            {foodLoading && (
-              <div className="absolute left-0 right-0 z-10 mt-2 rounded-sm border border-border bg-bg px-3 py-2 text-center text-xs text-text3 shadow-lg">{t('common.loading')}</div>
-            )}
+          <RecipeSearchDropdown
+            query={recipeQuery}
+            onQueryChange={setRecipeQuery}
+            onFocus={() => setRecipeOpen(true)}
+            onBlur={() => setRecipeOpen(false)}
+            loading={recipeLoading}
+            results={recipeResults}
+            stagedRecipes={stagedRecipes}
+            onSelectRecipe={addRecipeToStaged}
+          />
 
-            {!foodLoading && foodResults.length > 0 && (
-              <div className="absolute left-0 right-0 z-10 mt-2 max-h-40 overflow-y-auto rounded-sm border border-border bg-bg shadow-lg" onMouseDown={(e) => e.preventDefault()}>
-                {foodResults.map((food) => {
-                  const isSelected = staged.some((s) => s.foodExternalId === food.foodId);
-                  return (
-                    <button
-                      key={food.foodId}
-                      onClick={() => addFoodToStaged(food)}
-                      disabled={isSelected}
-                      className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors ${
-                        isSelected
-                          ? 'bg-accent-bg text-accent opacity-60'
-                          : 'hover:bg-bg-hover'
-                      }`}
-                    >
-                      <span className="truncate font-medium">{food.name}</span>
-                      <span className="ml-3 shrink-0 text-xs text-text3">
-                        {Math.round(food.nutrientValue.kcal)} kcal
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+          <StagedFoodsTable
+            items={staged}
+            onRemove={removeStagedItem}
+            onUpdateAmount={updateStagedAmount}
+          />
 
-            {!foodLoading && (foodOpen || foodQuery.trim()) && foodResults.length === 0 && (
-              <div className="absolute left-0 right-0 z-10 mt-2 rounded-sm border border-border bg-bg px-3 py-2 text-center text-xs text-text3 shadow-lg">{t('foods.noFoods')}</div>
-            )}
-          </div>
-
-          {/* Recipe search */}
-          <div className="relative mb-6">
-            <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-text3">
-              {t('recipes.searchRecipes')}
-            </label>
-            <input
-              type="text"
-              value={recipeQuery}
-              onChange={(e) => setRecipeQuery(e.target.value)}
-              onFocus={() => setRecipeOpen(true)}
-              onBlur={() => setTimeout(() => setRecipeOpen(false), 200)}
-              placeholder={t('recipes.searchRecipes')}
-              className="w-full rounded-md border border-border-md bg-bg px-3 py-2 text-sm text-text outline-none placeholder:text-text3 focus:border-border-hv"
-            />
-
-            {recipeLoading && (
-              <div className="absolute left-0 right-0 z-10 mt-2 rounded-sm border border-border bg-bg px-3 py-2 text-center text-xs text-text3 shadow-lg">{t('common.loading')}</div>
-            )}
-
-            {!recipeLoading && recipeResults.length > 0 && (
-              <div className="absolute left-0 right-0 z-10 mt-2 max-h-40 overflow-y-auto rounded-sm border border-border bg-bg shadow-lg" onMouseDown={(e) => e.preventDefault()}>
-                {recipeResults.map((recipe) => {
-                  const isSelected = stagedRecipes.some((s) => s.recipe.recipeId === recipe.recipeId);
-                  return (
-                    <button
-                      key={recipe.recipeId}
-                      onClick={() => addRecipeToStaged(recipe)}
-                      disabled={isSelected}
-                      className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors ${
-                        isSelected
-                          ? 'bg-accent-bg text-accent opacity-60'
-                          : 'hover:bg-bg-hover'
-                      }`}
-                    >
-                      <span className="truncate font-medium">{recipe.name}</span>
-                      <span className="ml-3 shrink-0 text-xs text-text3">
-                        {recipe.foodCount} {t('recipes.foods')} | {Math.round(recipe.totalNutrients.kcal)} kcal
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            {!recipeLoading && (recipeOpen || recipeQuery.trim()) && recipeResults.length === 0 && (
-              <div className="absolute left-0 right-0 z-10 mt-2 rounded-sm border border-border bg-bg px-3 py-2 text-center text-xs text-text3 shadow-lg">{t('recipes.noResults')}</div>
-            )}
-          </div>
-
-          {/* Staged foods table */}
-          {staged.length > 0 && (
-            <div className="mb-6">
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-text3">
-                {t('nutrition.searchFoods')} ({staged.length})
-              </label>
-              <div className="rounded-sm border border-border">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b border-border text-left text-[10px] uppercase text-text3">
-                      <th className="px-3 py-2 font-medium">Food</th>
-                      <th className="w-20 px-2 py-2 font-medium">{t('nutrition.grams')}</th>
-                      <th className="w-14 px-2 py-2 text-right font-medium">kcal</th>
-                      <th className="w-10 px-2 py-2 text-right font-medium">P</th>
-                      <th className="w-10 px-2 py-2 text-right font-medium">C</th>
-                      <th className="w-10 px-2 py-2 text-right font-medium">F</th>
-                      <th className="w-8 px-2 py-2" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {staged.map((item) => {
-                      const scale = item.amountGrams / 100;
-                      return (
-                        <tr key={item.foodExternalId} className="border-t border-border">
-                          <td className="truncate px-3 py-2 text-text2">{item.foodName}</td>
-                          <td className="px-2 py-2">
-                            <input
-                              type="number"
-                              min={1}
-                              value={item.amountGrams}
-                              onChange={(e) =>
-                                updateStagedAmount(
-                                  item.foodExternalId,
-                                  Math.max(1, Number(e.target.value) || 1),
-                                )
-                              }
-                              className="w-16 rounded-sm border border-border bg-bg2 px-1.5 py-0.5 text-xs text-text outline-none focus:border-border-hv"
-                            />
-                          </td>
-                          <td className="px-2 py-2 text-right text-text3">
-                            {Math.round(item.nutrientValuePer100Grams.kcal * scale)}
-                          </td>
-                          <td className="px-2 py-2 text-right text-blue-400">
-                            {Math.round(item.nutrientValuePer100Grams.protein * scale)}
-                          </td>
-                          <td className="px-2 py-2 text-right text-amber-400">
-                            {Math.round(item.nutrientValuePer100Grams.carbs * scale)}
-                          </td>
-                          <td className="px-2 py-2 text-right text-rose-400">
-                            {Math.round(item.nutrientValuePer100Grams.fat * scale)}
-                          </td>
-                          <td className="px-2 py-2 text-right">
-                            <button
-                              onClick={() => removeStagedItem(item.foodExternalId)}
-                              className="text-text3 transition-colors hover:text-red-400"
-                            >
-                              &times;
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* Staged recipes table */}
-          {stagedRecipes.length > 0 && (
-            <div>
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-text3">
-                {t('recipes.fromRecipe')} ({stagedRecipes.length})
-              </label>
-              <div className="rounded-sm border border-border">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b border-border text-left text-[10px] uppercase text-text3">
-                      <th className="px-3 py-2 font-medium">{t('recipes.fromRecipe')}</th>
-                      <th className="w-20 px-2 py-2 font-medium">{t('recipes.portions')}</th>
-                      <th className="w-14 px-2 py-2 text-right font-medium">kcal</th>
-                      <th className="w-10 px-2 py-2 text-right font-medium">P</th>
-                      <th className="w-10 px-2 py-2 text-right font-medium">C</th>
-                      <th className="w-10 px-2 py-2 text-right font-medium">F</th>
-                      <th className="w-8 px-2 py-2" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {stagedRecipes.map((sr) => {
-                      const tn = sr.recipe.totalNutrients;
-                      return (
-                        <tr key={sr.recipe.recipeId} className="border-t border-border">
-                          <td className="truncate px-3 py-2 text-text2">{sr.recipe.name}</td>
-                          <td className="px-2 py-2">
-                            <input
-                              type="number"
-                              min={0.25}
-                              step={0.25}
-                              value={sr.portions}
-                              onChange={(e) =>
-                                updateRecipePortions(
-                                  sr.recipe.recipeId,
-                                  Math.max(0.25, Number(e.target.value) || 1),
-                                )
-                              }
-                              className="w-16 rounded-sm border border-border bg-bg2 px-1.5 py-0.5 text-xs text-text outline-none focus:border-border-hv"
-                            />
-                          </td>
-                          <td className="px-2 py-2 text-right text-text3">
-                            {Math.round(tn.kcal * sr.portions)}
-                          </td>
-                          <td className="px-2 py-2 text-right text-blue-400">
-                            {Math.round(tn.protein * sr.portions)}
-                          </td>
-                          <td className="px-2 py-2 text-right text-amber-400">
-                            {Math.round(tn.carbs * sr.portions)}
-                          </td>
-                          <td className="px-2 py-2 text-right text-rose-400">
-                            {Math.round(tn.fat * sr.portions)}
-                          </td>
-                          <td className="px-2 py-2 text-right">
-                            <button
-                              onClick={() => removeStagedRecipe(sr.recipe.recipeId)}
-                              className="text-text3 transition-colors hover:text-red-400"
-                            >
-                              &times;
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+          <StagedRecipesTable
+            items={stagedRecipes}
+            onRemove={removeStagedRecipe}
+            onUpdatePortions={updateRecipePortions}
+          />
         </div>
 
         {/* Sticky add button */}

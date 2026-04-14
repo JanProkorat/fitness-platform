@@ -1,31 +1,34 @@
-import { useEffect } from 'react';
+import { useEffect, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/auth';
 import ProtectedRoute from '@/routes/ProtectedRoute';
 import RoleGuard from '@/routes/RoleGuard';
 import { AppShell } from '@/components/layout/AppShell';
+import { Toaster } from '@/components/ui';
+
+// Eagerly loaded (small, on critical auth path)
 import LoginPage from '@/pages/LoginPage';
 import RegisterPage from '@/pages/RegisterPage';
-import DashboardPage from '@/pages/DashboardPage';
-import ClientDetailPage from '@/pages/ClientDetailPage';
-import ProfilePage from '@/pages/ProfilePage';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import InviteAcceptPage from '@/pages/InviteAcceptPage';
-import DownloadAppPage from '@/pages/DownloadAppPage';
-import FoodsPage from '@/pages/FoodsPage';
-import PlansPage from '@/pages/PlansPage';
-import RecipesPage from '@/pages/RecipesPage';
-import NutritionPlanPage from '@/pages/NutritionPlanPage';
-import ClientNutritionGoalsPage from '@/pages/ClientNutritionGoalsPage';
-import ClientNutritionPage from '@/pages/ClientNutritionPage';
-import ExercisesPage from '@/pages/ExercisesPage';
-import TrainingPlanPage from '@/pages/TrainingPlanPage';
-import ClientTrainingPage from '@/pages/ClientTrainingPage';
-import MessagesPage from '@/pages/MessagesPage';
 import VerifyEmailPage from '@/pages/VerifyEmailPage';
-import { Toaster } from '@/components/ui/Toast';
+import DownloadAppPage from '@/pages/DownloadAppPage';
+
+// Lazy-loaded (heavy feature pages, loaded on demand)
+const DashboardPage = lazy(() => import('@/pages/DashboardPage'));
+const ProfilePage = lazy(() => import('@/pages/ProfilePage'));
+const MessagesPage = lazy(() => import('@/pages/MessagesPage'));
+const ClientDetailPage = lazy(() => import('@/pages/ClientDetailPage'));
+const ClientNutritionGoalsPage = lazy(() => import('@/pages/ClientNutritionGoalsPage'));
+const ClientNutritionPage = lazy(() => import('@/pages/ClientNutritionPage'));
+const ClientTrainingPage = lazy(() => import('@/pages/ClientTrainingPage'));
+const FoodsPage = lazy(() => import('@/pages/FoodsPage'));
+const RecipesPage = lazy(() => import('@/pages/RecipesPage'));
+const NutritionPlanPage = lazy(() => import('@/pages/NutritionPlanPage'));
+const ExercisesPage = lazy(() => import('@/pages/ExercisesPage'));
+const TrainingPlanPage = lazy(() => import('@/pages/TrainingPlanPage'));
 
 function DefaultRedirect() {
   const user = useAuthStore((s) => s.user);
@@ -100,7 +103,6 @@ export default function App() {
               >
                 <Route path="/foods" element={<FoodsPage />} />
                 <Route path="/recipes" element={<RecipesPage />} />
-                <Route path="/plans" element={<PlansPage />} />
                 <Route path="/clients/:id/plans/:planId" element={<NutritionPlanPage />} />
               </Route>
 

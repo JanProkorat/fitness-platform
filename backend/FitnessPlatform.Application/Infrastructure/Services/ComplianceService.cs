@@ -32,16 +32,10 @@ public class ComplianceService : IComplianceService
     {
         var plan = await FindActivePlanAsync(clientId, ct);
 
-        if (plan is null)
+        if (plan is null || !plan.StartDate.HasValue)
             return new ComplianceResult { CompliancePercent = 0, MealsPlanned = 0, MealsLogged = 0 };
 
-        var allDays = GetAllPlanDays(plan);
-        var totalDays = allDays.Count;
-
-        if (totalDays == 0)
-            return new ComplianceResult { CompliancePercent = 0, MealsPlanned = 0, MealsLogged = 0 };
-
-        var mealsPlanned = CountPlannedMeals(plan, allDays, totalDays, from, to);
+        var mealsPlanned = CountPlannedMeals(plan, from, to);
 
         var logFilter = Builders<MealLog>.Filter.Eq(l => l.ClientId, clientId)
             & Builders<MealLog>.Filter.Gte(l => l.EatenAt, from)
@@ -68,31 +62,34 @@ public class ComplianceService : IComplianceService
     {
         var plan = await FindActivePlanAsync(clientId, ct);
 
-        if (plan is null)
+        if (plan is null || !plan.StartDate.HasValue)
             return 0;
 
-        var allDays = GetAllPlanDays(plan);
-        var totalDays = allDays.Count;
+        // Floor: the Monday of the earliest published week. Walking past this
+        // point means there was no active plan yet — stop the scan.
+        var earliestPublishedWeek = plan.Weeks
+            .Where(w => w.Status == WeekStatus.Published)
+            .OrderBy(w => w.WeekNumber)
+            .FirstOrDefault();
 
-        if (totalDays == 0)
+        if (earliestPublishedWeek is null)
             return 0;
+
+        var planStart = plan.StartDate.Value.Date;
+        var floorDate = planStart.AddDays((earliestPublishedWeek.WeekNumber - 1) * 7);
 
         var streak = 0;
-        var currentDate = DateTime.UtcNow.Date.AddDays(-1);
+        var today = DateTime.UtcNow.Date;
+        var currentDate = today;
 
-        while (true)
+        while (currentDate >= floorDate)
         {
-            var plannedCount = GetPlannedMealCountForDate(plan, allDays, totalDays, currentDate);
+            var plannedCount = GetPlannedMealCountForDate(plan, currentDate);
 
             if (plannedCount == 0)
             {
-                // No meals planned for this day — skip but don't break the streak
+                // Rest day / no meals planned — skip without breaking.
                 currentDate = currentDate.AddDays(-1);
-
-                // Safety: don't go before the plan was published
-                if (plan.DatePublished.HasValue && currentDate < plan.DatePublished.Value.Date)
-                    break;
-
                 continue;
             }
 
@@ -107,16 +104,16 @@ public class ComplianceService : IComplianceService
             var dayLogs = await dayCursor.ToListAsync(ct);
             var loggedCount = dayLogs.Count;
 
-            var dayCompliance = (decimal)loggedCount / plannedCount;
-
-            if (dayCompliance >= 0.8m)
+            if (loggedCount >= 1)
             {
                 streak++;
                 currentDate = currentDate.AddDays(-1);
-
-                // Safety: don't go before the plan was published
-                if (plan.DatePublished.HasValue && currentDate < plan.DatePublished.Value.Date)
-                    break;
+            }
+            else if (currentDate == today)
+            {
+                // Today hasn't reached the threshold yet — user can still log
+                // more meals. Don't count it, but don't break the streak either.
+                currentDate = currentDate.AddDays(-1);
             }
             else
             {
@@ -195,61 +192,48 @@ public class ComplianceService : IComplianceService
         return await cursor.FirstOrDefaultAsync(ct);
     }
 
-    /// <summary>
-    /// Extracts all plan days in order from the plan's weeks.
+/// <summary>
+    /// Counts total planned meals for published weeks within a date range.
     /// </summary>
-    /// <param name="plan">The nutrition plan.</param>
-    /// <returns>Ordered list of plan days.</returns>
-    private static List<PlanDay> GetAllPlanDays(NutritionPlan plan)
-    {
-        return plan.Weeks
-            .OrderBy(w => w.WeekNumber)
-            .SelectMany(w => w.Days.OrderBy(d => d.DayOfWeek))
-            .ToList();
-    }
-
-    /// <summary>
-    /// Counts total planned meals in a date range using the plan's cycling schedule.
-    /// </summary>
-    /// <param name="plan">The nutrition plan.</param>
-    /// <param name="allDays">All plan days in order.</param>
-    /// <param name="totalDays">Total number of cycling days.</param>
-    /// <param name="from">Start date (inclusive).</param>
-    /// <param name="to">End date (inclusive).</param>
-    /// <returns>Total number of planned meals.</returns>
-    private static int CountPlannedMeals(
-        NutritionPlan plan, List<PlanDay> allDays, int totalDays, DateTime from, DateTime to)
+    private static int CountPlannedMeals(NutritionPlan plan, DateTime from, DateTime to)
     {
         var mealsPlanned = 0;
 
         for (var date = from.Date; date <= to.Date; date = date.AddDays(1))
         {
-            mealsPlanned += GetPlannedMealCountForDate(plan, allDays, totalDays, date);
+            mealsPlanned += GetPlannedMealCountForDate(plan, date);
         }
 
         return mealsPlanned;
     }
 
     /// <summary>
-    /// Gets the number of planned meals for a specific date using the plan's cycling schedule.
+    /// Gets the number of planned meals for a specific date based on the plan's
+    /// <see cref="NutritionPlan.StartDate"/> and the set of currently Published weeks.
+    /// A date that falls in a non-published week (or before the plan started) counts
+    /// as zero planned meals.
     /// </summary>
-    /// <param name="plan">The nutrition plan.</param>
-    /// <param name="allDays">All plan days in order.</param>
-    /// <param name="totalDays">Total number of cycling days.</param>
-    /// <param name="date">The date to check.</param>
-    /// <returns>Number of planned meals for the date.</returns>
-    private static int GetPlannedMealCountForDate(
-        NutritionPlan plan, List<PlanDay> allDays, int totalDays, DateTime date)
+    private static int GetPlannedMealCountForDate(NutritionPlan plan, DateTime date)
     {
-        if (!plan.DatePublished.HasValue)
+        if (!plan.StartDate.HasValue)
             return 0;
 
-        var daysSincePublish = (int)(date.Date - plan.DatePublished.Value.Date).TotalDays;
+        var startDate = plan.StartDate.Value.Date;
+        var target = date.Date;
 
-        if (daysSincePublish < 0)
+        if (target < startDate)
             return 0;
 
-        var dayIndex = daysSincePublish % totalDays;
-        return allDays[dayIndex].Meals.Count;
+        var daysSinceStart = (int)(target - startDate).TotalDays;
+        var weekNumber = daysSinceStart / 7 + 1;
+        // PlanDay.DayOfWeek is 1=Monday … 7=Sunday to match ISO week days.
+        var dayOfWeek = daysSinceStart % 7 + 1;
+
+        var week = plan.Weeks.FirstOrDefault(w => w.WeekNumber == weekNumber);
+        if (week is null || week.Status != WeekStatus.Published)
+            return 0;
+
+        var day = week.Days.FirstOrDefault(d => d.DayOfWeek == dayOfWeek);
+        return day?.Meals.Count ?? 0;
     }
 }

@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useToastStore } from '@/stores/toast';
-import { Dialog } from '@/components/ui/Dialog';
-import { Button } from '@/components/ui/Button';
+import { Dialog, Button } from '@/components/ui';
 import {
   getTrainerQuestionnaires,
   createQuestionnaire,

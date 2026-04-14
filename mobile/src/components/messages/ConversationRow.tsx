@@ -3,6 +3,9 @@ import { View, Text, Pressable, StyleSheet, Animated } from 'react-native'
 import { Swipeable } from 'react-native-gesture-handler'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/hooks/useTheme'
+import { goldAlpha } from '@/constants/colors'
+import { getInitials } from '@/lib/initials'
+import { formatTimestamp } from '@/lib/dateFormatting'
 import type { Conversation } from '../../types/messages'
 
 interface ConversationRowProps {
@@ -13,31 +16,7 @@ interface ConversationRowProps {
   variant?: 'default' | 'archived'
 }
 
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/)
-  if (parts.length >= 2) {
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-  }
-  return (parts[0]?.[0] ?? '').toUpperCase()
-}
-
-function formatTimestamp(iso: string): string {
-  const date = new Date(iso)
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-
-  if (diffDays === 0) {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  }
-  if (diffDays === 1) return 'Yesterday'
-  if (diffDays < 7) {
-    return date.toLocaleDateString([], { weekday: 'short' })
-  }
-  return date.toLocaleDateString([], { month: 'short', day: 'numeric' })
-}
-
-export function ConversationRow({
+export const ConversationRow = React.memo(function ConversationRow({
   conversation,
   onPress,
   onArchive,
@@ -63,7 +42,7 @@ export function ConversationRow({
     })
 
     const isUnarchiveAction = isArchived && onUnarchive
-    const actionColor = isUnarchiveAction ? colors.green : '#636366'
+    const actionColor = isUnarchiveAction ? colors.green : colors.systemGray
     const actionLabel = isUnarchiveAction ? 'Unarchive' : 'Archive'
     const actionHandler = isUnarchiveAction ? onUnarchive : onArchive
 
@@ -76,8 +55,8 @@ export function ConversationRow({
         style={[styles.swipeAction, { backgroundColor: actionColor }]}
       >
         <Animated.View style={{ transform: [{ scale }], alignItems: 'center', gap: 3 }}>
-          <Ionicons name="archive-outline" size={18} color="#fff" />
-          <Text style={styles.swipeLabel}>{actionLabel}</Text>
+          <Ionicons name="archive-outline" size={18} color={colors.onAccent} />
+          <Text style={[styles.swipeLabel, { color: colors.onAccent }]}>{actionLabel}</Text>
         </Animated.View>
       </Pressable>
     )
@@ -96,7 +75,7 @@ export function ConversationRow({
         <View
           style={[
             styles.avatar,
-            { backgroundColor: 'rgba(201,168,76,0.15)', opacity: isArchived ? 0.6 : 1 },
+            { backgroundColor: goldAlpha['15'], opacity: isArchived ? 0.6 : 1 },
           ]}
         >
           <Text style={[styles.avatarText, { color: colors.gold }]}>
@@ -144,7 +123,7 @@ export function ConversationRow({
         </Text>
         {!isArchived && hasUnread && (
           <View style={[styles.unreadBadge, { backgroundColor: colors.gold }]}>
-            <Text style={styles.unreadText}>
+            <Text style={[styles.unreadText, { color: colors.onAccent }]}>
               {unreadCount > 99 ? '99+' : unreadCount}
             </Text>
           </View>
@@ -167,7 +146,7 @@ export function ConversationRow({
   }
 
   return content
-}
+})
 
 const styles = StyleSheet.create({
   row: {
@@ -247,7 +226,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   unreadText: {
-    color: '#ffffff',
     fontSize: 12,
     fontWeight: '700',
   },
@@ -257,7 +235,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   swipeLabel: {
-    color: '#ffffff',
     fontSize: 11,
     fontWeight: '600',
   },

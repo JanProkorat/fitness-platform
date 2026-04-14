@@ -193,11 +193,20 @@ export function MealBlock({
     <div className="mb-3 rounded-md border border-border bg-bg transition-all duration-100 hover:border-border-md">
       {/* Header */}
       <div
+        role="button"
+        tabIndex={0}
         className={cn(
           'group flex items-center gap-1.5 px-3 py-2 cursor-pointer select-none transition-colors hover:bg-bg-hover',
           isOpen && 'border-b border-border',
         )}
         onClick={onToggle}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onToggle();
+          }
+        }}
+        aria-label={`${t(`mealKind.${kind}`)} - ${isOpen ? 'Collapse' : 'Expand'}`}
       >
         <span
           className={cn(
@@ -246,6 +255,7 @@ export function MealBlock({
             onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text2)'; }}
             onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text4)'; }}
             title={t('nutrition.duplicateMeal')}
+            aria-label={`Duplicate ${t(`mealKind.${kind}`)}`}
           >
             ⧉
           </button>
@@ -262,6 +272,7 @@ export function MealBlock({
             onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--red)'; }}
             onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text4)'; }}
             title={t('nutrition.removeMeal')}
+            aria-label={`Remove ${t(`mealKind.${kind}`)}`}
           >
             ✕
           </button>

@@ -1,18 +1,17 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/auth';
-import { apiClient } from '@/api/client';
-import type { ClientSummary } from '@/api/client';
+import { getDashboardSummary } from '@/api/dashboard';
 import { getIncomingRequests, acceptClientRequest, rejectClientRequest, type IncomingRequest } from '@/api/client-requests';
 import { getTrainerQuestionnaires, type QuestionnaireSummaryDto } from '@/api/questionnaires';
+import { complianceColor, initials, enrichClient, type EnrichedClient } from '@/lib/dashboard-helpers';
 
 import { PageHeader } from '@/components/layout';
 import { Toolbar } from '@/components/layout';
-import { Button, Tag, ProgressBar } from '@/components/ui';
+import { Button, Tag, ProgressBar, Dialog } from '@/components/ui';
 import { NewClientDialog } from '@/components/NewClientDialog';
-import { Dialog } from '@/components/ui/Dialog';
 import {
   DatabaseTable,
   ListView,
@@ -28,67 +27,11 @@ import {
 
 type ViewType = 'table' | 'list' | 'cards';
 
-// -- helpers ----------------------------------------------------------------
-
-function complianceColor(c: number): string {
-  if (c >= 80) return 'var(--green)';
-  if (c >= 60) return 'var(--orange)';
-  return 'var(--red)';
-}
-
-function initials(first?: string, last?: string): string {
-  return `${(first ?? '')[0] ?? ''}${(last ?? '')[0] ?? ''}`.toUpperCase();
-}
-
-// Fake enriched data (API only returns basic fields; the rest will come later)
-interface EnrichedClient extends ClientSummary {
-  goal: string;
-  goalTag: 'blue' | 'purple' | 'green' | 'orange' | 'gray';
-  compliance: number;
-  streak: number;
-  kcal: number;
-  kcalGoal: number;
-  trains: number;
-  trainsGoal: number;
-  lastActivity: string;
-  lastActivityColor: string;
-}
-
-function enrichClient(c: ClientSummary, idx: number): EnrichedClient {
-  // Placeholder enrichment until the backend exposes these fields
-  const goals: { goal: string; tag: EnrichedClient['goalTag'] }[] = [
-    { goal: 'Hubnutí', tag: 'blue' },
-    { goal: 'Nabírání', tag: 'purple' },
-    { goal: 'Zdraví', tag: 'green' },
-    { goal: 'Výkonnost', tag: 'orange' },
-    { goal: 'Síla', tag: 'gray' },
-  ];
-  const g = goals[idx % goals.length];
-  const complianceVals = [95, 87, 100, 52, 35];
-  const streakVals = [21, 12, 34, 4, 2];
-  const kcalVals = [1640, 2840, 1890, 3100, 2650];
-  const kcalGoalVals = [1700, 2900, 1900, 3200, 2800];
-  const trainsVals = [4, 3, 3, 2, 1];
-  const trainsGoalVals = [4, 4, 3, 5, 4];
-  const lastVals = ['dnes', 'dnes', 'dnes', '3 dny', '5 dní'];
-  const lastColorVals = ['var(--green)', 'var(--green)', 'var(--green)', 'var(--text3)', 'var(--red)'];
-
-  return {
-    ...c,
-    goal: g.goal,
-    goalTag: g.tag,
-    compliance: complianceVals[idx % complianceVals.length],
-    streak: streakVals[idx % streakVals.length],
-    kcal: kcalVals[idx % kcalVals.length],
-    kcalGoal: kcalGoalVals[idx % kcalGoalVals.length],
-    trains: trainsVals[idx % trainsVals.length],
-    trainsGoal: trainsGoalVals[idx % trainsGoalVals.length],
-    lastActivity: lastVals[idx % lastVals.length],
-    lastActivityColor: lastColorVals[idx % lastColorVals.length],
-  };
-}
-
-// ---------------------------------------------------------------------------
+const VIEWS: { id: ViewType; label: string; icon: string }[] = [
+  { id: 'table', label: 'Tabulka', icon: '⊞' },
+  { id: 'list', label: 'Seznam', icon: '☰' },
+  { id: 'cards', label: 'Karty', icon: '⬜' },
+];
 
 export default function DashboardPage() {
   const { t, i18n } = useTranslation();
@@ -141,23 +84,33 @@ export default function DashboardPage() {
   });
 
   // -- data -----------------------------------------------------------------
-  const { data: clientsData } = useQuery({
-    queryKey: ['clients', 1],
-    queryFn: () => apiClient.getClientsEndpoint(1, 5),
+  const { data: dashboardData } = useQuery({
+    queryKey: ['dashboard-summary'],
+    queryFn: getDashboardSummary,
+    staleTime: 60_000,
   });
 
+  const isTrainer = user?.roles?.includes('Trainer') ?? false;
+  const isNutritionist = user?.roles?.includes('Nutritionist') ?? false;
+
   const clients: EnrichedClient[] =
-    clientsData?.clients?.map((c, i) => enrichClient(c, i)) ?? [];
+    dashboardData?.clients?.map((c) => enrichClient(c)) ?? [];
 
   const activeCount = clients.filter((c) => c.isActive).length;
-  const totalCount = clientsData?.totalCount ?? 0;
+  const totalCount = clients.length;
+  // Only count clients with an active plan relevant to the coach's role.
+  const clientsWithPlans = clients.filter((c) =>
+    (isNutritionist && c.activeNutritionPlansCount > 0) ||
+    (isTrainer && c.hasActiveTrainingPlan),
+  );
   const avgCompliance =
-    clients.length > 0
-      ? Math.round(clients.reduce((sum, c) => sum + c.compliance, 0) / clients.length)
+    clientsWithPlans.length > 0
+      ? Math.round(clientsWithPlans.reduce((sum, c) => sum + c.compliance, 0) / clientsWithPlans.length)
       : 0;
   const totalTrains = clients.reduce((sum, c) => sum + c.trains, 0);
   const totalTrainsGoal = clients.reduce((sum, c) => sum + c.trainsGoal, 0);
-  const alertClients = clients.filter((c) => c.compliance < 50);
+  const activePlansCount = clients.reduce((sum, c) => sum + c.activeNutritionPlansCount, 0);
+  const alertClients = clientsWithPlans.filter((c) => c.compliance < 50);
 
   // -- date string ----------------------------------------------------------
   const dateStr = new Date().toLocaleDateString(i18n.language, {
@@ -169,108 +122,159 @@ export default function DashboardPage() {
   const subtitle = `Přehled všech klientů · ${dateStr.charAt(0).toUpperCase() + dateStr.slice(1)}`;
 
   // -- stats ----------------------------------------------------------------
-  const stats = [
-    {
-      label: 'Aktivní klienti',
-      value: String(activeCount),
-      sub: totalCount > 0 ? `celkem ${totalCount}` : '—',
-    },
-    {
-      label: 'Avg. compliance',
-      value: clients.length > 0 ? `${avgCompliance} %` : '—',
-      valueColor: clients.length > 0 ? complianceColor(avgCompliance) : undefined,
-      sub: clients.length > 0 ? '↑ vs. minulý týden' : '—',
-    },
-    {
-      label: 'Tréninky / plán',
-      value: clients.length > 0 ? `${totalTrains}/${totalTrainsGoal}` : '—',
-      sub: 'tento týden',
-    },
-    {
-      label: 'Upozornění',
+  const stats = useMemo(() => {
+    const items: { label: string; value: string; valueColor?: string; sub: string }[] = [
+      {
+        label: 'Aktivní klienti',
+        value: String(activeCount),
+        sub: totalCount > 0 ? `celkem ${totalCount}` : '—',
+      },
+      {
+        label: 'Avg. compliance',
+        value: clients.length > 0 ? `${avgCompliance} %` : '—',
+        valueColor: clients.length > 0 ? complianceColor(avgCompliance) : undefined,
+        sub: clients.length > 0 ? '↑ vs. minulý týden' : '—',
+      },
+    ];
+
+    // Role-based training / plan card
+    if (isTrainer && isNutritionist) {
+      items.push({
+        label: 'Tréninky / plány',
+        value: clients.length > 0
+          ? `${totalTrains}/${totalTrainsGoal} · ${activePlansCount}`
+          : '—',
+        sub: 'tréninky tento týden · aktivní plány',
+      });
+    } else if (isTrainer) {
+      items.push({
+        label: 'Tréninky',
+        value: clients.length > 0 ? `${totalTrains}/${totalTrainsGoal}` : '—',
+        sub: 'splněno tento týden',
+      });
+    } else if (isNutritionist) {
+      items.push({
+        label: 'Aktivní plány',
+        value: clients.length > 0 ? String(activePlansCount) : '—',
+        sub: activePlansCount === 1 ? 'aktivní plán' : 'aktivních plánů',
+      });
+    }
+
+    items.push({
+      label: 'Nízká compliance',
       value: String(alertClients.length),
       valueColor: alertClients.length > 0 ? 'var(--orange)' : undefined,
-      sub: alertClients.length > 0 ? 'vyžaduje pozornost' : 'vše v pořádku',
-    },
-  ];
+      sub: alertClients.length > 0 ? `${alertClients.length === 1 ? 'klient' : 'klienti'} pod 50 %` : 'vše v pořádku',
+    });
 
-  // -- toolbar views --------------------------------------------------------
-  const views = [
-    { id: 'table', label: 'Tabulka', icon: '⊞' },
-    { id: 'list', label: 'Seznam', icon: '☰' },
-    { id: 'cards', label: 'Karty', icon: '⬜' },
-  ];
+    return items;
+  }, [activeCount, totalCount, clients.length, avgCompliance, totalTrains, totalTrainsGoal, activePlansCount, alertClients.length, isTrainer, isNutritionist]);
 
   // -- table columns --------------------------------------------------------
-  const columns = [
-    {
-      key: 'name',
-      label: 'Jméno',
-      render: (row: EnrichedClient) => (
-        <span>{row.firstName} {row.lastName}</span>
-      ),
-    },
-    {
-      key: 'goal',
-      label: 'Cíl',
-      render: (row: EnrichedClient) => (
-        <Tag variant={row.goalTag}>{row.goal}</Tag>
-      ),
-    },
-    {
-      key: 'compliance',
-      label: 'Compliance',
-      render: (row: EnrichedClient) => (
-        <div className="flex items-center gap-2">
-          <ProgressBar
-            value={row.compliance}
-            color={complianceColor(row.compliance)}
-            className="w-[60px]"
-            height={5}
-          />
-          <span className="text-xs text-text2">{row.compliance} %</span>
-        </div>
-      ),
-    },
-    {
-      key: 'streak',
-      label: 'Streak',
-      render: (row: EnrichedClient) => (
-        <span className="text-[13px]">🔥 {row.streak}d</span>
-      ),
-    },
-    {
-      key: 'kcal',
-      label: 'Kalorie',
-      render: (row: EnrichedClient) => (
-        <div className="flex items-center gap-1.5">
-          <ProgressBar
-            value={Math.round((row.kcal / row.kcalGoal) * 100)}
-            color="var(--accent)"
-            className="w-[50px]"
-            height={4}
-          />
-          <span className="text-xs text-text2">{row.kcal}</span>
-        </div>
-      ),
-    },
-    {
-      key: 'trains',
-      label: 'Tréninky',
-      render: (row: EnrichedClient) => {
-        const variant = row.trains >= row.trainsGoal
-          ? 'green'
-          : row.trains >= row.trainsGoal / 2
-          ? 'orange'
-          : 'red';
-        return (
-          <Tag variant={variant as 'green' | 'orange' | 'red'}>
-            {row.trains}/{row.trainsGoal}
-          </Tag>
-        );
+  const columns = useMemo(() => {
+    const cols: { key: string; label: string; render: (row: EnrichedClient) => React.ReactNode }[] = [
+      {
+        key: 'name',
+        label: 'Jméno',
+        render: (row: EnrichedClient) => (
+          <span>{row.firstName} {row.lastName}</span>
+        ),
       },
-    },
-    {
+      {
+        key: 'goal',
+        label: 'Cíl',
+        render: (row: EnrichedClient) => (
+          <Tag variant={row.goalTag}>{row.goal}</Tag>
+        ),
+      },
+      {
+        key: 'compliance',
+        label: 'Compliance',
+        render: (row: EnrichedClient) => (
+          <div className="flex items-center gap-2">
+            <ProgressBar
+              value={row.compliance}
+              color={complianceColor(row.compliance)}
+              className="w-[60px]"
+              height={5}
+            />
+            <span className="text-xs text-text2">{row.compliance} %</span>
+          </div>
+        ),
+      },
+      {
+        key: 'streak',
+        label: 'Streak',
+        render: (row: EnrichedClient) => (
+          <span className="text-[13px]">🔥 {row.streak}d</span>
+        ),
+      },
+      {
+        key: 'kcal',
+        label: 'Kalorie dnes',
+        render: (row: EnrichedClient) => {
+          const pct = row.kcalGoal > 0 ? Math.round((row.todayKcalRounded / row.kcalGoal) * 100) : 0;
+          return (
+            <div className="flex items-center gap-1.5">
+              <ProgressBar
+                value={Math.min(pct, 100)}
+                color="var(--accent)"
+                className="w-[50px]"
+                height={4}
+              />
+              <span className="text-xs text-text2">
+                {row.todayKcalRounded}/{row.kcalGoal}
+              </span>
+            </div>
+          );
+        },
+      },
+    ];
+
+    if (isTrainer) {
+      cols.push({
+        key: 'trains',
+        label: 'Tréninky',
+        render: (row: EnrichedClient) => {
+          const variant = row.trains >= row.trainsGoal
+            ? 'green'
+            : row.trains >= row.trainsGoal / 2
+            ? 'orange'
+            : 'red';
+          return (
+            <Tag variant={variant as 'green' | 'orange' | 'red'}>
+              {row.trains}/{row.trainsGoal}
+            </Tag>
+          );
+        },
+      });
+    }
+
+    if (isNutritionist) {
+      cols.push({
+        key: 'nutritionPlan',
+        label: 'Nutriční plán',
+        render: (row: EnrichedClient) => (
+          <Tag variant={row.activeNutritionPlansCount > 0 ? 'green' : 'gray'}>
+            {row.activeNutritionPlansCount > 0 ? 'Ano' : 'Ne'}
+          </Tag>
+        ),
+      });
+    }
+
+    if (isTrainer) {
+      cols.push({
+        key: 'trainingPlan',
+        label: 'Tréninkový plán',
+        render: (row: EnrichedClient) => (
+          <Tag variant={row.hasActiveTrainingPlan ? 'green' : 'gray'}>
+            {row.hasActiveTrainingPlan ? 'Ano' : 'Ne'}
+          </Tag>
+        ),
+      });
+    }
+
+    cols.push({
       key: 'activity',
       label: 'Aktivita',
       render: (row: EnrichedClient) => (
@@ -278,8 +282,10 @@ export default function DashboardPage() {
           {row.lastActivity}
         </span>
       ),
-    },
-  ];
+    });
+
+    return cols;
+  }, [isTrainer, isNutritionist]);
 
   // -- handlers -------------------------------------------------------------
   const handleRowClick = (row: EnrichedClient) => {
@@ -292,7 +298,7 @@ export default function DashboardPage() {
       <PageHeader icon="📊" title="Dashboard" subtitle={subtitle} />
 
       <Toolbar
-        views={views}
+        views={VIEWS}
         activeView={view}
         onViewChange={(id) => setView(id as ViewType)}
       >
@@ -361,19 +367,30 @@ export default function DashboardPage() {
           <StatsGrid stats={stats} />
 
           {/* Callouts for low-compliance clients */}
-          {alertClients.map((client) => (
-            <Callout
-              key={client.publicId}
-              variant="warning"
-              icon="⚠"
-              title={`${client.firstName} ${client.lastName} — ${client.compliance < 40 ? 'nízká compliance' : 'vyžaduje pozornost'}`}
-            >
-              Compliance {client.compliance} %, plní {client.trains}/{client.trainsGoal} tréninků.{' '}
-              <Mention onClick={() => navigate(`/messages?clientId=${client.publicId}`)}>
-                ✉ Napsat zprávu
-              </Mention>
-            </Callout>
-          ))}
+          {alertClients.map((client) => {
+            const details: string[] = [];
+            if (isNutritionist) {
+              details.push(`Compliance ${client.compliance} % — neplní plán`);
+            }
+            if (isTrainer) {
+              details.push(`Plní ${client.trains}/${client.trainsGoal} tréninků`);
+            }
+            return (
+              <Callout
+                key={client.publicId}
+                variant="warning"
+                icon="⚠"
+                title={`${client.firstName} ${client.lastName} — ${client.compliance < 40 ? 'nízká compliance' : 'vyžaduje pozornost'}`}
+                action={
+                  <Mention onClick={() => navigate(`/messages?clientId=${client.publicId}`)}>
+                    ✉ Napsat zprávu
+                  </Mention>
+                }
+              >
+                {details.join(' · ')}
+              </Callout>
+            );
+          })}
           {alertClients.length > 0 && <div className="mb-4" />}
 
           {/* Empty state */}
@@ -519,9 +536,14 @@ export default function DashboardPage() {
                       </span>
                       <span className="text-text3 ml-1">compliance · 🔥{client.streak}d</span>
                     </CardPropRow>
-                    <CardPropRow label="Tréninky:">
-                      {client.trains}/{client.trainsGoal}
+                    <CardPropRow label="Kalorie:">
+                      {client.todayKcalRounded}/{client.kcalGoal}
                     </CardPropRow>
+                    {isTrainer && (
+                      <CardPropRow label="Tréninky:">
+                        {client.trains}/{client.trainsGoal}
+                      </CardPropRow>
+                    )}
                   </CardBody>
                 </Card>
               ))}

@@ -2,7 +2,9 @@ import React, { useRef, useCallback, useEffect } from 'react'
 import { View, Text, StyleSheet, Pressable, Animated } from 'react-native'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
+import { goldAlpha } from '@/constants/colors'
 import { Radius } from '@/constants/radius'
+import { cardShadow } from '@/constants/shadows'
 import { Avatar } from '@/components/ui/Avatar'
 import type { TrainerInvite } from '@/hooks/useClientInvite'
 
@@ -59,7 +61,7 @@ export function InviteCard({ invite, onAccept, onDecline }: InviteCardProps) {
           styles.card,
           {
             backgroundColor: colors.bg2,
-            borderColor: 'rgba(201,168,76,0.25)',
+            borderColor: goldAlpha['25'],
             shadowColor: '#c9a84c',
           },
         ]}
@@ -88,7 +90,7 @@ export function InviteCard({ invite, onAccept, onDecline }: InviteCardProps) {
             style={[styles.btn, { backgroundColor: colors.gold, flex: 1 }]}
             onPress={() => animateOut(onAccept)}
           >
-            <Text style={styles.btnTextPrimary}>Accept invitation</Text>
+            <Text style={[styles.btnTextPrimary, { color: colors.onAccent }]}>Accept invitation</Text>
           </Pressable>
           <Pressable
             style={[styles.btn, { backgroundColor: colors.fill, flex: 1 }]}
@@ -114,10 +116,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: Radius.lg,
     padding: 16,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+    ...cardShadow,
   },
   trainerRow: {
     flexDirection: 'row',
@@ -138,7 +137,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   btnTextPrimary: {
-    color: '#ffffff',
     fontSize: 15,
     fontWeight: '600',
   },

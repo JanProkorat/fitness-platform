@@ -19,8 +19,8 @@ export function BellButton({ count, onPress, style }: BellButtonProps) {
     >
       <Ionicons name="notifications-outline" size={20} color={colors.label} />
       {count > 0 && (
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{count > 99 ? '99+' : count}</Text>
+        <View style={[styles.badge, { backgroundColor: colors.red, borderColor: colors.bg }]}>
+          <Text style={[styles.badgeText, { color: colors.onAccent }]}>{count > 99 ? '99+' : count}</Text>
         </View>
       )}
     </Pressable>
@@ -41,7 +41,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -4,
     right: -4,
-    backgroundColor: '#ff3b30',
     borderRadius: 8,
     minWidth: 16,
     height: 16,
@@ -49,10 +48,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 4,
     borderWidth: 2,
-    borderColor: '#ffffff',
   },
   badgeText: {
-    color: '#ffffff',
     fontSize: 10,
     fontWeight: '700',
     lineHeight: 12,

@@ -1,11 +1,17 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useState, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { searchExercises, createExercise, updateExercise, deleteExercise } from '@/api/exercises';
 import type { CreateExerciseRequest, ExerciseSummary, MuscleGroup, ExerciseEquipment, ExerciseCategory, ExerciseDifficulty } from '@/api/exercise-types';
 import { showApiError, showSuccess } from '@/lib/api-errors';
+import { useApiMutation } from '@/hooks/useApiMutation';
+import { useConfirmDelete } from '@/hooks/useConfirmDelete';
 import { PageHeader } from '@/components/layout';
-import { Button } from '@/components/ui';
+import { Button, Dialog } from '@/components/ui';
+import { Pagination } from '@/components/data';
+import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
+import { INPUT_CLASS } from '@/lib/styles';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
 const muscleGroupColors: Record<string, string> = {
   Chest: 'bg-red-500/15 text-red-400',
@@ -35,50 +41,29 @@ export default function ExercisesPage() {
 
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [muscleGroup, setMuscleGroup] = useState('');
   const [equipment, setEquipment] = useState('');
   const [category, setCategory] = useState('');
   const [difficulty, setDifficulty] = useState('');
 
-  // Drawer
-  const [drawerMounted, setDrawerMounted] = useState(false);
-  const [drawerVisible, setDrawerVisible] = useState(false);
+  const debouncedSearch = useDebouncedValue(search, 300, () => setPage(1));
+
+  // Exercise dialog (add / edit)
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [localesOpen, setLocalesOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingExercise, setEditingExercise] = useState<ExerciseSummary | null>(null);
-  const [form, setForm] = useState<CreateExerciseRequest>({
-    name: '',
-    nameEn: '',
-    nameCs: '',
-    nameDe: '',
-    muscleGroups: [],
-    equipment: '' as ExerciseEquipment,
-    category: '' as ExerciseCategory,
-    difficulty: '' as ExerciseDifficulty,
-    techniqueNotes: '',
-  });
+  const emptyForm: CreateExerciseRequest = { name: '', nameEn: '', nameCs: '', nameDe: '', muscleGroups: [], equipment: '' as ExerciseEquipment, category: '' as ExerciseCategory, difficulty: '' as ExerciseDifficulty, techniqueNotes: '' };
+  const [form, setForm] = useState<CreateExerciseRequest>(emptyForm);
 
-  // Delete confirmation
-  const [confirmDelete, setConfirmDelete] = useState<{ exerciseId: string; name: string } | null>(null);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(search);
-      setPage(1);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [search]);
-
-  const openDrawer = useCallback(() => {
+  const openNewDialog = useCallback(() => {
     setEditingExercise(null);
-    setForm({ name: '', nameEn: '', nameCs: '', nameDe: '', muscleGroups: [], equipment: '' as ExerciseEquipment, category: '' as ExerciseCategory, difficulty: '' as ExerciseDifficulty, techniqueNotes: '' });
+    setForm({ ...emptyForm });
     setLocalesOpen(false);
-    setDrawerMounted(true);
-    requestAnimationFrame(() => requestAnimationFrame(() => setDrawerVisible(true)));
+    setDialogOpen(true);
   }, []);
 
-  const openEditDrawer = useCallback((exercise: ExerciseSummary) => {
+  const openEditDialog = useCallback((exercise: ExerciseSummary) => {
     setEditingExercise(exercise);
     setForm({
       name: exercise.rawName || exercise.name,
@@ -92,16 +77,12 @@ export default function ExercisesPage() {
       techniqueNotes: '',
     });
     setLocalesOpen(false);
-    setDrawerMounted(true);
-    requestAnimationFrame(() => requestAnimationFrame(() => setDrawerVisible(true)));
+    setDialogOpen(true);
   }, []);
 
-  const closeDrawer = useCallback(() => {
-    setDrawerVisible(false);
-    setTimeout(() => {
-      setDrawerMounted(false);
-      setEditingExercise(null);
-    }, 300);
+  const closeDialog = useCallback(() => {
+    setDialogOpen(false);
+    setEditingExercise(null);
   }, []);
 
   const { data, isLoading, refetch } = useQuery({
@@ -118,14 +99,13 @@ export default function ExercisesPage() {
       }),
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: deleteExercise,
-    onSuccess: () => {
-      showSuccess('exercises.deleted');
-      refetch();
-    },
-    onError: (error) => showApiError(error, 'exercises.deleteError'),
+  const deleteMutation = useApiMutation(deleteExercise, {
+    successKey: 'exercises.deleted',
+    errorKey: 'exercises.deleteError',
+    onSuccess: () => refetch(),
   });
+
+  const confirmDelete = useConfirmDelete(deleteMutation);
 
   const totalPages = data ? Math.ceil((data.totalCount ?? 0) / (data.pageSize ?? 1)) : 0;
 
@@ -141,7 +121,7 @@ export default function ExercisesPage() {
         await createExercise(form);
         showSuccess('exercises.created');
       }
-      closeDrawer();
+      closeDialog();
       refetch();
     } catch (err) {
       showApiError(err, editingExercise ? 'exercises.updateError' : 'exercises.createError');
@@ -152,14 +132,7 @@ export default function ExercisesPage() {
 
   const handleDeleteClick = (e: React.MouseEvent, exercise: ExerciseSummary) => {
     e.stopPropagation();
-    setConfirmDelete({ exerciseId: exercise.exerciseId, name: exercise.name });
-  };
-
-  const handleConfirmDelete = () => {
-    if (confirmDelete) {
-      deleteMutation.mutate(confirmDelete.exerciseId);
-      setConfirmDelete(null);
-    }
+    confirmDelete.requestDelete(exercise.exerciseId, exercise.name);
   };
 
   const toggleMuscleGroup = (mg: MuscleGroup) => {
@@ -171,9 +144,6 @@ export default function ExercisesPage() {
     }));
   };
 
-  const inputClass =
-    'rounded-md border border-border-md bg-bg px-4 py-2.5 text-sm text-text outline-none transition-colors placeholder:text-text3 focus:border-border-hv';
-
   return (
     <div className="flex h-full flex-col">
       <PageHeader
@@ -181,7 +151,7 @@ export default function ExercisesPage() {
         title={t('exercises.title')}
         subtitle={t('exercises.subtitle')}
         actions={
-          <Button variant="primary" onClick={openDrawer}>
+          <Button variant="primary" onClick={openNewDialog}>
             + {t('exercises.addExercise')}
           </Button>
         }
@@ -253,7 +223,7 @@ export default function ExercisesPage() {
               {data.exercises.map((exercise) => (
                 <div
                   key={exercise.exerciseId}
-                  onClick={() => openEditDrawer(exercise)}
+                  onClick={() => openEditDialog(exercise)}
                   className="grid grid-cols-[1fr_180px_100px_100px_100px_60px] cursor-pointer items-center gap-4 border-b border-border px-5 py-3 transition-colors last:border-0 hover:bg-bg-hover"
                 >
                   <span className="truncate text-sm font-semibold">{exercise.name}</span>
@@ -286,204 +256,141 @@ export default function ExercisesPage() {
                 </div>
               ))}
 
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between border-t border-border px-5 py-3">
-                  <span className="text-xs text-text3">
-                    {t('common.page', { current: page, total: totalPages })} &middot;{' '}
-                    {t('common.total', { count: data.totalCount })}
-                  </span>
-                  <div className="flex gap-2">
-                    <button
-                      disabled={page <= 1}
-                      onClick={() => setPage((p) => p - 1)}
-                      className="rounded-sm border border-border px-3 py-1 text-xs text-text3 transition-colors hover:text-accent disabled:opacity-30"
-                    >
-                      &larr; {t('common.previous')}
-                    </button>
-                    <button
-                      disabled={page >= totalPages}
-                      onClick={() => setPage((p) => p + 1)}
-                      className="rounded-sm border border-border px-3 py-1 text-xs text-text3 transition-colors hover:text-accent disabled:opacity-30"
-                    >
-                      {t('common.next')} &rarr;
-                    </button>
-                  </div>
-                </div>
-              )}
+              <Pagination page={page} totalPages={totalPages} totalCount={data.totalCount} onPageChange={setPage} className="border-t border-border px-5 py-3" />
             </>
           )}
         </div>
       </div>
 
-      {/* Right-side drawer for creating an exercise */}
-      {drawerMounted && (
-        <>
-          <div
-            className={`fixed inset-0 z-40 bg-black/50 transition-opacity duration-300 ${drawerVisible ? 'opacity-100' : 'opacity-0'}`}
-            onClick={closeDrawer}
-          />
-          <div
-            className={`fixed top-0 right-0 z-50 flex h-full w-[400px] flex-col border-l border-border bg-bg shadow-2xl transition-transform duration-300 ease-out ${drawerVisible ? 'translate-x-0' : 'translate-x-full'}`}
+      {/* Add / Edit exercise dialog */}
+      <Dialog
+        open={dialogOpen}
+        onClose={closeDialog}
+        title={editingExercise ? t('exercises.editExercise') : t('exercises.addExercise')}
+        maxWidth={520}
+        footer={
+          <Button
+            variant="primary"
+            onClick={handleSubmit as any}
+            disabled={saving || !form.name.trim() || form.muscleGroups.length === 0}
           >
-            <div className="flex-1 overflow-y-auto p-6">
-              <div className="mb-4 flex items-center justify-between">
-                <div className="text-sm font-semibold">{editingExercise ? t('exercises.editExercise') : t('exercises.addExercise')}</div>
-                <button
-                  type="button"
-                  onClick={closeDrawer}
-                  className="text-text3 transition-colors hover:text-text"
-                >
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+            {saving ? t('common.saving') : editingExercise ? t('exercises.saveChanges') : t('exercises.addExercise')}
+          </Button>
+        }
+      >
+        <form id="exercise-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
+          {/* Name */}
+          <div>
+            <label className="mb-1 block text-xs text-text3">{t('exercises.exerciseName')}</label>
+            <input
+              type="text"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              placeholder={t('exercises.namePlaceholder')}
+              required
+              className={`w-full ${INPUT_CLASS}`}
+            />
+          </div>
+
+          {/* Localized names (collapsible) */}
+          <div>
+            <button
+              type="button"
+              onClick={() => setLocalesOpen(!localesOpen)}
+              className="flex items-center gap-1 text-xs text-text3 transition-colors hover:text-text"
+            >
+              <svg className={`h-3 w-3 transition-transform ${localesOpen ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+              {t('exercises.localizedNames')}
+            </button>
+            {localesOpen && (
+              <div className="mt-2 flex flex-col gap-3">
+                <div>
+                  <label className="mb-1 block text-xs text-text3">{t('exercises.nameEn')}</label>
+                  <input type="text" value={form.nameEn ?? ''} onChange={(e) => setForm({ ...form, nameEn: e.target.value })} placeholder={t('exercises.nameEnPlaceholder')} className={`w-full ${INPUT_CLASS}`} />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs text-text3">{t('exercises.nameCs')}</label>
+                  <input type="text" value={form.nameCs ?? ''} onChange={(e) => setForm({ ...form, nameCs: e.target.value })} placeholder={t('exercises.nameCsPlaceholder')} className={`w-full ${INPUT_CLASS}`} />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs text-text3">{t('exercises.nameDe')}</label>
+                  <input type="text" value={form.nameDe ?? ''} onChange={(e) => setForm({ ...form, nameDe: e.target.value })} placeholder={t('exercises.nameDePlaceholder')} className={`w-full ${INPUT_CLASS}`} />
+                </div>
               </div>
+            )}
+          </div>
 
-              <form id="exercise-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
-                {/* Name */}
-                <div>
-                  <label className="mb-1 block text-xs text-text3">{t('exercises.exerciseName')}</label>
+          {/* Muscle Groups */}
+          <div>
+            <label className="mb-2 block text-xs text-text3">{t('exercises.muscleGroups')}</label>
+            <div className="flex flex-wrap gap-2">
+              {sortedByLabel(allMuscleGroups, 'enums.muscleGroup').map((mg) => (
+                <label key={mg} className="flex cursor-pointer items-center gap-1.5 text-sm text-text2">
                   <input
-                    type="text"
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    placeholder={t('exercises.namePlaceholder')}
-                    required
-                    className={`w-full ${inputClass}`}
+                    type="checkbox"
+                    checked={form.muscleGroups.includes(mg)}
+                    onChange={() => toggleMuscleGroup(mg)}
+                    className="accent-accent"
                   />
-                </div>
-
-                {/* Localized names (collapsible) */}
-                <div>
-                  <button
-                    type="button"
-                    onClick={() => setLocalesOpen(!localesOpen)}
-                    className="flex items-center gap-1 text-xs text-text3 transition-colors hover:text-text"
-                  >
-                    <svg className={`h-3 w-3 transition-transform ${localesOpen ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                    {t('exercises.localizedNames')}
-                  </button>
-                  {localesOpen && (
-                    <div className="mt-2 flex flex-col gap-3">
-                      <div>
-                        <label className="mb-1 block text-xs text-text3">{t('exercises.nameEn')}</label>
-                        <input type="text" value={form.nameEn ?? ''} onChange={(e) => setForm({ ...form, nameEn: e.target.value })} placeholder={t('exercises.nameEnPlaceholder')} className={`w-full ${inputClass}`} />
-                      </div>
-                      <div>
-                        <label className="mb-1 block text-xs text-text3">{t('exercises.nameCs')}</label>
-                        <input type="text" value={form.nameCs ?? ''} onChange={(e) => setForm({ ...form, nameCs: e.target.value })} placeholder={t('exercises.nameCsPlaceholder')} className={`w-full ${inputClass}`} />
-                      </div>
-                      <div>
-                        <label className="mb-1 block text-xs text-text3">{t('exercises.nameDe')}</label>
-                        <input type="text" value={form.nameDe ?? ''} onChange={(e) => setForm({ ...form, nameDe: e.target.value })} placeholder={t('exercises.nameDePlaceholder')} className={`w-full ${inputClass}`} />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Muscle Groups */}
-                <div>
-                  <label className="mb-2 block text-xs text-text3">{t('exercises.muscleGroups')}</label>
-                  <div className="flex flex-wrap gap-2">
-                    {sortedByLabel(allMuscleGroups, 'enums.muscleGroup').map((mg) => (
-                      <label key={mg} className="flex cursor-pointer items-center gap-1.5 text-sm text-text2">
-                        <input
-                          type="checkbox"
-                          checked={form.muscleGroups.includes(mg)}
-                          onChange={() => toggleMuscleGroup(mg)}
-                          className="accent-accent"
-                        />
-                        {t(`enums.muscleGroup.${mg}`)}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Equipment */}
-                <div>
-                  <label className="mb-1 block text-xs text-text3">{t('exercises.equipment')}</label>
-                  <select value={form.equipment} onChange={(e) => setForm({ ...form, equipment: e.target.value as ExerciseEquipment })} className={`w-full ${inputClass}`}>
-                    <option value="">{t('exercises.selectEquipment')}</option>
-                    {sortedByLabel(allEquipment, 'enums.equipment').map((eq) => <option key={eq} value={eq}>{t(`enums.equipment.${eq}`)}</option>)}
-                  </select>
-                </div>
-
-                {/* Category */}
-                <div>
-                  <label className="mb-1 block text-xs text-text3">{t('exercises.category')}</label>
-                  <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value as ExerciseCategory })} className={`w-full ${inputClass}`}>
-                    <option value="">{t('exercises.selectCategory')}</option>
-                    {sortedByLabel(allCategories, 'enums.category').map((c) => <option key={c} value={c}>{t(`enums.category.${c}`)}</option>)}
-                  </select>
-                </div>
-
-                {/* Difficulty */}
-                <div>
-                  <label className="mb-1 block text-xs text-text3">{t('exercises.difficulty')}</label>
-                  <select value={form.difficulty} onChange={(e) => setForm({ ...form, difficulty: e.target.value as ExerciseDifficulty })} className={`w-full ${inputClass}`}>
-                    <option value="">{t('exercises.selectDifficulty')}</option>
-                    {sortedByLabel(allDifficulties, 'enums.difficulty').map((d) => <option key={d} value={d}>{t(`enums.difficulty.${d}`)}</option>)}
-                  </select>
-                </div>
-
-                {/* Technique Notes */}
-                <div>
-                  <label className="mb-1 block text-xs text-text3">{t('exercises.techniqueNotes')}</label>
-                  <textarea
-                    value={form.techniqueNotes ?? ''}
-                    onChange={(e) => setForm({ ...form, techniqueNotes: e.target.value })}
-                    rows={4}
-                    placeholder={t('exercises.techniqueNotesPlaceholder')}
-                    className={`w-full resize-none ${inputClass}`}
-                  />
-                </div>
-              </form>
-            </div>
-
-            {/* Sticky create button */}
-            <div className="shrink-0 border-t border-border bg-bg px-6 py-4">
-              <button
-                type="submit"
-                form="exercise-form"
-                disabled={saving || !form.name.trim() || form.muscleGroups.length === 0}
-                className="w-full rounded-sm bg-text px-5 py-3 text-sm font-medium text-bg transition-colors hover:opacity-90 disabled:opacity-50"
-              >
-                {saving ? t('common.saving') : editingExercise ? t('exercises.saveChanges') : t('exercises.addExercise')}
-              </button>
+                  {t(`enums.muscleGroup.${mg}`)}
+                </label>
+              ))}
             </div>
           </div>
-        </>
-      )}
+
+          {/* Equipment */}
+          <div>
+            <label className="mb-1 block text-xs text-text3">{t('exercises.equipment')}</label>
+            <select value={form.equipment} onChange={(e) => setForm({ ...form, equipment: e.target.value as ExerciseEquipment })} className={`w-full ${INPUT_CLASS}`}>
+              <option value="">{t('exercises.selectEquipment')}</option>
+              {sortedByLabel(allEquipment, 'enums.equipment').map((eq) => <option key={eq} value={eq}>{t(`enums.equipment.${eq}`)}</option>)}
+            </select>
+          </div>
+
+          {/* Category */}
+          <div>
+            <label className="mb-1 block text-xs text-text3">{t('exercises.category')}</label>
+            <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value as ExerciseCategory })} className={`w-full ${INPUT_CLASS}`}>
+              <option value="">{t('exercises.selectCategory')}</option>
+              {sortedByLabel(allCategories, 'enums.category').map((c) => <option key={c} value={c}>{t(`enums.category.${c}`)}</option>)}
+            </select>
+          </div>
+
+          {/* Difficulty */}
+          <div>
+            <label className="mb-1 block text-xs text-text3">{t('exercises.difficulty')}</label>
+            <select value={form.difficulty} onChange={(e) => setForm({ ...form, difficulty: e.target.value as ExerciseDifficulty })} className={`w-full ${INPUT_CLASS}`}>
+              <option value="">{t('exercises.selectDifficulty')}</option>
+              {sortedByLabel(allDifficulties, 'enums.difficulty').map((d) => <option key={d} value={d}>{t(`enums.difficulty.${d}`)}</option>)}
+            </select>
+          </div>
+
+          {/* Technique Notes */}
+          <div>
+            <label className="mb-1 block text-xs text-text3">{t('exercises.techniqueNotes')}</label>
+            <textarea
+              value={form.techniqueNotes ?? ''}
+              onChange={(e) => setForm({ ...form, techniqueNotes: e.target.value })}
+              rows={4}
+              placeholder={t('exercises.techniqueNotesPlaceholder')}
+              className={`w-full resize-none ${INPUT_CLASS}`}
+            />
+          </div>
+        </form>
+      </Dialog>
 
       {/* Delete confirmation dialog */}
-      {confirmDelete && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center">
-          <div className="fixed inset-0 bg-black/60" onClick={() => setConfirmDelete(null)} />
-          <div className="relative z-10 w-full max-w-sm rounded-sm border border-border bg-bg2 p-6 shadow-2xl">
-            <h3 className="text-sm font-bold">{t('exercises.deleteConfirmTitle')}</h3>
-            <p className="mt-2 text-sm text-text2">
-              {t('exercises.deleteConfirmMessage', { name: confirmDelete.name })}
-            </p>
-            <div className="mt-5 flex justify-end gap-3">
-              <button
-                onClick={() => setConfirmDelete(null)}
-                className="rounded-sm border border-border px-4 py-2 text-xs font-semibold text-text3 transition-colors hover:text-text"
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                onClick={handleConfirmDelete}
-                className="rounded-sm bg-red-500 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-red-600"
-              >
-                {t('exercises.delete')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDeleteDialog
+        isOpen={!!confirmDelete.target}
+        name={confirmDelete.target?.name ?? ''}
+        isPending={confirmDelete.isPending}
+        onConfirm={confirmDelete.confirmDelete}
+        onCancel={confirmDelete.cancelDelete}
+        title={t('exercises.deleteConfirmTitle')}
+        message={confirmDelete.target ? t('exercises.deleteConfirmMessage', { name: confirmDelete.target.name }) : undefined}
+      />
     </div>
   );
 }

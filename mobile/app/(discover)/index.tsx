@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,12 +11,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { Colors } from '../../constants/Colors';
+import { useTheme } from '@/hooks/useTheme';
+import { href } from '@/lib/navigation';
 import {
   searchProfessionals,
   type ProfessionalSummary,
   type SearchResponse,
-} from '../../src/api/professionals';
+} from '@/api/professionals';
 
 const ROLE_LABELS: Record<string, string> = {
   Trainer: 'Trener',
@@ -25,6 +26,7 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 export default function DiscoverScreen() {
+  const colors = useTheme();
   const router = useRouter();
   const [searchText, setSearchText] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -49,12 +51,14 @@ export default function DiscoverScreen() {
 
   const professionals = data?.items ?? [];
 
+  const styles = useMemo(() => getStyles(colors), [colors]);
+
   const renderCard = useCallback(
     ({ item }: { item: ProfessionalSummary }) => (
       <TouchableOpacity
         style={styles.card}
         activeOpacity={0.7}
-        onPress={() => router.push(`/(discover)/${item.publicId}` as any)}
+        onPress={() => router.push(href(`/(discover)/${item.publicId}`))}
       >
         <View style={styles.cardHeader}>
           <Text style={styles.cardName}>
@@ -117,7 +121,7 @@ export default function DiscoverScreen() {
         <TextInput
           style={styles.searchInput}
           placeholder="Hledat trenera, nutricionistu..."
-          placeholderTextColor={Colors.dark.text3}
+          placeholderTextColor={colors.label3}
           value={searchText}
           onChangeText={handleSearchChange}
           autoCapitalize="none"
@@ -139,7 +143,7 @@ export default function DiscoverScreen() {
 
       {isLoading ? (
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={Colors.dark.gold} />
+          <ActivityIndicator size="large" color={colors.gold} />
         </View>
       ) : (
         <FlatList
@@ -157,134 +161,135 @@ export default function DiscoverScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.dark.background,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 16,
-    marginVertical: 12,
-    backgroundColor: Colors.dark.surface,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    paddingHorizontal: 12,
-    height: 44,
-  },
-  searchIcon: {
-    fontSize: 16,
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    color: Colors.dark.text,
-    paddingVertical: 0,
-  },
-  clearBtn: {
-    marginLeft: 8,
-    padding: 4,
-  },
-  clearBtnText: {
-    fontSize: 14,
-    color: Colors.dark.text3,
-  },
-  list: {
-    paddingHorizontal: 16,
-    paddingBottom: 20,
-  },
-  card: {
-    backgroundColor: Colors.dark.card,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    padding: 16,
-    marginBottom: 12,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  cardName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.dark.text,
-    flex: 1,
-  },
-  roleBadge: {
-    backgroundColor: 'rgba(200, 169, 78, 0.15)',
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 12,
-    marginLeft: 8,
-  },
-  roleBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: Colors.dark.gold,
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-  },
-  tagsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 10,
-  },
-  tag: {
-    backgroundColor: Colors.dark.surface,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-  },
-  tagText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: Colors.dark.text2,
-  },
-  cardMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  metaText: {
-    fontSize: 13,
-    color: Colors.dark.text3,
-  },
-  metaDot: {
-    fontSize: 13,
-    color: Colors.dark.text3,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    paddingTop: 60,
-    paddingHorizontal: 32,
-  },
-  emptyIcon: {
-    fontSize: 40,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.dark.text2,
-    marginTop: 12,
-  },
-  emptyMessage: {
-    fontSize: 13,
-    color: Colors.dark.text3,
-    marginTop: 8,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-});
+const getStyles = (colors: ReturnType<typeof useTheme>) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bg,
+    },
+    centered: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    searchContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginHorizontal: 16,
+      marginVertical: 12,
+      backgroundColor: colors.bg2,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: colors.sep,
+      paddingHorizontal: 12,
+      height: 44,
+    },
+    searchIcon: {
+      fontSize: 16,
+      marginRight: 8,
+    },
+    searchInput: {
+      flex: 1,
+      fontSize: 14,
+      color: colors.label,
+      paddingVertical: 0,
+    },
+    clearBtn: {
+      marginLeft: 8,
+      padding: 4,
+    },
+    clearBtnText: {
+      fontSize: 14,
+      color: colors.label3,
+    },
+    list: {
+      paddingHorizontal: 16,
+      paddingBottom: 20,
+    },
+    card: {
+      backgroundColor: colors.bg2,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.sep,
+      padding: 16,
+      marginBottom: 12,
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    cardName: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.label,
+      flex: 1,
+    },
+    roleBadge: {
+      backgroundColor: 'rgba(200, 169, 78, 0.15)',
+      paddingHorizontal: 10,
+      paddingVertical: 3,
+      borderRadius: 12,
+      marginLeft: 8,
+    },
+    roleBadgeText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: colors.gold,
+      textTransform: 'uppercase',
+      letterSpacing: 0.3,
+    },
+    tagsRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 6,
+      marginBottom: 10,
+    },
+    tag: {
+      backgroundColor: colors.bg2,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.sep,
+    },
+    tagText: {
+      fontSize: 12,
+      fontWeight: '500',
+      color: colors.label2,
+    },
+    cardMeta: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    metaText: {
+      fontSize: 13,
+      color: colors.label3,
+    },
+    metaDot: {
+      fontSize: 13,
+      color: colors.label3,
+    },
+    emptyContainer: {
+      alignItems: 'center',
+      paddingTop: 60,
+      paddingHorizontal: 32,
+    },
+    emptyIcon: {
+      fontSize: 40,
+    },
+    emptyTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.label2,
+      marginTop: 12,
+    },
+    emptyMessage: {
+      fontSize: 13,
+      color: colors.label3,
+      marginTop: 8,
+      textAlign: 'center',
+      lineHeight: 20,
+    },
+  });

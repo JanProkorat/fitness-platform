@@ -1,59 +1,47 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { searchRecipes, deleteRecipe } from '@/api/recipes';
 import type { RecipeSummary } from '@/api/recipe-types';
-import { showApiError, showSuccess } from '@/lib/api-errors';
+import { useApiMutation } from '@/hooks/useApiMutation';
+import { useConfirmDelete } from '@/hooks/useConfirmDelete';
 import { RecipeDialog } from '@/components/nutrition/RecipeDialog';
 import { PageHeader, Toolbar } from '@/components/layout';
 import { Button, Dialog, SearchInput } from '@/components/ui';
-import { DatabaseTable, ListView, CardGrid, Card, CardCover, CardBody, CardPropRow } from '@/components/data';
+import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
+import { DatabaseTable, ListView, CardGrid, Card, CardCover, CardBody, CardPropRow, MacroBadges, Pagination } from '@/components/data';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useDialogState } from '@/hooks/useDialogState';
 
 type ViewType = 'table' | 'list' | 'cards';
 type SortKey = 'name' | 'kcal' | 'protein' | 'carbs' | 'fat' | 'fiber' | 'foodCount' | 'prepTime';
 type SortDir = 'asc' | 'desc';
-
-function MacroBadges({ n }: { n: RecipeSummary['totalNutrients'] }) {
-  return (
-    <span className="text-[12px] tabular-nums">
-      <span style={{ color: 'var(--blue)' }}>{Math.round(n.protein)}g</span>
-      {' / '}
-      <span style={{ color: 'var(--orange)' }}>{Math.round(n.carbs)}g</span>
-      {' / '}
-      <span style={{ color: 'var(--purple)' }}>{Math.round(n.fat)}g</span>
-      {n.fiber ? <>{' / '}<span style={{ color: 'var(--green)' }}>{Math.round(n.fiber)}g</span></> : null}
-    </span>
-  );
-}
 
 export default function RecipesPage() {
   const { t } = useTranslation();
 
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [view, setView] = useState<ViewType>('table');
   const [sortKey, setSortKey] = useState<SortKey>('name');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [showSortMenu, setShowSortMenu] = useState(false);
-  const [dialogRecipe, setDialogRecipe] = useState<RecipeSummary | null | 'new'>(null);
-  const [confirmDelete, setConfirmDelete] = useState<{ recipeId: string; name: string } | null>(null);
+  const recipeDialog = useDialogState<RecipeSummary>();
 
-  useEffect(() => {
-    const timer = setTimeout(() => { setDebouncedSearch(search); setPage(1); }, 300);
-    return () => clearTimeout(timer);
-  }, [search]);
+  const debouncedSearch = useDebouncedValue(search, 300, () => setPage(1));
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['recipes', debouncedSearch, page],
     queryFn: () => searchRecipes({ search: debouncedSearch || undefined, page, pageSize: 50 }),
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: deleteRecipe,
-    onSuccess: () => { showSuccess('recipes.deleted'); refetch(); },
-    onError: (error) => showApiError(error, 'recipes.deleteError'),
+  const deleteMutation = useApiMutation(deleteRecipe, {
+    successKey: 'recipes.deleted',
+    errorKey: 'recipes.deleteError',
+    onSuccess: () => refetch(),
   });
+
+  const confirmDelete = useConfirmDelete(deleteMutation);
 
   const totalPages = data ? Math.ceil((data.totalCount ?? 0) / (data.pageSize ?? 1)) : 0;
 
@@ -79,7 +67,7 @@ export default function RecipesPage() {
 
   const handleDeleteClick = (e: React.MouseEvent, recipe: RecipeSummary) => {
     e.stopPropagation();
-    setConfirmDelete({ recipeId: recipe.recipeId, name: recipe.name });
+    confirmDelete.requestDelete(recipe.recipeId, recipe.name);
   };
 
   const handleSort = (key: SortKey) => {
@@ -114,17 +102,7 @@ export default function RecipesPage() {
     </button>
   );
 
-  const pagination = totalPages > 1 && (
-    <div className="flex items-center justify-between mt-3">
-      <span className="text-xs text-text3">
-        {t('common.page', { current: page, total: totalPages })} &middot; {t('common.total', { count: data!.totalCount })}
-      </span>
-      <div className="flex gap-2">
-        <Button size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>&larr; {t('common.previous')}</Button>
-        <Button size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>{t('common.next')} &rarr;</Button>
-      </div>
-    </div>
-  );
+  const pagination = <Pagination page={page} totalPages={totalPages} totalCount={data?.totalCount ?? 0} onPageChange={setPage} className="mt-3" />;
 
   return (
     <div className="flex h-full flex-col">
@@ -132,7 +110,7 @@ export default function RecipesPage() {
         icon="📖"
         title={t('recipes.pageTitle')}
         subtitle={t('recipes.pageSubtitle')}
-        actions={<Button variant="primary" onClick={() => setDialogRecipe('new')}>+ {t('recipes.addRecipe')}</Button>}
+        actions={<Button variant="primary" onClick={() => recipeDialog.openNew()}>+ {t('recipes.addRecipe')}</Button>}
       />
       <Toolbar views={views} activeView={view} onViewChange={(v) => setView(v as ViewType)}>
         <SearchInput placeholder={t('recipes.search')} value={search} onChange={(e) => setSearch(e.target.value)} className="w-[240px]" />
@@ -181,7 +159,7 @@ export default function RecipesPage() {
                 ]}
                 rows={sortedRecipes}
                 rowKey={(r) => r.recipeId}
-                onRowClick={(r) => setDialogRecipe(r)}
+                onRowClick={(r) => recipeDialog.openEdit(r)}
                 renderRowActions={(r: RecipeSummary) => deleteBtn(r)}
               />
               {pagination}
@@ -204,8 +182,8 @@ export default function RecipesPage() {
                     </div>
                   </div>
                 )}
-                renderRight={(r) => <MacroBadges n={r.totalNutrients} />}
-                onItemClick={(r) => setDialogRecipe(r)}
+                renderRight={(r) => <MacroBadges nutrients={r.totalNutrients} round />}
+                onItemClick={(r) => recipeDialog.openEdit(r)}
                 renderActions={(r) => deleteBtn(r)}
               />
               {pagination}
@@ -213,12 +191,12 @@ export default function RecipesPage() {
           ) : (
             <CardGrid>
               {sortedRecipes.map((r) => (
-                <Card key={r.recipeId} onClick={() => setDialogRecipe(r)}>
+                <Card key={r.recipeId} onClick={() => recipeDialog.openEdit(r)}>
                   <CardCover><div className="absolute inset-0 flex items-center justify-center text-2xl opacity-50">📖</div></CardCover>
                   <CardBody>
                     <div className="text-[13px] font-medium text-text mb-1.5 truncate">{r.name}</div>
                     <CardPropRow label="kcal">{Math.round(r.totalNutrients.kcal)}</CardPropRow>
-                    <CardPropRow label={`${t('nutrition.proteinShort')} / ${t('nutrition.carbsShort')} / ${t('nutrition.fatShort')} / ${t('nutrition.fiberShort')}`}><MacroBadges n={r.totalNutrients} /></CardPropRow>
+                    <CardPropRow label={`${t('nutrition.proteinShort')} / ${t('nutrition.carbsShort')} / ${t('nutrition.fatShort')} / ${t('nutrition.fiberShort')}`}><MacroBadges nutrients={r.totalNutrients} round /></CardPropRow>
                     <CardPropRow label={t('recipes.foods')}>{r.foodCount}</CardPropRow>
                     {r.prepTimeMinutes && <CardPropRow label={t('recipes.prepTime')}>{r.prepTimeMinutes} min</CardPropRow>}
                   </CardBody>
@@ -231,25 +209,22 @@ export default function RecipesPage() {
 
       {/* Recipe dialog (view + edit in one) */}
       <RecipeDialog
-        open={dialogRecipe !== null}
-        recipe={dialogRecipe === 'new' ? null : dialogRecipe}
-        onClose={() => setDialogRecipe(null)}
+        open={recipeDialog.isOpen}
+        recipe={recipeDialog.item}
+        onClose={recipeDialog.close}
         onSaved={() => refetch()}
       />
 
       {/* Delete confirmation */}
-      <Dialog
-        open={!!confirmDelete}
-        onClose={() => setConfirmDelete(null)}
+      <ConfirmDeleteDialog
+        isOpen={!!confirmDelete.target}
+        name={confirmDelete.target?.name ?? ''}
+        isPending={confirmDelete.isPending}
+        onConfirm={confirmDelete.confirmDelete}
+        onCancel={confirmDelete.cancelDelete}
         title={t('recipes.deleteConfirmTitle')}
-        footer={<>
-          <Button onClick={() => setConfirmDelete(null)}>{t('common.cancel')}</Button>
-          <Button variant="danger" onClick={() => { if (confirmDelete) { deleteMutation.mutate(confirmDelete.recipeId); setConfirmDelete(null); } }}>{t('recipes.deleteRecipe')}</Button>
-        </>}
-        maxWidth={400}
-      >
-        <p className="text-[13px] text-text2">{t('recipes.deleteConfirmMessage', { name: confirmDelete?.name })}</p>
-      </Dialog>
+        message={confirmDelete.target ? t('recipes.deleteConfirmMessage', { name: confirmDelete.target.name }) : undefined}
+      />
     </div>
   );
 }

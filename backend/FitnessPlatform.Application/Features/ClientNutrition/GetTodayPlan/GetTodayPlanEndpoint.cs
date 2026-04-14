@@ -120,7 +120,8 @@ public class GetTodayPlanEndpoint(IMongoContext mongo, IApplicationDbContext db)
             DayOfWeek = day.DayOfWeek,
             Meals = day.Meals,
             DayTotals = day.DayTotals,
-            GlobalSettings = plan.GlobalSettings
+            GlobalSettings = plan.GlobalSettings,
+            DayNote = day.Note,
         }, ct);
     }
 }

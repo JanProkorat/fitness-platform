@@ -5,3 +5,5 @@ export { PropertyList } from './PropertyList';
 export { StatsGrid } from './StatsGrid';
 export { Callout } from './Callout';
 export { Mention } from './Mention';
+export { MacroBadges } from './MacroBadges';
+export { Pagination } from './Pagination';

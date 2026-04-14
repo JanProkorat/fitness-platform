@@ -5,14 +5,13 @@ import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth';
-import { apiClient } from '@/api/client';
 import api from '@/lib/api';
-import { addRole } from '@/api/roles';
 import { PageHeader } from '@/components/layout';
 import { useToastStore } from '@/stores/toast';
-import { Dialog } from '@/components/ui/Dialog';
-import { Button } from '@/components/ui/Button';
+import { Dialog, Button } from '@/components/ui';
 import { QuestionnaireList, QuestionnaireEditor, type QuestionnaireEditorHandle } from '@/components/questionnaire';
+import { RolesSection } from '@/components/RolesSection';
+import { TrainerProfileFields } from '@/components/TrainerProfileFields';
 
 function parseJsonArray(value: string | null | undefined): string[] {
   if (!value) return [];
@@ -372,193 +371,38 @@ export default function ProfilePage() {
           </div>
 
           {/* ── Roles ── */}
-          {isTrainer && user && <RolesSection user={user} setUser={setUser} />}
+          {isTrainer && user && <RolesSection user={user} onRoleAdded={setUser} />}
 
           {/* ── Trainer-only: two-column layout ── */}
           {isTrainer && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'start' }}>
-
-              {/* ══ LEFT COLUMN ══ */}
-              <div>
-                {/* Public Profile */}
-                <div className="section-heading">
-                  {t('profile.publicProfile')}
-                  <span
-                    className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium"
-                    style={{ background: 'var(--accent-bg)', color: 'var(--accent)', border: '1px solid var(--accent-br)' }}
-                  >
-                    {t('profile.visibleToClients')}
-                  </span>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">{t('profile.bio')}</label>
-                  <textarea
-                    className="form-input"
-                    rows={4}
-                    value={bio}
-                    onChange={(e) => setBio(e.target.value)}
-                    placeholder={t('profile.bioPlaceholder')}
-                  />
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label className="form-label">{t('profile.city')}</label>
-                    <input
-                      className="form-input"
-                      value={city}
-                      onChange={(e) => setCity(e.target.value)}
-                      placeholder={t('profile.cityPlaceholder')}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">{t('profile.estimatedPrice')}</label>
-                    <input
-                      className="form-input"
-                      value={estimatedPrice}
-                      onChange={(e) => setEstimatedPrice(e.target.value)}
-                      placeholder={t('profile.estimatedPricePlaceholder')}
-                    />
-                  </div>
-                </div>
-
-                <div className="divider" />
-
-                {/* Specializations */}
-                <div className="form-group">
-                  <label className="form-label">{t('profile.specializations')}</label>
-                  <MultiFieldInput
-                    values={specializations}
-                    onChange={setSpecializations}
-                    placeholder={t('profile.addSpecialization')}
-                  />
-                </div>
-
-                {/* Certificates */}
-                <div className="form-group">
-                  <label className="form-label">{t('profile.certificates')}</label>
-                  <MultiFieldInput
-                    values={certificates}
-                    onChange={setCertificates}
-                    placeholder={t('profile.addCertificate')}
-                  />
-                </div>
-              </div>
-
-              {/* ══ RIGHT COLUMN ══ */}
-              <div>
-                {/* Availability & Preferences */}
-                <div className="section-heading">{t('profile.availability')}</div>
-
-                <div className="form-group">
-                  <label className="form-label">{t('profile.collaborationType')}</label>
-                  <select
-                    className="form-select"
-                    value={collaborationType}
-                    onChange={(e) => setCollaborationType(e.target.value)}
-                  >
-                    <option value="both">{t('profile.collaborationBoth')}</option>
-                    <option value="online">{t('profile.collaborationOnline')}</option>
-                    <option value="inperson">{t('profile.collaborationInPerson')}</option>
-                  </select>
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label className="form-label">{t('profile.maxClients')}</label>
-                    <input
-                      className="form-input"
-                      type="number"
-                      min={1}
-                      max={200}
-                      value={maxClients}
-                      onChange={(e) => setMaxClients(Number(e.target.value))}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">{t('profile.languages')}</label>
-                    <MultiFieldInput
-                      values={languages}
-                      onChange={setLanguages}
-                      placeholder={t('profile.addLanguage')}
-                    />
-                  </div>
-                </div>
-
-                <div className="divider" />
-
-                {/* Social Networks */}
-                <div className="section-heading">{t('profile.socialNetworks')}</div>
-
-                <div className="social-row">
-                  <div className="social-icon">in</div>
-                  <input
-                    className="form-input"
-                    value={linkedin}
-                    onChange={(e) => setLinkedin(e.target.value)}
-                    placeholder={t('profile.linkedin')}
-                    style={{ flex: 1 }}
-                  />
-                </div>
-                <div className="social-row">
-                  <div className="social-icon">ig</div>
-                  <input
-                    className="form-input"
-                    value={instagram}
-                    onChange={(e) => setInstagram(e.target.value)}
-                    placeholder={t('profile.instagram')}
-                    style={{ flex: 1 }}
-                  />
-                </div>
-                <div className="social-row">
-                  <div className="social-icon">🌐</div>
-                  <input
-                    className="form-input"
-                    value={website}
-                    onChange={(e) => setWebsite(e.target.value)}
-                    placeholder={t('profile.website')}
-                    style={{ flex: 1 }}
-                  />
-                </div>
-
-                <div className="divider" />
-
-                {/* Privacy toggles */}
-                <div className="toggle-wrap">
-                  <div>
-                    <div className="toggle-lbl">{t('profile.showInSearch')}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
-                      {t('profile.showInSearchDesc')}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className={`toggle${showInSearch ? ' on' : ''}`}
-                    onClick={() => setShowInSearch(!showInSearch)}
-                  >
-                    <span className="toggle-thumb" />
-                  </button>
-                </div>
-
-                <div className="toggle-wrap" style={{ marginTop: 8 }}>
-                  <div>
-                    <div className="toggle-lbl">{t('profile.acceptNewClients')}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
-                      {t('profile.acceptNewClientsDesc')}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className={`toggle${acceptNewClients ? ' on' : ''}`}
-                    onClick={() => setAcceptNewClients(!acceptNewClients)}
-                  >
-                    <span className="toggle-thumb" />
-                  </button>
-                </div>
-              </div>
-
-            </div>
+            <TrainerProfileFields
+              bio={bio}
+              setBio={setBio}
+              city={city}
+              setCity={setCity}
+              estimatedPrice={estimatedPrice}
+              setEstimatedPrice={setEstimatedPrice}
+              specializations={specializations}
+              setSpecializations={setSpecializations}
+              certificates={certificates}
+              setCertificates={setCertificates}
+              languages={languages}
+              setLanguages={setLanguages}
+              collaborationType={collaborationType}
+              setCollaborationType={setCollaborationType}
+              maxClients={maxClients}
+              setMaxClients={setMaxClients}
+              linkedin={linkedin}
+              setLinkedin={setLinkedin}
+              instagram={instagram}
+              setInstagram={setInstagram}
+              website={website}
+              setWebsite={setWebsite}
+              showInSearch={showInSearch}
+              setShowInSearch={setShowInSearch}
+              acceptNewClients={acceptNewClients}
+              setAcceptNewClients={setAcceptNewClients}
+            />
           )}
         </div>
         ) : (
@@ -602,177 +446,3 @@ export default function ProfilePage() {
   );
 }
 
-/* ── MultiFieldInput ────────────────────────────────────────────────────────── */
-
-function MultiFieldInput({
-  values,
-  onChange,
-  placeholder,
-}: {
-  values: string[];
-  onChange: (values: string[]) => void;
-  placeholder: string;
-}) {
-  const updateValue = (index: number, value: string) => {
-    const next = [...values];
-    next[index] = value;
-    onChange(next);
-  };
-
-  const removeValue = (index: number) => {
-    onChange(values.filter((_, i) => i !== index));
-  };
-
-  const addValue = () => {
-    onChange([...values, '']);
-  };
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      {values.map((val, i) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <input
-            className="form-input"
-            value={val}
-            onChange={(e) => updateValue(i, e.target.value)}
-            placeholder={placeholder}
-            style={{ flex: 1 }}
-          />
-          <button
-            type="button"
-            onClick={() => removeValue(i)}
-            style={{
-              width: 28, height: 28, flexShrink: 0,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
-              background: 'none', cursor: 'pointer', color: 'var(--text3)',
-              fontSize: 13, fontFamily: 'inherit', transition: 'color 0.1s, border-color 0.1s',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--red)'; e.currentTarget.style.borderColor = 'var(--red)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text3)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
-          >
-            ✕
-          </button>
-        </div>
-      ))}
-      <button
-        type="button"
-        onClick={addValue}
-        style={{
-          display: 'inline-flex', alignItems: 'center', gap: 4,
-          padding: '5px 10px', border: '1px dashed var(--border-md)',
-          borderRadius: 'var(--radius-md)', background: 'none',
-          cursor: 'pointer', color: 'var(--text3)', fontSize: 12,
-          fontFamily: 'inherit', transition: 'color 0.1s, border-color 0.1s',
-          alignSelf: 'flex-start',
-        }}
-        onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.borderColor = 'var(--border-hv)'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text3)'; e.currentTarget.style.borderColor = 'var(--border-md)'; }}
-      >
-        + {placeholder}
-      </button>
-    </div>
-  );
-}
-
-/* ── RolesSection ──────────────────────────────────────────────────────────── */
-
-function RolesSection({
-  user,
-  setUser,
-}: {
-  user: NonNullable<ReturnType<typeof useAuthStore.getState>['user']>;
-  setUser: (u: typeof user) => void;
-}) {
-  const { t } = useTranslation();
-  const [status, setStatus] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  const hasTrainer = user.roles.includes('Trainer');
-  const hasNutritionist = user.roles.includes('Nutritionist');
-  const canAddRole = !hasTrainer || !hasNutritionist;
-
-  const handleAddRole = async (role: string) => {
-    if (!window.confirm(t('profile.addRoleConfirm'))) return;
-
-    setStatus(null);
-    setLoading(true);
-    try {
-      const data = await addRole(role);
-      useAuthStore.getState().setTokens(data.accessToken, data.refreshToken);
-
-      const { data: profile } = await api.get('/users/me');
-      setUser({
-        publicId: profile.userId,
-        email: profile.email,
-        firstName: profile.firstName,
-        lastName: profile.lastName,
-        roles: profile.roles ?? [],
-        emailConfirmed: profile.emailConfirmed ?? true,
-      });
-
-      setStatus(t('profile.roleAdded'));
-    } catch {
-      setStatus(t('profile.addRoleError'));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div style={{ marginBottom: 20, padding: '14px 16px', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)' }}>
-      <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text2)', marginBottom: 8 }}>
-        {t('profile.rolesTitle')}
-      </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: canAddRole ? 10 : 0 }}>
-        {user.roles.map((role) => (
-          <span key={role} className="cert-chip" style={{ background: 'var(--accent-bg)', borderColor: 'var(--accent-br)', color: 'var(--accent)', fontWeight: 500 }}>
-            {t(`auth.role${role}`)}
-          </span>
-        ))}
-      </div>
-      {canAddRole && (
-        <button
-          type="button"
-          disabled={loading}
-          onClick={() => handleAddRole(hasTrainer ? 'Nutritionist' : 'Trainer')}
-          className="rounded-md bg-text px-4 py-1.5 text-xs font-medium text-bg transition-opacity hover:opacity-90 disabled:opacity-50"
-        >
-          {loading
-            ? t('common.saving')
-            : hasTrainer
-              ? t('profile.addNutritionistRole')
-              : t('profile.addTrainerRole')}
-        </button>
-      )}
-      {status && (
-        <div style={{ marginTop: 10 }}>
-          <StatusMessage status={status} errorKey={t('profile.addRoleError')} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ── StatusMessage ─────────────────────────────────────────────────────────── */
-
-function StatusMessage({
-  status,
-  errorKey,
-}: {
-  status: string | null;
-  errorKey: string;
-}) {
-  if (!status) return null;
-  return (
-    <div
-      className={`mb-4 rounded-sm border px-4 py-2.5 text-sm ${
-        status === errorKey
-          ? 'border-red bg-red-bg text-red'
-          : 'border-green bg-green-bg text-green'
-      }`}
-    >
-      {status}
-    </div>
-  );
-}

@@ -159,6 +159,14 @@ public class GetFullPlanEndpoint(IMongoContext mongo, IApplicationDbContext db) 
             };
         }).ToList();
 
+        // Fetch all meal logs for this plan to determine which meals have been eaten
+        var eatenMealIds = await mongo.MealLogs
+            .Find(Builders<MealLog>.Filter.And(
+                Builders<MealLog>.Filter.Eq(m => m.ClientId, clientId),
+                Builders<MealLog>.Filter.Eq(m => m.PlanId, plan.ExternalId)))
+            .Project(m => m.MealId)
+            .ToListAsync(ct);
+
         await Send.OkAsync(new GetFullPlanResponse
         {
             PlanId = plan.ExternalId,
@@ -172,7 +180,8 @@ public class GetFullPlanEndpoint(IMongoContext mongo, IApplicationDbContext db) 
             CurrentDayOfWeek = currentDayOfWeek,
             Status = plan.Status.ToString(),
             QuestionnaireResponseId = plan.QuestionnaireResponseId,
-            DateCompleted = plan.DateCompleted
+            DateCompleted = plan.DateCompleted,
+            EatenMealIds = [..eatenMealIds],
         }, ct);
     }
 }

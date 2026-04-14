@@ -1,62 +1,33 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/stores/auth';
 import { searchFoods, deleteFood } from '@/api/foods';
-import { showApiError, showSuccess } from '@/lib/api-errors';
+import { useApiMutation } from '@/hooks/useApiMutation';
+import { useConfirmDelete } from '@/hooks/useConfirmDelete';
 import type { FoodSummary, FoodCategory } from '@/api/food-types';
 import { FoodDialog } from '@/components/nutrition/FoodDialog';
 import { PageHeader, Toolbar } from '@/components/layout';
 import { Button, Dialog, SearchInput } from '@/components/ui';
-import { DatabaseTable, ListView, CardGrid, Card, CardCover, CardBody, CardPropRow } from '@/components/data';
+import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
+import { DatabaseTable, ListView, CardGrid, Card, CardCover, CardBody, CardPropRow, MacroBadges, Pagination } from '@/components/data';
+import { CATEGORY_CSS_COLORS, ALL_CATEGORIES } from '@/components/nutrition/food-category';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useDialogState } from '@/hooks/useDialogState';
 
 type ViewType = 'table' | 'list' | 'cards';
 type SortKey = 'name' | 'kcal' | 'protein' | 'carbs' | 'fat' | 'fiber' | 'category';
 type SortDir = 'asc' | 'desc';
 
-const CATEGORY_COLORS: Record<string, { color: string; bg: string }> = {
-  Fruit: { color: 'var(--green)', bg: 'var(--green-bg)' },
-  Vegetables: { color: 'var(--green)', bg: 'var(--green-bg)' },
-  Meat: { color: 'var(--red)', bg: 'var(--red-bg)' },
-  FishAndSeafood: { color: 'var(--blue)', bg: 'var(--blue-bg)' },
-  Dairy: { color: 'var(--purple)', bg: 'var(--purple-bg)' },
-  GrainsAndCereals: { color: 'var(--orange)', bg: 'var(--orange-bg)' },
-  Legumes: { color: 'var(--green)', bg: 'var(--green-bg)' },
-  NutsAndSeeds: { color: 'var(--orange)', bg: 'var(--orange-bg)' },
-  OilsAndFats: { color: 'var(--purple)', bg: 'var(--purple-bg)' },
-  SweetsAndSnacks: { color: 'var(--red)', bg: 'var(--red-bg)' },
-  Beverages: { color: 'var(--blue)', bg: 'var(--blue-bg)' },
-  Supplements: { color: 'var(--accent)', bg: 'var(--accent-bg)' },
-  Other: { color: 'var(--text3)', bg: 'var(--bg3)' },
-};
-
-const ALL_CATEGORIES: FoodCategory[] = [
-  'Fruit', 'Vegetables', 'Meat', 'FishAndSeafood', 'Dairy', 'GrainsAndCereals',
-  'Legumes', 'NutsAndSeeds', 'OilsAndFats', 'SweetsAndSnacks', 'Beverages', 'Supplements', 'Other',
-];
-
 function CategoryTag({ category, t }: { category: string; t: (key: string) => string }) {
   const cat = category || 'Other';
-  const colors = CATEGORY_COLORS[cat] ?? CATEGORY_COLORS.Other;
+  const colors = CATEGORY_CSS_COLORS[cat] ?? CATEGORY_CSS_COLORS.Other;
   return (
     <span
       className="text-[10px] font-medium rounded-sm px-1.5 py-[1px]"
       style={{ background: colors.bg, color: colors.color }}
     >
       {t(`foods.category${cat}`)}
-    </span>
-  );
-}
-
-function MacroBadges({ nv }: { nv: FoodSummary['nutrientValue'] }) {
-  return (
-    <span className="text-[12px] tabular-nums">
-      <span style={{ color: 'var(--blue)' }}>{nv.protein}g</span>
-      {' / '}
-      <span style={{ color: 'var(--orange)' }}>{nv.carbs}g</span>
-      {' / '}
-      <span style={{ color: 'var(--purple)' }}>{nv.fat}g</span>
-      {nv.fiber ? <>{' / '}<span style={{ color: 'var(--green)' }}>{nv.fiber}g</span></> : null}
     </span>
   );
 }
@@ -69,22 +40,15 @@ export default function FoodsPage() {
 
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [view, setView] = useState<ViewType>('table');
   const [categoryFilter, setCategoryFilter] = useState<FoodCategory | ''>('');
   const [sortKey, setSortKey] = useState<SortKey>('name');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [showSortMenu, setShowSortMenu] = useState(false);
 
-  const [dialogFood, setDialogFood] = useState<FoodSummary | null | 'new'>(null);
+  const foodDialog = useDialogState<FoodSummary>();
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(search);
-      setPage(1);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [search]);
+  const debouncedSearch = useDebouncedValue(search, 300, () => setPage(1));
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['foods', debouncedSearch, categoryFilter, page],
@@ -97,27 +61,17 @@ export default function FoodsPage() {
       }),
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: deleteFood,
-    onSuccess: () => {
-      showSuccess('foods.deleted');
-      refetch();
-    },
-    onError: (error) => showApiError(error, 'foods.deleteError'),
+  const deleteMutation = useApiMutation(deleteFood, {
+    successKey: 'foods.deleted',
+    errorKey: 'foods.deleteError',
+    onSuccess: () => refetch(),
   });
 
-  const [confirmDelete, setConfirmDelete] = useState<{ foodId: string; name: string } | null>(null);
+  const confirmDelete = useConfirmDelete(deleteMutation);
 
   const handleDeleteClick = (e: React.MouseEvent, food: FoodSummary) => {
     e.stopPropagation();
-    setConfirmDelete({ foodId: food.foodId, name: food.name });
-  };
-
-  const handleConfirmDelete = () => {
-    if (confirmDelete) {
-      deleteMutation.mutate(confirmDelete.foodId);
-      setConfirmDelete(null);
-    }
+    confirmDelete.requestDelete(food.foodId, food.name);
   };
 
   // Client-side sort
@@ -175,7 +129,7 @@ export default function FoodsPage() {
         title={t('foods.pageTitle')}
         subtitle={t('foods.pageSubtitle')}
         actions={isNutritionist ? (
-          <Button variant="primary" onClick={() => setDialogFood('new')}>
+          <Button variant="primary" onClick={() => foodDialog.openNew()}>
             + {t('foods.addFood')}
           </Button>
         ) : undefined}
@@ -257,7 +211,7 @@ export default function FoodsPage() {
                 ]}
                 rows={sortedFoods}
                 rowKey={(food) => food.foodId}
-                onRowClick={isNutritionist ? (food) => setDialogFood(food) : undefined}
+                onRowClick={isNutritionist ? (food) => foodDialog.openEdit(food) : undefined}
                 renderRowActions={isNutritionist ? (food: FoodSummary) => (
                   <button
                     onClick={(e) => handleDeleteClick(e, food)}
@@ -272,23 +226,7 @@ export default function FoodsPage() {
                 ) : undefined}
               />
 
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-3">
-                  <span className="text-xs text-text3">
-                    {t('common.page', { current: page, total: totalPages })} &middot;{' '}
-                    {t('common.total', { count: data!.totalCount })}
-                  </span>
-                  <div className="flex gap-2">
-                    <Button size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-                      &larr; {t('common.previous')}
-                    </Button>
-                    <Button size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
-                      {t('common.next')} &rarr;
-                    </Button>
-                  </div>
-                </div>
-              )}
+              <Pagination page={page} totalPages={totalPages} totalCount={data?.totalCount ?? 0} onPageChange={setPage} className="mt-3" />
             </>
           ) : view === 'list' ? (
             <>
@@ -297,7 +235,7 @@ export default function FoodsPage() {
                 itemKey={(food) => food.foodId}
                 renderAvatar={(food) => {
                   const cat = food.category ?? 'Other';
-                  const colors = CATEGORY_COLORS[cat] ?? CATEGORY_COLORS.Other;
+                  const colors = CATEGORY_CSS_COLORS[cat] ?? CATEGORY_CSS_COLORS.Other;
                   return (
                     <div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold"
                       style={{ background: colors.bg, color: colors.color }}>
@@ -314,8 +252,8 @@ export default function FoodsPage() {
                     </div>
                   </div>
                 )}
-                renderRight={(food) => <MacroBadges nv={food.nutrientValue} />}
-                onItemClick={isNutritionist ? (food) => setDialogFood(food) : undefined}
+                renderRight={(food) => <MacroBadges nutrients={food.nutrientValue} />}
+                onItemClick={isNutritionist ? (food) => foodDialog.openEdit(food) : undefined}
                 renderActions={isNutritionist ? (food) => (
                   <button
                     onClick={(e) => { e.stopPropagation(); handleDeleteClick(e, food); }}
@@ -328,22 +266,7 @@ export default function FoodsPage() {
                 ) : undefined}
               />
 
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-3">
-                  <span className="text-xs text-text3">
-                    {t('common.page', { current: page, total: totalPages })} &middot;{' '}
-                    {t('common.total', { count: data!.totalCount })}
-                  </span>
-                  <div className="flex gap-2">
-                    <Button size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-                      &larr; {t('common.previous')}
-                    </Button>
-                    <Button size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
-                      {t('common.next')} &rarr;
-                    </Button>
-                  </div>
-                </div>
-              )}
+              <Pagination page={page} totalPages={totalPages} totalCount={data?.totalCount ?? 0} onPageChange={setPage} className="mt-3" />
             </>
           ) : (
             /* Cards view */
@@ -351,7 +274,7 @@ export default function FoodsPage() {
               {sortedFoods.map((food) => (
                 <Card
                   key={food.foodId}
-                  onClick={isNutritionist ? () => setDialogFood(food) : undefined}
+                  onClick={isNutritionist ? () => foodDialog.openEdit(food) : undefined}
                 >
                   <CardCover>
                     <div className="absolute inset-0 flex items-center justify-center text-2xl opacity-50">
@@ -366,7 +289,7 @@ export default function FoodsPage() {
                       {food.nutrientValue.kcal}
                     </CardPropRow>
                     <CardPropRow label={`${t('nutrition.proteinShort')} / ${t('nutrition.carbsShort')} / ${t('nutrition.fatShort')} / ${t('nutrition.fiberShort')}`}>
-                      <MacroBadges nv={food.nutrientValue} />
+                      <MacroBadges nutrients={food.nutrientValue} />
                     </CardPropRow>
                     <CardPropRow label={t('foods.category')}>
                       <CategoryTag category={food.category ?? 'Other'} t={t} />
@@ -381,33 +304,22 @@ export default function FoodsPage() {
 
       {/* Food dialog (view + edit) */}
       <FoodDialog
-        open={dialogFood !== null}
-        food={dialogFood === 'new' ? null : dialogFood}
-        onClose={() => setDialogFood(null)}
+        open={foodDialog.isOpen}
+        food={foodDialog.item}
+        onClose={foodDialog.close}
         onSaved={() => refetch()}
       />
 
       {/* Delete confirmation dialog */}
-      <Dialog
-        open={!!confirmDelete}
-        onClose={() => setConfirmDelete(null)}
+      <ConfirmDeleteDialog
+        isOpen={!!confirmDelete.target}
+        name={confirmDelete.target?.name ?? ''}
+        isPending={confirmDelete.isPending}
+        onConfirm={confirmDelete.confirmDelete}
+        onCancel={confirmDelete.cancelDelete}
         title={t('foods.deleteConfirmTitle')}
-        footer={
-          <>
-            <Button onClick={() => setConfirmDelete(null)}>
-              {t('common.cancel')}
-            </Button>
-            <Button variant="danger" onClick={handleConfirmDelete}>
-              {t('foods.delete')}
-            </Button>
-          </>
-        }
-        maxWidth={400}
-      >
-        <p className="text-[13px] text-text2">
-          {t('foods.deleteConfirmMessage', { name: confirmDelete?.name })}
-        </p>
-      </Dialog>
+        message={confirmDelete.target ? t('foods.deleteConfirmMessage', { name: confirmDelete.target.name }) : undefined}
+      />
     </div>
   );
 }

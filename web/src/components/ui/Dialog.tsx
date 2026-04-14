@@ -43,6 +43,7 @@ export function Dialog({ open, onClose, title, children, footer, maxWidth = 520 
           <button
             onClick={onClose}
             className="w-7 h-7 rounded-sm border-none bg-transparent text-text3 cursor-pointer flex items-center justify-center text-base hover:bg-bg-hover hover:text-text transition-colors"
+            aria-label="Close dialog"
           >
             &times;
           </button>

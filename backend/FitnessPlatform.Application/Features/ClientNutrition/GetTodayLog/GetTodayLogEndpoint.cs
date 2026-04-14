@@ -71,26 +71,74 @@ public class GetTodayLogEndpoint(IMongoContext mongo, IApplicationDbContext db) 
         var planCursor = await mongo.NutritionPlans.FindAsync(planFilter, cancellationToken: ct);
         var plan = await planCursor.FirstOrDefaultAsync(ct);
 
-        // Build a lookup of meal names from the plan
-        var mealNames = new Dictionary<Guid, string>();
+        // Resolve today's plan day so we can use pre-computed MealTotals
+        // (which include both foods AND recipes, matching the mobile optimistic
+        // update). Without this, totals are computed from FoodsEaten only and
+        // miss recipe kcal contributions.
+        PlanDay? todayPlanDay = null;
         if (plan is not null)
         {
-            foreach (var meal in plan.Weeks.SelectMany(w => w.Days).SelectMany(d => d.Meals))
+            var publishedWeeks = plan.Weeks
+                .Where(w => w.Status == WeekStatus.Published)
+                .ToList();
+
+            if (publishedWeeks.Count > 0)
             {
-                mealNames.TryAdd(meal.MealId, meal.Kind.ToString());
+                if (plan.StartDate.HasValue)
+                {
+                    var daysSinceStart = (int)(todayUtc - plan.StartDate.Value.Date).TotalDays;
+                    if (daysSinceStart >= 0)
+                    {
+                        var weekNum = daysSinceStart / 7 + 1;
+                        var dayIdx = daysSinceStart % 7;
+                        var todayWeek = publishedWeeks.FirstOrDefault(w => w.WeekNumber == weekNum)
+                                        ?? publishedWeeks[^1];
+                        if (dayIdx < todayWeek.Days.Count)
+                            todayPlanDay = todayWeek.Days[dayIdx];
+                    }
+                }
+                else if (plan.DatePublished.HasValue)
+                {
+                    var daysSincePublish = (int)(todayUtc - plan.DatePublished.Value.Date).TotalDays;
+                    if (daysSincePublish >= 0)
+                    {
+                        var totalDays = publishedWeeks.Count * 7;
+                        var currentDayIndex = daysSincePublish % totalDays;
+                        var weekIdx = currentDayIndex / 7;
+                        var dayIdx = currentDayIndex % 7;
+                        var todayWeek = publishedWeeks[weekIdx];
+                        if (dayIdx < todayWeek.Days.Count)
+                            todayPlanDay = todayWeek.Days[dayIdx];
+                    }
+                }
             }
         }
 
-        // Map logs to DTOs with computed totals
+        // Build lookup: MealId → plan meal (for name + pre-computed totals)
+        var planMeals = new Dictionary<Guid, PlanMeal>();
+        if (todayPlanDay is not null)
+        {
+            foreach (var meal in todayPlanDay.Meals)
+                planMeals.TryAdd(meal.MealId, meal);
+        }
+        else if (plan is not null)
+        {
+            // Fallback: scan all weeks for meal names (no MealTotals guarantee)
+            foreach (var meal in plan.Weeks.SelectMany(w => w.Days).SelectMany(d => d.Meals))
+                planMeals.TryAdd(meal.MealId, meal);
+        }
+
+        // Map logs to DTOs — use plan MealTotals when available, fall back to
+        // computing from FoodsEaten for meals not found in today's plan day.
         var mealsEaten = logs.Select(log =>
         {
-            var totals = CalculateTotals(log.FoodsEaten);
-            mealNames.TryGetValue(log.MealId, out var name);
+            planMeals.TryGetValue(log.MealId, out var planMeal);
+            var totals = planMeal?.MealTotals ?? CalculateTotals(log.FoodsEaten);
 
             return new MealLogDto
             {
                 MealId = log.MealId,
-                MealName = name ?? string.Empty,
+                MealName = planMeal?.Kind.ToString() ?? string.Empty,
                 EatenAt = log.EatenAt,
                 Totals = totals
             };

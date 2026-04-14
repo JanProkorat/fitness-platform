@@ -23,10 +23,10 @@ export function PlanAttachmentCard({ attachment, onPress }: PlanAttachmentCardPr
         end={{ x: 1, y: 1 }}
         style={styles.hero}
       >
-        <Text style={styles.planType}>
+        <Text style={[styles.planType, { color: colors.onAccent, opacity: 0.7 }]}>
           {attachment.planType.toUpperCase()}
         </Text>
-        <Text style={styles.planName} numberOfLines={2}>
+        <Text style={[styles.planName, { color: colors.onAccent }]} numberOfLines={2}>
           {attachment.planName}
         </Text>
       </LinearGradient>
@@ -60,13 +60,11 @@ const styles = StyleSheet.create({
   planType: {
     fontSize: 9,
     fontWeight: '700',
-    color: 'rgba(255,255,255,0.7)',
     letterSpacing: 1,
   },
   planName: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#ffffff',
     marginTop: 2,
   },
   footer: {

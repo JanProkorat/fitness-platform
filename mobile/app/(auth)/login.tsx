@@ -10,11 +10,12 @@ import {
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import api from '../../src/api/client';
-import { useAuthStore } from '../../src/stores/auth';
-import { Colors } from '../../constants/Colors';
+import api from '@/api/client';
+import { useAuthStore } from '@/stores/auth';
+import { useTheme } from '@/hooks/useTheme';
 
 export default function LoginScreen() {
+  const colors = useTheme();
   const router = useRouter();
   const login = useAuthStore((s) => s.login);
   const [email, setEmail] = useState('');
@@ -54,19 +55,19 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.bg }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.inner}>
-        <Text style={styles.logo}>
-          GoodFellas <Text style={styles.logoAccent}>Platform</Text>
+        <Text style={[styles.logo, { color: colors.label }]}>
+          GoodFellas <Text style={[styles.logoAccent, { color: colors.gold }]}>Platform</Text>
         </Text>
-        <Text style={styles.subtitle}>Sign in to continue</Text>
+        <Text style={[styles.subtitle, { color: colors.label3 }]}>Sign in to continue</Text>
 
         <TextInput
-          style={styles.input}
+          style={[styles.input, { backgroundColor: colors.bg2, borderColor: colors.sep, color: colors.label }]}
           placeholder="Email"
-          placeholderTextColor={Colors.dark.muted}
+          placeholderTextColor={colors.label3}
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
@@ -74,9 +75,9 @@ export default function LoginScreen() {
           autoComplete="email"
         />
         <TextInput
-          style={styles.input}
+          style={[styles.input, { backgroundColor: colors.bg2, borderColor: colors.sep, color: colors.label }]}
           placeholder="Password"
-          placeholderTextColor={Colors.dark.muted}
+          placeholderTextColor={colors.label3}
           value={password}
           onChangeText={setPassword}
           secureTextEntry
@@ -84,7 +85,7 @@ export default function LoginScreen() {
         />
 
         <TouchableOpacity
-          style={[styles.button, loading && styles.buttonDisabled]}
+          style={[styles.button, { backgroundColor: colors.gold }, loading && styles.buttonDisabled]}
           onPress={handleLogin}
           disabled={loading}
           activeOpacity={0.8}
@@ -98,9 +99,9 @@ export default function LoginScreen() {
           onPress={() => router.replace('/(auth)/register')}
           style={styles.linkRow}
         >
-          <Text style={styles.linkText}>
+          <Text style={[styles.linkText, { color: colors.label3 }]}>
             Don't have an account?{' '}
-            <Text style={styles.linkAccent}>Sign up</Text>
+            <Text style={[styles.linkAccent, { color: colors.gold }]}>Sign up</Text>
           </Text>
         </TouchableOpacity>
       </View>
@@ -111,7 +112,6 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.dark.background,
   },
   inner: {
     flex: 1,
@@ -121,32 +121,24 @@ const styles = StyleSheet.create({
   logo: {
     fontSize: 28,
     fontWeight: '900',
-    color: Colors.dark.text,
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 4,
   },
-  logoAccent: {
-    color: Colors.dark.gold,
-  },
+  logoAccent: {},
   subtitle: {
     fontSize: 14,
-    color: Colors.dark.text3,
     marginBottom: 32,
   },
   input: {
-    backgroundColor: Colors.dark.surface,
     borderWidth: 1,
-    borderColor: Colors.dark.border,
     borderRadius: 4,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 15,
-    color: Colors.dark.text,
     marginBottom: 12,
   },
   button: {
-    backgroundColor: Colors.dark.gold,
     borderRadius: 4,
     paddingVertical: 14,
     alignItems: 'center',
@@ -168,10 +160,8 @@ const styles = StyleSheet.create({
   },
   linkText: {
     fontSize: 14,
-    color: Colors.dark.text3,
   },
   linkAccent: {
-    color: Colors.dark.gold,
     fontWeight: '700',
   },
 });

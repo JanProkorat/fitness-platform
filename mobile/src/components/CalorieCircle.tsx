@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
-import { Colors } from '../../constants/Colors';
+import { useTheme } from '@/hooks/useTheme';
 
 interface CalorieCircleProps {
   consumed: number;
@@ -14,11 +14,14 @@ const RADIUS = (SIZE - STROKE_WIDTH) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 export function CalorieCircle({ consumed, target }: CalorieCircleProps) {
+  const colors = useTheme();
   const ratio = target > 0 ? consumed / target : 0;
   const capped = Math.min(ratio, 1);
   const isOver = ratio > 1;
   const offset = CIRCUMFERENCE * (1 - capped);
-  const progressColor = isOver ? Colors.dark.red : Colors.dark.kcal;
+  const progressColor = isOver ? colors.red : colors.orange;
+
+  const styles = useMemo(() => getStyles(colors), [colors]);
 
   return (
     <View style={styles.wrapper}>
@@ -28,7 +31,7 @@ export function CalorieCircle({ consumed, target }: CalorieCircleProps) {
           cx={SIZE / 2}
           cy={SIZE / 2}
           r={RADIUS}
-          stroke={Colors.dark.border}
+          stroke={colors.sep}
           strokeWidth={STROKE_WIDTH}
           fill="none"
         />
@@ -61,29 +64,31 @@ export function CalorieCircle({ consumed, target }: CalorieCircleProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  wrapper: {
-    width: SIZE,
-    height: SIZE,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  center: {
-    position: 'absolute',
-    alignItems: 'center',
-  },
-  consumed: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: Colors.dark.text,
-  },
-  overColor: {
-    color: Colors.dark.red,
-  },
-  target: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: Colors.dark.text3,
-    marginTop: 2,
-  },
-});
+function getStyles(colors: ReturnType<typeof useTheme>) {
+  return StyleSheet.create({
+    wrapper: {
+      width: SIZE,
+      height: SIZE,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    center: {
+      position: 'absolute',
+      alignItems: 'center',
+    },
+    consumed: {
+      fontSize: 28,
+      fontWeight: '800',
+      color: colors.label,
+    },
+    overColor: {
+      color: colors.red,
+    },
+    target: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: colors.label3,
+      marginTop: 2,
+    },
+  });
+}

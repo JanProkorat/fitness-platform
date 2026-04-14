@@ -1,10 +1,12 @@
-import React from 'react'
-import { View, Text, StyleSheet } from 'react-native'
+import React, { useState, useCallback } from 'react'
+import { View, StyleSheet } from 'react-native'
 import { useTheme } from '@/hooks/useTheme'
-import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
-import { MacroBar } from '@/components/ui/MacroBar'
+import { NutritionCardHero } from '@/components/nutrition/NutritionCardHero'
 import { MealRow } from '@/components/nutrition/MealRow'
+import { NoteBanner } from '@/components/ui/NoteBanner'
+import { GoldButton } from '@/components/ui/GoldButton'
+import { useTranslation } from 'react-i18next'
 import type { NutrientTotals, PlanMeal } from '@/api/nutrition'
 
 interface NutritionCardProps {
@@ -18,64 +20,111 @@ interface NutritionCardProps {
   }
   meals: PlanMeal[]
   eatenMealIds: Set<string>
-  onMealPress?: (mealId: string) => void
-  onMarkEaten?: (mealId: string) => void
+  /** Eyebrow shown in the hero, e.g. "Výživa · Týden 4". */
+  eyebrow: string
+  /** Subline under the kcal headline, e.g. "3 jídla · 11 položek". */
+  subline: string
+  /** Daily note from the nutritionist. Rendered as a gold banner under the hero when present. */
+  dayNote?: string | null
+  /** Called when the user toggles a meal eaten/uneaten from the inline check button. */
+  onToggleEaten?: (mealId: string) => void
+  /**
+   * Called when the user taps the "mark whole day as eaten" CTA at the bottom
+   * of the card. When omitted, the CTA is hidden. When every meal is already
+   * eaten, the CTA is hidden automatically.
+   */
+  onMarkAllEaten?: () => void
+  /** Show a spinner on the mark-all CTA while the mutation is in-flight. */
+  isMarkAllLoading?: boolean
 }
 
+/**
+ * Today-screen nutrition card. Training-card-style layout:
+ *   1. Gold-brown `NutritionCardHero` with eyebrow / kcal / macro chips / meals-eaten ring
+ *   2. Optional daily nutritionist note (`NoteBanner variant="day"`)
+ *   3. Meal accordion list (one open at a time)
+ *
+ * Mirrors `docs/mobile_prototype.html` (`ph-today` scene, `grad-meal` card).
+ */
 export function NutritionCard({
   consumed,
   targets,
   meals,
   eatenMealIds,
-  onMealPress,
-  onMarkEaten,
+  eyebrow,
+  subline,
+  dayNote,
+  onToggleEaten,
+  onMarkAllEaten,
+  isMarkAllLoading,
 }: NutritionCardProps) {
   const colors = useTheme()
+  const { t } = useTranslation()
+
+  const [expandedMealIds, setExpandedMealIds] = useState<Set<string>>(
+    () => new Set(),
+  )
+  const toggle = useCallback(
+    (mealId: string) =>
+      setExpandedMealIds((cur) => {
+        const next = new Set(cur)
+        if (next.has(mealId)) next.delete(mealId)
+        else next.add(mealId)
+        return next
+      }),
+    [],
+  )
 
   return (
     <View style={[styles.card, { backgroundColor: colors.bg2 }]}>
-      {/* Macro progress bars */}
-      <View style={styles.macros}>
-        <MacroBar
-          label="Protein"
-          current={consumed.protein}
-          target={targets.protein}
-          color={colors.blue}
-        />
-        <MacroBar
-          label="Carbs"
-          current={consumed.carbs}
-          target={targets.carbs}
-          color={colors.orange}
-        />
-        <MacroBar
-          label="Fat"
-          current={consumed.fat}
-          target={targets.fat}
-          color={colors.purple}
-        />
-        <MacroBar
-          label="Fiber"
-          current={consumed.fiber}
-          target={targets.fiber}
-          color={colors.green}
-        />
-      </View>
+      <NutritionCardHero
+        eyebrow={eyebrow}
+        consumedKcal={consumed.kcal}
+        targetKcal={targets.kcal}
+        subline={subline}
+        macros={{
+          protein: { current: consumed.protein, target: targets.protein },
+          carbs: { current: consumed.carbs, target: targets.carbs },
+          fat: { current: consumed.fat, target: targets.fat },
+          fiber: { current: consumed.fiber, target: targets.fiber },
+        }}
+        mealsEaten={eatenMealIds.size}
+        mealsTotal={meals.length}
+      />
 
-      {/* Meal list */}
+      {dayNote ? (
+        <NoteBanner variant="day" label={t('nutrition.dayNoteLabel')}>
+          {dayNote}
+        </NoteBanner>
+      ) : null}
+
+      {/* Meal list — inline accordion */}
       <View style={styles.meals}>
-        {meals.map((meal) => (
+        {meals.map((meal, index) => (
           <MealRow
             key={meal.mealId}
-            name={meal.name}
-            kcal={meal.mealTotals?.kcal ?? 0}
-            time={meal.time}
+            meal={meal}
             eaten={eatenMealIds.has(meal.mealId)}
-            onPress={() => onMealPress?.(meal.mealId)}
-            onMarkEaten={() => onMarkEaten?.(meal.mealId)}
+            isLast={index === meals.length - 1}
+            expanded={expandedMealIds.has(meal.mealId)}
+            onToggle={() => toggle(meal.mealId)}
+            onToggleEaten={
+              onToggleEaten ? () => onToggleEaten(meal.mealId) : undefined
+            }
           />
         ))}
       </View>
+
+      {/* Mark whole day as eaten — hidden when every meal is already logged */}
+      {onMarkAllEaten && eatenMealIds.size < meals.length && meals.length > 0 ? (
+        <View style={styles.ctaWrap}>
+          <GoldButton
+            title={t('today.markAllEaten')}
+            onPress={onMarkAllEaten}
+            loading={isMarkAllLoading}
+          />
+        </View>
+      ) : null}
     </View>
   )
 }
@@ -85,12 +134,15 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
     overflow: 'hidden',
     marginHorizontal: 16,
-    padding: 16,
   },
-  macros: {
-    marginBottom: 4,
+  meals: {
+    paddingHorizontal: 16,
   },
-  meals: {},
+  ctaWrap: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 16,
+  },
 })
 
 export default NutritionCard

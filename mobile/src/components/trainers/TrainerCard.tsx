@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Pressable, ScrollView, Alert } from 'react-nati
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
+import { goldAlpha } from '@/constants/colors'
 import { Radius } from '@/constants/radius'
 import { Avatar } from '@/components/ui/Avatar'
 
@@ -12,7 +13,7 @@ const ROLE_BADGE_COLORS: Record<string, { bg: string; text: string }> = {
   'Osobní trenér': { bg: 'rgba(0,122,255,0.10)', text: '#007aff' },
   'Výž. poradce': { bg: 'rgba(52,199,89,0.10)', text: '#34c759' },
   'Výživový poradce': { bg: 'rgba(52,199,89,0.10)', text: '#34c759' },
-  'Trenér & poradce': { bg: 'rgba(201,168,76,0.10)', text: '#c9a84c' },
+  'Trenér & poradce': { bg: goldAlpha['10'], text: '#c9a84c' },
   Trainer: { bg: 'rgba(0,122,255,0.10)', text: '#007aff' },
   Nutritionist: { bg: 'rgba(52,199,89,0.10)', text: '#34c759' },
 }
@@ -128,7 +129,7 @@ export function TrainerCard({
                 { backgroundColor: colors.gold, opacity: pressed ? 0.8 : 1 },
               ]}
             >
-              <Text style={[styles.actionText, { color: '#ffffff' }]}>
+              <Text style={[styles.actionText, { color: colors.onAccent }]}>
                 {contactLabel}
               </Text>
             </Pressable>

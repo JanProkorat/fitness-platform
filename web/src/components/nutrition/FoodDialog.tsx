@@ -7,28 +7,9 @@ import { useTranslation } from 'react-i18next';
 import { createFood, updateFood } from '@/api/foods';
 import { showApiError, showSuccess } from '@/lib/api-errors';
 import type { FoodSummary, FoodCategory } from '@/api/food-types';
+import { CATEGORY_CSS_COLORS, FOOD_CATEGORIES } from '@/components/nutrition/food-category';
+import { INPUT_CLASS_SM, CANCEL_BUTTON_CLASS } from '@/lib/styles';
 
-const FOOD_CATEGORIES: FoodCategory[] = [
-  'Other', 'Fruit', 'Vegetables', 'Meat', 'FishAndSeafood', 'Dairy',
-  'GrainsAndCereals', 'Legumes', 'NutsAndSeeds', 'OilsAndFats',
-  'SweetsAndSnacks', 'Beverages', 'Supplements',
-];
-
-const CATEGORY_COLORS: Record<string, { color: string; bg: string }> = {
-  Fruit: { color: 'var(--green)', bg: 'var(--green-bg)' },
-  Vegetables: { color: 'var(--green)', bg: 'var(--green-bg)' },
-  Meat: { color: 'var(--red)', bg: 'var(--red-bg)' },
-  FishAndSeafood: { color: 'var(--blue)', bg: 'var(--blue-bg)' },
-  Dairy: { color: 'var(--purple)', bg: 'var(--purple-bg)' },
-  GrainsAndCereals: { color: 'var(--orange)', bg: 'var(--orange-bg)' },
-  Legumes: { color: 'var(--green)', bg: 'var(--green-bg)' },
-  NutsAndSeeds: { color: 'var(--orange)', bg: 'var(--orange-bg)' },
-  OilsAndFats: { color: 'var(--purple)', bg: 'var(--purple-bg)' },
-  SweetsAndSnacks: { color: 'var(--red)', bg: 'var(--red-bg)' },
-  Beverages: { color: 'var(--blue)', bg: 'var(--blue-bg)' },
-  Supplements: { color: 'var(--accent)', bg: 'var(--accent-bg)' },
-  Other: { color: 'var(--text3)', bg: 'var(--bg3)' },
-};
 
 const foodSchema = z.object({
   name: z.string().min(2),
@@ -85,6 +66,19 @@ export function FoodDialog({ open, food, onClose, onSaved }: FoodDialogProps) {
     }
   }, [open, food?.foodId]);
 
+  // Handle Escape key
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [open, onClose]);
+
   const switchMode = (to: Mode) => {
     setTransitioning(true);
     setTimeout(() => {
@@ -117,8 +111,7 @@ export function FoodDialog({ open, food, onClose, onSaved }: FoodDialogProps) {
 
   const nv = food?.nutrientValue;
   const cat = food?.category ?? 'Other';
-  const catColors = CATEGORY_COLORS[cat] ?? CATEGORY_COLORS.Other;
-  const inp = 'rounded-md border border-border-md bg-bg px-3 py-2 text-[13px] text-text outline-none transition-colors placeholder:text-text3 focus:border-border-hv w-full';
+  const catColors = CATEGORY_CSS_COLORS[cat] ?? CATEGORY_CSS_COLORS.Other;
 
   const contentStyle: React.CSSProperties = {
     opacity: transitioning ? 0 : 1,
@@ -128,10 +121,6 @@ export function FoodDialog({ open, food, onClose, onSaved }: FoodDialogProps) {
 
   return (
     <>
-      <style>{`
-        @keyframes dlg-fade-in { from { opacity: 0 } to { opacity: 1 } }
-        @keyframes dlg-slide-up { from { opacity: 0; transform: translateY(16px) } to { opacity: 1; transform: translateY(0) } }
-      `}</style>
       <div className="fixed inset-0 z-[60] bg-black/50" onClick={onClose} style={{ animation: 'dlg-fade-in .4s ease-out' }} />
       <div className="fixed inset-0 z-[61] flex items-start justify-center pt-[5vh] pointer-events-none">
         <div
@@ -165,7 +154,7 @@ export function FoodDialog({ open, food, onClose, onSaved }: FoodDialogProps) {
                 {food?.note && <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>{food.note}</div>}
               </div>
             )}
-            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: 'var(--text3)', padding: 4 }}>✕</button>
+            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: 'var(--text3)', padding: 4 }} aria-label="Close food dialog">✕</button>
           </div>
 
           {/* Body */}
@@ -262,7 +251,7 @@ export function FoodDialog({ open, food, onClose, onSaved }: FoodDialogProps) {
                       ].map((l) => (
                         <div key={l.key} className="flex items-center gap-2">
                           <span className="text-[10px] font-semibold text-text3 w-6 text-center shrink-0">{l.label}</span>
-                          <input {...register(l.key)} placeholder={l.placeholder} className={inp} />
+                          <input {...register(l.key)} placeholder={l.placeholder} className={INPUT_CLASS_SM} />
                         </div>
                       ))}
                     </div>
@@ -273,7 +262,7 @@ export function FoodDialog({ open, food, onClose, onSaved }: FoodDialogProps) {
                     <label className="mb-1 block text-xs font-medium text-text3">
                       {t('foods.note')} <span className="font-normal" style={{ color: 'var(--text4)' }}>({t('common.optional')})</span>
                     </label>
-                    <textarea {...register('note')} placeholder={t('foods.notePlaceholder')} rows={2} className={`${inp} resize-vertical`} />
+                    <textarea {...register('note')} placeholder={t('foods.notePlaceholder')} rows={2} className={`${INPUT_CLASS_SM} resize-vertical`} />
                   </div>
 
                   {mutation.isError && (
@@ -287,21 +276,21 @@ export function FoodDialog({ open, food, onClose, onSaved }: FoodDialogProps) {
           {/* Footer */}
           <div className="flex items-center justify-between px-5 py-3 border-t border-border" style={{ flexShrink: 0 }}>
             {mode === 'edit' && !isNew ? (
-              <button onClick={() => switchMode('view')} className="px-4 py-2 rounded-md text-[13px] font-medium text-text3 hover:bg-bg-hover transition-colors">
+              <button onClick={() => switchMode('view')} className={CANCEL_BUTTON_CLASS}>
                 ← {t('recipes.discardChanges')}
               </button>
             ) : <div />}
             <div className="flex items-center gap-2">
               {mode === 'view' ? (
                 <>
-                  <button onClick={onClose} className="px-4 py-2 rounded-md text-[13px] font-medium text-text3 hover:bg-bg-hover transition-colors">{t('common.close')}</button>
+                  <button onClick={onClose} className={CANCEL_BUTTON_CLASS}>{t('common.close')}</button>
                   <button onClick={() => switchMode('edit')} className="px-4 py-2 rounded-md text-[13px] font-medium transition-colors" style={{ background: 'var(--accent)', color: '#fff' }}>
                     ✏ {t('foods.editFoodTitle')}
                   </button>
                 </>
               ) : (
                 <>
-                  <button onClick={onClose} className="px-4 py-2 rounded-md text-[13px] font-medium text-text3 hover:bg-bg-hover transition-colors">{t('common.cancel')}</button>
+                  <button onClick={onClose} className={CANCEL_BUTTON_CLASS}>{t('common.cancel')}</button>
                   <button onClick={handleSubmit((data) => mutation.mutate(data))} disabled={mutation.isPending}
                     className="px-5 py-2 rounded-md text-[13px] font-medium transition-colors disabled:opacity-50"
                     style={{ background: 'var(--accent)', color: '#fff' }}>

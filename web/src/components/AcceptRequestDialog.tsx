@@ -3,8 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { acceptClientRequest } from '@/api/client-requests';
 import { getTrainerQuestionnaires, type QuestionnaireSummaryDto } from '@/api/questionnaires';
-import { Dialog } from '@/components/ui/Dialog';
-import { Button } from '@/components/ui/Button';
+import { Dialog, Button } from '@/components/ui';
 
 interface AcceptRequestDialogProps {
   open: boolean;

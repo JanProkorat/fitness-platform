@@ -13,8 +13,8 @@ import { cn } from '@/lib/cn';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { NotificationBell } from '@/components/layout/NotificationBell';
 import { NewClientDialog } from '@/components/NewClientDialog';
-import { Dialog } from '@/components/ui/Dialog';
-import { Button } from '@/components/ui/Button';
+import { ClientRequestDialog, PendingInviteDialog } from '@/components/layout/SidebarDialogs';
+import { Button } from '@/components/ui';
 import { useToastStore } from '@/stores/toast';
 
 interface SidebarProps {
@@ -214,13 +214,23 @@ export function Sidebar({ onToggleDark }: SidebarProps) {
                       transition: 'transform 0.15s',
                       transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
                     }}
+                    aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${client.firstName} ${client.lastName}`}
                   >
                     ▶
                   </button>
                   <span
+                    role="button"
+                    tabIndex={0}
                     className="sbi-lbl"
                     onClick={() => navigate(`/clients/${cId}`)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        navigate(`/clients/${cId}`);
+                      }
+                    }}
                     style={{ cursor: 'pointer' }}
+                    aria-label={`Go to ${client.firstName} ${client.lastName}`}
                   >
                     {client.firstName} {client.lastName}
                   </span>
@@ -392,6 +402,7 @@ export function Sidebar({ onToggleDark }: SidebarProps) {
             onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text)'; }}
             onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text3)'; }}
             title="Toggle dark mode"
+            aria-label="Toggle dark mode"
           >
             ◑
           </button>
@@ -426,170 +437,33 @@ export function Sidebar({ onToggleDark }: SidebarProps) {
       <NewClientDialog open={newClientOpen} onClose={() => setNewClientOpen(false)} />
 
       {/* Client request detail dialog */}
-      {selectedRequest && (
-        <Dialog
-          open={true}
-          onClose={() => setSelectedRequest(null)}
-          title={t('clientRequests.title')}
-          maxWidth={420}
-          footer={
-            <>
-              <Button
-                variant="danger"
-                onClick={() => rejectMutation.mutate({ publicId: selectedRequest.publicId, statement: statementText || undefined })}
-                disabled={rejectMutation.isPending}
-              >
-                {rejectMutation.isPending ? t('common.loading') : t('clientRequests.reject')}
-              </Button>
-              <Button
-                variant="primary"
-                onClick={() => acceptMutation.mutate({
-                  publicId: selectedRequest.publicId,
-                  questionnaireId: selectedQuestionnaireId || undefined,
-                  statement: statementText || undefined,
-                })}
-                disabled={acceptMutation.isPending}
-              >
-                {acceptMutation.isPending ? t('common.saving') : t('clientRequests.accept')}
-              </Button>
-            </>
-          }
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text3)', marginBottom: 4 }}>
-                {t('common.name')}
-              </div>
-              <div style={{ fontSize: 14, color: 'var(--text)', fontWeight: 500 }}>
-                {selectedRequest.clientFirstName} {selectedRequest.clientLastName}
-              </div>
-            </div>
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text3)', marginBottom: 4 }}>
-                Email
-              </div>
-              <div style={{ fontSize: 14, color: 'var(--text)' }}>
-                {selectedRequest.clientEmail}
-              </div>
-            </div>
-            {selectedRequest.message && (
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text3)', marginBottom: 4 }}>
-                  {t('clientRequests.message')}
-                </div>
-                <div style={{ fontSize: 14, color: 'var(--text)' }}>
-                  {selectedRequest.message}
-                </div>
-              </div>
-            )}
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text3)', marginBottom: 4 }}>
-                {t('clientRequests.sentAt')}
-              </div>
-              <div style={{ fontSize: 14, color: 'var(--text)' }}>
-                {new Date(selectedRequest.sentAt).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-              </div>
-            </div>
-
-            {/* Questionnaire selector */}
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text3)', marginBottom: 4 }}>
-                {t('clientRequests.selectQuestionnaire')}
-              </div>
-              <select
-                value={selectedQuestionnaireId}
-                onChange={(e) => setSelectedQuestionnaireId(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '7px 10px',
-                  fontSize: 13,
-                  fontFamily: 'inherit',
-                  borderRadius: 'var(--radius)',
-                  border: '1px solid var(--border)',
-                  background: 'var(--bg3)',
-                  color: 'var(--text)',
-                  outline: 'none',
-                }}
-              >
-                <option value="">{t('clientRequests.noQuestionnaire')}</option>
-                {questionnaires.filter((q) => q.isActive).map((q) => (
-                  <option key={q.publicId} value={q.publicId}>
-                    {q.title}{q.isDefault ? ` (${t('questionnaire.default')})` : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Statement */}
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text3)', marginBottom: 4 }}>
-                {t('clientRequests.statement')}
-              </div>
-              <textarea
-                value={statementText}
-                onChange={(e) => setStatementText(e.target.value)}
-                placeholder={t('clientRequests.statementPlaceholder')}
-                maxLength={1000}
-                rows={3}
-                style={{
-                  width: '100%',
-                  padding: '8px 10px',
-                  fontSize: 13,
-                  fontFamily: 'inherit',
-                  borderRadius: 'var(--radius)',
-                  border: '1px solid var(--border)',
-                  background: 'var(--bg3)',
-                  color: 'var(--text)',
-                  resize: 'vertical',
-                  outline: 'none',
-                }}
-              />
-            </div>
-          </div>
-        </Dialog>
-      )}
+      <ClientRequestDialog
+        isOpen={!!selectedRequest}
+        request={selectedRequest}
+        statementText={statementText}
+        onStatementChange={setStatementText}
+        selectedQuestionnaireId={selectedQuestionnaireId}
+        onQuestionnaireChange={setSelectedQuestionnaireId}
+        questionnaires={questionnaires}
+        onAccept={() => acceptMutation.mutate({
+          publicId: selectedRequest?.publicId ?? '',
+          questionnaireId: selectedQuestionnaireId || undefined,
+          statement: statementText || undefined,
+        })}
+        onReject={() => rejectMutation.mutate({ publicId: selectedRequest?.publicId ?? '', statement: statementText || undefined })}
+        acceptPending={acceptMutation.isPending}
+        rejectPending={rejectMutation.isPending}
+        onClose={() => setSelectedRequest(null)}
+      />
 
       {/* Pending invite detail dialog */}
-      {selectedInvite && (
-        <Dialog
-          open={true}
-          onClose={() => setSelectedInvite(null)}
-          title="Čekající pozvánka"
-          maxWidth={400}
-          footer={
-            <>
-              <Button
-                variant="danger"
-                onClick={() => deleteMutation.mutate(selectedInvite.publicId)}
-                disabled={deleteMutation.isPending}
-              >
-                {deleteMutation.isPending ? 'Mazání...' : 'Smazat pozvánku'}
-              </Button>
-              <Button onClick={() => setSelectedInvite(null)}>Zavřít</Button>
-            </>
-          }
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text3)', marginBottom: 4 }}>Jméno</div>
-              <div style={{ fontSize: 14, color: 'var(--text)' }}>{selectedInvite.firstName} {selectedInvite.lastName}</div>
-            </div>
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text3)', marginBottom: 4 }}>Email</div>
-              <div style={{ fontSize: 14, color: 'var(--text)' }}>{selectedInvite.email}</div>
-            </div>
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text3)', marginBottom: 4 }}>Pozvánka odeslána</div>
-              <div style={{ fontSize: 14, color: 'var(--text)' }}>
-                {new Date(selectedInvite.sentAt).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-              </div>
-            </div>
-            <div style={{ padding: '10px 12px', background: 'var(--accent-bg)', borderRadius: 'var(--radius-md)', fontSize: 13, color: 'var(--text2)' }}>
-              Klient zatím nepřijal pozvánku. Pokud ji chcete zrušit, klikněte na „Smazat pozvánku".
-            </div>
-          </div>
-        </Dialog>
-      )}
+      <PendingInviteDialog
+        isOpen={!!selectedInvite}
+        invite={selectedInvite}
+        deletePending={deleteMutation.isPending}
+        onDelete={() => deleteMutation.mutate(selectedInvite?.publicId ?? '')}
+        onClose={() => setSelectedInvite(null)}
+      />
     </aside>
   );
 }

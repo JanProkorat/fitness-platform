@@ -4,19 +4,15 @@ import {
   Text,
   TextInput,
   StyleSheet,
-  Pressable,
-  Animated,
-  Dimensions,
 } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
+import { BottomSheet } from '@/components/ui/BottomSheet'
 import { Avatar } from '@/components/ui/Avatar'
 import { GoldButton } from '@/components/ui/GoldButton'
-
-const SCREEN_HEIGHT = Dimensions.get('window').height
 
 export interface InviteTarget {
   id: string
@@ -38,47 +34,24 @@ export function SendInviteSheet({ visible, target, onClose, onSend, isSending }:
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
   const [message, setMessage] = useState('')
-  const [mounted, setMounted] = useState(false)
-  const translateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current
-  const overlayOpacity = useRef(new Animated.Value(0)).current
   const targetRef = useRef(target)
 
   if (target) targetRef.current = target
 
   useEffect(() => {
-    if (visible) {
-      setMounted(true)
-      setMessage('')
-      translateY.setValue(SCREEN_HEIGHT)
-      overlayOpacity.setValue(0)
-      Animated.parallel([
-        Animated.timing(overlayOpacity, { toValue: 1, duration: 250, useNativeDriver: true }),
-        Animated.spring(translateY, { toValue: 0, useNativeDriver: true, damping: 20, stiffness: 200 }),
-      ]).start()
-    } else if (mounted) {
-      Animated.parallel([
-        Animated.timing(overlayOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
-        Animated.timing(translateY, { toValue: SCREEN_HEIGHT, duration: 250, useNativeDriver: true }),
-      ]).start(() => setMounted(false))
-    }
+    if (visible) setMessage('')
   }, [visible])
-
-  if (!mounted) return null
 
   const prof = targetRef.current
   if (!prof) return null
 
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-      <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-      </Animated.View>
-
-      <Animated.View style={[styles.sheet, { backgroundColor: colors.bg2, paddingBottom: insets.bottom + 60, transform: [{ translateY }] }]}>
-        <View style={styles.handleWrap}>
-          <View style={[styles.handle, { backgroundColor: colors.sep }]} />
-        </View>
-
+    <BottomSheet
+      visible={visible}
+      onClose={onClose}
+      heightFraction={1}
+    >
+      <View style={{ paddingBottom: insets.bottom + 60 }}>
         <Text style={[Type.title2, { color: colors.label, paddingHorizontal: 16 }]}>
           {t('collab.contactName', { name: prof.name.split(' ')[0] })}
         </Text>
@@ -117,36 +90,14 @@ export function SendInviteSheet({ visible, target, onClose, onSend, isSending }:
             style={{ flex: 1 }}
           />
         </View>
-      </Animated.View>
-    </View>
+      </View>
+    </BottomSheet>
   )
 }
 
 export default SendInviteSheet
 
 const styles = StyleSheet.create({
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  sheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-  },
-  handleWrap: {
-    alignItems: 'center',
-    paddingTop: 10,
-    paddingBottom: 12,
-  },
-  handle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-  },
   profRow: {
     flexDirection: 'row',
     alignItems: 'center',

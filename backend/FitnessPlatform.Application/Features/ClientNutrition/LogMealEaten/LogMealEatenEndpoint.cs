@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
@@ -16,7 +17,8 @@ namespace FitnessPlatform.Application.Features.ClientNutrition.LogMealEaten;
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
-public class LogMealEatenEndpoint(IMongoContext mongo, IApplicationDbContext db) : Endpoint<LogMealEatenRequest>
+/// <param name="notifier">Realtime notifier for pushing SignalR events.</param>
+public class LogMealEatenEndpoint(IMongoContext mongo, IApplicationDbContext db, IRealtimeNotifier notifier) : Endpoint<LogMealEatenRequest>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -88,6 +90,32 @@ public class LogMealEatenEndpoint(IMongoContext mongo, IApplicationDbContext db)
 
         await mongo.MealLogs.InsertOneAsync(mealLog, cancellationToken: ct);
 
+        await NotifyLinkedProfessionalsAsync(clientProfile.Id, clientId, ct);
+
         await HttpContext.Response.SendAsync(new { Message = "Meal logged successfully." }, 201, cancellation: ct);
+    }
+
+    /// <summary>
+    /// Pushes a <c>clientcomplianceupdated</c> SignalR event to every active professional
+    /// (trainer/nutritionist) linked to this client so their dashboards can refresh streak
+    /// and compliance without polling.
+    /// </summary>
+    private async Task NotifyLinkedProfessionalsAsync(long clientProfileId, Guid clientPublicId, CancellationToken ct)
+    {
+        var professionalUserIds = await db.ClientProfessionalLinks
+            .AsNoTracking()
+            .Where(l => l.ClientProfileId == clientProfileId && l.IsActive)
+            .Join(db.ProfessionalProfiles.AsNoTracking(),
+                link => link.ProfessionalProfileId,
+                prof => prof.Id,
+                (_, prof) => prof.UserId)
+            .Distinct()
+            .ToListAsync(ct);
+
+        var payload = new { ClientId = clientPublicId };
+        foreach (var userId in professionalUserIds)
+        {
+            await notifier.NotifyAsync(userId, "clientcomplianceupdated", payload, ct);
+        }
     }
 }

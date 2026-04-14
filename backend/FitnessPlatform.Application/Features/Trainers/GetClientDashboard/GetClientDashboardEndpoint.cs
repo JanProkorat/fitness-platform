@@ -110,9 +110,9 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
             var complianceFrom = DateTime.UtcNow.Date.AddDays(-7);
             var complianceTo = DateTime.UtcNow.Date.AddDays(1).AddTicks(-1);
             var compliance = await complianceService.CalculateComplianceAsync(
-                clientProfile.UserId, complianceFrom, complianceTo, ct);
+                clientProfile.PublicId, complianceFrom, complianceTo, ct);
             compliancePercent = compliance.CompliancePercent;
-            currentStreak = await complianceService.CalculateStreakAsync(clientProfile.UserId, ct);
+            currentStreak = await complianceService.CalculateStreakAsync(clientProfile.PublicId, ct);
         }
         catch
         {

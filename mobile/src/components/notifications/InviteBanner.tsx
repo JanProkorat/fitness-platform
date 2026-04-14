@@ -2,6 +2,8 @@ import React, { useEffect, useRef } from 'react'
 import { View, Text, Pressable, StyleSheet, Animated } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/hooks/useTheme'
+import { goldAlpha } from '@/constants/colors'
+import { cardShadow } from '@/constants/shadows'
 
 interface InviteBannerProps {
   trainerName: string
@@ -29,9 +31,9 @@ export function InviteBanner({ trainerName, onPress, onDismiss }: InviteBannerPr
     <Animated.View style={[styles.wrapper, { transform: [{ translateY: slideAnim }] }]}>
       <Pressable
         onPress={onPress}
-        style={[styles.container, { backgroundColor: colors.bg2, borderColor: 'rgba(201,168,76,0.25)' }]}
+        style={[styles.container, { backgroundColor: colors.bg2, borderColor: goldAlpha['25'] }]}
       >
-        <View style={[styles.iconWrap, { backgroundColor: 'rgba(201,168,76,0.12)' }]}>
+        <View style={[styles.iconWrap, { backgroundColor: goldAlpha['12'] }]}>
           <Ionicons name="person-add" size={16} color={colors.gold} />
         </View>
         <View style={styles.body}>
@@ -63,10 +65,7 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     borderWidth: 1,
     shadowColor: '#c9a84c',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+    ...cardShadow,
   },
   iconWrap: {
     width: 34,

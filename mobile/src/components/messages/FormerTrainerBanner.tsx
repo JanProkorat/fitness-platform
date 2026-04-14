@@ -25,7 +25,7 @@ export function FormerTrainerBanner({ trainerName, onShow, onIgnore }: FormerTra
             onPress={onShow}
             style={[styles.btn, { backgroundColor: colors.gold }]}
           >
-            <Text style={styles.btnPrimary}>Show chat</Text>
+            <Text style={[styles.btnPrimary, { color: colors.onAccent }]}>Show chat</Text>
           </Pressable>
           <Pressable
             onPress={onIgnore}
@@ -82,7 +82,6 @@ const styles = StyleSheet.create({
   btnPrimary: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#ffffff',
   },
   btnSecondary: {
     fontSize: 12,

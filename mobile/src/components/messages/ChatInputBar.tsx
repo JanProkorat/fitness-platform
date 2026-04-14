@@ -78,7 +78,7 @@ export function ChatInputBar({ onSend, onAttachPress, onTyping }: ChatInputBarPr
             { backgroundColor: colors.gold, opacity: canSend ? 1 : 0.35 },
           ]}
         >
-          <Ionicons name="arrow-up" size={18} color="#ffffff" />
+          <Ionicons name="arrow-up" size={18} color={colors.onAccent} />
         </Pressable>
       </View>
     </View>

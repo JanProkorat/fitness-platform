@@ -17,186 +17,12 @@ import { WeekDayTabs } from '@/components/nutrition';
 import type { WeekTabData } from '@/components/nutrition/WeekDayTabs';
 import { TrainingSidebar } from '@/components/training/TrainingSidebar';
 import { cn } from '@/lib/cn';
-
-const DAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
-
-const MUSCLE_ICONS: Record<string, string> = {
-  Chest: '🫁', Back: '🔙', Shoulders: '🏔️', Biceps: '💪', Triceps: '💪',
-  Forearms: '🦾', Quadriceps: '🦵', Hamstrings: '🦵', Glutes: '🍑', Calves: '🦶',
-  Abs: '🧱', Obliques: '🧱', LowerBack: '🔙', Traps: '🏔️', FullBody: '🏋️',
-};
-
-const MUSCLE_COLORS: Record<string, string> = {
-  Chest: 'var(--blue)', Back: 'var(--green)', Shoulders: 'var(--orange)', Biceps: 'var(--purple)', Triceps: 'var(--purple)',
-  Forearms: 'var(--purple)', Quadriceps: 'var(--blue)', Hamstrings: 'var(--blue)', Glutes: 'var(--green)', Calves: 'var(--green)',
-  Abs: 'var(--orange)', Obliques: 'var(--orange)', LowerBack: 'var(--orange)', Traps: 'var(--green)', FullBody: 'var(--accent)',
-};
-
-const MUSCLE_BG_COLORS: Record<string, string> = {
-  Chest: 'var(--blue-bg)', Back: 'var(--green-bg)', Shoulders: 'var(--orange-bg)', Biceps: 'var(--purple-bg)', Triceps: 'var(--purple-bg)',
-  Forearms: 'var(--purple-bg)', Quadriceps: 'var(--blue-bg)', Hamstrings: 'var(--blue-bg)', Glutes: 'var(--green-bg)', Calves: 'var(--green-bg)',
-  Abs: 'var(--orange-bg)', Obliques: 'var(--orange-bg)', LowerBack: 'var(--orange-bg)', Traps: 'var(--green-bg)', FullBody: 'var(--accent-bg)',
-};
-
-/** Day-level note input — identical to the one in NutritionPlanPage */
-function DayNoteInput({ note, onChange, addLabel, placeholder }: { note?: string | null; onChange: (note: string) => void; addLabel: string; placeholder: string }) {
-  const [value, setValue] = useState(note ?? '');
-  const [open, setOpen] = useState(!!note);
-
-  // Sync when day changes
-  useEffect(() => {
-    setValue(note ?? '');
-    if (note) setOpen(true);
-    else setOpen(false);
-  }, [note]);
-
-  if (!open) {
-    return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        style={{
-          background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0 8px',
-          fontSize: 11, color: 'var(--text4)', fontFamily: 'inherit', transition: 'color 0.1s',
-        }}
-        onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text3)'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text4)'; }}
-      >
-        {addLabel}
-      </button>
-    );
-  }
-
-  return (
-    <div style={{ marginBottom: 8 }}>
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        onBlur={() => onChange(value)}
-        placeholder={placeholder}
-        style={{
-          width: '100%', border: '1px dashed var(--border-md)', outline: 'none',
-          background: 'transparent', fontSize: 12, color: 'var(--text2)',
-          fontFamily: 'inherit', fontStyle: 'italic', padding: '5px 8px',
-          borderRadius: 'var(--radius-md)', transition: 'border-color 0.15s',
-        }}
-        onFocus={(e) => { e.target.style.borderColor = 'var(--accent-br)'; }}
-        onBlurCapture={(e) => { e.target.style.borderColor = 'var(--border-md)'; }}
-      />
-    </div>
-  );
-}
-
-/** Draggable session wrapper — mirrors SortableMealItem from the nutrition plan. */
-function SessionDragWrapper({
-  sessionId, selectedDay, selectedWeek, children,
-}: {
-  sessionId: string; selectedDay: number; selectedWeek: number; children: React.ReactNode;
-}) {
-  const [over, setOver] = useState(false);
-
-  return (
-    <div
-      draggable
-      onDragStart={(e) => {
-        e.dataTransfer.setData('application/session-json', JSON.stringify({ type: 'session', sessionId, fromDay: selectedDay, fromWeek: selectedWeek }));
-        e.dataTransfer.effectAllowed = 'move';
-      }}
-      onDragOver={(e) => {
-        if (e.dataTransfer.types.includes('application/session-json')) {
-          e.preventDefault();
-          e.dataTransfer.dropEffect = 'move';
-          setOver(true);
-        }
-      }}
-      onDragLeave={() => setOver(false)}
-      onDrop={(e) => {
-        setOver(false);
-        if (!e.dataTransfer.types.includes('application/session-json')) return;
-        e.preventDefault();
-        // reorder handled by parent container
-      }}
-      data-session-id={sessionId}
-      className="mb-4"
-      style={{
-        borderTop: over ? '2px solid var(--accent)' : '2px solid transparent',
-        transition: 'border-color 0.1s',
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
-/** Drop zone wrapping exercise rows — mirrors MealDropZone from the nutrition plan. */
-function ExerciseDropZone({
-  sessionId, exerciseIds: _exerciseIds, selectedWeek, onReorder, onCrossSessionMove, children,
-}: {
-  sessionId: string;
-  exerciseIds: string[];
-  selectedWeek: number;
-  onReorder: (fromIndex: number, toIndex: number) => void;
-  onCrossSessionMove: (fromSessionId: string, fromIndex: number, toIndex: number, fromWeek: number) => void;
-  children: React.ReactNode;
-}) {
-  const [over, setOver] = useState(false);
-
-  return (
-    <div
-      style={{
-        minHeight: 24,
-        borderRadius: 'var(--radius)',
-        transition: 'background 0.15s',
-        background: over ? 'var(--accent-bg)' : undefined,
-      }}
-      onDragOver={(e) => {
-        if (e.dataTransfer.types.includes('application/exercise-json')) {
-          e.preventDefault();
-          e.dataTransfer.dropEffect = 'move';
-          setOver(true);
-        }
-      }}
-      onDragLeave={() => setOver(false)}
-      onDrop={(e) => {
-        setOver(false);
-        if (!e.dataTransfer.types.includes('application/exercise-json')) return;
-        e.preventDefault();
-        try {
-          const data = JSON.parse(e.dataTransfer.getData('application/exercise-json'));
-          if (data.type !== 'exercise') return;
-
-          // Find target index from mouse position
-          const container = e.currentTarget;
-          const rows = Array.from(container.querySelectorAll('[data-item-id]'));
-          let targetIndex = rows.length;
-          for (let i = 0; i < rows.length; i++) {
-            const rect = rows[i].getBoundingClientRect();
-            if (e.clientY < rect.top + rect.height / 2) {
-              targetIndex = i;
-              break;
-            }
-          }
-
-          const fromWeek = data.fromWeek ?? selectedWeek;
-
-          if (data.sessionId === sessionId && fromWeek === selectedWeek) {
-            // Same session reorder
-            const fromIndex = data.exerciseIndex;
-            if (fromIndex !== targetIndex) {
-              onReorder(fromIndex, targetIndex > fromIndex ? targetIndex - 1 : targetIndex);
-            }
-          } else {
-            // Cross-session or cross-week move
-            onCrossSessionMove(data.sessionId, data.exerciseIndex, targetIndex, fromWeek);
-          }
-        } catch { /* ignore */ }
-      }}
-    >
-      {children}
-    </div>
-  );
-}
+import { DayNoteInput } from '@/components/common/DayNoteInput';
+import { DAY_KEYS, MUSCLE_ICONS, MUSCLE_COLORS } from '@/constants/training';
+import { SessionDragWrapper } from '@/components/training/SessionDragWrapper';
+import { ExerciseDropZone } from '@/components/training/ExerciseDropZone';
+import { WeekOverviewGrid } from '@/components/training/WeekOverviewGrid';
+import { ExerciseCardHeader } from '@/components/training/ExerciseCardHeader';
 
 export default function TrainingPlanPage() {
   const { planId } = useParams<{ planId: string }>();
@@ -633,77 +459,12 @@ export default function TrainingPlanPage() {
       </div>
 
       {/* ── Expandable week grid overview (dropdown overlay) ── */}
-      {weekViewExpanded && (
-        <div
-          className="absolute left-0 right-0 top-full z-50 border-b border-border bg-bg"
-          style={{ boxShadow: '0 8px 24px rgba(0,0,0,0.1)' }}
-        >
-            <div className="grid grid-cols-7 gap-0">
-              {DAY_KEYS.map((_key, idx) => {
-                const dayOfWeek = idx + 1;
-                const sessions = (currentWeek?.sessions ?? [])
-                  .filter((s) => s.dayOfWeek === dayOfWeek)
-                  .sort((a, b) => a.order - b.order);
-                const isSelected = dayOfWeek === selectedDay;
-
-                return (
-                  <div
-                    key={dayOfWeek}
-                    className={cn(
-                      'flex flex-col border-r border-border last:border-r-0',
-                      isSelected && 'bg-accent-bg',
-                    )}
-                  >
-                    {/* Session cards */}
-                    <div className="p-1.5 flex flex-col gap-1.5" style={{ minHeight: 60 }}>
-                      {sessions.length === 0 && (
-                        <div className="text-[10px] text-text4 text-center py-3">{t('training.restDay')}</div>
-                      )}
-                      {sessions.map((session) => {
-                        const sessionMuscles = new Set<string>();
-                        for (const ex of session.exercises) {
-                          const groups = exerciseDetailsMap?.get(ex.exerciseExternalId) ?? [];
-                          for (const g of groups) sessionMuscles.add(g);
-                        }
-
-                        return (
-                          <div
-                            key={session.sessionId}
-                            className={cn(
-                              'rounded-md border bg-bg p-2',
-                              isSelected ? 'border-border-md' : 'border-border',
-                            )}
-                          >
-                            <div className="text-[12px] font-semibold text-text truncate">{session.name}</div>
-                            <div className="text-[10px] text-text3 mt-0.5">
-                              {session.exercises.length} {t('training.exercisesCount')}
-                            </div>
-                            {sessionMuscles.size > 0 && (
-                              <div className="flex flex-wrap gap-1 mt-1.5">
-                                {[...sessionMuscles].map((g) => (
-                                  <span
-                                    key={g}
-                                    className="text-[9px] font-medium rounded-sm px-1 py-[1px]"
-                                    style={{
-                                      background: MUSCLE_BG_COLORS[g] ?? 'var(--accent-bg)',
-                                      color: MUSCLE_COLORS[g] ?? 'var(--accent)',
-                                    }}
-                                  >
-                                    {t(`training.muscle${g}`)}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-        </div>
-      )}
+      <WeekOverviewGrid
+        weekViewExpanded={weekViewExpanded}
+        currentWeek={currentWeek}
+        selectedDay={selectedDay}
+        exerciseDetailsMap={exerciseDetailsMap}
+      />
       </div>
 
           {/* Sessions list */}
@@ -907,11 +668,8 @@ export default function TrainingPlanPage() {
                         const muscleGroups = exerciseDetailsMap?.get(ex.exerciseExternalId) ?? [];
                         const primaryMuscle = muscleGroups[0] as string | undefined;
                         const muscleColor = primaryMuscle ? MUSCLE_COLORS[primaryMuscle] ?? 'var(--accent)' : 'var(--accent)';
-                        // muscleBg available: primaryMuscle ? MUSCLE_BG_COLORS[primaryMuscle] ?? 'var(--accent-bg)' : 'var(--accent-bg)'
                         const muscleIcon = primaryMuscle ? MUSCLE_ICONS[primaryMuscle] ?? '🏋️' : '🏋️';
                         const difficulty = exerciseFullMap?.get(ex.exerciseExternalId)?.difficulty;
-                        const diffLevel = difficulty === 'Beginner' ? 1 : difficulty === 'Intermediate' ? 2 : difficulty === 'Advanced' ? 3 : 0;
-                        const diffColor = difficulty === 'Beginner' ? 'var(--green)' : difficulty === 'Intermediate' ? 'var(--orange)' : difficulty === 'Advanced' ? 'var(--red)' : 'var(--text4)';
 
                         return (
                           <div
@@ -929,91 +687,21 @@ export default function TrainingPlanPage() {
                             className="rounded-md border border-border bg-bg mb-1.5 overflow-hidden transition-all duration-100 hover:border-border-md cursor-grab active:cursor-grabbing"
                           >
                             {/* Exercise card header */}
-                            <div
-                              className={cn(
-                                'group/ex flex items-center gap-2 py-2 pl-2 pr-3 select-none transition-colors hover:bg-bg-hover',
-                                isExOpen && 'border-b border-border',
-                              )}
-                              onClick={() => toggleExercise(exKey)}
-                            >
-                              {/* Colored left bar */}
-                              <div className="w-[4px] self-stretch shrink-0 rounded-full" style={{ background: muscleColor }} />
-
-                              {/* Muscle icon */}
-                              <span className="text-[20px] leading-none shrink-0">{muscleIcon}</span>
-
-                              <span
-                                className={cn(
-                                  'text-[10px] text-text3 transition-transform duration-150 w-3 inline-flex items-center justify-center shrink-0',
-                                  isExOpen && 'rotate-90',
-                                )}
-                              >
-                                ▶
-                              </span>
-
-                              {/* Name + badge + summary */}
-                              <div className="flex-1 min-w-0">
-                                <div className="text-[13px] font-semibold text-text truncate">{ex.exerciseName}</div>
-                                <div className="flex items-center gap-2 mt-0.5">
-                                  {muscleGroups.map((g) => (
-                                    <span
-                                      key={g}
-                                      className="text-[10px] font-medium rounded-sm px-1.5 py-[1px]"
-                                      style={{
-                                        background: MUSCLE_BG_COLORS[g] ?? 'var(--accent-bg)',
-                                        color: MUSCLE_COLORS[g] ?? 'var(--accent)',
-                                      }}
-                                    >
-                                      {t(`training.muscle${g}`)}
-                                    </span>
-                                  ))}
-                                  <span className="text-[11px] text-text3 tabular-nums">
-                                    {setsCount}×{repsStr} · {weightStr} kg
-                                  </span>
-                                </div>
-                              </div>
-
-                              {/* Difficulty bar + Total volume */}
-                              <div className="flex items-center gap-2 shrink-0">
-                                {diffLevel > 0 && (
-                                  <div className="flex items-center gap-[3px]">
-                                    {[1, 2, 3].map((level) => (
-                                      <div
-                                        key={level}
-                                        className="rounded-full"
-                                        style={{
-                                          width: 14, height: 4,
-                                          background: level <= diffLevel ? diffColor : 'var(--bg3)',
-                                        }}
-                                      />
-                                    ))}
-                                  </div>
-                                )}
-                              {totalVolume > 0 && (
-                                <span className="text-[12px] text-accent font-semibold tabular-nums">
-                                  {totalVolume.toLocaleString()} kg
-                                </span>
-                              )}
-                              </div>
-
-                              {/* Actions — hover visible */}
-                              <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
-                                <button
-                                  onClick={() => duplicateExercise(selectedWeek, session.sessionId, exIdx)}
-                                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', fontSize: 11, color: 'var(--text4)', borderRadius: 'var(--radius)', transition: 'color 0.1s' }}
-                                  onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text2)'; }}
-                                  onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text4)'; }}
-                                  title={t('training.duplicateExercise')}
-                                >⧉</button>
-                                <button
-                                  onClick={() => removeExercise(selectedWeek, session.sessionId, exIdx)}
-                                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', fontSize: 11, color: 'var(--text4)', borderRadius: 'var(--radius)', transition: 'color 0.1s' }}
-                                  onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--red)'; }}
-                                  onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text4)'; }}
-                                  title={t('training.removeExercise')}
-                                >✕</button>
-                              </div>
-                            </div>
+                            <ExerciseCardHeader
+                              exercise={ex}
+                              muscleGroups={muscleGroups}
+                              repsStr={repsStr}
+                              weightStr={weightStr}
+                              setsCount={setsCount}
+                              totalVolume={totalVolume}
+                              isOpen={isExOpen}
+                              onToggle={() => toggleExercise(exKey)}
+                              onDuplicate={() => duplicateExercise(selectedWeek, session.sessionId, exIdx)}
+                              onRemove={() => removeExercise(selectedWeek, session.sessionId, exIdx)}
+                              difficulty={difficulty}
+                              muscleColor={muscleColor}
+                              muscleIcon={muscleIcon}
+                            />
 
                             {/* Exercise card body — sets table */}
                             <div className="collapse-grid" data-open={isExOpen}>

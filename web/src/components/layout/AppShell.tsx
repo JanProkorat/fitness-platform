@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, Suspense } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -119,6 +119,16 @@ export function AppShell() {
     userPresence: () => {
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
     },
+    clientComplianceUpdated: (payload: unknown) => {
+      const data = payload as { ClientId?: string; clientId?: string } | undefined;
+      const clientId = data?.ClientId ?? data?.clientId;
+      if (!clientId) return;
+      // Trainer is viewing this client's detail page — refresh stats + timeline live.
+      queryClient.invalidateQueries({ queryKey: ['client-dashboard', clientId] });
+      queryClient.invalidateQueries({ queryKey: ['client-timeline', clientId] });
+      // Main dashboard table — refresh calories, compliance, streak.
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
+    },
     typing: (payload: unknown) => {
       const data = payload as { conversationId?: string; senderId?: string } | undefined;
       if (data?.conversationId) {
@@ -137,7 +147,9 @@ export function AppShell() {
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       <Sidebar onToggleDark={handleToggleDark} />
       <main style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
-        <Outlet />
+        <Suspense fallback={<div className="flex flex-1 items-center justify-center text-text3">Loading…</div>}>
+          <Outlet />
+        </Suspense>
       </main>
     </div>
   );

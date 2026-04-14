@@ -38,6 +38,7 @@ public class GetMeasurementStatsEndpoint(IApplicationDbContext db) : EndpointWit
         var clientId = Guid.Parse(userId);
 
         var clientProfile = await db.ClientProfiles
+            .Include(cp => cp.OnboardingData)
             .FirstOrDefaultAsync(cp => cp.UserId == clientId, ct);
 
         if (clientProfile is null)
@@ -54,9 +55,11 @@ public class GetMeasurementStatsEndpoint(IApplicationDbContext db) : EndpointWit
 
         var hasWeightData = await weightMeasurements.AnyAsync(ct);
 
+        var targetWeightKg = clientProfile.OnboardingData?.TargetWeightKg;
+
         if (!hasWeightData)
         {
-            await Send.OkAsync(new MeasurementStatsResponse { TotalCount = totalCount }, ct);
+            await Send.OkAsync(new MeasurementStatsResponse { TotalCount = totalCount, TargetWeightKg = targetWeightKg }, ct);
             return;
         }
 
@@ -87,7 +90,8 @@ public class GetMeasurementStatsEndpoint(IApplicationDbContext db) : EndpointWit
             AvgWeight = Math.Round(avgWeight, 2),
             LatestWeight = latestMeasurement.WeightKg,
             WeightChange30Days = weightChange30Days,
-            TotalCount = totalCount
+            TotalCount = totalCount,
+            TargetWeightKg = targetWeightKg
         }, ct);
     }
 }

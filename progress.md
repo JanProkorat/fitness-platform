@@ -865,3 +865,205 @@ Implemented the food detail and recipe detail screens from the prototype specifi
 - Data passed via Expo Router search params (serialized JSON)
 - Header shows the parent meal name (e.g. "Snídaně", "Večeře")
 - Back navigation returns to plan-detail
+
+---
+
+## 2026-04-13 — Streak counts today + mobile refresh on meal log
+
+### Backend
+- `backend/.../Infrastructure/Services/ComplianceService.cs` —
+  `CalculateStreakAsync` now starts at **today** instead of yesterday.
+  Rules:
+  - If no active plan covers that day (date < `DatePublished`) → stop walking.
+  - If plan active but 0 meals planned (rest day) → skip, don't break.
+  - ≥80% meals logged → +1.
+  - <80% on **today** → skip (user may still log more); don't reset.
+  - <80% on any past day → break.
+
+### Mobile
+- `mobile/src/components/today/HasTrainerState.tsx` — both
+  `toggleEatenMutation` and `markAllEatenMutation` now invalidate
+  `['compliance-score']` on success, so the streak stat card refreshes
+  immediately after the first meal that pushes the day past the 80%
+  threshold. `today-log` invalidation intentionally remains off to avoid
+  ring/kcal flicker.
+
+---
+
+## 2026-04-13 — Web client detail: streak & compliance cards
+
+- `web/src/pages/ClientDetailPage.tsx`
+  - Stats grid now leads with **🔥 Série** (orange when >0, sub "dní v řadě"),
+    followed by **Compliance** (tinted green/amber/red via existing
+    threshold, sub "za posledních 7 dní"), then **Pokrok váhy**.
+  - Removed the duplicate streak/compliance tags from the PageHeader
+    subtitle — the stat cards own that information now; only the goal
+    tag remains. Dropped the unused `complianceVariant` memo.
+  - No backend changes required: `currentStreak` and `compliancePercent`
+    were already returned by `GetClientDashboardEndpoint`.
+
+---
+
+## 2026-04-13 — Client activity timeline (web client detail)
+
+### Backend
+- New feature `Features/Trainers/GetClientTimeline/` with endpoint
+  `GET /trainer/clients/{ClientId}/timeline?limit=` (1..100, default 30).
+  Roles: Trainer / Nutritionist. Verifies an active professional link
+  against the target client, audits the read, then composes a merged
+  timeline on the fly from existing data sources over the last 90 days:
+  - MealLogs — aggregated per calendar day (`meal_day`)
+  - WorkoutLogs where `IsCompleted` (`workout`)
+  - BodyMeasurements (`measurement`)
+  - QuestionnaireResponses with `SubmittedAt` set (`questionnaire`)
+  - NutritionPlans / TrainingPlans with `DatePublished` set
+    (`nutrition_plan_published` / `training_plan_published`)
+  - The trainer-client link itself (`linked`)
+  Items ordered `OccurredAt` desc, truncated to `limit`.
+
+### Web
+- `web/src/api/timeline.ts` — typed client for the new endpoint.
+- `web/src/pages/ClientDetailPage.tsx` — replaces the hand-assembled
+  3-event timeline (measurement / questionnaire / linked) with a
+  `useQuery(['client-timeline', id])` call that feeds `ActivityTimeline`
+  directly.
+
+### Notes
+- Option A ("composed on read") intentionally chosen over a
+  `ClientActivity` event table. No domain writes added; easy to tune.
+
+---
+
+## 2026-04-13 — Real-time streak/compliance updates for trainers (Phase 5)
+
+### Backend
+- `LogMealEatenEndpoint` and `UnlogMealEatenEndpoint` now inject
+  `IRealtimeNotifier` and, after a successful Mongo write, look up every
+  active `ClientProfessionalLink` for the client, join to
+  `ProfessionalProfiles` for the professional's `UserId`, and emit a
+  `clientcomplianceupdated` SignalR event to each user's group with
+  payload `{ ClientId: <ClientProfile.PublicId> }`.
+- Unlog only emits when `DeletedCount > 0` so a no-op delete stays silent.
+- Both endpoints share the same private helper
+  `NotifyLinkedProfessionalsAsync(clientProfileId, clientPublicId, ct)`.
+- Fan-out is intentionally to *all* active professionals (trainer +
+  nutritionist if both are linked) — confirmed with user.
+
+### Web
+- `AppShell.tsx` — added a `clientComplianceUpdated` handler to the
+  existing `useSignalR` map (SignalR JS client lowercases, so it matches
+  the backend's `clientcomplianceupdated` emit). On receipt, invalidates
+  `['client-dashboard', clientId]` and `['client-timeline', clientId]`,
+  so the trainer's open client detail page repaints streak, compliance
+  and timeline without polling.
+
+### Notes
+- No new UI, no value passed over the wire — server remains source of
+  truth; event is just a signal to refetch. Same pattern mobile already
+  uses on mutation `onSuccess`, now triggered on the web side by
+  SignalR.
+
+---
+
+## 2026-04-13 — Fix streak/compliance always zero (ID mismatch)
+
+### Problem
+After logging all of today's meals the mobile streak card still read 0,
+and the trainer's compliance card showed 0% on the web. Cause: the
+Mongo `MealLog.ClientId` and `NutritionPlan.ClientId` are stored as
+`ClientProfile.PublicId`, but three endpoints were calling
+`ComplianceService` with `ApplicationUser.Id` / `ClientProfile.UserId`.
+The service's `FindActivePlanAsync` therefore never matched a plan and
+always returned streak = 0 / compliance = 0%.
+
+### Fix
+- `Features/Client/Progress/GetComplianceScore/GetComplianceScoreEndpoint.cs`
+  — inject `IApplicationDbContext`, resolve the client profile, pass
+  `clientProfile.PublicId` into `ComplianceService` instead of the raw
+  user claim.
+- `Features/Client/Progress/GetWeeklyOverview/GetWeeklyOverviewEndpoint.cs`
+  — same fix.
+- `Features/Trainers/GetClientDashboard/GetClientDashboardEndpoint.cs`
+  — switched the two `ComplianceService` calls from
+  `clientProfile.UserId` to `clientProfile.PublicId`.
+  Left the `QuestionnaireResponses` filter (line ~139) on
+  `clientProfile.UserId` — that entity is keyed by UserId on purpose,
+  matching the other questionnaire features.
+
+### Notes
+- `WorkoutLog.ClientId` is written as `ApplicationUser.Id` while
+  `TrainingPlan.ClientId` / `MealLog.ClientId` / `NutritionPlan.ClientId`
+  use `ClientProfile.PublicId`. The existing `GetClientTimelineEndpoint`
+  passes `clientProfile.UserId` to all of them — it is
+  correct for the Workout + Questionnaire pulls, but wrong for the
+  nutrition/meal/training plan pulls. Flagged for a follow-up —
+  intentionally left alone this round to keep the streak fix small.
+
+---
+
+## 2026-04-13 — Fix DateTime overflow + streak never incrementing
+
+### Root cause
+`ComplianceService.GetPlannedMealCountForDate` depended on
+`plan.DatePublished` — but that field is **never set** anywhere in the
+codebase; only `week.DatePublished` is written (in `PublishWeekEndpoint`).
+As a result:
+
+1. `GetPlannedMealCountForDate` always returned 0 (first guard hit).
+2. `CalculateStreakAsync` therefore saw every day as "rest day — skip
+   and decrement" and never hit its break condition, walking the date
+   backwards indefinitely until `AddDays(-1)` on `DateTime.MinValue`
+   overflowed through `AddTicks` →
+   `ArgumentOutOfRangeException: un-representable DateTime`.
+3. Even on days where this wouldn't have exploded, streak never
+   incremented because no day was ever "planned".
+4. `CalculateComplianceAsync` had the same bug — `MealsPlanned` was
+   always 0 → compliance always 0 %.
+
+### Fix
+`backend/.../Infrastructure/Services/ComplianceService.cs`:
+
+- `GetPlannedMealCountForDate(plan, date)` rewritten to anchor on
+  `plan.StartDate` (which *is* set and is validated by `PublishWeek`):
+  compute `weekNumber = daysSinceStart/7 + 1`,
+  `dayOfWeek = daysSinceStart%7 + 1`, look up the matching `PlanWeek`
+  and only count meals if `week.Status == WeekStatus.Published`.
+- `CalculateStreakAsync` now derives a `floorDate` =
+  `plan.StartDate + (earliestPublishedWeek.WeekNumber - 1) * 7` and
+  walks back only while `currentDate >= floorDate`. If there is no
+  published week, returns 0 early. This removes both the infinite
+  loop and the `DateTime` overflow.
+- `CalculateComplianceAsync` now returns early when
+  `plan.StartDate` is null and delegates to the new helper.
+- Removed the now-unused `GetAllPlanDays` helper and the
+  `allDays/totalDays` parameters from `CountPlannedMeals` /
+  `GetPlannedMealCountForDate`.
+
+### Expected behaviour after rebuild
+- Logging today's meals now causes `CurrentStreak = 1` via the
+  `compliance-score` refetch triggered by the mobile mutation
+  `onSuccess`.
+- Web trainer client detail picks up matching streak + compliance via
+  the SignalR `clientcomplianceupdated` invalidation added earlier
+  today.
+
+---
+
+## 2026-04-14 — Replace calories stat card with weight trend (mobile Today)
+
+### Problem
+The upper-left "Kalorie" stat card on the Today screen duplicated the
+calorie info already shown in the nutrition card hero just below.
+
+### Change
+`mobile/src/components/today/HasTrainerState.tsx`:
+- Added `useQuery(['measurement-stats'], getMeasurementStats)` to fetch
+  the client's latest weight and 30-day change from
+  `GET /client/measurements/stats`.
+- Replaced the `StatCard` from `calories / target kcal / progress bar`
+  to `weight / ±change kg`. Shows "—" with sub "žádné měření" when no
+  measurements exist. Positive change is orange, negative is green.
+- Removed now-unused `targetKcal` and `kcalProgress` vars.
+
+### i18n
+- Added `today.weight` and `today.noMeasurements` keys in cs, en, de.

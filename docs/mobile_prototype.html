@@ -198,6 +198,27 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
 /* Gradient backgrounds for cards */
 .grad-push{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%)}
 .grad-nutrition{background:linear-gradient(135deg,#0d2137 0%,#1a3a52 100%)}
+.grad-meal{background:linear-gradient(135deg,#3d2c12 0%,#5e421a 100%)}
+
+/* Today nutrition meal rows (training-card-style) */
+.meal-row-wrap{border-bottom:.5px solid var(--ios-sep2)}
+.meal-row-wrap:last-child{border-bottom:none}
+.meal-row-header{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;transition:background .12s}
+.meal-row-header:active{background:var(--ios-fill2)}
+.meal-chev{font-size:13px;color:var(--ios-label3);transition:transform .2s;width:14px;text-align:center;flex-shrink:0}
+.meal-row-body{background:rgba(120,120,128,.04);border-top:.5px solid var(--ios-sep2)}
+.ing-row{display:flex;align-items:center;gap:10px;padding:9px 16px 9px 38px;border-bottom:.5px solid var(--ios-sep2)}
+.ing-row:last-of-type{border-bottom:none}
+.ing-info{flex:1;min-width:0}
+.ing-name{font-size:14px;font-weight:500;color:var(--ios-label)}
+.ing-cat{font-size:11px;color:var(--ios-label2);margin-top:1px}
+.ing-cat.recipe{color:var(--ios-gold);font-weight:500}
+.ing-kcal{font-size:12px;font-weight:600;color:var(--ios-label);text-align:right;flex-shrink:0}
+.ing-amount{font-size:10px;color:var(--ios-label3);margin-top:1px}
+.ing-note{padding:0 16px 9px 38px;font-size:11px;color:var(--ios-label2);line-height:1.4;background:rgba(120,120,128,.04)}
+.ing-note .lbl{font-weight:600;color:var(--ios-gold)}
+.meal-note{padding:10px 16px 10px 38px;background:rgba(201,168,76,.08);border-top:.5px solid var(--ios-sep2);font-size:11px;color:var(--ios-label2);line-height:1.45}
+.meal-note .lbl{font-weight:600;color:var(--ios-gold)}
 .grad-progress{background:linear-gradient(135deg,#1a2a1a 0%,#0d2a0d 100%)}
 .grad-rest{background:linear-gradient(135deg,#2a1a2a 0%,#1a0d2a 100%)}
 
@@ -619,6 +640,25 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
 .fd-lang-btn{width:28px;height:20px;border-radius:4px;border:1px solid var(--ios-sep);background:transparent;font-size:10px;font-weight:600;color:var(--ios-label3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s,border-color .15s;font-family:'Inter',sans-serif}
 .fd-lang-btn.active{background:var(--ios-gold);color:#fff;border-color:var(--ios-gold)}
 
+/* ── WEIGHT INPUT SHEET ── */
+.weight-sheet-overlay{position:absolute;inset:0;background:rgba(0,0,0,.4);z-index:200;display:none;align-items:flex-end;justify-content:center}
+.weight-sheet-overlay.open{display:flex}
+.weight-sheet{width:100%;background:var(--ios-bg2);border-radius:20px 20px 0 0;padding:12px 20px 34px;transform:translateY(100%);transition:transform .3s cubic-bezier(.25,.46,.45,.94);max-height:70%}
+.weight-sheet-overlay.open .weight-sheet{transform:translateY(0)}
+.weight-sheet-handle{width:36px;height:5px;border-radius:99px;background:var(--ios-label4);margin:0 auto 16px}
+.weight-sheet-title{font-size:18px;font-weight:700;color:var(--ios-label);text-align:center;margin-bottom:16px;letter-spacing:-.2px}
+.weight-input-group{margin-bottom:16px}
+.weight-input-label{font-size:13px;font-weight:500;color:var(--ios-label2);margin-bottom:6px}
+.weight-input-field{width:100%;padding:12px 14px;border-radius:var(--ios-r);border:1px solid var(--ios-sep);background:var(--ios-bg3);font-size:28px;font-weight:700;color:var(--ios-label);font-family:'Inter',sans-serif;text-align:center;outline:none;transition:border-color .15s;letter-spacing:-.3px}
+.weight-input-field:focus{border-color:var(--ios-gold)}
+.weight-input-field::placeholder{color:var(--ios-label4);font-weight:400;font-size:18px}
+.weight-date-field{width:100%;padding:12px 14px;border-radius:var(--ios-r);border:1px solid var(--ios-sep);background:var(--ios-bg3);font-size:16px;font-weight:500;color:var(--ios-label);font-family:'Inter',sans-serif;text-align:center;outline:none;transition:border-color .15s;-webkit-appearance:none;appearance:none}
+.weight-date-field:focus{border-color:var(--ios-gold)}
+.weight-save-btn{width:100%;padding:14px;border-radius:var(--ios-r);background:var(--ios-gold);border:none;font-size:17px;font-weight:600;color:#fff;font-family:'Inter',sans-serif;cursor:pointer;transition:opacity .15s}
+.weight-save-btn:hover{opacity:.9}
+.weight-save-btn:disabled{opacity:.4;cursor:default}
+.weight-cancel-btn{width:100%;padding:12px;border-radius:var(--ios-r);background:transparent;border:none;font-size:16px;font-weight:500;color:var(--ios-label2);font-family:'Inter',sans-serif;cursor:pointer;margin-top:4px}
+
 </style>
 </head>
 <body>
@@ -771,11 +811,27 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
 
       <!-- Today summary strip -->
       <div style="margin:12px 20px;display:flex;gap:10px">
-        <div style="flex:1;background:var(--ios-bg2);border-radius:var(--ios-r);padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)">
-          <div style="font-size:11px;color:var(--ios-label2);font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Kalorie</div>
-          <div style="font-size:22px;font-weight:700;color:var(--ios-label);letter-spacing:-.3px">1 547</div>
-          <div style="font-size:11px;color:var(--ios-label3);margin-top:1px">/ 1 700 kcal</div>
-          <div style="height:4px;background:var(--ios-fill);border-radius:99px;margin-top:6px;overflow:hidden"><div style="width:91%;height:100%;background:var(--ios-gold);border-radius:99px"></div></div>
+        <!-- Weight progress card (replaces Calories) -->
+        <div id="today-weight-card" onclick="showPhone('ph-profile')" style="flex:1;background:var(--ios-bg2);border-radius:var(--ios-r);padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);cursor:pointer">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+            <div style="font-size:11px;color:var(--ios-label2);font-weight:500;text-transform:uppercase;letter-spacing:.05em">Váha</div>
+            <div style="font-size:14px">⚖️</div>
+          </div>
+          <div style="display:flex;align-items:baseline;gap:4px">
+            <div id="today-weight-val" style="font-size:22px;font-weight:700;color:var(--ios-label);letter-spacing:-.3px">63,1</div>
+            <div style="font-size:12px;color:var(--ios-label2)">kg</div>
+          </div>
+          <div id="today-weight-delta" style="font-size:11px;font-weight:600;color:var(--ios-green);margin-top:2px">↓ 2,4 kg</div>
+          <!-- Mini sparkline -->
+          <div id="today-weight-spark" style="display:flex;align-items:flex-end;gap:2px;height:20px;margin-top:6px">
+            <div style="flex:1;height:85%;background:var(--ios-fill);border-radius:2px"></div>
+            <div style="flex:1;height:75%;background:var(--ios-fill);border-radius:2px"></div>
+            <div style="flex:1;height:65%;background:var(--ios-fill);border-radius:2px"></div>
+            <div style="flex:1;height:55%;background:var(--ios-fill);border-radius:2px"></div>
+            <div style="flex:1;height:45%;background:var(--ios-fill);border-radius:2px"></div>
+            <div style="flex:1;height:35%;background:var(--ios-fill);border-radius:2px"></div>
+            <div style="flex:1;height:28%;background:var(--ios-gold);border-radius:2px"></div>
+          </div>
         </div>
         <div style="flex:1;background:var(--ios-bg2);border-radius:var(--ios-r);padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)">
           <div style="font-size:11px;color:var(--ios-label2);font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Trénink</div>
@@ -850,44 +906,106 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
         </div>
       </div>
 
-      <!-- Nutrition card -->
-      <div class="ios-section-hdr"><div class="ios-section-title">Dnešní jídelníček</div><span class="ios-section-action">Vše</span></div>
+      <!-- Nutrition card (training-card style) -->
+      <div class="ios-section-hdr"><div class="ios-section-title">Dnešní jídelníček</div><span class="ios-section-action" onclick="showPhone('ph-nutrition-plan-detail')">Detail</span></div>
       <div class="ios-card">
-        <div style="padding:14px 16px 10px;background:var(--ios-bg2)">
-          <div class="macro-row">
-            <div class="macro-label">Bílkoviny</div>
-            <div class="macro-track"><div class="macro-fill" style="width:78%;background:#007aff"></div></div>
-            <div class="macro-val">102 / 130 g</div>
+        <div class="ios-card-hero grad-meal" style="display:flex;align-items:center;padding:20px">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Výživa · Týden 4</div>
+            <div style="font-size:26px;font-weight:700;color:#fff;letter-spacing:-.3px">1 547 / 1 700 kcal</div>
+            <div style="font-size:14px;color:rgba(255,255,255,.7);margin-top:4px">3 jídla · 11 položek</div>
+            <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+              <span style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:99px;background:rgba(0,122,255,.22);color:#7ab8ff">B 102/130</span>
+              <span style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:99px;background:rgba(255,149,0,.22);color:#ffb347">S 152/180</span>
+              <span style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:99px;background:rgba(175,82,222,.22);color:#d59cf0">T 44/55</span>
+            </div>
           </div>
-          <div class="macro-row">
-            <div class="macro-label">Sacharidy</div>
-            <div class="macro-track"><div class="macro-fill" style="width:84%;background:#ff9500"></div></div>
-            <div class="macro-val">152 / 180 g</div>
-          </div>
-          <div class="macro-row" style="margin-bottom:0">
-            <div class="macro-label">Tuky</div>
-            <div class="macro-track"><div class="macro-fill" style="width:80%;background:#af52de"></div></div>
-            <div class="macro-val">44 / 55 g</div>
-          </div>
-        </div>
-        <div class="ios-list" style="margin:0;border-radius:0">
-          <div class="ios-row">
-            <div class="ios-row-icon" style="background:rgba(201,168,76,.12);font-size:16px">🌅</div>
-            <div class="ios-row-body"><div class="ios-row-title">Snídaně</div><div class="ios-row-sub">431 kcal · splněno</div></div>
-            <div class="ios-row-right"><span style="color:var(--ios-green);font-size:13px;font-weight:600">✓</span><span class="ios-row-chev">›</span></div>
-          </div>
-          <div class="ios-row">
-            <div class="ios-row-icon" style="background:rgba(0,122,255,.12);font-size:16px">🌞</div>
-            <div class="ios-row-body"><div class="ios-row-title">Oběd</div><div class="ios-row-sub">540 kcal · splněno</div></div>
-            <div class="ios-row-right"><span style="color:var(--ios-green);font-size:13px;font-weight:600">✓</span><span class="ios-row-chev">›</span></div>
-          </div>
-          <div class="ios-row">
-            <div class="ios-row-icon" style="background:rgba(175,82,222,.12);font-size:16px">🌙</div>
-            <div class="ios-row-body"><div class="ios-row-title">Večeře</div><div class="ios-row-sub">576 kcal · čeká</div></div>
-            <div class="ios-row-right"><span class="ios-row-chev">›</span></div>
+          <div style="margin-left:12px;flex-shrink:0">
+            <div class="prog-ring">
+              <svg width="56" height="56" viewBox="0 0 56 56">
+                <circle cx="28" cy="28" r="23" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="5"/>
+                <circle cx="28" cy="28" r="23" fill="none" stroke="#c9a84c" stroke-width="5" stroke-dasharray="144" stroke-dashoffset="48" stroke-linecap="round"/>
+              </svg>
+              <div class="prog-ring-label" style="color:#fff;font-size:12px">2/3</div>
+            </div>
           </div>
         </div>
-      </div>
+
+        <!-- Nutritionist daily note -->
+        <div style="padding:10px 16px;background:rgba(201,168,76,.08);border-bottom:.5px solid var(--ios-sep2);font-size:12px;color:var(--ios-label2);line-height:1.45">
+          <span style="font-weight:600;color:var(--ios-gold)">Pozn k dni:</span> Dnes máš trénink — přidej si po obědě extra porci sacharidů.
+        </div>
+
+        <div style="background:var(--ios-bg2)">
+
+          <!-- ── EXPANDABLE MEAL ROWS ── -->
+
+          <div class="meal-row-wrap">
+            <div class="meal-row-header" onclick="todayMealToggle(this)">
+              <div class="ex-ios-dot" style="background:#ff9500"></div>
+              <div class="ex-ios-info">
+                <div class="ex-ios-name">Snídaně</div>
+                <div class="ex-ios-sets">08:00 · 431 kcal · 3 položky</div>
+              </div>
+              <div class="ex-ios-done done" onclick="event.stopPropagation();todayMealCheck(this)">✓</div>
+              <span class="meal-chev">▼</span>
+            </div>
+            <div class="meal-row-body" style="display:none">
+              <div class="ing-row"><div class="ing-info"><div class="ing-name">Ovesná kaše s proteinem</div><div class="ing-cat">Obiloviny · 110 g</div></div><div class="ing-kcal">291 kcal</div></div>
+              <div class="ing-note"><span class="lbl">Pozn:</span> Použij jemné vločky, nevař déle než 5 min.</div>
+              <div class="ing-row"><div class="ing-info"><div class="ing-name">Banán</div><div class="ing-cat">Ovoce · 120 g</div></div><div class="ing-kcal">105 kcal</div></div>
+              <div class="ing-note"><span class="lbl">Pozn:</span> Vyber zralejší — lépe se vstřebává.</div>
+              <div class="ing-row"><div class="ing-info"><div class="ing-name">Borůvky</div><div class="ing-cat">Ovoce · 60 g</div></div><div class="ing-kcal">35 kcal</div></div>
+              <div class="meal-note"><span class="lbl">Pozn k jídlu:</span> Připrav si večer předem jako overnight oats.</div>
+            </div>
+          </div>
+
+          <div class="meal-row-wrap">
+            <div class="meal-row-header" onclick="todayMealToggle(this)">
+              <div class="ex-ios-dot" style="background:#007aff"></div>
+              <div class="ex-ios-info">
+                <div class="ex-ios-name">Oběd</div>
+                <div class="ex-ios-sets">12:30 · 540 kcal · 3 položky</div>
+              </div>
+              <div class="ex-ios-done done" onclick="event.stopPropagation();todayMealCheck(this)">✓</div>
+              <span class="meal-chev">▼</span>
+            </div>
+            <div class="meal-row-body" style="display:none">
+              <div class="ing-row"><div class="ing-info"><div class="ing-name">Kuřecí prsa</div><div class="ing-cat">Drůbež · 150 g</div></div><div class="ing-kcal">250 kcal</div></div>
+              <div class="ing-note"><span class="lbl">Pozn:</span> Griluj na sucho, sůl + pepř + paprika.</div>
+              <div class="ing-row"><div class="ing-info"><div class="ing-name">Jasmínová rýže</div><div class="ing-cat">Obiloviny · 150 g</div></div><div class="ing-kcal">215 kcal</div></div>
+              <div class="ing-row"><div class="ing-info"><div class="ing-name">Brokolice</div><div class="ing-cat">Zelenina · 200 g</div></div><div class="ing-kcal">75 kcal</div></div>
+              <div class="meal-note"><span class="lbl">Pozn k jídlu:</span> Po tréninku doplň jeden hrnek navíc rýže pro lepší regeneraci.</div>
+            </div>
+          </div>
+
+          <div class="meal-row-wrap">
+            <div class="meal-row-header" onclick="todayMealToggle(this)">
+              <div class="ex-ios-dot" style="background:#af52de"></div>
+              <div class="ex-ios-info">
+                <div class="ex-ios-name">Večeře</div>
+                <div class="ex-ios-sets">18:30 · 576 kcal · 3 položky</div>
+              </div>
+              <div class="ex-ios-done" onclick="event.stopPropagation();todayMealCheck(this)"></div>
+              <span class="meal-chev">▼</span>
+            </div>
+            <div class="meal-row-body" style="display:none">
+              <div class="ing-row" onclick="event.stopPropagation();showPhone('ph-recipe-detail')" style="cursor:pointer"><div class="ing-info"><div class="ing-name">Losos s quinoou</div><div class="ing-cat recipe">Recept · 1× porce</div></div><div class="ing-kcal">450 kcal</div><span style="color:var(--ios-label3);font-size:13px;font-weight:600;margin-left:4px">›</span></div>
+              <div class="ing-note"><span class="lbl">Pozn:</span> Losos peč max. 12 minut na 180 °C, ať zůstane šťavnatý.</div>
+              <div class="ing-row"><div class="ing-info"><div class="ing-name">Zeleninový salát</div><div class="ing-cat">Zelenina · 150 g</div></div><div class="ing-kcal">95 kcal</div></div>
+              <div class="ing-row"><div class="ing-info"><div class="ing-name">Olivový olej</div><div class="ing-cat">Oleje a tuky · 5 ml</div></div><div class="ing-kcal">31 kcal</div></div>
+              <div class="ing-note"><span class="lbl">Pozn:</span> Použij extra panenský, nepřevařuj.</div>
+              <div class="meal-note"><span class="lbl">Pozn k jídlu:</span> Lehká večeře 3 h před spánkem — podpoří regeneraci.</div>
+            </div>
+          </div>
+
+          <!-- Mark whole day as eaten -->
+          <div style="padding:12px 16px">
+            <div class="ios-btn ios-btn-primary" style="font-size:15px;padding:12px" onclick="markWholeDayEaten(this)">Označit celý den jako splněno</div>
+          </div>
+
+        </div><!-- /card body -->
+      </div><!-- /ios-card -->
 
       <div style="height:8px"></div>
     </div>
@@ -1774,16 +1892,19 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
       </div>
     </div>
 
-    <!-- Weight chart -->
-    <div class="ios-section-hdr"><div class="ios-section-title">Váhový pokrok</div><span class="ios-section-action">Vše</span></div>
+    <!-- Weight progress section -->
+    <div class="ios-section-hdr"><div class="ios-section-title">Váhový pokrok</div><span class="ios-section-action" onclick="openWeightSheet()">+ Zaznamenat</span></div>
     <div class="ios-card">
       <div style="padding:14px 16px;background:var(--ios-bg2)">
-        <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:14px">
-          <div style="font-size:32px;font-weight:700;color:var(--ios-label);letter-spacing:-.5px">63,1</div>
+        <!-- Current weight + delta -->
+        <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:4px">
+          <div id="profile-weight-val" style="font-size:32px;font-weight:700;color:var(--ios-label);letter-spacing:-.5px">63,1</div>
           <div style="font-size:14px;color:var(--ios-label2)">kg</div>
-          <div style="font-size:14px;font-weight:600;color:var(--ios-green);margin-left:auto">↓ 2,4 kg</div>
+          <div id="profile-weight-delta" style="font-size:14px;font-weight:600;color:var(--ios-green);margin-left:auto">↓ 2,4 kg</div>
         </div>
-        <div class="chart-bars">
+        <div id="profile-weight-target" style="font-size:12px;color:var(--ios-label3);margin-bottom:14px">Cíl: 58,0 kg · zbývá 5,1 kg</div>
+        <!-- Chart bars (dynamic) -->
+        <div id="profile-weight-chart" class="chart-bars">
           <div style="display:flex;flex-direction:column;align-items:center;flex:1"><div class="chart-bar" style="height:48px;background:var(--ios-fill);width:100%"></div><div class="chart-day">T1</div></div>
           <div style="display:flex;flex-direction:column;align-items:center;flex:1"><div class="chart-bar" style="height:42px;background:var(--ios-fill);width:100%"></div><div class="chart-day">T2</div></div>
           <div style="display:flex;flex-direction:column;align-items:center;flex:1"><div class="chart-bar" style="height:38px;background:var(--ios-fill);width:100%"></div><div class="chart-day">T3</div></div>
@@ -1791,6 +1912,13 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
           <div style="display:flex;flex-direction:column;align-items:center;flex:1"><div class="chart-bar" style="height:28px;background:var(--ios-fill);width:100%"></div><div class="chart-day">T5</div></div>
           <div style="display:flex;flex-direction:column;align-items:center;flex:1"><div class="chart-bar" style="height:22px;background:var(--ios-fill);width:100%"></div><div class="chart-day">T6</div></div>
           <div style="display:flex;flex-direction:column;align-items:center;flex:1"><div class="chart-bar" style="height:16px;background:var(--ios-gold);width:100%"></div><div class="chart-day" style="color:var(--ios-gold);font-weight:600">T7</div></div>
+        </div>
+        <!-- View history button (inside card, below chart) -->
+        <div onclick="openHistorySheet()" style="display:flex;align-items:center;gap:10px;padding:12px;border-radius:8px;background:var(--ios-fill);cursor:pointer;margin:14px 0 0">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ios-label2)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          <span style="font-size:16px;font-weight:400;color:var(--ios-label);flex:1">Historie měření</span>
+          <span id="history-count" style="font-size:14px;color:var(--ios-label3)">6</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ios-label3)" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
         </div>
       </div>
     </div>
@@ -1812,6 +1940,39 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
 
     <div style="height:8px"></div>
   </div>
+
+  <!-- Weight input bottom sheet -->
+  <div class="weight-sheet-overlay" id="weight-sheet" onclick="if(event.target===this)closeWeightSheet()">
+    <div class="weight-sheet">
+      <div class="weight-sheet-handle"></div>
+      <div class="weight-sheet-title">Zaznamenat váhu</div>
+
+      <div class="weight-input-group">
+        <div class="weight-input-label">Váha (kg)</div>
+        <input type="text" id="weight-input-val" class="weight-input-field" placeholder="63,0" inputmode="decimal" autocomplete="off">
+      </div>
+
+      <div class="weight-input-group">
+        <div class="weight-input-label">Datum</div>
+        <input type="date" id="weight-input-date" class="weight-date-field">
+      </div>
+
+      <button class="weight-save-btn" id="weight-save-btn" onclick="saveWeight()">Uložit měření</button>
+      <button class="weight-cancel-btn" onclick="closeWeightSheet()">Zrušit</button>
+    </div>
+  </div>
+
+  <!-- Weight history bottom sheet -->
+  <div class="weight-sheet-overlay" id="history-sheet" onclick="if(event.target===this)closeHistorySheet()">
+    <div class="weight-sheet" style="max-height:80%;display:flex;flex-direction:column">
+      <div class="weight-sheet-handle"></div>
+      <div class="weight-sheet-title">Historie měření</div>
+      <div id="history-sheet-list" style="overflow-y:auto;flex:1;padding-bottom:34px">
+        <!-- Dynamically populated -->
+      </div>
+    </div>
+  </div>
+
   <div class="tab-bar">
     <div class="tab" onclick="showPhone('ph-today')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" fill="#8e8e93"/><path d="M9 22V12h6v10" fill="#8e8e93"/></svg></div><div class="tab-lbl">Dnes</div></div>
     <div class="tab" onclick="showPhone('ph-discover')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="#8e8e93" stroke-width="2"/><path d="m21 21-4.35-4.35" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Spolupráce</div></div>
@@ -4103,18 +4264,96 @@ function setWaitingState(which) {
         '<div style="font-size:18px;margin-top:4px">\uD83D\uDD25</div>' +
       '</div>' +
     '</div>';
-    // Nutrition card
-    html += '<div class="ios-section-hdr"><div class="ios-section-title">Dnešní jídelníček</div><span class="ios-section-action">Vše</span></div>' +
+    // Nutrition card — training-card style with hero, expandable meal rows, mark-all button
+    var hnMeals = [
+      {
+        dot:'#ff9500', name:'Sn\u00EDdan\u011B', sub:'08:00 \u00B7 431 kcal \u00B7 3 polo\u017Eky', eaten:true,
+        ingredients:[
+          { name:'Ovesn\u00E1 ka\u0161e s proteinem', cat:'Obiloviny \u00B7 110 g', kcal:'291 kcal', note:'Pou\u017Eij jemn\u00E9 vlo\u010Dky, neva\u0159 d\u00E9le ne\u017E 5 min.' },
+          { name:'Ban\u00E1n', cat:'Ovoce \u00B7 120 g', kcal:'105 kcal', note:'Vyber zralej\u0161\u00ED \u2014 l\u00E9pe se vst\u0159eb\u00E1v\u00E1.' },
+          { name:'Bor\u016Fvky', cat:'Ovoce \u00B7 60 g', kcal:'35 kcal', note:'' }
+        ],
+        mealNote:'P\u0159iprav si ve\u010Der p\u0159edem jako overnight oats.'
+      },
+      {
+        dot:'#007aff', name:'Ob\u011Bd', sub:'12:30 \u00B7 540 kcal \u00B7 3 polo\u017Eky', eaten:false,
+        ingredients:[
+          { name:'Ku\u0159ec\u00ED prsa', cat:'Dr\u016Fbe\u017E \u00B7 150 g', kcal:'250 kcal', note:'Griluj na sucho, s\u016Fl + pep\u0159 + paprika.' },
+          { name:'Jasm\u00EDnov\u00E1 r\u00FD\u017Ee', cat:'Obiloviny \u00B7 150 g', kcal:'215 kcal', note:'' },
+          { name:'Brokolice', cat:'Zelenina \u00B7 200 g', kcal:'75 kcal', note:'' }
+        ],
+        mealNote:'Servirovat sv\u011B\u017E\u00ED \u2014 brokolice nesm\u00ED p\u0159eva\u0159it.'
+      },
+      {
+        dot:'#af52de', name:'Ve\u010De\u0159e', sub:'18:30 \u00B7 576 kcal \u00B7 3 polo\u017Eky', eaten:false,
+        ingredients:[
+          { name:'Losos s quinoou', cat:'Recept \u00B7 1\u00D7 porce', isRecipe:true, kcal:'450 kcal', note:'Losos pe\u010D max. 12 minut na 180\u00A0\u00B0C, a\u0165 z\u016Fstane \u0161\u0165avnat\u00FD.' },
+          { name:'Zeleninov\u00FD sal\u00E1t', cat:'Zelenina \u00B7 150 g', kcal:'95 kcal', note:'' },
+          { name:'Olivov\u00FD olej', cat:'Oleje a tuky \u00B7 5 ml', kcal:'31 kcal', note:'Pou\u017Eij extra panensk\u00FD, neva\u0159.' }
+        ],
+        mealNote:'Lehk\u00E1 ve\u010De\u0159e 3 h p\u0159ed sp\u00E1nkem \u2014 podpo\u0159\u00ED regeneraci.'
+      }
+    ];
+
+    var eatenCnt = hnMeals.filter(function(m){return m.eaten;}).length;
+    var totalCnt = hnMeals.length;
+    var ringDash = 144;
+    var ringOff = ringDash * (1 - eatenCnt/totalCnt);
+
+    var rowsHtml = hnMeals.map(function(m) {
+      var ingHtml = m.ingredients.map(function(ing) {
+        var rowClick = ing.isRecipe ? ' onclick="event.stopPropagation();showPhone(\'ph-recipe-detail\')" style="cursor:pointer"' : '';
+        var chev = ing.isRecipe ? '<span style="color:var(--ios-label3);font-size:13px;font-weight:600;margin-left:4px">\u203A</span>' : '';
+        var catCls = ing.isRecipe ? 'ing-cat recipe' : 'ing-cat';
+        var noteH = ing.note ? '<div class="ing-note"><span class="lbl">Pozn:</span> ' + ing.note + '</div>' : '';
+        return '<div class="ing-row"' + rowClick + '>' +
+            '<div class="ing-info"><div class="ing-name">' + ing.name + '</div><div class="' + catCls + '">' + ing.cat + '</div></div>' +
+            '<div class="ing-kcal">' + ing.kcal + '</div>' + chev +
+          '</div>' + noteH;
+      }).join('');
+      var mealNoteH = m.mealNote ? '<div class="meal-note"><span class="lbl">Pozn k j\u00EDdlu:</span> ' + m.mealNote + '</div>' : '';
+      var doneCls = m.eaten ? 'ex-ios-done done' : 'ex-ios-done';
+      var doneTxt = m.eaten ? '\u2713' : '';
+      return '<div class="meal-row-wrap">' +
+        '<div class="meal-row-header" onclick="todayMealToggle(this)">' +
+          '<div class="ex-ios-dot" style="background:' + m.dot + '"></div>' +
+          '<div class="ex-ios-info"><div class="ex-ios-name">' + m.name + '</div><div class="ex-ios-sets">' + m.sub + '</div></div>' +
+          '<div class="' + doneCls + '" onclick="event.stopPropagation();todayMealCheck(this)">' + doneTxt + '</div>' +
+          '<span class="meal-chev">\u25BC</span>' +
+        '</div>' +
+        '<div class="meal-row-body" style="display:none">' + ingHtml + mealNoteH + '</div>' +
+      '</div>';
+    }).join('');
+
+    html += '<div class="ios-section-hdr"><div class="ios-section-title">Dne\u0161n\u00ED j\u00EDdeln\u00ED\u010Dek</div><span class="ios-section-action" onclick="showPhone(\'ph-nutrition-plan-detail\')">Detail</span></div>' +
     '<div class="ios-card">' +
-      '<div style="padding:14px 16px 10px;background:var(--ios-bg2)">' +
-        '<div class="macro-row"><div class="macro-label">Bílkoviny</div><div class="macro-track"><div class="macro-fill" style="width:25%;background:#007aff"></div></div><div class="macro-val">32 / 130 g</div></div>' +
-        '<div class="macro-row"><div class="macro-label">Sacharidy</div><div class="macro-track"><div class="macro-fill" style="width:22%;background:#ff9500"></div></div><div class="macro-val">40 / 180 g</div></div>' +
-        '<div class="macro-row" style="margin-bottom:0"><div class="macro-label">Tuky</div><div class="macro-track"><div class="macro-fill" style="width:18%;background:#af52de"></div></div><div class="macro-val">10 / 55 g</div></div>' +
+      '<div class="ios-card-hero grad-meal" style="display:flex;align-items:center;padding:20px">' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-size:13px;font-weight:600;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">V\u00FD\u017Eiva \u00B7 T\u00FDden 4</div>' +
+          '<div style="font-size:26px;font-weight:700;color:#fff;letter-spacing:-.3px">431 / 1 700 kcal</div>' +
+          '<div style="font-size:14px;color:rgba(255,255,255,.7);margin-top:4px">' + totalCnt + ' j\u00EDdla \u00B7 9 polo\u017Eek</div>' +
+          '<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">' +
+            '<span style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:99px;background:rgba(0,122,255,.22);color:#7ab8ff">B 32/130</span>' +
+            '<span style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:99px;background:rgba(255,149,0,.22);color:#ffb347">S 40/180</span>' +
+            '<span style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:99px;background:rgba(175,82,222,.22);color:#d59cf0">T 10/55</span>' +
+          '</div>' +
+        '</div>' +
+        '<div style="margin-left:12px;flex-shrink:0">' +
+          '<div class="prog-ring">' +
+            '<svg width="56" height="56" viewBox="0 0 56 56">' +
+              '<circle cx="28" cy="28" r="23" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="5"/>' +
+              '<circle cx="28" cy="28" r="23" fill="none" stroke="#c9a84c" stroke-width="5" stroke-dasharray="' + ringDash + '" stroke-dashoffset="' + ringOff + '" stroke-linecap="round"/>' +
+            '</svg>' +
+            '<div class="prog-ring-label" style="color:#fff;font-size:12px">' + eatenCnt + '/' + totalCnt + '</div>' +
+          '</div>' +
+        '</div>' +
       '</div>' +
-      '<div class="ios-list" style="margin:0;border-radius:0">' +
-        '<div class="ios-row"><div class="ios-row-icon" style="background:rgba(201,168,76,.12);font-size:16px">\uD83C\uDF05</div><div class="ios-row-body"><div class="ios-row-title">Snídaně</div><div class="ios-row-sub">431 kcal · splněno</div></div><div class="ios-row-right"><span style="color:var(--ios-green);font-size:13px;font-weight:600">✓</span><span class="ios-row-chev">›</span></div></div>' +
-        '<div class="ios-row"><div class="ios-row-icon" style="background:rgba(0,122,255,.12);font-size:16px">\uD83C\uDF1E</div><div class="ios-row-body"><div class="ios-row-title">Oběd</div><div class="ios-row-sub">540 kcal · čeká</div></div><div class="ios-row-right"><span class="ios-row-chev">›</span></div></div>' +
-        '<div class="ios-row"><div class="ios-row-icon" style="background:rgba(175,82,222,.12);font-size:16px">\uD83C\uDF19</div><div class="ios-row-body"><div class="ios-row-title">Večeře</div><div class="ios-row-sub">576 kcal · čeká</div></div><div class="ios-row-right"><span class="ios-row-chev">›</span></div></div>' +
+      '<div style="padding:10px 16px;background:rgba(201,168,76,.08);border-bottom:.5px solid var(--ios-sep2);font-size:12px;color:var(--ios-label2);line-height:1.45">' +
+        '<span style="font-weight:600;color:var(--ios-gold)">Pozn k dni:</span> Dnes je den odpo\u010Dinku \u2014 dr\u017E se pl\u00E1nu, klidov\u00E9 dny jsou stejn\u011B d\u016Fle\u017Eit\u00E9.' +
+      '</div>' +
+      '<div style="background:var(--ios-bg2)">' +
+        rowsHtml +
+        '<div style="padding:12px 16px"><div class="ios-btn ios-btn-primary" style="font-size:15px;padding:12px" onclick="markWholeDayEaten(this)">Ozna\u010Dit cel\u00FD den jako spln\u011Bno</div></div>' +
       '</div>' +
     '</div>';
   }
@@ -4857,6 +5096,31 @@ function npToggleMeal(headerEl) {
   if (chev) chev.style.transform = isOpen ? '' : 'rotate(180deg)';
 }
 
+// Today screen — meal row toggle / check / mark-all
+function todayMealToggle(headerEl) {
+  var wrap = headerEl.parentElement;
+  var body = wrap.querySelector('.meal-row-body');
+  var chev = headerEl.querySelector('.meal-chev');
+  if (!body) return;
+  var isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : '';
+  if (chev) chev.style.transform = isOpen ? '' : 'rotate(180deg)';
+}
+
+function todayMealCheck(checkEl) {
+  var done = checkEl.classList.toggle('done');
+  checkEl.textContent = done ? '\u2713' : '';
+}
+
+function markWholeDayEaten(btn) {
+  var card = btn.closest('.ios-card');
+  if (!card) return;
+  card.querySelectorAll('.meal-row-header .ex-ios-done').forEach(function(c) {
+    c.classList.add('done');
+    c.textContent = '\u2713';
+  });
+}
+
 // ── FOOD / RECIPE DETAIL: i18n ──────────────────────────
 var _fdLang = 'cs';
 var _fdTranslations = {
@@ -4960,10 +5224,216 @@ function setFdLang(lang, btn) {
   });
 }
 
+// ── WEIGHT TRACKING ─────────────────────────────────────────────────────────
+var _weightGoal = 58.0;
+var _weightEntries = [
+  { date: '2026-02-25', kg: 65.5 },
+  { date: '2026-03-02', kg: 64.5 },
+  { date: '2026-03-09', kg: 64.3 },
+  { date: '2026-03-16', kg: 63.9 },
+  { date: '2026-03-23', kg: 63.4 },
+  { date: '2026-03-30', kg: 63.1 }
+];
+
+function formatDateCZ(dateStr) {
+  var d = new Date(dateStr);
+  return d.getDate() + '. ' + (d.getMonth() + 1) + '. ' + d.getFullYear();
+}
+
+function todayISO() {
+  var d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function openWeightSheet() {
+  var overlay = document.getElementById('weight-sheet');
+  var dateInput = document.getElementById('weight-input-date');
+  var valInput = document.getElementById('weight-input-val');
+  dateInput.value = todayISO();
+  valInput.value = '';
+  overlay.classList.add('open');
+  setTimeout(function(){ valInput.focus(); }, 350);
+}
+
+function closeWeightSheet() {
+  document.getElementById('weight-sheet').classList.remove('open');
+}
+
+function openHistorySheet() {
+  document.getElementById('history-sheet').classList.add('open');
+}
+
+function closeHistorySheet() {
+  document.getElementById('history-sheet').classList.remove('open');
+}
+
+function saveWeight() {
+  var valStr = document.getElementById('weight-input-val').value.replace(',', '.').trim();
+  var dateStr = document.getElementById('weight-input-date').value;
+  var kg = parseFloat(valStr);
+  if (isNaN(kg) || kg < 20 || kg > 300 || !dateStr) return;
+
+  // Check if entry for this date already exists — update it
+  var found = false;
+  _weightEntries.forEach(function(e) {
+    if (e.date === dateStr) { e.kg = kg; found = true; }
+  });
+  if (!found) _weightEntries.push({ date: dateStr, kg: kg });
+
+  // Sort by date
+  _weightEntries.sort(function(a, b) { return a.date.localeCompare(b.date); });
+
+  closeWeightSheet();
+  renderWeightUI();
+
+  // Show confirmation toast
+  var profilePhone = document.getElementById('ph-profile');
+  var toast = profilePhone.querySelector('.weight-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.className = 'weight-toast';
+    toast.style.cssText = 'position:absolute;top:70px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:99px;background:rgba(0,0,0,.8);color:#fff;font-size:14px;font-weight:500;z-index:300;opacity:0;transition:opacity .3s;white-space:nowrap;font-family:Inter,sans-serif';
+    profilePhone.appendChild(toast);
+  }
+  toast.textContent = kg.toFixed(1).replace('.', ',') + ' kg uloženo';
+  toast.style.opacity = '1';
+  setTimeout(function(){ toast.style.opacity = '0'; }, 2200);
+}
+
+function renderWeightUI() {
+  var entries = _weightEntries;
+  if (entries.length === 0) return;
+
+  var latest = entries[entries.length - 1];
+  var first = entries[0];
+  var delta = latest.kg - first.kg;
+  var deltaAbs = Math.abs(delta).toFixed(1).replace('.', ',');
+  var deltaSign = delta < 0 ? '↓' : delta > 0 ? '↑' : '';
+  var deltaColor = delta <= 0 ? 'var(--ios-green)' : 'var(--ios-red)';
+  var latestStr = latest.kg.toFixed(1).replace('.', ',');
+  var remaining = (latest.kg - _weightGoal).toFixed(1).replace('.', ',');
+
+  // ── Today card ──
+  var todayVal = document.getElementById('today-weight-val');
+  var todayDelta = document.getElementById('today-weight-delta');
+  if (todayVal) todayVal.textContent = latestStr;
+  if (todayDelta) {
+    todayDelta.textContent = deltaSign + ' ' + deltaAbs + ' kg';
+    todayDelta.style.color = deltaColor;
+  }
+
+  // ── Today sparkline ──
+  var spark = document.getElementById('today-weight-spark');
+  if (spark) {
+    var last7 = entries.slice(-7);
+    var minKg = Math.min.apply(null, last7.map(function(e){return e.kg}));
+    var maxKg = Math.max.apply(null, last7.map(function(e){return e.kg}));
+    var range = maxKg - minKg || 1;
+    spark.innerHTML = '';
+    last7.forEach(function(e, i) {
+      var pct = 20 + ((e.kg - minKg) / range) * 70; // 20%-90% height range
+      var isLast = i === last7.length - 1;
+      var bar = document.createElement('div');
+      bar.style.cssText = 'flex:1;height:' + pct + '%;background:' + (isLast ? 'var(--ios-gold)' : 'var(--ios-fill)') + ';border-radius:2px';
+      spark.appendChild(bar);
+    });
+  }
+
+  // ── Profile header ──
+  var profVal = document.getElementById('profile-weight-val');
+  var profDelta = document.getElementById('profile-weight-delta');
+  var profTarget = document.getElementById('profile-weight-target');
+  if (profVal) profVal.textContent = latestStr;
+  if (profDelta) {
+    profDelta.textContent = deltaSign + ' ' + deltaAbs + ' kg';
+    profDelta.style.color = deltaColor;
+  }
+  if (profTarget) {
+    profTarget.textContent = 'Cíl: ' + _weightGoal.toFixed(1).replace('.',',') + ' kg · zbývá ' + remaining + ' kg';
+  }
+
+  // ── Profile chart bars ──
+  var chart = document.getElementById('profile-weight-chart');
+  if (chart) {
+    var last7 = entries.slice(-7);
+    var minKg = Math.min.apply(null, last7.map(function(e){return e.kg}));
+    var maxKg = Math.max.apply(null, last7.map(function(e){return e.kg}));
+    var range = maxKg - minKg || 1;
+    chart.innerHTML = '';
+    last7.forEach(function(e, i) {
+      var pct = 20 + ((e.kg - minKg) / range) * 80;
+      var isLast = i === last7.length - 1;
+      var d = new Date(e.date);
+      var dayLabel = d.getDate() + '.' + (d.getMonth()+1);
+      var col = document.createElement('div');
+      col.style.cssText = 'display:flex;flex-direction:column;align-items:center;flex:1';
+      col.innerHTML =
+        '<div class="chart-bar" style="height:' + pct + '%;background:' + (isLast ? 'var(--ios-gold)' : 'var(--ios-fill)') + ';width:100%"></div>' +
+        '<div class="chart-day" style="' + (isLast ? 'color:var(--ios-gold);font-weight:600' : '') + '">' + dayLabel + '</div>';
+      chart.appendChild(col);
+    });
+  }
+
+  // ── Profile stat cards ──
+  var statCards = document.querySelectorAll('#ph-profile .stat-card');
+  if (statCards.length >= 2) {
+    // First stat card = current weight
+    statCards[0].querySelector('.stat-card-val').textContent = latestStr;
+    statCards[0].querySelector('.stat-card-sub').textContent = deltaSign + ' ' + deltaAbs + ' kg od startu';
+    statCards[0].querySelector('.stat-card-sub').style.color = deltaColor;
+    // Second stat card = goal weight
+    statCards[1].querySelector('.stat-card-sub').textContent = 'zbývá ' + remaining + ' kg';
+  }
+
+  // ── History count badge ──
+  var histCount = document.getElementById('history-count');
+  if (histCount) histCount.textContent = entries.length;
+
+  // ── History sheet list ──
+  var histList = document.getElementById('history-sheet-list');
+  if (histList) {
+    histList.innerHTML = '';
+    var listWrap = document.createElement('div');
+    listWrap.className = 'ios-list';
+    listWrap.style.margin = '0 16px';
+    var reversed = entries.slice().reverse();
+    reversed.forEach(function(e, i) {
+      var isFirst = i === reversed.length - 1; // oldest entry
+      var isToday = e.date === todayISO();
+      var prevEntry = (i < reversed.length - 1) ? reversed[i + 1] : null;
+      var rowDelta = prevEntry ? (e.kg - prevEntry.kg) : 0;
+      var rowDeltaAbs = Math.abs(rowDelta).toFixed(1).replace('.', ',');
+      var rowDeltaSign = rowDelta < 0 ? '↓' : rowDelta > 0 ? '↑' : '';
+      var rowDeltaColor = rowDelta <= 0 ? 'var(--ios-green)' : 'var(--ios-red)';
+
+      var rightContent;
+      if (isFirst) {
+        rightContent = '<span style="font-size:13px;font-weight:500;color:var(--ios-label3)">Start</span>';
+      } else {
+        rightContent = '<span style="font-size:13px;font-weight:600;color:' + rowDeltaColor + '">' + rowDeltaSign + ' ' + rowDeltaAbs + '</span>';
+      }
+
+      var dateLabel = formatDateCZ(e.date) + (isToday ? ' · Dnes' : '');
+      var row = document.createElement('div');
+      row.className = 'ios-row';
+      row.innerHTML =
+        '<div class="ios-row-icon" style="background:rgba(201,168,76,.12)">⚖️</div>' +
+        '<div class="ios-row-body">' +
+          '<div class="ios-row-title">' + e.kg.toFixed(1).replace('.', ',') + ' kg</div>' +
+          '<div class="ios-row-sub">' + dateLabel + '</div>' +
+        '</div>' +
+        '<div class="ios-row-right">' + rightContent + '</div>';
+      listWrap.appendChild(row);
+    });
+    histList.appendChild(listWrap);
+  }
+}
+
 // Init
 setCollabState('trainer');
 setPendingDemo('none');
 showPhone('ph-today');
+renderWeightUI();
 </script>
 </body>
 </html>

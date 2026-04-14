@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,8 +8,8 @@ import {
   StyleSheet,
   Dimensions,
 } from 'react-native';
-import { Colors } from '../../constants/Colors';
-import type { FoodSummary } from '../api/foods';
+import { useTheme } from '@/hooks/useTheme';
+import type { FoodSummary } from '@/api/foods';
 
 interface FoodDetailSheetProps {
   food: FoodSummary | null;
@@ -21,9 +21,12 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SHEET_HEIGHT = SCREEN_HEIGHT * 0.6;
 
 export function FoodDetailSheet({ food, visible, onClose }: FoodDetailSheetProps) {
+  const colors = useTheme();
+
   if (!food) return null;
 
   const { nutrientValue } = food;
+  const styles = useMemo(() => getStyles(colors), [colors]);
 
   return (
     <Modal
@@ -68,25 +71,25 @@ export function FoodDetailSheet({ food, visible, onClose }: FoodDetailSheetProps
                 label="Kcal"
                 value={nutrientValue.kcal}
                 unit=""
-                color={Colors.dark.kcal}
+                color={colors.orange}
               />
               <NutrientCard
                 label="Protein"
                 value={nutrientValue.protein}
                 unit="g"
-                color={Colors.dark.protein}
+                color={colors.macroProtein}
               />
               <NutrientCard
                 label="Carbs"
                 value={nutrientValue.carbs}
                 unit="g"
-                color={Colors.dark.carbs}
+                color={colors.macroCarbs}
               />
               <NutrientCard
                 label="Fat"
                 value={nutrientValue.fat}
                 unit="g"
-                color={Colors.dark.fat}
+                color={colors.macroFat}
               />
             </View>
 
@@ -157,6 +160,8 @@ function NutrientCard({
   unit: string;
   color: string;
 }) {
+  const colors = useTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   return (
     <View style={styles.nutrientCard}>
       <Text style={styles.nutrientLabel}>{label}</Text>
@@ -169,6 +174,8 @@ function NutrientCard({
 }
 
 function ExtraNutrientRow({ label, value }: { label: string; value: number }) {
+  const colors = useTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   return (
     <View style={styles.extraRow}>
       <Text style={styles.extraLabel}>{label}</Text>
@@ -177,178 +184,180 @@ function ExtraNutrientRow({ label, value }: { label: string; value: number }) {
   );
 }
 
-const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  sheet: {
-    height: SHEET_HEIGHT,
-    backgroundColor: Colors.dark.surface,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingTop: 16,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.dark.border,
-  },
-  headerLeft: {
-    flex: 1,
-    marginRight: 12,
-  },
-  foodName: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: Colors.dark.text,
-  },
-  badges: {
-    flexDirection: 'row',
-    gap: 6,
-    marginTop: 6,
-  },
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 4,
-    backgroundColor: Colors.dark.card,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-  },
-  badgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: Colors.dark.text3,
-  },
-  barcode: {
-    fontSize: 12,
-    color: Colors.dark.text3,
-    marginTop: 4,
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: Colors.dark.card,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeText: {
-    fontSize: 14,
-    color: Colors.dark.text2,
-    fontWeight: '600',
-  },
-  scrollContent: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.dark.text3,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginTop: 16,
-    marginBottom: 10,
-  },
-  nutrientGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  nutrientCard: {
-    width: '48%',
-    backgroundColor: Colors.dark.card,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    padding: 12,
-  },
-  nutrientLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: Colors.dark.text3,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  nutrientValue: {
-    fontSize: 20,
-    fontWeight: '800',
-    marginTop: 4,
-  },
-  nutrientUnit: {
-    fontSize: 13,
-    fontWeight: '400',
-  },
-  extraNutrients: {
-    marginTop: 12,
-    backgroundColor: Colors.dark.card,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    overflow: 'hidden',
-  },
-  extraRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.dark.border,
-  },
-  extraLabel: {
-    fontSize: 13,
-    color: Colors.dark.text2,
-  },
-  extraValue: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.dark.text,
-  },
-  allergenRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  allergenChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 6,
-    backgroundColor: 'rgba(239,68,68,0.15)',
-    borderWidth: 1,
-    borderColor: Colors.dark.red,
-  },
-  allergenText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.dark.red,
-  },
-  servingRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.dark.border,
-  },
-  servingLabel: {
-    fontSize: 14,
-    color: Colors.dark.text,
-  },
-  servingWeight: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.dark.text2,
-  },
-  bottomSpacer: {
-    height: 24,
-  },
-});
+function getStyles(colors: ReturnType<typeof useTheme>) {
+  return StyleSheet.create({
+    backdrop: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'flex-end',
+    },
+    sheet: {
+      height: SHEET_HEIGHT,
+      backgroundColor: colors.bg2,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      paddingTop: 16,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      paddingHorizontal: 20,
+      paddingBottom: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.sep,
+    },
+    headerLeft: {
+      flex: 1,
+      marginRight: 12,
+    },
+    foodName: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: colors.label,
+    },
+    badges: {
+      flexDirection: 'row',
+      gap: 6,
+      marginTop: 6,
+    },
+    badge: {
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 4,
+      backgroundColor: colors.bg3,
+      borderWidth: 1,
+      borderColor: colors.sep,
+    },
+    badgeText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: colors.label3,
+    },
+    barcode: {
+      fontSize: 12,
+      color: colors.label3,
+      marginTop: 4,
+    },
+    closeButton: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: colors.bg3,
+      borderWidth: 1,
+      borderColor: colors.sep,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    closeText: {
+      fontSize: 14,
+      color: colors.label2,
+      fontWeight: '600',
+    },
+    scrollContent: {
+      flex: 1,
+      paddingHorizontal: 20,
+    },
+    sectionTitle: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.label3,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      marginTop: 16,
+      marginBottom: 10,
+    },
+    nutrientGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    nutrientCard: {
+      width: '48%',
+      backgroundColor: colors.bg3,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: colors.sep,
+      padding: 12,
+    },
+    nutrientLabel: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: colors.label3,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    nutrientValue: {
+      fontSize: 20,
+      fontWeight: '800',
+      marginTop: 4,
+    },
+    nutrientUnit: {
+      fontSize: 13,
+      fontWeight: '400',
+    },
+    extraNutrients: {
+      marginTop: 12,
+      backgroundColor: colors.bg3,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: colors.sep,
+      overflow: 'hidden',
+    },
+    extraRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.sep,
+    },
+    extraLabel: {
+      fontSize: 13,
+      color: colors.label2,
+    },
+    extraValue: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.label,
+    },
+    allergenRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 6,
+    },
+    allergenChip: {
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 6,
+      backgroundColor: 'rgba(239,68,68,0.15)',
+      borderWidth: 1,
+      borderColor: colors.red,
+    },
+    allergenText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.red,
+    },
+    servingRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.sep,
+    },
+    servingLabel: {
+      fontSize: 14,
+      color: colors.label,
+    },
+    servingWeight: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.label2,
+    },
+    bottomSpacer: {
+      height: 24,
+    },
+  });
+}

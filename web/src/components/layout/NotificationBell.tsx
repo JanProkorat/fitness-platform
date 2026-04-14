@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getNotifications, markNotificationRead, markAllNotificationsRead, type NotificationDto } from '@/api/notifications';
+import { useApiMutation } from '@/hooks/useApiMutation';
 
 function timeAgo(isoDate: string, t: (key: string) => string): string {
   const diff = Date.now() - new Date(isoDate).getTime();
@@ -16,7 +17,6 @@ function timeAgo(isoDate: string, t: (key: string) => string): string {
 
 export function NotificationBell() {
   const { t } = useTranslation();
-  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
 
@@ -28,14 +28,12 @@ export function NotificationBell() {
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  const markReadMutation = useMutation({
-    mutationFn: markNotificationRead,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['web-notifications'] }),
+  const markReadMutation = useApiMutation(markNotificationRead, {
+    invalidateKeys: [['web-notifications']],
   });
 
-  const markAllReadMutation = useMutation({
-    mutationFn: markAllNotificationsRead,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['web-notifications'] }),
+  const markAllReadMutation = useApiMutation(markAllNotificationsRead, {
+    invalidateKeys: [['web-notifications']],
   });
 
   // Close popover on outside click

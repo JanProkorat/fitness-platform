@@ -1,14 +1,16 @@
 import { Stack } from 'expo-router';
-import { Colors } from '../../constants/Colors';
+import { useTheme } from '@/hooks/useTheme';
 
 export default function DiscoverLayout() {
+  const colors = useTheme();
+
   return (
     <Stack
       screenOptions={{
-        headerStyle: { backgroundColor: Colors.dark.background },
-        headerTintColor: Colors.dark.text,
+        headerStyle: { backgroundColor: colors.bg },
+        headerTintColor: colors.label,
         headerTitleStyle: { fontWeight: '600', fontSize: 16 },
-        contentStyle: { backgroundColor: Colors.dark.background },
+        contentStyle: { backgroundColor: colors.bg },
       }}
     >
       <Stack.Screen name="index" options={{ title: 'Najit trenera' }} />

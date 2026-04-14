@@ -41,4 +41,9 @@ public class GetTodayPlanResponse
     /// Global daily nutrition targets for the plan.
     /// </summary>
     public GlobalNutritionSettings? GlobalSettings { get; set; }
+
+    /// <summary>
+    /// Optional nutritionist note for today's plan day.
+    /// </summary>
+    public string? DayNote { get; set; }
 }

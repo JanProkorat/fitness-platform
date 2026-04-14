@@ -42,6 +42,12 @@ public class GetFullPlanResponse
 
     /// <summary>When this plan was marked as completed, if applicable.</summary>
     public DateTime? DateCompleted { get; set; }
+
+    /// <summary>
+    /// Set of meal IDs that the client has logged as eaten.
+    /// Meal IDs are unique across the plan, so a flat set covers all days.
+    /// </summary>
+    public HashSet<Guid> EatenMealIds { get; set; } = [];
 }
 
 /// <summary>

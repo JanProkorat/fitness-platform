@@ -36,12 +36,12 @@ export function TrainingCard({
   return (
     <View style={[styles.card, { backgroundColor: colors.bg2 }]}>
       {/* Hero section */}
-      <View style={styles.hero}>
+      <View style={[styles.hero, { backgroundColor: colors.heroBg }]}>
         <View style={styles.heroContent}>
-          <Text style={[styles.planName, { color: 'rgba(255,255,255,0.7)' }]}>
+          <Text style={[styles.planName, { color: colors.onAccent, opacity: 0.7 }]}>
             {planName}
           </Text>
-          <Text style={styles.sessionName}>{session.name}</Text>
+          <Text style={[styles.sessionName, { color: colors.onAccent }]}>{session.name}</Text>
           {totalSets > 0 && (
             <View style={styles.heroBottom}>
               <View style={styles.muscleGroups}>
@@ -87,7 +87,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
   },
   hero: {
-    backgroundColor: '#1a2332',
     padding: 16,
   },
   heroContent: {},
@@ -98,7 +97,6 @@ const styles = StyleSheet.create({
   },
   sessionName: {
     ...Type.title2,
-    color: '#ffffff',
   },
   heroBottom: {
     flexDirection: 'row',
