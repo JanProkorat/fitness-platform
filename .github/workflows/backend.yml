@@ -63,7 +63,15 @@ jobs:
         run: dotnet restore FitnessPlatform.slnx
 
       - name: Build solution
-        run: dotnet build FitnessPlatform.slnx --no-restore --configuration Release --verbosity minimal
+        run: dotnet build FitnessPlatform.slnx --no-restore --configuration Release --verbosity minimal -bl:msbuild.binlog
+
+      - name: Upload MSBuild binlog on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: msbuild-binlog-${{ github.run_number }}
+          path: backend/msbuild.binlog
+          if-no-files-found: warn
 
       - name: Run tests with coverage
         run: |
