@@ -1,0 +1,88 @@
+# Label definitions for JanProkorat/fitness-platform.
+# Synced to GitHub by .github/workflows/labels.yml on push to main/develop.
+# Edit this file to add/remove/rename labels — do not edit via the GitHub UI.
+
+# --- Type: what kind of work is this? ---
+- name: "type:bug"
+  color: "d73a4a"
+  description: Something is broken or behaves incorrectly.
+
+- name: "type:feature"
+  color: "0e8a16"
+  description: New capability or user-visible improvement.
+
+- name: "type:refactor"
+  color: "fbca04"
+  description: Internal cleanup with no behavior change.
+
+- name: "type:docs"
+  color: "0075ca"
+  description: Documentation only (README, CLAUDE.md, PROGRESS.md, etc).
+
+- name: "type:chore"
+  color: "c5def5"
+  description: CI, tooling, dependencies, housekeeping.
+
+# --- Scope: which package? (matches PR template) ---
+- name: "scope:backend"
+  color: "5319e7"
+  description: "/backend — ASP.NET Core, FastEndpoints, EF, Mongo, SignalR."
+
+- name: "scope:web"
+  color: "1d76db"
+  description: "/web — React trainer portal."
+
+- name: "scope:mobile"
+  color: "006b75"
+  description: "/mobile — Expo client app."
+
+- name: "scope:docs-infra"
+  color: "bfd4f2"
+  description: Docs, infra, CI, or cross-cutting config.
+
+# --- Priority ---
+- name: "priority:p1"
+  color: "b60205"
+  description: Urgent — fix or ship now.
+
+- name: "priority:p2"
+  color: "e99695"
+  description: High — next in line.
+
+- name: "priority:p3"
+  color: "fef2c0"
+  description: Normal — schedule when capacity allows.
+
+# --- Status ---
+- name: "status:needs-triage"
+  color: "ededed"
+  description: Not yet reviewed; needs scope, priority, and owner.
+
+- name: "status:blocked"
+  color: "000000"
+  description: Waiting on something (dependency, decision, external).
+
+- name: "status:in-progress"
+  color: "fbca04"
+  description: Actively being worked on.
+
+- name: "good-first-issue"
+  color: "7057ff"
+  description: Small, well-scoped, good entry point for new contributors.
+
+# --- Kept from GitHub defaults ---
+- name: "duplicate"
+  color: "cfd3d7"
+  description: This issue or pull request already exists.
+
+- name: "help wanted"
+  color: "008672"
+  description: Extra attention is needed.
+
+- name: "invalid"
+  color: "e4e669"
+  description: This doesn't seem right.
+
+- name: "wontfix"
+  color: "ffffff"
+  description: This will not be worked on.
