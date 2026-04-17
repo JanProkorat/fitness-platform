@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using System.Net;
-using System.Reflection;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Interfaces;
 using MailKit.Net.Smtp;
@@ -187,7 +186,7 @@ public class SmtpEmailService(IConfiguration configuration, ILogger<SmtpEmailSer
     }
 
     /// <summary>
-    /// Loads an email template from embedded resources with caching.
+    /// Loads an email template from the deployed content directory with caching.
     /// Falls back to English if the requested language template is not found.
     /// </summary>
     /// <param name="templateName">The template name (e.g. "Invitation", "PasswordReset").</param>
@@ -195,25 +194,21 @@ public class SmtpEmailService(IConfiguration configuration, ILogger<SmtpEmailSer
     /// <returns>The HTML template content.</returns>
     private static string LoadTemplate(string templateName, string language)
     {
-        var resourceName = $"FitnessPlatform.Application.Infrastructure.EmailTemplates.{templateName}.{language}.html";
+        var key = $"{templateName}.{language}";
 
-        return TemplateCache.GetOrAdd(resourceName, name =>
+        return TemplateCache.GetOrAdd(key, _ =>
         {
-            var assembly = Assembly.GetExecutingAssembly();
-            using var stream = assembly.GetManifestResourceStream(name);
+            var path = BuildTemplatePath(templateName, language);
+            if (File.Exists(path))
+                return File.ReadAllText(path);
 
-            if (stream is null)
-            {
-                // Fallback to English
-                var fallback = $"FitnessPlatform.Application.Infrastructure.EmailTemplates.{templateName}.en.html";
-                using var fallbackStream = assembly.GetManifestResourceStream(fallback)
-                    ?? throw new InvalidOperationException($"Email template '{fallback}' not found in embedded resources.");
-                using var fallbackReader = new StreamReader(fallbackStream);
-                return fallbackReader.ReadToEnd();
-            }
-
-            using var reader = new StreamReader(stream);
-            return reader.ReadToEnd();
+            var fallback = BuildTemplatePath(templateName, "en");
+            if (!File.Exists(fallback))
+                throw new InvalidOperationException($"Email template '{fallback}' not found on disk.");
+            return File.ReadAllText(fallback);
         });
     }
+
+    private static string BuildTemplatePath(string templateName, string language) =>
+        Path.Combine(AppContext.BaseDirectory, "Infrastructure", "EmailTemplates", $"{templateName}.{language}.html");
 }

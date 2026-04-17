@@ -6,7 +6,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
-    <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
   </PropertyGroup>
 
   <ItemGroup>
@@ -36,15 +35,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!--
-      Explicit LogicalName keeps MSBuild's AssignCulture task from treating
-      the `.cs.`/`.de.`/`.en.` middle-segments in template filenames as
-      culture suffixes — that path tries to resolve a non-existent `**/*.resx`
-      partner and fails with MSB3552 under some SDK versions.
-    -->
-    <EmbeddedResource Include="Infrastructure/EmailTemplates/*.html" WithCulture="false">
-      <LogicalName>FitnessPlatform.Application.Infrastructure.EmailTemplates.%(Filename)%(Extension)</LogicalName>
-    </EmbeddedResource>
+    <Content Include="Infrastructure/EmailTemplates/*.html" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
