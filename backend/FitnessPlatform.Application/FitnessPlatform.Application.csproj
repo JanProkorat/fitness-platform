@@ -6,6 +6,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
+    <!--
+      Suppress the Web SDK's default `<EmbeddedResource Include="**/*.resx" />`.
+      No actual .resx files exist in this project (email templates are
+      Content). On Linux SDK 10.0.202 the empty-match glob gets emitted
+      as a literal Identity and `GenerateResource` then fails with MSB3552.
+    -->
+    <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
   </PropertyGroup>
 
   <ItemGroup>
@@ -35,7 +42,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Infrastructure/EmailTemplates/*.html" CopyToOutputDirectory="PreserveNewest" />
+    <EmbeddedResource Include="Infrastructure/EmailTemplates/*.html" WithCulture="false">
+      <LogicalName>FitnessPlatform.Application.Infrastructure.EmailTemplates.%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 
 </Project>

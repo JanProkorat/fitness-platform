@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Interfaces;
 using Resend;
+using System.Reflection;
 
 namespace FitnessPlatform.Application.Infrastructure.Services;
 
@@ -158,7 +159,7 @@ public class ResendEmailService(IResend resend, IConfiguration configuration, IL
     }
 
     /// <summary>
-    /// Loads an email template from the deployed content directory with caching.
+    /// Loads an email template from embedded resources with caching.
     /// Falls back to English if the requested language template is not found.
     /// </summary>
     /// <param name="templateName">The template name (e.g. "Invitation", "PasswordReset").</param>
@@ -166,21 +167,24 @@ public class ResendEmailService(IResend resend, IConfiguration configuration, IL
     /// <returns>The HTML template content.</returns>
     private static string LoadTemplate(string templateName, string language)
     {
-        var key = $"{templateName}.{language}";
+        var resourceName = $"FitnessPlatform.Application.Infrastructure.EmailTemplates.{templateName}.{language}.html";
 
-        return TemplateCache.GetOrAdd(key, _ =>
+        return TemplateCache.GetOrAdd(resourceName, name =>
         {
-            var path = BuildTemplatePath(templateName, language);
-            if (File.Exists(path))
-                return File.ReadAllText(path);
+            var assembly = Assembly.GetExecutingAssembly();
+            using var stream = assembly.GetManifestResourceStream(name);
 
-            var fallback = BuildTemplatePath(templateName, "en");
-            if (!File.Exists(fallback))
-                throw new InvalidOperationException($"Email template '{fallback}' not found on disk.");
-            return File.ReadAllText(fallback);
+            if (stream is null)
+            {
+                var fallback = $"FitnessPlatform.Application.Infrastructure.EmailTemplates.{templateName}.en.html";
+                using var fallbackStream = assembly.GetManifestResourceStream(fallback)
+                    ?? throw new InvalidOperationException($"Email template '{fallback}' not found in embedded resources.");
+                using var fallbackReader = new StreamReader(fallbackStream);
+                return fallbackReader.ReadToEnd();
+            }
+
+            using var reader = new StreamReader(stream);
+            return reader.ReadToEnd();
         });
     }
-
-    private static string BuildTemplatePath(string templateName, string language) =>
-        Path.Combine(AppContext.BaseDirectory, "Infrastructure", "EmailTemplates", $"{templateName}.{language}.html");
 }
