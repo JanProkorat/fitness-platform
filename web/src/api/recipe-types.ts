@@ -24,7 +24,7 @@ export interface RecipeSummary {
 export interface RecipeDetail {
   recipeId: string;
   name: string;
-  description: string;
+  description?: string;
   prepTimeMinutes?: number | null;
   steps?: string[] | null;
   note?: string | null;
@@ -75,7 +75,7 @@ export interface RecipeFoodInput {
 /** Request to create a recipe. */
 export interface CreateRecipeRequest {
   name: string;
-  description: string;
+  description?: string;
   prepTimeMinutes?: number | null;
   steps?: string[] | null;
   note?: string | null;
@@ -86,7 +86,7 @@ export interface CreateRecipeRequest {
 /** Request to update a recipe. */
 export interface UpdateRecipeRequest {
   name: string;
-  description: string;
+  description?: string;
   prepTimeMinutes?: number | null;
   steps?: string[] | null;
   note?: string | null;

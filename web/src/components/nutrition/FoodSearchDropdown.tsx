@@ -7,7 +7,7 @@ interface FoodSearchDropdownProps {
   onQueryChange: (query: string) => void;
   onFocus: () => void;
   onBlur: () => void;
-  inputRef: React.RefObject<HTMLInputElement>;
+  inputRef: React.RefObject<HTMLInputElement | null>;
   loading: boolean;
   results: FoodSummary[];
   staged: MealFood[];

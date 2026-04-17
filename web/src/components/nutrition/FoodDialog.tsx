@@ -27,7 +27,8 @@ const foodSchema = z.object({
   visibility: z.enum(['Public', 'Private']).default('Public'),
 });
 
-type FoodForm = z.infer<typeof foodSchema>;
+type FoodFormInput = z.input<typeof foodSchema>;
+type FoodForm = z.output<typeof foodSchema>;
 type Mode = 'view' | 'edit';
 
 interface FoodDialogProps {
@@ -47,7 +48,7 @@ export function FoodDialog({ open, food, onClose, onSaved }: FoodDialogProps) {
   const [transitioning, setTransitioning] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
 
-  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<FoodForm>({
+  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<FoodFormInput, unknown, FoodForm>({
     resolver: zodResolver(foodSchema),
   });
 

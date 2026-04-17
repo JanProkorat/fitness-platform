@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useForm, FormProvider } from 'react-hook-form';
+import { useForm, FormProvider, type SubmitHandler, type FieldValues } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useLocation } from 'react-router-dom';
@@ -89,7 +89,8 @@ export default function RegisterPage() {
     else if (step === 2 && !fromInvite) setStep(1);
   };
 
-  const onSubmit = async (data: Step2Form) => {
+  const onSubmit: SubmitHandler<FieldValues> = async (raw) => {
+    const data = raw as Step2Form;
     if (!termsConsent || !healthConsent) return;
     setError(null);
     setLoading(true);

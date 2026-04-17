@@ -30,7 +30,6 @@ export type {
   AcceptInvitationResponse,
   RequestPasswordResetRequest,
   ResetPasswordRequest,
-  ErrorResponse,
 } from './generated';
 
 export { ApiException } from './generated';
