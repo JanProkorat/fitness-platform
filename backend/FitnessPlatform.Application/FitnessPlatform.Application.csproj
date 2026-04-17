@@ -35,6 +35,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Remove="**/*.resx" />
     <EmbeddedResource Include="Infrastructure/EmailTemplates/*.html" WithCulture="false" />
   </ItemGroup>
 
