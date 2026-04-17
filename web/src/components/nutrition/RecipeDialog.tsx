@@ -48,7 +48,6 @@ export function RecipeDialog({ open, recipe, onClose, onSaved }: RecipeDialogPro
   const [ingredients, setIngredients] = useState<IngredientRow[]>([]);
   const [foodQuery, setFoodQuery] = useState('');
   const [foodResults, setFoodResults] = useState<FoodSummary[]>([]);
-  const [foodSearchLoading, setFoodSearchLoading] = useState(false);
   const [foodInputFocused, setFoodInputFocused] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -116,9 +115,8 @@ export function RecipeDialog({ open, recipe, onClose, onSaved }: RecipeDialogPro
 
   // Food search
   const loadFoods = useCallback(async (q: string) => {
-    setFoodSearchLoading(true);
     try { const r = await searchFoods({ q: q || undefined, pageSize: 15 }); setFoodResults(r.foods ?? []); }
-    catch { setFoodResults([]); } finally { setFoodSearchLoading(false); }
+    catch { setFoodResults([]); }
   }, []);
 
   useEffect(() => { if (open && mode === 'edit' && !loading) loadFoods(''); }, [open, mode, loading]);

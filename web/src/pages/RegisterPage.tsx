@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -12,27 +12,15 @@ import { RegisterStep1 } from './RegisterStep1';
 import { RegisterStep2 } from './RegisterStep2';
 import { RegisterStep3 } from './RegisterStep3';
 import { RegisterStep4 } from './RegisterStep4';
-import { ROLES, type Step, type Role } from './register-types';
+import { type Step, type Role } from './register-types';
 
-const step2Schema = z
-  .object({
-    firstName: z.string().min(1, ''),
-    lastName: z.string().min(1, ''),
-    email: z.string().email(''),
-    password: z
-      .string()
-      .min(8, '')
-      .regex(/[a-z]/, '')
-      .regex(/[A-Z]/, '')
-      .regex(/[0-9]/, ''),
-    confirmPassword: z.string().min(1, ''),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: '',
-    path: ['confirmPassword'],
-  });
-
-type Step2Form = z.infer<typeof step2Schema>;
+type Step2Form = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+};
 
 export default function RegisterPage() {
   const { t } = useTranslation();
@@ -74,7 +62,7 @@ export default function RegisterPage() {
     mode: 'onChange',
   });
 
-  const { watch, trigger, handleSubmit } = methods;
+  const { watch, trigger } = methods;
   const passwordValue = watch('password') || '';
 
   const handleToggleRole = (role: Role) => {

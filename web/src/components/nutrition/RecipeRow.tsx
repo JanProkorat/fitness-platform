@@ -25,7 +25,7 @@ export interface RecipeRowProps {
   accentColor?: string;
 }
 
-export function RecipeRow({ recipe, index: _index, mealId, dayOfWeek, weekNumber, onServingsChange, onRemove, onNoteChange, accentColor }: RecipeRowProps) {
+export function RecipeRow({ recipe, mealId, dayOfWeek, weekNumber, onServingsChange, onRemove, onNoteChange, accentColor }: RecipeRowProps) {
   const { t } = useTranslation();
   const [localServings, setLocalServings] = useState(String(recipe.servings));
   const [localNote, setLocalNote] = useState(recipe.note ?? '');

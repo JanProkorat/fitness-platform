@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { acceptClientRequest } from '@/api/client-requests';
-import { getTrainerQuestionnaires, type QuestionnaireSummaryDto } from '@/api/questionnaires';
+import { getTrainerQuestionnaires } from '@/api/questionnaires';
 import { Dialog, Button } from '@/components/ui';
 
 interface AcceptRequestDialogProps {
@@ -17,23 +17,21 @@ export function AcceptRequestDialog({ open, onClose, requestPublicId, clientName
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [selectedQuestionnaireId, setSelectedQuestionnaireId] = useState<string>('');
-  const [questionnaires, setQuestionnaires] = useState<QuestionnaireSummaryDto[]>([]);
+  const [trackedOpen, setTrackedOpen] = useState(false);
 
-  // Load questionnaires when dialog opens
-  useEffect(() => {
-    if (!open) return;
-    setSelectedQuestionnaireId('');
-    (async () => {
-      try {
-        const data = await getTrainerQuestionnaires();
-        setQuestionnaires(data);
-        const defaultQ = data.find((q) => q.isDefault && q.isActive);
-        setSelectedQuestionnaireId(defaultQ?.publicId ?? '');
-      } catch {
-        setQuestionnaires([]);
-      }
-    })();
-  }, [open]);
+  const { data: questionnaires = [] } = useQuery({
+    queryKey: ['trainer-questionnaires'],
+    queryFn: getTrainerQuestionnaires,
+    enabled: open,
+  });
+
+  if (open !== trackedOpen) {
+    setTrackedOpen(open);
+    if (open) {
+      const defaultQ = questionnaires.find((q) => q.isDefault && q.isActive);
+      setSelectedQuestionnaireId(defaultQ?.publicId ?? '');
+    }
+  }
 
   const mutation = useMutation({
     mutationFn: () =>

@@ -17,8 +17,7 @@ import { ShoppingListDrawer } from '@/components/nutrition/ShoppingListDrawer';
 import { PublishWeekDialog, CompletePlanDialog, AddMealDialog } from '@/components/nutrition/PlanDialogs';
 import { showSuccess, showApiError } from '@/lib/api-errors';
 import { cn } from '@/lib/cn';
-import { CANCEL_BUTTON_CLASS } from '@/lib/styles';
-import { MEAL_KINDS, type MealKind } from '@/components/nutrition/meal-kind';
+import { type MealKind } from '@/components/nutrition/meal-kind';
 import { DayNoteInput } from '@/components/common/DayNoteInput';
 
 export default function NutritionPlanPage() {
@@ -618,7 +617,7 @@ export default function NutritionPlanPage() {
                 onFoodNoteChange={(foodId, n) => updateFoodNote(selectedWeek, selectedDay, meal.mealId, foodId, n)}
                 onItemDrop={(data) => {
                   const sourceDay = data.dayOfWeek ?? selectedDay;
-                  const sourceWeek = (data as any).weekNumber ?? selectedWeek;
+                  const sourceWeek = (data as { weekNumber?: number }).weekNumber ?? selectedWeek;
                   const sameLocation = sourceWeek === selectedWeek && sourceDay === selectedDay;
                   if (data.type === 'food' && data.foodId) {
                     if (sameLocation) {

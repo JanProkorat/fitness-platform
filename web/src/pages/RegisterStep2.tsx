@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useFormContext } from 'react-hook-form';
 import { cn } from '@/lib/cn';
 import { PASSWORD_REQUIREMENTS } from './register-types';
@@ -28,7 +27,6 @@ export function RegisterStep2({
   onContinue,
   fromInvite,
 }: RegisterStep2Props) {
-  const { t } = useTranslation();
   const { register, formState: { errors } } = useFormContext();
   const strength = useMemo(() => computePasswordStrength(passwordValue), [passwordValue]);
 

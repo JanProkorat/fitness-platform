@@ -7,7 +7,7 @@ import { useApiMutation } from '@/hooks/useApiMutation';
 import { useConfirmDelete } from '@/hooks/useConfirmDelete';
 import { RecipeDialog } from '@/components/nutrition/RecipeDialog';
 import { PageHeader, Toolbar } from '@/components/layout';
-import { Button, Dialog, SearchInput } from '@/components/ui';
+import { Button, SearchInput } from '@/components/ui';
 import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
 import { DatabaseTable, ListView, CardGrid, Card, CardCover, CardBody, CardPropRow, MacroBadges, Pagination } from '@/components/data';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';

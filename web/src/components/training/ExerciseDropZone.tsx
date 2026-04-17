@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 
 interface ExerciseDropZoneProps {
   sessionId: string;
-  exerciseIds: string[];
   selectedWeek: number;
   onReorder: (fromIndex: number, toIndex: number) => void;
   onCrossSessionMove: (fromSessionId: string, fromIndex: number, toIndex: number, fromWeek: number) => void;
@@ -11,7 +10,7 @@ interface ExerciseDropZoneProps {
 
 /** Drop zone wrapping exercise rows — mirrors MealDropZone from the nutrition plan. */
 export function ExerciseDropZone({
-  sessionId, exerciseIds: _exerciseIds, selectedWeek, onReorder, onCrossSessionMove, children,
+  sessionId, selectedWeek, onReorder, onCrossSessionMove, children,
 }: ExerciseDropZoneProps) {
   const [over, setOver] = useState(false);
 

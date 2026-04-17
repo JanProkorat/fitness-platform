@@ -8,7 +8,7 @@ import { useConfirmDelete } from '@/hooks/useConfirmDelete';
 import type { FoodSummary, FoodCategory } from '@/api/food-types';
 import { FoodDialog } from '@/components/nutrition/FoodDialog';
 import { PageHeader, Toolbar } from '@/components/layout';
-import { Button, Dialog, SearchInput } from '@/components/ui';
+import { Button, SearchInput } from '@/components/ui';
 import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
 import { DatabaseTable, ListView, CardGrid, Card, CardCover, CardBody, CardPropRow, MacroBadges, Pagination } from '@/components/data';
 import { CATEGORY_CSS_COLORS, ALL_CATEGORIES } from '@/components/nutrition/food-category';

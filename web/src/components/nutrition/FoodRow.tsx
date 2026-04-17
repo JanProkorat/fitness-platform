@@ -26,7 +26,7 @@ export interface FoodRowProps {
   accentColor?: string;
 }
 
-export function FoodRow({ food, index: _index, mealId, dayOfWeek, weekNumber, onAmountChange, onRemove, onNoteChange, accentColor: _accentColor }: FoodRowProps) {
+export function FoodRow({ food, mealId, dayOfWeek, weekNumber, onAmountChange, onRemove, onNoteChange, accentColor: _accentColor }: FoodRowProps) {
   const { t } = useTranslation();
   const accentColor = CATEGORY_COLORS[food.category ?? ''] ?? _accentColor;
   const [localAmount, setLocalAmount] = useState(String(food.amount));

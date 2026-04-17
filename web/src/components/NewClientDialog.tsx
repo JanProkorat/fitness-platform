@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { createPendingInvite } from '@/api/pending-invites';
-import { getTrainerQuestionnaires, type QuestionnaireSummaryDto } from '@/api/questionnaires';
+import { getTrainerQuestionnaires } from '@/api/questionnaires';
 import { CANCEL_BUTTON_CLASS } from '@/lib/styles';
 
 interface NewClientDialogProps {
@@ -18,17 +18,25 @@ export function NewClientDialog({ open, onClose }: NewClientDialogProps) {
   const [lastName, setLastName] = useState('');
   const [message, setMessage] = useState('');
   const [selectedQuestionnaireId, setSelectedQuestionnaireId] = useState<string>('');
-  const [questionnaires, setQuestionnaires] = useState<QuestionnaireSummaryDto[]>([]);
+  const [trackedOpen, setTrackedOpen] = useState(false);
 
-  useEffect(() => {
-    if (!open) return;
-    setEmail(''); setFirstName(''); setLastName(''); setMessage(''); setSelectedQuestionnaireId('');
-    getTrainerQuestionnaires().then((data) => {
-      setQuestionnaires(data);
-      const defaultQ = data.find((q) => q.isDefault && q.isActive);
+  const { data: questionnaires = [] } = useQuery({
+    queryKey: ['trainer-questionnaires'],
+    queryFn: getTrainerQuestionnaires,
+    enabled: open,
+  });
+
+  if (open !== trackedOpen) {
+    setTrackedOpen(open);
+    if (open) {
+      setEmail('');
+      setFirstName('');
+      setLastName('');
+      setMessage('');
+      const defaultQ = questionnaires.find((q) => q.isDefault && q.isActive);
       setSelectedQuestionnaireId(defaultQ?.publicId ?? '');
-    }).catch(() => setQuestionnaires([]));
-  }, [open]);
+    }
+  }
 
   const mutation = useMutation({
     mutationFn: () =>

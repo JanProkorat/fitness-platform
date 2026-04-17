@@ -1,4 +1,3 @@
-import { useTranslation } from 'react-i18next';
 import { useFormContext } from 'react-hook-form';
 import { cn } from '@/lib/cn';
 
@@ -23,7 +22,6 @@ export function RegisterStep3({
   onBack,
   onSubmit,
 }: RegisterStep3Props) {
-  const { t } = useTranslation();
   const { handleSubmit } = useFormContext();
   const canSubmit = termsConsent && healthConsent && !loading;
 

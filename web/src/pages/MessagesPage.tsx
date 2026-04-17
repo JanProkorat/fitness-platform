@@ -135,7 +135,10 @@ export default function MessagesPage() {
     staleTime: 10_000,
     refetchInterval: 15_000,
   });
-  const conversations = Array.isArray(rawConversations) ? rawConversations : [];
+  const conversations = useMemo(
+    () => (Array.isArray(rawConversations) ? rawConversations : []),
+    [rawConversations]
+  );
 
   // Start or open conversation when ?clientId= is present
   const clientIdParam = searchParams.get('clientId');
@@ -159,12 +162,11 @@ export default function MessagesPage() {
     startConvMutation.mutate(clientIdParam);
   }, [clientIdParam]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-select first conversation (when no clientId param)
-  useEffect(() => {
-    if (!activeConvId && conversations.length > 0 && !clientIdParam) {
-      setActiveConvId(conversations[0].id);
-    }
-  }, [conversations, activeConvId, clientIdParam]);
+  // Auto-select first conversation (when no clientId param) — derived from
+  // conversation list, runs in render rather than an effect.
+  if (!activeConvId && conversations.length > 0 && !clientIdParam) {
+    setActiveConvId(conversations[0].id);
+  }
 
   const activeConv = conversations.find((c) => c.id === activeConvId);
 

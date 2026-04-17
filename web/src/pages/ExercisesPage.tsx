@@ -109,7 +109,7 @@ export default function ExercisesPage() {
 
   const totalPages = data ? Math.ceil((data.totalCount ?? 0) / (data.pageSize ?? 1)) : 0;
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     if (!form.name.trim() || form.muscleGroups.length === 0) return;
     setSaving(true);
@@ -271,7 +271,7 @@ export default function ExercisesPage() {
         footer={
           <Button
             variant="primary"
-            onClick={handleSubmit as any}
+            onClick={handleSubmit}
             disabled={saving || !form.name.trim() || form.muscleGroups.length === 0}
           >
             {saving ? t('common.saving') : editingExercise ? t('exercises.saveChanges') : t('exercises.addExercise')}

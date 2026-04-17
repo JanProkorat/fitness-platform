@@ -61,7 +61,7 @@ export interface CreateExerciseRequest {
 }
 
 /** Request to update a custom exercise. */
-export interface UpdateExerciseRequest extends CreateExerciseRequest {}
+export type UpdateExerciseRequest = CreateExerciseRequest;
 
 /** Response from upload URL generation. */
 export interface UploadUrlResponse {
