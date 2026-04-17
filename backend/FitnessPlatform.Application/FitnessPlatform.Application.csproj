@@ -9,12 +9,7 @@
     <EnableDefaultContentItems>false</EnableDefaultContentItems>
     <EnableDefaultRazorGenerateItems>false</EnableDefaultRazorGenerateItems>
     <EnableDefaultRazorComponentItems>false</EnableDefaultRazorComponentItems>
-    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Compile Include="**/*.cs" Exclude="bin/**;obj/**" />
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="EFCore.NamingConventions" Version="10.0.1" />

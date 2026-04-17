@@ -11,6 +11,10 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/dotnet/sdk:10.0
+      volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
 
     services:
       postgres:
@@ -30,11 +34,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup .NET 10
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '10.0.201'
-
       - name: Print .NET SDK info
         run: dotnet --info
 
@@ -50,8 +49,16 @@ jobs:
         working-directory: backend
 
       - name: Build
-        run: dotnet build FitnessPlatform.Tests/FitnessPlatform.Tests.csproj --no-restore --configuration Release --warnaserror
+        run: dotnet build FitnessPlatform.Tests/FitnessPlatform.Tests.csproj --no-restore --configuration Release --warnaserror -bl:msbuild.binlog -v:detailed
         working-directory: backend
+
+      - name: Upload MSBuild binary log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: msbuild-binlog
+          path: backend/msbuild.binlog
+          if-no-files-found: warn
 
       - name: Test
         run: dotnet test FitnessPlatform.Tests/FitnessPlatform.Tests.csproj --no-build --configuration Release --verbosity normal
