@@ -33,7 +33,7 @@ export default function TrainingIndexScreen() {
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>{data.session.name}</Text>
             <Text style={styles.cardMeta}>
-              {data.session.exercises.length} {t('training.exercises')} · {data.session.exercises.reduce((sum, e) => sum + e.sets.length, 0)} {t('training.sets')}
+              {(data.session.exercises ?? []).length} {t('training.exercises')} · {(data.session.exercises ?? []).reduce((sum, e) => sum + (e.sets?.length ?? 0), 0)} {t('training.sets')}
             </Text>
             {data.currentWeek != null && data.totalWeeks != null && (
               <Text style={styles.weekBadge}>
@@ -42,19 +42,19 @@ export default function TrainingIndexScreen() {
             )}
           </View>
 
-          {data.session.exercises.map((exercise, idx) => (
+          {(data.session.exercises ?? []).map((exercise, idx) => (
             <View key={idx} style={styles.exerciseRow}>
               <Text style={styles.exerciseName}>{exercise.exerciseName}</Text>
               <Text style={styles.exerciseSets}>
-                {exercise.sets.length} × {exercise.sets[0]?.reps ?? '—'}
-                {exercise.sets[0]?.weightKg ? ` @ ${exercise.sets[0].weightKg} kg` : ''}
+                {(exercise.sets ?? []).length} × {exercise.sets?.[0]?.reps ?? '—'}
+                {exercise.sets?.[0]?.weightKg ? ` @ ${exercise.sets[0].weightKg} kg` : ''}
               </Text>
             </View>
           ))}
 
           <Pressable
             style={styles.startButton}
-            onPress={() => router.push(hrefParams('/training/log/[id]', { id: 'new', planId: data.planId ?? '', sessionId: data.session!.sessionId }))}
+            onPress={() => router.push(hrefParams('/training/log/[id]', { id: 'new', planId: data.planId ?? '', sessionId: data.session!.sessionId ?? '' }))}
           >
             <Text style={styles.startButtonText}>{t('training.startWorkout')}</Text>
           </Pressable>

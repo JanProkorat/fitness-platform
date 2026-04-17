@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
-using System.Reflection;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Interfaces;
 using Resend;
+using System.Reflection;
 
 namespace FitnessPlatform.Application.Infrastructure.Services;
 

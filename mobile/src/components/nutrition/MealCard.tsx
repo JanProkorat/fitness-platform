@@ -13,7 +13,7 @@ import { useTheme } from '@/hooks/useTheme'
 import { hrefParams } from '@/lib/navigation'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
-import { getMealKindConfig } from '@/constants/mealKinds'
+import { getFoodCategoryColor, RECIPE_CHIP_COLOR } from '@/constants/foodCategories'
 import { NoteBanner } from '@/components/ui/NoteBanner'
 import type { MealFood, MealRecipe, PlanMeal } from '@/api/nutrition'
 import i18n from '@/i18n'
@@ -37,14 +37,10 @@ interface MealCardProps {
 function MealCard({ meal, expanded, onToggle, eaten }: MealCardProps) {
   const { t } = useTranslation()
   const colors = useTheme()
-  const kindConfig = getMealKindConfig(meal.kind)
   const kcal = meal.mealTotals?.kcal ?? 0
   const itemCount = totalMealItems(meal)
-  const isDark = colors.bg === '#1c1c1e'
-  const tint = isDark ? kindConfig.tintDark : kindConfig.tintLight
 
-  const mealLabel =
-    (meal.kind ? t(`nutrition.mealKind.${meal.kind}`) : meal.name) ?? ''
+  const mealLabel = meal.kind ? t(`nutrition.mealKind.${meal.kind}`) : ''
 
   // Animated accordion: content is always rendered for measurement
   const contentHeight = useSharedValue(0)
@@ -82,9 +78,6 @@ function MealCard({ meal, expanded, onToggle, eaten }: MealCardProps) {
     <View style={[styles.mealCard, { backgroundColor: colors.bg2 }]}>
       <Pressable onPress={onToggle}>
         <View style={styles.mealCardHeader}>
-          <View style={[styles.mealIcon, { backgroundColor: tint }]}>
-            <Text style={styles.mealIconText}>{kindConfig.icon}</Text>
-          </View>
           <View style={styles.mealCardInfo}>
             <Text style={[styles.mealName, { color: colors.label }]}>
               {mealLabel}
@@ -93,22 +86,6 @@ function MealCard({ meal, expanded, onToggle, eaten }: MealCardProps) {
               {meal.time ? `${meal.time} · ` : ''}
               {t('nutrition.items', { count: itemCount })}
             </Text>
-          </View>
-          <View style={styles.mealCardRight}>
-            <Text style={[styles.mealKcal, { color: colors.label }]}>
-              {Math.round(kcal)} kcal
-            </Text>
-            {meal.mealTotals && (
-              <Text style={styles.mealMacroSummary}>
-                <Text style={{ color: colors.macroProtein, fontWeight: '600' }}>{t('nutrition.proteinShort')} {Math.round(meal.mealTotals.protein)}</Text>
-                <Text style={{ color: colors.label3 }}> · </Text>
-                <Text style={{ color: colors.macroCarbs, fontWeight: '600' }}>{t('nutrition.carbsShort')} {Math.round(meal.mealTotals.carbs)}</Text>
-                <Text style={{ color: colors.label3 }}> · </Text>
-                <Text style={{ color: colors.macroFat, fontWeight: '600' }}>{t('nutrition.fatShort')} {Math.round(meal.mealTotals.fat)}</Text>
-                <Text style={{ color: colors.label3 }}> · </Text>
-                <Text style={{ color: colors.macroFiber, fontWeight: '600' }}>{t('nutrition.fiberShort')} {Math.round(meal.mealTotals.fiber)}</Text>
-              </Text>
-            )}
           </View>
           {eaten && (
             <Ionicons
@@ -133,7 +110,7 @@ function MealCard({ meal, expanded, onToggle, eaten }: MealCardProps) {
           style={[styles.mealBodyInner, { borderTopColor: colors.sep2 }]}
         >
           {/* Foods */}
-          {meal.foods.map((food, idx) => (
+          {meal.foods?.map((food, idx) => (
             <FoodItemRow key={`f-${food.foodExternalId}-${idx}`} food={food} mealName={mealLabel} />
           ))}
 
@@ -141,6 +118,29 @@ function MealCard({ meal, expanded, onToggle, eaten }: MealCardProps) {
           {meal.recipes?.map((recipe, idx) => (
             <RecipeItemRow key={`r-${recipe.recipeId}-${idx}`} recipe={recipe} mealName={mealLabel} />
           ))}
+
+          {/* Totals footer */}
+          {meal.mealTotals && (
+            <View style={[styles.mealTotalsFooter, { borderTopColor: colors.sep2 }]}>
+              <Text style={[styles.mealTotalsLabel, { color: colors.label2 }]}>
+                {t('nutrition.total')}
+              </Text>
+              <View style={styles.mealTotalsRight}>
+                <Text style={[styles.mealKcal, { color: colors.label }]}>
+                  {Math.round(kcal)} kcal
+                </Text>
+                <Text style={[styles.mealMacroSummary, { color: colors.label2 }]}>
+                  <Text style={{ fontWeight: '600' }}>{t('nutrition.proteinShort')} {Math.round(meal.mealTotals?.protein ?? 0)}</Text>
+                  <Text style={{ color: colors.label3 }}> · </Text>
+                  <Text style={{ fontWeight: '600' }}>{t('nutrition.carbsShort')} {Math.round(meal.mealTotals?.carbs ?? 0)}</Text>
+                  <Text style={{ color: colors.label3 }}> · </Text>
+                  <Text style={{ fontWeight: '600' }}>{t('nutrition.fatShort')} {Math.round(meal.mealTotals?.fat ?? 0)}</Text>
+                  <Text style={{ color: colors.label3 }}> · </Text>
+                  <Text style={{ fontWeight: '600' }}>{t('nutrition.fiberShort')} {Math.round(meal.mealTotals?.fiber ?? 0)}</Text>
+                </Text>
+              </View>
+            </View>
+          )}
 
           {/* Meal note */}
           {meal.note && (
@@ -193,11 +193,12 @@ function FoodItemRow({ food, mealName }: { food: MealFood; mealName: string }) {
     (i18n.language === 'cs' && food.foodNameCs) ||
     (i18n.language === 'de' && food.foodNameDe) ||
     (i18n.language === 'en' && food.foodNameEn) ||
-    food.foodName
+    (food.foodName ?? '')
 
   const categoryLabel = food.foodCategory
     ? t(`nutrition.foodCategory.${food.foodCategory}`, { defaultValue: food.foodCategory })
     : null
+  const categoryColor = getFoodCategoryColor(food.foodCategory ?? undefined)
 
   const handlePress = () => {
     router.push(
@@ -218,9 +219,13 @@ function FoodItemRow({ food, mealName }: { food: MealFood; mealName: string }) {
               {foodName}
             </Text>
             {categoryLabel && (
-              <Text style={[styles.foodRowSub, { color: colors.label2 }]} numberOfLines={1}>
-                {categoryLabel}
-              </Text>
+              <View style={styles.categoryChipWrap}>
+                <View style={[styles.categoryChip, { backgroundColor: `${categoryColor}22` }]}>
+                  <Text style={[styles.categoryChipText, { color: categoryColor }]} numberOfLines={1}>
+                    {categoryLabel}
+                  </Text>
+                </View>
+              </View>
             )}
           </View>
           <View style={styles.foodRowRight}>
@@ -228,7 +233,7 @@ function FoodItemRow({ food, mealName }: { food: MealFood; mealName: string }) {
               {Math.round(kcal)} kcal
             </Text>
             <Text style={[styles.foodRowGrams, { color: colors.label3 }]}>
-              {Math.round(food.amountGrams)} g
+              {Math.round(food.amountGrams ?? 0)} g
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={14} color={colors.label3} style={{ marginLeft: 2 }} />
@@ -282,16 +287,20 @@ function RecipeItemRow({ recipe, mealName }: { recipe: MealRecipe; mealName: str
             >
               {recipe.recipeName}
             </Text>
-            <Text style={[styles.foodRowSub, { color: colors.label2 }]} numberOfLines={1}>
-              {t('nutrition.recipe')}
-            </Text>
+            <View style={styles.categoryChipWrap}>
+              <View style={[styles.categoryChip, { backgroundColor: `${RECIPE_CHIP_COLOR}22` }]}>
+                <Text style={[styles.categoryChipText, { color: RECIPE_CHIP_COLOR }]} numberOfLines={1}>
+                  {t('nutrition.recipe')}
+                </Text>
+              </View>
+            </View>
           </View>
           <View style={styles.foodRowRight}>
             <Text style={[styles.foodRowKcal, { color: colors.label }]}>
               {Math.round(kcal)} kcal
             </Text>
             <Text style={[styles.foodRowGrams, { color: colors.label3 }]}>
-              {t('nutrition.serving', { count: recipe.servings })}
+              {t('nutrition.serving', { count: recipe.servings ?? 1 })}
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={14} color={colors.label3} style={{ marginLeft: 2 }} />
@@ -329,16 +338,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(0,0,0,0.08)',
   },
-  mealIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  mealIconText: {
-    fontSize: 18,
-  },
   mealCardInfo: {
     flex: 1,
   },
@@ -350,10 +349,6 @@ const styles = StyleSheet.create({
     ...Type.caption1,
     marginTop: 1,
   },
-  mealCardRight: {
-    alignItems: 'flex-end',
-    marginRight: 2,
-  },
   mealKcal: {
     ...Type.callout,
     fontWeight: '700',
@@ -364,7 +359,27 @@ const styles = StyleSheet.create({
     letterSpacing: 0.1,
   },
   mealChevron: {
-    marginLeft: -4,
+    marginLeft: 4,
+  },
+  mealTotalsFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingLeft: 16,
+    // Aligns the right column with the food row's kcal column:
+    // food row has paddingHorizontal 16 + chevron (14) + marginLeft (2).
+    paddingRight: 32,
+    paddingVertical: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  mealTotalsLabel: {
+    ...Type.footnote,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  mealTotalsRight: {
+    alignItems: 'flex-end',
   },
 
   // Meal body (expanded)
@@ -396,9 +411,20 @@ const styles = StyleSheet.create({
     ...Type.subheadline,
     fontWeight: '500',
   },
-  foodRowSub: {
-    ...Type.caption1,
-    marginTop: 1,
+  categoryChipWrap: {
+    flexDirection: 'row',
+    marginTop: 4,
+  },
+  categoryChip: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: Radius.sm,
+    maxWidth: '100%',
+  },
+  categoryChipText: {
+    ...Type.caption2,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
   foodRowRight: {
     alignItems: 'flex-end',

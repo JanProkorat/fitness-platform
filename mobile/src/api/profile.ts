@@ -1,29 +1,23 @@
-import api from './client'
+import api from './client';
+import type {
+  UpdateProfileRequest,
+  GetComplianceScoreResponse,
+  CollaborationDto,
+} from './generated';
 
-// --- Types ---
+// Re-export generated types so consumer imports (`from '@/api/profile'`) still work.
+export type { UpdateProfileRequest, CollaborationDto };
 
-export interface ComplianceScoreResponse {
-  compliancePercent: number
-  mealsPlanned: number
-  mealsLogged: number
-  currentStreak: number
-  from: string
-  to: string
-}
-
-export interface UpdateProfileRequest {
-  firstName: string
-  lastName: string
-  phoneNumber?: string | null
-}
+/** @deprecated Legacy alias — prefer `GetComplianceScoreResponse` from generated. */
+export type ComplianceScoreResponse = GetComplianceScoreResponse;
 
 // --- API calls ---
 
 export async function getComplianceScore(params?: {
   from?: string
   to?: string
-}): Promise<ComplianceScoreResponse> {
-  const { data } = await api.get<ComplianceScoreResponse>(
+}): Promise<GetComplianceScoreResponse> {
+  const { data } = await api.get<GetComplianceScoreResponse>(
     '/client/progress/compliance',
     { params },
   )
@@ -35,15 +29,6 @@ export async function updateProfile(body: UpdateProfileRequest): Promise<void> {
 }
 
 // --- Collaborations ---
-
-export interface CollaborationDto {
-  publicId: string
-  professionalPublicId: string
-  professionalName: string
-  professionalCity: string | null
-  role: string
-  since: string
-}
 
 export async function getCollaborations(): Promise<CollaborationDto[]> {
   const { data } = await api.get('/client/collaborations')

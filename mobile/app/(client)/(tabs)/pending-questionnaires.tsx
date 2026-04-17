@@ -48,7 +48,7 @@ function CoachQuestionnaireCard({
     <View style={[styles.card, { backgroundColor: colors.bg2 }]}>
       {/* Coach header */}
       <View style={styles.cardHeader}>
-        <Avatar name={item.professionalName} size="lg" />
+        <Avatar name={item.professionalName ?? ''} size="lg" />
         <View style={styles.cardInfo}>
           <Text style={[Type.headline, { color: colors.label }]}>
             {item.professionalName}
@@ -171,7 +171,7 @@ export default function PendingQuestionnairesScreen() {
               key={item.linkPublicId}
               item={item}
               onFill={() => {
-                router.push(hrefParams('/(auth)/questionnaire', { linkPublicId: item.linkPublicId }))
+                router.push(hrefParams('/(auth)/questionnaire', { linkPublicId: item.linkPublicId ?? '' }))
               }}
             />
           ))}

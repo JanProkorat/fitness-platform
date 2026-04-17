@@ -51,9 +51,11 @@ export default function MeasurementsScreen() {
   const stats = statsQuery.data;
   const items = measurementsQuery.data?.items ?? [];
 
-  // Prepare chart data: sorted chronologically, only items with weight
+  // Prepare chart data: sorted chronologically, only items with weight and measuredAt.
   const chartData = items
-    .filter((m): m is MeasurementDto & { weightKg: number } => m.weightKg != null)
+    .filter((m): m is MeasurementDto & { weightKg: number; measuredAt: string } =>
+      m.weightKg != null && m.measuredAt != null,
+    )
     .map((m) => ({ date: m.measuredAt, weight: m.weightKg }))
     .reverse(); // API returns newest first, chart needs oldest first
 
@@ -81,7 +83,7 @@ export default function MeasurementsScreen() {
 
     return (
       <View style={[styles.measurementCard, { backgroundColor: colors.bg2, borderColor: colors.sep }]}>
-        <Text style={[styles.measurementDate, { color: colors.label3 }]}>{formatDate(item.measuredAt)}</Text>
+        <Text style={[styles.measurementDate, { color: colors.label3 }]}>{formatDate(item.measuredAt ?? '')}</Text>
         <View style={styles.measurementRow}>
           {item.weightKg != null && (
             <Text style={[styles.weightValue, { color: colors.label }]}>{item.weightKg.toFixed(1)} kg</Text>
@@ -176,7 +178,7 @@ export default function MeasurementsScreen() {
 
       <FlatList
         data={items}
-        keyExtractor={(item) => item.measurementId}
+        keyExtractor={(item) => item.measurementId ?? ''}
         renderItem={renderItem}
         ListHeaderComponent={ListHeader}
         ListEmptyComponent={ListEmpty}

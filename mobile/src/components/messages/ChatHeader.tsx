@@ -4,10 +4,10 @@ import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/hooks/useTheme'
 import { goldAlpha } from '@/constants/colors'
 import { getInitials } from '@/lib/initials'
-import type { Participant } from '../../types/messages'
+import type { ParticipantDto } from '../../api/generated'
 
 interface ChatHeaderProps {
-  participant: Participant
+  participant: ParticipantDto
   onBack: () => void
   onInfoPress: () => void
 }
@@ -28,11 +28,11 @@ export function ChatHeader({ participant, onBack, onInfoPress }: ChatHeaderProps
         <View style={styles.center}>
           <View style={[styles.avatar, { backgroundColor: goldAlpha['15'] }]}>
             <Text style={[styles.avatarText, { color: colors.gold }]}>
-              {getInitials(participant.name)}
+              {getInitials(participant.name ?? '')}
             </Text>
           </View>
           <Text style={[styles.name, { color: colors.label }]} numberOfLines={1}>
-            {participant.name}
+            {participant.name ?? ''}
           </Text>
           <Text style={[styles.status, { color: participant.online ? colors.green : colors.label2 }]}>
             {participant.online ? '● Online' : '● Offline'}

@@ -6,7 +6,8 @@
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "generate-api": "cd ../backend && curl -sk https://localhost:5001/swagger/v1/swagger.json -o swagger.json && dotnet nswag run nswag.mobile.json && sed -i '' 's|/\\* eslint-disable \\*/|/* eslint-disable */\\n// @ts-nocheck|' ../mobile/src/api/generated.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

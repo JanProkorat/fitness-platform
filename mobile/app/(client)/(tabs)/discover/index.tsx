@@ -46,7 +46,8 @@ function PageHeader({ titleKey, subtitleKey }: { titleKey: string; subtitleKey?:
 // ─── Helpers ─────────────────────────────────────────────────────────
 
 function toTrainerCardData(p: ProfessionalSummary): TrainerCardData {
-  const roles = p.roles?.length ? p.roles : p.role ? [p.role] : []
+  // Generated ProfessionalSummaryDto has `roles?: string[]` only — no singular `role` field.
+  const roles = p.roles ?? []
   const roleLabel = roles
     .map((r) => (r === 'Trainer' ? 'Osobní trenér' : r === 'Nutritionist' ? 'Výž. poradce' : r))
     .join(' & ')
@@ -56,15 +57,15 @@ function toTrainerCardData(p: ProfessionalSummary): TrainerCardData {
   )
 
   return {
-    id: p.publicId,
-    name: `${p.firstName} ${p.lastName}`,
+    id: p.publicId ?? '',
+    name: `${p.firstName ?? ''} ${p.lastName ?? ''}`.trim(),
     role: roleLabel,
     roles: roleLabels,
     city: p.city ?? '',
     rating: 0,
     reviewCount: 0,
     priceMonthly: p.estimatedPrice ?? '',
-    tags: p.specializations,
+    tags: p.specializations ?? [],
     accepting: true,
   }
 }
@@ -96,7 +97,8 @@ function DiscoveryList({
 
   const items = useMemo(() => {
     const pages = trainersQuery.data?.pages ?? []
-    return pages.flatMap((page) => page.items)
+    // Generated items field is optional and may contain undefined entries; filter both.
+    return pages.flatMap((page) => page.items ?? []).filter((p): p is ProfessionalSummary => p != null)
   }, [trainersQuery.data])
 
   const cardData = useMemo(() => {

@@ -1,39 +1,30 @@
 import api from './client';
+import type {
+  ProfessionalSummaryDto,
+  GetPublicProfileResponse,
+  SearchProfessionalsResponse,
+  ClientRequestDto,
+} from './generated';
 
-export interface ProfessionalSummary {
-  publicId: string;
-  firstName: string;
-  lastName: string;
-  bio: string | null;
-  specializations: string[];
-  city: string | null;
-  estimatedPrice: string | null;
-  collaborationType: string | null;
-  languages: string[];
-  roles: string[];
-  /** @deprecated legacy field — use `roles` after backend update */
-  role?: string;
-}
+// Re-export generated types so consumer imports (`from '@/api/professionals'`) still work.
+export type { ProfessionalSummaryDto, GetPublicProfileResponse, SearchProfessionalsResponse, ClientRequestDto };
 
-export interface ProfessionalProfile {
-  publicId: string;
-  firstName: string;
-  lastName: string;
-  bio: string | null;
-  specializations: string[];
-  certificates: string[];
-  languages: string[];
-  city: string | null;
-  estimatedPrice: string | null;
-  collaborationType: string | null;
-  linkedIn: string | null;
-  instagram: string | null;
-  website: string | null;
-  roles: string[];
-  hasPendingRequest: boolean;
-  isLinked: boolean;
-}
+/**
+ * @deprecated Use `ProfessionalSummaryDto` from generated. Kept as alias for backward compatibility.
+ */
+export type ProfessionalSummary = ProfessionalSummaryDto;
 
+/**
+ * @deprecated Use `GetPublicProfileResponse` from generated. Kept as alias for backward compatibility.
+ */
+export type ProfessionalProfile = GetPublicProfileResponse;
+
+/**
+ * @deprecated Use `SearchProfessionalsResponse` from generated. Kept as alias for backward compatibility.
+ */
+export type SearchResponse = SearchProfessionalsResponse;
+
+/** Client-only: query parameters for professional search. No generated equivalent. */
 export interface SearchParams {
   city?: string;
   specialization?: string;
@@ -43,35 +34,18 @@ export interface SearchParams {
   pageSize?: number;
 }
 
-export interface SearchResponse {
-  items: ProfessionalSummary[];
-  totalCount: number;
-  page: number;
-  pageSize: number;
-}
-
-export async function searchProfessionals(params: SearchParams = {}): Promise<SearchResponse> {
+export async function searchProfessionals(params: SearchParams = {}): Promise<SearchProfessionalsResponse> {
   const { data } = await api.get('/professionals/search', { params });
   return data;
 }
 
-export async function getProfessionalProfile(publicId: string): Promise<ProfessionalProfile> {
+export async function getProfessionalProfile(publicId: string): Promise<GetPublicProfileResponse> {
   const { data } = await api.get(`/professionals/${publicId}`);
   return data;
 }
 
 export async function sendClientRequest(professionalPublicId: string, message?: string): Promise<void> {
   await api.post('/client/requests', { professionalPublicId, message });
-}
-
-export interface ClientRequestDto {
-  publicId: string;
-  professionalPublicId: string;
-  professionalName: string;
-  message: string | null;
-  status: string;
-  sentAt: string;
-  respondedAt: string | null;
 }
 
 export async function getMyRequests(): Promise<ClientRequestDto[]> {

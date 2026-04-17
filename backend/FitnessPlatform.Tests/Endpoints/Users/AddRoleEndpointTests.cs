@@ -113,7 +113,7 @@ public class AddRoleEndpointTests
     public async Task Validator_RejectsAdminRole()
     {
         var validator = new AddRoleValidator();
-        var result = await validator.ValidateAsync(new AddRoleRequest { Role = "Admin" });
+        var result = await validator.ValidateAsync(new AddRoleRequest { Role = "Admin" }, TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeFalse();
     }
@@ -122,7 +122,7 @@ public class AddRoleEndpointTests
     public async Task Validator_RejectsClientRole()
     {
         var validator = new AddRoleValidator();
-        var result = await validator.ValidateAsync(new AddRoleRequest { Role = "Client" });
+        var result = await validator.ValidateAsync(new AddRoleRequest { Role = "Client" }, TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeFalse();
     }

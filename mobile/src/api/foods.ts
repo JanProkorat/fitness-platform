@@ -1,51 +1,30 @@
 import api from './client';
+import type {
+  FoodSummary,
+  NutrientValueDto,
+  ServingSizeDto,
+  SearchFoodsResponse,
+} from './generated';
 
-// --- Types ---
+// Re-export generated types so consumer imports (`from '@/api/foods'`) still work.
+export type { FoodSummary, NutrientValueDto, ServingSizeDto, SearchFoodsResponse };
 
-export interface FoodNutrientValue {
-  kcal: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-  fiber?: number | null;
-  sugar?: number | null;
-  saturatedFat?: number | null;
-  salt?: number | null;
-}
+/**
+ * @deprecated Use `NutrientValueDto` from `./generated` instead.
+ * Kept as alias for backward compatibility.
+ */
+export type FoodNutrientValue = NutrientValueDto;
 
-export interface ServingSize {
-  label: string;
-  weightGrams: number;
-}
-
-export interface FoodSummary {
-  foodId: string;
-  name: string;
-  source?: string | null;
-  barcode?: string | null;
-  nutrientValue: FoodNutrientValue;
-  allergens: string[];
-  commonServings: ServingSize[];
-  category?: string | null;
-  note?: string | null;
-}
-
-export interface SearchFoodsResponse {
-  foods: FoodSummary[];
-  totalCount: number;
-  page: number;
-  pageSize: number;
-}
+/**
+ * @deprecated Use `ServingSizeDto` from `./generated` instead.
+ * Kept as alias for backward compatibility.
+ */
+export type ServingSize = ServingSizeDto;
 
 // --- API calls ---
 
 export async function getFoodById(foodId: string): Promise<FoodSummary> {
   const { data } = await api.get<FoodSummary>(`/foods/${foodId}`);
-  return data;
-}
-
-export async function getFoodByBarcode(barcode: string): Promise<FoodSummary> {
-  const { data } = await api.get<FoodSummary>(`/foods/barcode/${barcode}`);
   return data;
 }
 

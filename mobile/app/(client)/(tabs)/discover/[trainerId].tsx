@@ -171,7 +171,7 @@ export default function TrainerProfileScreen() {
                 🟢 {t('collab.acceptingClients')}
               </Text>
             </View>
-            {profile.specializations.map((s) => (
+            {(profile.specializations ?? []).map((s) => (
               <View key={s} style={[styles.specPill, { backgroundColor: colors.fill }]}>
                 <Text style={[styles.specPillText, { color: colors.label2 }]}>{s}</Text>
               </View>
@@ -204,11 +204,11 @@ export default function TrainerProfileScreen() {
         )}
 
         {/* Certificates */}
-        {profile.certificates.length > 0 && (
+        {(profile.certificates?.length ?? 0) > 0 && (
           <View style={styles.bioCard}>
             <View style={[styles.bioCardInner, { backgroundColor: colors.bg2 }]}>
               <Text style={[styles.sectionLabel, { color: colors.label3 }]}>{t('collab.certificates')}</Text>
-              {profile.certificates.map((cert, i) => (
+              {(profile.certificates ?? []).map((cert, i) => (
                 <View key={i} style={styles.certRow}>
                   <View style={[styles.certIcon, { backgroundColor: colors.green + '15' }]}>
                     <Text style={{ fontSize: 16 }}>🎓</Text>
@@ -226,12 +226,12 @@ export default function TrainerProfileScreen() {
         )}
 
         {/* Specialisations */}
-        {profile.specializations.length > 0 && (
+        {(profile.specializations?.length ?? 0) > 0 && (
           <View style={styles.bioCard}>
             <View style={[styles.bioCardInner, { backgroundColor: colors.bg2 }]}>
               <Text style={[styles.sectionLabel, { color: colors.label3 }]}>{t('collab.specialisations')}</Text>
               <View style={styles.specGrid}>
-                {profile.specializations.map((s) => {
+                {(profile.specializations ?? []).map((s) => {
                   const c = SPEC_COLORS[s] ?? { bg: colors.fill, text: colors.label2 }
                   const emoji = SPEC_EMOJI[s] ?? '✨'
                   return (
@@ -255,7 +255,7 @@ export default function TrainerProfileScreen() {
         <SendInviteSheet
           visible={showInviteSheet}
           target={{
-            id: profile.publicId,
+            id: profile.publicId ?? '',
             name: fullName,
             role: roleLabel,
             city: profile.city ?? '',

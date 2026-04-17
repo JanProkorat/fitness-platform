@@ -46,7 +46,7 @@ export function InviteDetailSheet({
     : req.status === 'Cancelled' ? 'inactive' as const
     : 'gold' as const
 
-  const sentDate = new Date(req.sentAt).toLocaleDateString(undefined, {
+  const sentDate = new Date(req.sentAt ?? 0).toLocaleDateString(undefined, {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
@@ -68,7 +68,7 @@ export function InviteDetailSheet({
 
         <View style={styles.row}>
           <Text style={[Type.caption1, { color: colors.label3 }]}>Status</Text>
-          <Badge label={req.status} variant={badgeVariant} />
+          <Badge label={req.status ?? ''} variant={badgeVariant} />
         </View>
 
         <View style={styles.row}>
@@ -89,7 +89,7 @@ export function InviteDetailSheet({
       {isPending && (
         <View style={styles.actions}>
           <Pressable
-            onPress={() => onRevoke(req.publicId)}
+            onPress={() => onRevoke(req.publicId ?? '')}
             disabled={isRevoking}
             style={[styles.revokeBtn, { backgroundColor: colors.red + '18' }]}
           >

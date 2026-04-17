@@ -41,13 +41,14 @@ function formatShortDate(weekStartDate: string, dayOfWeek: number): string {
 
 function sumTotals(totalsArr: NutrientTotals[]): NutrientTotals {
   if (totalsArr.length === 0) return { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 };
+  // Generated NutrientTotals fields are all optional; normalise with ?? 0.
   return totalsArr.reduce(
     (acc, t) => ({
-      kcal: acc.kcal + t.kcal,
-      protein: acc.protein + t.protein,
-      carbs: acc.carbs + t.carbs,
-      fat: acc.fat + t.fat,
-      fiber: acc.fiber + t.fiber,
+      kcal: (acc.kcal ?? 0) + (t.kcal ?? 0),
+      protein: (acc.protein ?? 0) + (t.protein ?? 0),
+      carbs: (acc.carbs ?? 0) + (t.carbs ?? 0),
+      fat: (acc.fat ?? 0) + (t.fat ?? 0),
+      fiber: (acc.fiber ?? 0) + (t.fiber ?? 0),
     }),
     { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 },
   );
@@ -77,15 +78,15 @@ export default function WeekOverviewScreen() {
 
   // Derive the current week object
   const currentWeekObj = useMemo(
-    () => data?.weeks.find((w) => w.weekNumber === currentWeekNumber) ?? null,
+    () => (data?.weeks ?? []).find((w) => w.weekNumber === currentWeekNumber) ?? null,
     [data, currentWeekNumber],
   );
 
-  const totalWeeks = data?.totalWeeks ?? data?.weeks.length ?? 0;
+  const totalWeeks = data?.totalWeeks ?? (data?.weeks ?? []).length;
 
   // Published week numbers for prev/next navigation
   const publishedWeekNumbers = useMemo(
-    () => data?.weeks.map((w) => w.weekNumber).sort((a, b) => a - b) ?? [],
+    () => (data?.weeks ?? []).map((w) => w.weekNumber ?? 0).sort((a, b) => a - b),
     [data],
   );
 
@@ -142,7 +143,7 @@ export default function WeekOverviewScreen() {
   // ── Build sorted days for current week ────────────────────────────────────
 
   const sortedDays: PlanDay[] = currentWeekObj
-    ? currentWeekObj.days.slice().sort((a, b) => a.dayOfWeek - b.dayOfWeek)
+    ? (currentWeekObj.days ?? []).slice().sort((a, b) => (a.dayOfWeek ?? 0) - (b.dayOfWeek ?? 0))
     : [];
 
   // Fill in missing days (1–7) so we always show 7 cards
@@ -273,7 +274,7 @@ function DayCard({ dayOfWeek, day, weekStartDate, isToday, onPress, t }: DayCard
   const colors = useTheme();
   const dayName = weekStartDate ? formatDayName(weekStartDate, dayOfWeek) : '';
   const shortDate = weekStartDate ? formatShortDate(weekStartDate, dayOfWeek) : '';
-  const mealCount = day?.meals.length ?? 0;
+  const mealCount = day?.meals?.length ?? 0;
   const totals = day?.dayTotals ?? null;
 
   return (
@@ -309,25 +310,25 @@ function DayCard({ dayOfWeek, day, weekStartDate, isToday, onPress, t }: DayCard
           <View style={styles.macroRow}>
             <MacroChip
               label={t('nutrition.kcal')}
-              value={Math.round(totals.kcal)}
+              value={Math.round(totals.kcal ?? 0)}
               unit=""
               color={colors.orange}
             />
             <MacroChip
               label={t('nutrition.proteinShort')}
-              value={Math.round(totals.protein)}
+              value={Math.round(totals.protein ?? 0)}
               unit="g"
               color={colors.macroProtein}
             />
             <MacroChip
               label={t('nutrition.carbsShort')}
-              value={Math.round(totals.carbs)}
+              value={Math.round(totals.carbs ?? 0)}
               unit="g"
               color={colors.macroCarbs}
             />
             <MacroChip
               label={t('nutrition.fatShort')}
-              value={Math.round(totals.fat)}
+              value={Math.round(totals.fat ?? 0)}
               unit="g"
               color={colors.macroFat}
             />
@@ -378,25 +379,25 @@ function WeekSumRow({ totals, t }: WeekSumRowProps) {
       <View style={styles.averageMacros}>
         <MacroChip
           label={t('nutrition.kcal')}
-          value={Math.round(totals.kcal)}
+          value={Math.round(totals.kcal ?? 0)}
           unit=""
           color={colors.orange}
         />
         <MacroChip
           label="P"
-          value={Math.round(totals.protein)}
+          value={Math.round(totals.protein ?? 0)}
           unit="g"
           color={colors.macroProtein}
         />
         <MacroChip
           label="C"
-          value={Math.round(totals.carbs)}
+          value={Math.round(totals.carbs ?? 0)}
           unit="g"
           color={colors.macroCarbs}
         />
         <MacroChip
           label="F"
-          value={Math.round(totals.fat)}
+          value={Math.round(totals.fat ?? 0)}
           unit="g"
           color={colors.macroFat}
         />

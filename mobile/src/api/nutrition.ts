@@ -1,143 +1,116 @@
 import api from './client';
+import { MealKind } from './generated';
+import type {
+  NutrientTotals,
+  GlobalNutritionSettings,
+  MealFood,
+  MealRecipe,
+  PlanMeal,
+  GetTodayPlanResponse,
+  MealLogDto,
+  GetTodayLogResponse,
+  GetWeeklyOverviewResponse,
+  GetRecipeResponse,
+  PlanDay,
+  GetWeekPlanResponse,
+  ShoppingListItem,
+  GetShoppingListResponse,
+  FullPlanWeek,
+  GetFullPlanResponse,
+  GetClientPlansResponse,
+  ClientPlanItem,
+} from './generated';
 
-// --- Types ---
+// Re-export generated types and enums so consumer imports (`from '@/api/nutrition'`) still work.
+export { MealKind };
+export type {
+  NutrientTotals,
+  GlobalNutritionSettings,
+  MealFood,
+  MealRecipe,
+  PlanMeal,
+  GetTodayPlanResponse,
+  MealLogDto,
+  GetTodayLogResponse,
+  GetWeeklyOverviewResponse,
+  GetRecipeResponse,
+  PlanDay,
+  GetWeekPlanResponse,
+  ShoppingListItem,
+  GetShoppingListResponse,
+  FullPlanWeek,
+  GetFullPlanResponse,
+  GetClientPlansResponse,
+  ClientPlanItem,
+};
 
-export interface NutrientTotals {
-  kcal: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-  fiber: number;
-}
+/**
+ * @deprecated Use `GetTodayPlanResponse` from generated. Kept as alias for backward compatibility.
+ */
+export type TodayPlanResponse = GetTodayPlanResponse;
 
-export interface GlobalNutritionSettings {
-  dailyKcal?: number | null;
-  proteinGrams?: number | null;
-  carbsGrams?: number | null;
-  fatGrams?: number | null;
-  fiberGrams?: number | null;
-}
+/**
+ * @deprecated Use `GetTodayLogResponse` from generated. Kept as alias for backward compatibility.
+ */
+export type TodayLogResponse = GetTodayLogResponse;
 
-export interface MealFood {
-  foodExternalId: string;
-  foodName: string;
-  foodNameCs?: string | null;
-  foodNameEn?: string | null;
-  foodNameDe?: string | null;
-  foodCategory?: string | null;
-  nutrientValuePer100Grams: {
-    kcal: number;
-    protein: number;
-    carbs: number;
-    fat: number;
-    fiber?: number;
-    sugar?: number;
-    saturatedFat?: number;
-    salt?: number;
-  };
-  amountGrams: number;
-  note?: string | null;
-}
+/**
+ * @deprecated Use `GetWeeklyOverviewResponse` from generated. Kept as alias for backward compatibility.
+ */
+export type WeeklyOverviewResponse = GetWeeklyOverviewResponse;
 
-export interface MealRecipe {
-  recipeId: string;
-  recipeName: string;
-  nutrientValuePerServing: {
-    kcal: number;
-    protein: number;
-    carbs: number;
-    fat: number;
-    fiber?: number;
-  };
-  servings: number;
-  note?: string | null;
-  foodCategories?: string[] | null;
-}
+/**
+ * @deprecated Use `GetRecipeResponse` from generated. Kept as alias for backward compatibility.
+ */
+export type RecipeDetail = GetRecipeResponse;
 
-export type MealKind =
-  | 'Breakfast'
-  | 'MorningSnack'
-  | 'Lunch'
-  | 'AfternoonSnack'
-  | 'Dinner'
-  | 'PreWorkout'
-  | 'PostWorkout';
+/**
+ * @deprecated Use `GetWeekPlanResponse` from generated. Kept as alias for backward compatibility.
+ */
+export type WeekPlanResponse = GetWeekPlanResponse;
 
-export interface PlanMeal {
-  mealId: string;
-  kind?: MealKind;
-  /** Optional — the `/client/nutrition/today` endpoint returns `kind` only, no `name`. Clients should fall back to a localised label for `kind`. */
-  name?: string;
-  order: number;
-  time?: string | null;
-  foods: MealFood[];
-  recipes?: MealRecipe[];
-  note?: string | null;
-  mealTotals?: NutrientTotals | null;
-}
+/**
+ * @deprecated Use `GetShoppingListResponse` from generated. Kept as alias for backward compatibility.
+ */
+export type ShoppingListResponse = GetShoppingListResponse;
 
-export interface TodayPlanResponse {
-  planId: string;
-  planName: string;
-  weekNumber: number;
-  dayOfWeek: number;
-  meals: PlanMeal[];
-  dayTotals: NutrientTotals | null;
-  globalSettings: GlobalNutritionSettings | null;
-  dayNote?: string | null;
-}
+/**
+ * @deprecated Use `GetFullPlanResponse` from generated. Kept as alias for backward compatibility.
+ */
+export type FullPlanResponse = GetFullPlanResponse;
 
-export interface MealLogDto {
-  mealId: string;
-  mealName: string;
-  eatenAt: string;
-  totals: NutrientTotals;
-}
+/**
+ * @deprecated Use `GetClientPlansResponse` from generated. Kept as alias for backward compatibility.
+ */
+export type ClientPlansResponse = GetClientPlansResponse;
 
-export interface TodayLogResponse {
-  mealsEaten: MealLogDto[];
-  totalConsumed: NutrientTotals;
-  remaining: NutrientTotals | null;
-}
+/**
+ * @deprecated Use `ClientPlanItem` from generated. Kept as alias for backward compatibility.
+ */
+export type ClientPlanSummary = ClientPlanItem;
 
-export interface WeeklyOverviewResponse {
-  weekStart: string;
-  weekEnd: string;
-  compliancePercent: number;
-  mealsPlanned: number;
-  mealsLogged: number;
-  averageDailyMacros: NutrientTotals;
-  currentStreak: number;
-}
-
-/** Full recipe detail returned by /client/recipes/{id}. */
-export interface RecipeDetail {
-  recipeId: string;
-  name: string;
-  description?: string | null;
-  prepTimeMinutes?: number | null;
-  steps?: string[] | null;
-  note?: string | null;
-  foods: MealFood[];
-  totalNutrients: NutrientTotals;
-  dateCreated: string;
-  dateUpdated?: string | null;
-}
+/**
+ * PlanStatus string union — used as a query parameter for getClientPlans.
+ * The generated enums (NutritionPlanStatus, TrainingPlanStatus) cover this
+ * domain but the client plans endpoint mixes both plan types under a single
+ * string-based filter. Kept as a client-side type.
+ */
+export type PlanStatus = 'Draft' | 'Active' | 'Completed' | 'Archived';
 
 // --- API calls ---
 
-export async function getRecipeDetail(recipeId: string): Promise<RecipeDetail> {
-  const { data } = await api.get<RecipeDetail>(`/client/recipes/${recipeId}`);
+export async function getRecipeDetail(recipeId: string): Promise<GetRecipeResponse> {
+  const { data } = await api.get<GetRecipeResponse>(`/client/recipes/${recipeId}`);
   return data;
 }
 
-export async function getTodayPlan(): Promise<TodayPlanResponse> {
-  const { data } = await api.get<TodayPlanResponse>('/client/nutrition/plan/today');
+export async function getTodayPlan(): Promise<GetTodayPlanResponse> {
+  const { data } = await api.get<GetTodayPlanResponse>('/client/nutrition/plan/today');
   return data;
 }
 
-export async function getTodayLog(): Promise<TodayLogResponse> {
-  const { data } = await api.get<TodayLogResponse>('/client/nutrition/log/today');
+export async function getTodayLog(): Promise<GetTodayLogResponse> {
+  const { data } = await api.get<GetTodayLogResponse>('/client/nutrition/log/today');
   return data;
 }
 
@@ -149,109 +122,37 @@ export async function unlogMealEaten(mealId: string): Promise<void> {
   await api.delete(`/client/nutrition/log/meals/${mealId}/eaten`);
 }
 
-export async function getWeeklyOverview(): Promise<WeeklyOverviewResponse> {
-  const { data } = await api.get<WeeklyOverviewResponse>('/client/progress/weekly');
+export async function getWeeklyOverview(): Promise<GetWeeklyOverviewResponse> {
+  const { data } = await api.get<GetWeeklyOverviewResponse>('/client/progress/weekly');
   return data;
-}
-
-// --- Week Plan types ---
-
-export interface PlanDay {
-  dayOfWeek: number;
-  meals: PlanMeal[];
-  note?: string | null;
-  dayTotals: NutrientTotals | null;
-}
-
-export interface WeekPlanResponse {
-  planId: string;
-  planName: string;
-  weekNumber: number;
-  days: PlanDay[];
-  globalSettings: GlobalNutritionSettings | null;
-}
-
-export interface ShoppingListItem {
-  foodExternalId: string;
-  foodName: string;
-  totalAmountGrams: number;
-}
-
-export interface ShoppingListResponse {
-  items: ShoppingListItem[];
 }
 
 // --- Week Plan API calls ---
 
-export async function getWeekPlan(): Promise<WeekPlanResponse> {
-  const { data } = await api.get<WeekPlanResponse>('/client/nutrition/plan/week');
+export async function getWeekPlan(): Promise<GetWeekPlanResponse> {
+  const { data } = await api.get<GetWeekPlanResponse>('/client/nutrition/plan/week');
   return data;
 }
 
 export async function getShoppingList(params?: {
   weekFrom?: number;
   weekTo?: number;
-}): Promise<ShoppingListResponse> {
-  const { data } = await api.get<ShoppingListResponse>(
+}): Promise<GetShoppingListResponse> {
+  const { data } = await api.get<GetShoppingListResponse>(
     '/client/nutrition/plan/shopping-list',
     { params },
   );
   return data;
 }
 
-// --- Full Plan types (for Nutrition tab browsing) ---
-
-export interface FullPlanWeek {
-  weekNumber: number;
-  weekStartDate: string;
-  weekEndDate: string;
-  days: PlanDay[];
-}
-
-export type PlanStatus = 'Draft' | 'Active' | 'Completed' | 'Archived';
-
-export interface FullPlanResponse {
-  planId: string;
-  planName: string;
-  startDate: string | null;
-  globalSettings: GlobalNutritionSettings | null;
-  weeks: FullPlanWeek[];
-  publishedWeekCount: number;
-  totalWeeks: number;
-  currentWeek: number | null;
-  currentDayOfWeek: number | null;
-  status?: PlanStatus;
-  questionnaireResponseId?: string | null;
-  dateCompleted?: string | null;
-  /** Meal IDs that the client has logged as eaten (flat set, unique across the plan). */
-  eatenMealIds?: string[];
-}
-
-/** Lightweight plan summary for listing active + completed plans. */
-export interface ClientPlanSummary {
-  planId: string;
-  planName: string;
-  type: 'nutrition' | 'training';
-  status: PlanStatus;
-  startDate: string | null;
-  totalWeeks: number;
-  publishedWeekCount: number;
-  dateCompleted: string | null;
-  questionnaireResponseId: string | null;
-}
-
-export interface ClientPlansResponse {
-  items: ClientPlanSummary[];
-}
-
-export async function getClientPlans(status?: PlanStatus): Promise<ClientPlansResponse> {
-  const { data } = await api.get<ClientPlansResponse>('/client/plans', {
+export async function getClientPlans(status?: PlanStatus): Promise<GetClientPlansResponse> {
+  const { data } = await api.get<GetClientPlansResponse>('/client/plans', {
     params: status ? { status } : undefined,
   });
   return data;
 }
 
-export async function getFullPlan(): Promise<FullPlanResponse> {
-  const { data } = await api.get<FullPlanResponse>('/client/nutrition/plan/full');
+export async function getFullPlan(): Promise<GetFullPlanResponse> {
+  const { data } = await api.get<GetFullPlanResponse>('/client/nutrition/plan/full');
   return data;
 }

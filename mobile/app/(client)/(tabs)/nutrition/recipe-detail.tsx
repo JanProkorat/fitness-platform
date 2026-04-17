@@ -107,7 +107,7 @@ export default function RecipeDetailScreen() {
     let cancelled = false
     ;(async () => {
       try {
-        const data = await getRecipeDetail(mealRecipe.recipeId)
+        const data = await getRecipeDetail(mealRecipe.recipeId ?? '')
         if (!cancelled) setDetail(data)
       } catch {
         if (!cancelled) setError(true)
@@ -128,17 +128,19 @@ export default function RecipeDetailScreen() {
     )
   }
 
-  // Use full detail macros if loaded, otherwise fall back to summary data
-  const servings = mealRecipe.servings
+  // Use full detail macros if loaded, otherwise fall back to summary data.
+  // Generated types make all nutrient fields optional; guard with ?? 0.
+  const servings = mealRecipe.servings ?? 1
+  const perServing = mealRecipe.nutrientValuePerServing
   const n = detail?.totalNutrients ?? {
-    kcal: mealRecipe.nutrientValuePerServing.kcal * servings,
-    protein: mealRecipe.nutrientValuePerServing.protein * servings,
-    carbs: mealRecipe.nutrientValuePerServing.carbs * servings,
-    fat: mealRecipe.nutrientValuePerServing.fat * servings,
-    fiber: (mealRecipe.nutrientValuePerServing.fiber ?? 0) * servings,
+    kcal: (perServing?.kcal ?? 0) * servings,
+    protein: (perServing?.protein ?? 0) * servings,
+    carbs: (perServing?.carbs ?? 0) * servings,
+    fat: (perServing?.fat ?? 0) * servings,
+    fiber: (perServing?.fiber ?? 0) * servings,
   }
 
-  const totalGrams = n.protein + n.carbs + n.fat + n.fiber || 1
+  const totalGrams = (n.protein ?? 0) + (n.carbs ?? 0) + (n.fat ?? 0) + (n.fiber ?? 0) || 1
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={['top']}>
@@ -221,7 +223,7 @@ export default function RecipeDetailScreen() {
               {t('recipeDetail.totalValues')}
             </Text>
             <Text style={[styles.kcalBadge, { color: colors.label }]}>
-              {Math.round(n.kcal)}{' '}
+              {Math.round(n.kcal ?? 0)}{' '}
               <Text style={[styles.kcalUnit, { color: colors.label2 }]}>kcal</Text>
             </Text>
           </View>
@@ -229,28 +231,28 @@ export default function RecipeDetailScreen() {
           <View style={styles.macroGrid}>
             <MacroGridItem
               label={t('foodDetail.protein')}
-              value={n.protein}
+              value={n.protein ?? 0}
               color={colors.macroProtein}
               maxValue={totalGrams}
               bgColor={colors.fill2}
             />
             <MacroGridItem
               label={t('foodDetail.carbs')}
-              value={n.carbs}
+              value={n.carbs ?? 0}
               color={colors.macroCarbs}
               maxValue={totalGrams}
               bgColor={colors.fill2}
             />
             <MacroGridItem
               label={t('foodDetail.fat')}
-              value={n.fat}
+              value={n.fat ?? 0}
               color={colors.macroFat}
               maxValue={totalGrams}
               bgColor={colors.fill2}
             />
             <MacroGridItem
               label={t('foodDetail.fiber')}
-              value={n.fiber}
+              value={n.fiber ?? 0}
               color={colors.macroFiber}
               maxValue={totalGrams}
               bgColor={colors.fill2}
@@ -277,19 +279,19 @@ export default function RecipeDetailScreen() {
         )}
 
         {/* Ingredients — full food list from recipe detail */}
-        {detail && detail.foods.length > 0 && (
+        {detail && (detail.foods?.length ?? 0) > 0 && (
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.label3 }]}>
               {t('recipeDetail.ingredients')}
             </Text>
             <View style={[styles.sectionList, { backgroundColor: colors.bg2 }]}>
-              {detail.foods.map((food: MealFood, idx: number) => {
-                const kcal = Math.round(food.nutrientValuePer100Grams.kcal * food.amountGrams / 100)
-                const isLast = idx === detail.foods.length - 1
+              {(detail.foods ?? []).map((food: MealFood, idx: number) => {
+                const kcal = Math.round((food.nutrientValuePer100Grams?.kcal ?? 0) * (food.amountGrams ?? 0) / 100)
+                const isLast = idx === (detail.foods?.length ?? 0) - 1
                 return (
                   <Pressable
                     key={`${food.foodExternalId}-${idx}`}
-                    onPress={() => router.push(hrefParams(`${basePath}/food-detail`, { food: JSON.stringify(food), mealName: mealRecipe.recipeName, backLabel: mealRecipe.recipeName }))}
+                    onPress={() => router.push(hrefParams(`${basePath}/food-detail`, { food: JSON.stringify(food), mealName: mealRecipe.recipeName ?? '', backLabel: mealRecipe.recipeName ?? '' }))}
                     style={({ pressed }) => pressed ? { opacity: 0.7 } : undefined}
                   >
                     <View
@@ -305,7 +307,7 @@ export default function RecipeDetailScreen() {
                         {food.foodName}
                       </Text>
                       <Text style={[styles.ingredientAmount, { color: colors.label2 }]}>
-                        {Math.round(food.amountGrams)} g
+                        {Math.round(food.amountGrams ?? 0)} g
                       </Text>
                       <Text style={[styles.ingredientKcal, { color: colors.label3 }]}>
                         {kcal} kcal

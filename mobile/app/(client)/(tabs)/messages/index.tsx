@@ -52,16 +52,18 @@ export default function MessagesScreen() {
     if (!conversations) return []
     const list = search.trim()
       ? conversations.filter((c) =>
-          c.participant.name.toLowerCase().includes(search.toLowerCase()),
+          (c.participant?.name ?? '').toLowerCase().includes(search.toLowerCase()),
         )
       : conversations
 
     return [...list].sort((a, b) => {
-      if (a.unreadCount > 0 && b.unreadCount === 0) return -1
-      if (a.unreadCount === 0 && b.unreadCount > 0) return 1
+      const aUnread = a.unreadCount ?? 0
+      const bUnread = b.unreadCount ?? 0
+      if (aUnread > 0 && bUnread === 0) return -1
+      if (aUnread === 0 && bUnread > 0) return 1
       return (
-        new Date(b.lastMessageAt).getTime() -
-        new Date(a.lastMessageAt).getTime()
+        new Date(b.lastMessageAt ?? '').getTime() -
+        new Date(a.lastMessageAt ?? '').getTime()
       )
     })
   }, [conversations, search])
@@ -138,8 +140,8 @@ export default function MessagesScreen() {
                   )}
                   <ConversationRow
                     conversation={item}
-                    onPress={() => router.push(href(`/(client)/messages/${item.id}`))}
-                    onArchive={() => archiveMutation.mutate(item.id)}
+                    onPress={() => router.push(href(`/(client)/messages/${item.id ?? ''}`))}
+                    onArchive={() => archiveMutation.mutate(item.id ?? '')}
                   />
                 </React.Fragment>
               ))}

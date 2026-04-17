@@ -71,8 +71,8 @@ function StatsGrid({
       },
       {
         label: t('profile.compliance'),
-        value: compliance ? `${Math.round(compliance.compliancePercent)}%` : '—',
-        sub: compliance ? t('profile.streak', { count: compliance.currentStreak }) : undefined,
+        value: compliance ? `${Math.round(compliance.compliancePercent ?? 0)}%` : '—',
+        sub: compliance ? t('profile.streak', { count: compliance.currentStreak ?? 0 }) : undefined,
         subColor: colors.gold,
       },
       {
@@ -174,10 +174,18 @@ export default function ProfileScreen() {
   const weightEntries = useMemo(() => {
     const items = measurementsQuery.data?.items ?? []
     return items
-      .filter((m): m is MeasurementDto & { weightKg: number } => m.weightKg != null)
+      .filter((m): m is MeasurementDto & { weightKg: number; measuredAt: string } => m.weightKg != null && m.measuredAt != null)
       .map((m) => ({ date: m.measuredAt, weight: m.weightKg }))
       .reverse()
   }, [measurementsQuery.data])
+
+  // Delta between the latest measurement and the one before it
+  const latestWeightDelta = useMemo(() => {
+    if (weightEntries.length < 2) return null
+    const latest = weightEntries[weightEntries.length - 1].weight
+    const previous = weightEntries[weightEntries.length - 2].weight
+    return latest - previous
+  }, [weightEntries])
 
   const handleWeightSaved = useCallback(() => {
     setWeightSheetOpen(false)
@@ -231,15 +239,15 @@ export default function ProfileScreen() {
             {user?.email}
           </Text>
           <View style={styles.badges}>
-            {complianceQuery.data && complianceQuery.data.currentStreak > 0 && (
+            {complianceQuery.data && (complianceQuery.data.currentStreak ?? 0) > 0 && (
               <Badge
-                label={`🔥 ${complianceQuery.data.currentStreak}d streak`}
+                label={`🔥 ${complianceQuery.data.currentStreak ?? 0}d streak`}
                 variant="gold"
               />
             )}
             {complianceQuery.data && (
               <Badge
-                label={`${Math.round(complianceQuery.data.compliancePercent)}% compliance`}
+                label={`${Math.round(complianceQuery.data.compliancePercent ?? 0)}% compliance`}
                 variant="active"
               />
             )}
@@ -259,7 +267,7 @@ export default function ProfileScreen() {
           <WeightBarChart
             entries={weightEntries}
             currentWeight={statsQuery.data?.latestWeight}
-            weightDelta={statsQuery.data?.weightChange30Days}
+            weightDelta={latestWeightDelta}
             targetWeight={statsQuery.data?.targetWeightKg}
             onViewHistory={() => setHistorySheetOpen(true)}
             entryCount={statsQuery.data?.totalCount ?? 0}

@@ -81,7 +81,7 @@ export default function ArchivedMessagesScreen() {
                     conversation={item}
                     variant="archived"
                     onPress={() => router.push(href(`/(client)/messages/${item.id}`))}
-                    onUnarchive={() => unarchiveMutation.mutate(item.id)}
+                    onUnarchive={() => unarchiveMutation.mutate(item.id ?? '')}
                   />
                 </React.Fragment>
               ))}

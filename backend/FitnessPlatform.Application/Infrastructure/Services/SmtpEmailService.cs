@@ -204,7 +204,6 @@ public class SmtpEmailService(IConfiguration configuration, ILogger<SmtpEmailSer
 
             if (stream is null)
             {
-                // Fallback to English
                 var fallback = $"FitnessPlatform.Application.Infrastructure.EmailTemplates.{templateName}.en.html";
                 using var fallbackStream = assembly.GetManifestResourceStream(fallback)
                     ?? throw new InvalidOperationException($"Email template '{fallback}' not found in embedded resources.");
