@@ -28,11 +28,11 @@ export default function TrainingHistoryScreen() {
   const renderItem = useCallback(({ item }: { item: WorkoutLogSummary }) => (
     <Pressable
       style={styles.logCard}
-      onPress={() => router.push(href(`/training/history/${item.logId}`))}
+      onPress={() => router.push(href(`/training/history/${item.logId ?? ''}`))}
     >
       <View style={styles.logHeader}>
         <Text style={styles.logDate}>
-          {new Date(item.startedAt).toLocaleDateString()}
+          {item.startedAt ? new Date(item.startedAt).toLocaleDateString() : '—'}
         </Text>
         {item.hasPR && <Text style={styles.prBadge}>🏆 PR</Text>}
       </View>
@@ -58,7 +58,7 @@ export default function TrainingHistoryScreen() {
       <FlatList
         data={data?.logs ?? []}
         renderItem={renderItem}
-        keyExtractor={(item) => item.logId}
+        keyExtractor={(item) => item.logId ?? ''}
         contentContainerStyle={styles.list}
         ListEmptyComponent={
           isLoading ? null : (

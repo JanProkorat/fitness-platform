@@ -133,7 +133,7 @@ export default function FoodDetailScreen() {
     let cancelled = false
     ;(async () => {
       try {
-        const data = await getFoodById(food.foodExternalId)
+        const data = await getFoodById(food.foodExternalId ?? '')
         if (!cancelled) setFreshFood(data)
       } catch {
         // Silently fall back to snapshot data
@@ -152,26 +152,30 @@ export default function FoodDetailScreen() {
     )
   }
 
-  // Use fresh data when available, fall back to snapshot
+  // Use fresh data when available, fall back to snapshot.
+  // Generated types make nutrientValue / nutrientValuePer100Grams optional,
+  // but they are always populated at runtime when a plan is loaded from the server.
   const foodName = freshFood?.name ?? getLocalizedFoodName(food)
   const n = freshFood
-    ? freshFood.nutrientValue
+    ? freshFood.nutrientValue ?? food.nutrientValuePer100Grams
     : food.nutrientValuePer100Grams
-  const grams = food.amountGrams
+  const grams = food.amountGrams ?? 0
   const foodNote = freshFood?.note ?? food.note ?? null
 
-  // Computed values for the planned amount
-  const kcal = computeNutrient(n.kcal, grams)
-  const protein = computeNutrient(n.protein, grams)
-  const carbs = computeNutrient(n.carbs, grams)
-  const fat = computeNutrient(n.fat, grams)
-  const fiber = computeNutrient(n.fiber ?? 0, grams)
-  const sugar = n.sugar != null ? computeNutrient(n.sugar, grams) : null
-  const saturatedFat = n.saturatedFat != null ? computeNutrient(n.saturatedFat, grams) : null
-  const salt = n.salt != null ? computeNutrient(n.salt, grams) : null
+  // Computed values for the planned amount.
+  // All nutrient fields are optional in the generated type but always populated at runtime.
+  const kcal = computeNutrient(n?.kcal ?? 0, grams)
+  const protein = computeNutrient(n?.protein ?? 0, grams)
+  const carbs = computeNutrient(n?.carbs ?? 0, grams)
+  const fat = computeNutrient(n?.fat ?? 0, grams)
+  const fiber = computeNutrient(n?.fiber ?? 0, grams)
+  const sugar = (n?.sugar != null) ? computeNutrient(n.sugar, grams) : null
+  const saturatedFat = (n?.saturatedFat != null) ? computeNutrient(n.saturatedFat, grams) : null
+  const salt = (n?.salt != null) ? computeNutrient(n.salt, grams) : null
 
-  const categoryLabel = (freshFood?.category ?? food.foodCategory)
-    ? t(`nutrition.foodCategory.${freshFood?.category ?? food.foodCategory}`, { defaultValue: freshFood?.category ?? food.foodCategory ?? '' })
+  const resolvedCategory = (freshFood?.category ?? food.foodCategory) as string | undefined
+  const categoryLabel = resolvedCategory
+    ? t(`nutrition.foodCategory.${resolvedCategory}`, { defaultValue: resolvedCategory })
     : null
 
   // Max value for bar fill proportions (sum of all macros)

@@ -1,50 +1,72 @@
 import api from './client';
+import {
+  SetType,
+  MuscleGroup,
+} from './generated';
+import type {
+  ExerciseSet,
+  SessionExercise,
+  TrainingSession,
+  GetTodaySessionResponse,
+  GetFullTrainingPlanResponse,
+  WeekDto,
+  SessionDto,
+  ExerciseDto,
+  SetDto,
+} from './generated';
 
-// --- Types ---
+// Re-export generated types and enums so consumer imports (`from '@/api/training'`) still work.
+export { SetType, MuscleGroup };
+export type {
+  ExerciseSet,
+  SessionExercise,
+  TrainingSession,
+  GetTodaySessionResponse,
+  GetFullTrainingPlanResponse,
+  WeekDto,
+  SessionDto,
+  ExerciseDto,
+  SetDto,
+};
 
-export interface ExerciseSet {
-  setNumber: number;
-  type: 'Normal' | 'Warmup' | 'Dropset' | 'Superset';
-  reps?: number | null;
-  weightKg?: number | null;
-  durationSeconds?: number | null;
-  rpe?: number | null;
-  distanceMeters?: number | null;
-}
+/**
+ * @deprecated Use `GetTodaySessionResponse` from generated. Kept as alias for backward compatibility.
+ */
+export type TodayTrainingResponse = GetTodaySessionResponse;
 
-export interface SessionExercise {
-  exerciseExternalId: string;
-  exerciseName: string;
-  order: number;
-  notes?: string | null;
-  restSeconds?: number | null;
-  sets: ExerciseSet[];
-}
+/**
+ * @deprecated Use `GetFullTrainingPlanResponse` from generated. Kept as alias for backward compatibility.
+ */
+export type FullTrainingPlanResponse = GetFullTrainingPlanResponse;
 
-export interface TrainingSession {
-  sessionId: string;
-  dayOfWeek: number;
-  name: string;
-  order: number;
-  notes?: string | null;
-  exercises: SessionExercise[];
-}
+/**
+ * @deprecated Use `WeekDto` from generated. Kept as alias for backward compatibility.
+ */
+export type FullPlanWeek = WeekDto;
 
-export interface TodayTrainingResponse {
-  hasSession: boolean;
-  planId?: string | null;
-  planName?: string | null;
-  session?: TrainingSession | null;
-  currentWeek?: number | null;
-  totalWeeks?: number | null;
-  status?: 'Draft' | 'Active' | 'Completed' | 'Archived';
-  questionnaireResponseId?: string | null;
-  dateCompleted?: string | null;
-}
+/**
+ * @deprecated Use `SessionDto` from generated. Kept as alias for backward compatibility.
+ */
+export type FullPlanSession = SessionDto;
+
+/**
+ * @deprecated Use `ExerciseDto` from generated. Kept as alias for backward compatibility.
+ */
+export type FullPlanExercise = ExerciseDto;
+
+/**
+ * @deprecated Use `SetDto` from generated. Kept as alias for backward compatibility.
+ */
+export type FullPlanSet = SetDto;
 
 // --- API calls ---
 
-export async function getTodaySession(): Promise<TodayTrainingResponse> {
-  const { data } = await api.get<TodayTrainingResponse>('/client/training/plan/today');
+export async function getTodaySession(): Promise<GetTodaySessionResponse> {
+  const { data } = await api.get<GetTodaySessionResponse>('/client/training/plan/today');
+  return data;
+}
+
+export async function getFullTrainingPlan(planId: string): Promise<GetFullTrainingPlanResponse> {
+  const { data } = await api.get<GetFullTrainingPlanResponse>(`/client/training/plans/${planId}`);
   return data;
 }

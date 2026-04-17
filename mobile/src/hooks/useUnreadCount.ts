@@ -6,7 +6,7 @@ export function useUnreadCount() {
     queryKey: ['conversations'],
     queryFn: () => fetchConversations(false),
     select: (conversations) =>
-      conversations.reduce((sum, c) => sum + c.unreadCount, 0),
+      conversations.reduce((sum, c) => sum + (c.unreadCount ?? 0), 0),
   })
   return data ?? 0
 }

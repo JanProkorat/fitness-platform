@@ -101,12 +101,12 @@ export default function ProfessionalProfileScreen() {
         <View style={styles.profileHeader}>
           <View style={styles.avatarPlaceholder}>
             <Text style={styles.avatarText}>
-              {profile.firstName[0]}
-              {profile.lastName[0]}
+              {(profile.firstName ?? '')[0]}
+              {(profile.lastName ?? '')[0]}
             </Text>
           </View>
           <Text style={styles.profileName}>
-            {profile.firstName} {profile.lastName}
+            {profile.firstName ?? ''} {profile.lastName ?? ''}
           </Text>
           <View style={styles.roleBadge}>
             <Text style={styles.roleBadgeText}>
@@ -124,11 +124,11 @@ export default function ProfessionalProfileScreen() {
         )}
 
         {/* Specializations */}
-        {profile.specializations.length > 0 && (
+        {(profile.specializations ?? []).length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Specializace</Text>
             <View style={styles.tagsRow}>
-              {profile.specializations.map((spec) => (
+              {(profile.specializations ?? []).map((spec) => (
                 <View key={spec} style={styles.tag}>
                   <Text style={styles.tagText}>{spec}</Text>
                 </View>
@@ -138,11 +138,11 @@ export default function ProfessionalProfileScreen() {
         )}
 
         {/* Certificates */}
-        {profile.certificates.length > 0 && (
+        {(profile.certificates ?? []).length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Certifikaty</Text>
             <View style={styles.tagsRow}>
-              {profile.certificates.map((cert) => (
+              {(profile.certificates ?? []).map((cert) => (
                 <View key={cert} style={[styles.tag, styles.certTag]}>
                   <Text style={styles.certTagText}>{cert}</Text>
                 </View>
@@ -164,10 +164,10 @@ export default function ProfessionalProfileScreen() {
             {profile.collaborationType && (
               <InfoRow label="Spoluprace" value={profile.collaborationType} />
             )}
-            {profile.languages.length > 0 && (
+            {(profile.languages ?? []).length > 0 && (
               <InfoRow
                 label="Jazyky"
-                value={profile.languages.join(', ')}
+                value={(profile.languages ?? []).join(', ')}
                 isLast
               />
             )}

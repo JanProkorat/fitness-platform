@@ -25,7 +25,10 @@ export function FoodDetailSheet({ food, visible, onClose }: FoodDetailSheetProps
 
   if (!food) return null;
 
-  const { nutrientValue } = food;
+  // Generated types make all fields optional; guard with ?? fallbacks at runtime.
+  const nutrientValue = food.nutrientValue ?? { kcal: 0, protein: 0, carbs: 0, fat: 0 }
+  const allergens = food.allergens ?? []
+  const commonServings = food.commonServings ?? []
   const styles = useMemo(() => getStyles(colors), [colors]);
 
   return (
@@ -43,16 +46,7 @@ export function FoodDetailSheet({ food, visible, onClose }: FoodDetailSheetProps
               <Text style={styles.foodName} numberOfLines={2}>
                 {food.name}
               </Text>
-              <View style={styles.badges}>
-                {food.source && (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>{food.source}</Text>
-                  </View>
-                )}
-              </View>
-              {food.barcode && (
-                <Text style={styles.barcode}>Barcode: {food.barcode}</Text>
-              )}
+              {/* source field removed — use rawName/nameEn from generated FoodSummary if needed */}
             </View>
             <Pressable style={styles.closeButton} onPress={onClose} hitSlop={12}>
               <Text style={styles.closeText}>✕</Text>
@@ -69,25 +63,25 @@ export function FoodDetailSheet({ food, visible, onClose }: FoodDetailSheetProps
             <View style={styles.nutrientGrid}>
               <NutrientCard
                 label="Kcal"
-                value={nutrientValue.kcal}
+                value={nutrientValue.kcal ?? 0}
                 unit=""
                 color={colors.orange}
               />
               <NutrientCard
                 label="Protein"
-                value={nutrientValue.protein}
+                value={nutrientValue.protein ?? 0}
                 unit="g"
                 color={colors.macroProtein}
               />
               <NutrientCard
                 label="Carbs"
-                value={nutrientValue.carbs}
+                value={nutrientValue.carbs ?? 0}
                 unit="g"
                 color={colors.macroCarbs}
               />
               <NutrientCard
                 label="Fat"
-                value={nutrientValue.fat}
+                value={nutrientValue.fat ?? 0}
                 unit="g"
                 color={colors.macroFat}
               />
@@ -115,11 +109,11 @@ export function FoodDetailSheet({ food, visible, onClose }: FoodDetailSheetProps
             )}
 
             {/* Allergens */}
-            {food.allergens.length > 0 && (
+            {allergens.length > 0 && (
               <>
                 <Text style={styles.sectionTitle}>Allergens</Text>
                 <View style={styles.allergenRow}>
-                  {food.allergens.map((allergen) => (
+                  {allergens.map((allergen) => (
                     <View key={allergen} style={styles.allergenChip}>
                       <Text style={styles.allergenText}>{allergen}</Text>
                     </View>
@@ -129,10 +123,10 @@ export function FoodDetailSheet({ food, visible, onClose }: FoodDetailSheetProps
             )}
 
             {/* Common Servings */}
-            {food.commonServings.length > 0 && (
+            {commonServings.length > 0 && (
               <>
                 <Text style={styles.sectionTitle}>Common Servings</Text>
-                {food.commonServings.map((serving) => (
+                {commonServings.map((serving) => (
                   <View key={serving.label} style={styles.servingRow}>
                     <Text style={styles.servingLabel}>{serving.label}</Text>
                     <Text style={styles.servingWeight}>{serving.weightGrams} g</Text>
@@ -232,11 +226,6 @@ function getStyles(colors: ReturnType<typeof useTheme>) {
       fontSize: 11,
       fontWeight: '600',
       color: colors.label3,
-    },
-    barcode: {
-      fontSize: 12,
-      color: colors.label3,
-      marginTop: 4,
     },
     closeButton: {
       width: 32,

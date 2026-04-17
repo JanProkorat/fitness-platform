@@ -17,9 +17,11 @@ interface TrainingCardProps {
   onContinue?: () => void
 }
 
-function formatSets(exercise: TrainingSession['exercises'][number]): string {
-  const setCount = exercise.sets.length
-  const reps = exercise.sets[0]?.reps
+function formatSets(exercise: NonNullable<TrainingSession['exercises']>[number]): string {
+  // Generated types make sets optional; guard with ?? [].
+  const sets = exercise.sets ?? []
+  const setCount = sets.length
+  const reps = sets[0]?.reps
   if (reps) return `${setCount} x ${reps}`
   return `${setCount} sets`
 }
@@ -61,10 +63,10 @@ export function TrainingCard({
 
       {/* Exercise list */}
       <View style={styles.body}>
-        {session.exercises.map((exercise, idx) => (
+        {(session.exercises ?? []).map((exercise, idx) => (
           <ExerciseRow
             key={exercise.exerciseExternalId ?? idx}
-            name={exercise.exerciseName}
+            name={exercise.exerciseName ?? ''}
             setsDescription={formatSets(exercise)}
           />
         ))}

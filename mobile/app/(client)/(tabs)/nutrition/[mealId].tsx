@@ -33,12 +33,12 @@ export default function MealDetailScreen() {
   const log = queryClient.getQueryData<TodayLogResponse>(['today-log']);
 
   const meal = useMemo(
-    () => plan?.meals.find((m) => m.mealId === mealId),
+    () => (plan?.meals ?? []).find((m) => m.mealId === mealId),
     [plan, mealId],
   );
 
   const isEaten = useMemo(
-    () => log?.mealsEaten.some((m) => m.mealId === mealId) ?? false,
+    () => (log?.mealsEaten ?? []).some((m) => m.mealId === mealId) ?? false,
     [log, mealId],
   );
 
@@ -49,22 +49,36 @@ export default function MealDetailScreen() {
       const previous = queryClient.getQueryData<TodayLogResponse>(['today-log']);
 
       if (previous && meal) {
+        const totals = {
+          kcal: meal.mealTotals?.kcal ?? 0,
+          protein: meal.mealTotals?.protein ?? 0,
+          carbs: meal.mealTotals?.carbs ?? 0,
+          fat: meal.mealTotals?.fat ?? 0,
+          fiber: meal.mealTotals?.fiber ?? 0,
+        };
         const newEntry = {
           mealId: id,
-          mealName: meal.name ?? '',
+          mealName: meal.kind ?? '',
           eatenAt: new Date().toISOString(),
-          totals: meal.mealTotals ?? { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 },
+          totals,
         };
-        const totals = meal.mealTotals ?? { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 };
+        const prevMealsEaten = previous.mealsEaten ?? [];
+        const prevConsumed = {
+          kcal: previous.totalConsumed?.kcal ?? 0,
+          protein: previous.totalConsumed?.protein ?? 0,
+          carbs: previous.totalConsumed?.carbs ?? 0,
+          fat: previous.totalConsumed?.fat ?? 0,
+          fiber: previous.totalConsumed?.fiber ?? 0,
+        };
         queryClient.setQueryData<TodayLogResponse>(['today-log'], {
           ...previous,
-          mealsEaten: [...previous.mealsEaten, newEntry],
+          mealsEaten: [...prevMealsEaten, newEntry],
           totalConsumed: {
-            kcal: previous.totalConsumed.kcal + totals.kcal,
-            protein: previous.totalConsumed.protein + totals.protein,
-            carbs: previous.totalConsumed.carbs + totals.carbs,
-            fat: previous.totalConsumed.fat + totals.fat,
-            fiber: previous.totalConsumed.fiber + totals.fiber,
+            kcal: prevConsumed.kcal + totals.kcal,
+            protein: prevConsumed.protein + totals.protein,
+            carbs: prevConsumed.carbs + totals.carbs,
+            fat: prevConsumed.fat + totals.fat,
+            fiber: prevConsumed.fiber + totals.fiber,
           },
         });
       }
@@ -94,24 +108,38 @@ export default function MealDetailScreen() {
       // Optimistic offline update
       const previous = queryClient.getQueryData<TodayLogResponse>(['today-log']);
       if (previous && meal) {
-        const totals = meal.mealTotals ?? { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 };
+        const totals = {
+          kcal: meal.mealTotals?.kcal ?? 0,
+          protein: meal.mealTotals?.protein ?? 0,
+          carbs: meal.mealTotals?.carbs ?? 0,
+          fat: meal.mealTotals?.fat ?? 0,
+          fiber: meal.mealTotals?.fiber ?? 0,
+        };
+        const prevMealsEaten = previous.mealsEaten ?? [];
+        const prevConsumed = {
+          kcal: previous.totalConsumed?.kcal ?? 0,
+          protein: previous.totalConsumed?.protein ?? 0,
+          carbs: previous.totalConsumed?.carbs ?? 0,
+          fat: previous.totalConsumed?.fat ?? 0,
+          fiber: previous.totalConsumed?.fiber ?? 0,
+        };
         queryClient.setQueryData<TodayLogResponse>(['today-log'], {
           ...previous,
           mealsEaten: [
-            ...previous.mealsEaten,
+            ...prevMealsEaten,
             {
               mealId,
-              mealName: meal.name ?? '',
+              mealName: meal.kind ?? '',
               eatenAt: new Date().toISOString(),
               totals,
             },
           ],
           totalConsumed: {
-            kcal: previous.totalConsumed.kcal + totals.kcal,
-            protein: previous.totalConsumed.protein + totals.protein,
-            carbs: previous.totalConsumed.carbs + totals.carbs,
-            fat: previous.totalConsumed.fat + totals.fat,
-            fiber: previous.totalConsumed.fiber + totals.fiber,
+            kcal: prevConsumed.kcal + totals.kcal,
+            protein: prevConsumed.protein + totals.protein,
+            carbs: prevConsumed.carbs + totals.carbs,
+            fat: prevConsumed.fat + totals.fat,
+            fiber: prevConsumed.fiber + totals.fiber,
           },
         });
       }
@@ -136,11 +164,13 @@ export default function MealDetailScreen() {
   const mealTotals = meal.mealTotals ?? { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 };
 
   const renderFoodItem = ({ item }: { item: MealFood }) => {
-    const factor = item.amountGrams / 100;
-    const kcal = Math.round(item.nutrientValuePer100Grams.kcal * factor);
-    const protein = Math.round(item.nutrientValuePer100Grams.protein * factor * 10) / 10;
-    const carbs = Math.round(item.nutrientValuePer100Grams.carbs * factor * 10) / 10;
-    const fat = Math.round(item.nutrientValuePer100Grams.fat * factor * 10) / 10;
+    // Generated types make all nutrient fields optional; guard with ?? 0.
+    const factor = (item.amountGrams ?? 0) / 100;
+    const n = item.nutrientValuePer100Grams;
+    const kcal = Math.round((n?.kcal ?? 0) * factor);
+    const protein = Math.round((n?.protein ?? 0) * factor * 10) / 10;
+    const carbs = Math.round((n?.carbs ?? 0) * factor * 10) / 10;
+    const fat = Math.round((n?.fat ?? 0) * factor * 10) / 10;
 
     return (
       <View style={[styles.foodCard, { backgroundColor: colors.bg2, borderColor: colors.sep }]}>
@@ -148,7 +178,7 @@ export default function MealDetailScreen() {
           <Text style={[styles.foodName, { color: colors.label }]} numberOfLines={2}>
             {item.foodName}
           </Text>
-          <Text style={[styles.foodAmount, { color: colors.label2 }]}>{Math.round(item.amountGrams)} g</Text>
+          <Text style={[styles.foodAmount, { color: colors.label2 }]}>{Math.round(item.amountGrams ?? 0)} g</Text>
         </View>
         <View style={styles.foodMacros}>
           <Text style={[styles.foodMacro, { color: colors.orange }]}>
@@ -174,25 +204,25 @@ export default function MealDetailScreen() {
       <View style={[styles.totalsCard, { backgroundColor: colors.bg2, borderColor: colors.sep }]}>
         <View style={styles.totalItem}>
           <Text style={[styles.totalValue, { color: colors.orange }]}>
-            {Math.round(mealTotals.kcal)}
+            {Math.round(mealTotals.kcal ?? 0)}
           </Text>
           <Text style={[styles.totalLabel, { color: colors.label3 }]}>kcal</Text>
         </View>
         <View style={styles.totalItem}>
           <Text style={[styles.totalValue, { color: colors.macroProtein }]}>
-            {Math.round(mealTotals.protein)}g
+            {Math.round(mealTotals.protein ?? 0)}g
           </Text>
           <Text style={[styles.totalLabel, { color: colors.label3 }]}>Protein</Text>
         </View>
         <View style={styles.totalItem}>
           <Text style={[styles.totalValue, { color: colors.macroCarbs }]}>
-            {Math.round(mealTotals.carbs)}g
+            {Math.round(mealTotals.carbs ?? 0)}g
           </Text>
           <Text style={[styles.totalLabel, { color: colors.label3 }]}>Carbs</Text>
         </View>
         <View style={styles.totalItem}>
           <Text style={[styles.totalValue, { color: colors.macroFat }]}>
-            {Math.round(mealTotals.fat)}g
+            {Math.round(mealTotals.fat ?? 0)}g
           </Text>
           <Text style={[styles.totalLabel, { color: colors.label3 }]}>Fat</Text>
         </View>
@@ -200,7 +230,7 @@ export default function MealDetailScreen() {
 
       {/* Foods section header */}
       <Text style={[styles.foodsTitle, { color: colors.label }]}>
-        Foods ({meal.foods.length})
+        Foods ({meal.foods?.length ?? 0})
       </Text>
     </View>
   );
@@ -214,7 +244,7 @@ export default function MealDetailScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={[styles.headerTitle, { color: colors.label }]} numberOfLines={1}>
-            {meal.name || (meal.kind ? t(`nutrition.mealKind.${meal.kind}`) : '')}
+            {meal.kind ? t(`nutrition.mealKind.${meal.kind}`) : ''}
           </Text>
           {meal.time ? (
             <Text style={[styles.headerTime, { color: colors.label3 }]}>{meal.time}</Text>
@@ -224,8 +254,8 @@ export default function MealDetailScreen() {
       </View>
 
       <FlatList
-        data={meal.foods}
-        keyExtractor={(item) => item.foodExternalId}
+        data={meal.foods ?? []}
+        keyExtractor={(item, idx) => item.foodExternalId ?? String(idx)}
         renderItem={renderFoodItem}
         ListHeaderComponent={renderHeader}
         contentContainerStyle={styles.list}

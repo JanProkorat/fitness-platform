@@ -25,7 +25,7 @@ import { QuestionnaireBanner } from '@/components/notifications/QuestionnaireBan
 import { FormerTrainerBanner } from '@/components/messages/FormerTrainerBanner'
 import { TypingIndicator } from '@/components/messages/TypingIndicator'
 import { DateSeparator } from '@/components/messages/DateSeparator'
-import type { Message } from '@/types/messages'
+import type { LocalMessage } from '@/types/messages'
 
 export default function ChatScreen() {
   const { threadId } = useLocalSearchParams<{ threadId: string }>()
@@ -106,7 +106,7 @@ export default function ChatScreen() {
       if (index === 0) return true
       const current = messages[index]
       const next = messages[index - 1]
-      return current.senderId !== next.senderId
+      return (current.senderId ?? '') !== (next.senderId ?? '')
     },
     [messages],
   )
@@ -115,22 +115,22 @@ export default function ChatScreen() {
   const needsDateSep = useCallback(
     (index: number) => {
       if (index === messages.length - 1) return true
-      const current = new Date(messages[index].timestamp)
-      const prev = new Date(messages[index + 1].timestamp)
+      const current = new Date(messages[index].timestamp ?? '')
+      const prev = new Date(messages[index + 1].timestamp ?? '')
       return current.toDateString() !== prev.toDateString()
     },
     [messages],
   )
 
   const renderItem = useCallback(
-    ({ item, index }: { item: Message; index: number }) => {
-      const isOwn = item.senderId === userId
+    ({ item, index }: { item: LocalMessage; index: number }) => {
+      const isOwn = (item.senderId ?? '') === userId
       const showAvatar = !isOwn && isLastInGroup(index)
 
       return (
         <View>
           {needsDateSep(index) && (
-            <DateSeparator timestamp={item.timestamp} />
+            <DateSeparator timestamp={item.timestamp ?? ''} />
           )}
           <MessageBubble
             message={item}
@@ -203,10 +203,10 @@ export default function ChatScreen() {
       {/* Fixed invite/context banner */}
       {context?.type === 'invite' && context.inviteId && (
         <ContextBanner
-          icon={context.icon}
-          title={context.title}
-          sub={context.sub}
-          actionLabel={context.actionLabel}
+          icon={context.icon ?? ''}
+          title={context.title ?? ''}
+          sub={context.sub ?? ''}
+          actionLabel={context.actionLabel ?? ''}
           onAction={() => {}}
           onAccept={() => acceptMutation.mutate(context.inviteId!)}
           onDecline={() => declineMutation.mutate(context.inviteId!)}
@@ -214,11 +214,11 @@ export default function ChatScreen() {
       )}
       {context && context.type !== 'invite' && (
         <ContextBanner
-          icon={context.icon}
-          title={context.title}
-          sub={context.sub}
-          actionLabel={context.actionLabel}
-          onAction={() => router.push(href(context.actionRoute))}
+          icon={context.icon ?? ''}
+          title={context.title ?? ''}
+          sub={context.sub ?? ''}
+          actionLabel={context.actionLabel ?? ''}
+          onAction={() => router.push(href(context.actionRoute ?? ''))}
         />
       )}
 
@@ -236,7 +236,7 @@ export default function ChatScreen() {
       {/* Scrollable message list — flex: 1 fills remaining space */}
       <FlatList
         data={messages}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.id ?? ''}
         renderItem={renderItem}
         inverted
         style={styles.messageList}

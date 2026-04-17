@@ -20,12 +20,11 @@ const MEAL_ICONS: Record<string, string> = {
 const DEFAULT_ICON = '🍽️'
 
 /**
- * The backend PlanMeal document stores `kind` (MealKind enum string)
- * but the mobile PlanMeal type declares `name`. At runtime the JSON
- * field is `kind`, so we read both to be safe.
+ * The backend PlanMeal document stores `kind` (MealKind enum string).
+ * The generated PlanMeal type has no `name` field; use `kind` directly.
  */
 function getMealLabel(meal: PlanMeal): string {
-  return meal.name ?? (meal as unknown as Record<string, string>).kind ?? ''
+  return meal.kind ?? ''
 }
 
 function getMealIcon(label: string, index: number): string {
@@ -42,23 +41,25 @@ function getMealIcon(label: string, index: number): string {
 }
 
 function getFoodSummary(meal: PlanMeal): string {
-  return meal.foods.map((f) => f.foodName).join(', ')
+  return (meal.foods ?? []).map((f) => f.foodName ?? '').join(', ')
 }
 
 export function DailyMealStructureSection({ meals, dayTotals }: DailyMealStructureSectionProps) {
   const colors = useTheme()
   const { t } = useTranslation()
 
-  const sorted = [...meals].sort((a, b) => a.order - b.order)
+  // Generated types make order optional; guard with ?? 0.
+  const sorted = [...meals].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
 
-  // Calculate totals from meals if dayTotals not provided
-  const totals = dayTotals ?? sorted.reduce<NutrientTotals>(
+  // Calculate totals from meals if dayTotals not provided.
+  // Generated NutrientTotals fields are all optional; normalise the accumulator.
+  const totals: NutrientTotals = dayTotals ?? sorted.reduce<NutrientTotals>(
     (acc, m) => ({
-      kcal: acc.kcal + (m.mealTotals?.kcal ?? 0),
-      protein: acc.protein + (m.mealTotals?.protein ?? 0),
-      carbs: acc.carbs + (m.mealTotals?.carbs ?? 0),
-      fat: acc.fat + (m.mealTotals?.fat ?? 0),
-      fiber: acc.fiber + (m.mealTotals?.fiber ?? 0),
+      kcal: (acc.kcal ?? 0) + (m.mealTotals?.kcal ?? 0),
+      protein: (acc.protein ?? 0) + (m.mealTotals?.protein ?? 0),
+      carbs: (acc.carbs ?? 0) + (m.mealTotals?.carbs ?? 0),
+      fat: (acc.fat ?? 0) + (m.mealTotals?.fat ?? 0),
+      fiber: (acc.fiber ?? 0) + (m.mealTotals?.fiber ?? 0),
     }),
     { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 },
   )
@@ -97,7 +98,7 @@ export function DailyMealStructureSection({ meals, dayTotals }: DailyMealStructu
                   </Text>
                 ) : null}
               </View>
-              {meal.foods.length > 0 && (
+              {(meal.foods?.length ?? 0) > 0 && (
                 <Text
                   style={[styles.mealNote, { color: colors.label2 }]}
                   numberOfLines={1}
@@ -108,16 +109,16 @@ export function DailyMealStructureSection({ meals, dayTotals }: DailyMealStructu
               {meal.mealTotals && (
                 <View style={styles.macroRow}>
                   <Text style={[styles.macroLabel, { color: colors.blue }]}>
-                    {t('today.macroP')} {Math.round(meal.mealTotals.protein)}g
+                    {t('today.macroP')} {Math.round(meal.mealTotals.protein ?? 0)}g
                   </Text>
                   <Text style={[styles.macroLabel, { color: colors.orange }]}>
-                    {t('today.macroC')} {Math.round(meal.mealTotals.carbs)}g
+                    {t('today.macroC')} {Math.round(meal.mealTotals.carbs ?? 0)}g
                   </Text>
                   <Text style={[styles.macroLabel, { color: colors.purple }]}>
-                    {t('today.macroF')} {Math.round(meal.mealTotals.fat)}g
+                    {t('today.macroF')} {Math.round(meal.mealTotals.fat ?? 0)}g
                   </Text>
                   <Text style={[styles.macroLabel, { color: colors.green }]}>
-                    {t('today.macroFi')} {Math.round(meal.mealTotals.fiber)}g
+                    {t('today.macroFi')} {Math.round(meal.mealTotals.fiber ?? 0)}g
                   </Text>
                 </View>
               )}
@@ -126,7 +127,7 @@ export function DailyMealStructureSection({ meals, dayTotals }: DailyMealStructu
             {/* Kcal */}
             {meal.mealTotals && (
               <Text style={[styles.mealKcal, { color: colors.label }]}>
-                {Math.round(meal.mealTotals.kcal)} kcal
+                {Math.round(meal.mealTotals.kcal ?? 0)} kcal
               </Text>
             )}
           </View>
@@ -140,19 +141,19 @@ export function DailyMealStructureSection({ meals, dayTotals }: DailyMealStructu
           </Text>
           <View style={styles.totalMacros}>
             <Text style={[styles.macroLabel, { color: colors.blue }]}>
-              {t('today.macroP')} {Math.round(totals.protein)}g
+              {t('today.macroP')} {Math.round(totals.protein ?? 0)}g
             </Text>
             <Text style={[styles.macroLabel, { color: colors.orange }]}>
-              {t('today.macroC')} {Math.round(totals.carbs)}g
+              {t('today.macroC')} {Math.round(totals.carbs ?? 0)}g
             </Text>
             <Text style={[styles.macroLabel, { color: colors.purple }]}>
-              {t('today.macroF')} {Math.round(totals.fat)}g
+              {t('today.macroF')} {Math.round(totals.fat ?? 0)}g
             </Text>
             <Text style={[styles.macroLabel, { color: colors.green }]}>
-              {t('today.macroFi')} {Math.round(totals.fiber)}g
+              {t('today.macroFi')} {Math.round(totals.fiber ?? 0)}g
             </Text>
             <Text style={[styles.totalKcal, { color: colors.label }]}>
-              {Math.round(totals.kcal)} kcal
+              {Math.round(totals.kcal ?? 0)} kcal
             </Text>
           </View>
         </View>

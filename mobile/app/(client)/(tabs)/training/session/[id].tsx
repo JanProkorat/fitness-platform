@@ -36,7 +36,7 @@ export default function SessionDetailScreen() {
         {session.notes && <Text style={styles.notes}>{session.notes}</Text>}
       </View>
 
-      {session.exercises.map((exercise, idx) => (
+      {(session.exercises ?? []).map((exercise, idx) => (
         <View key={idx} style={styles.exerciseCard}>
           <Text style={styles.exerciseName}>{exercise.exerciseName}</Text>
           {exercise.notes && <Text style={styles.exerciseNotes}>{exercise.notes}</Text>}
@@ -48,7 +48,7 @@ export default function SessionDetailScreen() {
             <Text style={styles.setLabel}>{t('training.reps')}</Text>
             <Text style={styles.setLabel}>{t('training.weight')}</Text>
           </View>
-          {exercise.sets.map((set, sIdx) => (
+          {(exercise.sets ?? []).map((set, sIdx) => (
             <View key={sIdx} style={styles.setRow}>
               <Text style={styles.setNumber}>{set.setNumber}</Text>
               <Text style={styles.setValue}>{set.reps ?? '—'}</Text>

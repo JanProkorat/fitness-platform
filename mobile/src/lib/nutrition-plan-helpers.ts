@@ -28,13 +28,17 @@ export function getDayDate(weekStartDate: string, dayOfWeek: number): number {
 }
 
 export function computeFoodKcal(food: MealFood): number {
-  return (food.nutrientValuePer100Grams.kcal * food.amountGrams) / 100
+  // nutrientValuePer100Grams and kcal are optional in the generated type but
+  // always populated at runtime when a plan is loaded from the server.
+  return ((food.nutrientValuePer100Grams?.kcal ?? 0) * (food.amountGrams ?? 0)) / 100
 }
 
 export function computeRecipeKcal(recipe: MealRecipe): number {
-  return recipe.nutrientValuePerServing.kcal * recipe.servings
+  // nutrientValuePerServing and kcal are optional in the generated type but
+  // always populated at runtime when a plan is loaded from the server.
+  return (recipe.nutrientValuePerServing?.kcal ?? 0) * (recipe.servings ?? 1)
 }
 
 export function totalMealItems(meal: PlanMeal): number {
-  return meal.foods.length + (meal.recipes?.length ?? 0)
+  return (meal.foods?.length ?? 0) + (meal.recipes?.length ?? 0)
 }

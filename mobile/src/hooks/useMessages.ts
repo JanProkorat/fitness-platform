@@ -5,11 +5,11 @@ import {
   useQueryClient,
 } from '@tanstack/react-query'
 import { fetchMessages, sendMessage } from '../api/messages'
-import type { Message } from '../types/messages'
+import type { LocalMessage } from '../types/messages'
 import { useAuthStore } from '../stores/auth'
 
 interface MessagesPage {
-  items: Message[]
+  items: LocalMessage[]
   cursor: string | null
 }
 
@@ -19,7 +19,10 @@ export function useMessages(conversationId: string) {
 
   const query = useInfiniteQuery({
     queryKey: ['messages', conversationId],
-    queryFn: ({ pageParam }) => fetchMessages(conversationId, pageParam),
+    queryFn: async ({ pageParam }): Promise<MessagesPage> => {
+      const res = await fetchMessages(conversationId, pageParam)
+      return { items: res.items ?? [], cursor: res.cursor ?? null }
+    },
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage: MessagesPage) => lastPage.cursor ?? undefined,
   })
@@ -37,7 +40,7 @@ export function useMessages(conversationId: string) {
 
       const userId = useAuthStore.getState().user?.publicId ?? ''
       const tempId = `temp-${++tempIdCounter.current}`
-      const optimistic: Message = {
+      const optimistic: LocalMessage = {
         id: tempId,
         senderId: userId,
         text,

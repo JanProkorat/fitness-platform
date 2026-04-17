@@ -1,12 +1,12 @@
 import api from './client'
-import type { Conversation, Message, ConversationContext } from '../types/messages'
+import type {
+  ConversationDto,
+  MessageDto,
+  ConversationContextResponse,
+  GetMessagesResponse,
+} from './generated'
 
-interface MessagesResponse {
-  items: Message[]
-  cursor: string | null
-}
-
-export async function fetchConversations(archived = false): Promise<Conversation[]> {
+export async function fetchConversations(archived = false): Promise<ConversationDto[]> {
   const { data } = await api.get('/conversations', { params: { archived } })
   return data
 }
@@ -22,7 +22,7 @@ export async function unarchiveConversation(conversationId: string): Promise<voi
 export async function fetchMessages(
   conversationId: string,
   cursor?: string,
-): Promise<MessagesResponse> {
+): Promise<GetMessagesResponse> {
   const { data } = await api.get(`/conversations/${conversationId}/messages`, {
     params: { cursor, limit: 30 },
   })
@@ -32,7 +32,7 @@ export async function fetchMessages(
 export async function sendMessage(
   conversationId: string,
   text: string,
-): Promise<Message> {
+): Promise<MessageDto> {
   const { data } = await api.post(
     `/conversations/${conversationId}/messages`,
     { text },
@@ -48,7 +48,7 @@ export async function markConversationRead(
 
 export async function fetchConversationContext(
   conversationId: string,
-): Promise<ConversationContext | null> {
+): Promise<ConversationContextResponse | null> {
   const { data } = await api.get(`/conversations/${conversationId}/context`)
   return data
 }
@@ -70,7 +70,7 @@ export async function sendTypingIndicator(
 
 export async function startConversation(
   participantId: string,
-): Promise<Conversation> {
+): Promise<ConversationDto> {
   const { data } = await api.post('/conversations', { participantId })
   return data
 }

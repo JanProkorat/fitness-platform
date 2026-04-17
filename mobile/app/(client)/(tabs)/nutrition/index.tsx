@@ -43,15 +43,16 @@ interface DayInfo {
 /** Flatten all weeks × days into a single ordered list of pages. */
 function buildDayList(data: FullPlanResponse): DayInfo[] {
   const list: DayInfo[] = [];
-  data.weeks.forEach((week, weekIndex) => {
-    week.days
+  // Generated types make weeks/days arrays optional; guard with ?? [].
+  (data.weeks ?? []).forEach((week, weekIndex) => {
+    (week.days ?? [])
       .slice()
-      .sort((a, b) => a.dayOfWeek - b.dayOfWeek)
+      .sort((a, b) => (a.dayOfWeek ?? 0) - (b.dayOfWeek ?? 0))
       .forEach((day) => {
         list.push({
           weekIndex,
-          weekNumber: week.weekNumber,
-          dayOfWeek: day.dayOfWeek,
+          weekNumber: week.weekNumber ?? weekIndex + 1,
+          dayOfWeek: day.dayOfWeek ?? 0,
           week,
           day,
         });
@@ -171,7 +172,7 @@ export default function NutritionScreen() {
 
   const currentDayInfo = allDays[currentPageIndex];
   const currentWeekNumber = currentDayInfo?.weekNumber ?? 1;
-  const totalWeeks = data?.totalWeeks ?? data?.weeks.length ?? 0;
+  const totalWeeks = data?.totalWeeks ?? (data?.weeks ?? []).length;
   const currentWeekObj = currentDayInfo?.week ?? null;
 
   const isUpcoming = data != null && data.currentWeek == null;
@@ -213,7 +214,7 @@ export default function NutritionScreen() {
   }, [router]);
 
   const publishedWeekNumbers = useMemo(
-    () => data?.weeks.map((w) => w.weekNumber) ?? [],
+    () => (data?.weeks ?? []).map((w) => w.weekNumber),
     [data],
   );
 
@@ -254,10 +255,10 @@ export default function NutritionScreen() {
 
   // ── Main view ──────────────────────────────────────────────────────────────
 
-  const hasPrevWeek = publishedWeekNumbers.some((w) => w < currentWeekNumber);
-  const hasNextWeek = publishedWeekNumbers.some((w) => w > currentWeekNumber);
+  const hasPrevWeek = publishedWeekNumbers.some((w) => w != null && w < currentWeekNumber);
+  const hasNextWeek = publishedWeekNumbers.some((w) => w != null && w > currentWeekNumber);
 
-  const startDate = data?.weeks[0]?.weekStartDate;
+  const startDate = (data?.weeks ?? [])[0]?.weekStartDate;
   const planStartFormatted = startDate
     ? new Date(startDate).toLocaleDateString(i18n.language, {
         month: 'long',
@@ -296,7 +297,7 @@ export default function NutritionScreen() {
           <Text style={[styles.weekLabel, { color: colors.label }]}>
             {t('nutrition.weekLabel', { current: currentWeekNumber, total: totalWeeks })}
           </Text>
-          {currentWeekObj && (
+          {currentWeekObj?.weekStartDate && currentWeekObj?.weekEndDate && (
             <Text style={[styles.weekRange, { color: colors.label3 }]}>
               {formatWeekRange(currentWeekObj.weekStartDate, currentWeekObj.weekEndDate)}
             </Text>
@@ -417,11 +418,11 @@ function DayPage({ dayInfo, data, isActive, isRefreshing, onRefresh, t }: DayPag
     dayInfo.weekNumber === data.currentWeek &&
     dayInfo.dayOfWeek === data.currentDayOfWeek;
 
-  const dayLabel = formatDayLabel(week.weekStartDate, day.dayOfWeek);
+  const dayLabel = formatDayLabel(week.weekStartDate ?? '', day.dayOfWeek ?? 0);
   const totals = day.dayTotals;
 
   const sortedMeals = useMemo(
-    () => day.meals.slice().sort((a, b) => a.order - b.order),
+    () => (day.meals ?? []).slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
     [day.meals],
   );
 
@@ -482,28 +483,28 @@ function MacroBar({ totals, t }: MacroBarProps) {
     <View style={[styles.macroBar, { backgroundColor: colors.bg2, borderColor: colors.sep }]}>
       <MacroItem
         label={t('nutrition.kcal')}
-        value={Math.round(totals.kcal)}
+        value={Math.round(totals.kcal ?? 0)}
         unit=""
         color={colors.orange}
       />
       <View style={[styles.macroDivider, { backgroundColor: colors.sep }]} />
       <MacroItem
         label={t('nutrition.protein')}
-        value={Math.round(totals.protein)}
+        value={Math.round(totals.protein ?? 0)}
         unit="g"
         color={colors.macroProtein}
       />
       <View style={[styles.macroDivider, { backgroundColor: colors.sep }]} />
       <MacroItem
         label={t('nutrition.carbs')}
-        value={Math.round(totals.carbs)}
+        value={Math.round(totals.carbs ?? 0)}
         unit="g"
         color={colors.macroCarbs}
       />
       <View style={[styles.macroDivider, { backgroundColor: colors.sep }]} />
       <MacroItem
         label={t('nutrition.fat')}
-        value={Math.round(totals.fat)}
+        value={Math.round(totals.fat ?? 0)}
         unit="g"
         color={colors.macroFat}
       />
@@ -542,6 +543,9 @@ function MealCard({ meal }: MealCardProps) {
   const colors = useTheme();
   const [expanded, setExpanded] = useState(false);
   const kcal = meal.mealTotals?.kcal ?? 0;
+  // Generated PlanMeal uses `kind` (MealKind enum), not `name`.
+  const mealTitle = meal.kind ? t(`nutrition.mealKind.${meal.kind}`) : '';
+  const foods = meal.foods ?? [];
 
   return (
     <TouchableOpacity
@@ -552,10 +556,10 @@ function MealCard({ meal }: MealCardProps) {
       <View style={styles.mealCardContent}>
         <View style={styles.mealCardHeader}>
           <View style={styles.mealCardLeft}>
-            <Text style={[styles.mealName, { color: colors.label }]}>{meal.name}</Text>
+            <Text style={[styles.mealName, { color: colors.label }]}>{mealTitle}</Text>
             <Text style={[styles.mealMeta, { color: colors.label3 }]}>
               {meal.time ? `${meal.time} · ` : ''}
-              {t('nutrition.foodCount', { count: meal.foods.length })}
+              {t('nutrition.foodCount', { count: foods.length })}
               {kcal > 0 ? ` · ${Math.round(kcal)} kcal` : ''}
             </Text>
           </View>
@@ -564,21 +568,22 @@ function MealCard({ meal }: MealCardProps) {
           </Text>
         </View>
 
-        {expanded && meal.foods.length > 0 && (
+        {expanded && foods.length > 0 && (
           <View style={[styles.foodsList, { borderTopColor: colors.sep }]}>
-            {meal.foods.map((food, idx) => {
-              const scale = food.amountGrams / 100;
+            {foods.map((food, idx) => {
+              const scale = (food.amountGrams ?? 0) / 100;
+              const n = food.nutrientValuePer100Grams;
               return (
-                <View key={`${food.foodExternalId}-${idx}`} style={styles.foodRow}>
+                <View key={`${food.foodExternalId ?? idx}`} style={styles.foodRow}>
                   <View style={styles.foodInfo}>
                     <Text style={[styles.foodName, { color: colors.label2 }]}>{food.foodName}</Text>
-                    <Text style={[styles.foodAmount, { color: colors.label3 }]}>{Math.round(food.amountGrams)}g</Text>
+                    <Text style={[styles.foodAmount, { color: colors.label3 }]}>{Math.round(food.amountGrams ?? 0)}g</Text>
                   </View>
                   <View style={styles.foodMacros}>
-                    <Text style={[styles.foodMacro, { color: colors.label3 }]}>{Math.round(food.nutrientValuePer100Grams.kcal * scale)}</Text>
-                    <Text style={[styles.foodMacro, { color: colors.macroProtein }]}>{Math.round(food.nutrientValuePer100Grams.protein * scale)}g</Text>
-                    <Text style={[styles.foodMacro, { color: colors.macroCarbs }]}>{Math.round(food.nutrientValuePer100Grams.carbs * scale)}g</Text>
-                    <Text style={[styles.foodMacro, { color: colors.macroFat }]}>{Math.round(food.nutrientValuePer100Grams.fat * scale)}g</Text>
+                    <Text style={[styles.foodMacro, { color: colors.label3 }]}>{Math.round((n?.kcal ?? 0) * scale)}</Text>
+                    <Text style={[styles.foodMacro, { color: colors.macroProtein }]}>{Math.round((n?.protein ?? 0) * scale)}g</Text>
+                    <Text style={[styles.foodMacro, { color: colors.macroCarbs }]}>{Math.round((n?.carbs ?? 0) * scale)}g</Text>
+                    <Text style={[styles.foodMacro, { color: colors.macroFat }]}>{Math.round((n?.fat ?? 0) * scale)}g</Text>
                   </View>
                 </View>
               );

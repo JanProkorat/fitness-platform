@@ -68,8 +68,7 @@ export const MealRow = React.memo(function MealRow({
   const isDark = colors.bg === '#1c1c1e'
   const tint = isDark ? kindConfig.tintDark : kindConfig.tintLight
 
-  const title =
-    (meal.kind ? t(`nutrition.mealKind.${meal.kind}`) : meal.name) ?? ''
+  const title = meal.kind ? t(`nutrition.mealKind.${meal.kind}`) : ''
   const itemCount = totalMealItems(meal)
   const kcal = meal.mealTotals?.kcal ?? 0
   const totals = meal.mealTotals
@@ -165,19 +164,19 @@ export const MealRow = React.memo(function MealRow({
             {totals && (
               <Text style={styles.macros} numberOfLines={1}>
                 <Text style={{ color: colors.macroProtein, fontWeight: '600' }}>
-                  {t('nutrition.proteinShort')} {Math.round(totals.protein)}
+                  {t('nutrition.proteinShort')} {Math.round(totals.protein ?? 0)}
                 </Text>
                 <Text style={{ color: colors.label3 }}> · </Text>
                 <Text style={{ color: colors.macroCarbs, fontWeight: '600' }}>
-                  {t('nutrition.carbsShort')} {Math.round(totals.carbs)}
+                  {t('nutrition.carbsShort')} {Math.round(totals.carbs ?? 0)}
                 </Text>
                 <Text style={{ color: colors.label3 }}> · </Text>
                 <Text style={{ color: colors.macroFat, fontWeight: '600' }}>
-                  {t('nutrition.fatShort')} {Math.round(totals.fat)}
+                  {t('nutrition.fatShort')} {Math.round(totals.fat ?? 0)}
                 </Text>
                 <Text style={{ color: colors.label3 }}> · </Text>
                 <Text style={{ color: colors.macroFiber, fontWeight: '600' }}>
-                  {t('nutrition.fiberShort')} {Math.round(totals.fiber)}
+                  {t('nutrition.fiberShort')} {Math.round(totals.fiber ?? 0)}
                 </Text>
               </Text>
             )}
@@ -227,7 +226,7 @@ export const MealRow = React.memo(function MealRow({
                 {meal.note}
               </NoteBanner>
             ) : null}
-            {meal.foods.map((food, idx) => (
+            {(meal.foods ?? []).map((food, idx) => (
               <FoodItemRow
                 key={`f-${food.foodExternalId}-${idx}`}
                 food={food}

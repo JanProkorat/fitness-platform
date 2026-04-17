@@ -14,22 +14,16 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTheme } from '@/hooks/useTheme'
-import { href, hrefParams } from '@/lib/navigation'
+import { hrefParams } from '@/lib/navigation'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
 import { WeekStrip } from '@/components/ui/WeekStrip'
 import { useAuthStore } from '@/stores/auth'
 import {
-  getFullPlan,
   getClientPlans,
-  type FullPlanResponse,
   type ClientPlanSummary,
   type PlanStatus,
 } from '@/api/nutrition'
-import {
-  getTodaySession,
-  type TodayTrainingResponse,
-} from '@/api/training'
 import {
   getCollaborations,
   type CollaborationDto,
@@ -93,11 +87,11 @@ function SegmentedControl({
 // ─── Training Plan Card ───────────────────────────────────────────────
 
 function TrainingPlanCard({
-  training,
+  item,
   trainerName,
   onPress,
 }: {
-  training: TodayTrainingResponse
+  item: ClientPlanSummary
   trainerName?: string
   onPress: () => void
 }) {
@@ -114,15 +108,14 @@ function TrainingPlanCard({
   })
 
   const weekProgress =
-    training.currentWeek != null && training.totalWeeks != null && training.totalWeeks > 0
-      ? training.currentWeek / training.totalWeeks
+    item.currentWeek != null && (item.totalWeeks ?? 0) > 0
+      ? item.currentWeek / (item.totalWeeks ?? 1)
       : 0
 
-  const planStatus = training.status ?? 'Active'
-  const isCompleted = planStatus === 'Completed'
+  const isCompleted = item.status === 'Completed'
 
   const subtitleParts: string[] = []
-  if (training.totalWeeks) subtitleParts.push(t('plans.weeksCount', { count: training.totalWeeks }))
+  if ((item.totalWeeks ?? 0) > 0) subtitleParts.push(t('plans.weeksCount', { count: item.totalWeeks ?? 0 }))
   if (trainerName) subtitleParts.push(trainerName)
   const subtitle = subtitleParts.join(' · ')
 
@@ -165,13 +158,13 @@ function TrainingPlanCard({
           <Text style={styles.planTypeLabel}>{t('plans.trainingPlanType')}</Text>
 
           {/* Plan name */}
-          <Text style={styles.planName}>{training.planName ?? t('today.trainingPlan')}</Text>
+          <Text style={styles.planName}>{item.planName ?? t('today.trainingPlan')}</Text>
 
           {/* Subtitle */}
           {subtitle.length > 0 && <Text style={styles.planSubtitle}>{subtitle}</Text>}
 
           {/* Progress bar */}
-          {training.currentWeek != null && training.totalWeeks != null && (
+          {item.currentWeek != null && (
             <>
               <View style={styles.progressTrack}>
                 <View
@@ -185,37 +178,37 @@ function TrainingPlanCard({
                 />
               </View>
               <Text style={styles.planProgressLabel}>
-                {t('plans.weekOf', { current: training.currentWeek, total: training.totalWeeks })}
+                {t('plans.weekOf', { current: item.currentWeek, total: item.totalWeeks ?? 0 })}
               </Text>
             </>
           )}
 
-          {isCompleted && training.dateCompleted && (
+          {isCompleted && item.dateCompleted && (
             <Text style={styles.planProgressLabel}>
-              {t('plans.completedOn', { date: formatDate(training.dateCompleted) })}
+              {t('plans.completedOn', { date: formatDate(item.dateCompleted) })}
             </Text>
           )}
         </LinearGradient>
 
-        {/* Stats row */}
+        {/* Stats row — publishedWeekCount / totalWeeks / hasTodaySession */}
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
             <Text style={[styles.statNum, { color: colors.label }]}>
-              {training.currentWeek ?? '—'}
+              {item.publishedWeekCount ?? 0}
             </Text>
-            <Text style={[styles.statDesc, { color: colors.label3 }]}>{t('plans.weekLabel')}</Text>
+            <Text style={[styles.statDesc, { color: colors.label3 }]}>{t('plans.published')}</Text>
           </View>
           <View style={[styles.statDivider, { backgroundColor: colors.sep2 }]} />
           <View style={styles.statItem}>
             <Text style={[styles.statNum, { color: colors.label }]}>
-              {training.totalWeeks ?? '—'}
+              {item.totalWeeks ?? 0}
             </Text>
             <Text style={[styles.statDesc, { color: colors.label3 }]}>{t('plans.totalWeeksLabel')}</Text>
           </View>
           <View style={[styles.statDivider, { backgroundColor: colors.sep2 }]} />
           <View style={styles.statItem}>
             <Text style={[styles.statNum, { color: colors.green }]}>
-              {training.session ? t('plans.yes') : '—'}
+              {item.hasTodaySession == null ? '—' : item.hasTodaySession ? t('plans.yes') : '—'}
             </Text>
             <Text style={[styles.statDesc, { color: colors.label3 }]}>{t('plans.todaySession')}</Text>
           </View>
@@ -239,82 +232,35 @@ function TrainingPlanCard({
 // ─── Nutrition Plan Card ──────────────────────────────────────────────
 
 function NutritionPlanCard({
-  plan,
+  item,
   trainerName,
   onPress,
 }: {
-  plan: FullPlanResponse
+  item: ClientPlanSummary
   trainerName?: string
   onPress: () => void
 }) {
   const colors = useTheme()
   const { t } = useTranslation()
 
-  const planStatus = plan.status ?? 'Active'
-  const isCompleted = planStatus === 'Completed'
+  const isCompleted = item.status === 'Completed'
 
   const weekProgress =
-    plan.currentWeek != null && plan.totalWeeks > 0
-      ? plan.currentWeek / plan.totalWeeks
+    item.currentWeek != null && (item.totalWeeks ?? 0) > 0
+      ? item.currentWeek / (item.totalWeeks ?? 1)
       : 0
 
-  const currentDay = new Date().getDay()
-  const todayIdx = currentDay === 0 ? 6 : currentDay - 1
-
-  const weekDays: DayStatus[] = Array.from({ length: 7 }, (_, i) => {
-    if (i < todayIdx) return 'done'
-    if (i === todayIdx) return 'today'
-    return 'future'
-  })
-
-  const dailyKcal = plan.globalSettings?.dailyKcal ?? 0
+  const dailyKcal = item.dailyKcal ?? 0
 
   const subtitleParts: string[] = []
-  if (dailyKcal > 0) subtitleParts.push(`${dailyKcal} kcal`)
-  if (plan.totalWeeks > 0) subtitleParts.push(t('plans.weeksCount', { count: plan.totalWeeks }))
+  if (dailyKcal > 0) subtitleParts.push(`${Math.round(dailyKcal)} kcal`)
+  if ((item.totalWeeks ?? 0) > 0) subtitleParts.push(t('plans.weeksCount', { count: item.totalWeeks ?? 0 }))
   if (trainerName) subtitleParts.push(trainerName)
   const subtitle = subtitleParts.join(' · ')
 
   const gradientColors: [string, string] = isCompleted
     ? ['#2a2a2e', '#2a2a2e']
     : [colors.nutritionHeroStart, colors.nutritionHeroEnd]
-
-  // Compute days completed & compliance from plan + eaten data
-  const eatenSet = useMemo(() => new Set(plan.eatenMealIds ?? []), [plan.eatenMealIds])
-
-  const { daysCompleted, compliancePercent } = useMemo(() => {
-    const allMealIds = new Set<string>()
-    // Group meals by day to count days with at least one eaten meal
-    let daysWithEaten = 0
-    const today = new Date()
-    today.setUTCHours(0, 0, 0, 0)
-
-    for (const week of plan.weeks) {
-      const weekStart = week.weekStartDate ? new Date(week.weekStartDate) : null
-      for (let dayIdx = 0; dayIdx < week.days.length; dayIdx++) {
-        const day = week.days[dayIdx]
-        // Only count days up to today
-        if (weekStart) {
-          const dayDate = new Date(weekStart)
-          dayDate.setDate(dayDate.getDate() + dayIdx)
-          if (dayDate > today) continue
-        }
-        for (const meal of day.meals) {
-          allMealIds.add(meal.mealId)
-        }
-        const dayHasEaten = day.meals.some((m) => eatenSet.has(m.mealId))
-        if (dayHasEaten) daysWithEaten++
-      }
-    }
-
-    const totalPlanned = allMealIds.size
-    const totalEaten = [...allMealIds].filter((id) => eatenSet.has(id)).length
-    const compliance = totalPlanned > 0
-      ? Math.round((totalEaten / totalPlanned) * 100)
-      : 0
-
-    return { daysCompleted: daysWithEaten, compliancePercent: compliance }
-  }, [plan.weeks, eatenSet])
 
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [{ opacity: pressed ? 0.9 : 1 }]}>
@@ -351,13 +297,13 @@ function NutritionPlanCard({
           <Text style={styles.planTypeLabel}>{t('plans.nutritionPlanType')}</Text>
 
           {/* Plan name */}
-          <Text style={styles.planName}>{plan.planName}</Text>
+          <Text style={styles.planName}>{item.planName}</Text>
 
           {/* Subtitle: kcal · weeks · trainer */}
           {subtitle.length > 0 && <Text style={styles.planSubtitle}>{subtitle}</Text>}
 
           {/* Progress bar */}
-          {plan.currentWeek != null && (
+          {item.currentWeek != null && (
             <>
               <View style={styles.progressTrack}>
                 <View
@@ -371,35 +317,35 @@ function NutritionPlanCard({
                 />
               </View>
               <Text style={styles.planProgressLabel}>
-                {t('plans.weekOf', { current: plan.currentWeek, total: plan.totalWeeks })}
+                {t('plans.weekOf', { current: item.currentWeek, total: item.totalWeeks ?? 0 })}
                 {dailyKcal > 0
-                  ? ` · ${t('plans.avgKcal', { kcal: dailyKcal })}`
+                  ? ` · ${t('plans.avgKcal', { kcal: Math.round(dailyKcal) })}`
                   : ''}
               </Text>
             </>
           )}
 
-          {isCompleted && plan.dateCompleted && (
+          {isCompleted && item.dateCompleted && (
             <Text style={styles.planProgressLabel}>
-              {t('plans.completedOn', { date: formatDate(plan.dateCompleted) })}
+              {t('plans.completedOn', { date: formatDate(item.dateCompleted) })}
             </Text>
           )}
         </LinearGradient>
 
-        {/* Stats row */}
+        {/* Stats row — publishedWeekCount / totalWeeks (mirrors CompletedPlanCard for consistency) */}
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
             <Text style={[styles.statNum, { color: colors.label }]}>
-              {daysCompleted}
+              {item.publishedWeekCount ?? 0}
             </Text>
-            <Text style={[styles.statDesc, { color: colors.label3 }]}>{t('plans.daysCompleted')}</Text>
+            <Text style={[styles.statDesc, { color: colors.label3 }]}>{t('plans.published')}</Text>
           </View>
           <View style={[styles.statDivider, { backgroundColor: colors.sep2 }]} />
           <View style={styles.statItem}>
-            <Text style={[styles.statNum, { color: compliancePercent >= 80 ? colors.green : colors.label }]}>
-              {`${compliancePercent} %`}
+            <Text style={[styles.statNum, { color: colors.label }]}>
+              {item.totalWeeks ?? 0}
             </Text>
-            <Text style={[styles.statDesc, { color: colors.label3 }]}>{t('plans.compliance')}</Text>
+            <Text style={[styles.statDesc, { color: colors.label3 }]}>{t('plans.totalWeeksLabel')}</Text>
           </View>
         </View>
 
@@ -452,7 +398,7 @@ function CompletedPlanCard({
           {/* Subtitle */}
           <Text style={styles.planSubtitle}>
             {[
-              plan.totalWeeks > 0 ? t('plans.weeksCount', { count: plan.totalWeeks }) : null,
+              (plan.totalWeeks ?? 0) > 0 ? t('plans.weeksCount', { count: plan.totalWeeks ?? 0 }) : null,
               plan.dateCompleted ? t('plans.completedOn', { date: formatDate(plan.dateCompleted) }) : null,
             ]
               .filter(Boolean)
@@ -466,21 +412,21 @@ function CompletedPlanCard({
             />
           </View>
           <Text style={styles.planProgressLabel}>
-            {t('plans.weekOf', { current: plan.totalWeeks, total: plan.totalWeeks })} ✓
+            {t('plans.weekOf', { current: plan.totalWeeks ?? 0, total: plan.totalWeeks ?? 0 })} ✓
           </Text>
         </LinearGradient>
 
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
             <Text style={[styles.statNum, { color: colors.label }]}>
-              {plan.publishedWeekCount}
+              {plan.publishedWeekCount ?? 0}
             </Text>
             <Text style={[styles.statDesc, { color: colors.label3 }]}>{t('plans.published')}</Text>
           </View>
           <View style={[styles.statDivider, { backgroundColor: colors.sep2 }]} />
           <View style={styles.statItem}>
             <Text style={[styles.statNum, { color: colors.label }]}>
-              {plan.totalWeeks}
+              {plan.totalWeeks ?? 0}
             </Text>
             <Text style={[styles.statDesc, { color: colors.label3 }]}>{t('plans.totalWeeksLabel')}</Text>
           </View>
@@ -501,15 +447,10 @@ export default function PlansScreen() {
   const hasTrainer = useAuthStore((s) => s.user?.hasActiveLink ?? false)
   const [tab, setTab] = useState(0)
 
-  const nutritionQuery = useQuery({
-    queryKey: ['nutrition-full-plan'],
-    queryFn: getFullPlan,
-    enabled: hasTrainer,
-  })
-
-  const trainingQuery = useQuery({
-    queryKey: ['today-training'],
-    queryFn: getTodaySession,
+  // Active tab: single lightweight query for all active plans
+  const activePlansQuery = useQuery({
+    queryKey: ['client-plans-active'],
+    queryFn: () => getClientPlans('Active'),
     enabled: hasTrainer,
   })
 
@@ -530,7 +471,7 @@ export default function PlansScreen() {
     return nutritionist?.professionalName ?? undefined
   }, [collabQuery.data])
 
-  // Archive tab: fetch completed plans
+  // Archive tab: fetch completed plans — kept distinct for precise invalidation
   const archiveQuery = useQuery({
     queryKey: ['client-plans-completed'],
     queryFn: () => getClientPlans('Completed'),
@@ -539,25 +480,25 @@ export default function PlansScreen() {
 
   const isLoading =
     tab === 0
-      ? nutritionQuery.isLoading || trainingQuery.isLoading
+      ? activePlansQuery.isLoading
       : archiveQuery.isLoading
   const isRefreshing =
     tab === 0
-      ? nutritionQuery.isRefetching || trainingQuery.isRefetching
+      ? activePlansQuery.isRefetching
       : archiveQuery.isRefetching
 
   const onRefresh = useCallback(() => {
     if (tab === 0) {
-      queryClient.invalidateQueries({ queryKey: ['nutrition-full-plan'] })
-      queryClient.invalidateQueries({ queryKey: ['today-training'] })
+      queryClient.invalidateQueries({ queryKey: ['client-plans-active'] })
     } else {
       queryClient.invalidateQueries({ queryKey: ['client-plans-completed'] })
     }
   }, [queryClient, tab])
 
-  const hasTrainingPlan = trainingQuery.data?.planId != null
-  const hasNutritionPlan = nutritionQuery.data != null && !nutritionQuery.isError
-  const hasAnyPlan = hasTrainingPlan || hasNutritionPlan
+  const activePlans = activePlansQuery.data?.items ?? []
+  const trainingPlan = activePlans.find((p) => p.type === 'training') ?? null
+  const nutritionPlan = activePlans.find((p) => p.type === 'nutrition') ?? null
+  const hasAnyPlan = activePlans.length > 0
 
   const archivedPlans = archiveQuery.data?.items ?? []
 
@@ -628,25 +569,25 @@ export default function PlansScreen() {
                 </View>
               )}
 
-              {hasTrainingPlan && trainingQuery.data && (
+              {trainingPlan && (
                 <View style={styles.cardWrap}>
                   <TrainingPlanCard
-                    training={trainingQuery.data}
+                    item={trainingPlan}
                     trainerName={trainerName}
                     onPress={() =>
-                      router.push(hrefParams('/(client)/plans/[planId]', { planId: trainingQuery.data!.planId!, type: 'training' }))
+                      router.push(hrefParams('/(client)/plans/[planId]', { planId: trainingPlan.planId ?? '', type: 'training' }))
                     }
                   />
                 </View>
               )}
 
-              {hasNutritionPlan && nutritionQuery.data && (
+              {nutritionPlan && (
                 <View style={styles.cardWrap}>
                   <NutritionPlanCard
-                    plan={nutritionQuery.data}
+                    item={nutritionPlan}
                     trainerName={nutritionistName}
                     onPress={() =>
-                      router.push(href('/(client)/plans/plan-detail'))
+                      router.push(hrefParams('/(client)/plans/[planId]', { planId: nutritionPlan.planId ?? '', type: 'nutrition' }))
                     }
                   />
                 </View>
@@ -675,7 +616,7 @@ export default function PlansScreen() {
                     <CompletedPlanCard
                       plan={plan}
                       onPress={() =>
-                        router.push(hrefParams('/(client)/plans/[planId]', { planId: plan.planId, type: plan.type }))
+                        router.push(hrefParams('/(client)/plans/[planId]', { planId: plan.planId ?? '', type: plan.type ?? '' }))
                       }
                     />
                   </View>

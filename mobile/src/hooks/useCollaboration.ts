@@ -8,34 +8,38 @@ import { useAuthStore, type ActiveCollaborator, type PendingRequest } from '../s
 import { Toast } from '../lib/toast'
 
 function collabToActiveCollaborator(c: CollaborationDto): ActiveCollaborator {
+  // Generated types make all fields optional; use nullish coalescing to guard
+  // against undefined at runtime (backend always sends these fields).
+  const name = c.professionalName ?? ''
   return {
-    id: c.professionalPublicId.toString(),
-    name: c.professionalName,
-    initials: c.professionalName
+    id: (c.professionalPublicId ?? '').toString(),
+    name,
+    initials: name
       .split(' ')
       .map((w) => w[0])
       .join('')
       .toUpperCase(),
-    role: c.role,
+    role: c.role ?? '',
     city: c.professionalCity ?? '',
-    since: typeof c.since === 'string' ? c.since : new Date(c.since).toISOString(),
+    since: typeof c.since === 'string' ? c.since : new Date(c.since ?? 0).toISOString(),
     avatarColor: '',
     avatarBg: '',
   }
 }
 
 function requestToPending(r: ClientRequestDto): PendingRequest {
-  const parts = r.professionalName.split(' ')
+  const name = r.professionalName ?? ''
+  const parts = name.split(' ')
   return {
-    id: r.publicId,
-    trainerId: r.professionalPublicId,
-    name: r.professionalName,
+    id: r.publicId ?? '',
+    trainerId: r.professionalPublicId ?? '',
+    name,
     initials: parts.map((w) => w[0]).join('').toUpperCase(),
     role: '',
     city: '',
     avatarColor: '',
     avatarBg: '',
-    sentAt: r.sentAt,
+    sentAt: r.sentAt ?? '',
   }
 }
 
@@ -103,7 +107,7 @@ export function useCollaboration() {
     mutationFn: () => {
       const collab = collabQuery.data?.find((c) => c.role === 'Trainer')
       if (!collab) throw new Error('No trainer collaboration found')
-      return endCollaboration(collab.publicId.toString())
+      return endCollaboration((collab.publicId ?? '').toString())
     },
     onMutate: () => {
       const prev = { trainer: store.trainer, hasTrainer: store.hasTrainer }
@@ -123,7 +127,7 @@ export function useCollaboration() {
     mutationFn: () => {
       const collab = collabQuery.data?.find((c) => c.role === 'Nutritionist')
       if (!collab) throw new Error('No coach collaboration found')
-      return endCollaboration(collab.publicId.toString())
+      return endCollaboration((collab.publicId ?? '').toString())
     },
     onMutate: () => {
       const prev = { coach: store.coach, hasCoach: store.hasCoach }
@@ -146,7 +150,10 @@ export function useCollaboration() {
       if (message) {
         try {
           const conversation = await startConversation(trainerId)
-          await sendMessage(conversation.id, message)
+          const conversationId = conversation.id ?? ''
+          if (conversationId) {
+            await sendMessage(conversationId, message)
+          }
         } catch {
           // Request was sent — chat message is a best-effort addition
         }

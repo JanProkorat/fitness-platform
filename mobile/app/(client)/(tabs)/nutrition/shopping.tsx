@@ -150,23 +150,23 @@ function buildHalf(
   const rawFoods: { id: string; name: string; amount: number; category: string }[] = []
 
   for (const day of days) {
-    for (const meal of day.meals) {
-      for (const food of meal.foods) {
+    for (const meal of (day.meals ?? [])) {
+      for (const food of (meal.foods ?? [])) {
         rawFoods.push({
-          id: food.foodExternalId,
+          id: food.foodExternalId ?? '',
           name: getLocalizedFoodName(food),
-          amount: food.amountGrams,
+          amount: food.amountGrams ?? 0,
           category: food.foodCategory ?? 'Other',
         })
       }
       for (const recipe of meal.recipes ?? []) {
-        const ingredients = recipeFoods.get(recipe.recipeId)
+        const ingredients = recipeFoods.get(recipe.recipeId ?? '')
         if (!ingredients) continue
         for (const ing of ingredients) {
           rawFoods.push({
-            id: ing.foodExternalId,
+            id: ing.foodExternalId ?? '',
             name: getLocalizedFoodName(ing),
-            amount: ing.amountGrams * recipe.servings,
+            amount: (ing.amountGrams ?? 0) * (recipe.servings ?? 1),
             category: ing.foodCategory ?? 'Other',
           })
         }
@@ -239,7 +239,7 @@ export default function ShoppingListScreen() {
   })
 
   const weekData: FullPlanWeek | null = useMemo(
-    () => plan?.weeks.find((w) => w.weekNumber === week) ?? null,
+    () => (plan?.weeks ?? []).find((w) => w.weekNumber === week) ?? null,
     [plan, week],
   )
 
@@ -247,10 +247,10 @@ export default function ShoppingListScreen() {
   useEffect(() => {
     if (!weekData) return
     const recipeIds = new Set<string>()
-    for (const day of weekData.days) {
-      for (const meal of day.meals) {
+    for (const day of (weekData.days ?? [])) {
+      for (const meal of (day.meals ?? [])) {
         for (const recipe of meal.recipes ?? []) {
-          recipeIds.add(recipe.recipeId)
+          if (recipe.recipeId) recipeIds.add(recipe.recipeId)
         }
       }
     }
@@ -268,8 +268,8 @@ export default function ShoppingListScreen() {
       if (cancelled) return
       const map = new Map<string, MealFood[]>()
       for (const result of results) {
-        if (result.status === 'fulfilled') {
-          map.set(result.value.recipeId, result.value.foods)
+        if (result.status === 'fulfilled' && result.value.recipeId) {
+          map.set(result.value.recipeId, result.value.foods ?? [])
         }
       }
       setRecipeFoods(map)
@@ -281,13 +281,13 @@ export default function ShoppingListScreen() {
   // Build the two halves
   const firstHalf = useMemo(() => {
     if (!weekData) return []
-    const days = weekData.days.filter((d) => d.dayOfWeek >= 1 && d.dayOfWeek <= 4)
+    const days = (weekData.days ?? []).filter((d) => (d.dayOfWeek ?? 0) >= 1 && (d.dayOfWeek ?? 0) <= 4)
     return buildHalf(days, recipeFoods, t)
   }, [weekData, recipeFoods, t])
 
   const secondHalf = useMemo(() => {
     if (!weekData) return []
-    const days = weekData.days.filter((d) => d.dayOfWeek >= 5 && d.dayOfWeek <= 7)
+    const days = (weekData.days ?? []).filter((d) => (d.dayOfWeek ?? 0) >= 5 && (d.dayOfWeek ?? 0) <= 7)
     return buildHalf(days, recipeFoods, t)
   }, [weekData, recipeFoods, t])
 

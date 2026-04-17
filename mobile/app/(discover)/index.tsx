@@ -71,9 +71,9 @@ export default function DiscoverScreen() {
           </View>
         </View>
 
-        {item.specializations.length > 0 && (
+        {(item.specializations ?? []).length > 0 && (
           <View style={styles.tagsRow}>
-            {item.specializations.map((spec) => (
+            {(item.specializations ?? []).map((spec) => (
               <View key={spec} style={styles.tag}>
                 <Text style={styles.tagText}>{spec}</Text>
               </View>
@@ -148,7 +148,7 @@ export default function DiscoverScreen() {
       ) : (
         <FlatList
           data={professionals}
-          keyExtractor={(item) => item.publicId}
+          keyExtractor={(item) => item.publicId ?? ''}
           renderItem={renderCard}
           ListEmptyComponent={renderEmpty}
           contentContainerStyle={styles.list}

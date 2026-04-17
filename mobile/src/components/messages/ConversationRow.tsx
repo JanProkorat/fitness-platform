@@ -6,10 +6,10 @@ import { useTheme } from '@/hooks/useTheme'
 import { goldAlpha } from '@/constants/colors'
 import { getInitials } from '@/lib/initials'
 import { formatTimestamp } from '@/lib/dateFormatting'
-import type { Conversation } from '../../types/messages'
+import type { ConversationDto } from '../../api/generated'
 
 interface ConversationRowProps {
-  conversation: Conversation
+  conversation: ConversationDto
   onPress: () => void
   onArchive?: () => void
   onUnarchive?: () => void
@@ -26,10 +26,10 @@ export const ConversationRow = React.memo(function ConversationRow({
   const colors = useTheme()
   const swipeRef = useRef<Swipeable>(null)
   const { participant, lastMessage, lastMessageIsOwn, lastMessageAt, unreadCount } = conversation
-  const hasUnread = unreadCount > 0
+  const hasUnread = (unreadCount ?? 0) > 0
   const isArchived = variant === 'archived'
 
-  const preview = lastMessageIsOwn ? `You: ${lastMessage}` : lastMessage
+  const preview = lastMessageIsOwn ? `You: ${lastMessage ?? ''}` : (lastMessage ?? '')
 
   const renderRightActions = (
     _progress: Animated.AnimatedInterpolation<number>,
@@ -79,10 +79,10 @@ export const ConversationRow = React.memo(function ConversationRow({
           ]}
         >
           <Text style={[styles.avatarText, { color: colors.gold }]}>
-            {getInitials(participant.name)}
+            {getInitials(participant?.name ?? '')}
           </Text>
         </View>
-        {!isArchived && participant.online && (
+        {!isArchived && participant?.online && (
           <View style={[styles.onlineDot, { borderColor: colors.bg2, backgroundColor: colors.green }]} />
         )}
       </View>
@@ -94,7 +94,7 @@ export const ConversationRow = React.memo(function ConversationRow({
             style={[styles.name, { color: isArchived ? colors.label2 : colors.label, opacity: isArchived ? 0.7 : 1 }]}
             numberOfLines={1}
           >
-            {participant.name}
+            {participant?.name ?? ''}
           </Text>
           {isArchived && (
             <View style={[styles.badge, { backgroundColor: colors.fill }]}>
@@ -119,12 +119,12 @@ export const ConversationRow = React.memo(function ConversationRow({
       {/* Right column */}
       <View style={styles.rightCol}>
         <Text style={[styles.time, { color: colors.label3 }]}>
-          {formatTimestamp(lastMessageAt)}
+          {formatTimestamp(lastMessageAt ?? '')}
         </Text>
         {!isArchived && hasUnread && (
           <View style={[styles.unreadBadge, { backgroundColor: colors.gold }]}>
             <Text style={[styles.unreadText, { color: colors.onAccent }]}>
-              {unreadCount > 99 ? '99+' : unreadCount}
+              {(unreadCount ?? 0) > 99 ? '99+' : (unreadCount ?? 0)}
             </Text>
           </View>
         )}

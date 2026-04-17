@@ -32,6 +32,8 @@ import {
   type CollaborationDto,
 } from '@/api/profile'
 import { getMeasurementStats, getMeasurements, type MeasurementStatsResponse } from '@/api/measurements'
+import { useTodayStore } from '@/stores/todayStore'
+import { PlanBanner } from '@/components/today/PlanBanner'
 
 // ─── Component ──────────────────────────────────────────────────────
 
@@ -39,7 +41,11 @@ export function HasTrainerState() {
   const colors = useTheme()
   const router = useRouter()
   const queryClient = useQueryClient()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+
+  // ── Pending plans (additive banners) ──
+  const pendingPlans = useTodayStore((s) => s.pendingPlans)
+
   // ── Queries ──
   const planQuery = useQuery<TodayPlanResponse>({
     queryKey: ['today-plan'],
@@ -91,24 +97,34 @@ export function HasTrainerState() {
   const training = trainingQuery.data
   const streak = streakQuery.data?.currentStreak ?? 0
 
-  // Weight trend from measurement stats
+  // Weight trend: latest weight + difference against the previous measurement
   const weightTrend = useMemo(() => {
     const stats = statsQuery.data
     if (!stats?.latestWeight) return null
-    const change = stats.weightChange30Days ?? null
-    return { latest: stats.latestWeight, change }
-  }, [statsQuery.data])
 
-  // Recent weight entries for sparkline (last 7)
-  const recentWeightEntries = useMemo(() => {
-    const items = recentMeasurementsQuery.data?.items ?? []
-    return items
-      .filter((m): m is typeof m & { weightKg: number } => m.weightKg != null)
+    const weights = (recentMeasurementsQuery.data?.items ?? [])
+      .filter((m): m is typeof m & { weightKg: number; measuredAt: string } =>
+        m.weightKg != null && m.measuredAt != null,
+      )
       .map((m) => ({ date: m.measuredAt, weight: m.weightKg }))
-      .reverse()
-  }, [recentMeasurementsQuery.data])
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 
-  const consumed = log?.totalConsumed ?? { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 }
+    const change =
+      weights.length >= 2
+        ? weights[weights.length - 1].weight - weights[weights.length - 2].weight
+        : null
+
+    return { latest: stats.latestWeight, change }
+  }, [statsQuery.data, recentMeasurementsQuery.data])
+
+  // Generated GetTodayLogResponse makes totalConsumed optional; normalise here.
+  const consumed = {
+    kcal: log?.totalConsumed?.kcal ?? 0,
+    protein: log?.totalConsumed?.protein ?? 0,
+    carbs: log?.totalConsumed?.carbs ?? 0,
+    fat: log?.totalConsumed?.fat ?? 0,
+    fiber: log?.totalConsumed?.fiber ?? 0,
+  }
   const settings = plan?.globalSettings
   const dayTotals = plan?.dayTotals
   // Prefer explicit daily macro targets from globalSettings; otherwise fall
@@ -124,15 +140,22 @@ export function HasTrainerState() {
     }),
     [settings, dayTotals],
   )
+  // ── Pending-plan flags (reused in waiting logic and prep-tips) ──
+  const hasPendingTraining = pendingPlans.some((p) => p.type === 'training')
+  const hasPendingNutrition = pendingPlans.some((p) => p.type === 'nutrition')
+
+  // ── Pending training plan (for stat card start-date display) ──
+  const pendingTrainingPlan = pendingPlans.find((p) => p.type === 'training')
+
   // ── Waiting-for-plan logic ──
   const collabs = useMemo(() => collabQuery.data ?? [], [collabQuery.data])
   const { waitingForTraining, waitingForNutrition, isWaitingForAnyPlan } = useMemo(() => {
     const hasTrainerLink = collabs.some((c) => c.role === 'Trainer')
     const hasNutritionistLink = collabs.some((c) => c.role === 'Nutritionist')
-    const wTraining = !training?.hasSession && hasTrainerLink
-    const wNutrition = !plan && hasNutritionistLink
+    const wTraining = !training?.hasSession && hasTrainerLink && !hasPendingTraining
+    const wNutrition = !plan && hasNutritionistLink && !hasPendingNutrition
     return { waitingForTraining: wTraining, waitingForNutrition: wNutrition, isWaitingForAnyPlan: wTraining || wNutrition }
-  }, [collabs, training?.hasSession, plan])
+  }, [collabs, training?.hasSession, plan, hasPendingTraining, hasPendingNutrition])
 
   // ── Next-week shopping prep banner ──
   const showShoppingBanner = useMemo(() => {
@@ -141,28 +164,29 @@ export function HasTrainerState() {
     // Only show on Friday (5), Saturday (6), or Sunday (7)
     if (fp.currentDayOfWeek < 5) return null
     const nextWeek = fp.currentWeek + 1
-    // Check if next week is published
-    if (nextWeek > fp.publishedWeekCount) return null
+    // Check if next week is published. Generated type has publishedWeekCount as optional.
+    if (nextWeek > (fp.publishedWeekCount ?? 0)) return null
     return nextWeek
   }, [fullPlanQuery.data])
 
   const eatenMealIds = useMemo(() => {
     const set = new Set<string>()
-    logQuery.data?.mealsEaten?.forEach((m) => set.add(m.mealId))
+    // Generated MealLogDto.mealId is optional; skip entries without an id.
+    logQuery.data?.mealsEaten?.forEach((m) => { if (m.mealId) set.add(m.mealId) })
     return set
   }, [logQuery.data])
 
   const sortedMeals = useMemo(
-    () => [...(plan?.meals ?? [])].sort((a, b) => a.order - b.order),
+    () => [...(plan?.meals ?? [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
     [plan?.meals],
   )
 
   const totalSets = useMemo(
-    () => training?.session?.exercises.reduce((sum, e) => sum + e.sets.length, 0) ?? 0,
+    () => training?.session?.exercises?.reduce((sum, e) => sum + (e.sets?.length ?? 0), 0) ?? 0,
     [training?.session],
   )
 
-  const exerciseCount = training?.session?.exercises.length ?? 0
+  const exerciseCount = training?.session?.exercises?.length ?? 0
 
   // ── Training card subtitle ──
   const trainingPlanSubtitle = useMemo(() => {
@@ -178,6 +202,16 @@ export function HasTrainerState() {
     return t('today.exercisesCount', { count: exerciseCount })
   }, [training, exerciseCount, t])
 
+  // ── Stat card: pending training plan start date (bare, no label) ──
+  const pendingTrainingStartDate = useMemo(() => {
+    if (!pendingTrainingPlan) return undefined
+    const locale = i18n.language || 'cs'
+    return new Date(pendingTrainingPlan.startDate).toLocaleDateString(locale, {
+      day: 'numeric',
+      month: 'numeric',
+    })
+  }, [pendingTrainingPlan, i18n.language])
+
   // ── Mutation: toggle meal eaten/uneaten ──
   // `eaten: true`  → POST   /client/nutrition/log/meals/{id}/eaten
   // `eaten: false` → DELETE /client/nutrition/log/meals/{id}/eaten
@@ -191,35 +225,52 @@ export function HasTrainerState() {
       await queryClient.cancelQueries({ queryKey: ['today-log'] })
       const previous = queryClient.getQueryData<TodayLogResponse>(['today-log'])
       if (previous) {
-        const meal = plan?.meals.find((m) => m.mealId === mealId)
-        const totals = meal?.mealTotals ?? { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 }
+        // Generated fields are optional; normalise to safe defaults.
+        const prevMealsEaten = previous.mealsEaten ?? []
+        const prevConsumed = {
+          kcal: previous.totalConsumed?.kcal ?? 0,
+          protein: previous.totalConsumed?.protein ?? 0,
+          carbs: previous.totalConsumed?.carbs ?? 0,
+          fat: previous.totalConsumed?.fat ?? 0,
+          fiber: previous.totalConsumed?.fiber ?? 0,
+        }
+        const meal = plan?.meals?.find((m) => m.mealId === mealId)
+        const totals = meal?.mealTotals
+          ? {
+              kcal: meal.mealTotals.kcal ?? 0,
+              protein: meal.mealTotals.protein ?? 0,
+              carbs: meal.mealTotals.carbs ?? 0,
+              fat: meal.mealTotals.fat ?? 0,
+              fiber: meal.mealTotals.fiber ?? 0,
+            }
+          : { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 }
         if (eaten) {
           queryClient.setQueryData<TodayLogResponse>(['today-log'], {
             ...previous,
             mealsEaten: [
-              ...previous.mealsEaten,
-              { mealId, mealName: meal?.name ?? '', eatenAt: new Date().toISOString(), totals },
+              ...prevMealsEaten,
+              { mealId, mealName: meal?.kind ?? '', eatenAt: new Date().toISOString(), totals },
             ],
             totalConsumed: {
-              kcal: previous.totalConsumed.kcal + totals.kcal,
-              protein: previous.totalConsumed.protein + totals.protein,
-              carbs: previous.totalConsumed.carbs + totals.carbs,
-              fat: previous.totalConsumed.fat + totals.fat,
-              fiber: previous.totalConsumed.fiber + totals.fiber,
+              kcal: prevConsumed.kcal + totals.kcal,
+              protein: prevConsumed.protein + totals.protein,
+              carbs: prevConsumed.carbs + totals.carbs,
+              fat: prevConsumed.fat + totals.fat,
+              fiber: prevConsumed.fiber + totals.fiber,
             },
           })
         } else {
           // Remove every entry for this meal (there can be more than one if
           // the user double-logged before). Subtract all of their totals.
-          const removed = previous.mealsEaten.filter((m) => m.mealId === mealId)
-          const kept = previous.mealsEaten.filter((m) => m.mealId !== mealId)
+          const removed = prevMealsEaten.filter((m) => m.mealId === mealId)
+          const kept = prevMealsEaten.filter((m) => m.mealId !== mealId)
           const removedTotals = removed.reduce(
             (sum, m) => ({
-              kcal: sum.kcal + m.totals.kcal,
-              protein: sum.protein + m.totals.protein,
-              carbs: sum.carbs + m.totals.carbs,
-              fat: sum.fat + m.totals.fat,
-              fiber: sum.fiber + m.totals.fiber,
+              kcal: sum.kcal + (m.totals?.kcal ?? 0),
+              protein: sum.protein + (m.totals?.protein ?? 0),
+              carbs: sum.carbs + (m.totals?.carbs ?? 0),
+              fat: sum.fat + (m.totals?.fat ?? 0),
+              fiber: sum.fiber + (m.totals?.fiber ?? 0),
             }),
             { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 },
           )
@@ -232,11 +283,11 @@ export function HasTrainerState() {
             ...previous,
             mealsEaten: kept,
             totalConsumed: {
-              kcal: clamp(previous.totalConsumed.kcal - removedTotals.kcal),
-              protein: clamp(previous.totalConsumed.protein - removedTotals.protein),
-              carbs: clamp(previous.totalConsumed.carbs - removedTotals.carbs),
-              fat: clamp(previous.totalConsumed.fat - removedTotals.fat),
-              fiber: clamp(previous.totalConsumed.fiber - removedTotals.fiber),
+              kcal: clamp(prevConsumed.kcal - removedTotals.kcal),
+              protein: clamp(prevConsumed.protein - removedTotals.protein),
+              carbs: clamp(prevConsumed.carbs - removedTotals.carbs),
+              fat: clamp(prevConsumed.fat - removedTotals.fat),
+              fiber: clamp(prevConsumed.fiber - removedTotals.fiber),
             },
           })
         }
@@ -292,11 +343,27 @@ export function HasTrainerState() {
       const previous = queryClient.getQueryData<TodayLogResponse>(['today-log'])
       if (previous && plan) {
         const now = new Date().toISOString()
+        const prevMealsEaten = previous.mealsEaten ?? []
+        const prevConsumed = {
+          kcal: previous.totalConsumed?.kcal ?? 0,
+          protein: previous.totalConsumed?.protein ?? 0,
+          carbs: previous.totalConsumed?.carbs ?? 0,
+          fat: previous.totalConsumed?.fat ?? 0,
+          fiber: previous.totalConsumed?.fiber ?? 0,
+        }
         const newEntries = mealIds
           .map((id) => {
-            const meal = plan.meals.find((m) => m.mealId === id)
-            const totals = meal?.mealTotals ?? { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 }
-            return { mealId: id, mealName: meal?.name ?? '', eatenAt: now, totals }
+            const meal = (plan.meals ?? []).find((m) => m.mealId === id)
+            const totals = meal?.mealTotals
+              ? {
+                  kcal: meal.mealTotals.kcal ?? 0,
+                  protein: meal.mealTotals.protein ?? 0,
+                  carbs: meal.mealTotals.carbs ?? 0,
+                  fat: meal.mealTotals.fat ?? 0,
+                  fiber: meal.mealTotals.fiber ?? 0,
+                }
+              : { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 }
+            return { mealId: id, mealName: meal?.kind ?? '', eatenAt: now, totals }
           })
         const addedTotals = newEntries.reduce(
           (sum, e) => ({
@@ -310,13 +377,13 @@ export function HasTrainerState() {
         )
         queryClient.setQueryData<TodayLogResponse>(['today-log'], {
           ...previous,
-          mealsEaten: [...previous.mealsEaten, ...newEntries],
+          mealsEaten: [...prevMealsEaten, ...newEntries],
           totalConsumed: {
-            kcal: previous.totalConsumed.kcal + addedTotals.kcal,
-            protein: previous.totalConsumed.protein + addedTotals.protein,
-            carbs: previous.totalConsumed.carbs + addedTotals.carbs,
-            fat: previous.totalConsumed.fat + addedTotals.fat,
-            fiber: previous.totalConsumed.fiber + addedTotals.fiber,
+            kcal: prevConsumed.kcal + addedTotals.kcal,
+            protein: prevConsumed.protein + addedTotals.protein,
+            carbs: prevConsumed.carbs + addedTotals.carbs,
+            fat: prevConsumed.fat + addedTotals.fat,
+            fiber: prevConsumed.fiber + addedTotals.fiber,
           },
         })
       }
@@ -335,9 +402,9 @@ export function HasTrainerState() {
 
   const handleMarkAllEaten = useCallback(() => {
     if (!plan) return
-    const remaining = plan.meals
+    const remaining = (plan.meals ?? [])
       .map((m) => m.mealId)
-      .filter((id) => !eatenMealIds.has(id))
+      .filter((id): id is string => id != null && !eatenMealIds.has(id))
     if (remaining.length === 0) return
     markAllEatenMutation.mutate(remaining)
   }, [plan, eatenMealIds, markAllEatenMutation])
@@ -350,12 +417,24 @@ export function HasTrainerState() {
         <WeightStatCard
           latestWeight={weightTrend?.latest ?? null}
           weightDelta={weightTrend?.change ?? null}
-          entries={recentWeightEntries}
         />
         <StatCard
           label={t('today.training')}
-          value={training?.session?.name ?? (waitingForTraining ? t('today.preparing') : t('today.restDay'))}
-          sub={trainingSubText}
+          value={
+            training?.session?.name ??
+            (pendingTrainingStartDate !== undefined
+              ? pendingTrainingStartDate
+              : waitingForTraining
+                ? t('today.preparing')
+                : t('today.restDay'))
+          }
+          sub={
+            training?.session?.name !== undefined
+              ? trainingSubText
+              : pendingTrainingStartDate !== undefined
+                ? t('today.starts')
+                : undefined
+          }
           icon={
             training?.hasSession ? (
               <Badge label={t('today.waiting')} variant="active" />
@@ -370,6 +449,15 @@ export function HasTrainerState() {
           headerIcon="🔥"
         />
       </StatStrip>
+
+      {/* Pending plan banners — shown below the stat strip */}
+      {pendingPlans.length > 0 && (
+        <View style={styles.pendingBanners}>
+          {pendingPlans.map((p) => (
+            <PlanBanner key={p.planId} plan={p} />
+          ))}
+        </View>
+      )}
 
       {/* Today's training */}
       {training?.hasSession && training.session && (
@@ -440,6 +528,14 @@ export function HasTrainerState() {
 export default HasTrainerState
 
 const styles = StyleSheet.create({
+  pendingBanners: {
+    paddingHorizontal: 16,
+    gap: 10,
+    marginTop: 12,
+    // Pull the next section up so the gap below the banner matches the gap above
+    // (the next block adds its own marginTop: 24 — negative offset tightens it).
+    marginBottom: -12,
+  },
   section: {
     marginTop: 24,
   },

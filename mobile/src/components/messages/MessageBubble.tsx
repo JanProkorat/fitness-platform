@@ -5,10 +5,10 @@ import { useTheme } from '@/hooks/useTheme'
 import { goldAlpha } from '@/constants/colors'
 import { getInitials } from '@/lib/initials'
 import { formatTime } from '@/lib/dateFormatting'
-import type { Message } from '../../types/messages'
+import type { LocalMessage } from '../../types/messages'
 
 interface MessageBubbleProps {
-  message: Message
+  message: LocalMessage
   isOwn: boolean
   showAvatar: boolean
   participantName?: string
@@ -66,14 +66,14 @@ export const MessageBubble = React.memo(function MessageBubble({
           ]}
         >
           <Text style={[styles.bubbleText, { color: isOwn ? colors.onAccent : colors.label }]}>
-            {message.text}
+            {message.text ?? ''}
           </Text>
           {/* Timestamp inside bubble area */}
           <View style={[styles.timeRow, isOwn && styles.timeRowOwn]}>
             {isSending ? (
               <Text style={[styles.timeText, { color: colors.label3 }]}>Sending...</Text>
             ) : isError ? (
-              <Pressable onPress={() => onRetry?.(message.id)} style={styles.retryRow}>
+              <Pressable onPress={() => onRetry?.(message.id ?? '')} style={styles.retryRow}>
                 <Ionicons name="alert-circle" size={12} color={colors.red} />
                 <Text style={[styles.timeText, { color: colors.red }]}>Failed · Retry</Text>
               </Pressable>
@@ -85,9 +85,9 @@ export const MessageBubble = React.memo(function MessageBubble({
                     { color: isOwn ? colors.onAccent : colors.label3, opacity: isOwn ? 0.65 : 1 },
                   ]}
                 >
-                  {formatTime(message.timestamp)}
+                  {formatTime(message.timestamp ?? '')}
                 </Text>
-                {isOwn && message.isRead && (
+                {isOwn && message.isRead === true && (
                   <Ionicons
                     name="checkmark-done"
                     size={14}
