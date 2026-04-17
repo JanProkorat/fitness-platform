@@ -40,7 +40,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="**\*.cs" Exclude="$(BaseIntermediateOutputPath)**;$(BaseOutputPath)**;bin\**;obj\**" />
+    <Compile Include="**/*.cs" Exclude="$(BaseIntermediateOutputPath)**;$(BaseOutputPath)**;bin/**;obj/**" />
   </ItemGroup>
 
   <ItemGroup>
