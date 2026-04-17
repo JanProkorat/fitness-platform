@@ -18,6 +18,8 @@ namespace FitnessPlatform.Application.Features.NutritionPlans.UpdatePlan;
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="macroCalculator">Service to recalculate nutrient totals.</param>
+/// <param name="db">Relational database context used to resolve the client user id for notifications.</param>
+/// <param name="notifier">Realtime notifier used to push the plan-updated event to the client.</param>
 public class UpdatePlanEndpoint(IMongoContext mongo, IMacroCalculatorService macroCalculator, IApplicationDbContext db, IRealtimeNotifier notifier)
     : Endpoint<UpdatePlanRequest, GetPlanResponse>
 {

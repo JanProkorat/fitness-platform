@@ -13,8 +13,8 @@ namespace FitnessPlatform.Application.Features.Auth.VerifyEmail;
 /// Endpoint for verifying a user's email address using a token from the verification email.
 /// </summary>
 /// <param name="db">Database context.</param>
-/// <param name="userManager">ASP.NET Identity user manager.</param>
-public class VerifyEmailEndpoint(IApplicationDbContext db, UserManager<ApplicationUser> userManager, IRealtimeNotifier notifier)
+/// <param name="notifier">Realtime notifier used to push the email-verified event to the client.</param>
+public class VerifyEmailEndpoint(IApplicationDbContext db, IRealtimeNotifier notifier)
     : Endpoint<VerifyEmailRequest>
 {
     /// <inheritdoc />
