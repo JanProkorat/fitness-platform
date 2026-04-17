@@ -35,6 +35,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Remove="**/*.resx" />
     <None Remove="Infrastructure\EmailTemplates\EmailVerification.cs.html" />
     <EmbeddedResource Include="Infrastructure\EmailTemplates\EmailVerification.cs.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
