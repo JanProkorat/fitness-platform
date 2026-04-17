@@ -7,13 +7,20 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
     <!--
-      Suppress the Web SDK's default `<EmbeddedResource Include="**/*.resx" />`.
-      No actual .resx files exist in this project (email templates are
-      Content). On Linux SDK 10.0.202 the empty-match glob gets emitted
-      as a literal Identity and `GenerateResource` then fails with MSB3552.
+      .NET SDK on Linux (10.0.202 confirmed) emits default item globs as
+      literal Identities when the glob matches zero files. The Web SDK
+      default items for `**/*.resx`, `**/*.razor`, and `**/*.cshtml` match
+      nothing in this project, so MSBuild feeds the glob strings into
+      CSC / GenerateResource as real file paths and the build fails.
+      Disabling all default items and explicitly re-including just `**/*.cs`
+      plus our HTML email templates is the minimal working workaround.
     -->
-    <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
+    <EnableDefaultItems>false</EnableDefaultItems>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="**/*.cs" Exclude="bin/**;obj/**;$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="EFCore.NamingConventions" Version="10.0.1" />
