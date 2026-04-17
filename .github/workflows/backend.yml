@@ -46,15 +46,15 @@ jobs:
           restore-keys: ${{ runner.os }}-nuget-
 
       - name: Restore dependencies
-        run: dotnet restore
+        run: dotnet restore FitnessPlatform.Tests/FitnessPlatform.Tests.csproj
         working-directory: backend
 
       - name: Build
-        run: dotnet build --no-restore --configuration Release --warnaserror
+        run: dotnet build FitnessPlatform.Tests/FitnessPlatform.Tests.csproj --no-restore --configuration Release --warnaserror
         working-directory: backend
 
       - name: Test
-        run: dotnet test --no-build --configuration Release --verbosity normal
+        run: dotnet test FitnessPlatform.Tests/FitnessPlatform.Tests.csproj --no-build --configuration Release --verbosity normal
         working-directory: backend
         env:
           POSTGRES_PASSWORD: test_password
