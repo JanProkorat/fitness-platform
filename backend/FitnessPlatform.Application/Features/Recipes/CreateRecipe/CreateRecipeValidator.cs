@@ -32,5 +32,7 @@ public class CreateRecipeValidator : Validator<CreateRecipeRequest>
             food.RuleFor(f => f.AmountGrams)
                 .GreaterThan(0);
         });
+
+        RuleFor(x => x.Visibility).IsInEnum();
     }
 }

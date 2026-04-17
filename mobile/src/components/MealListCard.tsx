@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/hooks/useTheme';
 import type { PlanMeal } from '@/api/nutrition';
 
@@ -12,8 +13,11 @@ interface MealListCardProps {
 
 export function MealListCard({ meal, isEaten, onPress, onMarkEaten }: MealListCardProps) {
   const colors = useTheme();
+  const { t } = useTranslation();
   const kcal = meal.mealTotals?.kcal ?? 0;
-  const foodCount = meal.foods.length;
+  const foodCount = meal.foods?.length ?? 0;
+  // Generated PlanMeal uses `kind` (MealKind enum), not `name`. Fall back to i18n label.
+  const mealTitle = meal.kind ? t(`nutrition.mealKind.${meal.kind}`) : '';
   const styles = useMemo(() => getStyles(colors), [colors]);
 
   return (
@@ -26,7 +30,7 @@ export function MealListCard({ meal, isEaten, onPress, onMarkEaten }: MealListCa
         <View style={styles.info}>
           <View style={styles.titleRow}>
             {isEaten && <Text style={styles.check}>✓</Text>}
-            <Text style={[styles.name, isEaten && styles.dimmed]}>{meal.name}</Text>
+            <Text style={[styles.name, isEaten && styles.dimmed]}>{mealTitle}</Text>
           </View>
           <View style={styles.meta}>
             {meal.time ? (

@@ -102,13 +102,14 @@ public class UpdateRecipeEndpoint(IMongoContext mongo)
         recipe.Note = req.Note;
         recipe.Foods = mealFoods;
         recipe.TotalNutrients = CalculateTotals(mealFoods);
+        recipe.Visibility = req.Visibility;
         recipe.DateUpdated = DateTime.UtcNow;
 
         await mongo.Recipes.ReplaceOneAsync(
             Builders<Recipe>.Filter.Eq(r => r.ExternalId, recipe.ExternalId),
             recipe, cancellationToken: ct);
 
-        await Send.OkAsync(GetRecipeResponse.FromDocument(recipe), ct);
+        await Send.OkAsync(GetRecipeResponse.FromDocument(recipe, currentUserId: nutritionistId), ct);
     }
 
     /// <summary>

@@ -45,8 +45,8 @@ const light = {
   // Static (constant regardless of theme)
   onAccent: '#ffffff',   // Text/icons on accent backgrounds (gold buttons, dark heroes)
   heroBg: '#1a2332',     // Dark hero section background (training card)
-  nutritionHeroStart: '#3d2c12', // Nutrition hero gradient start (dark gold-brown)
-  nutritionHeroEnd: '#5e421a',   // Nutrition hero gradient end (warm gold-brown)
+  nutritionHeroStart: '#0d2137', // Nutrition hero gradient start (dark blue)
+  nutritionHeroEnd: '#1a3a52',   // Nutrition hero gradient end (mid blue)
   systemGray: '#8e8e93', // Neutral gray (swipe actions, secondary UI)
 
   // Macros — match the system colours used in the NutritionCardHero chips
@@ -83,8 +83,8 @@ const dark = {
   // Static (constant regardless of theme)
   onAccent: '#ffffff',
   heroBg: '#1a2332',
-  nutritionHeroStart: '#3d2c12',
-  nutritionHeroEnd: '#5e421a',
+  nutritionHeroStart: '#0d2137',
+  nutritionHeroEnd: '#1a3a52',
   systemGray: '#636366',
 
   // Macros — match the system colours used in the NutritionCardHero chips

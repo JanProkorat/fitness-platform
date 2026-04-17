@@ -17,7 +17,6 @@ import { useTheme } from '@/hooks/useTheme'
 import { useAuthStore } from '@/stores/auth'
 import { TodayHeader } from '@/components/today/TodayHeader'
 import { NoTrainerState } from '@/components/today/NoTrainerState'
-import { PlanPendingState } from '@/components/today/PlanPendingState'
 import { HasTrainerState } from '@/components/today/HasTrainerState'
 import { NotificationSheet } from '@/components/notifications/NotificationSheet'
 import { InviteCard } from '@/components/notifications/InviteCard'
@@ -51,7 +50,7 @@ export default function TodayScreen() {
   // Pending invite — always fetch, client can receive invites in any state
   const { invite, accept, decline } = useClientInvite(true)
 
-  // Pending questionnaires — visible in all states (plan-pending, has-trainer)
+  // Pending questionnaires — visible in all states with an active link
   const hasActiveLink = useAuthStore((s) => s.user?.hasActiveLink ?? false)
   const pendingQQuery = useQuery<PendingQuestionnairesResponse>({
     queryKey: ['pending-questionnaires'],
@@ -62,7 +61,7 @@ export default function TodayScreen() {
   const pendingQItems = pendingQQuery.data?.items ?? []
   const pendingQCount = pendingQItems.length
   const pendingQCoachNames = useMemo(
-    () => pendingQItems.map((i) => i.professionalName),
+    () => pendingQItems.map((i) => i.professionalName ?? ''),
     [pendingQItems],
   )
 
@@ -172,10 +171,8 @@ export default function TodayScreen() {
         {/* ── State: no-trainer ── */}
         {todayState === 'no-trainer' && <NoTrainerState />}
 
-        {/* ── State: plan-pending ── */}
-        {todayState === 'plan-pending' && <PlanPendingState />}
-
         {/* ── State: has-trainer ── */}
+        {/* Pending-plan banners are rendered additively inside HasTrainerState */}
         {todayState === 'has-trainer' && <HasTrainerState />}
       </ScrollView>
 

@@ -1,0 +1,351 @@
+using System.Security.Claims;
+using FastEndpoints;
+using FluentAssertions;
+using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Features.Client.Plans.GetClientPlans;
+using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Tests.Builders;
+using FitnessPlatform.Tests.Endpoints.NutritionPlans;
+using FitnessPlatform.Tests.Endpoints.TrainingPlans;
+using MongoDB.Driver;
+using NSubstitute;
+
+namespace FitnessPlatform.Tests.Endpoints.Client.Plans;
+
+/// <summary>
+/// Unit tests for <see cref="GetClientPlansEndpoint"/>.
+/// </summary>
+public class GetClientPlansEndpointTests
+{
+    private readonly Guid _clientId = Guid.NewGuid();
+    private readonly Guid _userId = Guid.NewGuid();
+
+    private IApplicationDbContext CreateMockDb() =>
+        new MockDbBuilder()
+            .With(new ClientProfile { UserId = _userId, PublicId = _clientId })
+            .Build();
+
+    private GetClientPlansEndpoint CreateEndpoint(
+        IMongoContext mongo,
+        IApplicationDbContext db)
+    {
+        return Factory.Create<GetClientPlansEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_userId, AppRoles.Client))),
+            mongo, db);
+    }
+
+    // ── Helpers to build mock Mongo contexts ────────────────────────────
+
+    /// <summary>
+    /// Creates a mock IMongoContext that returns the specified nutrition and training plans.
+    /// Uses the public helpers from each domain's test-helpers to build the collections.
+    /// </summary>
+    private static IMongoContext CreateMockMongo(
+        List<NutritionPlan>? nutritionPlans = null,
+        List<TrainingPlan>? trainingPlans = null)
+    {
+        var nPlans = nutritionPlans ?? [];
+        var tPlans = trainingPlans ?? [];
+
+        // Build all collections BEFORE configuring Returns() to avoid the NSubstitute
+        // "substitute inside Returns()" pitfall where an inner Substitute.For() call
+        // resets the "last call" tracker on the outer substitute.
+        var nCollection = BuildNutritionPlanCollection(nPlans);
+        var tCollection = TrainingPlanTestHelpers.CreateMockCollection(tPlans);
+
+        var mongo = Substitute.For<IMongoContext>();
+        mongo.NutritionPlans.Returns(nCollection);
+        mongo.TrainingPlans.Returns(tCollection);
+
+        return mongo;
+    }
+
+    private static IMongoCollection<NutritionPlan> BuildNutritionPlanCollection(List<NutritionPlan> plans)
+    {
+        var collection = Substitute.For<IMongoCollection<NutritionPlan>>();
+        var moved = false;
+        var cursor = Substitute.For<IAsyncCursor<NutritionPlan>>();
+        cursor.Current.Returns(plans);
+        cursor.MoveNext(Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            if (moved) return false;
+            moved = true;
+            return plans.Count > 0;
+        });
+        cursor.MoveNextAsync(Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            if (moved) return false;
+            moved = true;
+            return plans.Count > 0;
+        });
+        collection.FindAsync(
+                Arg.Any<FilterDefinition<NutritionPlan>>(),
+                Arg.Any<FindOptions<NutritionPlan, NutritionPlan>>(),
+                Arg.Any<CancellationToken>())
+            .Returns(cursor);
+        return collection;
+    }
+
+    // ── Test: plan with Active status but zero published weeks is excluded ──
+
+    /// <summary>
+    /// When Mongo (via ElemMatch) filters out plans with no published weeks,
+    /// the endpoint returns an empty list. This test simulates that: the mock
+    /// returns no plans (as the real ElemMatch would), and the response is empty.
+    /// </summary>
+    [Fact]
+    public async Task ActivePlan_WithNoPubilshedWeeks_IsNotInResponse()
+    {
+        // Arrange: mock returns empty collections (simulating ElemMatch excluding the plan)
+        var mongo = CreateMockMongo([], []);
+        var db = CreateMockDb();
+        var ep = CreateEndpoint(mongo, db);
+
+        // Act
+        await ep.HandleAsync(new GetClientPlansRequest(), TestContext.Current.CancellationToken);
+
+        // Assert
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        ep.Response.Items.Should().BeEmpty();
+    }
+
+    // ── Test: plan with at least one published week IS in the response ──
+
+    [Fact]
+    public async Task ActiveNutritionPlan_WithOnePublishedWeek_IsInResponse()
+    {
+        // Arrange
+        var plan = PlanTestHelpers.CreatePlan(
+            clientId: _clientId,
+            status: NutritionPlanStatus.Active,
+            weekCount: 2);
+        plan.Weeks[0].Status = WeekStatus.Published;
+        plan.Weeks[0].DatePublished = DateTime.UtcNow.AddDays(-7);
+        // week 2 stays Draft
+
+        var mongo = CreateMockMongo([plan]);
+        var db = CreateMockDb();
+        var ep = CreateEndpoint(mongo, db);
+
+        // Act
+        await ep.HandleAsync(new GetClientPlansRequest(), TestContext.Current.CancellationToken);
+
+        // Assert
+        ep.Response.Items.Should().ContainSingle();
+        var item = ep.Response.Items[0];
+        item.PlanId.Should().Be(plan.ExternalId);
+        item.Type.Should().Be("nutrition");
+        item.PublishedWeekCount.Should().Be(1);
+    }
+
+    // ── Test: DailyKcal from GlobalSettings on nutrition plan ──
+
+    [Fact]
+    public async Task NutritionPlan_DailyKcalPopulated_AndHasTodaySessionIsNull()
+    {
+        // Arrange
+        var plan = PlanTestHelpers.CreatePlan(
+            clientId: _clientId,
+            status: NutritionPlanStatus.Active,
+            weekCount: 1,
+            globalSettings: new GlobalNutritionSettings { DailyKcal = 2200 });
+        plan.Weeks[0].Status = WeekStatus.Published;
+        plan.Weeks[0].DatePublished = DateTime.UtcNow.AddDays(-1);
+
+        var mongo = CreateMockMongo([plan]);
+        var db = CreateMockDb();
+        var ep = CreateEndpoint(mongo, db);
+
+        // Act
+        await ep.HandleAsync(new GetClientPlansRequest(), TestContext.Current.CancellationToken);
+
+        // Assert
+        ep.Response.Items.Should().ContainSingle();
+        var item = ep.Response.Items[0];
+        item.DailyKcal.Should().Be(2200m);
+        item.HasTodaySession.Should().BeNull();
+    }
+
+    // ── Test: HasTodaySession true when today has a session ──
+
+    [Fact]
+    public async Task ActiveTrainingPlan_TodayHasSession_HasTodaySessionIsTrue()
+    {
+        // Arrange: today's day-of-week (1=Mon..7=Sun)
+        var todayDow = (int)DateTime.UtcNow.DayOfWeek;
+        todayDow = todayDow == 0 ? 7 : todayDow;
+
+        var plan = TrainingPlanTestHelpers.CreatePlan(
+            clientId: _clientId,
+            status: TrainingPlanStatus.Active,
+            weekCount: 1);
+        plan.Weeks[0].Status = WeekStatus.Published;
+        plan.Weeks[0].DatePublished = DateTime.UtcNow.AddDays(-1);
+        plan.Weeks[0].Sessions.Add(new TrainingSession
+        {
+            SessionId = Guid.NewGuid(),
+            DayOfWeek = todayDow,
+            Name = "Push Day",
+            Order = 1
+        });
+
+        var mongo = CreateMockMongo(trainingPlans: [plan]);
+        var db = CreateMockDb();
+        var ep = CreateEndpoint(mongo, db);
+
+        // Act
+        await ep.HandleAsync(new GetClientPlansRequest(), TestContext.Current.CancellationToken);
+
+        // Assert
+        ep.Response.Items.Should().ContainSingle();
+        var item = ep.Response.Items[0];
+        item.Type.Should().Be("training");
+        item.HasTodaySession.Should().BeTrue();
+        item.DailyKcal.Should().BeNull();
+    }
+
+    // ── Test: HasTodaySession false when today is a rest day ──
+
+    [Fact]
+    public async Task ActiveTrainingPlan_TodayIsRestDay_HasTodaySessionIsFalse()
+    {
+        // Arrange: put the session on a day that is NOT today
+        var todayDow = (int)DateTime.UtcNow.DayOfWeek;
+        todayDow = todayDow == 0 ? 7 : todayDow;
+        var sessionDow = todayDow == 7 ? 1 : todayDow + 1; // a different day
+
+        var plan = TrainingPlanTestHelpers.CreatePlan(
+            clientId: _clientId,
+            status: TrainingPlanStatus.Active,
+            weekCount: 1);
+        plan.Weeks[0].Status = WeekStatus.Published;
+        plan.Weeks[0].DatePublished = DateTime.UtcNow.AddDays(-1);
+        plan.Weeks[0].Sessions.Add(new TrainingSession
+        {
+            SessionId = Guid.NewGuid(),
+            DayOfWeek = sessionDow,
+            Name = "Leg Day",
+            Order = 1
+        });
+
+        var mongo = CreateMockMongo(trainingPlans: [plan]);
+        var db = CreateMockDb();
+        var ep = CreateEndpoint(mongo, db);
+
+        // Act
+        await ep.HandleAsync(new GetClientPlansRequest(), TestContext.Current.CancellationToken);
+
+        // Assert
+        ep.Response.Items.Should().ContainSingle();
+        var item = ep.Response.Items[0];
+        item.HasTodaySession.Should().BeFalse();
+    }
+
+    // ── Test: plan with future StartDate → CurrentWeek is null ──
+
+    [Fact]
+    public async Task NutritionPlan_FutureStartDate_CurrentWeekIsNull()
+    {
+        // Arrange: StartDate is tomorrow — plan hasn't started yet
+        var plan = PlanTestHelpers.CreatePlan(
+            clientId: _clientId,
+            status: NutritionPlanStatus.Active,
+            weekCount: 4);
+        plan.StartDate = DateTime.UtcNow.Date.AddDays(7); // future
+        plan.Weeks[0].Status = WeekStatus.Published;
+        plan.Weeks[0].DatePublished = DateTime.UtcNow.AddDays(-1);
+
+        var mongo = CreateMockMongo([plan]);
+        var db = CreateMockDb();
+        var ep = CreateEndpoint(mongo, db);
+
+        // Act
+        await ep.HandleAsync(new GetClientPlansRequest(), TestContext.Current.CancellationToken);
+
+        // Assert: plan is still listed (has a published week), but CurrentWeek is null
+        ep.Response.Items.Should().ContainSingle();
+        var item = ep.Response.Items[0];
+        item.CurrentWeek.Should().BeNull();
+        item.PublishedWeekCount.Should().Be(1);
+    }
+
+    // ── Test: status=Completed filter works (regression guard) ──
+
+    [Fact]
+    public async Task StatusCompletedFilter_ReturnsCompletedPlans()
+    {
+        // Arrange: one completed nutrition plan with a published week
+        var completedPlan = PlanTestHelpers.CreatePlan(
+            clientId: _clientId,
+            status: NutritionPlanStatus.Completed,
+            weekCount: 1);
+        completedPlan.Weeks[0].Status = WeekStatus.Published;
+        completedPlan.Weeks[0].DatePublished = DateTime.UtcNow.AddDays(-14);
+        completedPlan.DateCompleted = DateTime.UtcNow.AddDays(-7);
+
+        var mongo = CreateMockMongo([completedPlan]);
+        var db = CreateMockDb();
+
+        // Act: filter by "Completed"
+        var ep = CreateEndpoint(mongo, db);
+        await ep.HandleAsync(new GetClientPlansRequest { Status = "Completed" }, TestContext.Current.CancellationToken);
+
+        // Assert
+        ep.Response.Items.Should().ContainSingle();
+        var item = ep.Response.Items[0];
+        item.Status.Should().Be("Completed");
+        item.DateCompleted.Should().NotBeNull();
+    }
+
+    // ── Test: CurrentWeek is populated when StartDate is in the past ──
+
+    [Fact]
+    public async Task TrainingPlan_StartDateInPast_CurrentWeekIsPopulated()
+    {
+        // Arrange: plan started 8 days ago → current week = 2
+        var plan = TrainingPlanTestHelpers.CreatePlan(
+            clientId: _clientId,
+            status: TrainingPlanStatus.Active,
+            weekCount: 4);
+        plan.StartDate = DateTime.UtcNow.Date.AddDays(-8); // 8 days ago → week 2
+        plan.Weeks[0].Status = WeekStatus.Published;
+        plan.Weeks[0].DatePublished = DateTime.UtcNow.AddDays(-8);
+        plan.Weeks[1].Status = WeekStatus.Published;
+        plan.Weeks[1].DatePublished = DateTime.UtcNow.AddDays(-1);
+
+        var mongo = CreateMockMongo(trainingPlans: [plan]);
+        var db = CreateMockDb();
+        var ep = CreateEndpoint(mongo, db);
+
+        // Act
+        await ep.HandleAsync(new GetClientPlansRequest(), TestContext.Current.CancellationToken);
+
+        // Assert
+        ep.Response.Items.Should().ContainSingle();
+        var item = ep.Response.Items[0];
+        item.CurrentWeek.Should().Be(2);
+    }
+
+    // ── Test: no claims → 401 ──
+
+    [Fact]
+    public async Task NoClaims_Returns401()
+    {
+        var mongo = CreateMockMongo();
+        var db = new MockDbBuilder().Build();
+        var ep = Factory.Create<GetClientPlansEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity()),
+            mongo, db);
+
+        await ep.HandleAsync(new GetClientPlansRequest(), TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(401);
+    }
+}

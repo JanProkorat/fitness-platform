@@ -23,6 +23,13 @@ interface WeightChartProps {
   entryCount?: number
 }
 
+const CHART_HEIGHT = 140
+const VALUE_LABEL_SPACE = 18
+
+function formatWeight(value: number): string {
+  return value.toFixed(1).replace('.', ',')
+}
+
 export function WeightBarChart({ entries, currentWeight, weightDelta, targetWeight, onViewHistory, entryCount }: WeightChartProps) {
   const colors = useTheme()
   const { t } = useTranslation()
@@ -37,10 +44,19 @@ export function WeightBarChart({ entries, currentWeight, weightDelta, targetWeig
     )
   }
 
+  // Scale: include target weight (if present) so the target line stays in view.
+  // Pad the range so top-value labels don't overflow and bars never sit at 0%.
   const weights = entries.map((e) => e.weight)
-  const minW = Math.min(...weights)
-  const maxW = Math.max(...weights)
-  const range = maxW - minW || 1
+  const allValues = targetWeight != null ? [...weights, targetWeight] : weights
+  const rawMin = Math.min(...allValues)
+  const rawMax = Math.max(...allValues)
+  const pad = Math.max((rawMax - rawMin) * 0.25, 0.5)
+  const chartMin = rawMin - pad
+  const chartMax = rawMax + pad
+  const chartRange = chartMax - chartMin || 1
+
+  const targetPct =
+    targetWeight != null ? (targetWeight - chartMin) / chartRange : null
 
   // Goal progress
   const remaining = currentWeight != null && targetWeight != null
@@ -72,7 +88,7 @@ export function WeightBarChart({ entries, currentWeight, weightDelta, targetWeig
                 { color: weightDelta < 0 ? colors.green : colors.red },
               ]}
             >
-              {weightDelta > 0 ? '+' : ''}{weightDelta.toFixed(1)} kg
+              {weightDelta < 0 ? '↓' : '↑'} {Math.abs(weightDelta).toFixed(1).replace('.', ',')}
             </Text>
           </View>
         )}
@@ -89,7 +105,7 @@ export function WeightBarChart({ entries, currentWeight, weightDelta, targetWeig
             </View>
           ) : (
             <Text style={[styles.goalText, { color: colors.label3 }]}>
-              {t('profile.goal')}: {targetWeight.toFixed(1).replace('.', ',')} kg · {t('profile.remaining')}: {remaining.toFixed(1).replace('.', ',')} kg
+              {t('profile.goal')}: {formatWeight(targetWeight)} kg · {t('profile.remaining')}: {formatWeight(remaining)} kg
             </Text>
           )}
         </View>
@@ -97,9 +113,31 @@ export function WeightBarChart({ entries, currentWeight, weightDelta, targetWeig
 
       {/* Bar chart */}
       <View style={styles.chart}>
+        {/* Target weight line (absolute across chart) */}
+        {targetPct != null && (
+          <View
+            pointerEvents="none"
+            style={[
+              styles.targetLine,
+              { bottom: `${targetPct * 100}%`, borderColor: colors.green },
+            ]}
+          >
+            <View
+              style={[
+                styles.targetLabelBadge,
+                { backgroundColor: colors.green },
+              ]}
+            >
+              <Text style={[styles.targetLabelText, { color: colors.bg2 }]}>
+                {t('profile.goal')} {formatWeight(targetWeight!)}
+              </Text>
+            </View>
+          </View>
+        )}
+
         {entries.map((entry, idx) => {
           const isLast = idx === entries.length - 1
-          const heightPct = ((entry.weight - minW) / range) * 0.7 + 0.3
+          const heightPct = (entry.weight - chartMin) / chartRange
           return (
             <View key={entry.date} style={styles.barWrapper}>
               <View
@@ -108,16 +146,35 @@ export function WeightBarChart({ entries, currentWeight, weightDelta, targetWeig
                   {
                     height: `${heightPct * 100}%`,
                     backgroundColor: isLast ? colors.gold : colors.fill,
-                    borderRadius: 4,
                   },
                 ]}
-              />
-              <Text style={[styles.barLabel, { color: colors.label3 }]}>
-                {`${new Date(entry.date).getDate()}.${new Date(entry.date).getMonth() + 1}`}
-              </Text>
+              >
+                <Text
+                  style={[
+                    styles.barValue,
+                    { color: isLast ? colors.label : colors.label2 },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {formatWeight(entry.weight)}
+                </Text>
+              </View>
             </View>
           )
         })}
+      </View>
+
+      {/* Date labels row (kept outside chart so bars align cleanly) */}
+      <View style={styles.dateRow}>
+        {entries.map((entry) => (
+          <Text
+            key={`date-${entry.date}`}
+            style={[styles.barLabel, { color: colors.label3 }]}
+            numberOfLines={1}
+          >
+            {`${new Date(entry.date).getDate()}.${new Date(entry.date).getMonth() + 1}`}
+          </Text>
+        ))}
       </View>
 
       {/* View history button */}
@@ -155,7 +212,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 16,
+    marginBottom: 4,
   },
   currentWeight: {
     ...Type.title1,
@@ -170,8 +227,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   goalRow: {
-    marginTop: -8,
-    marginBottom: 12,
+    marginBottom: 20,
   },
   goalText: {
     ...Type.caption1,
@@ -187,9 +243,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   chart: {
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'flex-end',
-    height: 100,
+    height: CHART_HEIGHT,
+    paddingTop: VALUE_LABEL_SPACE,
     gap: 6,
   },
   barWrapper: {
@@ -201,10 +259,50 @@ const styles = StyleSheet.create({
   bar: {
     width: '100%',
     minHeight: 4,
+    borderTopLeftRadius: 4,
+    borderTopRightRadius: 4,
+    position: 'relative',
+  },
+  barValue: {
+    ...Type.caption2,
+    fontWeight: '600',
+    position: 'absolute',
+    top: -VALUE_LABEL_SPACE + 2,
+    left: 0,
+    right: 0,
+    textAlign: 'center',
+  },
+  targetLine: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 0,
+    borderTopWidth: StyleSheet.hairlineWidth * 2,
+    borderStyle: 'dashed',
+    zIndex: 1,
+  },
+  targetLabelBadge: {
+    position: 'absolute',
+    right: 0,
+    top: -9,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: Radius.full,
+  },
+  targetLabelText: {
+    ...Type.caption2,
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  dateRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: 6,
   },
   barLabel: {
     ...Type.caption2,
-    marginTop: 4,
+    flex: 1,
+    textAlign: 'center',
   },
   historyBtn: {
     flexDirection: 'row',

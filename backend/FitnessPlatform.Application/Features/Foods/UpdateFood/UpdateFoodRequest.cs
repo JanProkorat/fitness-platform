@@ -19,11 +19,6 @@ public class UpdateFoodRequest
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
-    /// Updated barcode.
-    /// </summary>
-    public string? Barcode { get; set; }
-
-    /// <summary>
     /// Updated English name.
     /// </summary>
     public string? NameEn { get; set; }
@@ -47,6 +42,12 @@ public class UpdateFoodRequest
     /// Updated food category.
     /// </summary>
     public FoodCategory Category { get; set; } = FoodCategory.Other;
+
+    /// <summary>
+    /// Updated visibility. Defaults to <see cref="FoodVisibility.Public"/> when omitted.
+    /// Only the food's creator can change this value.
+    /// </summary>
+    public FoodVisibility Visibility { get; set; } = FoodVisibility.Public;
 
     /// <summary>
     /// Updated user note.

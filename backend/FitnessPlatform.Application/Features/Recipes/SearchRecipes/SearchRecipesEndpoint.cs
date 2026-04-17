@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.Recipes.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Bson;
@@ -11,7 +12,8 @@ using MongoDB.Driver;
 namespace FitnessPlatform.Application.Features.Recipes.SearchRecipes;
 
 /// <summary>
-/// Searches recipes by name for the current nutritionist with pagination.
+/// Searches recipes by name with pagination.
+/// Results include the caller's own recipes (any visibility) plus other nutritionists' public recipes.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 public class SearchRecipesEndpoint(IMongoContext mongo)
@@ -25,7 +27,8 @@ public class SearchRecipesEndpoint(IMongoContext mongo)
         Summary(s =>
         {
             s.Summary = "Search recipes";
-            s.Description = "Search the current nutritionist's recipes by name with pagination.";
+            s.Description = "Search recipes by name with pagination. "
+                + "Returns the caller's own recipes (any visibility) plus public recipes owned by other nutritionists.";
         });
     }
 
@@ -43,7 +46,11 @@ public class SearchRecipesEndpoint(IMongoContext mongo)
         var nutritionistId = Guid.Parse(userId);
 
         var filterBuilder = Builders<Recipe>.Filter;
-        var filter = filterBuilder.Eq(r => r.NutritionistId, nutritionistId);
+
+        // Visibility filter: caller's own recipes (any visibility) OR other nutritionists' public recipes.
+        var filter = filterBuilder.Or(
+            filterBuilder.Eq(r => r.NutritionistId, nutritionistId),
+            filterBuilder.Eq(r => r.Visibility, RecipeVisibility.Public));
 
         if (!string.IsNullOrWhiteSpace(req.Search))
         {
@@ -65,7 +72,7 @@ public class SearchRecipesEndpoint(IMongoContext mongo)
 
         await Send.OkAsync(new SearchRecipesResponse
         {
-            Recipes = recipes.Select(RecipeSummaryDto.FromDocument).ToList(),
+            Recipes = recipes.Select(r => RecipeSummaryDto.FromDocument(r, nutritionistId)).ToList(),
             TotalCount = totalCount,
             Page = req.Page,
             PageSize = req.PageSize

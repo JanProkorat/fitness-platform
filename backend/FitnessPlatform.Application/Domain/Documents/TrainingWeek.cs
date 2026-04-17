@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using FitnessPlatform.Application.Domain.Enums;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.Bson.Serialization.Options;
 
 namespace FitnessPlatform.Application.Domain.Documents;
 
@@ -42,5 +43,6 @@ public class TrainingWeek
     /// </summary>
     [BsonElement("dayNotes")]
     [BsonIgnoreIfNull]
+    [BsonDictionaryOptions(DictionaryRepresentation.ArrayOfDocuments)]
     public Dictionary<int, string>? DayNotes { get; set; }
 }

@@ -1,7 +1,11 @@
+using System.Security.Claims;
 using FastEndpoints;
 using FluentAssertions;
+using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.Foods.SearchFoods;
+using FitnessPlatform.Tests.Endpoints;
 
 namespace FitnessPlatform.Tests.Endpoints.Foods;
 
@@ -68,5 +72,51 @@ public class SearchFoodsEndpointTests
 
         ep.Response.Foods.Should().HaveCount(1);
         ep.Response.Foods[0].Name.Should().Be("Kuřecí prsa");
+    }
+
+    [Fact]
+    public async Task HandleAsync_AuthenticatedOwner_IsOwnedFlagIsTrue()
+    {
+        var ownerId = Guid.NewGuid();
+        var food = FoodTestHelpers.CreateFood(
+            name: "My Private Food",
+            nutritionistId: ownerId,
+            visibility: FoodVisibility.Private);
+        var mongo = FoodTestHelpers.CreateMockMongo(food);
+
+        var ep = Factory.Create<SearchFoodsEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(ownerId, AppRoles.Nutritionist))),
+            mongo);
+
+        await ep.HandleAsync(new SearchFoodsRequest(), TestContext.Current.CancellationToken);
+
+        ep.Response.Foods.Should().HaveCount(1);
+        ep.Response.Foods[0].IsOwnedByCurrentUser.Should().BeTrue();
+        ep.Response.Foods[0].Visibility.Should().Be(FoodVisibility.Private);
+    }
+
+    [Fact]
+    public async Task HandleAsync_AuthenticatedNonOwner_IsOwnedFlagIsFalse()
+    {
+        var ownerId = Guid.NewGuid();
+        var otherNutritionistId = Guid.NewGuid();
+        var food = FoodTestHelpers.CreateFood(
+            name: "Public Food",
+            nutritionistId: ownerId,
+            visibility: FoodVisibility.Public);
+        var mongo = FoodTestHelpers.CreateMockMongo(food);
+
+        var ep = Factory.Create<SearchFoodsEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(otherNutritionistId, AppRoles.Nutritionist))),
+            mongo);
+
+        await ep.HandleAsync(new SearchFoodsRequest(), TestContext.Current.CancellationToken);
+
+        ep.Response.Foods.Should().HaveCount(1);
+        ep.Response.Foods[0].IsOwnedByCurrentUser.Should().BeFalse();
     }
 }

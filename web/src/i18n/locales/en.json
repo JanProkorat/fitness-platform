@@ -373,7 +373,6 @@
     "sourceAll": "All sources",
     "sourceSystem": "System",
     "sourceCustom": "Custom",
-    "sourceOpenFoodFacts": "Open Food Facts",
     "kcal": "kcal",
     "protein": "Protein",
     "carbs": "Carbs",
@@ -383,10 +382,8 @@
     "saturatedFat": "Sat. fat",
     "salt": "Salt",
     "per100g": "per 100g",
-    "barcode": "Barcode",
     "allergens": "Allergens",
     "servings": "Servings",
-    "loadingExternal": "Searching Open Food Facts for more results...",
     "noFoods": "No foods found",
     "noFoodsHint": "Try a different search term",
     "addFoodTitle": "Add custom food",
@@ -427,7 +424,10 @@
     "categoryOilsAndFats": "Oils & Fats",
     "categorySweetsAndSnacks": "Sweets & Snacks",
     "categoryBeverages": "Beverages",
-    "categorySupplements": "Supplements"
+    "categorySupplements": "Supplements",
+    "visibilityPublic": "Public",
+    "visibilityPrivate": "Private",
+    "visibilityHint": "Public foods are visible to all nutritionists. Only you can edit them."
   },
   "recipes": {
     "title": "Recipes",
@@ -478,7 +478,10 @@
     "foodCount": "{{count}} ingredients",
     "totalKcal": "{{kcal}} kcal",
     "ingredientNote": "Note",
-    "ingredientNotePlaceholder": "e.g. finely chopped, room temperature..."
+    "ingredientNotePlaceholder": "e.g. finely chopped, room temperature...",
+    "visibilityPublic": "Public",
+    "visibilityPrivate": "Private",
+    "visibilityHint": "Public recipes are visible to all nutritionists. Only you can edit them."
   },
   "nutrition": {
     "title": "Nutrition Plans",

@@ -6,7 +6,12 @@ namespace FitnessPlatform.Application.Domain.Enums;
 public enum RecipeVisibility
 {
     /// <summary>
+    /// Visible to all nutritionists.
+    /// </summary>
+    Public = 0,
+
+    /// <summary>
     /// Only the owning nutritionist can see the recipe.
     /// </summary>
-    Private = 0
+    Private = 1
 }

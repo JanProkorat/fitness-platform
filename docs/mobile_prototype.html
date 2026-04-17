@@ -1,3 +1,4 @@
+<!-- GENERATED from docs/prototypes/mobile/ — do not edit by hand. Run: node docs/prototypes/build.mjs -->
 <!DOCTYPE html>
 <html lang="cs">
 <head>
@@ -93,6 +94,11 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
   --ios-orange:#ff9500;
   --ios-purple:#af52de;
   --ios-gold:#c9a84c;
+  --ios-gold-bg:rgba(201,168,76,.10);
+  --ios-macro-protein:#007aff;
+  --ios-macro-carbs:#ff9500;
+  --ios-macro-fat:#af52de;
+  --ios-macro-fiber:#636366;
   --ios-r:13px;
   --ios-r-lg:20px;
   --ios-r-xl:28px;
@@ -194,6 +200,30 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
 .ex-ios-sets{font-size:13px;color:var(--ios-label2);margin-top:1px}
 .ex-ios-done{width:24px;height:24px;border-radius:50%;border:2px solid var(--ios-sep);display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .ex-ios-done.done{background:var(--ios-green);border-color:var(--ios-green);color:#fff;font-size:13px}
+
+/* Expandable exercise cards (training plan detail) */
+.tp-ex-card{background:var(--ios-bg2);border-radius:var(--ios-r-lg);overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.12);margin:0 20px 12px}
+.tp-ex-card .tp-ex-header{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer}
+.tp-ex-card .tp-ex-chev{font-size:14px;color:var(--ios-label3);transition:transform .2s;flex-shrink:0}
+.tp-ex-card.expanded .tp-ex-chev{transform:rotate(180deg)}
+.tp-ex-card .tp-ex-body{display:none}
+.tp-ex-card.expanded .tp-ex-body{display:block}
+.tp-ex-set-grid{display:grid;grid-template-columns:36px 1fr 1fr 1fr 40px;gap:0;font-size:12px}
+.tp-ex-set-grid .tp-set-hdr{padding:6px 8px;font-weight:var(--sf-semi);color:var(--ios-label2);border-bottom:.5px solid var(--ios-sep2)}
+.tp-ex-set-grid .tp-set-cell{padding:6px 8px;color:var(--ios-label);border-bottom:.5px solid var(--ios-sep2)}
+.tp-ex-set-grid .tp-set-cell:last-child,.tp-ex-set-grid .tp-set-hdr:last-child{text-align:center}
+
+/* Session groups (multi-session per day) */
+.tp-session{margin:0 20px 20px;border-radius:var(--ios-r-lg);overflow:hidden;background:var(--ios-bg2);box-shadow:0 4px 12px rgba(0,0,0,.12)}
+.tp-session .tp-session-header{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;user-select:none}
+.tp-session .tp-session-body{display:none}
+.tp-session.expanded .tp-session-body{display:block}
+.tp-session .tp-session-chev{font-size:14px;color:var(--ios-label3);transition:transform .2s;flex-shrink:0;margin-left:auto}
+.tp-session.expanded .tp-session-chev{transform:rotate(180deg)}
+.tp-session .tp-session-exercises .tp-ex-card{margin:0;border-radius:0;box-shadow:none;border-top:.5px solid var(--ios-sep2)}
+.tp-session .tp-session-exercises .tp-ex-card:last-child{border-bottom:none}
+.tp-session-order{width:28px;height:28px;border-radius:8px;background:var(--ios-fill);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:var(--sf-semi);color:var(--ios-label);flex-shrink:0}
+.tp-session-progress{font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;background:var(--ios-fill);color:var(--ios-label2);flex-shrink:0}
 
 /* Gradient backgrounds for cards */
 .grad-push{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%)}
@@ -686,6 +716,8 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
       <button class="pb" onclick="showPhone('ph-plan-history')">Archiv plánů</button>
       <button class="pb" onclick="showPhone('ph-plan-detail-complete')">Dokončený plán</button>
       <button class="pb" onclick="showPhone('ph-nutrition-plan-detail')">Detail výživového plánu</button>
+      <button class="pb" onclick="showPhone('ph-training-plan-detail')">Detail tréninku</button>
+      <button class="pb" onclick="showPhone('ph-live-training')">Živý trénink</button>
       <button class="pb" onclick="showPhone('ph-food-detail')">Detail potraviny</button>
       <button class="pb" onclick="showPhone('ph-recipe-detail')">Detail receptu</button>
       <button class="pb" onclick="showPhone('ph-onb-intro')">Dotazník — intro</button>
@@ -833,13 +865,13 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
             <div style="flex:1;height:28%;background:var(--ios-gold);border-radius:2px"></div>
           </div>
         </div>
-        <div style="flex:1;background:var(--ios-bg2);border-radius:var(--ios-r);padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)">
+        <div id="today-training-stat-card" style="flex:1;background:var(--ios-bg2);border-radius:var(--ios-r);padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)">
           <div style="font-size:11px;color:var(--ios-label2);font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Trénink</div>
-          <div style="font-size:22px;font-weight:700;color:var(--ios-label);letter-spacing:-.3px">Push A</div>
-          <div style="font-size:11px;color:var(--ios-label3);margin-top:1px">5 cviků · 60 min</div>
+          <div style="font-size:22px;font-weight:700;color:var(--ios-label);letter-spacing:-.3px">2 tréninky</div>
+          <div style="font-size:11px;color:var(--ios-label3);margin-top:1px">7 cviků · 95 min</div>
           <div style="margin-top:6px;display:inline-flex;align-items:center;gap:4px;background:rgba(52,199,89,.12);border-radius:99px;padding:2px 8px">
             <div style="width:5px;height:5px;border-radius:50%;background:var(--ios-green)"></div>
-            <span style="font-size:11px;font-weight:600;color:var(--ios-green)">Čeká</span>
+            <span style="font-size:11px;font-weight:600;color:var(--ios-green)"><span class="tp-stat-done">2</span>/<span class="tp-stat-total">7</span> hotovo</span>
           </div>
         </div>
         <div style="flex:1;background:var(--ios-bg2);border-radius:var(--ios-r);padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)">
@@ -850,59 +882,265 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
         </div>
       </div>
 
+      <div id="today-pending-banners-inline" style="margin:12px 20px 0;display:flex;flex-direction:column;gap:10px"></div>
+
+      <!-- Resume banner — shown when a live session is in progress -->
+      <div id="today-resume-banner" style="display:none;margin:14px 20px 0;background:var(--ios-bg2);border:1.5px solid var(--ios-gold);border-radius:var(--ios-r);padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)">
+        <div style="width:38px;height:38px;border-radius:12px;background:rgba(201,168,76,.15);color:var(--ios-gold);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">▶</div>
+        <div style="flex:1;min-width:0">
+          <div class="lt-resume-label" style="font-size:14px;font-weight:600;color:var(--ios-label);line-height:1.25">Pokračovat v tréninku</div>
+          <div style="font-size:12px;color:var(--ios-label2);margin-top:2px">Nedokončený trénink čeká</div>
+        </div>
+        <div onclick="liveResumeFromBanner()" style="padding:8px 14px;border-radius:99px;background:var(--ios-gold);font-size:13px;font-weight:600;color:#fff;cursor:pointer;white-space:nowrap;flex-shrink:0">Pokračovat</div>
+        <div onclick="liveDiscardFromBanner()" style="font-size:12px;font-weight:600;color:var(--ios-label3);cursor:pointer;padding:6px;flex-shrink:0">Zahodit</div>
+      </div>
+
       <!-- Training card -->
-      <div class="ios-section-hdr"><div class="ios-section-title">Dnešní trénink</div><span class="ios-section-action">Detail</span></div>
-      <div class="ios-card">
-        <div class="ios-card-hero grad-push" style="display:flex;align-items:center;padding:20px">
-          <div>
-            <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Silový A/B · Týden 3</div>
-            <div style="font-size:26px;font-weight:700;color:#fff;letter-spacing:-.3px">Push A</div>
-            <div style="font-size:14px;color:rgba(255,255,255,.7);margin-top:4px">5 cviků · 60 min · odpočinek 90s</div>
-            <div style="display:flex;gap:6px;margin-top:10px">
-              <span style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:99px;background:rgba(201,168,76,.2);color:#c9a84c">Hrudník</span>
-              <span style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:99px;background:rgba(175,82,222,.2);color:#af52de">Ramena</span>
-              <span style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:99px;background:rgba(255,149,0,.2);color:#ff9500">Paže</span>
+      <div class="ios-section-hdr"><div class="ios-section-title">Dnešní trénink</div><span class="ios-section-action" onclick="showPhone('ph-training-plan-detail')">Detail</span></div>
+      <div class="ios-card" id="today-training-card">
+        <div class="ios-card-hero grad-push" style="padding:16px 20px 14px">
+          <div style="display:flex;align-items:flex-start;gap:12px">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Silový A/B · Týden 3</div>
+              <div style="font-size:22px;font-weight:700;color:#fff;letter-spacing:-.3px">2 tréninkové jednotky</div>
+              <div style="font-size:13px;color:rgba(255,255,255,.7);margin-top:2px">7 cviků · 95 min</div>
+              <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+                <span style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:99px;background:rgba(201,168,76,.2);color:#c9a84c">Hrudník</span>
+                <span style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:99px;background:rgba(175,82,222,.2);color:#af52de">Ramena</span>
+                <span style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:99px;background:rgba(255,149,0,.2);color:#ff9500">Paže</span>
+                <span style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:99px;background:rgba(62,215,190,.22);color:#3ed7be">Záda</span>
+              </div>
             </div>
-          </div>
-          <div style="margin-left:auto;flex-shrink:0">
-            <div class="prog-ring">
-              <svg width="56" height="56" viewBox="0 0 56 56">
-                <circle cx="28" cy="28" r="23" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="5"/>
-                <circle cx="28" cy="28" r="23" fill="none" stroke="#c9a84c" stroke-width="5" stroke-dasharray="144" stroke-dashoffset="72" stroke-linecap="round"/>
-              </svg>
-              <div class="prog-ring-label" style="color:#fff;font-size:12px">3/5</div>
+            <div style="flex-shrink:0">
+              <div class="prog-ring">
+                <svg width="56" height="56" viewBox="0 0 56 56">
+                  <circle cx="28" cy="28" r="23" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="5"/>
+                  <circle class="tp-day-progress-ring" cx="28" cy="28" r="23" fill="none" stroke="#c9a84c" stroke-width="5" stroke-dasharray="144" stroke-dashoffset="103" stroke-linecap="round"/>
+                </svg>
+                <div class="prog-ring-label tp-day-progress-ringlabel" style="color:#fff;font-size:12px">2/7</div>
+              </div>
             </div>
           </div>
         </div>
+
+        <!-- Trainer day note -->
+        <div style="padding:10px 16px;background:rgba(201,168,76,.08);border-bottom:.5px solid var(--ios-sep2);font-size:12px;color:var(--ios-label2);line-height:1.45">
+          <span style="font-weight:600;color:var(--ios-gold)">Pozn k dni:</span> Důraz na techniku, ne na váhu. Mezi tréninky alespoň 4 h pauza.
+        </div>
+
         <div style="background:var(--ios-bg2)">
-          <div class="ex-ios-row">
-            <div class="ex-ios-dot" style="background:#0b6e99"></div>
-            <div class="ex-ios-info"><div class="ex-ios-name">Bench press s činkou</div><div class="ex-ios-sets">4 série · 8–10 opak. · 80 kg</div></div>
-            <div class="ex-ios-done done">✓</div>
+
+          <!-- ── SESSION 1 — Ranní trénink (Push A, 2/4 done) ── -->
+          <div class="tp-session expanded" data-session-id="session-1" style="margin:12px 16px;box-shadow:0 2px 8px rgba(0,0,0,.06)" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.ios-btn')||event.target.closest('.ex-ios-done')||event.target.closest('.lt-session-cta-footer'))return;this.classList.toggle('expanded')">
+            <div class="tp-session-header">
+              <div class="tp-session-order">1</div>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:15px;font-weight:600;color:var(--ios-label)">Ranní trénink · Push A</div>
+                <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">08:00 · 4 cviky · 45 min</div>
+              </div>
+              <div class="ex-ios-done" onclick="event.stopPropagation();todaySessionCheck(this)"></div>
+              <span class="tp-session-chev">▼</span>
+            </div>
+            <div class="tp-session-body">
+              <div class="tp-session-exercises">
+                <!-- S1 · EX1 Bench press — done -->
+                <div class="tp-ex-card" onclick="event.stopPropagation();todayExToggle(this)">
+                  <div class="tp-ex-header">
+                    <div class="ex-ios-dot" style="background:#0b6e99"></div>
+                    <div style="flex:1;min-width:0">
+                      <div style="font-size:15px;font-weight:var(--sf-semi);color:var(--ios-label)">Bench press s činkou</div>
+                      <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">4 série · 8–10 opak · 80 kg</div>
+                    </div>
+                    <div class="ex-ios-done done" onclick="event.stopPropagation();todayExCheck(this)">✓</div>
+                    <span class="tp-ex-chev">▼</span>
+                  </div>
+                  <div class="tp-ex-body" style="border-top:.5px solid var(--ios-sep2);background:var(--ios-fill2)">
+                    <div class="tp-ex-set-grid" style="padding:4px 16px 0">
+                      <div class="tp-set-hdr">S</div><div class="tp-set-hdr">Opak.</div><div class="tp-set-hdr">Váha</div><div class="tp-set-hdr">Odp.</div><div class="tp-set-hdr">Stav</div>
+                      <div class="tp-set-cell">1</div><div class="tp-set-cell">10</div><div class="tp-set-cell">80 kg</div><div class="tp-set-cell">90 s</div><div class="tp-set-cell" style="color:var(--ios-green);font-weight:var(--sf-semi)">✓</div>
+                      <div class="tp-set-cell">2</div><div class="tp-set-cell">10</div><div class="tp-set-cell">80 kg</div><div class="tp-set-cell">90 s</div><div class="tp-set-cell" style="color:var(--ios-green);font-weight:var(--sf-semi)">✓</div>
+                      <div class="tp-set-cell">3</div><div class="tp-set-cell">9</div><div class="tp-set-cell">82,5 kg</div><div class="tp-set-cell">90 s</div><div class="tp-set-cell" style="color:var(--ios-green);font-weight:var(--sf-semi)">✓</div>
+                      <div class="tp-set-cell" style="border:none">4</div><div class="tp-set-cell" style="border:none">8</div><div class="tp-set-cell" style="border:none">82,5 kg</div><div class="tp-set-cell" style="border:none">90 s</div><div class="tp-set-cell" style="border:none;color:var(--ios-green);font-weight:var(--sf-semi)">✓</div>
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-top:.5px solid var(--ios-sep2)">
+                      <div style="font-size:12px;font-weight:var(--sf-semi);color:var(--ios-label2)">Celkem</div>
+                      <div style="font-size:12px;font-weight:var(--sf-semi);color:var(--ios-label)">37 opak · 2 985 kg</div>
+                    </div>
+                    <div style="padding:10px 16px;background:rgba(201,168,76,.04);border-top:.5px solid var(--ios-sep2)">
+                      <div style="font-size:12px;color:var(--ios-label2);line-height:1.45"><span style="font-weight:var(--sf-semi);color:var(--ios-gold)">Pozn:</span> Zvyš poslední 2 série o 2,5 kg. Drž lopatky stažené.</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- S1 · EX2 Vojenský tlak — done -->
+                <div class="tp-ex-card" onclick="event.stopPropagation();todayExToggle(this)">
+                  <div class="tp-ex-header">
+                    <div class="ex-ios-dot" style="background:#af52de"></div>
+                    <div style="flex:1;min-width:0">
+                      <div style="font-size:15px;font-weight:var(--sf-semi);color:var(--ios-label)">Vojenský tlak</div>
+                      <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">3 série · 10–12 opak · 55 kg</div>
+                    </div>
+                    <div class="ex-ios-done done" onclick="event.stopPropagation();todayExCheck(this)">✓</div>
+                    <span class="tp-ex-chev">▼</span>
+                  </div>
+                  <div class="tp-ex-body" style="border-top:.5px solid var(--ios-sep2);background:var(--ios-fill2)">
+                    <div class="tp-ex-set-grid" style="padding:4px 16px 0">
+                      <div class="tp-set-hdr">S</div><div class="tp-set-hdr">Opak.</div><div class="tp-set-hdr">Váha</div><div class="tp-set-hdr">Odp.</div><div class="tp-set-hdr">Stav</div>
+                      <div class="tp-set-cell">1</div><div class="tp-set-cell">12</div><div class="tp-set-cell">55 kg</div><div class="tp-set-cell">90 s</div><div class="tp-set-cell" style="color:var(--ios-green);font-weight:var(--sf-semi)">✓</div>
+                      <div class="tp-set-cell">2</div><div class="tp-set-cell">11</div><div class="tp-set-cell">55 kg</div><div class="tp-set-cell">90 s</div><div class="tp-set-cell" style="color:var(--ios-green);font-weight:var(--sf-semi)">✓</div>
+                      <div class="tp-set-cell" style="border:none">3</div><div class="tp-set-cell" style="border:none">10</div><div class="tp-set-cell" style="border:none">55 kg</div><div class="tp-set-cell" style="border:none">90 s</div><div class="tp-set-cell" style="border:none;color:var(--ios-green);font-weight:var(--sf-semi)">✓</div>
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-top:.5px solid var(--ios-sep2)">
+                      <div style="font-size:12px;font-weight:var(--sf-semi);color:var(--ios-label2)">Celkem</div>
+                      <div style="font-size:12px;font-weight:var(--sf-semi);color:var(--ios-label)">33 opak · 1 815 kg</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- S1 · EX3 Kliky na bradlech — pending -->
+                <div class="tp-ex-card" onclick="event.stopPropagation();todayExToggle(this)">
+                  <div class="tp-ex-header">
+                    <div class="ex-ios-dot" style="background:#0b6e99"></div>
+                    <div style="flex:1;min-width:0">
+                      <div style="font-size:15px;font-weight:var(--sf-semi);color:var(--ios-label)">Kliky na bradlech</div>
+                      <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">3 série · 12 opak · BW</div>
+                    </div>
+                    <div class="ex-ios-done" onclick="event.stopPropagation();todayExCheck(this)"></div>
+                    <span class="tp-ex-chev">▼</span>
+                  </div>
+                  <div class="tp-ex-body" style="border-top:.5px solid var(--ios-sep2);background:var(--ios-fill2)">
+                    <div class="tp-ex-set-grid" style="padding:4px 16px 0">
+                      <div class="tp-set-hdr">S</div><div class="tp-set-hdr">Opak.</div><div class="tp-set-hdr">Váha</div><div class="tp-set-hdr">Odp.</div><div class="tp-set-hdr">Stav</div>
+                      <div class="tp-set-cell">1</div><div class="tp-set-cell">12</div><div class="tp-set-cell">BW</div><div class="tp-set-cell">90 s</div><div class="tp-set-cell" style="color:var(--ios-label3)">—</div>
+                      <div class="tp-set-cell">2</div><div class="tp-set-cell">12</div><div class="tp-set-cell">BW</div><div class="tp-set-cell">90 s</div><div class="tp-set-cell" style="color:var(--ios-label3)">—</div>
+                      <div class="tp-set-cell" style="border:none">3</div><div class="tp-set-cell" style="border:none">12</div><div class="tp-set-cell" style="border:none">BW</div><div class="tp-set-cell" style="border:none">90 s</div><div class="tp-set-cell" style="border:none;color:var(--ios-label3)">—</div>
+                    </div>
+                    <div style="padding:10px 16px;background:rgba(201,168,76,.04);border-top:.5px solid var(--ios-sep2)">
+                      <div style="font-size:12px;color:var(--ios-label2);line-height:1.45"><span style="font-weight:var(--sf-semi);color:var(--ios-gold)">Pozn:</span> Lokty u těla, tělo mírně nakloň dopředu kvůli zapojení hrudníku.</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- S1 · EX4 Laterální zdvihy — pending -->
+                <div class="tp-ex-card" onclick="event.stopPropagation();todayExToggle(this)">
+                  <div class="tp-ex-header">
+                    <div class="ex-ios-dot" style="background:#ff9500"></div>
+                    <div style="flex:1;min-width:0">
+                      <div style="font-size:15px;font-weight:var(--sf-semi);color:var(--ios-label)">Laterální zdvihy</div>
+                      <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">3 série · 15 opak · 12 kg</div>
+                    </div>
+                    <div class="ex-ios-done" onclick="event.stopPropagation();todayExCheck(this)"></div>
+                    <span class="tp-ex-chev">▼</span>
+                  </div>
+                  <div class="tp-ex-body" style="border-top:.5px solid var(--ios-sep2);background:var(--ios-fill2)">
+                    <div class="tp-ex-set-grid" style="padding:4px 16px 0">
+                      <div class="tp-set-hdr">S</div><div class="tp-set-hdr">Opak.</div><div class="tp-set-hdr">Váha</div><div class="tp-set-hdr">Odp.</div><div class="tp-set-hdr">Stav</div>
+                      <div class="tp-set-cell">1</div><div class="tp-set-cell">15</div><div class="tp-set-cell">12 kg</div><div class="tp-set-cell">60 s</div><div class="tp-set-cell" style="color:var(--ios-label3)">—</div>
+                      <div class="tp-set-cell">2</div><div class="tp-set-cell">15</div><div class="tp-set-cell">12 kg</div><div class="tp-set-cell">60 s</div><div class="tp-set-cell" style="color:var(--ios-label3)">—</div>
+                      <div class="tp-set-cell" style="border:none">3</div><div class="tp-set-cell" style="border:none">15</div><div class="tp-set-cell" style="border:none">12 kg</div><div class="tp-set-cell" style="border:none">60 s</div><div class="tp-set-cell" style="border:none;color:var(--ios-label3)">—</div>
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-top:.5px solid var(--ios-sep2)">
+                      <div style="font-size:12px;font-weight:var(--sf-semi);color:var(--ios-label2)">Celkem</div>
+                      <div style="font-size:12px;font-weight:var(--sf-semi);color:var(--ios-label)">45 opak · 540 kg</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="lt-session-cta-footer">
+              <!-- Populated by scripts/live-training.js -->
+            </div>
           </div>
-          <div class="ex-ios-row">
-            <div class="ex-ios-dot" style="background:#0b6e99"></div>
-            <div class="ex-ios-info"><div class="ex-ios-name">Vojenský tlak</div><div class="ex-ios-sets">3 série · 10–12 opak. · 55 kg</div></div>
-            <div class="ex-ios-done done">✓</div>
+
+          <!-- ── SESSION 2 — Odpolední trénink (Pull A, 0/3 done) ── -->
+          <div class="tp-session expanded" data-session-id="session-2" style="margin:0 16px 12px;box-shadow:0 2px 8px rgba(0,0,0,.06)" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.ios-btn')||event.target.closest('.ex-ios-done')||event.target.closest('.lt-session-cta-footer'))return;this.classList.toggle('expanded')">
+            <div class="tp-session-header">
+              <div class="tp-session-order">2</div>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:15px;font-weight:600;color:var(--ios-label)">Odpolední trénink · Pull A</div>
+                <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">17:30 · 3 cviky · 50 min</div>
+              </div>
+              <div class="ex-ios-done" onclick="event.stopPropagation();todaySessionCheck(this)"></div>
+              <span class="tp-session-chev">▼</span>
+            </div>
+            <div class="tp-session-body">
+              <div class="tp-session-exercises">
+                <!-- S2 · EX1 T-bar přítahy -->
+                <div class="tp-ex-card" onclick="event.stopPropagation();todayExToggle(this)">
+                  <div class="tp-ex-header">
+                    <div class="ex-ios-dot" style="background:#3ed7be"></div>
+                    <div style="flex:1;min-width:0">
+                      <div style="font-size:15px;font-weight:var(--sf-semi);color:var(--ios-label)">T-bar přítahy</div>
+                      <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">3 série · 8 opak · 60 kg</div>
+                    </div>
+                    <div class="ex-ios-done" onclick="event.stopPropagation();todayExCheck(this)"></div>
+                    <span class="tp-ex-chev">▼</span>
+                  </div>
+                  <div class="tp-ex-body" style="border-top:.5px solid var(--ios-sep2);background:var(--ios-fill2)">
+                    <div class="tp-ex-set-grid" style="padding:4px 16px 0">
+                      <div class="tp-set-hdr">S</div><div class="tp-set-hdr">Opak.</div><div class="tp-set-hdr">Váha</div><div class="tp-set-hdr">Odp.</div><div class="tp-set-hdr">Stav</div>
+                      <div class="tp-set-cell">1</div><div class="tp-set-cell">8</div><div class="tp-set-cell">60 kg</div><div class="tp-set-cell">90 s</div><div class="tp-set-cell" style="color:var(--ios-label3)">—</div>
+                      <div class="tp-set-cell">2</div><div class="tp-set-cell">8</div><div class="tp-set-cell">60 kg</div><div class="tp-set-cell">90 s</div><div class="tp-set-cell" style="color:var(--ios-label3)">—</div>
+                      <div class="tp-set-cell" style="border:none">3</div><div class="tp-set-cell" style="border:none">8</div><div class="tp-set-cell" style="border:none">60 kg</div><div class="tp-set-cell" style="border:none">90 s</div><div class="tp-set-cell" style="border:none;color:var(--ios-label3)">—</div>
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-top:.5px solid var(--ios-sep2)">
+                      <div style="font-size:12px;font-weight:var(--sf-semi);color:var(--ios-label2)">Celkem</div>
+                      <div style="font-size:12px;font-weight:var(--sf-semi);color:var(--ios-label)">24 opak · 1 440 kg</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- S2 · EX2 Přítahy na kladce -->
+                <div class="tp-ex-card" onclick="event.stopPropagation();todayExToggle(this)">
+                  <div class="tp-ex-header">
+                    <div class="ex-ios-dot" style="background:#3ed7be"></div>
+                    <div style="flex:1;min-width:0">
+                      <div style="font-size:15px;font-weight:var(--sf-semi);color:var(--ios-label)">Přítahy na kladce vsedě</div>
+                      <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">3 série · 10–12 opak · 50 kg</div>
+                    </div>
+                    <div class="ex-ios-done" onclick="event.stopPropagation();todayExCheck(this)"></div>
+                    <span class="tp-ex-chev">▼</span>
+                  </div>
+                  <div class="tp-ex-body" style="border-top:.5px solid var(--ios-sep2);background:var(--ios-fill2)">
+                    <div class="tp-ex-set-grid" style="padding:4px 16px 0">
+                      <div class="tp-set-hdr">S</div><div class="tp-set-hdr">Opak.</div><div class="tp-set-hdr">Váha</div><div class="tp-set-hdr">Odp.</div><div class="tp-set-hdr">Stav</div>
+                      <div class="tp-set-cell">1</div><div class="tp-set-cell">12</div><div class="tp-set-cell">50 kg</div><div class="tp-set-cell">75 s</div><div class="tp-set-cell" style="color:var(--ios-label3)">—</div>
+                      <div class="tp-set-cell">2</div><div class="tp-set-cell">11</div><div class="tp-set-cell">50 kg</div><div class="tp-set-cell">75 s</div><div class="tp-set-cell" style="color:var(--ios-label3)">—</div>
+                      <div class="tp-set-cell" style="border:none">3</div><div class="tp-set-cell" style="border:none">10</div><div class="tp-set-cell" style="border:none">50 kg</div><div class="tp-set-cell" style="border:none">75 s</div><div class="tp-set-cell" style="border:none;color:var(--ios-label3)">—</div>
+                    </div>
+                    <div style="padding:10px 16px;background:rgba(201,168,76,.04);border-top:.5px solid var(--ios-sep2)">
+                      <div style="font-size:12px;color:var(--ios-label2);line-height:1.45"><span style="font-weight:var(--sf-semi);color:var(--ios-gold)">Pozn:</span> Tah k pupku, lokty u těla, drž záda rovně.</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- S2 · EX3 Biceps s činkou -->
+                <div class="tp-ex-card" onclick="event.stopPropagation();todayExToggle(this)">
+                  <div class="tp-ex-header">
+                    <div class="ex-ios-dot" style="background:#ff9500"></div>
+                    <div style="flex:1;min-width:0">
+                      <div style="font-size:15px;font-weight:var(--sf-semi);color:var(--ios-label)">Biceps s činkou</div>
+                      <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">3 série · 12 opak · 25 kg</div>
+                    </div>
+                    <div class="ex-ios-done" onclick="event.stopPropagation();todayExCheck(this)"></div>
+                    <span class="tp-ex-chev">▼</span>
+                  </div>
+                  <div class="tp-ex-body" style="border-top:.5px solid var(--ios-sep2);background:var(--ios-fill2)">
+                    <div class="tp-ex-set-grid" style="padding:4px 16px 0">
+                      <div class="tp-set-hdr">S</div><div class="tp-set-hdr">Opak.</div><div class="tp-set-hdr">Váha</div><div class="tp-set-hdr">Odp.</div><div class="tp-set-hdr">Stav</div>
+                      <div class="tp-set-cell">1</div><div class="tp-set-cell">12</div><div class="tp-set-cell">25 kg</div><div class="tp-set-cell">60 s</div><div class="tp-set-cell" style="color:var(--ios-label3)">—</div>
+                      <div class="tp-set-cell">2</div><div class="tp-set-cell">12</div><div class="tp-set-cell">25 kg</div><div class="tp-set-cell">60 s</div><div class="tp-set-cell" style="color:var(--ios-label3)">—</div>
+                      <div class="tp-set-cell" style="border:none">3</div><div class="tp-set-cell" style="border:none">12</div><div class="tp-set-cell" style="border:none">25 kg</div><div class="tp-set-cell" style="border:none">60 s</div><div class="tp-set-cell" style="border:none;color:var(--ios-label3)">—</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="lt-session-cta-footer">
+              <!-- Populated by scripts/live-training.js -->
+            </div>
           </div>
-          <div class="ex-ios-row">
-            <div class="ex-ios-dot" style="background:#af52de"></div>
-            <div class="ex-ios-info"><div class="ex-ios-name">Kliky na bradlech</div><div class="ex-ios-sets">3 série · 12 opak. · BW</div></div>
-            <div class="ex-ios-done done">✓</div>
-          </div>
-          <div class="ex-ios-row">
-            <div class="ex-ios-dot" style="background:#ff9500"></div>
-            <div class="ex-ios-info"><div class="ex-ios-name">Laterální zdvihy</div><div class="ex-ios-sets">3 série · 15 opak. · 12 kg</div></div>
-            <div class="ex-ios-done"></div>
-          </div>
-          <div class="ex-ios-row">
-            <div class="ex-ios-dot" style="background:#ff9500"></div>
-            <div class="ex-ios-info"><div class="ex-ios-name">Tricepsový pushdown</div><div class="ex-ios-sets">3 série · 12–15 opak. · 25 kg</div></div>
-            <div class="ex-ios-done"></div>
-          </div>
-          <div style="padding:12px 16px">
-            <div class="ios-btn ios-btn-primary" style="font-size:15px;padding:12px">Pokračovat v tréninku</div>
-          </div>
+
         </div>
       </div>
 
@@ -1121,6 +1359,7 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
   </div>
 </div>
 </div>
+
 
 <!-- ═══════════════════════════════════════════
      SPOLUPRÁCE
@@ -1449,7 +1688,7 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
 
     <!-- Active training plan -->
     <div class="ios-section-hdr"><div class="ios-section-title">Trénink</div></div>
-    <div class="ios-card">
+    <div class="ios-card" style="cursor:pointer" onclick="showPhone('ph-training-plan-detail')">
       <div class="ios-card-hero grad-push" style="padding:20px;display:flex;flex-direction:column;justify-content:flex-end">
         <div class="ios-card-tag" style="background:rgba(52,199,89,.2);color:#34c759">● Aktivní</div>
         <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Tréninkový plán</div>
@@ -1923,6 +2162,22 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
       </div>
     </div>
 
+    <!-- Personal records -->
+    <div class="ios-section-hdr"><div class="ios-section-title">Osobní rekordy</div><span class="ios-section-action" onclick="openPrSheet()">Všechny</span></div>
+    <div class="ios-card">
+      <div style="background:var(--ios-bg2)">
+        <div id="profile-prs-list">
+          <!-- Populated by scripts/records.js with the two most recent PRs -->
+        </div>
+        <div onclick="openPrSheet()" style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-top:.5px solid var(--ios-sep2);cursor:pointer">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ios-label2)" stroke-width="2" stroke-linecap="round"><path d="M8 21h8M12 3v18M7 8l5-5 5 5"/></svg>
+          <span style="font-size:15px;font-weight:500;color:var(--ios-label);flex:1">Zobrazit všechny rekordy</span>
+          <span id="pr-count" style="font-size:13px;color:var(--ios-label3)">6</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ios-label3)" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+      </div>
+    </div>
+
     <!-- Profile settings -->
     <div class="ios-section-hdr"><div class="ios-section-title">Profil</div><span class="ios-section-action">Upravit</span></div>
     <div class="ios-list">
@@ -1968,6 +2223,18 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
       <div class="weight-sheet-handle"></div>
       <div class="weight-sheet-title">Historie měření</div>
       <div id="history-sheet-list" style="overflow-y:auto;flex:1;padding-bottom:34px">
+        <!-- Dynamically populated -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Personal records bottom sheet -->
+  <div class="weight-sheet-overlay" id="pr-sheet" onclick="if(event.target===this)closePrSheet()">
+    <div class="weight-sheet" style="max-height:80%;display:flex;flex-direction:column">
+      <div class="weight-sheet-handle"></div>
+      <div class="weight-sheet-title">Osobní rekordy</div>
+      <div style="padding:0 20px 6px;font-size:12px;color:var(--ios-label3);text-align:center">Seřazeno od nejstaršího po nejnovější</div>
+      <div id="pr-sheet-list" style="overflow-y:auto;flex:1;padding-bottom:34px">
         <!-- Dynamically populated -->
       </div>
     </div>
@@ -3256,22 +3523,28 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
 
   <!-- Fixed header area (does not scroll) -->
   <div style="flex-shrink:0">
-    <!-- Nav header with stepper + action icons -->
-    <div style="display:flex;align-items:center;padding:8px 14px 4px;user-select:none">
-      <span style="font-size:17px;color:var(--ios-blue);cursor:pointer;flex-shrink:0;padding-right:4px" onclick="showPhone('ph-plans')">‹ Plány</span>
-      <div style="flex:1;display:flex;align-items:center;justify-content:center;gap:10px">
-        <span onclick="npStepWeek(-1)" style="font-size:18px;color:var(--ios-blue);cursor:pointer;padding:2px;font-weight:500">‹</span>
-        <div onclick="npOpenWeekGrid()" style="text-align:center;cursor:pointer">
-          <div id="np-week-label" style="font-size:16px;font-weight:600;color:var(--ios-label);letter-spacing:-.2px">Týden 4 z 12</div>
-          <div id="np-week-dates" style="font-size:11px;color:var(--ios-label2);margin-top:1px">23. 3. – 29. 3. 2026</div>
-        </div>
-        <span onclick="npStepWeek(1)" style="font-size:18px;color:var(--ios-blue);cursor:pointer;padding:2px;font-weight:500">›</span>
+
+    <!-- ── 1. Header row: back + week stepper + chip icons ── -->
+    <div style="position:relative;display:flex;align-items:center;justify-content:center;gap:10px;padding:8px 16px 4px;user-select:none;min-height:44px">
+      <!-- Back button (absolute left) -->
+      <div style="position:absolute;left:8px;top:0;bottom:0;display:flex;align-items:center;gap:2px;cursor:pointer" onclick="showPhone('ph-plans')">
+        <span style="font-size:22px;color:var(--ios-gold);font-weight:500">&lsaquo;</span>
+        <span style="font-size:17px;color:var(--ios-gold)">Plans</span>
       </div>
-      <div style="width:30px;height:30px;border-radius:50%;background:var(--ios-fill);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;margin-right:6px" title="Dotazník">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ios-label2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+      <!-- Week stepper (centered) -->
+      <span onclick="npStepWeek(-1)" style="font-size:18px;color:var(--ios-gold);cursor:pointer;padding:2px;font-weight:500">&lsaquo;</span>
+      <div onclick="npOpenWeekGrid()" style="text-align:center;cursor:pointer">
+        <div id="np-week-label" style="font-size:16px;font-weight:600;color:var(--ios-label);letter-spacing:-.2px">Týden 4 z 12</div>
+        <div id="np-week-dates" style="font-size:11px;color:var(--ios-label2);margin-top:1px">14. 4. – 20. 4.</div>
       </div>
-      <div style="width:30px;height:30px;border-radius:50%;background:var(--ios-fill);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0" title="Nákupní seznam">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ios-label2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+      <span onclick="npStepWeek(1)" style="font-size:18px;color:var(--ios-gold);cursor:pointer;padding:2px;font-weight:500">&rsaquo;</span>
+      <!-- Questionnaire chip (absolute right:60) -->
+      <div style="position:absolute;right:60px;top:50%;margin-top:-18px;width:36px;height:36px;border-radius:10px;background:var(--ios-fill);display:flex;align-items:center;justify-content:center;cursor:pointer" title="Dotazník">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ios-label)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/></svg>
+      </div>
+      <!-- Shopping chip (absolute right:16) -->
+      <div style="position:absolute;right:16px;top:50%;margin-top:-18px;width:36px;height:36px;border-radius:10px;background:var(--ios-fill);display:flex;align-items:center;justify-content:center;cursor:pointer" title="Nákupní seznam">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ios-label)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.52 2.64L3.96 7h16.08l-1.56-4.36A2 2 0 0016.6 1H7.4a2 2 0 00-1.88 1.64z"/><path d="M4 7v12a2 2 0 002 2h12a2 2 0 002-2V7"/><line x1="10" y1="12" x2="10" y2="17"/><line x1="14" y1="12" x2="14" y2="17"/></svg>
       </div>
     </div>
 
@@ -3281,80 +3554,75 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
       </div>
     </div>
 
-    <!-- ── DAY STRIP (fixed, always visible) ── -->
+    <!-- ── 2. Day strip (7 columns) ── -->
     <div class="week-strip" id="np-day-strip" style="border-bottom:.5px solid rgba(0,0,0,.08)">
-      <div class="week-day" onclick="npSelectDay(1)" data-np-day="1"><div class="week-day-lbl">Po</div><div class="week-day-num" style="background:rgba(52,199,89,.15);color:var(--ios-green);font-size:14px">✓</div><div class="week-day-dot" style="background:var(--ios-green)"></div></div>
-      <div class="week-day" onclick="npSelectDay(2)" data-np-day="2"><div class="week-day-lbl">Út</div><div class="week-day-num" style="background:rgba(52,199,89,.15);color:var(--ios-green);font-size:14px">✓</div><div class="week-day-dot" style="background:var(--ios-green)"></div></div>
-      <div class="week-day" onclick="npSelectDay(3)" data-np-day="3"><div class="week-day-lbl">St</div><div class="week-day-num" style="background:rgba(52,199,89,.15);color:var(--ios-green);font-size:14px">✓</div><div class="week-day-dot" style="background:var(--ios-green)"></div></div>
-      <div class="week-day today" onclick="npSelectDay(4)" data-np-day="4"><div class="week-day-lbl">Čt</div><div class="week-day-num">26</div><div class="week-day-dot" style="background:var(--ios-gold)"></div></div>
-      <div class="week-day" onclick="npSelectDay(5)" data-np-day="5"><div class="week-day-lbl">Pá</div><div class="week-day-num" style="color:var(--ios-label3)">27</div><div class="week-day-dot" style="background:var(--ios-fill)"></div></div>
-      <div class="week-day" onclick="npSelectDay(6)" data-np-day="6"><div class="week-day-lbl">So</div><div class="week-day-num" style="color:var(--ios-label3)">28</div><div class="week-day-dot" style="background:var(--ios-fill)"></div></div>
-      <div class="week-day" onclick="npSelectDay(7)" data-np-day="7"><div class="week-day-lbl">Ne</div><div class="week-day-num" style="color:var(--ios-label3)">29</div><div class="week-day-dot" style="background:var(--ios-fill)"></div></div>
+      <div class="week-day" onclick="npSelectDay(1)" data-np-day="1"><div class="week-day-lbl" style="color:var(--ios-gold)">PO</div><div class="week-day-num" style="background:rgba(52,199,89,.15);color:var(--ios-green);font-size:14px">&#10003;</div><div class="week-day-dot" style="background:var(--ios-green)"></div></div>
+      <div class="week-day" onclick="npSelectDay(2)" data-np-day="2"><div class="week-day-lbl" style="color:var(--ios-gold)">UT</div><div class="week-day-num" style="background:rgba(52,199,89,.15);color:var(--ios-green);font-size:14px">&#10003;</div><div class="week-day-dot" style="background:var(--ios-green)"></div></div>
+      <div class="week-day" onclick="npSelectDay(3)" data-np-day="3"><div class="week-day-lbl" style="color:var(--ios-gold)">ST</div><div class="week-day-num" style="background:rgba(52,199,89,.15);color:var(--ios-green);font-size:14px">&#10003;</div><div class="week-day-dot" style="background:var(--ios-green)"></div></div>
+      <div class="week-day today" onclick="npSelectDay(4)" data-np-day="4"><div class="week-day-lbl" style="color:var(--ios-gold)">CT</div><div class="week-day-num" style="background:var(--ios-gold);color:#fff">17</div><div class="week-day-dot" style="background:var(--ios-gold)"></div></div>
+      <div class="week-day" onclick="npSelectDay(5)" data-np-day="5"><div class="week-day-lbl">PA</div><div class="week-day-num" style="color:var(--ios-label3)">18</div><div class="week-day-dot" style="background:var(--ios-fill)"></div></div>
+      <div class="week-day" onclick="npSelectDay(6)" data-np-day="6"><div class="week-day-lbl">SO</div><div class="week-day-num" style="color:var(--ios-label3)">19</div><div class="week-day-dot" style="background:var(--ios-fill)"></div></div>
+      <div class="week-day" onclick="npSelectDay(7)" data-np-day="7"><div class="week-day-lbl">NE</div><div class="week-day-num" style="color:var(--ios-label3)">20</div><div class="week-day-dot" style="background:var(--ios-fill)"></div></div>
     </div>
   </div>
 
   <!-- Scrollable content area -->
   <div id="np-scroll" style="flex:1;overflow-y:auto;overflow-x:hidden;padding-top:8px">
 
-    <!-- ── DAY OVERVIEW CARD ── -->
+    <!-- ── 3. Daily overview card ── -->
     <div id="np-day-content">
       <div style="margin:0 20px 12px;background:var(--ios-bg2);border-radius:var(--ios-r-lg);padding:14px 16px;box-shadow:0 4px 12px rgba(0,0,0,.12)">
         <!-- Header: label + kcal -->
         <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px">
           <div style="font-size:15px;font-weight:600;color:var(--ios-label)">Denní přehled</div>
-          <div style="font-size:20px;font-weight:700;color:var(--ios-label);letter-spacing:-.3px">0 <span style="font-size:13px;font-weight:400;color:var(--ios-label2)">/ 1 700 kcal</span></div>
+          <div style="font-size:20px;font-weight:700;color:var(--ios-label);letter-spacing:-.3px">1 406 <span style="font-size:13px;font-weight:400;color:var(--ios-label2)">/ 1 406 kcal</span></div>
         </div>
-        <!-- Macro bars (horizontal layout) -->
+        <!-- Macro bars — token colors matching app: protein=blue, carbs=orange, fat=purple, fiber=grey -->
         <div class="macro-row">
           <div class="macro-label">Bílkoviny</div>
-          <div class="macro-track"><div class="macro-fill" style="width:0%;background:#ff6b6b"></div></div>
-          <div class="macro-val">0 / 150 g</div>
+          <div class="macro-track"><div class="macro-fill" style="width:100%;background:var(--ios-macro-protein)"></div></div>
+          <div class="macro-val">130 / 130 g</div>
         </div>
         <div class="macro-row">
           <div class="macro-label">Sacharidy</div>
-          <div class="macro-track"><div class="macro-fill" style="width:0%;background:#ffd93d"></div></div>
-          <div class="macro-val">0 / 200 g</div>
+          <div class="macro-track"><div class="macro-fill" style="width:100%;background:var(--ios-macro-carbs)"></div></div>
+          <div class="macro-val">180 / 180 g</div>
         </div>
         <div class="macro-row">
           <div class="macro-label">Tuky</div>
-          <div class="macro-track"><div class="macro-fill" style="width:0%;background:#6bcb77"></div></div>
-          <div class="macro-val">0 / 60 g</div>
+          <div class="macro-track"><div class="macro-fill" style="width:100%;background:var(--ios-macro-fat)"></div></div>
+          <div class="macro-val">55 / 55 g</div>
         </div>
         <div class="macro-row" style="margin-bottom:0">
           <div class="macro-label">Vláknina</div>
-          <div class="macro-track"><div class="macro-fill" style="width:0%;background:#4d96ff"></div></div>
-          <div class="macro-val">0 / 30 g</div>
+          <div class="macro-track"><div class="macro-fill" style="width:80%;background:var(--ios-macro-fiber)"></div></div>
+          <div class="macro-val">24 / 30 g</div>
         </div>
       </div>
 
-      <!-- ── Daily note (above meals) ── -->
-      <div style="margin:4px 20px 16px;padding:12px 14px;background:var(--ios-bg2);border-radius:var(--ios-r);position:relative;overflow:hidden">
-        <div style="position:absolute;inset:0;background:rgba(201,168,76,.08);border-radius:var(--ios-r)"></div>
-        <div style="position:relative;font-size:13px;color:var(--ios-label2);line-height:1.5">
-          <span style="font-weight:600;color:var(--ios-gold)">Pozn:</span> Ve čtvrtek si dopřej víc sacharidů — máš naplánovaný intenzivní trénink.
+      <!-- ── 4. Daily note ── -->
+      <div style="margin:4px 20px 16px;padding:12px 14px;background:var(--ios-gold-bg);border-radius:var(--ios-r);overflow:hidden">
+        <div style="font-size:13px;color:var(--ios-label2);line-height:1.5">
+          <span style="font-weight:600;color:var(--ios-gold)">Pozn:</span> Ve čtvrtek si dopřej víc sacharidů -- máš naplánovaný intenzivní trénink.
         </div>
       </div>
 
-      <!-- ── MEALS ── -->
+      <!-- ── 5. Meal list (MealCards, expanded by default) ── -->
 
       <!-- MEAL 1: Snídaně -->
       <div class="np-meal-card" style="margin:0 20px 12px;background:var(--ios-bg2);border-radius:var(--ios-r-lg);overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.12)">
         <div onclick="npToggleMeal(this)" style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;border-bottom:.5px solid rgba(0,0,0,.08)">
-          <div style="width:36px;height:36px;border-radius:12px;background:rgba(255,149,0,.1);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🌅</div>
           <div style="flex:1">
             <div style="font-size:16px;font-weight:600;color:var(--ios-label)">Snídaně</div>
-            <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">08:00 · 3 položky</div>
+            <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">3 položky · 480 kcal</div>
           </div>
-          <div style="text-align:right;margin-right:2px">
-            <div style="font-size:16px;font-weight:700;color:var(--ios-label)">480 kcal</div>
-            <div style="font-size:11px;margin-top:2px;letter-spacing:.1px"><span style="color:#ff6b6b;font-weight:600">B 32</span> <span style="color:var(--ios-label3)">·</span> <span style="color:#ffd93d;font-weight:600">S 52</span> <span style="color:var(--ios-label3)">·</span> <span style="color:#6bcb77;font-weight:600">T 16</span> <span style="color:var(--ios-label3)">·</span> <span style="color:#4d96ff;font-weight:600">V 4</span></div>
-          </div>
-          <span class="np-meal-chev" style="font-size:14px;color:var(--ios-label3);transition:transform .2s;margin-left:-4px">▼</span>
+          <div class="ex-ios-done done" onclick="event.stopPropagation()">&#10003;</div>
+          <span class="np-meal-chev" style="font-size:14px;color:var(--ios-label3);transition:transform .2s">&#9660;</span>
         </div>
-        <div class="np-meal-body" style="display:none;border-top:.5px solid var(--ios-sep2)">
-          <!-- Food item 1 -->
+        <!-- Body (expanded by default) -->
+        <div class="np-meal-body" style="border-top:.5px solid var(--ios-sep2)">
           <div style="border-bottom:.5px solid var(--ios-sep2)">
-            <div onclick="showPhone('ph-food-detail')" style="display:flex;align-items:center;gap:12px;padding:11px 16px;cursor:pointer;transition:background .12s" onmousedown="this.style.background='var(--ios-fill2)'" onmouseup="this.style.background=''" onmouseleave="this.style.background=''">
+            <div onclick="showPhone('ph-food-detail')" style="display:flex;align-items:center;gap:12px;padding:11px 16px;cursor:pointer" onmousedown="this.style.background='var(--ios-fill2)'" onmouseup="this.style.background=''" onmouseleave="this.style.background=''">
               <div style="flex:1;min-width:0">
                 <div style="font-size:15px;font-weight:500;color:var(--ios-label)">Ovesná kaše s proteinem</div>
                 <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">Obiloviny</div>
@@ -3363,236 +3631,116 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
                 <div style="font-size:13px;font-weight:600;color:var(--ios-label)">340 kcal</div>
                 <div style="font-size:10px;color:var(--ios-label3)">110 g</div>
               </div>
-              <span style="color:var(--ios-label3);font-size:14px;font-weight:600">›</span>
+              <span style="color:var(--ios-label3);font-size:14px;font-weight:600">&rsaquo;</span>
             </div>
-            <!-- Food item note -->
             <div style="padding:0 16px 10px">
               <div style="font-size:12px;color:var(--ios-label2);line-height:1.4"><span style="font-weight:600;color:var(--ios-gold)">Pozn:</span> Použij jemné vločky, lépe se připraví.</div>
             </div>
           </div>
-          <!-- Food item 2 -->
           <div style="border-bottom:.5px solid var(--ios-sep2)">
             <div style="display:flex;align-items:center;gap:12px;padding:11px 16px">
-              <div style="flex:1;min-width:0">
-                <div style="font-size:15px;font-weight:500;color:var(--ios-label)">Banán</div>
-                <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">Ovoce</div>
-              </div>
-              <div style="text-align:right;flex-shrink:0">
-                <div style="font-size:13px;font-weight:600;color:var(--ios-label)">105 kcal</div>
-                <div style="font-size:10px;color:var(--ios-label3)">120 g</div>
-              </div>
+              <div style="flex:1"><div style="font-size:15px;font-weight:500;color:var(--ios-label)">Banán</div><div style="font-size:12px;color:var(--ios-label2);margin-top:1px">Ovoce</div></div>
+              <div style="text-align:right;flex-shrink:0"><div style="font-size:13px;font-weight:600;color:var(--ios-label)">105 kcal</div><div style="font-size:10px;color:var(--ios-label3)">120 g</div></div>
             </div>
           </div>
-          <!-- Food item 3 -->
-          <div style="border-bottom:.5px solid var(--ios-sep2)">
+          <div>
             <div style="display:flex;align-items:center;gap:12px;padding:11px 16px">
-              <div style="flex:1;min-width:0">
-                <div style="font-size:15px;font-weight:500;color:var(--ios-label)">Borůvky</div>
-                <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">Ovoce</div>
-              </div>
-              <div style="text-align:right;flex-shrink:0">
-                <div style="font-size:13px;font-weight:600;color:var(--ios-label)">35 kcal</div>
-                <div style="font-size:10px;color:var(--ios-label3)">60 g</div>
-              </div>
+              <div style="flex:1"><div style="font-size:15px;font-weight:500;color:var(--ios-label)">Borůvky</div><div style="font-size:12px;color:var(--ios-label2);margin-top:1px">Ovoce</div></div>
+              <div style="text-align:right;flex-shrink:0"><div style="font-size:13px;font-weight:600;color:var(--ios-label)">35 kcal</div><div style="font-size:10px;color:var(--ios-label3)">60 g</div></div>
             </div>
+          </div>
+          <!-- Meal totals row -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-top:.5px solid var(--ios-sep2);background:var(--ios-fill2)">
+            <div style="font-size:12px;font-weight:600;color:var(--ios-label2)">Celkem</div>
+            <div style="font-size:12px;font-weight:600;color:var(--ios-label)">480 kcal</div>
           </div>
           <!-- Meal note -->
           <div style="padding:10px 16px;background:rgba(201,168,76,.04);border-top:.5px solid var(--ios-sep2)">
-            <div style="font-size:12px;color:var(--ios-label2);line-height:1.45"><span style="font-weight:600;color:var(--ios-gold)">Pozn:</span> Kaši připrav večer předem — cold overnight oats.</div>
+            <div style="font-size:12px;color:var(--ios-label2);line-height:1.45"><span style="font-weight:600;color:var(--ios-gold)">Pozn:</span> Kaši připrav večer předem -- cold overnight oats.</div>
           </div>
         </div>
       </div>
 
-      <!-- MEAL 2: Dopolední svačina -->
+      <!-- MEAL 2: Oběd -->
       <div class="np-meal-card" style="margin:0 20px 12px;background:var(--ios-bg2);border-radius:var(--ios-r-lg);overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.12)">
         <div onclick="npToggleMeal(this)" style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;border-bottom:.5px solid rgba(0,0,0,.08)">
-          <div style="width:36px;height:36px;border-radius:12px;background:rgba(52,199,89,.1);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🍎</div>
-          <div style="flex:1">
-            <div style="font-size:16px;font-weight:600;color:var(--ios-label)">Dopolední svačina</div>
-            <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">10:30 · 2 položky</div>
-          </div>
-          <div style="text-align:right;margin-right:2px">
-            <div style="font-size:16px;font-weight:700;color:var(--ios-label)">220 kcal</div>
-            <div style="font-size:11px;margin-top:2px;letter-spacing:.1px"><span style="color:#ff6b6b;font-weight:600">B 18</span> <span style="color:var(--ios-label3)">·</span> <span style="color:#ffd93d;font-weight:600">S 12</span> <span style="color:var(--ios-label3)">·</span> <span style="color:#6bcb77;font-weight:600">T 10</span> <span style="color:var(--ios-label3)">·</span> <span style="color:#4d96ff;font-weight:600">V 3</span></div>
-          </div>
-          <span class="np-meal-chev" style="font-size:14px;color:var(--ios-label3);transition:transform .2s;margin-left:-4px">▼</span>
-        </div>
-        <div class="np-meal-body" style="display:none;border-top:.5px solid var(--ios-sep2)">
-          <div style="border-bottom:.5px solid var(--ios-sep2)">
-            <div style="display:flex;align-items:center;gap:12px;padding:11px 16px">
-              <div style="flex:1;min-width:0">
-                <div style="font-size:15px;font-weight:500;color:var(--ios-label)">Cottage cheese</div>
-                <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">Mléčné výrobky</div>
-              </div>
-              <div style="text-align:right;flex-shrink:0">
-                <div style="font-size:13px;font-weight:600;color:var(--ios-label)">145 kcal</div>
-                <div style="font-size:10px;color:var(--ios-label3)">150 g</div>
-              </div>
-            </div>
-          </div>
-          <div>
-            <div style="display:flex;align-items:center;gap:12px;padding:11px 16px">
-              <div style="flex:1;min-width:0">
-                <div style="font-size:15px;font-weight:500;color:var(--ios-label)">Okurka</div>
-                <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">Zelenina</div>
-              </div>
-              <div style="text-align:right;flex-shrink:0">
-                <div style="font-size:13px;font-weight:600;color:var(--ios-label)">75 kcal</div>
-                <div style="font-size:10px;color:var(--ios-label3)">200 g</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- MEAL 3: Oběd -->
-      <div class="np-meal-card" style="margin:0 20px 12px;background:var(--ios-bg2);border-radius:var(--ios-r-lg);overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.12)">
-        <div onclick="npToggleMeal(this)" style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;border-bottom:.5px solid rgba(0,0,0,.08)">
-          <div style="width:36px;height:36px;border-radius:12px;background:rgba(0,122,255,.1);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🍽</div>
           <div style="flex:1">
             <div style="font-size:16px;font-weight:600;color:var(--ios-label)">Oběd</div>
-            <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">12:30 · 3 položky</div>
+            <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">3 položky · 520 kcal</div>
           </div>
-          <div style="text-align:right;margin-right:2px">
-            <div style="font-size:16px;font-weight:700;color:var(--ios-label)">520 kcal</div>
-            <div style="font-size:11px;margin-top:2px;letter-spacing:.1px"><span style="color:#ff6b6b;font-weight:600">B 42</span> <span style="color:var(--ios-label3)">·</span> <span style="color:#ffd93d;font-weight:600">S 48</span> <span style="color:var(--ios-label3)">·</span> <span style="color:#6bcb77;font-weight:600">T 14</span> <span style="color:var(--ios-label3)">·</span> <span style="color:#4d96ff;font-weight:600">V 8</span></div>
-          </div>
-          <span class="np-meal-chev" style="font-size:14px;color:var(--ios-label3);transition:transform .2s;margin-left:-4px">▼</span>
+          <div class="ex-ios-done done" onclick="event.stopPropagation()">&#10003;</div>
+          <span class="np-meal-chev" style="font-size:14px;color:var(--ios-label3);transition:transform .2s">&#9660;</span>
         </div>
-        <div class="np-meal-body" style="display:none;border-top:.5px solid var(--ios-sep2)">
+        <!-- Body (expanded by default) -->
+        <div class="np-meal-body" style="border-top:.5px solid var(--ios-sep2)">
           <div style="border-bottom:.5px solid var(--ios-sep2)">
             <div style="display:flex;align-items:center;gap:12px;padding:11px 16px">
-              <div style="flex:1;min-width:0">
-                <div style="font-size:15px;font-weight:500;color:var(--ios-label)">Kuřecí prsa</div>
-                <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">Drůbež</div>
-              </div>
-              <div style="text-align:right;flex-shrink:0">
-                <div style="font-size:13px;font-weight:600;color:var(--ios-label)">250 kcal</div>
-                <div style="font-size:10px;color:var(--ios-label3)">150 g</div>
-              </div>
+              <div style="flex:1"><div style="font-size:15px;font-weight:500;color:var(--ios-label)">Kuřecí prsa</div><div style="font-size:12px;color:var(--ios-label2);margin-top:1px">Drůbež</div></div>
+              <div style="text-align:right;flex-shrink:0"><div style="font-size:13px;font-weight:600;color:var(--ios-label)">250 kcal</div><div style="font-size:10px;color:var(--ios-label3)">150 g</div></div>
             </div>
           </div>
           <div style="border-bottom:.5px solid var(--ios-sep2)">
             <div style="display:flex;align-items:center;gap:12px;padding:11px 16px">
-              <div style="flex:1;min-width:0">
-                <div style="font-size:15px;font-weight:500;color:var(--ios-label)">Jasmínová rýže</div>
-                <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">Obiloviny</div>
-              </div>
-              <div style="text-align:right;flex-shrink:0">
-                <div style="font-size:13px;font-weight:600;color:var(--ios-label)">195 kcal</div>
-                <div style="font-size:10px;color:var(--ios-label3)">150 g</div>
-              </div>
+              <div style="flex:1"><div style="font-size:15px;font-weight:500;color:var(--ios-label)">Jasmínová rýže</div><div style="font-size:12px;color:var(--ios-label2);margin-top:1px">Obiloviny</div></div>
+              <div style="text-align:right;flex-shrink:0"><div style="font-size:13px;font-weight:600;color:var(--ios-label)">195 kcal</div><div style="font-size:10px;color:var(--ios-label3)">150 g</div></div>
             </div>
           </div>
           <div>
             <div style="display:flex;align-items:center;gap:12px;padding:11px 16px">
-              <div style="flex:1;min-width:0">
-                <div style="font-size:15px;font-weight:500;color:var(--ios-label)">Brokolice</div>
-                <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">Zelenina</div>
-              </div>
-              <div style="text-align:right;flex-shrink:0">
-                <div style="font-size:13px;font-weight:600;color:var(--ios-label)">75 kcal</div>
-                <div style="font-size:10px;color:var(--ios-label3)">200 g</div>
-              </div>
+              <div style="flex:1"><div style="font-size:15px;font-weight:500;color:var(--ios-label)">Brokolice</div><div style="font-size:12px;color:var(--ios-label2);margin-top:1px">Zelenina</div></div>
+              <div style="text-align:right;flex-shrink:0"><div style="font-size:13px;font-weight:600;color:var(--ios-label)">75 kcal</div><div style="font-size:10px;color:var(--ios-label3)">200 g</div></div>
             </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-top:.5px solid var(--ios-sep2);background:var(--ios-fill2)">
+            <div style="font-size:12px;font-weight:600;color:var(--ios-label2)">Celkem</div>
+            <div style="font-size:12px;font-weight:600;color:var(--ios-label)">520 kcal</div>
+          </div>
+          <div style="padding:10px 16px;background:rgba(201,168,76,.04);border-top:.5px solid var(--ios-sep2)">
+            <div style="font-size:12px;color:var(--ios-label2);line-height:1.45"><span style="font-weight:600;color:var(--ios-gold)">Pozn:</span> Po tréninku doplň jeden hrnek navíc rýže pro lepší regeneraci.</div>
           </div>
         </div>
       </div>
 
-      <!-- MEAL 4: Odpolední svačina -->
+      <!-- MEAL 3: Večeře -->
       <div class="np-meal-card" style="margin:0 20px 12px;background:var(--ios-bg2);border-radius:var(--ios-r-lg);overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.12)">
         <div onclick="npToggleMeal(this)" style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;border-bottom:.5px solid rgba(0,0,0,.08)">
-          <div style="width:36px;height:36px;border-radius:12px;background:rgba(175,82,222,.1);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🥜</div>
-          <div style="flex:1">
-            <div style="font-size:16px;font-weight:600;color:var(--ios-label)">Odpolední svačina</div>
-            <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">15:00 · 2 položky</div>
-          </div>
-          <div style="text-align:right;margin-right:2px">
-            <div style="font-size:16px;font-weight:700;color:var(--ios-label)">200 kcal</div>
-            <div style="font-size:11px;margin-top:2px;letter-spacing:.1px"><span style="color:#ff6b6b;font-weight:600">B 12</span> <span style="color:var(--ios-label3)">·</span> <span style="color:#ffd93d;font-weight:600">S 18</span> <span style="color:var(--ios-label3)">·</span> <span style="color:#6bcb77;font-weight:600">T 8</span> <span style="color:var(--ios-label3)">·</span> <span style="color:#4d96ff;font-weight:600">V 2</span></div>
-          </div>
-          <span class="np-meal-chev" style="font-size:14px;color:var(--ios-label3);transition:transform .2s;margin-left:-4px">▼</span>
-        </div>
-        <div class="np-meal-body" style="display:none;border-top:.5px solid var(--ios-sep2)">
-          <div style="border-bottom:.5px solid var(--ios-sep2)">
-            <div style="display:flex;align-items:center;gap:12px;padding:11px 16px">
-              <div style="flex:1;min-width:0">
-                <div style="font-size:15px;font-weight:500;color:var(--ios-label)">Proteinová tyčinka</div>
-                <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">Doplňky stravy</div>
-              </div>
-              <div style="text-align:right;flex-shrink:0">
-                <div style="font-size:13px;font-weight:600;color:var(--ios-label)">160 kcal</div>
-                <div style="font-size:10px;color:var(--ios-label3)">45 g</div>
-              </div>
-            </div>
-          </div>
-          <div>
-            <div style="display:flex;align-items:center;gap:12px;padding:11px 16px">
-              <div style="flex:1;min-width:0">
-                <div style="font-size:15px;font-weight:500;color:var(--ios-label)">Jablko</div>
-                <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">Ovoce</div>
-              </div>
-              <div style="text-align:right;flex-shrink:0">
-                <div style="font-size:13px;font-weight:600;color:var(--ios-label)">40 kcal</div>
-                <div style="font-size:10px;color:var(--ios-label3)">80 g</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- MEAL 5: Večeře -->
-      <div class="np-meal-card" style="margin:0 20px 12px;background:var(--ios-bg2);border-radius:var(--ios-r-lg);overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.12)">
-        <div onclick="npToggleMeal(this)" style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;border-bottom:.5px solid rgba(0,0,0,.08)">
-          <div style="width:36px;height:36px;border-radius:12px;background:rgba(255,59,48,.1);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🌙</div>
           <div style="flex:1">
             <div style="font-size:16px;font-weight:600;color:var(--ios-label)">Večeře</div>
-            <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">18:30 · 3 položky</div>
+            <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">3 položky · 406 kcal</div>
           </div>
-          <div style="text-align:right;margin-right:2px">
-            <div style="font-size:16px;font-weight:700;color:var(--ios-label)">260 kcal</div>
-            <div style="font-size:11px;margin-top:2px;letter-spacing:.1px"><span style="color:#ff6b6b;font-weight:600">B 24</span> <span style="color:var(--ios-label3)">·</span> <span style="color:#ffd93d;font-weight:600">S 26</span> <span style="color:var(--ios-label3)">·</span> <span style="color:#6bcb77;font-weight:600">T 7</span> <span style="color:var(--ios-label3)">·</span> <span style="color:#4d96ff;font-weight:600">V 3</span></div>
-          </div>
-          <span class="np-meal-chev" style="font-size:14px;color:var(--ios-label3);transition:transform .2s;margin-left:-4px">▼</span>
+          <div class="ex-ios-done" onclick="event.stopPropagation()"></div>
+          <span class="np-meal-chev" style="font-size:14px;color:var(--ios-label3);transition:transform .2s">&#9660;</span>
         </div>
-        <div class="np-meal-body" style="display:none;border-top:.5px solid var(--ios-sep2)">
-          <!-- Recipe item (same style as food rows) -->
+        <!-- Body (expanded by default) -->
+        <div class="np-meal-body" style="border-top:.5px solid var(--ios-sep2)">
           <div style="border-bottom:.5px solid var(--ios-sep2)">
-            <div onclick="showPhone('ph-recipe-detail')" style="display:flex;align-items:center;gap:12px;padding:11px 16px;cursor:pointer;transition:background .12s" onmousedown="this.style.background='var(--ios-fill2)'" onmouseup="this.style.background=''" onmouseleave="this.style.background=''">
+            <div onclick="showPhone('ph-recipe-detail')" style="display:flex;align-items:center;gap:12px;padding:11px 16px;cursor:pointer" onmousedown="this.style.background='var(--ios-fill2)'" onmouseup="this.style.background=''" onmouseleave="this.style.background=''">
               <div style="flex:1;min-width:0">
                 <div style="font-size:15px;font-weight:500;color:var(--ios-label)">Losos s quinoou</div>
                 <div style="font-size:12px;color:var(--ios-gold);margin-top:1px;font-weight:500">Recept</div>
               </div>
               <div style="text-align:right;flex-shrink:0">
-                <div style="font-size:13px;font-weight:600;color:var(--ios-label)">195 kcal</div>
-                <div style="font-size:10px;color:var(--ios-label3)">1× porce</div>
+                <div style="font-size:13px;font-weight:600;color:var(--ios-label)">310 kcal</div>
+                <div style="font-size:10px;color:var(--ios-label3)">1x porce</div>
               </div>
-              <span style="color:var(--ios-label3);font-size:14px;font-weight:600">›</span>
+              <span style="color:var(--ios-label3);font-size:14px;font-weight:600">&rsaquo;</span>
             </div>
           </div>
           <div style="border-bottom:.5px solid var(--ios-sep2)">
             <div style="display:flex;align-items:center;gap:12px;padding:11px 16px">
-              <div style="flex:1;min-width:0">
-                <div style="font-size:15px;font-weight:500;color:var(--ios-label)">Zeleninový salát</div>
-                <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">Zelenina</div>
-              </div>
-              <div style="text-align:right;flex-shrink:0">
-                <div style="font-size:13px;font-weight:600;color:var(--ios-label)">45 kcal</div>
-                <div style="font-size:10px;color:var(--ios-label3)">150 g</div>
-              </div>
+              <div style="flex:1"><div style="font-size:15px;font-weight:500;color:var(--ios-label)">Zeleninový salát</div><div style="font-size:12px;color:var(--ios-label2);margin-top:1px">Zelenina</div></div>
+              <div style="text-align:right;flex-shrink:0"><div style="font-size:13px;font-weight:600;color:var(--ios-label)">66 kcal</div><div style="font-size:10px;color:var(--ios-label3)">150 g</div></div>
             </div>
           </div>
           <div>
             <div style="display:flex;align-items:center;gap:12px;padding:11px 16px">
-              <div style="flex:1;min-width:0">
-                <div style="font-size:15px;font-weight:500;color:var(--ios-label)">Olivový olej</div>
-                <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">Oleje a tuky</div>
-              </div>
-              <div style="text-align:right;flex-shrink:0">
-                <div style="font-size:13px;font-weight:600;color:var(--ios-label)">20 kcal</div>
-                <div style="font-size:10px;color:var(--ios-label3)">5 ml</div>
-              </div>
+              <div style="flex:1"><div style="font-size:15px;font-weight:500;color:var(--ios-label)">Olivový olej</div><div style="font-size:12px;color:var(--ios-label2);margin-top:1px">Oleje a tuky</div></div>
+              <div style="text-align:right;flex-shrink:0"><div style="font-size:13px;font-weight:600;color:var(--ios-label)">30 kcal</div><div style="font-size:10px;color:var(--ios-label3)">5 ml</div></div>
             </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-top:.5px solid var(--ios-sep2);background:var(--ios-fill2)">
+            <div style="font-size:12px;font-weight:600;color:var(--ios-label2)">Celkem</div>
+            <div style="font-size:12px;font-weight:600;color:var(--ios-label)">406 kcal</div>
           </div>
         </div>
       </div>
@@ -3916,6 +4064,644 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
 </div>
 </div>
 
+<!-- ═══════════════════════════════════════════
+     DETAIL TRÉNINKOVÉHO PLÁNU — týdny / dny / cviky
+═══════════════════════════════════════════ -->
+<div class="phone-wrap">
+<div class="phone-label">Detail tréninku</div>
+<div class="phone" id="ph-training-plan-detail" style="display:none">
+  <div class="di"></div>
+  <div class="status-bar"><span class="sb-time">9:41</span><div class="sb-icons"><svg width="17" height="12" viewBox="0 0 17 12"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0" width="3" height="12" rx="1"/><rect x="13.5" y="1" width="3" height="11" rx="1"/></svg><svg width="25" height="12" viewBox="0 0 25 12"><rect x="0" y="1" width="21" height="10" rx="3.5" stroke="#000" stroke-width="1" fill="none"/><rect x="22" y="4" width="2.5" height="4" rx="1" fill="#000" opacity=".4"/><rect x="1.5" y="2.5" width="15" height="7" rx="2" fill="#000"/></svg></div></div>
+
+  <!-- Full-height flex wrapper below status bar -->
+  <div style="position:absolute;top:59px;left:0;right:0;bottom:0;display:flex;flex-direction:column;overflow:hidden">
+
+  <!-- Fixed header area (does not scroll) -->
+  <div style="flex-shrink:0">
+
+    <!-- ── 1. Header row: back + week stepper + questionnaire chip ── -->
+    <div style="position:relative;display:flex;align-items:center;justify-content:center;gap:10px;padding:8px 16px 4px;user-select:none;min-height:44px">
+      <!-- Back button (absolute left) -->
+      <div style="position:absolute;left:8px;top:0;bottom:0;display:flex;align-items:center;gap:2px;cursor:pointer" onclick="showPhone('ph-plans')">
+        <span style="font-size:22px;color:var(--ios-gold);font-weight:500">&lsaquo;</span>
+        <span style="font-size:17px;color:var(--ios-gold)">Plans</span>
+      </div>
+      <!-- Week stepper (centered) -->
+      <span style="font-size:18px;color:var(--ios-gold);cursor:pointer;padding:2px;font-weight:500" onclick="var g=document.getElementById('tp-week-grid');g.style.display=g.style.display==='none'?'':'none'">&lsaquo;</span>
+      <div onclick="var g=document.getElementById('tp-week-grid');g.style.display=g.style.display==='none'?'':'none'" style="text-align:center;cursor:pointer">
+        <div style="font-size:16px;font-weight:600;color:var(--ios-label);letter-spacing:-.2px">Týden 4 z 12</div>
+        <div style="font-size:11px;color:var(--ios-label2);margin-top:1px">14. 4. – 20. 4.</div>
+      </div>
+      <span style="font-size:18px;color:var(--ios-gold);cursor:pointer;padding:2px;font-weight:500" onclick="var g=document.getElementById('tp-week-grid');g.style.display=g.style.display==='none'?'':'none'">&rsaquo;</span>
+      <!-- Questionnaire chip (absolute right) -->
+      <div style="position:absolute;right:16px;top:50%;margin-top:-18px;width:36px;height:36px;border-radius:10px;background:var(--ios-fill);display:flex;align-items:center;justify-content:center;cursor:pointer" title="Dotazník">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ios-label)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/></svg>
+      </div>
+    </div>
+
+    <!-- Week grid overlay (hidden by default) -->
+    <div id="tp-week-grid" style="display:none;margin:4px 20px 4px;background:var(--ios-bg2);border-radius:var(--ios-r);padding:12px;box-shadow:0 2px 12px rgba(0,0,0,.1)">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+        <div style="padding:8px;border-radius:8px;text-align:center;font-size:12px;font-weight:500;color:var(--ios-green);background:rgba(52,199,89,.1)">Týden 1</div>
+        <div style="padding:8px;border-radius:8px;text-align:center;font-size:12px;font-weight:500;color:var(--ios-green);background:rgba(52,199,89,.1)">Týden 2</div>
+        <div style="padding:8px;border-radius:8px;text-align:center;font-size:12px;font-weight:500;color:var(--ios-green);background:rgba(52,199,89,.1)">Týden 3</div>
+        <div style="padding:8px;border-radius:8px;text-align:center;font-size:12px;font-weight:600;color:var(--ios-gold);background:var(--ios-gold-bg);border:1.5px solid var(--ios-gold)">Týden 4</div>
+        <div style="padding:8px;border-radius:8px;text-align:center;font-size:12px;font-weight:500;color:var(--ios-label3);background:var(--ios-fill2)">Týden 5</div>
+        <div style="padding:8px;border-radius:8px;text-align:center;font-size:12px;font-weight:500;color:var(--ios-label3);background:var(--ios-fill2)">Týden 6</div>
+        <div style="padding:8px;border-radius:8px;text-align:center;font-size:12px;font-weight:500;color:var(--ios-label3);background:var(--ios-fill2)">Týden 7</div>
+        <div style="padding:8px;border-radius:8px;text-align:center;font-size:12px;font-weight:500;color:var(--ios-label3);background:var(--ios-fill2)">Týden 8</div>
+        <div style="padding:8px;border-radius:8px;text-align:center;font-size:12px;font-weight:500;color:var(--ios-label3);background:var(--ios-fill2)">Týden 9</div>
+        <div style="padding:8px;border-radius:8px;text-align:center;font-size:12px;font-weight:500;color:var(--ios-label3);background:var(--ios-fill2)">Týden 10</div>
+        <div style="padding:8px;border-radius:8px;text-align:center;font-size:12px;font-weight:500;color:var(--ios-label3);background:var(--ios-fill2)">Týden 11</div>
+        <div style="padding:8px;border-radius:8px;text-align:center;font-size:12px;font-weight:500;color:var(--ios-label3);background:var(--ios-fill2)">Týden 12</div>
+      </div>
+    </div>
+
+    <!-- ── 2. Day strip (7 columns) — 4x/week split: PO=Push A(done), ÚT=Pull A(done), ST=rest, ČT=Legs A(today), PÁ=Push B(planned), SO=rest, NE=Pull B(planned) ── -->
+    <div class="week-strip" style="border-bottom:.5px solid rgba(0,0,0,.08)">
+      <div class="week-day has-content"><div class="week-day-lbl" style="color:var(--ios-gold)">PO</div><div class="week-day-num" style="background:rgba(52,199,89,.15);color:var(--ios-green);font-size:14px">&#10003;</div><div class="week-day-dot" style="background:var(--ios-green)"></div></div>
+      <div class="week-day has-content"><div class="week-day-lbl" style="color:var(--ios-gold)">ÚT</div><div class="week-day-num" style="background:rgba(52,199,89,.15);color:var(--ios-green);font-size:14px">&#10003;</div><div class="week-day-dot" style="background:var(--ios-green)"></div></div>
+      <div class="week-day"><div class="week-day-lbl">ST</div><div class="week-day-num" style="color:var(--ios-label3)">—</div><div class="week-day-dot" style="background:transparent"></div></div>
+      <div class="week-day today has-content"><div class="week-day-lbl" style="color:var(--ios-gold)">ČT</div><div class="week-day-num" style="background:var(--ios-gold);color:#fff">17</div><div class="week-day-dot" style="background:var(--ios-gold)"></div></div>
+      <div class="week-day has-content"><div class="week-day-lbl">PÁ</div><div class="week-day-num" style="color:var(--ios-label3)">18</div><div class="week-day-dot" style="background:var(--ios-fill)"></div></div>
+      <div class="week-day"><div class="week-day-lbl">SO</div><div class="week-day-num" style="color:var(--ios-label3)">19</div><div class="week-day-dot" style="background:transparent"></div></div>
+      <div class="week-day has-content"><div class="week-day-lbl">NE</div><div class="week-day-num" style="color:var(--ios-label3)">20</div><div class="week-day-dot" style="background:var(--ios-fill)"></div></div>
+    </div>
+  </div>
+
+  <!-- Scrollable content area -->
+  <div style="flex:1;overflow-y:auto;overflow-x:hidden;padding-top:8px">
+
+    <!-- ── 3. Day summary card (blue gradient hero, matches plans-page training card) ── -->
+    <div class="grad-push" style="margin:0 20px 12px;border-radius:var(--ios-r-lg);overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.18);padding:14px 16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.06em">Silový A/B · Týden 4</div>
+        <div style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;background:rgba(201,168,76,.2);color:#c9a84c">Čt · 17. 4.</div>
+      </div>
+      <div style="font-size:16px;font-weight:700;color:#fff;letter-spacing:-.2px;margin-bottom:8px">2 tréninkové jednotky · 7 cviků · 95 min</div>
+      <!-- Trained body parts: <label> [progress bar] <done>/<total> — each body part has its own accent color -->
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,.88);min-width:54px">Nohy</div>
+          <div style="flex:1;height:5px;background:rgba(255,255,255,.15);border-radius:3px;overflow:hidden">
+            <div style="width:50%;height:100%;background:#ff9f4a;border-radius:3px"></div>
+          </div>
+          <div style="font-size:12px;font-weight:600;color:rgba(255,255,255,.75);flex-shrink:0;min-width:24px;text-align:right">2/4</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,.88);min-width:54px">Záda</div>
+          <div style="flex:1;height:5px;background:rgba(255,255,255,.15);border-radius:3px;overflow:hidden">
+            <div style="width:0%;height:100%;background:#3ed7be;border-radius:3px"></div>
+          </div>
+          <div style="font-size:12px;font-weight:600;color:rgba(255,255,255,.75);flex-shrink:0;min-width:24px;text-align:right">0/1</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,.88);min-width:54px">Břicho</div>
+          <div style="flex:1;height:5px;background:rgba(255,255,255,.15);border-radius:3px;overflow:hidden">
+            <div style="width:0%;height:100%;background:#ff7a6e;border-radius:3px"></div>
+          </div>
+          <div style="font-size:12px;font-weight:600;color:rgba(255,255,255,.75);flex-shrink:0;min-width:24px;text-align:right">0/2</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.15)">
+          <div style="width:28.6%;height:100%;border-radius:3px;background:#c9a84c"></div>
+        </div>
+        <div style="font-size:12px;font-weight:var(--sf-semi);color:rgba(255,255,255,.6);flex-shrink:0">2/7 hotovo</div>
+      </div>
+    </div>
+
+    <!-- ── 4. Day note from trainer ── -->
+    <div style="margin:0 20px 12px;padding:12px 14px;background:var(--ios-gold-bg);border-radius:var(--ios-r);overflow:hidden">
+      <div style="font-size:13px;color:var(--ios-label2);line-height:1.5">
+        <span style="font-weight:600;color:var(--ios-gold)">Pozn:</span> Důraz na techniku, ne na váhu. Kontroluj tempo a hloubku pohybu.
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         SESSION 1 — Ranní trénink (2/4 done)
+    ══════════════════════════════════════════ -->
+    <div class="tp-session expanded" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.ios-btn'))return;this.classList.toggle('expanded')">
+      <div class="tp-session-header">
+        <div class="tp-session-order">1</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:15px;font-weight:600;color:var(--ios-label)">Ranní trénink</div>
+          <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">4 cviky · 45 min · odpočinek 120 s</div>
+        </div>
+        <div class="tp-session-progress" style="background:rgba(52,199,89,.12);color:var(--ios-green)">2/4</div>
+        <span class="tp-session-chev">&#9660;</span>
+      </div>
+      <div class="tp-session-body">
+        <div class="tp-session-exercises">
+          <!-- S1 Exercise 1: Dřep s činkou — completed -->
+          <div class="tp-ex-card expanded" onclick="event.stopPropagation();this.classList.toggle('expanded')">
+            <div class="tp-ex-header">
+              <div class="ex-ios-dot" style="background:var(--ios-green)"></div>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:15px;font-weight:var(--sf-semi);color:var(--ios-label)">Dřep s činkou</div>
+                <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">4 série · 6–8 opak · 100 kg</div>
+              </div>
+              <div class="ex-ios-done done" onclick="event.stopPropagation()">&#10003;</div>
+              <span class="tp-ex-chev">&#9660;</span>
+            </div>
+            <div class="tp-ex-body" style="border-top:.5px solid var(--ios-sep2);background:var(--ios-fill2)">
+              <div class="tp-ex-set-grid" style="padding:4px 16px 0">
+                <div class="tp-set-hdr">S</div><div class="tp-set-hdr">Opak.</div><div class="tp-set-hdr">Váha</div><div class="tp-set-hdr">Odp.</div><div class="tp-set-hdr">Stav</div>
+                <div class="tp-set-cell">1</div><div class="tp-set-cell">8</div><div class="tp-set-cell">100 kg</div><div class="tp-set-cell">120 s</div><div class="tp-set-cell" style="color:var(--ios-green);font-weight:var(--sf-semi)">&#10003;</div>
+                <div class="tp-set-cell">2</div><div class="tp-set-cell">8</div><div class="tp-set-cell">100 kg</div><div class="tp-set-cell">120 s</div><div class="tp-set-cell" style="color:var(--ios-green);font-weight:var(--sf-semi)">&#10003;</div>
+                <div class="tp-set-cell">3</div><div class="tp-set-cell">7</div><div class="tp-set-cell">102,5 kg</div><div class="tp-set-cell">120 s</div><div class="tp-set-cell" style="color:var(--ios-green);font-weight:var(--sf-semi)">&#10003;</div>
+                <div class="tp-set-cell" style="border:none">4</div><div class="tp-set-cell" style="border:none">6</div><div class="tp-set-cell" style="border:none">102,5 kg</div><div class="tp-set-cell" style="border:none">120 s</div><div class="tp-set-cell" style="border:none;color:var(--ios-green);font-weight:var(--sf-semi)">&#10003;</div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-top:.5px solid var(--ios-sep2)">
+                <div style="font-size:12px;font-weight:var(--sf-semi);color:var(--ios-label2)">Celkem</div>
+                <div style="font-size:12px;font-weight:var(--sf-semi);color:var(--ios-label)">29 opak · 2 950 kg</div>
+              </div>
+              <div style="padding:10px 16px;background:rgba(201,168,76,.04);border-top:.5px solid var(--ios-sep2)">
+                <div style="font-size:12px;color:var(--ios-label2);line-height:1.45"><span style="font-weight:var(--sf-semi);color:var(--ios-gold)">Pozn:</span> Zvyš váhu o 2,5 kg oproti minulému týdnu. Dbej na hloubku — stehna pod rovnoběžku.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- S1 Exercise 2: Mrtvý tah — completed -->
+          <div class="tp-ex-card expanded" onclick="event.stopPropagation();this.classList.toggle('expanded')">
+            <div class="tp-ex-header">
+              <div class="ex-ios-dot" style="background:var(--ios-green)"></div>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:15px;font-weight:var(--sf-semi);color:var(--ios-label)">Mrtvý tah</div>
+                <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">3 série · 5 opak · 120 kg</div>
+              </div>
+              <div class="ex-ios-done done" onclick="event.stopPropagation()">&#10003;</div>
+              <span class="tp-ex-chev">&#9660;</span>
+            </div>
+            <div class="tp-ex-body" style="border-top:.5px solid var(--ios-sep2);background:var(--ios-fill2)">
+              <div class="tp-ex-set-grid" style="padding:4px 16px 0">
+                <div class="tp-set-hdr">S</div><div class="tp-set-hdr">Opak.</div><div class="tp-set-hdr">Váha</div><div class="tp-set-hdr">Odp.</div><div class="tp-set-hdr">Stav</div>
+                <div class="tp-set-cell">1</div><div class="tp-set-cell">5</div><div class="tp-set-cell">120 kg</div><div class="tp-set-cell">180 s</div><div class="tp-set-cell" style="color:var(--ios-green);font-weight:var(--sf-semi)">&#10003;</div>
+                <div class="tp-set-cell">2</div><div class="tp-set-cell">5</div><div class="tp-set-cell">120 kg</div><div class="tp-set-cell">180 s</div><div class="tp-set-cell" style="color:var(--ios-green);font-weight:var(--sf-semi)">&#10003;</div>
+                <div class="tp-set-cell" style="border:none">3</div><div class="tp-set-cell" style="border:none">5</div><div class="tp-set-cell" style="border:none">120 kg</div><div class="tp-set-cell" style="border:none">180 s</div><div class="tp-set-cell" style="border:none;color:var(--ios-green);font-weight:var(--sf-semi)">&#10003;</div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-top:.5px solid var(--ios-sep2)">
+                <div style="font-size:12px;font-weight:var(--sf-semi);color:var(--ios-label2)">Celkem</div>
+                <div style="font-size:12px;font-weight:var(--sf-semi);color:var(--ios-label)">15 opak · 1 800 kg</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- S1 Exercise 3: Bulharské dřepy — pending -->
+          <div class="tp-ex-card expanded" onclick="event.stopPropagation();this.classList.toggle('expanded')">
+            <div class="tp-ex-header">
+              <div class="ex-ios-dot" style="background:var(--ios-orange)"></div>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:15px;font-weight:var(--sf-semi);color:var(--ios-label)">Bulharské dřepy</div>
+                <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">3 série · 10/nohu · 20 kg</div>
+              </div>
+              <div class="ex-ios-done" onclick="event.stopPropagation()"></div>
+              <span class="tp-ex-chev">&#9660;</span>
+            </div>
+            <div class="tp-ex-body" style="border-top:.5px solid var(--ios-sep2);background:var(--ios-fill2)">
+              <div class="tp-ex-set-grid" style="padding:4px 16px 0">
+                <div class="tp-set-hdr">S</div><div class="tp-set-hdr">Opak.</div><div class="tp-set-hdr">Váha</div><div class="tp-set-hdr">Odp.</div><div class="tp-set-hdr">Stav</div>
+                <div class="tp-set-cell">1</div><div class="tp-set-cell">10</div><div class="tp-set-cell">20 kg</div><div class="tp-set-cell">90 s</div><div class="tp-set-cell" style="color:var(--ios-label3)">—</div>
+                <div class="tp-set-cell">2</div><div class="tp-set-cell">10</div><div class="tp-set-cell">20 kg</div><div class="tp-set-cell">90 s</div><div class="tp-set-cell" style="color:var(--ios-label3)">—</div>
+                <div class="tp-set-cell" style="border:none">3</div><div class="tp-set-cell" style="border:none">10</div><div class="tp-set-cell" style="border:none">20 kg</div><div class="tp-set-cell" style="border:none">90 s</div><div class="tp-set-cell" style="border:none;color:var(--ios-label3)">—</div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-top:.5px solid var(--ios-sep2)">
+                <div style="font-size:12px;font-weight:var(--sf-semi);color:var(--ios-label2)">Celkem</div>
+                <div style="font-size:12px;font-weight:var(--sf-semi);color:var(--ios-label)">30 opak · 600 kg</div>
+              </div>
+              <div style="padding:10px 16px;background:rgba(201,168,76,.04);border-top:.5px solid var(--ios-sep2)">
+                <div style="font-size:12px;color:var(--ios-label2);line-height:1.45"><span style="font-weight:var(--sf-semi);color:var(--ios-gold)">Pozn:</span> Zadní noha na lavičce — koleno směrem dolů, ne dopředu. Drž jednoručky po stranách.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- S1 Exercise 4: Zanožování ve stroji — pending -->
+          <div class="tp-ex-card expanded" onclick="event.stopPropagation();this.classList.toggle('expanded')">
+            <div class="tp-ex-header">
+              <div class="ex-ios-dot" style="background:var(--ios-orange)"></div>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:15px;font-weight:var(--sf-semi);color:var(--ios-label)">Zanožování ve stroji</div>
+                <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">3 série · 12 opak · 40 kg</div>
+              </div>
+              <div class="ex-ios-done" onclick="event.stopPropagation()"></div>
+              <span class="tp-ex-chev">&#9660;</span>
+            </div>
+            <div class="tp-ex-body" style="border-top:.5px solid var(--ios-sep2);background:var(--ios-fill2)">
+              <div class="tp-ex-set-grid" style="padding:4px 16px 0">
+                <div class="tp-set-hdr">S</div><div class="tp-set-hdr">Opak.</div><div class="tp-set-hdr">Váha</div><div class="tp-set-hdr">Odp.</div><div class="tp-set-hdr">Stav</div>
+                <div class="tp-set-cell">1</div><div class="tp-set-cell">12</div><div class="tp-set-cell">40 kg</div><div class="tp-set-cell">60 s</div><div class="tp-set-cell" style="color:var(--ios-label3)">—</div>
+                <div class="tp-set-cell">2</div><div class="tp-set-cell">12</div><div class="tp-set-cell">40 kg</div><div class="tp-set-cell">60 s</div><div class="tp-set-cell" style="color:var(--ios-label3)">—</div>
+                <div class="tp-set-cell" style="border:none">3</div><div class="tp-set-cell" style="border:none">12</div><div class="tp-set-cell" style="border:none">40 kg</div><div class="tp-set-cell" style="border:none">60 s</div><div class="tp-set-cell" style="border:none;color:var(--ios-label3)">—</div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-top:.5px solid var(--ios-sep2)">
+                <div style="font-size:12px;font-weight:var(--sf-semi);color:var(--ios-label2)">Celkem</div>
+                <div style="font-size:12px;font-weight:var(--sf-semi);color:var(--ios-label)">36 opak · 1 440 kg</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Session 1 totals footer -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-top:.5px solid var(--ios-sep2);background:var(--ios-fill2)">
+          <div style="font-size:12px;font-weight:var(--sf-semi);color:var(--ios-label2)">Celkem session</div>
+          <div style="font-size:12px;font-weight:var(--sf-semi);color:var(--ios-label)">110 opak · 6 790 kg</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         SESSION 2 — Odpolední trénink (0/3 done)
+    ══════════════════════════════════════════ -->
+    <div class="tp-session expanded" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.ios-btn'))return;this.classList.toggle('expanded')">
+      <div class="tp-session-header">
+        <div class="tp-session-order">2</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:15px;font-weight:600;color:var(--ios-label)">Odpolední trénink</div>
+          <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">3 cviky · 50 min · odpočinek 90 s</div>
+        </div>
+        <div class="tp-session-progress">0/3</div>
+        <span class="tp-session-chev">&#9660;</span>
+      </div>
+      <div class="tp-session-body">
+        <div class="tp-session-exercises">
+          <!-- S2 Exercise 1: T-bar přítahy — pending -->
+          <div class="tp-ex-card expanded" onclick="event.stopPropagation();this.classList.toggle('expanded')">
+            <div class="tp-ex-header">
+              <div class="ex-ios-dot" style="background:var(--ios-orange)"></div>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:15px;font-weight:var(--sf-semi);color:var(--ios-label)">T-bar přítahy</div>
+                <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">3 série · 8 opak · 60 kg</div>
+              </div>
+              <div class="ex-ios-done" onclick="event.stopPropagation()"></div>
+              <span class="tp-ex-chev">&#9660;</span>
+            </div>
+            <div class="tp-ex-body" style="border-top:.5px solid var(--ios-sep2);background:var(--ios-fill2)">
+              <div class="tp-ex-set-grid" style="padding:4px 16px 0">
+                <div class="tp-set-hdr">S</div><div class="tp-set-hdr">Opak.</div><div class="tp-set-hdr">Váha</div><div class="tp-set-hdr">Odp.</div><div class="tp-set-hdr">Stav</div>
+                <div class="tp-set-cell">1</div><div class="tp-set-cell">8</div><div class="tp-set-cell">60 kg</div><div class="tp-set-cell">90 s</div><div class="tp-set-cell" style="color:var(--ios-label3)">—</div>
+                <div class="tp-set-cell">2</div><div class="tp-set-cell">8</div><div class="tp-set-cell">60 kg</div><div class="tp-set-cell">90 s</div><div class="tp-set-cell" style="color:var(--ios-label3)">—</div>
+                <div class="tp-set-cell" style="border:none">3</div><div class="tp-set-cell" style="border:none">8</div><div class="tp-set-cell" style="border:none">60 kg</div><div class="tp-set-cell" style="border:none">90 s</div><div class="tp-set-cell" style="border:none;color:var(--ios-label3)">—</div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-top:.5px solid var(--ios-sep2)">
+                <div style="font-size:12px;font-weight:var(--sf-semi);color:var(--ios-label2)">Celkem</div>
+                <div style="font-size:12px;font-weight:var(--sf-semi);color:var(--ios-label)">24 opak · 1 440 kg</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- S2 Exercise 2: Zkracovačky — pending -->
+          <div class="tp-ex-card expanded" onclick="event.stopPropagation();this.classList.toggle('expanded')">
+            <div class="tp-ex-header">
+              <div class="ex-ios-dot" style="background:var(--ios-orange)"></div>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:15px;font-weight:var(--sf-semi);color:var(--ios-label)">Zkracovačky</div>
+                <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">3 série · 30 opak</div>
+              </div>
+              <div class="ex-ios-done" onclick="event.stopPropagation()"></div>
+              <span class="tp-ex-chev">&#9660;</span>
+            </div>
+            <div class="tp-ex-body" style="border-top:.5px solid var(--ios-sep2);background:var(--ios-fill2)">
+              <div class="tp-ex-set-grid" style="padding:4px 16px 0">
+                <div class="tp-set-hdr">S</div><div class="tp-set-hdr">Opak.</div><div class="tp-set-hdr">Váha</div><div class="tp-set-hdr">Odp.</div><div class="tp-set-hdr">Stav</div>
+                <div class="tp-set-cell">1</div><div class="tp-set-cell">30</div><div class="tp-set-cell">—</div><div class="tp-set-cell">60 s</div><div class="tp-set-cell" style="color:var(--ios-label3)">—</div>
+                <div class="tp-set-cell">2</div><div class="tp-set-cell">30</div><div class="tp-set-cell">—</div><div class="tp-set-cell">60 s</div><div class="tp-set-cell" style="color:var(--ios-label3)">—</div>
+                <div class="tp-set-cell" style="border:none">3</div><div class="tp-set-cell" style="border:none">30</div><div class="tp-set-cell" style="border:none">—</div><div class="tp-set-cell" style="border:none">60 s</div><div class="tp-set-cell" style="border:none;color:var(--ios-label3)">—</div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-top:.5px solid var(--ios-sep2)">
+                <div style="font-size:12px;font-weight:var(--sf-semi);color:var(--ios-label2)">Celkem</div>
+                <div style="font-size:12px;font-weight:var(--sf-semi);color:var(--ios-label)">90 opak</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- S2 Exercise 3: Plank — pending -->
+          <div class="tp-ex-card expanded" onclick="event.stopPropagation();this.classList.toggle('expanded')">
+            <div class="tp-ex-header">
+              <div class="ex-ios-dot" style="background:var(--ios-orange)"></div>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:15px;font-weight:var(--sf-semi);color:var(--ios-label)">Plank</div>
+                <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">3 série · 60 s</div>
+              </div>
+              <div class="ex-ios-done" onclick="event.stopPropagation()"></div>
+              <span class="tp-ex-chev">&#9660;</span>
+            </div>
+            <div class="tp-ex-body" style="border-top:.5px solid var(--ios-sep2);background:var(--ios-fill2)">
+              <div class="tp-ex-set-grid" style="padding:4px 16px 0">
+                <div class="tp-set-hdr">S</div><div class="tp-set-hdr">Opak.</div><div class="tp-set-hdr">Váha</div><div class="tp-set-hdr">Odp.</div><div class="tp-set-hdr">Stav</div>
+                <div class="tp-set-cell">1</div><div class="tp-set-cell">60 s</div><div class="tp-set-cell">—</div><div class="tp-set-cell">60 s</div><div class="tp-set-cell" style="color:var(--ios-label3)">—</div>
+                <div class="tp-set-cell">2</div><div class="tp-set-cell">60 s</div><div class="tp-set-cell">—</div><div class="tp-set-cell">60 s</div><div class="tp-set-cell" style="color:var(--ios-label3)">—</div>
+                <div class="tp-set-cell" style="border:none">3</div><div class="tp-set-cell" style="border:none">60 s</div><div class="tp-set-cell" style="border:none">—</div><div class="tp-set-cell" style="border:none">60 s</div><div class="tp-set-cell" style="border:none;color:var(--ios-label3)">—</div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-top:.5px solid var(--ios-sep2)">
+                <div style="font-size:12px;font-weight:var(--sf-semi);color:var(--ios-label2)">Celkem</div>
+                <div style="font-size:12px;font-weight:var(--sf-semi);color:var(--ios-label)">3 × 60 s</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Session 2 totals footer -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-top:.5px solid var(--ios-sep2);background:var(--ios-fill2)">
+          <div style="font-size:12px;font-weight:var(--sf-semi);color:var(--ios-label2)">Celkem session</div>
+          <div style="font-size:12px;font-weight:var(--sf-semi);color:var(--ios-label)">114 opak · 1 440 kg</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="height:34px"></div>
+  </div>
+  </div><!-- /flex wrapper -->
+
+  <div class="tab-bar">
+    <div class="tab" onclick="showPhone('ph-today')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" fill="#8e8e93"/><path d="M9 22V12h6v10" fill="#8e8e93"/></svg></div><div class="tab-lbl">Dnes</div></div>
+    <div class="tab" onclick="showPhone('ph-discover')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="#8e8e93" stroke-width="2"/><path d="m21 21-4.35-4.35" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Spolupráce</div></div>
+    <div class="tab active" onclick="showPhone('ph-plans')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#c9a84c" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="#c9a84c" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl" style="color:#c9a84c">Plány</div></div>
+    <div class="tab" onclick="showPhone('ph-messages')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="#8e8e93" stroke-width="2" stroke-linejoin="round"/></svg></div><div class="tab-lbl">Zprávy</div></div>
+    <div class="tab" onclick="showPhone('ph-profile')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="#8e8e93" stroke-width="2"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Profil</div></div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     ŽIVÝ TRÉNINK — live training assistant
+     Layout & workflow inspired by docs/aktivni_trenink.jsx
+     but restyled with the app's iOS tokens + gold accent.
+     Muscle color is reduced to a small identifier dot
+     (matching the convention of .ex-ios-dot in today.html);
+     the primary action colour is always --ios-gold.
+═══════════════════════════════════════════ -->
+<div class="phone-wrap">
+<div class="phone-label">Živý trénink</div>
+<div class="phone" id="ph-live-training" data-state="prestart" style="display:none">
+  <div class="di"></div>
+  <div class="status-bar">
+    <span class="sb-time">9:41</span>
+    <div class="sb-icons">
+      <svg width="17" height="12" viewBox="0 0 17 12"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0" width="3" height="12" rx="1"/><rect x="13.5" y="1" width="3" height="11" rx="1"/></svg>
+      <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 2.5C10.5 2.5 12.7 3.6 14.2 5.3L15.5 4C13.6 1.9 11 .5 8 .5S2.4 1.9.5 4L1.8 5.3C3.3 3.6 5.5 2.5 8 2.5ZM8 6C9.7 6 11.2 6.7 12.3 7.8L13.6 6.5C12.1 5.1 10.1 4 8 4S3.9 5.1 2.4 6.5L3.7 7.8C4.8 6.7 6.3 6 8 6ZM8 9.5C9 9.5 9.9 9.9 10.5 10.6L8 13.5 5.5 10.6C6.1 9.9 7 9.5 8 9.5Z"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12"><rect x="0" y="1" width="21" height="10" rx="3.5" stroke="#000" stroke-width="1" fill="none"/><rect x="22" y="4" width="2.5" height="4" rx="1" fill="#000" opacity=".4"/><rect x="1.5" y="2.5" width="15" height="7" rx="2" fill="#000"/></svg>
+    </div>
+  </div>
+
+  <!-- Scroll area overrides default bottom:84px because this scene has no tab bar. -->
+  <div class="scroll-area" style="bottom:0;padding-bottom:24px">
+
+    <!-- ── Top bar (close + plan/session + elapsed timer) ── -->
+    <div class="lt-topbar" style="display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--ios-bg2);border-bottom:.5px solid var(--ios-sep2)">
+      <div onclick="liveClose()" style="width:32px;height:32px;border-radius:10px;background:var(--ios-fill);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--ios-label2)">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3l8 8M11 3l-8 8"/></svg>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:10px;font-weight:600;color:var(--ios-label3);text-transform:uppercase;letter-spacing:.12em">Aktivní trénink</div>
+        <div class="lt-session-title" style="font-size:16px;font-weight:700;color:var(--ios-label);letter-spacing:-.2px;line-height:1.1;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Ranní trénink · Push A</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div class="lt-elapsed" style="font-size:20px;font-weight:700;color:var(--ios-gold);letter-spacing:-.2px;font-variant-numeric:tabular-nums">00:00</div>
+        <div style="font-size:10px;color:var(--ios-label3);font-weight:500;margin-top:1px"><span class="lt-sets-done">0</span> / <span class="lt-sets-total">13</span> sérií</div>
+      </div>
+    </div>
+
+    <!-- ── Overall progress + exercise roadmap pills ── -->
+    <div class="lt-roadmap-wrap" style="padding:10px 16px 10px;background:var(--ios-bg);border-bottom:.5px solid var(--ios-sep2)">
+      <div style="height:3px;background:var(--ios-fill);border-radius:99px;overflow:hidden">
+        <div class="lt-overall-bar" style="height:100%;width:0%;background:var(--ios-gold);border-radius:99px;transition:width .4s ease"></div>
+      </div>
+      <div class="lt-ex-pills" style="display:flex;gap:6px;margin-top:10px">
+        <!-- Populated by JS: one pill per exercise, tappable to jump -->
+      </div>
+    </div>
+
+    <!-- ═══ STATE: PRE-START ═══ -->
+    <div class="lt-state-prestart">
+      <div class="ios-card" style="margin:14px 16px 0;overflow:hidden">
+        <div class="ios-card-hero grad-push" style="padding:24px 20px">
+          <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Připravený?</div>
+          <div class="lt-prestart-name" style="font-size:26px;font-weight:700;color:#fff;letter-spacing:-.3px">Push A</div>
+          <div class="lt-prestart-meta" style="font-size:13px;color:rgba(255,255,255,.7);margin-top:4px">4 cviky · 13 sérií · ~45 min</div>
+          <div class="lt-prestart-chips" style="display:flex;gap:6px;margin-top:14px;flex-wrap:wrap"></div>
+        </div>
+        <div style="padding:14px 16px;background:var(--ios-bg2)">
+          <div class="ios-btn ios-btn-primary" style="font-size:16px;padding:14px;letter-spacing:.3px" onclick="liveStart()">▶ Start trénink</div>
+        </div>
+      </div>
+
+      <div class="ios-section-hdr" style="margin-top:20px"><div class="ios-section-title">Dnešní cviky</div></div>
+      <div class="ios-card" style="margin:0 16px;overflow:hidden">
+        <div class="lt-prestart-exlist" style="background:var(--ios-bg2)"></div>
+      </div>
+      <div style="height:20px"></div>
+    </div>
+
+    <!-- ═══ STATE: RUNNING ═══ -->
+    <div class="lt-state-running" style="display:none">
+
+      <!-- Current exercise hero — uses gold as accent; muscle color is a small dot -->
+      <div class="lt-current-hero" style="margin:14px 16px 0;border-radius:var(--ios-r-lg);padding:18px 20px;background:var(--ios-bg2);border:1px solid var(--ios-sep2);box-shadow:0 1px 3px rgba(0,0,0,.06)">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <div class="lt-running-dot ex-ios-dot" style="background:#0b6e99;flex-shrink:0"></div>
+              <div class="lt-running-musclelabel" style="font-size:11px;font-weight:700;color:var(--ios-label2);text-transform:uppercase;letter-spacing:.08em">Hrudník · Cvik 1/4</div>
+            </div>
+            <div class="lt-running-exname" style="font-size:22px;font-weight:700;color:var(--ios-label);letter-spacing:-.3px;line-height:1.15">Bench press s činkou</div>
+          </div>
+          <div class="lt-running-setbadge" style="background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.3);border-radius:10px;padding:8px 12px;text-align:center;flex-shrink:0">
+            <div style="font-size:18px;font-weight:700;color:var(--ios-gold);line-height:1"><span class="lt-running-setcurr">1</span><span style="font-size:12px;color:var(--ios-label3);font-weight:500">/<span class="lt-running-settotal">4</span></span></div>
+            <div style="font-size:9px;color:var(--ios-label3);letter-spacing:.1em;margin-top:2px">SÉRIE</div>
+          </div>
+        </div>
+        <div class="lt-set-dots" style="display:flex;gap:6px;margin-top:14px"></div>
+      </div>
+
+      <!-- Input + primary action -->
+      <div class="ios-card" style="margin:12px 16px 0;overflow:hidden">
+        <div style="padding:18px 16px 16px;background:var(--ios-bg2)">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+            <div>
+              <div style="font-size:10px;color:var(--ios-label3);font-weight:600;text-transform:uppercase;letter-spacing:.08em;text-align:center;margin-bottom:8px">Opakování</div>
+              <div class="lt-numinput" data-field="reps">
+                <div onclick="liveAdjust('reps',-1)" class="lt-numbtn">−</div>
+                <div class="lt-numinput-value lt-reps-value">8</div>
+                <div onclick="liveAdjust('reps',1)" class="lt-numbtn">+</div>
+              </div>
+              <div style="font-size:10px;color:var(--ios-label3);text-align:center;margin-top:6px">plán: <span class="lt-reps-plan" style="color:var(--ios-label2);font-weight:600">8</span></div>
+            </div>
+            <div>
+              <div class="lt-weight-label" style="font-size:10px;color:var(--ios-label3);font-weight:600;text-transform:uppercase;letter-spacing:.08em;text-align:center;margin-bottom:8px">Váha (kg)</div>
+              <div class="lt-numinput" data-field="weight">
+                <div onclick="liveAdjust('weight',-2.5)" class="lt-numbtn">−</div>
+                <div class="lt-numinput-value lt-weight-value">80</div>
+                <div onclick="liveAdjust('weight',2.5)" class="lt-numbtn">+</div>
+              </div>
+              <div class="lt-weight-hint" style="font-size:10px;color:var(--ios-label3);text-align:center;margin-top:6px">plán: <span class="lt-weight-plan" style="color:var(--ios-label2);font-weight:600">80 kg</span></div>
+            </div>
+          </div>
+
+          <div class="ios-btn ios-btn-primary" style="font-size:16px;padding:15px;letter-spacing:.4px;font-weight:700" onclick="liveMarkSetDone()">✓ SÉRIE HOTOVA</div>
+
+          <div style="display:flex;gap:12px;justify-content:center;margin-top:10px">
+            <div onclick="liveSkipSet()" style="font-size:12px;font-weight:600;color:var(--ios-label3);cursor:pointer;padding:6px 4px">Přeskočit sérii</div>
+            <div style="color:var(--ios-label4);font-size:12px">·</div>
+            <div onclick="liveConfirmSkipExercise()" style="font-size:12px;font-weight:600;color:var(--ios-label3);cursor:pointer;padding:6px 4px">Přeskočit cvik</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Previous / planned sets list for current exercise -->
+      <div class="ios-section-hdr" style="margin-top:18px"><div class="ios-section-title">Série tohoto cviku</div></div>
+      <div class="ios-card" style="margin:0 16px;overflow:hidden">
+        <div class="lt-sets-list" style="background:var(--ios-bg2)"></div>
+      </div>
+
+      <!-- Next exercise preview -->
+      <div class="lt-next-wrap" style="margin:14px 16px 0">
+        <div style="background:var(--ios-bg2);border:1px solid var(--ios-sep2);border-radius:var(--ios-r);padding:12px 14px;display:flex;align-items:center;gap:12px;opacity:.9">
+          <div style="font-size:10px;color:var(--ios-label3);letter-spacing:.1em;font-weight:600;flex-shrink:0">DALŠÍ</div>
+          <div style="flex:1;min-width:0">
+            <div class="lt-next-name" style="font-size:14px;font-weight:600;color:var(--ios-label);line-height:1.2">Vojenský tlak</div>
+            <div class="lt-next-meta" style="font-size:11px;color:var(--ios-label3);margin-top:2px">3 série · Ramena</div>
+          </div>
+          <div class="lt-next-dot ex-ios-dot" style="background:#af52de;flex-shrink:0"></div>
+        </div>
+      </div>
+      <div style="height:20px"></div>
+    </div>
+
+    <!-- ═══ STATE: FINISHED ═══ -->
+    <div class="lt-state-finished" style="display:none">
+      <div class="ios-card" style="margin:16px 16px 0;overflow:hidden">
+        <div class="ios-card-hero" style="padding:28px 20px 22px;background:linear-gradient(135deg,#1a2a1a 0%,#0d2a0d 100%);text-align:center">
+          <div style="font-size:48px;line-height:1;margin-bottom:10px">🎉</div>
+          <div style="font-size:24px;font-weight:700;color:#fff;letter-spacing:-.2px;line-height:1.25">Trénink dokončen!</div>
+          <div class="lt-finished-name" style="font-size:13px;color:rgba(255,255,255,.7);margin-top:6px">Ranní trénink · Push A</div>
+        </div>
+        <div style="background:var(--ios-bg2);padding:16px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+            <div style="background:var(--ios-fill2);border-radius:var(--ios-r);padding:14px 16px">
+              <div style="font-size:10px;color:var(--ios-label3);font-weight:600;text-transform:uppercase;letter-spacing:.08em">Čas</div>
+              <div class="lt-finished-duration" style="font-size:24px;font-weight:700;color:var(--ios-gold);letter-spacing:-.3px;margin-top:4px">00:00</div>
+            </div>
+            <div style="background:var(--ios-fill2);border-radius:var(--ios-r);padding:14px 16px">
+              <div style="font-size:10px;color:var(--ios-label3);font-weight:600;text-transform:uppercase;letter-spacing:.08em">Série</div>
+              <div style="font-size:24px;font-weight:700;color:var(--ios-label);letter-spacing:-.3px;margin-top:4px"><span class="lt-finished-setsdone">0</span><span style="font-size:13px;color:var(--ios-label3);font-weight:500">/<span class="lt-finished-setsplanned">0</span></span></div>
+            </div>
+            <div style="background:var(--ios-fill2);border-radius:var(--ios-r);padding:14px 16px">
+              <div style="font-size:10px;color:var(--ios-label3);font-weight:600;text-transform:uppercase;letter-spacing:.08em">Opakování</div>
+              <div class="lt-finished-reps" style="font-size:24px;font-weight:700;color:var(--ios-label);letter-spacing:-.3px;margin-top:4px">0</div>
+            </div>
+            <div style="background:var(--ios-fill2);border-radius:var(--ios-r);padding:14px 16px">
+              <div style="font-size:10px;color:var(--ios-label3);font-weight:600;text-transform:uppercase;letter-spacing:.08em">Objem</div>
+              <div class="lt-finished-volume" style="font-size:24px;font-weight:700;color:var(--ios-label);letter-spacing:-.3px;margin-top:4px">0 kg</div>
+            </div>
+          </div>
+          <div class="lt-finished-pr" style="display:none;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.3);border-radius:var(--ios-r);padding:14px 16px;margin-bottom:12px;align-items:center;gap:12px">
+            <div style="font-size:28px">🏆</div>
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:700;color:var(--ios-gold)">Nové osobní rekordy</div>
+              <div style="font-size:12px;color:var(--ios-label2);margin-top:1px"><span class="lt-finished-prcount">1</span> × překonaná váha</div>
+            </div>
+          </div>
+          <div class="ios-btn ios-btn-primary" style="font-size:16px;padding:15px;letter-spacing:.3px" onclick="liveExitToToday()">Zpět na dnešek</div>
+        </div>
+      </div>
+      <div style="height:20px"></div>
+    </div>
+
+  </div>
+
+  <!-- ── Rest-timer overlay ── -->
+  <div class="lt-rest-overlay" style="display:none;position:absolute;inset:0;background:rgba(20,20,30,.88);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);z-index:40;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:40px 32px">
+    <div style="font-size:11px;color:rgba(255,255,255,.5);font-weight:600;text-transform:uppercase;letter-spacing:.18em">Odpočinek</div>
+    <div style="position:relative;width:160px;height:160px">
+      <svg width="160" height="160" viewBox="0 0 160 160" style="transform:rotate(-90deg)">
+        <circle cx="80" cy="80" r="72" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="10"/>
+        <circle class="lt-rest-ring" cx="80" cy="80" r="72" fill="none" stroke="var(--ios-gold)" stroke-width="10" stroke-dasharray="452" stroke-dashoffset="0" stroke-linecap="round" style="transition:stroke-dashoffset .9s linear,stroke .5s"/>
+      </svg>
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+        <div class="lt-rest-countdown" style="font-size:52px;font-weight:700;color:#fff;letter-spacing:-1px;font-variant-numeric:tabular-nums;line-height:1">90</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:4px">sekund</div>
+      </div>
+    </div>
+    <div class="lt-rest-nextline" style="font-size:13px;color:rgba(255,255,255,.7);text-align:center;line-height:1.4">Další: <span class="lt-rest-nextname" style="color:#fff;font-weight:600">Bench press</span><br><span class="lt-rest-nextmeta" style="color:rgba(255,255,255,.5);font-size:12px">Série 2 · 80 kg × 10</span></div>
+    <div class="ios-btn" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:14px;padding:12px 24px;margin-top:2px" onclick="liveSkipRest()">Přeskočit odpočinek</div>
+  </div>
+
+  <!-- ── PR flash ── -->
+  <div class="lt-pr-overlay" style="display:none;position:absolute;inset:0;z-index:50;align-items:center;justify-content:center;pointer-events:none">
+    <div class="lt-pr-card" style="background:linear-gradient(135deg,var(--ios-gold),#ff9500);border-radius:20px;padding:22px 36px;text-align:center;box-shadow:0 0 60px rgba(201,168,76,.5);transform:scale(.5);opacity:0;transition:transform .25s ease,opacity .25s ease">
+      <div style="font-size:40px">🏆</div>
+      <div style="font-size:22px;font-weight:700;color:#fff;margin-top:6px;letter-spacing:-.2px">Osobní rekord!</div>
+      <div class="lt-pr-sub" style="font-size:12px;color:rgba(255,255,255,.85);margin-top:4px">Nová nejlepší váha</div>
+    </div>
+  </div>
+
+  <!-- ── Skip-exercise confirm sheet ── -->
+  <div class="lt-confirm-overlay" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,.5);z-index:60;align-items:flex-end;justify-content:center">
+    <div style="width:100%;background:var(--ios-bg2);border-radius:var(--ios-r-lg) var(--ios-r-lg) 0 0;padding:20px 16px 20px;box-shadow:0 -4px 16px rgba(0,0,0,.2)">
+      <div style="text-align:center;margin-bottom:16px">
+        <div style="font-size:17px;font-weight:600;color:var(--ios-label);margin-bottom:4px">Přeskočit cvik?</div>
+        <div style="font-size:13px;color:var(--ios-label2);line-height:1.4">Zbývající série v tomto cviku nebudou započítány jako splněné.</div>
+      </div>
+      <div class="ios-btn ios-btn-primary" style="font-size:16px;padding:14px;background:var(--ios-red);margin-bottom:8px" onclick="liveSkipExercise();liveHideConfirm()">Přeskočit</div>
+      <div class="ios-btn" style="font-size:15px;padding:12px;background:var(--ios-fill);color:var(--ios-label)" onclick="liveHideConfirm()">Zrušit</div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<style>
+  /* NumInput stepper */
+  #ph-live-training .lt-numinput {
+    display:flex;align-items:center;background:var(--ios-bg);border:1px solid var(--ios-sep);
+    border-radius:10px;overflow:hidden;height:44px;
+  }
+  #ph-live-training .lt-numbtn {
+    width:40px;height:44px;display:flex;align-items:center;justify-content:center;
+    font-size:22px;font-weight:500;color:var(--ios-label2);cursor:pointer;user-select:none;
+    transition:background .12s,color .12s;
+  }
+  #ph-live-training .lt-numbtn:active { background:var(--ios-fill); color:var(--ios-label); }
+  #ph-live-training .lt-numinput-value {
+    flex:1;text-align:center;font-size:18px;font-weight:700;color:var(--ios-gold);
+    font-variant-numeric:tabular-nums;letter-spacing:-.3px;
+  }
+  /* Exercise pill in top roadmap */
+  #ph-live-training .lt-ex-pill {
+    flex:1;min-width:0;padding:6px 6px;border-radius:8px;cursor:pointer;text-align:center;
+    background:var(--ios-fill2);border:1px solid transparent;transition:all .18s;
+  }
+  #ph-live-training .lt-ex-pill.active {
+    background:rgba(201,168,76,.12);border-color:var(--ios-gold);
+  }
+  #ph-live-training .lt-ex-pill.done {
+    background:rgba(52,199,89,.08);border-color:rgba(52,199,89,.35);
+  }
+  #ph-live-training .lt-ex-pill .lt-ex-pill-name {
+    font-size:11px;font-weight:700;color:var(--ios-label2);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:.02em;
+  }
+  #ph-live-training .lt-ex-pill.active .lt-ex-pill-name { color:var(--ios-gold); }
+  #ph-live-training .lt-ex-pill.done .lt-ex-pill-name { color:var(--ios-green); }
+  #ph-live-training .lt-ex-pill .lt-ex-pill-meta {
+    font-size:10px;color:var(--ios-label3);margin-top:2px;font-weight:500;
+  }
+  /* Set dots inside current-exercise hero */
+  #ph-live-training .lt-set-dot {
+    flex:1;height:6px;border-radius:99px;background:var(--ios-fill);cursor:pointer;transition:all .25s;
+  }
+  #ph-live-training .lt-set-dot.done    { background:var(--ios-gold); }
+  #ph-live-training .lt-set-dot.active  { background:rgba(201,168,76,.55);box-shadow:0 0 8px rgba(201,168,76,.5); }
+  #ph-live-training .lt-set-dot.skipped { background:var(--ios-label4); }
+  /* PR flash pop-in */
+  #ph-live-training .lt-pr-overlay.show { display:flex; }
+  #ph-live-training .lt-pr-overlay.show .lt-pr-card { transform:scale(1); opacity:1; }
+  /* Ensure the PR banner in the finished state only uses flex when shown */
+  #ph-live-training .lt-finished-pr.show { display:flex !important; }
+  /* Roadmap (progress bar + exercise pills) is only meaningful once the
+     session has started; hide it on the prestart overview. */
+  #ph-live-training[data-state="prestart"] .lt-roadmap-wrap { display:none; }
+</style>
 </div><!-- /stage -->
 
 <script>
@@ -3937,7 +4723,7 @@ function showPhone(id){
   document.querySelectorAll('.phone').forEach(function(p){ p.style.display='none'; });
   var el = document.getElementById(id); if(el) el.style.display='block';
   document.querySelectorAll('.pb').forEach(function(b){ b.classList.remove('active'); });
-  var map = {'ph-today':'Dnes','ph-invite-detail':'Detail pozvánky','ph-discover':'Spolupráce','ph-trainer-profile':'Profil trenéra','ph-plans':'Plány','ph-plan-history':'Archiv plánů','ph-plan-detail-complete':'Dokončený plán','ph-nutrition-plan-detail':'Detail výživového plánu','ph-food-detail':'Detail potraviny','ph-recipe-detail':'Detail receptu','ph-pending-questionnaires':'Čekající dotazníky','ph-profile':'Profil','ph-messages':'Zprávy','ph-archive':'Archiv','ph-chat':'Chat detail','ph-chat-former':'Chat — bývalý trenér'};
+  var map = {'ph-today':'Dnes','ph-invite-detail':'Detail pozvánky','ph-discover':'Spolupráce','ph-trainer-profile':'Profil trenéra','ph-plans':'Plány','ph-plan-history':'Archiv plánů','ph-plan-detail-complete':'Dokončený plán','ph-nutrition-plan-detail':'Detail výživového plánu','ph-training-plan-detail':'Detail tréninku','ph-food-detail':'Detail potraviny','ph-recipe-detail':'Detail receptu','ph-pending-questionnaires':'Čekající dotazníky','ph-profile':'Profil','ph-messages':'Zprávy','ph-archive':'Archiv','ph-chat':'Chat detail','ph-chat-former':'Chat — bývalý trenér','ph-live-training':'Živý trénink'};
   document.querySelectorAll('.pb').forEach(function(b){
     if(b.textContent.trim() === map[id]) b.classList.add('active');
   });
@@ -3945,11 +4731,26 @@ function showPhone(id){
 
 var _collabState = 'none'; // none | trainer | coach | both
 
+function resetTrainingStatCard() {
+  var card = document.getElementById('today-training-stat-card');
+  if (card) {
+    card.innerHTML =
+      '<div style="font-size:11px;color:var(--ios-label2);font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Trénink</div>' +
+      '<div style="font-size:22px;font-weight:700;color:var(--ios-label);letter-spacing:-.3px">2 tréninky</div>' +
+      '<div style="font-size:11px;color:var(--ios-label3);margin-top:1px">7 cviků · 95 min</div>' +
+      '<div style="margin-top:6px;display:inline-flex;align-items:center;gap:4px;background:rgba(52,199,89,.12);border-radius:99px;padding:2px 8px">' +
+        '<div style="width:5px;height:5px;border-radius:50%;background:var(--ios-green)"></div>' +
+        '<span style="font-size:11px;font-weight:600;color:var(--ios-green)"><span class="tp-stat-done">2</span>/<span class="tp-stat-total">7</span> hotovo</span>' +
+      '</div>';
+  }
+}
+
 function setCollabState(state) {
   _collabState = state;
   var hasTrainer = state === 'trainer' || state === 'both' || state === 'plan-pending';
   var hasCoach   = state === 'coach'   || state === 'both';
   var hasAny     = hasTrainer || hasCoach;
+  var isPlanPending = state === 'plan-pending';
 
   // Today screen
   var ht = document.getElementById('today-has-trainer');
@@ -3957,14 +4758,16 @@ function setCollabState(state) {
   var pp = document.getElementById('today-plan-pending');
   var tw = document.getElementById('today-waiting');
   var ic = document.getElementById('invite-card-wrap');
-  var isPlanPending = state === 'plan-pending';
-  if(ht) ht.style.display = (!isPlanPending && hasAny) ? '' : 'none';
-  if(nt) nt.style.display = (!isPlanPending && !hasAny) ? '' : 'none';
-  if(pp) pp.style.display = isPlanPending ? '' : 'none';
+  if(ht) ht.style.display = (hasAny || isPlanPending) ? '' : 'none';
+  if(nt) nt.style.display = (!hasAny && !isPlanPending) ? '' : 'none';
+  if(pp) pp.style.display = 'none'; /* plan-pending banners now render inside has-trainer */
   if(tw) tw.style.display = 'none';
   if(!isPlanPending) {
     var banners = document.getElementById('pending-banners');
     if (banners) banners.innerHTML = '';
+    var inlineBanners = document.getElementById('today-pending-banners-inline');
+    if (inlineBanners) inlineBanners.innerHTML = '';
+    resetTrainingStatCard();
   }
   if(ic) ic.style.display = (hasAny || isPlanPending) ? 'none' : '';
 
@@ -4005,9 +4808,14 @@ function setPendingPlans(which) {
     accent: '#34c759', bg: 'rgba(52,199,89,.07)', border: 'rgba(52,199,89,.22)', bgTag: 'rgba(52,199,89,.15)'
   });
 
-  var container = document.getElementById('pending-banners');
-  if (container) {
-    container.innerHTML = '';
+  /* Inject banners into the inline container inside today-has-trainer */
+  var inlineContainer = document.getElementById('today-pending-banners-inline');
+  /* Also clear the old container in #today-plan-pending so no stale content lingers */
+  var oldContainer = document.getElementById('pending-banners');
+  if (oldContainer) oldContainer.innerHTML = '';
+
+  if (inlineContainer) {
+    inlineContainer.innerHTML = '';
     var calIcon = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>';
     plans.forEach(function(p) {
       var tagsHtml = p.tags.map(function(t) {
@@ -4027,13 +4835,26 @@ function setPendingPlans(which) {
         '<div style="font-size:13px;color:var(--ios-label2);margin-bottom:10px">' + p.trainer + ' · ' + p.detail + '</div>' +
         '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px">' + tagsHtml + '</div>' +
         '<div style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:99px;background:' + p.accent + ';color:#fff;font-size:13px;font-weight:600;cursor:pointer" onclick="showPhone(\'ph-plans\')">' + calIcon + 'Zobrazit plán</div>';
-      container.appendChild(div);
+      inlineContainer.appendChild(div);
     });
   }
 
-  /* ---- EXTRA CONTENT ---- */
+  /* ---- TRAINING STAT CARD — show start date instead of session name ---- */
+  if (hasT) {
+    var trainingCard = document.getElementById('today-training-stat-card');
+    if (trainingCard) {
+      trainingCard.innerHTML =
+        '<div style="font-size:11px;color:var(--ios-label2);font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Trénink</div>' +
+        '<div style="font-size:22px;font-weight:700;color:var(--ios-label);letter-spacing:-.3px">14. 4.</div>' +
+        '<div style="font-size:11px;color:var(--ios-label3);margin-top:1px">začíná</div>';
+    }
+  }
+
+  /* ---- EXTRA CONTENT (renders into #pending-extra inside the now-hidden
+     #today-plan-pending; kept for data parity but not surfaced in the
+     has-trainer view — can be cut entirely later) ---- */
   var extra = document.getElementById('pending-extra');
-  if (!extra) return;
+  if (!extra) { _finishPendingNav(which); return; }
   extra.innerHTML = '';
 
   /* Weekly schedule */
@@ -4145,7 +4966,10 @@ function setPendingPlans(which) {
     '<div style="margin:0 20px 24px;display:flex;flex-direction:column;gap:10px">' + tipsHtml + '</div>';
   extra.appendChild(tSec);
 
-  /* nav active */
+  _finishPendingNav(which);
+}
+
+function _finishPendingNav(which) {
   ['btn-state-pending-t','btn-state-pending-n','btn-state-pending-tn'].forEach(function(id) {
     var b = document.getElementById(id); if (b) b.classList.remove('active');
   });
@@ -5121,6 +5945,94 @@ function markWholeDayEaten(btn) {
   });
 }
 
+// Today screen — training session / exercise toggle + check
+function todayExToggle(exCardEl) {
+  exCardEl.classList.toggle('expanded');
+}
+
+function todayExCheck(checkEl) {
+  var done = checkEl.classList.toggle('done');
+  checkEl.textContent = done ? '\u2713' : '';
+  updateTrainingProgress(checkEl.closest('#today-training-card'));
+  updateTrainingStatTile();
+}
+
+function updateTrainingProgress(cardEl) {
+  if (!cardEl) return;
+  var total = 0, done = 0;
+  cardEl.querySelectorAll('.tp-session').forEach(function(s) {
+    var exCards = s.querySelectorAll('.tp-ex-card');
+    var sTotal = exCards.length;
+    var sDone = s.querySelectorAll('.tp-ex-card .tp-ex-header .ex-ios-done.done').length;
+    total += sTotal;
+    done += sDone;
+    var chip = s.querySelector('.tp-session-progress');
+    if (chip) {
+      chip.textContent = sDone + '/' + sTotal;
+      if (sDone === sTotal && sTotal > 0) {
+        chip.style.background = 'rgba(52,199,89,.12)';
+        chip.style.color = 'var(--ios-green)';
+      } else {
+        chip.style.background = '';
+        chip.style.color = '';
+      }
+    }
+    var sessionCheck = s.querySelector('.tp-session-header > .ex-ios-done');
+    if (sessionCheck) {
+      var allDone = sTotal > 0 && sDone === sTotal;
+      sessionCheck.classList.toggle('done', allDone);
+      sessionCheck.textContent = allDone ? '\u2713' : '';
+    }
+  });
+  var label = cardEl.querySelector('.tp-day-progress-label');
+  if (label) label.textContent = done + '/' + total + ' hotovo';
+  var bar = cardEl.querySelector('.tp-day-progress-bar');
+  if (bar && total) bar.style.width = Math.round(done / total * 100) + '%';
+  var ringLbl = cardEl.querySelector('.tp-day-progress-ringlabel');
+  if (ringLbl) ringLbl.textContent = done + '/' + total;
+  var ring = cardEl.querySelector('.tp-day-progress-ring');
+  if (ring && total) {
+    var circ = 144; // 2 * PI * 23, matches dasharray
+    ring.setAttribute('stroke-dashoffset', Math.round(circ * (1 - done / total)));
+  }
+}
+
+function updateTrainingStatTile() {
+  var card = document.getElementById('today-training-card');
+  if (!card) return;
+  var total = card.querySelectorAll('.tp-ex-card').length;
+  var done = card.querySelectorAll('.tp-ex-card .tp-ex-header .ex-ios-done.done').length;
+  var tile = document.getElementById('today-training-stat-card');
+  if (!tile) return;
+  var d = tile.querySelector('.tp-stat-done');
+  var t = tile.querySelector('.tp-stat-total');
+  if (d) d.textContent = done;
+  if (t) t.textContent = total;
+}
+
+function todaySessionCheck(checkEl) {
+  var session = checkEl.closest('.tp-session');
+  if (!session) return;
+  var turningOn = !checkEl.classList.contains('done');
+  session.querySelectorAll('.tp-ex-card .tp-ex-header .ex-ios-done').forEach(function(c) {
+    c.classList.toggle('done', turningOn);
+    c.textContent = turningOn ? '\u2713' : '';
+  });
+  updateTrainingProgress(session.closest('#today-training-card'));
+  updateTrainingStatTile();
+}
+
+function markWholeTrainingDone(btn) {
+  var card = btn.closest('.ios-card');
+  if (!card) return;
+  card.querySelectorAll('.tp-ex-card .tp-ex-header .ex-ios-done').forEach(function(c) {
+    c.classList.add('done');
+    c.textContent = '\u2713';
+  });
+  updateTrainingProgress(card);
+  updateTrainingStatTile();
+}
+
 // ── FOOD / RECIPE DETAIL: i18n ──────────────────────────
 var _fdLang = 'cs';
 var _fdTranslations = {
@@ -5434,6 +6346,918 @@ setCollabState('trainer');
 setPendingDemo('none');
 showPhone('ph-today');
 renderWeightUI();
+// ═══════════════════════════════════════════════════════════════════
+//   ŽIVÝ TRÉNINK — live training assistant
+//   Prototype-only state machine. Layout + workflow inspired by
+//   docs/aktivni_trenink.jsx: the logging view is the "home" state,
+//   with rest timer + PR flash as floating overlays so the user
+//   never loses their place. Styling uses the app's iOS tokens.
+// ═══════════════════════════════════════════════════════════════════
+
+// Muscle → accent color map for both the pill roadmap and the hero tint.
+var _ltMuscleColor = {
+  'Hrudník': '#0b6e99',
+  'Ramena':  '#af52de',
+  'Paže':    '#ff9500',
+  'Záda':    '#3ed7be',
+  'Triceps': '#ff9500',
+  'Biceps':  '#ff9500'
+};
+
+// Mock session catalog (mirrors #today-training-card).
+var _ltSessions = {
+  'session-1': {
+    name: 'Ranní trénink · Push A',
+    plan: 'Silový A/B · Týden 3',
+    chips: [
+      { text:'Hrudník', bg:'rgba(201,168,76,.22)', color:'#c9a84c' },
+      { text:'Ramena',  bg:'rgba(175,82,222,.22)', color:'#af52de' },
+      { text:'Paže',    bg:'rgba(255,149,0,.22)',  color:'#ff9500' }
+    ],
+    meta: '4 cviky · 13 sérií · ~45 min',
+    exercises: [
+      { id:'s1-ex1', name:'Bench press s činkou', muscle:'Hrudník', shortName:'Bench', rest:90,
+        sets:[{reps:10,weight:80},{reps:10,weight:80},{reps:9,weight:82.5},{reps:8,weight:82.5}] },
+      { id:'s1-ex2', name:'Vojenský tlak',        muscle:'Ramena', shortName:'Tlak',  rest:90,
+        sets:[{reps:12,weight:55},{reps:11,weight:55},{reps:10,weight:55}] },
+      { id:'s1-ex3', name:'Kliky na bradlech',    muscle:'Hrudník', shortName:'Dipy', rest:90,
+        sets:[{reps:12,weight:0},{reps:12,weight:0},{reps:12,weight:0}] },
+      { id:'s1-ex4', name:'Laterální zdvihy',     muscle:'Ramena', shortName:'Laterály', rest:60,
+        sets:[{reps:15,weight:12},{reps:15,weight:12},{reps:15,weight:12}] }
+    ]
+  },
+  'session-2': {
+    name: 'Odpolední trénink · Pull A',
+    plan: 'Silový A/B · Týden 3',
+    chips: [
+      { text:'Záda',  bg:'rgba(62,215,190,.22)', color:'#3ed7be' },
+      { text:'Paže',  bg:'rgba(255,149,0,.22)',  color:'#ff9500' }
+    ],
+    meta: '3 cviky · 9 sérií · ~50 min',
+    exercises: [
+      { id:'s2-ex1', name:'T-bar přítahy',                muscle:'Záda', shortName:'T-bar', rest:90,
+        sets:[{reps:8,weight:60},{reps:8,weight:60},{reps:8,weight:60}] },
+      { id:'s2-ex2', name:'Přítahy na kladce vsedě',       muscle:'Záda', shortName:'Kladka', rest:75,
+        sets:[{reps:12,weight:50},{reps:11,weight:50},{reps:10,weight:50}] },
+      { id:'s2-ex3', name:'Biceps s činkou',              muscle:'Biceps', shortName:'Biceps', rest:60,
+        sets:[{reps:12,weight:25},{reps:12,weight:25},{reps:12,weight:25}] }
+    ]
+  }
+};
+
+// ── Runtime state (resets on page reload) ─────────────────────────
+var _ltState = null;
+function _ltInitState(sessionId) {
+  _ltState = {
+    sessionId: sessionId,
+    phase: 'prestart',            // prestart | running | finished
+    currentExerciseIdx: 0,
+    currentSetIdx: 0,
+    // log[exId][setIdx] = { reps, weight, done:boolean, skipped?:boolean }
+    log: {},
+    skippedExercises: [],
+    // Elapsed timer (in seconds) and its interval id.
+    elapsed: 0,
+    elapsedTimerId: null,
+    // Rest overlay state.
+    rest: { active:false, total:0, remaining:0, timerId:null, skipToNext:false },
+    // PR flash timer id.
+    prTimerId: null,
+    // Per-session PR counter, surfaced on the finished screen.
+    prsHit: 0,
+    // Current form values (tracked separately so +/- steppers work).
+    form: { reps:0, weight:0 }
+  };
+}
+
+function _ltSession() { return _ltSessions[_ltState.sessionId] || _ltSessions['session-1']; }
+function _ltTotalSets() {
+  return _ltSession().exercises.reduce(function(s,e){ return s + e.sets.length; }, 0);
+}
+function _ltDoneCount() {
+  var n = 0;
+  Object.keys(_ltState.log).forEach(function(exId) {
+    Object.keys(_ltState.log[exId]).forEach(function(si) {
+      if (_ltState.log[exId][si] && _ltState.log[exId][si].done) n++;
+    });
+  });
+  return n;
+}
+function _ltMuscleOf(ex) { return _ltMuscleColor[ex.muscle] || '#c9a84c'; }
+
+function liveHasActiveSession() {
+  return _ltState && _ltState.sessionId
+    && _ltState.phase !== 'prestart' && _ltState.phase !== 'finished';
+}
+
+// ── Entry points ─────────────────────────────────────────────────
+function showLiveScene(sessionId) {
+  _ltStopAllTimers();
+  _ltInitState(sessionId);
+  _ltPrefillForm();
+  showPhone('ph-live-training');
+  _ltRender();
+}
+
+// Read-only preview of a finished session for the "Zobrazit souhrn" link.
+function showLiveSummary(sessionId) {
+  _ltStopAllTimers();
+  _ltInitState(sessionId);
+  _ltSession().exercises.forEach(function(ex) {
+    _ltState.log[ex.id] = {};
+    ex.sets.forEach(function(s, i) {
+      _ltState.log[ex.id][i] = { reps:s.reps, weight:s.weight, done:true };
+    });
+  });
+  _ltState.phase = 'finished';
+  _ltState.elapsed = 43 * 60 + 12;  // mock 43:12
+  showPhone('ph-live-training');
+  _ltRender();
+}
+
+// ── Actions ──────────────────────────────────────────────────────
+function liveStart() {
+  _ltState.phase = 'running';
+  _ltState.currentExerciseIdx = 0;
+  _ltState.currentSetIdx = 0;
+  _ltPrefillForm();
+  _ltStartElapsed();
+  _ltRender();
+}
+
+function liveMarkSetDone() {
+  var ex = _ltSession().exercises[_ltState.currentExerciseIdx];
+  if (!ex) return;
+  var reps = _ltState.form.reps;
+  var weight = _ltState.form.weight;
+
+  // PR check: weight strictly greater than every logged weight for this exercise
+  // in the current session.
+  var isPR = false;
+  if (weight > 0) {
+    var prevMax = 0;
+    Object.keys(_ltState.log).forEach(function(exId) {
+      if (exId !== ex.id) return;
+      Object.keys(_ltState.log[exId]).forEach(function(si) {
+        var s = _ltState.log[exId][si];
+        if (s && s.done && s.weight > prevMax) prevMax = s.weight;
+      });
+    });
+    if (weight > prevMax) isPR = true;
+  }
+
+  _ltState.log[ex.id] = _ltState.log[ex.id] || {};
+  _ltState.log[ex.id][_ltState.currentSetIdx] = { reps:reps, weight:weight, done:true };
+
+  if (isPR) {
+    _ltState.prsHit += 1;
+    _ltFlashPR();
+  }
+
+  _ltAdvanceAfterSet(true);
+}
+
+function liveSkipSet() {
+  var ex = _ltSession().exercises[_ltState.currentExerciseIdx];
+  if (!ex) return;
+  _ltState.log[ex.id] = _ltState.log[ex.id] || {};
+  _ltState.log[ex.id][_ltState.currentSetIdx] = { reps:0, weight:0, done:false, skipped:true };
+  _ltAdvanceAfterSet(false);
+}
+
+function liveSkipExercise() {
+  var ex = _ltSession().exercises[_ltState.currentExerciseIdx];
+  if (!ex) return;
+  if (_ltState.skippedExercises.indexOf(ex.id) < 0) _ltState.skippedExercises.push(ex.id);
+  _ltState.currentExerciseIdx += 1;
+  _ltState.currentSetIdx = 0;
+  if (_ltState.currentExerciseIdx >= _ltSession().exercises.length) _ltFinish();
+  else { _ltPrefillForm(); _ltRender(); }
+}
+
+function liveConfirmSkipExercise() {
+  var el = document.querySelector('#ph-live-training .lt-confirm-overlay');
+  if (el) el.style.display = 'flex';
+}
+function liveHideConfirm() {
+  var el = document.querySelector('#ph-live-training .lt-confirm-overlay');
+  if (el) el.style.display = 'none';
+}
+
+function _ltAdvanceAfterSet(startRest) {
+  var ex = _ltSession().exercises[_ltState.currentExerciseIdx];
+  var lastSet = _ltState.currentSetIdx >= ex.sets.length - 1;
+  var lastEx  = _ltState.currentExerciseIdx >= _ltSession().exercises.length - 1;
+
+  if (lastSet && lastEx) { _ltFinish(); return; }
+
+  // Compute next target (we advance AFTER the rest, not before, so the
+  // running screen stays on the set the user just finished — matches
+  // the reference feel where the rest overlay "transports" you).
+  var nextExIdx = _ltState.currentExerciseIdx;
+  var nextSetIdx = _ltState.currentSetIdx + 1;
+  if (lastSet) { nextExIdx += 1; nextSetIdx = 0; }
+
+  if (startRest) {
+    _ltState.rest.active = true;
+    _ltState.rest.total = ex.rest || 60;
+    _ltState.rest.remaining = _ltState.rest.total;
+    _ltState.rest.skipToNext = true;
+    _ltPendingAdvance = { ex: nextExIdx, set: nextSetIdx };
+    _ltRender();
+    _ltStartRestTimer();
+  } else {
+    _ltState.currentExerciseIdx = nextExIdx;
+    _ltState.currentSetIdx = nextSetIdx;
+    _ltPrefillForm();
+    _ltRender();
+  }
+}
+
+// ── Elapsed timer ────────────────────────────────────────────────
+function _ltStartElapsed() {
+  _ltStopElapsed();
+  _ltState.elapsedTimerId = setInterval(function() {
+    _ltState.elapsed += 1;
+    _ltUpdateElapsedUI();
+  }, 1000);
+  _ltUpdateElapsedUI();
+}
+function _ltStopElapsed() {
+  if (_ltState && _ltState.elapsedTimerId) {
+    clearInterval(_ltState.elapsedTimerId);
+    _ltState.elapsedTimerId = null;
+  }
+}
+function _ltFmtTime(s) {
+  var m = Math.floor(s / 60);
+  var r = s % 60;
+  return (m < 10 ? '0' : '') + m + ':' + (r < 10 ? '0' : '') + r;
+}
+function _ltUpdateElapsedUI() {
+  var el = document.querySelector('#ph-live-training .lt-elapsed');
+  if (el) el.textContent = _ltFmtTime(_ltState.elapsed);
+}
+
+// ── Rest overlay ─────────────────────────────────────────────────
+var _ltPendingAdvance = null;
+
+function _ltStartRestTimer() {
+  _ltStopRestTimer();
+  _ltState.rest.timerId = setInterval(function() {
+    _ltState.rest.remaining -= 1;
+    if (_ltState.rest.remaining <= 0) { liveSkipRest(); return; }
+    _ltUpdateRestUI();
+  }, 1000);
+  _ltUpdateRestUI();
+}
+function _ltStopRestTimer() {
+  if (_ltState && _ltState.rest.timerId) {
+    clearInterval(_ltState.rest.timerId);
+    _ltState.rest.timerId = null;
+  }
+}
+function liveSkipRest() {
+  _ltStopRestTimer();
+  _ltState.rest.active = false;
+  if (_ltPendingAdvance) {
+    _ltState.currentExerciseIdx = _ltPendingAdvance.ex;
+    _ltState.currentSetIdx = _ltPendingAdvance.set;
+    _ltPendingAdvance = null;
+  }
+  _ltPrefillForm();
+  _ltRender();
+}
+function _ltUpdateRestUI() {
+  var phone = document.getElementById('ph-live-training');
+  if (!phone) return;
+  var cd = phone.querySelector('.lt-rest-countdown');
+  if (cd) cd.textContent = _ltState.rest.remaining;
+  var ring = phone.querySelector('.lt-rest-ring');
+  if (ring && _ltState.rest.total > 0) {
+    var circ = 452;
+    var pct = _ltState.rest.remaining / _ltState.rest.total;
+    ring.setAttribute('stroke-dashoffset', Math.round(circ * (1 - pct)));
+    var color = pct > 0.5 ? 'var(--ios-gold)' : pct > 0.25 ? '#ff9500' : 'var(--ios-red)';
+    ring.style.stroke = color;
+  }
+  // Next-set preview inside the rest overlay.
+  var ex = _ltSession().exercises[_ltPendingAdvance ? _ltPendingAdvance.ex : _ltState.currentExerciseIdx];
+  var setIdx = _ltPendingAdvance ? _ltPendingAdvance.set : _ltState.currentSetIdx;
+  var nameEl = phone.querySelector('.lt-rest-nextname');
+  var metaEl = phone.querySelector('.lt-rest-nextmeta');
+  if (ex && nameEl && metaEl) {
+    nameEl.textContent = ex.name;
+    var s = ex.sets[setIdx];
+    metaEl.textContent = 'Série ' + (setIdx + 1) + ' · ' + (s.weight ? (s.weight + ' kg × ' + s.reps) : ('BW × ' + s.reps));
+  }
+}
+
+// ── PR flash ─────────────────────────────────────────────────────
+function _ltFlashPR() {
+  var phone = document.getElementById('ph-live-training');
+  if (!phone) return;
+  var ov = phone.querySelector('.lt-pr-overlay');
+  if (!ov) return;
+  ov.classList.remove('show');
+  // Use rAF so the transition restarts cleanly.
+  requestAnimationFrame(function() { ov.classList.add('show'); });
+  if (_ltState.prTimerId) clearTimeout(_ltState.prTimerId);
+  _ltState.prTimerId = setTimeout(function() {
+    ov.classList.remove('show');
+  }, 2200);
+}
+
+// ── Finish flow ──────────────────────────────────────────────────
+function _ltFinish() {
+  _ltStopElapsed();
+  _ltStopRestTimer();
+  _ltState.rest.active = false;
+  _ltState.phase = 'finished';
+  _ltRender();
+}
+
+// ── Form (reps / weight stepper) ─────────────────────────────────
+function _ltPrefillForm() {
+  var ex = _ltSession().exercises[_ltState.currentExerciseIdx];
+  if (!ex) return;
+  var existing = _ltState.log[ex.id] && _ltState.log[ex.id][_ltState.currentSetIdx];
+  if (existing && existing.done) {
+    _ltState.form.reps = existing.reps;
+    _ltState.form.weight = existing.weight;
+  } else {
+    var s = ex.sets[_ltState.currentSetIdx];
+    _ltState.form.reps = s.reps;
+    _ltState.form.weight = s.weight;
+  }
+}
+
+function liveAdjust(field, delta) {
+  if (field === 'reps') {
+    _ltState.form.reps = Math.max(1, _ltState.form.reps + delta);
+  } else if (field === 'weight') {
+    var w = _ltState.form.weight + delta;
+    if (w < 0) w = 0;
+    _ltState.form.weight = Math.round(w * 10) / 10;
+  }
+  _ltUpdateFormUI();
+}
+
+function _ltUpdateFormUI() {
+  var phone = document.getElementById('ph-live-training');
+  if (!phone) return;
+  var rv = phone.querySelector('.lt-reps-value');
+  if (rv) rv.textContent = _ltState.form.reps;
+  var wv = phone.querySelector('.lt-weight-value');
+  if (wv) wv.textContent = _ltState.form.weight > 0 ? _ltState.form.weight : 'BW';
+  // Disable weight +/- if exercise is bodyweight (plan weight=0).
+  var ex = _ltSession().exercises[_ltState.currentExerciseIdx];
+  var plan = ex ? ex.sets[_ltState.currentSetIdx] : null;
+  var numWrap = phone.querySelector('.lt-numinput[data-field="weight"]');
+  if (numWrap && plan) {
+    var isBW = plan.weight === 0;
+    numWrap.style.opacity = isBW ? '.45' : '1';
+    numWrap.style.pointerEvents = isBW ? 'none' : 'auto';
+  }
+  var label = phone.querySelector('.lt-weight-label');
+  if (label && plan) label.textContent = plan.weight > 0 ? 'Váha (kg)' : 'Vlastní váha';
+  var hint = phone.querySelector('.lt-weight-hint');
+  if (hint && plan) hint.style.display = plan.weight > 0 ? '' : 'none';
+}
+
+// ── Navigation helpers (jump-to-exercise / jump-to-set) ─────────
+function liveGoToExercise(idx) {
+  if (_ltState.phase !== 'running') return;
+  if (idx < 0 || idx >= _ltSession().exercises.length) return;
+  _ltState.currentExerciseIdx = idx;
+  _ltState.currentSetIdx = 0;
+  _ltPrefillForm();
+  _ltRender();
+}
+function liveGoToSet(idx) {
+  if (_ltState.phase !== 'running') return;
+  var ex = _ltSession().exercises[_ltState.currentExerciseIdx];
+  if (!ex || idx < 0 || idx >= ex.sets.length) return;
+  _ltState.currentSetIdx = idx;
+  _ltPrefillForm();
+  _ltRender();
+}
+
+// ── Close / exit ─────────────────────────────────────────────────
+function liveClose() {
+  _ltStopRestTimer();
+  _ltState.rest.active = false;
+  // Keep elapsed running virtually — we just leave the scene; store keeps state.
+  // In the real app, liveSessionStore persists to MMKV and `restStartedAt` is
+  // used to recompute remaining on resume.
+  _ltStopElapsed();
+  showPhone('ph-today');
+  _ltRefreshTodayResumeBanner();
+  _ltRefreshTodaySessionCTAs();
+}
+function liveExitToToday() {
+  _ltStopAllTimers();
+  _ltInitState(null);
+  showPhone('ph-today');
+  _ltRefreshTodayResumeBanner();
+  _ltRefreshTodaySessionCTAs();
+}
+function _ltStopAllTimers() {
+  if (!_ltState) return;
+  _ltStopElapsed();
+  _ltStopRestTimer();
+  if (_ltState.prTimerId) { clearTimeout(_ltState.prTimerId); _ltState.prTimerId = null; }
+}
+
+// ══════════════════════════════════════════════════════════════════
+//   Rendering
+// ══════════════════════════════════════════════════════════════════
+
+function _ltRender() {
+  var phone = document.getElementById('ph-live-training');
+  if (!phone) return;
+  phone.setAttribute('data-state', _ltState.phase);
+
+  // Toggle main state containers.
+  ['prestart','running','finished'].forEach(function(s) {
+    var el = phone.querySelector('.lt-state-' + s);
+    if (el) el.style.display = s === _ltState.phase ? '' : 'none';
+  });
+
+  // Top bar + roadmap are shared across states.
+  _ltRenderTopbar();
+  _ltRenderRoadmap();
+
+  if (_ltState.phase === 'prestart') _ltRenderPrestart();
+  else if (_ltState.phase === 'running') _ltRenderRunning();
+  else if (_ltState.phase === 'finished') _ltRenderFinished();
+
+  // Rest overlay.
+  var restOv = phone.querySelector('.lt-rest-overlay');
+  if (restOv) {
+    if (_ltState.rest.active) {
+      restOv.style.display = 'flex';
+      _ltUpdateRestUI();
+    } else {
+      restOv.style.display = 'none';
+    }
+  }
+}
+
+function _ltRenderTopbar() {
+  var phone = document.getElementById('ph-live-training');
+  var session = _ltSession();
+  var titleEl = phone.querySelector('.lt-session-title');
+  if (titleEl) titleEl.textContent = session.name;
+  var sdEl = phone.querySelector('.lt-sets-done');
+  var stEl = phone.querySelector('.lt-sets-total');
+  if (sdEl) sdEl.textContent = _ltDoneCount();
+  if (stEl) stEl.textContent = _ltTotalSets();
+  _ltUpdateElapsedUI();
+}
+
+function _ltRenderRoadmap() {
+  var phone = document.getElementById('ph-live-training');
+  var session = _ltSession();
+  var done = _ltDoneCount();
+  var total = _ltTotalSets();
+
+  var bar = phone.querySelector('.lt-overall-bar');
+  if (bar && total) bar.style.width = Math.round(done / total * 100) + '%';
+
+  var pills = phone.querySelector('.lt-ex-pills');
+  if (!pills) return;
+  pills.innerHTML = session.exercises.map(function(ex, i) {
+    var exDone = _ltState.log[ex.id]
+      ? Object.keys(_ltState.log[ex.id]).filter(function(si){return _ltState.log[ex.id][si].done;}).length
+      : 0;
+    var isActive = i === _ltState.currentExerciseIdx && _ltState.phase === 'running';
+    var isFull = exDone === ex.sets.length && exDone > 0;
+    var cls = 'lt-ex-pill' + (isActive ? ' active' : '') + (isFull ? ' done' : '');
+    return '<div class="' + cls + '" onclick="liveGoToExercise(' + i + ')">' +
+      '<div class="lt-ex-pill-name">' + ex.shortName + '</div>' +
+      '<div class="lt-ex-pill-meta">' + exDone + '/' + ex.sets.length + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function _ltRenderPrestart() {
+  var phone = document.getElementById('ph-live-training');
+  var session = _ltSession();
+
+  var nameEl = phone.querySelector('.lt-prestart-name');
+  var metaEl = phone.querySelector('.lt-prestart-meta');
+  var chipsEl = phone.querySelector('.lt-prestart-chips');
+  if (nameEl) nameEl.textContent = session.name.split(' · ').slice(-1)[0];
+  if (metaEl) metaEl.textContent = session.meta;
+  if (chipsEl) {
+    chipsEl.innerHTML = session.chips.map(function(c) {
+      return '<span style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:99px;background:' + c.bg + ';color:' + c.color + '">' + c.text + '</span>';
+    }).join('');
+  }
+  var list = phone.querySelector('.lt-prestart-exlist');
+  if (list) {
+    list.innerHTML = session.exercises.map(function(ex, i) {
+      var dot = _ltMuscleOf(ex);
+      var first = ex.sets[0];
+      var target = ex.sets.length + ' × ' + first.reps + ' opak · ' + (first.weight > 0 ? (first.weight + ' kg') : 'BW');
+      var topBorder = i > 0 ? 'border-top:.5px solid var(--ios-sep2);' : '';
+      var gridRows = ex.sets.map(function(s, si) {
+        var last = si === ex.sets.length - 1 ? 'border:none' : '';
+        var wt = s.weight > 0 ? (s.weight + ' kg') : 'BW';
+        return '<div class="tp-set-cell" style="' + last + '">' + (si + 1) + '</div>' +
+               '<div class="tp-set-cell" style="' + last + '">' + s.reps + '</div>' +
+               '<div class="tp-set-cell" style="' + last + '">' + wt + '</div>' +
+               '<div class="tp-set-cell" style="' + last + '">' + (s.rest ? (s.rest + ' s') : '—') + '</div>' +
+               '<div class="tp-set-cell" style="' + last + ';color:var(--ios-label3)">—</div>';
+      }).join('');
+
+      return '<div class="tp-ex-card" style="margin:0;border-radius:0;box-shadow:none;' + topBorder + '" onclick="todayExToggle(this)">' +
+        '<div class="tp-ex-header">' +
+          '<div class="ex-ios-dot" style="background:' + dot + ';flex-shrink:0"></div>' +
+          '<div style="flex:1;min-width:0">' +
+            '<div style="font-size:15px;font-weight:600;color:var(--ios-label)">' + ex.name + '</div>' +
+            '<div style="font-size:12px;color:var(--ios-label2);margin-top:2px">' + target + '</div>' +
+          '</div>' +
+          '<span class="tp-ex-chev">▼</span>' +
+        '</div>' +
+        '<div class="tp-ex-body" style="border-top:.5px solid var(--ios-sep2);background:var(--ios-fill2)">' +
+          '<div class="tp-ex-set-grid" style="padding:4px 16px 0">' +
+            '<div class="tp-set-hdr">S</div>' +
+            '<div class="tp-set-hdr">Opak.</div>' +
+            '<div class="tp-set-hdr">Váha</div>' +
+            '<div class="tp-set-hdr">Odp.</div>' +
+            '<div class="tp-set-hdr">Stav</div>' +
+            gridRows +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+}
+
+function _ltRenderRunning() {
+  var phone = document.getElementById('ph-live-training');
+  var session = _ltSession();
+  var ex = session.exercises[_ltState.currentExerciseIdx];
+  if (!ex) return;
+  var mc = _ltMuscleOf(ex);  // small identifier dot only — everything else is gold
+
+  // Hero — small muscle-color dot beside a neutral "muscle · cvik X/Y" label.
+  var dotEl = phone.querySelector('.lt-running-dot');
+  if (dotEl) dotEl.style.background = mc;
+  var musEl = phone.querySelector('.lt-running-musclelabel');
+  if (musEl) musEl.textContent = ex.muscle + ' · Cvik ' + (_ltState.currentExerciseIdx + 1) + '/' + session.exercises.length;
+  var nameEl = phone.querySelector('.lt-running-exname');
+  if (nameEl) nameEl.textContent = ex.name;
+  var curEl = phone.querySelector('.lt-running-setcurr');
+  var totEl = phone.querySelector('.lt-running-settotal');
+  if (curEl) curEl.textContent = _ltState.currentSetIdx + 1;
+  if (totEl) totEl.textContent = ex.sets.length;
+
+  // Set dots — CSS classes handle gold/active/skipped colouring.
+  var dots = phone.querySelector('.lt-set-dots');
+  if (dots) {
+    dots.innerHTML = ex.sets.map(function(_, i) {
+      var logged = (_ltState.log[ex.id] || {})[i];
+      var isDone = logged && logged.done;
+      var isSkipped = logged && logged.skipped;
+      var isActive = i === _ltState.currentSetIdx && !isDone && !isSkipped;
+      var cls = 'lt-set-dot' + (isDone ? ' done' : '') + (isActive ? ' active' : '') + (isSkipped ? ' skipped' : '');
+      return '<div class="' + cls + '" onclick="liveGoToSet(' + i + ')"></div>';
+    }).join('');
+  }
+
+  // Inputs — rely on CSS defaults (gold value + gold primary button).
+  var plan = ex.sets[_ltState.currentSetIdx];
+  var repsPlan = phone.querySelector('.lt-reps-plan');
+  var weightPlan = phone.querySelector('.lt-weight-plan');
+  if (repsPlan) repsPlan.textContent = plan.reps;
+  if (weightPlan) weightPlan.textContent = plan.weight > 0 ? (plan.weight + ' kg') : 'BW';
+  _ltUpdateFormUI();
+
+  // Sets list — gold accent, not muscle-color.
+  var list = phone.querySelector('.lt-sets-list');
+  if (list) {
+    list.innerHTML = ex.sets.map(function(plannedSet, si) {
+      var logged = (_ltState.log[ex.id] || {})[si];
+      var isDone = logged && logged.done;
+      var isSkipped = logged && logged.skipped;
+      var isActive = si === _ltState.currentSetIdx && !isDone && !isSkipped;
+      var br = si < ex.sets.length - 1 ? 'border-bottom:.5px solid var(--ios-sep2)' : '';
+      var opacity = isActive ? '1' : '.72';
+
+      var badgeBg, badgeBorder, badgeColor, badgeTxt;
+      if (isDone) {
+        badgeBg = 'rgba(201,168,76,.15)'; badgeBorder = 'var(--ios-gold)'; badgeColor = 'var(--ios-gold)'; badgeTxt = '✓';
+      } else if (isSkipped) {
+        badgeBg = 'var(--ios-fill)'; badgeBorder = 'var(--ios-sep)'; badgeColor = 'var(--ios-label3)'; badgeTxt = '↷';
+      } else {
+        badgeBg = 'var(--ios-fill)'; badgeBorder = 'var(--ios-sep)'; badgeColor = 'var(--ios-label2)'; badgeTxt = String(si + 1);
+      }
+
+      var rightHtml;
+      if (isDone) {
+        rightHtml = '<div style="font-size:14px;font-weight:700;color:var(--ios-gold)">' + logged.reps + ' × ' + (logged.weight > 0 ? (logged.weight + ' kg') : 'BW') + '</div>';
+      } else if (isSkipped) {
+        rightHtml = '<div style="font-size:13px;color:var(--ios-label3)">přeskočeno</div>';
+      } else {
+        rightHtml = '<div style="font-size:13px;color:var(--ios-label2)">' + plannedSet.reps + ' × ' + (plannedSet.weight > 0 ? (plannedSet.weight + ' kg') : 'BW') + '</div>' +
+                    '<div style="font-size:10px;color:var(--ios-label3);margin-top:1px">plán</div>';
+      }
+
+      var activeChip = isActive
+        ? '<div style="font-size:10px;background:rgba(201,168,76,.15);color:var(--ios-gold);padding:2px 7px;border-radius:99px;font-weight:700;margin-left:6px">AKTUÁLNÍ</div>'
+        : '';
+      var clickHandler = (!isDone && !isSkipped) ? (' onclick="liveGoToSet(' + si + ')"') : '';
+
+      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;' + br + ';opacity:' + opacity + ';cursor:' + ((!isDone && !isSkipped) ? 'pointer' : 'default') + '"' + clickHandler + '>' +
+        '<div style="display:flex;align-items:center;gap:10px">' +
+          '<div style="width:26px;height:26px;border-radius:7px;background:' + badgeBg + ';border:1px solid ' + badgeBorder + ';display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:' + badgeColor + '">' + badgeTxt + '</div>' +
+          '<div style="font-size:13px;color:var(--ios-label)">Série ' + (si + 1) + '</div>' +
+          activeChip +
+        '</div>' +
+        '<div style="text-align:right">' + rightHtml + '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  // Next-exercise preview — dot uses muscle color (small identifier only).
+  var nextWrap = phone.querySelector('.lt-next-wrap');
+  var nextEx = session.exercises[_ltState.currentExerciseIdx + 1];
+  if (nextWrap) {
+    if (!nextEx) { nextWrap.style.display = 'none'; }
+    else {
+      nextWrap.style.display = '';
+      var nn = phone.querySelector('.lt-next-name');
+      var nm = phone.querySelector('.lt-next-meta');
+      var nd = phone.querySelector('.lt-next-dot');
+      if (nn) nn.textContent = nextEx.name;
+      if (nm) nm.textContent = nextEx.sets.length + ' série · ' + nextEx.muscle;
+      if (nd) nd.style.background = _ltMuscleOf(nextEx);
+    }
+  }
+}
+
+function _ltRenderFinished() {
+  var phone = document.getElementById('ph-live-training');
+  var session = _ltSession();
+
+  var nameEl = phone.querySelector('.lt-finished-name');
+  if (nameEl) nameEl.textContent = session.name;
+  var durEl = phone.querySelector('.lt-finished-duration');
+  if (durEl) durEl.textContent = _ltFmtTime(_ltState.elapsed);
+
+  var doneSets = 0, totalReps = 0, volume = 0;
+  session.exercises.forEach(function(ex) {
+    (ex.sets || []).forEach(function(_, si) {
+      var l = (_ltState.log[ex.id] || {})[si];
+      if (l && l.done) {
+        doneSets += 1;
+        totalReps += l.reps;
+        if (l.weight > 0) volume += l.reps * l.weight;
+      }
+    });
+  });
+  var sd = phone.querySelector('.lt-finished-setsdone');
+  var sp = phone.querySelector('.lt-finished-setsplanned');
+  var rp = phone.querySelector('.lt-finished-reps');
+  var vl = phone.querySelector('.lt-finished-volume');
+  if (sd) sd.textContent = doneSets;
+  if (sp) sp.textContent = _ltTotalSets();
+  if (rp) rp.textContent = totalReps;
+  if (vl) vl.textContent = Math.round(volume).toLocaleString('cs-CZ') + ' kg';
+
+  var pr = phone.querySelector('.lt-finished-pr');
+  if (pr) {
+    if (_ltState.prsHit > 0) {
+      pr.classList.add('show');
+      var cnt = phone.querySelector('.lt-finished-prcount');
+      if (cnt) cnt.textContent = _ltState.prsHit;
+    } else {
+      pr.classList.remove('show');
+    }
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+//   Today-card helpers (resume banner + per-session CTAs)
+// ══════════════════════════════════════════════════════════════════
+
+function _ltRefreshTodayResumeBanner() {
+  var banner = document.getElementById('today-resume-banner');
+  if (!banner) return;
+  if (!liveHasActiveSession()) { banner.style.display = 'none'; return; }
+  var session = _ltSession();
+  var ex = session.exercises[_ltState.currentExerciseIdx];
+  var label = banner.querySelector('.lt-resume-label');
+  if (label && ex) {
+    label.textContent = 'Pokračovat v tréninku od ' + ex.name + ', série ' + (_ltState.currentSetIdx + 1);
+  }
+  banner.style.display = '';
+  banner.setAttribute('data-session-id', _ltState.sessionId);
+}
+
+function liveResumeFromBanner() {
+  var banner = document.getElementById('today-resume-banner');
+  if (!banner) return;
+  var sid = banner.getAttribute('data-session-id');
+  if (!sid) return;
+  showPhone('ph-live-training');
+  // Re-arm timers that we paused on close.
+  if (_ltState.phase === 'running') _ltStartElapsed();
+  _ltRender();
+}
+
+function liveDiscardFromBanner() {
+  _ltStopAllTimers();
+  _ltInitState(null);
+  _ltRefreshTodayResumeBanner();
+  _ltRefreshTodaySessionCTAs();
+}
+
+function _ltRefreshTodaySessionCTAs() {
+  var card = document.getElementById('today-training-card');
+  if (!card) return;
+  var sessions = card.querySelectorAll('.tp-session');
+  sessions.forEach(function(sess, idx) {
+    var footer = sess.querySelector('.lt-session-cta-footer');
+    if (!footer) return;
+    var sid = sess.getAttribute('data-session-id') || ('session-' + (idx + 1));
+
+    var totalSets = 0, doneSets = 0;
+    var exCards = sess.querySelectorAll('.tp-ex-card');
+    exCards.forEach(function(exC) {
+      var cells = exC.querySelectorAll('.tp-set-cell');
+      var setCount = Math.max(1, Math.round((cells.length - 5) / 5));
+      totalSets += setCount;
+      var isDone = exC.querySelector('.tp-ex-header .ex-ios-done.done');
+      if (isDone) doneSets += setCount;
+    });
+
+    var state;
+    if (totalSets > 0 && doneSets >= totalSets) state = 'finished';
+    else if (doneSets > 0) state = 'in-progress';
+    else state = 'not-started';
+
+    if (_ltState && _ltState.sessionId === sid && _ltState.phase !== 'prestart') {
+      var liveDone = _ltDoneCount();
+      var liveTotal = _ltTotalSets();
+      if (liveDone > 0 && liveDone < liveTotal) state = 'in-progress';
+      if (liveDone >= liveTotal && liveTotal > 0) state = 'finished';
+    }
+
+    footer.innerHTML = _ltRenderSessionCtaFooter(state, sid);
+  });
+}
+
+function _ltRenderSessionCtaFooter(state, sid) {
+  if (state === 'finished') {
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-top:.5px solid var(--ios-sep2);background:var(--ios-fill2)">' +
+      '<div style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--ios-green)">' +
+        '<span style="display:inline-flex;width:18px;height:18px;border-radius:50%;background:var(--ios-green);color:#fff;align-items:center;justify-content:center;font-size:11px">✓</span>' +
+        'Dokončeno' +
+      '</div>' +
+      '<div onclick="showLiveSummary(\'' + sid + '\')" style="font-size:13px;font-weight:600;color:var(--ios-gold);cursor:pointer">Zobrazit souhrn ›</div>' +
+    '</div>';
+  }
+  var label = state === 'in-progress' ? 'Pokračovat v tréninku' : 'Začít trénink';
+  return '<div style="padding:12px 16px;border-top:.5px solid var(--ios-sep2)">' +
+    '<div class="ios-btn ios-btn-primary" style="font-size:15px;padding:12px" onclick="showLiveScene(\'' + sid + '\')">' + label + '</div>' +
+  '</div>';
+}
+
+// Keep CTAs + resume banner in sync with live state and with any
+// direct edits the user makes to the Today card's exercise checkboxes.
+(function() {
+  if (typeof showPhone === 'function') {
+    var _prior = showPhone;
+    showPhone = function(id) {
+      _prior(id);
+      if (id === 'ph-today') {
+        _ltRefreshTodayResumeBanner();
+        _ltRefreshTodaySessionCTAs();
+      }
+    };
+  }
+
+  function initialRefresh() {
+    _ltRefreshTodaySessionCTAs();
+    _ltRefreshTodayResumeBanner();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initialRefresh);
+  } else {
+    setTimeout(initialRefresh, 0);
+  }
+
+  document.addEventListener('click', function(ev) {
+    var t = ev.target;
+    if (!t) return;
+    var hit = (t.classList && t.classList.contains('ex-ios-done'))
+      || (typeof t.closest === 'function' && t.closest('.ex-ios-done'));
+    if (hit) setTimeout(_ltRefreshTodaySessionCTAs, 0);
+  });
+})();
+
+// Initialize state once on first load so Today-card helpers have a valid _ltState
+// to inspect even before the scene is shown.
+if (!_ltState) _ltInitState(null);
+// ═══════════════════════════════════════════════════════════════════
+//   OSOBNÍ REKORDY — personal records on the profile page.
+//   Card on profile shows the two most recent PRs; tapping the
+//   action (or the "Zobrazit všechny rekordy" row) opens a bottom
+//   sheet listing every PR sorted oldest → newest.
+// ═══════════════════════════════════════════════════════════════════
+
+// Canonical list of PRs, ordered newest-first here (daysAgo=0 is today).
+// We render the two newest on the card and reverse for the sheet so it
+// reads oldest → newest.
+var _prRecords = [
+  { exercise:'Bench press s činkou', weight:82.5, unit:'kg', daysAgo:0  },
+  { exercise:'Dřep s činkou',        weight:95.0, unit:'kg', daysAgo:2  },
+  { exercise:'Mrtvý tah',             weight:110.0, unit:'kg', daysAgo:5 },
+  { exercise:'Přítahy na hrazdě',    weight:20.0, unit:'kg', daysAgo:8, prefix:'BW + ' },
+  { exercise:'Vojenský tlak',         weight:55.0, unit:'kg', daysAgo:12 },
+  { exercise:'Bicepsový zdvih',       weight:25.0, unit:'kg', daysAgo:21 }
+];
+
+function _prFormatWeight(r) {
+  var n = Number.isInteger(r.weight) ? r.weight.toString() : r.weight.toFixed(1).replace('.', ',');
+  return (r.prefix || '') + n + ' ' + r.unit;
+}
+
+function _prFormatDate(daysAgo) {
+  if (daysAgo === 0) return 'dnes';
+  if (daysAgo === 1) return 'včera';
+  if (daysAgo < 7)  return 'před ' + daysAgo + ' dny';
+  if (daysAgo < 14) return 'před týdnem';
+  if (daysAgo < 21) return 'před 2 týdny';
+  if (daysAgo < 28) return 'před 3 týdny';
+  return 'před ' + Math.round(daysAgo / 30) + ' měs.';
+}
+
+function _prRowHTML(r, withBorderTop) {
+  var bt = withBorderTop ? 'border-top:.5px solid var(--ios-sep2);' : '';
+  return '<div style="display:flex;align-items:center;gap:12px;padding:14px 16px;' + bt + '">' +
+    '<div style="width:36px;height:36px;border-radius:10px;background:rgba(201,168,76,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px">🏆</div>' +
+    '<div style="flex:1;min-width:0">' +
+      '<div style="font-size:15px;font-weight:600;color:var(--ios-label);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + r.exercise + '</div>' +
+      '<div style="font-size:12px;color:var(--ios-label3);margin-top:2px">' + _prFormatDate(r.daysAgo) + '</div>' +
+    '</div>' +
+    '<div style="font-size:16px;font-weight:700;color:var(--ios-gold);font-variant-numeric:tabular-nums;white-space:nowrap">' + _prFormatWeight(r) + '</div>' +
+  '</div>';
+}
+
+function renderProfilePrs() {
+  var list = document.getElementById('profile-prs-list');
+  if (!list) return;
+  var latest = _prRecords.slice(0, 2);
+  list.innerHTML = latest.map(function(r, i) {
+    return _prRowHTML(r, i > 0);
+  }).join('');
+
+  var count = document.getElementById('pr-count');
+  if (count) count.textContent = _prRecords.length;
+}
+
+function renderPrSheet() {
+  var list = document.getElementById('pr-sheet-list');
+  if (!list) return;
+  // Sort oldest → newest (descending daysAgo).
+  var sorted = _prRecords.slice().sort(function(a, b) { return b.daysAgo - a.daysAgo; });
+  list.innerHTML = sorted.map(function(r, i) {
+    return _prRowHTML(r, i > 0);
+  }).join('');
+}
+
+function openPrSheet() {
+  renderPrSheet();
+  var el = document.getElementById('pr-sheet');
+  if (el) el.classList.add('open');
+}
+function closePrSheet() {
+  var el = document.getElementById('pr-sheet');
+  if (el) el.classList.remove('open');
+}
+
+// Render the profile card on initial load and every time the profile
+// scene is shown (in case records change during the session).
+(function() {
+  if (typeof showPhone === 'function') {
+    var _prior = showPhone;
+    showPhone = function(id) {
+      _prior(id);
+      if (id === 'ph-profile') renderProfilePrs();
+    };
+  }
+  function initial() { renderProfilePrs(); }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initial);
+  } else {
+    setTimeout(initial, 0);
+  }
+})();
 </script>
 </body>
 </html>

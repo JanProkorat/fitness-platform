@@ -1,6 +1,9 @@
+using System.Security.Claims;
 using System.Text.RegularExpressions;
 using FastEndpoints;
+using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.Foods.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Bson;
@@ -31,8 +34,24 @@ public class SearchFoodsEndpoint(
     {
         var language = HttpContext.Request.Headers.AcceptLanguage.FirstOrDefault()?.Split(',').FirstOrDefault()?.Split('-').FirstOrDefault();
 
+        var userIdClaim = User.FindFirstValue(AppClaims.UserId);
+        Guid? currentUserId = Guid.TryParse(userIdClaim, out var parsed) ? parsed : null;
+
         var filterBuilder = Builders<Food>.Filter;
         var filter = filterBuilder.Eq(f => f.IsDeleted, false);
+
+        // Visibility filter: return public foods plus any private foods owned by the caller.
+        // Callers without a resolvable user id see only public foods.
+        if (currentUserId.HasValue)
+        {
+            filter &= filterBuilder.Or(
+                filterBuilder.Eq(f => f.Visibility, FoodVisibility.Public),
+                filterBuilder.Eq(f => f.NutritionistId, currentUserId.Value));
+        }
+        else
+        {
+            filter &= filterBuilder.Eq(f => f.Visibility, FoodVisibility.Public);
+        }
 
         if (req.Category.HasValue)
         {
@@ -79,7 +98,7 @@ public class SearchFoodsEndpoint(
 
         await Send.OkAsync(new SearchFoodsResponse
         {
-            Foods = localFoods.Select(f => FoodSummary.FromDocument(f, language)).ToList(),
+            Foods = localFoods.Select(f => FoodSummary.FromDocument(f, language, currentUserId)).ToList(),
             TotalCount = totalCount,
             Page = req.Page,
             PageSize = req.PageSize

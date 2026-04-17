@@ -14,7 +14,6 @@ import { useAuthStore } from '@/stores/auth';
 import { connect, disconnect, onEvent } from '@/api/signalr';
 import { useUnreadCount } from '@/hooks/useUnreadCount';
 import { useMessagesStore } from '@/stores/messagesStore';
-import { useTodayStore } from '@/stores/todayStore';
 import { Toast } from '@/lib/toast';
 import api from '@/api/client';
 
@@ -211,27 +210,22 @@ export default function ClientTabLayout() {
         queryClient.invalidateQueries({ queryKey: ['nutrition-plan-full'] });
         queryClient.invalidateQueries({ queryKey: ['today-plan'] });
         queryClient.invalidateQueries({ queryKey: ['today-log'] });
+        // Plans list updates live when a week gets published
+        queryClient.invalidateQueries({ queryKey: ['client-plans-active'] });
         queryClient.invalidateQueries({ queryKey: ['notifications'] });
       }),
-      onEvent('trainingPlanPublished', (raw: unknown) => {
-        const data = raw as {
-          planId?: string; planName?: string;
-          trainerName?: string; startDate?: string;
-        } | undefined;
+      onEvent('trainingPlanPublished', () => {
         localNotify(t('notifications.trainingPlanPublished'), t('notifications.trainingPlanPublishedBody'));
-        if (data?.planId && data?.startDate) {
-          useTodayStore.getState().addPendingTrainingPlan({
-            planId: data.planId,
-            type: 'training',
-            name: data.planName ?? '',
-            trainerName: data.trainerName ?? '',
-            chips: [],
-            startDate: data.startDate,
-            accentColor: '#c9a84c',
-          });
-        }
+        // Invalidating ['client-plans-active'] causes useTodayState to refetch
+        // and re-derive pending training plans directly from the API response,
+        // so no Zustand store mutation is needed here.
+        queryClient.invalidateQueries({ queryKey: ['nutrition-plan-full'] });
         queryClient.invalidateQueries({ queryKey: ['today-training'] });
+        // Plans list updates live when a week gets published
+        queryClient.invalidateQueries({ queryKey: ['client-plans-active'] });
         queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        // Invalidate the full training plan detail query (broad predicate covers any planId)
+        queryClient.invalidateQueries({ predicate: (q) => q.queryKey[0] === 'training-full-plan' });
       }),
       onEvent('conversationUnarchived', (raw: unknown) => {
         const data = raw as { conversationId?: string; senderName?: string; isFormer?: boolean } | undefined;

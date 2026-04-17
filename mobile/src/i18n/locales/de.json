@@ -239,6 +239,7 @@
     "trainingPlanType": "Trainingsplan",
     "nutritionPlanType": "Ernährungsplan",
     "startsOn": "Startet {{date}}",
+    "starts": "beginnt",
     "viewPlan": "Plan ansehen",
     "weeklySchedule": "Wochenplan",
     "dailyMealStructure": "Tägliche Mahlzeitenstruktur",
@@ -396,7 +397,8 @@
     "allDoneDesc": "Du hast keine ausstehenden Fragebögen. Toll gemacht!"
   },
   "planDetail": {
-    "linkedQuestionnaire": "Verknüpfter Fragebogen"
+    "linkedQuestionnaire": "Verknüpfter Fragebogen",
+    "answersNotAvailable": "Antworten sind noch nicht verfügbar."
   },
   "profile": {
     "title": "Profil",
@@ -593,6 +595,7 @@
     "foodCount_one": "{{count}} Lebensmittel",
     "foodCount_other": "{{count}} Lebensmittel",
     "fiber": "Ballaststoffe",
+    "total": "Gesamt",
     "dailyOverview": "Tagesübersicht",
     "noMeals": "Für diesen Tag sind keine Mahlzeiten geplant",
     "noteFrom": "Notiz von {{name}}:",
@@ -645,6 +648,7 @@
     "reps": "Wdh.",
     "weight": "Gewicht",
     "rest": "Pause",
+    "status": "Status",
     "mood": "Wie hat es sich angefühlt?",
     "finishWorkout": "Training beenden",
     "newPR": "Neuer persönlicher Rekord!",
@@ -659,6 +663,36 @@
     "strengthChart": "Kraftfortschritt",
     "selectExercise": "Wählen Sie eine Übung aus",
     "prTimeline": "PR-Zeitachse",
-    "prTimelineHint": "Schließen Sie Trainings ab, um Ihre persönlichen Rekorde zu sehen"
+    "prTimelineHint": "Schließen Sie Trainings ab, um Ihre persönlichen Rekorde zu sehen",
+    "weekLabel": "Woche {{current}} von {{total}}",
+    "sessionsCount_one": "{{count}} Trainingseinheit",
+    "sessionsCount_other": "{{count}} Trainingseinheiten",
+    "exercisesCount_one": "{{count}} Übung",
+    "exercisesCount_other": "{{count}} Übungen",
+    "duration": "{{minutes}} min",
+    "completedRatio": "{{done}}/{{total}}",
+    "completed": "Erledigt",
+    "sessionsLabel": "Trainings",
+    "exercisesLabel": "Übungen",
+    "restLabel": "Pause {{seconds}} s",
+    "totalsLabel": "Gesamt",
+    "sessionTotals": "Session gesamt"
+  },
+  "muscleGroup": {
+    "Chest": "Brust",
+    "Back": "Rücken",
+    "Shoulders": "Schultern",
+    "Biceps": "Bizeps",
+    "Triceps": "Trizeps",
+    "Forearms": "Unterarme",
+    "Quadriceps": "Quadrizeps",
+    "Hamstrings": "Beinbeuger",
+    "Glutes": "Gesäß",
+    "Calves": "Waden",
+    "Abs": "Bauch",
+    "Obliques": "Seitliche Bauchmuskulatur",
+    "LowerBack": "Unterer Rücken",
+    "Traps": "Trapezmuskel",
+    "FullBody": "Ganzkörper"
   }
 }

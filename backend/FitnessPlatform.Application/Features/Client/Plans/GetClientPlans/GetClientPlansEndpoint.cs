@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Features.ClientTraining;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
@@ -53,6 +54,7 @@ public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext d
         }
 
         var clientId = clientProfile.PublicId;
+        var now = DateTime.UtcNow;
 
         // Parse status filter
         NutritionPlanStatus? nutritionStatus = null;
@@ -82,12 +84,29 @@ public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext d
                 filter &= Builders<NutritionPlan>.Filter.Ne(p => p.Status, NutritionPlanStatus.Draft);
             }
 
+            // Only return plans that have at least one published week
+            filter &= Builders<NutritionPlan>.Filter.ElemMatch(
+                p => p.Weeks, w => w.Status == WeekStatus.Published);
+
             using var nCursor = await mongo.NutritionPlans.FindAsync(filter, cancellationToken: ct);
             var nutritionPlans = await nCursor.ToListAsync(ct);
 
             foreach (var plan in nutritionPlans)
             {
-                var publishedCount = plan.Weeks.Count(w => w.Status == WeekStatus.Published);
+                var publishedWeeks = plan.Weeks
+                    .Where(w => w.Status == WeekStatus.Published)
+                    .OrderBy(w => w.WeekNumber)
+                    .ToList();
+
+                var publishedWeekNumbers = publishedWeeks.Select(w => w.WeekNumber).ToList();
+                var currentWeek = PlanWeekCalculator.ResolveCurrentWeekNumber(
+                    plan.StartDate,
+                    publishedWeekNumbers,
+                    plan.Weeks.Count,
+                    publishedWeeks.FirstOrDefault()?.DatePublished,
+                    plan.DateCreated,
+                    now);
+
                 items.Add(new ClientPlanItem
                 {
                     PlanId = plan.ExternalId,
@@ -96,9 +115,12 @@ public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext d
                     Status = plan.Status.ToString(),
                     StartDate = plan.StartDate,
                     TotalWeeks = plan.Weeks.Count,
-                    PublishedWeekCount = publishedCount,
+                    PublishedWeekCount = publishedWeeks.Count,
                     DateCompleted = plan.DateCompleted,
-                    QuestionnaireResponseId = plan.QuestionnaireResponseId
+                    QuestionnaireResponseId = plan.QuestionnaireResponseId,
+                    CurrentWeek = currentWeek,
+                    DailyKcal = plan.GlobalSettings?.DailyKcal,
+                    HasTodaySession = null // nutrition plans don't have sessions
                 });
             }
         }
@@ -116,12 +138,43 @@ public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext d
                 filter &= Builders<TrainingPlan>.Filter.Ne(p => p.Status, TrainingPlanStatus.Draft);
             }
 
+            // Only return plans that have at least one published week
+            filter &= Builders<TrainingPlan>.Filter.ElemMatch(
+                p => p.Weeks, w => w.Status == WeekStatus.Published);
+
             using var tCursor = await mongo.TrainingPlans.FindAsync(filter, cancellationToken: ct);
             var trainingPlans = await tCursor.ToListAsync(ct);
 
+            // Today's day-of-week (1 = Monday, 7 = Sunday)
+            var todayDow = (int)now.DayOfWeek;
+            todayDow = todayDow == 0 ? 7 : todayDow;
+
             foreach (var plan in trainingPlans)
             {
-                var publishedCount = plan.Weeks.Count(w => w.Status == WeekStatus.Published);
+                var publishedWeeks = plan.Weeks
+                    .Where(w => w.Status == WeekStatus.Published)
+                    .OrderBy(w => w.WeekNumber)
+                    .ToList();
+
+                var publishedWeekNumbers = publishedWeeks.Select(w => w.WeekNumber).ToList();
+                var currentWeekNumber = PlanWeekCalculator.ResolveCurrentWeekNumber(
+                    plan.StartDate,
+                    publishedWeekNumbers,
+                    plan.Weeks.Count,
+                    publishedWeeks.FirstOrDefault()?.DatePublished,
+                    plan.DateCreated,
+                    now);
+
+                bool? hasTodaySession = null;
+                if (currentWeekNumber.HasValue)
+                {
+                    var currentWeek = plan.Weeks.FirstOrDefault(w => w.WeekNumber == currentWeekNumber.Value);
+                    if (currentWeek is null || currentWeek.Status != WeekStatus.Published)
+                        currentWeek = publishedWeeks.Last();
+
+                    hasTodaySession = currentWeek.Sessions.Any(s => s.DayOfWeek == todayDow);
+                }
+
                 items.Add(new ClientPlanItem
                 {
                     PlanId = plan.ExternalId,
@@ -130,9 +183,12 @@ public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext d
                     Status = plan.Status.ToString(),
                     StartDate = plan.StartDate,
                     TotalWeeks = plan.Weeks.Count,
-                    PublishedWeekCount = publishedCount,
+                    PublishedWeekCount = publishedWeeks.Count,
                     DateCompleted = plan.DateCompleted,
-                    QuestionnaireResponseId = plan.QuestionnaireResponseId
+                    QuestionnaireResponseId = plan.QuestionnaireResponseId,
+                    CurrentWeek = currentWeekNumber,
+                    DailyKcal = null, // training plans don't have kcal targets
+                    HasTodaySession = hasTodaySession
                 });
             }
         }

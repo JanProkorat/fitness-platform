@@ -1,3 +1,6 @@
+/** Recipe visibility — Public is visible to all nutritionists, Private only to the owner. */
+export type RecipeVisibility = 'Public' | 'Private';
+
 /** Summary for recipe list views. */
 export interface RecipeSummary {
   recipeId: string;
@@ -13,6 +16,8 @@ export interface RecipeSummary {
   };
   dateCreated: string;
   foodCategories?: string[];
+  visibility?: RecipeVisibility;
+  isOwnedByCurrentUser?: boolean;
 }
 
 /** Full recipe detail. */
@@ -48,6 +53,8 @@ export interface RecipeDetail {
   };
   dateCreated: string;
   dateUpdated?: string | null;
+  visibility?: RecipeVisibility;
+  isOwnedByCurrentUser?: boolean;
 }
 
 /** Paginated recipe search response. */
@@ -73,6 +80,7 @@ export interface CreateRecipeRequest {
   steps?: string[] | null;
   note?: string | null;
   foods: RecipeFoodInput[];
+  visibility?: RecipeVisibility;
 }
 
 /** Request to update a recipe. */
@@ -83,4 +91,5 @@ export interface UpdateRecipeRequest {
   steps?: string[] | null;
   note?: string | null;
   foods: RecipeFoodInput[];
+  visibility?: RecipeVisibility;
 }

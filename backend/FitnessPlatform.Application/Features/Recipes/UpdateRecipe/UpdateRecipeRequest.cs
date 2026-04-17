@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.Recipes.Shared;
 
 namespace FitnessPlatform.Application.Features.Recipes.UpdateRecipe;
@@ -39,4 +40,10 @@ public class UpdateRecipeRequest
     /// Updated list of food items in the recipe.
     /// </summary>
     public List<RecipeFoodDto> Foods { get; set; } = [];
+
+    /// <summary>
+    /// Updated visibility. Defaults to <see cref="RecipeVisibility.Public"/> when omitted.
+    /// Only the recipe's creator can change this value.
+    /// </summary>
+    public RecipeVisibility Visibility { get; set; } = RecipeVisibility.Public;
 }

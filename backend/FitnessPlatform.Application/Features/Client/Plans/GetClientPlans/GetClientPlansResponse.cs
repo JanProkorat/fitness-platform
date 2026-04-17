@@ -40,4 +40,21 @@ public class ClientPlanItem
 
     /// <summary>Linked questionnaire response ID, if any.</summary>
     public Guid? QuestionnaireResponseId { get; set; }
+
+    /// <summary>
+    /// The current week number within this plan, or null if the plan hasn't started yet.
+    /// Computed from StartDate (preferred) or the first published week's DatePublished.
+    /// </summary>
+    public int? CurrentWeek { get; set; }
+
+    /// <summary>
+    /// Target daily kilocalories from the plan's GlobalSettings. Populated for nutrition plans only.
+    /// </summary>
+    public decimal? DailyKcal { get; set; }
+
+    /// <summary>
+    /// Whether today's day-of-week has a session in the current week. Populated for training plans only.
+    /// Null when CurrentWeek is null or for nutrition plans.
+    /// </summary>
+    public bool? HasTodaySession { get; set; }
 }

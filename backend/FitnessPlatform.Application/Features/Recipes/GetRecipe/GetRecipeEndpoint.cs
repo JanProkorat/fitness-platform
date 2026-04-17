@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.Recipes.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Driver;
@@ -10,6 +11,7 @@ namespace FitnessPlatform.Application.Features.Recipes.GetRecipe;
 
 /// <summary>
 /// Retrieves a single recipe by its public identifier.
+/// Nutritionists see their own recipes at any visibility and other nutritionists' public recipes.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 public class GetRecipeEndpoint(IMongoContext mongo)
@@ -23,7 +25,9 @@ public class GetRecipeEndpoint(IMongoContext mongo)
         Summary(s =>
         {
             s.Summary = "Get recipe";
-            s.Description = "Returns full detail of a recipe owned by the current nutritionist.";
+            s.Description = "Returns full detail of a recipe. "
+                + "Nutritionists can read their own recipes (any visibility) and public recipes owned by others; "
+                + "other nutritionists' private recipes return 404.";
         });
     }
 
@@ -40,8 +44,11 @@ public class GetRecipeEndpoint(IMongoContext mongo)
 
         var nutritionistId = Guid.Parse(userId);
 
-        var filter = Builders<Recipe>.Filter.Eq(r => r.ExternalId, req.RecipeId)
-            & Builders<Recipe>.Filter.Eq(r => r.NutritionistId, nutritionistId);
+        var filterBuilder = Builders<Recipe>.Filter;
+        var filter = filterBuilder.Eq(r => r.ExternalId, req.RecipeId)
+            & filterBuilder.Or(
+                filterBuilder.Eq(r => r.NutritionistId, nutritionistId),
+                filterBuilder.Eq(r => r.Visibility, RecipeVisibility.Public));
 
         using var cursor = await mongo.Recipes.FindAsync(filter, cancellationToken: ct);
         var recipe = await cursor.FirstOrDefaultAsync(ct);
@@ -61,6 +68,6 @@ public class GetRecipeEndpoint(IMongoContext mongo)
 
         var language = HttpContext.Request.Headers.AcceptLanguage.FirstOrDefault()?.Split(',').FirstOrDefault()?.Trim().Split('-').FirstOrDefault();
 
-        await Send.OkAsync(GetRecipeResponse.FromDocument(recipe, foodLookup, language), ct);
+        await Send.OkAsync(GetRecipeResponse.FromDocument(recipe, foodLookup, language, nutritionistId), ct);
     }
 }

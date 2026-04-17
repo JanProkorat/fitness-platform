@@ -1,4 +1,5 @@
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Driver;
 using NSubstitute;
@@ -16,19 +17,18 @@ public static class FoodTestHelpers
     public static Food CreateFood(
         Guid? externalId = null,
         string name = "Test Food",
-        string? barcode = null,
         Guid? nutritionistId = null,
         bool isDeleted = false,
         decimal kcal = 100,
         decimal protein = 10,
         decimal carbs = 10,
-        decimal fat = 5)
+        decimal fat = 5,
+        FoodVisibility visibility = FoodVisibility.Public)
     {
         return new Food
         {
             ExternalId = externalId ?? Guid.NewGuid(),
             Name = name,
-            Barcode = barcode,
             NutritionistId = nutritionistId,
             IsDeleted = isDeleted,
             NutrientValue = new NutrientValue
@@ -38,6 +38,7 @@ public static class FoodTestHelpers
                 Carbs = carbs,
                 Fat = fat
             },
+            Visibility = visibility,
             DateCreated = DateTime.UtcNow
         };
     }

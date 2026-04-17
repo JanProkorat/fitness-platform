@@ -2,9 +2,9 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Features.Foods.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
-using FitnessPlatform.Application.Infrastructure.Services;
 
 namespace FitnessPlatform.Application.Features.Foods.CreateFood;
 
@@ -37,6 +37,8 @@ public class CreateFoodEndpoint(IMongoContext mongo) : Endpoint<CreateFoodReques
             return;
         }
 
+        var nutritionistId = Guid.Parse(userId);
+
         var food = new Food
         {
             ExternalId = Guid.NewGuid(),
@@ -47,7 +49,6 @@ public class CreateFoodEndpoint(IMongoContext mongo) : Endpoint<CreateFoodReques
                 Cs = req.NameCs?.Trim().NullIfEmpty(),
                 De = req.NameDe?.Trim().NullIfEmpty(),
             } : null,
-            Barcode = req.Barcode?.Trim(),
             NutrientValue = new NutrientValue
             {
                 Kcal = req.NutrientValue.Kcal,
@@ -65,13 +66,17 @@ public class CreateFoodEndpoint(IMongoContext mongo) : Endpoint<CreateFoodReques
             CommonServings = req.CommonServings
                 .Select(s => new ServingSize { Label = s.Label, WeightGrams = s.WeightGrams })
                 .ToList(),
-            NutritionistId = Guid.Parse(userId),
+            NutritionistId = nutritionistId,
+            Visibility = req.Visibility,
             DateCreated = DateTime.UtcNow
         };
 
         await mongo.Foods.InsertOneAsync(food, cancellationToken: ct);
 
-        await HttpContext.Response.SendAsync(FoodSummary.FromDocument(food), 201, cancellation: ct);
+        await HttpContext.Response.SendAsync(
+            FoodSummary.FromDocument(food, currentUserId: nutritionistId),
+            201,
+            cancellation: ct);
     }
 
     private static bool HasAnyLocalizedName(CreateFoodRequest req) =>

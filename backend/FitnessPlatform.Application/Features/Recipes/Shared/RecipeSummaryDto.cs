@@ -1,4 +1,5 @@
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 
 namespace FitnessPlatform.Application.Features.Recipes.Shared;
 
@@ -33,6 +34,16 @@ public class RecipeSummaryDto
     public int? PrepTimeMinutes { get; set; }
 
     /// <summary>
+    /// Visibility of the recipe (Public = visible to all nutritionists, Private = visible only to its creator).
+    /// </summary>
+    public RecipeVisibility Visibility { get; set; }
+
+    /// <summary>
+    /// True when the authenticated caller is the nutritionist who created this recipe.
+    /// </summary>
+    public bool IsOwnedByCurrentUser { get; set; }
+
+    /// <summary>
     /// When the recipe was created.
     /// </summary>
     public DateTime DateCreated { get; set; }
@@ -46,14 +57,17 @@ public class RecipeSummaryDto
     /// Maps a <see cref="Recipe"/> document to a <see cref="RecipeSummaryDto"/>.
     /// </summary>
     /// <param name="recipe">The source recipe document.</param>
+    /// <param name="currentUserId">Id of the authenticated user; used to resolve <see cref="IsOwnedByCurrentUser"/>.</param>
     /// <returns>A summary DTO.</returns>
-    public static RecipeSummaryDto FromDocument(Recipe recipe) => new()
+    public static RecipeSummaryDto FromDocument(Recipe recipe, Guid? currentUserId = null) => new()
     {
         RecipeId = recipe.ExternalId,
         Name = recipe.Name,
         FoodCount = recipe.Foods.Count,
         TotalNutrients = recipe.TotalNutrients,
         PrepTimeMinutes = recipe.PrepTimeMinutes,
+        Visibility = recipe.Visibility,
+        IsOwnedByCurrentUser = currentUserId.HasValue && recipe.NutritionistId == currentUserId.Value,
         DateCreated = recipe.DateCreated,
         FoodCategories = recipe.Foods
             .Where(f => !string.IsNullOrEmpty(f.FoodCategory))

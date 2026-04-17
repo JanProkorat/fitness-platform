@@ -239,6 +239,7 @@
     "trainingPlanType": "Tréninkový plán",
     "nutritionPlanType": "Výživový plán",
     "startsOn": "Začíná {{date}}",
+    "starts": "začíná",
     "viewPlan": "Zobrazit plán",
     "weeklySchedule": "Týdenní rozvrh",
     "dailyMealStructure": "Denní struktura jídel",
@@ -401,7 +402,8 @@
     "allDoneDesc": "Nemáte žádné nevyplněné dotazníky. Skvělá práce!"
   },
   "planDetail": {
-    "linkedQuestionnaire": "Propojený dotazník"
+    "linkedQuestionnaire": "Propojený dotazník",
+    "answersNotAvailable": "Odpovědi zatím nejsou k dispozici."
   },
   "profile": {
     "title": "Profil",
@@ -572,6 +574,7 @@
     "foodCount_one": "{{count}} potravina",
     "foodCount_other": "{{count}} potravin",
     "fiber": "Vláknina",
+    "total": "Celkem",
     "dailyOverview": "Denní přehled",
     "noMeals": "Pro tento den nejsou naplánovány žádné pokrmy",
     "noteFrom": "Poznámka od {{name}}:",
@@ -646,10 +649,11 @@
     "activeWorkout": "Aktivní trénink",
     "addExercise": "Přidat cvik",
     "addSet": "Přidat sérii",
-    "set": "Série",
-    "reps": "Opakování",
+    "set": "Sada",
+    "reps": "Opak.",
     "weight": "Váha",
-    "rest": "Odpočinek",
+    "rest": "Odp.",
+    "status": "Stav",
     "mood": "Jak jste se cítili?",
     "finishWorkout": "Dokončit trénink",
     "newPR": "Nový osobní rekord!",
@@ -664,6 +668,38 @@
     "strengthChart": "Silový pokrok",
     "selectExercise": "Vyberte cvik pro zobrazení pokroku",
     "prTimeline": "Časová osa PR",
-    "prTimelineHint": "Dokončete tréninky a uvidíte zde své osobní rekordy"
+    "prTimelineHint": "Dokončete tréninky a uvidíte zde své osobní rekordy",
+    "weekLabel": "Týden {{current}} z {{total}}",
+    "sessionsCount_one": "{{count}} tréninková jednotka",
+    "sessionsCount_few": "{{count}} tréninkové jednotky",
+    "sessionsCount_other": "{{count}} tréninkových jednotek",
+    "exercisesCount_one": "{{count}} cvik",
+    "exercisesCount_few": "{{count}} cviky",
+    "exercisesCount_other": "{{count}} cviků",
+    "duration": "{{minutes}} min",
+    "completedRatio": "{{done}}/{{total}}",
+    "completed": "Hotovo",
+    "sessionsLabel": "Tréninky",
+    "exercisesLabel": "Cvičení",
+    "restLabel": "odpočinek {{seconds}} s",
+    "totalsLabel": "Celkem",
+    "sessionTotals": "Celkem session"
+  },
+  "muscleGroup": {
+    "Chest": "Hrudník",
+    "Back": "Záda",
+    "Shoulders": "Ramena",
+    "Biceps": "Biceps",
+    "Triceps": "Triceps",
+    "Forearms": "Předloktí",
+    "Quadriceps": "Kvadriceps",
+    "Hamstrings": "Hamstringy",
+    "Glutes": "Hýždě",
+    "Calves": "Lýtka",
+    "Abs": "Břicho",
+    "Obliques": "Šikmé břišní",
+    "LowerBack": "Bedra",
+    "Traps": "Trapézy",
+    "FullBody": "Celé tělo"
   }
 }

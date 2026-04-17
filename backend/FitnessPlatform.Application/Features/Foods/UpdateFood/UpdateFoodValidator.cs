@@ -21,10 +21,6 @@ public class UpdateFoodValidator : Validator<UpdateFoodRequest>
             .NotEmpty()
             .MaximumLength(200);
 
-        RuleFor(x => x.Barcode)
-            .MaximumLength(50)
-            .When(x => x.Barcode is not null);
-
         RuleFor(x => x.NutrientValue.Kcal)
             .GreaterThanOrEqualTo(0);
 
@@ -46,5 +42,7 @@ public class UpdateFoodValidator : Validator<UpdateFoodRequest>
             s.RuleFor(x => x.Label).NotEmpty().MaximumLength(100);
             s.RuleFor(x => x.WeightGrams).GreaterThan(0);
         });
+
+        RuleFor(x => x.Visibility).IsInEnum();
     }
 }

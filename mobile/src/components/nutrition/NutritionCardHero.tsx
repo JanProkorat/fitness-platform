@@ -34,11 +34,9 @@ export interface NutritionCardHeroProps {
 }
 
 /**
- * Today-screen nutrition hero. Mirrors the training card's dark hero but with
- * a gold-brown gradient (`nutritionHeroStart` → `nutritionHeroEnd`), a kcal
- * headline, three macro chips (B/S/T) and a gold meals-eaten progress ring.
- *
- * See `docs/mobile_prototype.html`, scene `ph-today` (`grad-meal`).
+ * Today-screen nutrition hero. Mirrors the training card's dark hero with the
+ * plans-page nutrition gradient (`nutritionHeroStart` → `nutritionHeroEnd`),
+ * a kcal headline, macro chips, and a gold meals-eaten progress ring.
  */
 export function NutritionCardHero({
   eyebrow,

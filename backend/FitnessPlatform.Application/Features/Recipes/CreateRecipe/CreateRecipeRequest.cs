@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.Recipes.Shared;
 
 namespace FitnessPlatform.Application.Features.Recipes.CreateRecipe;
@@ -34,4 +35,9 @@ public class CreateRecipeRequest
     /// List of food items to include in the recipe.
     /// </summary>
     public List<RecipeFoodDto> Foods { get; set; } = [];
+
+    /// <summary>
+    /// Visibility of the recipe. Defaults to <see cref="RecipeVisibility.Public"/> when omitted.
+    /// </summary>
+    public RecipeVisibility Visibility { get; set; } = RecipeVisibility.Public;
 }
