@@ -8,13 +8,21 @@ on:
     branches: [main, develop]
     paths: ['backend/**']
 
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+env:
+  DOTNET_VERSION: '10.0.x'
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    container:
-      image: mcr.microsoft.com/dotnet/sdk:10.0.100
-      volumes:
-        - /var/run/docker.sock:/var/run/docker.sock
+
+    defaults:
+      run:
+        working-directory: ./backend
 
     services:
       postgres:
@@ -32,7 +40,13 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Print .NET SDK info
         run: dotnet --info
@@ -42,30 +56,58 @@ jobs:
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('backend/**/*.csproj') }}
-          restore-keys: ${{ runner.os }}-nuget-
+          restore-keys: |
+            ${{ runner.os }}-nuget-
 
       - name: Restore dependencies
-        run: dotnet restore FitnessPlatform.Tests/FitnessPlatform.Tests.csproj
-        working-directory: backend
+        run: dotnet restore FitnessPlatform.slnx
 
-      - name: Build
-        run: dotnet build FitnessPlatform.Tests/FitnessPlatform.Tests.csproj --no-restore --configuration Release --warnaserror -bl:msbuild.binlog -v:detailed
-        working-directory: backend
+      - name: Build solution
+        run: dotnet build FitnessPlatform.slnx --no-restore --configuration Release --verbosity minimal
 
-      - name: Upload MSBuild binary log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: msbuild-binlog
-          path: backend/msbuild.binlog
-          if-no-files-found: warn
-
-      - name: Test
-        run: dotnet test FitnessPlatform.Tests/FitnessPlatform.Tests.csproj --no-build --configuration Release --verbosity normal
-        working-directory: backend
+      - name: Run tests with coverage
+        run: |
+          dotnet test FitnessPlatform.Tests/FitnessPlatform.Tests.csproj --no-build --configuration Release --verbosity normal \
+            --collect:"XPlat Code Coverage" \
+            --results-directory ./TestResults \
+            --logger "trx;LogFileName=test-results.trx"
         env:
           POSTGRES_PASSWORD: test_password
           MONGO_PASSWORD: test_password
           MINIO_ACCESS_KEY: test
           MINIO_SECRET_KEY: test
           JWT_SECRET: ci-test-jwt-secret-must-be-at-least-32-characters-long!!
+
+      - name: Generate coverage report
+        uses: danielpalme/ReportGenerator-GitHub-Action@5.3.8
+        if: always()
+        with:
+          reports: 'backend/TestResults/**/coverage.cobertura.xml'
+          targetdir: 'CoverageReport'
+          reporttypes: 'Html;MarkdownSummaryGithub'
+          verbosity: 'Info'
+
+      - name: Add coverage comment to PR
+        uses: marocchino/sticky-pull-request-comment@v2
+        if: github.event_name == 'pull_request' && always() && hashFiles('CoverageReport/SummaryGithub.md') != ''
+        with:
+          recreate: true
+          path: CoverageReport/SummaryGithub.md
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ github.run_number }}
+          path: |
+            backend/TestResults/**/*.trx
+            backend/TestResults/**/*.xml
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report-${{ github.run_number }}
+          path: |
+            CoverageReport/
+            backend/TestResults/**/coverage.cobertura.xml
