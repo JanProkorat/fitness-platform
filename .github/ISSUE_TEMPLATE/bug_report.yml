@@ -1,0 +1,80 @@
+name: 🐞 Bug report
+description: Something isn't working as expected.
+title: "[bug] <short summary>"
+labels: ["type:bug", "status:needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug. Please fill in as much as you can — missing repro steps are the #1 reason bugs stall.
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: 📦 Scope
+      description: Which package is affected?
+      multiple: true
+      options:
+        - backend
+        - web
+        - mobile
+        - docs / infra / CI
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 🐛 What happened?
+      description: Describe the actual behavior.
+      placeholder: When I click X, the app shows Y instead of Z.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: ✅ Expected behavior
+      placeholder: I expected Z.
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: 🔁 Steps to reproduce
+      description: Minimal, numbered steps. Include URLs, IDs, or payloads where relevant.
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: 🏷️ Version / branch / commit
+      placeholder: develop @ abc1234
+    validations:
+      required: false
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: 🌐 Environment
+      options:
+        - local dev
+        - staging
+        - production
+        - N/A
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 📄 Logs / screenshots
+      description: Paste logs in code blocks. Drag-and-drop screenshots or short clips.
+    validations:
+      required: false

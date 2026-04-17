@@ -1,0 +1,61 @@
+name: ✨ Feature request
+description: Propose a new capability or improvement.
+title: "[feature] <short summary>"
+labels: ["type:feature", "status:needs-triage"]
+body:
+  - type: dropdown
+    id: scope
+    attributes:
+      label: 📦 Scope
+      description: Which package(s) would this touch?
+      multiple: true
+      options:
+        - backend
+        - web
+        - mobile
+        - docs / infra / CI
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 🎯 Problem / user need
+      description: What problem are we solving, and for whom (trainer, client, admin)?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 💡 Proposed solution
+      description: Rough sketch of the approach. UX notes, API shape, data model — whatever is clearest.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 🔀 Alternatives considered
+      placeholder: What else did you look at, and why is the proposal better?
+    validations:
+      required: false
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: ✅ Acceptance criteria
+      value: |
+        - [ ]
+        - [ ]
+        - [ ]
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: i18n
+    attributes:
+      label: 🌍 i18n
+      description: The platform ships cs / en / de. Does this add user-facing copy?
+      options:
+        - label: Adds user-facing strings that need cs / en / de translations
