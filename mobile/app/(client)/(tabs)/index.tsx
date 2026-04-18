@@ -178,7 +178,7 @@ export default function TodayScreen() {
 
       <NotificationSheet
         visible={sheetOpen}
-        onClose={() => { setSheetOpen(false); markAllRead(); }}
+        onClose={() => setSheetOpen(false)}
         notifications={notifications}
         onMarkAllRead={markAllRead}
         onAction={handleNotificationAction}
