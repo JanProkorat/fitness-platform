@@ -5,9 +5,11 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.ClientTraining.MarkExerciseComplete;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Tests.Builders;
+using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using NSubstitute;
 
@@ -22,6 +24,9 @@ public class MarkExerciseCompleteEndpointTests
     private readonly Guid _sessionId = Guid.NewGuid();
     private readonly Guid _exercise1 = Guid.NewGuid();
     private readonly Guid _exercise2 = Guid.NewGuid();
+    private readonly IRealtimeNotifier _notifier = TrainingCompletionTestHelpers.CreateStubNotifier();
+    private readonly IComplianceService _compliance = TrainingCompletionTestHelpers.CreateStubComplianceService();
+    private readonly ILogger<MarkExerciseCompleteEndpoint> _logger = Substitute.For<ILogger<MarkExerciseCompleteEndpoint>>();
 
     private IApplicationDbContext CreateMockDb() =>
         new MockDbBuilder()
@@ -47,7 +52,7 @@ public class MarkExerciseCompleteEndpointTests
         var ep = Factory.Create<MarkExerciseCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, _notifier, _compliance, _logger);
 
         await ep.HandleAsync(
             new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1 },
@@ -88,7 +93,7 @@ public class MarkExerciseCompleteEndpointTests
         var ep = Factory.Create<MarkExerciseCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, _notifier, _compliance, _logger);
 
         // Mark exercise1 complete again (already complete — idempotent)
         await ep.HandleAsync(
@@ -126,7 +131,7 @@ public class MarkExerciseCompleteEndpointTests
         var ep = Factory.Create<MarkExerciseCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(wrongClientId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, _notifier, _compliance, _logger);
 
         await ep.HandleAsync(
             new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1 },
@@ -165,7 +170,7 @@ public class MarkExerciseCompleteEndpointTests
         var ep = Factory.Create<MarkExerciseCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, _notifier, _compliance, _logger);
 
         // Client sends version 2 which matches, but UpdateOneAsync returns ModifiedCount=0 (race)
         await ep.HandleAsync(
@@ -203,7 +208,7 @@ public class MarkExerciseCompleteEndpointTests
         var ep = Factory.Create<MarkExerciseCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, _notifier, _compliance, _logger);
 
         // Client sends version 1 but server is at version 3
         await ep.HandleAsync(
@@ -232,7 +237,7 @@ public class MarkExerciseCompleteEndpointTests
         var ep = Factory.Create<MarkExerciseCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, _notifier, _compliance, _logger);
 
         await ep.HandleAsync(
             new MarkExerciseCompleteRequest { SessionId = Guid.NewGuid(), ExerciseExternalId = _exercise1 },
@@ -249,7 +254,7 @@ public class MarkExerciseCompleteEndpointTests
 
         var ep = Factory.Create<MarkExerciseCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity()),
-            mongo, db);
+            mongo, db, _notifier, _compliance, _logger);
 
         await ep.HandleAsync(
             new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1 },
