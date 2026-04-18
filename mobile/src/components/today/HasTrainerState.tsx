@@ -49,6 +49,8 @@ import {
 import { getMeasurementStats, getMeasurements, type MeasurementStatsResponse } from '@/api/measurements'
 import { useTodayStore } from '@/stores/todayStore'
 import { PlanBanner } from '@/components/today/PlanBanner'
+import { ResumeTrainingBanner } from '@/components/training/ResumeTrainingBanner'
+import { useLiveSessionStore } from '@/stores/liveSessionStore'
 
 // ─── TrainingDoneChip ────────────────────────────────────────────────
 // Small green pill shown in the training StatCard: "<done>/<total> hotovo".
@@ -714,9 +716,38 @@ export function HasTrainerState() {
     markAllEatenMutation.mutate(remaining)
   }, [plan, eatenMealIds, markAllEatenMutation])
 
+  // ── Live session resume banner ──
+  const liveSessionStore = useLiveSessionStore()
+  const hasActiveSession = liveSessionStore.hasActiveSession()
+  const activeLogId = liveSessionStore.activeLogId
+  const liveExIdx = liveSessionStore.currentExerciseIdx
+  const liveSetIdx = liveSessionStore.currentSetIdx
+
+  // We need the session exercises to show the exercise name.
+  // Use the training query data (already loaded for the today card).
+  const liveExerciseName = useMemo(() => {
+    const exercises = training?.session?.exercises ?? []
+    return exercises[liveExIdx]?.exerciseName ?? ''
+  }, [training, liveExIdx])
+
+  const handleResume = useCallback(() => {
+    if (activeLogId) {
+      router.push(href(`/(client)/(tabs)/training/log/${activeLogId}`))
+    }
+  }, [router, activeLogId])
+
   // ── Render ──
   return (
     <>
+      {/* Resume training banner — shown above the training card when a session is paused */}
+      {hasActiveSession && liveExerciseName ? (
+        <ResumeTrainingBanner
+          exerciseName={liveExerciseName}
+          setNumber={liveSetIdx + 1}
+          onResume={handleResume}
+        />
+      ) : null}
+
       {/* Stat strip */}
       <StatStrip>
         <WeightStatCard
