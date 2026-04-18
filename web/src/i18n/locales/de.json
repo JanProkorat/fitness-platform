@@ -222,6 +222,10 @@
     "confirmResetMessage": "Dadurch werden die neu berechneten Werte verworfen und die ursprünglichen Onboarding-Daten wiederhergestellt.",
     "editProfile": "Profil bearbeiten",
     "sendMessage": "Nachricht senden",
+    "personalRecord": {
+      "title": "Persönlicher Rekord – {{exerciseName}} {{weight}}",
+      "description": "{{reps}}× Wiederholungen"
+    },
     "values": {
       "Male": "Männlich",
       "Female": "Weiblich",
