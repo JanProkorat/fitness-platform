@@ -112,6 +112,7 @@ jobs:
             -class- '*GetClientPlansIntegrationTests' \
             -class- '*GetFullTrainingPlanIntegrationTests' \
             -class- '*PersonalRecordDetectionTests' \
+            -class- '*PersonalRecordBroadcastTests' \
             -class- '*GetClientRecordsEndpointTests' \
             -class- '*GetClientTimelineEndpointTests'
         env:
