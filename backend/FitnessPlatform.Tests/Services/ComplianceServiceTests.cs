@@ -416,15 +416,16 @@ public class ComplianceServiceTests
         // Act
         var streak = await sut.CalculateStreakAsync(_clientId, TestContext.Current.CancellationToken);
 
-        // Assert — yesterday counts (≥1 day streak), today is not broken (no sessions counted for today
-        // since not yet complete and today is skipped)
-        streak.Should().BeGreaterThanOrEqualTo(0);
+        // Assert — yesterday counts (≥1 completed session), so streak is at least 1.
+        // Today is incomplete but the "today not over" carve-out prevents breaking.
+        streak.Should().BeGreaterThanOrEqualTo(1);
     }
 
     [Fact]
-    public async Task CalculateStreakAsync_CombinedPlan_BreaksWhenTrainingMissed()
+    public async Task CalculateStreakAsync_CombinedPlan_NutritionLoggedButTrainingMissed_StillCounts()
     {
-        // Arrange — nutrition plan with meals logged yesterday, but training NOT completed
+        // Arrange — nutrition plan with meals logged yesterday, training NOT completed.
+        // Under the lenient OR rule the day must still count toward the streak.
         var sessionId = Guid.NewGuid();
         var ex1 = Guid.NewGuid();
         var today = DateTime.UtcNow.Date;
@@ -437,7 +438,6 @@ public class ComplianceServiceTests
             status: NutritionPlanStatus.Active);
         nutritionPlan.StartDate = weekStart;
         nutritionPlan.Weeks[0].Status = WeekStatus.Published;
-        // Use yesterday's DOW index
         var yesterdayDow = (int)yesterday.DayOfWeek;
         yesterdayDow = yesterdayDow == 0 ? 7 : yesterdayDow;
         nutritionPlan.Weeks[0].Days[yesterdayDow - 1].Meals =
@@ -467,8 +467,131 @@ public class ComplianceServiceTests
         // Act
         var streak = await sut.CalculateStreakAsync(_clientId, TestContext.Current.CancellationToken);
 
-        // Assert — yesterday had nutrition logged but training missed → streak is 0
-        // (or 0 if today was the only day and is also incomplete)
-        streak.Should().Be(0);
+        // Assert — under OR rule: nutrition was logged → yesterday counts.
+        // Streak must be ≥ 1 (today may still be skipped via the "not over" carve-out).
+        streak.Should().BeGreaterThanOrEqualTo(1);
+    }
+
+    [Fact]
+    public async Task CalculateStreakAsync_TrainingOnly_OneOfTwoSessionsComplete_CountsTowardStreak()
+    {
+        // Arrange — training-only client with 2 sessions planned yesterday; only 1 is complete.
+        // Under OR the day counts because at least one session is done.
+        var sessionId1 = Guid.NewGuid();
+        var sessionId2 = Guid.NewGuid();
+        var ex1 = Guid.NewGuid();
+        var today = DateTime.UtcNow.Date;
+        var yesterday = today.AddDays(-1);
+        var weekStart = today.AddDays(-(int)today.DayOfWeek + 1);
+
+        var yesterdayDow = (int)yesterday.DayOfWeek;
+        yesterdayDow = yesterdayDow == 0 ? 7 : yesterdayDow;
+
+        // Build a training plan with two sessions on yesterday's DOW
+        var trainingPlan = new TrainingPlan
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = _clientId,
+            TrainerId = Guid.NewGuid(),
+            Name = "Two-Session Plan",
+            Status = TrainingPlanStatus.Active,
+            StartDate = weekStart,
+            Version = 1,
+            DateCreated = weekStart,
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = weekStart,
+                    Sessions =
+                    [
+                        new TrainingSession
+                        {
+                            SessionId = sessionId1,
+                            DayOfWeek = yesterdayDow,
+                            Name = "Session A",
+                            Order = 1,
+                            Exercises = [new SessionExercise { ExerciseExternalId = ex1, ExerciseName = "Ex1", Order = 1, Sets = [] }]
+                        },
+                        new TrainingSession
+                        {
+                            SessionId = sessionId2,
+                            DayOfWeek = yesterdayDow,
+                            Name = "Session B",
+                            Order = 2,
+                            Exercises = [new SessionExercise { ExerciseExternalId = ex1, ExerciseName = "Ex1", Order = 1, Sets = [] }]
+                        }
+                    ]
+                }
+            ]
+        };
+
+        // Only session 1 is complete; session 2 has no completion record.
+        var completion = TrainingCompletionTestHelpers.CreateCompletion(
+            clientId: _clientId,
+            sessionId: sessionId1,
+            date: yesterday,
+            completedExerciseIds: [ex1]);
+
+        var mongo = CreateMongo(trainingPlan: trainingPlan, completions: [completion]);
+        var sut = new ComplianceService(mongo);
+
+        // Act
+        var streak = await sut.CalculateStreakAsync(_clientId, TestContext.Current.CancellationToken);
+
+        // Assert — 1 of 2 sessions complete; OR rule means yesterday counts → streak ≥ 1.
+        streak.Should().BeGreaterThanOrEqualTo(1);
+    }
+
+    [Fact]
+    public async Task CalculateStreakAsync_CombinedPlan_NutritionLoggedNoTraining_Counts()
+    {
+        // Arrange — combined-plan client: nutrition logged yesterday, no training completed.
+        // Mirrors the acceptance-criteria example: "nutrition logged but no training complete still counts".
+        var sessionId = Guid.NewGuid();
+        var ex1 = Guid.NewGuid();
+        var today = DateTime.UtcNow.Date;
+        var yesterday = today.AddDays(-1);
+        var weekStart = today.AddDays(-(int)today.DayOfWeek + 1);
+
+        var yesterdayDow = (int)yesterday.DayOfWeek;
+        yesterdayDow = yesterdayDow == 0 ? 7 : yesterdayDow;
+
+        // Nutrition plan with a meal slot for yesterday
+        var nutritionPlan = PlanTestHelpers.CreatePlan(
+            clientId: _clientId,
+            status: NutritionPlanStatus.Active);
+        nutritionPlan.StartDate = weekStart;
+        nutritionPlan.Weeks[0].Status = WeekStatus.Published;
+        nutritionPlan.Weeks[0].Days[yesterdayDow - 1].Meals =
+            [PlanTestHelpers.CreateMeal(kind: MealKind.Breakfast)];
+
+        var mealLogs = new List<MealLog>
+        {
+            new() { ClientId = _clientId, EatenAt = yesterday.AddHours(8), FoodsEaten = [] }
+        };
+
+        // Training plan with session yesterday — zero completions
+        var trainingPlan = TrainingCompletionTestHelpers.CreateActivePlan(
+            clientId: _clientId,
+            sessionId: sessionId,
+            exerciseIds: [ex1],
+            startDate: weekStart);
+
+        var mongo = CreateMongo(
+            nutritionPlans: [nutritionPlan],
+            mealLogs: mealLogs,
+            trainingPlan: trainingPlan,
+            completions: []);
+
+        var sut = new ComplianceService(mongo);
+
+        // Act
+        var streak = await sut.CalculateStreakAsync(_clientId, TestContext.Current.CancellationToken);
+
+        // Assert — nutritionDone=true, trainingDone=false → OR → day counts → streak ≥ 1
+        streak.Should().BeGreaterThanOrEqualTo(1);
     }
 }

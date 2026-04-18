@@ -166,18 +166,19 @@ public class ComplianceService : IComplianceService
 
             var trainingPlannedCount = trainingSessions.Count;
 
-            var totalPlanned = nutritionPlanned + trainingPlannedCount;
+            var nutritionActive = nutritionPlanned > 0;
+            var trainingActive = trainingPlannedCount > 0;
 
-            if (totalPlanned == 0)
+            if (!nutritionActive && !trainingActive)
             {
                 // Rest day / nothing planned — skip without breaking
                 currentDate = currentDate.AddDays(-1);
                 continue;
             }
 
-            // Check nutrition compliance for this day
-            bool nutritionOk = nutritionPlanned == 0; // vacuously true when no nutrition plan for this day
-            if (nutritionPlanned > 0)
+            // Check nutrition compliance for this day (≥1 meal logged)
+            bool nutritionDone = false;
+            if (nutritionActive)
             {
                 var dayStart = currentDate;
                 var dayEnd = currentDate.AddDays(1);
@@ -188,26 +189,29 @@ public class ComplianceService : IComplianceService
 
                 using var dayCursor = await _mongo.MealLogs.FindAsync(dayFilter, cancellationToken: ct);
                 var dayLogs = await dayCursor.ToListAsync(ct);
-                nutritionOk = dayLogs.Count >= 1;
+                nutritionDone = dayLogs.Count >= 1;
             }
 
-            // Check training compliance for this day
-            bool trainingOk = trainingPlannedCount == 0; // vacuously true when no training sessions this day
-            if (trainingPlannedCount > 0)
+            // Check training compliance for this day (≥1 session fully complete — any-pattern)
+            bool trainingDone = false;
+            if (trainingActive)
             {
-                var allSessionsComplete = true;
                 foreach (var session in trainingSessions)
                 {
-                    if (!await IsSessionCompleteForDateAsync(clientId, session, currentDate, ct))
+                    if (await IsSessionCompleteForDateAsync(clientId, session, currentDate, ct))
                     {
-                        allSessionsComplete = false;
+                        trainingDone = true;
                         break;
                     }
                 }
-                trainingOk = allSessionsComplete;
             }
 
-            var dayComplete = nutritionOk && trainingOk;
+            // Lenient OR rule: a day counts if at least one active plan side was satisfied.
+            // Only-nutrition day: nutritionDone. Only-training day: trainingDone.
+            // Both active: nutritionDone OR trainingDone.
+            bool dayComplete = nutritionActive && trainingActive
+                ? nutritionDone || trainingDone
+                : nutritionActive ? nutritionDone : trainingDone;
 
             if (dayComplete)
             {
