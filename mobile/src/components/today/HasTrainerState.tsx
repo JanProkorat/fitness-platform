@@ -34,7 +34,9 @@ import {
   markSessionIncomplete,
   markWholeDayComplete,
   type MarkExerciseCompleteResponse,
+  type MarkExerciseIncompleteResponse,
   type MarkSessionCompleteResponse,
+  type MarkSessionIncompleteResponse,
   type MarkWholeDayCompleteResponse,
 } from '@/api/trainingCompletion'
 import {
@@ -278,7 +280,7 @@ export function HasTrainerState() {
   // ── Helper: apply a progress response to the training cache ───────────────
 
   function applyExerciseProgressToCache(
-    response: MarkExerciseCompleteResponse | MarkSessionCompleteResponse,
+    response: MarkExerciseCompleteResponse | MarkExerciseIncompleteResponse | MarkSessionCompleteResponse | MarkSessionIncompleteResponse,
     allExerciseIds: string[],
   ): void {
     queryClient.setQueryData<TrainingCacheWithCompletion>(['today-training'], (prev) => {
@@ -287,7 +289,7 @@ export function HasTrainerState() {
       // For MarkSessionCompleteResponse: all completed means all ids.
       const isSessionComplete = 'sessionComplete' in response
         ? response.sessionComplete
-        : response.completedExerciseCount >= response.totalExerciseCount
+        : (response.completedExerciseCount ?? 0) >= (response.totalExerciseCount ?? 1)
 
       // Derive the new completed set from the count + the known exercise list.
       // We can't derive the exact set from counts alone, so we use the full list
@@ -449,7 +451,7 @@ export function HasTrainerState() {
       const cache = queryClient.getQueryData<TrainingCacheWithCompletion>(['today-training'])
       const sessionId = cache?.session?.sessionId
       if (sessionId) {
-        const summary = response.sessions.find(
+        const summary = (response.sessions ?? []).find(
           (s) => s.sessionId === sessionId,
         )
         if (summary) {

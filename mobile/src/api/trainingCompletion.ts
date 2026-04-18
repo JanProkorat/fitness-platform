@@ -1,91 +1,33 @@
 import api from './client';
+import type {
+  MarkExerciseCompleteRequest,
+  MarkExerciseCompleteResponse,
+  MarkExerciseIncompleteRequest,
+  MarkExerciseIncompleteResponse,
+  MarkSessionCompleteRequest,
+  MarkSessionCompleteResponse,
+  MarkSessionIncompleteRequest,
+  MarkSessionIncompleteResponse,
+  MarkWholeDayCompleteRequest,
+  MarkWholeDayCompleteResponse,
+  SessionCompletionSummary,
+} from './generated';
 
-// ─── Request types ──────────────────────────────────────────────────────────
-// These mirror the backend request models; defined locally because the current
-// generated.ts snapshot pre-dates PR #23. When the API client is regenerated
-// (once the backend is reachable), these can be re-exported from generated.ts
-// and the local declarations removed.
-
-export interface MarkExerciseCompleteRequest {
-  /** ISO date string (date only, UTC). Defaults to today UTC when omitted. */
-  completedOn?: string;
-  /** Optimistic concurrency version. Required when a completion doc already exists. */
-  version?: number;
-}
-
-export interface MarkExerciseIncompleteRequest {
-  /** ISO date string (date only, UTC). Defaults to today UTC when omitted. */
-  completedOn?: string;
-  /** Optimistic concurrency version. */
-  version?: number;
-}
-
-export interface MarkSessionCompleteRequest {
-  /** ISO date string (date only, UTC). Defaults to today UTC when omitted. */
-  completedOn?: string;
-  /** Optimistic concurrency version. */
-  version?: number;
-}
-
-export interface MarkSessionIncompleteRequest {
-  /** ISO date string (date only, UTC). Defaults to today UTC when omitted. */
-  completedOn?: string;
-  /** Optimistic concurrency version. */
-  version?: number;
-}
-
-export interface MarkWholeDayCompleteRequest {
-  /** ISO date string (date only, UTC). Defaults to today UTC when omitted. */
-  date?: string;
-}
-
-// ─── Response types ──────────────────────────────────────────────────────────
-
-/** Returned by mark-exercise-complete and mark-exercise-incomplete. */
-export interface MarkExerciseCompleteResponse {
-  /** The session that was updated. */
-  sessionId: string;
-  /** The date for which the completion was recorded (ISO date only). */
-  date: string;
-  /** How many exercises in this session are now marked complete. */
-  completedExerciseCount: number;
-  /** Total number of exercises in this session. */
-  totalExerciseCount: number;
-  /** Whether every exercise in this session is now complete. */
-  sessionComplete: boolean;
-  /** Current document version for subsequent writes. */
-  version: number;
-}
-
-/** Returned by mark-session-complete and mark-session-incomplete. */
-export interface MarkSessionCompleteResponse {
-  /** The session that was marked complete. */
-  sessionId: string;
-  /** The date for which the session was marked complete (ISO date only). */
-  date: string;
-  /** Number of exercises now marked complete. */
-  completedExerciseCount: number;
-  /** Total exercises in the session. */
-  totalExerciseCount: number;
-  /** Current document version. */
-  version: number;
-}
-
-/** Per-session summary inside MarkWholeDayCompleteResponse. */
-export interface SessionCompletionSummary {
-  sessionId: string;
-  completedExerciseCount: number;
-  totalExerciseCount: number;
-  version: number;
-}
-
-/** Returned by mark-whole-day-complete. */
-export interface MarkWholeDayCompleteResponse {
-  /** The date that was marked complete (ISO date only). */
-  date: string;
-  /** Summary per session that was processed. */
-  sessions: SessionCompletionSummary[];
-}
+// Re-export generated request/response types so consumer imports
+// (`from '@/api/trainingCompletion'`) continue to work unchanged.
+export type {
+  MarkExerciseCompleteRequest,
+  MarkExerciseCompleteResponse,
+  MarkExerciseIncompleteRequest,
+  MarkExerciseIncompleteResponse,
+  MarkSessionCompleteRequest,
+  MarkSessionCompleteResponse,
+  MarkSessionIncompleteRequest,
+  MarkSessionIncompleteResponse,
+  MarkWholeDayCompleteRequest,
+  MarkWholeDayCompleteResponse,
+  SessionCompletionSummary,
+};
 
 // ─── API calls ───────────────────────────────────────────────────────────────
 
@@ -113,8 +55,8 @@ export async function markExerciseIncomplete(
   sessionId: string,
   exerciseExternalId: string,
   request: MarkExerciseIncompleteRequest = {},
-): Promise<MarkExerciseCompleteResponse> {
-  const { data } = await api.delete<MarkExerciseCompleteResponse>(
+): Promise<MarkExerciseIncompleteResponse> {
+  const { data } = await api.delete<MarkExerciseIncompleteResponse>(
     `/client/training/sessions/${sessionId}/exercises/${exerciseExternalId}/complete`,
     { data: request },
   );
@@ -143,8 +85,8 @@ export async function markSessionComplete(
 export async function markSessionIncomplete(
   sessionId: string,
   request: MarkSessionIncompleteRequest = {},
-): Promise<MarkSessionCompleteResponse> {
-  const { data } = await api.delete<MarkSessionCompleteResponse>(
+): Promise<MarkSessionIncompleteResponse> {
+  const { data } = await api.delete<MarkSessionIncompleteResponse>(
     `/client/training/sessions/${sessionId}/complete`,
     { data: request },
   );
