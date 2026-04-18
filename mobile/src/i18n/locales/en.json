@@ -299,7 +299,11 @@
     },
     "minuteCount": "{{minutes}} min",
     "trainingCardA11yLabel": "Open session: {{name}}",
-    "sectionActionDetail": "Detail"
+    "sectionActionDetail": "Detail",
+    "markWholeDayDone": "Mark the whole training as done",
+    "trainingCompleteLabel": "Done",
+    "exerciseCheckboxA11y": "Mark exercise as complete",
+    "sessionCheckboxA11y": "Mark the entire session as complete"
   },
   "questionnaire": {
     "allDone": "All done!",
