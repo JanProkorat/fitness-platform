@@ -2,8 +2,11 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.WorkoutLogs.Shared;
+using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.WorkoutLogs.UpdateWorkout;
@@ -17,9 +20,13 @@ namespace FitnessPlatform.Application.Features.WorkoutLogs.UpdateWorkout;
 /// corresponding <see cref="WorkoutSet.IsPR"/> flag on the log.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
+/// <param name="db">PostgreSQL context (used for trainer-link lookup).</param>
+/// <param name="notifier">SignalR notifier for broadcasting PR events.</param>
 /// <param name="logger">Logger for best-effort PR warning messages.</param>
 public class UpdateWorkoutEndpoint(
     IMongoContext mongo,
+    IApplicationDbContext db,
+    IRealtimeNotifier notifier,
     ILogger<UpdateWorkoutEndpoint> logger) : Endpoint<UpdateWorkoutRequest, WorkoutLogDetail>
 {
     /// <inheritdoc />
@@ -100,7 +107,7 @@ public class UpdateWorkoutEndpoint(
         try
         {
             var prFlagsChanged = await DetectAndPersistPRsAsync(
-                log, clientId, previouslyCompleted, ct);
+                log, clientId, previouslyCompleted, notifier, ct);
 
             // If any IsPR flags were set on the in-memory log object, persist them
             // back with a second replace so the response and DB stay consistent.
@@ -131,6 +138,7 @@ public class UpdateWorkoutEndpoint(
         WorkoutLog log,
         Guid clientId,
         HashSet<(Guid ExerciseExternalId, int SetNumber)> previouslyCompleted,
+        IRealtimeNotifier realtimeNotifier,
         CancellationToken ct)
     {
         // Collect newly-completed sets (CompletedAt moved null → non-null),
@@ -283,9 +291,72 @@ public class UpdateWorkoutEndpoint(
                 anyPrFlagged = true;
                 runningBestWeight = setWeight;
                 runningBestReps = setReps;
+
+                // ── Broadcast personalrecordachieved to client + active trainers ───────
+                // Best-effort: failure must NOT surface as a request error.
+                // The insert already committed above — we broadcast exactly once
+                // per newly-inserted PR. Idempotency-skipped PRs do NOT reach here.
+                await BroadcastPrAchievedAsync(pr, realtimeNotifier, ct);
             }
         }
 
         return anyPrFlagged;
+    }
+
+    private async Task BroadcastPrAchievedAsync(
+        PersonalRecord pr,
+        IRealtimeNotifier realtimeNotifier,
+        CancellationToken ct)
+    {
+        var payload = new
+        {
+            ClientId = pr.ClientId,
+            ExerciseExternalId = pr.ExerciseExternalId,
+            ExerciseName = pr.ExerciseName,
+            WeightKg = pr.WeightKg,
+            Reps = pr.Reps,
+            AchievedAt = pr.AchievedAt
+        };
+
+        try
+        {
+            // Notify the client themselves.
+            await realtimeNotifier.NotifyAsync(pr.ClientId, "personalrecordachieved", payload, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex,
+                "Failed to broadcast personalrecordachieved to client {ClientId}.", pr.ClientId);
+        }
+
+        // Notify each active trainer linked to this client.
+        List<Guid> trainerUserIds;
+        try
+        {
+            trainerUserIds = await db.ClientProfessionalLinks
+                .AsNoTracking()
+                .Where(l => l.ClientProfile.UserId == pr.ClientId && l.IsActive)
+                .Select(l => l.ProfessionalProfile.UserId)
+                .ToListAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex,
+                "Failed to look up active trainers for client {ClientId} during PR broadcast.", pr.ClientId);
+            return;
+        }
+
+        foreach (var trainerId in trainerUserIds)
+        {
+            try
+            {
+                await realtimeNotifier.NotifyAsync(trainerId, "personalrecordachieved", payload, ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex,
+                    "Failed to broadcast personalrecordachieved to trainer {TrainerId}.", trainerId);
+            }
+        }
     }
 }
