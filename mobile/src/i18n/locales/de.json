@@ -303,7 +303,14 @@
     "markWholeDayDone": "Gesamtes Training als erledigt markieren",
     "trainingCompleteLabel": "Erledigt",
     "exerciseCheckboxA11y": "Übung als abgeschlossen markieren",
-    "sessionCheckboxA11y": "Gesamte Trainingseinheit als abgeschlossen markieren"
+    "sessionCheckboxA11y": "Gesamte Trainingseinheit als abgeschlossen markieren",
+    "trainingCta": {
+      "start": "Training starten",
+      "continue": "Training fortsetzen",
+      "finished": "Abgeschlossen",
+      "viewSummary": "Zusammenfassung anzeigen",
+      "startError": "Training konnte nicht gestartet werden. Bitte versuche es erneut."
+    }
   },
   "questionnaire": {
     "allDone": "Fertig!",
