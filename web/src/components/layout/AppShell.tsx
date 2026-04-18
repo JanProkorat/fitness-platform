@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Sidebar } from './Sidebar';
 import { useSignalR } from '@/hooks/useSignalR';
 import { useToastStore } from '@/stores/toast';
-import type { TrainingProgressUpdatedEvent } from '@/api/trainingProgressEvent';
+import { isTrainingProgressUpdatedEvent } from '@/api/trainingProgressEvent';
 
 const DARK_MODE_KEY = 'gf-dark-mode';
 
@@ -136,9 +136,16 @@ export function AppShell() {
       if (import.meta.env.DEV) {
         console.debug('trainingprogressupdated', payload);
       }
-      const data = payload as TrainingProgressUpdatedEvent | undefined;
-      const clientId = data?.clientId;
+      if (!isTrainingProgressUpdatedEvent(payload)) {
+        if (import.meta.env.DEV) {
+          console.warn('trainingprogressupdated: invalid payload shape', payload);
+        }
+        return;
+      }
+      const clientId = payload.clientId;
 
+      // `sessionId` may be null (whole-day broadcast aggregates across sessions);
+      // handler is intentionally sessionId-agnostic — we invalidate the same keys either way.
       // Refresh the main dashboard table — drives avg compliance pill,
       // low-compliance alert count, per-client compliance/streak cells,
       // and the low-compliance callouts.  All of these are derived from

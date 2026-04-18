@@ -55,3 +55,28 @@ export interface TrainingProgressUpdatedEvent {
   /** Number of training sessions planned for the client today. */
   sessionsPlannedToday: number;
 }
+
+/**
+ * Runtime type guard for `TrainingProgressUpdatedEvent`.
+ *
+ * Use this whenever consuming the raw SignalR payload to catch backend shape
+ * drift early and avoid silent `undefined` access.
+ */
+export function isTrainingProgressUpdatedEvent(
+  payload: unknown,
+): payload is TrainingProgressUpdatedEvent {
+  if (typeof payload !== 'object' || payload === null) return false;
+  const p = payload as Partial<Record<keyof TrainingProgressUpdatedEvent, unknown>>;
+  return (
+    typeof p.clientId === 'string' &&
+    (p.sessionId === null || typeof p.sessionId === 'string') &&
+    typeof p.date === 'string' &&
+    typeof p.completedExerciseCount === 'number' &&
+    typeof p.totalExerciseCount === 'number' &&
+    typeof p.sessionComplete === 'boolean' &&
+    typeof p.newCompliancePercent === 'number' &&
+    typeof p.newStreak === 'number' &&
+    typeof p.sessionsCompletedToday === 'number' &&
+    typeof p.sessionsPlannedToday === 'number'
+  );
+}
