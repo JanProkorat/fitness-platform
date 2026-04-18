@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.Foods.SearchFoods;
+using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Tests.Endpoints;
 
 namespace FitnessPlatform.Tests.Endpoints.Foods;
@@ -16,7 +17,7 @@ public class SearchFoodsEndpointTests
 {
     private readonly Guid _nutritionistId = Guid.NewGuid();
 
-    private SearchFoodsEndpoint CreateEndpoint(FitnessPlatform.Application.Infrastructure.Data.MongoDb.IMongoContext mongo)
+    private SearchFoodsEndpoint CreateEndpoint(IMongoContext mongo)
         => Factory.Create<SearchFoodsEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
