@@ -4,9 +4,11 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.ClientTraining.MarkExerciseIncomplete;
@@ -17,7 +19,15 @@ namespace FitnessPlatform.Application.Features.ClientTraining.MarkExerciseIncomp
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
-public class MarkExerciseIncompleteEndpoint(IMongoContext mongo, IApplicationDbContext db)
+/// <param name="notifier">Realtime notifier for pushing the <c>trainingprogressupdated</c> event.</param>
+/// <param name="compliance">Compliance service for computing today's metrics.</param>
+/// <param name="logger">Logger.</param>
+public class MarkExerciseIncompleteEndpoint(
+    IMongoContext mongo,
+    IApplicationDbContext db,
+    IRealtimeNotifier notifier,
+    IComplianceService compliance,
+    ILogger<MarkExerciseIncompleteEndpoint> logger)
     : Endpoint<MarkExerciseIncompleteRequest, MarkExerciseIncompleteResponse>
 {
     /// <inheritdoc />
@@ -138,7 +148,11 @@ public class MarkExerciseIncompleteEndpoint(IMongoContext mongo, IApplicationDbC
             return;
         }
 
-        // TODO #6: publish trainingprogressupdated to trainer via IRealtimeNotifier
+        await TrainingProgressBroadcaster.BroadcastSessionAsync(
+            notifier, compliance, mongo, plan, clientId,
+            req.SessionId, DateOnly.FromDateTime(targetDate),
+            newIds.Count, session.Exercises.Count,
+            logger, ct);
 
         await Send.OkAsync(new MarkExerciseIncompleteResponse
         {

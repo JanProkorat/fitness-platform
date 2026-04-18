@@ -5,9 +5,11 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.ClientTraining.MarkExerciseIncomplete;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Tests.Builders;
+using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using NSubstitute;
 
@@ -22,6 +24,9 @@ public class MarkExerciseIncompleteEndpointTests
     private readonly Guid _sessionId = Guid.NewGuid();
     private readonly Guid _exercise1 = Guid.NewGuid();
     private readonly Guid _exercise2 = Guid.NewGuid();
+    private readonly IRealtimeNotifier _notifier = TrainingCompletionTestHelpers.CreateStubNotifier();
+    private readonly IComplianceService _compliance = TrainingCompletionTestHelpers.CreateStubComplianceService();
+    private readonly ILogger<MarkExerciseIncompleteEndpoint> _logger = Substitute.For<ILogger<MarkExerciseIncompleteEndpoint>>();
 
     private IApplicationDbContext CreateMockDb() =>
         new MockDbBuilder()
@@ -52,7 +57,7 @@ public class MarkExerciseIncompleteEndpointTests
         var ep = Factory.Create<MarkExerciseIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, _notifier, _compliance, _logger);
 
         await ep.HandleAsync(
             new MarkExerciseIncompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1 },
@@ -92,7 +97,7 @@ public class MarkExerciseIncompleteEndpointTests
         var ep = Factory.Create<MarkExerciseIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, _notifier, _compliance, _logger);
 
         await ep.HandleAsync(
             new MarkExerciseIncompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1 },
@@ -136,7 +141,7 @@ public class MarkExerciseIncompleteEndpointTests
         var ep = Factory.Create<MarkExerciseIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, _notifier, _compliance, _logger);
 
         await ep.HandleAsync(
             new MarkExerciseIncompleteRequest
@@ -179,7 +184,7 @@ public class MarkExerciseIncompleteEndpointTests
         var ep = Factory.Create<MarkExerciseIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, _notifier, _compliance, _logger);
 
         await ep.HandleAsync(
             new MarkExerciseIncompleteRequest
@@ -207,7 +212,7 @@ public class MarkExerciseIncompleteEndpointTests
         var ep = Factory.Create<MarkExerciseIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(wrongClientId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, _notifier, _compliance, _logger);
 
         await ep.HandleAsync(
             new MarkExerciseIncompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1 },
@@ -231,7 +236,7 @@ public class MarkExerciseIncompleteEndpointTests
         var ep = Factory.Create<MarkExerciseIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, _notifier, _compliance, _logger);
 
         await ep.HandleAsync(
             new MarkExerciseIncompleteRequest { SessionId = Guid.NewGuid(), ExerciseExternalId = _exercise1 },
@@ -254,7 +259,7 @@ public class MarkExerciseIncompleteEndpointTests
         var ep = Factory.Create<MarkExerciseIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, _notifier, _compliance, _logger);
 
         // _exercise2 is NOT in the plan's session exercises
         await ep.HandleAsync(
@@ -272,7 +277,7 @@ public class MarkExerciseIncompleteEndpointTests
 
         var ep = Factory.Create<MarkExerciseIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity()),
-            mongo, db);
+            mongo, db, _notifier, _compliance, _logger);
 
         await ep.HandleAsync(
             new MarkExerciseIncompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1 },

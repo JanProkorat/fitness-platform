@@ -4,9 +4,11 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.ClientTraining.MarkSessionComplete;
@@ -18,7 +20,15 @@ namespace FitnessPlatform.Application.Features.ClientTraining.MarkSessionComplet
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
-public class MarkSessionCompleteEndpoint(IMongoContext mongo, IApplicationDbContext db)
+/// <param name="notifier">Realtime notifier for pushing the <c>trainingprogressupdated</c> event.</param>
+/// <param name="compliance">Compliance service for computing today's metrics.</param>
+/// <param name="logger">Logger.</param>
+public class MarkSessionCompleteEndpoint(
+    IMongoContext mongo,
+    IApplicationDbContext db,
+    IRealtimeNotifier notifier,
+    IComplianceService compliance,
+    ILogger<MarkSessionCompleteEndpoint> logger)
     : Endpoint<MarkSessionCompleteRequest, MarkSessionCompleteResponse>
 {
     /// <inheritdoc />
@@ -127,7 +137,11 @@ public class MarkSessionCompleteEndpoint(IMongoContext mongo, IApplicationDbCont
             existing.CompletedExerciseIds = allExerciseIds;
             existing.Version = newVersion;
 
-            // TODO #6: publish trainingprogressupdated to trainer via IRealtimeNotifier
+            await TrainingProgressBroadcaster.BroadcastSessionAsync(
+                notifier, compliance, mongo, plan, clientId,
+                req.SessionId, DateOnly.FromDateTime(targetDate),
+                allExerciseIds.Count, allExerciseIds.Count,
+                logger, ct);
 
             await Send.OkAsync(BuildResponse(req.SessionId, targetDate, existing, allExerciseIds.Count), ct);
         }
@@ -189,7 +203,11 @@ public class MarkSessionCompleteEndpoint(IMongoContext mongo, IApplicationDbCont
                 return;
             }
 
-            // TODO #6: publish trainingprogressupdated to trainer via IRealtimeNotifier
+            await TrainingProgressBroadcaster.BroadcastSessionAsync(
+                notifier, compliance, mongo, plan, clientId,
+                req.SessionId, DateOnly.FromDateTime(targetDate),
+                allExerciseIds.Count, allExerciseIds.Count,
+                logger, ct);
 
             await Send.OkAsync(BuildResponse(req.SessionId, targetDate, completion, allExerciseIds.Count), ct);
         }

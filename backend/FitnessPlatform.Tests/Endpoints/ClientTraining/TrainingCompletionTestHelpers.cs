@@ -1,5 +1,6 @@
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Driver;
 using NSubstitute;
@@ -19,7 +20,8 @@ public static class TrainingCompletionTestHelpers
         Guid clientId,
         Guid? sessionId = null,
         IReadOnlyList<Guid>? exerciseIds = null,
-        DateTime? startDate = null)
+        DateTime? startDate = null,
+        Guid? trainerId = null)
     {
         var sid = sessionId ?? Guid.NewGuid();
         var exIds = exerciseIds ?? [Guid.NewGuid(), Guid.NewGuid()];
@@ -29,7 +31,7 @@ public static class TrainingCompletionTestHelpers
         {
             ExternalId = Guid.NewGuid(),
             ClientId = clientId,
-            TrainerId = Guid.NewGuid(),
+            TrainerId = trainerId ?? Guid.NewGuid(),
             Name = "Test Plan",
             Status = TrainingPlanStatus.Active,
             StartDate = start,
@@ -167,6 +169,29 @@ public static class TrainingCompletionTestHelpers
             return plans.Count > 0;
         });
         return cursor;
+    }
+
+    /// <summary>
+    /// Creates a no-op <see cref="IRealtimeNotifier"/> substitute for tests that don't care about broadcasts.
+    /// </summary>
+    public static IRealtimeNotifier CreateStubNotifier()
+    {
+        return Substitute.For<IRealtimeNotifier>();
+    }
+
+    /// <summary>
+    /// Creates an <see cref="IComplianceService"/> substitute that returns neutral defaults
+    /// (0% compliance, 0 streak) for tests that don't care about broadcast payload values.
+    /// </summary>
+    public static IComplianceService CreateStubComplianceService()
+    {
+        var svc = Substitute.For<IComplianceService>();
+        svc.CalculateComplianceAsync(
+                Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+            .Returns(new ComplianceResult { CompliancePercent = 0m });
+        svc.CalculateStreakAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns(0);
+        return svc;
     }
 
     private static IAsyncCursor<TrainingCompletion> CreateCompletionCursor(List<TrainingCompletion> completions)

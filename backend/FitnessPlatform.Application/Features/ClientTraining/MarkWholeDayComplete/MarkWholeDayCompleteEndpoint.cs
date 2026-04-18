@@ -4,9 +4,11 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.ClientTraining.MarkWholeDayComplete;
@@ -19,7 +21,15 @@ namespace FitnessPlatform.Application.Features.ClientTraining.MarkWholeDayComple
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
-public class MarkWholeDayCompleteEndpoint(IMongoContext mongo, IApplicationDbContext db)
+/// <param name="notifier">Realtime notifier for pushing the <c>trainingprogressupdated</c> event.</param>
+/// <param name="compliance">Compliance service for computing today's metrics.</param>
+/// <param name="logger">Logger.</param>
+public class MarkWholeDayCompleteEndpoint(
+    IMongoContext mongo,
+    IApplicationDbContext db,
+    IRealtimeNotifier notifier,
+    IComplianceService compliance,
+    ILogger<MarkWholeDayCompleteEndpoint> logger)
     : Endpoint<MarkWholeDayCompleteRequest, MarkWholeDayCompleteResponse>
 {
     /// <inheritdoc />
@@ -174,8 +184,18 @@ public class MarkWholeDayCompleteEndpoint(IMongoContext mongo, IApplicationDbCon
                 TotalExerciseCount = allExerciseIds.Count,
                 Version = version
             });
+        }
 
-            // TODO #6: publish trainingprogressupdated to trainer via IRealtimeNotifier
+        // Broadcast once for all sessions updated in this request
+        if (summaries.Count > 0)
+        {
+            var aggregateCompleted = summaries.Sum(s => s.CompletedExerciseCount);
+            var aggregateTotal = summaries.Sum(s => s.TotalExerciseCount);
+
+            await TrainingProgressBroadcaster.BroadcastWholeDayAsync(
+                notifier, compliance, mongo, plan, clientId,
+                targetDateOnly, aggregateCompleted, aggregateTotal,
+                logger, ct);
         }
 
         await Send.OkAsync(new MarkWholeDayCompleteResponse

@@ -6046,6 +6046,385 @@ export class ApiClient {
     }
 
     /**
+     * Mark all training sessions for a day complete
+     * @return Success
+     */
+    markWholeDayCompleteEndpoint(markWholeDayCompleteRequest: MarkWholeDayCompleteRequest, signal?: AbortSignal): Promise<MarkWholeDayCompleteResponse> {
+        let url_ = this.baseUrl + "/client/training/day/complete";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(markWholeDayCompleteRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processMarkWholeDayCompleteEndpoint(_response);
+        });
+    }
+
+    protected processMarkWholeDayCompleteEndpoint(response: AxiosResponse): Promise<MarkWholeDayCompleteResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<MarkWholeDayCompleteResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<MarkWholeDayCompleteResponse>(null as any);
+    }
+
+    /**
+     * Un-mark a training session as complete
+     * @param sessionId The session ID (from the training plan). Bound from the route.
+     * @return Success
+     */
+    markSessionIncompleteEndpoint(sessionId: string, markSessionIncompleteRequest: MarkSessionIncompleteRequest, signal?: AbortSignal): Promise<MarkSessionIncompleteResponse> {
+        let url_ = this.baseUrl + "/client/training/sessions/{sessionId}/complete";
+        if (sessionId === undefined || sessionId === null)
+            throw new globalThis.Error("The parameter 'sessionId' must be defined.");
+        url_ = url_.replace("{sessionId}", encodeURIComponent("" + sessionId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(markSessionIncompleteRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "DELETE",
+            url: url_,
+            headers: {
+                "Content-Type": "*/*",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processMarkSessionIncompleteEndpoint(_response);
+        });
+    }
+
+    protected processMarkSessionIncompleteEndpoint(response: AxiosResponse): Promise<MarkSessionIncompleteResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<MarkSessionIncompleteResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<MarkSessionIncompleteResponse>(null as any);
+    }
+
+    /**
+     * Mark a training session complete
+     * @param sessionId The session ID (from the training plan). Bound from the route.
+     * @return Success
+     */
+    markSessionCompleteEndpoint(sessionId: string, markSessionCompleteRequest: MarkSessionCompleteRequest, signal?: AbortSignal): Promise<MarkSessionCompleteResponse> {
+        let url_ = this.baseUrl + "/client/training/sessions/{sessionId}/complete";
+        if (sessionId === undefined || sessionId === null)
+            throw new globalThis.Error("The parameter 'sessionId' must be defined.");
+        url_ = url_.replace("{sessionId}", encodeURIComponent("" + sessionId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(markSessionCompleteRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processMarkSessionCompleteEndpoint(_response);
+        });
+    }
+
+    protected processMarkSessionCompleteEndpoint(response: AxiosResponse): Promise<MarkSessionCompleteResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<MarkSessionCompleteResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<MarkSessionCompleteResponse>(null as any);
+    }
+
+    /**
+     * Un-mark an exercise as complete
+     * @param sessionId The session ID (from the training plan). Bound from the route.
+     * @param exerciseExternalId The exercise external ID within the session. Bound from the route.
+     * @return Success
+     */
+    markExerciseIncompleteEndpoint(sessionId: string, exerciseExternalId: string, markExerciseIncompleteRequest: MarkExerciseIncompleteRequest, signal?: AbortSignal): Promise<MarkExerciseIncompleteResponse> {
+        let url_ = this.baseUrl + "/client/training/sessions/{sessionId}/exercises/{exerciseExternalId}/complete";
+        if (sessionId === undefined || sessionId === null)
+            throw new globalThis.Error("The parameter 'sessionId' must be defined.");
+        url_ = url_.replace("{sessionId}", encodeURIComponent("" + sessionId));
+        if (exerciseExternalId === undefined || exerciseExternalId === null)
+            throw new globalThis.Error("The parameter 'exerciseExternalId' must be defined.");
+        url_ = url_.replace("{exerciseExternalId}", encodeURIComponent("" + exerciseExternalId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(markExerciseIncompleteRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "DELETE",
+            url: url_,
+            headers: {
+                "Content-Type": "*/*",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processMarkExerciseIncompleteEndpoint(_response);
+        });
+    }
+
+    protected processMarkExerciseIncompleteEndpoint(response: AxiosResponse): Promise<MarkExerciseIncompleteResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<MarkExerciseIncompleteResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<MarkExerciseIncompleteResponse>(null as any);
+    }
+
+    /**
+     * Mark an exercise complete
+     * @param sessionId The session ID (from the training plan). Bound from the route.
+     * @param exerciseExternalId The exercise external ID within the session. Bound from the route.
+     * @return Success
+     */
+    markExerciseCompleteEndpoint(sessionId: string, exerciseExternalId: string, markExerciseCompleteRequest: MarkExerciseCompleteRequest, signal?: AbortSignal): Promise<MarkExerciseCompleteResponse> {
+        let url_ = this.baseUrl + "/client/training/sessions/{sessionId}/exercises/{exerciseExternalId}/complete";
+        if (sessionId === undefined || sessionId === null)
+            throw new globalThis.Error("The parameter 'sessionId' must be defined.");
+        url_ = url_.replace("{sessionId}", encodeURIComponent("" + sessionId));
+        if (exerciseExternalId === undefined || exerciseExternalId === null)
+            throw new globalThis.Error("The parameter 'exerciseExternalId' must be defined.");
+        url_ = url_.replace("{exerciseExternalId}", encodeURIComponent("" + exerciseExternalId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(markExerciseCompleteRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processMarkExerciseCompleteEndpoint(_response);
+        });
+    }
+
+    protected processMarkExerciseCompleteEndpoint(response: AxiosResponse): Promise<MarkExerciseCompleteResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<MarkExerciseCompleteResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<MarkExerciseCompleteResponse>(null as any);
+    }
+
+    /**
      * Get today's training session
      * @return Success
      */
@@ -9698,9 +10077,9 @@ export interface UpdateRecipeRequest {
     note?: string | undefined;
     /** Updated list of food items in the recipe. */
     foods: RecipeFoodDto[];
-    /** Updated visibility. Defaults to Public when omitted.
+    /** Updated visibility. When omitted, the recipe's existing visibility is preserved.
 Only the recipe's creator can change this value. */
-    visibility?: RecipeVisibility;
+    visibility?: RecipeVisibility | undefined;
 }
 
 /** Input DTO representing a food item to include in a recipe. */
@@ -10522,9 +10901,9 @@ export interface UpdateFoodRequest {
     nutrientValue?: NutrientValueDto;
     /** Updated food category. */
     category?: FoodCategory;
-    /** Updated visibility. Defaults to Public when omitted.
+    /** Updated visibility. When omitted, the food's existing visibility is preserved.
 Only the food's creator can change this value. */
-    visibility?: FoodVisibility;
+    visibility?: FoodVisibility | undefined;
     /** Updated user note. */
     note?: string | undefined;
     /** Updated allergen identifiers. */
@@ -10807,6 +11186,131 @@ export interface CreateExerciseRequest {
     difficulty?: ExerciseDifficulty;
     /** Technique notes in Markdown format. */
     techniqueNotes?: string | undefined;
+}
+
+/** Response for marking all training sessions on a day complete. */
+export interface MarkWholeDayCompleteResponse {
+    /** The date that was marked complete. */
+    date?: string;
+    /** Summary of each session that was processed. */
+    sessions?: SessionCompletionSummary[];
+}
+
+/** Per-session completion summary returned by MarkWholeDayCompleteResponse. */
+export interface SessionCompletionSummary {
+    /** The session ID. */
+    sessionId?: string;
+    /** Number of exercises marked complete in this session. */
+    completedExerciseCount?: number;
+    /** Total exercises in the session. */
+    totalExerciseCount?: number;
+    /** Current document version for subsequent writes. */
+    version?: number;
+}
+
+/** Request model for marking all training sessions on a given day complete. */
+export interface MarkWholeDayCompleteRequest {
+    /** The date to mark complete (UTC date only).
+Defaults to today UTC when not provided. */
+    date?: string | undefined;
+}
+
+/** Response for un-marking a training session as complete. */
+export interface MarkSessionIncompleteResponse {
+    /** The session ID that was updated. */
+    sessionId?: string;
+    /** The date for which the completion was removed. */
+    date?: string;
+    /** How many exercises in this session are still marked complete. */
+    completedExerciseCount?: number;
+    /** Total exercises in the session. */
+    totalExerciseCount?: number;
+    /** Current document version. */
+    version?: number;
+}
+
+/** Request model for un-marking an entire session as complete. */
+export interface MarkSessionIncompleteRequest {
+    /** The date for which the completion should be removed (UTC date only).
+Defaults to today UTC when not provided. */
+    completedOn?: string | undefined;
+    /** Client-supplied version for optimistic concurrency. */
+    version?: number | undefined;
+}
+
+/** Response for marking a whole session complete. */
+export interface MarkSessionCompleteResponse {
+    /** The session ID that was marked complete. */
+    sessionId?: string;
+    /** The date for which the session was marked complete. */
+    date?: string;
+    /** Number of exercises now marked complete. */
+    completedExerciseCount?: number;
+    /** Total exercises in the session. */
+    totalExerciseCount?: number;
+    /** Current document version. */
+    version?: number;
+}
+
+/** Request model for marking an entire session complete (fans out to all exercises). */
+export interface MarkSessionCompleteRequest {
+    /** The date on which the session was completed (UTC date only).
+Defaults to today UTC when not provided. */
+    completedOn?: string | undefined;
+    /** Client-supplied version for optimistic concurrency when updating an existing completion document. */
+    version?: number | undefined;
+}
+
+/** Response for un-marking an exercise as complete. */
+export interface MarkExerciseIncompleteResponse {
+    /** The session ID that was updated. */
+    sessionId?: string;
+    /** The date for which the completion was removed. */
+    date?: string;
+    /** How many exercises in this session are still marked complete. */
+    completedExerciseCount?: number;
+    /** Total number of exercises in this session (from the plan). */
+    totalExerciseCount?: number;
+    /** Whether every exercise in this session is still complete. */
+    sessionComplete?: boolean;
+    /** Current version of the underlying completion document. */
+    version?: number;
+}
+
+/** Request model for un-marking a single exercise as complete. */
+export interface MarkExerciseIncompleteRequest {
+    /** The date for which the completion should be removed (UTC date only).
+Defaults to today UTC when not provided. */
+    completedOn?: string | undefined;
+    /** Client-supplied version of the completion document for optimistic concurrency. */
+    version?: number | undefined;
+}
+
+/** Response for marking an exercise complete. Returns a lightweight progress summary so the mobile client can update session progress indicators without an extra round-trip. */
+export interface MarkExerciseCompleteResponse {
+    /** The session ID that was updated. */
+    sessionId?: string;
+    /** The date for which the completion was recorded. */
+    date?: string;
+    /** How many exercises in this session are now marked complete. */
+    completedExerciseCount?: number;
+    /** Total number of exercises in this session (from the plan). */
+    totalExerciseCount?: number;
+    /** Whether every exercise in this session is now complete. */
+    sessionComplete?: boolean;
+    /** Current version of the underlying completion document (for subsequent writes). */
+    version?: number;
+}
+
+/** Request model for marking a single exercise complete within a session. */
+export interface MarkExerciseCompleteRequest {
+    /** The date on which the exercise was completed (UTC date only).
+Defaults to today UTC when not provided. */
+    completedOn?: string | undefined;
+    /** Client-supplied version of the existing completion document, used for optimistic
+concurrency. Required when a completion document already exists for this
+(clientId, date, sessionId) tuple; ignored for new documents. */
+    version?: number | undefined;
 }
 
 /** Response with today's planned training session. */

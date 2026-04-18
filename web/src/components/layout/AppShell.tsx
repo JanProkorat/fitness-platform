@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Sidebar } from './Sidebar';
 import { useSignalR } from '@/hooks/useSignalR';
 import { useToastStore } from '@/stores/toast';
+import { isTrainingProgressUpdatedEvent } from '@/api/trainingProgressEvent';
 
 const DARK_MODE_KEY = 'gf-dark-mode';
 
@@ -128,6 +129,35 @@ export function AppShell() {
       queryClient.invalidateQueries({ queryKey: ['client-timeline', clientId] });
       // Main dashboard table — refresh calories, compliance, streak.
       queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
+    },
+    trainingprogressupdated: (payload: unknown) => {
+      // The backend broadcasts this event only to the trainer who owns the client
+      // (per-user SignalR group), so no client-id filtering is needed here.
+      if (import.meta.env.DEV) {
+        console.debug('trainingprogressupdated', payload);
+      }
+      if (!isTrainingProgressUpdatedEvent(payload)) {
+        if (import.meta.env.DEV) {
+          console.warn('trainingprogressupdated: invalid payload shape', payload);
+        }
+        return;
+      }
+      const clientId = payload.clientId;
+
+      // `sessionId` may be null (whole-day broadcast aggregates across sessions);
+      // handler is intentionally sessionId-agnostic — we invalidate the same keys either way.
+      // Refresh the main dashboard table — drives avg compliance pill,
+      // low-compliance alert count, per-client compliance/streak cells,
+      // and the low-compliance callouts.  All of these are derived from
+      // the single ['dashboard-summary'] query (DashboardPage.tsx line 87-91).
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
+
+      // If the trainer has the per-client detail page open, refresh its
+      // stats panel and activity timeline as well.
+      if (clientId) {
+        queryClient.invalidateQueries({ queryKey: ['client-dashboard', clientId] });
+        queryClient.invalidateQueries({ queryKey: ['client-timeline', clientId] });
+      }
     },
     typing: (payload: unknown) => {
       const data = payload as { conversationId?: string; senderId?: string } | undefined;
