@@ -39,4 +39,9 @@ public static class MongoCollections
     /// Workout log entries collection.
     /// </summary>
     public const string WorkoutLogs = "workoutLogs";
+
+    /// <summary>
+    /// Training completion records collection.
+    /// </summary>
+    public const string TrainingCompletions = "trainingCompletions";
 }

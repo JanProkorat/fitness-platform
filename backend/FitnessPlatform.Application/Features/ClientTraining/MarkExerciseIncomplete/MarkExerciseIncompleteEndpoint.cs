@@ -1,0 +1,146 @@
+using System.Security.Claims;
+using FastEndpoints;
+using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using Microsoft.EntityFrameworkCore;
+using MongoDB.Driver;
+
+namespace FitnessPlatform.Application.Features.ClientTraining.MarkExerciseIncomplete;
+
+/// <summary>
+/// Removes the completion mark for a single exercise within a session on the specified date.
+/// Idempotent: if the exercise is already not marked complete, returns success without side effects.
+/// </summary>
+/// <param name="mongo">MongoDB context.</param>
+/// <param name="db">Relational database context.</param>
+public class MarkExerciseIncompleteEndpoint(IMongoContext mongo, IApplicationDbContext db)
+    : Endpoint<MarkExerciseIncompleteRequest, MarkExerciseIncompleteResponse>
+{
+    /// <inheritdoc />
+    public override void Configure()
+    {
+        Delete("/client/training/sessions/{SessionId}/exercises/{ExerciseExternalId}/complete");
+        Roles(AppRoles.Client);
+        Summary(s =>
+        {
+            s.Summary = "Un-mark an exercise as complete";
+            s.Description = "Removes the completion mark for a single exercise in a training session. Idempotent.";
+        });
+    }
+
+    /// <inheritdoc />
+    public override async Task HandleAsync(MarkExerciseIncompleteRequest req, CancellationToken ct)
+    {
+        var userId = User.FindFirstValue(AppClaims.UserId);
+        if (userId is null)
+        {
+            await Send.UnauthorizedAsync(ct);
+            return;
+        }
+
+        var clientProfile = await db.ClientProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cp => cp.UserId == Guid.Parse(userId), ct);
+
+        if (clientProfile is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        var clientId = clientProfile.PublicId;
+        var targetDate = (req.CompletedOn ?? DateOnly.FromDateTime(DateTime.UtcNow)).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+
+        // Validate the session belongs to the client's active plan
+        var planFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientId)
+                         & Builders<TrainingPlan>.Filter.Eq(p => p.Status, TrainingPlanStatus.Active);
+
+        using var planCursor = await mongo.TrainingPlans.FindAsync(planFilter, cancellationToken: ct);
+        var plan = await planCursor.FirstOrDefaultAsync(ct);
+
+        if (plan is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        var session = plan.Weeks
+            .SelectMany(w => w.Sessions)
+            .FirstOrDefault(s => s.SessionId == req.SessionId);
+
+        if (session is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        // Load the completion document for (clientId, date, sessionId)
+        var completionFilter = Builders<TrainingCompletion>.Filter.Eq(c => c.ClientId, clientId)
+                               & Builders<TrainingCompletion>.Filter.Eq(c => c.Date, targetDate)
+                               & Builders<TrainingCompletion>.Filter.Eq(c => c.SessionId, req.SessionId);
+
+        using var completionCursor = await mongo.TrainingCompletions.FindAsync(completionFilter, cancellationToken: ct);
+        var existing = await completionCursor.FirstOrDefaultAsync(ct);
+
+        if (existing is null || !existing.CompletedExerciseIds.Contains(req.ExerciseExternalId))
+        {
+            // Idempotent: already not complete
+            var completedCount = existing?.CompletedExerciseIds.Count ?? 0;
+            await Send.OkAsync(new MarkExerciseIncompleteResponse
+            {
+                SessionId = req.SessionId,
+                Date = DateOnly.FromDateTime(targetDate),
+                CompletedExerciseCount = completedCount,
+                TotalExerciseCount = session.Exercises.Count,
+                SessionComplete = completedCount >= session.Exercises.Count,
+                Version = existing?.Version ?? 1
+            }, ct);
+            return;
+        }
+
+        // Optimistic concurrency check
+        if (req.Version.HasValue && existing.Version != req.Version.Value)
+        {
+            await HttpContext.Response.SendAsync(
+                new { Error = "Version conflict. The completion record was modified by another request." },
+                409, cancellation: ct);
+            return;
+        }
+
+        var newIds = existing.CompletedExerciseIds.Where(id => id != req.ExerciseExternalId).ToList();
+        var newVersion = existing.Version + 1;
+
+        var versionedFilter = completionFilter
+                              & Builders<TrainingCompletion>.Filter.Eq(c => c.Version, existing.Version);
+
+        var update = Builders<TrainingCompletion>.Update
+            .Set(c => c.CompletedExerciseIds, newIds)
+            .Set(c => c.DateUpdated, DateTime.UtcNow)
+            .Set(c => c.Version, newVersion);
+
+        var updateResult = await mongo.TrainingCompletions.UpdateOneAsync(versionedFilter, update, cancellationToken: ct);
+
+        if (updateResult.ModifiedCount == 0)
+        {
+            await HttpContext.Response.SendAsync(
+                new { Error = "Version conflict. The completion record was modified by another request." },
+                409, cancellation: ct);
+            return;
+        }
+
+        // TODO #6: publish trainingprogressupdated to trainer via IRealtimeNotifier
+
+        await Send.OkAsync(new MarkExerciseIncompleteResponse
+        {
+            SessionId = req.SessionId,
+            Date = DateOnly.FromDateTime(targetDate),
+            CompletedExerciseCount = newIds.Count,
+            TotalExerciseCount = session.Exercises.Count,
+            SessionComplete = newIds.Count >= session.Exercises.Count,
+            Version = newVersion
+        }, ct);
+    }
+}
