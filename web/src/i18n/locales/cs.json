@@ -1161,6 +1161,7 @@
     "inviteRevokedGeneric": "Klient zrušil svou pozvánku",
     "collaborationEnded": "{{name}} ukončil/a spolupráci",
     "collaborationEndedGeneric": "Klient ukončil spolupráci",
+    "personalRecordAchieved": "Nový osobní rekord – {{exerciseName}}",
     "title": "Oznámení",
     "markAllRead": "Označit vše jako přečtené",
     "empty": "Žádná oznámení",
