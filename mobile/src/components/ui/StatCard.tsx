@@ -15,9 +15,15 @@ interface StatCardProps {
   /** 0–1 ratio; when provided, a thin progress bar renders at the bottom */
   progress?: number
   progressColor?: string
+  /**
+   * Optional pill/badge rendered below the sub-text row.
+   * Pass a pre-built React element (e.g. a colored pill with done/total state).
+   * Designed to be reusable across stat card types.
+   */
+  chip?: ReactNode
 }
 
-export const StatCard = React.memo(function StatCard({ label, value, sub, color, icon, headerIcon, progress, progressColor }: StatCardProps) {
+export const StatCard = React.memo(function StatCard({ label, value, sub, color, icon, headerIcon, progress, progressColor, chip }: StatCardProps) {
   const colors = useTheme()
   const barColor = progressColor ?? color ?? colors.gold
 
@@ -36,6 +42,7 @@ export const StatCard = React.memo(function StatCard({ label, value, sub, color,
         {value}
       </Text>
       {sub && <Text style={[styles.sub, { color: colors.label3 }]}>{sub}</Text>}
+      {chip && <View style={styles.chipRow}>{chip}</View>}
       {progress != null && (
         <View style={[styles.track, { backgroundColor: colors.fill, marginTop: 6 }]}>
           <View
@@ -81,6 +88,9 @@ const styles = StyleSheet.create({
   sub: {
     ...Type.caption1,
     marginTop: 1,
+  },
+  chipRow: {
+    marginTop: 6,
   },
   track: {
     height: 4,

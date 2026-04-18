@@ -292,7 +292,14 @@
     "done": "Done",
     "shoppingBannerTitle": "Prepare for next week",
     "shoppingBannerLabel": "Your plan for next week is ready. Get your ingredients for the upcoming week.",
-    "shoppingBannerButton": "View shopping list"
+    "shoppingBannerButton": "View shopping list",
+    "trainingStat": {
+      "chip_one": "{{done}}/{{total}} done",
+      "chip_other": "{{done}}/{{total}} done"
+    },
+    "minuteCount": "{{minutes}} min",
+    "trainingCardA11yLabel": "Open session: {{name}}",
+    "sectionActionDetail": "Detail"
   },
   "questionnaire": {
     "allDone": "All done!",
