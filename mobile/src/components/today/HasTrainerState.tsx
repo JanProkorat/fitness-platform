@@ -1,10 +1,12 @@
 import React, { useCallback, useMemo } from 'react'
-import { View, Text, StyleSheet } from 'react-native'
+import { View, Text, StyleSheet, type ViewStyle } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
-import { href } from '@/lib/navigation'
+import { Type } from '@/constants/typography'
+import { Radius } from '@/constants/radius'
+import { href, hrefParams } from '@/lib/navigation'
 import { StatStrip } from '@/components/ui/StatStrip'
 import { StatCard } from '@/components/ui/StatCard'
 import { WeightStatCard } from '@/components/today/WeightStatCard'
@@ -34,6 +36,53 @@ import {
 import { getMeasurementStats, getMeasurements, type MeasurementStatsResponse } from '@/api/measurements'
 import { useTodayStore } from '@/stores/todayStore'
 import { PlanBanner } from '@/components/today/PlanBanner'
+
+// ─── TrainingDoneChip ────────────────────────────────────────────────
+// Small green pill shown in the training StatCard: "<done>/<total> hotovo".
+// Reuses the green system token — no hardcoded hex values.
+
+interface TrainingDoneChipProps {
+  done: number
+  total: number
+}
+
+function TrainingDoneChip({ done, total }: TrainingDoneChipProps) {
+  const colors = useTheme()
+  const { t } = useTranslation()
+
+  const chipBg: ViewStyle = { backgroundColor: colors.green + '1f' }
+
+  return (
+    <View style={[chipStyles.pill, chipBg]}>
+      <View style={[chipStyles.dot, { backgroundColor: colors.green }]} />
+      <Text style={[chipStyles.label, { color: colors.green }]}>
+        {t('today.trainingStat.chip', { done, total, count: total })}
+      </Text>
+    </View>
+  )
+}
+
+const chipStyles = StyleSheet.create({
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: Radius.full,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    alignSelf: 'flex-start',
+  },
+  dot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+  },
+  label: {
+    ...Type.caption2,
+    fontWeight: '600',
+    lineHeight: 16,
+  },
+})
 
 // ─── Component ──────────────────────────────────────────────────────
 
@@ -181,11 +230,6 @@ export function HasTrainerState() {
     [plan?.meals],
   )
 
-  const totalSets = useMemo(
-    () => training?.session?.exercises?.reduce((sum, e) => sum + (e.sets?.length ?? 0), 0) ?? 0,
-    [training?.session],
-  )
-
   const exerciseCount = training?.session?.exercises?.length ?? 0
 
   // ── Training card subtitle ──
@@ -201,6 +245,16 @@ export function HasTrainerState() {
     if (!training?.hasSession || !training.session) return undefined
     return t('today.exercisesCount', { count: exerciseCount })
   }, [training, exerciseCount, t])
+
+  // ── Stat card: training done/total chip ──
+  // `done` is hardcoded to 0 here — completion state will be wired in issue #4
+  // when the backend exposes per-exercise completion on the today-session endpoint.
+  const trainingStatChip = useMemo(() => {
+    if (!training?.hasSession || !training.session) return null
+    return (
+      <TrainingDoneChip done={0} total={exerciseCount} />
+    )
+  }, [training, exerciseCount])
 
   // ── Stat card: pending training plan start date (bare, no label) ──
   const pendingTrainingStartDate = useMemo(() => {
@@ -440,6 +494,11 @@ export function HasTrainerState() {
               <Badge label={t('today.waiting')} variant="active" />
             ) : undefined
           }
+          chip={
+            training?.hasSession && training.session
+              ? trainingStatChip
+              : undefined
+          }
         />
         <StatCard
           label={t('today.streak')}
@@ -462,18 +521,30 @@ export function HasTrainerState() {
       {/* Today's training */}
       {training?.hasSession && training.session && (
         <View style={styles.section}>
-          <SectionHeader title={t('today.todaysTraining')} />
+          <SectionHeader
+            title={t('today.todaysTraining')}
+            actionLabel={training.planId ? t('today.sectionActionDetail') : undefined}
+            onActionPress={
+              training.planId
+                ? () => {
+                    router.push(
+                      hrefParams('/(client)/(tabs)/plans/[planId]', {
+                        planId: training.planId!,
+                        type: 'training',
+                      }),
+                    )
+                  }
+                : undefined
+            }
+          />
           <TrainingCard
             planName={trainingPlanSubtitle || t('today.trainingPlan')}
             session={training.session}
-            totalSets={totalSets}
-            onContinue={() => {
-              if (training.session) {
-                router.push(
-                  href(`/(client)/training/session/${training.session.sessionId}`),
-                )
-              }
-            }}
+            onPress={
+              training.session.sessionId != null
+                ? () => router.push(href(`/(client)/training/session/${training.session!.sessionId}`))
+                : undefined
+            }
           />
         </View>
       )}

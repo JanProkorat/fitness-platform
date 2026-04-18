@@ -292,7 +292,14 @@
     "done": "Erledigt",
     "shoppingBannerTitle": "Bereite dich auf nächste Woche vor",
     "shoppingBannerLabel": "Dein Ernährungsplan für nächste Woche ist bereit. Besorge die notwendigen Zutaten.",
-    "shoppingBannerButton": "Einkaufsliste anzeigen"
+    "shoppingBannerButton": "Einkaufsliste anzeigen",
+    "trainingStat": {
+      "chip_one": "{{done}}/{{total}} erledigt",
+      "chip_other": "{{done}}/{{total}} erledigt"
+    },
+    "minuteCount": "{{minutes}} Min.",
+    "trainingCardA11yLabel": "Training öffnen: {{name}}",
+    "sectionActionDetail": "Detail"
   },
   "questionnaire": {
     "allDone": "Fertig!",

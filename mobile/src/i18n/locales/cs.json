@@ -295,7 +295,14 @@
     "done": "Splněno",
     "shoppingBannerTitle": "Připravte se na další týden",
     "shoppingBannerLabel": "Váš plán na další týden je připraven. Nakupte si potřebné ingredience.",
-    "shoppingBannerButton": "Zobrazit nákupní seznam"
+    "shoppingBannerButton": "Zobrazit nákupní seznam",
+    "trainingStat": {
+      "chip_one": "{{done}}/{{total}} hotovo",
+      "chip_other": "{{done}}/{{total}} hotovo"
+    },
+    "minuteCount": "{{minutes}} min",
+    "trainingCardA11yLabel": "Otevřít trénink: {{name}}",
+    "sectionActionDetail": "Detail"
   },
   "questionnaire": {
     "allDone": "Hotovo!",
