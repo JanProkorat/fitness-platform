@@ -59,6 +59,20 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore FitnessPlatform.slnx
 
+      # Workaround for a Linux MSBuild bug in .NET SDK 10.0.103: the glob
+      # evaluation for EmbeddedResource/Compile items enumerates the
+      # `DefaultItemExcludes` pattern (bin/**, obj/**) and throws
+      # DirectoryNotFoundException if any exclude subfolder is missing.
+      # The exception is swallowed, and the literal `**/*.resx` (etc.)
+      # glob reaches the compiler as a filename, producing MSB3552 /
+      # CS2021 / CS2001. Pre-creating the Debug folders lets the
+      # enumeration walk cleanly. Our Release build never writes to
+      # these dirs, so they remain empty.
+      - name: Pre-create bin/Debug folders (Linux SDK glob workaround)
+        run: |
+          mkdir -p FitnessPlatform.Application/bin/Debug
+          mkdir -p FitnessPlatform.Tests/bin/Debug
+
       - name: Build solution
         run: dotnet build FitnessPlatform.slnx --no-restore --configuration Release --verbosity minimal -bl:msbuild.binlog
 
