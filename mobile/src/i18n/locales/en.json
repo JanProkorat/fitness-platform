@@ -465,7 +465,23 @@
     "goal": "Goal",
     "remaining": "remaining",
     "goalReached": "Goal reached!",
-    "viewHistory": "Measurement History"
+    "viewHistory": "Measurement History",
+    "records": {
+      "title": "Personal records",
+      "viewAll": "View all records",
+      "empty": "No records yet. Log your first workout and your personal bests will appear here.",
+      "dateToday": "today",
+      "dateYesterday": "yesterday",
+      "dateDaysAgo": "{{count}} days ago",
+      "dateWeekAgo": "a week ago",
+      "dateWeeksAgo": "{{count}} weeks ago",
+      "dateMonthsAgo": "{{count}} months ago",
+      "sheet": {
+        "title": "All records",
+        "sortNote": "Sorted from oldest to newest",
+        "paginationNote": "Showing first 100 of {{count}} records"
+      }
+    }
   },
   "notifications": {
     "inviteAccepted": "Invitation accepted",

@@ -22,7 +22,7 @@ import {
   Platform,
 } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
@@ -709,6 +709,7 @@ export default function WorkoutLogScreen() {
   const { t } = useTranslation()
   const colors = useTheme()
   const isConnected = useNetworkStatus()
+  const queryClient = useQueryClient()
 
   // ── Live session store ──
   const store = useLiveSessionStore()
@@ -783,6 +784,10 @@ export default function WorkoutLogScreen() {
 
   const completeMutation = useMutation({
     mutationFn: (logId: string) => completeWorkout(logId),
+    onSuccess: () => {
+      // Invalidate personal records so the profile card refreshes on next view.
+      void queryClient.invalidateQueries({ queryKey: ['personal-records-latest'] })
+    },
     onError: (_err, logId) => {
       if (!isConnected) {
         addPendingMutation({

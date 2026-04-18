@@ -470,7 +470,23 @@
     "goal": "Cíl",
     "remaining": "zbývá",
     "goalReached": "Cíl splněn!",
-    "viewHistory": "Historie měření"
+    "viewHistory": "Historie měření",
+    "records": {
+      "title": "Osobní rekordy",
+      "viewAll": "Zobrazit všechny rekordy",
+      "empty": "Zatím žádné rekordy. Zapiš si svůj první trénink a tady se zobrazí tvé osobní maximum.",
+      "dateToday": "dnes",
+      "dateYesterday": "včera",
+      "dateDaysAgo": "před {{count}} dny",
+      "dateWeekAgo": "před týdnem",
+      "dateWeeksAgo": "před {{count}} týdny",
+      "dateMonthsAgo": "před {{count}} měs.",
+      "sheet": {
+        "title": "Všechny rekordy",
+        "sortNote": "Seřazeno od nejstaršího po nejnovější",
+        "paginationNote": "Zobrazeno prvních 100 z {{count}} záznamů"
+      }
+    }
   },
   "notifications": {
     "inviteAccepted": "Pozvánka přijata",
