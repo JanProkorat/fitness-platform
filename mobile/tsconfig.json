@@ -15,7 +15,6 @@
     "expo-env.d.ts"
   ],
   "exclude": [
-    "node_modules",
-    "src/**/__tests__/**"
+    "node_modules"
   ]
 }
