@@ -54,6 +54,11 @@ import type { ExerciseSummaryInput } from '@/components/training/liveTrainingHel
 
 // ─── Muscle group → color map (mirrors the prototype) ────────────────────────
 
+// TEMP: SessionExercise DTO does not carry MuscleGroup today, so the
+// tokenized `getMuscleGroupColor(mg, colors)` helper can't be used.
+// This name-matching fallback mirrors the prototype. Once the backend
+// surfaces `muscleGroups` on SessionExercise, switch to
+// `getMuscleGroupColor(ex.muscleGroups[0], colors)` and delete this map.
 const MUSCLE_COLORS: Record<string, string> = {
   Chest: '#0b6e99',
   Shoulders: '#af52de',

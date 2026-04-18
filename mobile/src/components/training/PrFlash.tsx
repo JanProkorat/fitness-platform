@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react'
 import { View, Text, Animated, StyleSheet } from 'react-native'
 import { Radius } from '@/constants/radius'
 import { useTranslation } from 'react-i18next'
+import { useTheme } from '@/hooks/useTheme'
 
 interface PrFlashProps {
   /** Whether the PR flash is currently visible */
@@ -19,6 +20,7 @@ const DISMISS_AFTER_MS = 2200
  */
 export function PrFlash({ visible, onDismiss }: PrFlashProps) {
   const { t } = useTranslation()
+  const colors = useTheme()
   const scale = useRef(new Animated.Value(0.5)).current
   const opacity = useRef(new Animated.Value(0)).current
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -56,14 +58,20 @@ export function PrFlash({ visible, onDismiss }: PrFlashProps) {
         style={[
           styles.card,
           {
+            backgroundColor: colors.gold,
+            shadowColor: colors.gold,
             transform: [{ scale }],
             opacity,
           },
         ]}
       >
         <Text style={styles.trophy}>🏆</Text>
-        <Text style={styles.title}>{t('training.live.prTitle')}</Text>
-        <Text style={styles.subtitle}>{t('training.live.prSubtitle')}</Text>
+        <Text style={[styles.title, { color: colors.onAccent }]}>
+          {t('training.live.prTitle')}
+        </Text>
+        <Text style={[styles.subtitle, { color: colors.onAccent + 'd9' }]}>
+          {t('training.live.prSubtitle')}
+        </Text>
       </Animated.View>
     </View>
   )
@@ -77,13 +85,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   card: {
-    // Gold → orange gradient approximated with gold background
-    backgroundColor: '#c9a84c',
+    // backgroundColor and shadowColor are applied inline via useTheme()
     borderRadius: Radius.xl,
     paddingVertical: 22,
     paddingHorizontal: 36,
     alignItems: 'center',
-    shadowColor: '#c9a84c',
     shadowOpacity: 0.5,
     shadowRadius: 30,
     shadowOffset: { width: 0, height: 0 },
@@ -94,15 +100,15 @@ const styles = StyleSheet.create({
     lineHeight: 48,
   },
   title: {
+    // color applied inline via colors.onAccent
     fontSize: 22,
     fontWeight: '700',
-    color: '#ffffff',
     marginTop: 6,
     letterSpacing: -0.2,
   },
   subtitle: {
+    // color applied inline via colors.onAccent + alpha
     fontSize: 12,
-    color: 'rgba(255,255,255,0.85)',
     marginTop: 4,
   },
 })

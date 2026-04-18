@@ -30,10 +30,12 @@ export function LiveFinishedSummary({
       style={[styles.card, { backgroundColor: colors.bg2, borderColor: colors.sep2 }]}
     >
       {/* Hero */}
-      <View style={styles.heroSection}>
+      <View style={[styles.heroSection, { backgroundColor: colors.heroBg }]}>
         <Text style={styles.confetti}>🎉</Text>
-        <Text style={styles.heroTitle}>{t('training.live.finishedTitle')}</Text>
-        <Text style={[styles.heroSubtitle, { color: 'rgba(255,255,255,0.7)' }]}>
+        <Text style={[styles.heroTitle, { color: colors.onAccent }]}>
+          {t('training.live.finishedTitle')}
+        </Text>
+        <Text style={[styles.heroSubtitle, { color: colors.onAccent + 'b3' }]}>
           {sessionName}
         </Text>
       </View>
@@ -126,7 +128,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   heroSection: {
-    backgroundColor: '#0d2a0d',
+    // backgroundColor applied inline via colors.heroBg
     paddingTop: 28,
     paddingBottom: 22,
     paddingHorizontal: 20,
@@ -138,8 +140,8 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   heroTitle: {
+    // color applied inline via colors.onAccent
     ...Type.title2,
-    color: '#ffffff',
     letterSpacing: -0.2,
     lineHeight: 30,
   },
