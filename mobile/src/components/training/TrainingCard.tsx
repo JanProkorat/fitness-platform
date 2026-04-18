@@ -9,6 +9,7 @@ import { ProgressRing } from '@/components/ui/ProgressRing'
 import { ExerciseRow } from '@/components/training/ExerciseRow'
 import { getMuscleGroupColor } from '@/constants/muscleGroups'
 import type { TrainingSession, MuscleGroup } from '@/api/training'
+import type { SessionCtaState } from './trainingCardHelpers'
 
 interface TrainingCardProps {
   /** Eyebrow text shown above the session name (e.g. "Plan name · Week 3"). */
@@ -71,6 +72,26 @@ interface TrainingCardProps {
    * onPress handlers, so tapping a checkbox does NOT trigger onPress.
    */
   onPress?: () => void
+  /**
+   * CTA state for this session — controls label and interaction of the per-session
+   * footer button. When undefined, the per-session CTA footer is not rendered.
+   *
+   * Replaces the former `onContinue()` prop. All navigation / mutation logic
+   * lives in the parent (HasTrainerState); the card remains presentational.
+   */
+  sessionCtaState?: SessionCtaState
+  /**
+   * Called when the user taps the per-session CTA button or viewSummary link.
+   * Receives the session and its current state so the parent can route correctly.
+   *
+   * When undefined, the per-session CTA footer is not rendered.
+   */
+  onSessionCta?: (session: TrainingSession, state: SessionCtaState) => void
+  /**
+   * Whether the startWorkout mutation is currently pending.
+   * Shows an activity indicator in the CTA button while true.
+   */
+  isSessionCtaPending?: boolean
 }
 
 function formatSets(exercise: NonNullable<TrainingSession['exercises']>[number]): string {
@@ -94,6 +115,9 @@ export function TrainingCard({
   onMarkWholeDayComplete,
   isWholeDayPending = false,
   onPress,
+  sessionCtaState,
+  onSessionCta,
+  isSessionCtaPending = false,
 }: TrainingCardProps) {
   const colors = useTheme()
   const { t } = useTranslation()
@@ -119,6 +143,70 @@ export function TrainingCard({
   )
 
   const showBulkCta = onMarkWholeDayComplete != null
+
+  // Per-session CTA footer: only rendered when both props are provided.
+  const showSessionCta = sessionCtaState != null && onSessionCta != null
+
+  const sessionCtaFooter = showSessionCta ? (
+    sessionCtaState === 'finished' ? (
+      // Finished state: ✓ Dokončeno chip + optional viewSummary link
+      <View style={[styles.ctaFooter, { borderTopColor: colors.sep2 }]}>
+        <View style={[styles.finishedChip, { backgroundColor: colors.green + '1f' }]}>
+          <View style={[styles.finishedCheck, { backgroundColor: colors.green }]}>
+            <Ionicons name="checkmark" size={11} color={colors.onAccent} />
+          </View>
+          <Text style={[styles.finishedLabel, { color: colors.green }]}>
+            {t('today.trainingCta.finished')}
+          </Text>
+        </View>
+        {/* Secondary link: viewSummary — tapping navigates to the summary.
+            The chip itself is non-interactive; summary navigation is opt-in
+            via this link so the chip doesn't accidentally trigger navigation. */}
+        <Pressable
+          onPress={(e) => {
+            e.stopPropagation()
+            onSessionCta(session, sessionCtaState)
+          }}
+          hitSlop={8}
+          accessibilityRole="button"
+          style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+        >
+          <Text style={[styles.viewSummaryLink, { color: colors.gold }]}>
+            {t('today.trainingCta.viewSummary')} ›
+          </Text>
+        </Pressable>
+      </View>
+    ) : (
+      // not-started or in-progress: gold primary button
+      <View style={styles.ctaFooterButton}>
+        <Pressable
+          onPress={(e) => {
+            e.stopPropagation()
+            if (!isSessionCtaPending) {
+              onSessionCta(session, sessionCtaState)
+            }
+          }}
+          disabled={isSessionCtaPending}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: isSessionCtaPending }}
+          style={({ pressed }) => [
+            styles.primaryCtaButton,
+            { backgroundColor: colors.gold, opacity: pressed ? 0.8 : 1 },
+          ]}
+        >
+          {isSessionCtaPending ? (
+            <ActivityIndicator size="small" color={colors.onAccent} />
+          ) : (
+            <Text style={[styles.primaryCtaLabel, { color: colors.onAccent }]}>
+              {sessionCtaState === 'in-progress'
+                ? t('today.trainingCta.continue')
+                : t('today.trainingCta.start')}
+            </Text>
+          )}
+        </Pressable>
+      </View>
+    )
+  ) : null
 
   const cardContent = (
     <>
@@ -264,6 +352,9 @@ export function TrainingCard({
           </Pressable>
         )}
       </View>
+
+      {/* Per-session CTA footer — sits below the exercise list, above the card edge */}
+      {sessionCtaFooter}
     </>
   )
 
@@ -372,6 +463,57 @@ const styles = StyleSheet.create({
   },
   bulkCtaLabel: {
     ...Type.callout,
+    fontWeight: '600',
+  },
+  // ── Per-session CTA footer ──────────────────────────────────────────────────
+  ctaFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    // Hairline separator between exercise list and CTA footer
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  ctaFooterButton: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    paddingTop: 4,
+  },
+  primaryCtaButton: {
+    borderRadius: Radius.md,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
+  },
+  primaryCtaLabel: {
+    ...Type.callout,
+    fontWeight: '700',
+  },
+  finishedChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: Radius.full,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  finishedCheck: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  finishedLabel: {
+    ...Type.footnote,
+    fontWeight: '600',
+  },
+  viewSummaryLink: {
+    ...Type.footnote,
     fontWeight: '600',
   },
 })

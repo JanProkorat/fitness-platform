@@ -8,6 +8,7 @@ import { useCompletionState, type TrainingCacheWithCompletion } from '@/hooks/us
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
 import { href, hrefParams } from '@/lib/navigation'
+import { Toast } from '@/lib/toast'
 import { StatStrip } from '@/components/ui/StatStrip'
 import { StatCard } from '@/components/ui/StatCard'
 import { WeightStatCard } from '@/components/today/WeightStatCard'
@@ -27,7 +28,8 @@ import {
   type TodayLogResponse,
   type FullPlanResponse,
 } from '@/api/nutrition'
-import { getTodaySession, type TodayTrainingResponse } from '@/api/training'
+import { getTodaySession, type TodayTrainingResponse, type TrainingSession } from '@/api/training'
+import { startWorkout } from '@/api/workouts'
 import {
   markExerciseComplete,
   markExerciseIncomplete,
@@ -51,6 +53,7 @@ import { useTodayStore } from '@/stores/todayStore'
 import { PlanBanner } from '@/components/today/PlanBanner'
 import { ResumeTrainingBanner } from '@/components/training/ResumeTrainingBanner'
 import { useLiveSessionStore } from '@/stores/liveSessionStore'
+import { deriveSessionCtaState, type SessionCtaState } from '@/components/training/trainingCardHelpers'
 
 // ─── TrainingDoneChip ────────────────────────────────────────────────
 // Small green pill shown in the training StatCard: "<done>/<total> hotovo".
@@ -470,6 +473,69 @@ export function HasTrainerState() {
     },
   })
 
+  // ── Live session store — must be declared before startWorkoutMutation and
+  //    handleSessionCta which reference liveSessionStore / activeLogId. ─────────
+  const liveSessionStore = useLiveSessionStore()
+  const hasActiveSession = liveSessionStore.hasActiveSession()
+  const activeLogId = liveSessionStore.activeLogId
+
+  // ── Mutation: start a new workout log ────────────────────────────────────────
+  const startWorkoutMutation = useMutation({
+    mutationFn: ({ planId, sessionId }: { planId: string; sessionId: string }) =>
+      startWorkout({ planId, sessionId }),
+    onSuccess: (response, { planId, sessionId }) => {
+      const logId = response.logId
+      if (!logId) {
+        Toast.show(t('today.trainingCta.startError'))
+        return
+      }
+      liveSessionStore.start({ sessionId }, logId, planId)
+      router.push(href(`/(client)/(tabs)/training/log/${logId}`))
+    },
+    onError: () => {
+      Toast.show(t('today.trainingCta.startError'))
+    },
+  })
+
+  // ── Per-session CTA handler ───────────────────────────────────────────────
+  const handleSessionCta = useCallback(
+    (session: TrainingSession, state: SessionCtaState) => {
+      const sessionId = session.sessionId
+      const planId = training?.planId
+
+      if (!sessionId || !planId) return
+
+      if (state === 'not-started') {
+        startWorkoutMutation.mutate({ planId, sessionId })
+        return
+      }
+
+      if (state === 'in-progress') {
+        if (activeLogId) {
+          router.push(href(`/(client)/(tabs)/training/log/${activeLogId}`))
+        } else {
+          // Edge case: store cleared (e.g. app reinstall) but some exercises are
+          // already marked complete on this session from a prior device/session.
+          // Fall back to starting a fresh workout log — the new log will overlay
+          // any partial completion that exists only in the optimistic cache.
+          // The user may see "in-progress" become "not-started" after the new log
+          // is created; this is the safest recovery without a dedicated resume API.
+          startWorkoutMutation.mutate({ planId, sessionId })
+        }
+        return
+      }
+
+      // state === 'finished': viewSummary tap — navigate to read-only session detail.
+      router.push(href(`/(client)/training/session/${sessionId}`))
+    },
+    [training?.planId, activeLogId, startWorkoutMutation, router],
+  )
+
+  // ── Per-session CTA state ─────────────────────────────────────────────────
+  const sessionCtaState: SessionCtaState | undefined = training?.session
+    ? deriveSessionCtaState(training.session, completedExerciseIds)
+    : undefined
+
   const handleToggleExercise = useCallback(
     (exerciseExternalId: string) => {
       const complete = !completedExerciseIds.has(exerciseExternalId)
@@ -717,9 +783,6 @@ export function HasTrainerState() {
   }, [plan, eatenMealIds, markAllEatenMutation])
 
   // ── Live session resume banner ──
-  const liveSessionStore = useLiveSessionStore()
-  const hasActiveSession = liveSessionStore.hasActiveSession()
-  const activeLogId = liveSessionStore.activeLogId
   const liveExIdx = liveSessionStore.currentExerciseIdx
   const liveSetIdx = liveSessionStore.currentSetIdx
 
@@ -833,6 +896,9 @@ export function HasTrainerState() {
                 ? () => router.push(href(`/(client)/training/session/${training.session!.sessionId}`))
                 : undefined
             }
+            sessionCtaState={sessionCtaState}
+            onSessionCta={handleSessionCta}
+            isSessionCtaPending={startWorkoutMutation.isPending}
           />
         </View>
       )}

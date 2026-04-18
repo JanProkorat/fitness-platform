@@ -306,7 +306,14 @@
     "markWholeDayDone": "Označit celý trénink jako splněno",
     "trainingCompleteLabel": "Hotovo",
     "exerciseCheckboxA11y": "Označit cvik jako splněný",
-    "sessionCheckboxA11y": "Označit celou tréninkovou jednotku jako splněnou"
+    "sessionCheckboxA11y": "Označit celou tréninkovou jednotku jako splněnou",
+    "trainingCta": {
+      "start": "Začít trénink",
+      "continue": "Pokračovat v tréninku",
+      "finished": "Dokončeno",
+      "viewSummary": "Zobrazit souhrn",
+      "startError": "Trénink se nepodařilo spustit. Zkus to znovu."
+    }
   },
   "questionnaire": {
     "allDone": "Hotovo!",

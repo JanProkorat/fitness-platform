@@ -303,7 +303,14 @@
     "markWholeDayDone": "Mark the whole training as done",
     "trainingCompleteLabel": "Done",
     "exerciseCheckboxA11y": "Mark exercise as complete",
-    "sessionCheckboxA11y": "Mark the entire session as complete"
+    "sessionCheckboxA11y": "Mark the entire session as complete",
+    "trainingCta": {
+      "start": "Start training",
+      "continue": "Continue training",
+      "finished": "Completed",
+      "viewSummary": "View summary",
+      "startError": "Could not start training. Please try again."
+    }
   },
   "questionnaire": {
     "allDone": "All done!",
