@@ -44,4 +44,9 @@ public static class MongoCollections
     /// Training completion records collection.
     /// </summary>
     public const string TrainingCompletions = "trainingCompletions";
+
+    /// <summary>
+    /// Personal record documents collection.
+    /// </summary>
+    public const string PersonalRecords = "personalRecords";
 }
