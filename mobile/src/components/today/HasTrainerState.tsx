@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
+import { useCompletionState, type TrainingCacheWithCompletion } from '@/hooks/useCompletionState'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
 import { href, hrefParams } from '@/lib/navigation'
@@ -27,6 +28,18 @@ import {
   type FullPlanResponse,
 } from '@/api/nutrition'
 import { getTodaySession, type TodayTrainingResponse } from '@/api/training'
+import {
+  markExerciseComplete,
+  markExerciseIncomplete,
+  markSessionComplete,
+  markSessionIncomplete,
+  markWholeDayComplete,
+  type MarkExerciseCompleteResponse,
+  type MarkExerciseIncompleteResponse,
+  type MarkSessionCompleteResponse,
+  type MarkSessionIncompleteResponse,
+  type MarkWholeDayCompleteResponse,
+} from '@/api/trainingCompletion'
 import {
   getComplianceScore,
   getCollaborations,
@@ -232,6 +245,245 @@ export function HasTrainerState() {
 
   const exerciseCount = training?.session?.exercises?.length ?? 0
 
+  // ── Client-side completion state ──────────────────────────────────────────
+  // Decision: Option A — extend the optimistic today-training cache shape.
+  //
+  // The today-session endpoint does not (yet) return per-exercise completion
+  // state. Rather than adding a parallel Zustand slice (which would require
+  // its own persistence and reconciliation logic), we extend the TanStack
+  // Query cache for ['today-training'] with a synthetic `_completedIds` field.
+  // This field is written by `onMutate` and cleared (replaced with server data)
+  // on the next natural refetch. It never leaves the query cache — the server
+  // response on refetch will overwrite the whole record, so there is no risk of
+  // stale ghost state surviving across sessions.
+  //
+  // The field is prefixed with `_` to signal that it is a client-only addition
+  // and is not part of the TodayTrainingResponse contract.
+  //
+  // TrainingCacheWithCompletion is defined in useCompletionState and re-exported
+  // here via the import above.
+
+  const { completedExerciseIds, sessionComplete } = useCompletionState(trainingQuery.data)
+
+  // ── Helper: apply a progress response to the training cache ───────────────
+
+  type CompletionResponseSource = 'exercise' | 'session'
+
+  function applyExerciseProgressToCache(
+    response: MarkExerciseCompleteResponse | MarkExerciseIncompleteResponse
+      | MarkSessionCompleteResponse | MarkSessionIncompleteResponse,
+    source: CompletionResponseSource,
+    allExerciseIds: string[],
+  ): void {
+    queryClient.setQueryData<TrainingCacheWithCompletion>(['today-training'], (prev) => {
+      if (!prev) return prev
+      // For 'exercise' source: MarkExerciseCompleteResponse carries a
+      // `sessionComplete` field. For 'session' source, we infer from counts.
+      const isSessionComplete = source === 'exercise'
+        ? (response as MarkExerciseCompleteResponse).sessionComplete ?? false
+        : (response.completedExerciseCount ?? 0) >= (response.totalExerciseCount ?? 1)
+
+      // Derive the new completed set from the count + the known exercise list.
+      // We can't derive the exact set from counts alone, so we use the full list
+      // when the session is marked complete (mark all), or we merge individually.
+      let newIds: Set<string>
+      if (isSessionComplete) {
+        newIds = new Set(allExerciseIds)
+      } else if (source === 'exercise') {
+        // Per-exercise toggle: the response doesn't tell us which ids are done,
+        // only the count. The caller already applied the optimistic id update;
+        // preserve `_completedIds` from the cache (already updated by onMutate).
+        newIds = prev._completedIds ?? new Set<string>()
+      } else {
+        // Session complete response with partial completion — use count to infer
+        // but we don't know which ids. Keep what's in cache.
+        newIds = prev._completedIds ?? new Set<string>()
+      }
+
+      return {
+        ...prev,
+        _completedIds: newIds,
+        _sessionComplete: isSessionComplete,
+        _version: response.version,
+      }
+    })
+  }
+
+  // ── Mutation: toggle a single exercise complete/incomplete ─────────────────
+  const toggleExerciseMutation = useMutation({
+    mutationFn: async ({
+      exerciseExternalId,
+      complete,
+    }: {
+      exerciseExternalId: string
+      complete: boolean
+      version?: number
+    }) => {
+      const cache = queryClient.getQueryData<TrainingCacheWithCompletion>(['today-training'])
+      const sessionId = cache?.session?.sessionId
+      if (!sessionId) throw new Error('No active session')
+      const req = { version: cache?._version }
+      if (complete) {
+        return markExerciseComplete(sessionId, exerciseExternalId, req)
+      } else {
+        return markExerciseIncomplete(sessionId, exerciseExternalId, req)
+      }
+    },
+    onMutate: async ({ exerciseExternalId, complete }) => {
+      await queryClient.cancelQueries({ queryKey: ['today-training'] })
+      const previous = queryClient.getQueryData<TrainingCacheWithCompletion>(['today-training'])
+      if (previous) {
+        const prevIds = previous._completedIds ?? new Set<string>()
+        const nextIds = new Set(prevIds)
+        if (complete) {
+          nextIds.add(exerciseExternalId)
+        } else {
+          nextIds.delete(exerciseExternalId)
+        }
+        const allExIds = (previous.session?.exercises ?? [])
+          .map((e) => e.exerciseExternalId)
+          .filter((id): id is string => id != null)
+        const nextSessionComplete = allExIds.length > 0 && allExIds.every((id) => nextIds.has(id))
+        queryClient.setQueryData<TrainingCacheWithCompletion>(['today-training'], {
+          ...previous,
+          _completedIds: nextIds,
+          _sessionComplete: nextSessionComplete,
+          _version: (previous._version ?? 1) + 1,
+        })
+      }
+      return { previous }
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['today-training'], context.previous)
+      }
+      queryClient.invalidateQueries({ queryKey: ['today-training'] })
+    },
+    onSuccess: (response, _vars) => {
+      const cache = queryClient.getQueryData<TrainingCacheWithCompletion>(['today-training'])
+      const allExIds = (cache?.session?.exercises ?? [])
+        .map((e) => e.exerciseExternalId)
+        .filter((id): id is string => id != null)
+      applyExerciseProgressToCache(response, 'exercise', allExIds)
+      queryClient.invalidateQueries({ queryKey: ['compliance-score'] })
+    },
+    // Do NOT invalidate today-training on success — optimistic cache is authoritative.
+    // The version is updated in onSuccess so subsequent writes carry the right version.
+  })
+
+  // ── Mutation: toggle the entire session complete/incomplete ───────────────
+  const toggleSessionMutation = useMutation({
+    mutationFn: async ({ complete }: { complete: boolean }) => {
+      const cache = queryClient.getQueryData<TrainingCacheWithCompletion>(['today-training'])
+      const sessionId = cache?.session?.sessionId
+      if (!sessionId) throw new Error('No active session')
+      const req = { version: cache?._version }
+      if (complete) {
+        return markSessionComplete(sessionId, req)
+      } else {
+        return markSessionIncomplete(sessionId, req)
+      }
+    },
+    onMutate: async ({ complete }) => {
+      await queryClient.cancelQueries({ queryKey: ['today-training'] })
+      const previous = queryClient.getQueryData<TrainingCacheWithCompletion>(['today-training'])
+      if (previous) {
+        const allExIds = (previous.session?.exercises ?? [])
+          .map((e) => e.exerciseExternalId)
+          .filter((id): id is string => id != null)
+        queryClient.setQueryData<TrainingCacheWithCompletion>(['today-training'], {
+          ...previous,
+          _completedIds: complete ? new Set(allExIds) : new Set<string>(),
+          _sessionComplete: complete,
+          _version: (previous._version ?? 1) + 1,
+        })
+      }
+      return { previous }
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['today-training'], context.previous)
+      }
+      queryClient.invalidateQueries({ queryKey: ['today-training'] })
+    },
+    onSuccess: (response, _vars) => {
+      const cache = queryClient.getQueryData<TrainingCacheWithCompletion>(['today-training'])
+      const allExIds = (cache?.session?.exercises ?? [])
+        .map((e) => e.exerciseExternalId)
+        .filter((id): id is string => id != null)
+      applyExerciseProgressToCache(response, 'session', allExIds)
+      queryClient.invalidateQueries({ queryKey: ['compliance-score'] })
+    },
+  })
+
+  // ── Mutation: mark whole training day complete ────────────────────────────
+  const wholeDayMutation = useMutation({
+    mutationFn: () => markWholeDayComplete(),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ['today-training'] })
+      const previous = queryClient.getQueryData<TrainingCacheWithCompletion>(['today-training'])
+      if (previous) {
+        const allExIds = (previous.session?.exercises ?? [])
+          .map((e) => e.exerciseExternalId)
+          .filter((id): id is string => id != null)
+        queryClient.setQueryData<TrainingCacheWithCompletion>(['today-training'], {
+          ...previous,
+          _completedIds: new Set(allExIds),
+          _sessionComplete: true,
+          _version: (previous._version ?? 1) + 1,
+        })
+      }
+      return { previous }
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['today-training'], context.previous)
+      }
+      queryClient.invalidateQueries({ queryKey: ['today-training'] })
+    },
+    onSuccess: (response: MarkWholeDayCompleteResponse) => {
+      // Apply first session summary to cache (today screen shows one session).
+      const cache = queryClient.getQueryData<TrainingCacheWithCompletion>(['today-training'])
+      const sessionId = cache?.session?.sessionId
+      if (sessionId) {
+        const summary = (response.sessions ?? []).find(
+          (s) => s.sessionId === sessionId,
+        )
+        if (summary) {
+          const allExIds = (cache?.session?.exercises ?? [])
+            .map((e) => e.exerciseExternalId)
+            .filter((id): id is string => id != null)
+          queryClient.setQueryData<TrainingCacheWithCompletion>(['today-training'], (prev) => {
+            if (!prev) return prev
+            return {
+              ...prev,
+              _completedIds: new Set(allExIds),
+              _sessionComplete: true,
+              _version: summary.version,
+            }
+          })
+        }
+      }
+      queryClient.invalidateQueries({ queryKey: ['compliance-score'] })
+    },
+  })
+
+  const handleToggleExercise = useCallback(
+    (exerciseExternalId: string) => {
+      const complete = !completedExerciseIds.has(exerciseExternalId)
+      toggleExerciseMutation.mutate({ exerciseExternalId, complete })
+    },
+    [toggleExerciseMutation, completedExerciseIds],
+  )
+
+  const handleToggleSession = useCallback(() => {
+    toggleSessionMutation.mutate({ complete: !sessionComplete })
+  }, [toggleSessionMutation, sessionComplete])
+
+  const handleMarkWholeDayComplete = useCallback(() => {
+    wholeDayMutation.mutate()
+  }, [wholeDayMutation])
+
   // ── Training card subtitle ──
   const trainingPlanSubtitle = useMemo(() => {
     const parts: string[] = []
@@ -247,14 +499,13 @@ export function HasTrainerState() {
   }, [training, exerciseCount, t])
 
   // ── Stat card: training done/total chip ──
-  // `done` is hardcoded to 0 here — completion state will be wired in issue #4
-  // when the backend exposes per-exercise completion on the today-session endpoint.
+  // `done` is driven by the optimistic completion cache wired in issue #4.
   const trainingStatChip = useMemo(() => {
     if (!training?.hasSession || !training.session) return null
     return (
-      <TrainingDoneChip done={0} total={exerciseCount} />
+      <TrainingDoneChip done={completedExerciseIds.size} total={exerciseCount} />
     )
-  }, [training, exerciseCount])
+  }, [training, exerciseCount, completedExerciseIds])
 
   // ── Stat card: pending training plan start date (bare, no label) ──
   const pendingTrainingStartDate = useMemo(() => {
@@ -540,6 +791,12 @@ export function HasTrainerState() {
           <TrainingCard
             planName={trainingPlanSubtitle || t('today.trainingPlan')}
             session={training.session}
+            completedExerciseIds={completedExerciseIds}
+            sessionComplete={sessionComplete}
+            onToggleExercise={handleToggleExercise}
+            onToggleSession={handleToggleSession}
+            onMarkWholeDayComplete={handleMarkWholeDayComplete}
+            isWholeDayPending={wholeDayMutation.isPending}
             onPress={
               training.session.sessionId != null
                 ? () => router.push(href(`/(client)/training/session/${training.session!.sessionId}`))

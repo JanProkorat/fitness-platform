@@ -299,7 +299,11 @@
     },
     "minuteCount": "{{minutes}} Min.",
     "trainingCardA11yLabel": "Training öffnen: {{name}}",
-    "sectionActionDetail": "Detail"
+    "sectionActionDetail": "Detail",
+    "markWholeDayDone": "Gesamtes Training als erledigt markieren",
+    "trainingCompleteLabel": "Erledigt",
+    "exerciseCheckboxA11y": "Übung als abgeschlossen markieren",
+    "sessionCheckboxA11y": "Gesamte Trainingseinheit als abgeschlossen markieren"
   },
   "questionnaire": {
     "allDone": "Fertig!",

@@ -302,7 +302,11 @@
     },
     "minuteCount": "{{minutes}} min",
     "trainingCardA11yLabel": "Otevřít trénink: {{name}}",
-    "sectionActionDetail": "Detail"
+    "sectionActionDetail": "Detail",
+    "markWholeDayDone": "Označit celý trénink jako splněno",
+    "trainingCompleteLabel": "Hotovo",
+    "exerciseCheckboxA11y": "Označit cvik jako splněný",
+    "sessionCheckboxA11y": "Označit celou tréninkovou jednotku jako splněnou"
   },
   "questionnaire": {
     "allDone": "Hotovo!",
