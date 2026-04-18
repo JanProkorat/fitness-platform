@@ -3,6 +3,7 @@ using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.Foods.Shared;
 using FitnessPlatform.Application.Features.Foods.UpdateFood;
 using FitnessPlatform.Tests.Endpoints;
@@ -98,5 +99,71 @@ public class UpdateFoodEndpointTests
         await ep.HandleAsync(request, TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(404);
+    }
+
+    [Fact]
+    public async Task HandleAsync_NoVisibilityInRequest_UpdateStillSucceeds()
+    {
+        var foodId = Guid.NewGuid();
+        var food = FoodTestHelpers.CreateFood(
+            externalId: foodId,
+            nutritionistId: _nutritionistId,
+            visibility: FoodVisibility.Private);
+        var mongo = FoodTestHelpers.CreateMockMongo(food);
+
+        var ep = Factory.Create<UpdateFoodEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+            mongo);
+
+        var request = new UpdateFoodRequest
+        {
+            FoodId = foodId,
+            Name = "Renamed",
+            // Visibility omitted on purpose — handler must skip the Set(f => f.Visibility, ...)
+            NutrientValue = new NutrientValueDto { Kcal = 100, Protein = 10, Carbs = 10, Fat = 5 }
+        };
+
+        await ep.HandleAsync(request, TestContext.Current.CancellationToken);
+
+        await mongo.Foods.Received(1).UpdateOneAsync(
+            Arg.Any<FilterDefinition<Food>>(),
+            Arg.Any<UpdateDefinition<Food>>(),
+            Arg.Any<UpdateOptions>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleAsync_OwnerFlipsVisibility_Succeeds()
+    {
+        var foodId = Guid.NewGuid();
+        var food = FoodTestHelpers.CreateFood(
+            externalId: foodId,
+            nutritionistId: _nutritionistId,
+            visibility: FoodVisibility.Public);
+        var mongo = FoodTestHelpers.CreateMockMongo(food);
+
+        var ep = Factory.Create<UpdateFoodEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+            mongo);
+
+        var request = new UpdateFoodRequest
+        {
+            FoodId = foodId,
+            Name = "Still Same Name",
+            Visibility = FoodVisibility.Private,
+            NutrientValue = new NutrientValueDto { Kcal = 100, Protein = 10, Carbs = 10, Fat = 5 }
+        };
+
+        await ep.HandleAsync(request, TestContext.Current.CancellationToken);
+
+        await mongo.Foods.Received(1).UpdateOneAsync(
+            Arg.Any<FilterDefinition<Food>>(),
+            Arg.Any<UpdateDefinition<Food>>(),
+            Arg.Any<UpdateOptions>(),
+            Arg.Any<CancellationToken>());
     }
 }

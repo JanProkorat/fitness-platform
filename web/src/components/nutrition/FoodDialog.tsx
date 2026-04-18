@@ -6,9 +6,10 @@ import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { createFood, updateFood } from '@/api/foods';
 import { showApiError, showSuccess } from '@/lib/api-errors';
-import type { FoodSummary, FoodCategory } from '@/api/food-types';
+import type { FoodSummary, FoodCategory, FoodVisibility } from '@/api/food-types';
 import { CATEGORY_CSS_COLORS, FOOD_CATEGORIES } from '@/components/nutrition/food-category';
 import { INPUT_CLASS_SM, CANCEL_BUTTON_CLASS } from '@/lib/styles';
+import { Toggle } from '@/components/ui';
 
 
 const foodSchema = z.object({
@@ -23,16 +24,21 @@ const foodSchema = z.object({
   nameEn: z.string().optional(),
   nameCs: z.string().optional(),
   nameDe: z.string().optional(),
+  visibility: z.enum(['Public', 'Private']).default('Public'),
 });
 
-type FoodForm = z.infer<typeof foodSchema>;
+type FoodFormInput = z.input<typeof foodSchema>;
+type FoodForm = z.output<typeof foodSchema>;
 type Mode = 'view' | 'edit';
 
 interface FoodDialogProps {
   open: boolean;
   food?: FoodSummary | null;
   onClose: () => void;
-  onSaved: () => void;
+  /** Called after a successful create or update. Receives the server's
+   *  response so the parent can update any cached snapshot it holds
+   *  (e.g. the `food` prop passed back in when re-entering edit mode). */
+  onSaved: (updated: FoodSummary) => void;
 }
 
 export function FoodDialog({ open, food, onClose, onSaved }: FoodDialogProps) {
@@ -42,9 +48,11 @@ export function FoodDialog({ open, food, onClose, onSaved }: FoodDialogProps) {
   const [transitioning, setTransitioning] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<FoodForm>({
+  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<FoodFormInput, unknown, FoodForm>({
     resolver: zodResolver(foodSchema),
   });
+
+  const visibility = watch('visibility') ?? 'Public';
 
   const populateForm = (f: FoodSummary) => {
     reset({
@@ -53,6 +61,7 @@ export function FoodDialog({ open, food, onClose, onSaved }: FoodDialogProps) {
       carbs: f.nutrientValue.carbs, fat: f.nutrientValue.fat,
       fiber: f.nutrientValue.fiber ?? 0, note: f.note ?? '',
       nameEn: f.nameEn ?? '', nameCs: f.nameCs ?? '', nameDe: f.nameDe ?? '',
+      visibility: f.visibility ?? 'Public',
     });
   };
 
@@ -60,7 +69,7 @@ export function FoodDialog({ open, food, onClose, onSaved }: FoodDialogProps) {
     if (!open) { setMode('view'); return; }
     if (isNew) {
       setMode('edit');
-      reset({ name: '', category: 'Other', kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, note: '', nameEn: '', nameCs: '', nameDe: '' });
+      reset({ name: '', category: 'Other', kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, note: '', nameEn: '', nameCs: '', nameDe: '', visibility: 'Public' });
     } else {
       setMode('view');
     }
@@ -96,12 +105,13 @@ export function FoodDialog({ open, food, onClose, onSaved }: FoodDialogProps) {
         nutrientValue: { kcal: data.kcal, protein: data.protein, carbs: data.carbs, fat: data.fat, fiber: data.fiber ?? 0 },
         category: data.category as FoodCategory, note: data.note || null,
         allergens: food?.allergens ?? [], commonServings: food?.commonServings ?? [],
+        visibility: (data.visibility ?? 'Public') as FoodVisibility,
       };
       return isNew ? createFood(payload) : updateFood(food!.foodId, payload);
     },
-    onSuccess: () => {
+    onSuccess: (updated) => {
       showSuccess(isNew ? 'foods.created' : 'foods.updated');
-      onSaved();
+      onSaved(updated);
       if (isNew) { onClose(); } else { setMode('view'); }
     },
     onError: (error) => showApiError(error, isNew ? 'foods.createError' : 'foods.updateError'),
@@ -209,13 +219,26 @@ export function FoodDialog({ open, food, onClose, onSaved }: FoodDialogProps) {
               {/* ── EDIT MODE ── */}
               {mode === 'edit' && (
                 <div className="flex flex-col gap-4">
-                  {/* Category pill */}
-                  <div className="flex flex-wrap gap-2">
+                  {/* Category + visibility pills */}
+                  <div className="flex flex-wrap items-center gap-2">
                     <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[12px]" style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}>
                       <span className="font-medium text-text3">{t('foods.category')}</span>
                       <select {...register('category')} className="bg-transparent border-none outline-none text-[12px] text-text" style={{ fontFamily: 'inherit' }}>
                         {FOOD_CATEGORIES.map((c) => <option key={c} value={c}>{t(`foods.category${c}`)}</option>)}
                       </select>
+                    </div>
+                    <div
+                      className="flex items-center gap-2 px-2.5 py-1 rounded-md text-[12px]"
+                      style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
+                      title={t('foods.visibilityHint')}
+                    >
+                      <span className="font-medium text-text3">
+                        {visibility === 'Public' ? t('foods.visibilityPublic') : t('foods.visibilityPrivate')}
+                      </span>
+                      <Toggle
+                        checked={visibility === 'Public'}
+                        onChange={(c) => setValue('visibility', c ? 'Public' : 'Private', { shouldDirty: true })}
+                      />
                     </div>
                   </div>
 

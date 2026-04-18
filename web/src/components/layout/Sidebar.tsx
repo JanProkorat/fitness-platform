@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -14,7 +14,6 @@ import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { NotificationBell } from '@/components/layout/NotificationBell';
 import { NewClientDialog } from '@/components/NewClientDialog';
 import { ClientRequestDialog, PendingInviteDialog } from '@/components/layout/SidebarDialogs';
-import { Button } from '@/components/ui';
 import { useToastStore } from '@/stores/toast';
 
 interface SidebarProps {
@@ -111,6 +110,7 @@ export function Sidebar({ onToggleDark }: SidebarProps) {
   // State
   const [newClientOpen, setNewClientOpen] = useState(false);
   const [expandedClientId, setExpandedClientId] = useState<string | null>(null);
+  const [trackedActiveClientId, setTrackedActiveClientId] = useState<string | null>(null);
   const [selectedInvite, setSelectedInvite] = useState<PendingInviteDto | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<IncomingRequest | null>(null);
   const [statementText, setStatementText] = useState('');
@@ -122,11 +122,12 @@ export function Sidebar({ onToggleDark }: SidebarProps) {
   const activeClientId = clientMatch?.[1] ?? null;
 
   // Auto-expand when navigating to a client page (but not collapse when leaving)
-  useEffect(() => {
+  if (activeClientId !== trackedActiveClientId) {
+    setTrackedActiveClientId(activeClientId);
     if (activeClientId) {
       setExpandedClientId(activeClientId);
     }
-  }, [activeClientId]);
+  }
 
   const toggleClient = (id: string) => {
     setExpandedClientId(prev => prev === id ? null : id);

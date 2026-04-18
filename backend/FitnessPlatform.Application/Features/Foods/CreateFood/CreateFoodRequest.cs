@@ -14,11 +14,6 @@ public class CreateFoodRequest
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
-    /// Optional barcode.
-    /// </summary>
-    public string? Barcode { get; set; }
-
-    /// <summary>
     /// Optional English name.
     /// </summary>
     public string? NameEn { get; set; }
@@ -42,6 +37,11 @@ public class CreateFoodRequest
     /// Food category.
     /// </summary>
     public FoodCategory Category { get; set; } = FoodCategory.Other;
+
+    /// <summary>
+    /// Visibility of the food. Defaults to <see cref="FoodVisibility.Public"/> when omitted.
+    /// </summary>
+    public FoodVisibility Visibility { get; set; } = FoodVisibility.Public;
 
     /// <summary>
     /// Optional user note.

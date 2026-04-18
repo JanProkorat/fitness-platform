@@ -1,71 +1,21 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import { View, Text, StyleSheet, Pressable } from 'react-native'
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withDelay,
-  withTiming,
-  Easing,
-} from 'react-native-reanimated'
 import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
 
-interface WeightEntry {
-  date: string
-  weight: number
-}
-
 interface WeightStatCardProps {
   /** Most recent weight in kg, or null if no data */
   latestWeight: number | null
-  /** Weight change over 30 days (positive = gain) */
+  /** Difference between the latest measurement and the one before it (positive = gain) */
   weightDelta: number | null
-  /** Recent weight entries for sparkline (last 7 used) */
-  entries: WeightEntry[]
-}
-
-/** Animated sparkline bar with staggered fade-in + grow effect. */
-function SparkBar({
-  heightPct,
-  color,
-  delay,
-}: {
-  heightPct: number
-  color: string
-  delay: number
-}) {
-  const progress = useSharedValue(0)
-
-  useEffect(() => {
-    progress.value = withDelay(
-      delay,
-      withTiming(1, { duration: 350, easing: Easing.out(Easing.cubic) }),
-    )
-  }, [delay, progress])
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    height: `${heightPct * 100 * progress.value}%`,
-    opacity: progress.value,
-  }))
-
-  return (
-    <Animated.View
-      style={[
-        styles.sparkBar,
-        { backgroundColor: color, minHeight: 3 },
-        animatedStyle,
-      ]}
-    />
-  )
 }
 
 export const WeightStatCard = React.memo(function WeightStatCard({
   latestWeight,
   weightDelta,
-  entries,
 }: WeightStatCardProps) {
   const colors = useTheme()
   const { t } = useTranslation()
@@ -81,17 +31,10 @@ export const WeightStatCard = React.memo(function WeightStatCard({
 
   const deltaText =
     weightDelta != null
-      ? `${weightDelta < 0 ? '↓' : weightDelta > 0 ? '↑' : ''} ${Math.abs(weightDelta).toFixed(1).replace('.', ',')} kg`
+      ? `${weightDelta < 0 ? '↓' : weightDelta > 0 ? '↑' : ''} ${Math.abs(weightDelta).toFixed(1).replace('.', ',')}`
       : hasData
         ? null
         : t('today.noMeasurements')
-
-  // Sparkline data: take last 7 entries
-  const sparkData = entries.slice(-7)
-  const sparkWeights = sparkData.map((e) => e.weight)
-  const sparkMin = sparkWeights.length > 0 ? Math.min(...sparkWeights) : 0
-  const sparkMax = sparkWeights.length > 0 ? Math.max(...sparkWeights) : 1
-  const sparkRange = sparkMax - sparkMin || 1
 
   return (
     <Pressable
@@ -117,29 +60,11 @@ export const WeightStatCard = React.memo(function WeightStatCard({
         )}
       </View>
 
-      {/* Delta */}
+      {/* Delta between the last two measurements */}
       {deltaText != null && (
         <Text style={[styles.delta, { color: deltaColor ?? colors.label3 }]}>
           {deltaText}
         </Text>
-      )}
-
-      {/* Sparkline with staggered animation */}
-      {sparkData.length >= 2 && (
-        <View style={styles.sparkline}>
-          {sparkData.map((entry, idx) => {
-            const isLast = idx === sparkData.length - 1
-            const heightPct = ((entry.weight - sparkMin) / sparkRange) * 0.7 + 0.2
-            return (
-              <SparkBar
-                key={entry.date}
-                heightPct={heightPct}
-                color={isLast ? colors.gold : colors.fill}
-                delay={idx * 60}
-              />
-            )
-          })}
-        </View>
       )}
     </Pressable>
   )
@@ -180,18 +105,7 @@ const styles = StyleSheet.create({
   delta: {
     ...Type.caption2,
     fontWeight: '600',
-    marginTop: 2,
-  },
-  sparkline: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 2,
-    height: 20,
-    marginTop: 6,
-  },
-  sparkBar: {
-    flex: 1,
-    borderRadius: 2,
+    marginTop: 8,
   },
 })
 

@@ -24,7 +24,7 @@ interface BottomSheetProps {
   title?: string
   /** Optional element rendered on the right side of the header */
   headerRight?: React.ReactNode
-  /** Max height as a fraction of screen height (0–1). Default 0.82 */
+  /** Sheet height as a fraction of screen height (0–1). Default 0.82 */
   heightFraction?: number
   /** Sheet content */
   children: React.ReactNode
@@ -65,7 +65,7 @@ export function BottomSheet({
             styles.sheet,
             {
               backgroundColor: colors.bg2,
-              maxHeight,
+              height: maxHeight,
               transform: [{ translateY }],
             },
           ]}

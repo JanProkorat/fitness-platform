@@ -372,7 +372,6 @@
     "sourceAll": "Všechny zdroje",
     "sourceSystem": "Systémové",
     "sourceCustom": "Vlastní",
-    "sourceOpenFoodFacts": "Open Food Facts",
     "kcal": "kcal",
     "protein": "Bílkoviny",
     "carbs": "Sacharidy",
@@ -382,10 +381,8 @@
     "saturatedFat": "Nas. tuky",
     "salt": "Sůl",
     "per100g": "na 100g",
-    "barcode": "Čárový kód",
     "allergens": "Alergeny",
     "servings": "Porce",
-    "loadingExternal": "Hledání v Open Food Facts...",
     "noFoods": "Žádné potraviny nenalezeny",
     "noFoodsHint": "Zkuste jiný hledaný výraz",
     "addFoodTitle": "Přidat vlastní potravinu",
@@ -426,7 +423,10 @@
     "categoryOilsAndFats": "Oleje a tuky",
     "categorySweetsAndSnacks": "Sladkosti a svačiny",
     "categoryBeverages": "Nápoje",
-    "categorySupplements": "Doplňky stravy"
+    "categorySupplements": "Doplňky stravy",
+    "visibilityPublic": "Veřejná",
+    "visibilityPrivate": "Soukromá",
+    "visibilityHint": "Veřejné potraviny vidí všichni nutricionisté. Upravovat je můžete pouze vy."
   },
   "recipes": {
     "title": "Recepty",
@@ -477,7 +477,10 @@
     "foodCount": "{{count}} ingrediencí",
     "totalKcal": "{{kcal}} kcal",
     "ingredientNote": "Poznámka",
-    "ingredientNotePlaceholder": "např. jemně nakrájené, pokojová teplota..."
+    "ingredientNotePlaceholder": "např. jemně nakrájené, pokojová teplota...",
+    "visibilityPublic": "Veřejný",
+    "visibilityPrivate": "Soukromý",
+    "visibilityHint": "Veřejné recepty vidí všichni nutricionisté. Upravovat je můžete pouze vy."
   },
   "nutrition": {
     "title": "Nutriční plány",

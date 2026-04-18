@@ -1,4 +1,5 @@
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 
 namespace FitnessPlatform.Application.Features.Recipes.Shared;
 
@@ -48,6 +49,17 @@ public class GetRecipeResponse
     public NutrientTotals TotalNutrients { get; set; } = new();
 
     /// <summary>
+    /// Visibility of the recipe (Public = visible to all nutritionists, Private = visible only to its creator).
+    /// </summary>
+    public RecipeVisibility Visibility { get; set; }
+
+    /// <summary>
+    /// True when the authenticated caller is the nutritionist who created this recipe.
+    /// Clients of the API can use this flag to decide whether to show edit/delete affordances.
+    /// </summary>
+    public bool IsOwnedByCurrentUser { get; set; }
+
+    /// <summary>
     /// When the recipe was created.
     /// </summary>
     public DateTime DateCreated { get; set; }
@@ -61,8 +73,9 @@ public class GetRecipeResponse
     /// Maps a <see cref="Recipe"/> document to a <see cref="GetRecipeResponse"/>.
     /// </summary>
     /// <param name="recipe">The source recipe document.</param>
+    /// <param name="currentUserId">Id of the authenticated user; used to resolve <see cref="IsOwnedByCurrentUser"/>.</param>
     /// <returns>A full recipe response.</returns>
-    public static GetRecipeResponse FromDocument(Recipe recipe) => new()
+    public static GetRecipeResponse FromDocument(Recipe recipe, Guid? currentUserId = null) => new()
     {
         RecipeId = recipe.ExternalId,
         Name = recipe.Name,
@@ -72,6 +85,8 @@ public class GetRecipeResponse
         Note = recipe.Note,
         Foods = recipe.Foods,
         TotalNutrients = recipe.TotalNutrients,
+        Visibility = recipe.Visibility,
+        IsOwnedByCurrentUser = currentUserId.HasValue && recipe.NutritionistId == currentUserId.Value,
         DateCreated = recipe.DateCreated,
         DateUpdated = recipe.DateUpdated
     };
@@ -79,7 +94,11 @@ public class GetRecipeResponse
     /// <summary>
     /// Maps a recipe, resolving food names using localized names when available.
     /// </summary>
-    public static GetRecipeResponse FromDocument(Recipe recipe, IReadOnlyDictionary<Guid, Food> foodLookup, string? language = null) => new()
+    public static GetRecipeResponse FromDocument(
+        Recipe recipe,
+        IReadOnlyDictionary<Guid, Food> foodLookup,
+        string? language = null,
+        Guid? currentUserId = null) => new()
     {
         RecipeId = recipe.ExternalId,
         Name = recipe.Name,
@@ -102,6 +121,8 @@ public class GetRecipeResponse
             };
         }).ToList(),
         TotalNutrients = recipe.TotalNutrients,
+        Visibility = recipe.Visibility,
+        IsOwnedByCurrentUser = currentUserId.HasValue && recipe.NutritionistId == currentUserId.Value,
         DateCreated = recipe.DateCreated,
         DateUpdated = recipe.DateUpdated
     };

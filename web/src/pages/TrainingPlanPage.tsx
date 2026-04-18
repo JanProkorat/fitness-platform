@@ -640,7 +640,6 @@ export default function TrainingPlanPage() {
                       <div className="px-2 pt-1.5">
                       <ExerciseDropZone
                         sessionId={session.sessionId}
-                        exerciseIds={session.exercises.map((_, i) => String(i))}
                         selectedWeek={selectedWeek}
                         onReorder={(fromIdx, toIdx) => reorderExercises(selectedWeek, session.sessionId, fromIdx, toIdx)}
                         onCrossSessionMove={(fromSessionId, fromIdx, toIdx, fromWeek) => {

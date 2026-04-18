@@ -372,7 +372,6 @@
     "sourceAll": "Alle Quellen",
     "sourceSystem": "System",
     "sourceCustom": "Eigene",
-    "sourceOpenFoodFacts": "Open Food Facts",
     "kcal": "kcal",
     "protein": "Eiweiß",
     "carbs": "Kohlenhydrate",
@@ -382,10 +381,8 @@
     "saturatedFat": "Ges. Fett",
     "salt": "Salz",
     "per100g": "pro 100g",
-    "barcode": "Barcode",
     "allergens": "Allergene",
     "servings": "Portionen",
-    "loadingExternal": "Suche in Open Food Facts nach weiteren Ergebnissen...",
     "noFoods": "Keine Lebensmittel gefunden",
     "noFoodsHint": "Versuchen Sie einen anderen Suchbegriff",
     "addFoodTitle": "Eigenes Lebensmittel hinzufügen",
@@ -426,7 +423,10 @@
     "categoryOilsAndFats": "Öle & Fette",
     "categorySweetsAndSnacks": "Süßigkeiten & Snacks",
     "categoryBeverages": "Getränke",
-    "categorySupplements": "Nahrungsergänzung"
+    "categorySupplements": "Nahrungsergänzung",
+    "visibilityPublic": "Öffentlich",
+    "visibilityPrivate": "Privat",
+    "visibilityHint": "Öffentliche Lebensmittel sind für alle Ernährungsberater sichtbar. Bearbeiten können Sie sie nur selbst."
   },
   "recipes": {
     "title": "Rezepte",
@@ -477,7 +477,10 @@
     "foodCount": "{{count}} Zutaten",
     "totalKcal": "{{kcal}} kcal",
     "ingredientNote": "Notiz",
-    "ingredientNotePlaceholder": "z.B. fein gehackt, Zimmertemperatur..."
+    "ingredientNotePlaceholder": "z.B. fein gehackt, Zimmertemperatur...",
+    "visibilityPublic": "Öffentlich",
+    "visibilityPrivate": "Privat",
+    "visibilityHint": "Öffentliche Rezepte sind für alle Ernährungsberater sichtbar. Bearbeiten können Sie sie nur selbst."
   },
   "nutrition": {
     "title": "Ernährungspläne",

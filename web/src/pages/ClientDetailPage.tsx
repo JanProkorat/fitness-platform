@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -39,12 +39,12 @@ export default function ClientDetailPage() {
   const ob = client?.onboarding;
 
   /** Translate an enum/tag value via clients.values.X, fall back to raw value */
-  const v = (val: string | null | undefined) => {
+  const v = useCallback((val: string | null | undefined) => {
     if (!val) return '—';
     const key = `clients.values.${val}`;
     const translated = t(key);
     return translated !== key ? translated : val;
-  };
+  }, [t]);
 
   // Compliance color helper
   const complianceColor = useMemo(() => {
@@ -81,7 +81,7 @@ export default function ClientDetailPage() {
     const m = now.getMonth() - birth.getMonth();
     if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--;
     return age;
-  }, [client?.dateOfBirth]);
+  }, [client]);
 
   // Build property list items
   const propertyItems = useMemo(() => {
@@ -246,7 +246,7 @@ export default function ClientDetailPage() {
         {goal && <Tag variant={goalTagVariant}>{v(goal)}</Tag>}
       </div>
     );
-  }, [client, ob, goalTagVariant]);
+  }, [client, ob, goalTagVariant, v]);
 
   // Loading state
   if (isLoading) {

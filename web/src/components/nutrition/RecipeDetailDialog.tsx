@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getRecipe } from '@/api/recipes';
-import type { RecipeSummary, RecipeDetail } from '@/api/recipe-types';
+import type { RecipeSummary } from '@/api/recipe-types';
 
 interface RecipeDetailDialogProps {
   open: boolean;
@@ -12,17 +12,12 @@ interface RecipeDetailDialogProps {
 
 export function RecipeDetailDialog({ open, recipe, onClose, onEdit }: RecipeDetailDialogProps) {
   const { t } = useTranslation();
-  const [detail, setDetail] = useState<RecipeDetail | null>(null);
-  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (!open || !recipe) { setDetail(null); return; }
-    setLoading(true);
-    getRecipe(recipe.recipeId)
-      .then(setDetail)
-      .catch(() => onClose())
-      .finally(() => setLoading(false));
-  }, [open, recipe?.recipeId]);
+  const { data: detail = null, isFetching: loading } = useQuery({
+    queryKey: ['recipe-detail', recipe?.recipeId],
+    queryFn: () => getRecipe(recipe!.recipeId),
+    enabled: open && !!recipe,
+  });
 
   if (!open || !recipe) return null;
 

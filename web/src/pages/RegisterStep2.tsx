@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useFormContext } from 'react-hook-form';
 import { cn } from '@/lib/cn';
 import { PASSWORD_REQUIREMENTS } from './register-types';
@@ -28,7 +27,6 @@ export function RegisterStep2({
   onContinue,
   fromInvite,
 }: RegisterStep2Props) {
-  const { t } = useTranslation();
   const { register, formState: { errors } } = useFormContext();
   const strength = useMemo(() => computePasswordStrength(passwordValue), [passwordValue]);
 
@@ -59,7 +57,7 @@ export function RegisterStep2({
               placeholder="Jan"
             />
             {errors.firstName && (
-              <p style={{ marginTop: 4, fontSize: 12, color: 'var(--red)' }}>{errors.firstName.message}</p>
+              <p style={{ marginTop: 4, fontSize: 12, color: 'var(--red)' }}>{String(errors.firstName.message ?? '')}</p>
             )}
           </div>
           <div className="form-group">
@@ -71,7 +69,7 @@ export function RegisterStep2({
               placeholder="Novák"
             />
             {errors.lastName && (
-              <p style={{ marginTop: 4, fontSize: 12, color: 'var(--red)' }}>{errors.lastName.message}</p>
+              <p style={{ marginTop: 4, fontSize: 12, color: 'var(--red)' }}>{String(errors.lastName.message ?? '')}</p>
             )}
           </div>
         </div>
@@ -86,7 +84,7 @@ export function RegisterStep2({
             placeholder="vas@email.cz"
           />
           {errors.email && (
-            <p style={{ marginTop: 4, fontSize: 12, color: 'var(--red)' }}>{errors.email.message}</p>
+            <p style={{ marginTop: 4, fontSize: 12, color: 'var(--red)' }}>{String(errors.email.message ?? '')}</p>
           )}
         </div>
 
@@ -169,7 +167,7 @@ export function RegisterStep2({
             </button>
           </div>
           {errors.confirmPassword && (
-            <p style={{ marginTop: 4, fontSize: 12, color: 'var(--red)' }}>{errors.confirmPassword.message}</p>
+            <p style={{ marginTop: 4, fontSize: 12, color: 'var(--red)' }}>{String(errors.confirmPassword.message ?? '')}</p>
           )}
         </div>
 

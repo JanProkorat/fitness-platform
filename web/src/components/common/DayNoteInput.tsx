@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 interface DayNoteInputProps {
   note?: string | null;
@@ -10,13 +10,13 @@ interface DayNoteInputProps {
 export function DayNoteInput({ note, onChange, addLabel, placeholder }: DayNoteInputProps) {
   const [value, setValue] = useState(note ?? '');
   const [open, setOpen] = useState(!!note);
+  const [trackedNote, setTrackedNote] = useState(note);
 
-  // Sync when day changes
-  useEffect(() => {
+  if (note !== trackedNote) {
+    setTrackedNote(note);
     setValue(note ?? '');
-    if (note) setOpen(true);
-    else setOpen(false);
-  }, [note]);
+    setOpen(!!note);
+  }
 
   if (!open) {
     return (

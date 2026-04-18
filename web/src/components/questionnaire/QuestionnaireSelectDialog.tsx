@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getTrainerQuestionnaires } from '@/api/questionnaires';
@@ -27,6 +27,7 @@ export function QuestionnaireSelectDialog({
 }: QuestionnaireSelectDialogProps) {
   const { t } = useTranslation();
   const [selectedQId, setSelectedQId] = useState('');
+  const [trackedOpen, setTrackedOpen] = useState(false);
 
   const questionnairesQuery = useQuery({
     queryKey: ['trainer-questionnaires'],
@@ -34,7 +35,10 @@ export function QuestionnaireSelectDialog({
     enabled: open,
   });
 
-  useEffect(() => { if (!open) setSelectedQId(''); }, [open]);
+  if (open !== trackedOpen) {
+    setTrackedOpen(open);
+    if (!open) setSelectedQId('');
+  }
 
   if (!open) return null;
 

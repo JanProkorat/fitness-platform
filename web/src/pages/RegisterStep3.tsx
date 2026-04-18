@@ -1,5 +1,4 @@
-import { useTranslation } from 'react-i18next';
-import { useFormContext } from 'react-hook-form';
+import { useFormContext, type SubmitHandler, type FieldValues } from 'react-hook-form';
 import { cn } from '@/lib/cn';
 
 interface RegisterStep3Props {
@@ -10,7 +9,7 @@ interface RegisterStep3Props {
   onTermsConsentChange: (value: boolean) => void;
   onHealthConsentChange: (value: boolean) => void;
   onBack: () => void;
-  onSubmit: () => void;
+  onSubmit: SubmitHandler<FieldValues>;
 }
 
 export function RegisterStep3({
@@ -23,7 +22,6 @@ export function RegisterStep3({
   onBack,
   onSubmit,
 }: RegisterStep3Props) {
-  const { t } = useTranslation();
   const { handleSubmit } = useFormContext();
   const canSubmit = termsConsent && healthConsent && !loading;
 

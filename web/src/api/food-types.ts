@@ -4,6 +4,9 @@ export type FoodCategory =
   | 'Dairy' | 'GrainsAndCereals' | 'Legumes' | 'NutsAndSeeds'
   | 'OilsAndFats' | 'SweetsAndSnacks' | 'Beverages' | 'Supplements';
 
+/** Food visibility — Public is visible to all nutritionists, Private only to the owner. */
+export type FoodVisibility = 'Public' | 'Private';
+
 /** Nutrient values per 100 grams. */
 export interface NutrientValueDto {
   kcal: number;
@@ -30,12 +33,13 @@ export interface FoodSummary {
   nameEn?: string | null;
   nameCs?: string | null;
   nameDe?: string | null;
-  barcode?: string | null;
   nutrientValue: NutrientValueDto;
   category?: FoodCategory;
   note?: string | null;
   allergens: string[];
   commonServings: ServingSizeDto[];
+  visibility?: FoodVisibility;
+  isOwnedByCurrentUser?: boolean;
 }
 
 /** Paginated food search response. */
@@ -57,7 +61,6 @@ export interface GetCustomFoodsResponse {
 /** Request to update a custom food. */
 export interface UpdateFoodRequest {
   name: string;
-  barcode?: string | null;
   nameEn?: string | null;
   nameCs?: string | null;
   nameDe?: string | null;
@@ -66,12 +69,12 @@ export interface UpdateFoodRequest {
   note?: string | null;
   allergens: string[];
   commonServings: ServingSizeDto[];
+  visibility?: FoodVisibility;
 }
 
 /** Request to create a custom food. */
 export interface CreateFoodRequest {
   name: string;
-  barcode?: string | null;
   nameEn?: string | null;
   nameCs?: string | null;
   nameDe?: string | null;
@@ -80,4 +83,5 @@ export interface CreateFoodRequest {
   note?: string | null;
   allergens: string[];
   commonServings: ServingSizeDto[];
+  visibility?: FoodVisibility;
 }

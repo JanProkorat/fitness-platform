@@ -47,6 +47,7 @@ export interface MealRecipe {
     protein: number;
     carbs: number;
     fat: number;
+    fiber?: number;
   };
   servings: number;
   note?: string | null;
@@ -173,6 +174,7 @@ export interface UpdateMealRecipeRequest {
     protein: number;
     carbs: number;
     fat: number;
+    fiber?: number;
   };
   servings: number;
   note?: string | null;

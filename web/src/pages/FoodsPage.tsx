@@ -8,7 +8,7 @@ import { useConfirmDelete } from '@/hooks/useConfirmDelete';
 import type { FoodSummary, FoodCategory } from '@/api/food-types';
 import { FoodDialog } from '@/components/nutrition/FoodDialog';
 import { PageHeader, Toolbar } from '@/components/layout';
-import { Button, Dialog, SearchInput } from '@/components/ui';
+import { Button, SearchInput } from '@/components/ui';
 import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
 import { DatabaseTable, ListView, CardGrid, Card, CardCover, CardBody, CardPropRow, MacroBadges, Pagination } from '@/components/data';
 import { CATEGORY_CSS_COLORS, ALL_CATEGORIES } from '@/components/nutrition/food-category';
@@ -307,7 +307,15 @@ export default function FoodsPage() {
         open={foodDialog.isOpen}
         food={foodDialog.item}
         onClose={foodDialog.close}
-        onSaved={() => refetch()}
+        onSaved={(updated) => {
+          // Keep the dialog's snapshot in sync with what the server just
+          // returned so reopening edit mode shows the latest values.
+          // `openEdit` just replaces the stored item — the dialog stays
+          // open and its internal mode state is unaffected because the
+          // foodId (the effect's dep) doesn't change.
+          foodDialog.openEdit(updated);
+          refetch();
+        }}
       />
 
       {/* Delete confirmation dialog */}

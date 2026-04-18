@@ -2,10 +2,11 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getRecipe, createRecipe, updateRecipe } from '@/api/recipes';
 import { searchFoods } from '@/api/foods';
-import type { RecipeSummary, RecipeDetail } from '@/api/recipe-types';
+import type { RecipeSummary, RecipeDetail, RecipeVisibility } from '@/api/recipe-types';
 import type { FoodSummary } from '@/api/food-types';
 import { showApiError, showSuccess } from '@/lib/api-errors';
 import { INPUT_CLASS_SM, CANCEL_BUTTON_CLASS } from '@/lib/styles';
+import { Toggle } from '@/components/ui';
 
 interface IngredientRow {
   foodExternalId: string;
@@ -43,15 +44,16 @@ export function RecipeDialog({ open, recipe, onClose, onSaved }: RecipeDialogPro
   const [prepTime, setPrepTime] = useState<number | ''>('');
   const [steps, setSteps] = useState<string[]>([]);
   const [note, setNote] = useState('');
+  const [visibility, setVisibility] = useState<RecipeVisibility>('Public');
   const [ingredients, setIngredients] = useState<IngredientRow[]>([]);
   const [foodQuery, setFoodQuery] = useState('');
   const [foodResults, setFoodResults] = useState<FoodSummary[]>([]);
-  const [foodSearchLoading, setFoodSearchLoading] = useState(false);
   const [foodInputFocused, setFoodInputFocused] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const resetForm = useCallback(() => {
     setName(''); setDescription(''); setPrepTime(''); setSteps([]); setNote('');
+    setVisibility('Public');
     setIngredients([]); setFoodQuery(''); setFoodResults([]); setFoodInputFocused(false);
   }, []);
 
@@ -92,6 +94,7 @@ export function RecipeDialog({ open, recipe, onClose, onSaved }: RecipeDialogPro
     setPrepTime(d.prepTimeMinutes ?? '');
     setSteps(d.steps ?? []);
     setNote(d.note ?? '');
+    setVisibility(d.visibility ?? 'Public');
     setIngredients(d.foods.map((f) => ({
       foodExternalId: f.foodExternalId, foodName: f.foodName,
       nutrientValuePer100Grams: f.nutrientValuePer100Grams,
@@ -112,9 +115,8 @@ export function RecipeDialog({ open, recipe, onClose, onSaved }: RecipeDialogPro
 
   // Food search
   const loadFoods = useCallback(async (q: string) => {
-    setFoodSearchLoading(true);
     try { const r = await searchFoods({ q: q || undefined, pageSize: 15 }); setFoodResults(r.foods ?? []); }
-    catch { setFoodResults([]); } finally { setFoodSearchLoading(false); }
+    catch { setFoodResults([]); }
   }, []);
 
   useEffect(() => { if (open && mode === 'edit' && !loading) loadFoods(''); }, [open, mode, loading]);
@@ -145,6 +147,7 @@ export function RecipeDialog({ open, recipe, onClose, onSaved }: RecipeDialogPro
       steps: steps.filter((s) => s.trim()).length > 0 ? steps.filter((s) => s.trim()) : null,
       note: note.trim() || null,
       foods: ingredients.map((i) => ({ foodExternalId: i.foodExternalId, amountGrams: i.pieces * i.servingWeightGrams, note: i.note.trim() || null })),
+      visibility,
     };
     try {
       if (!isNew) { await updateRecipe(recipe!.recipeId, payload); showSuccess('recipes.updated'); }
@@ -285,11 +288,24 @@ export function RecipeDialog({ open, recipe, onClose, onSaved }: RecipeDialogPro
                 {mode === 'edit' && (
                   <div className="flex flex-col gap-4">
                     {/* Meta pills */}
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[12px]" style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}>
                         <span className="font-medium text-text3">{t('recipes.prepTime')}</span>
                         <input type="number" min={1} value={prepTime} onChange={(e) => setPrepTime(e.target.value ? Number(e.target.value) : '')} className="w-10 bg-transparent border-none outline-none text-[12px] text-text text-center" placeholder="—" />
                         <span className="text-text3">min</span>
+                      </div>
+                      <div
+                        className="flex items-center gap-2 px-2.5 py-1 rounded-md text-[12px]"
+                        style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
+                        title={t('recipes.visibilityHint')}
+                      >
+                        <span className="font-medium text-text3">
+                          {visibility === 'Public' ? t('recipes.visibilityPublic') : t('recipes.visibilityPrivate')}
+                        </span>
+                        <Toggle
+                          checked={visibility === 'Public'}
+                          onChange={(c) => setVisibility(c ? 'Public' : 'Private')}
+                        />
                       </div>
                     </div>
 

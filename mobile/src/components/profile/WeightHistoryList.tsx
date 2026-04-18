@@ -73,7 +73,9 @@ export function WeightHistoryList({ entries }: WeightHistoryListProps) {
   const rows: WeightRow[] = useMemo(() => {
     // Filter to weight-only entries, sort ascending by date
     const withWeight = entries
-      .filter((e): e is MeasurementDto & { weightKg: number } => e.weightKg != null)
+      .filter((e): e is MeasurementDto & { weightKg: number; measuredAt: string; measurementId: string } =>
+        e.weightKg != null && e.measuredAt != null && e.measurementId != null,
+      )
       .sort(
         (a, b) => new Date(a.measuredAt).getTime() - new Date(b.measuredAt).getTime(),
       )

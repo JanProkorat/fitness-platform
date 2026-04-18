@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { useForm, FormProvider } from 'react-hook-form';
+import { useState } from 'react';
+import { useForm, FormProvider, type SubmitHandler, type FieldValues } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useLocation } from 'react-router-dom';
@@ -12,27 +12,15 @@ import { RegisterStep1 } from './RegisterStep1';
 import { RegisterStep2 } from './RegisterStep2';
 import { RegisterStep3 } from './RegisterStep3';
 import { RegisterStep4 } from './RegisterStep4';
-import { ROLES, type Step, type Role } from './register-types';
+import { type Step, type Role } from './register-types';
 
-const step2Schema = z
-  .object({
-    firstName: z.string().min(1, ''),
-    lastName: z.string().min(1, ''),
-    email: z.string().email(''),
-    password: z
-      .string()
-      .min(8, '')
-      .regex(/[a-z]/, '')
-      .regex(/[A-Z]/, '')
-      .regex(/[0-9]/, ''),
-    confirmPassword: z.string().min(1, ''),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: '',
-    path: ['confirmPassword'],
-  });
-
-type Step2Form = z.infer<typeof step2Schema>;
+type Step2Form = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+};
 
 export default function RegisterPage() {
   const { t } = useTranslation();
@@ -74,7 +62,7 @@ export default function RegisterPage() {
     mode: 'onChange',
   });
 
-  const { watch, trigger, handleSubmit } = methods;
+  const { watch, trigger } = methods;
   const passwordValue = watch('password') || '';
 
   const handleToggleRole = (role: Role) => {
@@ -101,7 +89,8 @@ export default function RegisterPage() {
     else if (step === 2 && !fromInvite) setStep(1);
   };
 
-  const onSubmit = async (data: Step2Form) => {
+  const onSubmit: SubmitHandler<FieldValues> = async (raw) => {
+    const data = raw as Step2Form;
     if (!termsConsent || !healthConsent) return;
     setError(null);
     setLoading(true);

@@ -4,7 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 
 /** Proxy API requests to the backend but let browser navigations fall through to index.html. */
-function apiProxy(_route: string): ProxyOptions {
+function apiProxy(): ProxyOptions {
   return {
     target: 'https://localhost:5001',
     changeOrigin: true,
@@ -27,17 +27,17 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/auth': apiProxy('/auth'),
-      '/users': apiProxy('/users'),
-      '/trainer': apiProxy('/trainer'),
-      '/swagger': apiProxy('/swagger'),
-      '/foods': apiProxy('/foods'),
-      '/nutrition': apiProxy('/nutrition'),
-      '/recipes': apiProxy('/recipes'),
-      '/client': apiProxy('/client'),
-      '/exercises': apiProxy('/exercises'),
-      '/training': apiProxy('/training'),
-      '/conversations': apiProxy('/conversations'),
+      '/auth': apiProxy(),
+      '/users': apiProxy(),
+      '/trainer': apiProxy(),
+      '/swagger': apiProxy(),
+      '/foods': apiProxy(),
+      '/nutrition': apiProxy(),
+      '/recipes': apiProxy(),
+      '/client': apiProxy(),
+      '/exercises': apiProxy(),
+      '/training': apiProxy(),
+      '/conversations': apiProxy(),
       '/hubs': {
         target: 'https://localhost:5001',
         changeOrigin: true,

@@ -59,9 +59,29 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
         using var cursor = await mongo.TrainingPlans.FindAsync(filter, cancellationToken: ct);
         var plan = await cursor.FirstOrDefaultAsync(ct);
 
-        if (plan is null || plan.Weeks.Count == 0)
+        if (plan is null)
         {
             await Send.OkAsync(new GetTodaySessionResponse { HasSession = false }, ct);
+            return;
+        }
+
+        // Base response: always expose plan metadata once an Active plan exists so the client
+        // can preview it on the Plans screen even when there's no session for today (e.g. plan
+        // not started yet, no published weeks, or today is a rest day).
+        var response = new GetTodaySessionResponse
+        {
+            HasSession = false,
+            PlanId = plan.ExternalId,
+            PlanName = plan.Name,
+            TotalWeeks = plan.Weeks.Count,
+            Status = plan.Status.ToString(),
+            QuestionnaireResponseId = plan.QuestionnaireResponseId,
+            DateCompleted = plan.DateCompleted
+        };
+
+        if (plan.Weeks.Count == 0)
+        {
+            await Send.OkAsync(response, ct);
             return;
         }
 
@@ -73,33 +93,27 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
 
         if (publishedWeeks.Count == 0)
         {
-            await Send.OkAsync(new GetTodaySessionResponse { HasSession = false }, ct);
+            await Send.OkAsync(response, ct);
             return;
         }
 
         // Calculate current week using StartDate if available, otherwise fall back to DatePublished
-        int currentWeekNumber;
-        if (plan.StartDate.HasValue)
+        var resolvedWeek = PlanWeekCalculator.ResolveCurrentWeekNumber(
+            plan.StartDate,
+            publishedWeeks.Select(w => w.WeekNumber).ToList(),
+            plan.Weeks.Count,
+            publishedWeeks.First().DatePublished,
+            plan.DateCreated,
+            DateTime.UtcNow);
+
+        if (resolvedWeek is null)
         {
-            var daysSinceStart = (int)(DateTime.UtcNow.Date - plan.StartDate.Value.Date).TotalDays;
-            if (daysSinceStart < 0)
-            {
-                // Plan hasn't started yet
-                await Send.OkAsync(new GetTodaySessionResponse { HasSession = false }, ct);
-                return;
-            }
-            currentWeekNumber = (daysSinceStart / 7) + 1;
-            // Clamp to valid range
-            currentWeekNumber = Math.Max(1, Math.Min(currentWeekNumber, plan.Weeks.Count));
+            // Plan hasn't started yet — still surface plan metadata so the client can preview it.
+            await Send.OkAsync(response, ct);
+            return;
         }
-        else
-        {
-            // Legacy fallback: cycle through published weeks based on first publish date
-            var firstPublished = publishedWeeks.First().DatePublished ?? plan.DateCreated;
-            var daysSinceStart = (int)(DateTime.UtcNow.Date - firstPublished.Date).TotalDays;
-            var currentWeekIndex = (daysSinceStart / 7) % publishedWeeks.Count;
-            currentWeekNumber = publishedWeeks[Math.Max(0, currentWeekIndex)].WeekNumber;
-        }
+
+        int currentWeekNumber = resolvedWeek.Value;
 
         var currentWeek = plan.Weeks.FirstOrDefault(w => w.WeekNumber == currentWeekNumber);
         if (currentWeek is null || currentWeek.Status != WeekStatus.Published)
@@ -117,17 +131,10 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
             .OrderBy(s => s.Order)
             .FirstOrDefault();
 
-        await Send.OkAsync(new GetTodaySessionResponse
-        {
-            HasSession = todaySession is not null,
-            PlanId = plan.ExternalId,
-            PlanName = plan.Name,
-            Session = todaySession,
-            CurrentWeek = currentWeek.WeekNumber,
-            TotalWeeks = plan.Weeks.Count,
-            Status = plan.Status.ToString(),
-            QuestionnaireResponseId = plan.QuestionnaireResponseId,
-            DateCompleted = plan.DateCompleted
-        }, ct);
+        response.HasSession = todaySession is not null;
+        response.Session = todaySession;
+        response.CurrentWeek = currentWeek.WeekNumber;
+
+        await Send.OkAsync(response, ct);
     }
 }

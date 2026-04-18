@@ -1,4 +1,5 @@
 using FitnessPlatform.Application.Domain.Documents;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -49,11 +50,6 @@ public class MongoIndexInitializer : IHostedService
             Builders<Food>.IndexKeys.Text(f => f.Name),
             new CreateIndexOptions { Name = "idx_food_name_text" });
 
-        // Unique sparse index on barcode (only when barcode is present)
-        var barcodeIndex = new CreateIndexModel<Food>(
-            Builders<Food>.IndexKeys.Ascending(f => f.Barcode),
-            new CreateIndexOptions { Name = "idx_food_barcode", Unique = true, Sparse = true });
-
         // Index on externalId for API lookups
         var externalIdIndex = new CreateIndexModel<Food>(
             Builders<Food>.IndexKeys.Ascending(f => f.ExternalId),
@@ -64,9 +60,39 @@ public class MongoIndexInitializer : IHostedService
             Builders<Food>.IndexKeys.Ascending(f => f.NutritionistId),
             new CreateIndexOptions { Name = "idx_food_nutritionistId", Sparse = true });
 
+        // One-time cleanup after the barcode feature was removed: drop the
+        // legacy unique sparse index and strip any `barcode` field still
+        // lingering on existing documents. Safe to run on every startup —
+        // both operations are no-ops once the collection has been cleaned.
+        await TryDropIndexAsync(indexes, "idx_food_barcode", ct);
+        var barcodeExistsFilter = new BsonDocumentFilterDefinition<Food>(
+            new BsonDocument("barcode", new BsonDocument("$exists", true)));
+        var unsetResult = await _mongo.Foods.UpdateManyAsync(
+            barcodeExistsFilter,
+            Builders<Food>.Update.Unset("barcode"),
+            cancellationToken: ct);
+        if (unsetResult.ModifiedCount > 0)
+        {
+            _logger.LogInformation(
+                "Stripped legacy `barcode` field from {Count} food document(s)",
+                unsetResult.ModifiedCount);
+        }
+
         await indexes.CreateManyAsync(
-            [textIndex, barcodeIndex, externalIdIndex, nutritionistIndex],
+            [textIndex, externalIdIndex, nutritionistIndex],
             ct);
+    }
+
+    private static async Task TryDropIndexAsync(IMongoIndexManager<Food> indexes, string name, CancellationToken ct)
+    {
+        try
+        {
+            await indexes.DropOneAsync(name, ct);
+        }
+        catch (MongoCommandException ex) when (ex.CodeName == "IndexNotFound" || ex.Code == 27)
+        {
+            // Index did not exist — first boot on a fresh database. Fine.
+        }
     }
 
     private async Task CreateNutritionPlanIndexes(CancellationToken ct)

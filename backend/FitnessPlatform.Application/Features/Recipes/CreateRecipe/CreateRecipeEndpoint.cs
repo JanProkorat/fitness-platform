@@ -2,7 +2,6 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
-using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.Recipes.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Driver;
@@ -96,13 +95,16 @@ public class CreateRecipeEndpoint(IMongoContext mongo)
             Note = req.Note,
             Foods = mealFoods,
             TotalNutrients = totalNutrients,
-            Visibility = RecipeVisibility.Private,
+            Visibility = req.Visibility,
             DateCreated = DateTime.UtcNow
         };
 
         await mongo.Recipes.InsertOneAsync(recipe, cancellationToken: ct);
 
-        await HttpContext.Response.SendAsync(GetRecipeResponse.FromDocument(recipe), 201, cancellation: ct);
+        await HttpContext.Response.SendAsync(
+            GetRecipeResponse.FromDocument(recipe, currentUserId: nutritionistId),
+            201,
+            cancellation: ct);
     }
 
     /// <summary>

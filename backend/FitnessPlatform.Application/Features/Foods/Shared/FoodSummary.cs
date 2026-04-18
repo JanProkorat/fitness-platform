@@ -39,11 +39,6 @@ public class FoodSummary
     public string? NameDe { get; set; }
 
     /// <summary>
-    /// EAN/UPC barcode, if available.
-    /// </summary>
-    public string? Barcode { get; set; }
-
-    /// <summary>
     /// Nutritional values per 100 grams.
     /// </summary>
     public NutrientValueDto NutrientValue { get; set; } = new();
@@ -69,11 +64,23 @@ public class FoodSummary
     public string? Note { get; set; }
 
     /// <summary>
+    /// Visibility of the food (Public = visible to all nutritionists, Private = visible only to its creator).
+    /// </summary>
+    public FoodVisibility Visibility { get; set; }
+
+    /// <summary>
+    /// True when the authenticated caller is the nutritionist who created this food.
+    /// Clients can use this flag to decide whether to show edit/delete affordances.
+    /// </summary>
+    public bool IsOwnedByCurrentUser { get; set; }
+
+    /// <summary>
     /// Maps a <see cref="Food"/> document to a <see cref="FoodSummary"/> DTO.
     /// </summary>
     /// <param name="food">The food document.</param>
     /// <param name="language">Two-letter language code for name resolution (e.g. "cs", "de"). Defaults to "en".</param>
-    public static FoodSummary FromDocument(Food food, string? language = null) => new()
+    /// <param name="currentUserId">Id of the authenticated user; used to resolve <see cref="IsOwnedByCurrentUser"/>.</param>
+    public static FoodSummary FromDocument(Food food, string? language = null, Guid? currentUserId = null) => new()
     {
         FoodId = food.ExternalId,
         Name = food.LocalizedNames?.Resolve(language) ?? food.Name,
@@ -81,7 +88,6 @@ public class FoodSummary
         NameEn = food.LocalizedNames?.En,
         NameCs = food.LocalizedNames?.Cs,
         NameDe = food.LocalizedNames?.De,
-        Barcode = food.Barcode,
         NutrientValue = new NutrientValueDto
         {
             Kcal = food.NutrientValue.Kcal,
@@ -95,6 +101,10 @@ public class FoodSummary
         },
         Category = food.Category,
         Note = food.Note,
+        Visibility = food.Visibility,
+        IsOwnedByCurrentUser = currentUserId.HasValue
+            && food.NutritionistId.HasValue
+            && food.NutritionistId.Value == currentUserId.Value,
         Allergens = food.Allergens,
         CommonServings = food.CommonServings
             .Select(s => new ServingSizeDto { Label = s.Label, WeightGrams = s.WeightGrams })

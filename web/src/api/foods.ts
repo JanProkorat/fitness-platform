@@ -25,12 +25,6 @@ export async function getFood(foodId: string): Promise<FoodSummary> {
   return data;
 }
 
-/** Get food by barcode (cache-first, then Open Food Facts). */
-export async function getFoodByBarcode(barcode: string): Promise<FoodSummary> {
-  const { data } = await api.get<FoodSummary>(`/foods/barcode/${barcode}`);
-  return data;
-}
-
 /** Create a custom food (Nutritionist only). */
 export async function createFood(request: CreateFoodRequest): Promise<FoodSummary> {
   const { data } = await api.post<FoodSummary>('/foods', request);

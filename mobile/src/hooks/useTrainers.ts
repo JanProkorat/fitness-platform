@@ -27,8 +27,12 @@ export function useTrainers({ search, role, goal, enabled = true }: UseTrainersP
       }),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => {
-      const nextPage = lastPage.page + 1
-      const totalPages = Math.ceil(lastPage.totalCount / lastPage.pageSize)
+      // Generated types make pagination fields optional; default to 0/1 to avoid undefined arithmetic.
+      const page = lastPage.page ?? 0
+      const totalCount = lastPage.totalCount ?? 0
+      const pageSize = lastPage.pageSize ?? 20
+      const nextPage = page + 1
+      const totalPages = Math.ceil(totalCount / pageSize)
       return nextPage <= totalPages ? nextPage : undefined
     },
     enabled,

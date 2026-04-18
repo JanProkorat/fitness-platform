@@ -1,5 +1,8 @@
+using System.Security.Claims;
 using FastEndpoints;
+using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.Foods.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Driver;
@@ -19,7 +22,9 @@ public class GetFoodEndpoint(IMongoContext mongo) : Endpoint<GetFoodRequest, Foo
         Summary(s =>
         {
             s.Summary = "Get food by ID";
-            s.Description = "Returns a single food item by its public identifier.";
+            s.Description = "Returns a single food item by its public identifier. "
+                + "Private foods are only accessible to their creator; other nutritionists receive 404. "
+                + "Clients can still read private foods referenced by their nutrition plans.";
         });
     }
 
@@ -38,9 +43,23 @@ public class GetFoodEndpoint(IMongoContext mongo) : Endpoint<GetFoodRequest, Foo
             return;
         }
 
+        var userIdClaim = User.FindFirstValue(AppClaims.UserId);
+        Guid? currentUserId = Guid.TryParse(userIdClaim, out var parsed) ? parsed : null;
+
+        // Enforce Private visibility: hide from other nutritionists.
+        // Non-nutritionists (e.g. clients consuming a plan) are allowed regardless of visibility,
+        // so that foods referenced from a nutrition plan remain readable downstream.
+        if (food.Visibility == FoodVisibility.Private
+            && User.IsInRole(AppRoles.Nutritionist)
+            && food.NutritionistId != currentUserId)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
         var language = HttpContext.Request.Headers.AcceptLanguage.FirstOrDefault()
             ?.Split(',').FirstOrDefault()?.Trim().Split('-').FirstOrDefault();
 
-        await Send.OkAsync(FoodSummary.FromDocument(food, language), ct);
+        await Send.OkAsync(FoodSummary.FromDocument(food, language, currentUserId), ct);
     }
 }

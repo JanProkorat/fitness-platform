@@ -16,7 +16,7 @@ export function href(path: string): Href {
  * Build a typed Href with route params.
  *
  * Usage:
- *   router.push(hrefParams('/nutrition/plan-detail', { week: '2' }))
+ *   router.push(hrefParams('/(client)/plans/[planId]', { planId: '123', type: 'nutrition' }))
  */
 export function hrefParams(
   pathname: string,

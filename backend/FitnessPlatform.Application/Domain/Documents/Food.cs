@@ -32,18 +32,11 @@ public class Food
 
     /// <summary>
     /// Localized food names (en, cs, de) for multi-language support.
-    /// Null for system/custom foods that don't come from OpenFoodFacts.
+    /// Null for system/custom foods that were created without translations.
     /// </summary>
     [BsonElement("localizedNames")]
     [BsonIgnoreIfNull]
     public LocalizedNames? LocalizedNames { get; set; }
-
-    /// <summary>
-    /// EAN/UPC barcode, if available.
-    /// </summary>
-    [BsonElement("barcode")]
-    [BsonIgnoreIfNull]
-    public string? Barcode { get; set; }
 
     /// <summary>
     /// Nutritional values per 100 grams.
@@ -76,6 +69,16 @@ public class Food
     /// </summary>
     [BsonElement("nutritionistId")]
     public Guid? NutritionistId { get; set; }
+
+    /// <summary>
+    /// Visibility of the food. Public foods are visible to every nutritionist;
+    /// private foods are visible only to their creator. Only the creator can
+    /// edit, regardless of visibility.
+    /// </summary>
+    [BsonElement("visibility")]
+    [BsonRepresentation(BsonType.String)]
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public FoodVisibility Visibility { get; set; } = FoodVisibility.Public;
 
     /// <summary>
     /// Optional user note for this food item.

@@ -1049,6 +1049,168 @@ As a result:
 
 ---
 
+## 2026-04-15 — Visibility toggle in web food/recipe editors
+
+### Scope
+Surface the Public / Private flag that the backend already supports in
+the trainer web portal's Food and Recipe create/edit dialogs. No backend
+changes; purely a web UI + hand-written type change.
+
+### What changed
+- `web/src/api/food-types.ts`: added `FoodVisibility` union; optional
+  `visibility` + `isOwnedByCurrentUser` on `FoodSummary`; optional
+  `visibility` on `CreateFoodRequest` / `UpdateFoodRequest`.
+- `web/src/api/recipe-types.ts`: added `RecipeVisibility` union;
+  optional `visibility` + `isOwnedByCurrentUser` on `RecipeSummary` and
+  `RecipeDetail`; optional `visibility` on `CreateRecipeRequest` /
+  `UpdateRecipeRequest`.
+- `web/src/components/nutrition/FoodDialog.tsx` (the dialog actually
+  wired into `FoodsPage`): new `visibility` field on the zod schema
+  (default `Public`); category pill row extended with a Public/Private
+  pill driven by the existing `Toggle` component; form `populateForm`
+  and the new-food reset now seed `visibility`; payload sends
+  `visibility` on both create and update.
+- `web/src/components/nutrition/RecipeDialog.tsx` (the dialog actually
+  wired into `RecipesPage`): local `visibility` state (default
+  `Public`); preloaded from `RecipeDetail.visibility` on edit; reset on
+  close/new; meta-pill row in edit mode now contains a Public/Private
+  pill + toggle; payload sends `visibility` on create/update.
+- i18n (`cs`, `en`, `de`): new keys under `foods.*` and `recipes.*` —
+  `visibilityPublic`, `visibilityPrivate`, `visibilityHint`.
+
+### Cleanup
+- Deleted `web/src/components/nutrition/FoodFormDialog.tsx` and
+  `web/src/components/nutrition/RecipeFormDialog.tsx`. These were dead
+  code — never imported by any page. An earlier pass in this session
+  mistakenly edited them first (the FormDialog versions superficially
+  resembled the real dialogs). After identifying that `FoodsPage` /
+  `RecipesPage` import `FoodDialog` / `RecipeDialog`, the visibility
+  work was re-done in the correct files and the FormDialog pair was
+  removed.
+
+### Notes
+- Pre-existing tsc errors in `tsconfig.app.json` weren't fixed in this
+  pass (same zod-coerce-unknown resolver mismatch and
+  `description: string | undefined` issues on sibling dialogs). My
+  edits don't add new classes of errors.
+- Mobile uses hand-written types too — no mobile work in this change.
+
+---
+
+## 2026-04-15 — Recipe visibility (Public / Private) (backend)
+
+### Scope
+Mirror of the Food visibility change for the Recipe entity. Nutritionists
+can now keep personal recipes private or share them with other
+nutritionists while retaining edit-only ownership. Backend-only change.
+
+### Rules implemented
+- `RecipeVisibility` enum rewritten to `Public = 0`, `Private = 1`. The
+  previous enum only had `Private = 0`; because Mongo stores the enum as
+  a string (`[BsonRepresentation(BsonType.String)]`) the renumbering is
+  safe for existing documents. `Public = 0` + `[BsonDefaultValue(Public)]`
+  also covers legacy recipes that predate the field.
+- `Recipe` document: `Visibility` field initialized to `Public` and
+  `BsonDefaultValue` set to `Public`.
+- `POST /recipes`: now defaults to `Public` (previously hardcoded to
+  Private). Owner can override via request body.
+- `PUT /recipes/{id}`: owner can flip visibility. Ownership filter
+  unchanged (only the owner ever matches the write filter).
+- `GET /recipes/{id}` (nutritionist route): filter is now
+  `ExternalId = id AND (NutritionistId = me OR Visibility = Public)`, so
+  other nutritionists can read public recipes but not private ones.
+- `GET /recipes` (search): filter is now
+  `NutritionistId = me OR Visibility = Public` combined with the existing
+  name/nutrient filters. Owner sees all their recipes; public recipes
+  from others appear alongside them.
+- `DELETE /recipes/{id}`: unchanged (owner-only).
+- `GET /client/recipes/{id}`: unchanged — clients can read any recipe
+  (they may be referenced from nutrition plans).
+- `GetRecipeResponse` and `RecipeSummaryDto` now expose `Visibility` and
+  a computed `IsOwnedByCurrentUser` flag for the UI.
+- Validators assert `Visibility.IsInEnum()`.
+
+### Files touched
+Backend:
+- `Domain/Enums/RecipeVisibility.cs` — enum rewritten with `Public = 0`
+- `Domain/Documents/Recipe.cs` — `BsonDefaultValue` + initializer
+- `Features/Recipes/Shared/GetRecipeResponse.cs`
+- `Features/Recipes/Shared/RecipeSummaryDto.cs`
+- `Features/Recipes/CreateRecipe/{CreateRecipeRequest,CreateRecipeValidator,CreateRecipeEndpoint}.cs`
+- `Features/Recipes/UpdateRecipe/{UpdateRecipeRequest,UpdateRecipeValidator,UpdateRecipeEndpoint}.cs`
+- `Features/Recipes/GetRecipe/GetRecipeEndpoint.cs`
+- `Features/Recipes/SearchRecipes/SearchRecipesEndpoint.cs`
+
+Tests (new):
+- `Endpoints/Recipes/RecipeTestHelpers.cs`
+- `Endpoints/Recipes/CreateRecipeEndpointTests.cs` — default-public, explicit-private, 401
+- `Endpoints/Recipes/UpdateRecipeEndpointTests.cs` — owner flip visibility, non-owner 404
+- `Endpoints/Recipes/GetRecipeEndpointTests.cs` — owner reads private, other reads public, 404
+- `Endpoints/Recipes/SearchRecipesEndpointTests.cs` — `IsOwnedByCurrentUser` flag for owned and public-from-other, 401
+
+### Follow-ups (not in this change)
+- Regenerate `/web` API client (`npm run generate-api`).
+- Mobile uses hand-written API types — no regeneration needed. If any
+  mobile screen starts consuming the new fields, update the relevant
+  type in `mobile/src/api/*.ts` by hand.
+- Surface the Public/Private toggle + badge in the web recipe editor.
+
+### Verification note
+`dotnet build` / `dotnet test` could not be run in this sandbox (no .NET
+SDK available). Please verify locally or via CI.
+
+---
+
+## 2026-04-15 — Food visibility (Public / Private) for custom foods (backend)
+
+### Scope
+Introduced a per-food visibility flag so nutritionists can keep personal
+scratch entries out of other nutritionists' search results while still
+letting them publish sharable foods. Backend-only change; web/mobile pick
+up the new field on next `npm run generate-api`.
+
+### Rules implemented
+- New `FoodVisibility` enum: `Public = 0`, `Private = 1`. `Public = 0` so
+  older Mongo documents deserialize as public without a data migration.
+- `Food` document gets `Visibility` (stored as string). `CreateFoodRequest`
+  defaults it to `Public`, `UpdateFoodRequest` allows the owner to flip it.
+- `GET /foods/{id}`: private foods return 404 when caller has the
+  `Nutritionist` role and is not the owner. Clients and the owner see
+  them — keeps plan / meal-log consumption working.
+- `GET /foods/search`: filter now ANDs `(Visibility = Public OR
+  NutritionistId = me)`. Unauthenticated callers see only public foods.
+- `GET /foods/custom`: unchanged filter (owner-scoped).
+- `PUT /foods/{id}`: owner-only ownership check already present; update
+  payload now includes `Visibility`.
+- `FoodSummary` exposes `Visibility` plus a computed `IsOwnedByCurrentUser`
+  flag so the UI can show edit affordances without re-comparing IDs.
+- Validators assert `Visibility.IsInEnum()`.
+
+### Files touched
+Backend:
+- `Domain/Enums/FoodVisibility.cs` (new)
+- `Domain/Documents/Food.cs`
+- `Features/Foods/Shared/FoodSummary.cs`
+- `Features/Foods/CreateFood/{CreateFoodRequest,CreateFoodValidator,CreateFoodEndpoint}.cs`
+- `Features/Foods/UpdateFood/{UpdateFoodRequest,UpdateFoodValidator,UpdateFoodEndpoint}.cs`
+- `Features/Foods/GetFood/GetFoodEndpoint.cs`
+- `Features/Foods/SearchFoods/SearchFoodsEndpoint.cs`
+- `Features/Foods/GetCustomFoods/GetCustomFoodsEndpoint.cs`
+
+Tests:
+- `Endpoints/Foods/FoodTestHelpers.cs` — added `visibility` parameter
+- `Endpoints/Foods/CreateFoodEndpointTests.cs` — default-public + explicit-private
+- `Endpoints/Foods/UpdateFoodEndpointTests.cs` — owner flips visibility
+- `Endpoints/Foods/GetFoodEndpointTests.cs` — owner/other-nutritionist/client visibility matrix + ownership flag
+- `Endpoints/Foods/SearchFoodsEndpointTests.cs` — `IsOwnedByCurrentUser` flag correctness
+
+### Follow-ups (not in this change)
+- Regenerate API clients in `/web` and `/mobile` (`npm run generate-api`).
+- Surface Private/Public toggle in the web food editor + a "Private"
+  badge on food cards (separate UI task).
+
+---
+
 ## 2026-04-14 — Replace calories stat card with weight trend (mobile Today)
 
 ### Problem
@@ -1067,3 +1229,117 @@ calorie info already shown in the nutrition card hero just below.
 
 ### i18n
 - Added `today.weight` and `today.noMeasurements` keys in cs, en, de.
+
+---
+
+## 2026-04-15 — Remove barcode feature and OpenFoodFacts integration
+
+### Scope
+Ripped out the unused barcode / Open Food Facts lookup across backend,
+web, and mobile. Triggered by a production `E11000 duplicate key` on
+`idx_food_barcode` when a second nutritionist saved a custom food
+without a barcode: the Mongo index was unique + sparse, but `UpdateFood`
+was `$set`ing `barcode: null` on every edit, and sparse only skips
+*missing* fields — not `null` values — so two `{ barcode: null }`
+documents collided. Rather than patch with a partial index, the feature
+is removed entirely (it was never wired into the UI; mobile shipped
+with camera permission text referencing barcode scanning that never
+happened).
+
+### Backend (`/backend`)
+- `Domain/Documents/Food.cs`: removed `Barcode` property and its
+  `[BsonElement]` / `[BsonIgnoreIfNull]` attributes.
+- `Domain/Extensions/StringExtensions.cs` (new): extracted the
+  `NullIfEmpty` helper out of `OpenFoodFactsService.cs` so the Create /
+  Update endpoints keep working after the service is deleted. Made
+  `public static`.
+- `Features/Foods/CreateFood/{CreateFoodRequest,CreateFoodValidator,
+  CreateFoodEndpoint}.cs`: removed `Barcode` property, its
+  `MaximumLength(50)` validator, and the `Barcode = req.Barcode?.Trim()`
+  construction. Endpoint now uses `Domain.Extensions` instead of the
+  deleted `Infrastructure.Services` namespace for `NullIfEmpty`.
+- `Features/Foods/UpdateFood/{UpdateFoodRequest,UpdateFoodValidator,
+  UpdateFoodEndpoint}.cs`: same cleanup — removed the barcode handling
+  and collapsed the update back to a single chained
+  `Builders<Food>.Update` expression.
+- `Features/Foods/Shared/FoodSummary.cs`: removed `Barcode` property
+  and its `FromDocument` mapping.
+- `Infrastructure/Data/MongoDb/MongoIndexInitializer.cs`: rewrote
+  `CreateFoodIndexes` to (a) drop the legacy `idx_food_barcode` via a
+  new `TryDropIndexAsync` helper that tolerates `IndexNotFound` on
+  fresh DBs, and (b) `$unset` any `barcode` field still present on
+  existing documents using a `{ barcode: { $exists: true } }` filter.
+  Both operations are idempotent — safe to run on every startup once
+  the collection is clean. Logs the modified count when > 0.
+- `appsettings.json`: removed the whole `OpenFoodFacts` section.
+- `Domain/Constants/ConfigKeys.cs`: removed
+  `OpenFoodFactsBaseUrl`, `OpenFoodFactsTimeoutSeconds`,
+  `OpenFoodFactsCacheDays`.
+- `Program.cs`: removed the `AddHttpClient<IFoodExternalService,
+  OpenFoodFactsService>` DI block and its timeout / resilience
+  configuration.
+- Deleted: `Infrastructure/Services/OpenFoodFactsService.cs`,
+  `Infrastructure/Services/OpenFoodFactsModels.cs`,
+  `Domain/Interfaces/IFoodExternalService.cs`,
+  `FitnessPlatform.Tests/Services/OpenFoodFactsServiceTests.cs`.
+- `FitnessPlatform.Tests/Endpoints/Foods/FoodTestHelpers.cs`: removed
+  `barcode` parameter from the `CreateFood` helper.
+
+### Web (`/web`)
+- `src/api/food-types.ts`: removed `barcode?: string | null` from
+  `FoodSummary`, `CreateFoodRequest`, `UpdateFoodRequest`.
+- `src/api/foods.ts`: removed `getFoodByBarcode` function.
+- `src/i18n/locales/{cs,en,de}.json`: removed the now-unused
+  `foods.barcode`, `foods.sourceOpenFoodFacts`, and
+  `foods.loadingExternal` keys.
+- `src/api/generated.ts` left untouched — auto-generated; rerun
+  `npm run generate-api` after backend restart to pick up the removal.
+
+### Mobile (`/mobile`)
+- `src/api/foods.ts`: removed `barcode?: string | null` from
+  `FoodSummary` and the `getFoodByBarcode` function.
+- `src/components/FoodDetailSheet.tsx`: removed the `Barcode: {…}`
+  rendering block and its dangling `barcode` style entry.
+- `app.json`: updated `expo-camera.cameraPermission` copy from
+  "access your camera for barcode scanning" to
+  "access your camera to capture progress photos".
+- `barcode-detector` in `package-lock.json` is a transitive dep of
+  expo-camera's web shim — not a direct dependency. Left alone.
+
+### Fixes the Mongo E11000 error
+The duplicate-key exception on save is resolved two ways:
+1. The write path no longer sets `barcode` at all (field removed from
+   `Food` document + Create/Update endpoints).
+2. On next application startup, `MongoIndexInitializer` drops the old
+   `idx_food_barcode` unique-sparse index and strips any residual
+   `barcode` field from existing docs. No manual DB migration needed.
+
+---
+
+## 2026-04-15 — FoodDialog: stale visibility when re-opening edit mode
+
+### Bug
+After editing a food's visibility and pressing Save, the dialog switched
+back to view mode. If the user then re-opened edit mode *without closing
+the dialog first*, the visibility toggle still showed the old value.
+
+### Root cause
+`FoodsPage` holds the edited food in `useDialogState`'s local state —
+captured at the moment of `openEdit(food)`. The `onSaved` callback only
+refetched the list; it did not update the dialog's cached snapshot. The
+dialog's `food` prop therefore stayed stale between saves within the
+same open session. `populateForm(food)` on the next edit-mode entry
+then re-seeded the form from the old visibility value.
+
+### Fix
+- `web/src/components/nutrition/FoodDialog.tsx`: `onSaved` prop now
+  takes the `FoodSummary` returned by the mutation and passes it up.
+- `web/src/pages/FoodsPage.tsx`: the `onSaved` handler now calls
+  `foodDialog.openEdit(updated)` in addition to `refetch()`. That
+  replaces the dialog's cached snapshot with the server response; the
+  dialog stays open in view mode because its internal `mode` state is
+  only reset when `food?.foodId` changes (which it doesn't on update).
+
+`RecipeDialog` uses the same pattern — not touched here since the user
+only reported the food case, but would benefit from the same treatment
+if the symptom appears on recipes too.

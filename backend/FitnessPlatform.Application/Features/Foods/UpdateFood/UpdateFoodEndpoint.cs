@@ -5,7 +5,6 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Features.Foods.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
-using FitnessPlatform.Application.Infrastructure.Services;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.Foods.UpdateFood;
@@ -71,7 +70,6 @@ public class UpdateFoodEndpoint(IMongoContext mongo) : Endpoint<UpdateFoodReques
         var update = Builders<Food>.Update
             .Set(f => f.Name, req.Name.Trim())
             .Set(f => f.LocalizedNames, localizedNames)
-            .Set(f => f.Barcode, req.Barcode?.Trim())
             .Set(f => f.NutrientValue, new NutrientValue
             {
                 Kcal = req.NutrientValue.Kcal,
@@ -91,6 +89,11 @@ public class UpdateFoodEndpoint(IMongoContext mongo) : Endpoint<UpdateFoodReques
                 .ToList())
             .Set(f => f.DateUpdated, DateTime.UtcNow);
 
+        if (req.Visibility.HasValue)
+        {
+            update = update.Set(f => f.Visibility, req.Visibility.Value);
+        }
+
         await mongo.Foods.UpdateOneAsync(
             f => f.ExternalId == req.FoodId,
             update,
@@ -102,6 +105,6 @@ public class UpdateFoodEndpoint(IMongoContext mongo) : Endpoint<UpdateFoodReques
             cancellationToken: ct);
         var updated = await updatedCursor.FirstOrDefaultAsync(ct);
 
-        await Send.OkAsync(FoodSummary.FromDocument(updated!), ct);
+        await Send.OkAsync(FoodSummary.FromDocument(updated!, currentUserId: nutritionistId), ct);
     }
 }

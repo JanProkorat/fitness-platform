@@ -36,7 +36,6 @@ interface SortableMealItemProps {
 /** Sortable wrapper for a meal in the day list */
 export function SortableMealItem({
   meal,
-  index: _index,
   dayOfWeek,
   weekNumber: weekNum,
   isOpen,

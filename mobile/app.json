@@ -35,7 +35,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow GF Platform to access your camera for barcode scanning."
+          "cameraPermission": "Allow GF Platform to access your camera to capture progress photos."
         }
       ],
       [

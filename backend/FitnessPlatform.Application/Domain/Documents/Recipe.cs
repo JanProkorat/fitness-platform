@@ -76,10 +76,12 @@ public class Recipe
 
     /// <summary>
     /// Visibility level controlling who can access this recipe.
+    /// Public recipes are visible to all nutritionists; private ones only to their creator.
+    /// Only the creator can edit or delete, regardless of visibility.
     /// </summary>
     [BsonElement("visibility")]
     [BsonRepresentation(BsonType.String)]
-    public RecipeVisibility Visibility { get; set; }
+    public RecipeVisibility Visibility { get; set; } = RecipeVisibility.Public;
 
     /// <summary>
     /// When this document was created.

@@ -179,7 +179,7 @@ export const QuestionnaireEditor = forwardRef<QuestionnaireEditorHandle, Questio
     }));
   };
 
-  const handleDragEnd = (event: { operation: { source?: { sortable?: { initialIndex: number } }; target?: { sortable?: { index: number } } }; canceled?: boolean }) => {
+  const handleDragEnd: React.ComponentProps<typeof DragDropProvider>['onDragEnd'] = (event) => {
     if (event.canceled) return;
     const source = event.operation.source as { sortable?: { initialIndex: number } } | null;
     const target = event.operation.target as { sortable?: { index: number } } | null;

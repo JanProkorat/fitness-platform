@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import {
   HubConnectionBuilder,
   HubConnection,
@@ -26,7 +26,9 @@ export function useSignalR(handlers: Record<string, (payload: unknown) => void>)
   const connectionRef = useRef<HubConnection | null>(null);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const handlersRef = useRef(handlers);
-  handlersRef.current = handlers;
+  useLayoutEffect(() => {
+    handlersRef.current = handlers;
+  });
 
   // Connect/disconnect based on auth state only (not token changes).
   // React 18 StrictMode runs effects twice (mount → cleanup → mount),
@@ -66,7 +68,7 @@ export function useSignalR(handlers: Record<string, (payload: unknown) => void>)
     // Start the connection. If cleanup runs mid-negotiation (React 18
     // StrictMode), we let start() finish and then stop — calling stop()
     // during negotiation triggers an internal SignalR error log.
-    const startPromise = connection.start().then(() => {
+    connection.start().then(() => {
       if (cancelled) {
         connection.stop();
         return;

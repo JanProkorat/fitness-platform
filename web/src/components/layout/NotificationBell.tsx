@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { getNotifications, markNotificationRead, markAllNotificationsRead, type NotificationDto } from '@/api/notifications';
+import { getNotifications, markNotificationRead, markAllNotificationsRead } from '@/api/notifications';
 import { useApiMutation } from '@/hooks/useApiMutation';
 
 function timeAgo(isoDate: string, t: (key: string) => string): string {

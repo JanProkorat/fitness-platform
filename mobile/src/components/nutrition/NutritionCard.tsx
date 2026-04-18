@@ -79,14 +79,14 @@ export function NutritionCard({
     <View style={[styles.card, { backgroundColor: colors.bg2 }]}>
       <NutritionCardHero
         eyebrow={eyebrow}
-        consumedKcal={consumed.kcal}
+        consumedKcal={consumed.kcal ?? 0}
         targetKcal={targets.kcal}
         subline={subline}
         macros={{
-          protein: { current: consumed.protein, target: targets.protein },
-          carbs: { current: consumed.carbs, target: targets.carbs },
-          fat: { current: consumed.fat, target: targets.fat },
-          fiber: { current: consumed.fiber, target: targets.fiber },
+          protein: { current: consumed.protein ?? 0, target: targets.protein },
+          carbs: { current: consumed.carbs ?? 0, target: targets.carbs },
+          fat: { current: consumed.fat ?? 0, target: targets.fat },
+          fiber: { current: consumed.fiber ?? 0, target: targets.fiber },
         }}
         mealsEaten={eatenMealIds.size}
         mealsTotal={meals.length}
@@ -102,14 +102,14 @@ export function NutritionCard({
       <View style={styles.meals}>
         {meals.map((meal, index) => (
           <MealRow
-            key={meal.mealId}
+            key={meal.mealId ?? index}
             meal={meal}
-            eaten={eatenMealIds.has(meal.mealId)}
+            eaten={meal.mealId ? eatenMealIds.has(meal.mealId) : false}
             isLast={index === meals.length - 1}
-            expanded={expandedMealIds.has(meal.mealId)}
-            onToggle={() => toggle(meal.mealId)}
+            expanded={meal.mealId ? expandedMealIds.has(meal.mealId) : false}
+            onToggle={() => meal.mealId && toggle(meal.mealId)}
             onToggleEaten={
-              onToggleEaten ? () => onToggleEaten(meal.mealId) : undefined
+              onToggleEaten && meal.mealId ? () => onToggleEaten(meal.mealId!) : undefined
             }
           />
         ))}

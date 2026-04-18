@@ -160,24 +160,6 @@ builder.Services.AddCors(options =>
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<PresenceTracker>();
 
-// Open Food Facts
-var offBaseUrl = builder.Configuration[ConfigKeys.OpenFoodFactsBaseUrl] ?? "https://world.openfoodfacts.org/";
-var offTimeout = builder.Configuration.GetValue(ConfigKeys.OpenFoodFactsTimeoutSeconds, 5);
-builder.Services.AddHttpClient<IFoodExternalService, OpenFoodFactsService>(client =>
-{
-    client.BaseAddress = new Uri(offBaseUrl);
-    client.Timeout = TimeSpan.FromSeconds(offTimeout);
-    client.DefaultRequestHeaders.UserAgent.ParseAdd("FitnessPlatform/1.0 (contact@fitnessplatform.local)");
-})
-.AddStandardResilienceHandler(options =>
-{
-    options.Retry.MaxRetryAttempts = 2;
-    options.Retry.Delay = TimeSpan.FromSeconds(1);
-    options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(offTimeout);
-    options.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(offTimeout * 2 + 1);
-    options.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(offTimeout * 3);
-});
-
 // Macro Calculator
 builder.Services.AddSingleton<IMacroCalculatorService, MacroCalculatorService>();
 
@@ -186,6 +168,9 @@ builder.Services.AddScoped<NutritionAuthHelper>();
 builder.Services.AddScoped<ProfessionalAuthHelper>();
 builder.Services.AddScoped<IPrDetectionService, PrDetectionService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+// Registers IHttpClientFactory — consumed by ExpoPushNotificationService below
+// and by the ResendClient typed client when Email:Provider = Resend.
+builder.Services.AddHttpClient();
 builder.Services.AddScoped<IPushNotificationService, ExpoPushNotificationService>();
 builder.Services.AddScoped<IProfileMapperService, ProfileMapperService>();
 

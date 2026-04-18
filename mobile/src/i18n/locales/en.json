@@ -239,6 +239,7 @@
     "trainingPlanType": "Training plan",
     "nutritionPlanType": "Nutrition plan",
     "startsOn": "Starts {{date}}",
+    "starts": "starts",
     "viewPlan": "View plan",
     "weeklySchedule": "Weekly schedule",
     "dailyMealStructure": "Daily meal structure",
@@ -396,7 +397,8 @@
     "allDoneDesc": "You have no pending questionnaires. Great job!"
   },
   "planDetail": {
-    "linkedQuestionnaire": "Linked questionnaire"
+    "linkedQuestionnaire": "Linked questionnaire",
+    "answersNotAvailable": "Answers are not available yet."
   },
   "profile": {
     "title": "Profile",
@@ -489,6 +491,7 @@
     "reps": "Reps",
     "weight": "Weight",
     "rest": "Rest",
+    "status": "Status",
     "mood": "How did it feel?",
     "finishWorkout": "Finish Workout",
     "newPR": "New Personal Record!",
@@ -504,7 +507,37 @@
     "selectExercise": "Select an exercise to view progress",
     "prTimeline": "PR Timeline",
     "prTimelineHint": "Complete workouts to see your personal records here",
-    "weekProgress": "Week {{current}}/{{total}}"
+    "weekProgress": "Week {{current}}/{{total}}",
+    "weekLabel": "Week {{current}} of {{total}}",
+    "sessionsCount_one": "{{count}} session",
+    "sessionsCount_other": "{{count}} sessions",
+    "exercisesCount_one": "{{count}} exercise",
+    "exercisesCount_other": "{{count}} exercises",
+    "duration": "{{minutes}} min",
+    "completedRatio": "{{done}}/{{total}}",
+    "completed": "Done",
+    "sessionsLabel": "Trainings",
+    "exercisesLabel": "Exercises",
+    "restLabel": "rest {{seconds}} s",
+    "totalsLabel": "Total",
+    "sessionTotals": "Session totals"
+  },
+  "muscleGroup": {
+    "Chest": "Chest",
+    "Back": "Back",
+    "Shoulders": "Shoulders",
+    "Biceps": "Biceps",
+    "Triceps": "Triceps",
+    "Forearms": "Forearms",
+    "Quadriceps": "Quadriceps",
+    "Hamstrings": "Hamstrings",
+    "Glutes": "Glutes",
+    "Calves": "Calves",
+    "Abs": "Abs",
+    "Obliques": "Obliques",
+    "LowerBack": "Lower Back",
+    "Traps": "Traps",
+    "FullBody": "Full Body"
   },
   "collab": {
     "title": "Collaboration",
@@ -626,6 +659,7 @@
     "foodCount_one": "{{count}} food",
     "foodCount_other": "{{count}} foods",
     "fiber": "Fiber",
+    "total": "Total",
     "dailyOverview": "Daily Overview",
     "noMeals": "No meals planned for this day",
     "noteFrom": "Note from {{name}}:",

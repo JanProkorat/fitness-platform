@@ -1,4 +1,4 @@
-interface ListViewProps<T = any> {
+interface ListViewProps<T = unknown> {
   items: T[];
   itemKey: (item: T) => string;
   renderAvatar: (item: T) => React.ReactNode;
