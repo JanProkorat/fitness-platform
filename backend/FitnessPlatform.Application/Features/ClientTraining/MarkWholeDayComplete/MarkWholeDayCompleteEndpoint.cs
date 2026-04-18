@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
@@ -66,7 +67,7 @@ public class MarkWholeDayCompleteEndpoint(IMongoContext mongo, IApplicationDbCon
 
         if (plan is null)
         {
-            await Send.NotFoundAsync(ct);
+            await this.SendProblemAsync(404, ErrorCodes.NoActiveTrainingPlan, "No active training plan found.", ct);
             return;
         }
 
@@ -130,8 +131,40 @@ public class MarkWholeDayCompleteEndpoint(IMongoContext mongo, IApplicationDbCon
                     Version = 1
                 };
 
-                await mongo.TrainingCompletions.InsertOneAsync(completion, cancellationToken: ct);
-                version = 1;
+                try
+                {
+                    await mongo.TrainingCompletions.InsertOneAsync(completion, cancellationToken: ct);
+                    version = 1;
+                }
+                catch (MongoDB.Driver.MongoWriteException ex) when (ex.WriteError?.Code == 11000)
+                {
+                    // Duplicate-key: concurrent request inserted first — re-read and retry once.
+                    using var retryCursor = await mongo.TrainingCompletions.FindAsync(completionFilter, cancellationToken: ct);
+                    existing = await retryCursor.FirstOrDefaultAsync(ct);
+
+                    if (existing is null)
+                    {
+                        throw;
+                    }
+
+                    if (allExerciseIds.All(id => existing.CompletedExerciseIds.Contains(id)))
+                    {
+                        version = existing.Version;
+                    }
+                    else
+                    {
+                        var retryVersion = existing.Version + 1;
+                        var retryVersionedFilter = completionFilter
+                            & Builders<TrainingCompletion>.Filter.Eq(c => c.Version, existing.Version);
+                        var retryUpdate = Builders<TrainingCompletion>.Update
+                            .Set(c => c.CompletedExerciseIds, allExerciseIds)
+                            .Set(c => c.DateUpdated, DateTime.UtcNow)
+                            .Set(c => c.Version, retryVersion);
+                        var retryResult = await mongo.TrainingCompletions.UpdateOneAsync(retryVersionedFilter, retryUpdate, cancellationToken: ct);
+                        // If version conflict on fan-out retry, use the existing version — don't fail the whole batch
+                        version = retryResult.ModifiedCount > 0 ? retryVersion : existing.Version;
+                    }
+                }
             }
 
             summaries.Add(new SessionCompletionSummary

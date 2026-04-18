@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
@@ -64,7 +65,7 @@ public class MarkSessionCompleteEndpoint(IMongoContext mongo, IApplicationDbCont
 
         if (plan is null)
         {
-            await Send.NotFoundAsync(ct);
+            await this.SendProblemAsync(404, ErrorCodes.NoActiveTrainingPlan, "No active training plan found.", ct);
             return;
         }
 
@@ -74,7 +75,7 @@ public class MarkSessionCompleteEndpoint(IMongoContext mongo, IApplicationDbCont
 
         if (session is null)
         {
-            await Send.NotFoundAsync(ct);
+            await this.SendProblemAsync(404, ErrorCodes.TrainingSessionNotFound, "The session was not found in the active training plan.", ct);
             return;
         }
 
@@ -100,9 +101,8 @@ public class MarkSessionCompleteEndpoint(IMongoContext mongo, IApplicationDbCont
             // Optimistic concurrency check
             if (req.Version.HasValue && existing.Version != req.Version.Value)
             {
-                await HttpContext.Response.SendAsync(
-                    new { Error = "Version conflict. The completion record was modified by another request." },
-                    409, cancellation: ct);
+                await this.SendProblemAsync(409, ErrorCodes.TrainingCompletionVersionConflict,
+                    "Version conflict. The completion record was modified by another request.", ct);
                 return;
             }
 
@@ -119,9 +119,8 @@ public class MarkSessionCompleteEndpoint(IMongoContext mongo, IApplicationDbCont
 
             if (updateResult.ModifiedCount == 0)
             {
-                await HttpContext.Response.SendAsync(
-                    new { Error = "Version conflict. The completion record was modified by another request." },
-                    409, cancellation: ct);
+                await this.SendProblemAsync(409, ErrorCodes.TrainingCompletionVersionConflict,
+                    "Version conflict. The completion record was modified by another request.", ct);
                 return;
             }
 
@@ -145,7 +144,50 @@ public class MarkSessionCompleteEndpoint(IMongoContext mongo, IApplicationDbCont
                 Version = 1
             };
 
-            await mongo.TrainingCompletions.InsertOneAsync(completion, cancellationToken: ct);
+            try
+            {
+                await mongo.TrainingCompletions.InsertOneAsync(completion, cancellationToken: ct);
+            }
+            catch (MongoDB.Driver.MongoWriteException ex) when (ex.WriteError?.Code == 11000)
+            {
+                // Duplicate-key: a concurrent request inserted the document first.
+                // Re-read and retry the update path once.
+                using var retryCursor = await mongo.TrainingCompletions.FindAsync(completionFilter, cancellationToken: ct);
+                existing = await retryCursor.FirstOrDefaultAsync(ct);
+
+                if (existing is null)
+                {
+                    // Genuinely unexpected — let the global exception handler return 500.
+                    throw;
+                }
+
+                if (allExerciseIds.All(id => existing.CompletedExerciseIds.Contains(id)))
+                {
+                    await Send.OkAsync(BuildResponse(req.SessionId, targetDate, existing, allExerciseIds.Count), ct);
+                    return;
+                }
+
+                var retryVersion = existing.Version + 1;
+                var retryVersionedFilter = completionFilter
+                    & Builders<TrainingCompletion>.Filter.Eq(c => c.Version, existing.Version);
+                var retryUpdate = Builders<TrainingCompletion>.Update
+                    .Set(c => c.CompletedExerciseIds, allExerciseIds)
+                    .Set(c => c.DateUpdated, DateTime.UtcNow)
+                    .Set(c => c.Version, retryVersion);
+                var retryResult = await mongo.TrainingCompletions.UpdateOneAsync(retryVersionedFilter, retryUpdate, cancellationToken: ct);
+
+                if (retryResult.ModifiedCount == 0)
+                {
+                    await this.SendProblemAsync(409, ErrorCodes.TrainingCompletionVersionConflict,
+                        "Version conflict. The completion record was modified by another request.", ct);
+                    return;
+                }
+
+                existing.CompletedExerciseIds = allExerciseIds;
+                existing.Version = retryVersion;
+                await Send.OkAsync(BuildResponse(req.SessionId, targetDate, existing, allExerciseIds.Count), ct);
+                return;
+            }
 
             // TODO #6: publish trainingprogressupdated to trainer via IRealtimeNotifier
 

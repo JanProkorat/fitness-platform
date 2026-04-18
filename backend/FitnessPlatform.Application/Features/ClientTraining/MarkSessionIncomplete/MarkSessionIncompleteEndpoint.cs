@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
@@ -63,7 +64,7 @@ public class MarkSessionIncompleteEndpoint(IMongoContext mongo, IApplicationDbCo
 
         if (plan is null)
         {
-            await Send.NotFoundAsync(ct);
+            await this.SendProblemAsync(404, ErrorCodes.NoActiveTrainingPlan, "No active training plan found.", ct);
             return;
         }
 
@@ -73,7 +74,7 @@ public class MarkSessionIncompleteEndpoint(IMongoContext mongo, IApplicationDbCo
 
         if (session is null)
         {
-            await Send.NotFoundAsync(ct);
+            await this.SendProblemAsync(404, ErrorCodes.TrainingSessionNotFound, "The session was not found in the active training plan.", ct);
             return;
         }
 
@@ -101,9 +102,8 @@ public class MarkSessionIncompleteEndpoint(IMongoContext mongo, IApplicationDbCo
         // Optimistic concurrency check
         if (req.Version.HasValue && existing.Version != req.Version.Value)
         {
-            await HttpContext.Response.SendAsync(
-                new { Error = "Version conflict. The completion record was modified by another request." },
-                409, cancellation: ct);
+            await this.SendProblemAsync(409, ErrorCodes.TrainingCompletionVersionConflict,
+                "Version conflict. The completion record was modified by another request.", ct);
             return;
         }
 
@@ -120,9 +120,8 @@ public class MarkSessionIncompleteEndpoint(IMongoContext mongo, IApplicationDbCo
 
         if (updateResult.ModifiedCount == 0)
         {
-            await HttpContext.Response.SendAsync(
-                new { Error = "Version conflict. The completion record was modified by another request." },
-                409, cancellation: ct);
+            await this.SendProblemAsync(409, ErrorCodes.TrainingCompletionVersionConflict,
+                "Version conflict. The completion record was modified by another request.", ct);
             return;
         }
 
