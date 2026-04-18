@@ -1162,6 +1162,7 @@
     "inviteRevokedGeneric": "A client revoked their invitation",
     "collaborationEnded": "{{name}} ended the collaboration",
     "collaborationEndedGeneric": "A client ended the collaboration",
+    "personalRecordAchieved": "New personal record – {{exerciseName}}",
     "title": "Notifications",
     "markAllRead": "Mark all as read",
     "empty": "No notifications",

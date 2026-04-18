@@ -6,6 +6,7 @@ import { Sidebar } from './Sidebar';
 import { useSignalR } from '@/hooks/useSignalR';
 import { useToastStore } from '@/stores/toast';
 import { isTrainingProgressUpdatedEvent } from '@/api/trainingProgressEvent';
+import { isPersonalRecordAchievedEvent } from '@/api/personalRecordEvent';
 
 const DARK_MODE_KEY = 'gf-dark-mode';
 
@@ -158,6 +159,38 @@ export function AppShell() {
         queryClient.invalidateQueries({ queryKey: ['client-dashboard', clientId] });
         queryClient.invalidateQueries({ queryKey: ['client-timeline', clientId] });
       }
+    },
+    personalrecordachieved: (payload: unknown) => {
+      if (import.meta.env.DEV) {
+        console.debug('personalrecordachieved', payload);
+      }
+      if (!isPersonalRecordAchievedEvent(payload)) {
+        if (import.meta.env.DEV) {
+          console.warn('personalrecordachieved: invalid payload shape', payload);
+        }
+        return;
+      }
+      const { clientId, exerciseName } = payload;
+
+      // Toast notification so the trainer sees the PR regardless of which page they are on.
+      addToast(
+        t('notifications.personalRecordAchieved', { exerciseName }),
+        'success',
+      );
+
+      // Invalidate the client's activity timeline — the new personal_record entry
+      // will appear there once the query refetches.
+      // Key shape verified: ClientDetailPage.tsx line 31 uses ['client-timeline', id].
+      queryClient.invalidateQueries({ queryKey: ['client-timeline', clientId] });
+
+      // Invalidate the per-client stats panel (streak, compliance, etc.).
+      // Key shape verified: ClientDetailPage.tsx line 25 uses ['client-dashboard', id].
+      queryClient.invalidateQueries({ queryKey: ['client-dashboard', clientId] });
+
+      // Invalidate the trainer's dashboard summary — the PR represents a completed
+      // workout that may update streak / training count cells in the client table.
+      // Key shape verified: DashboardPage.tsx line 88 uses ['dashboard-summary'].
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
     },
     typing: (payload: unknown) => {
       const data = payload as { conversationId?: string; senderId?: string } | undefined;

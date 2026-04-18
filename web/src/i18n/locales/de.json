@@ -1161,6 +1161,7 @@
     "inviteRevokedGeneric": "Ein Klient hat seine Einladung zurückgezogen",
     "collaborationEnded": "{{name}} hat die Zusammenarbeit beendet",
     "collaborationEndedGeneric": "Ein Klient hat die Zusammenarbeit beendet",
+    "personalRecordAchieved": "Neuer persönlicher Rekord – {{exerciseName}}",
     "title": "Benachrichtigungen",
     "markAllRead": "Alle als gelesen markieren",
     "empty": "Keine Benachrichtigungen",
