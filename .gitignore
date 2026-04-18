@@ -100,3 +100,12 @@ Thumbs.db
 !.vscode/settings.json
 !.vscode/extensions.json
 .superpowers/
+
+# =========================
+# Claude Code
+# =========================
+**/.claude/settings.local.json
+**/.claude/worktrees/
+**/.claude/pending-question.md
+**/.claude/history/
+.remember/
