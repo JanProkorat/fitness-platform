@@ -50,13 +50,13 @@ function PrRow({ record, withTopBorder, onPress }: PrRowProps) {
           {record.exerciseName}
         </Text>
         <Text style={[styles.dateText, { color: colors.label3 }]}>
-          {formatRecordDate(record.achievedAt, t)}
+          {formatRecordDate(record.achievedAt ?? '', t)}
         </Text>
       </View>
 
       {/* Weight */}
       <Text style={[styles.weightText, { color: colors.gold }]}>
-        {formatWeight(record.weightKg, i18n.language)}
+        {formatWeight(record.weightKg ?? 0, i18n.language)}
       </Text>
     </Pressable>
   )
