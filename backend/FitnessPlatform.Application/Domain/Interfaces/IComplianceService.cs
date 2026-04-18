@@ -43,7 +43,10 @@ public interface IComplianceService
 public class ComplianceResult
 {
     /// <summary>
-    /// Compliance percentage (0-100).
+    /// Combined compliance percentage (0-100), weighted by plan presence.
+    /// When both nutrition and training plans are active:
+    ///   (mealsPlanned * nutritionPercent + trainingsPlanned * trainingPercent) / (mealsPlanned + trainingsPlanned).
+    /// When only one plan type is active, equals that plan's individual percentage.
     /// </summary>
     public decimal CompliancePercent { get; set; }
 
@@ -56,4 +59,25 @@ public class ComplianceResult
     /// Total number of meals logged in the date range.
     /// </summary>
     public int MealsLogged { get; set; }
+
+    /// <summary>
+    /// Nutrition-only compliance percentage (0-100).
+    /// </summary>
+    public decimal NutritionCompliancePercent { get; set; }
+
+    /// <summary>
+    /// Total number of training sessions planned in the date range.
+    /// A "planned" session is one in a published week that falls on a day within [from, to].
+    /// </summary>
+    public int TrainingsPlanned { get; set; }
+
+    /// <summary>
+    /// Number of planned sessions where every exercise in the session has a completion record for that day.
+    /// </summary>
+    public int TrainingsCompleted { get; set; }
+
+    /// <summary>
+    /// Training-only compliance percentage (0-100).
+    /// </summary>
+    public decimal TrainingCompliancePercent { get; set; }
 }

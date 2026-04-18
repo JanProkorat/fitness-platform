@@ -43,4 +43,9 @@ public interface IMongoContext
     /// Workout log entries collection.
     /// </summary>
     IMongoCollection<WorkoutLog> WorkoutLogs { get; }
+
+    /// <summary>
+    /// Training completion records collection.
+    /// </summary>
+    IMongoCollection<TrainingCompletion> TrainingCompletions { get; }
 }

@@ -34,6 +34,7 @@ public class MongoIndexInitializer : IHostedService
         await CreateExerciseIndexes(cancellationToken);
         await CreateTrainingPlanIndexes(cancellationToken);
         await CreateWorkoutLogIndexes(cancellationToken);
+        await CreateTrainingCompletionIndexes(cancellationToken);
 
         _logger.LogInformation("MongoDB indexes created successfully");
     }
@@ -210,5 +211,32 @@ public class MongoIndexInitializer : IHostedService
             new CreateIndexOptions { Name = "idx_workoutlog_clientId_sessionId", Sparse = true });
 
         await indexes.CreateManyAsync([externalIdIndex, clientDateIndex, clientSessionIndex], ct);
+    }
+
+    private async Task CreateTrainingCompletionIndexes(CancellationToken ct)
+    {
+        var indexes = _mongo.TrainingCompletions.Indexes;
+
+        // Unique index on externalId for API lookups
+        var externalIdIndex = new CreateIndexModel<TrainingCompletion>(
+            Builders<TrainingCompletion>.IndexKeys.Ascending(c => c.ExternalId),
+            new CreateIndexOptions { Name = "idx_trainingcompletion_externalId", Unique = true });
+
+        // Primary query index: clientId + date for compliance roll-ups
+        var clientDateIndex = new CreateIndexModel<TrainingCompletion>(
+            Builders<TrainingCompletion>.IndexKeys
+                .Ascending(c => c.ClientId)
+                .Ascending(c => c.Date),
+            new CreateIndexOptions { Name = "idx_trainingcompletion_clientId_date" });
+
+        // Unique compound index to enforce one document per (clientId, date, sessionId)
+        var clientDateSessionIndex = new CreateIndexModel<TrainingCompletion>(
+            Builders<TrainingCompletion>.IndexKeys
+                .Ascending(c => c.ClientId)
+                .Ascending(c => c.Date)
+                .Ascending(c => c.SessionId),
+            new CreateIndexOptions { Name = "idx_trainingcompletion_clientId_date_sessionId", Unique = true });
+
+        await indexes.CreateManyAsync([externalIdIndex, clientDateIndex, clientDateSessionIndex], ct);
     }
 }

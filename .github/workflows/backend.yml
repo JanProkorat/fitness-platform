@@ -96,7 +96,6 @@ jobs:
       - name: Run tests
         run: |
           ./FitnessPlatform.Tests/bin/Release/net10.0/FitnessPlatform.Tests \
-            -class- '*ComplianceServiceTests' \
             -class- '*CreatePlanEndpointTests' \
             -class- '*CreateTrainingPlanEndpointTests' \
             -class- '*GetComplianceScoreEndpointTests' \

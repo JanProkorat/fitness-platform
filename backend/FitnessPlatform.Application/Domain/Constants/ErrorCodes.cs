@@ -116,6 +116,19 @@ public static class ErrorCodes
     /// <summary>Client request not found.</summary>
     public const string ClientRequestNotFound = "CLIENT_REQUEST_NOT_FOUND";
 
+    // ── Training Completion ──────────────────────────────────────────
+    /// <summary>The training completion document version is stale; another write occurred first.</summary>
+    public const string TrainingCompletionVersionConflict = "TRAINING_COMPLETION_VERSION_CONFLICT";
+
+    /// <summary>The session ID was not found in the client's active training plan.</summary>
+    public const string TrainingSessionNotFound = "TRAINING_SESSION_NOT_FOUND";
+
+    /// <summary>The exercise was not found in the specified session.</summary>
+    public const string TrainingExerciseNotFound = "TRAINING_EXERCISE_NOT_FOUND";
+
+    /// <summary>No active training plan found for the client.</summary>
+    public const string NoActiveTrainingPlan = "NO_ACTIVE_TRAINING_PLAN";
+
     // ── Validation (generic) ─────────────────────────────────────────
     /// <summary>Required field is missing.</summary>
     public const string Required = "REQUIRED";
