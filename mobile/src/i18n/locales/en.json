@@ -540,7 +540,7 @@
       "setLabel": "Set",
       "repsLabel": "Reps",
       "weightLabel": "Weight (kg)",
-      "bodweightLabel": "Bodyweight",
+      "bodyweightLabel": "Bodyweight",
       "bw": "BW",
       "planHint": "plan:",
       "decreaseReps": "Decrease reps",

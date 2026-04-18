@@ -703,7 +703,7 @@
       "setLabel": "Série",
       "repsLabel": "Opakování",
       "weightLabel": "Váha (kg)",
-      "bodweightLabel": "Vlastní váha",
+      "bodyweightLabel": "Vlastní váha",
       "bw": "BW",
       "planHint": "plán:",
       "decreaseReps": "Snížit opakování",

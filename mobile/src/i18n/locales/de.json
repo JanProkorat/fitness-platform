@@ -696,7 +696,7 @@
       "setLabel": "Satz",
       "repsLabel": "Wiederholungen",
       "weightLabel": "Gewicht (kg)",
-      "bodweightLabel": "Körpergewicht",
+      "bodyweightLabel": "Körpergewicht",
       "bw": "KG",
       "planHint": "Plan:",
       "decreaseReps": "Wiederholungen verringern",

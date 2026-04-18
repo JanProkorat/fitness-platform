@@ -182,7 +182,7 @@ export function LiveExerciseFocus({
           <View style={styles.stepperWrap}>
             <Text style={[styles.stepperTitle, { color: colors.label3 }]}>
               {isBodyweight
-                ? t('training.live.bodweightLabel')
+                ? t('training.live.bodyweightLabel')
                 : t('training.live.weightLabel')}
             </Text>
             <View

@@ -937,13 +937,11 @@ export default function WorkoutLogScreen() {
 
   const handleStart = useCallback(() => {
     const logId = loadedLogId ?? activeLogId
-    if (!logId && exercises.length > 0) {
-      // logId may not be ready yet — store started earlier via id !== 'new'
+    // TODO: handle case where logId is not yet available when resuming an existing log
+    if (!sessionId) {
+      console.warn('[handleStart] sessionId is empty — route param may be malformed')
     }
-    const session = exercises.length > 0
-      ? { sessionId: exercises[0]?.exerciseExternalId ?? '' }
-      : { sessionId: sessionId ?? '' }
-    storeStart(session, logId ?? '', planId ?? '')
+    storeStart({ sessionId: sessionId ?? '' }, logId ?? '', planId ?? '')
     setPhase('running')
     prefillForm(0, 0, exercises)
   }, [storeStart, loadedLogId, activeLogId, exercises, sessionId, planId, prefillForm])
