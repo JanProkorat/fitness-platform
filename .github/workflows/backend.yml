@@ -119,9 +119,14 @@ jobs:
           MINIO_SECRET_KEY: test
           JWT_SECRET: ci-test-jwt-secret-must-be-at-least-32-characters-long!!
 
+      # Coverage collection was previously wired through VSTest's
+      # `--collect:"XPlat Code Coverage"` option, which Microsoft.Testing.Platform
+      # silently ignores (warning MTP0001). Until coverage is re-wired with an
+      # MTP-compatible collector, this step no-ops when no Cobertura files
+      # are produced instead of failing the run.
       - name: Generate coverage report
+        if: always() && hashFiles('backend/TestResults/**/coverage.cobertura.xml') != ''
         uses: danielpalme/ReportGenerator-GitHub-Action@5.3.8
-        if: always()
         with:
           reports: 'backend/TestResults/**/coverage.cobertura.xml'
           targetdir: 'CoverageReport'
