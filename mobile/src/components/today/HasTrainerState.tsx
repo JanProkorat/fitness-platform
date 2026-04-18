@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
+import { useCompletionState, type TrainingCacheWithCompletion } from '@/hooks/useCompletionState'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
 import { href, hrefParams } from '@/lib/navigation'
@@ -258,37 +259,28 @@ export function HasTrainerState() {
   //
   // The field is prefixed with `_` to signal that it is a client-only addition
   // and is not part of the TodayTrainingResponse contract.
+  //
+  // TrainingCacheWithCompletion is defined in useCompletionState and re-exported
+  // here via the import above.
 
-  type TrainingCacheWithCompletion = TodayTrainingResponse & {
-    _completedIds?: Set<string>
-    _sessionComplete?: boolean
-    _version?: number
-  }
-
-  const completedExerciseIds: ReadonlySet<string> = useMemo(() => {
-    const cache = queryClient.getQueryData<TrainingCacheWithCompletion>(['today-training'])
-    return cache?._completedIds ?? new Set<string>()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trainingQuery.data, queryClient])
-
-  const sessionComplete: boolean = useMemo(() => {
-    const cache = queryClient.getQueryData<TrainingCacheWithCompletion>(['today-training'])
-    return cache?._sessionComplete ?? false
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trainingQuery.data, queryClient])
+  const { completedExerciseIds, sessionComplete } = useCompletionState(trainingQuery.data)
 
   // ── Helper: apply a progress response to the training cache ───────────────
 
+  type CompletionResponseSource = 'exercise' | 'session'
+
   function applyExerciseProgressToCache(
-    response: MarkExerciseCompleteResponse | MarkExerciseIncompleteResponse | MarkSessionCompleteResponse | MarkSessionIncompleteResponse,
+    response: MarkExerciseCompleteResponse | MarkExerciseIncompleteResponse
+      | MarkSessionCompleteResponse | MarkSessionIncompleteResponse,
+    source: CompletionResponseSource,
     allExerciseIds: string[],
   ): void {
     queryClient.setQueryData<TrainingCacheWithCompletion>(['today-training'], (prev) => {
       if (!prev) return prev
-      // For MarkExerciseCompleteResponse: we know sessionComplete and the count.
-      // For MarkSessionCompleteResponse: all completed means all ids.
-      const isSessionComplete = 'sessionComplete' in response
-        ? response.sessionComplete
+      // For 'exercise' source: MarkExerciseCompleteResponse carries a
+      // `sessionComplete` field. For 'session' source, we infer from counts.
+      const isSessionComplete = source === 'exercise'
+        ? (response as MarkExerciseCompleteResponse).sessionComplete ?? false
         : (response.completedExerciseCount ?? 0) >= (response.totalExerciseCount ?? 1)
 
       // Derive the new completed set from the count + the known exercise list.
@@ -297,7 +289,7 @@ export function HasTrainerState() {
       let newIds: Set<string>
       if (isSessionComplete) {
         newIds = new Set(allExerciseIds)
-      } else if ('sessionComplete' in response) {
+      } else if (source === 'exercise') {
         // Per-exercise toggle: the response doesn't tell us which ids are done,
         // only the count. The caller already applied the optimistic id update;
         // preserve `_completedIds` from the cache (already updated by onMutate).
@@ -356,6 +348,7 @@ export function HasTrainerState() {
           ...previous,
           _completedIds: nextIds,
           _sessionComplete: nextSessionComplete,
+          _version: (previous._version ?? 1) + 1,
         })
       }
       return { previous }
@@ -371,7 +364,7 @@ export function HasTrainerState() {
       const allExIds = (cache?.session?.exercises ?? [])
         .map((e) => e.exerciseExternalId)
         .filter((id): id is string => id != null)
-      applyExerciseProgressToCache(response, allExIds)
+      applyExerciseProgressToCache(response, 'exercise', allExIds)
       queryClient.invalidateQueries({ queryKey: ['compliance-score'] })
     },
     // Do NOT invalidate today-training on success — optimistic cache is authoritative.
@@ -402,6 +395,7 @@ export function HasTrainerState() {
           ...previous,
           _completedIds: complete ? new Set(allExIds) : new Set<string>(),
           _sessionComplete: complete,
+          _version: (previous._version ?? 1) + 1,
         })
       }
       return { previous }
@@ -417,7 +411,7 @@ export function HasTrainerState() {
       const allExIds = (cache?.session?.exercises ?? [])
         .map((e) => e.exerciseExternalId)
         .filter((id): id is string => id != null)
-      applyExerciseProgressToCache(response, allExIds)
+      applyExerciseProgressToCache(response, 'session', allExIds)
       queryClient.invalidateQueries({ queryKey: ['compliance-score'] })
     },
   })
@@ -436,6 +430,7 @@ export function HasTrainerState() {
           ...previous,
           _completedIds: new Set(allExIds),
           _sessionComplete: true,
+          _version: (previous._version ?? 1) + 1,
         })
       }
       return { previous }
