@@ -465,7 +465,23 @@
     "goal": "Ziel",
     "remaining": "verbleibend",
     "goalReached": "Ziel erreicht!",
-    "viewHistory": "Messverlauf"
+    "viewHistory": "Messverlauf",
+    "records": {
+      "title": "Persönliche Rekorde",
+      "viewAll": "Alle Rekorde anzeigen",
+      "empty": "Noch keine Rekorde. Trage dein erstes Training ein und deine persönlichen Bestleistungen erscheinen hier.",
+      "dateToday": "heute",
+      "dateYesterday": "gestern",
+      "dateDaysAgo": "vor {{count}} Tagen",
+      "dateWeekAgo": "vor einer Woche",
+      "dateWeeksAgo": "vor {{count}} Wochen",
+      "dateMonthsAgo": "vor {{count}} Monaten",
+      "sheet": {
+        "title": "Alle Rekorde",
+        "sortNote": "Sortiert vom ältesten zum neuesten",
+        "paginationNote": "Erste 100 von {{count}} Einträgen angezeigt"
+      }
+    }
   },
   "notifications": {
     "inviteAccepted": "Einladung angenommen",

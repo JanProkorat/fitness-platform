@@ -24,6 +24,7 @@ import { SectionHeader } from '@/components/ui/SectionHeader'
 import { WeightBarChart } from '@/components/ui/WeightBarChart'
 import { WeightInputSheet } from '@/components/profile/WeightInputSheet'
 import { WeightHistorySheet } from '@/components/profile/WeightHistorySheet'
+import { PersonalRecordsCard } from '@/components/profile/PersonalRecordsCard'
 import { useTranslation } from 'react-i18next'
 import {
   getMeasurements,
@@ -273,6 +274,9 @@ export default function ProfileScreen() {
             entryCount={statsQuery.data?.totalCount ?? 0}
           />
         </View>
+
+        {/* Personal records */}
+        <PersonalRecordsCard />
 
         {/* Profile section */}
         <View style={styles.section}>
