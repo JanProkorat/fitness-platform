@@ -34,6 +34,15 @@ interface NotificationPayload {
   startDate?: string
 }
 
+interface PersonalRecordAchievedPayload {
+  clientId: string;
+  exerciseExternalId: string;
+  exerciseName: string;
+  weightKg: number;
+  reps: number;
+  achievedAt: string;
+}
+
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     // shouldShowAlert: true,
@@ -234,6 +243,12 @@ export default function ClientTabLayout() {
           queryClient.invalidateQueries({ queryKey: ['conversations'] });
           queryClient.invalidateQueries({ queryKey: ['archived-conversations'] });
         }
+      }),
+      onEvent('personalrecordachieved', (raw: unknown) => {
+        const _p = raw as PersonalRecordAchievedPayload;
+        void _p; // payload received; invalidate PR queries so cards refresh
+        queryClient.invalidateQueries({ queryKey: ['personal-records-latest'] });
+        queryClient.invalidateQueries({ queryKey: ['personal-records-all'] });
       }),
     ];
 
