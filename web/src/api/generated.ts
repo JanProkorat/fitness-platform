@@ -7933,6 +7933,87 @@ export class ApiClient {
     }
 
     /**
+     * List personal records
+     * @param page Page number (1-based). Defaults to 1.
+     * @param pageSize Number of items per page. Defaults to 20; maximum 100.
+     * @param exerciseExternalId (optional) Optional filter to return records for a specific exercise only.
+    When null, all exercises are returned.
+     * @return Success
+     */
+    getClientRecordsEndpoint(page: number, pageSize: number, exerciseExternalId?: string | null | undefined, signal?: AbortSignal): Promise<GetClientRecordsResponse> {
+        let url_ = this.baseUrl + "/client/records?";
+        if (page === undefined || page === null)
+            throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
+        else
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === undefined || pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' must be defined and cannot be null.");
+        else
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (exerciseExternalId !== undefined && exerciseExternalId !== null)
+            url_ += "exerciseExternalId=" + encodeURIComponent("" + exerciseExternalId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetClientRecordsEndpoint(_response);
+        });
+    }
+
+    protected processGetClientRecordsEndpoint(response: AxiosResponse): Promise<GetClientRecordsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetClientRecordsResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetClientRecordsResponse>(null as any);
+    }
+
+    /**
      * Mark notification as read
      * @return No Content
      */
@@ -11836,6 +11917,34 @@ Null when CurrentWeek is null or for nutrition plans. */
 
 /** Optional query parameters for filtering client plans. */
 export interface GetClientPlansRequest {
+}
+
+/** Response for the GET /client/records endpoint. The total count of matching records is returned in the X-Total-Count response header. */
+export interface GetClientRecordsResponse {
+    /** Page of personal record summaries, sorted by AchievedAt descending. */
+    items?: PersonalRecordSummary[];
+}
+
+/** Summary DTO for a single personal record. */
+export interface PersonalRecordSummary {
+    /** Public-facing identifier of this personal record. */
+    externalId?: string;
+    /** ExternalId of the exercise for which the PR was achieved. */
+    exerciseExternalId?: string;
+    /** Snapshot of the exercise name at the time the PR was achieved. */
+    exerciseName?: string;
+    /** Weight lifted in kilograms. */
+    weightKg?: number;
+    /** Repetitions completed in the PR set. */
+    reps?: number;
+    /** When the personal record was achieved (UTC). */
+    achievedAt?: string;
+    /** ExternalId of the workout log that contains this PR set. */
+    workoutLogId?: string;
+}
+
+/** Query parameters for listing the authenticated client's personal records. */
+export interface GetClientRecordsRequest {
 }
 
 export interface MarkReadRequest2 {

@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getClientDashboard } from '@/api/nutrition-goals';
 import { getClientTimeline } from '@/api/timeline';
+import { formatWeight } from '@/lib/personalRecordFormatters';
 
 import { PageHeader } from '@/components/layout';
 import { Button, Tag, Dialog, Input } from '@/components/ui';
@@ -12,7 +13,7 @@ import { ActivityTimeline } from '@/components/domain';
 import { QuestionnaireAnswersSection } from '@/components/questionnaire';
 
 export default function ClientDetailPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
@@ -225,17 +226,44 @@ export default function ClientDetailPage() {
     ];
   }, [client, ob]);
 
+  // Narrow the active locale to the set supported by formatWeight.
+  const activeLocale = useMemo((): 'cs' | 'en' | 'de' => {
+    const lang = i18n.language;
+    if (lang === 'en' || lang === 'de') return lang;
+    return 'cs';
+  }, [i18n.language]);
+
   // Activity timeline — composed server-side, newest first.
   const activityItems = useMemo(() => {
     if (!timeline?.items) return [];
-    return timeline.items.map((it) => ({
-      id: it.id,
-      date: new Date(it.occurredAt).toLocaleDateString('cs-CZ'),
-      title: it.title,
-      description: it.description ?? undefined,
-      icon: it.icon ?? undefined,
-    }));
-  }, [timeline]);
+    return timeline.items.map((it) => {
+      // Personal-record items: compose i18n title from structured payload when
+      // available, otherwise fall back to the server-rendered title/description.
+      if (it.type === 'personal_record' && it.personalRecord) {
+        const pr = it.personalRecord;
+        return {
+          id: it.id,
+          date: new Date(it.occurredAt).toLocaleDateString('cs-CZ'),
+          icon: it.icon ?? '🏆',
+          title: t('clients.personalRecord.title', {
+            exerciseName: pr.exerciseName,
+            weight: formatWeight(pr.weightKg, activeLocale),
+          }),
+          description: t('clients.personalRecord.description', {
+            reps: pr.reps,
+          }),
+        };
+      }
+
+      return {
+        id: it.id,
+        date: new Date(it.occurredAt).toLocaleDateString('cs-CZ'),
+        title: it.title,
+        description: it.description ?? undefined,
+        icon: it.icon ?? undefined,
+      };
+    });
+  }, [timeline, t, activeLocale]);
 
   // Subtitle for PageHeader
   const subtitleNode = useMemo(() => {

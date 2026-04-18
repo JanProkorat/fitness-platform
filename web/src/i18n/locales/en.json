@@ -222,6 +222,10 @@
     "confirmResetMessage": "This will discard your recalculated values and restore the original onboarding data.",
     "editProfile": "Edit profile",
     "sendMessage": "Send message",
+    "personalRecord": {
+      "title": "Personal record – {{exerciseName}} {{weight}}",
+      "description": "{{reps}}× reps"
+    },
     "values": {
       "Male": "Male",
       "Female": "Female",

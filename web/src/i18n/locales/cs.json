@@ -222,6 +222,10 @@
     "confirmResetMessage": "Tím se zruší přepočítané hodnoty a obnoví se původní data.",
     "editProfile": "Upravit profil",
     "sendMessage": "Napsat zprávu",
+    "personalRecord": {
+      "title": "Osobní rekord – {{exerciseName}} {{weight}}",
+      "description": "{{reps}}× opakování"
+    },
     "values": {
       "Male": "Muž",
       "Female": "Žena",
