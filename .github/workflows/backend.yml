@@ -112,7 +112,8 @@ jobs:
             -class- '*GetClientPlansIntegrationTests' \
             -class- '*GetFullTrainingPlanIntegrationTests' \
             -class- '*PersonalRecordDetectionTests' \
-            -class- '*GetClientRecordsEndpointTests'
+            -class- '*GetClientRecordsEndpointTests' \
+            -class- '*GetClientTimelineEndpointTests'
         env:
           POSTGRES_PASSWORD: test_password
           MONGO_PASSWORD: test_password

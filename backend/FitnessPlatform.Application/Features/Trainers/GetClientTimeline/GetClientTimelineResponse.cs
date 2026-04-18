@@ -13,7 +13,8 @@ public class ClientTimelineItem
     /// <summary>
     /// Event kind — used on the client to pick icon/colour.
     /// One of: meal_day, workout, measurement, questionnaire,
-    /// nutrition_plan_published, training_plan_published, linked.
+    /// nutrition_plan_published, training_plan_published, linked,
+    /// personal_record.
     /// </summary>
     public string Type { get; set; } = string.Empty;
 
@@ -36,6 +37,38 @@ public class ClientTimelineItem
     /// Optional emoji/icon hint for the client.
     /// </summary>
     public string? Icon { get; set; }
+
+    /// <summary>
+    /// Structured payload for <c>personal_record</c> items.
+    /// Null for all other event types.
+    /// Exposed as typed fields so the web/mobile i18n layer can compose
+    /// locale-specific copy without depending on server-side strings.
+    /// </summary>
+    public PersonalRecordPayload? PersonalRecord { get; set; }
+}
+
+/// <summary>
+/// Structured payload embedded in a <c>personal_record</c> timeline item.
+/// </summary>
+public class PersonalRecordPayload
+{
+    /// <summary>Public-facing identifier of the personal record document.</summary>
+    public Guid ExternalId { get; set; }
+
+    /// <summary>ExternalId of the exercise for which the PR was achieved.</summary>
+    public Guid ExerciseExternalId { get; set; }
+
+    /// <summary>Snapshot of the exercise name at the time the PR was set.</summary>
+    public string ExerciseName { get; set; } = string.Empty;
+
+    /// <summary>Weight lifted in kilograms.</summary>
+    public decimal WeightKg { get; set; }
+
+    /// <summary>Repetitions completed in the PR set.</summary>
+    public int Reps { get; set; }
+
+    /// <summary>ExternalId of the workout log that contains this PR set.</summary>
+    public Guid WorkoutLogId { get; set; }
 }
 
 /// <summary>

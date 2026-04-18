@@ -227,14 +227,44 @@ public class GetClientTimelineEndpoint(
             }
         }
 
-        // ── 6. Trainer-client link (the "klient propojen" event) ──
+        // ── 6. Personal records ──
+        var prFilter = Builders<PersonalRecord>.Filter.Eq(r => r.ClientId, clientUserId)
+            & Builders<PersonalRecord>.Filter.Gte(r => r.AchievedAt, from);
+
+        using (var cursor = await mongo.PersonalRecords.FindAsync(prFilter, cancellationToken: ct))
+        {
+            var records = await cursor.ToListAsync(ct);
+            foreach (var record in records)
+            {
+                items.Add(new ClientTimelineItem
+                {
+                    Id = $"personal_record:{record.ExternalId}",
+                    Type = "personal_record",
+                    OccurredAt = record.AchievedAt,
+                    Title = record.ExerciseName,
+                    Description = $"{record.WeightKg} kg \u00d7 {record.Reps}",
+                    Icon = "\U0001f3c6",
+                    PersonalRecord = new PersonalRecordPayload
+                    {
+                        ExternalId = record.ExternalId,
+                        ExerciseExternalId = record.ExerciseExternalId,
+                        ExerciseName = record.ExerciseName,
+                        WeightKg = record.WeightKg,
+                        Reps = record.Reps,
+                        WorkoutLogId = record.WorkoutLogId,
+                    },
+                });
+            }
+        }
+
+        // ── 7. Trainer-client link (the "klient propojen" event) ──
         items.Add(new ClientTimelineItem
         {
             Id = $"linked:{link.PublicId}",
             Type = "linked",
             OccurredAt = link.DateCreated,
             Title = "Klient propojen",
-            Icon = "🔗",
+            Icon = "\U0001f517",
         });
 
         // Audit the trainer read of client activity.
