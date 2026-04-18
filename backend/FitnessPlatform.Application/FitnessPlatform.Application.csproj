@@ -6,10 +6,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
-    <EnableDefaultContentItems>false</EnableDefaultContentItems>
-    <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
-    <EnableDefaultRazorGenerateItems>false</EnableDefaultRazorGenerateItems>
-    <EnableDefaultRazorComponentItems>false</EnableDefaultRazorComponentItems>
   </PropertyGroup>
 
   <ItemGroup>
@@ -39,42 +35,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Remove="Infrastructure\EmailTemplates\EmailVerification.cs.html" />
-    <EmbeddedResource Include="Infrastructure\EmailTemplates\EmailVerification.cs.html">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <None Remove="Infrastructure\EmailTemplates\EmailVerification.de.html" />
-    <EmbeddedResource Include="Infrastructure\EmailTemplates\EmailVerification.de.html">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <None Remove="Infrastructure\EmailTemplates\EmailVerification.en.html" />
-    <EmbeddedResource Include="Infrastructure\EmailTemplates\EmailVerification.en.html">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <None Remove="Infrastructure\EmailTemplates\Invitation.cs.html" />
-    <EmbeddedResource Include="Infrastructure\EmailTemplates\Invitation.cs.html">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <None Remove="Infrastructure\EmailTemplates\Invitation.de.html" />
-    <EmbeddedResource Include="Infrastructure\EmailTemplates\Invitation.de.html">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <None Remove="Infrastructure\EmailTemplates\Invitation.en.html" />
-    <EmbeddedResource Include="Infrastructure\EmailTemplates\Invitation.en.html">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <None Remove="Infrastructure\EmailTemplates\PasswordReset.cs.html" />
-    <EmbeddedResource Include="Infrastructure\EmailTemplates\PasswordReset.cs.html">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <None Remove="Infrastructure\EmailTemplates\PasswordReset.de.html" />
-    <EmbeddedResource Include="Infrastructure\EmailTemplates\PasswordReset.de.html">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <None Remove="Infrastructure\EmailTemplates\PasswordReset.en.html" />
-    <EmbeddedResource Include="Infrastructure\EmailTemplates\PasswordReset.en.html">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </EmbeddedResource>
+    <EmbeddedResource Include="Infrastructure/EmailTemplates/*.html" WithCulture="false" />
   </ItemGroup>
 
 </Project>

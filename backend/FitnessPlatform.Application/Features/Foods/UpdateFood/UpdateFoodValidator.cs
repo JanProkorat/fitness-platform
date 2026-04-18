@@ -43,6 +43,8 @@ public class UpdateFoodValidator : Validator<UpdateFoodRequest>
             s.RuleFor(x => x.WeightGrams).GreaterThan(0);
         });
 
-        RuleFor(x => x.Visibility).IsInEnum();
+        RuleFor(x => x.Visibility!.Value)
+            .IsInEnum()
+            .When(x => x.Visibility.HasValue);
     }
 }

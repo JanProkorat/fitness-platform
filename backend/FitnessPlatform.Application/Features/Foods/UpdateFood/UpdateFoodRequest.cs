@@ -44,10 +44,10 @@ public class UpdateFoodRequest
     public FoodCategory Category { get; set; } = FoodCategory.Other;
 
     /// <summary>
-    /// Updated visibility. Defaults to <see cref="FoodVisibility.Public"/> when omitted.
+    /// Updated visibility. When omitted, the food's existing visibility is preserved.
     /// Only the food's creator can change this value.
     /// </summary>
-    public FoodVisibility Visibility { get; set; } = FoodVisibility.Public;
+    public FoodVisibility? Visibility { get; set; }
 
     /// <summary>
     /// Updated user note.

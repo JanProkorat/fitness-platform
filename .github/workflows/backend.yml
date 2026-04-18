@@ -13,9 +13,6 @@ permissions:
   pull-requests: write
   issues: write
 
-env:
-  DOTNET_VERSION: '10.0.x'
-
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
@@ -46,7 +43,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          global-json-file: backend/global.json
 
       - name: Print .NET SDK info
         run: dotnet --info

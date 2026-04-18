@@ -77,7 +77,6 @@ public class Food
     /// </summary>
     [BsonElement("visibility")]
     [BsonRepresentation(BsonType.String)]
-    [BsonDefaultValue(FoodVisibility.Public)]
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public FoodVisibility Visibility { get; set; } = FoodVisibility.Public;
 

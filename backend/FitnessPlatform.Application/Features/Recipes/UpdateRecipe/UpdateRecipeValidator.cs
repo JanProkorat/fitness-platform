@@ -36,6 +36,8 @@ public class UpdateRecipeValidator : Validator<UpdateRecipeRequest>
                 .GreaterThan(0);
         });
 
-        RuleFor(x => x.Visibility).IsInEnum();
+        RuleFor(x => x.Visibility!.Value)
+            .IsInEnum()
+            .When(x => x.Visibility.HasValue);
     }
 }

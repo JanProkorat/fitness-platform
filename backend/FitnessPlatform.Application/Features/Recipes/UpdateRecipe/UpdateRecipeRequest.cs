@@ -42,8 +42,8 @@ public class UpdateRecipeRequest
     public List<RecipeFoodDto> Foods { get; set; } = [];
 
     /// <summary>
-    /// Updated visibility. Defaults to <see cref="RecipeVisibility.Public"/> when omitted.
+    /// Updated visibility. When omitted, the recipe's existing visibility is preserved.
     /// Only the recipe's creator can change this value.
     /// </summary>
-    public RecipeVisibility Visibility { get; set; } = RecipeVisibility.Public;
+    public RecipeVisibility? Visibility { get; set; }
 }

@@ -60,6 +60,46 @@ public class UpdateRecipeEndpointTests
     }
 
     [Fact]
+    public async Task HandleAsync_NoVisibilityInRequest_PreservesExisting()
+    {
+        var recipeId = Guid.NewGuid();
+        var foodId = Guid.NewGuid();
+        var recipe = RecipeTestHelpers.CreateRecipe(
+            externalId: recipeId,
+            nutritionistId: _nutritionistId,
+            visibility: RecipeVisibility.Private);
+        var food = new Food
+        {
+            ExternalId = foodId,
+            Name = "Chicken",
+            NutrientValue = new NutrientValue { Kcal = 100, Protein = 20, Carbs = 0, Fat = 2 }
+        };
+        var mongo = RecipeTestHelpers.CreateMockMongo(recipes: [recipe], foods: [food]);
+
+        var ep = Factory.Create<UpdateRecipeEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+            mongo);
+
+        var request = new UpdateRecipeRequest
+        {
+            RecipeId = recipeId,
+            Name = "Same Name",
+            // Visibility intentionally omitted — should preserve the existing Private value.
+            Foods = [new RecipeFoodDto { FoodExternalId = foodId, AmountGrams = 100 }]
+        };
+
+        await ep.HandleAsync(request, TestContext.Current.CancellationToken);
+
+        await mongo.Recipes.Received(1).ReplaceOneAsync(
+            Arg.Any<FilterDefinition<Recipe>>(),
+            Arg.Is<Recipe>(r => r.Visibility == RecipeVisibility.Private),
+            Arg.Any<ReplaceOptions>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task HandleAsync_NotOwner_Returns404()
     {
         var recipeId = Guid.NewGuid();

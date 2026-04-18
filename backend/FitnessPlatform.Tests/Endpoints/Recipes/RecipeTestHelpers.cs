@@ -39,9 +39,14 @@ public static class RecipeTestHelpers
     /// </summary>
     public static IMongoContext CreateMockMongo(Recipe[]? recipes = null, Food[]? foods = null)
     {
+        // Configure each collection FULLY before wiring it into the context — NSubstitute cannot
+        // track lastCall state across nested substitute setup.
+        var recipeCollection = CreateRecipeCollection((recipes ?? []).ToList());
+        var foodCollection = CreateFoodCollection((foods ?? []).ToList());
+
         var mongo = Substitute.For<IMongoContext>();
-        mongo.Recipes.Returns(CreateRecipeCollection((recipes ?? []).ToList()));
-        mongo.Foods.Returns(CreateFoodCollection((foods ?? []).ToList()));
+        mongo.Recipes.Returns(recipeCollection);
+        mongo.Foods.Returns(foodCollection);
         return mongo;
     }
 

@@ -102,7 +102,10 @@ public class UpdateRecipeEndpoint(IMongoContext mongo)
         recipe.Note = req.Note;
         recipe.Foods = mealFoods;
         recipe.TotalNutrients = CalculateTotals(mealFoods);
-        recipe.Visibility = req.Visibility;
+        if (req.Visibility.HasValue)
+        {
+            recipe.Visibility = req.Visibility.Value;
+        }
         recipe.DateUpdated = DateTime.UtcNow;
 
         await mongo.Recipes.ReplaceOneAsync(

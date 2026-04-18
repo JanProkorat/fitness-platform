@@ -35,23 +35,17 @@ public class SearchFoodsEndpoint(
         var language = HttpContext.Request.Headers.AcceptLanguage.FirstOrDefault()?.Split(',').FirstOrDefault()?.Split('-').FirstOrDefault();
 
         var userIdClaim = User.FindFirstValue(AppClaims.UserId);
-        Guid? currentUserId = Guid.TryParse(userIdClaim, out var parsed) ? parsed : null;
+        if (!Guid.TryParse(userIdClaim, out var currentUserId))
+        {
+            await Send.UnauthorizedAsync(ct);
+            return;
+        }
 
         var filterBuilder = Builders<Food>.Filter;
-        var filter = filterBuilder.Eq(f => f.IsDeleted, false);
-
-        // Visibility filter: return public foods plus any private foods owned by the caller.
-        // Callers without a resolvable user id see only public foods.
-        if (currentUserId.HasValue)
-        {
-            filter &= filterBuilder.Or(
+        var filter = filterBuilder.Eq(f => f.IsDeleted, false)
+            & filterBuilder.Or(
                 filterBuilder.Eq(f => f.Visibility, FoodVisibility.Public),
-                filterBuilder.Eq(f => f.NutritionistId, currentUserId.Value));
-        }
-        else
-        {
-            filter &= filterBuilder.Eq(f => f.Visibility, FoodVisibility.Public);
-        }
+                filterBuilder.Eq(f => f.NutritionistId, currentUserId));
 
         if (req.Category.HasValue)
         {

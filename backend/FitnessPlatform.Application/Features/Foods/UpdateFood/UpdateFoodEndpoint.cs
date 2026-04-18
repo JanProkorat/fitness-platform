@@ -87,8 +87,12 @@ public class UpdateFoodEndpoint(IMongoContext mongo) : Endpoint<UpdateFoodReques
             .Set(f => f.CommonServings, req.CommonServings
                 .Select(s => new ServingSize { Label = s.Label, WeightGrams = s.WeightGrams })
                 .ToList())
-            .Set(f => f.Visibility, req.Visibility)
             .Set(f => f.DateUpdated, DateTime.UtcNow);
+
+        if (req.Visibility.HasValue)
+        {
+            update = update.Set(f => f.Visibility, req.Visibility.Value);
+        }
 
         await mongo.Foods.UpdateOneAsync(
             f => f.ExternalId == req.FoodId,

@@ -81,7 +81,6 @@ public class Recipe
     /// </summary>
     [BsonElement("visibility")]
     [BsonRepresentation(BsonType.String)]
-    [BsonDefaultValue(RecipeVisibility.Public)]
     public RecipeVisibility Visibility { get; set; } = RecipeVisibility.Public;
 
     /// <summary>
