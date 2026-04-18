@@ -15,6 +15,7 @@ const KNOWN_EVENTS = [
   'invitationcancelled',
   'clientrequestaccepted',
   'clientrequestrejected',
+  'personalrecordachieved',
   'questionnaireassigned',
   'nutritionplanpublished',
   'nutritionplanupdated',
