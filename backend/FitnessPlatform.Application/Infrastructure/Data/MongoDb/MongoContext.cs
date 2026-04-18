@@ -23,6 +23,7 @@ public class MongoContext : IMongoContext
         TrainingPlans = database.GetCollection<TrainingPlan>(MongoCollections.TrainingPlans);
         WorkoutLogs = database.GetCollection<WorkoutLog>(MongoCollections.WorkoutLogs);
         TrainingCompletions = database.GetCollection<TrainingCompletion>(MongoCollections.TrainingCompletions);
+        PersonalRecords = database.GetCollection<PersonalRecord>(MongoCollections.PersonalRecords);
     }
 
     /// <inheritdoc />
@@ -48,4 +49,7 @@ public class MongoContext : IMongoContext
 
     /// <inheritdoc />
     public IMongoCollection<TrainingCompletion> TrainingCompletions { get; }
+
+    /// <inheritdoc />
+    public IMongoCollection<PersonalRecord> PersonalRecords { get; }
 }

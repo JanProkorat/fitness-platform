@@ -48,4 +48,9 @@ public interface IMongoContext
     /// Training completion records collection.
     /// </summary>
     IMongoCollection<TrainingCompletion> TrainingCompletions { get; }
+
+    /// <summary>
+    /// Personal record documents collection.
+    /// </summary>
+    IMongoCollection<PersonalRecord> PersonalRecords { get; }
 }

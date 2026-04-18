@@ -35,6 +35,7 @@ public class MongoIndexInitializer : IHostedService
         await CreateTrainingPlanIndexes(cancellationToken);
         await CreateWorkoutLogIndexes(cancellationToken);
         await CreateTrainingCompletionIndexes(cancellationToken);
+        await CreatePersonalRecordIndexes(cancellationToken);
 
         _logger.LogInformation("MongoDB indexes created successfully");
     }
@@ -238,5 +239,39 @@ public class MongoIndexInitializer : IHostedService
             new CreateIndexOptions { Name = "idx_trainingcompletion_clientId_date_sessionId", Unique = true });
 
         await indexes.CreateManyAsync([externalIdIndex, clientDateIndex, clientDateSessionIndex], ct);
+    }
+
+    private async Task CreatePersonalRecordIndexes(CancellationToken ct)
+    {
+        var indexes = _mongo.PersonalRecords.Indexes;
+
+        // Primary query index: clientId + achievedAt (descending) for default history list
+        var clientDateIndex = new CreateIndexModel<PersonalRecord>(
+            Builders<PersonalRecord>.IndexKeys
+                .Ascending(r => r.ClientId)
+                .Descending(r => r.AchievedAt),
+            new CreateIndexOptions { Name = "idx_pr_clientId_achievedAt" });
+
+        // Per-exercise filter index: clientId + exerciseExternalId for issue #12
+        var clientExerciseIndex = new CreateIndexModel<PersonalRecord>(
+            Builders<PersonalRecord>.IndexKeys
+                .Ascending(r => r.ClientId)
+                .Ascending(r => r.ExerciseExternalId),
+            new CreateIndexOptions { Name = "idx_pr_clientId_exerciseExternalId" });
+
+        // Idempotency guard: unique compound index on (workoutLogId, exerciseExternalId, setNumber)
+        // Ensures a second call to updateWorkout with the same state cannot double-insert a PR row.
+        var idempotencyIndex = new CreateIndexModel<PersonalRecord>(
+            Builders<PersonalRecord>.IndexKeys
+                .Ascending(r => r.WorkoutLogId)
+                .Ascending(r => r.ExerciseExternalId)
+                .Ascending(r => r.SetNumber),
+            new CreateIndexOptions
+            {
+                Name = "idx_pr_workoutLogId_exerciseExternalId_setNumber",
+                Unique = true
+            });
+
+        await indexes.CreateManyAsync([clientDateIndex, clientExerciseIndex, idempotencyIndex], ct);
     }
 }
