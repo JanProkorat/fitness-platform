@@ -1,5 +1,17 @@
 .PHONY: dev down backend web migrate seed test clean setup generate-api
 
+# Secrets consumed by Program.cs at host-build time. `dotnet run` picks these up
+# from launchSettings.json automatically, but `dotnet ef` does not — so any
+# target that invokes the EF design-time tooling must pass them explicitly.
+# Values mirror the `https` profile in
+# backend/FitnessPlatform.Application/Properties/launchSettings.json.
+DEV_ENV := ASPNETCORE_ENVIRONMENT=Development \
+	POSTGRES_PASSWORD=fitness_dev_password \
+	MONGO_PASSWORD=mongo_dev_password \
+	MINIO_ACCESS_KEY=minioadmin \
+	MINIO_SECRET_KEY=minio_dev_password \
+	JWT_SECRET='super-secret-jwt-key-change-in-production-min-32-chars!!'
+
 # Start all Docker services
 dev:
 	docker compose up -d
@@ -18,7 +30,7 @@ web:
 
 # Run EF Core migrations
 migrate:
-	cd backend && dotnet ef database update --project FitnessPlatform.Application
+	cd backend && $(DEV_ENV) dotnet ef database update --project FitnessPlatform.Application
 
 # Seed the database
 seed:
@@ -47,7 +59,7 @@ setup:
 	@echo "==> Waiting for PostgreSQL to be ready..."
 	@until docker exec fitness-postgres pg_isready -U fitness_admin -d fitness_dev > /dev/null 2>&1; do sleep 1; done
 	@echo "==> Applying EF Core migrations..."
-	cd backend && dotnet ef database update --project FitnessPlatform.Application
+	cd backend && $(DEV_ENV) dotnet ef database update --project FitnessPlatform.Application
 	@echo "==> Seeding database (roles)..."
 	cd backend/FitnessPlatform.Application && ASPNETCORE_ENVIRONMENT=Development dotnet run -- --seed
 	@echo "==> Setup complete!"
