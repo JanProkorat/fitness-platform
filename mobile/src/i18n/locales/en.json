@@ -740,7 +740,8 @@
         "nutrition": "Anything else your nutritionist should know?"
       },
       "weekOf": "Week of {{range}}",
-      "editLocked": "Your trainer already saw this."
+      "editLocked": "Your trainer already saw this.",
+      "edit": "Edit"
     },
     "flag": {
       "traveling": "Traveling",

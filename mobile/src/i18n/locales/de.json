@@ -625,7 +625,8 @@
         "nutrition": "Gibt es noch etwas, das dein Ernährungsberater wissen sollte?"
       },
       "weekOf": "Woche {{range}}",
-      "editLocked": "Dein Trainer hat das bereits gesehen."
+      "editLocked": "Dein Trainer hat das bereits gesehen.",
+      "edit": "Bearbeiten"
     },
     "flag": {
       "traveling": "Reisen",

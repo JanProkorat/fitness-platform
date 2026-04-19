@@ -394,7 +394,7 @@ export default function WeeklyCheckInScreen() {
               accessibilityRole="button"
             >
               <Ionicons name="pencil-outline" size={16} color={colors.label2} />
-              <Text style={[Type.subheadline, { color: colors.label2 }]}>Edit</Text>
+              <Text style={[Type.subheadline, { color: colors.label2 }]}>{t('weeklyCheckIn.sheet.edit')}</Text>
             </Pressable>
           )}
 

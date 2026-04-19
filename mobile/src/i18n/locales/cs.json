@@ -604,7 +604,8 @@
         "nutrition": "Cokoli dalšího, co by měl tvůj nutricionista vědět?"
       },
       "weekOf": "Týden {{range}}",
-      "editLocked": "Tvůj trenér to už viděl."
+      "editLocked": "Tvůj trenér to už viděl.",
+      "edit": "Upravit"
     },
     "flag": {
       "traveling": "Cestování",
