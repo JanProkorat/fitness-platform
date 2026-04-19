@@ -115,7 +115,12 @@ jobs:
             -class- '*PersonalRecordBroadcastTests' \
             -class- '*GetClientRecordsEndpointTests' \
             -class- '*GetClientTimelineEndpointTests' \
-            -class- '*UpdateTimeZoneIntegrationTests'
+            -class- '*UpdateTimeZoneIntegrationTests' \
+            -class- '*GetSettingsEndpointTests' \
+            -class- '*PutSettingsEndpointTests' \
+            -class- '*GetOverridesEndpointTests' \
+            -class- '*PutOverrideEndpointTests' \
+            -class- '*DeleteOverrideEndpointTests'
         env:
           POSTGRES_PASSWORD: test_password
           MONGO_PASSWORD: test_password

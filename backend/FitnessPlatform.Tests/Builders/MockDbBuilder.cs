@@ -24,6 +24,8 @@ public class MockDbBuilder
     private readonly List<QuestionnaireResponse> _questionnaireResponses = [];
     private readonly List<EmailVerificationToken> _emailVerificationTokens = [];
     private readonly List<DevicePushToken> _devicePushTokens = [];
+    private readonly List<WeeklyCheckInSetting> _weeklyCheckInSettings = [];
+    private readonly List<WeeklyCheckInClientOverride> _weeklyCheckInClientOverrides = [];
 
     /// <summary>
     /// Adds an <see cref="ApplicationUser"/> to the mock context.
@@ -86,6 +88,16 @@ public class MockDbBuilder
     public MockDbBuilder With(QuestionnaireResponse response) { _questionnaireResponses.Add(response); return this; }
 
     /// <summary>
+    /// Adds a <see cref="WeeklyCheckInSetting"/> to the mock context.
+    /// </summary>
+    public MockDbBuilder With(WeeklyCheckInSetting setting) { _weeklyCheckInSettings.Add(setting); return this; }
+
+    /// <summary>
+    /// Adds a <see cref="WeeklyCheckInClientOverride"/> to the mock context.
+    /// </summary>
+    public MockDbBuilder With(WeeklyCheckInClientOverride o) { _weeklyCheckInClientOverrides.Add(o); return this; }
+
+    /// <summary>
     /// Builds a mocked <see cref="IApplicationDbContext"/> with all registered entities as queryable DbSets.
     /// </summary>
     public IApplicationDbContext Build()
@@ -106,6 +118,8 @@ public class MockDbBuilder
         var questionnaireResponsesSet = _questionnaireResponses.BuildMockDbSet();
         var emailVerificationTokensSet = _emailVerificationTokens.BuildMockDbSet();
         var devicePushTokensSet = _devicePushTokens.BuildMockDbSet();
+        var weeklyCheckInSettingsSet = _weeklyCheckInSettings.BuildMockDbSet();
+        var weeklyCheckInClientOverridesSet = _weeklyCheckInClientOverrides.BuildMockDbSet();
 
         var db = Substitute.For<IApplicationDbContext>();
 
@@ -123,6 +137,8 @@ public class MockDbBuilder
         db.QuestionnaireResponses.Returns(questionnaireResponsesSet);
         db.EmailVerificationTokens.Returns(emailVerificationTokensSet);
         db.DevicePushTokens.Returns(devicePushTokensSet);
+        db.WeeklyCheckInSettings.Returns(weeklyCheckInSettingsSet);
+        db.WeeklyCheckInClientOverrides.Returns(weeklyCheckInClientOverridesSet);
 
         db.SaveChangesAsync(Arg.Any<CancellationToken>()).Returns(1);
 
