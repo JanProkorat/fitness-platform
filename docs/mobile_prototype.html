@@ -722,6 +722,8 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
       <button class="pb" onclick="showPhone('ph-recipe-detail')">Detail receptu</button>
       <button class="pb" onclick="showPhone('ph-onb-intro')">Dotazník — intro</button>
       <button class="pb" onclick="showPhone('ph-onb-s1')">Dotazník — krok</button>
+      <button class="pb" onclick="showPhone('ph-weekly-checkin')">Check-in — vyplnit</button>
+      <button class="pb" onclick="showPhone('ph-weekly-checkin-sent')">Check-in — odesláno</button>
     </div>
   </div>
   <div class="ps"></div>
@@ -839,6 +841,26 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
           <div style="font-size:13px;color:var(--ios-label2);margin-top:1px">Od trenéra Marka a výživové poradkyně Jany</div>
         </div>
         <div style="color:var(--ios-label3);font-size:16px;font-weight:600;flex-shrink:0">›</div>
+      </div>
+
+      <!-- Weekly check-in banners (trainer + nutritionist stacked) -->
+      <div id="today-weekly-checkin-banners" style="margin:10px 20px 0;display:flex;flex-direction:column;gap:8px">
+        <div onclick="showPhone('ph-weekly-checkin')" style="display:flex;align-items:center;gap:10px;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.25);border-radius:var(--ios-r);padding:12px 14px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(201,168,76,.18)'" onmouseout="this.style.background='rgba(201,168,76,.1)'">
+          <div style="font-size:22px;flex-shrink:0">📅</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:15px;font-weight:600;color:var(--ios-label);letter-spacing:-.2px">Plánování příštího týdne</div>
+            <div style="font-size:13px;color:var(--ios-label2);margin-top:1px">Marek Trenér · chce vědět, co tě čeká</div>
+          </div>
+          <div style="color:var(--ios-label3);font-size:16px;font-weight:600;flex-shrink:0">›</div>
+        </div>
+        <div onclick="showPhone('ph-weekly-checkin')" style="display:flex;align-items:center;gap:10px;background:rgba(52,199,89,.08);border:1px solid rgba(52,199,89,.22);border-radius:var(--ios-r);padding:12px 14px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(52,199,89,.15)'" onmouseout="this.style.background='rgba(52,199,89,.08)'">
+          <div style="font-size:22px;flex-shrink:0">🥗</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:15px;font-weight:600;color:var(--ios-label);letter-spacing:-.2px">Plánování příštího jídelníčku</div>
+            <div style="font-size:13px;color:var(--ios-label2);margin-top:1px">Lucie Poradce · chce vědět, co tě čeká</div>
+          </div>
+          <div style="color:var(--ios-label3);font-size:16px;font-weight:600;flex-shrink:0">›</div>
+        </div>
       </div>
 
       <!-- Today summary strip -->
@@ -1303,6 +1325,19 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
             <div class="notif-time">před 5 minutami</div>
             <div class="notif-actions">
               <div class="notif-action-btn notif-action-primary" onclick="event.stopPropagation();showToastOn('ph-today','Dotazník otevřen')">Vyplnit</div>
+              <div class="notif-action-btn notif-action-secondary" onclick="event.stopPropagation()">Později</div>
+            </div>
+          </div>
+        </div>
+        <div class="notif-row unread" onclick="closeNotifSheet('ph-today');showPhone('ph-weekly-checkin')">
+          <div class="notif-unread-dot"></div>
+          <div class="notif-icon-wrap" style="background:rgba(201,168,76,.12)">📅</div>
+          <div class="notif-body">
+            <div class="notif-title">Plánování příštího týdne</div>
+            <div class="notif-text">Marek Trenér bude brzy připravovat tvůj plán — dej vědět, jestli tě nečeká něco mimořádného.</div>
+            <div class="notif-time">před 20 minutami</div>
+            <div class="notif-actions">
+              <div class="notif-action-btn notif-action-primary" onclick="event.stopPropagation();showPhone('ph-weekly-checkin')">Vyplnit</div>
               <div class="notif-action-btn notif-action-secondary" onclick="event.stopPropagation()">Později</div>
             </div>
           </div>
@@ -2083,6 +2118,214 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
 </div>
 </div>
 
+<!-- ═══════════════════════════════════════════
+     TÝDENNÍ CHECK-IN — odpověď na plánování
+═══════════════════════════════════════════ -->
+<div class="phone-wrap">
+<div class="phone-label">Check-in příštího týdne</div>
+<div class="phone" id="ph-weekly-checkin" style="display:none">
+  <div class="di"></div>
+  <div class="status-bar">
+    <span class="sb-time">9:41</span>
+    <div class="sb-icons">
+      <svg width="17" height="12" viewBox="0 0 17 12"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0" width="3" height="12" rx="1"/><rect x="13.5" y="1" width="3" height="11" rx="1"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12"><rect x="0" y="1" width="21" height="10" rx="3.5" stroke="#000" stroke-width="1" fill="none"/><rect x="22" y="4" width="2.5" height="4" rx="1" fill="#000" opacity=".4"/><rect x="1.5" y="2.5" width="15" height="7" rx="2" fill="#000"/></svg>
+    </div>
+  </div>
+
+  <!-- Modal-style top bar -->
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px 4px">
+    <div onclick="showPhone('ph-today')" style="font-size:15px;font-weight:600;color:var(--ios-label2);cursor:pointer">Zavřít</div>
+    <div style="font-size:15px;font-weight:600;color:var(--ios-label)">Příští týden</div>
+    <div style="width:48px"></div>
+  </div>
+
+  <div class="scroll-area" style="padding-bottom:110px">
+
+    <!-- Trainer header -->
+    <div style="padding:14px 20px 4px;display:flex;align-items:center;gap:12px">
+      <div style="width:48px;height:48px;border-radius:15px;background:linear-gradient(135deg,#c9a84c,#b8942f);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;color:#fff;flex-shrink:0">MT</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:17px;font-weight:600;color:var(--ios-label)">Marek Trenér</div>
+        <div style="display:inline-flex;align-items:center;gap:6px;margin-top:3px;padding:3px 10px;border-radius:99px;background:rgba(201,168,76,.12)">
+          <span style="width:6px;height:6px;border-radius:50%;background:var(--ios-gold)"></span>
+          <span style="font-size:11px;font-weight:600;color:var(--ios-gold);text-transform:uppercase;letter-spacing:.04em">Trénink</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Prompt block (default copy + trainer addendum) -->
+    <div style="margin:16px 20px 0;padding:16px;background:var(--ios-bg2);border-radius:var(--ios-r-lg);box-shadow:0 1px 3px rgba(0,0,0,.06)">
+      <div style="font-size:15px;color:var(--ios-label);line-height:1.5">
+        Tvůj trenér brzy připraví plán na příští týden. Dej vědět, jestli tě nečeká něco mimořádného, co by plán mohlo ovlivnit.
+      </div>
+      <div style="margin-top:12px;padding:10px 12px;background:rgba(201,168,76,.06);border-left:3px solid var(--ios-gold);border-radius:6px">
+        <div style="font-size:11px;font-weight:600;color:var(--ios-gold);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Od Marka</div>
+        <div style="font-size:13px;color:var(--ios-label2);line-height:1.45;font-style:italic">„Pokud plánuješ dlouhou cestu, dej vědět — přizpůsobím týdenní rozložení."</div>
+      </div>
+      <div style="margin-top:10px;font-size:12px;color:var(--ios-label3)">Týden 20.–26. 10. 2026</div>
+    </div>
+
+    <!-- Chips grid -->
+    <div style="margin:20px 20px 0">
+      <div style="font-size:13px;font-weight:600;color:var(--ios-label2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Co tě čeká?</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <div style="display:inline-flex;align-items:center;gap:6px;padding:10px 14px;border-radius:99px;background:rgba(201,168,76,.14);border:1.5px solid var(--ios-gold);cursor:pointer">
+          <span style="font-size:15px">✈️</span>
+          <span style="font-size:13px;font-weight:600;color:var(--ios-gold)">Cestování</span>
+        </div>
+        <div style="display:inline-flex;align-items:center;gap:6px;padding:10px 14px;border-radius:99px;background:var(--ios-bg2);border:1px solid var(--ios-sep2);cursor:pointer">
+          <span style="font-size:15px">🎉</span>
+          <span style="font-size:13px;font-weight:500;color:var(--ios-label)">Oslava / akce</span>
+        </div>
+        <div style="display:inline-flex;align-items:center;gap:6px;padding:10px 14px;border-radius:99px;background:var(--ios-bg2);border:1px solid var(--ios-sep2);cursor:pointer">
+          <span style="font-size:15px">🤒</span>
+          <span style="font-size:13px;font-weight:500;color:var(--ios-label)">Nemoc / únava</span>
+        </div>
+        <div style="display:inline-flex;align-items:center;gap:6px;padding:10px 14px;border-radius:99px;background:var(--ios-bg2);border:1px solid var(--ios-sep2);cursor:pointer">
+          <span style="font-size:15px">🩹</span>
+          <span style="font-size:13px;font-weight:500;color:var(--ios-label)">Zranění / bolest</span>
+        </div>
+        <div style="display:inline-flex;align-items:center;gap:6px;padding:10px 14px;border-radius:99px;background:rgba(201,168,76,.14);border:1.5px solid var(--ios-gold);cursor:pointer">
+          <span style="font-size:15px">⏱️</span>
+          <span style="font-size:13px;font-weight:600;color:var(--ios-gold)">Více času než obvykle</span>
+        </div>
+        <div style="display:inline-flex;align-items:center;gap:6px;padding:10px 14px;border-radius:99px;background:var(--ios-bg2);border:1px solid var(--ios-sep2);cursor:pointer">
+          <span style="font-size:15px">⏳</span>
+          <span style="font-size:13px;font-weight:500;color:var(--ios-label)">Méně času než obvykle</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Note textarea -->
+    <div style="margin:24px 20px 0">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:13px;font-weight:600;color:var(--ios-label2);text-transform:uppercase;letter-spacing:.05em">Poznámka (volitelné)</div>
+        <div style="font-size:12px;color:var(--ios-label3)">84 / 500</div>
+      </div>
+      <div style="background:var(--ios-bg2);border:1px solid var(--ios-sep2);border-radius:var(--ios-r);padding:14px 16px;min-height:110px">
+        <div style="font-size:15px;color:var(--ios-label);line-height:1.5">Od pátku jsem pryč, vrátím se v neděli večer. Klidně přidej víc objemu první čtyři dny — pak dej lehčí týden.</div>
+      </div>
+    </div>
+
+    <div style="height:20px"></div>
+  </div>
+
+  <!-- Action bar pinned at bottom (above tab bar) -->
+  <div style="position:absolute;left:0;right:0;bottom:83px;padding:12px 20px;background:var(--ios-bg);border-top:.5px solid var(--ios-sep2);display:flex;gap:10px">
+    <div onclick="showPhone('ph-weekly-checkin-sent')" style="flex:1;display:flex;align-items:center;justify-content:center;padding:14px;border-radius:14px;background:var(--ios-gold);color:#fff;font-size:15px;font-weight:600;cursor:pointer">Odeslat</div>
+    <div onclick="showPhone('ph-today')" style="padding:14px 18px;border-radius:14px;background:var(--ios-bg2);border:1px solid var(--ios-sep2);color:var(--ios-label);font-size:14px;font-weight:600;cursor:pointer">Přeskočit týden</div>
+  </div>
+
+  <!-- Tab bar -->
+  <div class="tab-bar">
+    <div class="tab active" onclick="showPhone('ph-today')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" fill="#8e8e93"/><path d="M9 22V12h6v10" fill="#8e8e93"/></svg></div><div class="tab-lbl">Dnes</div></div>
+    <div class="tab" onclick="showPhone('ph-discover')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="#8e8e93" stroke-width="2"/><path d="m21 21-4.35-4.35" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Trenéři</div></div>
+    <div class="tab" onclick="showPhone('ph-plans')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#8e8e93" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Plány</div></div>
+    <div class="tab" onclick="showPhone('ph-messages')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="#8e8e93" stroke-width="2" stroke-linejoin="round"/></svg></div><div class="tab-lbl">Zprávy</div></div>
+    <div class="tab" onclick="showPhone('ph-profile')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="#8e8e93" stroke-width="2"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Profil</div></div>
+  </div>
+</div>
+</div>
+<!-- ═══════════════════════════════════════════
+     TÝDENNÍ CHECK-IN — odesláno (read-only)
+═══════════════════════════════════════════ -->
+<div class="phone-wrap">
+<div class="phone-label">Check-in — odesláno</div>
+<div class="phone" id="ph-weekly-checkin-sent" style="display:none">
+  <div class="di"></div>
+  <div class="status-bar">
+    <span class="sb-time">9:41</span>
+    <div class="sb-icons">
+      <svg width="17" height="12" viewBox="0 0 17 12"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0" width="3" height="12" rx="1"/><rect x="13.5" y="1" width="3" height="11" rx="1"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12"><rect x="0" y="1" width="21" height="10" rx="3.5" stroke="#000" stroke-width="1" fill="none"/><rect x="22" y="4" width="2.5" height="4" rx="1" fill="#000" opacity=".4"/><rect x="1.5" y="2.5" width="15" height="7" rx="2" fill="#000"/></svg>
+    </div>
+  </div>
+
+  <!-- Modal-style top bar -->
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px 4px">
+    <div onclick="showPhone('ph-today')" style="font-size:15px;font-weight:600;color:var(--ios-label2);cursor:pointer">Zavřít</div>
+    <div style="font-size:15px;font-weight:600;color:var(--ios-label)">Příští týden</div>
+    <div style="width:48px"></div>
+  </div>
+
+  <div class="scroll-area" style="padding-bottom:110px">
+
+    <!-- Status pill -->
+    <div style="margin:12px 20px 0;display:flex;justify-content:center">
+      <div style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:99px;background:rgba(52,199,89,.12)">
+        <span style="font-size:13px">✓</span>
+        <span style="font-size:12px;font-weight:600;color:var(--ios-green)">Odesláno · čtvrtek 18:04</span>
+      </div>
+    </div>
+
+    <!-- Trainer header -->
+    <div style="padding:14px 20px 4px;display:flex;align-items:center;gap:12px">
+      <div style="width:48px;height:48px;border-radius:15px;background:linear-gradient(135deg,#c9a84c,#b8942f);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;color:#fff;flex-shrink:0">MT</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:17px;font-weight:600;color:var(--ios-label)">Marek Trenér</div>
+        <div style="display:inline-flex;align-items:center;gap:6px;margin-top:3px;padding:3px 10px;border-radius:99px;background:rgba(201,168,76,.12)">
+          <span style="width:6px;height:6px;border-radius:50%;background:var(--ios-gold)"></span>
+          <span style="font-size:11px;font-weight:600;color:var(--ios-gold);text-transform:uppercase;letter-spacing:.04em">Trénink</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Prompt block (same copy, now secondary) -->
+    <div style="margin:16px 20px 0;padding:16px;background:var(--ios-bg2);border-radius:var(--ios-r-lg);box-shadow:0 1px 3px rgba(0,0,0,.06);opacity:.85">
+      <div style="font-size:14px;color:var(--ios-label2);line-height:1.5">
+        Tvůj trenér brzy připraví plán na příští týden. Dej vědět, jestli tě nečeká něco mimořádného, co by plán mohlo ovlivnit.
+      </div>
+      <div style="margin-top:10px;font-size:12px;color:var(--ios-label3)">Týden 20.–26. 10. 2026</div>
+    </div>
+
+    <!-- Selected chips (read-only) -->
+    <div style="margin:20px 20px 0">
+      <div style="font-size:13px;font-weight:600;color:var(--ios-label2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Tvoje odpověď</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <div style="display:inline-flex;align-items:center;gap:6px;padding:10px 14px;border-radius:99px;background:rgba(201,168,76,.14);border:1.5px solid var(--ios-gold)">
+          <span style="font-size:15px">✈️</span>
+          <span style="font-size:13px;font-weight:600;color:var(--ios-gold)">Cestování</span>
+        </div>
+        <div style="display:inline-flex;align-items:center;gap:6px;padding:10px 14px;border-radius:99px;background:rgba(201,168,76,.14);border:1.5px solid var(--ios-gold)">
+          <span style="font-size:15px">⏱️</span>
+          <span style="font-size:13px;font-weight:600;color:var(--ios-gold)">Více času než obvykle</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Note read-only -->
+    <div style="margin:24px 20px 0">
+      <div style="font-size:13px;font-weight:600;color:var(--ios-label2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Poznámka</div>
+      <div style="background:var(--ios-bg2);border:1px solid var(--ios-sep2);border-radius:var(--ios-r);padding:14px 16px">
+        <div style="font-size:15px;color:var(--ios-label);line-height:1.5">Od pátku jsem pryč, vrátím se v neděli večer. Klidně přidej víc objemu první čtyři dny — pak dej lehčí týden.</div>
+      </div>
+    </div>
+
+    <!-- Review-locked notice (Marek already planned) -->
+    <div style="margin:20px 20px 0;padding:12px 14px;background:rgba(120,120,128,.08);border:1px solid var(--ios-sep2);border-radius:var(--ios-r);display:flex;align-items:center;gap:10px">
+      <span style="font-size:18px;flex-shrink:0">🔒</span>
+      <div style="flex:1;font-size:13px;color:var(--ios-label2);line-height:1.45">Tvůj trenér si tvou odpověď už přečetl — upravit ji teď nejde.</div>
+    </div>
+
+    <div style="height:20px"></div>
+  </div>
+
+  <!-- Action bar pinned at bottom — Edit disabled -->
+  <div style="position:absolute;left:0;right:0;bottom:83px;padding:12px 20px;background:var(--ios-bg);border-top:.5px solid var(--ios-sep2);display:flex;gap:10px">
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:14px;border-radius:14px;background:var(--ios-fill);color:var(--ios-label3);font-size:15px;font-weight:600;cursor:not-allowed">Upravit (uzamčeno)</div>
+  </div>
+
+  <!-- Tab bar -->
+  <div class="tab-bar">
+    <div class="tab active" onclick="showPhone('ph-today')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" fill="#8e8e93"/><path d="M9 22V12h6v10" fill="#8e8e93"/></svg></div><div class="tab-lbl">Dnes</div></div>
+    <div class="tab" onclick="showPhone('ph-discover')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="#8e8e93" stroke-width="2"/><path d="m21 21-4.35-4.35" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Trenéři</div></div>
+    <div class="tab" onclick="showPhone('ph-plans')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#8e8e93" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Plány</div></div>
+    <div class="tab" onclick="showPhone('ph-messages')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="#8e8e93" stroke-width="2" stroke-linejoin="round"/></svg></div><div class="tab-lbl">Zprávy</div></div>
+    <div class="tab" onclick="showPhone('ph-profile')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="#8e8e93" stroke-width="2"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Profil</div></div>
+  </div>
+</div>
+</div>
 <!-- ═══════════════════════════════════════════
      PROFIL & POKROK
 ═══════════════════════════════════════════ -->
@@ -4723,7 +4966,7 @@ function showPhone(id){
   document.querySelectorAll('.phone').forEach(function(p){ p.style.display='none'; });
   var el = document.getElementById(id); if(el) el.style.display='block';
   document.querySelectorAll('.pb').forEach(function(b){ b.classList.remove('active'); });
-  var map = {'ph-today':'Dnes','ph-invite-detail':'Detail pozvánky','ph-discover':'Spolupráce','ph-trainer-profile':'Profil trenéra','ph-plans':'Plány','ph-plan-history':'Archiv plánů','ph-plan-detail-complete':'Dokončený plán','ph-nutrition-plan-detail':'Detail výživového plánu','ph-training-plan-detail':'Detail tréninku','ph-food-detail':'Detail potraviny','ph-recipe-detail':'Detail receptu','ph-pending-questionnaires':'Čekající dotazníky','ph-profile':'Profil','ph-messages':'Zprávy','ph-archive':'Archiv','ph-chat':'Chat detail','ph-chat-former':'Chat — bývalý trenér','ph-live-training':'Živý trénink'};
+  var map = {'ph-today':'Dnes','ph-invite-detail':'Detail pozvánky','ph-discover':'Spolupráce','ph-trainer-profile':'Profil trenéra','ph-plans':'Plány','ph-plan-history':'Archiv plánů','ph-plan-detail-complete':'Dokončený plán','ph-nutrition-plan-detail':'Detail výživového plánu','ph-training-plan-detail':'Detail tréninku','ph-food-detail':'Detail potraviny','ph-recipe-detail':'Detail receptu','ph-pending-questionnaires':'Čekající dotazníky','ph-weekly-checkin':'Check-in — vyplnit','ph-weekly-checkin-sent':'Check-in — odesláno','ph-profile':'Profil','ph-messages':'Zprávy','ph-archive':'Archiv','ph-chat':'Chat detail','ph-chat-former':'Chat — bývalý trenér','ph-live-training':'Živý trénink'};
   document.querySelectorAll('.pb').forEach(function(b){
     if(b.textContent.trim() === map[id]) b.classList.add('active');
   });
