@@ -11,7 +11,7 @@ namespace FitnessPlatform.Application.Features.WeeklyCheckIns.GetSettings;
 /// </summary>
 /// <param name="db">Database context.</param>
 public class GetSettingsEndpoint(IApplicationDbContext db)
-    : Endpoint<GetSettingsRequest, GetSettingsResponse>
+    : EndpointWithoutRequest<GetSettingsResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -26,7 +26,7 @@ public class GetSettingsEndpoint(IApplicationDbContext db)
     }
 
     /// <inheritdoc />
-    public override async Task HandleAsync(GetSettingsRequest req, CancellationToken ct)
+    public override async Task HandleAsync(CancellationToken ct)
     {
         var userId = User.FindFirstValue(AppClaims.UserId);
         if (userId is null)
