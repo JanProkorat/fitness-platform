@@ -142,6 +142,15 @@ public static class ErrorCodes
     /// <summary>The trainer is not linked to the specified client.</summary>
     public const string NotLinkedToClient = "NOT_LINKED_TO_CLIENT";
 
+    /// <summary>The weekly check-in was not found or does not belong to the caller.</summary>
+    public const string CheckInNotFound = "CHECK_IN_NOT_FOUND";
+
+    /// <summary>The trainer already reviewed this check-in; the client can no longer modify it.</summary>
+    public const string CheckInAlreadyReviewed = "CHECK_IN_ALREADY_REVIEWED";
+
+    /// <summary>The weekly check-in belongs to another professional.</summary>
+    public const string CheckInNotOwned = "CHECK_IN_NOT_OWNED";
+
     // ── Validation (generic) ─────────────────────────────────────────
     /// <summary>Required field is missing.</summary>
     public const string Required = "REQUIRED";

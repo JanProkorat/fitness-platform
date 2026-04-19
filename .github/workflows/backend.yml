@@ -120,7 +120,13 @@ jobs:
             -class- '*PutSettingsEndpointTests' \
             -class- '*GetOverridesEndpointTests' \
             -class- '*PutOverrideEndpointTests' \
-            -class- '*DeleteOverrideEndpointTests'
+            -class- '*DeleteOverrideEndpointTests' \
+            -class- '*GetCurrentClientCheckInsEndpointTests' \
+            -class- '*RespondToCheckInEndpointTests' \
+            -class- '*DismissCheckInEndpointTests' \
+            -class- '*MarkCheckInReviewedEndpointTests' \
+            -class- '*GetTrainerCheckInsEndpointTests' \
+            -class- '*WeeklyCheckInSchedulerTests'
         env:
           POSTGRES_PASSWORD: test_password
           MONGO_PASSWORD: test_password

@@ -196,6 +196,10 @@ else
 // Realtime notifications (SignalR)
 builder.Services.AddScoped<IRealtimeNotifier, SignalRNotifier>();
 
+// Weekly check-in scheduler — registered as both singleton (for test access) and hosted service.
+builder.Services.AddSingleton<WeeklyCheckInScheduler>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<WeeklyCheckInScheduler>());
+
 // Compliance
 builder.Services.AddScoped<IComplianceService, ComplianceService>();
 

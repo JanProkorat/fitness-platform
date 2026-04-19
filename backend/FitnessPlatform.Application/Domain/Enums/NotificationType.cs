@@ -39,5 +39,11 @@ public enum NotificationType
     InvitationDeclined,
 
     /// <summary>A pending invite was auto-cancelled because another professional of the same role was accepted.</summary>
-    InvitationCancelled
+    InvitationCancelled,
+
+    /// <summary>A weekly check-in reminder was sent to a client by the scheduler.</summary>
+    WeeklyCheckInRequested,
+
+    /// <summary>A client responded to a weekly check-in reminder; delivered to the professional.</summary>
+    WeeklyCheckInResponded
 }
