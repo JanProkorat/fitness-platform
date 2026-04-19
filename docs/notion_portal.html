@@ -570,6 +570,9 @@ body.dark .btn-auth-primary { color: #0d0900; }
   <button class="tn-btn" onclick="showScreen('s-nutrition')">Jídelníček</button>
   <button class="tn-btn" onclick="showScreen('s-foods')">Databáze potravin</button>
   <button class="tn-btn" onclick="showScreen('s-goals')">Cíle klienta</button>
+  <div class="tn-sep"></div>
+  <div class="tn-lbl">Nastavení</div>
+  <button class="tn-btn" onclick="showScreen('s-settings-checkins')">Týdenní check-iny</button>
   <div class="tn-right">
     <button class="tn-icon" onclick="toggleDark()" id="dark-btn" title="Tmavý režim">☾</button>
   </div>
@@ -621,6 +624,54 @@ body.dark .btn-auth-primary { color: #0d0900; }
       <div class="callout-body">
         <div class="callout-title">Jakub Malý — nízká compliance</div>
         <div class="callout-text">Plní 2/5 tréninků. <span class="mention" onclick="showScreen('s-messages')">✉ Napsat zprávu</span></div>
+      </div>
+    </div>
+
+    <!-- Weekly check-ins card -->
+    <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:8px;margin-bottom:16px">
+      <div style="padding:12px 16px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:16px">📅</span>
+          <div>
+            <div style="font-size:14px;font-weight:600;color:var(--t)">Týdenní check-iny · tento týden</div>
+            <div style="font-size:12px;color:var(--t2)">Před plánováním příštího týdne</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="font-size:12px;color:var(--t2)">2 odpověděli · 3 ne</div>
+          <button class="btn" style="font-size:12px;padding:4px 10px" onclick="showScreen('s-settings-checkins')">Nastavení</button>
+        </div>
+      </div>
+      <div style="padding:0">
+        <div style="display:grid;grid-template-columns:36px 1fr auto auto;gap:12px;padding:12px 16px;align-items:center;border-bottom:1px solid var(--bd);cursor:pointer" onclick="showScreen('s-training')">
+          <div style="width:32px;height:32px;border-radius:6px;background:rgba(0,122,255,.12);color:#007aff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600">PH</div>
+          <div style="min-width:0">
+            <div style="font-size:14px;font-weight:600;color:var(--t);margin-bottom:3px">Petra Horáková <span style="font-size:10px;font-weight:600;padding:1px 6px;border-radius:99px;background:rgba(201,168,76,.15);color:var(--acc);text-transform:uppercase;letter-spacing:.04em;margin-left:4px">Trénink</span></div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px">
+              <span style="font-size:11px;padding:1px 7px;border-radius:99px;background:rgba(201,168,76,.1);color:var(--acc)">✈️ Cestování</span>
+              <span style="font-size:11px;padding:1px 7px;border-radius:99px;background:rgba(201,168,76,.1);color:var(--acc)">⏱️ Více času</span>
+            </div>
+            <div style="font-size:12px;color:var(--t2);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">„Od pátku jsem pryč, vrátím se v neděli večer…"</div>
+          </div>
+          <div style="font-size:11px;color:var(--t3);white-space:nowrap">čt 18:04</div>
+          <button class="btn primary" style="font-size:12px;padding:5px 10px" onclick="event.stopPropagation();showScreen('s-training')">Otevřít plán →</button>
+        </div>
+        <div style="display:grid;grid-template-columns:36px 1fr auto auto;gap:12px;padding:12px 16px;align-items:center;border-bottom:1px solid var(--bd);cursor:pointer" onclick="showScreen('s-nutrition')">
+          <div style="width:32px;height:32px;border-radius:6px;background:rgba(52,199,89,.12);color:#34c759;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600">LP</div>
+          <div style="min-width:0">
+            <div style="font-size:14px;font-weight:600;color:var(--t);margin-bottom:3px">Lucie Procházková <span style="font-size:10px;font-weight:600;padding:1px 6px;border-radius:99px;background:rgba(52,199,89,.15);color:#34c759;text-transform:uppercase;letter-spacing:.04em;margin-left:4px">Výživa</span></div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px">
+              <span style="font-size:11px;padding:1px 7px;border-radius:99px;background:rgba(201,168,76,.1);color:var(--acc)">🎉 Oslava / akce</span>
+            </div>
+            <div style="font-size:12px;color:var(--t2);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">„V sobotu rodinná oslava — dá se to naplánovat jako cheat day?"</div>
+          </div>
+          <div style="font-size:11px;color:var(--t3);white-space:nowrap">pá 10:12</div>
+          <button class="btn primary" style="font-size:12px;padding:5px 10px" onclick="event.stopPropagation();showScreen('s-nutrition')">Otevřít plán →</button>
+        </div>
+        <div style="padding:10px 16px;font-size:12px;color:var(--t2);display:flex;justify-content:space-between;align-items:center;background:rgba(120,120,128,.03)">
+          <span><strong style="color:var(--t)">3 klienti</strong> zatím neodpověděli</span>
+          <span style="color:var(--t3)">Plánujete ve čtvrtek 18:00</span>
+        </div>
       </div>
     </div>
     <!-- views -->
@@ -721,6 +772,46 @@ body.dark .btn-auth-primary { color: #0d0900; }
     </div>
   </div>
   <div class="pc">
+    <!-- Weekly check-in response banner — state 1: RESPONDED (client answered before planning) -->
+    <div style="background:var(--bg2);border:1px solid var(--acc-br);border-left:3px solid var(--acc);border-radius:8px;margin-bottom:10px">
+      <div style="padding:12px 16px;display:flex;align-items:flex-start;gap:12px">
+        <div style="font-size:18px;margin-top:1px">📅</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <div style="font-size:13px;font-weight:600;color:var(--t)">Check-in od Petry · tento týden</div>
+            <span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px;background:rgba(52,199,89,.12);color:#34c759;text-transform:uppercase;letter-spacing:.04em">Odpověděla</span>
+            <span style="font-size:11px;color:var(--t2)">odesláno čt 18:04</span>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px">
+            <span style="font-size:11px;font-weight:500;padding:2px 8px;border-radius:99px;background:rgba(201,168,76,.1);color:var(--acc)">✈️ Cestování</span>
+            <span style="font-size:11px;font-weight:500;padding:2px 8px;border-radius:99px;background:rgba(201,168,76,.1);color:var(--acc)">⏱️ Více času než obvykle</span>
+          </div>
+          <div style="font-size:13px;color:var(--t2);line-height:1.45">„Od pátku jsem pryč, vrátím se v neděli večer. Klidně přidej víc objemu první čtyři dny — pak dej lehčí týden."</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
+          <button class="btn primary" style="font-size:12px;padding:5px 10px;white-space:nowrap">✓ Zkontrolováno</button>
+          <button class="btn" style="font-size:12px;padding:5px 10px;white-space:nowrap" onclick="showScreen('s-settings-checkins')">Nastavení</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Weekly check-in response banner — state 2: SENT BUT NOT YET RESPONDED (scene variant for QA) -->
+    <div style="background:var(--bg2);border:1px solid var(--br);border-left:3px solid var(--t4);border-radius:8px;margin-bottom:12px;opacity:.85">
+      <div style="padding:10px 16px;display:flex;align-items:center;gap:12px">
+        <div style="font-size:16px">⏳</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="font-size:13px;font-weight:600;color:var(--t2)">Check-in čeká na odpověď</div>
+            <span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px;background:rgba(120,120,128,.1);color:var(--t3);text-transform:uppercase;letter-spacing:.04em">Variant · nezodpovězeno</span>
+          </div>
+          <div style="font-size:12px;color:var(--t3);margin-top:2px">Odesláno čt 18:00 · Klient zatím nereagoval · Můžeš plánovat i bez odpovědi.</div>
+        </div>
+        <button class="btn" style="font-size:12px;padding:5px 10px;white-space:nowrap" onclick="showScreen('s-messages')">💬 Napsat klientovi</button>
+      </div>
+    </div>
+    <!-- Banner state 3 (hidden) is omitted here by design — when the client has no scheduled check-in, the banner does not render at all. -->
+
+
     <div class="week-grid">
       <div class="day-col"><div class="day-hdr today">Po</div><div class="day-body"><div class="day-session" onclick="openDialog('dlg-session-detail')"><div class="day-sname">Push A</div><div class="day-smeta">5 cviků · 60 min</div></div><div class="day-add" onclick="openDialog('dlg-add-session')">+ Přidat</div></div></div>
       <div class="day-col"><div class="day-hdr">Út</div><div class="day-body"><div class="day-session"><div class="day-sname">Pull A</div><div class="day-smeta">4 cviky · 50 min</div></div><div class="day-add" onclick="openDialog('dlg-add-session')">+ Přidat</div></div></div>
@@ -789,6 +880,43 @@ body.dark .btn-auth-primary { color: #0d0900; }
       <button class="btn primary" onclick="publishPlan()">Publikovat</button>
     </div>
   </div>
+  <!-- Weekly check-in response banner — state 1: RESPONDED -->
+  <div style="margin:10px 16px 0;background:var(--bg2);border:1px solid var(--acc-br);border-left:3px solid var(--acc);border-radius:8px">
+    <div style="padding:10px 14px;display:flex;align-items:flex-start;gap:10px">
+      <div style="font-size:16px;margin-top:1px">📅</div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <div style="font-size:13px;font-weight:600;color:var(--t)">Check-in od Petry · tento týden</div>
+          <span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px;background:rgba(52,199,89,.12);color:#34c759;text-transform:uppercase;letter-spacing:.04em">Odpověděla</span>
+          <span style="font-size:11px;color:var(--t2)">odesláno pá 10:12</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px">
+          <span style="font-size:11px;font-weight:500;padding:2px 8px;border-radius:99px;background:rgba(201,168,76,.1);color:var(--acc)">🎉 Oslava / akce</span>
+        </div>
+        <div style="font-size:12px;color:var(--t2);line-height:1.45">„V sobotu rodinná oslava — dá se to naplánovat jako cheat day?"</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        <button class="btn primary" style="font-size:12px;padding:5px 10px;white-space:nowrap">✓ Zkontrolováno</button>
+        <button class="btn" style="font-size:12px;padding:5px 10px;white-space:nowrap" onclick="showScreen('s-settings-checkins')">Nastavení</button>
+      </div>
+    </div>
+  </div>
+  <!-- Weekly check-in response banner — state 2: SENT BUT NOT YET RESPONDED (scene variant for QA) -->
+  <div style="margin:6px 16px 0;background:var(--bg2);border:1px solid var(--br);border-left:3px solid var(--t4);border-radius:8px;opacity:.85">
+    <div style="padding:8px 14px;display:flex;align-items:center;gap:10px">
+      <div style="font-size:15px">⏳</div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="font-size:13px;font-weight:600;color:var(--t2)">Check-in čeká na odpověď</div>
+          <span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px;background:rgba(120,120,128,.1);color:var(--t3);text-transform:uppercase;letter-spacing:.04em">Variant · nezodpovězeno</span>
+        </div>
+        <div style="font-size:12px;color:var(--t3);margin-top:2px">Odesláno pá 10:00 · Klient zatím nereagoval</div>
+      </div>
+      <button class="btn" style="font-size:12px;padding:4px 9px;white-space:nowrap" onclick="showScreen('s-messages')">💬 Napsat</button>
+    </div>
+  </div>
+  <!-- Banner state 3 (hidden) is omitted here by design — when the client has no scheduled check-in, the banner does not render at all. -->
+
   <!-- week tabs -->
   <div class="week-tabs" id="nutr-week-tabs"></div>
   <!-- day tabs -->
@@ -933,6 +1061,226 @@ body.dark .btn-auth-primary { color: #0d0900; }
 <!-- ═══════════════════════════════════════════════════════════
      PŘIHLÁŠENÍ
 ═══════════════════════════════════════════════════════════ -->
+<div id="s-settings-checkins" class="screen">
+<div class="shell">
+<div class="sb" id="sb-settings-checkins"></div>
+<div class="main">
+  <div class="bc"><a onclick="showScreen('s-dashboard')">Dashboard</a><span class="bc-sep">/</span><span>Nastavení</span><span class="bc-sep">/</span><span>Týdenní check-iny</span></div>
+
+  <div class="ph">
+    <div class="ph-icon">⚙</div>
+    <h1>Nastavení</h1>
+    <div class="ph-sub">Profil · Týdenní check-iny · Notifikace · Jazyk</div>
+  </div>
+
+  <!-- Inline tabs -->
+  <div class="toolbar" style="border-bottom:1px solid var(--br);margin-bottom:0">
+    <div class="tb-view" onclick="showToast('Profil')">Profil</div>
+    <div class="tb-view active">Týdenní check-iny</div>
+    <div class="tb-view" onclick="showToast('Notifikace')">Notifikace</div>
+    <div class="tb-view" onclick="showToast('Jazyk')">Jazyk</div>
+  </div>
+
+  <div class="pc">
+    <!-- Intro callout -->
+    <div class="callout" style="margin-bottom:20px;background:rgba(201,168,76,.06);border:1px solid var(--acc-br)">
+      <div class="callout-icon">📅</div>
+      <div class="callout-body">
+        <div class="callout-title">Týdenní check-iny před plánováním</div>
+        <div class="callout-text">V nastavený den a čas se klientovi ozve notifikace, aby dal vědět, jestli ho v příštím týdnu nečeká něco mimořádného (cestování, zranění, zvláštní rozvrh). Odpověď uvidíš v kartě klienta i přímo v editoru plánu.</div>
+      </div>
+    </div>
+
+    <!-- Default — Training -->
+    <div style="background:var(--bg2);border:1px solid var(--br);border-radius:8px;margin-bottom:14px">
+      <div style="padding:14px 18px;border-bottom:1px solid var(--br);display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="width:32px;height:32px;border-radius:8px;background:rgba(201,168,76,.15);color:var(--acc);display:flex;align-items:center;justify-content:center;font-size:16px">🏋️</span>
+          <div>
+            <div style="font-size:14px;font-weight:600;color:var(--t)">Výchozí pro Trénink</div>
+            <div style="font-size:12px;color:var(--t2)">Platí pro všechny klienty, u kterých nemáš individuální nastavení</div>
+          </div>
+        </div>
+        <div class="toggle-wrap" style="margin:0;padding:0">
+          <span class="toggle-lbl" style="font-size:12px">Aktivní</span>
+          <div class="toggle on" onclick="this.classList.toggle('on')"><div class="toggle-thumb"></div></div>
+        </div>
+      </div>
+      <div style="padding:16px 18px">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Den v týdnu</label>
+            <select class="form-select">
+              <option>Pondělí</option>
+              <option>Úterý</option>
+              <option>Středa</option>
+              <option selected>Čtvrtek</option>
+              <option>Pátek</option>
+              <option>Sobota</option>
+              <option>Neděle</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Čas (hodina)</label>
+            <select class="form-select">
+              <option>06:00</option><option>07:00</option><option>08:00</option>
+              <option>09:00</option><option>10:00</option><option>11:00</option>
+              <option>12:00</option><option>13:00</option><option>14:00</option>
+              <option>15:00</option><option>16:00</option><option>17:00</option>
+              <option selected>18:00</option><option>19:00</option><option>20:00</option>
+              <option>21:00</option><option>22:00</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Časová zóna</label>
+            <input class="form-input" value="Europe/Prague" readonly style="background:var(--bg3);color:var(--t2)">
+          </div>
+        </div>
+        <div class="form-group" style="margin-top:4px">
+          <label class="form-label">Výchozí zpráva (volitelné)</label>
+          <textarea class="form-input" rows="2" maxlength="200" placeholder="Krátká osobní zpráva, která se připojí k notifikaci pro všechny klienty…">Pokud plánuješ dlouhou cestu, dej vědět — přizpůsobím týdenní rozložení.</textarea>
+          <div style="font-size:11px;color:var(--t3);margin-top:4px">86 / 200 znaků</div>
+        </div>
+      </div>
+      <div style="padding:10px 18px;border-top:1px solid var(--br);display:flex;justify-content:space-between;align-items:center;background:rgba(120,120,128,.03)">
+        <span style="font-size:12px;color:var(--t2)">Posledních 4 týdny: <strong style="color:var(--t)">22 odpovědí</strong> · 8 nezodpovězeno</span>
+        <button class="btn primary" onclick="showToast('Uloženo')">Uložit</button>
+      </div>
+    </div>
+
+    <!-- Default — Nutrition -->
+    <div style="background:var(--bg2);border:1px solid var(--br);border-radius:8px;margin-bottom:24px">
+      <div style="padding:14px 18px;border-bottom:1px solid var(--br);display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="width:32px;height:32px;border-radius:8px;background:rgba(52,199,89,.15);color:#34c759;display:flex;align-items:center;justify-content:center;font-size:16px">🥗</span>
+          <div>
+            <div style="font-size:14px;font-weight:600;color:var(--t)">Výchozí pro Výživu</div>
+            <div style="font-size:12px;color:var(--t2)">Platí pro všechny klienty s výživovým plánem</div>
+          </div>
+        </div>
+        <div class="toggle-wrap" style="margin:0;padding:0">
+          <span class="toggle-lbl" style="font-size:12px">Aktivní</span>
+          <div class="toggle on" onclick="this.classList.toggle('on')"><div class="toggle-thumb"></div></div>
+        </div>
+      </div>
+      <div style="padding:16px 18px">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Den v týdnu</label>
+            <select class="form-select">
+              <option>Pondělí</option>
+              <option>Úterý</option>
+              <option>Středa</option>
+              <option>Čtvrtek</option>
+              <option>Pátek</option>
+              <option>Sobota</option>
+              <option selected>Neděle</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Čas (hodina)</label>
+            <select class="form-select">
+              <option>06:00</option><option>07:00</option><option>08:00</option>
+              <option>09:00</option><option>10:00</option><option>11:00</option>
+              <option>12:00</option><option>13:00</option><option>14:00</option>
+              <option>15:00</option><option>16:00</option><option>17:00</option>
+              <option>18:00</option><option selected>19:00</option><option>20:00</option>
+              <option>21:00</option><option>22:00</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Časová zóna</label>
+            <input class="form-input" value="Europe/Prague" readonly style="background:var(--bg3);color:var(--t2)">
+          </div>
+        </div>
+        <div class="form-group" style="margin-top:4px">
+          <label class="form-label">Výchozí zpráva (volitelné)</label>
+          <textarea class="form-input" rows="2" maxlength="200" placeholder="Zpráva pro klienty s výživovým plánem…"></textarea>
+          <div style="font-size:11px;color:var(--t3);margin-top:4px">0 / 200 znaků</div>
+        </div>
+      </div>
+      <div style="padding:10px 18px;border-top:1px solid var(--br);display:flex;justify-content:space-between;align-items:center;background:rgba(120,120,128,.03)">
+        <span style="font-size:12px;color:var(--t2)">Posledních 4 týdny: <strong style="color:var(--t)">14 odpovědí</strong> · 4 nezodpovězeno</span>
+        <button class="btn primary" onclick="showToast('Uloženo')">Uložit</button>
+      </div>
+    </div>
+
+    <!-- Per-client overrides -->
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px">
+      <div>
+        <div style="font-size:15px;font-weight:600;color:var(--t)">Výjimky u klientů</div>
+        <div style="font-size:12px;color:var(--t2);margin-top:2px">5 z 8 klientů používá výchozí nastavení · 3 mají individuální rozvrh</div>
+      </div>
+      <div style="font-size:12px;color:var(--t3)">Klikni na klienta pro úpravu</div>
+    </div>
+
+    <div class="db-wrap">
+      <table class="db-table">
+        <thead>
+          <tr>
+            <th>Klient</th>
+            <th>Profese</th>
+            <th>Nastavení</th>
+            <th>Den</th>
+            <th>Čas</th>
+            <th>Aktivní</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr onclick="openDialog('dlg-checkin-override')" style="cursor:pointer">
+            <td><strong>Petra Horáková</strong></td>
+            <td><span class="tag" style="background:rgba(201,168,76,.1);color:var(--acc);border:1px solid var(--acc-br)">Trénink</span></td>
+            <td><span class="tag tag-gray">Výchozí</span></td>
+            <td>Čt</td>
+            <td>18:00</td>
+            <td><span class="tag tag-green">✓</span></td>
+            <td style="color:var(--t3)">›</td>
+          </tr>
+          <tr onclick="openDialog('dlg-checkin-override')" style="cursor:pointer;background:rgba(201,168,76,.03)">
+            <td><strong>Tomáš Navrátil</strong></td>
+            <td><span class="tag" style="background:rgba(201,168,76,.1);color:var(--acc);border:1px solid var(--acc-br)">Trénink</span></td>
+            <td><span class="tag" style="background:rgba(201,168,76,.12);color:var(--acc)">Individuální</span></td>
+            <td><strong style="color:var(--acc)">Út</strong></td>
+            <td><strong style="color:var(--acc)">20:00</strong></td>
+            <td><span class="tag tag-green">✓</span></td>
+            <td style="color:var(--t3)">›</td>
+          </tr>
+          <tr onclick="openDialog('dlg-checkin-override')" style="cursor:pointer">
+            <td><strong>Lucie Procházková</strong></td>
+            <td><span class="tag" style="background:rgba(52,199,89,.1);color:#34c759;border:1px solid rgba(52,199,89,.3)">Výživa</span></td>
+            <td><span class="tag tag-gray">Výchozí</span></td>
+            <td>Ne</td>
+            <td>19:00</td>
+            <td><span class="tag tag-green">✓</span></td>
+            <td style="color:var(--t3)">›</td>
+          </tr>
+          <tr onclick="openDialog('dlg-checkin-override')" style="cursor:pointer;background:rgba(201,168,76,.03)">
+            <td><strong>Martin Krejčí</strong></td>
+            <td><span class="tag" style="background:rgba(201,168,76,.1);color:var(--acc);border:1px solid var(--acc-br)">Trénink</span></td>
+            <td><span class="tag" style="background:rgba(201,168,76,.12);color:var(--acc)">Individuální</span></td>
+            <td>Čt</td>
+            <td>18:00</td>
+            <td><span class="tag tag-gray">✕</span></td>
+            <td style="color:var(--t3)">›</td>
+          </tr>
+          <tr onclick="openDialog('dlg-checkin-override')" style="cursor:pointer;background:rgba(201,168,76,.03)">
+            <td><strong>Jakub Malý</strong></td>
+            <td><span class="tag" style="background:rgba(201,168,76,.1);color:var(--acc);border:1px solid var(--acc-br)">Trénink</span></td>
+            <td><span class="tag" style="background:rgba(201,168,76,.12);color:var(--acc)">Individuální</span></td>
+            <td><strong style="color:var(--acc)">Pá</strong></td>
+            <td><strong style="color:var(--acc)">16:00</strong></td>
+            <td><span class="tag tag-green">✓</span></td>
+            <td style="color:var(--t3)">›</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+</div>
+</div>
 <div id="s-login" class="screen">
 <div class="auth-wrap">
 <div class="auth-card">
@@ -1315,6 +1663,86 @@ body.dark .btn-auth-primary { color: #0d0900; }
   </div>
 </div>
 
+<!-- Individuální rozvrh check-inu pro klienta -->
+<div class="overlay" id="dlg-checkin-override" onclick="closeOnOverlay(event,'dlg-checkin-override')">
+  <div class="dialog" style="max-width:480px">
+    <div class="dlg-hdr"><div class="dlg-title">Individuální rozvrh — Tomáš Navrátil</div><button class="dlg-close" onclick="closeDialog('dlg-checkin-override')">✕</button></div>
+    <div class="dlg-body">
+      <div class="callout" style="margin-bottom:14px;background:rgba(201,168,76,.06);border:1px solid var(--acc-br)">
+        <div class="callout-icon">ℹ</div>
+        <div class="callout-body">
+          <div class="callout-text" style="font-size:12px">Odškrtni <strong>Výchozí</strong> u pole, které chceš u tohoto klienta upravit. Zaškrtnutá políčka přebírají nastavení z výchozího rozvrhu pro Trénink.</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <label class="form-label" style="margin:0">Aktivní</label>
+          <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--t2);cursor:pointer">
+            <input type="checkbox"> Výchozí
+          </label>
+        </div>
+        <div class="toggle-wrap" style="margin:0;padding:8px 10px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rm)">
+          <span class="toggle-lbl">Posílat check-in tomuto klientovi</span>
+          <div class="toggle on" onclick="this.classList.toggle('on')"><div class="toggle-thumb"></div></div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <label class="form-label" style="margin:0">Den v týdnu</label>
+            <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--t2);cursor:pointer">
+              <input type="checkbox"> Výchozí
+            </label>
+          </div>
+          <select class="form-select">
+            <option>Pondělí</option>
+            <option selected>Úterý</option>
+            <option>Středa</option>
+            <option>Čtvrtek</option>
+            <option>Pátek</option>
+            <option>Sobota</option>
+            <option>Neděle</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <label class="form-label" style="margin:0">Čas (hodina)</label>
+            <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--t2);cursor:pointer">
+              <input type="checkbox"> Výchozí
+            </label>
+          </div>
+          <select class="form-select">
+            <option>06:00</option><option>07:00</option><option>08:00</option>
+            <option>09:00</option><option>10:00</option><option>11:00</option>
+            <option>12:00</option><option>13:00</option><option>14:00</option>
+            <option>15:00</option><option>16:00</option><option>17:00</option>
+            <option>18:00</option><option>19:00</option><option selected>20:00</option>
+            <option>21:00</option><option>22:00</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <label class="form-label" style="margin:0">Zpráva pro klienta</label>
+          <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--t2);cursor:pointer">
+            <input type="checkbox" checked> Výchozí
+          </label>
+        </div>
+        <textarea class="form-input" rows="2" maxlength="200" placeholder="Individuální zpráva pro tohoto klienta…" disabled style="background:var(--bg3);color:var(--t2)">Pokud plánuješ dlouhou cestu, dej vědět — přizpůsobím týdenní rozložení.</textarea>
+        <div style="font-size:11px;color:var(--t3);margin-top:4px">Používá výchozí zprávu</div>
+      </div>
+    </div>
+    <div class="dlg-footer">
+      <button class="btn danger" onclick="closeDialog('dlg-checkin-override');showToast('Rozvrh vrácen na výchozí')">Vrátit vše na výchozí</button>
+      <button class="btn" onclick="closeDialog('dlg-checkin-override')">Zrušit</button>
+      <button class="btn primary" onclick="closeDialog('dlg-checkin-override');showToast('Rozvrh uložen')">Uložit</button>
+    </div>
+  </div>
+</div>
+
 <!-- Filtr klientů -->
 <div class="overlay" id="dlg-filter" onclick="closeOnOverlay(event,'dlg-filter')">
   <div class="dialog" style="max-width:360px">
@@ -1663,7 +2091,7 @@ function showScreen(id){
   document.querySelectorAll('.tn-btn').forEach(function(b){if(b.getAttribute('onclick')==="showScreen('"+id+"')") b.classList.add('active');});
   window.scrollTo(0,0);
   // Build sidebars
-  var sbMap={'s-dashboard':'sb-dashboard','s-client':'sb-client','s-training':'sb-training','s-messages':'sb-messages','s-nutrition':'sb-nutrition','s-foods':'sb-foods','s-goals':'sb-goals'};
+  var sbMap={'s-dashboard':'sb-dashboard','s-client':'sb-client','s-training':'sb-training','s-messages':'sb-messages','s-nutrition':'sb-nutrition','s-foods':'sb-foods','s-goals':'sb-goals','s-settings-checkins':'sb-settings-checkins'};
   if(sbMap[id]) buildSidebar(sbMap[id],id);
   // Init nutrition editor
   if(id==='s-nutrition'&&!_nutrInit){_nutrInit=true;initNutrition();}
