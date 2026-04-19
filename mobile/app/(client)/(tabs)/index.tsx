@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   View,
   StyleSheet,
@@ -21,9 +21,12 @@ import { HasTrainerState } from '@/components/today/HasTrainerState'
 import { NotificationSheet } from '@/components/notifications/NotificationSheet'
 import { InviteCard } from '@/components/notifications/InviteCard'
 import { QuestionnaireBanner } from '@/components/notifications/QuestionnaireBanner'
+import { WeeklyCheckInBanner } from '@/components/today/WeeklyCheckInBanner'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useClientInvite } from '@/hooks/useClientInvite'
 import { getPendingQuestionnaires, type PendingQuestionnairesResponse } from '@/api/questionnaire'
+import { getCurrentCheckIns, type CheckInSummary } from '@/api/weeklyCheckIns'
+import { onEvent } from '@/api/signalr'
 import { Toast } from '@/lib/toast'
 
 // ─── Main Screen ──────────────────────────────────────────────────────
@@ -50,8 +53,27 @@ export default function TodayScreen() {
   // Pending invite — always fetch, client can receive invites in any state
   const { invite, accept, decline } = useClientInvite(true)
 
-  // Pending questionnaires — visible in all states with an active link
+  // ── Weekly check-ins (pending banner) ──
   const hasActiveLink = useAuthStore((s) => s.user?.hasActiveLink ?? false)
+  const checkInsQuery = useQuery({
+    queryKey: ['current-weekly-check-ins'],
+    queryFn: getCurrentCheckIns,
+    enabled: hasActiveLink,
+    staleTime: 30_000,
+  })
+  const pendingCheckIns: CheckInSummary[] = checkInsQuery.data?.checkIns ?? []
+
+  // Subscribe to weeklycheckinupdated so the banner disappears when client responds
+  // or when the trainer marks reviewed (both paths fire the event).
+  useEffect(() => {
+    const unsub = onEvent('weeklycheckinupdated', () => {
+      queryClient.invalidateQueries({ queryKey: ['current-weekly-check-ins'] })
+      queryClient.invalidateQueries({ queryKey: ['notifications'] })
+    })
+    return unsub
+  }, [queryClient])
+
+  // Pending questionnaires — visible in all states with an active link
   const pendingQQuery = useQuery<PendingQuestionnairesResponse>({
     queryKey: ['pending-questionnaires'],
     queryFn: getPendingQuestionnaires,
@@ -85,6 +107,11 @@ export default function TodayScreen() {
             router.push(href(`/(client)/messages/${n.actionPayload.threadId}`))
           }
           break
+        case 'weekly_checkin':
+          if (n.actionPayload?.weeklyCheckInId) {
+            router.push(href(`/(client)/weekly-checkin/${n.actionPayload.weeklyCheckInId}`))
+          }
+          break
       }
     },
     [markRead, router],
@@ -111,6 +138,7 @@ export default function TodayScreen() {
       queryClient.invalidateQueries({ queryKey: ['notifications'] }),
       queryClient.invalidateQueries({ queryKey: ['client-invite'] }),
       queryClient.invalidateQueries({ queryKey: ['pending-questionnaires'] }),
+      queryClient.invalidateQueries({ queryKey: ['current-weekly-check-ins'] }),
     ])
     setRefreshing(false)
   }, [queryClient])
@@ -167,6 +195,17 @@ export default function TodayScreen() {
             }}
           />
         )}
+
+        {/* Weekly check-in banners — one per pending check-in, stacks vertically */}
+        {pendingCheckIns.map((checkIn) => (
+          <WeeklyCheckInBanner
+            key={checkIn.id}
+            checkIn={checkIn}
+            onOpen={(ci) =>
+              router.push(href(`/(client)/weekly-checkin/${ci.id}`))
+            }
+          />
+        ))}
 
         {/* ── State: no-trainer ── */}
         {todayState === 'no-trainer' && <NoTrainerState />}

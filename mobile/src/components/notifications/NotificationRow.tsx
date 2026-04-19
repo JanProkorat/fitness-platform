@@ -11,12 +11,13 @@ const NOTIF_CONFIG: Record<Notification['type'], {
   icon: keyof typeof Ionicons.glyphMap;
   color: string;
 }> = {
-  invitation:    { bg: goldAlpha['12'], icon: 'person-add',       color: '#c9a84c' },
-  questionnaire: { bg: goldAlpha['12'], icon: 'clipboard',        color: '#c9a84c' },
-  new_plan:      { bg: 'rgba(11,110,153,0.10)', icon: 'calendar',        color: '#0b6e99' },
-  message:       { bg: 'rgba(0,122,255,0.10)',  icon: 'chatbubble',      color: '#007aff' },
-  training_done: { bg: 'rgba(52,199,89,0.10)',  icon: 'checkmark-circle', color: '#34c759' },
-  alarm:         { bg: 'rgba(255,59,48,0.10)',  icon: 'alert-circle',     color: '#ff3b30' },
+  invitation:     { bg: goldAlpha['12'],                 icon: 'person-add',         color: '#c9a84c' },
+  questionnaire:  { bg: goldAlpha['12'],                 icon: 'clipboard',          color: '#c9a84c' },
+  new_plan:       { bg: 'rgba(11,110,153,0.10)',         icon: 'calendar',           color: '#0b6e99' },
+  message:        { bg: 'rgba(0,122,255,0.10)',          icon: 'chatbubble',         color: '#007aff' },
+  training_done:  { bg: 'rgba(52,199,89,0.10)',          icon: 'checkmark-circle',   color: '#34c759' },
+  alarm:          { bg: 'rgba(255,59,48,0.10)',          icon: 'alert-circle',       color: '#ff3b30' },
+  weekly_checkin: { bg: goldAlpha['12'],                 icon: 'calendar-number',    color: '#c9a84c' },
 }
 
 function timeAgo(timestamp: string): string {

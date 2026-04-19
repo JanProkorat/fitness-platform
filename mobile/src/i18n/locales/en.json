@@ -719,6 +719,38 @@
     "loading": "Loading recipe...",
     "error": "Could not load recipe detail"
   },
+  "weeklyCheckIn": {
+    "title": "Weekly check-ins",
+    "defaultPrompt": {
+      "training": "Your trainer is planning next week soon. Anything special coming up?",
+      "nutrition": "Your nutritionist is planning next week soon. Anything special coming up?"
+    },
+    "push": {
+      "title": "Planning next week"
+    },
+    "banner": {
+      "cta": "Let them know"
+    },
+    "sheet": {
+      "submit": "Submit",
+      "skip": "Skip this week",
+      "close": "Close",
+      "notePlaceholder": {
+        "training": "Anything else your trainer should know?",
+        "nutrition": "Anything else your nutritionist should know?"
+      },
+      "weekOf": "Week of {{range}}",
+      "editLocked": "Your trainer already saw this."
+    },
+    "flag": {
+      "traveling": "Traveling",
+      "eventOrCelebration": "Event / celebration",
+      "sickOrLowEnergy": "Sick / low energy",
+      "injuryOrPain": "Injury or pain",
+      "moreTimeAvailable": "More time than usual",
+      "lessTimeAvailable": "Less time than usual"
+    }
+  },
   "nutrition": {
     "title": "Nutrition",
     "noPlanMessage": "Your nutritionist is reviewing your data and preparing a personalized plan. They may reach out for additional information.",

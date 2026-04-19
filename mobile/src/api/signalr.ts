@@ -23,6 +23,9 @@ const KNOWN_EVENTS = [
   'typing',
   'userpresence',
   'conversationunarchived',
+  // Weekly check-in: fires when client responds or trainer marks reviewed.
+  // Payload: { id: string, respondedAt?: string, reviewedAt?: string, dismissedAt?: string }
+  'weeklycheckinupdated',
 ]
 
 function createConnection(): HubConnection {
