@@ -262,7 +262,7 @@ public class ComplianceServiceTests
             clientId: _clientId,
             sessionId: sessionId,
             exerciseIds: [ex1, ex2],
-            startDate: today.AddDays(-(int)today.DayOfWeek + 1));
+            startDate: today.AddDays(-(((int)today.DayOfWeek + 6) % 7)));
 
         // One completion record for today's session with both exercises done
         var completion = TrainingCompletionTestHelpers.CreateCompletion(
@@ -295,7 +295,7 @@ public class ComplianceServiceTests
         var sessionId = Guid.NewGuid();
         var ex1 = Guid.NewGuid();
         var today = DateTime.UtcNow.Date;
-        var weekStart = today.AddDays(-(int)today.DayOfWeek + 1);
+        var weekStart = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
 
         // Nutrition plan: 2 meals planned, 1 logged → 50% nutrition
         var nutritionPlan = PlanTestHelpers.CreatePlan(
@@ -366,7 +366,7 @@ public class ComplianceServiceTests
             clientId: _clientId,
             sessionId: sessionId,
             exerciseIds: [ex1, ex2],
-            startDate: today.AddDays(-(int)today.DayOfWeek + 1));
+            startDate: today.AddDays(-(((int)today.DayOfWeek + 6) % 7)));
 
         // Only exercise1 completed — session is NOT considered complete (all exercises required)
         var completion = TrainingCompletionTestHelpers.CreateCompletion(
@@ -395,7 +395,7 @@ public class ComplianceServiceTests
         var ex1 = Guid.NewGuid();
         var today = DateTime.UtcNow.Date;
         var yesterday = today.AddDays(-1);
-        var weekStart = today.AddDays(-(int)today.DayOfWeek + 1);
+        var weekStart = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
 
         var trainingPlan = TrainingCompletionTestHelpers.CreateActivePlan(
             clientId: _clientId,
@@ -430,7 +430,7 @@ public class ComplianceServiceTests
         var ex1 = Guid.NewGuid();
         var today = DateTime.UtcNow.Date;
         var yesterday = today.AddDays(-1);
-        var weekStart = today.AddDays(-(int)today.DayOfWeek + 1);
+        var weekStart = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
 
         // Nutrition plan with a meal for yesterday
         var nutritionPlan = PlanTestHelpers.CreatePlan(
@@ -482,7 +482,7 @@ public class ComplianceServiceTests
         var ex1 = Guid.NewGuid();
         var today = DateTime.UtcNow.Date;
         var yesterday = today.AddDays(-1);
-        var weekStart = today.AddDays(-(int)today.DayOfWeek + 1);
+        var weekStart = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
 
         var yesterdayDow = (int)yesterday.DayOfWeek;
         yesterdayDow = yesterdayDow == 0 ? 7 : yesterdayDow;
@@ -554,7 +554,7 @@ public class ComplianceServiceTests
         var ex1 = Guid.NewGuid();
         var today = DateTime.UtcNow.Date;
         var yesterday = today.AddDays(-1);
-        var weekStart = today.AddDays(-(int)today.DayOfWeek + 1);
+        var weekStart = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
 
         var yesterdayDow = (int)yesterday.DayOfWeek;
         yesterdayDow = yesterdayDow == 0 ? 7 : yesterdayDow;
