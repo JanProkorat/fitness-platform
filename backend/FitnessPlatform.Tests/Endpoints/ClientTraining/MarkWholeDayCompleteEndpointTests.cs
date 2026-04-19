@@ -40,7 +40,7 @@ public class MarkWholeDayCompleteEndpointTests
     private TrainingPlan CreateMultiSessionPlan()
     {
         var today = DateTime.UtcNow;
-        var startOfWeek = today.Date.AddDays(-(int)today.DayOfWeek + 1); // Monday
+        var startOfWeek = today.Date.AddDays(-(((int)today.DayOfWeek + 6) % 7)); // ISO Monday
 
         // ISO dow for today
         var todayDow = (int)today.DayOfWeek;
