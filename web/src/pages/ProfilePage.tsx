@@ -12,6 +12,7 @@ import { Dialog, Button } from '@/components/ui';
 import { QuestionnaireList, QuestionnaireEditor, type QuestionnaireEditorHandle } from '@/components/questionnaire';
 import { RolesSection } from '@/components/RolesSection';
 import { TrainerProfileFields } from '@/components/TrainerProfileFields';
+import { WeeklyCheckInTab } from '@/components/profile/WeeklyCheckInTab';
 
 function parseJsonArray(value: string | null | undefined): string[] {
   if (!value) return [];
@@ -29,7 +30,7 @@ export default function ProfilePage() {
   const setUser = useAuthStore((s) => s.setUser);
   const isTrainer = user?.roles.some((r) => ['Trainer', 'Nutritionist'].includes(r));
 
-  type Tab = 'personal' | 'questionnaires';
+  type Tab = 'personal' | 'questionnaires' | 'weekly-checkins';
   const [activeTab, setActiveTab] = useState<Tab>('personal');
 
   // Questionnaire editor ref + state
@@ -277,26 +278,28 @@ export default function ProfilePage() {
                 {t('profile.unsavedChanges')}
               </span>
             )}
-            <button
-              type="button"
-              onClick={() => {
-                if (activeTab === 'personal') {
-                  handleSubmit(onSave)();
-                } else {
-                  questionnaireEditorRef.current?.save();
+            {activeTab !== 'weekly-checkins' && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (activeTab === 'personal') {
+                    handleSubmit(onSave)();
+                  } else {
+                    questionnaireEditorRef.current?.save();
+                  }
+                }}
+                disabled={
+                  activeTab === 'personal'
+                    ? saving
+                    : questionnaireSaving || !questionnaireDirty
                 }
-              }}
-              disabled={
-                activeTab === 'personal'
-                  ? saving
-                  : questionnaireSaving || !questionnaireDirty
-              }
-              className="rounded-md bg-text px-5 py-2 text-[13px] font-medium text-bg transition-opacity hover:opacity-90 disabled:opacity-50"
-            >
-              {(activeTab === 'personal' ? saving : questionnaireSaving)
-                ? t('common.saving')
-                : t('common.save')}
-            </button>
+                className="rounded-md bg-text px-5 py-2 text-[13px] font-medium text-bg transition-opacity hover:opacity-90 disabled:opacity-50"
+              >
+                {(activeTab === 'personal' ? saving : questionnaireSaving)
+                  ? t('common.saving')
+                  : t('common.save')}
+              </button>
+            )}
           </div>
         }
       />
@@ -317,6 +320,15 @@ export default function ProfilePage() {
         >
           📋 {t('profile.tabQuestionnaires')}
         </button>
+        {isTrainer && (
+          <button
+            type="button"
+            className={`tb-view${activeTab === 'weekly-checkins' ? ' active' : ''}`}
+            onClick={() => setActiveTab('weekly-checkins')}
+          >
+            🔔 {t('weeklyCheckIn.title')}
+          </button>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto">
@@ -405,7 +417,7 @@ export default function ProfilePage() {
             />
           )}
         </div>
-        ) : (
+        ) : activeTab === 'questionnaires' ? (
         <div className="page-content">
           {selectedQuestionnaireId ? (
             <QuestionnaireEditor
@@ -420,6 +432,8 @@ export default function ProfilePage() {
             <QuestionnaireList onSelect={setSelectedQuestionnaireId} />
           )}
         </div>
+        ) : (
+          <WeeklyCheckInTab roles={user?.roles ?? []} />
         )}
       </div>
 

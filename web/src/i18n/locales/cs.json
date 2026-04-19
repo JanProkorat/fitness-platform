@@ -1167,5 +1167,85 @@
     "empty": "Žádná oznámení",
     "showAll": "Zobrazit všechna oznámení",
     "justNow": "Právě teď"
+  },
+  "weeklyCheckIn": {
+    "title": "Týdenní check-iny",
+    "professionTraining": "Trénink",
+    "professionNutrition": "Výživa",
+    "day": {
+      "Monday": "Pondělí",
+      "Tuesday": "Úterý",
+      "Wednesday": "Středa",
+      "Thursday": "Čtvrtek",
+      "Friday": "Pátek",
+      "Saturday": "Sobota",
+      "Sunday": "Neděle"
+    },
+    "config": {
+      "enabled": "Odesílat týdenní check-in připomínky",
+      "dayOfWeek": "Den v týdnu",
+      "time": "Čas",
+      "addendum": "Doplňková zpráva (volitelné)",
+      "addendumPlaceholder": "Doplňující poznámka odesílaná s připomínkou...",
+      "overrides": "Individuální nastavení pro klienty",
+      "useDefault": "Použít výchozí",
+      "setSpecializationFirst": "Nejprve nastavte specializaci, abyste mohli konfigurovat týdenní check-iny.",
+      "defaultsHeader_one": "{{count}} z {{total}} klienta používá výchozí nastavení",
+      "defaultsHeader_other": "{{count}} z {{total}} klientů používá výchozí nastavení",
+      "defaultsHeader": "{{count}} z {{total}} klientů používá výchozí nastavení",
+      "noOverrides": "Zatím žádná individuální nastavení.",
+      "colClient": "Klient",
+      "colProfession": "Profese",
+      "colDefault": "Nastavení",
+      "colDay": "Den",
+      "colTime": "Čas",
+      "colEnabled": "Stav",
+      "usesDefault": "Výchozí",
+      "customized": "Vlastní",
+      "active": "Aktivní",
+      "inactive": "Neaktivní",
+      "saved": "Nastavení uloženo",
+      "saveError": "Nepodařilo se uložit nastavení",
+      "overrideSaved": "Individuální nastavení uloženo",
+      "overrideDeleted": "Individuální nastavení zrušeno — používá se výchozí"
+    },
+    "defaultPrompt": {
+      "training": "Váš trenér brzy plánuje příští týden. Máte něco speciálního v plánu?",
+      "nutrition": "Váš výživový poradce brzy plánuje příští týden. Máte něco speciálního v plánu?"
+    },
+    "push": {
+      "title": "Plánování příštího týdne"
+    },
+    "banner": {
+      "cta": "Dejte jim vědět"
+    },
+    "sheet": {
+      "submit": "Odeslat",
+      "skip": "Přeskočit tento týden",
+      "notePlaceholder": {
+        "training": "Chcete svému trenérovi sdělit ještě něco dalšího?",
+        "nutrition": "Chcete svému výživovému poradci sdělit ještě něco dalšího?"
+      },
+      "weekOf": "Týden {{range}}",
+      "editLocked": "Váš trenér to již viděl."
+    },
+    "flag": {
+      "traveling": "Cestování",
+      "eventOrCelebration": "Akce / oslava",
+      "sickOrLowEnergy": "Nemoc / malá energie",
+      "injuryOrPain": "Zranění nebo bolest",
+      "moreTimeAvailable": "Více času než obvykle",
+      "lessTimeAvailable": "Méně času než obvykle"
+    },
+    "today": {
+      "cardTitle": "Týdenní check-iny · tento týden",
+      "noResponseCount_one": "{{count}} klient ještě neodpověděl",
+      "noResponseCount_other": "{{count}} klientů ještě neodpovědělo"
+    },
+    "plan": {
+      "bannerResponded": "Check-in klienta · {{submittedAt}}",
+      "bannerPending": "Připomínka odeslána {{sentAt}}. Zatím bez odpovědi.",
+      "markReviewed": "Označit jako zkontrolované"
+    }
   }
 }
