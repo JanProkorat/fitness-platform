@@ -11,7 +11,7 @@ namespace FitnessPlatform.Application.Features.WeeklyCheckIns.GetCurrentClientCh
 /// authenticated client in the current ISO week. Maximum 2 items (one per profession).
 /// </summary>
 public class GetCurrentClientCheckInsEndpoint(IApplicationDbContext db)
-    : Endpoint<GetCurrentClientCheckInsRequest, GetCurrentClientCheckInsResponse>
+    : EndpointWithoutRequest<GetCurrentClientCheckInsResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -28,7 +28,7 @@ public class GetCurrentClientCheckInsEndpoint(IApplicationDbContext db)
     }
 
     /// <inheritdoc />
-    public override async Task HandleAsync(GetCurrentClientCheckInsRequest req, CancellationToken ct)
+    public override async Task HandleAsync(CancellationToken ct)
     {
         var userId = User.FindFirstValue(AppClaims.UserId);
         if (userId is null)

@@ -11,7 +11,7 @@ namespace FitnessPlatform.Application.Features.WeeklyCheckIns.GetOverrides;
 /// </summary>
 /// <param name="db">Database context.</param>
 public class GetOverridesEndpoint(IApplicationDbContext db)
-    : Endpoint<GetOverridesRequest, GetOverridesResponse>
+    : EndpointWithoutRequest<GetOverridesResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -26,7 +26,7 @@ public class GetOverridesEndpoint(IApplicationDbContext db)
     }
 
     /// <inheritdoc />
-    public override async Task HandleAsync(GetOverridesRequest req, CancellationToken ct)
+    public override async Task HandleAsync(CancellationToken ct)
     {
         var userId = User.FindFirstValue(AppClaims.UserId);
         if (userId is null)
