@@ -1240,12 +1240,19 @@
     "today": {
       "cardTitle": "Wöchentliche Check-ins · diese Woche",
       "noResponseCount_one": "{{count}} Klient hat noch nicht geantwortet",
-      "noResponseCount_other": "{{count}} Klienten haben noch nicht geantwortet"
+      "noResponseCount_other": "{{count}} Klienten haben noch nicht geantwortet",
+      "openPlan": "Plan öffnen",
+      "noRespondedYet": "Noch keine Antworten diese Woche"
     },
     "plan": {
       "bannerResponded": "Kunden-Check-in · {{submittedAt}}",
       "bannerPending": "Erinnerung gesendet {{sentAt}}. Noch keine Antwort.",
-      "markReviewed": "Als überprüft markieren"
+      "markReviewed": "Als überprüft markieren",
+      "reviewedPill": "Überprüft"
+    },
+    "clientDetail": {
+      "title": "Wöchentlicher Check-in · diese Woche",
+      "overrideSettings": "Einstellungen anpassen"
     }
   }
 }

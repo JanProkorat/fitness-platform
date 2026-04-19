@@ -1,0 +1,164 @@
+import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui';
+import { CheckInFlagChips } from './CheckInFlagChips';
+import { useTrainerWeeklyCheckIns } from '@/hooks/useWeeklyCheckIns';
+import type { TrainerCheckInDto } from '@/api/weekly-checkins';
+
+/** Returns the ISO-week Monday (YYYY-MM-DD) for today's date. */
+function currentISOWeekMonday(): string {
+  const today = new Date();
+  const dow = today.getDay(); // 0=Sunday, 1=Monday, …
+  // Shift so Monday=0, Sunday=6
+  const daysSinceMonday = (dow + 6) % 7;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - daysSinceMonday);
+  const y = monday.getFullYear();
+  const m = String(monday.getMonth() + 1).padStart(2, '0');
+  const d = String(monday.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+/** Derives the initials (up to 2 chars) from a full name string. */
+function nameInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return (parts[0]?.[0] ?? '').toUpperCase();
+  return `${parts[0]?.[0] ?? ''}${parts[parts.length - 1]?.[0] ?? ''}`.toUpperCase();
+}
+
+/**
+ * Maps a profession value to a route segment for the plan editors.
+ * "Training" → "/training-plans/{clientId}"
+ * "Nutrition" → "/clients/{clientId}/nutrition" (navigate to the client page which has plan links)
+ *
+ * Judgment call: since the spec says "Open plan →" button should route to the matching
+ * plan editor, and we don't have a direct clientId-to-planId resolver here, we navigate
+ * to the client detail page which has links to both editors.  A future iteration could
+ * store a planId on the TrainerCheckInDto and navigate directly.
+ */
+function buildPlanRoute(checkIn: TrainerCheckInDto): string {
+  return `/clients/${checkIn.clientUserId}`;
+}
+
+/* ─────────────────────── Individual row ─────────────────────── */
+
+interface CheckInRowProps {
+  checkIn: TrainerCheckInDto;
+  language: string;
+}
+
+function CheckInRow({ checkIn, language }: CheckInRowProps) {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const initials = nameInitials(checkIn.clientName);
+  const professionLabel =
+    checkIn.profession === 'Training'
+      ? t('weeklyCheckIn.professionTraining')
+      : t('weeklyCheckIn.professionNutrition');
+
+  const submittedLabel = checkIn.respondedAt
+    ? new Date(checkIn.respondedAt).toLocaleDateString(language, {
+        day: 'numeric',
+        month: 'short',
+      })
+    : null;
+
+  return (
+    <div className="flex items-start gap-3 py-3 border-b border-border last:border-b-0">
+      {/* Avatar */}
+      <div className="w-8 h-8 rounded-full bg-bg3 text-text2 text-[11px] font-semibold flex items-center justify-center shrink-0 mt-0.5">
+        {initials}
+      </div>
+
+      {/* Main content */}
+      <div className="flex-1 min-w-0">
+        {/* Name + profession pill */}
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-[13px] font-medium text-text truncate">{checkIn.clientName}</span>
+          <span className="inline-flex items-center px-1.5 py-[1px] rounded-full text-[10px] font-medium bg-accent-bg text-accent border border-accent-br shrink-0">
+            {professionLabel}
+          </span>
+          {submittedLabel && (
+            <span className="text-[11px] text-text3 shrink-0">{submittedLabel}</span>
+          )}
+        </div>
+
+        {/* Flag chips — compact summary */}
+        {checkIn.flags.length > 0 && <CheckInFlagChips flags={checkIn.flags} />}
+
+        {/* Note preview */}
+        {checkIn.note && (
+          <p className="mt-1 text-[11px] text-text2 truncate">{checkIn.note}</p>
+        )}
+      </div>
+
+      {/* Open plan action */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => navigate(buildPlanRoute(checkIn))}
+        className="shrink-0"
+      >
+        {t('weeklyCheckIn.today.openPlan')} →
+      </Button>
+    </div>
+  );
+}
+
+/* ─────────────────────── Card ─────────────────────── */
+
+/**
+ * "Weekly check-ins · this week" card for the trainer dashboard.
+ * Hidden when there are no check-ins for the current ISO week.
+ */
+export function WeeklyCheckInCard() {
+  const { t, i18n } = useTranslation();
+  const weekStartDate = currentISOWeekMonday();
+  const { data: checkIns, isLoading } = useTrainerWeeklyCheckIns(weekStartDate);
+
+  // Only show responded check-ins in the card (pending/dismissed are counted in footer)
+  const responded = checkIns.filter((c) => c.respondedAt !== null);
+  const noResponseCount = checkIns.filter(
+    (c) => c.respondedAt === null && c.dismissedByClientAt === null,
+  ).length;
+
+  if (isLoading) return null;
+  // Hide card entirely when there are no check-ins this week at all
+  if (checkIns.length === 0) return null;
+
+  return (
+    <div
+      className="border border-border-md rounded-md overflow-hidden mb-4"
+      role="region"
+      aria-label={t('weeklyCheckIn.today.cardTitle')}
+    >
+      {/* Card header */}
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-bg2">
+        <span className="text-[12px] font-semibold text-text uppercase tracking-wide">
+          {t('weeklyCheckIn.today.cardTitle')}
+        </span>
+        <span className="text-[11px] text-text3">{weekStartDate}</span>
+      </div>
+
+      {/* Responded rows */}
+      {responded.length > 0 ? (
+        <div className="px-4">
+          {responded.map((checkIn) => (
+            <CheckInRow key={checkIn.id} checkIn={checkIn} language={i18n.language} />
+          ))}
+        </div>
+      ) : (
+        <div className="px-4 py-4 text-[13px] text-text3 text-center">
+          {t('weeklyCheckIn.today.noRespondedYet')}
+        </div>
+      )}
+
+      {/* Footer: count of clients who haven't responded */}
+      {noResponseCount > 0 && (
+        <div className="px-4 py-2.5 border-t border-border bg-bg2 text-[12px] text-text2">
+          {t('weeklyCheckIn.today.noResponseCount', { count: noResponseCount })}
+        </div>
+      )}
+    </div>
+  );
+}

@@ -24,6 +24,7 @@ import {
   Callout,
   Mention,
 } from '@/components/data';
+import { WeeklyCheckInCard } from '@/components/weekly-checkin/WeeklyCheckInCard';
 
 type ViewType = 'table' | 'list' | 'cards';
 
@@ -365,6 +366,11 @@ export default function DashboardPage() {
 
           {/* Stats */}
           <StatsGrid stats={stats} />
+
+          {/* Weekly check-ins card */}
+          <div className="mt-4">
+            <WeeklyCheckInCard />
+          </div>
 
           {/* Callouts for low-compliance clients */}
           {alertClients.map((client) => {

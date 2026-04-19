@@ -7,6 +7,7 @@ import { useSignalR } from '@/hooks/useSignalR';
 import { useToastStore } from '@/stores/toast';
 import { isTrainingProgressUpdatedEvent } from '@/api/trainingProgressEvent';
 import { isPersonalRecordAchievedEvent } from '@/api/personalRecordEvent';
+import { weeklyCheckInKeys } from '@/hooks/useWeeklyCheckIns';
 
 const DARK_MODE_KEY = 'gf-dark-mode';
 
@@ -191,6 +192,17 @@ export function AppShell() {
       // workout that may update streak / training count cells in the client table.
       // Key shape verified: DashboardPage.tsx line 88 uses ['dashboard-summary'].
       queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
+    },
+    weeklycheckinupdated: (payload: unknown) => {
+      if (import.meta.env.DEV) {
+        console.debug('weeklycheckinupdated', payload);
+      }
+      // Invalidate all weekly check-in queries (trainer list + all client-current variants).
+      // The payload carries { id, respondedAt?, reviewedAt?, dismissedAt? } but we do a
+      // broad invalidation so every open banner and card refreshes consistently.
+      const data = payload as { id?: string } | undefined;
+      void data; // payload available for future fine-grained invalidation
+      queryClient.invalidateQueries({ queryKey: weeklyCheckInKeys.all });
     },
     typing: (payload: unknown) => {
       const data = payload as { conversationId?: string; senderId?: string } | undefined;

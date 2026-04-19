@@ -11,6 +11,7 @@ import { Button, Tag, Dialog, Input } from '@/components/ui';
 import { PropertyList, StatsGrid } from '@/components/data';
 import { ActivityTimeline } from '@/components/domain';
 import { QuestionnaireAnswersSection } from '@/components/questionnaire';
+import { WeeklyCheckInSection } from '@/components/weekly-checkin/WeeklyCheckInSection';
 
 export default function ClientDetailPage() {
   const { t, i18n } = useTranslation();
@@ -365,6 +366,17 @@ export default function ClientDetailPage() {
           <div className="my-3.5">
             <QuestionnaireAnswersSection clientId={id!} />
           </div>
+
+          {/* Weekly check-in section */}
+          {/* NOTE: id here is the client's publicId (route param). The backend
+              GET /trainer/clients/{clientUserId}/weekly-check-ins/current
+              expects the ApplicationUser.Id (Guid). Until the backend exposes
+              clientUserId in the client dashboard response, this will return
+              empty results and the section stays hidden. A follow-up task
+              should add clientUserId to GetClientDashboardResponse. */}
+          {id && (
+            <WeeklyCheckInSection clientUserId={id} />
+          )}
 
           {/* Divider */}
           <div className="h-px bg-border my-3.5" />

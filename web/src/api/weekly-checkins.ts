@@ -160,6 +160,139 @@ export async function deleteCheckInOverride(
   await api.delete(`/trainer/weekly-check-ins/overrides/${clientUserId}/${profession}`);
 }
 
+/* ─────────────────────── CheckInFlag ───────────────────────────────────────────── */
+
+/**
+ * Mirrors the C# CheckInFlag enum.
+ * Values are serialized as strings by the backend (JsonStringEnumConverter).
+ */
+export type CheckInFlag =
+  | 'Traveling'
+  | 'EventOrCelebration'
+  | 'SickOrLowEnergy'
+  | 'InjuryOrPain'
+  | 'MoreTimeAvailable'
+  | 'LessTimeAvailable';
+
+/* ─────────────────────── GET /trainer/weekly-check-ins?weekStartDate=... ────────── */
+
+/**
+ * One check-in row as returned for the trainer's Today card.
+ * Mirrors TrainerCheckInDto in GetTrainerCheckInsResponse.cs.
+ */
+export interface TrainerCheckInDto {
+  id: string; // Guid
+  clientUserId: string; // Guid
+  clientName: string;
+  /** "Training" | "Nutrition" */
+  profession: Profession;
+  /** ISO date string — the Monday of the planned week */
+  weekStartDate: string;
+  flags: CheckInFlag[];
+  note: string | null;
+  sentAt: string; // ISO datetime
+  respondedAt: string | null;
+  dismissedByClientAt: string | null;
+  reviewedByTrainerAt: string | null;
+}
+
+/** Response wrapper for GET /trainer/weekly-check-ins. */
+export interface GetTrainerCheckInsResponse {
+  checkIns: TrainerCheckInDto[];
+}
+
+/** GET /trainer/weekly-check-ins?weekStartDate=YYYY-MM-DD */
+export async function getTrainerCheckIns(
+  weekStartDate: string,
+): Promise<GetTrainerCheckInsResponse> {
+  const { data } = await api.get<GetTrainerCheckInsResponse>('/trainer/weekly-check-ins', {
+    params: { weekStartDate },
+  });
+  return data;
+}
+
+/* ─────────────────────── GET /trainer/weekly-check-ins/{id} ─────────────────────── */
+
+/**
+ * Detail check-in DTO.
+ * Mirrors GetCheckInDetailResponse.cs.
+ */
+export interface CheckInDetailDto {
+  id: string;
+  clientUserId: string;
+  clientName: string;
+  professionalUserId: string;
+  profession: Profession;
+  weekStartDate: string;
+  flags: CheckInFlag[];
+  note: string | null;
+  sentAt: string;
+  respondedAt: string | null;
+  dismissedByClientAt: string | null;
+  reviewedByTrainerAt: string | null;
+}
+
+/** GET /trainer/weekly-check-ins/{id} */
+export async function getCheckInDetail(id: string): Promise<CheckInDetailDto> {
+  const { data } = await api.get<CheckInDetailDto>(`/trainer/weekly-check-ins/${id}`);
+  return data;
+}
+
+/* ─────────────────────── POST /trainer/weekly-check-ins/{id}/mark-reviewed ─────── */
+
+/** Response for POST /trainer/weekly-check-ins/{id}/mark-reviewed. */
+export interface MarkCheckInReviewedResponse {
+  id: string;
+  reviewedAt: string; // ISO datetime (UTC)
+}
+
+/** POST /trainer/weekly-check-ins/{id}/mark-reviewed */
+export async function markCheckInReviewed(id: string): Promise<MarkCheckInReviewedResponse> {
+  const { data } = await api.post<MarkCheckInReviewedResponse>(
+    `/trainer/weekly-check-ins/${id}/mark-reviewed`,
+  );
+  return data;
+}
+
+/* ─────────────────────── GET /trainer/clients/{clientUserId}/weekly-check-ins/current ─ */
+
+/**
+ * A single check-in as seen from the plan-editor banner.
+ * Mirrors ClientCheckInDto in GetClientCurrentCheckInResponse.cs.
+ */
+export interface ClientCheckInDto {
+  id: string;
+  profession: Profession;
+  weekStartDate: string;
+  flags: CheckInFlag[];
+  note: string | null;
+  sentAt: string;
+  respondedAt: string | null;
+  dismissedByClientAt: string | null;
+  reviewedByTrainerAt: string | null;
+}
+
+/** Response wrapper for GET /trainer/clients/{clientUserId}/weekly-check-ins/current. */
+export interface GetClientCurrentCheckInResponse {
+  checkIns: ClientCheckInDto[];
+}
+
+/**
+ * GET /trainer/clients/{clientUserId}/weekly-check-ins/current
+ * @param clientUserId - Client's ApplicationUser Id (Guid string)
+ * @param profession   - Optional: "Training" | "Nutrition". Omit to get all professions.
+ */
+export async function getClientCurrentCheckIn(
+  clientUserId: string,
+  profession?: Profession,
+): Promise<GetClientCurrentCheckInResponse> {
+  const { data } = await api.get<GetClientCurrentCheckInResponse>(
+    `/trainer/clients/${clientUserId}/weekly-check-ins/current`,
+    { params: profession ? { profession } : {} },
+  );
+  return data;
+}
+
 /* ─────────────────────── UI helpers ────────────────────────────────────────────── */
 
 /**

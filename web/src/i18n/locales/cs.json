@@ -1240,12 +1240,19 @@
     "today": {
       "cardTitle": "Týdenní check-iny · tento týden",
       "noResponseCount_one": "{{count}} klient ještě neodpověděl",
-      "noResponseCount_other": "{{count}} klientů ještě neodpovědělo"
+      "noResponseCount_other": "{{count}} klientů ještě neodpovědělo",
+      "openPlan": "Otevřít plán",
+      "noRespondedYet": "Žádné odpovědi za tento týden"
     },
     "plan": {
       "bannerResponded": "Check-in klienta · {{submittedAt}}",
       "bannerPending": "Připomínka odeslána {{sentAt}}. Zatím bez odpovědi.",
-      "markReviewed": "Označit jako zkontrolované"
+      "markReviewed": "Označit jako zkontrolované",
+      "reviewedPill": "Zkontrolováno"
+    },
+    "clientDetail": {
+      "title": "Týdenní check-in · tento týden",
+      "overrideSettings": "Upravit nastavení"
     }
   }
 }
