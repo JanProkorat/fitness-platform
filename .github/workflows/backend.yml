@@ -114,7 +114,8 @@ jobs:
             -class- '*PersonalRecordDetectionTests' \
             -class- '*PersonalRecordBroadcastTests' \
             -class- '*GetClientRecordsEndpointTests' \
-            -class- '*GetClientTimelineEndpointTests'
+            -class- '*GetClientTimelineEndpointTests' \
+            -class- '*UpdateTimeZoneIntegrationTests'
         env:
           POSTGRES_PASSWORD: test_password
           MONGO_PASSWORD: test_password
