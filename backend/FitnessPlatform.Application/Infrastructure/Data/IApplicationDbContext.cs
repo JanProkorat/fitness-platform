@@ -124,6 +124,11 @@ public interface IApplicationDbContext
     DbSet<WeeklyCheckInClientOverride> WeeklyCheckInClientOverrides { get; set; }
 
     /// <summary>
+    /// Weekly check-in instances (scheduler → client response → trainer review lifecycle).
+    /// </summary>
+    DbSet<WeeklyCheckIn> WeeklyCheckIns { get; set; }
+
+    /// <summary>
     /// Saves all changes made in this context to the database.
     /// </summary>
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

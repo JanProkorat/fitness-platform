@@ -1,8 +1,11 @@
+using System.Text.Json;
 using FitnessPlatform.Application.Domain.Common;
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace FitnessPlatform.Application.Infrastructure.Data;
 
@@ -116,6 +119,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     /// </summary>
     public virtual DbSet<WeeklyCheckInClientOverride> WeeklyCheckInClientOverrides { get; set; } = null!;
 
+    /// <summary>
+    /// Weekly check-in instances (scheduler → client response → trainer review lifecycle).
+    /// </summary>
+    public virtual DbSet<WeeklyCheckIn> WeeklyCheckIns { get; set; } = null!;
+
     /// <inheritdoc />
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -178,6 +186,42 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             e.HasOne(o => o.ProfessionalUser)
                 .WithMany()
                 .HasForeignKey(o => o.ProfessionalUserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<WeeklyCheckIn>(e =>
+        {
+            e.HasKey(c => c.Id);
+            e.Property(c => c.Profession).HasConversion<string>();
+            e.Property(c => c.WeekStartDate).HasColumnType("date");
+
+            // Flags stored as a jsonb array of flag name strings
+            var flagsConverter = new ValueConverter<List<CheckInFlag>, string>(
+                flags => JsonSerializer.Serialize(flags.Select(f => f.ToString()).ToList(),
+                    (JsonSerializerOptions?)null),
+                json => JsonSerializer.Deserialize<List<string>>(json, (JsonSerializerOptions?)null)!
+                    .Select(s => Enum.Parse<CheckInFlag>(s)).ToList());
+
+            e.Property(c => c.Flags)
+                .HasConversion(flagsConverter)
+                .HasColumnType("jsonb");
+
+            e.HasIndex(c => new
+            {
+                c.ClientUserId,
+                c.ProfessionalUserId,
+                c.Profession,
+                c.WeekStartDate
+            }).IsUnique();
+
+            e.HasOne(c => c.ClientUser)
+                .WithMany()
+                .HasForeignKey(c => c.ClientUserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(c => c.ProfessionalUser)
+                .WithMany()
+                .HasForeignKey(c => c.ProfessionalUserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
