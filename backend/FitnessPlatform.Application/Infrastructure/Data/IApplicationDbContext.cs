@@ -114,6 +114,16 @@ public interface IApplicationDbContext
     DbSet<ChatMessage> ChatMessages { get; set; }
 
     /// <summary>
+    /// Per-professional weekly check-in reminder settings.
+    /// </summary>
+    DbSet<WeeklyCheckInSetting> WeeklyCheckInSettings { get; set; }
+
+    /// <summary>
+    /// Per-client overrides for weekly check-in reminder settings.
+    /// </summary>
+    DbSet<WeeklyCheckInClientOverride> WeeklyCheckInClientOverrides { get; set; }
+
+    /// <summary>
     /// Saves all changes made in this context to the database.
     /// </summary>
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

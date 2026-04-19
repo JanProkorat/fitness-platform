@@ -132,6 +132,16 @@ public static class ErrorCodes
     /// <summary>No active training plan found for the client.</summary>
     public const string NoActiveTrainingPlan = "NO_ACTIVE_TRAINING_PLAN";
 
+    // ── Weekly Check-Ins ──────────────────────────────────────────────
+    /// <summary>TimeOfDay must be hour-aligned (minutes, seconds, and milliseconds must all be zero).</summary>
+    public const string InvalidTimeOfDay = "INVALID_TIME_OF_DAY";
+
+    /// <summary>The requested profession is not in the trainer's specializations.</summary>
+    public const string ProfessionNotSpecialized = "PROFESSION_NOT_SPECIALIZED";
+
+    /// <summary>The trainer is not linked to the specified client.</summary>
+    public const string NotLinkedToClient = "NOT_LINKED_TO_CLIENT";
+
     // ── Validation (generic) ─────────────────────────────────────────
     /// <summary>Required field is missing.</summary>
     public const string Required = "REQUIRED";

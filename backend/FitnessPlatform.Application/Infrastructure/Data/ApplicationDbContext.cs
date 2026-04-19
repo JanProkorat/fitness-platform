@@ -106,6 +106,16 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     /// <inheritdoc />
     public virtual DbSet<ChatMessage> ChatMessages { get; set; } = null!;
 
+    /// <summary>
+    /// Per-professional weekly check-in reminder settings.
+    /// </summary>
+    public virtual DbSet<WeeklyCheckInSetting> WeeklyCheckInSettings { get; set; } = null!;
+
+    /// <summary>
+    /// Per-client overrides for weekly check-in reminder settings.
+    /// </summary>
+    public virtual DbSet<WeeklyCheckInClientOverride> WeeklyCheckInClientOverrides { get; set; } = null!;
+
     /// <inheritdoc />
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -143,6 +153,32 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             e.HasOne(m => m.Conversation).WithMany(c => c.Messages).HasForeignKey(m => m.ConversationId);
             e.HasOne(m => m.Sender).WithMany().HasForeignKey(m => m.SenderUserId).OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(m => new { m.ConversationId, m.DateCreated });
+        });
+
+        builder.Entity<WeeklyCheckInSetting>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.Property(s => s.Profession).HasConversion<string>();
+            e.HasIndex(s => new { s.UserId, s.Profession }).IsUnique();
+            e.HasOne(s => s.User)
+                .WithMany()
+                .HasForeignKey(s => s.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<WeeklyCheckInClientOverride>(e =>
+        {
+            e.HasKey(o => o.Id);
+            e.Property(o => o.Profession).HasConversion<string>();
+            e.HasIndex(o => new { o.ClientUserId, o.ProfessionalUserId, o.Profession }).IsUnique();
+            e.HasOne(o => o.ClientUser)
+                .WithMany()
+                .HasForeignKey(o => o.ClientUserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(o => o.ProfessionalUser)
+                .WithMany()
+                .HasForeignKey(o => o.ProfessionalUserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
