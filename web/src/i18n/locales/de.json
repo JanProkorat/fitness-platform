@@ -1167,5 +1167,85 @@
     "empty": "Keine Benachrichtigungen",
     "showAll": "Alle Benachrichtigungen anzeigen",
     "justNow": "Gerade eben"
+  },
+  "weeklyCheckIn": {
+    "title": "Wöchentliche Check-ins",
+    "professionTraining": "Training",
+    "professionNutrition": "Ernährung",
+    "day": {
+      "Monday": "Montag",
+      "Tuesday": "Dienstag",
+      "Wednesday": "Mittwoch",
+      "Thursday": "Donnerstag",
+      "Friday": "Freitag",
+      "Saturday": "Samstag",
+      "Sunday": "Sonntag"
+    },
+    "config": {
+      "enabled": "Wöchentliche Check-in-Erinnerungen senden",
+      "dayOfWeek": "Wochentag",
+      "time": "Uhrzeit",
+      "addendum": "Zusätzliche Nachricht (optional)",
+      "addendumPlaceholder": "Zusätzliche Notiz, die mit der Erinnerung gesendet wird...",
+      "overrides": "Individuelle Einstellungen pro Klient",
+      "useDefault": "Standard verwenden",
+      "setSpecializationFirst": "Legen Sie zuerst eine Spezialisierung fest, um wöchentliche Check-ins zu konfigurieren.",
+      "defaultsHeader_one": "{{count}} von {{total}} Klient verwendet Standardeinstellungen",
+      "defaultsHeader_other": "{{count}} von {{total}} Klienten verwenden Standardeinstellungen",
+      "defaultsHeader": "{{count}} von {{total}} Klienten verwenden Standardeinstellungen",
+      "noOverrides": "Noch keine individuellen Einstellungen.",
+      "colClient": "Klient",
+      "colProfession": "Beruf",
+      "colDefault": "Einstellungen",
+      "colDay": "Tag",
+      "colTime": "Uhrzeit",
+      "colEnabled": "Status",
+      "usesDefault": "Standard",
+      "customized": "Angepasst",
+      "active": "Aktiv",
+      "inactive": "Inaktiv",
+      "saved": "Einstellungen gespeichert",
+      "saveError": "Einstellungen konnten nicht gespeichert werden",
+      "overrideSaved": "Individuelle Einstellung gespeichert",
+      "overrideDeleted": "Individuelle Einstellung entfernt — Standardeinstellungen werden verwendet"
+    },
+    "defaultPrompt": {
+      "training": "Ihr Trainer plant bald die nächste Woche. Gibt es etwas Besonderes?",
+      "nutrition": "Ihr Ernährungsberater plant bald die nächste Woche. Gibt es etwas Besonderes?"
+    },
+    "push": {
+      "title": "Planung der nächsten Woche"
+    },
+    "banner": {
+      "cta": "Teilen Sie es mit"
+    },
+    "sheet": {
+      "submit": "Absenden",
+      "skip": "Diese Woche überspringen",
+      "notePlaceholder": {
+        "training": "Möchten Sie Ihrem Trainer noch etwas mitteilen?",
+        "nutrition": "Möchten Sie Ihrem Ernährungsberater noch etwas mitteilen?"
+      },
+      "weekOf": "Woche vom {{range}}",
+      "editLocked": "Ihr Trainer hat dies bereits gesehen."
+    },
+    "flag": {
+      "traveling": "Reisen",
+      "eventOrCelebration": "Veranstaltung / Feier",
+      "sickOrLowEnergy": "Krank / wenig Energie",
+      "injuryOrPain": "Verletzung oder Schmerzen",
+      "moreTimeAvailable": "Mehr Zeit als üblich",
+      "lessTimeAvailable": "Weniger Zeit als üblich"
+    },
+    "today": {
+      "cardTitle": "Wöchentliche Check-ins · diese Woche",
+      "noResponseCount_one": "{{count}} Klient hat noch nicht geantwortet",
+      "noResponseCount_other": "{{count}} Klienten haben noch nicht geantwortet"
+    },
+    "plan": {
+      "bannerResponded": "Kunden-Check-in · {{submittedAt}}",
+      "bannerPending": "Erinnerung gesendet {{sentAt}}. Noch keine Antwort.",
+      "markReviewed": "Als überprüft markieren"
+    }
   }
 }

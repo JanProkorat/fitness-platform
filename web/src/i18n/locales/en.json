@@ -1168,5 +1168,85 @@
     "empty": "No notifications",
     "showAll": "Show all notifications",
     "justNow": "Just now"
+  },
+  "weeklyCheckIn": {
+    "title": "Weekly check-ins",
+    "professionTraining": "Training",
+    "professionNutrition": "Nutrition",
+    "day": {
+      "Monday": "Monday",
+      "Tuesday": "Tuesday",
+      "Wednesday": "Wednesday",
+      "Thursday": "Thursday",
+      "Friday": "Friday",
+      "Saturday": "Saturday",
+      "Sunday": "Sunday"
+    },
+    "config": {
+      "enabled": "Send weekly check-in reminders",
+      "dayOfWeek": "Day of week",
+      "time": "Time",
+      "addendum": "Additional message (optional)",
+      "addendumPlaceholder": "Extra note sent with the reminder...",
+      "overrides": "Per-client overrides",
+      "useDefault": "Use default",
+      "setSpecializationFirst": "Set a specialization first to configure weekly check-ins.",
+      "defaultsHeader_one": "{{count}} of {{total}} client uses defaults",
+      "defaultsHeader_other": "{{count}} of {{total}} clients use defaults",
+      "defaultsHeader": "{{count}} of {{total}} clients use defaults",
+      "noOverrides": "No client overrides yet.",
+      "colClient": "Client",
+      "colProfession": "Profession",
+      "colDefault": "Settings",
+      "colDay": "Day",
+      "colTime": "Time",
+      "colEnabled": "Status",
+      "usesDefault": "Uses default",
+      "customized": "Customized",
+      "active": "Active",
+      "inactive": "Inactive",
+      "saved": "Settings saved",
+      "saveError": "Failed to save settings",
+      "overrideSaved": "Override saved",
+      "overrideDeleted": "Override removed — using defaults"
+    },
+    "defaultPrompt": {
+      "training": "Your trainer is planning next week soon. Anything special coming up?",
+      "nutrition": "Your nutritionist is planning next week soon. Anything special coming up?"
+    },
+    "push": {
+      "title": "Planning next week"
+    },
+    "banner": {
+      "cta": "Let them know"
+    },
+    "sheet": {
+      "submit": "Submit",
+      "skip": "Skip this week",
+      "notePlaceholder": {
+        "training": "Anything else your trainer should know?",
+        "nutrition": "Anything else your nutritionist should know?"
+      },
+      "weekOf": "Week of {{range}}",
+      "editLocked": "Your trainer already saw this."
+    },
+    "flag": {
+      "traveling": "Traveling",
+      "eventOrCelebration": "Event / celebration",
+      "sickOrLowEnergy": "Sick / low energy",
+      "injuryOrPain": "Injury or pain",
+      "moreTimeAvailable": "More time than usual",
+      "lessTimeAvailable": "Less time than usual"
+    },
+    "today": {
+      "cardTitle": "Weekly check-ins · this week",
+      "noResponseCount_one": "{{count}} client hasn't responded",
+      "noResponseCount_other": "{{count}} clients haven't responded"
+    },
+    "plan": {
+      "bannerResponded": "Client check-in · {{submittedAt}}",
+      "bannerPending": "Reminder sent {{sentAt}}. No response yet.",
+      "markReviewed": "Mark reviewed"
+    }
   }
 }
