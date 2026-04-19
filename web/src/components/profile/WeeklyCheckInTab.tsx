@@ -12,25 +12,44 @@ import {
   upsertCheckInSetting,
   upsertCheckInOverride,
   deleteCheckInOverride,
+  DAY_OF_WEEK_KEYS,
+  ORDERED_DAYS,
+  formatTimeDisplay,
+  toTimeSpanString,
 } from '@/api/weekly-checkins';
-import type { Profession, DayOfWeek, WeeklyCheckInOverride, WeeklyCheckInSetting } from '@/api/weekly-checkins';
+import type {
+  Profession,
+  DayOfWeekInt,
+  CheckInSettingDto,
+  CheckInOverrideDto,
+} from '@/api/weekly-checkins';
 
 /* ─────────────────────── Constants ─────────────────────── */
 
-const ALL_DAYS: DayOfWeek[] = [
-  'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',
-];
-
+/** Hour options from 06:00 to 22:00, rendered as "HH:mm". Wire value is "HH:mm:ss". */
 const HOUR_OPTIONS: string[] = Array.from({ length: 17 }, (_, i) => {
   const h = i + 6;
   return `${String(h).padStart(2, '0')}:00`;
 });
 
+/** Default hour:minute string used when no setting exists yet. */
+const DEFAULT_HOUR = '09:00';
+
+/** Default DayOfWeek int: Monday = 1. */
+const DEFAULT_DAY: DayOfWeekInt = 1;
+
 /* ─────────────────────── Zod schemas ─────────────────────── */
+
+const dayOfWeekSchema = z.union([
+  z.literal(0), z.literal(1), z.literal(2), z.literal(3),
+  z.literal(4), z.literal(5), z.literal(6),
+]);
 
 const settingSchema = z.object({
   enabled: z.boolean(),
-  dayOfWeek: z.enum(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']),
+  /** DayOfWeek as int (0=Sunday…6=Saturday) */
+  dayOfWeek: dayOfWeekSchema,
+  /** "HH:mm" — converted to "HH:mm:ss" before sending */
   timeOfDay: z.string().regex(/^\d{2}:00$/, 'Invalid time'),
   defaultAddendum: z.string().max(200, 'Max 200 characters').nullable(),
 });
@@ -38,8 +57,9 @@ type SettingForm = z.infer<typeof settingSchema>;
 
 const overrideSchema = z.object({
   useDefaultDay: z.boolean(),
-  dayOfWeek: z.enum(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']).nullable(),
+  dayOfWeek: dayOfWeekSchema.nullable(),
   useDefaultTime: z.boolean(),
+  /** "HH:mm" display value */
   timeOfDay: z.string().nullable(),
   useDefaultEnabled: z.boolean(),
   enabled: z.boolean().nullable(),
@@ -48,11 +68,43 @@ const overrideSchema = z.object({
 });
 type OverrideForm = z.infer<typeof overrideSchema>;
 
+/* ─────────────────────── Helpers ────────────────────────── */
+
+/**
+ * Derives effective values for an override by merging it with the trainer's default
+ * setting for the same profession. When an override field is null it means "inherit".
+ */
+function resolveEffective(
+  override: CheckInOverrideDto,
+  settings: CheckInSettingDto[],
+): {
+  effectiveDayOfWeek: DayOfWeekInt;
+  effectiveTimeDisplay: string;
+  effectiveEnabled: boolean;
+} {
+  const setting = settings.find((s) => s.profession === override.profession);
+
+  const effectiveDayOfWeek: DayOfWeekInt =
+    override.dayOfWeek !== null ? override.dayOfWeek : (setting?.dayOfWeek ?? DEFAULT_DAY);
+
+  const effectiveTimeDisplay =
+    override.timeOfDay !== null
+      ? formatTimeDisplay(override.timeOfDay)
+      : setting
+        ? formatTimeDisplay(setting.timeOfDay)
+        : `${DEFAULT_HOUR}`;
+
+  const effectiveEnabled: boolean =
+    override.enabled !== null ? override.enabled : (setting?.enabled ?? true);
+
+  return { effectiveDayOfWeek, effectiveTimeDisplay, effectiveEnabled };
+}
+
 /* ─────────────────────── Per-profession block ─────────────────────── */
 
 interface ProfessionBlockProps {
   profession: Profession;
-  setting: WeeklyCheckInSetting | undefined;
+  setting: CheckInSettingDto | undefined;
 }
 
 function ProfessionBlock({ profession, setting }: ProfessionBlockProps) {
@@ -62,8 +114,8 @@ function ProfessionBlock({ profession, setting }: ProfessionBlockProps) {
 
   const defaultValues: SettingForm = {
     enabled: setting?.enabled ?? true,
-    dayOfWeek: setting?.dayOfWeek ?? 'Monday',
-    timeOfDay: setting?.timeOfDay ?? '09:00',
+    dayOfWeek: setting?.dayOfWeek ?? DEFAULT_DAY,
+    timeOfDay: setting ? formatTimeDisplay(setting.timeOfDay) : DEFAULT_HOUR,
     defaultAddendum: setting?.defaultAddendum ?? null,
   };
 
@@ -85,7 +137,7 @@ function ProfessionBlock({ profession, setting }: ProfessionBlockProps) {
       await upsertCheckInSetting({
         profession,
         dayOfWeek: data.dayOfWeek,
-        timeOfDay: `${data.timeOfDay}:00`,
+        timeOfDay: toTimeSpanString(data.timeOfDay),
         enabled: data.enabled,
         defaultAddendum: data.defaultAddendum || null,
       });
@@ -131,12 +183,12 @@ function ProfessionBlock({ profession, setting }: ProfessionBlockProps) {
               control={control}
               render={({ field }) => (
                 <Select
-                  value={field.value}
-                  onChange={(e) => field.onChange(e.target.value as DayOfWeek)}
+                  value={String(field.value)}
+                  onChange={(e) => field.onChange(Number(e.target.value) as DayOfWeekInt)}
                 >
-                  {ALL_DAYS.map((day) => (
-                    <option key={day} value={day}>
-                      {t(`weeklyCheckIn.day.${day}`)}
+                  {ORDERED_DAYS.map((day) => (
+                    <option key={day} value={String(day)}>
+                      {t(`weeklyCheckIn.day.${DAY_OF_WEEK_KEYS[day]}`)}
                     </option>
                   ))}
                 </Select>
@@ -206,22 +258,28 @@ function ProfessionBlock({ profession, setting }: ProfessionBlockProps) {
 /* ─────────────────────── Override dialog ─────────────────────── */
 
 interface OverrideDialogProps {
-  override: WeeklyCheckInOverride;
+  override: CheckInOverrideDto;
+  settings: CheckInSettingDto[];
   onClose: () => void;
 }
 
-function OverrideDialog({ override, onClose }: OverrideDialogProps) {
+function OverrideDialog({ override, settings, onClose }: OverrideDialogProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const addToast = useToastStore((s) => s.addToast);
 
+  const { effectiveDayOfWeek, effectiveTimeDisplay } = resolveEffective(override, settings);
+
   const defaultValues: OverrideForm = {
     useDefaultDay: override.dayOfWeek === null,
-    dayOfWeek: override.dayOfWeek ?? override.effectiveDayOfWeek,
+    dayOfWeek: override.dayOfWeek !== null ? override.dayOfWeek : effectiveDayOfWeek,
     useDefaultTime: override.timeOfDay === null,
-    timeOfDay: override.timeOfDay ?? override.effectiveTimeOfDay.substring(0, 5),
+    timeOfDay:
+      override.timeOfDay !== null
+        ? formatTimeDisplay(override.timeOfDay)
+        : effectiveTimeDisplay,
     useDefaultEnabled: override.enabled === null,
-    enabled: override.enabled ?? override.effectiveEnabled,
+    enabled: override.enabled,
     useDefaultAddendum: override.addendum === null,
     addendum: override.addendum ?? null,
   };
@@ -268,7 +326,7 @@ function OverrideDialog({ override, onClose }: OverrideDialogProps) {
     try {
       await upsertCheckInOverride(override.clientUserId, override.profession, {
         dayOfWeek: data.useDefaultDay ? null : (data.dayOfWeek ?? null),
-        timeOfDay: data.useDefaultTime ? null : (data.timeOfDay ? `${data.timeOfDay}:00` : null),
+        timeOfDay: data.useDefaultTime ? null : (data.timeOfDay ? toTimeSpanString(data.timeOfDay) : null),
         enabled: data.useDefaultEnabled ? null : (data.enabled ?? null),
         addendum: data.useDefaultAddendum ? null : (data.addendum || null),
       });
@@ -371,12 +429,12 @@ function OverrideDialog({ override, onClose }: OverrideDialogProps) {
               control={control}
               render={({ field }) => (
                 <Select
-                  value={field.value ?? ''}
-                  onChange={(e) => field.onChange(e.target.value as DayOfWeek)}
+                  value={field.value !== null ? String(field.value) : ''}
+                  onChange={(e) => field.onChange(Number(e.target.value) as DayOfWeekInt)}
                 >
-                  {ALL_DAYS.map((day) => (
-                    <option key={day} value={day}>
-                      {t(`weeklyCheckIn.day.${day}`)}
+                  {ORDERED_DAYS.map((day) => (
+                    <option key={day} value={String(day)}>
+                      {t(`weeklyCheckIn.day.${DAY_OF_WEEK_KEYS[day]}`)}
                     </option>
                   ))}
                 </Select>
@@ -478,11 +536,12 @@ function OverrideDialog({ override, onClose }: OverrideDialogProps) {
 /* ─────────────────────── Override row ─────────────────────── */
 
 interface OverrideRowProps {
-  override: WeeklyCheckInOverride;
+  override: CheckInOverrideDto;
+  settings: CheckInSettingDto[];
   onClick: () => void;
 }
 
-function OverrideRow({ override, onClick }: OverrideRowProps) {
+function OverrideRow({ override, onClick, settings }: OverrideRowProps) {
   const { t } = useTranslation();
   const clientName = `${override.clientFirstName} ${override.clientLastName}`;
   const initials = `${override.clientFirstName[0] ?? ''}${override.clientLastName[0] ?? ''}`.toUpperCase();
@@ -498,7 +557,10 @@ function OverrideRow({ override, onClick }: OverrideRowProps) {
       ? t('weeklyCheckIn.professionTraining')
       : t('weeklyCheckIn.professionNutrition');
 
-  const effectiveTime = override.effectiveTimeOfDay?.substring(0, 5) ?? '—';
+  const { effectiveDayOfWeek, effectiveTimeDisplay, effectiveEnabled } = resolveEffective(
+    override,
+    settings,
+  );
 
   return (
     <tr
@@ -508,17 +570,9 @@ function OverrideRow({ override, onClick }: OverrideRowProps) {
       {/* Avatar + name */}
       <td className="px-4 py-3">
         <div className="flex items-center gap-2.5">
-          {override.clientAvatarUrl ? (
-            <img
-              src={override.clientAvatarUrl}
-              alt={clientName}
-              className="w-7 h-7 rounded-full object-cover flex-shrink-0"
-            />
-          ) : (
-            <div className="w-7 h-7 rounded-full bg-bg3 text-text2 text-[11px] font-semibold flex items-center justify-center flex-shrink-0">
-              {initials}
-            </div>
-          )}
+          <div className="w-7 h-7 rounded-full bg-bg3 text-text2 text-[11px] font-semibold flex items-center justify-center flex-shrink-0">
+            {initials}
+          </div>
           <span className="text-[13px] text-text">{clientName}</span>
         </div>
       </td>
@@ -544,21 +598,21 @@ function OverrideRow({ override, onClick }: OverrideRowProps) {
       {/* Day */}
       <td className="px-4 py-3">
         <span className="text-[13px] text-text">
-          {t(`weeklyCheckIn.day.${override.effectiveDayOfWeek}`)}
+          {t(`weeklyCheckIn.day.${DAY_OF_WEEK_KEYS[effectiveDayOfWeek]}`)}
         </span>
       </td>
 
       {/* Time */}
       <td className="px-4 py-3">
-        <span className="text-[13px] text-text">{effectiveTime}</span>
+        <span className="text-[13px] text-text">{effectiveTimeDisplay}</span>
       </td>
 
       {/* Enabled */}
       <td className="px-4 py-3">
         <span
-          className={`text-[12px] font-medium ${override.effectiveEnabled ? 'text-green' : 'text-text3'}`}
+          className={`text-[12px] font-medium ${effectiveEnabled ? 'text-green' : 'text-text3'}`}
         >
-          {override.effectiveEnabled
+          {effectiveEnabled
             ? t('weeklyCheckIn.config.active')
             : t('weeklyCheckIn.config.inactive')}
         </span>
@@ -576,22 +630,22 @@ interface WeeklyCheckInTabProps {
 
 export function WeeklyCheckInTab({ roles }: WeeklyCheckInTabProps) {
   const { t } = useTranslation();
-  const [selectedOverride, setSelectedOverride] = useState<WeeklyCheckInOverride | null>(null);
+  const [selectedOverride, setSelectedOverride] = useState<CheckInOverrideDto | null>(null);
 
   const isTrainer = roles.includes('Trainer');
   const isNutritionist = roles.includes('Nutritionist');
 
-  const { data: settings = [], isLoading: settingsLoading } = useQuery({
+  const { data: settingsResponse, isLoading: settingsLoading } = useQuery({
     queryKey: ['weekly-checkin-settings'],
     queryFn: getCheckInSettings,
   });
 
-  const { data: overrides = [], isLoading: overridesLoading } = useQuery({
+  const { data: overridesResponse, isLoading: overridesLoading } = useQuery({
     queryKey: ['weekly-checkin-overrides'],
     queryFn: getCheckInOverrides,
   });
 
-  // Zero state: trainer has no specializations (neither Trainer nor Nutritionist role)
+  // Zero state: trainer has neither Trainer nor Nutritionist role
   if (!isTrainer && !isNutritionist) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -599,6 +653,9 @@ export function WeeklyCheckInTab({ roles }: WeeklyCheckInTabProps) {
       </div>
     );
   }
+
+  const settings = settingsResponse?.settings ?? [];
+  const overrides = overridesResponse?.overrides ?? [];
 
   const trainingSetting = settings.find((s) => s.profession === 'Training');
   const nutritionSetting = settings.find((s) => s.profession === 'Nutrition');
@@ -686,6 +743,7 @@ export function WeeklyCheckInTab({ roles }: WeeklyCheckInTabProps) {
                   <OverrideRow
                     key={`${override.clientUserId}-${override.profession}`}
                     override={override}
+                    settings={settings}
                     onClick={() => setSelectedOverride(override)}
                   />
                 ))}
@@ -699,6 +757,7 @@ export function WeeklyCheckInTab({ roles }: WeeklyCheckInTabProps) {
       {selectedOverride && (
         <OverrideDialog
           override={selectedOverride}
+          settings={settings}
           onClose={() => setSelectedOverride(null)}
         />
       )}
