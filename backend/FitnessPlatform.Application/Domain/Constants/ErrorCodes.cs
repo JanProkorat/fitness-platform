@@ -47,6 +47,9 @@ public static class ErrorCodes
     /// <summary>Account deletion failed.</summary>
     public const string AccountDeletionFailed = "ACCOUNT_DELETION_FAILED";
 
+    /// <summary>The supplied IANA time zone identifier is not valid.</summary>
+    public const string InvalidTimeZone = "INVALID_TIME_ZONE";
+
     // ── Foods ────────────────────────────────────────────────────────
     /// <summary>Kcal value is inconsistent with macronutrients.</summary>
     public const string KcalInconsistent = "KCAL_INCONSISTENT";

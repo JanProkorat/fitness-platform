@@ -65,4 +65,9 @@ public class GetProfileResponse
     /// Empty for non-client users.
     /// </summary>
     public List<string> LinkedRoles { get; set; } = [];
+
+    /// <summary>
+    /// User's IANA time zone identifier (e.g. "Europe/Prague").
+    /// </summary>
+    public string TimeZone { get; set; } = "Europe/Prague";
 }

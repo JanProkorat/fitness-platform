@@ -39,6 +39,7 @@ public class GetProfileEndpointTests
         ep.Response.FirstName.Should().Be("John");
         ep.Response.LastName.Should().Be("Doe");
         ep.Response.Roles.Should().Contain("Client");
+        ep.Response.TimeZone.Should().Be("Europe/Prague");
     }
 
     [Fact]

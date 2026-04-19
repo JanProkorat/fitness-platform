@@ -61,6 +61,12 @@ public class ApplicationUser : IdentityUser<Guid>
     public int VerificationEmailsSent { get; set; }
 
     /// <summary>
+    /// User's IANA time zone identifier (e.g. "Europe/Prague"). Defaults to "Europe/Prague".
+    /// </summary>
+    [MaxLength(100)]
+    public string TimeZone { get; set; } = "Europe/Prague";
+
+    /// <summary>
     /// Collection of refresh tokens issued to this user.
     /// </summary>
     public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
