@@ -693,12 +693,6 @@
     "revokeMessage": "Revoke the request sent to {{name}}?",
     "revokeConfirm": "Revoke"
   },
-  "weeklyCheckIn": {
-    "profession": {
-      "training": "Training",
-      "nutrition": "Nutrition"
-    }
-  },
   "foodDetail": {
     "nutritionValues": "Nutrition Values",
     "protein": "Protein",
@@ -756,6 +750,10 @@
       "injuryOrPain": "Injury or pain",
       "moreTimeAvailable": "More time than usual",
       "lessTimeAvailable": "Less time than usual"
+    },
+    "profession": {
+      "training": "Training",
+      "nutrition": "Nutrition"
     }
   },
   "nutrition": {
