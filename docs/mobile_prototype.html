@@ -850,38 +850,8 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
     <!-- With-trainer view -->
     <div id="today-has-trainer">
 
-      <!-- Pending questionnaires banner -->
-      <div onclick="showPhone('ph-pending-questionnaires')" style="margin:12px 20px 0;display:flex;align-items:center;gap:10px;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.25);border-radius:var(--ios-r);padding:12px 14px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(201,168,76,.18)'" onmouseout="this.style.background='rgba(201,168,76,.1)'">
-        <div style="font-size:22px;flex-shrink:0">📋</div>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:15px;font-weight:600;color:var(--ios-label);letter-spacing:-.2px">2 dotazníky čekají na vyplnění</div>
-          <div style="font-size:13px;color:var(--ios-label2);margin-top:1px">Od trenéra Marka a výživové poradkyně Jany</div>
-        </div>
-        <div style="color:var(--ios-label3);font-size:16px;font-weight:600;flex-shrink:0">›</div>
-      </div>
-
-      <!-- Weekly check-in banners (trainer + nutritionist stacked) -->
-      <div id="today-weekly-checkin-banners" style="margin:10px 20px 0;display:flex;flex-direction:column;gap:8px">
-        <div onclick="showPhone('ph-weekly-checkin')" style="display:flex;align-items:center;gap:10px;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.25);border-radius:var(--ios-r);padding:12px 14px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(201,168,76,.18)'" onmouseout="this.style.background='rgba(201,168,76,.1)'">
-          <div style="font-size:22px;flex-shrink:0">📅</div>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:15px;font-weight:600;color:var(--ios-label);letter-spacing:-.2px">Plánování příštího týdne</div>
-            <div style="font-size:13px;color:var(--ios-label2);margin-top:1px">Marek Trenér · chce vědět, co tě čeká</div>
-          </div>
-          <div style="color:var(--ios-label3);font-size:16px;font-weight:600;flex-shrink:0">›</div>
-        </div>
-        <div onclick="showPhone('ph-weekly-checkin')" style="display:flex;align-items:center;gap:10px;background:rgba(52,199,89,.08);border:1px solid rgba(52,199,89,.22);border-radius:var(--ios-r);padding:12px 14px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(52,199,89,.15)'" onmouseout="this.style.background='rgba(52,199,89,.08)'">
-          <div style="font-size:22px;flex-shrink:0">🥗</div>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:15px;font-weight:600;color:var(--ios-label);letter-spacing:-.2px">Plánování příštího jídelníčku</div>
-            <div style="font-size:13px;color:var(--ios-label2);margin-top:1px">Lucie Poradce · chce vědět, co tě čeká</div>
-          </div>
-          <div style="color:var(--ios-label3);font-size:16px;font-weight:600;flex-shrink:0">›</div>
-        </div>
-      </div>
-
-      <!-- Today summary strip -->
-      <div style="margin:12px 20px;display:flex;gap:10px">
+      <!-- Today summary strip (always on top) -->
+      <div id="today-stat-strip" style="margin:12px 20px 0;display:flex;gap:10px">
         <!-- Weight progress card (replaces Calories) -->
         <div id="today-weight-card" onclick="showPhone('ph-profile')" style="flex:1;background:var(--ios-bg2);border-radius:var(--ios-r);padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);cursor:pointer">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
@@ -913,11 +883,47 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
             <span style="font-size:11px;font-weight:600;color:var(--ios-green)"><span class="tp-stat-done">2</span>/<span class="tp-stat-total">7</span> hotovo</span>
           </div>
         </div>
+        <div id="today-nutrition-stat-card" style="flex:1;background:var(--ios-bg2);border-radius:var(--ios-r);padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);display:none">
+          <div style="font-size:11px;color:var(--ios-label2);font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Kalorie</div>
+          <div style="font-size:22px;font-weight:700;color:var(--ios-label);letter-spacing:-.3px">1 547</div>
+          <div style="font-size:11px;color:var(--ios-label3);margin-top:1px">/ 1 700 kcal</div>
+          <div style="height:4px;background:var(--ios-fill);border-radius:99px;margin-top:6px;overflow:hidden"><div style="width:91%;height:100%;background:var(--ios-gold);border-radius:99px"></div></div>
+        </div>
         <div style="flex:1;background:var(--ios-bg2);border-radius:var(--ios-r);padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)">
           <div style="font-size:11px;color:var(--ios-label2);font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Streak</div>
           <div style="font-size:22px;font-weight:700;color:var(--ios-orange);letter-spacing:-.3px">21</div>
           <div style="font-size:11px;color:var(--ios-label3);margin-top:1px">dní v řadě</div>
           <div style="font-size:18px;margin-top:4px">🔥</div>
+        </div>
+      </div>
+
+      <!-- Pending questionnaires banner -->
+      <div onclick="showPhone('ph-pending-questionnaires')" style="margin:12px 20px 0;display:flex;align-items:center;gap:10px;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.25);border-radius:var(--ios-r);padding:12px 14px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(201,168,76,.18)'" onmouseout="this.style.background='rgba(201,168,76,.1)'">
+        <div style="font-size:22px;flex-shrink:0">📋</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:15px;font-weight:600;color:var(--ios-label);letter-spacing:-.2px">2 dotazníky čekají na vyplnění</div>
+          <div style="font-size:13px;color:var(--ios-label2);margin-top:1px">Od trenéra Marka a výživové poradkyně Jany</div>
+        </div>
+        <div style="color:var(--ios-label3);font-size:16px;font-weight:600;flex-shrink:0">›</div>
+      </div>
+
+      <!-- Weekly check-in banners (trainer + nutritionist stacked) -->
+      <div id="today-weekly-checkin-banners" style="margin:10px 20px 0;display:flex;flex-direction:column;gap:8px">
+        <div onclick="showPhone('ph-weekly-checkin')" style="display:flex;align-items:center;gap:10px;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.25);border-radius:var(--ios-r);padding:12px 14px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(201,168,76,.18)'" onmouseout="this.style.background='rgba(201,168,76,.1)'">
+          <div style="font-size:22px;flex-shrink:0">📅</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:15px;font-weight:600;color:var(--ios-label);letter-spacing:-.2px">Plánování příštího týdne</div>
+            <div style="font-size:13px;color:var(--ios-label2);margin-top:1px">Marek Trenér · chce vědět, co tě čeká</div>
+          </div>
+          <div style="color:var(--ios-label3);font-size:16px;font-weight:600;flex-shrink:0">›</div>
+        </div>
+        <div onclick="showPhone('ph-weekly-checkin')" style="display:flex;align-items:center;gap:10px;background:rgba(52,199,89,.08);border:1px solid rgba(52,199,89,.22);border-radius:var(--ios-r);padding:12px 14px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(52,199,89,.15)'" onmouseout="this.style.background='rgba(52,199,89,.08)'">
+          <div style="font-size:22px;flex-shrink:0">🥗</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:15px;font-weight:600;color:var(--ios-label);letter-spacing:-.2px">Plánování příštího jídelníčku</div>
+            <div style="font-size:13px;color:var(--ios-label2);margin-top:1px">Lucie Poradce · chce vědět, co tě čeká</div>
+          </div>
+          <div style="color:var(--ios-label3);font-size:16px;font-weight:600;flex-shrink:0">›</div>
         </div>
       </div>
 
@@ -946,6 +952,7 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
       </div>
 
       <!-- Training card -->
+      <div id="today-training-block">
       <div class="ios-section-hdr">
         <div class="ios-section-title">Dnešní trénink</div>
         <div style="display:flex;gap:14px;align-items:center">
@@ -1200,7 +1207,10 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
         </div>
       </div>
 
+      </div><!-- /today-training-block -->
+
       <!-- Nutrition card (training-card style) -->
+      <div id="today-nutrition-block">
       <div class="ios-section-hdr">
         <div class="ios-section-title">Dnešní jídelníček</div>
         <div style="display:flex;gap:14px;align-items:center">
@@ -1309,6 +1319,7 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
 
         </div><!-- /card body -->
       </div><!-- /ios-card -->
+      </div><!-- /today-nutrition-block -->
 
       <div style="height:8px"></div>
     </div>
@@ -5829,6 +5840,20 @@ function setCollabState(state) {
     resetTrainingStatCard();
   }
   if(ic) ic.style.display = (hasAny || isPlanPending) ? 'none' : '';
+
+  /* Show/hide today's training and nutrition blocks based on which
+     professional the client is linked to. Trainer-only hides nutrition;
+     coach-only hides training; both shows both. */
+  var trainingBlock  = document.getElementById('today-training-block');
+  var nutritionBlock = document.getElementById('today-nutrition-block');
+  var trainingStat   = document.getElementById('today-training-stat-card');
+  var nutritionStat  = document.getElementById('today-nutrition-stat-card');
+  if(trainingBlock)  trainingBlock.style.display  = hasTrainer ? '' : 'none';
+  if(nutritionBlock) nutritionBlock.style.display = hasCoach   ? '' : 'none';
+  /* Swap the middle stat tile: training-stat for trainer roles, kcal for
+     coach-only, training-stat for both (training is the primary KPI). */
+  if(trainingStat)  trainingStat.style.display  = hasTrainer ? '' : 'none';
+  if(nutritionStat) nutritionStat.style.display = (hasCoach && !hasTrainer) ? '' : 'none';
 
   // Discover screen states
   ['none','trainer','coach','both'].forEach(function(s) {
