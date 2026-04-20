@@ -1750,6 +1750,26 @@ function switchPlanTab(tab){
   if(tSeg) tSeg.classList.toggle('active', tab==='trenink');
   if(nSeg) nSeg.classList.toggle('active', tab==='nutr');
 }
+
+
+// ── DEEP-LINK BOOT ────────────────────────────────────────────────────────────
+// Reads `?scene=<id>` from window.location on first load and navigates to that
+// scene. Accepts either a short nav id (keys of SCREENS) or a phone id
+// (ph-*). Enables stable URLs for Notion embeds and shared links.
+(function bootSceneFromUrl(){
+  function apply(){
+    var params = new URLSearchParams(window.location.search);
+    var scene = params.get("scene");
+    if(!scene) return;
+    try {
+      if(typeof SCREENS !== "undefined" && SCREENS[scene]) { nav(scene); return; }
+      // Fallback: if caller passed a phone id directly, reverse-lookup the nav id.
+      for(var k in SCREENS){ if(SCREENS[k] === scene){ nav(k); return; } }
+    } catch(e){ /* unknown scene id — ignore */ }
+  }
+  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", apply);
+  else apply();
+})();
 </script>
 </body>
 </html>

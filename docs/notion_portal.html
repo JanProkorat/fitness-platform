@@ -2128,6 +2128,21 @@ function showToast(msg){
   _toastTimer=setTimeout(function(){t.style.opacity='0';},2200);
 }
 
+
+
+// ── DEEP-LINK BOOT ────────────────────────────────────────────────────────────
+// Reads `?scene=<id>` from window.location on first load and navigates to that
+// screen (e.g. `?scene=s-dashboard`). Enables stable URLs for Notion embeds.
+(function bootSceneFromUrl(){
+  function apply(){
+    var params = new URLSearchParams(window.location.search);
+    var scene = params.get("scene");
+    if(!scene) return;
+    try { showScreen(scene); } catch(e){ /* unknown scene id — ignore */ }
+  }
+  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", apply);
+  else apply();
+})();
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
 var _dashView='table';
 var _foodsFilter='all';
