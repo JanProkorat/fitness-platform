@@ -946,7 +946,13 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
       </div>
 
       <!-- Training card -->
-      <div class="ios-section-hdr"><div class="ios-section-title">Dnešní trénink</div><span class="ios-section-action" onclick="showPhone('ph-training-plan-detail')">Detail</span></div>
+      <div class="ios-section-hdr">
+        <div class="ios-section-title">Dnešní trénink</div>
+        <div style="display:flex;gap:14px;align-items:center">
+          <span class="ios-section-action" style="display:inline-flex;align-items:center;gap:4px;color:var(--ios-gold)" onclick="showPhone('ph-plan-photos')">📷 Foto</span>
+          <span class="ios-section-action" onclick="showPhone('ph-training-plan-detail')">Detail</span>
+        </div>
+      </div>
       <div class="ios-card" id="today-training-card">
         <div class="ios-card-hero grad-push" style="padding:16px 20px 14px">
           <div style="display:flex;align-items:flex-start;gap:12px">
@@ -1195,7 +1201,13 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
       </div>
 
       <!-- Nutrition card (training-card style) -->
-      <div class="ios-section-hdr"><div class="ios-section-title">Dnešní jídelníček</div><span class="ios-section-action" onclick="showPhone('ph-nutrition-plan-detail')">Detail</span></div>
+      <div class="ios-section-hdr">
+        <div class="ios-section-title">Dnešní jídelníček</div>
+        <div style="display:flex;gap:14px;align-items:center">
+          <span class="ios-section-action" style="display:inline-flex;align-items:center;gap:4px;color:var(--ios-gold)" onclick="showPhone('ph-plan-photos')">📷 Foto</span>
+          <span class="ios-section-action" onclick="showPhone('ph-nutrition-plan-detail')">Detail</span>
+        </div>
+      </div>
       <div class="ios-card">
         <div class="ios-card-hero grad-meal" style="display:flex;align-items:center;padding:20px">
           <div style="flex:1;min-width:0">
@@ -1235,6 +1247,7 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
                 <div class="ex-ios-name">Snídaně</div>
                 <div class="ex-ios-sets">08:00 · 431 kcal · 3 položky</div>
               </div>
+              <div style="width:28px;height:28px;border-radius:50%;background:rgba(201,168,76,.12);border:1.5px solid rgba(201,168,76,.35);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;flex-shrink:0;margin-right:6px" onclick="event.stopPropagation();showPhone('ph-meal-log-photo')" title="Přidat fotku">📷</div>
               <div class="ex-ios-done done" onclick="event.stopPropagation();todayMealCheck(this)">✓</div>
               <span class="meal-chev">▼</span>
             </div>
@@ -1255,6 +1268,7 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
                 <div class="ex-ios-name">Oběd</div>
                 <div class="ex-ios-sets">12:30 · 540 kcal · 3 položky</div>
               </div>
+              <div style="width:28px;height:28px;border-radius:50%;background:rgba(201,168,76,.12);border:1.5px solid rgba(201,168,76,.35);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;flex-shrink:0;margin-right:6px" onclick="event.stopPropagation();showPhone('ph-meal-log-photo')" title="Přidat fotku">📷</div>
               <div class="ex-ios-done done" onclick="event.stopPropagation();todayMealCheck(this)">✓</div>
               <span class="meal-chev">▼</span>
             </div>
@@ -1274,6 +1288,7 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
                 <div class="ex-ios-name">Večeře</div>
                 <div class="ex-ios-sets">18:30 · 576 kcal · 3 položky</div>
               </div>
+              <div style="width:28px;height:28px;border-radius:50%;background:rgba(201,168,76,.12);border:1.5px solid rgba(201,168,76,.35);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;flex-shrink:0;margin-right:6px" onclick="event.stopPropagation();showPhone('ph-meal-log-photo')" title="Přidat fotku">📷</div>
               <div class="ex-ios-done" onclick="event.stopPropagation();todayMealCheck(this)"></div>
               <span class="meal-chev">▼</span>
             </div>
@@ -6096,7 +6111,7 @@ function setWaitingState(which) {
       '</div>' +
     '</div>';
     // Training card
-    html += '<div class="ios-section-hdr"><div class="ios-section-title">Dnešní trénink</div><span class="ios-section-action">Detail</span></div>' +
+    html += '<div class="ios-section-hdr"><div class="ios-section-title">Dnešní trénink</div><div style="display:flex;gap:14px;align-items:center"><span class="ios-section-action" style="display:inline-flex;align-items:center;gap:4px;color:var(--ios-gold)" onclick="showPhone(\'ph-plan-photos\')">📷 Foto</span><span class="ios-section-action">Detail</span></div></div>' +
     '<div class="ios-card"><div class="ios-card-hero grad-push" style="display:flex;align-items:center;padding:20px">' +
       '<div>' +
         '<div style="font-size:13px;font-weight:600;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Silový A/B · Týden 3</div>' +
@@ -6186,6 +6201,7 @@ function setWaitingState(which) {
         '<div class="meal-row-header" onclick="todayMealToggle(this)">' +
           '<div class="ex-ios-dot" style="background:' + m.dot + '"></div>' +
           '<div class="ex-ios-info"><div class="ex-ios-name">' + m.name + '</div><div class="ex-ios-sets">' + m.sub + '</div></div>' +
+          '<div style="width:28px;height:28px;border-radius:50%;background:rgba(201,168,76,.12);border:1.5px solid rgba(201,168,76,.35);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;flex-shrink:0;margin-right:6px" onclick="event.stopPropagation();showPhone(\'ph-meal-log-photo\')" title="P\u0159idat fotku">\uD83D\uDCF7</div>' +
           '<div class="' + doneCls + '" onclick="event.stopPropagation();todayMealCheck(this)">' + doneTxt + '</div>' +
           '<span class="meal-chev">\u25BC</span>' +
         '</div>' +
@@ -6193,7 +6209,7 @@ function setWaitingState(which) {
       '</div>';
     }).join('');
 
-    html += '<div class="ios-section-hdr"><div class="ios-section-title">Dne\u0161n\u00ED j\u00EDdeln\u00ED\u010Dek</div><span class="ios-section-action" onclick="showPhone(\'ph-nutrition-plan-detail\')">Detail</span></div>' +
+    html += '<div class="ios-section-hdr"><div class="ios-section-title">Dne\u0161n\u00ED j\u00EDdeln\u00ED\u010Dek</div><div style="display:flex;gap:14px;align-items:center"><span class="ios-section-action" style="display:inline-flex;align-items:center;gap:4px;color:var(--ios-gold)" onclick="showPhone(\'ph-plan-photos\')">\uD83D\uDCF7 Foto</span><span class="ios-section-action" onclick="showPhone(\'ph-nutrition-plan-detail\')">Detail</span></div></div>' +
     '<div class="ios-card">' +
       '<div class="ios-card-hero grad-meal" style="display:flex;align-items:center;padding:20px">' +
         '<div style="flex:1;min-width:0">' +
