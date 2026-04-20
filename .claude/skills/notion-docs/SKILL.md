@@ -36,6 +36,23 @@ If genuinely ambiguous, ask once with `AskUserQuestion`. Don't guess.
 - **Source of truth is code.** Notion pages are regenerated from code on
   bootstrap and surgically patched on update. Don't hand-edit content the
   skill produced unless you also update the generator rules here.
+- **Prototype live previews.** GitHub Pages serves the three built
+  prototype artefacts from `develop:/docs` at:
+
+  ```
+  https://janprokorat.github.io/fitness-platform/mobile_prototype.html
+  https://janprokorat.github.io/fitness-platform/trainer_prototype.html
+  https://janprokorat.github.io/fitness-platform/notion_portal.html
+  ```
+
+  Each prototype's nav script reads `?scene=<id>` on first load and jumps
+  to the matching scene, so URLs like
+  `…/trainer_prototype.html?scene=profil` are stable deep-links. Use
+  these URLs inside Notion `embed` blocks on Prototype/Web/Mobile pages
+  so readers see the live prototype inline — no screenshots, auto-updates
+  on every merge. Templates in
+  [`references/page-templates.md`](references/page-templates.md) spell
+  out where the embed goes.
 
 ## Notion tools to use
 
