@@ -1371,7 +1371,7 @@ body.dark .btn-auth-primary { color: #0d0900; }
 <div class="shell">
 <div class="sb" id="sb-profile"></div>
 <div class="main">
-  <div class="bc"><a onclick="showScreen('s-dashboard')">Dashboard</a><span class="bc-sep">/</span><span>Nastavení</span><span class="bc-sep">/</span><span>Profil</span></div>
+  <div class="bc"><a onclick="showScreen('s-dashboard')">Dashboard</a><span class="bc-sep">/</span><span>Profil</span></div>
 
   <div class="ph">
     <div class="ph-icon">👤</div>
@@ -1383,14 +1383,16 @@ body.dark .btn-auth-primary { color: #0d0900; }
   <div class="toolbar" style="border-bottom:1px solid var(--br);margin-bottom:0">
     <div class="tb-view active" id="prof-tab-personal" onclick="switchProfileTab('personal')">👤 Osobní údaje</div>
     <div class="tb-view" id="prof-tab-questionnaires" onclick="switchProfileTab('questionnaires')">📋 Dotazníky</div>
-    <div class="tb-view" onclick="showScreen('s-settings-checkins')">🔔 Týdenní check-iny</div>
+    <div class="tb-view" id="prof-tab-checkins" onclick="switchProfileTab('checkins')">🔔 Týdenní check-iny</div>
     <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
-      <span style="font-size:11px;color:var(--orange);display:flex;align-items:center;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:var(--orange)"></span>Neuložené změny</span>
-      <button class="btn primary" onclick="showToast('Profil uložen')">Uložit</button>
+      <span id="prof-dirty-ind" style="font-size:11px;color:var(--orange);display:flex;align-items:center;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:var(--orange)"></span>Neuložené změny</span>
+      <button id="prof-save-btn" class="btn primary" onclick="showToast('Profil uložen')">Uložit</button>
     </div>
   </div>
 
-  <!-- ══ TAB: OSOBNÍ ÚDAJE ══ -->
+  <!-- ════════════════════════════════════════════════════════
+       TAB: OSOBNÍ ÚDAJE
+  ════════════════════════════════════════════════════════ -->
   <div class="pc" id="prof-content-personal">
 
     <!-- Profile card -->
@@ -1523,162 +1525,505 @@ body.dark .btn-auth-primary { color: #0d0900; }
 
   </div><!-- /content-personal -->
 
-  <!-- ══ TAB: DOTAZNÍKY ══ -->
+  <!-- ════════════════════════════════════════════════════════
+       TAB: DOTAZNÍKY — matches QuestionnaireList + QuestionnaireEditor
+  ════════════════════════════════════════════════════════ -->
   <div class="pc" id="prof-content-questionnaires" style="display:none">
 
-    <!-- List view (default) -->
+    <!-- LIST VIEW (default) -->
     <div id="prof-q-list">
-      <div class="callout" style="margin-bottom:16px;background:rgba(201,168,76,.06);border:1px solid var(--acc-br)">
-        <div class="callout-icon">📋</div>
-        <div class="callout-body">
-          <div class="callout-title">Šablony dotazníků</div>
-          <div class="callout-text" style="font-size:12px">Vytvoř si vlastní dotazníky pro nové klienty. Dotazník se přiloží k pozvánce nebo k individuálnímu plánu. Klient odpovědi uvidíš v detailu klienta v sekci Dotazník.</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+
+        <!-- Card 1 -->
+        <div onclick="profQShowEditor('q1')" style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rm);cursor:pointer;transition:background .1s">
+          <span style="font-size:20px;flex-shrink:0">📋</span>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:14px;font-weight:500;color:var(--t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Vstupní dotazník — trénink</span>
+              <span style="padding:1px 6px;border-radius:10px;font-size:10px;font-weight:500;color:var(--acc);background:rgba(201,168,76,.1);border:1px solid var(--acc-br);flex-shrink:0">Výchozí</span>
+            </div>
+            <div style="font-size:12px;color:var(--t3);margin-top:2px">8 otázek · Vstupní dotazník pro nové klienty</div>
+          </div>
+          <span onclick="event.stopPropagation();showToast('Smazat šablonu?')" style="width:24px;height:24px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-radius:var(--r);cursor:pointer;color:var(--t4);font-size:12px">✕</span>
         </div>
+
+        <!-- Card 2 -->
+        <div onclick="profQShowEditor('q2')" style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rm);cursor:pointer;transition:background .1s">
+          <span style="font-size:20px;flex-shrink:0">📋</span>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:14px;font-weight:500;color:var(--t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Výživový vstupní dotazník</span>
+            </div>
+            <div style="font-size:12px;color:var(--t3);margin-top:2px">12 otázek · Strava, preferovaná jídla, alergie</div>
+          </div>
+          <span onclick="event.stopPropagation();showToast('Smazat šablonu?')" style="width:24px;height:24px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-radius:var(--r);cursor:pointer;color:var(--t4);font-size:12px">✕</span>
+        </div>
+
+        <!-- Card 3 -->
+        <div onclick="profQShowEditor('q3')" style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rm);cursor:pointer;transition:background .1s">
+          <span style="font-size:20px;flex-shrink:0">📋</span>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:14px;font-weight:500;color:var(--t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Kontrolní dotazník po 8 týdnech</span>
+              <span style="padding:1px 6px;border-radius:10px;font-size:10px;font-weight:500;color:var(--t3);background:var(--bg3);flex-shrink:0">Neaktivní</span>
+            </div>
+            <div style="font-size:12px;color:var(--t3);margin-top:2px">6 otázek · Mid-plan check-up</div>
+          </div>
+          <span onclick="event.stopPropagation();showToast('Smazat šablonu?')" style="width:24px;height:24px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-radius:var(--r);cursor:pointer;color:var(--t4);font-size:12px">✕</span>
+        </div>
+
       </div>
 
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-        <div style="font-size:13px;color:var(--t2)">3 šablony celkem</div>
-        <button class="btn primary" onclick="showToast('Nová šablona vytvořena')">+ Nová šablona</button>
-      </div>
-
-      <div style="background:var(--bg2);border:1px solid var(--br);border-radius:8px;overflow:hidden">
-        <!-- Questionnaire 1 -->
-        <div style="padding:14px 18px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:14px;cursor:pointer" onclick="profQShowEditor('Vstupní dotazník — trénink')">
-          <div style="width:36px;height:36px;border-radius:8px;background:rgba(201,168,76,.12);color:var(--acc);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📝</div>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:14px;font-weight:600;color:var(--t)">Vstupní dotazník — trénink</div>
-            <div style="font-size:12px;color:var(--t2);margin-top:2px">8 otázek · <span style="color:var(--acc)">Výchozí</span> · upraveno 12. 3. 2026</div>
-          </div>
-          <div style="font-size:11px;padding:3px 8px;border-radius:99px;background:rgba(52,199,89,.12);color:var(--green);font-weight:500">Aktivní</div>
-          <button class="btn" style="font-size:12px;padding:5px 10px" onclick="event.stopPropagation();profQShowEditor('Vstupní dotazník — trénink')">Upravit</button>
-          <button class="btn danger" style="font-size:12px;padding:5px 10px" onclick="event.stopPropagation();showToast('Šablona smazána')">Smazat</button>
-        </div>
-        <!-- Questionnaire 2 -->
-        <div style="padding:14px 18px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:14px;cursor:pointer" onclick="profQShowEditor('Výživový vstupní dotazník')">
-          <div style="width:36px;height:36px;border-radius:8px;background:rgba(52,199,89,.12);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🥗</div>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:14px;font-weight:600;color:var(--t)">Výživový vstupní dotazník</div>
-            <div style="font-size:12px;color:var(--t2);margin-top:2px">12 otázek · upraveno 4. 3. 2026</div>
-          </div>
-          <div style="font-size:11px;padding:3px 8px;border-radius:99px;background:rgba(52,199,89,.12);color:var(--green);font-weight:500">Aktivní</div>
-          <button class="btn" style="font-size:12px;padding:5px 10px" onclick="event.stopPropagation();profQShowEditor('Výživový vstupní dotazník')">Upravit</button>
-          <button class="btn danger" style="font-size:12px;padding:5px 10px" onclick="event.stopPropagation();showToast('Šablona smazána')">Smazat</button>
-        </div>
-        <!-- Questionnaire 3 -->
-        <div style="padding:14px 18px;display:flex;align-items:center;gap:14px;cursor:pointer" onclick="profQShowEditor('Kontrolní dotazník po 8 týdnech')">
-          <div style="width:36px;height:36px;border-radius:8px;background:rgba(0,122,255,.12);color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🔍</div>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:14px;font-weight:600;color:var(--t)">Kontrolní dotazník po 8 týdnech</div>
-            <div style="font-size:12px;color:var(--t2);margin-top:2px">6 otázek · upraveno 18. 1. 2026</div>
-          </div>
-          <div style="font-size:11px;padding:3px 8px;border-radius:99px;background:var(--bg3);color:var(--t3);font-weight:500">Draft</div>
-          <button class="btn" style="font-size:12px;padding:5px 10px" onclick="event.stopPropagation();profQShowEditor('Kontrolní dotazník po 8 týdnech')">Upravit</button>
-          <button class="btn danger" style="font-size:12px;padding:5px 10px" onclick="event.stopPropagation();showToast('Šablona smazána')">Smazat</button>
-        </div>
-      </div>
+      <!-- Dashed add button -->
+      <button type="button" onclick="showToast('Nová šablona vytvořena');profQShowEditor('new')" style="display:inline-flex;align-items:center;gap:4px;padding:7px 14px;border:1px dashed var(--br);border-radius:var(--rm);background:none;cursor:pointer;color:var(--t3);font-size:13px;font-family:inherit;margin-top:12px">+ Přidat šablonu</button>
     </div>
 
-    <!-- Editor view -->
+    <!-- EDITOR VIEW -->
     <div id="prof-q-editor" style="display:none">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-        <button class="btn" onclick="profQHideEditor()">‹ Zpět na seznam</button>
-        <span style="font-size:11px;color:var(--orange);display:flex;align-items:center;gap:4px;margin-left:auto"><span style="width:6px;height:6px;border-radius:50%;background:var(--orange)"></span>Neuložené změny</span>
-      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:start">
 
-      <div style="background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:16px 18px;margin-bottom:14px">
-        <div class="form-group" style="margin-bottom:0">
-          <label class="form-label">Název šablony</label>
-          <input class="form-input" id="prof-q-name" value="Vstupní dotazník — trénink">
-        </div>
-      </div>
+        <!-- LEFT: editor -->
+        <div>
+          <button onclick="profQHideEditor()" style="display:inline-flex;align-items:center;gap:4px;padding:4px 8px;margin-bottom:12px;border:none;background:none;cursor:pointer;color:var(--t3);font-size:12px;font-family:inherit">← Zpět na seznam</button>
 
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <div style="font-size:13px;font-weight:600;color:var(--t)">Otázky (8)</div>
-        <button class="btn" onclick="showToast('Otázka přidána')">+ Přidat otázku</button>
-      </div>
+          <!-- Title -->
+          <div class="form-group" style="margin-bottom:12px">
+            <label class="form-label">Název šablony</label>
+            <input id="prof-q-title" class="form-input" value="Vstupní dotazník — trénink" style="font-size:16px;font-weight:600;padding:8px 10px">
+          </div>
 
-      <div style="display:flex;flex-direction:column;gap:8px">
-        <!-- Question 1 -->
-        <div style="background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:12px 14px">
-          <div style="display:flex;align-items:center;gap:10px">
-            <span style="color:var(--t3);cursor:grab">⠿</span>
-            <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;background:rgba(0,122,255,.12);color:var(--blue)">Jednotlivý výběr</span>
-            <div style="flex:1;font-size:13px;color:var(--t)">Jak dlouho pravidelně cvičíš?</div>
-            <span style="font-size:11px;color:var(--t3)">4 možnosti</span>
-            <span style="color:var(--t4);cursor:pointer">✏</span>
-            <span style="color:var(--t4);cursor:pointer">✕</span>
+          <!-- Description -->
+          <div class="form-group" style="margin-bottom:12px">
+            <label class="form-label">Popis (volitelné)</label>
+            <textarea class="form-input" rows="2" style="font-size:13px">Vstupní dotazník pro nové klienty před sestavením tréninkového plánu.</textarea>
           </div>
-        </div>
-        <!-- Question 2 -->
-        <div style="background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:12px 14px">
-          <div style="display:flex;align-items:center;gap:10px">
-            <span style="color:var(--t3);cursor:grab">⠿</span>
-            <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;background:rgba(52,199,89,.12);color:var(--green)">Číslo</span>
-            <div style="flex:1;font-size:13px;color:var(--t)">Aktuální váha (kg)</div>
-            <span style="font-size:11px;color:var(--t3)">→ synchronizace s profilem</span>
-            <span style="color:var(--t4);cursor:pointer">✏</span>
-            <span style="color:var(--t4);cursor:pointer">✕</span>
-          </div>
-        </div>
-        <!-- Question 3 -->
-        <div style="background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:12px 14px">
-          <div style="display:flex;align-items:center;gap:10px">
-            <span style="color:var(--t3);cursor:grab">⠿</span>
-            <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;background:rgba(52,199,89,.12);color:var(--green)">Číslo</span>
-            <div style="flex:1;font-size:13px;color:var(--t)">Výška (cm)</div>
-            <span style="font-size:11px;color:var(--t3)">→ synchronizace s profilem</span>
-            <span style="color:var(--t4);cursor:pointer">✏</span>
-            <span style="color:var(--t4);cursor:pointer">✕</span>
-          </div>
-        </div>
-        <!-- Question 4 -->
-        <div style="background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:12px 14px">
-          <div style="display:flex;align-items:center;gap:10px">
-            <span style="color:var(--t3);cursor:grab">⠿</span>
-            <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;background:rgba(0,122,255,.12);color:var(--blue)">Jednotlivý výběr</span>
-            <div style="flex:1;font-size:13px;color:var(--t)">Primární cíl</div>
-            <span style="font-size:11px;color:var(--t3)">5 možností · → profil</span>
-            <span style="color:var(--t4);cursor:pointer">✏</span>
-            <span style="color:var(--t4);cursor:pointer">✕</span>
-          </div>
-        </div>
-        <!-- Question 5 -->
-        <div style="background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:12px 14px">
-          <div style="display:flex;align-items:center;gap:10px">
-            <span style="color:var(--t3);cursor:grab">⠿</span>
-            <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;background:rgba(175,82,222,.12);color:var(--purple)">Text</span>
-            <div style="flex:1;font-size:13px;color:var(--t)">Zdravotní omezení nebo zranění</div>
-            <span style="font-size:11px;color:var(--t3)">→ profil</span>
-            <span style="color:var(--t4);cursor:pointer">✏</span>
-            <span style="color:var(--t4);cursor:pointer">✕</span>
-          </div>
-        </div>
-        <!-- Question 6 -->
-        <div style="background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:12px 14px">
-          <div style="display:flex;align-items:center;gap:10px">
-            <span style="color:var(--t3);cursor:grab">⠿</span>
-            <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;background:rgba(255,149,0,.12);color:var(--orange)">Škála 1–10</span>
-            <div style="flex:1;font-size:13px;color:var(--t)">Motivace ke změně</div>
-            <span style="color:var(--t4);cursor:pointer">✏</span>
-            <span style="color:var(--t4);cursor:pointer">✕</span>
-          </div>
-        </div>
-      </div>
 
-      <div style="margin-top:14px;padding:14px 18px;background:var(--bg2);border:1px solid var(--br);border-radius:8px">
-        <div style="font-size:13px;font-weight:600;color:var(--t);margin-bottom:6px">Náhled pro klienta</div>
-        <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Takto uvidí dotazník klient při vyplňování.</div>
-        <button class="btn" onclick="showToast('Náhled otevřen v novém okně')">👁 Zobrazit náhled</button>
+          <!-- Active toggle -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0">
+            <span style="font-size:13px;color:var(--t2)">Aktivní</span>
+            <div class="toggle on" onclick="this.classList.toggle('on')"><div class="toggle-thumb"></div></div>
+          </div>
+
+          <!-- Default toggle -->
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding:8px 0">
+            <div>
+              <span style="font-size:13px;color:var(--t2)">Výchozí</span>
+              <div style="font-size:11px;color:var(--t3);margin-top:1px">Automaticky se přiloží k novým pozvánkám</div>
+            </div>
+            <div class="toggle on" onclick="this.classList.toggle('on')"><div class="toggle-thumb"></div></div>
+          </div>
+
+          <div class="divider" style="margin-bottom:16px"></div>
+
+          <!-- Questions list -->
+          <div style="display:flex;flex-direction:column;gap:8px">
+
+            <!-- Section header -->
+            <div style="background:var(--bg);border:1px solid var(--br);border-left:3px solid var(--acc);border-radius:var(--rm);margin-top:8px">
+              <div onclick="profQToggleCard(this)" style="padding:10px 12px;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none">
+                <span style="cursor:grab;color:var(--t4);font-size:14px;line-height:1;flex-shrink:0" onclick="event.stopPropagation()">⠿</span>
+                <span style="font-size:13px;color:var(--t3);flex-shrink:0;width:24px;text-align:center">§</span>
+                <span style="flex:1;font-size:14px;font-weight:600;color:var(--t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Základní údaje</span>
+                <span style="font-size:11px;color:var(--t4);flex-shrink:0">Sekce</span>
+                <span style="font-size:11px;color:var(--t4);transition:transform .15s">▶</span>
+              </div>
+            </div>
+
+            <!-- Question — single_choice (expanded) -->
+            <div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--rm)">
+              <div onclick="profQToggleCard(this)" style="padding:10px 12px;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none">
+                <span style="cursor:grab;color:var(--t4);font-size:14px;line-height:1;flex-shrink:0" onclick="event.stopPropagation()">⠿</span>
+                <span style="font-size:13px;color:var(--t3);flex-shrink:0;width:24px;text-align:center">◉</span>
+                <span style="flex:1;font-size:13px;font-weight:400;color:var(--t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Jak dlouho pravidelně cvičíš?</span>
+                <span style="font-size:11px;color:var(--t4);flex-shrink:0">Jednotlivý výběr</span>
+                <span style="font-size:11px;color:var(--t4);transition:transform .15s;transform:rotate(90deg)">▶</span>
+              </div>
+              <div style="padding:0 12px 12px">
+                <div class="form-group" style="margin-bottom:10px">
+                  <label class="form-label" style="font-size:11px">Typ</label>
+                  <select class="form-select" style="font-size:13px">
+                    <option>Krátký text</option>
+                    <option selected>Jednotlivý výběr</option>
+                    <option>Vícenásobný výběr</option>
+                    <option>Číslo</option>
+                    <option>Škála</option>
+                    <option>Soubor</option>
+                  </select>
+                </div>
+                <div class="form-group" style="margin-bottom:10px">
+                  <label class="form-label" style="font-size:11px">Otázka</label>
+                  <input class="form-input" value="Jak dlouho pravidelně cvičíš?" style="font-size:13px">
+                </div>
+                <div class="form-group" style="margin-bottom:10px">
+                  <label class="form-label" style="font-size:11px">Nápověda (volitelné)</label>
+                  <input class="form-input" value="" placeholder="Zobrazí se pod otázkou" style="font-size:13px">
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                  <span style="font-size:12px;color:var(--t2)">Povinná</span>
+                  <div class="toggle on" onclick="this.classList.toggle('on')"><div class="toggle-thumb"></div></div>
+                </div>
+                <!-- Options -->
+                <div class="form-group" style="margin-bottom:6px">
+                  <label class="form-label" style="font-size:11px">Možnosti</label>
+                  <div style="display:flex;flex-direction:column;gap:4px">
+                    <div style="display:flex;align-items:center;gap:4px"><input class="form-input" value="Méně než 6 měsíců" style="flex:1;font-size:13px"><span style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:var(--t4);font-size:12px;cursor:pointer">✕</span></div>
+                    <div style="display:flex;align-items:center;gap:4px"><input class="form-input" value="6 – 12 měsíců" style="flex:1;font-size:13px"><span style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:var(--t4);font-size:12px;cursor:pointer">✕</span></div>
+                    <div style="display:flex;align-items:center;gap:4px"><input class="form-input" value="1 – 3 roky" style="flex:1;font-size:13px"><span style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:var(--t4);font-size:12px;cursor:pointer">✕</span></div>
+                    <div style="display:flex;align-items:center;gap:4px"><input class="form-input" value="Více než 3 roky" style="flex:1;font-size:13px"><span style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:var(--t4);font-size:12px;cursor:pointer">✕</span></div>
+                  </div>
+                  <button type="button" style="display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border:1px dashed var(--br);border-radius:var(--rm);background:none;cursor:pointer;color:var(--t3);font-size:12px;font-family:inherit;margin-top:6px">+ Možnost</button>
+                </div>
+                <!-- Mapped field -->
+                <div class="form-group" style="margin-bottom:0">
+                  <label class="form-label" style="font-size:11px">Mapované pole profilu</label>
+                  <select class="form-select" style="font-size:13px">
+                    <option selected>Žádné</option>
+                    <option>Výška</option>
+                    <option>Váha</option>
+                    <option>Cíl</option>
+                    <option>Zdravotní omezení</option>
+                    <option>Aktuální frekvence tréninků</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Question — number (collapsed) -->
+            <div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--rm)">
+              <div onclick="profQToggleCard(this)" style="padding:10px 12px;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none">
+                <span style="cursor:grab;color:var(--t4);font-size:14px;line-height:1;flex-shrink:0" onclick="event.stopPropagation()">⠿</span>
+                <span style="font-size:13px;color:var(--t3);flex-shrink:0;width:24px;text-align:center">#</span>
+                <span style="flex:1;font-size:13px;color:var(--t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Aktuální váha</span>
+                <span style="font-size:11px;color:var(--t4);flex-shrink:0">Číslo</span>
+                <span style="font-size:11px;color:var(--t4);transition:transform .15s">▶</span>
+              </div>
+            </div>
+
+            <!-- Question — number (collapsed) -->
+            <div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--rm)">
+              <div onclick="profQToggleCard(this)" style="padding:10px 12px;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none">
+                <span style="cursor:grab;color:var(--t4);font-size:14px;line-height:1;flex-shrink:0" onclick="event.stopPropagation()">⠿</span>
+                <span style="font-size:13px;color:var(--t3);flex-shrink:0;width:24px;text-align:center">#</span>
+                <span style="flex:1;font-size:13px;color:var(--t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Výška</span>
+                <span style="font-size:11px;color:var(--t4);flex-shrink:0">Číslo</span>
+                <span style="font-size:11px;color:var(--t4);transition:transform .15s">▶</span>
+              </div>
+            </div>
+
+            <!-- Question — single_choice (collapsed) -->
+            <div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--rm)">
+              <div onclick="profQToggleCard(this)" style="padding:10px 12px;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none">
+                <span style="cursor:grab;color:var(--t4);font-size:14px;line-height:1;flex-shrink:0" onclick="event.stopPropagation()">⠿</span>
+                <span style="font-size:13px;color:var(--t3);flex-shrink:0;width:24px;text-align:center">◉</span>
+                <span style="flex:1;font-size:13px;color:var(--t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Primární cíl</span>
+                <span style="font-size:11px;color:var(--t4);flex-shrink:0">Jednotlivý výběr</span>
+                <span style="font-size:11px;color:var(--t4);transition:transform .15s">▶</span>
+              </div>
+            </div>
+
+            <!-- Section header 2 -->
+            <div style="background:var(--bg);border:1px solid var(--br);border-left:3px solid var(--acc);border-radius:var(--rm);margin-top:8px">
+              <div onclick="profQToggleCard(this)" style="padding:10px 12px;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none">
+                <span style="cursor:grab;color:var(--t4);font-size:14px;line-height:1;flex-shrink:0" onclick="event.stopPropagation()">⠿</span>
+                <span style="font-size:13px;color:var(--t3);flex-shrink:0;width:24px;text-align:center">§</span>
+                <span style="flex:1;font-size:14px;font-weight:600;color:var(--t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Zdraví &amp; motivace</span>
+                <span style="font-size:11px;color:var(--t4);flex-shrink:0">Sekce</span>
+                <span style="font-size:11px;color:var(--t4);transition:transform .15s">▶</span>
+              </div>
+            </div>
+
+            <!-- Question — short text -->
+            <div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--rm)">
+              <div onclick="profQToggleCard(this)" style="padding:10px 12px;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none">
+                <span style="cursor:grab;color:var(--t4);font-size:14px;line-height:1;flex-shrink:0" onclick="event.stopPropagation()">⠿</span>
+                <span style="font-size:13px;color:var(--t3);flex-shrink:0;width:24px;text-align:center">Aa</span>
+                <span style="flex:1;font-size:13px;color:var(--t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Zdravotní omezení nebo zranění</span>
+                <span style="font-size:11px;color:var(--t4);flex-shrink:0">Krátký text</span>
+                <span style="font-size:11px;color:var(--t4);transition:transform .15s">▶</span>
+              </div>
+            </div>
+
+            <!-- Question — scale -->
+            <div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--rm)">
+              <div onclick="profQToggleCard(this)" style="padding:10px 12px;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none">
+                <span style="cursor:grab;color:var(--t4);font-size:14px;line-height:1;flex-shrink:0" onclick="event.stopPropagation()">⠿</span>
+                <span style="font-size:13px;color:var(--t3);flex-shrink:0;width:24px;text-align:center">⟷</span>
+                <span style="flex:1;font-size:13px;color:var(--t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Motivace ke změně</span>
+                <span style="font-size:11px;color:var(--t4);flex-shrink:0">Škála</span>
+                <span style="font-size:11px;color:var(--t4);transition:transform .15s">▶</span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Add buttons -->
+          <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+            <button type="button" onclick="showToast('Otázka přidána')" style="display:inline-flex;align-items:center;gap:4px;padding:7px 14px;border:1px dashed var(--br);border-radius:var(--rm);background:none;cursor:pointer;color:var(--t3);font-size:13px;font-family:inherit">+ Otázka</button>
+            <button type="button" onclick="showToast('Sekce přidána')" style="display:inline-flex;align-items:center;gap:4px;padding:7px 14px;border:1px dashed var(--br);border-radius:var(--rm);background:none;cursor:pointer;color:var(--t3);font-size:13px;font-family:inherit">+ Sekce</button>
+          </div>
+
+        </div>
+
+        <!-- RIGHT: live preview -->
+        <div style="position:sticky;top:20px">
+          <div style="font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Náhled pro klienta</div>
+          <div style="background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:20px">
+            <div style="font-size:18px;font-weight:600;color:var(--t);margin-bottom:6px">Vstupní dotazník — trénink</div>
+            <div style="font-size:13px;color:var(--t2);margin-bottom:18px">Vstupní dotazník pro nové klienty před sestavením tréninkového plánu.</div>
+
+            <div style="font-size:13px;font-weight:600;color:var(--acc);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--acc-br)">Základní údaje</div>
+
+            <div style="margin-bottom:16px">
+              <div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:6px">Jak dlouho pravidelně cvičíš? <span style="color:var(--red)">*</span></div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--br);border-radius:var(--rm);cursor:pointer;font-size:13px;color:var(--t)"><input type="radio" name="q1-preview" disabled> Méně než 6 měsíců</label>
+                <label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--br);border-radius:var(--rm);cursor:pointer;font-size:13px;color:var(--t)"><input type="radio" name="q1-preview" disabled> 6 – 12 měsíců</label>
+                <label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1.5px solid var(--acc);background:rgba(201,168,76,.06);border-radius:var(--rm);cursor:pointer;font-size:13px;color:var(--t)"><input type="radio" name="q1-preview" checked disabled> 1 – 3 roky</label>
+                <label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--br);border-radius:var(--rm);cursor:pointer;font-size:13px;color:var(--t)"><input type="radio" name="q1-preview" disabled> Více než 3 roky</label>
+              </div>
+            </div>
+
+            <div style="margin-bottom:16px">
+              <div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:6px">Aktuální váha <span style="color:var(--red)">*</span></div>
+              <input class="form-input" value="63,1" readonly style="font-size:13px;background:var(--bg);max-width:160px"> <span style="font-size:12px;color:var(--t2);margin-left:6px">kg</span>
+            </div>
+
+            <div style="margin-bottom:16px">
+              <div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:6px">Výška <span style="color:var(--red)">*</span></div>
+              <input class="form-input" value="168" readonly style="font-size:13px;background:var(--bg);max-width:160px"> <span style="font-size:12px;color:var(--t2);margin-left:6px">cm</span>
+            </div>
+
+            <div style="margin-bottom:16px">
+              <div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:6px">Primární cíl <span style="color:var(--red)">*</span></div>
+              <select class="form-select" disabled style="font-size:13px;background:var(--bg)"><option>Zhubnout</option></select>
+            </div>
+
+            <div style="font-size:13px;font-weight:600;color:var(--acc);margin:20px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--acc-br)">Zdraví &amp; motivace</div>
+
+            <div style="margin-bottom:16px">
+              <div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:6px">Zdravotní omezení nebo zranění</div>
+              <input class="form-input" readonly placeholder="Tvoje odpověď…" style="font-size:13px;background:var(--bg)">
+            </div>
+
+            <div style="margin-bottom:16px">
+              <div style="font-size:13px;font-weight:500;color:var(--t);margin-bottom:6px">Motivace ke změně <span style="color:var(--red)">*</span></div>
+              <div style="display:flex;gap:4px">
+                <div style="flex:1;padding:6px;text-align:center;border:1px solid var(--br);border-radius:6px;font-size:12px;color:var(--t3)">1</div>
+                <div style="flex:1;padding:6px;text-align:center;border:1px solid var(--br);border-radius:6px;font-size:12px;color:var(--t3)">2</div>
+                <div style="flex:1;padding:6px;text-align:center;border:1px solid var(--br);border-radius:6px;font-size:12px;color:var(--t3)">3</div>
+                <div style="flex:1;padding:6px;text-align:center;border:1px solid var(--br);border-radius:6px;font-size:12px;color:var(--t3)">4</div>
+                <div style="flex:1;padding:6px;text-align:center;border:1px solid var(--br);border-radius:6px;font-size:12px;color:var(--t3)">5</div>
+                <div style="flex:1;padding:6px;text-align:center;border:1px solid var(--br);border-radius:6px;font-size:12px;color:var(--t3)">6</div>
+                <div style="flex:1;padding:6px;text-align:center;border:1px solid var(--br);border-radius:6px;font-size:12px;color:var(--t3)">7</div>
+                <div style="flex:1;padding:6px;text-align:center;border:1.5px solid var(--acc);background:rgba(201,168,76,.06);border-radius:6px;font-size:12px;color:var(--t);font-weight:600">8</div>
+                <div style="flex:1;padding:6px;text-align:center;border:1px solid var(--br);border-radius:6px;font-size:12px;color:var(--t3)">9</div>
+                <div style="flex:1;padding:6px;text-align:center;border:1px solid var(--br);border-radius:6px;font-size:12px;color:var(--t3)">10</div>
+              </div>
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;margin-top:20px">
+              <button class="btn primary" disabled style="opacity:.6">Odeslat odpovědi</button>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
 
   </div><!-- /content-questionnaires -->
 
+  <!-- ════════════════════════════════════════════════════════
+       TAB: TÝDENNÍ CHECK-INY
+  ════════════════════════════════════════════════════════ -->
+  <div class="pc" id="prof-content-checkins" style="display:none">
+
+    <!-- Intro callout -->
+    <div class="callout" style="margin-bottom:20px;background:rgba(201,168,76,.06);border:1px solid var(--acc-br)">
+      <div class="callout-icon">📅</div>
+      <div class="callout-body">
+        <div class="callout-title">Týdenní check-iny před plánováním</div>
+        <div class="callout-text">V nastavený den a čas se klientovi ozve notifikace, aby dal vědět, jestli ho v příštím týdnu nečeká něco mimořádného (cestování, zranění, zvláštní rozvrh). Odpověď uvidíš v kartě klienta i přímo v editoru plánu.</div>
+      </div>
+    </div>
+
+    <!-- Default — Training -->
+    <div style="background:var(--bg2);border:1px solid var(--br);border-radius:8px;margin-bottom:14px">
+      <div style="padding:14px 18px;border-bottom:1px solid var(--br);display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="width:32px;height:32px;border-radius:8px;background:rgba(201,168,76,.15);color:var(--acc);display:flex;align-items:center;justify-content:center;font-size:16px">🏋️</span>
+          <div>
+            <div style="font-size:14px;font-weight:600;color:var(--t)">Výchozí pro Trénink</div>
+            <div style="font-size:12px;color:var(--t2)">Platí pro všechny klienty, u kterých nemáš individuální nastavení</div>
+          </div>
+        </div>
+        <div class="toggle-wrap" style="margin:0;padding:0">
+          <span class="toggle-lbl" style="font-size:12px">Aktivní</span>
+          <div class="toggle on" onclick="this.classList.toggle('on')"><div class="toggle-thumb"></div></div>
+        </div>
+      </div>
+      <div style="padding:16px 18px">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Den v týdnu</label>
+            <select class="form-select">
+              <option>Pondělí</option><option>Úterý</option><option>Středa</option>
+              <option selected>Čtvrtek</option><option>Pátek</option><option>Sobota</option><option>Neděle</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Čas (hodina)</label>
+            <select class="form-select">
+              <option>06:00</option><option>07:00</option><option>08:00</option>
+              <option>09:00</option><option>10:00</option><option>11:00</option>
+              <option>12:00</option><option>13:00</option><option>14:00</option>
+              <option>15:00</option><option>16:00</option><option>17:00</option>
+              <option selected>18:00</option><option>19:00</option><option>20:00</option>
+              <option>21:00</option><option>22:00</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Časová zóna</label>
+            <input class="form-input" value="Europe/Prague" readonly style="background:var(--bg3);color:var(--t2)">
+          </div>
+        </div>
+        <div class="form-group" style="margin-top:4px">
+          <label class="form-label">Výchozí zpráva (volitelné)</label>
+          <textarea class="form-input" rows="2" maxlength="200" placeholder="Krátká osobní zpráva, která se připojí k notifikaci pro všechny klienty…">Pokud plánuješ dlouhou cestu, dej vědět — přizpůsobím týdenní rozložení.</textarea>
+          <div style="font-size:11px;color:var(--t3);margin-top:4px">86 / 200 znaků</div>
+        </div>
+      </div>
+      <div style="padding:10px 18px;border-top:1px solid var(--br);display:flex;justify-content:space-between;align-items:center;background:rgba(120,120,128,.03)">
+        <span style="font-size:12px;color:var(--t2)">Posledních 4 týdny: <strong style="color:var(--t)">22 odpovědí</strong> · 8 nezodpovězeno</span>
+        <button class="btn primary" onclick="showToast('Uloženo')">Uložit</button>
+      </div>
+    </div>
+
+    <!-- Default — Nutrition -->
+    <div style="background:var(--bg2);border:1px solid var(--br);border-radius:8px;margin-bottom:24px">
+      <div style="padding:14px 18px;border-bottom:1px solid var(--br);display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="width:32px;height:32px;border-radius:8px;background:rgba(52,199,89,.15);color:#34c759;display:flex;align-items:center;justify-content:center;font-size:16px">🥗</span>
+          <div>
+            <div style="font-size:14px;font-weight:600;color:var(--t)">Výchozí pro Výživu</div>
+            <div style="font-size:12px;color:var(--t2)">Platí pro všechny klienty s výživovým plánem</div>
+          </div>
+        </div>
+        <div class="toggle-wrap" style="margin:0;padding:0">
+          <span class="toggle-lbl" style="font-size:12px">Aktivní</span>
+          <div class="toggle on" onclick="this.classList.toggle('on')"><div class="toggle-thumb"></div></div>
+        </div>
+      </div>
+      <div style="padding:16px 18px">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Den v týdnu</label>
+            <select class="form-select">
+              <option>Pondělí</option><option>Úterý</option><option>Středa</option>
+              <option>Čtvrtek</option><option>Pátek</option><option>Sobota</option><option selected>Neděle</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Čas (hodina)</label>
+            <select class="form-select">
+              <option>06:00</option><option>07:00</option><option>08:00</option>
+              <option>09:00</option><option>10:00</option><option>11:00</option>
+              <option>12:00</option><option>13:00</option><option>14:00</option>
+              <option>15:00</option><option>16:00</option><option>17:00</option>
+              <option>18:00</option><option selected>19:00</option><option>20:00</option>
+              <option>21:00</option><option>22:00</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Časová zóna</label>
+            <input class="form-input" value="Europe/Prague" readonly style="background:var(--bg3);color:var(--t2)">
+          </div>
+        </div>
+        <div class="form-group" style="margin-top:4px">
+          <label class="form-label">Výchozí zpráva (volitelné)</label>
+          <textarea class="form-input" rows="2" maxlength="200" placeholder="Zpráva pro klienty s výživovým plánem…"></textarea>
+          <div style="font-size:11px;color:var(--t3);margin-top:4px">0 / 200 znaků</div>
+        </div>
+      </div>
+      <div style="padding:10px 18px;border-top:1px solid var(--br);display:flex;justify-content:space-between;align-items:center;background:rgba(120,120,128,.03)">
+        <span style="font-size:12px;color:var(--t2)">Posledních 4 týdny: <strong style="color:var(--t)">14 odpovědí</strong> · 4 nezodpovězeno</span>
+        <button class="btn primary" onclick="showToast('Uloženo')">Uložit</button>
+      </div>
+    </div>
+
+    <!-- Per-client overrides -->
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px">
+      <div>
+        <div style="font-size:15px;font-weight:600;color:var(--t)">Výjimky u klientů</div>
+        <div style="font-size:12px;color:var(--t2);margin-top:2px">5 z 8 klientů používá výchozí nastavení · 3 mají individuální rozvrh</div>
+      </div>
+      <div style="font-size:12px;color:var(--t3)">Klikni na klienta pro úpravu</div>
+    </div>
+
+    <div class="db-wrap">
+      <table class="db-table">
+        <thead>
+          <tr>
+            <th>Klient</th><th>Profese</th><th>Nastavení</th><th>Den</th><th>Čas</th><th>Aktivní</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr onclick="openDialog('dlg-checkin-override')" style="cursor:pointer">
+            <td><strong>Petra Horáková</strong></td>
+            <td><span class="tag" style="background:rgba(201,168,76,.1);color:var(--acc);border:1px solid var(--acc-br)">Trénink</span></td>
+            <td><span class="tag tag-gray">Výchozí</span></td>
+            <td>Čt</td>
+            <td>18:00</td>
+            <td><span class="tag tag-green">✓</span></td>
+            <td style="color:var(--t3)">›</td>
+          </tr>
+          <tr onclick="openDialog('dlg-checkin-override')" style="cursor:pointer;background:rgba(201,168,76,.03)">
+            <td><strong>Tomáš Navrátil</strong></td>
+            <td><span class="tag" style="background:rgba(201,168,76,.1);color:var(--acc);border:1px solid var(--acc-br)">Trénink</span></td>
+            <td><span class="tag" style="background:rgba(201,168,76,.12);color:var(--acc)">Individuální</span></td>
+            <td><strong style="color:var(--acc)">Út</strong></td>
+            <td><strong style="color:var(--acc)">20:00</strong></td>
+            <td><span class="tag tag-green">✓</span></td>
+            <td style="color:var(--t3)">›</td>
+          </tr>
+          <tr onclick="openDialog('dlg-checkin-override')" style="cursor:pointer">
+            <td><strong>Lucie Procházková</strong></td>
+            <td><span class="tag" style="background:rgba(52,199,89,.1);color:#34c759;border:1px solid rgba(52,199,89,.3)">Výživa</span></td>
+            <td><span class="tag tag-gray">Výchozí</span></td>
+            <td>Ne</td>
+            <td>19:00</td>
+            <td><span class="tag tag-green">✓</span></td>
+            <td style="color:var(--t3)">›</td>
+          </tr>
+          <tr onclick="openDialog('dlg-checkin-override')" style="cursor:pointer;background:rgba(201,168,76,.03)">
+            <td><strong>Martin Krejčí</strong></td>
+            <td><span class="tag" style="background:rgba(201,168,76,.1);color:var(--acc);border:1px solid var(--acc-br)">Trénink</span></td>
+            <td><span class="tag" style="background:rgba(201,168,76,.12);color:var(--acc)">Individuální</span></td>
+            <td>Čt</td>
+            <td>18:00</td>
+            <td><span class="tag tag-gray">✕</span></td>
+            <td style="color:var(--t3)">›</td>
+          </tr>
+          <tr onclick="openDialog('dlg-checkin-override')" style="cursor:pointer;background:rgba(201,168,76,.03)">
+            <td><strong>Jakub Malý</strong></td>
+            <td><span class="tag" style="background:rgba(201,168,76,.1);color:var(--acc);border:1px solid var(--acc-br)">Trénink</span></td>
+            <td><span class="tag" style="background:rgba(201,168,76,.12);color:var(--acc)">Individuální</span></td>
+            <td><strong style="color:var(--acc)">Pá</strong></td>
+            <td><strong style="color:var(--acc)">16:00</strong></td>
+            <td><span class="tag tag-green">✓</span></td>
+            <td style="color:var(--t3)">›</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div><!-- /content-checkins -->
+
   <script>
     function switchProfileTab(tab){
       var tabs = {
-        personal: ['prof-tab-personal','prof-content-personal'],
-        questionnaires: ['prof-tab-questionnaires','prof-content-questionnaires']
+        personal:       ['prof-tab-personal',       'prof-content-personal'],
+        questionnaires: ['prof-tab-questionnaires', 'prof-content-questionnaires'],
+        checkins:       ['prof-tab-checkins',       'prof-content-checkins']
       };
       Object.keys(tabs).forEach(function(k){
         var btn = document.getElementById(tabs[k][0]);
@@ -1686,20 +2031,34 @@ body.dark .btn-auth-primary { color: #0d0900; }
         if(btn) btn.classList.toggle('active', k === tab);
         if(content) content.style.display = (k === tab) ? '' : 'none';
       });
+      // The Save button only applies to Personal + Questionnaires; hide on Check-ins
+      var saveBtn  = document.getElementById('prof-save-btn');
+      var dirtyInd = document.getElementById('prof-dirty-ind');
+      if(saveBtn)  saveBtn.style.display  = (tab === 'checkins') ? 'none' : '';
+      if(dirtyInd) dirtyInd.style.display = (tab === 'checkins') ? 'none' : 'flex';
     }
-    function profQShowEditor(name){
-      var list = document.getElementById('prof-q-list');
-      var ed = document.getElementById('prof-q-editor');
-      var nm = document.getElementById('prof-q-name');
-      if(list) list.style.display = 'none';
-      if(ed) ed.style.display = '';
-      if(nm && name) nm.value = name;
+    function profQShowEditor(id){
+      document.getElementById('prof-q-list').style.display = 'none';
+      document.getElementById('prof-q-editor').style.display = '';
     }
     function profQHideEditor(){
-      var list = document.getElementById('prof-q-list');
-      var ed = document.getElementById('prof-q-editor');
-      if(list) list.style.display = '';
-      if(ed) ed.style.display = 'none';
+      document.getElementById('prof-q-list').style.display = '';
+      document.getElementById('prof-q-editor').style.display = 'none';
+    }
+    function profQToggleCard(header){
+      var body = header.nextElementSibling;
+      var chev = header.lastElementChild;
+      if(!body) return;
+      var open = body.style.display !== 'none' && getComputedStyle(body).display !== 'none';
+      // Only cards with a sibling body are expandable (sections and collapsed questions have no body)
+      if(body.tagName !== 'DIV' || !body.style) return;
+      if(open){
+        body.style.display = 'none';
+        if(chev) chev.style.transform = 'rotate(0deg)';
+      } else {
+        body.style.display = '';
+        if(chev) chev.style.transform = 'rotate(90deg)';
+      }
     }
   </script>
 
