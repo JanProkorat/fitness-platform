@@ -18,6 +18,7 @@ import type { WeekTabData } from '@/components/nutrition/WeekDayTabs';
 import { TrainingSidebar } from '@/components/training/TrainingSidebar';
 import { cn } from '@/lib/cn';
 import { DayNoteInput } from '@/components/common/DayNoteInput';
+import { CheckInBanner } from '@/components/weekly-checkin/CheckInBanner';
 import { DAY_KEYS, MUSCLE_ICONS, MUSCLE_COLORS } from '@/constants/training';
 import { SessionDragWrapper } from '@/components/training/SessionDragWrapper';
 import { ExerciseDropZone } from '@/components/training/ExerciseDropZone';
@@ -358,6 +359,11 @@ export default function TrainingPlanPage() {
         }
       />
       </div>
+
+      {/* ── Weekly check-in banner ── */}
+      {plan.clientId && (
+        <CheckInBanner clientUserId={plan.clientId} profession="Training" />
+      )}
 
       {/* ── Week tabs ── */}
       <WeekDayTabs

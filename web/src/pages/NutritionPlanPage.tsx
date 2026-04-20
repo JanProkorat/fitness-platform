@@ -19,6 +19,7 @@ import { showSuccess, showApiError } from '@/lib/api-errors';
 import { cn } from '@/lib/cn';
 import { type MealKind } from '@/components/nutrition/meal-kind';
 import { DayNoteInput } from '@/components/common/DayNoteInput';
+import { CheckInBanner } from '@/components/weekly-checkin/CheckInBanner';
 
 export default function NutritionPlanPage() {
   const { t, i18n } = useTranslation();
@@ -361,6 +362,11 @@ export default function NutritionPlanPage() {
         }
       />
       </div>
+
+      {/* ── Weekly check-in banner ── */}
+      {plan.clientId && (
+        <CheckInBanner clientUserId={plan.clientId} profession="Nutrition" />
+      )}
 
       {/* ── Week tabs ── */}
       <WeekDayTabs
