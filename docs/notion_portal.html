@@ -923,42 +923,32 @@ body.dark .btn-auth-primary { color: #0d0900; }
 <div class="shell">
 <div class="sb" id="sb-nutrition"></div>
 <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
-  <!-- topbar -->
+
+  <!-- ── Topbar (matches NutritionPlanPage.tsx PageHeader actions) ── -->
   <div style="height:44px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:8px;padding:0 16px;background:var(--bg);flex-shrink:0">
-    <div style="font-size:12px;color:var(--t3);display:flex;align-items:center;gap:4px">
-      <a style="cursor:pointer;color:var(--t3)" onclick="showScreen('s-dashboard')">Dashboard</a>
-      <span style="color:var(--t4)">/</span>
-      <a style="cursor:pointer;color:var(--t3)" onclick="showScreen('s-client')">Petra Horáková</a>
-      <span style="color:var(--t4)">/</span>
-      <span style="color:var(--t)">Jídelníček – únor/březen</span>
+    <div style="display:flex;align-items:center;gap:8px;min-width:0">
+      <span style="font-size:15px">🥗</span>
+      <div style="min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--t);line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Jídelníček</div>
+        <div style="font-size:11px;color:var(--t3);display:flex;align-items:center;gap:4px">
+          <a style="cursor:pointer;color:var(--t3)" onclick="showScreen('s-dashboard')">Dashboard</a>
+          <span style="color:var(--t4)">/</span>
+          <a style="cursor:pointer;color:var(--t3)" onclick="showScreen('s-client')">Petra Horáková</a>
+          <span style="color:var(--t4)">/</span>
+          <span style="color:var(--t2)">Jídelníček – únor/březen</span>
+        </div>
+      </div>
     </div>
     <div style="margin-left:auto;display:flex;align-items:center;gap:6px">
       <span id="nutr-save-ind" style="font-size:11px;color:var(--green)">Uloženo</span>
-      <button class="btn" onclick="openDialog('dlg-shopping-list')">🛒 Nákupní seznam</button>
-      <button class="btn" onclick="openDialog('dlg-add-meal')">+ Jídlo</button>
-      <button class="btn" onclick="openDialog('dlg-diary-request')">📸 Foto-deník</button>
-      <button class="btn" style="color:var(--acc);border-color:var(--acc-br)" onclick="openDialog('dlg-complete-plan')">✓ Dokončit plán</button>
-      <button class="btn primary" onclick="publishPlan()">Publikovat</button>
+      <button class="btn" onclick="showToast('Změny zahozeny')" title="Vrátit plán do stavu před poslední úpravou">Zahodit změny</button>
+      <button class="btn" onclick="showToast('Uloženo')">Uložit</button>
+      <button class="btn" style="color:var(--acc);border-color:var(--acc-br)" onclick="openDialog('dlg-complete-plan')">Dokončit plán</button>
+      <button class="btn primary" onclick="publishPlan()">Publikovat týden</button>
     </div>
   </div>
-  <!-- Photo-diary status banner -->
-  <div style="margin:10px 16px 0;background:rgba(52,199,89,.08);border:1px solid rgba(52,199,89,.25);border-radius:8px">
-    <div style="padding:10px 14px;display:flex;align-items:center;gap:10px">
-      <div style="font-size:16px">📸</div>
-      <div style="flex:1;min-width:0">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
-          <div style="font-size:13px;font-weight:600;color:var(--t)">Foto-deník Petry · Den 3 z 7</div>
-          <span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px;background:rgba(52,199,89,.15);color:#34c759;text-transform:uppercase;letter-spacing:.04em">Aktivní</span>
-        </div>
-        <div style="font-size:12px;color:var(--t2)">Klient nahrává fotky v reálném čase · poslední fotka před 2 h</div>
-      </div>
-      <div style="display:flex;gap:6px;flex-shrink:0">
-        <button class="btn primary" style="font-size:12px;padding:5px 10px;white-space:nowrap" onclick="showScreen('s-client-photos')">Zobrazit fotky</button>
-        <button class="btn" style="font-size:12px;padding:5px 10px;white-space:nowrap" onclick="openDialog('dlg-diary-request')">Nová žádost</button>
-      </div>
-    </div>
-  </div>
-  <!-- Weekly check-in response banner — state 1: RESPONDED -->
+
+  <!-- ── Weekly check-in banner — state 1: RESPONDED ── -->
   <div style="margin:10px 16px 0;background:var(--bg2);border:1px solid var(--acc-br);border-left:3px solid var(--acc);border-radius:8px">
     <div style="padding:10px 14px;display:flex;align-items:flex-start;gap:10px">
       <div style="font-size:16px;margin-top:1px">📅</div>
@@ -975,11 +965,11 @@ body.dark .btn-auth-primary { color: #0d0900; }
       </div>
       <div style="display:flex;gap:6px;flex-shrink:0">
         <button class="btn primary" style="font-size:12px;padding:5px 10px;white-space:nowrap">✓ Zkontrolováno</button>
-        <button class="btn" style="font-size:12px;padding:5px 10px;white-space:nowrap" onclick="showScreen('s-settings-checkins')">Nastavení</button>
+        <button class="btn" style="font-size:12px;padding:5px 10px;white-space:nowrap" onclick="showScreen('s-profile')">Nastavení</button>
       </div>
     </div>
   </div>
-  <!-- Weekly check-in response banner — state 2: SENT BUT NOT YET RESPONDED (scene variant for QA) -->
+  <!-- Weekly check-in banner — state 2: SENT BUT NOT YET RESPONDED (variant) -->
   <div style="margin:6px 16px 0;background:var(--bg2);border:1px solid var(--br);border-left:3px solid var(--t4);border-radius:8px;opacity:.85">
     <div style="padding:8px 14px;display:flex;align-items:center;gap:10px">
       <div style="font-size:15px">⏳</div>
@@ -993,22 +983,51 @@ body.dark .btn-auth-primary { color: #0d0900; }
       <button class="btn" style="font-size:12px;padding:4px 9px;white-space:nowrap" onclick="showScreen('s-messages')">💬 Napsat</button>
     </div>
   </div>
-  <!-- Banner state 3 (hidden) is omitted here by design — when the client has no scheduled check-in, the banner does not render at all. -->
 
-  <!-- week tabs -->
+  <!-- ── Week tabs (JS-rendered) + inline "+ Add week" ── -->
   <div class="week-tabs" id="nutr-week-tabs"></div>
-  <!-- day tabs -->
-  <div class="day-tabs" id="nutr-day-tabs"></div>
-  <!-- body -->
+
+  <!-- ── Body: day tabs + meals column | sidebar ── -->
   <div style="display:grid;grid-template-columns:1fr 256px;flex:1;overflow:hidden">
     <div style="display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--br)">
-      <div style="flex:1;overflow-y:auto;padding:12px 16px" id="nutr-meals"></div>
-      <div class="meal-add-btn" style="margin:6px 16px 10px" onclick="openDialog('dlg-add-meal')"><span>+</span><span>Přidat jídlo</span></div>
+
+      <!-- Day tabs row with expand-week toggle on the right -->
+      <div style="display:flex;align-items:center;border-bottom:1px solid var(--br);flex-shrink:0">
+        <div class="day-tabs" id="nutr-day-tabs" style="flex:1;min-width:0"></div>
+        <button type="button" onclick="showToast('Přehled týdne')" title="Přehled celého týdne" style="flex-shrink:0;padding:0 10px;border:none;background:none;cursor:pointer;color:var(--t3);font-family:inherit;font-size:14px;align-self:stretch">⊞</button>
+      </div>
+
+      <!-- Meals column -->
+      <div style="flex:1;overflow-y:auto;padding:12px 20px">
+
+        <!-- Day note input (like DayNoteInput in code) -->
+        <div style="margin-bottom:10px">
+          <textarea class="form-input" rows="1" maxlength="300" placeholder="+ Přidat poznámku k tomuto dni…" style="font-size:12px;color:var(--t2);font-style:italic;resize:vertical;min-height:32px;padding:6px 10px"></textarea>
+        </div>
+
+        <div id="nutr-meals"></div>
+
+        <!-- Add meal button (dashed pill at bottom) -->
+        <div onclick="openDialog('dlg-add-meal')" style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;margin-top:6px;border:1px dashed var(--br);border-radius:var(--rm);background:none;cursor:pointer;color:var(--t3);font-size:13px;transition:background .1s,color .1s" onmouseover="this.style.background='rgba(120,120,128,.05)';this.style.color='var(--t)'" onmouseout="this.style.background='none';this.style.color='var(--t3)'">
+          <span>+</span><span>Přidat jídlo</span>
+        </div>
+      </div>
+
     </div>
-    <!-- sidebar macros -->
+
+    <!-- ═══════════════ Sidebar (matches NutritionPlanPage.tsx right column) ═══════════════ -->
     <div style="background:var(--bg2);display:flex;flex-direction:column;overflow-y:auto">
+
+      <!-- Start date picker -->
+      <div style="padding:12px;border-bottom:1px solid var(--br)">
+        <div style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Datum začátku plánu</div>
+        <input type="date" class="form-input" value="2026-02-03" style="font-size:13px;padding:7px 10px;width:100%">
+        <div style="font-size:11px;color:var(--t3);margin-top:4px">Plán začíná v pondělí 3. 2. 2026</div>
+      </div>
+
+      <!-- Macro sidebar (existing JS-driven panel) -->
       <div class="macro-panel">
-        <div class="mp-lbl">Denní přehled</div>
+        <div class="mp-lbl">Kalorie</div>
         <div class="mp-kcal-big" id="nutr-kcal-big">0</div>
         <div class="mp-rem" id="nutr-kcal-rem"></div>
         <div style="height:4px;border-radius:99px;background:var(--bg3);margin-top:6px;overflow:hidden"><div id="nutr-pb-kcal" style="height:100%;border-radius:99px;background:var(--acc);transition:width .3s;width:0%"></div></div>
@@ -1023,17 +1042,60 @@ body.dark .btn-auth-primary { color: #0d0900; }
         <div class="mp-macro-row"><div class="mp-macro-lbl"><div class="mp-macro-dot" style="background:var(--orange)"></div>Sacharidy</div><div class="mp-macro-val"><span class="mp-macro-cur" id="nutr-carbs">0g</span><span class="mp-macro-max"> / 180g</span></div></div>
         <div style="height:3px;border-radius:99px;background:var(--bg3);margin-bottom:8px;overflow:hidden"><div id="nutr-pb-c" style="height:100%;border-radius:99px;background:var(--orange);transition:width .3s;width:0%"></div></div>
         <div class="mp-macro-row"><div class="mp-macro-lbl"><div class="mp-macro-dot" style="background:var(--purple)"></div>Tuky</div><div class="mp-macro-val"><span class="mp-macro-cur" id="nutr-fat">0g</span><span class="mp-macro-max"> / 55g</span></div></div>
-        <div style="height:3px;border-radius:99px;background:var(--bg3);margin-bottom:0;overflow:hidden"><div id="nutr-pb-f" style="height:100%;border-radius:99px;background:var(--purple);transition:width .3s;width:0%"></div></div>
+        <div style="height:3px;border-radius:99px;background:var(--bg3);margin-bottom:8px;overflow:hidden"><div id="nutr-pb-f" style="height:100%;border-radius:99px;background:var(--purple);transition:width .3s;width:0%"></div></div>
+        <div class="mp-macro-row"><div class="mp-macro-lbl"><div class="mp-macro-dot" style="background:var(--green)"></div>Vláknina</div><div class="mp-macro-val"><span class="mp-macro-cur">22g</span><span class="mp-macro-max"> / 30g</span></div></div>
+        <div style="height:3px;border-radius:99px;background:var(--bg3);margin-bottom:0;overflow:hidden"><div style="width:73%;height:100%;border-radius:99px;background:var(--green)"></div></div>
       </div>
-      <div class="macro-panel" style="border-bottom:0">
-        <div class="mp-lbl">Klient</div>
+
+      <!-- Plan / client info -->
+      <div style="padding:12px;border-top:1px solid var(--br)">
+        <div style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Klient &amp; plán</div>
         <div style="font-size:12px;display:flex;flex-direction:column;gap:4px;margin-bottom:10px">
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--t3)">Jméno</span><span>Petra Horáková</span></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--t3)">Cíl</span><span class="tag tag-blue" style="font-size:11px">Hubnutí</span></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:var(--t3)">Deficit</span><span>−20 %</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:var(--t3)">Klient</span><span style="color:var(--t)">Petra Horáková</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:var(--t3)">Název plánu</span><span style="color:var(--t)">Duben / Květen</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:center"><span style="color:var(--t3)">Status týdne</span><span style="font-size:11px;font-weight:500;padding:1px 6px;border-radius:99px;background:rgba(52,199,89,.12);color:#34c759">Publikováno</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:var(--t3)">Cíl (kcal)</span><span style="color:var(--t)">1 700 kcal</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:var(--t3)">Strategie</span><span class="tag tag-blue" style="font-size:11px">Hubnutí · −20 %</span></div>
         </div>
-        <button class="btn" style="width:100%;justify-content:center;font-size:12px" onclick="showScreen('s-goals')">🎯 Upravit cíle</button>
+        <button class="btn" style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:7px 0;font-size:12px;margin-bottom:6px" onclick="openDialog('dlg-shopping-list')">🛒 Nákupní seznam</button>
+        <button class="btn" style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:7px 0;font-size:12px" onclick="showScreen('s-goals')">🎯 Upravit cíle &amp; makra</button>
       </div>
+
+      <!-- Plan questionnaire panel (matches PlanQuestionnairePanel) -->
+      <div style="padding:12px;border-top:1px solid var(--br)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.04em">Dotazník</div>
+          <span style="font-size:10px;font-weight:600;padding:2px 6px;border-radius:99px;background:rgba(52,199,89,.12);color:#34c759">Vyplněn</span>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--br);border-radius:var(--rm);padding:10px 12px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <span style="font-size:16px">📋</span>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:12px;font-weight:600;color:var(--t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Výživový vstupní dotazník</div>
+              <div style="font-size:11px;color:var(--t3)">12 otázek · 12. 3. 2026</div>
+            </div>
+          </div>
+          <button class="btn" style="width:100%;justify-content:center;font-size:11px;padding:5px 0" onclick="showScreen('s-client')">Zobrazit odpovědi</button>
+        </div>
+      </div>
+
+      <!-- Photo-diary panel -->
+      <div style="padding:12px;border-top:1px solid var(--br)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.04em">📸 Foto-deník</div>
+          <span style="font-size:10px;font-weight:600;padding:2px 6px;border-radius:99px;background:rgba(52,199,89,.15);color:#34c759">Aktivní</span>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--br);border-radius:var(--rm);padding:10px 12px">
+          <div style="font-size:12px;font-weight:600;color:var(--t);margin-bottom:4px">Den 3 ze 7</div>
+          <div style="height:4px;background:var(--bg3);border-radius:99px;margin-bottom:8px;overflow:hidden"><div style="width:43%;height:100%;background:#34c759;border-radius:99px"></div></div>
+          <div style="font-size:11px;color:var(--t2);margin-bottom:8px">9 fotek · poslední před 2 h</div>
+          <div style="display:flex;gap:6px">
+            <button class="btn primary" style="flex:1;font-size:11px;padding:5px 8px;justify-content:center" onclick="showScreen('s-client-photos')">Zobrazit</button>
+            <button class="btn" style="flex:1;font-size:11px;padding:5px 8px;justify-content:center" onclick="openDialog('dlg-diary-request')">Nová</button>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
