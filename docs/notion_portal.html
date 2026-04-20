@@ -576,6 +576,7 @@ body.dark .btn-auth-primary { color: #0d0900; }
   <button class="tn-btn" onclick="showScreen('s-client-photos')">Fotky klienta</button>
   <div class="tn-sep"></div>
   <div class="tn-lbl">Nastavení</div>
+  <button class="tn-btn" onclick="showScreen('s-profile')">Profil</button>
   <button class="tn-btn" onclick="showScreen('s-settings-checkins')">Týdenní check-iny</button>
   <div class="tn-right">
     <button class="tn-icon" onclick="toggleDark()" id="dark-btn" title="Tmavý režim">☾</button>
@@ -774,6 +775,7 @@ body.dark .btn-auth-primary { color: #0d0900; }
   </div>
   <div class="toolbar">
     <div style="margin-left:auto;display:flex;gap:6px">
+      <button class="btn" onclick="showScreen('s-diary-request')">📸 Foto-deník</button>
       <button class="btn" onclick="openDialog('dlg-edit-client')">✏ Upravit profil</button>
       <button class="btn primary" onclick="showScreen('s-messages')">✉ Napsat zprávu</button>
     </div>
@@ -934,6 +936,7 @@ body.dark .btn-auth-primary { color: #0d0900; }
       <span id="nutr-save-ind" style="font-size:11px;color:var(--green)">Uloženo</span>
       <button class="btn" onclick="openDialog('dlg-shopping-list')">🛒 Nákupní seznam</button>
       <button class="btn" onclick="openDialog('dlg-add-meal')">+ Jídlo</button>
+      <button class="btn" onclick="showScreen('s-diary-request')">📸 Foto-deník</button>
       <button class="btn" style="color:var(--acc);border-color:var(--acc-br)" onclick="openDialog('dlg-complete-plan')">✓ Dokončit plán</button>
       <button class="btn primary" onclick="publishPlan()">Publikovat</button>
     </div>
@@ -1157,8 +1160,9 @@ body.dark .btn-auth-primary { color: #0d0900; }
 
   <!-- Inline tabs -->
   <div class="toolbar" style="border-bottom:1px solid var(--br);margin-bottom:0">
-    <div class="tb-view" onclick="showToast('Profil')">Profil</div>
-    <div class="tb-view active">Týdenní check-iny</div>
+    <div class="tb-view" onclick="showScreen('s-profile')">👤 Osobní údaje</div>
+    <div class="tb-view" onclick="showScreen('s-profile')">📋 Dotazníky</div>
+    <div class="tb-view active">🔔 Týdenní check-iny</div>
     <div class="tb-view" onclick="showToast('Notifikace')">Notifikace</div>
     <div class="tb-view" onclick="showToast('Jazyk')">Jazyk</div>
   </div>
@@ -1363,6 +1367,349 @@ body.dark .btn-auth-primary { color: #0d0900; }
 </div>
 </div>
 </div>
+<div id="s-profile" class="screen">
+<div class="shell">
+<div class="sb" id="sb-profile"></div>
+<div class="main">
+  <div class="bc"><a onclick="showScreen('s-dashboard')">Dashboard</a><span class="bc-sep">/</span><span>Nastavení</span><span class="bc-sep">/</span><span>Profil</span></div>
+
+  <div class="ph">
+    <div class="ph-icon">👤</div>
+    <h1>Profil</h1>
+    <div class="ph-sub">Osobní údaje · Dotazníky · Týdenní check-iny</div>
+  </div>
+
+  <!-- Inline tabs -->
+  <div class="toolbar" style="border-bottom:1px solid var(--br);margin-bottom:0">
+    <div class="tb-view active" id="prof-tab-personal" onclick="switchProfileTab('personal')">👤 Osobní údaje</div>
+    <div class="tb-view" id="prof-tab-questionnaires" onclick="switchProfileTab('questionnaires')">📋 Dotazníky</div>
+    <div class="tb-view" onclick="showScreen('s-settings-checkins')">🔔 Týdenní check-iny</div>
+    <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+      <span style="font-size:11px;color:var(--orange);display:flex;align-items:center;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:var(--orange)"></span>Neuložené změny</span>
+      <button class="btn primary" onclick="showToast('Profil uložen')">Uložit</button>
+    </div>
+  </div>
+
+  <!-- ══ TAB: OSOBNÍ ÚDAJE ══ -->
+  <div class="pc" id="prof-content-personal">
+
+    <!-- Profile card -->
+    <div style="background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:20px;margin-bottom:20px;display:flex;gap:20px;align-items:flex-start">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0">
+        <div style="position:relative">
+          <div style="width:84px;height:84px;border-radius:50%;background:rgba(201,168,76,.15);color:var(--acc);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:600">MT</div>
+          <div style="position:absolute;right:-2px;bottom:-2px;width:28px;height:28px;border-radius:50%;background:var(--acc);border:3px solid var(--bg2);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;cursor:pointer">📷</div>
+        </div>
+        <div style="font-size:11px;color:var(--t3);text-align:center;line-height:1.4;max-width:108px">Klikni pro<br>změnu fotky</div>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div class="form-row" style="margin-bottom:14px">
+          <div class="form-group"><label class="form-label">Jméno</label><input class="form-input" value="Marek"></div>
+          <div class="form-group"><label class="form-label">Příjmení</label><input class="form-input" value="Trenér"></div>
+        </div>
+        <div class="form-row" style="margin-bottom:0">
+          <div class="form-group"><label class="form-label">Email</label><input class="form-input" value="marek@goodfellas.cz" readonly style="opacity:.6"></div>
+          <div class="form-group" style="margin-bottom:0"><label class="form-label">Telefon</label><input class="form-input" value="+420 777 123 456" placeholder="+420 777 123 456"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Roles section -->
+    <div style="background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:16px 18px;margin-bottom:20px">
+      <div style="font-size:13px;font-weight:600;color:var(--t);margin-bottom:4px">Role</div>
+      <div style="font-size:12px;color:var(--t2);margin-bottom:14px">Vyber, jaké služby poskytuješ klientům. Role lze kombinovat.</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--bg);border:1px solid var(--br);border-radius:var(--rm)">
+          <div style="width:34px;height:34px;border-radius:10px;background:rgba(201,168,76,.15);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🏋️</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;color:var(--t)">Trenér</div>
+            <div style="font-size:11px;color:var(--t2)">Silový trénink, kardio, rehabilitace, kondice</div>
+          </div>
+          <div class="toggle on" onclick="this.classList.toggle('on')"><div class="toggle-thumb"></div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--bg);border:1px solid var(--br);border-radius:var(--rm)">
+          <div style="width:34px;height:34px;border-radius:10px;background:rgba(52,199,89,.15);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🥗</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;color:var(--t)">Výživový poradce</div>
+            <div style="font-size:11px;color:var(--t2)">Jídelníčky, makra, stravovací strategie</div>
+          </div>
+          <div class="toggle on" onclick="this.classList.toggle('on')"><div class="toggle-thumb"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trainer public profile -->
+    <div class="form-section-title" style="margin-bottom:12px">Veřejný profil trenéra</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+      <div style="background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:16px 18px">
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Bio</label>
+          <textarea class="form-input" rows="4" placeholder="Představ se klientům...">Certifikovaný trenér s 8letou praxí. Specializuji se na silový trénink a redukci tuku u kancelářských profesí.</textarea>
+          <div style="font-size:11px;color:var(--t3);margin-top:4px">146 / 500 znaků</div>
+        </div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:16px 18px">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Město</label><input class="form-input" value="Praha"></div>
+          <div class="form-group"><label class="form-label">Cena (Kč / měsíc)</label><input class="form-input" type="number" value="2500"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Typ spolupráce</label>
+          <select class="form-select">
+            <option>Osobní (prezenčně)</option>
+            <option selected>Osobní + online</option>
+            <option>Pouze online</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:0"><label class="form-label">Maximálně klientů</label><input class="form-input" type="number" value="15"></div>
+      </div>
+    </div>
+
+    <!-- Specializations / certs / languages -->
+    <div style="background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:16px 18px;margin-bottom:14px">
+      <div class="form-group">
+        <label class="form-label">Specializace</label>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+          <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:99px;background:rgba(201,168,76,.1);color:var(--acc);font-size:12px;font-weight:500">Silový trénink <span style="cursor:pointer;opacity:.6">✕</span></span>
+          <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:99px;background:rgba(201,168,76,.1);color:var(--acc);font-size:12px;font-weight:500">Redukce tuku <span style="cursor:pointer;opacity:.6">✕</span></span>
+          <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:99px;background:rgba(201,168,76,.1);color:var(--acc);font-size:12px;font-weight:500">Výživa <span style="cursor:pointer;opacity:.6">✕</span></span>
+          <input class="form-input" placeholder="+ Přidat" style="flex:1;min-width:120px;padding:4px 10px;font-size:12px;margin:0">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Certifikáty</label>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+          <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:99px;background:rgba(52,199,89,.12);color:var(--green);font-size:12px;font-weight:500">EREPS L3 <span style="cursor:pointer;opacity:.6">✕</span></span>
+          <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:99px;background:rgba(52,199,89,.12);color:var(--green);font-size:12px;font-weight:500">FitCoach <span style="cursor:pointer;opacity:.6">✕</span></span>
+          <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:99px;background:rgba(52,199,89,.12);color:var(--green);font-size:12px;font-weight:500">Precision Nutrition <span style="cursor:pointer;opacity:.6">✕</span></span>
+          <input class="form-input" placeholder="+ Přidat" style="flex:1;min-width:120px;padding:4px 10px;font-size:12px;margin:0">
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">Jazyky</label>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+          <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:99px;background:var(--bg3);color:var(--t2);font-size:12px;font-weight:500">Čeština <span style="cursor:pointer;opacity:.6">✕</span></span>
+          <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:99px;background:var(--bg3);color:var(--t2);font-size:12px;font-weight:500">Angličtina <span style="cursor:pointer;opacity:.6">✕</span></span>
+          <input class="form-input" placeholder="+ Přidat" style="flex:1;min-width:120px;padding:4px 10px;font-size:12px;margin:0">
+        </div>
+      </div>
+    </div>
+
+    <!-- Social links + visibility toggles -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+      <div style="background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:16px 18px">
+        <div class="form-section-title" style="font-size:12px;margin-bottom:10px">Sociální sítě</div>
+        <div class="form-group"><label class="form-label">LinkedIn</label><input class="form-input" placeholder="https://linkedin.com/in/..." value="https://linkedin.com/in/marektrener"></div>
+        <div class="form-group"><label class="form-label">Instagram</label><input class="form-input" placeholder="@handle" value="@marek.trener"></div>
+        <div class="form-group" style="margin-bottom:0"><label class="form-label">Web</label><input class="form-input" placeholder="https://..." value="https://marektrener.cz"></div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:16px 18px">
+        <div class="form-section-title" style="font-size:12px;margin-bottom:10px">Viditelnost v Marketplace</div>
+        <div class="toggle-wrap" style="margin:0 0 10px;padding:10px 12px;background:var(--bg);border:1px solid var(--br);border-radius:var(--rm)">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;color:var(--t)">Zobrazovat ve vyhledávání</div>
+            <div style="font-size:11px;color:var(--t2);margin-top:2px">Tvůj profil najdou potenciální klienti v Marketplace.</div>
+          </div>
+          <div class="toggle on" onclick="this.classList.toggle('on')"><div class="toggle-thumb"></div></div>
+        </div>
+        <div class="toggle-wrap" style="margin:0;padding:10px 12px;background:var(--bg);border:1px solid var(--br);border-radius:var(--rm)">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;color:var(--t)">Přijímám nové klienty</div>
+            <div style="font-size:11px;color:var(--t2);margin-top:2px">Pokud vypnuto, klienti tě mohou najít, ale nemohou odeslat žádost.</div>
+          </div>
+          <div class="toggle on" onclick="this.classList.toggle('on')"><div class="toggle-thumb"></div></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content-personal -->
+
+  <!-- ══ TAB: DOTAZNÍKY ══ -->
+  <div class="pc" id="prof-content-questionnaires" style="display:none">
+
+    <!-- List view (default) -->
+    <div id="prof-q-list">
+      <div class="callout" style="margin-bottom:16px;background:rgba(201,168,76,.06);border:1px solid var(--acc-br)">
+        <div class="callout-icon">📋</div>
+        <div class="callout-body">
+          <div class="callout-title">Šablony dotazníků</div>
+          <div class="callout-text" style="font-size:12px">Vytvoř si vlastní dotazníky pro nové klienty. Dotazník se přiloží k pozvánce nebo k individuálnímu plánu. Klient odpovědi uvidíš v detailu klienta v sekci Dotazník.</div>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:13px;color:var(--t2)">3 šablony celkem</div>
+        <button class="btn primary" onclick="showToast('Nová šablona vytvořena')">+ Nová šablona</button>
+      </div>
+
+      <div style="background:var(--bg2);border:1px solid var(--br);border-radius:8px;overflow:hidden">
+        <!-- Questionnaire 1 -->
+        <div style="padding:14px 18px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:14px;cursor:pointer" onclick="profQShowEditor('Vstupní dotazník — trénink')">
+          <div style="width:36px;height:36px;border-radius:8px;background:rgba(201,168,76,.12);color:var(--acc);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📝</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:14px;font-weight:600;color:var(--t)">Vstupní dotazník — trénink</div>
+            <div style="font-size:12px;color:var(--t2);margin-top:2px">8 otázek · <span style="color:var(--acc)">Výchozí</span> · upraveno 12. 3. 2026</div>
+          </div>
+          <div style="font-size:11px;padding:3px 8px;border-radius:99px;background:rgba(52,199,89,.12);color:var(--green);font-weight:500">Aktivní</div>
+          <button class="btn" style="font-size:12px;padding:5px 10px" onclick="event.stopPropagation();profQShowEditor('Vstupní dotazník — trénink')">Upravit</button>
+          <button class="btn danger" style="font-size:12px;padding:5px 10px" onclick="event.stopPropagation();showToast('Šablona smazána')">Smazat</button>
+        </div>
+        <!-- Questionnaire 2 -->
+        <div style="padding:14px 18px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:14px;cursor:pointer" onclick="profQShowEditor('Výživový vstupní dotazník')">
+          <div style="width:36px;height:36px;border-radius:8px;background:rgba(52,199,89,.12);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🥗</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:14px;font-weight:600;color:var(--t)">Výživový vstupní dotazník</div>
+            <div style="font-size:12px;color:var(--t2);margin-top:2px">12 otázek · upraveno 4. 3. 2026</div>
+          </div>
+          <div style="font-size:11px;padding:3px 8px;border-radius:99px;background:rgba(52,199,89,.12);color:var(--green);font-weight:500">Aktivní</div>
+          <button class="btn" style="font-size:12px;padding:5px 10px" onclick="event.stopPropagation();profQShowEditor('Výživový vstupní dotazník')">Upravit</button>
+          <button class="btn danger" style="font-size:12px;padding:5px 10px" onclick="event.stopPropagation();showToast('Šablona smazána')">Smazat</button>
+        </div>
+        <!-- Questionnaire 3 -->
+        <div style="padding:14px 18px;display:flex;align-items:center;gap:14px;cursor:pointer" onclick="profQShowEditor('Kontrolní dotazník po 8 týdnech')">
+          <div style="width:36px;height:36px;border-radius:8px;background:rgba(0,122,255,.12);color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🔍</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:14px;font-weight:600;color:var(--t)">Kontrolní dotazník po 8 týdnech</div>
+            <div style="font-size:12px;color:var(--t2);margin-top:2px">6 otázek · upraveno 18. 1. 2026</div>
+          </div>
+          <div style="font-size:11px;padding:3px 8px;border-radius:99px;background:var(--bg3);color:var(--t3);font-weight:500">Draft</div>
+          <button class="btn" style="font-size:12px;padding:5px 10px" onclick="event.stopPropagation();profQShowEditor('Kontrolní dotazník po 8 týdnech')">Upravit</button>
+          <button class="btn danger" style="font-size:12px;padding:5px 10px" onclick="event.stopPropagation();showToast('Šablona smazána')">Smazat</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Editor view -->
+    <div id="prof-q-editor" style="display:none">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <button class="btn" onclick="profQHideEditor()">‹ Zpět na seznam</button>
+        <span style="font-size:11px;color:var(--orange);display:flex;align-items:center;gap:4px;margin-left:auto"><span style="width:6px;height:6px;border-radius:50%;background:var(--orange)"></span>Neuložené změny</span>
+      </div>
+
+      <div style="background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:16px 18px;margin-bottom:14px">
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Název šablony</label>
+          <input class="form-input" id="prof-q-name" value="Vstupní dotazník — trénink">
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:13px;font-weight:600;color:var(--t)">Otázky (8)</div>
+        <button class="btn" onclick="showToast('Otázka přidána')">+ Přidat otázku</button>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <!-- Question 1 -->
+        <div style="background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:12px 14px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="color:var(--t3);cursor:grab">⠿</span>
+            <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;background:rgba(0,122,255,.12);color:var(--blue)">Jednotlivý výběr</span>
+            <div style="flex:1;font-size:13px;color:var(--t)">Jak dlouho pravidelně cvičíš?</div>
+            <span style="font-size:11px;color:var(--t3)">4 možnosti</span>
+            <span style="color:var(--t4);cursor:pointer">✏</span>
+            <span style="color:var(--t4);cursor:pointer">✕</span>
+          </div>
+        </div>
+        <!-- Question 2 -->
+        <div style="background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:12px 14px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="color:var(--t3);cursor:grab">⠿</span>
+            <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;background:rgba(52,199,89,.12);color:var(--green)">Číslo</span>
+            <div style="flex:1;font-size:13px;color:var(--t)">Aktuální váha (kg)</div>
+            <span style="font-size:11px;color:var(--t3)">→ synchronizace s profilem</span>
+            <span style="color:var(--t4);cursor:pointer">✏</span>
+            <span style="color:var(--t4);cursor:pointer">✕</span>
+          </div>
+        </div>
+        <!-- Question 3 -->
+        <div style="background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:12px 14px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="color:var(--t3);cursor:grab">⠿</span>
+            <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;background:rgba(52,199,89,.12);color:var(--green)">Číslo</span>
+            <div style="flex:1;font-size:13px;color:var(--t)">Výška (cm)</div>
+            <span style="font-size:11px;color:var(--t3)">→ synchronizace s profilem</span>
+            <span style="color:var(--t4);cursor:pointer">✏</span>
+            <span style="color:var(--t4);cursor:pointer">✕</span>
+          </div>
+        </div>
+        <!-- Question 4 -->
+        <div style="background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:12px 14px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="color:var(--t3);cursor:grab">⠿</span>
+            <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;background:rgba(0,122,255,.12);color:var(--blue)">Jednotlivý výběr</span>
+            <div style="flex:1;font-size:13px;color:var(--t)">Primární cíl</div>
+            <span style="font-size:11px;color:var(--t3)">5 možností · → profil</span>
+            <span style="color:var(--t4);cursor:pointer">✏</span>
+            <span style="color:var(--t4);cursor:pointer">✕</span>
+          </div>
+        </div>
+        <!-- Question 5 -->
+        <div style="background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:12px 14px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="color:var(--t3);cursor:grab">⠿</span>
+            <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;background:rgba(175,82,222,.12);color:var(--purple)">Text</span>
+            <div style="flex:1;font-size:13px;color:var(--t)">Zdravotní omezení nebo zranění</div>
+            <span style="font-size:11px;color:var(--t3)">→ profil</span>
+            <span style="color:var(--t4);cursor:pointer">✏</span>
+            <span style="color:var(--t4);cursor:pointer">✕</span>
+          </div>
+        </div>
+        <!-- Question 6 -->
+        <div style="background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:12px 14px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="color:var(--t3);cursor:grab">⠿</span>
+            <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;background:rgba(255,149,0,.12);color:var(--orange)">Škála 1–10</span>
+            <div style="flex:1;font-size:13px;color:var(--t)">Motivace ke změně</div>
+            <span style="color:var(--t4);cursor:pointer">✏</span>
+            <span style="color:var(--t4);cursor:pointer">✕</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;padding:14px 18px;background:var(--bg2);border:1px solid var(--br);border-radius:8px">
+        <div style="font-size:13px;font-weight:600;color:var(--t);margin-bottom:6px">Náhled pro klienta</div>
+        <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Takto uvidí dotazník klient při vyplňování.</div>
+        <button class="btn" onclick="showToast('Náhled otevřen v novém okně')">👁 Zobrazit náhled</button>
+      </div>
+    </div>
+
+  </div><!-- /content-questionnaires -->
+
+  <script>
+    function switchProfileTab(tab){
+      var tabs = {
+        personal: ['prof-tab-personal','prof-content-personal'],
+        questionnaires: ['prof-tab-questionnaires','prof-content-questionnaires']
+      };
+      Object.keys(tabs).forEach(function(k){
+        var btn = document.getElementById(tabs[k][0]);
+        var content = document.getElementById(tabs[k][1]);
+        if(btn) btn.classList.toggle('active', k === tab);
+        if(content) content.style.display = (k === tab) ? '' : 'none';
+      });
+    }
+    function profQShowEditor(name){
+      var list = document.getElementById('prof-q-list');
+      var ed = document.getElementById('prof-q-editor');
+      var nm = document.getElementById('prof-q-name');
+      if(list) list.style.display = 'none';
+      if(ed) ed.style.display = '';
+      if(nm && name) nm.value = name;
+    }
+    function profQHideEditor(){
+      var list = document.getElementById('prof-q-list');
+      var ed = document.getElementById('prof-q-editor');
+      if(list) list.style.display = '';
+      if(ed) ed.style.display = 'none';
+    }
+  </script>
+
+</div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     PROFIL — konec
+═══════════════════════════════════════════════════════════ -->
 <div id="s-diary-request" class="screen">
 <div class="shell">
 <div class="sb" id="sb-diary-request"></div>
@@ -2363,7 +2710,7 @@ function showScreen(id){
   document.querySelectorAll('.tn-btn').forEach(function(b){if(b.getAttribute('onclick')==="showScreen('"+id+"')") b.classList.add('active');});
   window.scrollTo(0,0);
   // Build sidebars
-  var sbMap={'s-dashboard':'sb-dashboard','s-client':'sb-client','s-training':'sb-training','s-messages':'sb-messages','s-nutrition':'sb-nutrition','s-foods':'sb-foods','s-goals':'sb-goals','s-settings-checkins':'sb-settings-checkins','s-diary-request':'sb-diary-request','s-client-photos':'sb-client-photos'};
+  var sbMap={'s-dashboard':'sb-dashboard','s-client':'sb-client','s-training':'sb-training','s-messages':'sb-messages','s-nutrition':'sb-nutrition','s-foods':'sb-foods','s-goals':'sb-goals','s-settings-checkins':'sb-settings-checkins','s-diary-request':'sb-diary-request','s-client-photos':'sb-client-photos','s-profile':'sb-profile'};
   if(sbMap[id]) buildSidebar(sbMap[id],id);
   // Init nutrition editor
   if(id==='s-nutrition'&&!_nutrInit){_nutrInit=true;initNutrition();}
