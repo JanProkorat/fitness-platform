@@ -572,8 +572,8 @@ body.dark .btn-auth-primary { color: #0d0900; }
   <button class="tn-btn" onclick="showScreen('s-goals')">Cíle klienta</button>
   <div class="tn-sep"></div>
   <div class="tn-lbl">Fotky</div>
-  <button class="tn-btn" onclick="showScreen('s-diary-request')">Žádost o deník</button>
   <button class="tn-btn" onclick="showScreen('s-client-photos')">Fotky klienta</button>
+  <button class="tn-btn" onclick="openDialog('dlg-diary-request')">Nová žádost o deník</button>
   <div class="tn-sep"></div>
   <div class="tn-lbl">Nastavení</div>
   <button class="tn-btn" onclick="showScreen('s-profile')">Profil</button>
@@ -692,7 +692,7 @@ body.dark .btn-auth-primary { color: #0d0900; }
         </div>
         <div style="display:flex;align-items:center;gap:10px">
           <div style="font-size:12px;color:var(--t2)">2 aktivní · 1 čeká</div>
-          <button class="btn" style="font-size:12px;padding:4px 10px" onclick="showScreen('s-diary-request')">Nová žádost</button>
+          <button class="btn" style="font-size:12px;padding:4px 10px" onclick="openDialog('dlg-diary-request')">Nová žádost</button>
         </div>
       </div>
       <div style="padding:0">
@@ -775,7 +775,7 @@ body.dark .btn-auth-primary { color: #0d0900; }
   </div>
   <div class="toolbar">
     <div style="margin-left:auto;display:flex;gap:6px">
-      <button class="btn" onclick="showScreen('s-diary-request')">📸 Foto-deník</button>
+      <button class="btn" onclick="openDialog('dlg-diary-request')">📸 Foto-deník</button>
       <button class="btn" onclick="openDialog('dlg-edit-client')">✏ Upravit profil</button>
       <button class="btn primary" onclick="showScreen('s-messages')">✉ Napsat zprávu</button>
     </div>
@@ -936,7 +936,7 @@ body.dark .btn-auth-primary { color: #0d0900; }
       <span id="nutr-save-ind" style="font-size:11px;color:var(--green)">Uloženo</span>
       <button class="btn" onclick="openDialog('dlg-shopping-list')">🛒 Nákupní seznam</button>
       <button class="btn" onclick="openDialog('dlg-add-meal')">+ Jídlo</button>
-      <button class="btn" onclick="showScreen('s-diary-request')">📸 Foto-deník</button>
+      <button class="btn" onclick="openDialog('dlg-diary-request')">📸 Foto-deník</button>
       <button class="btn" style="color:var(--acc);border-color:var(--acc-br)" onclick="openDialog('dlg-complete-plan')">✓ Dokončit plán</button>
       <button class="btn primary" onclick="publishPlan()">Publikovat</button>
     </div>
@@ -954,7 +954,7 @@ body.dark .btn-auth-primary { color: #0d0900; }
       </div>
       <div style="display:flex;gap:6px;flex-shrink:0">
         <button class="btn primary" style="font-size:12px;padding:5px 10px;white-space:nowrap" onclick="showScreen('s-client-photos')">Zobrazit fotky</button>
-        <button class="btn" style="font-size:12px;padding:5px 10px;white-space:nowrap" onclick="showScreen('s-diary-request')">Nová žádost</button>
+        <button class="btn" style="font-size:12px;padding:5px 10px;white-space:nowrap" onclick="openDialog('dlg-diary-request')">Nová žádost</button>
       </div>
     </div>
   </div>
@@ -2069,80 +2069,6 @@ body.dark .btn-auth-primary { color: #0d0900; }
 <!-- ═══════════════════════════════════════════════════════════
      PROFIL — konec
 ═══════════════════════════════════════════════════════════ -->
-<div id="s-diary-request" class="screen">
-<div class="shell">
-<div class="sb" id="sb-diary-request"></div>
-<div class="main">
-  <div class="bc"><a onclick="showScreen('s-dashboard')">Dashboard</a><span class="bc-sep">/</span><a onclick="showScreen('s-client')">Petra Horáková</a><span class="bc-sep">/</span><span>Foto-deník · žádost</span></div>
-
-  <div class="ph">
-    <div class="ph-icon">📸</div>
-    <h1>Požádat o foto-deník</h1>
-    <div class="ph-sub">Odešli klientovi žádost o sérii fotek jídel</div>
-  </div>
-
-  <div class="toolbar">
-    <div style="margin-left:auto;display:flex;gap:6px">
-      <button class="btn" onclick="showScreen('s-client')">Zrušit</button>
-      <button class="btn primary" onclick="showToast('Žádost odeslána')">Odeslat žádost</button>
-    </div>
-  </div>
-
-  <div class="pc">
-    <!-- Client strip -->
-    <div style="display:flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rm);padding:12px 16px;margin-bottom:16px">
-      <div style="width:36px;height:36px;border-radius:8px;background:rgba(0,122,255,.12);color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600">PH</div>
-      <div style="min-width:0">
-        <div style="font-size:14px;font-weight:600;color:var(--t)">Petra Horáková</div>
-        <div style="font-size:12px;color:var(--t2)">Výživa · Týden 4 / 12</div>
-      </div>
-    </div>
-
-    <!-- How it works callout -->
-    <div class="callout" style="margin-bottom:20px">
-      <div class="callout-icon">ℹ</div>
-      <div class="callout-body">
-        <div class="callout-title">Jak to bude fungovat</div>
-        <div class="callout-text">Klient uvidí žádost jako banner na úvodní obrazovce v mobilu. Může ji přijmout nebo odmítnout (s volitelným důvodem). Po akceptaci si vybere mezi jednorázovým nahráním nebo sedmidenním workflow — fotky uvidíš v reálném čase, jak je klient nahrává.</div>
-      </div>
-    </div>
-
-    <!-- Message -->
-    <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--t)">Zpráva pro klienta</div>
-    <div class="form-group" style="margin-bottom:20px">
-      <textarea class="form-input" rows="4" maxlength="500">Abych si udělala co nejlepší obrázek o tvých stravovacích návycích, než ti sestavím plán, ráda bych od tebe dostala fotky všech jídel, které běžně jíš.</textarea>
-      <div style="font-size:11px;color:var(--t3);margin-top:4px">187 / 500 znaků</div>
-    </div>
-
-    <!-- Duration -->
-    <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--t)">Délka deníku</div>
-    <div class="filter-bar" style="margin-bottom:20px">
-      <div class="chip">3 dny</div>
-      <div class="chip active">7 dní</div>
-      <div class="chip">14 dní</div>
-    </div>
-
-    <!-- Upload mode -->
-    <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--t)">Způsob nahrání — výběr udělá klient</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
-      <div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--rm);padding:14px">
-        <div style="font-size:13px;font-weight:600;color:var(--t);margin-bottom:4px">📤 Nahrát vše najednou</div>
-        <div style="font-size:12px;color:var(--t2);line-height:1.5">Klient nafotí, co obvykle jí, a pošle všechny fotky jedním odesláním.</div>
-      </div>
-      <div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--rm);padding:14px">
-        <div style="font-size:13px;font-weight:600;color:var(--t);margin-bottom:4px">📅 Sedmidenní workflow</div>
-        <div style="font-size:12px;color:var(--t2);line-height:1.5">Každý den připomenutí; fotky se zobrazují živě, jak klient nahrává.</div>
-      </div>
-    </div>
-
-    <!-- Green info callout -->
-    <div style="background:rgba(52,199,89,.08);border:1px solid rgba(52,199,89,.22);border-radius:var(--rm);padding:12px 14px;font-size:12px;color:var(--t2);line-height:1.5">
-      💚 Budeš dostávat notifikace při každé nahrané fotce. Odpovědět můžeš v chatu.
-    </div>
-  </div>
-</div>
-</div>
-</div>
 <div id="s-client-photos" class="screen">
 <div class="shell">
 <div class="sb" id="sb-client-photos"></div>
@@ -2583,36 +2509,153 @@ body.dark .btn-auth-primary { color: #0d0900; }
      DIALOGY
 ══════════════════════════════════════════════════════════════ -->
 
-<!-- Nový klient -->
+<!-- Nový klient — pozvánka (matches web NewClientDialog.tsx) -->
 <div class="overlay" id="dlg-new-client" onclick="closeOnOverlay(event,'dlg-new-client')">
-  <div class="dialog" style="max-width:520px">
-    <div class="dlg-hdr"><div class="dlg-title">Nový klient</div><button class="dlg-close" onclick="closeDialog('dlg-new-client')">✕</button></div>
+  <div class="dialog" style="max-width:520px;padding:0;overflow:hidden">
+    <!-- Hero -->
+    <div style="height:90px;background:var(--acc-bg);display:flex;align-items:center;justify-content:center">
+      <span style="font-size:36px;opacity:.6">✉️</span>
+    </div>
+    <div class="dlg-hdr">
+      <div>
+        <div class="dlg-title">Pozvat klienta</div>
+        <div style="font-size:12px;color:var(--t3);margin-top:2px">Klient dostane email s odkazem pro nastavení hesla a přijetí pozvánky.</div>
+      </div>
+      <button class="dlg-close" onclick="closeDialog('dlg-new-client')">✕</button>
+    </div>
     <div class="dlg-body">
+      <!-- Name + email -->
       <div class="form-row">
         <div class="form-group"><label class="form-label">Jméno</label><input class="form-input" placeholder="Jan"></div>
         <div class="form-group"><label class="form-label">Příjmení</label><input class="form-input" placeholder="Novák"></div>
       </div>
       <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" placeholder="jan@example.cz"></div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Pohlaví</label><select class="form-select"><option>Muž</option><option>Žena</option></select></div>
-        <div class="form-group"><label class="form-label">Věk</label><input class="form-input" type="number" placeholder="30"></div>
+
+      <!-- Intro message -->
+      <div class="form-group">
+        <label class="form-label">Úvodní zpráva <span style="color:var(--t4);font-weight:400">(volitelné)</span></label>
+        <textarea class="form-input" rows="3" maxlength="500" placeholder="Představ se, popiš další kroky, přidej odkaz na video…"></textarea>
+        <div style="font-size:10px;color:var(--t4);text-align:right;margin-top:2px">0 / 500</div>
       </div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Výška (cm)</label><input class="form-input" type="number" placeholder="175"></div>
-        <div class="form-group"><label class="form-label">Váha (kg)</label><input class="form-input" type="number" placeholder="80"></div>
-      </div>
-      <div class="form-group"><label class="form-label">Primární cíl</label><select class="form-select"><option>Zhubnout</option><option>Nabrat svalovou hmotu</option><option>Rekomposice</option><option>Kondice a zdraví</option></select></div>
+
       <div class="form-divider"></div>
-      <div class="form-section-title">Pozvánka</div>
-      <div class="toggle-wrap">
-        <span class="toggle-lbl">Odeslat pozvánku emailem ihned</span>
-        <div class="toggle on" onclick="this.classList.toggle('on')"><div class="toggle-thumb"></div></div>
+
+      <!-- Questionnaire attachment -->
+      <div class="form-section-title">📋 Přiložit dotazník</div>
+      <div class="form-group">
+        <label class="form-label">Šablona dotazníku</label>
+        <select class="form-select">
+          <option value="">Bez dotazníku</option>
+          <option selected>Vstupní dotazník — trénink (Výchozí)</option>
+          <option>Výživový vstupní dotazník</option>
+          <option>Kontrolní dotazník po 8 týdnech</option>
+        </select>
+        <div style="font-size:11px;color:var(--t3);margin-top:4px">Klient vyplní dotazník po přijetí pozvánky. Odpovědi uvidíš v jeho profilu.</div>
       </div>
-      <div class="form-hint">Klient dostane email s odkazem pro nastavení hesla a přijetí pozvánky.</div>
+
+      <div class="form-divider"></div>
+
+      <!-- Photo-diary attachment -->
+      <div class="form-section-title" style="display:flex;align-items:center;justify-content:space-between">
+        <span>📸 Přiložit foto-deník</span>
+        <div class="toggle on" id="dlg-new-client-diary-toggle" onclick="this.classList.toggle('on');document.getElementById('dlg-new-client-diary-body').style.display = this.classList.contains('on') ? '' : 'none'"><div class="toggle-thumb"></div></div>
+      </div>
+      <div id="dlg-new-client-diary-body">
+        <div style="font-size:12px;color:var(--t2);margin-bottom:10px">Po akceptaci pozvánky bude klient vyzván k nasdílení fotografií jídel.</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Délka deníku</label>
+            <select class="form-select">
+              <option>3 dny</option>
+              <option selected>7 dní</option>
+              <option>14 dní</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Režim odesílání</label>
+            <select class="form-select">
+              <option>Vybere klient při akceptaci</option>
+              <option>Vše najednou</option>
+              <option>Denní workflow</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Zpráva ke žádosti</label>
+          <textarea class="form-input" rows="3" maxlength="500" placeholder="Osobní zpráva pro klienta…">Abych si udělala co nejlepší obrázek o tvých stravovacích návycích, než ti sestavím plán, ráda bych od tebe dostala fotky všech jídel, které běžně jíš.</textarea>
+          <div style="font-size:10px;color:var(--t4);text-align:right;margin-top:2px">187 / 500</div>
+        </div>
+      </div>
     </div>
     <div class="dlg-footer">
       <button class="btn" onclick="closeDialog('dlg-new-client')">Zrušit</button>
-      <button class="btn primary" onclick="addClient()">Vytvořit klienta</button>
+      <button class="btn primary" onclick="closeDialog('dlg-new-client');showToast('Pozvánka odeslána')">Odeslat pozvánku</button>
+    </div>
+  </div>
+</div>
+
+<!-- Foto-deník — samostatná žádost pro existujícího klienta (z detailu plánu) -->
+<div class="overlay" id="dlg-diary-request" onclick="closeOnOverlay(event,'dlg-diary-request')">
+  <div class="dialog" style="max-width:520px;padding:0;overflow:hidden">
+    <!-- Hero -->
+    <div style="height:90px;background:rgba(52,199,89,.1);display:flex;align-items:center;justify-content:center">
+      <span style="font-size:36px;opacity:.8">📸</span>
+    </div>
+    <div class="dlg-hdr">
+      <div>
+        <div class="dlg-title">Požádat o foto-deník</div>
+        <div style="font-size:12px;color:var(--t3);margin-top:2px">Klient uvidí žádost jako banner na úvodní obrazovce v mobilu.</div>
+      </div>
+      <button class="dlg-close" onclick="closeDialog('dlg-diary-request')">✕</button>
+    </div>
+    <div class="dlg-body">
+      <!-- Client strip -->
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rm);margin-bottom:16px">
+        <div style="width:32px;height:32px;border-radius:8px;background:rgba(0,122,255,.12);color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0">PH</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:var(--t)">Petra Horáková</div>
+          <div style="font-size:11px;color:var(--t2)">Výživa · Týden 4 / 12</div>
+        </div>
+      </div>
+
+      <!-- Info callout -->
+      <div class="callout" style="margin-bottom:16px;background:rgba(201,168,76,.06);border:1px solid var(--acc-br)">
+        <div class="callout-icon">ℹ</div>
+        <div class="callout-body">
+          <div class="callout-text" style="font-size:12px">Klient může žádost přijmout nebo odmítnout (s volitelným důvodem). Po akceptaci si vybere mezi jednorázovým nahráním nebo denním workflow — fotky uvidíš v reálném čase.</div>
+        </div>
+      </div>
+
+      <!-- Duration -->
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Délka deníku</label>
+          <select class="form-select">
+            <option>3 dny</option>
+            <option selected>7 dní</option>
+            <option>14 dní</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Režim odesílání</label>
+          <select class="form-select">
+            <option>Vybere klient při akceptaci</option>
+            <option>Vše najednou</option>
+            <option>Denní workflow</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Message -->
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">Zpráva pro klienta</label>
+        <textarea class="form-input" rows="4" maxlength="500" placeholder="Osobní zpráva pro klienta…">Abych si udělala co nejlepší obrázek o tvých stravovacích návycích, než ti sestavím plán, ráda bych od tebe dostala fotky všech jídel, které běžně jíš.</textarea>
+        <div style="font-size:10px;color:var(--t4);text-align:right;margin-top:2px">187 / 500</div>
+      </div>
+    </div>
+    <div class="dlg-footer">
+      <button class="btn" onclick="closeDialog('dlg-diary-request')">Zrušit</button>
+      <button class="btn primary" onclick="closeDialog('dlg-diary-request');showToast('Žádost odeslána')">Odeslat žádost</button>
     </div>
   </div>
 </div>
@@ -3042,6 +3085,7 @@ function buildSidebar(containerId, activeScreen){
   var html='<div class="sb-ws"><div class="sb-ws-icon">GF</div><div class="sb-ws-name">GoodFellas</div><div class="sb-ws-chev">⌄</div></div>';
   html+='<div class="sb-div"></div>';
   html+='<div class="sb-sec"><div class="sb-item'+(activeScreen==='s-dashboard'?' active':'')+'" onclick="showScreen(\'s-dashboard\')"><span class="sbi-icon">⊞</span><span class="sbi-lbl">Dashboard</span></div>';
+  html+='<div class="sb-item'+(activeScreen==='s-profile'?' active':'')+'" onclick="showScreen(\'s-profile\')"><span class="sbi-icon">👤</span><span class="sbi-lbl">Profil</span></div>';
   html+='<div class="sb-item'+(activeScreen==='s-messages'?' active':'')+'" onclick="showScreen(\'s-messages\')"><span class="sbi-icon">✉</span><span class="sbi-lbl">Zprávy</span><span class="sbi-badge">1</span></div></div>';
   html+='<div class="sb-div"></div><div class="sb-sec"><div class="sb-sec-lbl">Klienti</div>';
   CLIENTS.forEach(function(cl){
@@ -3069,7 +3113,7 @@ function showScreen(id){
   document.querySelectorAll('.tn-btn').forEach(function(b){if(b.getAttribute('onclick')==="showScreen('"+id+"')") b.classList.add('active');});
   window.scrollTo(0,0);
   // Build sidebars
-  var sbMap={'s-dashboard':'sb-dashboard','s-client':'sb-client','s-training':'sb-training','s-messages':'sb-messages','s-nutrition':'sb-nutrition','s-foods':'sb-foods','s-goals':'sb-goals','s-settings-checkins':'sb-settings-checkins','s-diary-request':'sb-diary-request','s-client-photos':'sb-client-photos','s-profile':'sb-profile'};
+  var sbMap={'s-dashboard':'sb-dashboard','s-client':'sb-client','s-training':'sb-training','s-messages':'sb-messages','s-nutrition':'sb-nutrition','s-foods':'sb-foods','s-goals':'sb-goals','s-settings-checkins':'sb-settings-checkins','s-client-photos':'sb-client-photos','s-profile':'sb-profile'};
   if(sbMap[id]) buildSidebar(sbMap[id],id);
   // Init nutrition editor
   if(id==='s-nutrition'&&!_nutrInit){_nutrInit=true;initNutrition();}
