@@ -569,6 +569,7 @@ body.dark .btn-auth-primary { color: #0d0900; }
   <div class="tn-lbl">Výživa</div>
   <button class="tn-btn" onclick="showScreen('s-nutrition')">Jídelníček</button>
   <button class="tn-btn" onclick="showScreen('s-foods')">Databáze potravin</button>
+  <button class="tn-btn" onclick="showScreen('s-recipes')">Recepty</button>
   <button class="tn-btn" onclick="showScreen('s-goals')">Cíle klienta</button>
   <div class="tn-sep"></div>
   <div class="tn-lbl">Fotky</div>
@@ -1109,23 +1110,53 @@ body.dark .btn-auth-primary { color: #0d0900; }
 <div class="shell">
 <div class="sb" id="sb-foods"></div>
 <div class="main">
-  <div class="ph"><div class="ph-icon">📦</div><h1>Databáze potravin</h1><div class="ph-sub">Vlastní + Open Food Facts</div></div>
+  <div class="bc"><a onclick="showScreen('s-dashboard')">Dashboard</a><span class="bc-sep">/</span><span>Databáze potravin</span></div>
+
+  <div class="ph">
+    <div class="ph-icon">📦</div>
+    <h1>Databáze potravin</h1>
+    <div class="ph-sub">Vlastní potraviny a veřejná databáze (Open Food Facts)</div>
+  </div>
+
+  <!-- Toolbar: view switcher + search + filter + sort + add -->
   <div class="toolbar">
     <div class="tb-view active" id="fv-table" onclick="switchFoodsView('table')">⊞ Tabulka</div>
+    <div class="tb-view" id="fv-list" onclick="switchFoodsView('list')">☰ Seznam</div>
     <div class="tb-view" id="fv-cards" onclick="switchFoodsView('cards')">⬜ Karty</div>
     <div class="tb-sep"></div>
-    <div class="tb-action">⊞ Filtr</div>
-    <div style="margin-left:auto"><button class="btn primary" onclick="openDialog('dlg-add-food')">+ Přidat potravinu</button></div>
-  </div>
-  <div class="pc">
-    <div class="callout" style="margin-bottom:10px;background:rgba(201,168,76,.06);border:1px solid var(--acc-br)">
-      <div class="callout-icon">📸</div>
-      <div class="callout-body">
-        <div class="callout-title">Nové — fotky potravin</div>
-        <div class="callout-text" style="font-size:12px">Potraviny mohou nyní mít vlastní fotku, která se zobrazí klientovi v detailu jídla. Upload se provede z dialogu potraviny.</div>
+    <div class="search-wrap" style="width:240px">
+      <span style="color:var(--t3)">🔍</span>
+      <input type="text" id="foods-search" placeholder="Hledat potravinu..." oninput="renderFoods()">
+    </div>
+    <select class="form-select" id="foods-category-select" onchange="selectFoodCategory(this.value)" style="padding:6px 10px;font-size:13px;min-width:160px">
+      <option value="all" selected>Všechny kategorie</option>
+      <option value="protein">Proteiny</option>
+      <option value="carbs">Sacharidy</option>
+      <option value="veg">Zelenina</option>
+      <option value="fruit">Ovoce</option>
+      <option value="fat">Tuky</option>
+      <option value="dairy">Mléčné</option>
+      <option value="beverages">Nápoje</option>
+      <option value="other">Ostatní</option>
+    </select>
+    <div style="position:relative">
+      <button class="btn" onclick="toggleFoodsSortMenu(this)" style="font-size:12px">↕ Seřadit</button>
+      <div id="foods-sort-menu" style="display:none;position:absolute;right:0;top:100%;margin-top:4px;z-index:20;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rm);box-shadow:0 4px 12px rgba(0,0,0,.12);padding:4px;min-width:180px">
+        <button class="sort-opt active" onclick="setFoodsSort('name', this)" style="display:block;width:100%;text-align:left;padding:6px 10px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--acc);border-radius:4px">Název <span style="float:right;font-size:10px">↑</span></button>
+        <button class="sort-opt" onclick="setFoodsSort('kcal', this)" style="display:block;width:100%;text-align:left;padding:6px 10px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--t);border-radius:4px">kcal</button>
+        <button class="sort-opt" onclick="setFoodsSort('protein', this)" style="display:block;width:100%;text-align:left;padding:6px 10px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--t);border-radius:4px">Bílkoviny</button>
+        <button class="sort-opt" onclick="setFoodsSort('carbs', this)" style="display:block;width:100%;text-align:left;padding:6px 10px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--t);border-radius:4px">Sacharidy</button>
+        <button class="sort-opt" onclick="setFoodsSort('fat', this)" style="display:block;width:100%;text-align:left;padding:6px 10px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--t);border-radius:4px">Tuky</button>
+        <button class="sort-opt" onclick="setFoodsSort('fiber', this)" style="display:block;width:100%;text-align:left;padding:6px 10px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--t);border-radius:4px">Vláknina</button>
+        <button class="sort-opt" onclick="setFoodsSort('category', this)" style="display:block;width:100%;text-align:left;padding:6px 10px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--t);border-radius:4px">Kategorie</button>
       </div>
     </div>
-    <div class="filter-bar">
+    <div style="margin-left:auto"><button class="btn primary" onclick="openDialog('dlg-add-food')">+ Přidat potravinu</button></div>
+  </div>
+
+  <div class="pc" style="padding:12px 80px">
+    <!-- Chip filter row (kept for the existing filterFoods() JS path) -->
+    <div class="filter-bar" style="display:none">
       <div class="chip active" onclick="filterFoods('all',this)">Vše</div>
       <div class="chip" onclick="filterFoods('protein',this)">Proteiny</div>
       <div class="chip" onclick="filterFoods('carbs',this)">Sacharidy</div>
@@ -1133,21 +1164,140 @@ body.dark .btn-auth-primary { color: #0d0900; }
       <div class="chip" onclick="filterFoods('fat',this)">Tuky</div>
       <div class="chip" onclick="filterFoods('custom',this)" style="margin-left:auto">Vlastní</div>
     </div>
-    <div class="search-wrap" style="margin-bottom:12px">
-      <span style="color:var(--t3)">🔍</span>
-      <input type="text" id="foods-search" placeholder="Hledat potravinu..." oninput="renderFoods()">
-    </div>
+
+    <!-- Table view -->
     <div id="foods-table-view">
       <div class="db-wrap">
         <table class="db-table">
-          <thead><tr><th style="width:44px"></th><th style="width:220px">Název ↑</th><th>Kategorie</th><th>kcal/100g</th><th>Bílk.</th><th>Sach.</th><th>Tuky</th><th>Zdroj</th><th></th></tr></thead>
+          <thead>
+            <tr>
+              <th style="width:220px">Název</th>
+              <th>Poznámka</th>
+              <th style="width:90px">kcal/100g</th>
+              <th style="width:70px">B</th>
+              <th style="width:70px">S</th>
+              <th style="width:70px">T</th>
+              <th style="width:70px">Vl</th>
+              <th style="width:140px">Kategorie</th>
+              <th style="width:44px"></th>
+            </tr>
+          </thead>
           <tbody id="foods-tbody"></tbody>
         </table>
-        <div class="db-add" onclick="openDialog('dlg-add-food')"><span>+</span><span>Přidat vlastní potravinu</span></div>
       </div>
     </div>
+
+    <!-- List view -->
+    <div id="foods-list-view" style="display:none">
+      <div id="foods-list" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+
+    <!-- Cards view -->
     <div id="foods-cards-view" style="display:none">
       <div class="card-grid" id="foods-cards-grid"></div>
+    </div>
+
+    <!-- Pagination -->
+    <div style="margin-top:14px;display:flex;align-items:center;justify-content:space-between;padding:0 4px">
+      <div style="font-size:12px;color:var(--t3)">Zobrazeno <strong style="color:var(--t)">1–50</strong> z 2&nbsp;431</div>
+      <div style="display:flex;gap:4px">
+        <button class="btn" style="font-size:12px;padding:4px 10px" disabled>‹</button>
+        <button class="btn primary" style="font-size:12px;padding:4px 10px">1</button>
+        <button class="btn" style="font-size:12px;padding:4px 10px">2</button>
+        <button class="btn" style="font-size:12px;padding:4px 10px">3</button>
+        <span style="padding:4px 6px;font-size:12px;color:var(--t3)">…</span>
+        <button class="btn" style="font-size:12px;padding:4px 10px">49</button>
+        <button class="btn" style="font-size:12px;padding:4px 10px">›</button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     DATABÁZE RECEPTŮ
+═══════════════════════════════════════════════════════════ -->
+<div id="s-recipes" class="screen">
+<div class="shell">
+<div class="sb" id="sb-recipes"></div>
+<div class="main">
+  <div class="bc"><a onclick="showScreen('s-dashboard')">Dashboard</a><span class="bc-sep">/</span><span>Recepty</span></div>
+
+  <div class="ph">
+    <div class="ph-icon">📖</div>
+    <h1>Recepty</h1>
+    <div class="ph-sub">Vlastní recepty, které můžeš přiřadit do jídelníčků</div>
+  </div>
+
+  <!-- Toolbar: view switcher + search + sort + add -->
+  <div class="toolbar">
+    <div class="tb-view active" id="rv-table" onclick="switchRecipesView('table')">⊞ Tabulka</div>
+    <div class="tb-view" id="rv-list" onclick="switchRecipesView('list')">☰ Seznam</div>
+    <div class="tb-view" id="rv-cards" onclick="switchRecipesView('cards')">⬜ Karty</div>
+    <div class="tb-sep"></div>
+    <div class="search-wrap" style="width:240px">
+      <span style="color:var(--t3)">🔍</span>
+      <input type="text" id="recipes-search" placeholder="Hledat recept..." oninput="renderRecipesGrid()">
+    </div>
+    <div style="position:relative">
+      <button class="btn" onclick="toggleRecipesSortMenu(this)" style="font-size:12px">↕ Seřadit</button>
+      <div id="recipes-sort-menu" style="display:none;position:absolute;right:0;top:100%;margin-top:4px;z-index:20;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rm);box-shadow:0 4px 12px rgba(0,0,0,.12);padding:4px;min-width:180px">
+        <button class="sort-opt active" onclick="setRecipesSort('name', this)" style="display:block;width:100%;text-align:left;padding:6px 10px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--acc);border-radius:4px">Název <span style="float:right;font-size:10px">↑</span></button>
+        <button class="sort-opt" onclick="setRecipesSort('kcal', this)" style="display:block;width:100%;text-align:left;padding:6px 10px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--t);border-radius:4px">kcal</button>
+        <button class="sort-opt" onclick="setRecipesSort('protein', this)" style="display:block;width:100%;text-align:left;padding:6px 10px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--t);border-radius:4px">Bílkoviny</button>
+        <button class="sort-opt" onclick="setRecipesSort('carbs', this)" style="display:block;width:100%;text-align:left;padding:6px 10px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--t);border-radius:4px">Sacharidy</button>
+        <button class="sort-opt" onclick="setRecipesSort('fat', this)" style="display:block;width:100%;text-align:left;padding:6px 10px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--t);border-radius:4px">Tuky</button>
+        <button class="sort-opt" onclick="setRecipesSort('fiber', this)" style="display:block;width:100%;text-align:left;padding:6px 10px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--t);border-radius:4px">Vláknina</button>
+        <button class="sort-opt" onclick="setRecipesSort('foodCount', this)" style="display:block;width:100%;text-align:left;padding:6px 10px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--t);border-radius:4px">Počet ingrediencí</button>
+        <button class="sort-opt" onclick="setRecipesSort('prepTime', this)" style="display:block;width:100%;text-align:left;padding:6px 10px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--t);border-radius:4px">Doba přípravy</button>
+      </div>
+    </div>
+    <div style="margin-left:auto"><button class="btn primary" onclick="showToast('Editor receptu')">+ Přidat recept</button></div>
+  </div>
+
+  <div class="pc" style="padding:12px 80px">
+
+    <!-- Table view -->
+    <div id="recipes-table-view">
+      <div class="db-wrap">
+        <table class="db-table">
+          <thead>
+            <tr>
+              <th>Název</th>
+              <th style="width:100px">Ingrediencí</th>
+              <th style="width:100px">Doba</th>
+              <th style="width:80px">kcal</th>
+              <th style="width:70px">B</th>
+              <th style="width:70px">S</th>
+              <th style="width:70px">T</th>
+              <th style="width:70px">Vl</th>
+              <th style="width:44px"></th>
+            </tr>
+          </thead>
+          <tbody id="recipes-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- List view -->
+    <div id="recipes-list-view" style="display:none">
+      <div id="recipes-list" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+
+    <!-- Cards view -->
+    <div id="recipes-cards-view" style="display:none">
+      <div class="card-grid" id="recipes-cards-grid"></div>
+    </div>
+
+    <!-- Pagination -->
+    <div style="margin-top:14px;display:flex;align-items:center;justify-content:space-between;padding:0 4px">
+      <div style="font-size:12px;color:var(--t3)">Zobrazeno <strong style="color:var(--t)">1–8</strong> z 8</div>
+      <div style="display:flex;gap:4px">
+        <button class="btn" style="font-size:12px;padding:4px 10px" disabled>‹</button>
+        <button class="btn primary" style="font-size:12px;padding:4px 10px">1</button>
+        <button class="btn" style="font-size:12px;padding:4px 10px" disabled>›</button>
+      </div>
     </div>
   </div>
 </div>
@@ -3077,19 +3227,19 @@ var CLIENTS = [
 ];
 
 var FOODS_DB = [
-  {name:'Kuřecí prsa',cat:'Proteiny',catTag:'tag-blue',kcal:115,p:21.5,c:0,f:2.5,src:'OFF',custom:false},
-  {name:'Ovesné vločky',cat:'Sacharidy',catTag:'tag-orange',kcal:370,p:13,c:64,f:7,src:'OFF',custom:false},
-  {name:'Losos',cat:'Proteiny',catTag:'tag-blue',kcal:206,p:20,c:0,f:13,src:'OFF',custom:false},
-  {name:'Řecký jogurt 0%',cat:'Mléčné',catTag:'tag-gray',kcal:59,p:10,c:5,f:0.5,src:'OFF',custom:false},
-  {name:'Protein WPC 80',cat:'Suplementy',catTag:'tag-purple',kcal:113,p:24,c:3,f:1.5,src:'Vlastní',custom:true},
-  {name:'Batáty',cat:'Sacharidy',catTag:'tag-orange',kcal:86,p:1.6,c:20,f:0.1,src:'OFF',custom:false},
-  {name:'Vejce L',cat:'Proteiny',catTag:'tag-blue',kcal:155,p:13,c:1.1,f:11,src:'OFF',custom:false},
-  {name:'Avokádo',cat:'Tuky',catTag:'tag-green',kcal:160,p:2,c:9,f:15,src:'OFF',custom:false},
-  {name:'Borůvky',cat:'Ovoce',catTag:'tag-green',kcal:57,p:0.7,c:14,f:0.3,src:'OFF',custom:false},
-  {name:'Brokolice',cat:'Zelenina',catTag:'tag-green',kcal:34,p:3,c:5,f:0.4,src:'OFF',custom:false},
-  {name:'Tvaroh 0%',cat:'Mléčné',catTag:'tag-gray',kcal:73,p:12,c:4,f:0.6,src:'OFF',custom:false},
-  {name:'Banán',cat:'Ovoce',catTag:'tag-green',kcal:89,p:1.1,c:23,f:0.3,src:'OFF',custom:false},
-  {name:'Hnědá rýže',cat:'Sacharidy',catTag:'tag-orange',kcal:360,p:7.5,c:75,f:2.5,src:'OFF',custom:false},
+  {name:'Kuřecí prsa',cat:'Proteiny',catTag:'tag-blue',kcal:115,p:21.5,c:0,f:2.5,fi:0,note:'Libové, bez vidit. tuku',src:'OFF',custom:false},
+  {name:'Ovesné vločky',cat:'Sacharidy',catTag:'tag-orange',kcal:370,p:13,c:64,f:7,fi:10,note:'Jemné, ne instantní',src:'OFF',custom:false},
+  {name:'Losos',cat:'Proteiny',catTag:'tag-blue',kcal:206,p:20,c:0,f:13,fi:0,note:'Divoký aljašský',src:'OFF',custom:false},
+  {name:'Řecký jogurt 0%',cat:'Mléčné',catTag:'tag-gray',kcal:59,p:10,c:5,f:0.5,fi:0,note:null,src:'OFF',custom:false},
+  {name:'Protein WPC 80',cat:'Suplementy',catTag:'tag-purple',kcal:113,p:24,c:3,f:1.5,fi:0,note:'Vanilka',src:'Vlastní',custom:true},
+  {name:'Batáty',cat:'Sacharidy',catTag:'tag-orange',kcal:86,p:1.6,c:20,f:0.1,fi:3,note:null,src:'OFF',custom:false},
+  {name:'Vejce L',cat:'Proteiny',catTag:'tag-blue',kcal:155,p:13,c:1.1,f:11,fi:0,note:null,src:'OFF',custom:false},
+  {name:'Avokádo',cat:'Tuky',catTag:'tag-green',kcal:160,p:2,c:9,f:15,fi:7,note:null,src:'OFF',custom:false},
+  {name:'Borůvky',cat:'Ovoce',catTag:'tag-green',kcal:57,p:0.7,c:14,f:0.3,fi:2.4,note:null,src:'OFF',custom:false},
+  {name:'Brokolice',cat:'Zelenina',catTag:'tag-green',kcal:34,p:3,c:5,f:0.4,fi:2.6,note:'Syrová',src:'OFF',custom:false},
+  {name:'Tvaroh 0%',cat:'Mléčné',catTag:'tag-gray',kcal:73,p:12,c:4,f:0.6,fi:0,note:null,src:'OFF',custom:false},
+  {name:'Banán',cat:'Ovoce',catTag:'tag-green',kcal:89,p:1.1,c:23,f:0.3,fi:2.6,note:null,src:'OFF',custom:false},
+  {name:'Hnědá rýže',cat:'Sacharidy',catTag:'tag-orange',kcal:360,p:7.5,c:75,f:2.5,fi:3.4,note:null,src:'OFF',custom:false},
 ];
 
 var EXERCISES_DB = [
@@ -3161,7 +3311,8 @@ function buildSidebar(containerId, activeScreen){
   });
   html+='<div class="sb-item" onclick="openDialog(\'dlg-new-client\')" style="color:var(--t3)"><span class="sbi-icon">+</span><span class="sbi-lbl">Přidat klienta</span></div></div>';
   html+='<div class="sb-div"></div><div class="sb-sec"><div class="sb-sec-lbl">Databáze</div>';
-  html+='<div class="sb-item'+(activeScreen==='s-foods'?' active':'')+'" onclick="showScreen(\'s-foods\')"><span class="sbi-icon">📦</span><span class="sbi-lbl">Potraviny</span></div></div>';
+  html+='<div class="sb-item'+(activeScreen==='s-foods'?' active':'')+'" onclick="showScreen(\'s-foods\')"><span class="sbi-icon">📦</span><span class="sbi-lbl">Potraviny</span></div>';
+  html+='<div class="sb-item'+(activeScreen==='s-recipes'?' active':'')+'" onclick="showScreen(\'s-recipes\')"><span class="sbi-icon">📖</span><span class="sbi-lbl">Recepty</span></div></div>';
   html+='<div class="sb-user"><div class="sb-avatar">MT</div><div><div style="font-size:13px;font-weight:500">Marek Trenér</div><div style="font-size:11px;color:var(--t3)">Trenér & výživa</div></div></div>';
   el.innerHTML=html;
 }
@@ -3175,7 +3326,7 @@ function showScreen(id){
   document.querySelectorAll('.tn-btn').forEach(function(b){if(b.getAttribute('onclick')==="showScreen('"+id+"')") b.classList.add('active');});
   window.scrollTo(0,0);
   // Build sidebars
-  var sbMap={'s-dashboard':'sb-dashboard','s-client':'sb-client','s-training':'sb-training','s-messages':'sb-messages','s-nutrition':'sb-nutrition','s-foods':'sb-foods','s-goals':'sb-goals','s-settings-checkins':'sb-settings-checkins','s-client-photos':'sb-client-photos','s-profile':'sb-profile'};
+  var sbMap={'s-dashboard':'sb-dashboard','s-client':'sb-client','s-training':'sb-training','s-messages':'sb-messages','s-nutrition':'sb-nutrition','s-foods':'sb-foods','s-goals':'sb-goals','s-settings-checkins':'sb-settings-checkins','s-client-photos':'sb-client-photos','s-profile':'sb-profile','s-recipes':'sb-recipes'};
   if(sbMap[id]) buildSidebar(sbMap[id],id);
   // Init nutrition editor
   if(id==='s-nutrition'&&!_nutrInit){_nutrInit=true;initNutrition();}
@@ -3183,6 +3334,7 @@ function showScreen(id){
   if(id==='s-training'){renderTrainingExercises();}
   if(id==='s-messages'){renderMessages();}
   if(id==='s-foods'){renderFoods();}
+  if(id==='s-recipes'){renderRecipesGrid();}
   if(id==='s-dashboard'){renderDashboard();}
 }
 
@@ -3309,18 +3461,47 @@ function addClient(){
 }
 
 // ── FOODS ─────────────────────────────────────────────────────────────────────
+var _foodsSort={key:'name',dir:'asc'};
+var _recipesSort={key:'name',dir:'asc'};
+
 function switchFoodsView(v){
-  document.getElementById('foods-table-view').style.display=v==='table'?'block':'none';
-  document.getElementById('foods-cards-view').style.display=v==='cards'?'block':'none';
-  document.getElementById('fv-table').classList.toggle('active',v==='table');
-  document.getElementById('fv-cards').classList.toggle('active',v==='cards');
+  var tbl=document.getElementById('foods-table-view');
+  var lst=document.getElementById('foods-list-view');
+  var crd=document.getElementById('foods-cards-view');
+  if(tbl) tbl.style.display=v==='table'?'block':'none';
+  if(lst) lst.style.display=v==='list' ?'block':'none';
+  if(crd) crd.style.display=v==='cards'?'block':'none';
+  ['table','list','cards'].forEach(function(id){
+    var el=document.getElementById('fv-'+id); if(el) el.classList.toggle('active',id===v);
+  });
   renderFoods();
 }
 
 function filterFoods(cat,el){
   _foodsFilter=cat;
   document.querySelectorAll('#s-foods .chip').forEach(function(c){c.classList.remove('active');});
-  el.classList.add('active');
+  if(el) el.classList.add('active');
+  renderFoods();
+}
+
+function selectFoodCategory(value){
+  // select-driven filter; maps to same _foodsFilter values renderFoods() understands
+  _foodsFilter=value==='all'?'all':value;
+  renderFoods();
+}
+
+function toggleFoodsSortMenu(btn){
+  var menu=document.getElementById('foods-sort-menu'); if(!menu) return;
+  var open=menu.style.display==='block';
+  menu.style.display=open?'none':'block';
+}
+
+function setFoodsSort(key,el){
+  if(_foodsSort.key===key) _foodsSort.dir=_foodsSort.dir==='asc'?'desc':'asc';
+  else { _foodsSort.key=key; _foodsSort.dir='asc'; }
+  document.querySelectorAll('#foods-sort-menu .sort-opt').forEach(function(o){o.classList.remove('active');o.style.color='var(--t)';});
+  if(el){ el.classList.add('active'); el.style.color='var(--acc)'; }
+  document.getElementById('foods-sort-menu').style.display='none';
   renderFoods();
 }
 
@@ -3330,36 +3511,204 @@ function renderFoods(){
     if(_foodsFilter==='custom') return f.custom;
     if(_foodsFilter==='protein') return f.cat==='Proteiny';
     if(_foodsFilter==='carbs') return f.cat==='Sacharidy';
-    if(_foodsFilter==='veg') return f.cat==='Zelenina';
+    if(_foodsFilter==='veg'||_foodsFilter==='vegetables') return f.cat==='Zelenina';
+    if(_foodsFilter==='fruit') return f.cat==='Ovoce';
     if(_foodsFilter==='fat') return f.cat==='Tuky';
+    if(_foodsFilter==='dairy') return f.cat==='Mléčné';
+    if(_foodsFilter==='beverages') return f.cat==='Nápoje';
+    if(_foodsFilter==='other') return f.cat==='Ostatní';
     return true;
   }).filter(function(f){return !q||f.name.toLowerCase().includes(q);});
 
-  // table
-  var tb=document.getElementById('foods-tbody'); if(!tb) return;
-  var html='';
-  list.forEach(function(f){
-    html+='<tr><td><span class="row-title">'+f.name+'</span></td>';
-    html+='<td><span class="tag '+f.catTag+'">'+f.cat+'</span></td>';
-    html+='<td>'+f.kcal+'</td><td style="color:var(--blue)">'+f.p+'</td><td style="color:var(--orange)">'+f.c+'</td><td style="color:var(--purple)">'+f.f+'</td>';
-    html+='<td><span class="tag '+(f.custom?'tag-acc':'tag-gray')+'">'+f.src+'</span></td>';
-    html+='<td><div class="row-acts"><button onclick="openDialog(\'dlg-add-food-to-plan\');setSelectedFood(\''+f.name+'\')">Přidat</button><button>Upravit</button></div></td></tr>';
+  // Sort
+  var dir=_foodsSort.dir==='asc'?1:-1;
+  list.sort(function(a,b){
+    var cmp=0;
+    switch(_foodsSort.key){
+      case 'name': cmp=a.name.localeCompare(b.name); break;
+      case 'kcal': cmp=a.kcal-b.kcal; break;
+      case 'protein': cmp=a.p-b.p; break;
+      case 'carbs': cmp=a.c-b.c; break;
+      case 'fat': cmp=a.f-b.f; break;
+      case 'fiber': cmp=(a.fi||0)-(b.fi||0); break;
+      case 'category': cmp=(a.cat||'').localeCompare(b.cat||''); break;
+    }
+    return cmp*dir;
   });
-  tb.innerHTML=html;
+
+  var deleteBtn='<button class="row-act-btn" title="Smazat" onclick="event.stopPropagation();showToast(\'Potravina smazána\')" style="background:none;border:none;padding:4px;color:var(--t3);cursor:pointer">🗑</button>';
+
+  // table
+  var tb=document.getElementById('foods-tbody');
+  if(tb){
+    var html='';
+    list.forEach(function(f){
+      var note=f.note||'—';
+      html+='<tr onclick="openDialog(\'dlg-add-food-to-plan\');setSelectedFood(\''+f.name+'\')" style="cursor:pointer">';
+      html+='<td><span class="row-title">'+f.name+'</span></td>';
+      html+='<td style="color:var(--t3);font-style:italic;font-size:12px">'+note+'</td>';
+      html+='<td class="tabular-nums">'+f.kcal+'</td>';
+      html+='<td class="tabular-nums" style="color:var(--blue)">'+f.p+'g</td>';
+      html+='<td class="tabular-nums" style="color:var(--orange)">'+f.c+'g</td>';
+      html+='<td class="tabular-nums" style="color:var(--purple)">'+f.f+'g</td>';
+      html+='<td class="tabular-nums" style="color:var(--green)">'+(f.fi||0)+'g</td>';
+      html+='<td><span class="tag '+f.catTag+'" style="font-size:11px">'+f.cat+'</span></td>';
+      html+='<td>'+deleteBtn+'</td></tr>';
+    });
+    tb.innerHTML=html;
+  }
+
+  // list
+  var lv=document.getElementById('foods-list');
+  if(lv){
+    var html='';
+    list.forEach(function(f){
+      html+='<div onclick="openDialog(\'dlg-add-food-to-plan\');setSelectedFood(\''+f.name+'\')" style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rm);cursor:pointer">';
+      html+='<div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:rgba(201,168,76,.12);color:var(--acc);flex-shrink:0">'+f.name.charAt(0).toUpperCase()+'</div>';
+      html+='<div style="flex:1;min-width:0">';
+      html+='<div style="font-size:13px;font-weight:500;color:var(--t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+f.name+'</div>';
+      html+='<div style="font-size:11px;color:var(--t3);display:flex;align-items:center;gap:8px;margin-top:2px"><span class="tag '+f.catTag+'" style="font-size:10px">'+f.cat+'</span><span class="tabular-nums">'+f.kcal+' kcal/100g</span></div>';
+      html+='</div>';
+      html+='<div style="display:flex;gap:4px;font-size:11px" class="tabular-nums">';
+      html+='<span style="color:var(--blue)">B '+f.p+'g</span><span style="color:var(--orange)">S '+f.c+'g</span><span style="color:var(--purple)">T '+f.f+'g</span><span style="color:var(--green)">Vl '+(f.fi||0)+'g</span>';
+      html+='</div>';
+      html+='<div style="margin-left:6px">'+deleteBtn+'</div>';
+      html+='</div>';
+    });
+    lv.innerHTML=html;
+  }
 
   // cards
-  var cg=document.getElementById('foods-cards-grid'); if(!cg) return;
-  html='';
-  list.forEach(function(f){
-    html+='<div class="n-card"><div class="card-cover" style="height:56px"><div class="card-pattern"></div></div><div class="card-body">';
-    html+='<div class="card-title" style="font-size:13px">'+f.name+'</div>';
-    html+='<div class="card-prop"><span class="tag '+f.catTag+'" style="font-size:11px">'+f.cat+'</span></div>';
-    html+='<div class="card-prop" style="margin-top:4px"><span class="card-prop-val" style="font-weight:600">'+f.kcal+' kcal</span></div>';
-    html+='<div class="card-prop" style="font-size:11px"><span style="color:var(--blue)">B'+f.p+'</span> <span style="color:var(--orange)">S'+f.c+'</span> <span style="color:var(--purple)">T'+f.f+'</span></div>';
-    html+='<button class="btn sm" style="margin-top:6px" onclick="openDialog(\'dlg-add-food-to-plan\');setSelectedFood(\''+f.name+'\')">+ Přidat</button>';
-    html+='</div></div>';
+  var cg=document.getElementById('foods-cards-grid');
+  if(cg){
+    var html='';
+    list.forEach(function(f){
+      html+='<div class="n-card" onclick="openDialog(\'dlg-add-food-to-plan\');setSelectedFood(\''+f.name+'\')" style="cursor:pointer"><div class="card-cover" style="height:80px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:28px;opacity:.5">📦</div><div class="card-body">';
+      html+='<div class="card-title" style="font-size:13px;font-weight:500;margin-bottom:6px">'+f.name+'</div>';
+      html+='<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--t3);margin-bottom:3px"><span>kcal</span><span class="tabular-nums" style="color:var(--t);font-weight:600">'+f.kcal+'</span></div>';
+      html+='<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--t3);margin-bottom:3px"><span>B / S / T / Vl</span><span class="tabular-nums"><span style="color:var(--blue)">'+f.p+'</span> <span style="color:var(--orange)">'+f.c+'</span> <span style="color:var(--purple)">'+f.f+'</span> <span style="color:var(--green)">'+(f.fi||0)+'</span></span></div>';
+      html+='<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--t3)"><span>Kategorie</span><span class="tag '+f.catTag+'" style="font-size:10px">'+f.cat+'</span></div>';
+      html+='</div></div>';
+    });
+    cg.innerHTML=html;
+  }
+}
+
+// ── RECIPES DATABASE ──────────────────────────────────────────────────────────
+var RECIPES_DB = [
+  { recipeId:'r1', name:'Losos s quinoou a grilovanou zeleninou', foodCount:6, prepTime:25, kcal:485, p:38, c:36, f:18, fi:6 },
+  { recipeId:'r2', name:'Kuřecí salát Caesar', foodCount:8, prepTime:15, kcal:420, p:42, c:22, f:19, fi:4 },
+  { recipeId:'r3', name:'Ovesná kaše s ovocem a oříšky', foodCount:5, prepTime:10, kcal:390, p:18, c:58, f:12, fi:8 },
+  { recipeId:'r4', name:'Ryžové misky s tofu a zeleninou', foodCount:7, prepTime:20, kcal:510, p:28, c:72, f:14, fi:7 },
+  { recipeId:'r5', name:'Tuňákové tortilly', foodCount:6, prepTime:12, kcal:450, p:35, c:44, f:15, fi:5 },
+  { recipeId:'r6', name:'Vaječná omeleta se špenátem', foodCount:4, prepTime:8, kcal:310, p:26, c:8, f:20, fi:3 },
+  { recipeId:'r7', name:'Tvarohový dezert s lesním ovocem', foodCount:4, prepTime:5, kcal:220, p:25, c:22, f:4, fi:4 },
+  { recipeId:'r8', name:'Hovězí guláš s knedlíkem', foodCount:9, prepTime:90, kcal:620, p:38, c:58, f:24, fi:5 }
+];
+
+function switchRecipesView(v){
+  var tbl=document.getElementById('recipes-table-view');
+  var lst=document.getElementById('recipes-list-view');
+  var crd=document.getElementById('recipes-cards-view');
+  if(tbl) tbl.style.display=v==='table'?'block':'none';
+  if(lst) lst.style.display=v==='list' ?'block':'none';
+  if(crd) crd.style.display=v==='cards'?'block':'none';
+  ['table','list','cards'].forEach(function(id){
+    var el=document.getElementById('rv-'+id); if(el) el.classList.toggle('active',id===v);
   });
-  cg.innerHTML=html;
+  renderRecipesGrid();
+}
+
+function toggleRecipesSortMenu(btn){
+  var menu=document.getElementById('recipes-sort-menu'); if(!menu) return;
+  menu.style.display=menu.style.display==='block'?'none':'block';
+}
+
+function setRecipesSort(key,el){
+  if(_recipesSort.key===key) _recipesSort.dir=_recipesSort.dir==='asc'?'desc':'asc';
+  else { _recipesSort.key=key; _recipesSort.dir='asc'; }
+  document.querySelectorAll('#recipes-sort-menu .sort-opt').forEach(function(o){o.classList.remove('active');o.style.color='var(--t)';});
+  if(el){ el.classList.add('active'); el.style.color='var(--acc)'; }
+  document.getElementById('recipes-sort-menu').style.display='none';
+  renderRecipesGrid();
+}
+
+function renderRecipesGrid(){
+  var q=(document.getElementById('recipes-search')||{value:''}).value.toLowerCase();
+  var list=RECIPES_DB.filter(function(r){return !q||r.name.toLowerCase().includes(q);});
+
+  var dir=_recipesSort.dir==='asc'?1:-1;
+  list.sort(function(a,b){
+    var cmp=0;
+    switch(_recipesSort.key){
+      case 'name': cmp=a.name.localeCompare(b.name); break;
+      case 'kcal': cmp=a.kcal-b.kcal; break;
+      case 'protein': cmp=a.p-b.p; break;
+      case 'carbs': cmp=a.c-b.c; break;
+      case 'fat': cmp=a.f-b.f; break;
+      case 'fiber': cmp=(a.fi||0)-(b.fi||0); break;
+      case 'foodCount': cmp=a.foodCount-b.foodCount; break;
+      case 'prepTime': cmp=(a.prepTime||0)-(b.prepTime||0); break;
+    }
+    return cmp*dir;
+  });
+
+  var deleteBtn='<button title="Smazat" onclick="event.stopPropagation();showToast(\'Recept smazán\')" style="background:none;border:none;padding:4px;color:var(--t3);cursor:pointer">🗑</button>';
+
+  // table
+  var tb=document.getElementById('recipes-tbody');
+  if(tb){
+    var html='';
+    list.forEach(function(r){
+      html+='<tr onclick="showToast(\'Editor receptu: '+r.name+'\')" style="cursor:pointer">';
+      html+='<td><span class="row-title">'+r.name+'</span></td>';
+      html+='<td class="tabular-nums" style="color:var(--t2)">'+r.foodCount+'</td>';
+      html+='<td class="tabular-nums" style="color:var(--t3)">'+(r.prepTime?r.prepTime+' min':'—')+'</td>';
+      html+='<td class="tabular-nums">'+r.kcal+'</td>';
+      html+='<td class="tabular-nums" style="color:var(--blue)">'+r.p+'g</td>';
+      html+='<td class="tabular-nums" style="color:var(--orange)">'+r.c+'g</td>';
+      html+='<td class="tabular-nums" style="color:var(--purple)">'+r.f+'g</td>';
+      html+='<td class="tabular-nums" style="color:var(--green)">'+(r.fi||0)+'g</td>';
+      html+='<td>'+deleteBtn+'</td></tr>';
+    });
+    tb.innerHTML=html;
+  }
+
+  // list
+  var lv=document.getElementById('recipes-list');
+  if(lv){
+    var html='';
+    list.forEach(function(r){
+      html+='<div onclick="showToast(\'Editor receptu: '+r.name+'\')" style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rm);cursor:pointer">';
+      html+='<div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;background:var(--acc-bg);color:var(--acc);flex-shrink:0">📖</div>';
+      html+='<div style="flex:1;min-width:0">';
+      html+='<div style="font-size:13px;font-weight:500;color:var(--t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+r.name+'</div>';
+      html+='<div style="font-size:11px;color:var(--t3);display:flex;align-items:center;gap:8px;margin-top:2px"><span>'+r.foodCount+' ingrediencí</span>'+(r.prepTime?'<span>· '+r.prepTime+' min</span>':'')+'<span class="tabular-nums">· '+r.kcal+' kcal</span></div>';
+      html+='</div>';
+      html+='<div style="display:flex;gap:4px;font-size:11px" class="tabular-nums">';
+      html+='<span style="color:var(--blue)">B '+r.p+'g</span><span style="color:var(--orange)">S '+r.c+'g</span><span style="color:var(--purple)">T '+r.f+'g</span><span style="color:var(--green)">Vl '+(r.fi||0)+'g</span>';
+      html+='</div>';
+      html+='<div style="margin-left:6px">'+deleteBtn+'</div>';
+      html+='</div>';
+    });
+    lv.innerHTML=html;
+  }
+
+  // cards
+  var cg=document.getElementById('recipes-cards-grid');
+  if(cg){
+    var html='';
+    list.forEach(function(r){
+      html+='<div class="n-card" onclick="showToast(\'Editor receptu: '+r.name+'\')" style="cursor:pointer"><div class="card-cover" style="height:90px;background:linear-gradient(135deg,var(--acc-bg),var(--bg3));display:flex;align-items:center;justify-content:center;font-size:32px;opacity:.7">📖</div><div class="card-body">';
+      html+='<div class="card-title" style="font-size:13px;font-weight:500;margin-bottom:6px">'+r.name+'</div>';
+      html+='<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--t3);margin-bottom:3px"><span>kcal</span><span class="tabular-nums" style="color:var(--t);font-weight:600">'+r.kcal+'</span></div>';
+      html+='<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--t3);margin-bottom:3px"><span>B / S / T / Vl</span><span class="tabular-nums"><span style="color:var(--blue)">'+r.p+'</span> <span style="color:var(--orange)">'+r.c+'</span> <span style="color:var(--purple)">'+r.f+'</span> <span style="color:var(--green)">'+(r.fi||0)+'</span></span></div>';
+      html+='<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--t3);margin-bottom:3px"><span>Ingredience</span><span class="tabular-nums" style="color:var(--t)">'+r.foodCount+'</span></div>';
+      if(r.prepTime){ html+='<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--t3)"><span>Doba</span><span class="tabular-nums" style="color:var(--t)">'+r.prepTime+' min</span></div>'; }
+      html+='</div></div>';
+    });
+    cg.innerHTML=html;
+  }
 }
 
 // ── PLAN FOOD DIALOG ──────────────────────────────────────────────────────────
