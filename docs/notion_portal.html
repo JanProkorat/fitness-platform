@@ -571,6 +571,10 @@ body.dark .btn-auth-primary { color: #0d0900; }
   <button class="tn-btn" onclick="showScreen('s-foods')">Databáze potravin</button>
   <button class="tn-btn" onclick="showScreen('s-goals')">Cíle klienta</button>
   <div class="tn-sep"></div>
+  <div class="tn-lbl">Fotky</div>
+  <button class="tn-btn" onclick="showScreen('s-diary-request')">Žádost o deník</button>
+  <button class="tn-btn" onclick="showScreen('s-client-photos')">Fotky klienta</button>
+  <div class="tn-sep"></div>
   <div class="tn-lbl">Nastavení</div>
   <button class="tn-btn" onclick="showScreen('s-settings-checkins')">Týdenní check-iny</button>
   <div class="tn-right">
@@ -674,6 +678,56 @@ body.dark .btn-auth-primary { color: #0d0900; }
         </div>
       </div>
     </div>
+
+    <!-- Photo-diary card -->
+    <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:8px;margin-bottom:16px">
+      <div style="padding:12px 16px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:16px">📸</span>
+          <div>
+            <div style="font-size:14px;font-weight:600;color:var(--t)">Foto-deníky · přehled</div>
+            <div style="font-size:12px;color:var(--t2)">Vstupní analýza stravy před plánem</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="font-size:12px;color:var(--t2)">2 aktivní · 1 čeká</div>
+          <button class="btn" style="font-size:12px;padding:4px 10px" onclick="showScreen('s-diary-request')">Nová žádost</button>
+        </div>
+      </div>
+      <div style="padding:0">
+        <div style="display:grid;grid-template-columns:36px 1fr auto auto;gap:12px;padding:12px 16px;align-items:center;border-bottom:1px solid var(--bd);cursor:pointer" onclick="showScreen('s-client-photos')">
+          <div style="width:32px;height:32px;border-radius:6px;background:rgba(0,122,255,.12);color:#007aff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600">PH</div>
+          <div style="min-width:0">
+            <div style="font-size:14px;font-weight:600;color:var(--t);margin-bottom:3px">Petra Horáková</div>
+            <div style="font-size:12px;color:var(--t2)">Den 3 ze 7 · 9 fotek · poslední 2 h zpět</div>
+          </div>
+          <div style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;background:rgba(52,199,89,.12);color:#34c759">Aktivní</div>
+          <button class="btn primary" style="font-size:12px;padding:5px 10px" onclick="event.stopPropagation();showScreen('s-client-photos')">Zobrazit →</button>
+        </div>
+        <div style="display:grid;grid-template-columns:36px 1fr auto auto;gap:12px;padding:12px 16px;align-items:center;border-bottom:1px solid var(--bd);cursor:pointer" onclick="showScreen('s-client-photos')">
+          <div style="width:32px;height:32px;border-radius:6px;background:rgba(52,199,89,.12);color:#34c759;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600">LP</div>
+          <div style="min-width:0">
+            <div style="font-size:14px;font-weight:600;color:var(--t);margin-bottom:3px">Lucie Procházková</div>
+            <div style="font-size:12px;color:var(--t2)">Den 6 ze 7 · 18 fotek · včera 19:40</div>
+          </div>
+          <div style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;background:rgba(52,199,89,.12);color:#34c759">Aktivní</div>
+          <button class="btn primary" style="font-size:12px;padding:5px 10px" onclick="event.stopPropagation();showScreen('s-client-photos')">Zobrazit →</button>
+        </div>
+        <div style="display:grid;grid-template-columns:36px 1fr auto auto;gap:12px;padding:12px 16px;align-items:center;border-bottom:1px solid var(--bd)">
+          <div style="width:32px;height:32px;border-radius:6px;background:rgba(255,149,0,.12);color:#ff9500;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600">MK</div>
+          <div style="min-width:0">
+            <div style="font-size:14px;font-weight:600;color:var(--t);margin-bottom:3px">Martin Krejčí</div>
+            <div style="font-size:12px;color:var(--t2)">Žádost odeslána · čeká na akceptaci · 2 dny</div>
+          </div>
+          <div style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;background:rgba(255,149,0,.1);color:#ff9500">Čeká</div>
+          <button class="btn" style="font-size:12px;padding:5px 10px">Připomenout</button>
+        </div>
+        <div style="padding:10px 16px;font-size:12px;color:var(--t2);display:flex;justify-content:space-between;align-items:center;background:rgba(120,120,128,.03)">
+          <span><strong style="color:var(--t)">2 klienti</strong> aktivně nahrávají · <strong style="color:var(--t)">1 klient</strong> čeká</span>
+          <span style="color:var(--t3)">Průměrná účast 82 %</span>
+        </div>
+      </div>
+    </div>
     <!-- views -->
     <div id="view-table">
       <div class="db-wrap">
@@ -707,7 +761,10 @@ body.dark .btn-auth-primary { color: #0d0900; }
 <div class="main">
   <div class="bc"><a onclick="showScreen('s-dashboard')">Dashboard</a><span class="bc-sep">/</span><a>Klienti</a><span class="bc-sep">/</span><span>Petra Horáková</span></div>
   <div class="ph">
-    <div class="ph-icon">👤</div>
+    <div style="position:relative;display:inline-block">
+      <div class="ph-icon">👤</div>
+      <div style="position:absolute;right:-4px;bottom:-4px;width:24px;height:24px;border-radius:50%;background:var(--acc);border:3px solid var(--bg);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px">📷</div>
+    </div>
     <h1>Petra Horáková</h1>
     <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
       <span class="tag tag-blue">Hubnutí</span>
@@ -723,6 +780,7 @@ body.dark .btn-auth-primary { color: #0d0900; }
   </div>
   <div class="pc">
     <div class="prop-list">
+      <div class="prop-row"><div class="prop-key">🖼️ Fotky</div><div class="prop-val"><span class="mention" onclick="showScreen('s-client-photos')">48 fotek · 3 plány</span>&nbsp;&nbsp;<span class="tag tag-green" style="font-size:11px">Aktivní foto-deník</span></div></div>
       <div class="prop-row"><div class="prop-key">📅 Věk</div><div class="prop-val"><span class="editable-val">27 let</span></div></div>
       <div class="prop-row"><div class="prop-key">📏 Výška / váha</div><div class="prop-val">168 cm · <span class="editable-val">63,1 kg</span> <span style="color:var(--green);font-size:12px">↓ 2,4 kg</span></div></div>
       <div class="prop-row"><div class="prop-key">🎯 Cílová váha</div><div class="prop-val"><span class="editable-val">58,0 kg</span></div></div>
@@ -880,6 +938,23 @@ body.dark .btn-auth-primary { color: #0d0900; }
       <button class="btn primary" onclick="publishPlan()">Publikovat</button>
     </div>
   </div>
+  <!-- Photo-diary status banner -->
+  <div style="margin:10px 16px 0;background:rgba(52,199,89,.08);border:1px solid rgba(52,199,89,.25);border-radius:8px">
+    <div style="padding:10px 14px;display:flex;align-items:center;gap:10px">
+      <div style="font-size:16px">📸</div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
+          <div style="font-size:13px;font-weight:600;color:var(--t)">Foto-deník Petry · Den 3 z 7</div>
+          <span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px;background:rgba(52,199,89,.15);color:#34c759;text-transform:uppercase;letter-spacing:.04em">Aktivní</span>
+        </div>
+        <div style="font-size:12px;color:var(--t2)">Klient nahrává fotky v reálném čase · poslední fotka před 2 h</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        <button class="btn primary" style="font-size:12px;padding:5px 10px;white-space:nowrap" onclick="showScreen('s-client-photos')">Zobrazit fotky</button>
+        <button class="btn" style="font-size:12px;padding:5px 10px;white-space:nowrap" onclick="showScreen('s-diary-request')">Nová žádost</button>
+      </div>
+    </div>
+  </div>
   <!-- Weekly check-in response banner — state 1: RESPONDED -->
   <div style="margin:10px 16px 0;background:var(--bg2);border:1px solid var(--acc-br);border-left:3px solid var(--acc);border-radius:8px">
     <div style="padding:10px 14px;display:flex;align-items:flex-start;gap:10px">
@@ -978,6 +1053,13 @@ body.dark .btn-auth-primary { color: #0d0900; }
     <div style="margin-left:auto"><button class="btn primary" onclick="openDialog('dlg-add-food')">+ Přidat potravinu</button></div>
   </div>
   <div class="pc">
+    <div class="callout" style="margin-bottom:10px;background:rgba(201,168,76,.06);border:1px solid var(--acc-br)">
+      <div class="callout-icon">📸</div>
+      <div class="callout-body">
+        <div class="callout-title">Nové — fotky potravin</div>
+        <div class="callout-text" style="font-size:12px">Potraviny mohou nyní mít vlastní fotku, která se zobrazí klientovi v detailu jídla. Upload se provede z dialogu potraviny.</div>
+      </div>
+    </div>
     <div class="filter-bar">
       <div class="chip active" onclick="filterFoods('all',this)">Vše</div>
       <div class="chip" onclick="filterFoods('protein',this)">Proteiny</div>
@@ -993,7 +1075,7 @@ body.dark .btn-auth-primary { color: #0d0900; }
     <div id="foods-table-view">
       <div class="db-wrap">
         <table class="db-table">
-          <thead><tr><th style="width:220px">Název ↑</th><th>Kategorie</th><th>kcal/100g</th><th>Bílk.</th><th>Sach.</th><th>Tuky</th><th>Zdroj</th><th></th></tr></thead>
+          <thead><tr><th style="width:44px"></th><th style="width:220px">Název ↑</th><th>Kategorie</th><th>kcal/100g</th><th>Bílk.</th><th>Sach.</th><th>Tuky</th><th>Zdroj</th><th></th></tr></thead>
           <tbody id="foods-tbody"></tbody>
         </table>
         <div class="db-add" onclick="openDialog('dlg-add-food')"><span>+</span><span>Přidat vlastní potravinu</span></div>
@@ -1277,6 +1359,196 @@ body.dark .btn-auth-primary { color: #0d0900; }
       </table>
     </div>
 
+  </div>
+</div>
+</div>
+</div>
+<div id="s-diary-request" class="screen">
+<div class="shell">
+<div class="sb" id="sb-diary-request"></div>
+<div class="main">
+  <div class="bc"><a onclick="showScreen('s-dashboard')">Dashboard</a><span class="bc-sep">/</span><a onclick="showScreen('s-client')">Petra Horáková</a><span class="bc-sep">/</span><span>Foto-deník · žádost</span></div>
+
+  <div class="ph">
+    <div class="ph-icon">📸</div>
+    <h1>Požádat o foto-deník</h1>
+    <div class="ph-sub">Odešli klientovi žádost o sérii fotek jídel</div>
+  </div>
+
+  <div class="toolbar">
+    <div style="margin-left:auto;display:flex;gap:6px">
+      <button class="btn" onclick="showScreen('s-client')">Zrušit</button>
+      <button class="btn primary" onclick="showToast('Žádost odeslána')">Odeslat žádost</button>
+    </div>
+  </div>
+
+  <div class="pc">
+    <!-- Client strip -->
+    <div style="display:flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rm);padding:12px 16px;margin-bottom:16px">
+      <div style="width:36px;height:36px;border-radius:8px;background:rgba(0,122,255,.12);color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600">PH</div>
+      <div style="min-width:0">
+        <div style="font-size:14px;font-weight:600;color:var(--t)">Petra Horáková</div>
+        <div style="font-size:12px;color:var(--t2)">Výživa · Týden 4 / 12</div>
+      </div>
+    </div>
+
+    <!-- How it works callout -->
+    <div class="callout" style="margin-bottom:20px">
+      <div class="callout-icon">ℹ</div>
+      <div class="callout-body">
+        <div class="callout-title">Jak to bude fungovat</div>
+        <div class="callout-text">Klient uvidí žádost jako banner na úvodní obrazovce v mobilu. Může ji přijmout nebo odmítnout (s volitelným důvodem). Po akceptaci si vybere mezi jednorázovým nahráním nebo sedmidenním workflow — fotky uvidíš v reálném čase, jak je klient nahrává.</div>
+      </div>
+    </div>
+
+    <!-- Message -->
+    <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--t)">Zpráva pro klienta</div>
+    <div class="form-group" style="margin-bottom:20px">
+      <textarea class="form-input" rows="4" maxlength="500">Abych si udělala co nejlepší obrázek o tvých stravovacích návycích, než ti sestavím plán, ráda bych od tebe dostala fotky všech jídel, které běžně jíš.</textarea>
+      <div style="font-size:11px;color:var(--t3);margin-top:4px">187 / 500 znaků</div>
+    </div>
+
+    <!-- Duration -->
+    <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--t)">Délka deníku</div>
+    <div class="filter-bar" style="margin-bottom:20px">
+      <div class="chip">3 dny</div>
+      <div class="chip active">7 dní</div>
+      <div class="chip">14 dní</div>
+    </div>
+
+    <!-- Upload mode -->
+    <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--t)">Způsob nahrání — výběr udělá klient</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
+      <div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--rm);padding:14px">
+        <div style="font-size:13px;font-weight:600;color:var(--t);margin-bottom:4px">📤 Nahrát vše najednou</div>
+        <div style="font-size:12px;color:var(--t2);line-height:1.5">Klient nafotí, co obvykle jí, a pošle všechny fotky jedním odesláním.</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--rm);padding:14px">
+        <div style="font-size:13px;font-weight:600;color:var(--t);margin-bottom:4px">📅 Sedmidenní workflow</div>
+        <div style="font-size:12px;color:var(--t2);line-height:1.5">Každý den připomenutí; fotky se zobrazují živě, jak klient nahrává.</div>
+      </div>
+    </div>
+
+    <!-- Green info callout -->
+    <div style="background:rgba(52,199,89,.08);border:1px solid rgba(52,199,89,.22);border-radius:var(--rm);padding:12px 14px;font-size:12px;color:var(--t2);line-height:1.5">
+      💚 Budeš dostávat notifikace při každé nahrané fotce. Odpovědět můžeš v chatu.
+    </div>
+  </div>
+</div>
+</div>
+</div>
+<div id="s-client-photos" class="screen">
+<div class="shell">
+<div class="sb" id="sb-client-photos"></div>
+<div class="main">
+  <div class="bc"><a onclick="showScreen('s-dashboard')">Dashboard</a><span class="bc-sep">/</span><a onclick="showScreen('s-client')">Petra Horáková</a><span class="bc-sep">/</span><span>Fotky</span></div>
+
+  <div class="ph">
+    <div class="ph-icon">🖼️</div>
+    <h1>Fotky Petra Horáková</h1>
+    <div class="ph-sub">48 fotek napříč 3 plány</div>
+  </div>
+
+  <div class="toolbar">
+    <div style="margin-left:auto;display:flex;gap:6px">
+      <button class="btn">📤 Export PDF</button>
+      <button class="btn primary" onclick="showToast('Fotka nahrána')">+ Nahrát fotku</button>
+    </div>
+  </div>
+
+  <div class="pc">
+    <!-- Stats -->
+    <div class="stats-grid" style="grid-template-columns:repeat(4,1fr)">
+      <div class="stat-block"><div class="stat-lbl">Celkem</div><div class="stat-val">48</div><div class="stat-sub">fotek</div></div>
+      <div class="stat-block"><div class="stat-lbl">Jídlo</div><div class="stat-val" style="color:var(--green)">34</div><div class="stat-sub">z deníků</div></div>
+      <div class="stat-block"><div class="stat-lbl">Postup</div><div class="stat-val" style="color:var(--blue)">10</div><div class="stat-sub">fotky postupu</div></div>
+      <div class="stat-block"><div class="stat-lbl">Volné</div><div class="stat-val" style="color:var(--t2)">4</div><div class="stat-sub">nezařazené</div></div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-bar" style="margin-top:16px">
+      <div class="chip active">Vše (48)</div>
+      <div class="chip">Jídlo (34)</div>
+      <div class="chip">Postup (10)</div>
+      <div class="chip">Volné (4)</div>
+      <div style="width:1px;height:20px;background:var(--br);margin:0 4px"></div>
+      <div style="font-size:12px;color:var(--t3);align-self:center;margin-right:4px">Plán:</div>
+      <div class="chip active">Vše plány</div>
+      <div class="chip">Duben–Květen</div>
+      <div class="chip">Únor–Březen</div>
+    </div>
+
+    <!-- Month group: April 2026 -->
+    <div style="font-size:14px;font-weight:600;color:var(--t);margin-top:14px;margin-bottom:10px">Duben 2026 · Plán Duben–Květen</div>
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px">
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(255,149,0,.15)">🥣</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(0,122,255,.15)">🍗</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(52,199,89,.15)">🐟</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(175,82,222,.15)">🥗</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(201,168,76,.15)">🍎</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(255,149,0,.15)">🥑</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(0,122,255,.15)">🌾</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(52,199,89,.15)">🍋</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(175,82,222,.15)">🧀</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(201,168,76,.15)">🍞</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(255,149,0,.15)">🍓</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(0,122,255,.15)">🥦</div>
+    </div>
+
+    <!-- Month group: March 2026 -->
+    <div style="font-size:14px;font-weight:600;color:var(--t);margin-top:18px;margin-bottom:10px">Březen 2026 · Plán Březen</div>
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px">
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(52,199,89,.15)">🥣</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(175,82,222,.15)">🍗</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(201,168,76,.15)">🐟</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(255,149,0,.15)">🥗</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(0,122,255,.15)">🍎</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(52,199,89,.15)">🥑</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(175,82,222,.15)">🌾</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(201,168,76,.15)">🍋</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(255,149,0,.15)">🧀</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(0,122,255,.15)">🍞</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(52,199,89,.15)">🍓</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(175,82,222,.15)">🥦</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(201,168,76,.15)">🥣</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(255,149,0,.15)">🍗</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(0,122,255,.15)">🐟</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(52,199,89,.15)">🥗</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(175,82,222,.15)">🍎</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(201,168,76,.15)">🥑</div>
+    </div>
+
+    <!-- Month group: February 2026 -->
+    <div style="font-size:14px;font-weight:600;color:var(--t);margin-top:18px;margin-bottom:10px">Únor 2026 · Plán Únor–Březen</div>
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px">
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(255,149,0,.15)">🌾</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(0,122,255,.15)">🍋</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(52,199,89,.15)">🧀</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(175,82,222,.15)">🍞</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(201,168,76,.15)">🍓</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(255,149,0,.15)">🥦</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(0,122,255,.15)">🥣</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(52,199,89,.15)">🍗</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(175,82,222,.15)">🐟</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(201,168,76,.15)">🥗</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(255,149,0,.15)">🍎</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(0,122,255,.15)">🥑</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(52,199,89,.15)">🌾</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(175,82,222,.15)">🍋</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(201,168,76,.15)">🧀</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(255,149,0,.15)">🍞</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(0,122,255,.15)">🍓</div>
+      <div style="aspect-ratio:1;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(52,199,89,.15)">🥦</div>
+    </div>
+
+    <!-- Summary -->
+    <div class="callout" style="margin-top:20px">
+      <div class="callout-icon">📊</div>
+      <div class="callout-body">
+        <div class="callout-title">Souhrn</div>
+        <div class="callout-text">Nejaktivnější měsíc: Březen 2026 (18 fotek) · Nejvíce v kategorii Jídlo (34) · Poslední fotka: 3. 4. 2026</div>
+      </div>
+    </div>
   </div>
 </div>
 </div>
@@ -2091,7 +2363,7 @@ function showScreen(id){
   document.querySelectorAll('.tn-btn').forEach(function(b){if(b.getAttribute('onclick')==="showScreen('"+id+"')") b.classList.add('active');});
   window.scrollTo(0,0);
   // Build sidebars
-  var sbMap={'s-dashboard':'sb-dashboard','s-client':'sb-client','s-training':'sb-training','s-messages':'sb-messages','s-nutrition':'sb-nutrition','s-foods':'sb-foods','s-goals':'sb-goals','s-settings-checkins':'sb-settings-checkins'};
+  var sbMap={'s-dashboard':'sb-dashboard','s-client':'sb-client','s-training':'sb-training','s-messages':'sb-messages','s-nutrition':'sb-nutrition','s-foods':'sb-foods','s-goals':'sb-goals','s-settings-checkins':'sb-settings-checkins','s-diary-request':'sb-diary-request','s-client-photos':'sb-client-photos'};
   if(sbMap[id]) buildSidebar(sbMap[id],id);
   // Init nutrition editor
   if(id==='s-nutrition'&&!_nutrInit){_nutrInit=true;initNutrition();}
@@ -2128,6 +2400,21 @@ function showToast(msg){
   _toastTimer=setTimeout(function(){t.style.opacity='0';},2200);
 }
 
+
+
+// ── DEEP-LINK BOOT ────────────────────────────────────────────────────────────
+// Reads `?scene=<id>` from window.location on first load and navigates to that
+// screen (e.g. `?scene=s-dashboard`). Enables stable URLs for Notion embeds.
+(function bootSceneFromUrl(){
+  function apply(){
+    var params = new URLSearchParams(window.location.search);
+    var scene = params.get("scene");
+    if(!scene) return;
+    try { showScreen(scene); } catch(e){ /* unknown scene id — ignore */ }
+  }
+  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", apply);
+  else apply();
+})();
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
 var _dashView='table';
 var _foodsFilter='all';
