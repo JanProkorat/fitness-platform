@@ -152,7 +152,16 @@ source files. Examples:
 5. **Realtime** — SignalR events the page subscribes to (via
    `useSignalR`).
 6. **i18n keys** — key prefix(es) used.
-7. **Recent changes**.
+7. **Prototype preview** — *optional*. If this page has an obvious
+   matching scene in the trainer or notion prototype, add an `embed`
+   block with the scene-anchored Pages URL, e.g.
+   `https://janprokorat.github.io/fitness-platform/trainer_prototype.html?scene=profil`.
+   The `SCREENS` keys in `docs/prototypes/trainer/scripts/nav.js` are the
+   allowed trainer scene ids; `docs/prototypes/notion/scenes/*.html`
+   `<section id="s-*">` IDs are the allowed notion ones. Skip this
+   section if the match isn't obvious — a wrong link is worse than no
+   link.
+8. **Recent changes**.
 
 ---
 
@@ -168,7 +177,13 @@ source files. Examples:
 4. **Key components** — list from the screen body.
 5. **Realtime** — SignalR events that invalidate queries on this screen.
 6. **i18n keys** — key prefix(es).
-7. **Recent changes**.
+7. **Prototype preview** — *optional*. If this screen has a matching
+   mobile prototype scene, add an `embed` block with the scene-anchored
+   URL, e.g.
+   `https://janprokorat.github.io/fitness-platform/mobile_prototype.html?scene=ph-today`.
+   Valid scene ids come from `docs/prototypes/mobile/scripts/nav.js`
+   (the `showPhone` title map). Skip if the match isn't obvious.
+8. **Recent changes**.
 
 ---
 
@@ -177,13 +192,31 @@ source files. Examples:
 **Title:** `<Prototype name>` (e.g. `Mobile prototype`)
 
 **Body:**
-1. **Artefact** — path to the generated HTML
+1. **Live preview** — a Notion `embed` block at the top of the page
+   pointing at the prototype's GitHub Pages URL. Always include it.
+
+   | Prototype           | Embed URL                                                                 |
+   |---------------------|----------------------------------------------------------------------------|
+   | `Mobile prototype`  | `https://janprokorat.github.io/fitness-platform/mobile_prototype.html`     |
+   | `Trainer prototype` | `https://janprokorat.github.io/fitness-platform/trainer_prototype.html`    |
+   | `Notion portal`     | `https://janprokorat.github.io/fitness-platform/notion_portal.html`        |
+
+   The embed renders the whole prototype inline — readers navigate via
+   its own nav bar. Because Pages serves from `develop:/docs`, every
+   merge to `develop` automatically updates what the embed shows.
+
+2. **Artefact** — path to the generated HTML
    (e.g. `docs/mobile_prototype.html`).
-2. **Source tree** — path to the `docs/prototypes/<name>/` folder.
-3. **Build** — the one-line command: `node docs/prototypes/build.mjs`.
-4. **Scenes** — table: `Scene ID` · `File` · `Purpose`. IDs grep from
-   `scenes/*.html` (mobile/trainer use `ph-*`; notion uses `s-*`).
-5. **Recent changes**.
+3. **Source tree** — path to the `docs/prototypes/<name>/` folder.
+4. **Build** — the one-line command: `node docs/prototypes/build.mjs`.
+5. **Scenes** — table: `Scene ID` · `File` · `Purpose` · `Deep link`.
+   IDs grep from `scenes/*.html` (mobile/trainer use `ph-*`; notion
+   uses `s-*`). `Deep link` is the same Pages URL with `?scene=<id>`
+   appended (e.g. `…/trainer_prototype.html?scene=profil`). Render as
+   a plain Notion link in the table — don't embed every row (one embed
+   per page is enough; deep links are for readers who want to open a
+   single scene in a new tab).
+6. **Recent changes**.
 
 ---
 
