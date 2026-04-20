@@ -5163,7 +5163,7 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
     </div>
 
     <!-- Option A (default selected) -->
-    <div style="margin:14px 20px 0;padding:16px;background:rgba(201,168,76,.08);border:1.5px solid var(--ios-gold);border-radius:var(--ios-r-lg);display:flex;align-items:flex-start;gap:12px;cursor:pointer">
+    <div id="diary-opt-bulk" onclick="selectDiaryMode('bulk')" style="margin:14px 20px 0;padding:16px;background:rgba(201,168,76,.08);border:1.5px solid var(--ios-gold);border-radius:var(--ios-r-lg);display:flex;align-items:flex-start;gap:12px;cursor:pointer">
       <div style="width:40px;height:40px;border-radius:12px;background:rgba(201,168,76,.14);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">📤</div>
       <div style="flex:1;min-width:0">
         <div style="font-size:16px;font-weight:600;color:var(--ios-label);margin-bottom:4px">Nahrát vše najednou</div>
@@ -5171,8 +5171,8 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
       </div>
     </div>
 
-    <!-- Option B (muted) -->
-    <div style="margin:10px 20px 0;padding:16px;background:var(--ios-bg2);border:1px solid var(--ios-sep2);border-radius:var(--ios-r-lg);display:flex;align-items:flex-start;gap:12px;cursor:pointer">
+    <!-- Option B (tap to select) -->
+    <div id="diary-opt-workflow" onclick="selectDiaryMode('workflow')" style="margin:10px 20px 0;padding:16px;background:var(--ios-bg2);border:1px solid var(--ios-sep2);border-radius:var(--ios-r-lg);display:flex;align-items:flex-start;gap:12px;cursor:pointer">
       <div style="width:40px;height:40px;border-radius:12px;background:rgba(52,199,89,.1);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">📅</div>
       <div style="flex:1;min-width:0">
         <div style="font-size:16px;font-weight:600;color:var(--ios-label);margin-bottom:4px">Sedmidenní workflow</div>
@@ -5180,12 +5180,34 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
       </div>
     </div>
 
+    <script>
+      function selectDiaryMode(mode){
+        var bulk = document.getElementById('diary-opt-bulk');
+        var wf   = document.getElementById('diary-opt-workflow');
+        var cta  = document.getElementById('diary-wizard-cta');
+        if(!bulk || !wf || !cta) return;
+        if(mode === 'bulk'){
+          bulk.style.background = 'rgba(201,168,76,.08)';
+          bulk.style.border = '1.5px solid var(--ios-gold)';
+          wf.style.background = 'var(--ios-bg2)';
+          wf.style.border = '1px solid var(--ios-sep2)';
+          cta.setAttribute('onclick', "showPhone('ph-diary-bulk')");
+        } else {
+          wf.style.background = 'rgba(52,199,89,.08)';
+          wf.style.border = '1.5px solid #34c759';
+          bulk.style.background = 'var(--ios-bg2)';
+          bulk.style.border = '1px solid var(--ios-sep2)';
+          cta.setAttribute('onclick', "showPhone('ph-diary-workflow')");
+        }
+      }
+    </script>
+
     <div style="height:20px"></div>
   </div>
 
   <!-- Action bar pinned at bottom (above tab bar) -->
   <div style="position:absolute;left:0;right:0;bottom:83px;padding:12px 20px;background:var(--ios-bg);border-top:.5px solid var(--ios-sep2);display:flex;gap:10px">
-    <div onclick="showPhone('ph-diary-bulk')" style="flex:1;display:flex;align-items:center;justify-content:center;padding:14px;border-radius:14px;background:var(--ios-gold);color:#fff;font-size:15px;font-weight:600;cursor:pointer">Pokračovat</div>
+    <div id="diary-wizard-cta" onclick="showPhone('ph-diary-bulk')" style="flex:1;display:flex;align-items:center;justify-content:center;padding:14px;border-radius:14px;background:var(--ios-gold);color:#fff;font-size:15px;font-weight:600;cursor:pointer">Pokračovat</div>
     <div onclick="showPhone('ph-diary-request')" style="padding:14px 18px;border-radius:14px;background:var(--ios-bg2);border:1px solid var(--ios-sep2);color:var(--ios-label);font-size:14px;font-weight:600;cursor:pointer">Zrušit</div>
   </div>
 
@@ -6318,6 +6340,21 @@ function toggleDark(){
   });
 }
 
+
+
+// ── DEEP-LINK BOOT ────────────────────────────────────────────────────────────
+// Reads `?scene=<id>` from window.location on first load and navigates to that
+// scene. Enables stable URLs for Notion embeds and shared links.
+(function bootSceneFromUrl(){
+  function apply(){
+    var params = new URLSearchParams(window.location.search);
+    var scene = params.get("scene");
+    if(!scene) return;
+    try { showPhone(scene); } catch(e){ /* unknown scene id — ignore */ }
+  }
+  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", apply);
+  else apply();
+})();
 // ── NOTIFICATIONS ─────────────────────────────────────────────────────────────
 function openNotifSheet(phoneId) {
   var el = document.querySelector('#' + phoneId + ' .notif-overlay');
