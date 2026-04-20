@@ -585,6 +585,10 @@
   },
   "weeklyCheckIn": {
     "title": "Týdenní check-iny",
+    "profession": {
+      "training": "Trénink",
+      "nutrition": "Výživa"
+    },
     "defaultPrompt": {
       "training": "Tvůj trenér brzy plánuje příští týden. Čeká tě něco zvláštního?",
       "nutrition": "Tvůj nutricionista brzy plánuje příští týden. Čeká tě něco zvláštního?"

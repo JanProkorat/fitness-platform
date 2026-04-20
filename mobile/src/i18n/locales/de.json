@@ -606,6 +606,10 @@
   },
   "weeklyCheckIn": {
     "title": "Wöchentliche Check-ins",
+    "profession": {
+      "training": "Training",
+      "nutrition": "Ernährung"
+    },
     "defaultPrompt": {
       "training": "Dein Trainer plant bald die nächste Woche. Steht etwas Besonderes an?",
       "nutrition": "Dein Ernährungsberater plant bald die nächste Woche. Steht etwas Besonderes an?"

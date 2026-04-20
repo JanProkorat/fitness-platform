@@ -267,10 +267,11 @@ export default function WeeklyCheckInScreen() {
     )
   }
 
-  const professionLabel =
+  const professionLabel = `${effectiveCheckIn.profession === 'Training' ? '🏋️' : '🥗'} ${t(
     effectiveCheckIn.profession === 'Training'
-      ? '🏋️ Training'
-      : '🥗 Nutrition'
+      ? 'weeklyCheckIn.profession.training'
+      : 'weeklyCheckIn.profession.nutrition',
+  )}`
 
   const promptKey =
     effectiveCheckIn.profession === 'Training'
