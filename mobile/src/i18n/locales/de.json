@@ -604,6 +604,43 @@
     "loading": "Rezept wird geladen...",
     "error": "Rezeptdetails konnten nicht geladen werden"
   },
+  "weeklyCheckIn": {
+    "title": "Wöchentliche Check-ins",
+    "profession": {
+      "training": "Training",
+      "nutrition": "Ernährung"
+    },
+    "defaultPrompt": {
+      "training": "Dein Trainer plant bald die nächste Woche. Steht etwas Besonderes an?",
+      "nutrition": "Dein Ernährungsberater plant bald die nächste Woche. Steht etwas Besonderes an?"
+    },
+    "push": {
+      "title": "Planung der nächsten Woche"
+    },
+    "banner": {
+      "cta": "Informier sie"
+    },
+    "sheet": {
+      "submit": "Absenden",
+      "skip": "Diese Woche überspringen",
+      "close": "Schließen",
+      "notePlaceholder": {
+        "training": "Gibt es noch etwas, das dein Trainer wissen sollte?",
+        "nutrition": "Gibt es noch etwas, das dein Ernährungsberater wissen sollte?"
+      },
+      "weekOf": "Woche {{range}}",
+      "editLocked": "Dein Trainer hat das bereits gesehen.",
+      "edit": "Bearbeiten"
+    },
+    "flag": {
+      "traveling": "Reisen",
+      "eventOrCelebration": "Veranstaltung / Feier",
+      "sickOrLowEnergy": "Krank / wenig Energie",
+      "injuryOrPain": "Verletzung oder Schmerzen",
+      "moreTimeAvailable": "Mehr Zeit als gewöhnlich",
+      "lessTimeAvailable": "Weniger Zeit als gewöhnlich"
+    }
+  },
   "nutrition": {
     "title": "Ernährung",
     "noPlanMessage": "Dein Ernährungsberater wertet deine Daten aus und erstellt einen personalisierten Plan. Du wirst ggf. für weitere Informationen kontaktiert.",

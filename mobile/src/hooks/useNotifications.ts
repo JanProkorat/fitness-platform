@@ -3,13 +3,34 @@ import api from '../api/client'
 
 export interface Notification {
   id: string
-  type: 'invitation' | 'questionnaire' | 'new_plan' | 'message' | 'training_done' | 'alarm'
+  type: 'invitation' | 'questionnaire' | 'new_plan' | 'message' | 'training_done' | 'alarm' | 'weekly_checkin'
   title: string
   body: string
   timestamp: string
   read: boolean
   actionLabel?: string
   actionPayload?: Record<string, string>
+}
+
+/**
+ * Maps backend NotificationType strings to the mobile Notification.type union.
+ * Extend here when the backend adds new NotificationType enum values.
+ */
+export const BACKEND_TYPE_MAP: Record<string, Notification['type']> = {
+  InvitationReceived: 'invitation',
+  InvitationAccepted: 'invitation',
+  InvitationDeclined: 'invitation',
+  InvitationCancelled: 'invitation',
+  QuestionnaireAssigned: 'questionnaire',
+  QuestionnaireSubmitted: 'questionnaire',
+  PlanPublished: 'new_plan',
+  ClientRequestReceived: 'invitation',
+  ClientRequestAccepted: 'invitation',
+  ClientRequestRejected: 'invitation',
+  PersonalRecord: 'training_done',
+  General: 'alarm',
+  WeeklyCheckInRequested: 'weekly_checkin',
+  // WeeklyCheckInResponded goes to trainers only — not mapped on client side
 }
 
 interface NotificationsResponse {
