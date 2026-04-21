@@ -357,8 +357,14 @@ export function HasTrainerState() {
           .sort((a, b) => a - b)
         const prevSessionSetsMap: Record<string, number[]> =
           previous.completedSetsBySessionExercise?.[sessionId] ?? {}
+        // Only write the set-numbers entry when there are actual planned sets.
+        // An empty array would produce `[exerciseExternalId]: []` in the cache —
+        // cosmetically harmless but semantically wrong (backend returns no sets).
         const nextSetsForSession: Record<string, number[]> = complete
-          ? { ...prevSessionSetsMap, [exerciseExternalId]: plannedSetNumbers }
+          ? {
+              ...prevSessionSetsMap,
+              ...(plannedSetNumbers.length > 0 ? { [exerciseExternalId]: plannedSetNumbers } : {}),
+            }
           : (({ [exerciseExternalId]: _omitted, ...rest }) => rest)(prevSessionSetsMap)
 
         queryClient.setQueryData<TodayTrainingResponse>(['today-training'], {

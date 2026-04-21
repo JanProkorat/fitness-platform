@@ -106,7 +106,7 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
         // ── 4. Fetch all WorkoutLog docs for this client + plan ───────────────────
         // Walk them once to build a lookup keyed by (sessionId, exerciseExternalId, setNumber).
         // A set is "completed" when it has a CompletedAt value in WorkoutSet.
-        // We prefer the most recent completion timestamp if multiple logs exist for the same session.
+        // We prefer the earliest non-null CompletedAt per set if multiple logs exist for the same session.
         // IMPORTANT: WorkoutLog.ClientId is stored as the auth user's Id (Guid), not PublicId.
         var logFilter = Builders<WorkoutLog>.Filter.And(
             Builders<WorkoutLog>.Filter.Eq(l => l.ClientId, userIdGuid),

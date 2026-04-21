@@ -1386,6 +1386,141 @@ public class GetTodaySessionEndpointTests
     }
 
     // -------------------------------------------------------------------------
+    // latestLogPerSession tie-breaker — determinism when StartedAt is identical
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Regression: when two WorkoutLogs for the same session share an identical StartedAt
+    /// (e.g. start-workout retried on a flaky network), the secondary sort by DateCreated
+    /// descending must break the tie deterministically.
+    /// The log with the later DateCreated (newerLog) should win, so only its exercises
+    /// appear in CompletedExerciseIdsBySession / CompletedSetsBySessionExercise.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_MultipleLogsWithIdenticalStartedAt_PicksDeterministically()
+    {
+        var todayDow = TodayDow();
+        var startOfWeek = StartOfCurrentWeek();
+        var sessionId = Guid.NewGuid();
+        var exerciseA = Guid.NewGuid(); // only in olderLog (all sets done)
+        var exerciseB = Guid.NewGuid(); // only in newerLog (all sets done)
+
+        var db = new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .Build();
+
+        var sharedStartedAt = DateTime.UtcNow.AddMinutes(-10); // identical for both logs
+
+        var plan = new TrainingPlan
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = _clientId,
+            TrainerId = Guid.NewGuid(),
+            Name = "Tie-Breaker Plan",
+            Status = TrainingPlanStatus.Active,
+            StartDate = startOfWeek,
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = startOfWeek,
+                    Sessions =
+                    [
+                        new TrainingSession
+                        {
+                            SessionId = sessionId,
+                            DayOfWeek = todayDow,
+                            Name = "Push Day",
+                            Order = 1,
+                            Exercises =
+                            [
+                                new SessionExercise
+                                {
+                                    ExerciseExternalId = exerciseA,
+                                    ExerciseName = "Exercise A",
+                                    Order = 1,
+                                    Sets = [new ExerciseSet { SetNumber = 1 }]
+                                },
+                                new SessionExercise
+                                {
+                                    ExerciseExternalId = exerciseB,
+                                    ExerciseName = "Exercise B",
+                                    Order = 2,
+                                    Sets = [new ExerciseSet { SetNumber = 1 }]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            Version = 1,
+            DateCreated = startOfWeek
+        };
+
+        // Older log (lower DateCreated): only exerciseA fully done.
+        var olderLog = new WorkoutLog
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = _clientId,
+            SessionId = sessionId,
+            PlanId = plan.ExternalId,
+            StartedAt = sharedStartedAt,
+            IsCompleted = false,
+            DateCreated = sharedStartedAt,                        // earlier insert
+            Exercises =
+            [
+                new WorkoutExercise
+                {
+                    ExerciseExternalId = exerciseA,
+                    ExerciseName = "Exercise A",
+                    Sets = [new WorkoutSet { SetNumber = 1, CompletedAt = DateTime.UtcNow }]
+                }
+            ]
+        };
+
+        // Newer log (higher DateCreated): only exerciseB fully done.
+        var newerLog = new WorkoutLog
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = _clientId,
+            SessionId = sessionId,
+            PlanId = plan.ExternalId,
+            StartedAt = sharedStartedAt,                         // identical StartedAt
+            IsCompleted = false,
+            DateCreated = sharedStartedAt.AddSeconds(2),         // later insert — wins tie-break
+            Exercises =
+            [
+                new WorkoutExercise
+                {
+                    ExerciseExternalId = exerciseB,
+                    ExerciseName = "Exercise B",
+                    Sets = [new WorkoutSet { SetNumber = 1, CompletedAt = DateTime.UtcNow }]
+                }
+            ]
+        };
+
+        var ep = Factory.Create<GetTodaySessionEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
+            CreateMongoWithPlan(plan, workoutLogs: [olderLog, newerLog]),
+            db);
+
+        await ep.HandleAsync(TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        var response = ep.Response;
+        response.HasSession.Should().BeTrue();
+
+        // The newer log (exerciseB complete) must win — exerciseA from the older log must not appear.
+        var completed = response.CompletedExerciseIdsBySession.GetValueOrDefault(sessionId) ?? [];
+        completed.Should().Contain(exerciseB, "the newer log (higher DateCreated) must win the tie-break");
+        completed.Should().NotContain(exerciseA, "the older log must be discarded by the tie-break");
+    }
+
+    // -------------------------------------------------------------------------
     // ExerciseMuscleGroups enrichment
     // -------------------------------------------------------------------------
 

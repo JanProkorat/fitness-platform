@@ -175,12 +175,14 @@ public class CompleteWorkoutEndpointTests
             Arg.Any<ReplaceOptions>(),
             Arg.Any<CancellationToken>());
 
-        // Assert: fan-out — TrainingCompletion inserted for (publicId, startedAt.Date, sessionId)
+        // Assert: fan-out — TrainingCompletion inserted for (publicId, completion day UTC, sessionId)
+        // Date is keyed by the finalisation day (DateTime.UtcNow.Date), not the log's StartedAt.Date,
+        // so that GetTodaySessionEndpoint — which reads by DateTime.UtcNow.Date — always finds the doc.
         await completionCollection.Received(1).InsertOneAsync(
             Arg.Is<TrainingCompletion>(c =>
                 c.ClientId == publicId &&
                 c.SessionId == sessionId &&
-                c.Date == startedAt.Date &&
+                c.Date == DateTime.UtcNow.Date &&
                 c.CompletedExerciseIds.Count == 2 &&
                 c.CompletedExerciseIds.Contains(exerciseA) &&
                 c.CompletedExerciseIds.Contains(exerciseB) &&
@@ -294,6 +296,99 @@ public class CompleteWorkoutEndpointTests
             Arg.Any<CancellationToken>());
         // Version on the in-memory doc is unchanged.
         existingCompletion.Version.Should().Be(existingVersion);
+    }
+
+    /// <summary>
+    /// Regression for the midnight-crossing bug: a workout started at 23:50 UTC yesterday
+    /// and completed at 00:10 UTC today must write the TrainingCompletion with today's date,
+    /// not yesterday's, so that GetTodaySessionEndpoint (which reads by DateTime.UtcNow.Date)
+    /// picks up the completion immediately after "done".
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_StartedLateYesterdayCompletedToday_KeysTrainingCompletionByCompletionDay()
+    {
+        // Arrange — log StartedAt is late yesterday UTC (simulates the midnight-crossing scenario).
+        var publicId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var exerciseA = Guid.NewGuid();
+        var startedAt = DateTime.UtcNow.Date.AddDays(-1).AddHours(23).AddMinutes(50); // late yesterday
+
+        var plan = new TrainingPlan
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = publicId,
+            TrainerId = Guid.NewGuid(),
+            Name = "Midnight Plan",
+            Status = TrainingPlanStatus.Active,
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    Sessions =
+                    [
+                        new TrainingSession
+                        {
+                            SessionId = sessionId,
+                            DayOfWeek = 1,
+                            Name = "Midnight Session",
+                            Order = 1,
+                            Exercises =
+                            [
+                                new SessionExercise
+                                {
+                                    ExerciseExternalId = exerciseA,
+                                    ExerciseName = "Exercise A",
+                                    Order = 1
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            Version = 1,
+            DateCreated = DateTime.UtcNow
+        };
+
+        var logId = Guid.NewGuid();
+        var log = WorkoutLogTestHelpers.CreateLog(
+            externalId: logId,
+            clientId: _clientId,
+            planId: plan.ExternalId,
+            sessionId: sessionId,
+            startedAt: startedAt); // started yesterday
+
+        var (mongo, completionCollection) = TrainingCompletionTestHelpers.CreateMockMongo(
+            plan: plan,
+            workoutLogs: [log]);
+
+        var logCollection = WorkoutLogTestHelpers.CreateMockLogCollection([log]);
+        mongo.WorkoutLogs.Returns(logCollection);
+
+        var db = new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = publicId })
+            .Build();
+
+        var ep = Factory.Create<CompleteWorkoutEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
+            mongo, db, StubPrDetection(), Substitute.For<INotificationService>(), _logger);
+
+        // Act — the endpoint runs now (today UTC), even though StartedAt was yesterday.
+        await ep.HandleAsync(new CompleteWorkoutRequest { LogId = logId }, TestContext.Current.CancellationToken);
+
+        // Assert: date must equal today, NOT yesterday (startedAt.Date).
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        await completionCollection.Received(1).InsertOneAsync(
+            Arg.Is<TrainingCompletion>(c =>
+                c.ClientId == publicId &&
+                c.SessionId == sessionId &&
+                c.Date == DateTime.UtcNow.Date && // completion day, not start day
+                c.Date != startedAt.Date),         // must differ from yesterday
+            Arg.Any<InsertOneOptions>(),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]

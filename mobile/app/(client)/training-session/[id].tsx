@@ -808,13 +808,18 @@ export default function WorkoutLogScreen() {
   })
 
   const completeMutation = useMutation({
-    mutationFn: (logId: string) => completeWorkout(logId),
-    onSuccess: () => {
+    // Invalidation lives inside mutationFn (not onSuccess) so it runs even when
+    // the screen has already unmounted. The LiveFinishedSummary → handleBackToToday
+    // path navigates away before the POST resolves on slow networks, causing the
+    // observer-level onSuccess callback to be silently dropped by TanStack Query v5.
+    mutationFn: async (logId: string) => {
+      const result = await completeWorkout(logId)
       // Invalidate personal records so the profile card refreshes on next view.
       void queryClient.invalidateQueries({ queryKey: ['personal-records-latest'] })
       // Refresh the Today card so completed exercises / sessions light up there too.
       void queryClient.invalidateQueries({ queryKey: ['today-training'] })
       void queryClient.invalidateQueries({ queryKey: ['compliance-score'] })
+      return result
     },
     onError: (_err, logId) => {
       if (!isConnected) {
@@ -1288,6 +1293,7 @@ export default function WorkoutLogScreen() {
         setsDone={totalSetsDone}
         setsTotal={totalSetsAll}
         onClose={handleClose}
+        closePending={updateMutation.isPending}
       />
 
       {/* Roadmap — visible only while running */}
