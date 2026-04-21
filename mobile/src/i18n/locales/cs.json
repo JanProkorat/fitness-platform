@@ -216,6 +216,8 @@
     "restDay": "Den odpočinku",
     "preparing": "Připravuje se",
     "streak": "Série",
+    "compliance": "Plnění",
+    "complianceSub": "za posledních 7 dní",
     "todaysTraining": "Dnešní trénink",
     "trainingPlan": "Tréninkový plán",
     "todaysNutrition": "Dnešní jídelníček",
@@ -301,19 +303,23 @@
       "chip_other": "{{done}}/{{total}} hotovo"
     },
     "minuteCount": "{{minutes}} min",
-    "trainingCardA11yLabel": "Otevřít trénink: {{name}}",
     "sectionActionDetail": "Detail",
-    "markWholeDayDone": "Označit celý trénink jako splněno",
-    "trainingCompleteLabel": "Hotovo",
     "exerciseCheckboxA11y": "Označit cvik jako splněný",
     "sessionCheckboxA11y": "Označit celou tréninkovou jednotku jako splněnou",
+    "sessionsCount_one": "{{count}} tréninková jednotka",
+    "sessionsCount_few": "{{count}} tréninkové jednotky",
+    "sessionsCount_other": "{{count}} tréninkových jednotek",
+    "sessionsCountShort_one": "{{count}} trénink",
+    "sessionsCountShort_few": "{{count}} tréninky",
+    "sessionsCountShort_other": "{{count}} tréninků",
+    "exerciseNoteLabel": "Pozn:",
     "trainingCta": {
       "start": "Začít trénink",
       "continue": "Pokračovat v tréninku",
       "finished": "Dokončeno",
-      "viewSummary": "Zobrazit souhrn",
       "startError": "Trénink se nepodařilo spustit. Zkus to znovu."
-    }
+    },
+    "noNutritionPlanForToday": "Na dnes nemáte naplánovaný jídelníček"
   },
   "questionnaire": {
     "allDone": "Hotovo!",
@@ -788,7 +794,7 @@
       "statTime": "Čas",
       "statSeries": "Série",
       "statReps": "Opakování",
-      "statVolume": "Objem",
+      "statExercises": "Cviky",
       "prBannerTitle": "Nové osobní rekordy",
       "prBannerSubtitle_one": "{{count}} × překonaná váha",
       "prBannerSubtitle_other": "{{count}} × překonaná váha",

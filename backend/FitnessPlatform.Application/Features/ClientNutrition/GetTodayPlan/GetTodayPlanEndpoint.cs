@@ -89,8 +89,14 @@ public class GetTodayPlanEndpoint(IMongoContext mongo, IApplicationDbContext db)
             var weekNum = daysSinceStart / 7 + 1;
             dayIndex = daysSinceStart % 7;
 
-            week = publishedWeeks.FirstOrDefault(w => w.WeekNumber == weekNum)
-                   ?? publishedWeeks[^1];
+            var matchedWeek = publishedWeeks.FirstOrDefault(w => w.WeekNumber == weekNum);
+            if (matchedWeek is null)
+            {
+                await Send.NotFoundAsync(ct);
+                return;
+            }
+
+            week = matchedWeek;
         }
         else
         {

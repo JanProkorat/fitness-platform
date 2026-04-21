@@ -20,6 +20,10 @@ interface ProgressRingProps {
   size?: number
   strokeWidth?: number
   color?: string
+  /** Color of the unfilled track. Defaults to the theme's `fill` token. */
+  trackColor?: string
+  /** Color of the centered "current/total" label. Defaults to the theme's `label` token. */
+  labelColor?: string
   showLabel?: boolean
 }
 
@@ -29,10 +33,14 @@ export function ProgressRing({
   size = 56,
   strokeWidth = 5,
   color,
+  trackColor,
+  labelColor,
   showLabel = true,
 }: ProgressRingProps) {
   const colors = useTheme()
   const ringColor = color ?? colors.gold
+  const resolvedTrackColor = trackColor ?? colors.fill
+  const resolvedLabelColor = labelColor ?? colors.label
   const radius = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
   const ratio = total > 0 ? Math.min(current / total, 1) : 0
@@ -58,7 +66,7 @@ export function ProgressRing({
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke={colors.fill}
+          stroke={resolvedTrackColor}
           strokeWidth={strokeWidth}
           fill="none"
         />
@@ -78,7 +86,7 @@ export function ProgressRing({
       </Svg>
       {showLabel && (
         <View style={styles.labelContainer}>
-          <Text style={[styles.label, { color: colors.label }]}>
+          <Text style={[styles.label, { color: resolvedLabelColor }]}>
             {current}/{total}
           </Text>
         </View>

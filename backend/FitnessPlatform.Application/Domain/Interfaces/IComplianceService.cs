@@ -1,4 +1,5 @@
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 
 namespace FitnessPlatform.Application.Domain.Interfaces;
 
@@ -19,12 +20,24 @@ public interface IComplianceService
     Task<ComplianceResult> CalculateComplianceAsync(Guid clientId, DateTime from, DateTime to, CancellationToken ct);
 
     /// <summary>
-    /// Calculates the current streak of consecutive days where at least one meal was logged.
+    /// Calculates the current streak of consecutive compliant days for both nutrition and training plans.
+    /// Equivalent to calling <see cref="CalculateStreakAsync(Guid, ComplianceDiscipline, CancellationToken)"/>
+    /// with <see cref="ComplianceDiscipline.Both"/>.
     /// </summary>
     /// <param name="clientId">The client's ApplicationUser.Id.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>Number of consecutive compliant days.</returns>
     Task<int> CalculateStreakAsync(Guid clientId, CancellationToken ct);
+
+    /// <summary>
+    /// Calculates the current streak of consecutive compliant days, restricted to the
+    /// plan types indicated by <paramref name="discipline"/>.
+    /// </summary>
+    /// <param name="clientId">The client's ApplicationUser.Id.</param>
+    /// <param name="discipline">Which plan types to include in the streak calculation.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Number of consecutive compliant days.</returns>
+    Task<int> CalculateStreakAsync(Guid clientId, ComplianceDiscipline discipline, CancellationToken ct);
 
     /// <summary>
     /// Calculates average daily macros consumed over a date range.

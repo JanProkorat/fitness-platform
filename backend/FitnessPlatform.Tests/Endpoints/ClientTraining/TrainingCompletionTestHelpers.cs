@@ -87,12 +87,16 @@ public static class TrainingCompletionTestHelpers
 
     /// <summary>
     /// Creates a mock <see cref="IMongoContext"/> with configured collections for
-    /// training plans and training completions.
+    /// training plans and training completions. <paramref name="workoutLogs"/> is
+    /// optional; when supplied the mock WorkoutLogs collection will contain those
+    /// documents and <see cref="IMongoCollection{WorkoutLog}.ReplaceOneAsync"/> will
+    /// return a successful result.
     /// </summary>
     public static (IMongoContext Mongo, IMongoCollection<TrainingCompletion> CompletionCollection)
         CreateMockMongo(
             TrainingPlan? plan = null,
-            TrainingCompletion? existingCompletion = null)
+            TrainingCompletion? existingCompletion = null,
+            IReadOnlyList<WorkoutLog>? workoutLogs = null)
     {
         var mongo = Substitute.For<IMongoContext>();
 
@@ -108,7 +112,40 @@ public static class TrainingCompletionTestHelpers
         var completionCollection = CreateMockCompletionCollection(completions);
         mongo.TrainingCompletions.Returns(completionCollection);
 
+        // WorkoutLogs — empty by default so the new best-effort WorkoutLog cleanup
+        // paths in MarkSessionIncomplete / MarkExerciseIncomplete don't throw.
+        var logCollection = CreateMockWorkoutLogCollection(workoutLogs ?? []);
+        mongo.WorkoutLogs.Returns(logCollection);
+
         return (mongo, completionCollection);
+    }
+
+    /// <summary>
+    /// Creates a mock <see cref="IMongoCollection{WorkoutLog}"/> backed by the supplied list.
+    /// <see cref="IMongoCollection{WorkoutLog}.ReplaceOneAsync"/> is stubbed to return success
+    /// without mutating the list (the test inspects the in-memory objects directly).
+    /// </summary>
+    public static IMongoCollection<WorkoutLog> CreateMockWorkoutLogCollection(
+        IReadOnlyList<WorkoutLog> logs)
+    {
+        var collection = Substitute.For<IMongoCollection<WorkoutLog>>();
+
+        collection.FindAsync(
+                Arg.Any<FilterDefinition<WorkoutLog>>(),
+                Arg.Any<FindOptions<WorkoutLog, WorkoutLog>>(),
+                Arg.Any<CancellationToken>())
+            .Returns(_ => CreateWorkoutLogCursor(logs.ToList()));
+
+        var replaceResult = Substitute.For<ReplaceOneResult>();
+        replaceResult.ModifiedCount.Returns(1L);
+        collection.ReplaceOneAsync(
+                Arg.Any<FilterDefinition<WorkoutLog>>(),
+                Arg.Any<WorkoutLog>(),
+                Arg.Any<ReplaceOptions>(),
+                Arg.Any<CancellationToken>())
+            .Returns(replaceResult);
+
+        return collection;
     }
 
     /// <summary>
@@ -210,6 +247,26 @@ public static class TrainingCompletionTestHelpers
             if (moved) return false;
             moved = true;
             return completions.Count > 0;
+        });
+        return cursor;
+    }
+
+    private static IAsyncCursor<WorkoutLog> CreateWorkoutLogCursor(List<WorkoutLog> logs)
+    {
+        var cursor = Substitute.For<IAsyncCursor<WorkoutLog>>();
+        var moved = false;
+        cursor.Current.Returns(logs);
+        cursor.MoveNext(Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            if (moved) return false;
+            moved = true;
+            return logs.Count > 0;
+        });
+        cursor.MoveNextAsync(Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            if (moved) return false;
+            moved = true;
+            return logs.Count > 0;
         });
         return cursor;
     }

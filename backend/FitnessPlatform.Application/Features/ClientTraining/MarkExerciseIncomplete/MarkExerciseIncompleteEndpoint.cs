@@ -148,6 +148,57 @@ public class MarkExerciseIncompleteEndpoint(
             return;
         }
 
+        // Mirror the un-mark into today's WorkoutLog(s) so the read side
+        // (GetTodaySessionEndpoint) no longer re-merges stale CompletedAt stamps.
+        // NOTE: WorkoutLog.ClientId is stored as the auth user's Id, NOT clientProfile.PublicId.
+        var userIdGuid = Guid.Parse(userId);
+        try
+        {
+            var tomorrow = targetDate.AddDays(1);
+            var logFilter =
+                Builders<WorkoutLog>.Filter.Eq(l => l.ClientId, userIdGuid)
+                & Builders<WorkoutLog>.Filter.Eq(l => l.SessionId, (Guid?)req.SessionId)
+                & Builders<WorkoutLog>.Filter.Gte(l => l.StartedAt, targetDate)
+                & Builders<WorkoutLog>.Filter.Lt(l => l.StartedAt, tomorrow);
+
+            using var logCursor = await mongo.WorkoutLogs.FindAsync(logFilter, cancellationToken: ct);
+            var matchingLogs = await logCursor.ToListAsync(ct);
+
+            foreach (var log in matchingLogs)
+            {
+                var exerciseEntry = log.Exercises
+                    .FirstOrDefault(e => e.ExerciseExternalId == req.ExerciseExternalId);
+
+                if (exerciseEntry is null)
+                    continue;
+
+                // Clear only this exercise's set timestamps.
+                foreach (var set in exerciseEntry.Sets)
+                    set.CompletedAt = null;
+
+                // If every set across every exercise now lacks CompletedAt, mark the log as not completed.
+                var anySetStillCompleted = log.Exercises
+                    .SelectMany(e => e.Sets)
+                    .Any(s => s.CompletedAt is not null);
+                if (!anySetStillCompleted)
+                    log.IsCompleted = false;
+
+                log.DateUpdated = DateTime.UtcNow;
+
+                await mongo.WorkoutLogs.ReplaceOneAsync(
+                    Builders<WorkoutLog>.Filter.Eq(l => l.Id, log.Id),
+                    log,
+                    cancellationToken: ct);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex,
+                "Failed to clear WorkoutLog CompletedAt stamps for exercise {ExerciseExternalId} " +
+                "in session {SessionId} on {Date}. TrainingCompletion was already updated; this is best-effort.",
+                req.ExerciseExternalId, req.SessionId, targetDate);
+        }
+
         await TrainingProgressBroadcaster.BroadcastSessionAsync(
             notifier, compliance, mongo, plan, clientId,
             req.SessionId, DateOnly.FromDateTime(targetDate),

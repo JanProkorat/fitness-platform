@@ -145,13 +145,13 @@ export default function DashboardPage() {
         value: clients.length > 0
           ? `${totalTrains}/${totalTrainsGoal} · ${activePlansCount}`
           : '—',
-        sub: 'tréninky tento týden · aktivní plány',
+        sub: 'tréninky dnes · aktivní plány',
       });
     } else if (isTrainer) {
       items.push({
-        label: 'Tréninky',
+        label: 'Tréninky dnes',
         value: clients.length > 0 ? `${totalTrains}/${totalTrainsGoal}` : '—',
-        sub: 'splněno tento týden',
+        sub: 'splněno dnes',
       });
     } else if (isNutritionist) {
       items.push({
@@ -210,7 +210,10 @@ export default function DashboardPage() {
           <span className="text-[13px]">🔥 {row.streak}d</span>
         ),
       },
-      {
+    ];
+
+    if (isNutritionist) {
+      cols.push({
         key: 'kcal',
         label: 'Kalorie dnes',
         render: (row: EnrichedClient) => {
@@ -229,13 +232,13 @@ export default function DashboardPage() {
             </div>
           );
         },
-      },
-    ];
+      });
+    }
 
     if (isTrainer) {
       cols.push({
         key: 'trains',
-        label: 'Tréninky',
+        label: 'Tréninky dnes',
         render: (row: EnrichedClient) => {
           const variant = row.trains >= row.trainsGoal
             ? 'green'
@@ -542,11 +545,13 @@ export default function DashboardPage() {
                       </span>
                       <span className="text-text3 ml-1">compliance · 🔥{client.streak}d</span>
                     </CardPropRow>
-                    <CardPropRow label="Kalorie:">
-                      {client.todayKcalRounded}/{client.kcalGoal}
-                    </CardPropRow>
+                    {isNutritionist && (
+                      <CardPropRow label="Kalorie:">
+                        {client.todayKcalRounded}/{client.kcalGoal}
+                      </CardPropRow>
+                    )}
                     {isTrainer && (
-                      <CardPropRow label="Tréninky:">
+                      <CardPropRow label="Tréninky dnes:">
                         {client.trains}/{client.trainsGoal}
                       </CardPropRow>
                     )}

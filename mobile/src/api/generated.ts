@@ -430,6 +430,863 @@ export class ApiClient {
     }
 
     /**
+     * Respond to a weekly check-in
+     * @param id Route parameter — check-in identifier.
+     * @return Success
+     */
+    respondToCheckInEndpoint(id: string, respondToCheckInRequest: RespondToCheckInRequest, signal?: AbortSignal): Promise<RespondToCheckInResponse> {
+        let url_ = this.baseUrl + "/client/weekly-check-ins/{id}/respond";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(respondToCheckInRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processRespondToCheckInEndpoint(_response);
+        });
+    }
+
+    protected processRespondToCheckInEndpoint(response: AxiosResponse): Promise<RespondToCheckInResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<RespondToCheckInResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<RespondToCheckInResponse>(null as any);
+    }
+
+    /**
+     * Upsert weekly check-in setting
+     * @return Success
+     */
+    putSettingsEndpoint(putSettingsRequest: PutSettingsRequest, signal?: AbortSignal): Promise<PutSettingsResponse> {
+        let url_ = this.baseUrl + "/trainer/weekly-check-ins/settings";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(putSettingsRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processPutSettingsEndpoint(_response);
+        });
+    }
+
+    protected processPutSettingsEndpoint(response: AxiosResponse): Promise<PutSettingsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<PutSettingsResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PutSettingsResponse>(null as any);
+    }
+
+    /**
+     * Get weekly check-in settings
+     * @return Success
+     */
+    getSettingsEndpoint(signal?: AbortSignal): Promise<GetSettingsResponse> {
+        let url_ = this.baseUrl + "/trainer/weekly-check-ins/settings";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetSettingsEndpoint(_response);
+        });
+    }
+
+    protected processGetSettingsEndpoint(response: AxiosResponse): Promise<GetSettingsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetSettingsResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetSettingsResponse>(null as any);
+    }
+
+    /**
+     * Upsert per-client override
+     * @param clientUserId The client's ApplicationUser.Id (route parameter).
+     * @param profession Profession ("Training" or "Nutrition") (route parameter).
+     * @return Success
+     */
+    putOverrideEndpoint(clientUserId: string, profession: string, putOverrideRequest: PutOverrideRequest, signal?: AbortSignal): Promise<PutOverrideResponse> {
+        let url_ = this.baseUrl + "/trainer/weekly-check-ins/overrides/{clientUserId}/{profession}";
+        if (clientUserId === undefined || clientUserId === null)
+            throw new globalThis.Error("The parameter 'clientUserId' must be defined.");
+        url_ = url_.replace("{clientUserId}", encodeURIComponent("" + clientUserId));
+        if (profession === undefined || profession === null)
+            throw new globalThis.Error("The parameter 'profession' must be defined.");
+        url_ = url_.replace("{profession}", encodeURIComponent("" + profession));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(putOverrideRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processPutOverrideEndpoint(_response);
+        });
+    }
+
+    protected processPutOverrideEndpoint(response: AxiosResponse): Promise<PutOverrideResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<PutOverrideResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PutOverrideResponse>(null as any);
+    }
+
+    /**
+     * Delete per-client override
+     * @param clientUserId The client's ApplicationUser.Id (route parameter).
+     * @param profession Profession ("Training" or "Nutrition") (route parameter).
+     * @return No Content
+     */
+    deleteOverrideEndpoint(clientUserId: string, profession: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/trainer/weekly-check-ins/overrides/{clientUserId}/{profession}";
+        if (clientUserId === undefined || clientUserId === null)
+            throw new globalThis.Error("The parameter 'clientUserId' must be defined.");
+        url_ = url_.replace("{clientUserId}", encodeURIComponent("" + clientUserId));
+        if (profession === undefined || profession === null)
+            throw new globalThis.Error("The parameter 'profession' must be defined.");
+        url_ = url_.replace("{profession}", encodeURIComponent("" + profession));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDeleteOverrideEndpoint(_response);
+        });
+    }
+
+    protected processDeleteOverrideEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Mark a check-in as reviewed (trainer)
+     * @param id Check-in identifier (route parameter).
+     * @return Success
+     */
+    markCheckInReviewedEndpoint(id: string, signal?: AbortSignal): Promise<MarkCheckInReviewedResponse> {
+        let url_ = this.baseUrl + "/trainer/weekly-check-ins/{id}/mark-reviewed";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processMarkCheckInReviewedEndpoint(_response);
+        });
+    }
+
+    protected processMarkCheckInReviewedEndpoint(response: AxiosResponse): Promise<MarkCheckInReviewedResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<MarkCheckInReviewedResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<MarkCheckInReviewedResponse>(null as any);
+    }
+
+    /**
+     * List check-ins for a week (trainer)
+     * @param weekStartDate ISO-week Monday to filter by (YYYY-MM-DD). Required.
+     * @return Success
+     */
+    getTrainerCheckInsEndpoint(weekStartDate: string, signal?: AbortSignal): Promise<GetTrainerCheckInsResponse> {
+        let url_ = this.baseUrl + "/trainer/weekly-check-ins?";
+        if (weekStartDate === undefined || weekStartDate === null)
+            throw new globalThis.Error("The parameter 'weekStartDate' must be defined and cannot be null.");
+        else
+            url_ += "weekStartDate=" + encodeURIComponent("" + weekStartDate) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetTrainerCheckInsEndpoint(_response);
+        });
+    }
+
+    protected processGetTrainerCheckInsEndpoint(response: AxiosResponse): Promise<GetTrainerCheckInsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetTrainerCheckInsResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetTrainerCheckInsResponse>(null as any);
+    }
+
+    /**
+     * Get per-client overrides
+     * @return Success
+     */
+    getOverridesEndpoint(signal?: AbortSignal): Promise<GetOverridesResponse> {
+        let url_ = this.baseUrl + "/trainer/weekly-check-ins/overrides";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetOverridesEndpoint(_response);
+        });
+    }
+
+    protected processGetOverridesEndpoint(response: AxiosResponse): Promise<GetOverridesResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetOverridesResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetOverridesResponse>(null as any);
+    }
+
+    /**
+     * Get current week's active check-ins (client)
+     * @return Success
+     */
+    getCurrentClientCheckInsEndpoint(signal?: AbortSignal): Promise<GetCurrentClientCheckInsResponse> {
+        let url_ = this.baseUrl + "/client/weekly-check-ins/current";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetCurrentClientCheckInsEndpoint(_response);
+        });
+    }
+
+    protected processGetCurrentClientCheckInsEndpoint(response: AxiosResponse): Promise<GetCurrentClientCheckInsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetCurrentClientCheckInsResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetCurrentClientCheckInsResponse>(null as any);
+    }
+
+    /**
+     * Get current week's check-in for a client (trainer)
+     * @param clientUserId Client's ApplicationUser.Id (route parameter).
+     * @param profession (optional) Profession to filter by ("Training" or "Nutrition"). Optional.
+    When omitted, returns check-ins for all professions.
+     * @return Success
+     */
+    getClientCurrentCheckInEndpoint(clientUserId: string, profession?: string | null | undefined, signal?: AbortSignal): Promise<GetClientCurrentCheckInResponse> {
+        let url_ = this.baseUrl + "/trainer/clients/{clientUserId}/weekly-check-ins/current?";
+        if (clientUserId === undefined || clientUserId === null)
+            throw new globalThis.Error("The parameter 'clientUserId' must be defined.");
+        url_ = url_.replace("{clientUserId}", encodeURIComponent("" + clientUserId));
+        if (profession !== undefined && profession !== null)
+            url_ += "profession=" + encodeURIComponent("" + profession) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetClientCurrentCheckInEndpoint(_response);
+        });
+    }
+
+    protected processGetClientCurrentCheckInEndpoint(response: AxiosResponse): Promise<GetClientCurrentCheckInResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetClientCurrentCheckInResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetClientCurrentCheckInResponse>(null as any);
+    }
+
+    /**
+     * Get check-in detail (trainer)
+     * @param id Check-in identifier (route parameter).
+     * @return Success
+     */
+    getCheckInDetailEndpoint(id: string, signal?: AbortSignal): Promise<GetCheckInDetailResponse> {
+        let url_ = this.baseUrl + "/trainer/weekly-check-ins/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetCheckInDetailEndpoint(_response);
+        });
+    }
+
+    protected processGetCheckInDetailEndpoint(response: AxiosResponse): Promise<GetCheckInDetailResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetCheckInDetailResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetCheckInDetailResponse>(null as any);
+    }
+
+    /**
+     * Dismiss a weekly check-in
+     * @param id Route parameter — check-in identifier.
+     * @return Success
+     */
+    dismissCheckInEndpoint(id: string, signal?: AbortSignal): Promise<DismissCheckInResponse> {
+        let url_ = this.baseUrl + "/client/weekly-check-ins/{id}/dismiss";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDismissCheckInEndpoint(_response);
+        });
+    }
+
+    protected processDismissCheckInEndpoint(response: AxiosResponse): Promise<DismissCheckInResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<DismissCheckInResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<DismissCheckInResponse>(null as any);
+    }
+
+    /**
+     * Update current user time zone
+     * @return No Content
+     */
+    updateTimeZoneEndpoint(updateTimeZoneRequest: UpdateTimeZoneRequest, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/users/me/timezone";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(updateTimeZoneRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateTimeZoneEndpoint(_response);
+        });
+    }
+
+    protected processUpdateTimeZoneEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Update current user profile
      * @return No Content
      */
@@ -9238,6 +10095,304 @@ export interface GetExerciseProgressRequest {
 export interface CompleteWorkoutRequest {
 }
 
+/** Response for POST /client/weekly-check-ins/{id}/respond. */
+export interface RespondToCheckInResponse {
+    /** Check-in identifier. */
+    id?: string;
+    /** Flags persisted. */
+    flags?: CheckInFlag[];
+    /** Note persisted. */
+    note?: string | undefined;
+    /** When the response was recorded (UTC). */
+    respondedAt?: string;
+}
+
+/** Flags a client can select when responding to a weekly check-in reminder, indicating events or circumstances that may affect the upcoming week's plan. */
+export enum CheckInFlag {
+    Traveling = "Traveling",
+    EventOrCelebration = "EventOrCelebration",
+    SickOrLowEnergy = "SickOrLowEnergy",
+    InjuryOrPain = "InjuryOrPain",
+    MoreTimeAvailable = "MoreTimeAvailable",
+    LessTimeAvailable = "LessTimeAvailable",
+}
+
+/** Request body for POST /client/weekly-check-ins/{id}/respond. */
+export interface RespondToCheckInRequest {
+    /** Zero or more flags selected by the client. */
+    flags?: CheckInFlag[];
+    /** Optional free-text note. ≤ 500 characters. */
+    note?: string | undefined;
+}
+
+/** Response for PUT /trainer/weekly-check-ins/settings. */
+export interface PutSettingsResponse {
+    /** The identifier of the created or updated setting. */
+    id?: string;
+    /** Profession this setting applies to. */
+    profession?: string;
+    /** Day of the week (0 = Sunday … 6 = Saturday). */
+    dayOfWeek?: number;
+    /** Hour-aligned time of day. */
+    timeOfDay?: string;
+    /** Whether the reminder is enabled. */
+    enabled?: boolean;
+    /** Optional addendum. */
+    defaultAddendum?: string | undefined;
+}
+
+/** Request body for PUT /trainer/weekly-check-ins/settings. */
+export interface PutSettingsRequest {
+    /** Profession this setting applies to. Must be one of the trainer's specializations.
+Accepted values: "Training", "Nutrition". */
+    profession: string;
+    /** Day of the week on which the reminder fires (0 = Sunday … 6 = Saturday). */
+    dayOfWeek?: number;
+    /** Hour-aligned local time of day for the reminder. Minutes, Seconds, and Milliseconds must all be zero. */
+    timeOfDay?: string;
+    /** Whether the reminder is enabled. */
+    enabled?: boolean;
+    /** Optional addendum appended to the default reminder message. ≤ 200 characters. */
+    defaultAddendum?: string | undefined;
+}
+
+/** Response for PUT /trainer/weekly-check-ins/overrides/{clientUserId}/{profession}. */
+export interface PutOverrideResponse {
+    /** Override identifier. */
+    id?: string;
+    /** The client's ApplicationUser.Id. */
+    clientUserId?: string;
+    /** Profession this override applies to. */
+    profession?: string;
+    /** Override day of week. Null = inherit. */
+    dayOfWeek?: number | undefined;
+    /** Override time of day. Null = inherit. */
+    timeOfDay?: string | undefined;
+    /** Override enabled flag. Null = inherit. */
+    enabled?: boolean | undefined;
+    /** Override addendum. Null = inherit. */
+    addendum?: string | undefined;
+}
+
+/** Request model for PUT /trainer/weekly-check-ins/overrides/{clientUserId}/{profession}. Route params identify the override; body provides the values (null = inherit from setting). */
+export interface PutOverrideRequest {
+    /** Override day of week (0 = Sunday … 6 = Saturday). Null = inherit. */
+    dayOfWeek?: number | undefined;
+    /** Override time of day (hour-aligned). Null = inherit. Minutes/Seconds/Milliseconds must be zero if set. */
+    timeOfDay?: string | undefined;
+    /** Override enabled flag. Null = inherit. */
+    enabled?: boolean | undefined;
+    /** Override addendum (≤ 200 chars). Null = inherit. */
+    addendum?: string | undefined;
+}
+
+/** Response for POST /trainer/weekly-check-ins/{id}/mark-reviewed. */
+export interface MarkCheckInReviewedResponse {
+    /** Check-in identifier. */
+    id?: string;
+    /** When the trainer marked the check-in reviewed (UTC). */
+    reviewedAt?: string;
+}
+
+/** Request for POST /trainer/weekly-check-ins/{id}/mark-reviewed. */
+export interface MarkCheckInReviewedRequest {
+}
+
+/** Response for GET /trainer/weekly-check-ins. */
+export interface GetTrainerCheckInsResponse {
+    /** Check-ins for the requested week, filtered to the caller's clients. */
+    checkIns?: TrainerCheckInDto[];
+}
+
+/** One check-in row as seen by the trainer. */
+export interface TrainerCheckInDto {
+    /** Check-in identifier. */
+    id?: string;
+    /** Client's ApplicationUser.Id. */
+    clientUserId?: string;
+    /** Client's display name. */
+    clientName?: string;
+    /** Profession context. */
+    profession?: string;
+    /** ISO-week Monday. */
+    weekStartDate?: string;
+    /** Flags selected by the client. Empty until responded. */
+    flags?: CheckInFlag[];
+    /** Client's note. Null until responded. */
+    note?: string | undefined;
+    /** When the scheduler sent this check-in. */
+    sentAt?: string;
+    /** When the client responded. Null if not yet responded. */
+    respondedAt?: string | undefined;
+    /** When the client dismissed. Null if not dismissed. */
+    dismissedByClientAt?: string | undefined;
+    /** When the trainer marked this reviewed. Null if not reviewed. */
+    reviewedByTrainerAt?: string | undefined;
+}
+
+/** Query parameters for GET /trainer/weekly-check-ins. */
+export interface GetTrainerCheckInsRequest {
+}
+
+/** Response model for GET /trainer/weekly-check-ins/settings. */
+export interface GetSettingsResponse {
+    /** The trainer's current weekly check-in settings (0–2 items). */
+    settings?: CheckInSettingDto[];
+}
+
+/** DTO for a single weekly check-in setting. */
+export interface CheckInSettingDto {
+    /** Setting identifier. */
+    id?: string;
+    /** Profession this setting applies to ("Training" or "Nutrition"). */
+    profession?: string;
+    /** Day of the week (0 = Sunday, 1 = Monday, …, 6 = Saturday). */
+    dayOfWeek?: number;
+    /** Hour-aligned time of day in "HH:mm:ss" format. */
+    timeOfDay?: string;
+    /** Whether the reminder is enabled. */
+    enabled?: boolean;
+    /** Optional addendum appended to the default reminder message. */
+    defaultAddendum?: string | undefined;
+}
+
+/** Response model for GET /trainer/weekly-check-ins/overrides. */
+export interface GetOverridesResponse {
+    /** All per-client overrides for the authenticated trainer. */
+    overrides?: CheckInOverrideDto[];
+}
+
+/** DTO for a single per-client weekly check-in override. Null values mean "inherit from the professional's default setting". */
+export interface CheckInOverrideDto {
+    /** Override identifier. */
+    id?: string;
+    /** The client's ApplicationUser.Id. */
+    clientUserId?: string;
+    /** Client's first name. */
+    clientFirstName?: string;
+    /** Client's last name. */
+    clientLastName?: string;
+    /** Profession this override applies to ("Training" or "Nutrition"). */
+    profession?: string;
+    /** Override day of week. Null = inherit. */
+    dayOfWeek?: number | undefined;
+    /** Override time of day. Null = inherit. */
+    timeOfDay?: string | undefined;
+    /** Override enabled flag. Null = inherit. */
+    enabled?: boolean | undefined;
+    /** Override addendum. Null = inherit. */
+    addendum?: string | undefined;
+}
+
+/** Response for GET /client/weekly-check-ins/current. Returns 0–2 active (not responded, not dismissed) check-ins for the current ISO week. */
+export interface GetCurrentClientCheckInsResponse {
+    /** Active check-ins for the current ISO week. */
+    checkIns?: CheckInSummary[];
+}
+
+/** Summary of a single active check-in. */
+export interface CheckInSummary {
+    /** Check-in identifier. */
+    id?: string;
+    /** Professional who sent the check-in. */
+    professionalUserId?: string;
+    /** Professional's display name. */
+    professionalName?: string;
+    /** Profession type (Training or Nutrition). */
+    profession?: string;
+    /** ISO-week Monday being planned. */
+    weekStartDate?: string;
+    /** When the scheduler sent this check-in. */
+    sentAt?: string;
+}
+
+/** Response for GET /trainer/clients/{clientUserId}/weekly-check-ins/current. */
+export interface GetClientCurrentCheckInResponse {
+    /** Latest check-in(s) for the current ISO week and the given client.
+Typically 0–2 items (one per profession). */
+    checkIns?: ClientCheckInDto[];
+}
+
+/** A single check-in as seen from the plan-editor banner. */
+export interface ClientCheckInDto {
+    /** Check-in identifier. */
+    id?: string;
+    /** Profession context. */
+    profession?: string;
+    /** ISO-week Monday. */
+    weekStartDate?: string;
+    /** Flags selected by the client. */
+    flags?: CheckInFlag[];
+    /** Client's note. */
+    note?: string | undefined;
+    /** When the scheduler sent this. */
+    sentAt?: string;
+    /** When the client responded. Null if pending. */
+    respondedAt?: string | undefined;
+    /** When the client dismissed. Null if not dismissed. */
+    dismissedByClientAt?: string | undefined;
+    /** When the trainer marked this reviewed. */
+    reviewedByTrainerAt?: string | undefined;
+}
+
+/** Request for GET /trainer/clients/{clientUserId}/weekly-check-ins/current. */
+export interface GetClientCurrentCheckInRequest {
+}
+
+/** Response for GET /trainer/weekly-check-ins/{id}. */
+export interface GetCheckInDetailResponse {
+    /** Check-in identifier. */
+    id?: string;
+    /** Client's ApplicationUser.Id. */
+    clientUserId?: string;
+    /** Client's display name. */
+    clientName?: string;
+    /** Professional's ApplicationUser.Id. */
+    professionalUserId?: string;
+    /** Profession context. */
+    profession?: string;
+    /** ISO-week Monday being planned. */
+    weekStartDate?: string;
+    /** Flags selected by the client. */
+    flags?: CheckInFlag[];
+    /** Client's optional note. */
+    note?: string | undefined;
+    /** When the scheduler sent this check-in. */
+    sentAt?: string;
+    /** When the client responded. Null if not yet responded. */
+    respondedAt?: string | undefined;
+    /** When the client dismissed. Null if not dismissed. */
+    dismissedByClientAt?: string | undefined;
+    /** When the trainer marked this reviewed. Null if not reviewed. */
+    reviewedByTrainerAt?: string | undefined;
+}
+
+/** Request for GET /trainer/weekly-check-ins/{id}. */
+export interface GetCheckInDetailRequest {
+}
+
+/** Response for POST /client/weekly-check-ins/{id}/dismiss. */
+export interface DismissCheckInResponse {
+    /** Check-in identifier. */
+    id?: string;
+    /** When the check-in was dismissed (UTC). */
+    dismissedAt?: string;
+}
+
+/** Request for POST /client/weekly-check-ins/{id}/dismiss. */
+export interface DismissCheckInRequest {
+}
+
+/** Request model for DELETE /trainer/weekly-check-ins/overrides/{clientUserId}/{profession}. Route parameters identify the override to remove. */
+export interface DeleteOverrideRequest {
+}
+
+/** Request model for updating the authenticated user's time zone. */
+export interface UpdateTimeZoneRequest {
+    /** IANA time zone identifier (e.g. "Europe/Prague", "America/New_York"). */
+    timeZone: string;
+}
+
 /** Request model for updating the authenticated user's profile. */
 export interface UpdateProfileRequest {
     /** Updated first name. */
@@ -9275,6 +10430,8 @@ export interface GetProfileResponse {
     /** Roles of professionals the client is actively linked with (e.g. ["Trainer"], ["Nutritionist"], or both).
 Empty for non-client users. */
     linkedRoles?: string[];
+    /** User's IANA time zone identifier (e.g. "Europe/Prague"). */
+    timeZone?: string;
 }
 
 /** Response returned after successfully adding a role, containing fresh tokens with updated claims. */
@@ -9813,7 +10970,8 @@ export interface ClientTimelineItem {
     id?: string;
     /** Event kind — used on the client to pick icon/colour.
 One of: meal_day, workout, measurement, questionnaire,
-nutrition_plan_published, training_plan_published, linked. */
+nutrition_plan_published, training_plan_published, linked,
+personal_record. */
     type?: string;
     /** When this event occurred (UTC). */
     occurredAt?: string;
@@ -9823,6 +10981,27 @@ nutrition_plan_published, training_plan_published, linked. */
     description?: string | undefined;
     /** Optional emoji/icon hint for the client. */
     icon?: string | undefined;
+    /** Structured payload for personal_record items.
+Null for all other event types.
+Exposed as typed fields so the web/mobile i18n layer can compose
+locale-specific copy without depending on server-side strings. */
+    personalRecord?: PersonalRecordPayload | undefined;
+}
+
+/** Structured payload embedded in a personal_record timeline item. */
+export interface PersonalRecordPayload {
+    /** Public-facing identifier of the personal record document. */
+    externalId?: string;
+    /** ExternalId of the exercise for which the PR was achieved. */
+    exerciseExternalId?: string;
+    /** Snapshot of the exercise name at the time the PR was set. */
+    exerciseName?: string;
+    /** Weight lifted in kilograms. */
+    weightKg?: number;
+    /** Repetitions completed in the PR set. */
+    reps?: number;
+    /** ExternalId of the workout log that contains this PR set. */
+    workoutLogId?: string;
 }
 
 /** Request model for retrieving a client's activity timeline. */
@@ -11394,15 +12573,21 @@ concurrency. Required when a completion document already exists for this
     version?: number | undefined;
 }
 
-/** Response with today's planned training session. */
+/** Response with today's planned training session(s). */
 export interface GetTodaySessionResponse {
-    /** Whether there is a session planned for today. */
+    /** Whether there is at least one session planned for today. */
     hasSession?: boolean;
     /** The training plan's public ID. */
     planId?: string | undefined;
     /** The plan name. */
     planName?: string | undefined;
-    /** Today's session, if any. */
+    /** All training sessions scheduled for today, ordered by Order.
+Empty when there are none. */
+    sessions?: TrainingSession[];
+    /** The first training session for today, if any.
+Deprecated: use Sessions instead. This property mirrors
+Sessions[0] (or null when empty) and is kept for backwards
+compatibility with consumers that still reference the singular session. */
     session?: TrainingSession | undefined;
     /** Current week number in the plan cycle. */
     currentWeek?: number | undefined;
@@ -11414,6 +12599,28 @@ export interface GetTodaySessionResponse {
     questionnaireResponseId?: string | undefined;
     /** When this plan was marked as completed, if applicable. */
     dateCompleted?: string | undefined;
+    /** Per-exercise muscle groups, keyed by SessionExercise.ExerciseExternalId.
+Empty when an exercise no longer exists in the database. Populated by
+looking up Exercise documents for every exercise referenced by today's
+sessions. */
+    exerciseMuscleGroups?: { [key: string]: MuscleGroup[]; };
+    /** Per-session completed exercise IDs, keyed by SessionId. Sourced from
+TrainingCompletion documents for today. Empty dictionary when no session
+has any completed exercise for today (or when no active plan exists). */
+    completedExerciseIdsBySession?: { [key: string]: string[]; };
+    /** Per-session optimistic-concurrency version numbers for today, keyed by SessionId.
+Matches the Version on the TrainingCompletion document. Used by the client to
+send the If-Match-style version header on subsequent mark/unmark requests.
+Missing entries imply a fresh document (server will accept Version=null/1). */
+    versionBySession?: { [key: string]: number; };
+    /** Per-session, per-exercise completed set numbers for today. Keyed by
+SessionId → ExerciseExternalId → list of 1-based SetNumbers whose
+CompletedAt is non-null in the latest
+WorkoutLog for that session on today's date.
+Empty when no live-training progress has been logged for today.
+Keeps per-set state out of the planning-document tree (Sessions) which
+represents prescription, not actuals. */
+    completedSetsBySessionExercise?: { [key: string]: { [key: string]: number[]; }; };
 }
 
 /** Full training plan response for the client mobile view. Contains all published weeks enriched with completion state and muscle group data. */

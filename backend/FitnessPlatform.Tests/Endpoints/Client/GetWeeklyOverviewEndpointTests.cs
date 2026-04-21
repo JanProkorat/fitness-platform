@@ -3,8 +3,10 @@ using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.Client.Progress.GetWeeklyOverview;
+using FitnessPlatform.Tests.Builders;
 using NSubstitute;
 
 namespace FitnessPlatform.Tests.Endpoints.Client;
@@ -43,11 +45,17 @@ public class GetWeeklyOverviewEndpointTests
                 Fat = 70
             });
 
+        // Endpoint needs IApplicationDbContext to resolve ClientProfile.PublicId from UserId.
+        // The fake JWT encodes _clientId as UserId; the profile must map UserId→PublicId = _clientId.
+        var db = new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .Build();
+
         var ep = Factory.Create<GetWeeklyOverviewEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            _complianceService);
+            _complianceService, db);
 
         // Act
         await ep.HandleAsync(TestContext.Current.CancellationToken);
@@ -72,8 +80,9 @@ public class GetWeeklyOverviewEndpointTests
     [Fact]
     public async Task HandleAsync_NoClaims_Returns401()
     {
-        // Arrange — no user claims
-        var ep = Factory.Create<GetWeeklyOverviewEndpoint>(_complianceService);
+        // Arrange — no user claims; db is never reached (401 short-circuits before the DB call)
+        var db = new MockDbBuilder().Build();
+        var ep = Factory.Create<GetWeeklyOverviewEndpoint>(_complianceService, db);
 
         // Act
         await ep.HandleAsync(TestContext.Current.CancellationToken);

@@ -6,7 +6,9 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.NutritionPlans.PublishWeek;
+using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints;
 using MongoDB.Driver;
 using NSubstitute;
@@ -25,7 +27,10 @@ public class PublishWeekEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo);
+            mongo,
+            new MockDbBuilder().Build(),
+            Substitute.For<INotificationService>(),
+            Substitute.For<IRealtimeNotifier>());
 
     [Fact]
     public async Task HandleAsync_DraftWeek_PublishesSuccessfully()

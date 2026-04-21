@@ -76,11 +76,10 @@ export function LiveFinishedSummary({
 
           <View style={[styles.statCell, { backgroundColor: colors.fill2 }]}>
             <Text style={[styles.statLabel, { color: colors.label3 }]}>
-              {t('training.live.statVolume')}
+              {t('training.live.statExercises')}
             </Text>
             <Text style={[styles.statValue, { color: colors.label }]}>
-              {summary.volumeKg.toLocaleString()}{' '}
-              <Text style={[styles.statValueSub, { color: colors.label3 }]}>kg</Text>
+              {summary.exerciseCount}
             </Text>
           </View>
         </View>

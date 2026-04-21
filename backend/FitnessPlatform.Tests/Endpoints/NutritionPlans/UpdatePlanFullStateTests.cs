@@ -7,6 +7,7 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.NutritionPlans.UpdatePlan;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Tests.Builders;
 using MongoDB.Driver;
 using NSubstitute;
 
@@ -25,7 +26,9 @@ public class UpdatePlanFullStateTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
             mongo,
-            macroCalc);
+            macroCalc,
+            new MockDbBuilder().Build(),
+            Substitute.For<IRealtimeNotifier>());
 
     private static UpdateWeekRequest BuildWeekRequest(int weekNumber, MealFood? food = null)
     {

@@ -1,11 +1,11 @@
 import React, { useCallback, useState } from 'react'
-import { View, Text, Pressable, StyleSheet, type LayoutChangeEvent } from 'react-native'
+import { View, Text, Pressable, StyleSheet, Platform } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import Animated, {
+  LinearTransition,
   useSharedValue,
   useAnimatedStyle,
   withTiming,
-  runOnJS,
   Easing,
 } from 'react-native-reanimated'
 import { useTheme } from '@/hooks/useTheme'
@@ -14,6 +14,9 @@ import { Radius } from '@/constants/radius'
 
 const ANIM_DURATION = 260
 const easing = Easing.out(Easing.cubic)
+const layoutTransition = LinearTransition.duration(ANIM_DURATION).easing(
+  Easing.out(Easing.cubic),
+)
 
 interface ExpandableSessionCardProps {
   order: number
@@ -23,12 +26,23 @@ interface ExpandableSessionCardProps {
   completedCount: number
   totalCount: number
   defaultExpanded?: boolean
+  /**
+   * Optional node injected at the right side of the header row, between the
+   * progress pill and the chevron. Use this to render a session-level checkbox.
+   * Tapping the injected element should call `event.stopPropagation()` so it
+   * does NOT collapse/expand the card.
+   */
+  headerRight?: React.ReactNode
   children: React.ReactNode
 }
 
 /**
  * Collapsible session card that mirrors .tp-session in the prototype.
- * The order chip (28×28, radius 10) uses the fill background.
+ *
+ * The body is always mounted so the inner exercise cards preserve their own
+ * expand/collapse state. When `isOpen` toggles, the body's `height` flips
+ * between `0` and `auto`; Reanimated's `LinearTransition` layout animation on
+ * the outer wrapper then interpolates the frame change smoothly.
  */
 export function ExpandableSessionCard({
   order,
@@ -37,50 +51,37 @@ export function ExpandableSessionCard({
   completedCount,
   totalCount,
   defaultExpanded = false,
+  headerRight,
   children,
 }: ExpandableSessionCardProps) {
   const colors = useTheme()
-  const [contentHeight, setContentHeight] = useState<number | null>(null)
-  // Tracks whether we're at a fully settled open state. While animating (or
-  // closed), we drive height explicitly from the shared value; once open, we
-  // release to natural `height: auto` so nested expand/collapse inside this
-  // card reflows correctly without leaving empty space.
   const [isOpen, setIsOpen] = useState(defaultExpanded)
+  const chevronProgress = useSharedValue(defaultExpanded ? 1 : 0)
 
-  const progress = useSharedValue(defaultExpanded ? 1 : 0)
-
-  const contentStyle = useAnimatedStyle(() => {
-    if (isOpen) return { opacity: 1 }
-    return {
-      height: contentHeight != null ? progress.value * contentHeight : undefined,
-      opacity: progress.value,
-    }
-  })
   const chevronStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${progress.value * 180}deg` }],
+    transform: [{ rotate: `${chevronProgress.value * 180}deg` }],
   }))
 
-  const handleContentLayout = useCallback(
-    (e: LayoutChangeEvent) => {
-      if (contentHeight == null) setContentHeight(e.nativeEvent.layout.height)
-    },
-    [contentHeight],
-  )
-
   const handleToggle = useCallback(() => {
-    const next = progress.value < 1 ? 1 : 0
-    setIsOpen(false)
-    progress.value = withTiming(next, { duration: ANIM_DURATION, easing }, (finished) => {
-      if (finished && next === 1) runOnJS(setIsOpen)(true)
+    setIsOpen((prev) => {
+      const next = !prev
+      chevronProgress.value = withTiming(next ? 1 : 0, {
+        duration: ANIM_DURATION,
+        easing,
+      })
+      return next
     })
-  }, [progress])
+  }, [chevronProgress])
 
   const allDone = totalCount > 0 && completedCount === totalCount
   const pillColor = allDone ? colors.green : colors.label2
   const pillBg = allDone ? colors.green + '1E' : colors.fill
 
   return (
-    <View style={[styles.card, { backgroundColor: colors.bg2, borderColor: colors.sep2 }]}>
+    <Animated.View
+      layout={layoutTransition}
+      style={[styles.card, { backgroundColor: colors.bg2, borderColor: colors.sep2 }]}
+    >
       <Pressable onPress={handleToggle} style={styles.header}>
         {/* Order chip */}
         <View style={[styles.orderChip, { backgroundColor: colors.fill }]}>
@@ -106,22 +107,24 @@ export function ExpandableSessionCard({
           </Text>
         </View>
 
+        {/* Optional header-right slot (e.g. session-level checkbox) */}
+        {headerRight}
+
         {/* Chevron */}
         <Animated.View style={[styles.chevron, chevronStyle]}>
           <Ionicons name="chevron-down" size={16} color={colors.label3} />
         </Animated.View>
       </Pressable>
 
-      {/* Collapsible body — height driven by shared value once measured */}
-      <Animated.View style={[styles.collapsibleWrap, contentStyle]}>
-        <View
-          onLayout={handleContentLayout}
-          style={[styles.body, { borderTopColor: colors.sep2 }]}
-        >
+      {/* Collapsible body — always mounted so nested exercise state persists.
+          `height: 0 + overflow: hidden` clips it; the outer LinearTransition
+          animates the card's frame change smoothly. */}
+      <View style={[styles.collapsibleWrap, !isOpen && styles.collapsed]}>
+        <View style={[styles.body, { borderTopColor: colors.sep }]}>
           {children}
         </View>
-      </Animated.View>
-    </View>
+      </View>
+    </Animated.View>
   )
 }
 
@@ -129,8 +132,17 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: Radius.md,
     overflow: 'hidden',
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     marginBottom: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+      },
+      android: { elevation: 2 },
+    }),
   },
   header: {
     flexDirection: 'row',
@@ -161,10 +173,15 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   collapsibleWrap: {
-    overflow: 'hidden',
+    // No `overflow: hidden` — we *want* the body to overflow when `height: 0`
+    // so that the outer card's LinearTransition clips the children progressively
+    // as the card's frame animates shut. The card itself has `overflow: hidden`.
+  },
+  collapsed: {
+    height: 0,
   },
   body: {
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: 1,
     paddingHorizontal: 12,
     paddingTop: 10,
     paddingBottom: 12,

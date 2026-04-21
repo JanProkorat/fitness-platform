@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.ClientNutrition.LogMealEaten;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Tests.Builders;
@@ -51,7 +52,7 @@ public class LogMealEatenEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, Substitute.For<IRealtimeNotifier>());
 
         await ep.HandleAsync(
             new LogMealEatenRequest { MealId = mealId },
@@ -86,7 +87,7 @@ public class LogMealEatenEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, Substitute.For<IRealtimeNotifier>());
 
         await ep.HandleAsync(
             new LogMealEatenRequest { MealId = Guid.NewGuid() },
@@ -108,7 +109,7 @@ public class LogMealEatenEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, Substitute.For<IRealtimeNotifier>());
 
         await ep.HandleAsync(
             new LogMealEatenRequest { MealId = Guid.NewGuid() },
@@ -127,7 +128,7 @@ public class LogMealEatenEndpointTests
         var ep = Factory.Create<LogMealEatenEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity()),
-            mongo, db);
+            mongo, db, Substitute.For<IRealtimeNotifier>());
 
         await ep.HandleAsync(
             new LogMealEatenRequest { MealId = Guid.NewGuid() },

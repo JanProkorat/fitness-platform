@@ -47,8 +47,8 @@ export interface LiveSummary {
   setsPlanned: number
   /** Sum of reps across all completed sets */
   totalReps: number
-  /** Sum of reps × weightKg across all completed sets (0 for bodyweight) */
-  volumeKg: number
+  /** Total number of planned exercises in the session */
+  exerciseCount: number
   /** Number of PR flashes fired during the session */
   prCount: number
 }
@@ -86,7 +86,6 @@ export function computeLiveSummary(
   let setsDone = 0
   let setsPlanned = 0
   let totalReps = 0
-  let volumeKg = 0
 
   for (const ex of exercises) {
     setsPlanned += ex.plannedSetCount
@@ -94,7 +93,6 @@ export function computeLiveSummary(
       if (s.done) {
         setsDone += 1
         totalReps += s.reps
-        if (s.weightKg > 0) volumeKg += s.reps * s.weightKg
       }
     }
   }
@@ -104,7 +102,7 @@ export function computeLiveSummary(
     setsDone,
     setsPlanned,
     totalReps,
-    volumeKg: Math.round(volumeKg),
+    exerciseCount: exercises.length,
     prCount,
   }
 }

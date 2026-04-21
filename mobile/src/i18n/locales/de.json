@@ -216,6 +216,8 @@
     "restDay": "Ruhetag",
     "preparing": "In Vorbereitung",
     "streak": "Serie",
+    "compliance": "Einhaltung",
+    "complianceSub": "letzte 7 Tage",
     "todaysTraining": "Heutiges Training",
     "trainingPlan": "Trainingsplan",
     "todaysNutrition": "Heutiger Speiseplan",
@@ -298,19 +300,21 @@
       "chip_other": "{{done}}/{{total}} erledigt"
     },
     "minuteCount": "{{minutes}} Min.",
-    "trainingCardA11yLabel": "Training öffnen: {{name}}",
     "sectionActionDetail": "Detail",
-    "markWholeDayDone": "Gesamtes Training als erledigt markieren",
-    "trainingCompleteLabel": "Erledigt",
     "exerciseCheckboxA11y": "Übung als abgeschlossen markieren",
     "sessionCheckboxA11y": "Gesamte Trainingseinheit als abgeschlossen markieren",
+    "sessionsCount_one": "{{count}} Trainingseinheit",
+    "sessionsCount_other": "{{count}} Trainingseinheiten",
+    "sessionsCountShort_one": "{{count}} Training",
+    "sessionsCountShort_other": "{{count}} Trainings",
+    "exerciseNoteLabel": "Hin:",
     "trainingCta": {
       "start": "Training starten",
       "continue": "Training fortsetzen",
       "finished": "Abgeschlossen",
-      "viewSummary": "Zusammenfassung anzeigen",
       "startError": "Training konnte nicht gestartet werden. Bitte versuche es erneut."
-    }
+    },
+    "noNutritionPlanForToday": "Heute ist kein Ernährungsplan geplant"
   },
   "questionnaire": {
     "allDone": "Fertig!",
@@ -781,7 +785,7 @@
       "statTime": "Zeit",
       "statSeries": "Sätze",
       "statReps": "Wiederholungen",
-      "statVolume": "Volumen",
+      "statExercises": "Übungen",
       "prBannerTitle": "Neue persönliche Rekorde",
       "prBannerSubtitle_one": "{{count}} × neues Maximalgewicht",
       "prBannerSubtitle_other": "{{count}} × neues Maximalgewicht",

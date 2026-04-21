@@ -3,8 +3,10 @@ using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.Client.Progress.GetComplianceScore;
+using FitnessPlatform.Tests.Builders;
 using NSubstitute;
 
 namespace FitnessPlatform.Tests.Endpoints.Client;
@@ -36,11 +38,16 @@ public class GetComplianceScoreEndpointTests
         _complianceService.CalculateStreakAsync(_clientId, Arg.Any<CancellationToken>())
             .Returns(5);
 
+        // Endpoint needs IApplicationDbContext to resolve ClientProfile.PublicId from UserId.
+        var db = new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .Build();
+
         var ep = Factory.Create<GetComplianceScoreEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            _complianceService);
+            _complianceService, db);
 
         // Act
         await ep.HandleAsync(new GetComplianceScoreRequest
@@ -62,8 +69,9 @@ public class GetComplianceScoreEndpointTests
     [Fact]
     public async Task HandleAsync_NoClaims_Returns401()
     {
-        // Arrange — no user claims
-        var ep = Factory.Create<GetComplianceScoreEndpoint>(_complianceService);
+        // Arrange — no user claims; db is never reached (401 short-circuits before the DB call)
+        var db = new MockDbBuilder().Build();
+        var ep = Factory.Create<GetComplianceScoreEndpoint>(_complianceService, db);
 
         // Act
         await ep.HandleAsync(new GetComplianceScoreRequest(), TestContext.Current.CancellationToken);

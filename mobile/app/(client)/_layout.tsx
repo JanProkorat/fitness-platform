@@ -21,6 +21,10 @@ export default function ClientLayout() {
         name="recipe-detail"
         options={{ animation: 'slide_from_right' }}
       />
+      <Stack.Screen
+        name="training-session"
+        options={{ animation: 'slide_from_right' }}
+      />
     </Stack>
   )
 }

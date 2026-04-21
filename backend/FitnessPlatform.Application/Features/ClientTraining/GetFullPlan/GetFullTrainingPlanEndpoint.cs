@@ -13,7 +13,9 @@ namespace FitnessPlatform.Application.Features.ClientTraining.GetFullPlan;
 /// <summary>
 /// Returns the full structure of a specific training plan for the authenticated client.
 /// Enriches each exercise with muscle-group data (batch-fetched from the Exercise collection)
-/// and per-set completion state (derived from WorkoutLog documents).
+/// and per-set completion state (derived from <see cref="WorkoutLog"/> documents AND
+/// <see cref="TrainingCompletion"/> documents — the former is populated by the live-workout
+/// assistant, the latter by the lightweight mark-complete toggles on the Today card).
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
@@ -57,6 +59,9 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
         }
 
         var clientId = clientProfile.PublicId;
+        // WorkoutLog.ClientId is stored as the auth user's Id (ApplicationUser.Id),
+        // not clientProfile.PublicId. Keep a separate variable for WorkoutLog queries.
+        var userIdGuid = Guid.Parse(userId);
         var planId = Route<Guid>("planId");
 
         // ── 2. Fetch training plan (ownership check baked into filter) ────────────
@@ -102,8 +107,9 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
         // Walk them once to build a lookup keyed by (sessionId, exerciseExternalId, setNumber).
         // A set is "completed" when it has a CompletedAt value in WorkoutSet.
         // We prefer the most recent completion timestamp if multiple logs exist for the same session.
+        // IMPORTANT: WorkoutLog.ClientId is stored as the auth user's Id (Guid), not PublicId.
         var logFilter = Builders<WorkoutLog>.Filter.And(
-            Builders<WorkoutLog>.Filter.Eq(l => l.ClientId, clientId),
+            Builders<WorkoutLog>.Filter.Eq(l => l.ClientId, userIdGuid),
             Builders<WorkoutLog>.Filter.Eq(l => l.PlanId, planId));
 
         var workoutLogs = await mongo.WorkoutLogs
@@ -129,6 +135,74 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
                     var key = (sessionId, ex.ExerciseExternalId, set.SetNumber);
                     if (!completedSets.ContainsKey(key) || set.CompletedAt < completedSets[key])
                         completedSets[key] = set.CompletedAt.Value;
+                }
+            }
+        }
+
+        // ── 4b. Fold in TrainingCompletion docs ───────────────────────────────────
+        // The lightweight Today-card checkboxes (mark-exercise-complete / mark-session-complete)
+        // write to TrainingCompletion — not WorkoutLog. Merge those into the same
+        // completedSets lookup so the plan-detail view reflects both surfaces.
+        //
+        // SessionId is globally unique within a plan, so we can match by sessionId
+        // alone and skip the Date → WeekNumber mapping.
+        var planSessionIds = plan.Weeks
+            .SelectMany(w => w.Sessions)
+            .Select(s => s.SessionId)
+            .ToList();
+
+        var sessionExerciseLookup = plan.Weeks
+            .SelectMany(w => w.Sessions)
+            .ToDictionary(
+                s => s.SessionId,
+                s => s.Exercises.ToDictionary(e => e.ExerciseExternalId));
+
+        if (planSessionIds.Count > 0)
+        {
+            var completionFilter = Builders<TrainingCompletion>.Filter.And(
+                Builders<TrainingCompletion>.Filter.Eq(c => c.ClientId, clientId),
+                Builders<TrainingCompletion>.Filter.In(c => c.SessionId, planSessionIds));
+
+            var trainingCompletions = await mongo.TrainingCompletions
+                .Find(completionFilter)
+                .ToListAsync(ct);
+
+            foreach (var tc in trainingCompletions)
+            {
+                if (!sessionExerciseLookup.TryGetValue(tc.SessionId, out var exLookup))
+                    continue;
+
+                var stampedAt = tc.DateUpdated ?? tc.DateCreated;
+
+                // Fully-completed exercises: mark every planned set as complete.
+                foreach (var exerciseId in tc.CompletedExerciseIds)
+                {
+                    if (!exLookup.TryGetValue(exerciseId, out var planExercise))
+                        continue;
+
+                    foreach (var set in planExercise.Sets)
+                    {
+                        var key = (tc.SessionId, exerciseId, set.SetNumber);
+                        if (!completedSets.ContainsKey(key) || stampedAt < completedSets[key])
+                            completedSets[key] = stampedAt;
+                    }
+                }
+
+                // Partially-completed exercises: mark only the listed set numbers.
+                if (tc.CompletedSets is not null)
+                {
+                    foreach (var (exIdString, setNumbers) in tc.CompletedSets)
+                    {
+                        if (!Guid.TryParse(exIdString, out var exId)) continue;
+                        if (!exLookup.ContainsKey(exId)) continue;
+
+                        foreach (var setNumber in setNumbers)
+                        {
+                            var key = (tc.SessionId, exId, setNumber);
+                            if (!completedSets.ContainsKey(key) || stampedAt < completedSets[key])
+                                completedSets[key] = stampedAt;
+                        }
+                    }
                 }
             }
         }

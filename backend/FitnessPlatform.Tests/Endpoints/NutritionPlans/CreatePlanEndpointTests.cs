@@ -7,6 +7,7 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.NutritionPlans.CreatePlan;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Services;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints;
 using MongoDB.Driver;
 using NSubstitute;
@@ -26,12 +27,13 @@ public class CreatePlanEndpointTests
     {
         var mongo = PlanTestHelpers.CreateMockMongo();
         var authHelper = CreateAuthHelper(hasLink: true);
+        var db = new MockDbBuilder().Build();
 
         var ep = Factory.Create<CreatePlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo, authHelper);
+            mongo, authHelper, db);
 
         var request = new CreatePlanRequest
         {
@@ -61,12 +63,13 @@ public class CreatePlanEndpointTests
     {
         var mongo = PlanTestHelpers.CreateMockMongo();
         var authHelper = CreateAuthHelper(hasLink: false);
+        var db = new MockDbBuilder().Build();
 
         var ep = Factory.Create<CreatePlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo, authHelper);
+            mongo, authHelper, db);
 
         await ep.HandleAsync(
             new CreatePlanRequest { ClientId = _clientId, Name = "Plan" },
@@ -80,8 +83,9 @@ public class CreatePlanEndpointTests
     {
         var mongo = PlanTestHelpers.CreateMockMongo();
         var authHelper = CreateAuthHelper(hasLink: true);
+        var db = new MockDbBuilder().Build();
 
-        var ep = Factory.Create<CreatePlanEndpoint>(mongo, authHelper);
+        var ep = Factory.Create<CreatePlanEndpoint>(mongo, authHelper, db);
 
         await ep.HandleAsync(
             new CreatePlanRequest { ClientId = _clientId, Name = "Plan" },
