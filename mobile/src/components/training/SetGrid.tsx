@@ -7,13 +7,15 @@ import type { FullPlanSet } from '@/api/training'
 
 interface SetGridProps {
   sets: FullPlanSet[]
+  /** 1-based set numbers that have been completed via live-training logging. */
+  completedSetNumbers?: number[]
 }
 
 /**
  * 5-column grid: Set / Reps / Weight / Rest / Status
  * Matches the tp-ex-set-grid layout in the prototype.
  */
-export function SetGrid({ sets }: SetGridProps) {
+export function SetGrid({ sets, completedSetNumbers = [] }: SetGridProps) {
   const colors = useTheme()
   const { t } = useTranslation()
 
@@ -62,12 +64,12 @@ export function SetGrid({ sets }: SetGridProps) {
             <Text
               style={[
                 styles.cell,
-                s.completedAt != null
+                completedSetNumbers.includes(s.setNumber ?? -1)
                   ? { color: colors.green, fontWeight: '600' }
                   : { color: colors.label3 },
               ]}
             >
-              {s.completedAt != null ? '✓' : '—'}
+              {completedSetNumbers.includes(s.setNumber ?? -1) ? '✓' : '—'}
             </Text>
           </View>
         )

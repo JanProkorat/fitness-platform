@@ -39,8 +39,9 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
         await TestHelpers.RegisterAsync(httpClient, clientEmail, "TestPass1!", "Test", "Client", "Client");
         var (accessToken, _) = await TestHelpers.LoginAsync(httpClient, clientEmail, "TestPass1!");
 
-        // ── 2. Resolve client's PublicId from Postgres ────────────────────────────
+        // ── 2. Resolve client's PublicId and ApplicationUser.Id from Postgres ───────
         Guid clientPublicId;
+        Guid clientUserId; // ApplicationUser.Id — used as WorkoutLog.ClientId
         using (var scope = factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -51,6 +52,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                 cp => cp.UserId == user.Id,
                 TestContext.Current.CancellationToken);
             clientPublicId = profile.PublicId;
+            clientUserId = user.Id;
         }
 
         // ── 3. Seed Exercise docs ─────────────────────────────────────────────────
@@ -162,10 +164,12 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
         };
 
         // ── 5. Seed partial WorkoutLog for Session A (2 of 3 sets completed) ──────
+        // WorkoutLog.ClientId stores the ApplicationUser.Id (not ClientProfile.PublicId).
+        // The endpoint filters by ApplicationUser.Id derived from the JWT claim.
         var workoutLog = new WorkoutLog
         {
             ExternalId = Guid.NewGuid(),
-            ClientId = clientPublicId,
+            ClientId = clientUserId,
             PlanId = planId,
             SessionId = sessionAId,
             StartedAt = DateTime.UtcNow.AddDays(-6),

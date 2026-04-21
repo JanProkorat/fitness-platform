@@ -250,4 +250,83 @@ public class MarkSessionIncompleteEndpointTests
 
         ep.HttpContext.Response.StatusCode.Should().Be(401);
     }
+
+    [Fact]
+    public async Task HandleAsync_ClearsWorkoutLogCompletedAtForSession()
+    {
+        // Arrange — a fully-completed WorkoutLog for today for this session
+        var now = DateTime.UtcNow;
+        var workoutLog = new Application.Domain.Documents.WorkoutLog
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = _clientId,          // auth user id — matches the JWT claim
+            SessionId = _sessionId,
+            StartedAt = now.Date.AddHours(9),
+            IsCompleted = true,
+            Exercises =
+            [
+                new Application.Domain.Documents.WorkoutExercise
+                {
+                    ExerciseExternalId = _exercise1,
+                    ExerciseName = "Bench Press",
+                    Sets =
+                    [
+                        new Application.Domain.Documents.WorkoutSet { SetNumber = 1, Reps = 10, WeightKg = 80m, CompletedAt = now },
+                        new Application.Domain.Documents.WorkoutSet { SetNumber = 2, Reps = 8,  WeightKg = 80m, CompletedAt = now }
+                    ]
+                }
+            ]
+        };
+
+        var existingCompletion = TrainingCompletionTestHelpers.CreateCompletion(
+            clientId: _clientId,
+            sessionId: _sessionId,
+            date: now.Date,
+            completedExerciseIds: [_exercise1, _exercise2],
+            version: 1);
+
+        var plan = TrainingCompletionTestHelpers.CreateActivePlan(
+            clientId: _clientId,
+            sessionId: _sessionId,
+            exerciseIds: [_exercise1, _exercise2]);
+
+        var (mongo, _) = TrainingCompletionTestHelpers.CreateMockMongo(
+            plan: plan,
+            existingCompletion: existingCompletion,
+            workoutLogs: [workoutLog]);
+
+        var db = CreateMockDb();
+
+        var ep = Factory.Create<MarkSessionIncompleteEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
+            mongo, db, _notifier, _compliance, _logger);
+
+        // Act
+        await ep.HandleAsync(
+            new MarkSessionIncompleteRequest { SessionId = _sessionId },
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        // IsCompleted cleared
+        workoutLog.IsCompleted.Should().BeFalse();
+
+        // Every set's CompletedAt is null
+        workoutLog.Exercises
+            .SelectMany(e => e.Sets)
+            .Should().AllSatisfy(s => s.CompletedAt.Should().BeNull());
+
+        // Reps and WeightKg on the first set are preserved
+        workoutLog.Exercises[0].Sets[0].Reps.Should().Be(10);
+        workoutLog.Exercises[0].Sets[0].WeightKg.Should().Be(80m);
+
+        // ReplaceOneAsync was called for the log
+        await mongo.WorkoutLogs.Received(1).ReplaceOneAsync(
+            Arg.Any<FilterDefinition<Application.Domain.Documents.WorkoutLog>>(),
+            Arg.Any<Application.Domain.Documents.WorkoutLog>(),
+            Arg.Any<ReplaceOptions>(),
+            Arg.Any<CancellationToken>());
+    }
 }

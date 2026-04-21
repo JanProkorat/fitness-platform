@@ -2,8 +2,11 @@ using System.Security.Claims;
 using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.TrainingPlans.PublishTrainingWeek;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints;
+using NSubstitute;
 
 namespace FitnessPlatform.Tests.Endpoints.TrainingPlans;
 
@@ -27,7 +30,10 @@ public class PublishTrainingWeekEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo);
+            mongo,
+            new MockDbBuilder().Build(),
+            Substitute.For<INotificationService>(),
+            Substitute.For<IRealtimeNotifier>());
 
         await ep.HandleAsync(new PublishTrainingWeekRequest
         {
@@ -51,7 +57,10 @@ public class PublishTrainingWeekEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo);
+            mongo,
+            new MockDbBuilder().Build(),
+            Substitute.For<INotificationService>(),
+            Substitute.For<IRealtimeNotifier>());
 
         await ep.HandleAsync(new PublishTrainingWeekRequest
         {

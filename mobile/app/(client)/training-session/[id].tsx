@@ -1,7 +1,7 @@
 /**
  * Live Training Assistant — redesigned in-place from the old free-form logger.
  *
- * Route:  /(client)/training/log/[id]
+ * Route:  /(client)/training-session/[id]
  * Params: id — the workoutLog id. Pass "new" with ?planId=&sessionId= to start fresh.
  *
  * Sub-states:
@@ -21,7 +21,16 @@ import {
   Alert,
   Platform,
 } from 'react-native'
+import Animated, {
+  FadeIn,
+  FadeOut,
+  SlideInDown,
+  SlideOutDown,
+  SlideInRight,
+  SlideOutLeft,
+} from 'react-native-reanimated'
 import { useLocalSearchParams, useRouter } from 'expo-router'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
@@ -32,8 +41,9 @@ import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 
 import { startWorkout, updateWorkout, completeWorkout } from '@/api/workouts'
 import type { UpdateWorkoutRequest } from '@/api/workouts'
-import type { SessionExercise, ExerciseSet } from '@/api/training'
+import type { SessionExercise, ExerciseSet, MuscleGroup } from '@/api/training'
 import { getTodaySession } from '@/api/training'
+import { getMuscleGroupColor } from '@/constants/muscleGroups'
 
 import { useLiveSessionStore } from '@/stores/liveSessionStore'
 import { addPendingMutation } from '@/stores/offline'
@@ -106,8 +116,16 @@ function SkipConfirmSheet({ visible, onConfirm, onCancel }: SkipConfirmSheetProp
   const { t } = useTranslation()
   if (!visible) return null
   return (
-    <View style={[sheets.overlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
-      <View style={[sheets.sheet, { backgroundColor: colors.bg2 }]}>
+    <Animated.View
+      style={[sheets.overlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}
+      entering={FadeIn.duration(180)}
+      exiting={FadeOut.duration(160)}
+    >
+      <Animated.View
+        style={[sheets.sheet, { backgroundColor: colors.bg2 }]}
+        entering={SlideInDown.duration(240)}
+        exiting={SlideOutDown.duration(200)}
+      >
         <Text style={[sheets.sheetTitle, { color: colors.label }]}>
           {t('training.live.skipExerciseTitle')}
         </Text>
@@ -130,8 +148,8 @@ function SkipConfirmSheet({ visible, onConfirm, onCancel }: SkipConfirmSheetProp
             {t('common.cancel')}
           </Text>
         </Pressable>
-      </View>
-    </View>
+      </Animated.View>
+    </Animated.View>
   )
 }
 
@@ -504,10 +522,11 @@ const roadmapStyles = StyleSheet.create({
 interface PreStartProps {
   sessionName: string
   exercises: SessionExercise[]
+  exerciseMuscleGroups: Record<string, MuscleGroup[]>
   onStart: () => void
 }
 
-function PreStart({ sessionName, exercises, onStart }: PreStartProps) {
+function PreStart({ sessionName, exercises, exerciseMuscleGroups, onStart }: PreStartProps) {
   const colors = useTheme()
   const { t } = useTranslation()
 
@@ -558,20 +577,23 @@ function PreStart({ sessionName, exercises, onStart }: PreStartProps) {
                 isBodyweight ? t('training.live.bw') : `${firstSet?.weightKg ?? 0} kg`
               }`
             : ''
-          const muscleColor = muscleColorFor(ex)
+          const mgs = ex.exerciseExternalId
+            ? (exerciseMuscleGroups[ex.exerciseExternalId] ?? [])
+            : []
+          const bodyParts = mgs.map((mg) => ({
+            label: t(`muscleGroup.${mg}`),
+            color: getMuscleGroupColor(mg, colors),
+          }))
 
           return (
             <ExpandableExerciseCard
               key={i}
               name={ex.exerciseName ?? `Exercise ${i + 1}`}
               summaryText={summaryText}
-              bodyParts={
-                muscleColor
-                  ? [{ label: ex.exerciseName?.split(' ')[0] ?? '', color: muscleColor }]
-                  : undefined
-              }
+              bodyParts={bodyParts.length > 0 ? bodyParts : undefined}
               isCompleted={false}
               defaultExpanded={false}
+              hideCompletionIndicator
             >
               <View>
                 {sets.map((s, si) => {
@@ -747,6 +769,9 @@ export default function WorkoutLogScreen() {
 
   // ── Session exercises (from API) ──
   const [exercises, setExercises] = useState<SessionExercise[]>([])
+  const [exerciseMuscleGroups, setExerciseMuscleGroups] = useState<
+    Record<string, MuscleGroup[]>
+  >({})
   const [sessionDisplayName, setSessionDisplayName] = useState('')
   const [loadedLogId, setLoadedLogId] = useState<string | null>(
     id !== 'new' && id ? id : (activeLogId ?? null),
@@ -787,6 +812,9 @@ export default function WorkoutLogScreen() {
     onSuccess: () => {
       // Invalidate personal records so the profile card refreshes on next view.
       void queryClient.invalidateQueries({ queryKey: ['personal-records-latest'] })
+      // Refresh the Today card so completed exercises / sessions light up there too.
+      void queryClient.invalidateQueries({ queryKey: ['today-training'] })
+      void queryClient.invalidateQueries({ queryKey: ['compliance-score'] })
     },
     onError: (_err, logId) => {
       if (!isConnected) {
@@ -799,20 +827,27 @@ export default function WorkoutLogScreen() {
   })
 
   // ── Load session exercises on mount ──
+  // When multiple sessions are planned for today, the sessionId route param
+  // tells us which one the user picked on the Today card. Fall back to the
+  // first session if no id was passed (e.g. legacy deep links).
   useEffect(() => {
     async function load() {
       try {
         const resp = await getTodaySession()
-        const session = resp.session
+        const sessions = resp.sessions ?? []
+        const session =
+          (sessionId && sessions.find((s) => s.sessionId === sessionId)) ||
+          sessions[0]
         if (!session) return
         setSessionDisplayName(session.name ?? '')
         setExercises(session.exercises ?? [])
+        setExerciseMuscleGroups(resp.exerciseMuscleGroups ?? {})
       } catch {
         // Non-fatal — screen still works with empty exercises in pre-start
       }
     }
     void load()
-  }, [])
+  }, [sessionId])
 
   // ── Start fresh workout (id === "new") ──
   useEffect(() => {
@@ -885,18 +920,30 @@ export default function WorkoutLogScreen() {
   }, [phase, startedAt, finishedAt])
 
   // ── Build UpdateWorkoutRequest from store state ──
+  // Read straight from the Zustand store via `getState()` rather than the
+  // destructured render-time snapshot. Callers like `handleSetDone` mutate
+  // the store *then* call `persistUpdate()` within the same event tick —
+  // before React re-renders and this callback's closure is rebuilt. Using
+  // `getState()` guarantees the PUT body reflects the freshly-marked set
+  // instead of the pre-mutation snapshot (which would persist N-1 sets).
   const buildRequest = useCallback((): UpdateWorkoutRequest => {
+    const state = useLiveSessionStore.getState()
     return {
       exercises: exercises.map((ex) => {
         const exId = ex.exerciseExternalId ?? ''
-        const doneSetIndices = completedSets[exId] ?? []
-        const skippedSetIndices = skippedSets[exId] ?? []
+        const doneSetIndices = state.completedSets[exId] ?? []
+        const skippedSetIndices = state.skippedSets[exId] ?? []
         const sets = (ex.sets ?? []).map((planned, si) => {
-          const override = formOverrides[exId]?.[si]
+          const override = state.formOverrides[exId]?.[si]
           const isDone = doneSetIndices.includes(si)
           const isSkipped = skippedSetIndices.includes(si)
+          // `planned.setNumber` from the plan is already 1-based; fall back to
+          // `si + 1` only when the plan entry doesn't carry it. Previously this
+          // was `(planned.setNumber ?? si) + 1`, which double-incremented
+          // real plan set numbers (1,2,3 → 2,3,4) and left the WorkoutLog
+          // misaligned with the plan.
           return {
-            setNumber: (planned.setNumber ?? si) + 1,
+            setNumber: planned.setNumber ?? si + 1,
             reps: isDone ? (override?.reps ?? planned.reps) : undefined,
             weightKg: isDone ? (override?.weightKg ?? planned.weightKg) : undefined,
             completedAt:
@@ -910,7 +957,7 @@ export default function WorkoutLogScreen() {
         }
       }),
     }
-  }, [exercises, completedSets, skippedSets, formOverrides])
+  }, [exercises])
 
   const persistUpdate = useCallback(() => {
     const logId = loadedLogId ?? activeLogId
@@ -939,6 +986,25 @@ export default function WorkoutLogScreen() {
   }
 
   // ── Actions ──
+
+  // Sequences the final WorkoutLog write then the complete flip.
+  // `UpdateWorkoutEndpoint` filters `IsCompleted = false`, so if
+  // `completeMutation` lands first the last-set PUT 404s and that set is
+  // lost from the log — the Today card then re-reads WorkoutLog and the
+  // final set shows as unfinished. Awaiting update before firing complete
+  // guarantees the log carries the final set before the flip.
+  const finalizeWorkout = useCallback(
+    async (logId: string) => {
+      try {
+        const req = buildRequest()
+        await updateMutation.mutateAsync({ logId, req })
+      } catch {
+        // Offline path is handled inside updateMutation.onError; proceed anyway.
+      }
+      completeMutation.mutate(logId)
+    },
+    [buildRequest, updateMutation, completeMutation],
+  )
 
   const handleStart = useCallback(() => {
     const logId = loadedLogId ?? activeLogId
@@ -977,7 +1043,7 @@ export default function WorkoutLogScreen() {
       storeFinish()
       setPhase('finished')
       const logId = loadedLogId ?? activeLogId
-      if (logId) completeMutation.mutate(logId)
+      if (logId) void finalizeWorkout(logId)
       return
     }
 
@@ -1001,7 +1067,7 @@ export default function WorkoutLogScreen() {
     storeStartRest,
     loadedLogId,
     activeLogId,
-    completeMutation,
+    finalizeWorkout,
     persistUpdate,
   ])
 
@@ -1032,7 +1098,7 @@ export default function WorkoutLogScreen() {
       storeFinish()
       setPhase('finished')
       const logId = loadedLogId ?? activeLogId
-      if (logId) completeMutation.mutate(logId)
+      if (logId) void finalizeWorkout(logId)
       return
     }
     storeAdvance(nextExIdx, nextSetIdx)
@@ -1048,7 +1114,7 @@ export default function WorkoutLogScreen() {
     prefillForm,
     loadedLogId,
     activeLogId,
-    completeMutation,
+    finalizeWorkout,
     persistUpdate,
   ])
 
@@ -1064,7 +1130,7 @@ export default function WorkoutLogScreen() {
       storeFinish()
       setPhase('finished')
       const logId = loadedLogId ?? activeLogId
-      if (logId) completeMutation.mutate(logId)
+      if (logId) void finalizeWorkout(logId)
       return
     }
     storeAdvance(nextExIdx, 0)
@@ -1079,7 +1145,7 @@ export default function WorkoutLogScreen() {
     prefillForm,
     loadedLogId,
     activeLogId,
-    completeMutation,
+    finalizeWorkout,
     persistUpdate,
   ])
 
@@ -1103,15 +1169,38 @@ export default function WorkoutLogScreen() {
     [phase, currentExerciseIdx, storeAdvance, prefillForm, exercises],
   )
 
-  const handleClose = useCallback(() => {
+  const exitToToday = useCallback(() => {
+    if (router.canGoBack()) router.back()
+    else router.replace(href('/(client)'))
+  }, [router])
+
+  const handleClose = useCallback(async () => {
+    // Flush the latest store state to the server BEFORE invalidating 'today-training'.
+    // The backend's WorkoutLog-merge logic needs the PUT to land first; if we
+    // invalidate while the PUT is still in-flight the refetch races ahead of
+    // the write and Today shows stale completion data.
+    const logId = loadedLogId ?? activeLogId
+    if (logId && phase === 'running') {
+      try {
+        const req = buildRequest()
+        await updateMutation.mutateAsync({ logId, req })
+      } catch {
+        // Offline path is handled inside updateMutation.onError; proceed anyway.
+      }
+    }
     storeClose()
-    router.replace(href('/(client)/(tabs)/index'))
-  }, [storeClose, router])
+    // Now that the PUT has landed, a refetch will see the latest WorkoutLog.
+    void queryClient.invalidateQueries({ queryKey: ['today-training'] })
+    void queryClient.invalidateQueries({ queryKey: ['compliance-score'] })
+    exitToToday()
+  }, [storeClose, exitToToday, queryClient, loadedLogId, activeLogId, phase, buildRequest, updateMutation])
 
   const handleBackToToday = useCallback(() => {
     storeDiscard()
-    router.replace(href('/(client)/(tabs)/index'))
-  }, [storeDiscard, router])
+    void queryClient.invalidateQueries({ queryKey: ['today-training'] })
+    void queryClient.invalidateQueries({ queryKey: ['compliance-score'] })
+    exitToToday()
+  }, [storeDiscard, exitToToday, queryClient])
 
   // ── Derived: total sets done (for header) ──
   const totalSetsDone = useMemo(() => {
@@ -1188,17 +1277,18 @@ export default function WorkoutLogScreen() {
 
   // ── Render ──
   return (
-    <View style={[styles.container, { backgroundColor: colors.bg }]}>
-      {/* Header — always visible when not prestart */}
-      {phase !== 'prestart' && (
-        <LiveSessionHeader
-          sessionName={sessionDisplayName}
-          elapsedSeconds={elapsedSeconds}
-          setsDone={totalSetsDone}
-          setsTotal={totalSetsAll}
-          onClose={handleClose}
-        />
-      )}
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.bg }]}
+      edges={['top']}
+    >
+      {/* Header — always visible; on prestart the timer reads 00:00 and 0/N sets. */}
+      <LiveSessionHeader
+        sessionName={sessionDisplayName}
+        elapsedSeconds={elapsedSeconds}
+        setsDone={totalSetsDone}
+        setsTotal={totalSetsAll}
+        onClose={handleClose}
+      />
 
       {/* Roadmap — visible only while running */}
       {phase === 'running' && (
@@ -1217,16 +1307,19 @@ export default function WorkoutLogScreen() {
       >
         {/* ── PRE-START ── */}
         {phase === 'prestart' && (
-          <PreStart
-            sessionName={sessionDisplayName}
-            exercises={exercises}
-            onStart={handleStart}
-          />
+          <Animated.View key="prestart" entering={FadeIn.duration(220)} exiting={FadeOut.duration(160)}>
+            <PreStart
+              sessionName={sessionDisplayName}
+              exercises={exercises}
+              exerciseMuscleGroups={exerciseMuscleGroups}
+              onStart={handleStart}
+            />
+          </Animated.View>
         )}
 
         {/* ── RUNNING ── */}
         {phase === 'running' && currentExercise && (
-          <>
+          <Animated.View key="running" entering={SlideInRight.duration(240)} exiting={SlideOutLeft.duration(180)}>
             <LiveExerciseFocus
               exerciseName={currentExercise.exerciseName ?? ''}
               muscleColor={muscleColorFor(currentExercise)}
@@ -1304,16 +1397,18 @@ export default function WorkoutLogScreen() {
                 </View>
               </View>
             )}
-          </>
+          </Animated.View>
         )}
 
         {/* ── FINISHED ── */}
         {phase === 'finished' && finishedSummary && (
-          <LiveFinishedSummary
-            sessionName={sessionDisplayName}
-            summary={finishedSummary}
-            onBackToToday={handleBackToToday}
-          />
+          <Animated.View key="finished" entering={FadeIn.duration(260)} exiting={FadeOut.duration(180)}>
+            <LiveFinishedSummary
+              sessionName={sessionDisplayName}
+              summary={finishedSummary}
+              onBackToToday={handleBackToToday}
+            />
+          </Animated.View>
         )}
 
         <View style={{ height: 24 }} />
@@ -1323,13 +1418,20 @@ export default function WorkoutLogScreen() {
 
       {/* Rest timer overlay */}
       {restActive && restStartedAt && restSeconds && (
-        <RestTimerHero
-          restSeconds={restSeconds}
-          restStartedAt={restStartedAt}
-          nextExerciseName={nextExerciseForRest?.exerciseName ?? ''}
-          nextSetMeta={nextSetMeta}
-          onSkipRest={handleSkipRest}
-        />
+        <Animated.View
+          key="rest-overlay"
+          entering={SlideInDown.duration(260)}
+          exiting={SlideOutDown.duration(220)}
+          style={StyleSheet.absoluteFill}
+        >
+          <RestTimerHero
+            restSeconds={restSeconds}
+            restStartedAt={restStartedAt}
+            nextExerciseName={nextExerciseForRest?.exerciseName ?? ''}
+            nextSetMeta={nextSetMeta}
+            onSkipRest={handleSkipRest}
+          />
+        </Animated.View>
       )}
 
       {/* PR flash overlay */}
@@ -1344,7 +1446,7 @@ export default function WorkoutLogScreen() {
         onConfirm={handleSkipExercise}
         onCancel={() => setShowSkipExerciseConfirm(false)}
       />
-    </View>
+    </SafeAreaView>
   )
 }
 

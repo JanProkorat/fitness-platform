@@ -31,9 +31,16 @@ export type SessionCtaState = 'not-started' | 'in-progress' | 'finished'
 /**
  * Derives the CTA state for a single training session.
  *
- * @param session             The `TrainingSession` from the API response.
- * @param completedExerciseIds The set of exerciseExternalIds that have been
- *                            marked complete in the optimistic cache.
+ * @param session               The `TrainingSession` from the API response.
+ * @param completedExerciseIds  The set of exerciseExternalIds that have been
+ *                              marked complete in the optimistic cache.
+ * @param hasActiveLiveSession  When true, the user has an in-flight live session
+ *                              for this session that has not yet been finished.
+ *                              A `not-started` state is bumped to `in-progress`
+ *                              so the CTA reads "Continue training" as soon as
+ *                              the user starts the session (even before any full
+ *                              exercise is marked complete via the checkbox).
+ *                              `finished` is never overridden by this flag.
  *
  * @returns `SessionCtaState`
  *
@@ -47,6 +54,7 @@ export type SessionCtaState = 'not-started' | 'in-progress' | 'finished'
 export function deriveSessionCtaState(
   session: TrainingSession,
   completedExerciseIds: ReadonlySet<string>,
+  hasActiveLiveSession = false,
 ): SessionCtaState {
   const exercises = session.exercises ?? []
 
@@ -67,5 +75,10 @@ export function deriveSessionCtaState(
 
   if (done >= total) return 'finished'
   if (done > 0) return 'in-progress'
+
+  // If there's a live session in-flight (sets done but no full exercise ticked),
+  // treat the session as in-progress so the CTA says "Continue training".
+  if (hasActiveLiveSession) return 'in-progress'
+
   return 'not-started'
 }

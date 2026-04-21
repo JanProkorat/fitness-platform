@@ -293,7 +293,8 @@ export default function ClientTabLayout() {
     pathname.match(/\/discover\/[^/]+$/) && !pathname.endsWith('/discover') ||
     pathname.match(/\/plans\/[^/]+$/) && !pathname.endsWith('/plans') ||
     pathname.endsWith('/pending-questionnaires') ||
-    pathname.includes('/nutrition/') && !pathname.endsWith('/nutrition/index')
+    pathname.includes('/nutrition/') && !pathname.endsWith('/nutrition/index') ||
+    pathname.includes('/training/')
 
   return (
     <Tabs

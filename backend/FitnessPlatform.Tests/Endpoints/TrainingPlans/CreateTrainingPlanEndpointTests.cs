@@ -4,6 +4,7 @@ using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Features.TrainingPlans.CreateTrainingPlan;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints;
 using MongoDB.Driver;
 using NSubstitute;
@@ -23,12 +24,13 @@ public class CreateTrainingPlanEndpointTests
     {
         var mongo = TrainingPlanTestHelpers.CreateMockMongo();
         var authHelper = TrainingPlanTestHelpers.CreateMockAuthHelper(true);
+        var db = new MockDbBuilder().Build();
 
         var ep = Factory.Create<CreateTrainingPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, authHelper);
+            mongo, authHelper, db);
 
         var request = new CreateTrainingPlanRequest
         {
@@ -57,12 +59,13 @@ public class CreateTrainingPlanEndpointTests
     {
         var mongo = TrainingPlanTestHelpers.CreateMockMongo();
         var authHelper = TrainingPlanTestHelpers.CreateMockAuthHelper(false);
+        var db = new MockDbBuilder().Build();
 
         var ep = Factory.Create<CreateTrainingPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, authHelper);
+            mongo, authHelper, db);
 
         await ep.HandleAsync(new CreateTrainingPlanRequest
         {
@@ -78,7 +81,8 @@ public class CreateTrainingPlanEndpointTests
     {
         var mongo = TrainingPlanTestHelpers.CreateMockMongo();
         var authHelper = TrainingPlanTestHelpers.CreateMockAuthHelper();
-        var ep = Factory.Create<CreateTrainingPlanEndpoint>(mongo, authHelper);
+        var db = new MockDbBuilder().Build();
+        var ep = Factory.Create<CreateTrainingPlanEndpoint>(mongo, authHelper, db);
 
         await ep.HandleAsync(new CreateTrainingPlanRequest
         {

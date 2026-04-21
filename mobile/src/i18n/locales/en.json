@@ -216,6 +216,8 @@
     "restDay": "Rest day",
     "preparing": "Preparing",
     "streak": "Streak",
+    "compliance": "Compliance",
+    "complianceSub": "last 7 days",
     "todaysTraining": "Today's Training",
     "trainingPlan": "Training Plan",
     "todaysNutrition": "Today's Menu",
@@ -298,19 +300,21 @@
       "chip_other": "{{done}}/{{total}} done"
     },
     "minuteCount": "{{minutes}} min",
-    "trainingCardA11yLabel": "Open session: {{name}}",
     "sectionActionDetail": "Detail",
-    "markWholeDayDone": "Mark the whole training as done",
-    "trainingCompleteLabel": "Done",
     "exerciseCheckboxA11y": "Mark exercise as complete",
     "sessionCheckboxA11y": "Mark the entire session as complete",
+    "sessionsCount_one": "{{count}} training session",
+    "sessionsCount_other": "{{count}} training sessions",
+    "sessionsCountShort_one": "{{count}} workout",
+    "sessionsCountShort_other": "{{count}} workouts",
+    "exerciseNoteLabel": "Note:",
     "trainingCta": {
       "start": "Start training",
       "continue": "Continue training",
       "finished": "Completed",
-      "viewSummary": "View summary",
       "startError": "Could not start training. Please try again."
-    }
+    },
+    "noNutritionPlanForToday": "No nutrition plan for today"
   },
   "questionnaire": {
     "allDone": "All done!",
@@ -588,7 +592,7 @@
       "statTime": "Time",
       "statSeries": "Sets",
       "statReps": "Reps",
-      "statVolume": "Volume",
+      "statExercises": "Exercises",
       "prBannerTitle": "New Personal Records",
       "prBannerSubtitle_one": "{{count}} × new max weight",
       "prBannerSubtitle_other": "{{count}} × new max weight",

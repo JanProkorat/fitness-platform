@@ -93,6 +93,34 @@ public class GetTodayPlanEndpointTests
     }
 
     [Fact]
+    public async Task HandleAsync_StartDateSet_PastLastPublishedWeek_Returns404()
+    {
+        // Plan has StartDate 14 days ago with only week 1 published.
+        // Today falls in week 3 — no published week matches, so 404 is expected.
+        var plan = PlanTestHelpers.CreatePlan(
+            clientId: _clientId,
+            status: NutritionPlanStatus.Active,
+            weekCount: 2);
+        plan.StartDate = DateTime.UtcNow.Date.AddDays(-14);
+        plan.DatePublished = plan.StartDate;
+        plan.Weeks[0].Status = WeekStatus.Published; // week 1 published
+        // week 2 remains Draft — week 3 doesn't exist at all
+
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+        var db = CreateMockDb();
+
+        var ep = Factory.Create<GetTodayPlanEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
+            mongo, db);
+
+        await ep.HandleAsync(TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
+    }
+
+    [Fact]
     public async Task HandleAsync_CyclesWeeks_ReturnsCorrectDay()
     {
         var plan = PlanTestHelpers.CreatePlan(

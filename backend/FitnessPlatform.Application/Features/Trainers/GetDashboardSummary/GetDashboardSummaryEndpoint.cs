@@ -46,6 +46,16 @@ public class GetDashboardSummaryEndpoint(
 
         var trainerUserId = Guid.Parse(userId);
 
+        var isTrainer = User.IsInRole(AppRoles.Trainer);
+        var isNutritionist = User.IsInRole(AppRoles.Nutritionist);
+        var discipline = (isTrainer, isNutritionist) switch
+        {
+            (true, true) => ComplianceDiscipline.Both,
+            (true, false) => ComplianceDiscipline.TrainingOnly,
+            (false, true) => ComplianceDiscipline.NutritionOnly,
+            _ => ComplianceDiscipline.Both, // admin or unexpected — fall back to combined
+        };
+
         var professionalProfile = await db.ProfessionalProfiles
             .AsNoTracking()
             .FirstOrDefaultAsync(tp => tp.UserId == trainerUserId, ct);
@@ -65,8 +75,6 @@ public class GetDashboardSummaryEndpoint(
             .ToListAsync(ct);
 
         var now = DateTime.UtcNow;
-        var weekStart = now.Date.AddDays(-(int)now.DayOfWeek + (int)DayOfWeek.Monday);
-        if (now.DayOfWeek == DayOfWeek.Sunday) weekStart = weekStart.AddDays(-7);
         var sevenDaysAgo = now.Date.AddDays(-7);
 
         var items = new List<ClientDashboardItem>();
@@ -83,40 +91,28 @@ public class GetDashboardSummaryEndpoint(
             var compliance = await complianceService.CalculateComplianceAsync(
                 clientPublicId, sevenDaysAgo, now, ct);
 
-            // Streak — keyed by PublicId
-            var streak = await complianceService.CalculateStreakAsync(clientPublicId, ct);
+            // Streak — keyed by PublicId, scoped to the viewer's discipline
+            var streak = await complianceService.CalculateStreakAsync(clientPublicId, discipline, ct);
 
             // Average daily kcal (last 7 days) — keyed by PublicId
             var avgMacros = await complianceService.CalculateAverageMacrosAsync(
                 clientPublicId, sevenDaysAgo, now, ct);
 
-            // Workouts completed this week — WorkoutLog.ClientId = ApplicationUser.Id
-            var workoutsCompleted = await mongo.WorkoutLogs
-                .CountDocumentsAsync(
-                    Builders<WorkoutLog>.Filter.And(
-                        Builders<WorkoutLog>.Filter.Eq(w => w.ClientId, clientUserId),
-                        Builders<WorkoutLog>.Filter.Eq(w => w.IsCompleted, true),
-                        Builders<WorkoutLog>.Filter.Gte(w => w.StartedAt, weekStart)),
-                    cancellationToken: ct);
+            // Today's training progress — planned vs completed for today only,
+            // sourced from TrainingCompletion (same source of truth as the
+            // mobile Today card and the streak calculation).
+            var todayCompliance = await complianceService.CalculateComplianceAsync(
+                clientPublicId, now.Date, now.Date, ct);
+            var workoutsCompleted = todayCompliance.TrainingsCompleted;
+            var workoutsPlanned = todayCompliance.TrainingsPlanned;
 
-            // Planned sessions this week — TrainingPlan.ClientId = PublicId (created by trainer)
-            var workoutsPlanned = 0;
+            // Active training plan — still needed for HasActiveTrainingPlan flag.
             var activePlan = await mongo.TrainingPlans
                 .Find(Builders<TrainingPlan>.Filter.And(
                     Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientPublicId),
                     Builders<TrainingPlan>.Filter.Eq(p => p.Status, TrainingPlanStatus.Active)))
                 .SortByDescending(p => p.DatePublished)
                 .FirstOrDefaultAsync(ct);
-
-            if (activePlan?.StartDate != null && activePlan.Weeks.Count > 0)
-            {
-                var weeksSinceStart = (int)((weekStart - activePlan.StartDate.Value).TotalDays / 7);
-                var weekIndex = weeksSinceStart % activePlan.Weeks.Count;
-                if (weekIndex >= 0 && weekIndex < activePlan.Weeks.Count)
-                {
-                    workoutsPlanned = activePlan.Weeks[weekIndex].Sessions.Count;
-                }
-            }
 
             // Active nutrition plan — NutritionPlan.ClientId = PublicId
             var activeNutritionPlan = await mongo.NutritionPlans
@@ -229,6 +225,13 @@ public class GetDashboardSummaryEndpoint(
             if (lastMeasurement != default && (lastActivity == null || lastMeasurement > lastActivity))
                 lastActivity = lastMeasurement;
 
+            var percentForViewer = discipline switch
+            {
+                ComplianceDiscipline.TrainingOnly => compliance.TrainingCompliancePercent,
+                ComplianceDiscipline.NutritionOnly => compliance.NutritionCompliancePercent,
+                _ => compliance.CompliancePercent,
+            };
+
             items.Add(new ClientDashboardItem
             {
                 PublicId = clientPublicId,
@@ -237,7 +240,7 @@ public class GetDashboardSummaryEndpoint(
                 Email = link.ClientProfile.User.Email!,
                 IsActive = link.IsActive,
                 Goal = link.ClientProfile.Goals,
-                CompliancePercent = compliance.CompliancePercent,
+                CompliancePercent = percentForViewer,
                 CurrentStreak = streak,
                 AvgDailyKcal = avgMacros.Kcal,
                 TodayKcal = todayKcal,

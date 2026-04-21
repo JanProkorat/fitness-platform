@@ -109,10 +109,19 @@ public class ComplianceService : IComplianceService
     }
 
     /// <inheritdoc />
-    public async Task<int> CalculateStreakAsync(Guid clientId, CancellationToken ct)
+    public Task<int> CalculateStreakAsync(Guid clientId, CancellationToken ct)
+        => CalculateStreakAsync(clientId, ComplianceDiscipline.Both, ct);
+
+    /// <inheritdoc />
+    public async Task<int> CalculateStreakAsync(Guid clientId, ComplianceDiscipline discipline, CancellationToken ct)
     {
-        var nutritionPlan = await FindActivePlanAsync(clientId, ct);
-        var trainingPlan = await FindActiveTrainingPlanAsync(clientId, ct);
+        var nutritionPlan = discipline == ComplianceDiscipline.TrainingOnly
+            ? null
+            : await FindActivePlanAsync(clientId, ct);
+
+        var trainingPlan = discipline == ComplianceDiscipline.NutritionOnly
+            ? null
+            : await FindActiveTrainingPlanAsync(clientId, ct);
 
         // Determine the floor: the earliest date either plan started a published week
         DateTime? floorDate = null;
@@ -371,7 +380,7 @@ public class ComplianceService : IComplianceService
 
         var week = plan.Weeks.FirstOrDefault(w => w.WeekNumber == resolved.Value);
         if (week is null || week.Status != WeekStatus.Published)
-            week = publishedWeeks.Last();
+            return [];
 
         // ISO day-of-week: 1=Monday … 7=Sunday
         var dow = (int)target.DayOfWeek;

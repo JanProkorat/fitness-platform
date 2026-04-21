@@ -285,4 +285,91 @@ public class MarkExerciseIncompleteEndpointTests
 
         ep.HttpContext.Response.StatusCode.Should().Be(401);
     }
+
+    [Fact]
+    public async Task HandleAsync_ClearsWorkoutLogCompletedAtForExerciseOnly()
+    {
+        // Arrange — a WorkoutLog with two exercises, both fully completed
+        var now = DateTime.UtcNow;
+        var workoutLog = new Application.Domain.Documents.WorkoutLog
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = _clientId,         // auth user id — matches the JWT claim
+            SessionId = _sessionId,
+            StartedAt = now.Date.AddHours(9),
+            IsCompleted = true,
+            Exercises =
+            [
+                new Application.Domain.Documents.WorkoutExercise
+                {
+                    ExerciseExternalId = _exercise1,
+                    ExerciseName = "Squat",
+                    Sets =
+                    [
+                        new Application.Domain.Documents.WorkoutSet { SetNumber = 1, Reps = 5, WeightKg = 100m, CompletedAt = now },
+                        new Application.Domain.Documents.WorkoutSet { SetNumber = 2, Reps = 5, WeightKg = 100m, CompletedAt = now }
+                    ]
+                },
+                new Application.Domain.Documents.WorkoutExercise
+                {
+                    ExerciseExternalId = _exercise2,
+                    ExerciseName = "Deadlift",
+                    Sets =
+                    [
+                        new Application.Domain.Documents.WorkoutSet { SetNumber = 1, Reps = 3, WeightKg = 140m, CompletedAt = now }
+                    ]
+                }
+            ]
+        };
+
+        var existingCompletion = TrainingCompletionTestHelpers.CreateCompletion(
+            clientId: _clientId,
+            sessionId: _sessionId,
+            date: now.Date,
+            completedExerciseIds: [_exercise1, _exercise2],
+            version: 1);
+
+        var plan = TrainingCompletionTestHelpers.CreateActivePlan(
+            clientId: _clientId,
+            sessionId: _sessionId,
+            exerciseIds: [_exercise1, _exercise2]);
+
+        var (mongo, _) = TrainingCompletionTestHelpers.CreateMockMongo(
+            plan: plan,
+            existingCompletion: existingCompletion,
+            workoutLogs: [workoutLog]);
+
+        var db = CreateMockDb();
+
+        var ep = Factory.Create<MarkExerciseIncompleteEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
+            mongo, db, _notifier, _compliance, _logger);
+
+        // Act — unmark exercise1 only
+        await ep.HandleAsync(
+            new MarkExerciseIncompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1 },
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        // Exercise A (exercise1): all sets cleared
+        var exerciseA = workoutLog.Exercises.First(e => e.ExerciseExternalId == _exercise1);
+        exerciseA.Sets.Should().AllSatisfy(s => s.CompletedAt.Should().BeNull());
+
+        // Exercise B (exercise2): sets still have CompletedAt
+        var exerciseB = workoutLog.Exercises.First(e => e.ExerciseExternalId == _exercise2);
+        exerciseB.Sets.Should().AllSatisfy(s => s.CompletedAt.Should().NotBeNull());
+
+        // IsCompleted remains true because exercise B still has completed sets
+        workoutLog.IsCompleted.Should().BeTrue();
+
+        // ReplaceOneAsync was called for the log
+        await mongo.WorkoutLogs.Received(1).ReplaceOneAsync(
+            Arg.Any<FilterDefinition<Application.Domain.Documents.WorkoutLog>>(),
+            Arg.Any<Application.Domain.Documents.WorkoutLog>(),
+            Arg.Any<ReplaceOptions>(),
+            Arg.Any<CancellationToken>());
+    }
 }

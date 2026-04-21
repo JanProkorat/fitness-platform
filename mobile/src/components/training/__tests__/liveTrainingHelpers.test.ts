@@ -132,7 +132,7 @@ describe('computeLiveSummary', () => {
     expect(result.setsDone).toBe(3) // 2 + 1
     expect(result.setsPlanned).toBe(7) // 4 + 3
     expect(result.totalReps).toBe(32) // 10+10+12
-    expect(result.volumeKg).toBe(1600) // 10*80 + 10*80 + 0 (BW)
+    expect(result.exerciseCount).toBe(2)
     expect(result.prCount).toBe(2)
   })
 
@@ -141,6 +141,6 @@ describe('computeLiveSummary', () => {
     expect(result.setsDone).toBe(0)
     expect(result.setsPlanned).toBe(0)
     expect(result.totalReps).toBe(0)
-    expect(result.volumeKg).toBe(0)
+    expect(result.exerciseCount).toBe(0)
   })
 })

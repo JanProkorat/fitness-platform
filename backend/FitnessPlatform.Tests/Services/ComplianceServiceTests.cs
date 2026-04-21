@@ -546,6 +546,225 @@ public class ComplianceServiceTests
     }
 
     [Fact]
+    public async Task CalculateStreakAsync_NutritionOnly_PastLastPublishedWeek_ReturnsZero()
+    {
+        // Scenario from bug 2b:
+        //   - nutrition plan StartDate = 2026-04-13, only week 1 published (covers Apr 13–19)
+        //   - No training plan
+        //   - Today = 2026-04-20 (week 2, no published week)
+        //   - No meals logged on Apr 19 or Apr 20
+        //   Expected: streak = 0
+        //
+        // After fix 2a, GetPlannedMealCountForDate returns 0 for Apr 20 (week 2, not published).
+        // Apr 20 becomes a "nothing planned" rest-day skip.
+        // Apr 19 is in week 1 (published), has planned meals, but 0 logs → dayComplete=false
+        // → else { break; } with streak still at 0.
+        //
+        // We simulate "today = Apr 20" by using a fixed StartDate that puts the
+        // current real date in week 2 of a plan with only week 1 published.
+        var today = DateTime.UtcNow.Date;
+        // StartDate 7 days ago puts today in week 2 of a 1-week plan.
+        var startDate = today.AddDays(-7);
+
+        var plan = PlanTestHelpers.CreatePlan(
+            clientId: _clientId,
+            status: NutritionPlanStatus.Active,
+            weekCount: 1);
+        plan.StartDate = startDate;
+        plan.DatePublished = startDate;
+        plan.Weeks[0].Status = WeekStatus.Published;
+        plan.Weeks[0].DatePublished = startDate;
+
+        // Add a meal to every day of week 1 so yesterday (day 7 of week 1) is non-trivially planned
+        foreach (var day in plan.Weeks[0].Days)
+            day.Meals = [PlanTestHelpers.CreateMeal(kind: MealKind.Breakfast)];
+
+        // No meal logs at all — user did nothing yesterday or today
+        var mongo = CreateMongo([plan], mealLogs: []);
+        var sut = new ComplianceService(mongo);
+
+        var streak = await sut.CalculateStreakAsync(_clientId, TestContext.Current.CancellationToken);
+
+        streak.Should().Be(0);
+    }
+
+    // ── Discipline-aware streak tests ──────────────────────────────────
+
+    [Fact]
+    public async Task CalculateStreakAsync_TrainingOnlyDiscipline_IgnoresNutritionSuccess()
+    {
+        // Arrange — nutrition plan with meals logged every day for 5 days;
+        // training plan has sessions each day but no completions ever.
+        // With TrainingOnly discipline, nutrition logging must NOT count.
+        //
+        // Use startDate = 14 days ago so the plan covers today and yesterday
+        // regardless of the current day-of-week.
+        var sessionId = Guid.NewGuid();
+        var ex1 = Guid.NewGuid();
+        var today = DateTime.UtcNow.Date;
+        var startDate = today.AddDays(-14); // well before yesterday, covers the whole test window
+
+        // Nutrition plan with a meal on every day of every week
+        var nutritionPlan = PlanTestHelpers.CreatePlan(
+            clientId: _clientId,
+            status: NutritionPlanStatus.Active,
+            weekCount: 3);
+        nutritionPlan.StartDate = startDate;
+        nutritionPlan.DatePublished = startDate;
+        foreach (var week in nutritionPlan.Weeks)
+        {
+            week.Status = WeekStatus.Published;
+            week.DatePublished = startDate;
+            foreach (var day in week.Days)
+                day.Meals = [PlanTestHelpers.CreateMeal(kind: MealKind.Breakfast)];
+        }
+
+        // 5 days of meal logs — one per day for the last 5 days
+        var mealLogs = new List<MealLog>();
+        for (var i = 1; i <= 5; i++)
+            mealLogs.Add(new MealLog { ClientId = _clientId, EatenAt = today.AddDays(-i).AddHours(8), FoodsEaten = [] });
+
+        // Training plan with a session on every day — but zero completion records
+        var trainingPlan = TrainingCompletionTestHelpers.CreateActivePlan(
+            clientId: _clientId,
+            sessionId: sessionId,
+            exerciseIds: [ex1],
+            startDate: startDate);
+
+        var mongo = CreateMongo(
+            nutritionPlans: [nutritionPlan],
+            mealLogs: mealLogs,
+            trainingPlan: trainingPlan,
+            completions: []); // no training completions
+
+        var sut = new ComplianceService(mongo);
+
+        // Act — TrainingOnly means only training sessions count; nutrition logging is irrelevant
+        var streak = await sut.CalculateStreakAsync(
+            _clientId, ComplianceDiscipline.TrainingOnly, TestContext.Current.CancellationToken);
+
+        // Assert — no sessions completed → streak must be 0
+        streak.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task CalculateStreakAsync_NutritionOnlyDiscipline_IgnoresTrainingSuccess()
+    {
+        // Arrange — training plan with a completed session yesterday;
+        // no meals logged at all.
+        // With NutritionOnly discipline, training completions must NOT count.
+        //
+        // Use startDate = 14 days ago so yesterday is always within the plan window.
+        var sessionId = Guid.NewGuid();
+        var ex1 = Guid.NewGuid();
+        var today = DateTime.UtcNow.Date;
+        var yesterday = today.AddDays(-1);
+        var startDate = today.AddDays(-14);
+
+        // Nutrition plan with a meal on every day (gives the plan something "planned")
+        var nutritionPlan = PlanTestHelpers.CreatePlan(
+            clientId: _clientId,
+            status: NutritionPlanStatus.Active,
+            weekCount: 3);
+        nutritionPlan.StartDate = startDate;
+        nutritionPlan.DatePublished = startDate;
+        foreach (var week in nutritionPlan.Weeks)
+        {
+            week.Status = WeekStatus.Published;
+            week.DatePublished = startDate;
+            foreach (var day in week.Days)
+                day.Meals = [PlanTestHelpers.CreateMeal(kind: MealKind.Breakfast)];
+        }
+
+        // Training plan with session on every day — yesterday fully completed
+        var trainingPlan = TrainingCompletionTestHelpers.CreateActivePlan(
+            clientId: _clientId,
+            sessionId: sessionId,
+            exerciseIds: [ex1],
+            startDate: startDate);
+
+        var completion = TrainingCompletionTestHelpers.CreateCompletion(
+            clientId: _clientId,
+            sessionId: sessionId,
+            date: yesterday,
+            completedExerciseIds: [ex1]);
+
+        // No meal logs — nutrition side completely empty
+        var mongo = CreateMongo(
+            nutritionPlans: [nutritionPlan],
+            mealLogs: [],
+            trainingPlan: trainingPlan,
+            completions: [completion]);
+
+        var sut = new ComplianceService(mongo);
+
+        // Act — NutritionOnly means only meal logs count; training completions are irrelevant
+        var streak = await sut.CalculateStreakAsync(
+            _clientId, ComplianceDiscipline.NutritionOnly, TestContext.Current.CancellationToken);
+
+        // Assert — no meals logged → streak must be 0
+        streak.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task CalculateStreakAsync_BothDiscipline_LenientOrRuleStillApplies()
+    {
+        // Arrange — combined plan: nutrition logged yesterday but training NOT completed.
+        // With Both discipline the lenient OR rule means yesterday should still count.
+        //
+        // Use startDate = 14 days ago so yesterday is always within the plan window,
+        // regardless of the current day-of-week.
+        var sessionId = Guid.NewGuid();
+        var ex1 = Guid.NewGuid();
+        var today = DateTime.UtcNow.Date;
+        var yesterday = today.AddDays(-1);
+        var startDate = today.AddDays(-14);
+
+        // Nutrition plan with a meal on every day of every week
+        var nutritionPlan = PlanTestHelpers.CreatePlan(
+            clientId: _clientId,
+            status: NutritionPlanStatus.Active,
+            weekCount: 3);
+        nutritionPlan.StartDate = startDate;
+        nutritionPlan.DatePublished = startDate;
+        foreach (var week in nutritionPlan.Weeks)
+        {
+            week.Status = WeekStatus.Published;
+            week.DatePublished = startDate;
+            foreach (var day in week.Days)
+                day.Meals = [PlanTestHelpers.CreateMeal(kind: MealKind.Breakfast)];
+        }
+
+        // One meal log for yesterday only
+        var mealLogs = new List<MealLog>
+        {
+            new() { ClientId = _clientId, EatenAt = yesterday.AddHours(8), FoodsEaten = [] }
+        };
+
+        // Training plan with sessions on every day — no completions at all
+        var trainingPlan = TrainingCompletionTestHelpers.CreateActivePlan(
+            clientId: _clientId,
+            sessionId: sessionId,
+            exerciseIds: [ex1],
+            startDate: startDate);
+
+        var mongo = CreateMongo(
+            nutritionPlans: [nutritionPlan],
+            mealLogs: mealLogs,
+            trainingPlan: trainingPlan,
+            completions: []); // no training completions
+
+        var sut = new ComplianceService(mongo);
+
+        // Act — Both discipline uses the lenient OR rule
+        var streak = await sut.CalculateStreakAsync(
+            _clientId, ComplianceDiscipline.Both, TestContext.Current.CancellationToken);
+
+        // Assert — nutritionDone=true, trainingDone=false → OR → yesterday counts → streak ≥ 1
+        streak.Should().BeGreaterThanOrEqualTo(1);
+    }
+
+    [Fact]
     public async Task CalculateStreakAsync_CombinedPlan_NutritionLoggedNoTraining_Counts()
     {
         // Arrange — combined-plan client: nutrition logged yesterday, no training completed.
