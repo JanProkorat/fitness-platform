@@ -1,5 +1,5 @@
 import React from 'react'
-import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
@@ -12,6 +12,8 @@ interface LiveSessionHeaderProps {
   setsDone: number
   setsTotal: number
   onClose: () => void
+  /** When true the close button shows a spinner and is disabled (flush in-flight). */
+  closePending?: boolean
 }
 
 /**
@@ -24,6 +26,7 @@ export function LiveSessionHeader({
   setsDone,
   setsTotal,
   onClose,
+  closePending = false,
 }: LiveSessionHeaderProps) {
   const colors = useTheme()
   const { t } = useTranslation()
@@ -35,13 +38,18 @@ export function LiveSessionHeader({
         { backgroundColor: colors.bg2, borderBottomColor: colors.sep2 },
       ]}
     >
-      {/* Close button */}
+      {/* Close button — disabled while the final PUT is in-flight */}
       <Pressable
-        onPress={onClose}
+        onPress={closePending ? undefined : onClose}
+        disabled={closePending}
         style={[styles.closeBtn, { backgroundColor: colors.fill }]}
         accessibilityLabel={t('common.back')}
       >
-        <Ionicons name="close" size={16} color={colors.label2} />
+        {closePending ? (
+          <ActivityIndicator size="small" color={colors.label} />
+        ) : (
+          <Ionicons name="close" size={16} color={colors.label2} />
+        )}
       </Pressable>
 
       {/* Session label + name */}

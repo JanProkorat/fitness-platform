@@ -178,8 +178,11 @@ public class CompleteWorkoutEndpoint(
 
         var clientId = clientProfile.PublicId;
 
-        // Date key: the calendar day the workout was started (UTC).
-        var date = log.StartedAt.Date;
+        // Date key: the calendar day the workout was *finalised* (UTC).
+        // Using completion time (DateTime.UtcNow) aligns with MarkSessionCompleteEndpoint,
+        // MarkSessionIncompleteEndpoint, and MarkExerciseIncompleteEndpoint so that
+        // GetTodaySessionEndpoint — which reads by DateTime.UtcNow.Date — always finds the doc.
+        var date = DateOnly.FromDateTime(DateTime.UtcNow).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
 
         var completionFilter = Builders<TrainingCompletion>.Filter.Eq(c => c.ClientId, clientId)
                                & Builders<TrainingCompletion>.Filter.Eq(c => c.Date, date)

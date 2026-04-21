@@ -219,7 +219,9 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
             var latestLogPerSession = workoutLogs
                 .Where(l => l.SessionId is not null)
                 .GroupBy(l => l.SessionId!.Value)
-                .Select(g => g.OrderByDescending(l => l.StartedAt).First());
+                .Select(g => g.OrderByDescending(l => l.StartedAt)
+                              .ThenByDescending(l => l.DateCreated) // stable tie-breaker: newest insert wins when StartedAt is identical
+                              .First());
 
             foreach (var log in latestLogPerSession)
             {
