@@ -67,6 +67,12 @@ public class ApplicationUser : IdentityUser<Guid>
     public string TimeZone { get; set; } = "Europe/Prague";
 
     /// <summary>
+    /// URL of the user's avatar blob in storage (null if no avatar has been set).
+    /// </summary>
+    [MaxLength(500)]
+    public string? AvatarBlobUrl { get; set; }
+
+    /// <summary>
     /// Collection of refresh tokens issued to this user.
     /// </summary>
     public ICollection<RefreshToken> RefreshTokens { get; set; } = [];

@@ -70,4 +70,9 @@ public class GetProfileResponse
     /// User's IANA time zone identifier (e.g. "Europe/Prague").
     /// </summary>
     public string TimeZone { get; set; } = "Europe/Prague";
+
+    /// <summary>
+    /// Permanent blob URL of the user's avatar, or null if no avatar has been uploaded.
+    /// </summary>
+    public string? AvatarBlobUrl { get; set; }
 }
