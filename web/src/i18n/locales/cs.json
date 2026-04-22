@@ -484,7 +484,19 @@
     "ingredientNotePlaceholder": "např. jemně nakrájené, pokojová teplota...",
     "visibilityPublic": "Veřejný",
     "visibilityPrivate": "Soukromý",
-    "visibilityHint": "Veřejné recepty vidí všichni nutricionisté. Upravovat je můžete pouze vy."
+    "visibilityHint": "Veřejné recepty vidí všichni nutricionisté. Upravovat je můžete pouze vy.",
+    "image": {
+      "mainHeading": "Hlavní fotka",
+      "mainEmpty": "Žádná hlavní fotka. Klikněte pro nahrání.",
+      "galleryHeading": "Galerie fotek",
+      "galleryEmpty": "Zatím žádné fotky v galerii.",
+      "addPhoto": "+ Přidat fotku",
+      "galleryFull": "Galerie je plná (max 6 fotek)",
+      "uploadMainSuccess": "Hlavní fotka aktualizována",
+      "uploadMainError": "Nepodařilo se nahrát hlavní fotku",
+      "uploadGallerySuccess": "Fotka přidána do galerie",
+      "uploadGalleryError": "Nepodařilo se přidat fotku do galerie"
+    }
   },
   "nutrition": {
     "title": "Nutriční plány",

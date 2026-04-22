@@ -4,6 +4,10 @@ import type {
   SearchRecipesResponse,
   CreateRecipeRequest,
   UpdateRecipeRequest,
+  UploadRecipeImageUrlRequest,
+  UploadRecipeImageUrlResponse,
+  ConfirmRecipeImageRequest,
+  RecipeImageSlot,
 } from './recipe-types';
 
 /** Search recipes with pagination. */
@@ -40,4 +44,33 @@ export async function updateRecipe(
 /** Delete a recipe. */
 export async function deleteRecipe(recipeId: string): Promise<void> {
   await api.delete(`/recipes/${recipeId}`);
+}
+
+/**
+ * Request a pre-signed upload URL for a recipe image.
+ * slot=main overwrites the hero image; slot=gallery appends to the gallery (max 6).
+ */
+export async function requestRecipeImageUploadUrl(
+  recipeId: string,
+  slot: RecipeImageSlot,
+  request: UploadRecipeImageUrlRequest,
+): Promise<UploadRecipeImageUrlResponse> {
+  const { data } = await api.post<UploadRecipeImageUrlResponse>(
+    `/recipes/${recipeId}/image/upload-url`,
+    request,
+    { params: { slot } },
+  );
+  return data;
+}
+
+/**
+ * Confirm a recipe image upload after a successful blob PUT.
+ * slot=main sets the main imageUrl; slot=gallery appends to galleryImageUrls.
+ */
+export async function confirmRecipeImage(
+  recipeId: string,
+  slot: RecipeImageSlot,
+  request: ConfirmRecipeImageRequest,
+): Promise<void> {
+  await api.put(`/recipes/${recipeId}/image`, request, { params: { slot } });
 }

@@ -485,7 +485,19 @@
     "ingredientNotePlaceholder": "e.g. finely chopped, room temperature...",
     "visibilityPublic": "Public",
     "visibilityPrivate": "Private",
-    "visibilityHint": "Public recipes are visible to all nutritionists. Only you can edit them."
+    "visibilityHint": "Public recipes are visible to all nutritionists. Only you can edit them.",
+    "image": {
+      "mainHeading": "Main Image",
+      "mainEmpty": "No main image. Click to upload.",
+      "galleryHeading": "Photo Gallery",
+      "galleryEmpty": "No gallery photos yet.",
+      "addPhoto": "+ Add photo",
+      "galleryFull": "Gallery is full (max 6 photos)",
+      "uploadMainSuccess": "Main image updated",
+      "uploadMainError": "Failed to upload main image",
+      "uploadGallerySuccess": "Photo added to gallery",
+      "uploadGalleryError": "Failed to add gallery photo"
+    }
   },
   "nutrition": {
     "title": "Nutrition Plans",
