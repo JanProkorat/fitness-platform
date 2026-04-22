@@ -93,6 +93,13 @@ public class ProfessionalProfile : PublicTimestampableEntity
     public bool AcceptNewClients { get; set; } = true;
 
     /// <summary>
+    /// Blob URL for the professional's avatar image (e.g. "avatars/prof-{id}.jpg").
+    /// Null when no avatar has been uploaded.
+    /// </summary>
+    [MaxLength(500)]
+    public string? AvatarBlobUrl { get; set; }
+
+    /// <summary>
     /// Navigation property to the associated user.
     /// </summary>
     public ApplicationUser User { get; set; } = null!;
