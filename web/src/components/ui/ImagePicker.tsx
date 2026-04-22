@@ -187,13 +187,14 @@ export function ImagePicker({
   // ── Keyboard activation of the drop zone ─────────────────────────────────
 
   const handleZoneKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (isUploading) return;
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         inputRef.current?.click();
       }
     },
-    [],
+    [isUploading],
   );
 
   // ── File input change ─────────────────────────────────────────────────────
@@ -238,7 +239,9 @@ export function ImagePicker({
 
       onUploaded(blobUrl);
       setPendingFile(null);
-      // Keep the previewUrl pointing at the committed blob
+      // Revoke the local object URL before switching to the committed blob URL
+      URL.revokeObjectURL(previewObjectUrlRef.current!);
+      previewObjectUrlRef.current = null;
       setPreviewUrl(blobUrl);
     } catch {
       addToast(t('imagePicker.errors.uploadFailed'), 'error');
