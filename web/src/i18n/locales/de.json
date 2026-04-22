@@ -1254,5 +1254,22 @@
       "title": "Wöchentlicher Check-in · diese Woche",
       "overrideSettings": "Einstellungen anpassen"
     }
+  },
+  "imagePicker": {
+    "label": "Bild hochladen",
+    "labelAvatar": "Profilfoto hochladen",
+    "dragOrClick": "Hierher ziehen oder klicken",
+    "dropHere": "Bild hier ablegen",
+    "hint": "{{types}} · max. {{limitMb}} MB",
+    "previewAlt": "Bildvorschau",
+    "uploading": "Wird hochgeladen...",
+    "confirm": "Hochladen",
+    "cancelSelection": "Abbrechen",
+    "change": "Bild ändern",
+    "errors": {
+      "invalidType": "Nicht unterstütztes Dateiformat. Erlaubt: {{types}}",
+      "tooLarge": "Datei überschreitet das Limit von {{limitMb}} MB",
+      "uploadFailed": "Upload fehlgeschlagen. Bitte erneut versuchen."
+    }
   }
 }

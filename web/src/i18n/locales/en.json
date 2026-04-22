@@ -1255,5 +1255,22 @@
       "title": "Weekly check-in · this week",
       "overrideSettings": "Override settings"
     }
+  },
+  "imagePicker": {
+    "label": "Upload image",
+    "labelAvatar": "Upload profile photo",
+    "dragOrClick": "Drag & drop or click to select",
+    "dropHere": "Drop image here",
+    "hint": "{{types}} · max {{limitMb}} MB",
+    "previewAlt": "Image preview",
+    "uploading": "Uploading...",
+    "confirm": "Upload",
+    "cancelSelection": "Cancel",
+    "change": "Change image",
+    "errors": {
+      "invalidType": "Unsupported file type. Allowed: {{types}}",
+      "tooLarge": "File exceeds the {{limitMb}} MB limit",
+      "uploadFailed": "Upload failed. Please try again."
+    }
   }
 }

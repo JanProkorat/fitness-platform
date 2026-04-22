@@ -1254,5 +1254,22 @@
       "title": "Týdenní check-in · tento týden",
       "overrideSettings": "Upravit nastavení"
     }
+  },
+  "imagePicker": {
+    "label": "Nahrát obrázek",
+    "labelAvatar": "Nahrát profilovou fotku",
+    "dragOrClick": "Přetáhněte nebo klikněte pro výběr",
+    "dropHere": "Sem přetáhněte obrázek",
+    "hint": "{{types}} · max {{limitMb}} MB",
+    "previewAlt": "Náhled obrázku",
+    "uploading": "Nahrávám...",
+    "confirm": "Nahrát",
+    "cancelSelection": "Zrušit",
+    "change": "Změnit obrázek",
+    "errors": {
+      "invalidType": "Nepodporovaný formát souboru. Povoleno: {{types}}",
+      "tooLarge": "Soubor překračuje limit {{limitMb}} MB",
+      "uploadFailed": "Nahrávání selhalo. Zkuste to prosím znovu."
+    }
   }
 }

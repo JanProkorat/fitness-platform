@@ -8,3 +8,5 @@ export { Toaster } from './Toast';
 export { SearchInput } from './SearchInput';
 export { ProgressBar } from './ProgressBar';
 export { FormRow, FormRow3, FormDivider, FormSectionTitle } from './FormRow';
+export { ImagePicker } from './ImagePicker';
+export type { ImagePickerProps } from './ImagePicker';
