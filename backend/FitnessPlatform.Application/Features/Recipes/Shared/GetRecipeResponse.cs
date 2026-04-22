@@ -54,6 +54,17 @@ public class GetRecipeResponse
     public RecipeVisibility Visibility { get; set; }
 
     /// <summary>
+    /// URL of the recipe's main image in blob storage, or null if no image has been uploaded.
+    /// </summary>
+    public string? ImageUrl { get; set; }
+
+    /// <summary>
+    /// URLs of gallery images (up to 6 entries). Each entry points to a blob at
+    /// <c>recipes/{recipeId}/gallery-{n}.{ext}</c>.
+    /// </summary>
+    public List<string> GalleryImageUrls { get; set; } = [];
+
+    /// <summary>
     /// True when the authenticated caller is the nutritionist who created this recipe.
     /// Clients of the API can use this flag to decide whether to show edit/delete affordances.
     /// </summary>
@@ -86,6 +97,8 @@ public class GetRecipeResponse
         Foods = recipe.Foods,
         TotalNutrients = recipe.TotalNutrients,
         Visibility = recipe.Visibility,
+        ImageUrl = recipe.ImageUrl,
+        GalleryImageUrls = recipe.GalleryImageUrls,
         IsOwnedByCurrentUser = currentUserId.HasValue && recipe.NutritionistId == currentUserId.Value,
         DateCreated = recipe.DateCreated,
         DateUpdated = recipe.DateUpdated
@@ -122,6 +135,8 @@ public class GetRecipeResponse
         }).ToList(),
         TotalNutrients = recipe.TotalNutrients,
         Visibility = recipe.Visibility,
+        ImageUrl = recipe.ImageUrl,
+        GalleryImageUrls = recipe.GalleryImageUrls,
         IsOwnedByCurrentUser = currentUserId.HasValue && recipe.NutritionistId == currentUserId.Value,
         DateCreated = recipe.DateCreated,
         DateUpdated = recipe.DateUpdated

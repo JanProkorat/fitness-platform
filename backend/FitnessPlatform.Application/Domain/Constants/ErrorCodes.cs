@@ -57,6 +57,13 @@ public static class ErrorCodes
     /// <summary>User can only edit/delete their own custom foods.</summary>
     public const string FoodNotOwned = "FOOD_NOT_OWNED";
 
+    // ── Recipes ──────────────────────────────────────────────────────
+    /// <summary>User can only edit/delete/upload images for their own recipes.</summary>
+    public const string RecipeNotOwned = "RECIPE_NOT_OWNED";
+
+    /// <summary>Recipe gallery is at its 6-entry cap; no further images can be added.</summary>
+    public const string RecipeGalleryFull = "RECIPE_GALLERY_FULL";
+
     // ── Exercises ──────────────────────────────────────────────────
     /// <summary>User can only edit/delete their own custom exercises.</summary>
     public const string ExerciseNotOwned = "EXERCISE_NOT_OWNED";

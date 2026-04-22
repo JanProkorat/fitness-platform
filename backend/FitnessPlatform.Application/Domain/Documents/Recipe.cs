@@ -90,6 +90,22 @@ public class Recipe
     public DateTime DateCreated { get; set; }
 
     /// <summary>
+    /// URL of the recipe's main image in blob storage (e.g. <c>recipes/{recipeId}/main.jpg</c>).
+    /// Null until the nutritionist uploads and confirms a main image.
+    /// </summary>
+    [BsonElement("imageUrl")]
+    [BsonIgnoreIfNull]
+    public string? ImageUrl { get; set; }
+
+    /// <summary>
+    /// URLs of the recipe's gallery images in blob storage.
+    /// Each entry looks like <c>recipes/{recipeId}/gallery-{n}.{ext}</c>.
+    /// Capped at 6 entries. Append-only via the confirm endpoint.
+    /// </summary>
+    [BsonElement("galleryImageUrls")]
+    public List<string> GalleryImageUrls { get; set; } = [];
+
+    /// <summary>
     /// When this document was last updated.
     /// </summary>
     [BsonElement("dateUpdated")]
