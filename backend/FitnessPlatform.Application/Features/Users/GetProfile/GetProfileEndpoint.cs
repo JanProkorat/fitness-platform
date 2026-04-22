@@ -92,7 +92,8 @@ public class GetProfileEndpoint(UserManager<ApplicationUser> userManager, IAppli
             HasActiveLink = hasActiveLink,
             HasPendingQuestionnaire = hasPendingQuestionnaire,
             LinkedRoles = linkedRoles,
-            TimeZone = user.TimeZone
+            TimeZone = user.TimeZone,
+            AvatarBlobUrl = user.AvatarBlobUrl
         }, ct);
     }
 }
