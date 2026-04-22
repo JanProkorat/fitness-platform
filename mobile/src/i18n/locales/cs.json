@@ -184,6 +184,14 @@
     "cancel": "Zrušit",
     "error": "Chyba"
   },
+  "imagePicker": {
+    "sourceTitle": "Vyberte zdroj",
+    "sourceCamera": "Vyfotit",
+    "sourceLibrary": "Vybrat z galerie",
+    "permissionDenied": "Přístup odepřen. Povolte přístup k fotoaparátu a fotkám v Nastavení.",
+    "oversize": "Obrázek je příliš velký (max {{maxMb}} MB). Vyberte menší soubor.",
+    "invalidType": "Nepodporovaný formát souboru. Vyberte obrázek JPG, PNG nebo WebP."
+  },
   "tabs": {
     "today": "Dnes",
     "messages": "Zprávy",
