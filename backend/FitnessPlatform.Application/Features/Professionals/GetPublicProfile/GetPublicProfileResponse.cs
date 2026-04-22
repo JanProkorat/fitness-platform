@@ -18,4 +18,5 @@ public class GetPublicProfileResponse
     public List<string> Roles { get; set; } = [];
     public bool HasPendingRequest { get; set; }
     public bool IsLinked { get; set; }
+    public string? AvatarBlobUrl { get; set; }
 }

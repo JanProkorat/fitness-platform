@@ -98,7 +98,8 @@ public class GetPublicProfileEndpoint(IApplicationDbContext db, UserManager<Appl
             Website = profile.Website,
             Roles = professionalRoles,
             HasPendingRequest = hasPendingRequest,
-            IsLinked = isLinked
+            IsLinked = isLinked,
+            AvatarBlobUrl = profile.AvatarBlobUrl
         }, ct);
     }
 

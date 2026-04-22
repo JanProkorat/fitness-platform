@@ -98,7 +98,8 @@ public class SearchProfessionalsEndpoint(IApplicationDbContext db, UserManager<A
                 EstimatedPrice = profile.EstimatedPrice,
                 CollaborationType = profile.CollaborationType,
                 Languages = ParseJsonArray(profile.Languages),
-                Roles = professionalRoles
+                Roles = professionalRoles,
+                AvatarBlobUrl = profile.AvatarBlobUrl
             });
         }
 
