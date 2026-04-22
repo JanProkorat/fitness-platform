@@ -39,6 +39,11 @@ public class RecipeSummaryDto
     public RecipeVisibility Visibility { get; set; }
 
     /// <summary>
+    /// URL of the recipe's main image, or null if no image has been uploaded.
+    /// </summary>
+    public string? ImageUrl { get; set; }
+
+    /// <summary>
     /// True when the authenticated caller is the nutritionist who created this recipe.
     /// </summary>
     public bool IsOwnedByCurrentUser { get; set; }
@@ -67,6 +72,7 @@ public class RecipeSummaryDto
         TotalNutrients = recipe.TotalNutrients,
         PrepTimeMinutes = recipe.PrepTimeMinutes,
         Visibility = recipe.Visibility,
+        ImageUrl = recipe.ImageUrl,
         IsOwnedByCurrentUser = currentUserId.HasValue && recipe.NutritionistId == currentUserId.Value,
         DateCreated = recipe.DateCreated,
         FoodCategories = recipe.Foods
