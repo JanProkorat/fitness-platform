@@ -67,6 +67,7 @@ function toTrainerCardData(p: ProfessionalSummary): TrainerCardData {
     priceMonthly: p.estimatedPrice ?? '',
     tags: p.specializations ?? [],
     accepting: true,
+    avatarImageUrl: p.avatarBlobUrl ?? null,
   }
 }
 

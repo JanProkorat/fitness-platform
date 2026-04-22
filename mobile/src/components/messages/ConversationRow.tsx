@@ -3,8 +3,7 @@ import { View, Text, Pressable, StyleSheet, Animated } from 'react-native'
 import { Swipeable } from 'react-native-gesture-handler'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/hooks/useTheme'
-import { goldAlpha } from '@/constants/colors'
-import { getInitials } from '@/lib/initials'
+import { Avatar } from '@/components/ui/Avatar'
 import { formatTimestamp } from '@/lib/dateFormatting'
 import type { ConversationDto } from '../../api/generated'
 
@@ -71,17 +70,8 @@ export const ConversationRow = React.memo(function ConversationRow({
       onPress={onPress}
     >
       {/* Avatar */}
-      <View style={styles.avatarWrap}>
-        <View
-          style={[
-            styles.avatar,
-            { backgroundColor: goldAlpha['15'], opacity: isArchived ? 0.6 : 1 },
-          ]}
-        >
-          <Text style={[styles.avatarText, { color: colors.gold }]}>
-            {getInitials(participant?.name ?? '')}
-          </Text>
-        </View>
+      <View style={[styles.avatarWrap, { opacity: isArchived ? 0.6 : 1 }]}>
+        <Avatar name={participant?.name ?? ''} size="md" />
         {!isArchived && participant?.online && (
           <View style={[styles.onlineDot, { borderColor: colors.bg2, backgroundColor: colors.green }]} />
         )}
@@ -160,17 +150,6 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     flexShrink: 0,
-  },
-  avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 17,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    fontSize: 19,
-    fontWeight: '700',
   },
   onlineDot: {
     position: 'absolute',

@@ -1458,6 +1458,188 @@ export class ApiClient {
     }
 
     /**
+     * Confirm avatar upload
+     * @return No Content
+     */
+    confirmAvatarEndpoint(confirmAvatarRequest: ConfirmAvatarRequest, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/users/me/avatar";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(confirmAvatarRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processConfirmAvatarEndpoint(_response);
+        });
+    }
+
+    protected processConfirmAvatarEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Delete avatar
+     * @return No Content
+     */
+    deleteAvatarEndpoint(signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/users/me/avatar";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDeleteAvatarEndpoint(_response);
+        });
+    }
+
+    protected processDeleteAvatarEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Generate avatar upload URL
+     * @return Success
+     */
+    generateAvatarUploadUrlEndpoint(generateAvatarUploadUrlRequest: GenerateAvatarUploadUrlRequest, signal?: AbortSignal): Promise<GenerateAvatarUploadUrlResponse> {
+        let url_ = this.baseUrl + "/users/me/avatar/upload-url";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(generateAvatarUploadUrlRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGenerateAvatarUploadUrlEndpoint(_response);
+        });
+    }
+
+    protected processGenerateAvatarUploadUrlEndpoint(response: AxiosResponse): Promise<GenerateAvatarUploadUrlResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GenerateAvatarUploadUrlResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GenerateAvatarUploadUrlResponse>(null as any);
+    }
+
+    /**
      * Add a professional role
      * @return Success
      */
@@ -3342,6 +3524,87 @@ export class ApiClient {
     }
 
     /**
+     * Generate recipe image upload URL
+     * @param recipeId The recipe's public identifier (from route).
+     * @param slot Image slot: main (overwrites) or gallery (appends, max 6).
+    Provided as a query parameter: ?slot=main or ?slot=gallery.
+     * @return Success
+     */
+    uploadRecipeImageUrlEndpoint(recipeId: string, slot: string, uploadRecipeImageUrlRequest: UploadRecipeImageUrlRequest, signal?: AbortSignal): Promise<UploadRecipeImageUrlResponse> {
+        let url_ = this.baseUrl + "/recipes/{recipeId}/image/upload-url?";
+        if (recipeId === undefined || recipeId === null)
+            throw new globalThis.Error("The parameter 'recipeId' must be defined.");
+        url_ = url_.replace("{recipeId}", encodeURIComponent("" + recipeId));
+        if (slot === undefined || slot === null)
+            throw new globalThis.Error("The parameter 'slot' must be defined and cannot be null.");
+        else
+            url_ += "slot=" + encodeURIComponent("" + slot) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(uploadRecipeImageUrlRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUploadRecipeImageUrlEndpoint(_response);
+        });
+    }
+
+    protected processUploadRecipeImageUrlEndpoint(response: AxiosResponse): Promise<UploadRecipeImageUrlResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<UploadRecipeImageUrlResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<UploadRecipeImageUrlResponse>(null as any);
+    }
+
+    /**
      * Update recipe
      * @param recipeId Public identifier of the recipe to update.
      * @return Success
@@ -3689,6 +3952,83 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<GetRecipeResponse>(null as any);
+    }
+
+    /**
+     * Confirm recipe image upload
+     * @param recipeId The recipe's public identifier (from route).
+     * @param slot Image slot: main (overwrites ImageUrl) or gallery (appends to GalleryImageUrls).
+    Provided as a query parameter: ?slot=main or ?slot=gallery.
+     * @return No Content
+     */
+    confirmRecipeImageEndpoint(recipeId: string, slot: string, confirmRecipeImageRequest: ConfirmRecipeImageRequest, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/recipes/{recipeId}/image?";
+        if (recipeId === undefined || recipeId === null)
+            throw new globalThis.Error("The parameter 'recipeId' must be defined.");
+        url_ = url_.replace("{recipeId}", encodeURIComponent("" + recipeId));
+        if (slot === undefined || slot === null)
+            throw new globalThis.Error("The parameter 'slot' must be defined and cannot be null.");
+        else
+            url_ += "slot=" + encodeURIComponent("" + slot) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(confirmRecipeImageRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processConfirmRecipeImageEndpoint(_response);
+        });
+    }
+
+    protected processConfirmRecipeImageEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
     }
 
     /**
@@ -4832,6 +5172,200 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<GetPublicProfileResponse>(null as any);
+    }
+
+    /**
+     * Confirm professional avatar upload
+     * @return No Content
+     */
+    confirmProfessionalAvatarEndpoint(confirmProfessionalAvatarRequest: ConfirmProfessionalAvatarRequest, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/professionals/me/avatar";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(confirmProfessionalAvatarRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processConfirmProfessionalAvatarEndpoint(_response);
+        });
+    }
+
+    protected processConfirmProfessionalAvatarEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Delete professional avatar
+     * @return No Content
+     */
+    deleteProfessionalAvatarEndpoint(signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/professionals/me/avatar";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDeleteProfessionalAvatarEndpoint(_response);
+        });
+    }
+
+    protected processDeleteProfessionalAvatarEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Generate professional avatar upload URL
+     * @return Success
+     */
+    generateProfessionalAvatarUploadUrlEndpoint(generateProfessionalAvatarUploadUrlRequest: GenerateProfessionalAvatarUploadUrlRequest, signal?: AbortSignal): Promise<GenerateProfessionalAvatarUploadUrlResponse> {
+        let url_ = this.baseUrl + "/professionals/me/avatar/upload-url";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(generateProfessionalAvatarUploadUrlRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGenerateProfessionalAvatarUploadUrlEndpoint(_response);
+        });
+    }
+
+    protected processGenerateProfessionalAvatarUploadUrlEndpoint(response: AxiosResponse): Promise<GenerateProfessionalAvatarUploadUrlResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GenerateProfessionalAvatarUploadUrlResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GenerateProfessionalAvatarUploadUrlResponse>(null as any);
     }
 
     /**
@@ -5989,6 +6523,81 @@ export class ApiClient {
     }
 
     /**
+     * Generate food image upload URL
+     * @param foodId The food's public identifier (from route).
+     * @return Success
+     */
+    uploadFoodImageUrlEndpoint(foodId: string, uploadFoodImageUrlRequest: UploadFoodImageUrlRequest, signal?: AbortSignal): Promise<UploadFoodImageUrlResponse> {
+        let url_ = this.baseUrl + "/foods/{foodId}/image/upload-url";
+        if (foodId === undefined || foodId === null)
+            throw new globalThis.Error("The parameter 'foodId' must be defined.");
+        url_ = url_.replace("{foodId}", encodeURIComponent("" + foodId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(uploadFoodImageUrlRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUploadFoodImageUrlEndpoint(_response);
+        });
+    }
+
+    protected processUploadFoodImageUrlEndpoint(response: AxiosResponse): Promise<UploadFoodImageUrlResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<UploadFoodImageUrlResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<UploadFoodImageUrlResponse>(null as any);
+    }
+
+    /**
      * Update custom food
      * @param foodId The food's public identifier (from route).
      * @return Success
@@ -6408,6 +7017,77 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<FoodSummary>(null as any);
+    }
+
+    /**
+     * Confirm food image upload
+     * @param foodId The food's public identifier (from route).
+     * @return No Content
+     */
+    confirmFoodImageEndpoint(foodId: string, confirmFoodImageRequest: ConfirmFoodImageRequest, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/foods/{foodId}/image";
+        if (foodId === undefined || foodId === null)
+            throw new globalThis.Error("The parameter 'foodId' must be defined.");
+        url_ = url_.replace("{foodId}", encodeURIComponent("" + foodId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(confirmFoodImageRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processConfirmFoodImageEndpoint(_response);
+        });
+    }
+
+    protected processConfirmFoodImageEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
     }
 
     /**
@@ -10432,6 +11112,31 @@ Empty for non-client users. */
     linkedRoles?: string[];
     /** User's IANA time zone identifier (e.g. "Europe/Prague"). */
     timeZone?: string;
+    /** Permanent blob URL of the user's avatar, or null if no avatar has been uploaded. */
+    avatarBlobUrl?: string | undefined;
+}
+
+/** Request model for confirming the uploaded avatar blob URL. */
+export interface ConfirmAvatarRequest {
+    /** The permanent blob URL returned by POST /users/me/avatar/upload-url. */
+    blobUrl: string;
+}
+
+/** Response model containing the pre-signed upload URL and the permanent blob URL. */
+export interface GenerateAvatarUploadUrlResponse {
+    /** Time-limited pre-signed URL the client should PUT the image file to. */
+    uploadUrl?: string;
+    /** Permanent blob URL at which the avatar will be accessible after a successful upload.
+Always starts with avatars/. */
+    blobUrl?: string;
+}
+
+/** Request model for generating a pre-signed avatar upload URL. */
+export interface GenerateAvatarUploadUrlRequest {
+    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp"). */
+    contentType: string;
+    /** Declared file size in bytes. Must not exceed 5 MiB. */
+    sizeBytes?: number;
 }
 
 /** Response returned after successfully adding a role, containing fresh tokens with updated claims. */
@@ -11246,6 +11951,24 @@ export interface AssignQuestionnaireRequest {
     questionnairePublicId?: string;
 }
 
+/** Response model containing the pre-signed upload URL and the permanent blob URL. */
+export interface UploadRecipeImageUrlResponse {
+    /** Time-limited pre-signed URL the client should PUT the image file to. */
+    uploadUrl?: string;
+    /** Permanent blob URL at which the recipe image will be accessible after a successful upload.
+Main slot: recipes/{recipeId}/main.{ext}.
+Gallery slot: recipes/{recipeId}/gallery-{n}.{ext}. */
+    blobUrl?: string;
+}
+
+/** Request model for generating a pre-signed upload URL for a recipe image. */
+export interface UploadRecipeImageUrlRequest {
+    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp"). */
+    contentType: string;
+    /** Declared file size in bytes. Must not exceed 5 MiB. */
+    sizeBytes?: number;
+}
+
 /** Full recipe detail returned by get and create/update endpoints. */
 export interface GetRecipeResponse {
     /** Public identifier of the recipe. */
@@ -11266,6 +11989,11 @@ export interface GetRecipeResponse {
     totalNutrients?: NutrientTotals;
     /** Visibility of the recipe (Public = visible to all nutritionists, Private = visible only to its creator). */
     visibility?: RecipeVisibility;
+    /** URL of the recipe's main image in blob storage, or null if no image has been uploaded. */
+    imageUrl?: string | undefined;
+    /** URLs of gallery images (up to 6 entries). Each entry points to a blob at
+recipes/{recipeId}/gallery-{n}.{ext}. */
+    galleryImageUrls?: string[];
     /** True when the authenticated caller is the nutritionist who created this recipe.
 Clients of the API can use this flag to decide whether to show edit/delete affordances. */
     isOwnedByCurrentUser?: boolean;
@@ -11378,6 +12106,8 @@ export interface RecipeSummaryDto {
     prepTimeMinutes?: number | undefined;
     /** Visibility of the recipe (Public = visible to all nutritionists, Private = visible only to its creator). */
     visibility?: RecipeVisibility;
+    /** URL of the recipe's main image, or null if no image has been uploaded. */
+    imageUrl?: string | undefined;
     /** True when the authenticated caller is the nutritionist who created this recipe. */
     isOwnedByCurrentUser?: boolean;
     /** When the recipe was created. */
@@ -11414,6 +12144,12 @@ export interface CreateRecipeRequest {
     foods: RecipeFoodDto[];
     /** Visibility of the recipe. Defaults to Public when omitted. */
     visibility?: RecipeVisibility;
+}
+
+/** Request model for confirming the uploaded recipe image blob URL. */
+export interface ConfirmRecipeImageRequest {
+    /** The permanent blob URL returned by POST /recipes/{id}/image/upload-url. */
+    blobUrl: string;
 }
 
 export interface UpdateResponseRequest {
@@ -11627,6 +12363,7 @@ export interface ProfessionalSummaryDto {
     collaborationType?: string | undefined;
     languages?: string[];
     roles?: string[];
+    avatarBlobUrl?: string | undefined;
 }
 
 export interface SearchProfessionalsRequest {
@@ -11649,9 +12386,33 @@ export interface GetPublicProfileResponse {
     roles?: string[];
     hasPendingRequest?: boolean;
     isLinked?: boolean;
+    avatarBlobUrl?: string | undefined;
 }
 
 export interface GetPublicProfileRequest {
+}
+
+/** Request model for confirming the uploaded professional avatar blob URL. */
+export interface ConfirmProfessionalAvatarRequest {
+    /** The permanent blob URL returned by POST /professionals/me/avatar/upload-url. */
+    blobUrl: string;
+}
+
+/** Response model containing the pre-signed upload URL and the permanent blob URL. */
+export interface GenerateProfessionalAvatarUploadUrlResponse {
+    /** Time-limited pre-signed URL the client should PUT the image file to. */
+    uploadUrl?: string;
+    /** Permanent blob URL at which the avatar will be accessible after a successful upload.
+Always starts with avatars/. */
+    blobUrl?: string;
+}
+
+/** Request model for generating a pre-signed professional avatar upload URL. */
+export interface GenerateProfessionalAvatarUploadUrlRequest {
+    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp"). */
+    contentType: string;
+    /** Declared file size in bytes. Must not exceed 5 MiB. */
+    sizeBytes?: number;
 }
 
 /** Detailed nutrition plan response including all weeks, days, meals, and foods. */
@@ -12065,6 +12826,23 @@ export interface GetConversationContextRequest {
 export interface ArchiveConversationRequest {
 }
 
+/** Response model containing the pre-signed upload URL and the permanent blob URL. */
+export interface UploadFoodImageUrlResponse {
+    /** Time-limited pre-signed URL the client should PUT the image file to. */
+    uploadUrl?: string;
+    /** Permanent blob URL at which the food image will be accessible after a successful upload.
+Always starts with foods/. */
+    blobUrl?: string;
+}
+
+/** Request model for generating a pre-signed upload URL for a food image. */
+export interface UploadFoodImageUrlRequest {
+    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp"). */
+    contentType: string;
+    /** Declared file size in bytes. Must not exceed 5 MiB. */
+    sizeBytes?: number;
+}
+
 /** Common response DTO for food items used across multiple endpoints. */
 export interface FoodSummary {
     /** Public-facing food identifier. */
@@ -12091,6 +12869,9 @@ export interface FoodSummary {
     note?: string | undefined;
     /** Visibility of the food (Public = visible to all nutritionists, Private = visible only to its creator). */
     visibility?: FoodVisibility;
+    /** URL of the food image in blob storage (e.g. foods/{foodId}.jpg).
+Null when no image has been uploaded. */
+    imageUrl?: string | undefined;
     /** True when the authenticated caller is the nutritionist who created this food.
 Clients can use this flag to decide whether to show edit/delete affordances. */
     isOwnedByCurrentUser?: boolean;
@@ -12234,6 +13015,12 @@ export interface CreateFoodRequest {
     allergens?: string[];
     /** Common serving sizes. */
     commonServings?: ServingSizeDto[];
+}
+
+/** Request model for confirming the uploaded food image blob URL. */
+export interface ConfirmFoodImageRequest {
+    /** The permanent blob URL returned by POST /foods/{id}/image/upload-url. */
+    blobUrl: string;
 }
 
 /** Lightweight exercise DTO for list views. */

@@ -14,6 +14,7 @@ interface User {
   hasActiveLink: boolean;
   hasPendingQuestionnaire: boolean;
   linkedRoles: string[];
+  avatarBlobUrl: string | null;
 }
 
 // ─── Collaboration types ─────────────────────────────────────────────
@@ -177,6 +178,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           hasActiveLink: profile.hasActiveLink ?? false,
           hasPendingQuestionnaire: profile.hasPendingQuestionnaire ?? false,
           linkedRoles: profile.linkedRoles ?? [],
+          avatarBlobUrl: profile.avatarBlobUrl ?? null,
         },
         isAuthenticated: true,
         isInitialized: true,
@@ -211,6 +213,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           hasActiveLink: profile.hasActiveLink ?? false,
           hasPendingQuestionnaire: profile.hasPendingQuestionnaire ?? false,
           linkedRoles: profile.linkedRoles ?? [],
+          avatarBlobUrl: profile.avatarBlobUrl ?? null,
         },
       });
     } catch {

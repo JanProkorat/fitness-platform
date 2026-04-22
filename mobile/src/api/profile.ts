@@ -3,6 +3,9 @@ import type {
   UpdateProfileRequest,
   GetComplianceScoreResponse,
   CollaborationDto,
+  GenerateAvatarUploadUrlRequest,
+  GenerateAvatarUploadUrlResponse,
+  ConfirmAvatarRequest,
 } from './generated';
 
 // Re-export generated types so consumer imports (`from '@/api/profile'`) still work.
@@ -37,4 +40,18 @@ export async function getCollaborations(): Promise<CollaborationDto[]> {
 
 export async function endCollaboration(publicId: string): Promise<void> {
   await api.delete(`/client/collaborations/${publicId}`)
+}
+
+// --- Avatar ---
+
+export async function generateAvatarUploadUrl(
+  req: GenerateAvatarUploadUrlRequest,
+): Promise<GenerateAvatarUploadUrlResponse> {
+  const { data } = await api.post<GenerateAvatarUploadUrlResponse>('/users/me/avatar/upload-url', req)
+  return data
+}
+
+export async function confirmAvatar(blobUrl: string): Promise<void> {
+  const body: ConfirmAvatarRequest = { blobUrl }
+  await api.put('/users/me/avatar', body)
 }

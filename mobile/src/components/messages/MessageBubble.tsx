@@ -2,8 +2,7 @@ import React from 'react'
 import { View, Text, Pressable, StyleSheet, Platform } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/hooks/useTheme'
-import { goldAlpha } from '@/constants/colors'
-import { getInitials } from '@/lib/initials'
+import { Avatar } from '@/components/ui/Avatar'
 import { formatTime } from '@/lib/dateFormatting'
 import type { LocalMessage } from '../../types/messages'
 
@@ -31,10 +30,8 @@ export const MessageBubble = React.memo(function MessageBubble({
       {/* Avatar slot for received messages */}
       {!isOwn && (
         showAvatar ? (
-          <View style={[styles.tinyAvatar, { backgroundColor: goldAlpha['15'] }]}>
-            <Text style={[styles.tinyAvatarText, { color: colors.gold }]}>
-              {getInitials(participantName)}
-            </Text>
+          <View style={styles.tinyAvatarWrap}>
+            <Avatar name={participantName} size="sm" />
           </View>
         ) : (
           <View style={styles.avatarSpacer} />
@@ -118,21 +115,13 @@ const styles = StyleSheet.create({
   rowTheirs: {
     justifyContent: 'flex-start',
   },
-  tinyAvatar: {
-    width: 26,
-    height: 26,
-    borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 1,
+  tinyAvatarWrap: {
     flexShrink: 0,
-  },
-  tinyAvatarText: {
-    fontSize: 10,
-    fontWeight: '700',
+    marginBottom: 1,
   },
   avatarSpacer: {
-    width: 26,
+    // Matches Avatar size="sm" container width (36px)
+    width: 36,
     flexShrink: 0,
   },
   bubbleWrap: {
