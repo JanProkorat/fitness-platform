@@ -69,6 +69,7 @@ builder.Services.AddHostedService<MongoIndexInitializer>();
 
 // Blob Storage (MinIO)
 builder.Services.AddSingleton<IBlobStorageService, MinioBlobStorageService>();
+builder.Services.AddSingleton<IImageUploadService, ImageUploadService>();
 
 // ASP.NET Identity
 builder.Services.AddIdentityCore<ApplicationUser>(options =>

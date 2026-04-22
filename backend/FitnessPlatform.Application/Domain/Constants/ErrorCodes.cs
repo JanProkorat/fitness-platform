@@ -151,6 +151,19 @@ public static class ErrorCodes
     /// <summary>The weekly check-in belongs to another professional.</summary>
     public const string CheckInNotOwned = "CHECK_IN_NOT_OWNED";
 
+    // ── Image Uploads ────────────────────────────────────────────────
+    /// <summary>Content type is not in the allowed image whitelist (image/jpeg, image/png, image/webp).</summary>
+    public const string InvalidImageContentType = "INVALID_IMAGE_CONTENT_TYPE";
+
+    /// <summary>Image file size exceeds the 5 MiB limit.</summary>
+    public const string ImageTooLarge = "IMAGE_TOO_LARGE";
+
+    /// <summary>
+    /// subPath tried to escape the scope prefix: it contains <c>..</c>, a backslash (<c>\</c>),
+    /// starts with a leading <c>/</c>, or is null/empty/whitespace.
+    /// </summary>
+    public const string InvalidImageSubPath = "INVALID_IMAGE_SUB_PATH";
+
     // ── Validation (generic) ─────────────────────────────────────────
     /// <summary>Required field is missing.</summary>
     public const string Required = "REQUIRED";
