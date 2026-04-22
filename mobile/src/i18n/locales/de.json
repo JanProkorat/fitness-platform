@@ -184,6 +184,14 @@
     "cancel": "Abbrechen",
     "error": "Fehler"
   },
+  "imagePicker": {
+    "sourceTitle": "Quelle auswählen",
+    "sourceCamera": "Foto aufnehmen",
+    "sourceLibrary": "Aus Galerie wählen",
+    "permissionDenied": "Zugriff verweigert. Bitte erlauben Sie den Kamera- und Fotozugriff in den Einstellungen.",
+    "oversize": "Das Bild ist zu groß (max {{maxMb}} MB). Bitte wählen Sie eine kleinere Datei.",
+    "invalidType": "Nicht unterstützter Dateityp. Bitte wählen Sie ein JPG-, PNG- oder WebP-Bild."
+  },
   "tabs": {
     "today": "Heute",
     "messages": "Nachrichten",

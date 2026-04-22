@@ -184,6 +184,14 @@
     "cancel": "Cancel",
     "error": "Error"
   },
+  "imagePicker": {
+    "sourceTitle": "Select source",
+    "sourceCamera": "Take photo",
+    "sourceLibrary": "Choose from library",
+    "permissionDenied": "Permission denied. Please allow camera and photo access in Settings.",
+    "oversize": "Image is too large (max {{maxMb}} MB). Please choose a smaller file.",
+    "invalidType": "Unsupported file type. Please choose a JPG, PNG, or WebP image."
+  },
   "tabs": {
     "today": "Today",
     "messages": "Messages",
