@@ -79,6 +79,20 @@ src/
   mobile-scoped entry to `docs/PROGRESS.md` (unless the orchestrator will
   aggregate cross-package changes into a single entry — check first).
 
+## Branch discipline (parallel safety)
+
+- Your first action on any issue-driven task is to create the branch
+  (`<type>/<issue>-<kebab>`) — see `.claude/CLAUDE.md` → Branch & PR
+  conventions for the format.
+- If the orchestrator spawned you in parallel with another sub-agent, you
+  will be dispatched inside a `.worktrees/<issue>-<short>/` directory.
+  **Stay there.** Do not `cd` to the repo root, do not `git checkout` a
+  different branch, do not `git stash` to borrow another worktree's state.
+- Never reuse a branch another sub-agent is already working on. If `git
+  status` shows commits or uncommitted files that don't belong to your
+  issue, stop and return to the orchestrator — it means a dispatch went
+  wrong.
+
 ## Never
 - Edit anything outside `/mobile`.
 - Edit `src/api/generated.ts`.

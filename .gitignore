@@ -108,4 +108,6 @@ Thumbs.db
 **/.claude/worktrees/
 **/.claude/pending-question.md
 **/.claude/history/
+**/.claude/.typecheck-state/
+.worktrees/
 .remember/

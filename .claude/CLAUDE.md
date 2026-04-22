@@ -214,6 +214,9 @@ for `pr-reviewer`. A PreToolUse hook also blocks direct edits locally.
 | `prototype-scene` | Adds a scene to an existing HTML prototype (`docs/mobile_prototype.html`, `docs/notion_portal.html`, `docs/trainer_prototype.html`) or scaffolds a new prototype file, matching each file's exact scene + nav wiring. |
 | `ask-user-async`  | Posts a blocking question to Slack and cleanly ends the session. Use **only** when the user has declared AFK mode in the current turn ("I'm stepping away", "use async mode", "ping me on Slack") AND a genuine decision needs the user. Writes `.claude/pending-question.md` with full resume context. In-session questions still use `AskUserQuestion` — it's immediate and cheaper. |
 | `resume-pending`  | The paired skill for `ask-user-async`. Run at the start of any session when `.claude/pending-question.md` exists, or when the user says "resume" / "continue" / "check Slack". Reads the Slack thread, extracts the answer, prints a resume plan, and hands the task back to the orchestrator. |
+| `ui-tradeoff`     | Enforces Working Principles §4 (two-attempt stop rule). Invoke when an animation / layout / state-sync behaviour has failed twice on the same surface, or the user has said "it does not work" twice. Produces a tradeoff doc under `docs/ui-tradeoffs/` comparing 2–3 candidate approaches and demands a screen recording before attempt #3 is written. |
+| `root-cause-swarm`| Enforces Working Principles §1 (no speculative patches) for gnarly multi-layer bugs. Brainstorms 5–7 hypothesis buckets (contract skew, DI lifetime, race, config, cache, version skew, auth, schema, external, platform), fans out parallel `Agent` probes — each producing a reproducing test OR a falsification proof — and synthesises the winning diagnosis before any fix is written. Saves to `docs/root-cause-swarms/`. |
+| `ship-epic`       | Named entry-point for the full epic-to-PR lifecycle. Reads a GitHub epic + its sub-issues, plans parallel vs sequential dispatch, creates `.worktrees/<N>-<short>/` for concurrent children, runs each child through dev → qa-tester → pr-reviewer → merge → notion-docs per `.claude/CLAUDE.md` rules 6–8. Pauses at READY FOR MERGE for same-turn authorization (or batch mode if the user opts in). Orchestrator-only — never invoked by sub-agents. |
 
 ## Chainable plugin skills (external)
 
@@ -263,6 +266,55 @@ Rules:
 - `pr-reviewer` validates the branch format on first PR creation. A branch
   that doesn't match is bounced back to the dev sub-agent to rename before
   the PR is opened — it's cheap to fix early, noisy later.
+
+### Parallel sub-agents → one branch each, isolated via git worktree
+
+When the orchestrator dispatches two or more sub-agents in parallel (e.g.
+an epic fan-out that runs `backend-dotnet` + `web-react` concurrently, or
+two `backend-dotnet` instances on different issues), each sub-agent MUST
+work on its own branch, in its own working tree. **Never** let parallel
+sub-agents share a checkout — their commits will interleave, one will
+stomp the other's `git add`, and the PRs will mix unrelated diffs.
+
+Rules:
+
+- **One branch per sub-agent per dispatch.** The sub-agent creates its
+  branch as its first step (`<type>/<issue>-<kebab>` from the table
+  above), and does not switch branches mid-task.
+- **Use `git worktree` for concurrency.** The orchestrator (or the
+  sub-agent itself) creates a throwaway worktree rooted at
+  `.worktrees/<issue-number>-<short>/`:
+  ```
+  git worktree add .worktrees/123-nutrition-publish \
+      -b feature/123-nutrition-plan-publish origin/develop
+  ```
+  The sub-agent works inside that path, pushes its branch, opens the PR,
+  and hands back. After merge, `pr-reviewer` removes the worktree:
+  `git worktree remove .worktrees/123-nutrition-publish`. `.worktrees/`
+  is already gitignored under the Claude Code section.
+- **Serial dispatch stays on the main checkout.** If two sub-agents run
+  sequentially (backend finishes → web starts), the second can reuse
+  the main working tree and checkout `develop` cleanly — no worktree
+  needed. Worktrees are the fix for *concurrent* work, not a blanket
+  ritual.
+- **Cross-package PRs for one issue stay on one branch.** A single
+  GitHub issue that requires backend + web + mobile changes still ends
+  up as one branch with one PR — dispatch those sub-agents sequentially
+  on the same branch (each re-pulls before editing). Parallel fan-out
+  is for *different issues*, never for splitting one issue across
+  packages.
+- **`pr-reviewer` enforces one-branch-per-PR.** If it sees commits on
+  the branch that don't match the PR's issue number (e.g. another
+  sub-agent's stray commit), it refuses to merge and returns BLOCKED
+  with "branch contains unrelated commits".
+
+Smells that break isolation:
+- Two sub-agents both running `git checkout <same branch>` in the same
+  working tree — one of them is about to lose work.
+- A sub-agent running `git stash` to make room for a parallel task —
+  stash is a band-aid; the correct answer is a worktree.
+- A branch with commits authored by more than one sub-agent covering
+  more than one issue number — split it before opening the PR.
 
 ## Guardrails (enforced by hooks)
 

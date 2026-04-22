@@ -243,3 +243,90 @@ useTodayState() resolves:
 - Do not use `any` in TypeScript — fix the type properly
 - Do not install new dependencies without discussing first
 - Do not skip pre-commit hooks or force-push to main
+
+---
+
+## Working Principles
+
+These principles apply to every task — direct work and sub-agent delegations alike.
+They exist because past sessions showed the same failure modes recurring: speculative
+fixes that weren't root-caused, "done" claims on animations that were still broken,
+local changes globalised across the codebase, UI iteration death-loops, and
+output-token blowups on oversized tasks.
+
+### 1. Root-cause before fix
+
+Never submit a speculative patch. For any bug:
+
+1. Reproduce it (or explain why you can't) and state the **exact code path** that
+   produced it — file, function, line range.
+2. State the **root cause in one sentence** before proposing the fix. If you can't,
+   keep investigating — don't guess.
+3. Verify the hypothesis: a failing test that goes green, a log line that confirms
+   the path, or a minimal repro. "This edit might fix it" is not a diagnosis.
+
+If the bug originates in a sub-agent's handoff, the orchestrator re-dispatches with
+the root cause explicitly named — sub-agents do not proceed on speculative fixes
+either.
+
+### 2. Verify before declaring done
+
+A task is not complete until its verification surface passes. At minimum:
+
+- **Backend** — `dotnet build` AND the relevant `dotnet test` slice.
+- **Web** — `npm run build` (typecheck is part of the build).
+- **Mobile** — `npx tsc --noEmit` AND, for UI/animation work, simulator
+  confirmation OR an explicit user check. Never claim an animation works from
+  reading the diff.
+
+Run these as a final step before reporting. If you cannot run them (no sandbox,
+no simulator), say so — don't claim they pass.
+
+### 3. Scope discipline
+
+When the user pins a change to a specific place ("the bottom progress bar", "the
+Today screen header", "the foods list on nutrition plans"), apply it **only
+there**. Do not globalise:
+
+- Don't rename across the codebase when the request was local.
+- Don't restyle sibling components because they look related.
+- Don't refactor nearby code opportunistically — propose it separately.
+
+If the scope is ambiguous, ask via `AskUserQuestion` before making changes in
+more than one location.
+
+### 4. UI iteration discipline — the two-attempt rule
+
+Mobile/web animation and layout work is where sessions most often spiral. Enforce
+a hard stop after **two failed attempts** at the same behaviour:
+
+1. First attempt: your best guess.
+2. Second attempt: informed by what broke the first.
+3. **Third attempt is banned** until you have:
+   - A written list of what was tried and precisely how each failed
+     (not "it didn't work" — what rendered, what jumped, what stayed stale).
+   - A short tradeoff doc comparing 2–3 candidate approaches
+     (e.g. Reanimated height interpolation vs `LayoutAnimation` vs
+     `LinearTransition` vs measure() worklet) with the concrete reason to pick one.
+   - An explicit ask for a screen recording, a reference GIF, or a second pair
+     of eyes — text-only feedback is insufficient for animation debugging.
+
+This applies equally to completion-state sync, expand/collapse behaviour, and any
+bug where the user says "it does not work" twice in a row on the same surface.
+Stop iterating blindly — slow down and re-plan.
+
+### 5. Plan-then-execute for large tasks
+
+For any task that touches **more than 5 files** or is expected to generate **more
+than ~500 lines of output** (large refactors, prototype splits, epic
+implementations, bulk doc generation, multi-PR scaffolding):
+
+1. Write a numbered execution plan to `PLAN.md` at the repo root (or invoke
+   `ExitPlanMode` if in plan mode). Each phase must be independently committable.
+2. **Stop and wait for approval.** Do not start executing.
+3. Execute **one phase per turn**, committing at the end of each phase so there
+   are natural resume points if a run gets interrupted by token limits, auth
+   expiration, or tool throttling.
+
+This prevents the output-token blowups and truncated transcripts that lost work
+on earlier refactors (prototype split, Notion bootstrap).
