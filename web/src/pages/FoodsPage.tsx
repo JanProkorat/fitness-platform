@@ -198,6 +198,21 @@ export default function FoodsPage() {
             <>
               <DatabaseTable
                 columns={[
+                  {
+                    key: 'image', label: '', width: '52px',
+                    render: (food: FoodSummary) => food.imageUrl ? (
+                      <img
+                        src={food.imageUrl}
+                        alt=""
+                        aria-hidden="true"
+                        className="h-10 w-10 rounded-sm object-cover shrink-0"
+                      />
+                    ) : (
+                      <div className="h-10 w-10 rounded-sm bg-bg3 flex items-center justify-center text-sm shrink-0" aria-hidden="true">
+                        📦
+                      </div>
+                    ),
+                  },
                   { key: 'name', label: t('foods.foodName'), render: (food: FoodSummary) => food.name },
                   { key: 'note', label: t('foods.note'), render: (food: FoodSummary) => <span className="text-text3 text-[12px] italic truncate">{food.note || '—'}</span> },
                   { key: 'kcal', label: 'kcal/100g', width: '90px', render: (food: FoodSummary) => <span className="tabular-nums">{food.nutrientValue.kcal}</span> },
@@ -234,10 +249,20 @@ export default function FoodsPage() {
                 items={sortedFoods}
                 itemKey={(food) => food.foodId}
                 renderAvatar={(food) => {
+                  if (food.imageUrl) {
+                    return (
+                      <img
+                        src={food.imageUrl}
+                        alt=""
+                        aria-hidden="true"
+                        className="w-10 h-10 rounded-sm object-cover shrink-0"
+                      />
+                    );
+                  }
                   const cat = food.category ?? 'Other';
                   const colors = CATEGORY_CSS_COLORS[cat] ?? CATEGORY_CSS_COLORS.Other;
                   return (
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold"
+                    <div className="w-10 h-10 rounded-sm flex items-center justify-center text-[11px] font-bold"
                       style={{ background: colors.bg, color: colors.color }}>
                       {food.name.charAt(0).toUpperCase()}
                     </div>
@@ -277,9 +302,18 @@ export default function FoodsPage() {
                   onClick={isNutritionist ? () => foodDialog.openEdit(food) : undefined}
                 >
                   <CardCover>
-                    <div className="absolute inset-0 flex items-center justify-center text-2xl opacity-50">
-                      📦
-                    </div>
+                    {food.imageUrl ? (
+                      <img
+                        src={food.imageUrl}
+                        alt=""
+                        aria-hidden="true"
+                        className="absolute inset-0 h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center text-2xl opacity-50">
+                        📦
+                      </div>
+                    )}
                   </CardCover>
                   <CardBody>
                     <div className="text-[13px] font-medium text-text mb-1.5 truncate">

@@ -2,14 +2,14 @@ import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { createFood, updateFood } from '@/api/foods';
+import { createFood, updateFood, requestFoodImageUploadUrl, confirmFoodImage } from '@/api/foods';
 import { showApiError, showSuccess } from '@/lib/api-errors';
 import type { FoodSummary, FoodCategory, FoodVisibility } from '@/api/food-types';
 import { CATEGORY_CSS_COLORS, FOOD_CATEGORIES } from '@/components/nutrition/food-category';
 import { INPUT_CLASS_SM, CANCEL_BUTTON_CLASS } from '@/lib/styles';
-import { Toggle } from '@/components/ui';
+import { Toggle, ImagePicker } from '@/components/ui';
 
 
 const foodSchema = z.object({
@@ -43,10 +43,16 @@ interface FoodDialogProps {
 
 export function FoodDialog({ open, food, onClose, onSaved }: FoodDialogProps) {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const isNew = !food;
   const [mode, setMode] = useState<Mode>('view');
   const [transitioning, setTransitioning] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
+  // Track the committed image URL independently from the food prop so the hero
+  // updates immediately after a successful upload without waiting for a refetch.
+  const [committedImageUrl, setCommittedImageUrl] = useState<string | null>(
+    food?.imageUrl ?? null,
+  );
 
   const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<FoodFormInput, unknown, FoodForm>({
     resolver: zodResolver(foodSchema),
@@ -69,11 +75,13 @@ export function FoodDialog({ open, food, onClose, onSaved }: FoodDialogProps) {
     if (!open) { setMode('view'); return; }
     if (isNew) {
       setMode('edit');
+      setCommittedImageUrl(null);
       reset({ name: '', category: 'Other', kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, note: '', nameEn: '', nameCs: '', nameDe: '', visibility: 'Public' });
     } else {
+      setCommittedImageUrl(food?.imageUrl ?? null);
       setMode('view');
     }
-  }, [open, food?.foodId]);
+  }, [open, food?.foodId, food?.imageUrl]); // food.imageUrl syncs committedImageUrl when the parent updates the food prop
 
   // Handle Escape key
   useEffect(() => {
@@ -96,6 +104,19 @@ export function FoodDialog({ open, food, onClose, onSaved }: FoodDialogProps) {
       if (bodyRef.current) bodyRef.current.scrollTop = 0;
       setTimeout(() => setTransitioning(false), 20);
     }, 150);
+  };
+
+  const handleImageUploaded = async (blobUrl: string) => {
+    if (!food?.foodId) return;
+    try {
+      await confirmFoodImage(food.foodId, blobUrl);
+      setCommittedImageUrl(blobUrl);
+      // Invalidate the foods list so the thumbnail updates on next render
+      await queryClient.invalidateQueries({ queryKey: ['foods'] });
+      showSuccess('foods.imageUpdated');
+    } catch (err) {
+      showApiError(err, 'foods.imageUpdateError');
+    }
   };
 
   const mutation = useMutation({
@@ -138,11 +159,19 @@ export function FoodDialog({ open, food, onClose, onSaved }: FoodDialogProps) {
           style={{ width: mode === 'edit' ? 560 : 500, maxWidth: '95vw', maxHeight: '90vh', background: 'var(--bg)', borderRadius: 10, animation: 'dlg-slide-up .4s ease-out', transition: 'width .3s ease' }}
         >
           {/* Hero */}
-          <div className="flex items-center justify-center" style={{ height: mode === 'edit' ? 100 : 120, background: 'var(--bg3)', position: 'relative', transition: 'height .3s ease' }}>
-            <span style={{ fontSize: 40, opacity: 0.2 }}>📦</span>
+          <div className="flex items-center justify-center" style={{ height: mode === 'edit' ? 100 : 120, background: 'var(--bg3)', position: 'relative', transition: 'height .3s ease', overflow: 'hidden' }}>
+            {committedImageUrl ? (
+              <img
+                src={committedImageUrl}
+                alt={food?.name ?? t('foods.detail.image.empty')}
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+            ) : (
+              <span style={{ fontSize: 40, opacity: 0.2 }}>📦</span>
+            )}
             {mode === 'view' && food && (
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.4))', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '12px 20px' }}>
-                <div style={{ fontSize: 20, fontWeight: 700, color: '#fff', letterSpacing: '-0.02em' }}>{food.name}</div>
+                <div className="text-white" style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>{food.name}</div>
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ padding: '1px 6px', borderRadius: 3, background: catColors.bg, color: catColors.color, fontSize: 10, fontWeight: 500 }}>
                     {t(`foods.category${cat}`)}
@@ -288,6 +317,23 @@ export function FoodDialog({ open, food, onClose, onSaved }: FoodDialogProps) {
                     <textarea {...register('note')} placeholder={t('foods.notePlaceholder')} rows={2} className={`${INPUT_CLASS_SM} resize-vertical`} />
                   </div>
 
+                  {/* Hero image — only shown when editing an existing food (not during create) */}
+                  {!isNew && food && (
+                    <div>
+                      <label className="mb-2 block text-xs font-medium text-text3">
+                        {t('foods.detail.image.heading')} <span className="font-normal" style={{ color: 'var(--text4)' }}>({t('common.optional')})</span>
+                      </label>
+                      <ImagePicker
+                        mode="free"
+                        initialPreviewUrl={committedImageUrl ?? undefined}
+                        requestUploadUrl={({ contentType, sizeBytes }) =>
+                          requestFoodImageUploadUrl(food.foodId, { contentType, sizeBytes })
+                        }
+                        onUploaded={handleImageUploaded}
+                      />
+                    </div>
+                  )}
+
                   {mutation.isError && (
                     <p style={{ fontSize: 12, color: 'var(--red)', margin: 0 }}>{t('common.error')}</p>
                   )}
@@ -307,7 +353,7 @@ export function FoodDialog({ open, food, onClose, onSaved }: FoodDialogProps) {
               {mode === 'view' ? (
                 <>
                   <button onClick={onClose} className={CANCEL_BUTTON_CLASS}>{t('common.close')}</button>
-                  <button onClick={() => switchMode('edit')} className="px-4 py-2 rounded-md text-[13px] font-medium transition-colors" style={{ background: 'var(--accent)', color: '#fff' }}>
+                  <button onClick={() => switchMode('edit')} className="px-4 py-2 rounded-md text-[13px] font-medium transition-colors text-white" style={{ background: 'var(--accent)' }}>
                     ✏ {t('foods.editFoodTitle')}
                   </button>
                 </>
@@ -315,8 +361,8 @@ export function FoodDialog({ open, food, onClose, onSaved }: FoodDialogProps) {
                 <>
                   <button onClick={onClose} className={CANCEL_BUTTON_CLASS}>{t('common.cancel')}</button>
                   <button onClick={handleSubmit((data) => mutation.mutate(data))} disabled={mutation.isPending}
-                    className="px-5 py-2 rounded-md text-[13px] font-medium transition-colors disabled:opacity-50"
-                    style={{ background: 'var(--accent)', color: '#fff' }}>
+                    className="px-5 py-2 rounded-md text-[13px] font-medium transition-colors disabled:opacity-50 text-white"
+                    style={{ background: 'var(--accent)' }}>
                     {mutation.isPending ? t('common.saving') : isNew ? t('foods.createFood') : t('foods.saveChanges')}
                   </button>
                 </>

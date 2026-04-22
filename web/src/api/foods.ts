@@ -1,4 +1,5 @@
 import api from '@/lib/api';
+import type { UploadFoodImageUrlRequest, ConfirmFoodImageRequest } from './generated';
 import type {
   SearchFoodsResponse,
   GetCustomFoodsResponse,
@@ -49,4 +50,22 @@ export async function getCustomFoods(params: {
 }): Promise<GetCustomFoodsResponse> {
   const { data } = await api.get<GetCustomFoodsResponse>('/foods/custom', { params });
   return data;
+}
+
+/** Request a pre-signed upload URL for a food item's hero image (Nutritionist only). */
+export async function requestFoodImageUploadUrl(
+  foodId: string,
+  request: UploadFoodImageUrlRequest,
+): Promise<{ uploadUrl: string; blobUrl: string }> {
+  const { data } = await api.post<{ uploadUrl: string; blobUrl: string }>(
+    `/foods/${foodId}/image/upload-url`,
+    request,
+  );
+  return data;
+}
+
+/** Confirm a completed food image upload by persisting its blob URL (Nutritionist only). */
+export async function confirmFoodImage(foodId: string, blobUrl: string): Promise<void> {
+  const body: ConfirmFoodImageRequest = { blobUrl };
+  await api.put(`/foods/${foodId}/image`, body);
 }
