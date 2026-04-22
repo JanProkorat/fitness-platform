@@ -69,6 +69,12 @@ public class FoodSummary
     public FoodVisibility Visibility { get; set; }
 
     /// <summary>
+    /// URL of the food image in blob storage (e.g. <c>foods/{foodId}.jpg</c>).
+    /// Null when no image has been uploaded.
+    /// </summary>
+    public string? ImageUrl { get; set; }
+
+    /// <summary>
     /// True when the authenticated caller is the nutritionist who created this food.
     /// Clients can use this flag to decide whether to show edit/delete affordances.
     /// </summary>
@@ -102,6 +108,7 @@ public class FoodSummary
         Category = food.Category,
         Note = food.Note,
         Visibility = food.Visibility,
+        ImageUrl = food.ImageUrl,
         IsOwnedByCurrentUser = currentUserId.HasValue
             && food.NutritionistId.HasValue
             && food.NutritionistId.Value == currentUserId.Value,

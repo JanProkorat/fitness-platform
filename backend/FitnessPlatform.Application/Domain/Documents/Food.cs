@@ -88,6 +88,14 @@ public class Food
     public string? Note { get; set; }
 
     /// <summary>
+    /// URL of the food image in blob storage (e.g. <c>foods/{foodId}.jpg</c>).
+    /// Null until the nutritionist uploads an image and confirms it.
+    /// </summary>
+    [BsonElement("imageUrl")]
+    [BsonIgnoreIfNull]
+    public string? ImageUrl { get; set; }
+
+    /// <summary>
     /// Soft-delete flag.
     /// </summary>
     [BsonElement("isDeleted")]

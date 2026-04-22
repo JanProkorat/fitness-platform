@@ -33,6 +33,14 @@ public class FitnessApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("JWT_SECRET", new string('x', 64));
         builder.UseSetting("RateLimiting:Disabled", "true");
 
+        // Provide placeholder connection strings so Program.cs ConnectionStringFactory
+        // does not throw during host startup.  The real DB contexts are replaced below
+        // with Testcontainer-backed instances, so these values are never actually used.
+        builder.UseSetting("ConnectionStrings:PostgreSQl",
+            "Host=localhost;Database=placeholder;Username=postgres");
+        builder.UseSetting("ConnectionStrings:MongoDB",
+            "mongodb://localhost:27017");
+
         builder.ConfigureServices(services =>
         {
             // Replace DbContext to use testcontainer PostgreSQL
@@ -80,6 +88,16 @@ public class FitnessApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
             services.AddSingleton<FakeRealtimeNotifier>();
             services.AddSingleton<IRealtimeNotifier>(sp => sp.GetRequiredService<FakeRealtimeNotifier>());
+
+            // Replace blob storage with a no-op fake so integration tests never
+            // require a running MinIO instance.  IImageUploadService (the layer
+            // above) is left as-is so its content-type / size validation still runs.
+            var blobDescriptor = services.SingleOrDefault(
+                d => d.ServiceType == typeof(IBlobStorageService));
+            if (blobDescriptor is not null)
+                services.Remove(blobDescriptor);
+
+            services.AddSingleton<IBlobStorageService, FakeBlobStorageService>();
         });
 
         builder.UseEnvironment("Development");
