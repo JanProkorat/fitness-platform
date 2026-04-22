@@ -64,8 +64,12 @@ public class ConfirmFoodImageEndpoint(IMongoContext mongo) : Endpoint<ConfirmFoo
             .Set(f => f.ImageUrl, req.BlobUrl)
             .Set(f => f.DateUpdated, DateTime.UtcNow);
 
+        // Guard against a concurrent soft-delete between the FindAsync above and this
+        // write: include IsDeleted == false in the update filter so a logically-deleted
+        // food never has its ImageUrl written, even if it slipped past the find gate.
         await mongo.Foods.UpdateOneAsync(
-            Builders<Food>.Filter.Eq(f => f.ExternalId, req.FoodId),
+            Builders<Food>.Filter.Eq(f => f.ExternalId, req.FoodId)
+                & Builders<Food>.Filter.Eq(f => f.IsDeleted, false),
             update,
             cancellationToken: ct);
 

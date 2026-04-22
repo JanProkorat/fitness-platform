@@ -377,6 +377,46 @@ public class ConfirmFoodImageEndpointTests
             Arg.Any<CancellationToken>());
     }
 
+    // ── Soft-deleted food ───────────────────────────────────────────────────
+
+    /// <summary>
+    /// When FindAsync returns no document (because the food is soft-deleted —
+    /// the find filter includes IsDeleted == false), the endpoint must return 404
+    /// and must not issue an UpdateOneAsync call.  This also validates the guard
+    /// against a concurrent soft-delete between find and update: the UpdateOneAsync
+    /// filter includes IsDeleted == false so a racing delete cannot cause ImageUrl
+    /// to be written on a logically-deleted document.
+    /// </summary>
+    [Fact]
+    public async Task ConfirmImage_SoftDeletedFood_FindReturnsNull_Returns404AndUpdateNotCalled()
+    {
+        // FoodTestHelpers.CreateMockMongo() with no foods simulates the find
+        // returning empty — which is what happens when IsDeleted == false is in
+        // the filter and the food has been soft-deleted.
+        var mongo = FoodTestHelpers.CreateMockMongo(); // no foods → FindAsync returns empty cursor
+
+        var ep = Factory.Create<ConfirmFoodImageEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+            mongo);
+
+        await ep.HandleAsync(new ConfirmFoodImageRequest
+        {
+            FoodId = Guid.NewGuid(),
+            BlobUrl = "foods/deleted-food.jpg"
+        }, CancellationToken.None);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(404,
+            "a soft-deleted (or never-existing) food must result in 404, not a write");
+
+        await mongo.Foods.DidNotReceive().UpdateOneAsync(
+            Arg.Any<FilterDefinition<FitnessPlatform.Application.Domain.Documents.Food>>(),
+            Arg.Any<UpdateDefinition<FitnessPlatform.Application.Domain.Documents.Food>>(),
+            Arg.Any<UpdateOptions>(),
+            Arg.Any<CancellationToken>());
+    }
+
     // ── Unauthenticated ─────────────────────────────────────────────────────
 
     [Fact]
