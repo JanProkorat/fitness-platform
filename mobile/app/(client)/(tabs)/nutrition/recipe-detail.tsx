@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Pressable,
   ActivityIndicator,
+  Image,
   Animated,
   type NativeSyntheticEvent,
   type NativeScrollEvent,
@@ -167,6 +168,34 @@ export default function RecipeDetailScreen() {
         onScroll={onScroll}
         scrollEventThrottle={16}
       >
+        {/* Recipe hero image — full-width, shown when imageUrl is available */}
+        {detail?.imageUrl ? (
+          <Image
+            source={{ uri: detail.imageUrl }}
+            style={[styles.recipeHeroImage, { backgroundColor: colors.fill2 }]}
+            resizeMode="cover"
+          />
+        ) : null}
+
+        {/* Gallery strip — horizontal scroll, shown only when there are gallery images */}
+        {(detail?.galleryImageUrls?.length ?? 0) > 0 ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={[styles.galleryContent, { paddingHorizontal: 20 }]}
+            style={styles.galleryStrip}
+          >
+            {(detail!.galleryImageUrls ?? []).map((uri: string, idx: number) => (
+              <Image
+                key={idx}
+                source={{ uri }}
+                style={[styles.galleryThumb, { backgroundColor: colors.fill2 }]}
+                resizeMode="cover"
+              />
+            ))}
+          </ScrollView>
+        ) : null}
+
         {/* Hero */}
         <View style={styles.hero}>
           <View style={[styles.heroIcon, { backgroundColor: 'rgba(0,122,255,0.1)' }]}>
@@ -401,6 +430,25 @@ const styles = StyleSheet.create({
   headerSpacer: { width: 70 },
 
   scrollContent: { paddingBottom: 20 },
+
+  // Recipe hero image (full-width, shown when imageUrl is non-null)
+  recipeHeroImage: {
+    width: '100%' as unknown as number,
+    height: 180,
+  },
+
+  // Gallery strip (horizontal scroll below hero image)
+  galleryStrip: {
+    marginTop: 8,
+  },
+  galleryContent: {
+    gap: 6,
+  },
+  galleryThumb: {
+    width: 72,
+    height: 72,
+    borderRadius: Radius.md,
+  },
 
   // Hero
   hero: {
