@@ -1,6 +1,7 @@
 
 export interface PageHeaderProps {
-  icon?: string;
+  /** Emoji string or a React node (e.g. an avatar component). */
+  icon?: React.ReactNode;
   title: string;
   subtitle?: string;
   actions?: React.ReactNode;
@@ -11,7 +12,9 @@ export function PageHeader({ icon, title, subtitle, actions }: PageHeaderProps) 
     <div className="flex items-center justify-between px-5 pt-4 pb-2.5 border-b border-border">
       <div className="min-w-0 flex-1 flex items-center gap-3">
         {icon && (
-          <span className="text-[32px] leading-none shrink-0">{icon}</span>
+          typeof icon === 'string'
+            ? <span className="text-[32px] leading-none shrink-0">{icon}</span>
+            : <span className="shrink-0">{icon}</span>
         )}
         <div>
           <h1 className="mb-1 text-[28px] font-bold leading-tight tracking-tight text-text">

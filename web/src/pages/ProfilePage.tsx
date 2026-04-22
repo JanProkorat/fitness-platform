@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -8,11 +8,15 @@ import { useAuthStore } from '@/stores/auth';
 import api from '@/lib/api';
 import { PageHeader } from '@/components/layout';
 import { useToastStore } from '@/stores/toast';
-import { Dialog, Button } from '@/components/ui';
+import { Dialog, Button, EditableAvatar } from '@/components/ui';
 import { QuestionnaireList, QuestionnaireEditor, type QuestionnaireEditorHandle } from '@/components/questionnaire';
 import { RolesSection } from '@/components/RolesSection';
 import { TrainerProfileFields } from '@/components/TrainerProfileFields';
 import { WeeklyCheckInTab } from '@/components/profile/WeeklyCheckInTab';
+import {
+  requestUserAvatarUploadUrl,
+  confirmUserAvatar,
+} from '@/api/avatar';
 
 function parseJsonArray(value: string | null | undefined): string[] {
   if (!value) return [];
@@ -64,6 +68,19 @@ export default function ProfilePage() {
   // Phone (stored on ApplicationUser via Identity)
   const [phone, setPhone] = useState('');
 
+  // Avatar
+  const [avatarSrc, setAvatarSrc] = useState<string | null>(null);
+
+  const handleAvatarUploaded = useCallback(async (blobUrl: string) => {
+    try {
+      await confirmUserAvatar(blobUrl);
+      setAvatarSrc(blobUrl);
+      addToast(t('avatar.uploadSuccess'), 'success');
+    } catch {
+      addToast(t('avatar.uploadError'), 'error');
+    }
+  }, [addToast, t]);
+
   // Trainer fields (all API-backed)
   const [bio, setBio] = useState('');
   const [city, setCity] = useState('');
@@ -108,10 +125,11 @@ export default function ProfilePage() {
         let showInSearchVal = true;
         let acceptNewClientsVal = true;
 
-        // Fetch phone from user profile
+        // Fetch phone and avatar from user profile
         const userPromise = api.get('/users/me').then(({ data }) => {
           phoneVal = data.phoneNumber ?? '';
           setPhone(phoneVal);
+          setAvatarSrc(data.avatarBlobUrl ?? null);
         }).catch(() => {});
 
         // Fetch trainer profile (if applicable)
@@ -337,7 +355,16 @@ export default function ProfilePage() {
           {/* ── Profile Card (full width) ── */}
           <div className="profile-card">
             <div className="profile-avatar-wrap">
-              <div className="profile-avatar">{userInitials}</div>
+              <EditableAvatar
+                src={avatarSrc}
+                initials={userInitials}
+                size="lg"
+                editable
+                requestUploadUrl={(args) =>
+                  requestUserAvatarUploadUrl({ contentType: args.contentType, sizeBytes: args.sizeBytes })
+                }
+                onUploaded={handleAvatarUploaded}
+              />
               <div className="profile-avatar-hint" style={{ whiteSpace: 'pre-line' }}>
                 {t('profile.changePhoto')}
               </div>

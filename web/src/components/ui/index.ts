@@ -10,3 +10,5 @@ export { ProgressBar } from './ProgressBar';
 export { FormRow, FormRow3, FormDivider, FormSectionTitle } from './FormRow';
 export { ImagePicker } from './ImagePicker';
 export type { ImagePickerProps } from './ImagePicker';
+export { EditableAvatar } from './EditableAvatar';
+export type { EditableAvatarProps, AvatarSize } from './EditableAvatar';
