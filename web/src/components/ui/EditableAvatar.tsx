@@ -144,6 +144,10 @@ export function EditableAvatar({
               src={currentSrc}
               alt={initials}
               className="w-full h-full object-cover"
+              // If the stored URL fails to load (401/403/404/CORS/offline),
+              // drop back to the initials fallback instead of rendering a
+              // broken-image placeholder inside the avatar circle.
+              onError={() => setCurrentSrc(null)}
             />
           ) : (
             <span aria-hidden="true">{initials}</span>
