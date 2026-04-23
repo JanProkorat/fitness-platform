@@ -102,6 +102,10 @@ export function ImagePicker({
   const [previewUrl, setPreviewUrl] = useState<string | null>(
     initialPreviewUrl ?? null,
   );
+  // pendingFile is ONLY set in mode='avatar' — it's the buffer between "user
+  // picked a file" and "user clicked Confirm to commit the square crop". In
+  // mode='free', picking a file kicks off the upload immediately, so there's
+  // no intermediate state and no Confirm/Cancel buttons to render.
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -114,6 +118,53 @@ export function ImagePicker({
       }
     };
   }, []);
+
+  // ── Upload (shared by both modes) ─────────────────────────────────────────
+  //
+  // Defined before processFile so processFile can call it directly in free
+  // mode without a dependency cycle.
+
+  const uploadFile = useCallback(
+    async (file: File) => {
+      setIsUploading(true);
+      try {
+        let blobToUpload: Blob = file;
+
+        if (mode === 'avatar') {
+          blobToUpload = await centerCropToSquare(file);
+        }
+
+        const { uploadUrl, blobUrl } = await requestUploadUrl({
+          contentType: file.type,
+          sizeBytes: blobToUpload.size,
+        });
+
+        const response = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type },
+          body: blobToUpload,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Upload failed with status ${response.status}`);
+        }
+
+        onUploaded(blobUrl);
+        setPendingFile(null);
+        // Swap the local preview for the committed blob URL
+        if (previewObjectUrlRef.current) {
+          URL.revokeObjectURL(previewObjectUrlRef.current);
+          previewObjectUrlRef.current = null;
+        }
+        setPreviewUrl(blobUrl);
+      } catch {
+        addToast(t('imagePicker.errors.uploadFailed'), 'error');
+      } finally {
+        setIsUploading(false);
+      }
+    },
+    [mode, requestUploadUrl, onUploaded, addToast, t],
+  );
 
   // ── File validation & preview ─────────────────────────────────────────────
 
@@ -144,11 +195,21 @@ export function ImagePicker({
       }
       const objectUrl = URL.createObjectURL(file);
       previewObjectUrlRef.current = objectUrl;
-
       setPreviewUrl(objectUrl);
-      setPendingFile(file);
+
+      if (mode === 'avatar') {
+        // Two-step: buffer the file, wait for user to click Confirm so they
+        // can verify the centre-square crop preview before it uploads.
+        setPendingFile(file);
+      } else {
+        // Auto-upload. The preview stays visible (with spinner overlay)
+        // until the PUT resolves; on success uploadFile swaps preview to
+        // the committed blob URL, on failure it shows a toast and the
+        // user can pick another file to retry.
+        uploadFile(file);
+      }
     },
-    [accept, maxBytes, t],
+    [accept, maxBytes, mode, uploadFile, t],
   );
 
   // ── Drag-and-drop handlers ────────────────────────────────────────────────
@@ -209,46 +270,14 @@ export function ImagePicker({
     [processFile],
   );
 
-  // ── Upload ────────────────────────────────────────────────────────────────
+  // ── Confirm (avatar mode only) ────────────────────────────────────────────
+  //
+  // Only wired up when pendingFile is set, which only happens in
+  // mode='avatar'. Forwards to the shared uploadFile helper.
 
-  const handleConfirm = useCallback(async () => {
-    if (!pendingFile) return;
-
-    setIsUploading(true);
-    try {
-      let blobToUpload: Blob = pendingFile;
-
-      if (mode === 'avatar') {
-        blobToUpload = await centerCropToSquare(pendingFile);
-      }
-
-      const { uploadUrl, blobUrl } = await requestUploadUrl({
-        contentType: pendingFile.type,
-        sizeBytes: blobToUpload.size,
-      });
-
-      const response = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': pendingFile.type },
-        body: blobToUpload,
-      });
-
-      if (!response.ok) {
-        throw new Error(`Upload failed with status ${response.status}`);
-      }
-
-      onUploaded(blobUrl);
-      setPendingFile(null);
-      // Revoke the local object URL before switching to the committed blob URL
-      URL.revokeObjectURL(previewObjectUrlRef.current!);
-      previewObjectUrlRef.current = null;
-      setPreviewUrl(blobUrl);
-    } catch {
-      addToast(t('imagePicker.errors.uploadFailed'), 'error');
-    } finally {
-      setIsUploading(false);
-    }
-  }, [pendingFile, mode, requestUploadUrl, onUploaded, addToast, t]);
+  const handleConfirm = useCallback(() => {
+    if (pendingFile) uploadFile(pendingFile);
+  }, [pendingFile, uploadFile]);
 
   const handleCancel = useCallback(() => {
     setPendingFile(null);
