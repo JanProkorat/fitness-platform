@@ -56,6 +56,7 @@ export default function LoginPage() {
           lastName: profile.lastName!,
           roles: profile.roles ?? [],
           emailConfirmed,
+          avatarBlobUrl: profile.avatarBlobUrl ?? null,
         },
         res.accessToken!,
         res.refreshToken!,
