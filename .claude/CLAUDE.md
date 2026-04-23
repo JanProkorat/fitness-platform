@@ -14,19 +14,20 @@ Project-local dev agents (live in `.claude/agents/`):
 | `web-react`        | `/web/**` — React 19, Vite, shadcn, TanStack Query, RHF + Zod   |
 | `mobile-expo`      | `/mobile/**` — React Native, Expo Router, Zustand, design tokens |
 
-Global workflow agents (live in `~/.claude/agents/`, shared across all projects — they read the **Project conventions** section below for fitness-platform-specific values):
+Project-local workflow agents (live in `.claude/agents/` alongside the dev agents):
 
 | Agent              | Role                                                            |
 |--------------------|-----------------------------------------------------------------|
 | `github-issues`    | GitHub issue lifecycle (create, edit, label, triage, close). Not for PRs or code. |
-| `qa-tester`        | Verify a GitHub issue's ✅ Acceptance criteria after dev agents finish. Read-only — returns PASS / FAIL / PARTIAL with evidence. |
-| `pr-reviewer`      | Runs after `qa-tester` PASS. Creates/updates the PR, invokes the `review` skill, classifies findings, and returns a scope-tagged fix list to the orchestrator or a "ready for merge" verdict. Also performs the final merge when the orchestrator passes explicit same-turn user authorization — `--squash --delete-branch` for `type:feature` / `type:bug` / `type:refactor`, `--rebase --delete-branch` for `type:docs` / `type:chore`. Never force-pushes, never merges excluded PRs (see rule 8). |
+| `qa-tester`        | Verify a GitHub issue's ✅ Acceptance criteria after dev agents finish. Read-only at the source-tree level — boots the backend (`dotnet run` on :5001), Vite, and Expo web as needed, runs the full test / typecheck / build surface, drives the web portal and `react-native-web` renders through the Playwright MCP plugin (https://claude.com/plugins/playwright) for AC flows and prototype-fidelity diffs, and returns PASS / PARTIAL / FAIL with evidence. Falls back to a simulator screenshot for native-only mobile behavior (MMKV, haptics, camera, native nav transitions, platform pickers). |
+| `pr-reviewer`      | Runs after `qa-tester` PASS. Creates/updates the PR, then runs a **two-pass review**: (1) a first-pass self-review (the "author's own last look" — invokes the `review` skill, applies the project's hard-rule gate, short-circuits back to the dev agents if BLOCKING findings exist); (2) only once the self-review is clean, delegates a second pass to a fresh-eyes sub-reviewer via the `Agent` tool — the sub-reviewer reviews the PR blind, with no orchestrator context beyond the PR body + diff. Both passes must be clean for a "ready for merge" verdict; either dirty returns a scope-tagged fix list. Also performs the final merge when the orchestrator passes explicit same-turn user authorization — `--squash --delete-branch` for `type:feature` / `type:bug` / `type:refactor`, `--rebase --delete-branch` for `type:docs` / `type:chore`. Never force-pushes, never merges excluded PRs (see rule 8). |
 
-## Project conventions (read by global agents)
+## Project conventions (read by the workflow agents)
 
-The global workflow agents (`qa-tester`, `pr-reviewer`, `github-issues`)
-are project-agnostic. They read this section to pick up the values they
-need for this repo. Keep it in sync with the rest of the file.
+The workflow agents (`qa-tester`, `pr-reviewer`, `github-issues`) are
+written to be portable in shape but read this section for the
+fitness-platform-specific values they need. Keep it in sync with the
+rest of the file.
 
 **Repo & working tree**
 - GitHub: `JanProkorat/fitness-platform`
@@ -92,9 +93,9 @@ for `pr-reviewer`. A PreToolUse hook also blocks direct edits locally.
 **Verification surfaces per scope**
 | Scope          | Commands                                                         |
 |----------------|------------------------------------------------------------------|
-| `backend`      | `dotnet test` (Testcontainers — Docker required), `curl` against `http://localhost:5000`, Swagger at `/swagger` |
-| `web`          | `npm run build`, `npm run typecheck` (if present), dev server at `http://localhost:5173` |
-| `mobile`       | `npx tsc --noEmit`, `npx expo prebuild --no-install --check`, simulator probes |
+| `backend`      | `dotnet build` + `dotnet test` (Testcontainers — Docker required), `curl -k` against `https://localhost:5001`, Swagger at `/swagger`. `qa-tester` boots `dotnet run` in the background when web or mobile interactive checks need the API up. |
+| `web`          | `npm ci` (when lockfile changes) + `npm run build`. For interactive AC checks `qa-tester` boots `npm run dev` on `:5173` and drives the touched routes through the Playwright MCP plugin (requires backend up, see above). |
+| `mobile`       | `npm ci` (when lockfile changes) + `npx tsc --noEmit` + `npx expo prebuild --no-install --check`. For interactive AC checks `qa-tester` boots `npx expo start --web` and drives the `react-native-web` render through Playwright. Native-only behavior (MMKV, haptics, camera, native nav transitions, platform pickers) falls back to a simulator screenshot from the user. |
 | `docs-infra`   | File diff, workflow dry-run where possible                       |
 
 **Review skill**
@@ -139,8 +140,14 @@ for `pr-reviewer`. A PreToolUse hook also blocks direct edits locally.
    MERGE. Sequence:
    a. Orchestrator dispatches `pr-reviewer` with the issue number and the
       working branch.
-   b. `pr-reviewer` creates (or updates) the PR and runs the `review`
-      skill against it.
+   b. `pr-reviewer` creates (or updates) the PR and runs the
+      **two-pass review**: first-pass self-review (invokes the
+      `review` skill + the project's hard-rule gate; short-circuits
+      back to dev agents on BLOCKING findings), then — only once the
+      self-review is clean — a second pass delegated to a fresh-eyes
+      sub-reviewer via the `Agent` tool (briefed blind, no
+      orchestrator context beyond the PR body + diff). Both passes
+      must be clean for a READY FOR MERGE verdict.
    c. If verdict is 🔁 NEEDS REWORK, `pr-reviewer` returns a scope-tagged
       fix list. Orchestrator routes each section to the owning dev
       sub-agent (`backend-dotnet` / `web-react` / `mobile-expo`).
@@ -162,6 +169,26 @@ for `pr-reviewer`. A PreToolUse hook also blocks direct edits locally.
    same-turn merge authorization** — a phrase like "merge it", "go
    ahead", "approved, merge". Historical approval from earlier in the
    conversation does not count. When authorized:
+
+   **Pre-merge CI gate** (runs before `pr-reviewer` is re-dispatched
+   for the merge): `gh pr checks <N>` must show every required check
+   as `pass`. If any check is `fail` or still `pending`, the
+   orchestrator does NOT proceed to merge. Instead:
+
+   - For `fail`: read the failing job's log (`gh run view <id> --log`
+     or `gh pr checks <N> --web`), diagnose the root cause, and route
+     the fix to the owning dev sub-agent (backend → `backend-dotnet`;
+     web → `web-react`; mobile → `mobile-expo`). After the fix is
+     pushed, CI re-runs automatically; the orchestrator waits for
+     green before merging. The user's earlier authorization carries
+     through a single fix cycle — they don't need to re-authorize
+     merely because CI forced a small correction — but a second CI
+     failure on the same PR warrants surfacing back to the user for
+     judgment ("should we keep iterating or drop the PR?").
+   - For `pending`: wait. Poll with `gh pr checks <N>` every ~30s up
+     to 10 min before escalating to the user. Never merge on an
+     unresolved status.
+   - For `pass`: continue to the merge dispatch below.
    a. Orchestrator re-dispatches `pr-reviewer` with the explicit
       authorization and the instruction to merge.
    b. `pr-reviewer` first checks the **merge exclusion list** (see below).

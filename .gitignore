@@ -111,3 +111,4 @@ Thumbs.db
 **/.claude/.typecheck-state/
 .worktrees/
 .remember/
+.qa-artifacts/

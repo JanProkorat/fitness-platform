@@ -176,9 +176,82 @@ alongside, and only promote shared code once you've seen it three times.
   issue, stop and return to the orchestrator — it means a dispatch went
   wrong.
 
+## EF Core migrations — apply to the local dev DB (mandatory, pre-QA)
+
+**Every time** you generate or modify an EF migration (anything under
+`backend/FitnessPlatform.Application/Infrastructure/Data/Migrations/`) you
+MUST apply it to the local dev PostgreSQL **before handing the slice back to
+the orchestrator**. Not optional. Not "final polish". If the apply fails,
+you STOP and report — you do **not** hand off a migration file for QA
+without confirming the dev DB is in sync, because QA, the web/mobile
+regen-api, and runtime smoke tests all hit that DB.
+
+The connection string lives in
+`backend/FitnessPlatform.Application/appsettings.Development.Local.json`
+(key: `ConnectionStrings.PostgreSQL`). The `ConnectionStringFactory`
+re-reads `POSTGRES_PASSWORD` as a separate env var even when the password
+is inline in the connection string — extract it from the JSON first.
+`MONGO_PASSWORD` is only needed if the migration step has to boot the full
+host (rare — the `ef` command usually doesn't need it, but pass it
+defensively).
+
+### Exact command
+
+```bash
+cd backend/FitnessPlatform.Application
+ASPNETCORE_ENVIRONMENT=Development.Local \
+  POSTGRES_PASSWORD=<password-from-appsettings.Development.Local.json> \
+  MONGO_PASSWORD=<mongo-password-from-same-file> \
+  dotnet ef database update --no-build
+```
+
+### Verify BEFORE you report done
+
+After running `database update`, re-run:
+
+```bash
+dotnet ef migrations list --no-build
+```
+
+Every migration that's part of your diff must appear without the `(Pending)`
+suffix. If any shows `(Pending)` the apply silently failed — investigate,
+don't ship. A typical cause is hitting a different DB than you expected
+(wrong env vars, default `ASPNETCORE_ENVIRONMENT=Development` pointing at a
+Docker Postgres that isn't your dev DB, etc).
+
+### Include the evidence in your handoff report
+
+Your report back to the orchestrator MUST include the apply output lines
+(`Applying migration 'XXXX_YourName'`) and the post-apply `ef migrations
+list` output showing no `(Pending)` entries. Without that evidence the
+orchestrator cannot trust the handoff — QA will fail later when the code
+expects columns the dev DB doesn't have.
+
+### When there's no Postgres reachable
+
+If Docker / the dev DB isn't up:
+
+1. Don't pretend the migration is applied.
+2. Don't silently skip this step.
+3. Stop and report: "Migration generated, dev DB unreachable at
+   `<connection string host:port>` — orchestrator must ensure the DB is up
+   and re-dispatch the apply step, or run it directly".
+
+Verifying migrations against the real DB catches snapshot drift, FK default
+mismatches, and column-type incompatibilities that break prod deployments.
+Skipping this step is how the WeeklyCheckInScheduler (and any other
+background service) ends up throwing `column X does not exist` at runtime
+on a branch that "passed" tests.
+
 ## Never
 - Edit anything outside `/backend`.
 - Change `Domain/Entities/*` without also adding/updating a migration.
+- Ship a migration file to the orchestrator without first applying it to
+  the local dev DB and including the apply + `ef migrations list` output in
+  your handoff report (see the "EF Core migrations" section above). A
+  migration that hasn't been applied will break the runtime scheduler, QA
+  integration tests, and web/mobile regen-api — even though the code may
+  "compile and build" clean.
 - Swallow exceptions or return raw strings — always Problem Details.
 - Use `any` or dynamic types on public contracts.
 - Introduce a MediatR-style handler layer, a generic `IRepository<T>`, or an
