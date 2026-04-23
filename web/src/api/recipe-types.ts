@@ -51,11 +51,35 @@ export interface RecipeDetail {
     fat: number;
     fiber: number;
   };
+  /** Main image URL in blob storage, or null if none. */
+  imageUrl?: string | null;
+  /** Gallery image URLs, up to 6 entries. */
+  galleryImageUrls?: string[];
   dateCreated: string;
   dateUpdated?: string | null;
   visibility?: RecipeVisibility;
   isOwnedByCurrentUser?: boolean;
 }
+
+/** Request to generate a pre-signed upload URL for a recipe image. */
+export interface UploadRecipeImageUrlRequest {
+  contentType: string;
+  sizeBytes: number;
+}
+
+/** Response with the pre-signed URL and final blob URL. */
+export interface UploadRecipeImageUrlResponse {
+  uploadUrl: string;
+  blobUrl: string;
+}
+
+/** Request to confirm a recipe image upload by its blob URL. */
+export interface ConfirmRecipeImageRequest {
+  blobUrl: string;
+}
+
+/** Slot for recipe image upload: 'main' overwrites hero; 'gallery' appends (max 6). */
+export type RecipeImageSlot = 'main' | 'gallery';
 
 /** Paginated recipe search response. */
 export interface SearchRecipesResponse {

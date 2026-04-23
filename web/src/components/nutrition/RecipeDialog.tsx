@@ -2,11 +2,12 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getRecipe, createRecipe, updateRecipe } from '@/api/recipes';
 import { searchFoods } from '@/api/foods';
-import type { RecipeSummary, RecipeDetail, RecipeVisibility } from '@/api/recipe-types';
+import type { RecipeSummary, RecipeDetail, RecipeVisibility, RecipeImageSlot } from '@/api/recipe-types';
 import type { FoodSummary } from '@/api/food-types';
 import { showApiError, showSuccess } from '@/lib/api-errors';
 import { INPUT_CLASS_SM, CANCEL_BUTTON_CLASS } from '@/lib/styles';
 import { Toggle } from '@/components/ui';
+import { RecipeImageSection } from '@/components/nutrition/RecipeImageSection';
 
 interface IngredientRow {
   foodExternalId: string;
@@ -138,6 +139,14 @@ export function RecipeDialog({ open, recipe, onClose, onSaved }: RecipeDialogPro
     return { kcal: a.kcal + item.nutrientValuePer100Grams.kcal * r, protein: a.protein + item.nutrientValuePer100Grams.protein * r, carbs: a.carbs + item.nutrientValuePer100Grams.carbs * r, fat: a.fat + item.nutrientValuePer100Grams.fat * r, fiber: a.fiber + (item.nutrientValuePer100Grams.fiber ?? 0) * r };
   }, { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 });
 
+  // Reload detail after an image upload so hero + gallery reflect the new blob URL.
+  const handleImageUploaded = useCallback(
+    (_slot: RecipeImageSlot) => {
+      if (recipe) loadDetail(recipe.recipeId);
+    },
+    [recipe, loadDetail],
+  );
+
   const handleSave = async () => {
     if (!name.trim() || ingredients.length === 0) return;
     setSaving(true);
@@ -183,11 +192,19 @@ export function RecipeDialog({ open, recipe, onClose, onSaved }: RecipeDialogPro
           style={{ width: mode === 'edit' ? 680 : 600, maxWidth: '95vw', maxHeight: '96vh', background: 'var(--bg)', borderRadius: 10, animation: 'dlg-slide-up .4s ease-out', transition: 'width .3s ease' }}
         >
           {/* Hero */}
-          <div className="flex items-center justify-center" style={{ height: mode === 'edit' ? 120 : 160, background: 'var(--bg3)', position: 'relative', transition: 'height .3s ease' }}>
-            <span style={{ fontSize: 48, opacity: 0.2 }}>🍽️</span>
+          <div className="flex items-center justify-center" style={{ height: mode === 'edit' ? 120 : 160, background: 'var(--bg3)', position: 'relative', transition: 'height .3s ease', overflow: 'hidden' }}>
+            {mode === 'view' && detail?.imageUrl ? (
+              <img
+                src={detail.imageUrl}
+                alt={detail.name}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <span style={{ fontSize: 48, opacity: 0.2 }}>🍽️</span>
+            )}
             {mode === 'view' && detail && (
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.45))', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '14px 20px' }}>
-                <div style={{ fontSize: 22, fontWeight: 700, color: '#fff', letterSpacing: '-0.02em', lineHeight: 1.2 }}>{detail.name}</div>
+                <div className="text-white" style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.2 }}>{detail.name}</div>
                 <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 3 }}>
                   {detail.foods.length} {t('recipes.foods').toLowerCase()}
                   {detail.prepTimeMinutes && ` · ${detail.prepTimeMinutes} min`}
@@ -195,6 +212,17 @@ export function RecipeDialog({ open, recipe, onClose, onSaved }: RecipeDialogPro
               </div>
             )}
           </div>
+
+          {/* Gallery strip — view mode only, shown when there are gallery images */}
+          {mode === 'view' && detail && (detail.galleryImageUrls?.length ?? 0) > 0 && (
+            <div className="flex gap-2 overflow-x-auto px-5 py-2" style={{ borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+              {detail.galleryImageUrls!.map((url, i) => (
+                <div key={url} className="relative overflow-hidden rounded-md" style={{ width: 56, height: 56, flexShrink: 0, background: 'var(--bg3)' }}>
+                  <img src={url} alt={`${t('recipes.image.galleryHeading')} ${i + 1}`} className="h-full w-full object-cover" />
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Header */}
           <div className="flex items-center gap-3 px-5 py-3 border-b border-border" style={{ flexShrink: 0 }}>
@@ -428,6 +456,19 @@ export function RecipeDialog({ open, recipe, onClose, onSaved }: RecipeDialogPro
                       </label>
                       <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('recipes.notePlaceholder')} rows={2} className={`${INPUT_CLASS_SM} resize-vertical`} />
                     </div>
+
+                    {/* Images — only for existing saved recipes (need a recipeId) */}
+                    {!isNew && recipe && detail && (
+                      <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+                        <RecipeImageSection
+                          recipeId={recipe.recipeId}
+                          imageUrl={detail.imageUrl}
+                          galleryImageUrls={detail.galleryImageUrls}
+                          isOwner={detail.isOwnedByCurrentUser ?? true}
+                          onUploaded={handleImageUploaded}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -446,14 +487,14 @@ export function RecipeDialog({ open, recipe, onClose, onSaved }: RecipeDialogPro
                 {mode === 'view' ? (
                   <>
                     <button onClick={onClose} className={CANCEL_BUTTON_CLASS}>{t('common.close')}</button>
-                    <button onClick={() => switchMode('edit')} className="px-4 py-2 rounded-md text-[13px] font-medium transition-colors" style={{ background: 'var(--accent)', color: '#fff' }}>
+                    <button onClick={() => switchMode('edit')} className="px-4 py-2 rounded-md text-[13px] font-medium transition-colors text-white" style={{ background: 'var(--accent)' }}>
                       ✏ {t('recipes.editRecipe')}
                     </button>
                   </>
                 ) : (
                   <>
                     <button onClick={onClose} className={CANCEL_BUTTON_CLASS}>{t('common.cancel')}</button>
-                    <button onClick={handleSave} disabled={saving || !name.trim() || ingredients.length === 0} className="px-5 py-2 rounded-md text-[13px] font-medium transition-colors disabled:opacity-50" style={{ background: 'var(--accent)', color: '#fff' }}>
+                    <button onClick={handleSave} disabled={saving || !name.trim() || ingredients.length === 0} className="px-5 py-2 rounded-md text-[13px] font-medium transition-colors disabled:opacity-50 text-white" style={{ background: 'var(--accent)' }}>
                       {saving ? t('common.saving') : isNew ? t('recipes.createRecipe') : t('common.save')}
                     </button>
                   </>

@@ -490,7 +490,19 @@
     "ingredientNotePlaceholder": "z.B. fein gehackt, Zimmertemperatur...",
     "visibilityPublic": "Öffentlich",
     "visibilityPrivate": "Privat",
-    "visibilityHint": "Öffentliche Rezepte sind für alle Ernährungsberater sichtbar. Bearbeiten können Sie sie nur selbst."
+    "visibilityHint": "Öffentliche Rezepte sind für alle Ernährungsberater sichtbar. Bearbeiten können Sie sie nur selbst.",
+    "image": {
+      "mainHeading": "Hauptbild",
+      "mainEmpty": "Kein Hauptbild. Zum Hochladen klicken.",
+      "galleryHeading": "Fotogalerie",
+      "galleryEmpty": "Noch keine Fotos in der Galerie.",
+      "addPhoto": "+ Foto hinzufügen",
+      "galleryFull": "Galerie ist voll (max. 6 Fotos)",
+      "uploadMainSuccess": "Hauptbild aktualisiert",
+      "uploadMainError": "Hauptbild konnte nicht hochgeladen werden",
+      "uploadGallerySuccess": "Foto zur Galerie hinzugefügt",
+      "uploadGalleryError": "Foto konnte nicht zur Galerie hinzugefügt werden"
+    }
   },
   "nutrition": {
     "title": "Ernährungspläne",
