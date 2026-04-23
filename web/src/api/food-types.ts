@@ -40,6 +40,8 @@ export interface FoodSummary {
   commonServings: ServingSizeDto[];
   visibility?: FoodVisibility;
   isOwnedByCurrentUser?: boolean;
+  /** URL of the food hero image in blob storage. Null when no image has been uploaded. */
+  imageUrl?: string | null;
 }
 
 /** Paginated food search response. */

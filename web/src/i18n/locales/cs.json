@@ -430,7 +430,15 @@
     "categorySupplements": "Doplňky stravy",
     "visibilityPublic": "Veřejná",
     "visibilityPrivate": "Soukromá",
-    "visibilityHint": "Veřejné potraviny vidí všichni nutricionisté. Upravovat je můžete pouze vy."
+    "visibilityHint": "Veřejné potraviny vidí všichni nutricionisté. Upravovat je můžete pouze vy.",
+    "detail": {
+      "image": {
+        "heading": "Hlavní obrázek",
+        "empty": "Bez obrázku"
+      }
+    },
+    "imageUpdated": "Obrázek potraviny byl aktualizován",
+    "imageUpdateError": "Nepodařilo se aktualizovat obrázek potraviny"
   },
   "recipes": {
     "title": "Recepty",

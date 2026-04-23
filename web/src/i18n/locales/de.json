@@ -430,7 +430,15 @@
     "categorySupplements": "Nahrungsergänzung",
     "visibilityPublic": "Öffentlich",
     "visibilityPrivate": "Privat",
-    "visibilityHint": "Öffentliche Lebensmittel sind für alle Ernährungsberater sichtbar. Bearbeiten können Sie sie nur selbst."
+    "visibilityHint": "Öffentliche Lebensmittel sind für alle Ernährungsberater sichtbar. Bearbeiten können Sie sie nur selbst.",
+    "detail": {
+      "image": {
+        "heading": "Hauptbild",
+        "empty": "Kein Bild"
+      }
+    },
+    "imageUpdated": "Lebensmittelbild aktualisiert",
+    "imageUpdateError": "Lebensmittelbild konnte nicht aktualisiert werden"
   },
   "recipes": {
     "title": "Rezepte",

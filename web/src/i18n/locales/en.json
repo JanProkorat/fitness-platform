@@ -431,7 +431,15 @@
     "categorySupplements": "Supplements",
     "visibilityPublic": "Public",
     "visibilityPrivate": "Private",
-    "visibilityHint": "Public foods are visible to all nutritionists. Only you can edit them."
+    "visibilityHint": "Public foods are visible to all nutritionists. Only you can edit them.",
+    "detail": {
+      "image": {
+        "heading": "Hero image",
+        "empty": "No image"
+      }
+    },
+    "imageUpdated": "Food image updated",
+    "imageUpdateError": "Failed to update food image"
   },
   "recipes": {
     "title": "Recipes",
