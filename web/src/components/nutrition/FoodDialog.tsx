@@ -9,7 +9,7 @@ import { showApiError, showSuccess } from '@/lib/api-errors';
 import type { FoodSummary, FoodCategory, FoodVisibility } from '@/api/food-types';
 import { CATEGORY_CSS_COLORS, FOOD_CATEGORIES } from '@/components/nutrition/food-category';
 import { INPUT_CLASS_SM, CANCEL_BUTTON_CLASS } from '@/lib/styles';
-import { Toggle, ImagePicker } from '@/components/ui';
+import { Toggle, ImagePicker, ImageLightbox } from '@/components/ui';
 
 
 const foodSchema = z.object({
@@ -53,6 +53,7 @@ export function FoodDialog({ open, food, onClose, onSaved }: FoodDialogProps) {
   const [committedImageUrl, setCommittedImageUrl] = useState<string | null>(
     food?.imageUrl ?? null,
   );
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<FoodFormInput, unknown, FoodForm>({
     resolver: zodResolver(foodSchema),
@@ -168,6 +169,19 @@ export function FoodDialog({ open, food, onClose, onSaved }: FoodDialogProps) {
               />
             ) : (
               <span style={{ fontSize: 40, opacity: 0.2 }}>📦</span>
+            )}
+            {committedImageUrl && (
+              <button
+                type="button"
+                onClick={() => setLightboxOpen(true)}
+                aria-label={t('imageLightbox.open')}
+                title={t('imageLightbox.open')}
+                className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              >
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5M20 8V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5M20 16v4m0 0h-4m4 0l-5-5" />
+                </svg>
+              </button>
             )}
             {mode === 'view' && food && (
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.4))', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '12px 20px' }}>
@@ -371,6 +385,12 @@ export function FoodDialog({ open, food, onClose, onSaved }: FoodDialogProps) {
           </div>
         </div>
       </div>
+      <ImageLightbox
+        images={committedImageUrl ? [committedImageUrl] : []}
+        open={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        altPrefix={food?.name}
+      />
     </>
   );
 }

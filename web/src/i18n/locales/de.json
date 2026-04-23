@@ -1293,5 +1293,12 @@
     "dialogTitle": "Profilfoto ändern",
     "uploadSuccess": "Profilfoto aktualisiert",
     "uploadError": "Foto hochladen fehlgeschlagen. Bitte erneut versuchen."
+  },
+  "imageLightbox": {
+    "dialogLabel": "Bildbetrachter",
+    "open": "In Originalgröße anzeigen",
+    "close": "Schließen",
+    "prev": "Vorheriges Bild",
+    "next": "Nächstes Bild"
   }
 }
