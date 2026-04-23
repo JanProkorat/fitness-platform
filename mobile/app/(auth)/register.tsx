@@ -77,6 +77,7 @@ export default function RegisterScreen() {
           hasActiveLink: false,
           hasPendingQuestionnaire: false,
           linkedRoles: [],
+          avatarBlobUrl: profile.avatarBlobUrl ?? null,
         },
         data.accessToken,
         data.refreshToken

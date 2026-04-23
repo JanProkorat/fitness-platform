@@ -42,6 +42,7 @@ export default function LoginScreen() {
           hasActiveLink: profile.hasActiveLink ?? false,
           hasPendingQuestionnaire: profile.hasPendingQuestionnaire ?? false,
           linkedRoles: profile.linkedRoles ?? [],
+          avatarBlobUrl: profile.avatarBlobUrl ?? null,
         },
         data.accessToken,
         data.refreshToken

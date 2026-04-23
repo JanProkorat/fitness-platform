@@ -2,8 +2,7 @@ import React from 'react'
 import { View, Text, Pressable, StyleSheet } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/hooks/useTheme'
-import { goldAlpha } from '@/constants/colors'
-import { getInitials } from '@/lib/initials'
+import { Avatar } from '@/components/ui/Avatar'
 import type { ParticipantDto } from '../../api/generated'
 
 interface ChatHeaderProps {
@@ -26,11 +25,7 @@ export function ChatHeader({ participant, onBack, onInfoPress }: ChatHeaderProps
 
         {/* Center: Avatar + name + status — stacked vertically */}
         <View style={styles.center}>
-          <View style={[styles.avatar, { backgroundColor: goldAlpha['15'] }]}>
-            <Text style={[styles.avatarText, { color: colors.gold }]}>
-              {getInitials(participant.name ?? '')}
-            </Text>
-          </View>
+          <Avatar name={participant.name ?? ''} size="sm" />
           <Text style={[styles.name, { color: colors.label }]} numberOfLines={1}>
             {participant.name ?? ''}
           </Text>
@@ -71,18 +66,6 @@ const styles = StyleSheet.create({
   center: {
     flex: 1,
     alignItems: 'center',
-  },
-  avatar: {
-    width: 34,
-    height: 34,
-    borderRadius: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 2,
-  },
-  avatarText: {
-    fontSize: 13,
-    fontWeight: '700',
   },
   name: {
     fontSize: 15,

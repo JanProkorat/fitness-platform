@@ -829,5 +829,11 @@
       "PreWorkout": "Pre-workout",
       "PostWorkout": "Post-workout"
     }
+  },
+  "avatar": {
+    "editBadgeLabel": "Change profile photo",
+    "editBadgeHint": "Opens the camera or photo library so you can update your avatar",
+    "uploadSuccess": "Profile photo updated",
+    "uploadError": "Could not update profile photo. Please try again."
   }
 }

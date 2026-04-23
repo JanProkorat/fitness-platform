@@ -31,6 +31,8 @@ export interface TrainerCardData {
   accepting: boolean
   avatarColor?: string
   avatarBg?: string
+  /** Remote avatar image URL from the backend. When present, renders instead of initials. */
+  avatarImageUrl?: string | null
 }
 
 interface TrainerCardProps {
@@ -61,7 +63,7 @@ export function TrainerCard({
     <View style={[styles.card, { backgroundColor: colors.bg2 }]}>
       {/* Top section */}
       <View style={styles.top}>
-        <Avatar name={trainer.name} size="md" color={trainer.avatarColor} />
+        <Avatar name={trainer.name} size="md" color={trainer.avatarColor} imageUrl={trainer.avatarImageUrl} />
         <View style={styles.info}>
           <Text style={[Type.headline, { color: colors.label }]} numberOfLines={1}>
             {trainer.name}

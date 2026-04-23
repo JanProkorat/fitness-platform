@@ -34,8 +34,11 @@ import {
 } from '@/api/measurements'
 import {
   getComplianceScore,
+  generateAvatarUploadUrl,
+  confirmAvatar,
   type ComplianceScoreResponse,
 } from '@/api/profile'
+import { Toast } from '@/lib/toast'
 
 // ─── Stats Grid ───────────────────────────────────────────────────────
 
@@ -140,6 +143,7 @@ export default function ProfileScreen() {
   const queryClient = useQueryClient()
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
+  const refreshProfile = useAuthStore((s) => s.refreshProfile)
   const hasTrainer = user?.hasActiveLink ?? false
   const [weightSheetOpen, setWeightSheetOpen] = useState(false)
   const [historySheetOpen, setHistorySheetOpen] = useState(false)
@@ -195,6 +199,32 @@ export default function ProfileScreen() {
 
   const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(' ')
 
+  const handleRequestAvatarUpload = useCallback(
+    async ({ contentType, sizeBytes }: { contentType: string; sizeBytes: number }) => {
+      const result = await generateAvatarUploadUrl({ contentType, sizeBytes })
+      return {
+        uploadUrl: result.uploadUrl ?? '',
+        blobUrl: result.blobUrl ?? '',
+      }
+    },
+    [],
+  )
+
+  const handleAvatarUploaded = useCallback(
+    async (blobUrl: string) => {
+      try {
+        await confirmAvatar(blobUrl)
+        // Refresh the user profile in the auth store so the new avatar is reflected everywhere.
+        await refreshProfile()
+        queryClient.invalidateQueries({ queryKey: ['user-profile'] })
+        Toast.show(t('avatar.uploadSuccess'))
+      } catch {
+        Toast.show(t('avatar.uploadError'))
+      }
+    },
+    [refreshProfile, queryClient, t],
+  )
+
   const handleLogout = useCallback(() => {
     Alert.alert(t('profile.signOut'), t('profile.signOutConfirm'), [
       { text: t('common.cancel'), style: 'cancel' },
@@ -232,7 +262,14 @@ export default function ProfileScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Avatar name={fullName || t('profile.client')} size="lg" />
+          <Avatar
+            name={fullName || t('profile.client')}
+            size="xl"
+            imageUrl={user?.avatarBlobUrl}
+            editable
+            onRequestUpload={handleRequestAvatarUpload}
+            onUploaded={handleAvatarUploaded}
+          />
           <Text style={[Type.title1, { color: colors.label, marginTop: 12 }]}>
             {fullName}
           </Text>

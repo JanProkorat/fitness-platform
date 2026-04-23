@@ -828,5 +828,11 @@
     "LowerBack": "Unterer Rücken",
     "Traps": "Trapezmuskel",
     "FullBody": "Ganzkörper"
+  },
+  "avatar": {
+    "editBadgeLabel": "Profilbild ändern",
+    "editBadgeHint": "Öffnet die Kamera oder Galerie, um Ihr Profilbild zu aktualisieren",
+    "uploadSuccess": "Profilbild aktualisiert",
+    "uploadError": "Profilbild konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut."
   }
 }
