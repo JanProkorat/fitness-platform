@@ -3,6 +3,19 @@ import { createMMKV } from 'react-native-mmkv';
 
 export const storage = createMMKV({ id: 'mmkv.default' });
 
+// SSR-safe read for module-load-time state initialization.
+// Metro pre-renders modules on the Node server for expo-web; storage access there
+// throws "Tried to access storage on the server". Event-handler reads/writes
+// (login/logout) run client-side and are safe to call directly.
+const readInitialRefreshToken = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    return storage.getString('refreshToken') ?? null;
+  } catch {
+    return null;
+  }
+};
+
 interface User {
   publicId: string;
   email: string;
@@ -101,7 +114,7 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   accessToken: null,
-  refreshToken: storage.getString('refreshToken') ?? null,
+  refreshToken: readInitialRefreshToken(),
   isAuthenticated: false,
   isInitialized: false,
 

@@ -156,9 +156,11 @@ const INITIAL_STATE: LiveSessionState = {
 }
 
 function getPersistedSession(): LiveSessionState {
-  const raw = mmkv.getString(MMKV_KEY)
-  if (!raw) return { ...INITIAL_STATE }
+  // SSR guard — Metro pre-renders on Node for expo-web where MMKV throws.
+  if (typeof window === 'undefined') return { ...INITIAL_STATE }
   try {
+    const raw = mmkv.getString(MMKV_KEY)
+    if (!raw) return { ...INITIAL_STATE }
     return JSON.parse(raw) as LiveSessionState
   } catch {
     return { ...INITIAL_STATE }

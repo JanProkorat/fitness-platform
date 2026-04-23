@@ -36,9 +36,11 @@ interface TodayStore {
 }
 
 function getPersistedPlans(): PendingPlan[] {
-  const raw = mmkv.getString('pendingPlans')
-  if (!raw) return []
+  // SSR guard — Metro pre-renders on Node for expo-web where MMKV throws.
+  if (typeof window === 'undefined') return []
   try {
+    const raw = mmkv.getString('pendingPlans')
+    if (!raw) return []
     return JSON.parse(raw) as PendingPlan[]
   } catch {
     return []
@@ -46,9 +48,10 @@ function getPersistedPlans(): PendingPlan[] {
 }
 
 function getPersistedTrainingPlans(): PendingPlan[] {
-  const raw = mmkv.getString('pendingTrainingPlans')
-  if (!raw) return []
+  if (typeof window === 'undefined') return []
   try {
+    const raw = mmkv.getString('pendingTrainingPlans')
+    if (!raw) return []
     return JSON.parse(raw) as PendingPlan[]
   } catch {
     return []
