@@ -176,7 +176,10 @@ export function FoodDialog({ open, food, onClose, onSaved }: FoodDialogProps) {
                 onClick={() => setLightboxOpen(true)}
                 aria-label={t('imageLightbox.open')}
                 title={t('imageLightbox.open')}
-                className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                // z-10 keeps the button above the gradient overlay that
+                // sits later in the DOM (also absolute inset-0) — without it
+                // the gradient swallows every click.
+                className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
                 <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5M20 8V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5M20 16v4m0 0h-4m4 0l-5-5" />
