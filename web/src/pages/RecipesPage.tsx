@@ -148,6 +148,21 @@ export default function RecipesPage() {
             <>
               <DatabaseTable
                 columns={[
+                  {
+                    key: 'image', label: '', width: '52px',
+                    render: (r: RecipeSummary) => r.imageUrl ? (
+                      <img
+                        src={r.imageUrl}
+                        alt=""
+                        aria-hidden="true"
+                        className="h-10 w-10 rounded-sm object-cover shrink-0"
+                      />
+                    ) : (
+                      <div className="h-10 w-10 rounded-sm bg-bg3 flex items-center justify-center text-sm shrink-0" aria-hidden="true">
+                        📖
+                      </div>
+                    ),
+                  },
                   { key: 'name', label: t('recipes.recipeName'), render: (r: RecipeSummary) => r.name },
                   { key: 'foods', label: t('recipes.foods'), width: '80px', render: (r: RecipeSummary) => <span className="text-text2">{r.foodCount}</span> },
                   { key: 'prepTime', label: t('recipes.prepTime'), width: '80px', render: (r: RecipeSummary) => <span className="text-text3">{r.prepTimeMinutes ? `${r.prepTimeMinutes} min` : '—'}</span> },
@@ -169,8 +184,15 @@ export default function RecipesPage() {
               <ListView
                 items={sortedRecipes}
                 itemKey={(r) => r.recipeId}
-                renderAvatar={() => (
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm" style={{ background: 'var(--accent-bg)', color: 'var(--accent)' }}>📖</div>
+                renderAvatar={(r) => r.imageUrl ? (
+                  <img
+                    src={r.imageUrl}
+                    alt=""
+                    aria-hidden="true"
+                    className="w-10 h-10 rounded-sm object-cover shrink-0"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-sm flex items-center justify-center text-sm shrink-0" style={{ background: 'var(--accent-bg)', color: 'var(--accent)' }}>📖</div>
                 )}
                 renderInfo={(r) => (
                   <div>
@@ -192,7 +214,20 @@ export default function RecipesPage() {
             <CardGrid>
               {sortedRecipes.map((r) => (
                 <Card key={r.recipeId} onClick={() => recipeDialog.openEdit(r)}>
-                  <CardCover><div className="absolute inset-0 flex items-center justify-center text-2xl opacity-50">📖</div></CardCover>
+                  <CardCover>
+                    {r.imageUrl ? (
+                      <img
+                        src={r.imageUrl}
+                        alt=""
+                        aria-hidden="true"
+                        className="absolute inset-0 h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center text-2xl opacity-50">
+                        📖
+                      </div>
+                    )}
+                  </CardCover>
                   <CardBody>
                     <div className="text-[13px] font-medium text-text mb-1.5 truncate">{r.name}</div>
                     <CardPropRow label="kcal">{Math.round(r.totalNutrients.kcal)}</CardPropRow>

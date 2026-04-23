@@ -18,6 +18,8 @@ export interface RecipeSummary {
   foodCategories?: string[];
   visibility?: RecipeVisibility;
   isOwnedByCurrentUser?: boolean;
+  /** Main recipe image URL in blob storage, or null if none. */
+  imageUrl?: string | null;
 }
 
 /** Full recipe detail. */
