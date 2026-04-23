@@ -3,7 +3,7 @@ import { StyleSheet, View, Platform } from 'react-native';
 import { Tabs, useRouter, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Notifications from 'expo-notifications';
+import * as Notifications from '@/lib/notifications-shim';
 import * as Device from 'expo-device';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';

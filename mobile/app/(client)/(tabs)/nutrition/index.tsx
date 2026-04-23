@@ -12,7 +12,9 @@ import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing } from '
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import PagerView from 'react-native-pager-view';
+import PagerViewPlatform, {
+  type PagerViewPlatformHandle,
+} from '@/components/ui/PagerViewPlatform';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/hooks/useTheme';
 import { hrefParams } from '@/lib/navigation';
@@ -156,7 +158,7 @@ export default function NutritionScreen() {
   );
 
   const [currentPageIndex, setCurrentPageIndex] = useState<number>(initialPage);
-  const pagerRef = useRef<PagerView>(null);
+  const pagerRef = useRef<PagerViewPlatformHandle>(null);
 
   useEffect(() => {
     if (paramWeekNumber != null && paramDayOfWeek != null && allDays.length > 0) {
@@ -337,7 +339,7 @@ export default function NutritionScreen() {
           <Text style={styles.emptyText}>{t('nutrition.noPlanMessage')}</Text>
         </View>
       ) : (
-        <PagerView
+        <PagerViewPlatform
           ref={pagerRef}
           style={styles.pager}
           initialPage={initialPage}
@@ -355,7 +357,7 @@ export default function NutritionScreen() {
               />
             </View>
           ))}
-        </PagerView>
+        </PagerViewPlatform>
       )}
     </SafeAreaView>
   );
