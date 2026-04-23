@@ -41,6 +41,9 @@ export interface ActiveCollaborator {
   since: string;
   avatarColor: string;
   avatarBg: string;
+  /** Remote avatar URL from the backend; when present, surfaces in the
+   *  collaborator card and detail screen instead of the initials fallback. */
+  avatarImageUrl?: string | null;
 }
 
 export interface TrainerInvite {

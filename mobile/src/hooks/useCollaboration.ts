@@ -24,6 +24,7 @@ function collabToActiveCollaborator(c: CollaborationDto): ActiveCollaborator {
     since: typeof c.since === 'string' ? c.since : new Date(c.since ?? 0).toISOString(),
     avatarColor: '',
     avatarBg: '',
+    avatarImageUrl: c.avatarBlobUrl ?? null,
   }
 }
 
