@@ -13,7 +13,7 @@
  * 3-px border matching the card background.
  */
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ImagePicker } from './ImagePicker';
 import { Dialog } from './Dialog';
@@ -62,6 +62,25 @@ const SIZE: Record<AvatarSize, { wrap: string; text: string; badge: string }> = 
 
 // ─── Camera icon (inline SVG — no external dependency) ────────────────────────
 
+/**
+ * Inner <img> keyed by URL in the parent. Owns its own `failed` flag and
+ * falls back to the initials span when onError fires. Because the parent
+ * passes `key={displayedSrc}`, a new URL re-mounts this component with a
+ * fresh `failed=false` — no need to reset state with an effect.
+ */
+function AvatarImg({ src, initials }: { src: string; initials: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <span aria-hidden="true">{initials}</span>;
+  return (
+    <img
+      src={src}
+      alt={initials}
+      className="w-full h-full object-cover"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 function CameraIcon() {
   return (
     <svg
@@ -89,14 +108,12 @@ export function EditableAvatar({
   const { t } = useTranslation();
 
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [currentSrc, setCurrentSrc] = useState<string | null>(src ?? null);
-
-  // Keep currentSrc in sync when the prop changes (e.g. after query refetch)
-  const prevSrcRef = useRef(src);
-  if (src !== prevSrcRef.current) {
-    prevSrcRef.current = src;
-    setCurrentSrc(src ?? null);
-  }
+  // Optimistic override: holds the most recent just-uploaded blobUrl so the
+  // image swaps visually before the parent's refetch updates `src`. Priority:
+  // optimistic > src. Once the parent catches up, `src === optimistic` and
+  // there's no visual change — no need to clear the override.
+  const [optimisticSrc, setOptimisticSrc] = useState<string | null>(null);
+  const displayedSrc = optimisticSrc ?? src ?? null;
 
   const sz = SIZE[size];
 
@@ -108,7 +125,7 @@ export function EditableAvatar({
    */
   const handleUploaded = useCallback(
     (blobUrl: string) => {
-      setCurrentSrc(blobUrl);
+      setOptimisticSrc(blobUrl);
       setPickerOpen(false);
       onUploaded?.(blobUrl);
     },
@@ -139,12 +156,10 @@ export function EditableAvatar({
             sz.text,
           )}
         >
-          {currentSrc ? (
-            <img
-              src={currentSrc}
-              alt={initials}
-              className="w-full h-full object-cover"
-            />
+          {displayedSrc ? (
+            // Key on the URL so the child re-mounts when the URL changes —
+            // that auto-resets its internal `failed` flag on a fresh attempt.
+            <AvatarImg key={displayedSrc} src={displayedSrc} initials={initials} />
           ) : (
             <span aria-hidden="true">{initials}</span>
           )}
@@ -184,7 +199,7 @@ export function EditableAvatar({
             mode="avatar"
             requestUploadUrl={requestUploadUrl}
             onUploaded={handleUploaded}
-            initialPreviewUrl={currentSrc ?? undefined}
+            initialPreviewUrl={displayedSrc ?? undefined}
           />
         </Dialog>
       )}

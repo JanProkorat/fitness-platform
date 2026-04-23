@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getRecipe, createRecipe, updateRecipe } from '@/api/recipes';
 import { searchFoods } from '@/api/foods';
-import type { RecipeSummary, RecipeDetail, RecipeVisibility, RecipeImageSlot } from '@/api/recipe-types';
+import type { RecipeSummary, RecipeDetail, RecipeVisibility } from '@/api/recipe-types';
 import type { FoodSummary } from '@/api/food-types';
 import { showApiError, showSuccess } from '@/lib/api-errors';
 import { INPUT_CLASS_SM, CANCEL_BUTTON_CLASS } from '@/lib/styles';
@@ -139,13 +139,13 @@ export function RecipeDialog({ open, recipe, onClose, onSaved }: RecipeDialogPro
     return { kcal: a.kcal + item.nutrientValuePer100Grams.kcal * r, protein: a.protein + item.nutrientValuePer100Grams.protein * r, carbs: a.carbs + item.nutrientValuePer100Grams.carbs * r, fat: a.fat + item.nutrientValuePer100Grams.fat * r, fiber: a.fiber + (item.nutrientValuePer100Grams.fiber ?? 0) * r };
   }, { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 });
 
-  // Reload detail after an image upload so hero + gallery reflect the new blob URL.
-  const handleImageUploaded = useCallback(
-    (_slot: RecipeImageSlot) => {
-      if (recipe) loadDetail(recipe.recipeId);
-    },
-    [recipe, loadDetail],
-  );
+  // Reload detail after an image upload so hero + gallery reflect the new
+  // blob URL. TS allows a () => void function to satisfy the callback's
+  // (slot: RecipeImageSlot) => void shape, so we can drop the unused param
+  // entirely rather than dance around no-unused-vars.
+  const handleImageUploaded = useCallback(() => {
+    if (recipe) loadDetail(recipe.recipeId);
+  }, [recipe, loadDetail]);
 
   const handleSave = async () => {
     if (!name.trim() || ingredients.length === 0) return;
