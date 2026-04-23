@@ -410,8 +410,6 @@
     "created": "Food created successfully",
     "createError": "Failed to create food",
     "deleteConfirm": "Are you sure you want to delete this food?",
-    "deleted": "Food deleted",
-    "deleteError": "Failed to delete food",
     "note": "Note",
     "notePlaceholder": "Optional note about this food...",
     "category": "Category",
@@ -616,7 +614,6 @@
     "friToSun": "Friday — Sunday",
     "noItems": "No items",
     "loadingIngredients": "Loading ingredients...",
-    "copy": "Copy",
     "save": "Save",
     "discardChanges": "Discard changes",
     "discardConfirmTitle": "Discard changes?",
@@ -974,7 +971,6 @@
     "saveChanges": "Save Changes",
     "delete": "Delete",
     "deleteConfirmTitle": "Delete Exercise",
-    "deleteConfirmMessage": "Are you sure you want to delete \"{{name}}\"? This cannot be undone.",
     "deleteConfirmMessage": "Are you sure you want to delete \"{{name}}\"? This cannot be undone."
   },
   "enums": {
@@ -1280,5 +1276,11 @@
       "tooLarge": "File exceeds the {{limitMb}} MB limit",
       "uploadFailed": "Upload failed. Please try again."
     }
+  },
+  "avatar": {
+    "changeBadgeLabel": "Change photo",
+    "dialogTitle": "Change profile photo",
+    "uploadSuccess": "Profile photo updated",
+    "uploadError": "Failed to upload photo. Please try again."
   }
 }

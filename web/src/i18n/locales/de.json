@@ -208,12 +208,12 @@
     "fiber": "Ballaststoffe",
     "nutritionTargetsHint": "Automatisch aus Onboarding-Daten berechnet. Neu berechnen zur Überschreibung verwenden.",
     "recalculatedTargets": "Neu berechnete Ziele",
-    "tabOverview": "\u00dcbersicht",
+    "tabOverview": "Übersicht",
     "tabLifestyle": "Lebensstil",
     "tabNutrition": "Ernährungsziele",
     "tabMotivation": "Motivation",
     "recalculate": "Neu berechnen",
-    "resetTargets": "Zur\u00fccksetzen",
+    "resetTargets": "Zurücksetzen",
     "saveTargets": "Speichern",
     "unsavedChanges": "Geändert — noch nicht gespeichert",
     "confirmSaveTitle": "Änderungen speichern?",
@@ -409,8 +409,6 @@
     "created": "Lebensmittel erstellt",
     "createError": "Fehler beim Erstellen",
     "deleteConfirm": "Möchten Sie dieses Lebensmittel wirklich löschen?",
-    "deleted": "Lebensmittel gelöscht",
-    "deleteError": "Fehler beim Löschen",
     "note": "Notiz",
     "notePlaceholder": "Optionale Notiz zu diesem Lebensmittel...",
     "category": "Kategorie",
@@ -537,7 +535,7 @@
     "planDeleted": "Plan gelöscht",
     "planDuplicated": "Plan dupliziert",
     "duplicateName": "Name für den neuen Plan",
-    "copy": "Kopie",
+    "copy": "Kopieren",
     "planCreated": "Plan erstellt",
     "saving": "Speichern...",
     "unsavedChanges": "Nicht gespeicherte Änderungen",
@@ -615,7 +613,6 @@
     "friToSun": "Freitag — Sonntag",
     "noItems": "Keine Elemente",
     "loadingIngredients": "Zutaten werden geladen...",
-    "copy": "Kopieren",
     "save": "Speichern",
     "discardChanges": "Änderungen verwerfen",
     "discardConfirmTitle": "Änderungen verwerfen?",
@@ -973,7 +970,6 @@
     "saveChanges": "Änderungen speichern",
     "delete": "Löschen",
     "deleteConfirmTitle": "Übung löschen",
-    "deleteConfirmMessage": "Möchten Sie «{{name}}» wirklich löschen? Dies kann nicht rückgängig gemacht werden.",
     "deleteConfirmMessage": "Möchten Sie «{{name}}» wirklich löschen? Dies kann nicht rückgängig gemacht werden."
   },
   "enums": {
@@ -1279,5 +1275,11 @@
       "tooLarge": "Datei überschreitet das Limit von {{limitMb}} MB",
       "uploadFailed": "Upload fehlgeschlagen. Bitte erneut versuchen."
     }
+  },
+  "avatar": {
+    "changeBadgeLabel": "Foto ändern",
+    "dialogTitle": "Profilfoto ändern",
+    "uploadSuccess": "Profilfoto aktualisiert",
+    "uploadError": "Foto hochladen fehlgeschlagen. Bitte erneut versuchen."
   }
 }

@@ -7,7 +7,7 @@ import { getClientTimeline } from '@/api/timeline';
 import { formatWeight } from '@/lib/personalRecordFormatters';
 
 import { PageHeader } from '@/components/layout';
-import { Button, Tag, Dialog, Input } from '@/components/ui';
+import { Button, Tag, Dialog, Input, EditableAvatar } from '@/components/ui';
 import { PropertyList, StatsGrid } from '@/components/data';
 import { ActivityTimeline } from '@/components/domain';
 import { QuestionnaireAnswersSection } from '@/components/questionnaire';
@@ -37,6 +37,10 @@ export default function ClientDetailPage() {
   const clientName = client
     ? `${client.firstName} ${client.lastName}`
     : '...';
+
+  const clientInitials = client
+    ? `${(client.firstName ?? '?')[0]}${(client.lastName ?? '?')[0]}`.toUpperCase()
+    : '?';
 
   const ob = client?.onboarding;
 
@@ -340,7 +344,14 @@ export default function ClientDetailPage() {
     <div className="flex h-full flex-col">
       {/* Page Header */}
       <PageHeader
-        icon="👤"
+        icon={
+          <EditableAvatar
+            src={null}
+            initials={clientInitials}
+            size="md"
+            editable={false}
+          />
+        }
         title={clientName}
         subtitle={client.email ?? undefined}
         actions={
