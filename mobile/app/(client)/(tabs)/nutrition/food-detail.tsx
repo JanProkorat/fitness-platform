@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Image,
   Animated,
   type NativeSyntheticEvent,
   type NativeScrollEvent,
@@ -206,6 +207,15 @@ export default function FoodDetailScreen() {
         onScroll={onScroll}
         scrollEventThrottle={16}
       >
+        {/* Hero image — rendered when imageUrl is available; emoji layout is preserved when null */}
+        {freshFood?.imageUrl ? (
+          <Image
+            source={{ uri: freshFood.imageUrl }}
+            style={[styles.heroImage, { backgroundColor: colors.fill2 }]}
+            resizeMode="cover"
+          />
+        ) : null}
+
         {/* Hero */}
         <View style={styles.hero}>
           <View style={[styles.heroIcon, { backgroundColor: colors.fill2 }]}>
@@ -327,6 +337,14 @@ const styles = StyleSheet.create({
   headerSpacer: { width: 70 },
 
   scrollContent: { paddingBottom: 20 },
+
+  // Hero image (shown when imageUrl is non-null; fallback is the emoji heroIcon)
+  heroImage: {
+    marginHorizontal: 20,
+    marginTop: 8,
+    height: 140,
+    borderRadius: Radius.lg,
+  },
 
   // Hero
   hero: {
