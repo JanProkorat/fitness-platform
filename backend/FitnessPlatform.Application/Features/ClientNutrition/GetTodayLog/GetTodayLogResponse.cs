@@ -40,9 +40,10 @@ public class MealLogDto
     public string MealName { get; set; } = string.Empty;
 
     /// <summary>
-    /// When the meal was eaten.
+    /// When the meal was eaten. Null for photo/note-only log entries that have not
+    /// been confirmed as eaten via the quick-log button.
     /// </summary>
-    public DateTime EatenAt { get; set; }
+    public DateTime? EatenAt { get; set; }
 
     /// <summary>
     /// Computed nutrient totals for this logged meal.

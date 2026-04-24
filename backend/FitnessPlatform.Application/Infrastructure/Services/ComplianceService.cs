@@ -255,8 +255,10 @@ public class ComplianceService : IComplianceService
         if (logs.Count == 0)
             return new NutrientTotals { Kcal = 0, Protein = 0, Carbs = 0, Fat = 0, Fiber = 0 };
 
+        // Logs that passed the EatenAt range filter will have EatenAt set; fall back
+        // to LogDate for any photo-only docs that slip through (defensive coding).
         var dailyTotals = logs
-            .GroupBy(l => l.EatenAt.Date)
+            .GroupBy(l => (l.EatenAt ?? l.LogDate).Date)
             .Select(group =>
             {
                 var dayKcal = 0m;

@@ -86,6 +86,7 @@ public class LogMealEatenEndpoint(IMongoContext mongo, IApplicationDbContext db,
             ClientId = clientId,
             PlanId = plan.ExternalId,
             MealId = req.MealId,
+            LogDate = now.Date,
             EatenAt = now,
             FoodsEaten = meal.Foods,
             Photos = (req.PhotoBlobUrls ?? [])

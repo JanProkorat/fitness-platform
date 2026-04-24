@@ -35,10 +35,20 @@ public class MealLog
     public Guid MealId { get; set; }
 
     /// <summary>
-    /// When the meal was eaten.
+    /// The calendar date (UTC) this log entry belongs to — always set regardless of
+    /// whether the meal has been marked as eaten. Used to key the "one log per day per
+    /// meal" invariant enforced by the AttachMealPhotos endpoint.
+    /// </summary>
+    [BsonElement("logDate")]
+    public DateTime LogDate { get; set; }
+
+    /// <summary>
+    /// When the meal was eaten. Null for photo-only / note-only log entries that have
+    /// not yet been confirmed as eaten via the LogMealEaten endpoint.
     /// </summary>
     [BsonElement("eatenAt")]
-    public DateTime EatenAt { get; set; }
+    [BsonIgnoreIfNull]
+    public DateTime? EatenAt { get; set; }
 
     /// <summary>
     /// Snapshot of foods actually consumed (may differ from plan).
