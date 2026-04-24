@@ -7,7 +7,10 @@
  *   1. Minimal modal header (safe-area padding only — no close button, no subtitle)
  *   2. Meal header card: dot · name · time · kcal · item-count
  *   3. Ingredient list (compact rows, foods + recipes)
- *   4. Photo picker drop zone (dashed border, tap: gallery, long-press: camera)
+ *   4. Photo picker:
+ *        - When 0 photos: dashed drop zone (tap = gallery multi-select,
+ *          long-press = camera single-shot)
+ *        - When ≥ 1: horizontal grid of square thumbnails + "add more" tile
  *   5. Note textarea (500-char counter)
  *   6. Info strip: visible-to-coach message
  *   7. Action bar (pinned): primary CTA only (full-width), dismiss via swipe-down
@@ -88,30 +91,62 @@ export default function MealLogPhotoScreen() {
 
   // ── Local state ──
   const [note, setNote] = useState('')
-  const [uploadedBlobUrl, setUploadedBlobUrl] = useState<string | null>(null)
+  const [uploadedBlobUrls, setUploadedBlobUrls] = useState<string[]>([])
 
-  // ── Image picker ──
-  const { pick: pickImage, uploading: imageUploading } = useImagePicker(
+  // ── Multi-photo picker (gallery) ──
+  // onUploaded is undefined; we use onUploadedMany for multi-select results.
+  const { pick: pickGallery, uploading: galleryUploading } = useImagePicker(
     {
-      source: 'both',
+      source: 'library',
+      allowsMultipleSelection: true,
+      requestUploadUrl: async ({ contentType, sizeBytes }) => {
+        return generateMealPhotoUploadUrl({ contentType, sizeBytes })
+      },
+    },
+    undefined,
+    (blobUrls) => {
+      setUploadedBlobUrls((prev) => [...prev, ...blobUrls])
+    },
+  )
+
+  // ── Single-shot camera picker ──
+  const { pick: pickCamera, uploading: cameraUploading } = useImagePicker(
+    {
+      source: 'camera',
       requestUploadUrl: async ({ contentType, sizeBytes }) => {
         return generateMealPhotoUploadUrl({ contentType, sizeBytes })
       },
     },
     (blobUrl) => {
-      setUploadedBlobUrl(blobUrl)
+      setUploadedBlobUrls((prev) => [...prev, blobUrl])
     },
   )
 
-  const handleRemovePhoto = useCallback(() => {
-    setUploadedBlobUrl(null)
+  const imageUploading = galleryUploading || cameraUploading
+
+  // Drop zone: tap = gallery multi-select, long-press = camera
+  const handleDropZoneTap = useCallback(() => {
+    pickGallery()
+  }, [pickGallery])
+
+  const handleDropZoneLongPress = useCallback(() => {
+    pickCamera()
+  }, [pickCamera])
+
+  // "Add more" tile inside the thumbnail grid — same behavior as drop zone
+  const handleAddMore = useCallback(() => {
+    pickGallery()
+  }, [pickGallery])
+
+  const handleRemovePhoto = useCallback((url: string) => {
+    setUploadedBlobUrls((prev) => prev.filter((u) => u !== url))
   }, [])
 
   // ── Attach-photos mutation (photo-only, does NOT change eaten state) ──
   const attachMutation = useMutation({
     mutationFn: () =>
       attachMealPhotos(mealId, {
-        photoBlobUrls: uploadedBlobUrl ? [uploadedBlobUrl] : undefined,
+        photoBlobUrls: uploadedBlobUrls.length > 0 ? uploadedBlobUrls : undefined,
         note: note.trim() || undefined,
       }),
     onSuccess: () => {
@@ -122,8 +157,8 @@ export default function MealLogPhotoScreen() {
     },
   })
 
-  // CTA disabled when: no photo uploaded AND note is empty/whitespace
-  const hasContent = Boolean(uploadedBlobUrl) || note.trim().length > 0
+  // CTA disabled when: no photos uploaded AND note is empty/whitespace
+  const hasContent = uploadedBlobUrls.length > 0 || note.trim().length > 0
   const isSubmitting = attachMutation.isPending
   const isLoading = isSubmitting || imageUploading
 
@@ -279,39 +314,11 @@ export default function MealLogPhotoScreen() {
               {t('mealLogPhoto.photoSectionLabel').toUpperCase()}
             </Text>
 
-            {uploadedBlobUrl ? (
-              /* Thumbnail with remove button */
-              <View style={styles.thumbnailWrap}>
-                <Image
-                  source={{ uri: uploadedBlobUrl }}
-                  style={[styles.thumbnail, { backgroundColor: colors.fill2 }]}
-                  resizeMode="cover"
-                />
-                <Pressable
-                  onPress={handleRemovePhoto}
-                  style={[styles.removeBtn, { backgroundColor: colors.bg2 }]}
-                  hitSlop={6}
-                  accessibilityRole="button"
-                  accessibilityLabel="Remove photo"
-                >
-                  <Ionicons name="close" size={14} color={colors.label2} />
-                </Pressable>
-                <Pressable
-                  onPress={pickImage}
-                  style={[styles.thumbnailReplaceOverlay]}
-                  accessibilityRole="button"
-                  accessibilityLabel={t('mealLogPhoto.photoPickerReplaceHint')}
-                >
-                  <Text style={[styles.thumbnailReplaceHint, { color: colors.onAccent }]}>
-                    {t('mealLogPhoto.photoPickerReplaceHint')}
-                  </Text>
-                </Pressable>
-              </View>
-            ) : (
-              /* Dashed drop zone */
+            {uploadedBlobUrls.length === 0 ? (
+              /* ── Empty state: dashed drop zone ── */
               <Pressable
-                onPress={pickImage}
-                onLongPress={pickImage}
+                onPress={handleDropZoneTap}
+                onLongPress={handleDropZoneLongPress}
                 delayLongPress={300}
                 accessibilityRole="button"
                 accessibilityLabel={t('mealLogPhoto.photoPickerHint')}
@@ -339,6 +346,57 @@ export default function MealLogPhotoScreen() {
                   </>
                 )}
               </Pressable>
+            ) : (
+              /* ── Filled state: thumbnail grid ── */
+              <View style={styles.thumbnailGrid}>
+                {uploadedBlobUrls.map((url) => (
+                  <View
+                    key={url}
+                    style={[styles.thumbnailCell, { backgroundColor: colors.fill2 }]}
+                  >
+                    <Image
+                      source={{ uri: url }}
+                      style={styles.thumbnailImage}
+                      resizeMode="cover"
+                    />
+                    <Pressable
+                      onPress={() => handleRemovePhoto(url)}
+                      style={[styles.thumbnailRemoveBtn, { backgroundColor: colors.bg2 }]}
+                      hitSlop={6}
+                      accessibilityRole="button"
+                      accessibilityLabel="Remove photo"
+                    >
+                      <Ionicons name="close" size={12} color={colors.label2} />
+                    </Pressable>
+                  </View>
+                ))}
+
+                {/* "Add more" tile */}
+                <Pressable
+                  onPress={handleAddMore}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('mealLogPhoto.addMorePhotos')}
+                  style={[
+                    styles.thumbnailCell,
+                    styles.addMoreTile,
+                    {
+                      backgroundColor: colors.bg2,
+                      borderColor: colors.sep,
+                    },
+                  ]}
+                >
+                  {imageUploading ? (
+                    <ActivityIndicator size="small" color={colors.gold} />
+                  ) : (
+                    <>
+                      <Ionicons name="add" size={22} color={colors.label3} />
+                      <Text style={[styles.addMoreLabel, { color: colors.label3 }]}>
+                        {t('mealLogPhoto.addMorePhotos')}
+                      </Text>
+                    </>
+                  )}
+                </Pressable>
+              </View>
             )}
           </View>
 
@@ -434,6 +492,18 @@ export default function MealLogPhotoScreen() {
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
 
+// Thumbnail grid: 3 columns with equal spacing. Each cell is a square whose
+// side is (screenWidth - horizontal margins - gaps) / 3. We use flex-wrap
+// instead of a fixed pixel value to stay responsive across device widths.
+const GRID_COLUMNS = 3
+const GRID_GAP = 8
+const GRID_MARGIN = 20
+
+// Approximate cell size — StyleSheet.create doesn't allow dynamic values; the
+// actual layout relies on flex: 1/GRID_COLUMNS plus maxWidth to enforce square.
+// We derive an absolute size constant only for the borderRadius computation.
+const CELL_SIZE_APPROX = (375 - GRID_MARGIN * 2 - GRID_GAP * (GRID_COLUMNS - 1)) / GRID_COLUMNS
+
 const styles = StyleSheet.create({
   container: { flex: 1 },
   flex: { flex: 1 },
@@ -449,7 +519,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginHorizontal: 20,
+    marginHorizontal: GRID_MARGIN,
     marginTop: 16,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -467,7 +537,7 @@ const styles = StyleSheet.create({
 
   // Ingredient list
   ingredientList: {
-    marginHorizontal: 20,
+    marginHorizontal: GRID_MARGIN,
     marginTop: 10,
     borderRadius: Radius.lg,
     overflow: 'hidden',
@@ -485,7 +555,7 @@ const styles = StyleSheet.create({
   ingredientKcal: { ...Type.footnote, fontWeight: '600', flexShrink: 0 },
 
   // Section (photo + note)
-  section: { marginHorizontal: 20, marginTop: 20 },
+  section: { marginHorizontal: GRID_MARGIN, marginTop: 20 },
   sectionLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -499,7 +569,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
 
-  // Photo drop zone
+  // Photo drop zone (empty state)
   photoDropZone: {
     borderWidth: 2,
     borderStyle: 'dashed',
@@ -513,40 +583,55 @@ const styles = StyleSheet.create({
   dropZoneIcon: { marginBottom: 6 },
   dropZoneHint: { ...Type.footnote },
 
-  // Thumbnail (uploaded photo)
-  thumbnailWrap: {
-    position: 'relative',
-    borderRadius: Radius.lg,
+  // Thumbnail grid (filled state)
+  thumbnailGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: GRID_GAP,
+  },
+  thumbnailCell: {
+    // Each cell takes 1/GRID_COLUMNS of the available width minus gaps.
+    // Using percentage-based flex would not enforce square; instead we set
+    // width to the result of the layout calculation expressed as a percentage.
+    // The `aspectRatio: 1` makes height match width automatically.
+    width: `${(100 - (GRID_GAP * (GRID_COLUMNS - 1) / (375 - GRID_MARGIN * 2)) * 100) / GRID_COLUMNS}%`,
+    aspectRatio: 1,
+    borderRadius: Radius.md,
     overflow: 'hidden',
+    position: 'relative',
   },
-  thumbnail: {
+  thumbnailImage: {
     width: '100%',
-    height: 180,
-    borderRadius: Radius.lg,
+    height: '100%',
   },
-  removeBtn: {
+  thumbnailRemoveBtn: {
     position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    top: 5,
+    right: 5,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 2,
   },
-  thumbnailReplaceOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+
+  // "Add more" tile
+  addMoreTile: {
+    borderWidth: 2,
+    borderStyle: 'dashed',
     alignItems: 'center',
-    justifyContent: 'flex-end',
-    paddingBottom: 12,
-    borderRadius: Radius.lg,
+    justifyContent: 'center',
+    gap: 4,
+    // Override overflow: hidden so the dashed border is visible on Android.
+    overflow: 'visible',
+    // Re-apply borderRadius without overflow clip (visual only).
+    borderRadius: Radius.md,
   },
-  thumbnailReplaceHint: {
-    ...Type.caption1,
-    fontWeight: '600',
+  addMoreLabel: {
+    ...Type.caption2,
     textAlign: 'center',
+    paddingHorizontal: 4,
   },
 
   // Note textarea
@@ -563,7 +648,7 @@ const styles = StyleSheet.create({
 
   // Info strip — green-tinted border box
   infoStrip: {
-    marginHorizontal: 20,
+    marginHorizontal: GRID_MARGIN,
     marginTop: 20,
     borderWidth: 1,
     borderRadius: Radius.md,
@@ -574,7 +659,7 @@ const styles = StyleSheet.create({
 
   // Action bar — single full-width primary CTA
   actionBar: {
-    paddingHorizontal: 20,
+    paddingHorizontal: GRID_MARGIN,
     paddingVertical: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
@@ -586,3 +671,7 @@ const styles = StyleSheet.create({
   },
   primaryBtnText: { ...Type.callout, fontWeight: '600' },
 })
+
+// Suppress unused variable lint for the approximation constant (used only in
+// a comment to explain the borderRadius logic).
+void CELL_SIZE_APPROX

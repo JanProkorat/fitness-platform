@@ -190,7 +190,8 @@
     "sourceLibrary": "Vybrat z galerie",
     "permissionDenied": "Přístup odepřen. Povolte přístup k fotoaparátu a fotkám v Nastavení.",
     "oversize": "Obrázek je příliš velký (max {{maxMb}} MB). Vyberte menší soubor.",
-    "invalidType": "Nepodporovaný formát souboru. Vyberte obrázek JPG, PNG nebo WebP."
+    "invalidType": "Nepodporovaný formát souboru. Vyberte obrázek JPG, PNG nebo WebP.",
+    "partialUpload": "{{succeeded}} z {{total}} fotek bylo nahráno"
   },
   "tabs": {
     "today": "Dnes",
@@ -697,16 +698,17 @@
     }
   },
   "mealLogPhoto": {
-    "photoSectionLabel": "Přidej fotku (volitelné)",
+    "photoSectionLabel": "Přidej fotky (volitelné)",
     "photoPickerHint": "Tap: galerie · podržet: fotoaparát",
     "photoPickerReplaceHint": "Klepni pro výměnu · X pro odebrání",
     "noteSectionLabel": "Poznámka (volitelné)",
     "notePlaceholder": "Např. Bylo to super, jen jsem si přidal víc zeleniny…",
     "noteCounter": "{{current}} / {{max}}",
-    "infoStrip": "Fotka i poznámka se uloží do tvého plánu a jsou viditelné pro {{coachName}}.",
-    "infoStripNoCoach": "Fotka i poznámka se uloží do tvého plánu.",
-    "savePhoto": "Uložit fotku",
-    "successToast": "Fotka uložena"
+    "infoStrip": "Fotky i poznámka se uloží do tvého plánu a jsou viditelné pro {{coachName}}.",
+    "infoStripNoCoach": "Fotky i poznámka se uloží do tvého plánu.",
+    "savePhoto": "Uložit fotky",
+    "successToast": "Uloženo",
+    "addMorePhotos": "Přidat další fotku"
   },
   "foodDetail": {
     "nutritionValues": "Nutriční hodnoty",

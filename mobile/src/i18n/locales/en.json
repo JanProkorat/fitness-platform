@@ -190,7 +190,8 @@
     "sourceLibrary": "Choose from library",
     "permissionDenied": "Permission denied. Please allow camera and photo access in Settings.",
     "oversize": "Image is too large (max {{maxMb}} MB). Please choose a smaller file.",
-    "invalidType": "Unsupported file type. Please choose a JPG, PNG, or WebP image."
+    "invalidType": "Unsupported file type. Please choose a JPG, PNG, or WebP image.",
+    "partialUpload": "{{succeeded}} of {{total}} photos uploaded"
   },
   "tabs": {
     "today": "Today",
@@ -831,16 +832,17 @@
     }
   },
   "mealLogPhoto": {
-    "photoSectionLabel": "Add a photo (optional)",
+    "photoSectionLabel": "Add photos (optional)",
     "photoPickerHint": "Tap: gallery · hold: camera",
     "photoPickerReplaceHint": "Tap to replace · X to remove",
     "noteSectionLabel": "Note (optional)",
     "notePlaceholder": "E.g. It was great, I just added more vegetables…",
     "noteCounter": "{{current}} / {{max}}",
-    "infoStrip": "The photo and note will be saved to your plan and are visible to {{coachName}}.",
-    "infoStripNoCoach": "The photo and note will be saved to your plan.",
-    "savePhoto": "Save photo",
-    "successToast": "Photo saved"
+    "infoStrip": "Photos and note will be saved to your plan and are visible to {{coachName}}.",
+    "infoStripNoCoach": "Photos and note will be saved to your plan.",
+    "savePhoto": "Save",
+    "successToast": "Saved",
+    "addMorePhotos": "Add another photo"
   },
   "avatar": {
     "editBadgeLabel": "Change profile photo",

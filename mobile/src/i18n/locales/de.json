@@ -190,7 +190,8 @@
     "sourceLibrary": "Aus Galerie wählen",
     "permissionDenied": "Zugriff verweigert. Bitte erlauben Sie den Kamera- und Fotozugriff in den Einstellungen.",
     "oversize": "Das Bild ist zu groß (max {{maxMb}} MB). Bitte wählen Sie eine kleinere Datei.",
-    "invalidType": "Nicht unterstützter Dateityp. Bitte wählen Sie ein JPG-, PNG- oder WebP-Bild."
+    "invalidType": "Nicht unterstützter Dateityp. Bitte wählen Sie ein JPG-, PNG- oder WebP-Bild.",
+    "partialUpload": "{{succeeded}} von {{total}} Fotos hochgeladen"
   },
   "tabs": {
     "today": "Heute",
@@ -830,16 +831,17 @@
     "FullBody": "Ganzkörper"
   },
   "mealLogPhoto": {
-    "photoSectionLabel": "Foto hinzufügen (optional)",
+    "photoSectionLabel": "Fotos hinzufügen (optional)",
     "photoPickerHint": "Tippen: Galerie · gedrückt halten: Kamera",
     "photoPickerReplaceHint": "Tippen zum Ersetzen · X zum Entfernen",
     "noteSectionLabel": "Notiz (optional)",
     "notePlaceholder": "Z.B. Es war super, ich habe nur mehr Gemüse hinzugefügt…",
     "noteCounter": "{{current}} / {{max}}",
-    "infoStrip": "Foto und Notiz werden in deinem Plan gespeichert und sind für {{coachName}} sichtbar.",
-    "infoStripNoCoach": "Foto und Notiz werden in deinem Plan gespeichert.",
-    "savePhoto": "Foto speichern",
-    "successToast": "Foto gespeichert"
+    "infoStrip": "Fotos und Notiz werden in deinem Plan gespeichert und sind für {{coachName}} sichtbar.",
+    "infoStripNoCoach": "Fotos und Notiz werden in deinem Plan gespeichert.",
+    "savePhoto": "Speichern",
+    "successToast": "Gespeichert",
+    "addMorePhotos": "Weiteres Foto hinzufügen"
   },
   "avatar": {
     "editBadgeLabel": "Profilbild ändern",
