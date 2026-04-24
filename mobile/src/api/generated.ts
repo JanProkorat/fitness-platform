@@ -5,6 +5,7 @@
 //----------------------
 
 /* eslint-disable */
+// @ts-nocheck
 // ReSharper disable InconsistentNaming
 
 import axios, { AxiosError } from 'axios';
@@ -8784,6 +8785,82 @@ export class ApiClient {
     }
 
     /**
+     * Generate meal diary photo upload URL
+     * @param mealId The unique identifier of the meal the photo will be attached to.
+    Sourced from the route segment {mealId}.
+     * @return Success
+     */
+    generateMealPhotoUploadUrlEndpoint(mealId: string, generateMealPhotoUploadUrlRequest: GenerateMealPhotoUploadUrlRequest, signal?: AbortSignal): Promise<GenerateMealPhotoUploadUrlResponse> {
+        let url_ = this.baseUrl + "/client/nutrition/log/meals/{mealId}/photo-upload-url";
+        if (mealId === undefined || mealId === null)
+            throw new globalThis.Error("The parameter 'mealId' must be defined.");
+        url_ = url_.replace("{mealId}", encodeURIComponent("" + mealId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(generateMealPhotoUploadUrlRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGenerateMealPhotoUploadUrlEndpoint(_response);
+        });
+    }
+
+    protected processGenerateMealPhotoUploadUrlEndpoint(response: AxiosResponse): Promise<GenerateMealPhotoUploadUrlResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GenerateMealPhotoUploadUrlResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GenerateMealPhotoUploadUrlResponse>(null as any);
+    }
+
+    /**
      * Attach photos / note to a meal diary entry
      * @param mealId The unique identifier of the meal to attach photos/note to.
     Sourced from the route segment {mealId}.
@@ -13786,6 +13863,23 @@ export interface FullPlanWeek {
     weekEndDate?: string;
     /** Days in this week. */
     days?: PlanDay[];
+}
+
+/** Response model containing the pre-signed upload URL and the permanent blob URL for a meal diary photo. */
+export interface GenerateMealPhotoUploadUrlResponse {
+    /** Time-limited pre-signed URL the client should PUT the image file to. */
+    uploadUrl?: string;
+    /** Permanent blob URL at which the photo will be accessible after a successful upload.
+Always starts with diary/{mealId}/. */
+    blobUrl?: string;
+}
+
+/** Request model for generating a pre-signed meal diary photo upload URL. */
+export interface GenerateMealPhotoUploadUrlRequest {
+    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp", "image/heic"). */
+    contentType: string;
+    /** Declared file size in bytes. Must not exceed 10 MiB. */
+    sizeBytes?: number;
 }
 
 /** Request model for attaching photos and/or a note to a meal diary entry. Neither field is required — callers may supply one or both. */

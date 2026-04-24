@@ -123,11 +123,6 @@ export async function logMealEaten(mealId: string, opts?: LogMealEatenOptions): 
   await api.post(`/client/nutrition/log/meals/${mealId}/eaten`, opts ?? {});
 }
 
-export interface GenerateMealPhotoUploadUrlRequest {
-  contentType: string;
-  sizeBytes: number;
-}
-
 export interface GenerateMealPhotoUploadUrlResponse {
   uploadUrl: string;
   blobUrl: string;
@@ -135,14 +130,17 @@ export interface GenerateMealPhotoUploadUrlResponse {
 
 /**
  * Request a signed upload URL for a meal diary photo.
- * Reuses the general-purpose user avatar upload infrastructure from Epic #65.
+ * Uses the dedicated diary endpoint so photos land in the diary/{mealId}/
+ * bucket namespace (ImageUploadScope.Diary) rather than avatars/.
  */
 export async function generateMealPhotoUploadUrl(
-  req: GenerateMealPhotoUploadUrlRequest,
+  mealId: string,
+  contentType: string,
+  sizeBytes: number,
 ): Promise<GenerateMealPhotoUploadUrlResponse> {
   const { data } = await api.post<GenerateMealPhotoUploadUrlResponse>(
-    '/users/me/avatar/upload-url',
-    req,
+    `/client/nutrition/log/meals/${mealId}/photo-upload-url`,
+    { contentType, sizeBytes },
   );
   return data;
 }

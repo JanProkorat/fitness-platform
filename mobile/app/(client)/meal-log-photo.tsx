@@ -100,7 +100,7 @@ export default function MealLogPhotoScreen() {
       source: 'library',
       allowsMultipleSelection: true,
       requestUploadUrl: async ({ contentType, sizeBytes }) => {
-        return generateMealPhotoUploadUrl({ contentType, sizeBytes })
+        return generateMealPhotoUploadUrl(mealId, contentType, sizeBytes)
       },
     },
     undefined,
@@ -114,7 +114,7 @@ export default function MealLogPhotoScreen() {
     {
       source: 'camera',
       requestUploadUrl: async ({ contentType, sizeBytes }) => {
-        return generateMealPhotoUploadUrl({ contentType, sizeBytes })
+        return generateMealPhotoUploadUrl(mealId, contentType, sizeBytes)
       },
     },
     (blobUrl) => {
