@@ -6,7 +6,7 @@ import type { RecipeSummary, RecipeDetail, RecipeVisibility } from '@/api/recipe
 import type { FoodSummary } from '@/api/food-types';
 import { showApiError, showSuccess } from '@/lib/api-errors';
 import { INPUT_CLASS_SM, CANCEL_BUTTON_CLASS } from '@/lib/styles';
-import { Toggle } from '@/components/ui';
+import { Toggle, ImageLightbox } from '@/components/ui';
 import { RecipeImageSection } from '@/components/nutrition/RecipeImageSection';
 
 interface IngredientRow {
@@ -38,6 +38,19 @@ export function RecipeDialog({ open, recipe, onClose, onSaved }: RecipeDialogPro
   const [loading, setLoading] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxStart, setLightboxStart] = useState(0);
+
+  // Flat list of all viewable recipe images, main first then gallery entries.
+  // Used both for the lightbox and for the index math when clicking a thumb.
+  const allImages = detail?.imageUrl
+    ? [detail.imageUrl, ...(detail.galleryImageUrls ?? [])]
+    : (detail?.galleryImageUrls ?? []);
+
+  const openLightboxAt = (i: number) => {
+    setLightboxStart(i);
+    setLightboxOpen(true);
+  };
 
   // Edit form state
   const [name, setName] = useState('');
@@ -202,6 +215,19 @@ export function RecipeDialog({ open, recipe, onClose, onSaved }: RecipeDialogPro
             ) : (
               <span style={{ fontSize: 48, opacity: 0.2 }}>🍽️</span>
             )}
+            {mode === 'view' && detail?.imageUrl && (
+              <button
+                type="button"
+                onClick={() => openLightboxAt(0)}
+                aria-label={t('imageLightbox.open')}
+                title={t('imageLightbox.open')}
+                className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              >
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5M20 8V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5M20 16v4m0 0h-4m4 0l-5-5" />
+                </svg>
+              </button>
+            )}
             {mode === 'view' && detail && (
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.45))', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '14px 20px' }}>
                 <div className="text-white" style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.2 }}>{detail.name}</div>
@@ -216,11 +242,23 @@ export function RecipeDialog({ open, recipe, onClose, onSaved }: RecipeDialogPro
           {/* Gallery strip — view mode only, shown when there are gallery images */}
           {mode === 'view' && detail && (detail.galleryImageUrls?.length ?? 0) > 0 && (
             <div className="flex gap-2 overflow-x-auto px-5 py-2" style={{ borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-              {detail.galleryImageUrls!.map((url, i) => (
-                <div key={url} className="relative overflow-hidden rounded-md" style={{ width: 56, height: 56, flexShrink: 0, background: 'var(--bg3)' }}>
-                  <img src={url} alt={`${t('recipes.image.galleryHeading')} ${i + 1}`} className="h-full w-full object-cover" />
-                </div>
-              ))}
+              {detail.galleryImageUrls!.map((url, i) => {
+                // allImages = [main, ...gallery]; if there's a main image, gallery index i
+                // maps to allImages[i+1]. If no main, gallery maps to allImages[i].
+                const lightboxIndex = detail.imageUrl ? i + 1 : i;
+                return (
+                  <button
+                    key={url}
+                    type="button"
+                    onClick={() => openLightboxAt(lightboxIndex)}
+                    aria-label={`${t('recipes.image.galleryHeading')} ${i + 1} · ${t('imageLightbox.open')}`}
+                    className="relative overflow-hidden rounded-md cursor-pointer hover:opacity-80 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                    style={{ width: 56, height: 56, flexShrink: 0, background: 'var(--bg3)' }}
+                  >
+                    <img src={url} alt={`${t('recipes.image.galleryHeading')} ${i + 1}`} className="h-full w-full object-cover" />
+                  </button>
+                );
+              })}
             </div>
           )}
 
@@ -504,6 +542,13 @@ export function RecipeDialog({ open, recipe, onClose, onSaved }: RecipeDialogPro
           )}
         </div>
       </div>
+      <ImageLightbox
+        images={allImages}
+        startIndex={lightboxStart}
+        open={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        altPrefix={detail?.name}
+      />
     </>
   );
 }

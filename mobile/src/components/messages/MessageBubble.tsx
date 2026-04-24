@@ -11,6 +11,7 @@ interface MessageBubbleProps {
   isOwn: boolean
   showAvatar: boolean
   participantName?: string
+  participantAvatarUrl?: string | null
   onRetry?: (id: string) => void
 }
 
@@ -19,6 +20,7 @@ export const MessageBubble = React.memo(function MessageBubble({
   isOwn,
   showAvatar,
   participantName = '',
+  participantAvatarUrl,
   onRetry,
 }: MessageBubbleProps) {
   const colors = useTheme()
@@ -31,7 +33,7 @@ export const MessageBubble = React.memo(function MessageBubble({
       {!isOwn && (
         showAvatar ? (
           <View style={styles.tinyAvatarWrap}>
-            <Avatar name={participantName} size="sm" />
+            <Avatar name={participantName} imageUrl={participantAvatarUrl} size="sm" />
           </View>
         ) : (
           <View style={styles.avatarSpacer} />

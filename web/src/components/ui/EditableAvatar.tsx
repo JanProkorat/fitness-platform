@@ -17,6 +17,7 @@ import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ImagePicker } from './ImagePicker';
 import { Dialog } from './Dialog';
+import { ImageLightbox } from './ImageLightbox';
 import { cn } from '@/lib/cn';
 import type { ImagePickerProps } from './ImagePicker';
 
@@ -108,6 +109,7 @@ export function EditableAvatar({
   const { t } = useTranslation();
 
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   // Optimistic override: holds the most recent just-uploaded blobUrl so the
   // image swaps visually before the parent's refetch updates `src`. Priority:
   // optimistic > src. Once the parent catches up, `src === optimistic` and
@@ -148,22 +150,41 @@ export function EditableAvatar({
     <>
       {/* ── Avatar wrapper ── */}
       <div className={cn('relative inline-flex shrink-0', className)}>
-        <div
-          className={cn(
-            'rounded-full flex items-center justify-center font-semibold overflow-hidden',
-            'bg-accent/15 text-accent',
-            sz.wrap,
-            sz.text,
-          )}
-        >
-          {displayedSrc ? (
-            // Key on the URL so the child re-mounts when the URL changes —
-            // that auto-resets its internal `failed` flag on a fresh attempt.
+        {displayedSrc ? (
+          // Wrap the image circle in a button so clicking it opens the
+          // fullscreen lightbox (useful when the caller rendered a small
+          // avatar and the user wants to see their photo bigger). Keyboard
+          // focusable + properly labelled; the camera badge sits as a
+          // sibling outside this button so they remain independent targets.
+          <button
+            type="button"
+            onClick={() => setLightboxOpen(true)}
+            aria-label={t('imageLightbox.open')}
+            title={t('imageLightbox.open')}
+            className={cn(
+              'rounded-full flex items-center justify-center font-semibold overflow-hidden',
+              'bg-accent/15 text-accent border-0 p-0 cursor-pointer',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1',
+              sz.wrap,
+              sz.text,
+            )}
+          >
+            {/* Key on the URL so the child re-mounts when the URL changes —
+                that auto-resets its internal `failed` flag on a fresh attempt. */}
             <AvatarImg key={displayedSrc} src={displayedSrc} initials={initials} />
-          ) : (
+          </button>
+        ) : (
+          <div
+            className={cn(
+              'rounded-full flex items-center justify-center font-semibold overflow-hidden',
+              'bg-accent/15 text-accent',
+              sz.wrap,
+              sz.text,
+            )}
+          >
             <span aria-hidden="true">{initials}</span>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* ── Camera badge (own-profile only) ── */}
         {editable && (
@@ -186,6 +207,14 @@ export function EditableAvatar({
           </button>
         )}
       </div>
+
+      {/* ── Fullscreen lightbox for the current image ── */}
+      <ImageLightbox
+        images={displayedSrc ? [displayedSrc] : []}
+        open={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        altPrefix={initials}
+      />
 
       {/* ── Picker dialog ── */}
       {editable && requestUploadUrl && (

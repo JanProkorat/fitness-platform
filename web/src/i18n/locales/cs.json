@@ -1293,5 +1293,12 @@
     "dialogTitle": "Změnit profilovou fotku",
     "uploadSuccess": "Profilová fotka aktualizována",
     "uploadError": "Nahrání fotky selhalo. Zkuste to znovu."
+  },
+  "imageLightbox": {
+    "dialogLabel": "Prohlížeč obrázku",
+    "open": "Zobrazit v plné velikosti",
+    "close": "Zavřít",
+    "prev": "Předchozí obrázek",
+    "next": "Další obrázek"
   }
 }

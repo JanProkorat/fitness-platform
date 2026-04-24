@@ -137,6 +137,7 @@ export default function ChatScreen() {
             isOwn={isOwn}
             showAvatar={showAvatar}
             participantName={participant?.name}
+            participantAvatarUrl={participant?.avatarBlobUrl}
             onRetry={retry}
           />
         </View>

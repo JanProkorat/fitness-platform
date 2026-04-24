@@ -604,7 +604,8 @@
     "per100g": "Pro 100 g",
     "commonServings": "Übliche Portionen",
     "asPlanned": "Laut Plan ({{grams}} g)",
-    "trainerNote": "Hinweis vom Trainer"
+    "trainerNote": "Hinweis vom Trainer",
+    "photos": "Fotos"
   },
   "recipeDetail": {
     "recipe": "Rezept",
@@ -615,7 +616,8 @@
     "description": "Beschreibung",
     "prepTime": "{{minutes}} Min.",
     "loading": "Rezept wird geladen...",
-    "error": "Rezeptdetails konnten nicht geladen werden"
+    "error": "Rezeptdetails konnten nicht geladen werden",
+    "photos": "Fotos"
   },
   "weeklyCheckIn": {
     "title": "Wöchentliche Check-ins",
@@ -848,5 +850,10 @@
     "editBadgeHint": "Öffnet die Kamera oder Galerie, um Ihr Profilbild zu aktualisieren",
     "uploadSuccess": "Profilbild aktualisiert",
     "uploadError": "Profilbild konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut."
+  },
+  "imageLightbox": {
+    "close": "Schließen",
+    "previous": "Vorherige",
+    "next": "Nächste"
   }
 }

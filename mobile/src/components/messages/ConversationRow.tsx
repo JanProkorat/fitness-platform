@@ -71,7 +71,7 @@ export const ConversationRow = React.memo(function ConversationRow({
     >
       {/* Avatar */}
       <View style={[styles.avatarWrap, { opacity: isArchived ? 0.6 : 1 }]}>
-        <Avatar name={participant?.name ?? ''} size="md" />
+        <Avatar name={participant?.name ?? ''} imageUrl={participant?.avatarBlobUrl} size="md" />
         {!isArchived && participant?.online && (
           <View style={[styles.onlineDot, { borderColor: colors.bg2, backgroundColor: colors.green }]} />
         )}

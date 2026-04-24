@@ -51,7 +51,11 @@ public class GetCollaborationsEndpoint(IApplicationDbContext db) : EndpointWitho
                 ProfessionalName = l.ProfessionalProfile.User.FirstName + " " + l.ProfessionalProfile.User.LastName,
                 ProfessionalCity = l.ProfessionalProfile.City,
                 Role = l.ProfessionalRole.ToString(),
-                Since = l.DateCreated
+                Since = l.DateCreated,
+                // Same fallback as SearchProfessionals / GetPublicProfile:
+                // surface the personal user avatar when the pro-profile one
+                // hasn't been set (most trainers upload only one photo today).
+                AvatarBlobUrl = l.ProfessionalProfile.AvatarBlobUrl ?? l.ProfessionalProfile.User.AvatarBlobUrl
             })
             .OrderBy(l => l.Role)
             .ToListAsync(ct);
@@ -73,4 +77,10 @@ public class CollaborationDto
     public string? ProfessionalCity { get; set; }
     public string Role { get; set; } = string.Empty;
     public DateTime Since { get; set; }
+    /// <summary>
+    /// Professional's avatar URL. Falls back to the underlying user's
+    /// personal avatar when the professional-profile-specific one isn't set.
+    /// Null when neither is uploaded.
+    /// </summary>
+    public string? AvatarBlobUrl { get; set; }
 }

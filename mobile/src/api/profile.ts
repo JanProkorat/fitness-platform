@@ -9,7 +9,7 @@ import type {
 } from './generated';
 
 // Re-export generated types so consumer imports (`from '@/api/profile'`) still work.
-export type { UpdateProfileRequest, CollaborationDto };
+export type { UpdateProfileRequest, CollaborationDto } from './generated';
 
 /** @deprecated Legacy alias — prefer `GetComplianceScoreResponse` from generated. */
 export type ComplianceScoreResponse = GetComplianceScoreResponse;

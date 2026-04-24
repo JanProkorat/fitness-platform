@@ -9,11 +9,14 @@ import {
   ActivityIndicator,
   Image,
   Animated,
+  useColorScheme,
+  useWindowDimensions,
   type NativeSyntheticEvent,
   type NativeScrollEvent,
   type LayoutChangeEvent,
 } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter, useLocalSearchParams, useSegments } from 'expo-router'
 import { hrefParams } from '@/lib/navigation'
 import { Ionicons } from '@expo/vector-icons'
@@ -23,6 +26,7 @@ import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
 import type { MealRecipe, RecipeDetail, MealFood } from '@/api/nutrition'
 import { getRecipeDetail } from '@/api/nutrition'
+import { ImageLightbox } from '@/components/ui/ImageLightbox'
 
 // ─── Macro Grid Item ────────────────────────────────────────────────────────
 
@@ -58,6 +62,9 @@ function MacroGridItem({
 export default function RecipeDetailScreen() {
   const { t } = useTranslation()
   const router = useRouter()
+  const { width: windowWidth } = useWindowDimensions()
+  // 3-column grid inside section (marginHorizontal 20) + photosGrid (padding 10) with gap 6
+  const TILE_SIZE = Math.floor((windowWidth - 40 - 20 - 6 * 2) / 3)
   const segments = useSegments()
   // Match MealCard's row logic: pick the nearest stack that contains the
   // target detail route so push uses the right slide animation.
@@ -68,6 +75,9 @@ export default function RecipeDetailScreen() {
       ? '/(client)/nutrition'
       : '/(client)'
   const colors = useTheme()
+  const scheme = useColorScheme()
+  const isDark = scheme === 'dark'
+  const insets = useSafeAreaInsets()
   const params = useLocalSearchParams<{ recipe: string; mealName: string; backLabel?: string }>()
 
   const mealRecipe: MealRecipe | null = params.recipe ? JSON.parse(params.recipe) : null
@@ -77,10 +87,16 @@ export default function RecipeDetailScreen() {
   const [detail, setDetail] = useState<RecipeDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const [lightbox, setLightbox] = useState<{ visible: boolean; startIndex: number }>({
+    visible: false,
+    startIndex: 0,
+  })
 
   // Track hero name visibility for header title
   const heroNameBottom = useRef(0)
   const headerTitleOpacity = useRef(new Animated.Value(0)).current
+  // Drives header background: 0 = fully transparent (over hero), 1 = opaque (past hero)
+  const headerBgProgress = useRef(new Animated.Value(0)).current
   const isHeaderVisible = useRef(false)
 
   const onHeroNameLayout = (e: LayoutChangeEvent) => {
@@ -98,6 +114,9 @@ export default function RecipeDetailScreen() {
         useNativeDriver: true,
       }).start()
     }
+    // Header bg fades in over the first 80 px of scroll (covers top portion of hero).
+    // useNativeDriver:false required for backgroundColor interpolation.
+    headerBgProgress.setValue(Math.min(scrollY / 80, 1))
   }
 
   useEffect(() => {
@@ -121,11 +140,11 @@ export default function RecipeDetailScreen() {
 
   if (!mealRecipe) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]}>
+      <View style={[styles.container, { backgroundColor: colors.bg }]}>
         <View style={styles.centered}>
           <Text style={{ color: colors.label2 }}>No recipe data</Text>
         </View>
-      </SafeAreaView>
+      </View>
     )
   }
 
@@ -143,13 +162,40 @@ export default function RecipeDetailScreen() {
 
   const totalGrams = (n.protein ?? 0) + (n.carbs ?? 0) + (n.fat ?? 0) + (n.fiber ?? 0) || 1
 
+  // When there's no hero image the header is always opaque — start at 1.
+  // When there is an image it fades in from transparent as user scrolls.
+  const hasImage = Boolean(detail?.imageUrl)
+  const headerBgColor = hasImage
+    ? headerBgProgress.interpolate({
+        inputRange: [0, 1],
+        outputRange: ['rgba(0,0,0,0)', colors.bg],
+      })
+    : colors.bg
+
+  // Header height = safe-area top inset + 52 px content row
+  const HEADER_CONTENT_HEIGHT = 52
+
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={['top']}>
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: colors.sep2 }]}>
+    <View style={[styles.container, { backgroundColor: colors.bg }]}>
+      {/* Absolute floating header — overlays the hero image */}
+      <Animated.View
+        style={[
+          styles.header,
+          {
+            paddingTop: insets.top,
+            backgroundColor: headerBgColor,
+          },
+        ]}
+      >
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
-          <Ionicons name="chevron-back" size={28} color={colors.gold} />
-          <Text style={[styles.backLabel, { color: colors.gold }]}>{backLabel}</Text>
+          {/* Translucent chip behind back button for legibility over bright photos */}
+          <View style={[
+            styles.backChip,
+            { backgroundColor: isDark ? 'rgba(0,0,0,0.40)' : 'rgba(0,0,0,0.22)' },
+          ]}>
+            <Ionicons name="chevron-back" size={22} color={colors.gold} />
+            <Text style={[styles.backChipLabel, { color: colors.gold }]}>{backLabel}</Text>
+          </View>
         </TouchableOpacity>
         <Animated.View style={[styles.headerTitle, { opacity: headerTitleOpacity }]}>
           <View style={[styles.headerIcon, { backgroundColor: 'rgba(0,122,255,0.1)' }]}>
@@ -160,7 +206,7 @@ export default function RecipeDetailScreen() {
           </Text>
         </Animated.View>
         <View style={styles.headerSpacer} />
-      </View>
+      </Animated.View>
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -168,60 +214,126 @@ export default function RecipeDetailScreen() {
         onScroll={onScroll}
         scrollEventThrottle={16}
       >
-        {/* Recipe hero image — full-width, shown when imageUrl is available */}
-        {detail?.imageUrl ? (
-          <Image
-            source={{ uri: detail.imageUrl }}
-            style={[styles.recipeHeroImage, { backgroundColor: colors.fill2 }]}
-            resizeMode="cover"
-          />
-        ) : null}
+        {/* Hero image with overlaid title card — shown when imageUrl is available */}
+        {(() => {
+          // Build the combined image list used for both the lightbox and gallery indices
+          const allImages = [
+            detail?.imageUrl,
+            ...(detail?.galleryImageUrls ?? []),
+          ].filter((u): u is string => Boolean(u))
 
-        {/* Gallery strip — horizontal scroll, shown only when there are gallery images */}
-        {(detail?.galleryImageUrls?.length ?? 0) > 0 ? (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={[styles.galleryContent, { paddingHorizontal: 20 }]}
-            style={styles.galleryStrip}
-          >
-            {(detail!.galleryImageUrls ?? []).map((uri: string, idx: number) => (
-              <Image
-                key={idx}
-                source={{ uri }}
-                style={[styles.galleryThumb, { backgroundColor: colors.fill2 }]}
-                resizeMode="cover"
-              />
-            ))}
-          </ScrollView>
-        ) : null}
-
-        {/* Hero */}
-        <View style={styles.hero}>
-          <View style={[styles.heroIcon, { backgroundColor: 'rgba(0,122,255,0.1)' }]}>
-            <Ionicons name="book-outline" size={34} color={colors.blue} />
-          </View>
-          <Text style={[styles.heroName, { color: colors.label }]} onLayout={onHeroNameLayout}>{mealRecipe.recipeName}</Text>
-          <View style={styles.heroSub}>
-            <View style={[styles.categoryBadge, { backgroundColor: colors.fill }]}>
-              <Text style={[styles.categoryBadgeText, { color: colors.label2 }]}>
-                {t('recipeDetail.recipe')}
-              </Text>
-            </View>
-            <Text style={[styles.heroDot, { color: colors.label3 }]}>·</Text>
-            <Text style={[styles.heroMeta, { color: colors.label2 }]}>
-              {t('nutrition.serving', { count: servings })}
-            </Text>
-            {detail?.prepTimeMinutes != null && (
-              <>
-                <Text style={[styles.heroDot, { color: colors.label3 }]}>·</Text>
-                <Text style={[styles.heroMeta, { color: colors.label2 }]}>
-                  ⏱ {t('recipeDetail.prepTime', { minutes: detail.prepTimeMinutes })}
+          if (!detail?.imageUrl) {
+            // No-image fallback: centered emoji hero block.
+            // Add top padding so content clears the absolute header.
+            return (
+              <View style={[styles.hero, { paddingTop: insets.top + HEADER_CONTENT_HEIGHT + 8 }]}>
+                <View style={[styles.heroIcon, { backgroundColor: 'rgba(0,122,255,0.15)' }]}>
+                  <Ionicons name="book-outline" size={44} color={colors.blue} />
+                </View>
+                <Text
+                  style={[styles.heroName, { color: colors.label }]}
+                  onLayout={onHeroNameLayout}
+                >
+                  {mealRecipe.recipeName}
                 </Text>
-              </>
-            )}
-          </View>
-        </View>
+                <View style={styles.heroSub}>
+                  <View style={[styles.categoryBadge, { backgroundColor: colors.fill }]}>
+                    <Text style={[styles.categoryBadgeText, { color: colors.label2 }]}>
+                      {t('recipeDetail.recipe')}
+                    </Text>
+                  </View>
+                  <View style={[styles.categoryBadge, { backgroundColor: colors.fill }]}>
+                    <Text style={[styles.categoryBadgeText, { color: colors.label2 }]}>
+                      {t('nutrition.serving', { count: servings })}
+                    </Text>
+                  </View>
+                  {detail?.prepTimeMinutes != null && (
+                    <View style={[styles.categoryBadge, { backgroundColor: colors.fill }]}>
+                      <Text style={[styles.categoryBadgeText, { color: colors.label2 }]}>
+                        {t('recipeDetail.prepTime', { minutes: detail.prepTimeMinutes })}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            )
+          }
+
+          return (
+            <>
+              {/* Tappable hero image with gradient overlay + title card */}
+              <Pressable
+                onPress={() => setLightbox({ visible: true, startIndex: 0 })}
+                style={styles.recipeHeroWrapper}
+                accessibilityRole="imagebutton"
+              >
+                <Image
+                  source={{ uri: detail.imageUrl }}
+                  style={[styles.recipeHeroImage, { backgroundColor: colors.fill2 }]}
+                  resizeMode="cover"
+                />
+                {/* Dark gradient at the bottom of the hero */}
+                <LinearGradient
+                  colors={['transparent', 'rgba(0,0,0,0.65)']}
+                  style={styles.heroGradient}
+                  pointerEvents="none"
+                />
+                {/* Overlaid title card */}
+                <View style={styles.heroOverlay} pointerEvents="none">
+                  <View style={[
+                    styles.heroOverlayIcon,
+                    { backgroundColor: isDark ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.35)' },
+                  ]}>
+                    <Ionicons name="book-outline" size={44} color="white" />
+                  </View>
+                  <Text
+                    style={styles.heroOverlayName}
+                    numberOfLines={2}
+                    onLayout={onHeroNameLayout}
+                  >
+                    {mealRecipe.recipeName}
+                  </Text>
+                  <View style={styles.heroSub}>
+                    <View style={[
+                      styles.overlayBadge,
+                      { backgroundColor: isDark ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.25)' },
+                    ]}>
+                      <Text style={styles.overlayBadgeText}>
+                        {t('recipeDetail.recipe')}
+                      </Text>
+                    </View>
+                    <View style={[
+                      styles.overlayBadge,
+                      { backgroundColor: isDark ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.25)' },
+                    ]}>
+                      <Text style={styles.overlayBadgeText}>
+                        {t('nutrition.serving', { count: servings })}
+                      </Text>
+                    </View>
+                    {detail.prepTimeMinutes != null && (
+                      <View style={[
+                        styles.overlayBadge,
+                        { backgroundColor: isDark ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.25)' },
+                      ]}>
+                        <Text style={styles.overlayBadgeText}>
+                          {t('recipeDetail.prepTime', { minutes: detail.prepTimeMinutes })}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              </Pressable>
+
+              {/* Lightbox */}
+              <ImageLightbox
+                visible={lightbox.visible}
+                images={allImages}
+                startIndex={lightbox.startIndex}
+                onClose={() => setLightbox(prev => ({ ...prev, visible: false }))}
+              />
+            </>
+          )
+        })()}
 
         {/* Description */}
         {detail?.description ? (
@@ -388,9 +500,47 @@ export default function RecipeDetailScreen() {
           </View>
         )}
 
+        {/* Photos — gallery grid, rendered when hero OR gallery images exist */}
+        {(() => {
+          const allPhotos = [
+            detail?.imageUrl,
+            ...(detail?.galleryImageUrls ?? []),
+          ].filter((u): u is string => Boolean(u))
+          if (allPhotos.length === 0) return null
+          return (
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: colors.label3 }]}>
+                {t('recipeDetail.photos')}
+              </Text>
+              <View style={[styles.photosGrid, { backgroundColor: colors.bg2 }]}>
+                {allPhotos.map((uri, idx) => (
+                  <Pressable
+                    key={idx}
+                    onPress={() =>
+                      setLightbox({ visible: true, startIndex: idx })
+                    }
+                    style={({ pressed }) => [
+                      styles.photosTile,
+                      { width: TILE_SIZE, height: TILE_SIZE, backgroundColor: colors.fill2 },
+                      pressed && { opacity: 0.75 },
+                    ]}
+                    accessibilityRole="imagebutton"
+                  >
+                    <Image
+                      source={{ uri }}
+                      style={styles.photosTileImage}
+                      resizeMode="cover"
+                    />
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          )
+        })()}
+
         <View style={{ height: 32 }} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   )
 }
 
@@ -400,16 +550,30 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
-  // Header
+  // Header — absolutely positioned, floats over the hero image
   header: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  backBtn: { flexDirection: 'row', alignItems: 'center', flexShrink: 0 },
-  backLabel: { ...Type.body, marginLeft: -2 },
+  // Back button wraps its own chip — backBtn is just for hitSlop grouping
+  backBtn: { flexShrink: 0 },
+  // Translucent rounded chip behind the back button text/icon
+  backChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: Radius.full,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    gap: 2,
+  },
+  backChipLabel: { ...Type.body, fontWeight: '600' },
   headerTitle: {
     flex: 1,
     flexDirection: 'row',
@@ -431,26 +595,82 @@ const styles = StyleSheet.create({
 
   scrollContent: { paddingBottom: 20 },
 
-  // Recipe hero image (full-width, shown when imageUrl is non-null)
+  // Hero wrapper — full-bleed container for the image + gradient + overlay.
+  // No margins/radius: extends edge-to-edge from the very top of the scroll content
+  // so the absolute header floats over the top portion of the photo.
+  recipeHeroWrapper: {
+    height: 220,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+
+  // Recipe hero image (fills the wrapper absolutely)
   recipeHeroImage: {
-    width: '100%' as unknown as number,
-    height: 180,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
 
-  // Gallery strip (horizontal scroll below hero image)
-  galleryStrip: {
-    marginTop: 8,
+  // Dark gradient that sits on top of the image at the bottom half
+  heroGradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 130,
   },
-  galleryContent: {
+
+  // Overlaid title card at the bottom of the hero image
+  heroOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 14,
+    paddingBottom: 12,
+    paddingTop: 8,
+    gap: 5,
+    alignItems: 'center',
+  },
+  heroOverlayIcon: {
+    padding: 12,
+    borderRadius: Radius.lg,
+    alignSelf: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  heroOverlayName: {
+    ...Type.title3,
+    color: 'white',
+    fontWeight: '700',
+    lineHeight: 22,
+    textAlign: 'center',
+  },
+
+  // Photos grid (title lives above as a sectionTitle, same pattern as Ingredients/Steps)
+  photosGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 6,
+    borderRadius: Radius.sm,
+    overflow: 'hidden',
+    padding: 10,
   },
-  galleryThumb: {
-    width: 72,
-    height: 72,
-    borderRadius: Radius.md,
+  photosTile: {
+    borderRadius: Radius.sm,
+    overflow: 'hidden',
+  },
+  photosTileImage: {
+    width: '100%' as unknown as number,
+    height: '100%' as unknown as number,
   },
 
-  // Hero
+  // Hero (no-image fallback)
   hero: {
     alignItems: 'center',
     paddingVertical: 20,
@@ -458,9 +678,9 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   heroIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 22,
+    padding: 12,
+    borderRadius: Radius.lg,
+    alignSelf: 'center',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -472,8 +692,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'center',
   },
-  heroDot: { ...Type.footnote },
-  heroMeta: { ...Type.footnote },
   categoryBadge: {
     paddingHorizontal: 10,
     paddingVertical: 3,
@@ -481,6 +699,13 @@ const styles = StyleSheet.create({
   },
   categoryBadgeText: { ...Type.caption1, fontWeight: '600' },
 
+  // Overlay chips / text — white translucent on photo
+  overlayBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: Radius.full,
+  },
+  overlayBadgeText: { ...Type.caption1, fontWeight: '600', color: 'white' },
   // Macros Card
   macrosCard: {
     marginHorizontal: 20,
@@ -588,6 +813,7 @@ const styles = StyleSheet.create({
   // Description card (below hero, above macros)
   descriptionCard: {
     marginHorizontal: 20,
+    marginTop: 16,
     marginBottom: 16,
     borderRadius: Radius.sm,
     padding: 16,

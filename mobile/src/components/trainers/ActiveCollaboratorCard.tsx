@@ -51,7 +51,7 @@ export function ActiveCollaboratorCard({
       {/* Header row */}
       <View style={styles.header}>
         <View style={{ flexShrink: 0 }}>
-          <Avatar name={collaborator.name} size="md" />
+          <Avatar name={collaborator.name} size="md" imageUrl={collaborator.avatarImageUrl} />
         </View>
         <View style={styles.info}>
           <Text style={[styles.name, { color: colors.label }]}>{collaborator.name}</Text>

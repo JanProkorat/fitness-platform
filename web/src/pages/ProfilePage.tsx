@@ -75,6 +75,13 @@ export default function ProfilePage() {
     try {
       await confirmUserAvatar(blobUrl);
       setAvatarSrc(blobUrl);
+      // Push the new avatar into the auth store so surfaces that read it
+      // (Sidebar user card, etc.) update live without waiting for a full
+      // page refresh / restoreSession cycle.
+      const current = useAuthStore.getState().user;
+      if (current) {
+        useAuthStore.getState().setUser({ ...current, avatarBlobUrl: blobUrl });
+      }
       addToast(t('avatar.uploadSuccess'), 'success');
     } catch {
       addToast(t('avatar.uploadError'), 'error');

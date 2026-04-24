@@ -12844,6 +12844,10 @@ export interface ParticipantDto {
     name?: string;
     initials?: string;
     online?: boolean;
+    /** Avatar URL for the participant. For professionals, prefers the professional-profile
+avatar; falls back to the user-level avatar. For clients, uses the user-level avatar.
+Null when neither has been uploaded. */
+    avatarBlobUrl?: string | undefined;
 }
 
 export interface StartConversationRequest {
@@ -14099,6 +14103,10 @@ export interface CollaborationDto {
     professionalCity?: string | undefined;
     role?: string;
     since?: string;
+    /** Professional's avatar URL. Falls back to the underlying user's
+personal avatar when the professional-profile-specific one isn't set.
+Null when neither is uploaded. */
+    avatarBlobUrl?: string | undefined;
 }
 
 /** Request model for email verification. */

@@ -15,6 +15,7 @@ import { NotificationBell } from '@/components/layout/NotificationBell';
 import { NewClientDialog } from '@/components/NewClientDialog';
 import { ClientRequestDialog, PendingInviteDialog } from '@/components/layout/SidebarDialogs';
 import { useToastStore } from '@/stores/toast';
+import { ImageLightbox } from '@/components/ui';
 
 interface SidebarProps {
   onToggleDark?: () => void;
@@ -36,6 +37,10 @@ export function Sidebar({ onToggleDark }: SidebarProps) {
     : '??';
 
   const roleName = user?.roles.map((r) => t(`auth.role${r}`)).join(' & ');
+
+  const [avatarLightboxOpen, setAvatarLightboxOpen] = useState(false);
+  const [avatarFailed, setAvatarFailed] = useState(false);
+  const avatarUrl = !avatarFailed && user?.avatarBlobUrl ? user.avatarBlobUrl : null;
 
   // Fetch clients
   const { data: clientsData } = useQuery({
@@ -386,7 +391,32 @@ export function Sidebar({ onToggleDark }: SidebarProps) {
 
       {/* User card */}
       <div className="sb-user" style={{ borderTop: '1px solid var(--border)' }}>
-        <div className="sb-avatar">{userInitials}</div>
+        <button
+          type="button"
+          onClick={() => avatarUrl && setAvatarLightboxOpen(true)}
+          disabled={!avatarUrl}
+          title={avatarUrl ? t('imageLightbox.open') : undefined}
+          aria-label={avatarUrl ? t('imageLightbox.open') : undefined}
+          className="sb-avatar"
+          style={{
+            border: 'none',
+            padding: 0,
+            cursor: avatarUrl ? 'pointer' : 'default',
+            overflow: 'hidden',
+          }}
+        >
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt=""
+              aria-hidden="true"
+              onError={() => setAvatarFailed(true)}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          ) : (
+            userInitials
+          )}
+        </button>
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {user?.firstName} {user?.lastName}
@@ -433,6 +463,14 @@ export function Sidebar({ onToggleDark }: SidebarProps) {
           {t('auth.logout')}
         </button>
       </div>
+
+      {/* Avatar lightbox */}
+      <ImageLightbox
+        images={avatarUrl ? [avatarUrl] : []}
+        open={avatarLightboxOpen}
+        onClose={() => setAvatarLightboxOpen(false)}
+        altPrefix={user ? `${user.firstName} ${user.lastName}` : undefined}
+      />
 
       {/* New client dialog */}
       <NewClientDialog open={newClientOpen} onClose={() => setNewClientOpen(false)} />
