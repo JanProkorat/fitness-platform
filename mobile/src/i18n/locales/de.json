@@ -829,6 +829,23 @@
     "Traps": "Trapezmuskel",
     "FullBody": "Ganzkörper"
   },
+  "mealLogPhoto": {
+    "title": "Als gegessen markieren",
+    "close": "Schließen",
+    "headerSubtitle": "als gegessen markieren",
+    "photoSectionLabel": "Foto hinzufügen (optional)",
+    "photoPickerHint": "Tippen: Galerie · gedrückt halten: Kamera",
+    "photoPickerReplaceHint": "Tippen zum Ersetzen · X zum Entfernen",
+    "noteSectionLabel": "Notiz (optional)",
+    "notePlaceholder": "Z.B. Es war super, ich habe nur mehr Gemüse hinzugefügt…",
+    "noteCounter": "{{current}} / {{max}}",
+    "infoStrip": "Foto und Notiz werden in deinem Plan gespeichert und sind für {{coachName}} sichtbar.",
+    "infoStripNoCoach": "Foto und Notiz werden in deinem Plan gespeichert.",
+    "markAsEaten": "Als gegessen markieren",
+    "cancel": "Abbrechen",
+    "submitting": "Wird gespeichert…",
+    "successToast": "Mahlzeit als gegessen markiert"
+  },
   "avatar": {
     "editBadgeLabel": "Profilbild ändern",
     "editBadgeHint": "Öffnet die Kamera oder Galerie, um Ihr Profilbild zu aktualisieren",

@@ -114,8 +114,37 @@ export async function getTodayLog(): Promise<GetTodayLogResponse> {
   return data;
 }
 
-export async function logMealEaten(mealId: string): Promise<void> {
-  await api.post(`/client/nutrition/log/meals/${mealId}/eaten`);
+export interface LogMealEatenOptions {
+  photoBlobUrls?: string[];
+  note?: string;
+}
+
+export async function logMealEaten(mealId: string, opts?: LogMealEatenOptions): Promise<void> {
+  await api.post(`/client/nutrition/log/meals/${mealId}/eaten`, opts ?? {});
+}
+
+export interface GenerateMealPhotoUploadUrlRequest {
+  contentType: string;
+  sizeBytes: number;
+}
+
+export interface GenerateMealPhotoUploadUrlResponse {
+  uploadUrl: string;
+  blobUrl: string;
+}
+
+/**
+ * Request a signed upload URL for a meal diary photo.
+ * Reuses the general-purpose user avatar upload infrastructure from Epic #65.
+ */
+export async function generateMealPhotoUploadUrl(
+  req: GenerateMealPhotoUploadUrlRequest,
+): Promise<GenerateMealPhotoUploadUrlResponse> {
+  const { data } = await api.post<GenerateMealPhotoUploadUrlResponse>(
+    '/users/me/avatar/upload-url',
+    req,
+  );
+  return data;
 }
 
 export async function unlogMealEaten(mealId: string): Promise<void> {

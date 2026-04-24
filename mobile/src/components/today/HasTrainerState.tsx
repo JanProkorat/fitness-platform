@@ -293,6 +293,15 @@ export function HasTrainerState() {
     return set
   }, [logQuery.data])
 
+  /** Meal IDs that are logged AND have at least one diary photo attached. */
+  const eatenMealIdsWithPhotos = useMemo(() => {
+    const set = new Set<string>()
+    logQuery.data?.mealsEaten?.forEach((m) => {
+      if (m.mealId && (m.photos?.length ?? 0) > 0) set.add(m.mealId)
+    })
+    return set
+  }, [logQuery.data])
+
   const sortedMeals = useMemo(
     () => [...(plan?.meals ?? [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
     [plan?.meals],
@@ -737,6 +746,26 @@ export function HasTrainerState() {
     markAllEatenMutation.mutate(remaining)
   }, [plan, eatenMealIds, markAllEatenMutation])
 
+  /** Navigate to the meal-log-photo modal screen for the tapped meal. */
+  const handlePhotoPress = useCallback(
+    (mealId: string) => {
+      const meal = (plan?.meals ?? []).find((m) => m.mealId === mealId)
+      if (!meal) return
+      const totalItems =
+        (meal.foods?.length ?? 0) + (meal.recipes?.length ?? 0)
+      router.push(
+        hrefParams('/(client)/meal-log-photo', {
+          mealId: meal.mealId ?? '',
+          mealName: meal.kind ?? '',
+          mealTime: meal.time ?? '',
+          mealKcal: String(Math.round(meal.mealTotals?.kcal ?? 0)),
+          mealItemsCount: String(totalItems),
+        }),
+      )
+    },
+    [plan, router],
+  )
+
   // ── Live session resume banner ──
   const liveExIdx = liveSessionStore.currentExerciseIdx
   const liveSetIdx = liveSessionStore.currentSetIdx
@@ -846,10 +875,12 @@ export function HasTrainerState() {
             targets={nutritionTargets}
             meals={sortedMeals}
             eatenMealIds={eatenMealIds}
+            eatenMealIdsWithPhotos={eatenMealIdsWithPhotos}
             eyebrow={t('today.nutritionEyebrow', { week: plan.weekNumber })}
             subline=""
             dayNote={plan.dayNote}
             onToggleEaten={handleToggleEaten}
+            onPhotoPress={handlePhotoPress}
             onMarkAllEaten={handleMarkAllEaten}
             isMarkAllLoading={markAllEatenMutation.isPending}
           />

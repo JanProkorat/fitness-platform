@@ -16,6 +16,8 @@ import { totalMealItems } from '@/lib/nutrition-plan-helpers'
 import { FoodItemRow, RecipeItemRow } from '@/components/nutrition/MealCard'
 import { NoteBanner } from '@/components/ui/NoteBanner'
 import type { PlanMeal } from '@/api/nutrition'
+import type { ColorScheme } from '@/constants/colors'
+import { goldAlpha } from '@/constants/colors'
 
 const ANIM_DURATION = 250
 const ANIM_EASING = Easing.bezier(0.25, 0.1, 0.25, 1)
@@ -37,6 +39,19 @@ interface MealRowProps {
    * check does not also toggle the accordion.
    */
   onToggleEaten?: () => void
+  /**
+   * Tap handler for the gold camera button. When provided, a 28×28 gold-tinted
+   * circular camera icon button is shown before the check button (accordion mode
+   * only). Hidden automatically when the meal is already marked as eaten.
+   *
+   * Mirrors the prototype `docs/prototypes/mobile/scenes/today.html` lines 452/473/493.
+   */
+  onPhotoPress?: () => void
+  /**
+   * When true, shows a small photo thumbnail indicator on the row to signal
+   * that at least one diary photo exists for this meal log entry.
+   */
+  hasPhotos?: boolean
 }
 
 /**
@@ -60,6 +75,8 @@ export const MealRow = React.memo(function MealRow({
   onToggle,
   onPress,
   onToggleEaten,
+  onPhotoPress,
+  hasPhotos,
 }: MealRowProps) {
   const colors = useTheme()
   const { t } = useTranslation()
@@ -183,6 +200,18 @@ export const MealRow = React.memo(function MealRow({
           </View>
         )}
 
+        {/* Gold camera button — only in accordion mode, hidden once meal is eaten */}
+        {isExpandable && onPhotoPress && !eaten && (
+          <CameraButton onPress={onPhotoPress} colors={colors} />
+        )}
+
+        {/* Photo indicator — shown on eaten rows that already have diary photos */}
+        {isExpandable && eaten && hasPhotos && (
+          <View style={[styles.photoIndicator, { backgroundColor: colors.goldBg }]}>
+            <Ionicons name="camera" size={11} color={colors.gold} />
+          </View>
+        )}
+
         {onToggleEaten && (
           <CheckButton eaten={!!eaten} onPress={onToggleEaten} />
         )}
@@ -279,6 +308,40 @@ function CheckButton({ eaten, onPress }: CheckButtonProps) {
   )
 }
 
+/**
+ * Gold-tinted circular camera button. 28×28, matching the prototype spec
+ * (docs/prototypes/mobile/scenes/today.html lines 452/473/493).
+ *
+ * Uses `goldAlpha['12']` as background and `goldAlpha['35']` as border — both
+ * come from the design-token constants, not hardcoded hex.
+ *
+ * The `colors` prop is passed in (not obtained via hook) so this component
+ * can remain a plain function without registering its own hook call, keeping
+ * MealRow's hook-call count stable.
+ */
+function CameraButton({ onPress, colors }: { onPress: () => void; colors: ColorScheme }) {
+  return (
+    <Pressable
+      onPress={(e) => {
+        e.stopPropagation?.()
+        onPress()
+      }}
+      hitSlop={8}
+      accessibilityRole="button"
+      accessibilityLabel="Add meal photo"
+      style={[
+        styles.cameraBtn,
+        {
+          backgroundColor: goldAlpha['12'],
+          borderColor: goldAlpha['35'],
+        },
+      ]}
+    >
+      <Ionicons name="camera-outline" size={15} color={colors.gold} />
+    </Pressable>
+  )
+}
+
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
@@ -348,6 +411,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 10,
+  },
+  /**
+   * Gold-tinted circular camera button (prototype lines 452/473/493).
+   * 28×28 to match the prototype spec exactly.
+   */
+  cameraBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  /** Small badge shown on eaten rows that already have diary photos */
+  photoIndicator: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
   bodyClip: {
     overflow: 'hidden',

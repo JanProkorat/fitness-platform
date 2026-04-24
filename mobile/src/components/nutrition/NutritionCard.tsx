@@ -29,6 +29,17 @@ interface NutritionCardProps {
   /** Called when the user toggles a meal eaten/uneaten from the inline check button. */
   onToggleEaten?: (mealId: string) => void
   /**
+   * Called when the user taps the gold camera button on a meal row.
+   * Receives the mealId so the caller can navigate to the meal-log-photo screen.
+   * Only shown on un-eaten meals (post-log state uses the photo indicator instead).
+   */
+  onPhotoPress?: (mealId: string) => void
+  /**
+   * Set of meal IDs that already have at least one diary photo in the log.
+   * Used to render the small photo indicator on eaten rows.
+   */
+  eatenMealIdsWithPhotos?: Set<string>
+  /**
    * Called when the user taps the "mark whole day as eaten" CTA at the bottom
    * of the card. When omitted, the CTA is hidden. When every meal is already
    * eaten, the CTA is hidden automatically.
@@ -55,6 +66,8 @@ export function NutritionCard({
   subline,
   dayNote,
   onToggleEaten,
+  onPhotoPress,
+  eatenMealIdsWithPhotos,
   onMarkAllEaten,
   isMarkAllLoading,
 }: NutritionCardProps) {
@@ -111,6 +124,10 @@ export function NutritionCard({
             onToggleEaten={
               onToggleEaten && meal.mealId ? () => onToggleEaten(meal.mealId!) : undefined
             }
+            onPhotoPress={
+              onPhotoPress && meal.mealId ? () => onPhotoPress(meal.mealId!) : undefined
+            }
+            hasPhotos={meal.mealId ? (eatenMealIdsWithPhotos?.has(meal.mealId) ?? false) : false}
           />
         ))}
       </View>

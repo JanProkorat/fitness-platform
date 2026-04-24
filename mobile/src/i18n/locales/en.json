@@ -830,6 +830,23 @@
       "PostWorkout": "Post-workout"
     }
   },
+  "mealLogPhoto": {
+    "title": "Mark as Eaten",
+    "close": "Close",
+    "headerSubtitle": "mark as eaten",
+    "photoSectionLabel": "Add a photo (optional)",
+    "photoPickerHint": "Tap: gallery · hold: camera",
+    "photoPickerReplaceHint": "Tap to replace · X to remove",
+    "noteSectionLabel": "Note (optional)",
+    "notePlaceholder": "E.g. It was great, I just added more vegetables…",
+    "noteCounter": "{{current}} / {{max}}",
+    "infoStrip": "The photo and note will be saved to your plan and are visible to {{coachName}}.",
+    "infoStripNoCoach": "The photo and note will be saved to your plan.",
+    "markAsEaten": "Mark as Eaten",
+    "cancel": "Cancel",
+    "submitting": "Saving…",
+    "successToast": "Meal marked as eaten"
+  },
   "avatar": {
     "editBadgeLabel": "Change profile photo",
     "editBadgeHint": "Opens the camera or photo library so you can update your avatar",

@@ -25,6 +25,10 @@ export default function ClientLayout() {
         name="training-session"
         options={{ animation: 'slide_from_right' }}
       />
+      <Stack.Screen
+        name="meal-log-photo"
+        options={{ animation: 'slide_from_bottom', presentation: 'modal' }}
+      />
     </Stack>
   )
 }

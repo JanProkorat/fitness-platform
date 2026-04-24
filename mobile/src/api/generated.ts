@@ -5,7 +5,6 @@
 //----------------------
 
 /* eslint-disable */
-// @ts-nocheck
 // ReSharper disable InconsistentNaming
 
 import axios, { AxiosError } from 'axios';
@@ -8339,17 +8338,21 @@ export class ApiClient {
      * @param mealId The unique identifier of the meal to log as eaten.
      * @return No Content
      */
-    logMealEatenEndpoint(mealId: string, signal?: AbortSignal): Promise<void> {
+    logMealEatenEndpoint(mealId: string, logMealEatenRequest: LogMealEatenRequest, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/client/nutrition/log/meals/{mealId}/eaten";
         if (mealId === undefined || mealId === null)
             throw new globalThis.Error("The parameter 'mealId' must be defined.");
         url_ = url_.replace("{mealId}", encodeURIComponent("" + mealId));
         url_ = url_.replace(/[?&]$/, "");
 
+        const content_ = JSON.stringify(logMealEatenRequest);
+
         let options_: AxiosRequestConfig = {
+            data: content_,
             method: "POST",
             url: url_,
             headers: {
+                "Content-Type": "application/json",
             },
             signal
         };
@@ -13562,6 +13565,12 @@ export interface UnlogMealEatenRequest {
 
 /** Request model for logging a meal as eaten. */
 export interface LogMealEatenRequest {
+    /** Optional list of MinIO blob URLs for photos attached to this meal.
+The client uploads photos via the signed-URL helper (Epic #65) and
+submits the resulting URLs here. When null or empty, no photos are stored. */
+    photoBlobUrls?: string[] | undefined;
+    /** Optional free-text note attached to this meal log entry (max 500 chars). */
+    note?: string | undefined;
 }
 
 /** Response model for the client's active nutrition plan for the current week. */
@@ -13619,6 +13628,20 @@ export interface MealLogDto {
     eatenAt?: string;
     /** Computed nutrient totals for this logged meal. */
     totals?: NutrientTotals;
+    /** Photos attached to this meal log entry.
+Empty list when the client logged without photos. */
+    photos?: MealPhotoDto[];
+    /** Optional free-text note the client attached when logging the meal.
+Null when no note was provided. */
+    note?: string | undefined;
+}
+
+/** DTO for a single photo reference on a meal log entry. */
+export interface MealPhotoDto {
+    /** The MinIO blob URL for this photo. */
+    blobUrl?: string;
+    /** UTC timestamp when the photo was uploaded. */
+    uploadedAt?: string;
 }
 
 /** Response model containing an aggregated shopping list from the nutrition plan. */
