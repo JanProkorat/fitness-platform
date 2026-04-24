@@ -42,7 +42,8 @@ interface MealRowProps {
   /**
    * Tap handler for the gold camera button. When provided, a 28×28 gold-tinted
    * circular camera icon button is shown before the check button (accordion mode
-   * only). Hidden automatically when the meal is already marked as eaten.
+   * only) — visible regardless of eaten state so clients can attach diary
+   * photos retroactively.
    *
    * Mirrors the prototype `docs/prototypes/mobile/scenes/today.html` lines 452/473/493.
    */
@@ -200,13 +201,14 @@ export const MealRow = React.memo(function MealRow({
           </View>
         )}
 
-        {/* Gold camera button — only in accordion mode, hidden once meal is eaten */}
-        {isExpandable && onPhotoPress && !eaten && (
+        {/* Gold camera button — always visible in accordion mode so clients can
+            attach diary photos both pre- and post-eaten. */}
+        {isExpandable && onPhotoPress && (
           <CameraButton onPress={onPhotoPress} colors={colors} />
         )}
 
-        {/* Photo indicator — shown on eaten rows that already have diary photos */}
-        {isExpandable && eaten && hasPhotos && (
+        {/* Photo indicator — shown on rows that already have diary photos */}
+        {isExpandable && hasPhotos && (
           <View style={[styles.photoIndicator, { backgroundColor: colors.goldBg }]}>
             <Ionicons name="camera" size={11} color={colors.gold} />
           </View>
