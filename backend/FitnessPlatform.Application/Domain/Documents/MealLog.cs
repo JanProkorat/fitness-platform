@@ -45,4 +45,38 @@ public class MealLog
     /// </summary>
     [BsonElement("foodsEaten")]
     public List<MealFood> FoodsEaten { get; set; } = [];
+
+    /// <summary>
+    /// Photos attached to this meal log entry.
+    /// Each photo is a reference to a blob URL in MinIO uploaded via the
+    /// signed-URL flow from Epic #65. Defaults to empty list on existing docs.
+    /// </summary>
+    [BsonElement("photos")]
+    public List<MealPhoto> Photos { get; set; } = [];
+
+    /// <summary>
+    /// Optional free-text note the client can attach to a meal log (max 500 chars).
+    /// Null on existing docs — backward compatible.
+    /// </summary>
+    [BsonElement("note")]
+    [BsonIgnoreIfNull]
+    public string? Note { get; set; }
+}
+
+/// <summary>
+/// A photo reference attached to a <see cref="MealLog"/> entry.
+/// </summary>
+public class MealPhoto
+{
+    /// <summary>
+    /// The MinIO blob URL for this photo, as returned by the signed-URL upload helper.
+    /// </summary>
+    [BsonElement("blobUrl")]
+    public string BlobUrl { get; set; } = string.Empty;
+
+    /// <summary>
+    /// UTC timestamp when the photo was uploaded/persisted.
+    /// </summary>
+    [BsonElement("uploadedAt")]
+    public DateTime UploadedAt { get; set; }
 }

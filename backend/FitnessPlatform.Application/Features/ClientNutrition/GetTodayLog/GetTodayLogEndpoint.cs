@@ -140,7 +140,11 @@ public class GetTodayLogEndpoint(IMongoContext mongo, IApplicationDbContext db) 
                 MealId = log.MealId,
                 MealName = planMeal?.Kind.ToString() ?? string.Empty,
                 EatenAt = log.EatenAt,
-                Totals = totals
+                Totals = totals,
+                Photos = log.Photos
+                    .Select(p => new MealPhotoDto { BlobUrl = p.BlobUrl, UploadedAt = p.UploadedAt })
+                    .ToList(),
+                Note = log.Note
             };
         }).ToList();
 

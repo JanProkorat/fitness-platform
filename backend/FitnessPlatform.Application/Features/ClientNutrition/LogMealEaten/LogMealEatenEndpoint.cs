@@ -79,13 +79,19 @@ public class LogMealEatenEndpoint(IMongoContext mongo, IApplicationDbContext db,
             return;
         }
 
+        var now = DateTime.UtcNow;
+
         var mealLog = new MealLog
         {
             ClientId = clientId,
             PlanId = plan.ExternalId,
             MealId = req.MealId,
-            EatenAt = DateTime.UtcNow,
-            FoodsEaten = meal.Foods
+            EatenAt = now,
+            FoodsEaten = meal.Foods,
+            Photos = (req.PhotoBlobUrls ?? [])
+                .Select(url => new MealPhoto { BlobUrl = url, UploadedAt = now })
+                .ToList(),
+            Note = string.IsNullOrWhiteSpace(req.Note) ? null : req.Note.Trim()
         };
 
         await mongo.MealLogs.InsertOneAsync(mealLog, cancellationToken: ct);

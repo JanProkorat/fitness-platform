@@ -48,4 +48,32 @@ public class MealLogDto
     /// Computed nutrient totals for this logged meal.
     /// </summary>
     public NutrientTotals Totals { get; set; } = new();
+
+    /// <summary>
+    /// Photos attached to this meal log entry.
+    /// Empty list when the client logged without photos.
+    /// </summary>
+    public List<MealPhotoDto> Photos { get; set; } = [];
+
+    /// <summary>
+    /// Optional free-text note the client attached when logging the meal.
+    /// Null when no note was provided.
+    /// </summary>
+    public string? Note { get; set; }
+}
+
+/// <summary>
+/// DTO for a single photo reference on a meal log entry.
+/// </summary>
+public class MealPhotoDto
+{
+    /// <summary>
+    /// The MinIO blob URL for this photo.
+    /// </summary>
+    public string BlobUrl { get; set; } = string.Empty;
+
+    /// <summary>
+    /// UTC timestamp when the photo was uploaded.
+    /// </summary>
+    public DateTime UploadedAt { get; set; }
 }
