@@ -84,6 +84,7 @@ export default function MealLogPhotoScreen() {
 
   // ── Kind config for the accent dot ──
   const kindConfig = getMealKindConfig(meal?.kind)
+  // Dark-mode detection: matches the dark bg token value from constants/colors.ts
   const isDark = colors.bg === '#1c1c1e'
   const dotColor = kindConfig.accent
 
