@@ -287,13 +287,16 @@ export function HasTrainerState() {
     return nextWeek
   }, [fullPlanQuery.data])
 
+  /** Meal IDs that have been confirmed as eaten (eatenAt is non-null). */
   const eatenMealIds = useMemo(() => {
     const set = new Set<string>()
-    logQuery.data?.mealsEaten?.forEach((m) => { if (m.mealId) set.add(m.mealId) })
+    logQuery.data?.mealsEaten?.forEach((m) => {
+      if (m.mealId && m.eatenAt != null) set.add(m.mealId)
+    })
     return set
   }, [logQuery.data])
 
-  /** Meal IDs that are logged AND have at least one diary photo attached. */
+  /** Meal IDs that have at least one diary photo attached (regardless of eaten state). */
   const eatenMealIdsWithPhotos = useMemo(() => {
     const set = new Set<string>()
     logQuery.data?.mealsEaten?.forEach((m) => {

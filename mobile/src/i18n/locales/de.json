@@ -830,9 +830,6 @@
     "FullBody": "Ganzkörper"
   },
   "mealLogPhoto": {
-    "title": "Als gegessen markieren",
-    "close": "Schließen",
-    "headerSubtitle": "als gegessen markieren",
     "photoSectionLabel": "Foto hinzufügen (optional)",
     "photoPickerHint": "Tippen: Galerie · gedrückt halten: Kamera",
     "photoPickerReplaceHint": "Tippen zum Ersetzen · X zum Entfernen",
@@ -841,10 +838,8 @@
     "noteCounter": "{{current}} / {{max}}",
     "infoStrip": "Foto und Notiz werden in deinem Plan gespeichert und sind für {{coachName}} sichtbar.",
     "infoStripNoCoach": "Foto und Notiz werden in deinem Plan gespeichert.",
-    "markAsEaten": "Als gegessen markieren",
-    "cancel": "Abbrechen",
-    "submitting": "Wird gespeichert…",
-    "successToast": "Mahlzeit als gegessen markiert"
+    "savePhoto": "Foto speichern",
+    "successToast": "Foto gespeichert"
   },
   "avatar": {
     "editBadgeLabel": "Profilbild ändern",

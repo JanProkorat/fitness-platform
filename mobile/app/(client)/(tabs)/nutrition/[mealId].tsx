@@ -38,7 +38,7 @@ export default function MealDetailScreen() {
   );
 
   const isEaten = useMemo(
-    () => (log?.mealsEaten ?? []).some((m) => m.mealId === mealId) ?? false,
+    () => (log?.mealsEaten ?? []).some((m) => m.mealId === mealId && m.eatenAt != null) ?? false,
     [log, mealId],
   );
 

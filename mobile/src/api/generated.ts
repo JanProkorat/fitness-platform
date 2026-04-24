@@ -8784,6 +8784,78 @@ export class ApiClient {
     }
 
     /**
+     * Attach photos / note to a meal diary entry
+     * @param mealId The unique identifier of the meal to attach photos/note to.
+    Sourced from the route segment {mealId}.
+     * @return No Content
+     */
+    attachMealPhotosEndpoint(mealId: string, attachMealPhotosRequest: AttachMealPhotosRequest, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/client/nutrition/log/meals/{mealId}/photos";
+        if (mealId === undefined || mealId === null)
+            throw new globalThis.Error("The parameter 'mealId' must be defined.");
+        url_ = url_.replace("{mealId}", encodeURIComponent("" + mealId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(attachMealPhotosRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processAttachMealPhotosEndpoint(_response);
+        });
+    }
+
+    protected processAttachMealPhotosEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Get measurement statistics
      * @return Success
      */
@@ -13624,8 +13696,9 @@ export interface MealLogDto {
     mealId?: string;
     /** Display name of the meal (resolved from the plan). */
     mealName?: string;
-    /** When the meal was eaten. */
-    eatenAt?: string;
+    /** When the meal was eaten. Null for photo/note-only log entries that have not
+been confirmed as eaten via the quick-log button. */
+    eatenAt?: string | undefined;
     /** Computed nutrient totals for this logged meal. */
     totals?: NutrientTotals;
     /** Photos attached to this meal log entry.
@@ -13709,6 +13782,20 @@ export interface FullPlanWeek {
     weekEndDate?: string;
     /** Days in this week. */
     days?: PlanDay[];
+}
+
+/** Request model for attaching photos and/or a note to a meal diary entry. Neither field is required — callers may supply one or both. */
+export interface AttachMealPhotosRequest {
+    /** Optional list of MinIO blob URLs for photos to append to the meal log.
+The client uploads photos via the signed-URL helper and submits the
+resulting URLs here. Duplicate URLs are accepted — no deduplication is
+performed. When null or empty, no photos are added. */
+    photoBlobUrls?: string[] | undefined;
+    /** Optional free-text note to attach to the meal log entry (max 500 chars).
+When non-null the stored note is replaced with the trimmed value.
+When null the existing note is left unchanged (pass null to skip updates,
+not to clear — clearing is out of scope). */
+    note?: string | undefined;
 }
 
 /** Aggregated statistics for a client's body weight measurements. */

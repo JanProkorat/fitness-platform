@@ -4,13 +4,13 @@
  * Prototype reference: docs/prototypes/mobile/scenes/meal-log-photo.html
  *
  * Layout:
- *   1. Modal header: Close | meal-name · "mark as eaten" | spacer
+ *   1. Minimal modal header (safe-area padding only — no close button, no subtitle)
  *   2. Meal header card: dot · name · time · kcal · item-count
  *   3. Ingredient list (compact rows, foods + recipes)
  *   4. Photo picker drop zone (dashed border, tap: gallery, long-press: camera)
  *   5. Note textarea (500-char counter)
  *   6. Info strip: visible-to-coach message
- *   7. Action bar (pinned): primary CTA + cancel
+ *   7. Action bar (pinned): primary CTA only (full-width), dismiss via swipe-down
  */
 
 import React, { useCallback, useMemo, useState } from 'react'
@@ -36,13 +36,11 @@ import { useImagePicker } from '@/hooks/useImagePicker'
 import { useAuthStore } from '@/stores/auth'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
-import { goldAlpha } from '@/constants/colors'
 import { getMealKindConfig } from '@/constants/mealKinds'
 import {
-  logMealEaten,
+  attachMealPhotos,
   generateMealPhotoUploadUrl,
   type TodayPlanResponse,
-  type TodayLogResponse,
 } from '@/api/nutrition'
 import { Toast } from '@/lib/toast'
 
@@ -109,81 +107,30 @@ export default function MealLogPhotoScreen() {
     setUploadedBlobUrl(null)
   }, [])
 
-  // ── Mutation ──
-  const logMutation = useMutation({
+  // ── Attach-photos mutation (photo-only, does NOT change eaten state) ──
+  const attachMutation = useMutation({
     mutationFn: () =>
-      logMealEaten(mealId, {
+      attachMealPhotos(mealId, {
         photoBlobUrls: uploadedBlobUrl ? [uploadedBlobUrl] : undefined,
         note: note.trim() || undefined,
       }),
-    onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: ['today-log'] })
-      const previous = queryClient.getQueryData<TodayLogResponse>(['today-log'])
-
-      if (previous && meal) {
-        const totals = {
-          kcal: meal.mealTotals?.kcal ?? 0,
-          protein: meal.mealTotals?.protein ?? 0,
-          carbs: meal.mealTotals?.carbs ?? 0,
-          fat: meal.mealTotals?.fat ?? 0,
-          fiber: meal.mealTotals?.fiber ?? 0,
-        }
-        const newEntry = {
-          mealId,
-          mealName: meal.kind ?? '',
-          eatenAt: new Date().toISOString(),
-          totals,
-          photos: uploadedBlobUrl
-            ? [{ blobUrl: uploadedBlobUrl, uploadedAt: new Date().toISOString() }]
-            : [],
-          note: note.trim() || undefined,
-        }
-        const prevMealsEaten = previous.mealsEaten ?? []
-        const prevConsumed = {
-          kcal: previous.totalConsumed?.kcal ?? 0,
-          protein: previous.totalConsumed?.protein ?? 0,
-          carbs: previous.totalConsumed?.carbs ?? 0,
-          fat: previous.totalConsumed?.fat ?? 0,
-          fiber: previous.totalConsumed?.fiber ?? 0,
-        }
-        queryClient.setQueryData<TodayLogResponse>(['today-log'], {
-          ...previous,
-          mealsEaten: [...prevMealsEaten, newEntry],
-          totalConsumed: {
-            kcal: prevConsumed.kcal + totals.kcal,
-            protein: prevConsumed.protein + totals.protein,
-            carbs: prevConsumed.carbs + totals.carbs,
-            fat: prevConsumed.fat + totals.fat,
-            fiber: prevConsumed.fiber + totals.fiber,
-          },
-        })
-      }
-
-      return { previous }
-    },
-    onError: (_err, _vars, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(['today-log'], context.previous)
-      }
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['today-plan'] })
-      queryClient.invalidateQueries({ queryKey: ['today-log'] })
-      queryClient.invalidateQueries({ queryKey: ['compliance-score'] })
-    },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['today-log'] })
+      queryClient.invalidateQueries({ queryKey: ['today-plan'] })
       Toast.show(t('mealLogPhoto.successToast'))
       router.back()
     },
   })
 
-  const handleSubmit = useCallback(() => {
-    if (logMutation.isPending || imageUploading) return
-    logMutation.mutate()
-  }, [logMutation, imageUploading])
-
-  const isSubmitting = logMutation.isPending
+  // CTA disabled when: no photo uploaded AND note is empty/whitespace
+  const hasContent = Boolean(uploadedBlobUrl) || note.trim().length > 0
+  const isSubmitting = attachMutation.isPending
   const isLoading = isSubmitting || imageUploading
+
+  const handleSubmit = useCallback(() => {
+    if (isLoading || !hasContent) return
+    attachMutation.mutate()
+  }, [attachMutation, isLoading, hasContent])
 
   // ── Meta line for the meal header card ──
   const metaParts: string[] = []
@@ -213,34 +160,8 @@ export default function MealLogPhotoScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={0}
       >
-        {/* ── Modal header ── */}
-        <View style={[styles.header, { borderBottomColor: colors.sep2 }]}>
-          <Pressable
-            onPress={() => router.back()}
-            hitSlop={12}
-            style={styles.closeBtn}
-          >
-            <Text style={[styles.closeText, { color: colors.label2 }]}>
-              {t('mealLogPhoto.close')}
-            </Text>
-          </Pressable>
-
-          <View style={styles.headerCenter}>
-            <Text
-              style={[styles.headerTitle, { color: colors.label }]}
-              numberOfLines={1}
-            >
-              {meal?.kind ? t(`nutrition.mealKind.${meal.kind}`) : mealName}
-              {' · '}
-              <Text style={{ color: colors.label2, fontWeight: '400' }}>
-                {t('mealLogPhoto.headerSubtitle')}
-              </Text>
-            </Text>
-          </View>
-
-          {/* Spacer matching closeBtn width to keep title centered */}
-          <View style={styles.closeBtn} />
-        </View>
+        {/* ── Minimal header (safe-area spacing only — no close button, no subtitle) ── */}
+        <View style={[styles.header, { borderBottomColor: colors.sep2 }]} />
 
         <ScrollView
           style={styles.flex}
@@ -475,7 +396,7 @@ export default function MealLogPhotoScreen() {
           <View style={{ height: 8 }} />
         </ScrollView>
 
-        {/* ── Action bar ── */}
+        {/* ── Action bar (single full-width primary CTA) ── */}
         <View
           style={[
             styles.actionBar,
@@ -487,13 +408,13 @@ export default function MealLogPhotoScreen() {
         >
           <Pressable
             onPress={handleSubmit}
-            disabled={isLoading}
+            disabled={isLoading || !hasContent}
             accessibilityRole="button"
             style={({ pressed }) => [
               styles.primaryBtn,
               {
                 backgroundColor: colors.gold,
-                opacity: pressed || isLoading ? 0.75 : 1,
+                opacity: pressed || isLoading || !hasContent ? 0.5 : 1,
               },
             ]}
           >
@@ -501,26 +422,9 @@ export default function MealLogPhotoScreen() {
               <ActivityIndicator size="small" color={colors.onAccent} />
             ) : (
               <Text style={[styles.primaryBtnText, { color: colors.onAccent }]}>
-                {t('mealLogPhoto.markAsEaten')}
+                {t('mealLogPhoto.savePhoto')}
               </Text>
             )}
-          </Pressable>
-
-          <Pressable
-            onPress={() => router.back()}
-            accessibilityRole="button"
-            style={({ pressed }) => [
-              styles.cancelBtn,
-              {
-                backgroundColor: colors.bg2,
-                borderColor: colors.sep2,
-                opacity: pressed ? 0.7 : 1,
-              },
-            ]}
-          >
-            <Text style={[styles.cancelBtnText, { color: colors.label }]}>
-              {t('mealLogPhoto.cancel')}
-            </Text>
           </Pressable>
         </View>
       </KeyboardAvoidingView>
@@ -535,18 +439,10 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   scrollContent: { paddingBottom: 24 },
 
-  // Header
+  // Header — minimal, just provides the hairline separator below safe-area top
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  closeBtn: { width: 56 },
-  closeText: { ...Type.subheadline, fontWeight: '600' },
-  headerCenter: { flex: 1, alignItems: 'center', paddingHorizontal: 4 },
-  headerTitle: { ...Type.subheadline, fontWeight: '600' },
 
   // Meal header card
   mealCard: {
@@ -676,29 +572,17 @@ const styles = StyleSheet.create({
   },
   infoText: { ...Type.footnote, lineHeight: 19 },
 
-  // Action bar
+  // Action bar — single full-width primary CTA
   actionBar: {
-    flexDirection: 'row',
-    gap: 10,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   primaryBtn: {
-    flex: 1,
     height: 50,
     borderRadius: Radius.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
   primaryBtnText: { ...Type.callout, fontWeight: '600' },
-  cancelBtn: {
-    paddingHorizontal: 18,
-    height: 50,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelBtnText: { ...Type.footnote, fontWeight: '600' },
 })

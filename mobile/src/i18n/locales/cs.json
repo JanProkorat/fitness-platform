@@ -697,9 +697,6 @@
     }
   },
   "mealLogPhoto": {
-    "title": "Označit jako snědené",
-    "close": "Zavřít",
-    "headerSubtitle": "označit jako snědené",
     "photoSectionLabel": "Přidej fotku (volitelné)",
     "photoPickerHint": "Tap: galerie · podržet: fotoaparát",
     "photoPickerReplaceHint": "Klepni pro výměnu · X pro odebrání",
@@ -708,10 +705,8 @@
     "noteCounter": "{{current}} / {{max}}",
     "infoStrip": "Fotka i poznámka se uloží do tvého plánu a jsou viditelné pro {{coachName}}.",
     "infoStripNoCoach": "Fotka i poznámka se uloží do tvého plánu.",
-    "markAsEaten": "Označit jako snědené",
-    "cancel": "Zrušit",
-    "submitting": "Ukládám…",
-    "successToast": "Jídlo označeno jako snědené"
+    "savePhoto": "Uložit fotku",
+    "successToast": "Fotka uložena"
   },
   "foodDetail": {
     "nutritionValues": "Nutriční hodnoty",

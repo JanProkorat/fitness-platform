@@ -831,9 +831,6 @@
     }
   },
   "mealLogPhoto": {
-    "title": "Mark as Eaten",
-    "close": "Close",
-    "headerSubtitle": "mark as eaten",
     "photoSectionLabel": "Add a photo (optional)",
     "photoPickerHint": "Tap: gallery · hold: camera",
     "photoPickerReplaceHint": "Tap to replace · X to remove",
@@ -842,10 +839,8 @@
     "noteCounter": "{{current}} / {{max}}",
     "infoStrip": "The photo and note will be saved to your plan and are visible to {{coachName}}.",
     "infoStripNoCoach": "The photo and note will be saved to your plan.",
-    "markAsEaten": "Mark as Eaten",
-    "cancel": "Cancel",
-    "submitting": "Saving…",
-    "successToast": "Meal marked as eaten"
+    "savePhoto": "Save photo",
+    "successToast": "Photo saved"
   },
   "avatar": {
     "editBadgeLabel": "Change profile photo",

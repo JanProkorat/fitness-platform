@@ -147,6 +147,22 @@ export async function generateMealPhotoUploadUrl(
   return data;
 }
 
+export interface AttachMealPhotosOptions {
+  photoBlobUrls?: string[];
+  note?: string;
+}
+
+/**
+ * Attaches photos and/or a note to a meal log entry WITHOUT changing eaten state.
+ * Creates the log entry if it does not exist yet.
+ */
+export async function attachMealPhotos(
+  mealId: string,
+  opts: AttachMealPhotosOptions = {},
+): Promise<void> {
+  await api.post(`/client/nutrition/log/meals/${mealId}/photos`, opts);
+}
+
 export async function unlogMealEaten(mealId: string): Promise<void> {
   await api.delete(`/client/nutrition/log/meals/${mealId}/eaten`);
 }
