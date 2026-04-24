@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Modal,
   View,
@@ -32,11 +32,13 @@ export function ImageLightbox({ visible, images, startIndex = 0, onClose }: Imag
   const insets = useSafeAreaInsets()
   const listRef = useRef<FlatList<string>>(null)
   const currentIndexRef = useRef(startIndex)
+  const [currentIndex, setCurrentIndex] = useState(startIndex)
 
   // Scroll to the starting image when the modal opens or startIndex changes
   useEffect(() => {
     if (visible && images.length > 0) {
       currentIndexRef.current = startIndex
+      setCurrentIndex(startIndex)
       // Use a minimal delay to let the FlatList mount before scrolling
       const timer = setTimeout(() => {
         listRef.current?.scrollToIndex({ index: startIndex, animated: false })
@@ -58,12 +60,14 @@ export function ImageLightbox({ visible, images, startIndex = 0, onClose }: Imag
   const goToPrev = useCallback(() => {
     const next = Math.max(0, currentIndexRef.current - 1)
     currentIndexRef.current = next
+    setCurrentIndex(next)
     listRef.current?.scrollToIndex({ index: next, animated: true })
   }, [])
 
   const goToNext = useCallback(() => {
     const next = Math.min(images.length - 1, currentIndexRef.current + 1)
     currentIndexRef.current = next
+    setCurrentIndex(next)
     listRef.current?.scrollToIndex({ index: next, animated: true })
   }, [images.length])
 
@@ -71,6 +75,7 @@ export function ImageLightbox({ visible, images, startIndex = 0, onClose }: Imag
     ({ viewableItems }: { viewableItems: Array<{ index: number | null }> }) => {
       if (viewableItems[0]?.index != null) {
         currentIndexRef.current = viewableItems[0].index
+        setCurrentIndex(viewableItems[0].index)
       }
     },
     []
@@ -166,7 +171,7 @@ export function ImageLightbox({ visible, images, startIndex = 0, onClose }: Imag
                 key={i}
                 style={[
                   styles.dot,
-                  i === currentIndexRef.current && styles.dotActive,
+                  i === currentIndex && styles.dotActive,
                 ]}
               >
                 •
