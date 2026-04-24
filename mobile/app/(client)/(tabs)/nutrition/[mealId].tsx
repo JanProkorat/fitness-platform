@@ -43,7 +43,7 @@ export default function MealDetailScreen() {
   );
 
   const markEatenMutation = useMutation({
-    mutationFn: logMealEaten,
+    mutationFn: (mealId: string) => logMealEaten(mealId),
     onMutate: async (id: string) => {
       await queryClient.cancelQueries({ queryKey: ['today-log'] });
       const previous = queryClient.getQueryData<TodayLogResponse>(['today-log']);
