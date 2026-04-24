@@ -1294,5 +1294,12 @@
     "dialogTitle": "Change profile photo",
     "uploadSuccess": "Profile photo updated",
     "uploadError": "Failed to upload photo. Please try again."
+  },
+  "imageLightbox": {
+    "dialogLabel": "Image viewer",
+    "open": "View full size",
+    "close": "Close",
+    "prev": "Previous image",
+    "next": "Next image"
   }
 }

@@ -8,6 +8,7 @@ interface User {
   lastName: string;
   roles: string[];
   emailConfirmed: boolean;
+  avatarBlobUrl?: string | null;
 }
 
 interface AuthState {
@@ -85,6 +86,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             lastName: profile.lastName,
             roles: profile.roles ?? [],
             emailConfirmed: profile.emailConfirmed ?? true,
+            avatarBlobUrl: profile.avatarBlobUrl ?? null,
           },
           isAuthenticated: true,
           isInitialized: true,

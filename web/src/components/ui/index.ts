@@ -12,3 +12,5 @@ export { ImagePicker } from './ImagePicker';
 export type { ImagePickerProps } from './ImagePicker';
 export { EditableAvatar } from './EditableAvatar';
 export type { EditableAvatarProps, AvatarSize } from './EditableAvatar';
+export { ImageLightbox } from './ImageLightbox';
+export type { ImageLightboxProps } from './ImageLightbox';
