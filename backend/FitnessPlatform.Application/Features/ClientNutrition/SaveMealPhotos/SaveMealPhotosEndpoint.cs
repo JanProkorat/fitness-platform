@@ -91,12 +91,22 @@ public class SaveMealPhotosEndpoint(IMongoContext mongo, IApplicationDbContext d
         var now = DateTime.UtcNow;
         var todayUtc = now.Date;
 
-        // Key: one log per (client, plan, meal, calendar day)
+        var tomorrowUtc = todayUtc.AddDays(1);
+
+        // Key: one log per (client, plan, meal, calendar day).
+        // Matches both the modern keying (LogDate == today) and legacy records that were
+        // created before the LogDate field existed and carry LogDate = default(DateTime)
+        // but have EatenAt within today's window. Without the OR, legacy records cause
+        // a duplicate photo-only log to be inserted alongside the existing eaten log.
         var logFilter = Builders<MealLog>.Filter.And(
             Builders<MealLog>.Filter.Eq(l => l.ClientId, clientId),
             Builders<MealLog>.Filter.Eq(l => l.PlanId, plan.ExternalId),
             Builders<MealLog>.Filter.Eq(l => l.MealId, req.MealId),
-            Builders<MealLog>.Filter.Eq(l => l.LogDate, todayUtc));
+            Builders<MealLog>.Filter.Or(
+                Builders<MealLog>.Filter.Eq(l => l.LogDate, todayUtc),
+                Builders<MealLog>.Filter.And(
+                    Builders<MealLog>.Filter.Gte(l => l.EatenAt, todayUtc),
+                    Builders<MealLog>.Filter.Lt(l => l.EatenAt, tomorrowUtc))));
 
         var existingCursor = await mongo.MealLogs.FindAsync(logFilter, cancellationToken: ct);
         var existingLog = await existingCursor.FirstOrDefaultAsync(ct);
@@ -137,11 +147,15 @@ public class SaveMealPhotosEndpoint(IMongoContext mongo, IApplicationDbContext d
         }
         else
         {
-            // Replace Photos and Note entirely; preserve EatenAt — this endpoint must never touch it
+            // Replace Photos and Note entirely; preserve EatenAt — this endpoint must never touch it.
+            // Also backfill LogDate to todayUtc so legacy records (LogDate = default) self-heal
+            // over time: once SaveMealPhotos has run, GetTodayLog will find this record via
+            // the LogDate == today branch even if EatenAt becomes null later.
             var updateFilter = Builders<MealLog>.Filter.Eq(l => l.Id, existingLog.Id);
             var update = Builders<MealLog>.Update
                 .Set(l => l.Photos, replacementPhotos)
-                .Set(l => l.Note, resolvedNote);
+                .Set(l => l.Note, resolvedNote)
+                .Set(l => l.LogDate, todayUtc);
 
             await mongo.MealLogs.UpdateOneAsync(updateFilter, update, cancellationToken: ct);
         }

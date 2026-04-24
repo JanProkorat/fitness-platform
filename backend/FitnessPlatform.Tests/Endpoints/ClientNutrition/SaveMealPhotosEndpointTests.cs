@@ -472,6 +472,70 @@ public class SaveMealPhotosEndpointTests
     }
 
     // ──────────────────────────────────────────────────────────────────────────
+    // Legacy-record (LogDate = default) split-brain regression tests
+    // ──────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task HandleAsync_LegacyRecord_DefaultLogDate_UpdatesInPlaceNoDuplicate()
+    {
+        // Regression: a pre-migration MealLog has LogDate = default(DateTime) but
+        // EatenAt = today. Previously SaveMealPhotos filtered only on LogDate == today
+        // and missed the record, inserting a second photo-only log. Verify it now finds
+        // the legacy record via the EatenAt branch and calls UpdateOneAsync — not Insert.
+        var mealId = Guid.NewGuid();
+        var food = PlanTestHelpers.CreateMealFood(foodName: "Eggs");
+        var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.Breakfast, foods: food);
+
+        var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
+        plan.DatePublished = DateTime.UtcNow;
+        plan.Weeks[0].Days[0].Meals.Add(meal);
+
+        // Legacy record: LogDate is the default (0001-01-01), EatenAt is today
+        var legacyLog = new MealLog
+        {
+            Id = ObjectId.GenerateNewId(),
+            ClientId = _clientId,
+            PlanId = plan.ExternalId,
+            MealId = mealId,
+            LogDate = default,          // pre-migration: field was not set
+            EatenAt = DateTime.UtcNow,  // legacy record carries today's EatenAt
+            FoodsEaten = meal.Foods,
+            Photos = [],
+            Note = null
+        };
+
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+        var mealLogCollection = CreateMealLogCollection(existingLogs: [legacyLog]);
+        mongo.MealLogs.Returns(mealLogCollection);
+
+        var db = CreateMockDb();
+        var ep = CreateEndpoint(mongo, db);
+
+        await ep.HandleAsync(
+            new SaveMealPhotosRequest
+            {
+                MealId = mealId,
+                PhotoBlobUrls = ["https://minio.local/bucket/legacy-photo.jpg"],
+                Note = "added after migration"
+            },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(204);
+
+        // Must update the existing record — NOT insert a duplicate
+        await mealLogCollection.Received(1).UpdateOneAsync(
+            Arg.Any<FilterDefinition<MealLog>>(),
+            Arg.Any<UpdateDefinition<MealLog>>(),
+            Arg.Any<UpdateOptions>(),
+            Arg.Any<CancellationToken>());
+
+        await mealLogCollection.DidNotReceive().InsertOneAsync(
+            Arg.Any<MealLog>(),
+            Arg.Any<InsertOneOptions>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
     // Auth / ownership guard tests
     // ──────────────────────────────────────────────────────────────────────────
 

@@ -54,11 +54,23 @@ public class GetTodayLogEndpoint(IMongoContext mongo, IApplicationDbContext db) 
         var todayUtc = DateTime.UtcNow.Date;
         var tomorrowUtc = todayUtc.AddDays(1);
 
-        // Fetch today's meal logs
+        // Fetch today's meal logs.
+        // Matches three cases uniformly:
+        //   1. Logs created via LogMealEaten after the LogDate field was added — both
+        //      LogDate == today and EatenAt is within today's window.
+        //   2. Photo-only logs created via SaveMealPhotos — LogDate == today, EatenAt null.
+        //   3. Legacy logs created before LogDate existed — LogDate = default(DateTime),
+        //      EatenAt is within today's window.
+        // MealsEaten in the response therefore includes photo-only entries that haven't
+        // been marked eaten yet, which is correct: the mobile side uses these records for
+        // both "is eaten" and "has photos" semantics.
         var logFilter = Builders<MealLog>.Filter.And(
             Builders<MealLog>.Filter.Eq(l => l.ClientId, clientId),
-            Builders<MealLog>.Filter.Gte(l => l.EatenAt, todayUtc),
-            Builders<MealLog>.Filter.Lt(l => l.EatenAt, tomorrowUtc));
+            Builders<MealLog>.Filter.Or(
+                Builders<MealLog>.Filter.Eq(l => l.LogDate, todayUtc),
+                Builders<MealLog>.Filter.And(
+                    Builders<MealLog>.Filter.Gte(l => l.EatenAt, todayUtc),
+                    Builders<MealLog>.Filter.Lt(l => l.EatenAt, tomorrowUtc))));
 
         var logCursor = await mongo.MealLogs.FindAsync(logFilter, cancellationToken: ct);
         var logs = await logCursor.ToListAsync(ct);
