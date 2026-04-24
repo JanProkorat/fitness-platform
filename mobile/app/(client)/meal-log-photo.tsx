@@ -41,9 +41,10 @@ import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
 import { getMealKindConfig } from '@/constants/mealKinds'
 import {
-  attachMealPhotos,
+  saveMealPhotos,
   generateMealPhotoUploadUrl,
   type TodayPlanResponse,
+  type TodayLogResponse,
 } from '@/api/nutrition'
 import { Toast } from '@/lib/toast'
 
@@ -89,9 +90,17 @@ export default function MealLogPhotoScreen() {
   const isDark = colors.bg === '#1c1c1e'
   const dotColor = kindConfig.accent
 
-  // ── Local state ──
-  const [note, setNote] = useState('')
-  const [uploadedBlobUrls, setUploadedBlobUrls] = useState<string[]>([])
+  // ── Pre-load existing photos + note from the today-log cache ──
+  const existingLog = useMemo(() => {
+    const logData = queryClient.getQueryData<TodayLogResponse>(['today-log'])
+    return (logData?.mealsEaten ?? []).find((m) => m.mealId === mealId) ?? null
+  }, [queryClient, mealId])
+
+  // ── Local state (seeded from cache on mount) ──
+  const [note, setNote] = useState(() => existingLog?.note ?? '')
+  const [uploadedBlobUrls, setUploadedBlobUrls] = useState<string[]>(
+    () => (existingLog?.photos ?? []).map((p) => p.blobUrl ?? '').filter(Boolean),
+  )
 
   // ── Multi-photo picker (gallery) ──
   // onUploaded is undefined; we use onUploadedMany for multi-select results.
@@ -142,12 +151,14 @@ export default function MealLogPhotoScreen() {
     setUploadedBlobUrls((prev) => prev.filter((u) => u !== url))
   }, [])
 
-  // ── Attach-photos mutation (photo-only, does NOT change eaten state) ──
-  const attachMutation = useMutation({
+  // ── Save-photos mutation — REPLACE semantics ──
+  // Sends the complete final state in one call: the backend sets Photos to
+  // exactly the submitted URLs and sets Note to the submitted value (null = clear).
+  const saveMutation = useMutation({
     mutationFn: () =>
-      attachMealPhotos(mealId, {
-        photoBlobUrls: uploadedBlobUrls.length > 0 ? uploadedBlobUrls : undefined,
-        note: note.trim() || undefined,
+      saveMealPhotos(mealId, {
+        photoBlobUrls: uploadedBlobUrls,
+        note: note.trim() || null,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['today-log'] })
@@ -157,15 +168,15 @@ export default function MealLogPhotoScreen() {
     },
   })
 
-  // CTA disabled when: no photos uploaded AND note is empty/whitespace
+  // CTA disabled when: no photos AND note is empty/whitespace
   const hasContent = uploadedBlobUrls.length > 0 || note.trim().length > 0
-  const isSubmitting = attachMutation.isPending
+  const isSubmitting = saveMutation.isPending
   const isLoading = isSubmitting || imageUploading
 
   const handleSubmit = useCallback(() => {
     if (isLoading || !hasContent) return
-    attachMutation.mutate()
-  }, [attachMutation, isLoading, hasContent])
+    saveMutation.mutate()
+  }, [saveMutation, isLoading, hasContent])
 
   // ── Meta line for the meal header card ──
   const metaParts: string[] = []

@@ -8406,6 +8406,78 @@ export class ApiClient {
     }
 
     /**
+     * Save photos / note for a meal diary entry
+     * @param mealId The unique identifier of the meal whose photos/note are being saved.
+    Sourced from the route segment {MealId}.
+     * @return No Content
+     */
+    saveMealPhotosEndpoint(mealId: string, saveMealPhotosRequest: SaveMealPhotosRequest, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/client/nutrition/log/meals/{mealId}/photos";
+        if (mealId === undefined || mealId === null)
+            throw new globalThis.Error("The parameter 'mealId' must be defined.");
+        url_ = url_.replace("{mealId}", encodeURIComponent("" + mealId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(saveMealPhotosRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSaveMealPhotosEndpoint(_response);
+        });
+    }
+
+    protected processSaveMealPhotosEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Get current week's nutrition plan
      * @return Success
      */
@@ -8858,78 +8930,6 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<GenerateMealPhotoUploadUrlResponse>(null as any);
-    }
-
-    /**
-     * Attach photos / note to a meal diary entry
-     * @param mealId The unique identifier of the meal to attach photos/note to.
-    Sourced from the route segment {mealId}.
-     * @return No Content
-     */
-    attachMealPhotosEndpoint(mealId: string, attachMealPhotosRequest: AttachMealPhotosRequest, signal?: AbortSignal): Promise<void> {
-        let url_ = this.baseUrl + "/client/nutrition/log/meals/{mealId}/photos";
-        if (mealId === undefined || mealId === null)
-            throw new globalThis.Error("The parameter 'mealId' must be defined.");
-        url_ = url_.replace("{mealId}", encodeURIComponent("" + mealId));
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(attachMealPhotosRequest);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "POST",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processAttachMealPhotosEndpoint(_response);
-        });
-    }
-
-    protected processAttachMealPhotosEndpoint(response: AxiosResponse): Promise<void> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 204) {
-            const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<void>(null as any);
     }
 
     /**
@@ -13716,6 +13716,20 @@ export interface ClientRequestDto {
 export interface UnlogMealEatenRequest {
 }
 
+/** Request model for saving the complete photo and note state of a meal diary entry. The Photos list and Note are replaced with exactly what the client sends. */
+export interface SaveMealPhotosRequest {
+    /** The complete list of MinIO blob URLs for photos to persist on the meal log.
+Replaces the existing Photos list entirely — pass an empty list to remove all
+photos. The client uploads photos via the signed-URL helper and submits the
+resulting URLs here. Existing URLs that are re-submitted keep their original
+UploadedAt timestamp; new URLs receive the current UTC time. */
+    photoBlobUrls?: string[];
+    /** Optional free-text note to persist on the meal log entry (max 500 chars).
+When non-null, the stored note is replaced with the trimmed value (whitespace-only
+strings are treated as null). When null, the existing note is cleared. */
+    note?: string | undefined;
+}
+
 /** Request model for logging a meal as eaten. */
 export interface LogMealEatenRequest {
     /** Optional list of MinIO blob URLs for photos attached to this meal.
@@ -13880,20 +13894,6 @@ export interface GenerateMealPhotoUploadUrlRequest {
     contentType: string;
     /** Declared file size in bytes. Must not exceed 10 MiB. */
     sizeBytes?: number;
-}
-
-/** Request model for attaching photos and/or a note to a meal diary entry. Neither field is required — callers may supply one or both. */
-export interface AttachMealPhotosRequest {
-    /** Optional list of MinIO blob URLs for photos to append to the meal log.
-The client uploads photos via the signed-URL helper and submits the
-resulting URLs here. Duplicate URLs are accepted — no deduplication is
-performed. When null or empty, no photos are added. */
-    photoBlobUrls?: string[] | undefined;
-    /** Optional free-text note to attach to the meal log entry (max 500 chars).
-When non-null the stored note is replaced with the trimmed value.
-When null the existing note is left unchanged (pass null to skip updates,
-not to clear — clearing is out of scope). */
-    note?: string | undefined;
 }
 
 /** Aggregated statistics for a client's body weight measurements. */

@@ -145,18 +145,21 @@ export async function generateMealPhotoUploadUrl(
   return data;
 }
 
-export interface AttachMealPhotosOptions {
+export interface SaveMealPhotosOptions {
   photoBlobUrls?: string[];
-  note?: string;
+  note?: string | null;
 }
 
 /**
- * Attaches photos and/or a note to a meal log entry WITHOUT changing eaten state.
+ * Replaces the photos list and note on a meal log entry with the provided values.
+ * The endpoint uses REPLACE semantics: the backend sets Photos to exactly the
+ * URLs in the request and sets Note to the request's value (null = clear).
+ * UploadedAt is preserved for URLs that already exist in the log.
  * Creates the log entry if it does not exist yet.
  */
-export async function attachMealPhotos(
+export async function saveMealPhotos(
   mealId: string,
-  opts: AttachMealPhotosOptions = {},
+  opts: SaveMealPhotosOptions = {},
 ): Promise<void> {
   await api.post(`/client/nutrition/log/meals/${mealId}/photos`, opts);
 }

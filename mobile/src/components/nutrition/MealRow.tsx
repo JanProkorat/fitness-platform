@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useRef } from 'react'
-import { View, Text, StyleSheet, Pressable } from 'react-native'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { View, Text, StyleSheet, Pressable, ScrollView, Image } from 'react-native'
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -15,6 +15,7 @@ import { getMealKindConfig } from '@/constants/mealKinds'
 import { totalMealItems } from '@/lib/nutrition-plan-helpers'
 import { FoodItemRow, RecipeItemRow } from '@/components/nutrition/MealCard'
 import { NoteBanner } from '@/components/ui/NoteBanner'
+import { ImageLightbox } from '@/components/ui/ImageLightbox'
 import type { PlanMeal } from '@/api/nutrition'
 import type { ColorScheme } from '@/constants/colors'
 import { goldAlpha } from '@/constants/colors'
@@ -53,6 +54,17 @@ interface MealRowProps {
    * that at least one diary photo exists for this meal log entry.
    */
   hasPhotos?: boolean
+  /**
+   * Diary photos for this meal's log entry. When present and the accordion
+   * is expanded, a horizontal thumbnail strip is rendered above the food rows.
+   * Tapping a thumb opens ImageLightbox at that index.
+   */
+  photos?: { blobUrl: string; uploadedAt?: string }[]
+  /**
+   * Diary note attached to this meal's log entry. When non-empty and the
+   * accordion is expanded, a NoteBanner is rendered below the photo strip.
+   */
+  logNote?: string | null
 }
 
 /**
@@ -78,9 +90,26 @@ export const MealRow = React.memo(function MealRow({
   onToggleEaten,
   onPhotoPress,
   hasPhotos,
+  photos,
+  logNote,
 }: MealRowProps) {
   const colors = useTheme()
   const { t } = useTranslation()
+
+  // Lightbox state for the diary photo strip
+  const [lightboxVisible, setLightboxVisible] = useState(false)
+  const [lightboxIndex, setLightboxIndex] = useState(0)
+
+  const photoUrls = (photos ?? []).map((p) => p.blobUrl)
+
+  const handleThumbPress = useCallback((idx: number) => {
+    setLightboxIndex(idx)
+    setLightboxVisible(true)
+  }, [])
+
+  const handleLightboxClose = useCallback(() => {
+    setLightboxVisible(false)
+  }, [])
 
   const kindConfig = getMealKindConfig(meal.kind)
   const isDark = colors.bg === '#1c1c1e'
@@ -238,41 +267,81 @@ export const MealRow = React.memo(function MealRow({
       </Pressable>
 
       {isExpandable && (
-        <Animated.View style={[styles.bodyClip, animatedBodyStyle]}>
-          <View
-            onLayout={handleBodyLayout}
-            style={[
-              styles.body,
-              styles.bodyAbsolute,
-              {
-                borderTopColor: colors.sep2,
-                borderBottomColor: colors.sep2,
-                borderBottomWidth: isLast ? 0 : StyleSheet.hairlineWidth,
-              },
-            ]}
-          >
-            {/* Meal note — first element in the body so it sits right under the header */}
-            {meal.note ? (
-              <NoteBanner variant="meal" label={t('nutrition.mealNoteLabel')}>
-                {meal.note}
-              </NoteBanner>
-            ) : null}
-            {(meal.foods ?? []).map((food, idx) => (
-              <FoodItemRow
-                key={`f-${food.foodExternalId}-${idx}`}
-                food={food}
-                mealName={title}
-              />
-            ))}
-            {meal.recipes?.map((recipe, idx) => (
-              <RecipeItemRow
-                key={`r-${recipe.recipeId}-${idx}`}
-                recipe={recipe}
-                mealName={title}
-              />
-            ))}
-          </View>
-        </Animated.View>
+        <>
+          <ImageLightbox
+            visible={lightboxVisible}
+            images={photoUrls}
+            startIndex={lightboxIndex}
+            onClose={handleLightboxClose}
+          />
+          <Animated.View style={[styles.bodyClip, animatedBodyStyle]}>
+            <View
+              onLayout={handleBodyLayout}
+              style={[
+                styles.body,
+                styles.bodyAbsolute,
+                {
+                  borderTopColor: colors.sep2,
+                  borderBottomColor: colors.sep2,
+                  borderBottomWidth: isLast ? 0 : StyleSheet.hairlineWidth,
+                },
+              ]}
+            >
+              {/* Diary photo strip — shown when this meal has log photos */}
+              {photoUrls.length > 0 && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.photoStrip}
+                  style={styles.photoStripScroll}
+                >
+                  {photoUrls.map((url, idx) => (
+                    <Pressable
+                      key={`photo-${idx}`}
+                      onPress={() => handleThumbPress(idx)}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('mealLogPhoto.photoThumbA11y', { index: idx + 1, total: photoUrls.length })}
+                    >
+                      <Image
+                        source={{ uri: url }}
+                        style={[styles.photoThumb, { borderRadius: Radius.sm }]}
+                        resizeMode="cover"
+                      />
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              )}
+
+              {/* Diary note banner — shown when this meal's log has a note */}
+              {logNote ? (
+                <NoteBanner variant="meal" label={t('mealLogPhoto.noteSectionLabel')}>
+                  {logNote}
+                </NoteBanner>
+              ) : null}
+
+              {/* Meal plan note — trainer's note from the plan */}
+              {meal.note ? (
+                <NoteBanner variant="meal" label={t('nutrition.mealNoteLabel')}>
+                  {meal.note}
+                </NoteBanner>
+              ) : null}
+              {(meal.foods ?? []).map((food, idx) => (
+                <FoodItemRow
+                  key={`f-${food.foodExternalId}-${idx}`}
+                  food={food}
+                  mealName={title}
+                />
+              ))}
+              {meal.recipes?.map((recipe, idx) => (
+                <RecipeItemRow
+                  key={`r-${recipe.recipeId}-${idx}`}
+                  recipe={recipe}
+                  mealName={title}
+                />
+              ))}
+            </View>
+          </Animated.View>
+        </>
       )}
     </View>
   )
@@ -451,6 +520,18 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
+  },
+  // Diary photo strip
+  photoStripScroll: {
+    marginTop: 12,
+  },
+  photoStrip: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  photoThumb: {
+    width: 64,
+    height: 64,
   },
 })
 

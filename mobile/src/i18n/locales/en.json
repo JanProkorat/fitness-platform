@@ -844,7 +844,8 @@
     "infoStripNoCoach": "Photos and note will be saved to your plan.",
     "savePhoto": "Save",
     "successToast": "Saved",
-    "addMorePhotos": "Add another photo"
+    "addMorePhotos": "Add another photo",
+    "photoThumbA11y": "Photo {{index}} of {{total}}"
   },
   "avatar": {
     "editBadgeLabel": "Change profile photo",

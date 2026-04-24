@@ -708,7 +708,8 @@
     "infoStripNoCoach": "Fotky i poznámka se uloží do tvého plánu.",
     "savePhoto": "Uložit fotky",
     "successToast": "Uloženo",
-    "addMorePhotos": "Přidat další fotku"
+    "addMorePhotos": "Přidat další fotku",
+    "photoThumbA11y": "Fotka {{index}} z {{total}}"
   },
   "foodDetail": {
     "nutritionValues": "Nutriční hodnoty",

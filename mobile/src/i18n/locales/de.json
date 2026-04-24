@@ -843,7 +843,8 @@
     "infoStripNoCoach": "Fotos und Notiz werden in deinem Plan gespeichert.",
     "savePhoto": "Speichern",
     "successToast": "Gespeichert",
-    "addMorePhotos": "Weiteres Foto hinzufügen"
+    "addMorePhotos": "Weiteres Foto hinzufügen",
+    "photoThumbA11y": "Foto {{index}} von {{total}}"
   },
   "avatar": {
     "editBadgeLabel": "Profilbild ändern",
