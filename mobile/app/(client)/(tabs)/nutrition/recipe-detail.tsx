@@ -10,6 +10,7 @@ import {
   Image,
   Animated,
   useColorScheme,
+  useWindowDimensions,
   type NativeSyntheticEvent,
   type NativeScrollEvent,
   type LayoutChangeEvent,
@@ -61,6 +62,9 @@ function MacroGridItem({
 export default function RecipeDetailScreen() {
   const { t } = useTranslation()
   const router = useRouter()
+  const { width: windowWidth } = useWindowDimensions()
+  // 3-column grid inside section (marginHorizontal 20) + photosGrid (padding 10) with gap 6
+  const TILE_SIZE = Math.floor((windowWidth - 40 - 20 - 6 * 2) / 3)
   const segments = useSegments()
   // Match MealCard's row logic: pick the nearest stack that contains the
   // target detail route so push uses the right slide animation.
@@ -503,9 +507,6 @@ export default function RecipeDetailScreen() {
             ...(detail?.galleryImageUrls ?? []),
           ].filter((u): u is string => Boolean(u))
           if (allPhotos.length === 0) return null
-          // Compute an explicit tile size: 3 columns with 6 px gaps inside 20 px horizontal margins.
-          // Using explicit width + height avoids aspectRatio resolving to 0 in flex-wrap.
-          const TILE_SIZE = Math.floor((340 - 6 * 2) / 3)
           return (
             <View style={styles.section}>
               <Text style={[styles.sectionTitle, { color: colors.label3 }]}>
