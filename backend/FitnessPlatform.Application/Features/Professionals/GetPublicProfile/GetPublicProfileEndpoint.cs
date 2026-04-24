@@ -99,7 +99,11 @@ public class GetPublicProfileEndpoint(IApplicationDbContext db, UserManager<Appl
             Roles = professionalRoles,
             HasPendingRequest = hasPendingRequest,
             IsLinked = isLinked,
-            AvatarBlobUrl = profile.AvatarBlobUrl
+            // Mirror the discover-list fallback (SearchProfessionalsEndpoint):
+            // use the professional-profile avatar when set, otherwise the
+            // underlying user's personal avatar so most trainers' single
+            // uploaded photo shows up across all public surfaces.
+            AvatarBlobUrl = profile.AvatarBlobUrl ?? profile.User.AvatarBlobUrl
         }, ct);
     }
 

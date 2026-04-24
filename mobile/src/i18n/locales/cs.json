@@ -709,7 +709,8 @@
     "per100g": "Na 100 g",
     "commonServings": "Běžné porce",
     "asPlanned": "Dle plánu ({{grams}} g)",
-    "trainerNote": "Poznámka trenéra"
+    "trainerNote": "Poznámka trenéra",
+    "photos": "Fotky"
   },
   "recipeDetail": {
     "recipe": "Recept",
@@ -720,7 +721,8 @@
     "description": "Popis",
     "prepTime": "{{minutes}} min",
     "loading": "Načítám recept...",
-    "error": "Nepodařilo se načíst detail receptu"
+    "error": "Nepodařilo se načíst detail receptu",
+    "photos": "Fotky"
   },
   "training": {
     "title": "Trénink",
@@ -843,5 +845,10 @@
     "editBadgeHint": "Otevře fotoaparát nebo galerii pro aktualizaci avataru",
     "uploadSuccess": "Profilová fotka aktualizována",
     "uploadError": "Profilovou fotku se nepodařilo aktualizovat. Zkuste to znovu."
+  },
+  "imageLightbox": {
+    "close": "Zavřít",
+    "previous": "Předchozí",
+    "next": "Další"
   }
 }

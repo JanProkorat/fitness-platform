@@ -39,6 +39,9 @@ public class StartConversationEndpoint(IApplicationDbContext db) : Endpoint<Star
         Guid professionalUserId;
         Guid clientUserId;
         ApplicationUser otherUser;
+        // For professionals the avatar falls back from profile-level to user-level;
+        // for clients only the user-level avatar exists (ClientProfile has no AvatarBlobUrl).
+        string? participantAvatarBlobUrl;
 
         if (isProfessional)
         {
@@ -53,6 +56,8 @@ public class StartConversationEndpoint(IApplicationDbContext db) : Endpoint<Star
             professionalUserId = userGuid;
             clientUserId = client.UserId;
             otherUser = client.User;
+            // ClientProfile has no dedicated AvatarBlobUrl; use the user-level avatar.
+            participantAvatarBlobUrl = client.User.AvatarBlobUrl;
         }
         else
         {
@@ -67,6 +72,8 @@ public class StartConversationEndpoint(IApplicationDbContext db) : Endpoint<Star
             professionalUserId = prof.UserId;
             clientUserId = userGuid;
             otherUser = prof.User;
+            // Prefer the professional-profile avatar; fall back to the user-level avatar.
+            participantAvatarBlobUrl = prof.AvatarBlobUrl ?? prof.User.AvatarBlobUrl;
         }
 
         // Check if conversation already exists
@@ -86,6 +93,7 @@ public class StartConversationEndpoint(IApplicationDbContext db) : Endpoint<Star
                     Name = otherUser.FirstName + " " + otherUser.LastName,
                     Initials = (otherUser.FirstName[..1] + otherUser.LastName[..1]).ToUpper(),
                     Online = false,
+                    AvatarBlobUrl = participantAvatarBlobUrl,
                 },
                 LastMessage = existing.LastMessageText ?? "",
                 LastMessageAt = existing.LastMessageAt ?? existing.DateCreated,
@@ -113,6 +121,7 @@ public class StartConversationEndpoint(IApplicationDbContext db) : Endpoint<Star
                 Name = otherUser.FirstName + " " + otherUser.LastName,
                 Initials = (otherUser.FirstName[..1] + otherUser.LastName[..1]).ToUpper(),
                 Online = false,
+                AvatarBlobUrl = participantAvatarBlobUrl,
             },
             LastMessage = "",
             LastMessageAt = conversation.DateCreated,

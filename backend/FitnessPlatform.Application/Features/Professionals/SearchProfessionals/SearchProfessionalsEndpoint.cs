@@ -99,7 +99,11 @@ public class SearchProfessionalsEndpoint(IApplicationDbContext db, UserManager<A
                 CollaborationType = profile.CollaborationType,
                 Languages = ParseJsonArray(profile.Languages),
                 Roles = professionalRoles,
-                AvatarBlobUrl = profile.AvatarBlobUrl
+                // Fall back to the underlying user's avatar when the
+                // professional-profile-specific one hasn't been set. Most
+                // trainers only upload one photo (their personal profile
+                // photo) — the discover page should surface it regardless.
+                AvatarBlobUrl = profile.AvatarBlobUrl ?? profile.User.AvatarBlobUrl
             });
         }
 

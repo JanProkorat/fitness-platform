@@ -148,7 +148,7 @@ export default function TrainerProfileScreen() {
       >
         {/* Hero */}
         <View style={[styles.hero, { borderBottomColor: colors.sep2 }]}>
-          <Avatar name={fullName} size="lg" />
+          <Avatar name={fullName} size="lg" imageUrl={profile.avatarBlobUrl} />
           <Text style={[styles.heroName, { color: colors.label }]}>{fullName}</Text>
           <Text style={[styles.heroRole, { color: colors.label2 }]}>{roleLabel}</Text>
           {profile.city && (
