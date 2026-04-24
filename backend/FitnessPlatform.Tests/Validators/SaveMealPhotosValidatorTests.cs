@@ -1,19 +1,20 @@
 using FluentAssertions;
 using FluentValidation.TestHelper;
-using FitnessPlatform.Application.Features.ClientNutrition.AttachMealPhotos;
+using FitnessPlatform.Application.Features.ClientNutrition.SaveMealPhotos;
 
 namespace FitnessPlatform.Tests.Validators;
 
 /// <summary>
-/// Tests for <see cref="AttachMealPhotosValidator"/>.
+/// Tests for <see cref="SaveMealPhotosValidator"/>.
 /// </summary>
-public class AttachMealPhotosValidatorTests
+public class SaveMealPhotosValidatorTests
 {
-    private readonly AttachMealPhotosValidator _validator = new();
+    private readonly SaveMealPhotosValidator _validator = new();
 
-    private static AttachMealPhotosRequest ValidRequest() => new()
+    private static SaveMealPhotosRequest ValidRequest() => new()
     {
-        MealId = Guid.NewGuid()
+        MealId = Guid.NewGuid(),
+        PhotoBlobUrls = []
     };
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -21,7 +22,7 @@ public class AttachMealPhotosValidatorTests
     // ──────────────────────────────────────────────────────────────────────────
 
     [Fact]
-    public void ValidRequest_NoOptionals_PassesValidation()
+    public void ValidRequest_EmptyPhotoList_PassesValidation()
     {
         var result = _validator.TestValidate(ValidRequest());
         result.IsValid.Should().BeTrue();
@@ -114,10 +115,10 @@ public class AttachMealPhotosValidatorTests
     }
 
     [Fact]
-    public void PhotoBlobUrls_Null_PassesValidation()
+    public void PhotoBlobUrls_EmptyList_PassesValidation()
     {
         var req = ValidRequest();
-        req.PhotoBlobUrls = null;
+        req.PhotoBlobUrls = [];
 
         var result = _validator.TestValidate(req);
         result.IsValid.Should().BeTrue();

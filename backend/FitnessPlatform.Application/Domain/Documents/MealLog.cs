@@ -37,7 +37,7 @@ public class MealLog
     /// <summary>
     /// The calendar date (UTC) this log entry belongs to — always set regardless of
     /// whether the meal has been marked as eaten. Used to key the "one log per day per
-    /// meal" invariant enforced by the AttachMealPhotos endpoint.
+    /// meal" invariant enforced by the SaveMealPhotos endpoint.
     /// </summary>
     [BsonElement("logDate")]
     public DateTime LogDate { get; set; }

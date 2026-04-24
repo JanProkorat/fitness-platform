@@ -8,17 +8,18 @@ using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
-namespace FitnessPlatform.Application.Features.ClientNutrition.AttachMealPhotos;
+namespace FitnessPlatform.Application.Features.ClientNutrition.SaveMealPhotos;
 
 /// <summary>
-/// Endpoint for attaching photos and/or a note to a meal diary entry without
-/// changing the meal's eaten state. Creates the <see cref="MealLog"/> document
-/// if one does not already exist for today.
+/// Endpoint for saving the complete photo and note state of a meal diary entry without
+/// changing the meal's eaten state. The Photos list and Note are replaced with exactly
+/// what the client sends. Creates the <see cref="MealLog"/> document if one does not
+/// already exist for today.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
-public class AttachMealPhotosEndpoint(IMongoContext mongo, IApplicationDbContext db)
-    : Endpoint<AttachMealPhotosRequest>
+public class SaveMealPhotosEndpoint(IMongoContext mongo, IApplicationDbContext db)
+    : Endpoint<SaveMealPhotosRequest>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -27,16 +28,19 @@ public class AttachMealPhotosEndpoint(IMongoContext mongo, IApplicationDbContext
         Roles(AppRoles.Client);
         Summary(s =>
         {
-            s.Summary = "Attach photos / note to a meal diary entry";
+            s.Summary = "Save photos / note for a meal diary entry";
             s.Description =
-                "Appends photos and/or sets a note on the meal log for today without " +
-                "changing the meal's eaten state. Creates the log entry if it does not " +
-                "exist yet. Idempotent with respect to EatenAt.";
+                "Replaces the Photos list and Note on the meal log with exactly what the " +
+                "client sends. Existing photo URLs that are re-submitted keep their original " +
+                "UploadedAt timestamp; new URLs receive the current UTC time. Pass an empty " +
+                "PhotoBlobUrls list to remove all photos; pass null for Note to clear it. " +
+                "Never changes the meal's EatenAt state. Creates the log entry if it does " +
+                "not exist yet.";
         });
     }
 
     /// <inheritdoc />
-    public override async Task HandleAsync(AttachMealPhotosRequest req, CancellationToken ct)
+    public override async Task HandleAsync(SaveMealPhotosRequest req, CancellationToken ct)
     {
         var userId = User.FindFirstValue(AppClaims.UserId);
 
@@ -87,11 +91,6 @@ public class AttachMealPhotosEndpoint(IMongoContext mongo, IApplicationDbContext
         var now = DateTime.UtcNow;
         var todayUtc = now.Date;
 
-        // Build new MealPhoto entries from the request
-        var newPhotos = (req.PhotoBlobUrls ?? [])
-            .Select(url => new MealPhoto { BlobUrl = url, UploadedAt = now })
-            .ToList();
-
         // Key: one log per (client, plan, meal, calendar day)
         var logFilter = Builders<MealLog>.Filter.And(
             Builders<MealLog>.Filter.Eq(l => l.ClientId, clientId),
@@ -101,6 +100,23 @@ public class AttachMealPhotosEndpoint(IMongoContext mongo, IApplicationDbContext
 
         var existingCursor = await mongo.MealLogs.FindAsync(logFilter, cancellationToken: ct);
         var existingLog = await existingCursor.FirstOrDefaultAsync(ct);
+
+        // Build the replacement photo list, preserving UploadedAt for unchanged URLs
+        var existingByUrl = (existingLog?.Photos ?? [])
+            .ToDictionary(p => p.BlobUrl, p => p.UploadedAt);
+
+        var replacementPhotos = req.PhotoBlobUrls
+            .Select(url => new MealPhoto
+            {
+                BlobUrl = url,
+                UploadedAt = existingByUrl.TryGetValue(url, out var ts) ? ts : now
+            })
+            .ToList();
+
+        // Normalise the note: null clears, whitespace-only becomes null
+        var resolvedNote = req.Note is null
+            ? null
+            : (string.IsNullOrWhiteSpace(req.Note) ? null : req.Note.Trim());
 
         if (existingLog is null)
         {
@@ -113,28 +129,19 @@ public class AttachMealPhotosEndpoint(IMongoContext mongo, IApplicationDbContext
                 LogDate = todayUtc,
                 EatenAt = null,
                 FoodsEaten = meal.Foods,
-                Photos = newPhotos,
-                Note = req.Note is null ? null : (string.IsNullOrWhiteSpace(req.Note) ? null : req.Note.Trim())
+                Photos = replacementPhotos,
+                Note = resolvedNote
             };
 
             await mongo.MealLogs.InsertOneAsync(newLog, cancellationToken: ct);
         }
         else
         {
-            // Append new photos (no dedup — mirrors how photo galleries work)
-            existingLog.Photos.AddRange(newPhotos);
-
-            // Update note only when the caller supplied one
-            if (req.Note is not null)
-            {
-                existingLog.Note = string.IsNullOrWhiteSpace(req.Note) ? null : req.Note.Trim();
-            }
-
-            // Preserve EatenAt — this endpoint must never touch it
+            // Replace Photos and Note entirely; preserve EatenAt — this endpoint must never touch it
             var updateFilter = Builders<MealLog>.Filter.Eq(l => l.Id, existingLog.Id);
             var update = Builders<MealLog>.Update
-                .Set(l => l.Photos, existingLog.Photos)
-                .Set(l => l.Note, existingLog.Note);
+                .Set(l => l.Photos, replacementPhotos)
+                .Set(l => l.Note, resolvedNote);
 
             await mongo.MealLogs.UpdateOneAsync(updateFilter, update, cancellationToken: ct);
         }
