@@ -2,21 +2,14 @@ import api from './client';
 import type {
   UpdateProfileRequest,
   GetComplianceScoreResponse,
-  CollaborationDto as GeneratedCollaborationDto,
+  CollaborationDto,
   GenerateAvatarUploadUrlRequest,
   GenerateAvatarUploadUrlResponse,
   ConfirmAvatarRequest,
 } from './generated';
 
-// Extend the generated CollaborationDto with fields the backend added after
-// the last regen. Remove the intersection once regen-api runs and the
-// generated type picks `avatarBlobUrl` up on its own.
-export type CollaborationDto = GeneratedCollaborationDto & {
-  avatarBlobUrl?: string | null;
-};
-
 // Re-export generated types so consumer imports (`from '@/api/profile'`) still work.
-export type { UpdateProfileRequest };
+export type { UpdateProfileRequest, CollaborationDto } from './generated';
 
 /** @deprecated Legacy alias — prefer `GetComplianceScoreResponse` from generated. */
 export type ComplianceScoreResponse = GetComplianceScoreResponse;

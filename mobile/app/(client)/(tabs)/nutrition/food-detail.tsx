@@ -9,6 +9,7 @@ import {
   Image,
   Animated,
   useColorScheme,
+  useWindowDimensions,
   type NativeSyntheticEvent,
   type NativeScrollEvent,
   type LayoutChangeEvent,
@@ -101,6 +102,9 @@ function InfoRow({
 export default function FoodDetailScreen() {
   const { t } = useTranslation()
   const router = useRouter()
+  const { width: windowWidth } = useWindowDimensions()
+  // 3-column grid inside section (marginHorizontal 20) + photosGrid (padding 10) with gap 6
+  const TILE_SIZE = Math.floor((windowWidth - 40 - 20 - 6 * 2) / 3)
   const colors = useTheme()
   const scheme = useColorScheme()
   const isDark = scheme === 'dark'
@@ -392,9 +396,6 @@ export default function FoodDetailScreen() {
 
         {/* Photos — single tile grid, shown only when imageUrl is available */}
         {freshFood?.imageUrl ? (() => {
-          // 3-column layout: window width 340 approximation - 20px margins each side - 6px gaps between tiles
-          // Formula mirrors recipe-detail: (340 - 6 * 2) / 3
-          const TILE_SIZE = Math.floor((340 - 6 * 2) / 3)
           return (
             <View style={styles.section}>
               <Text style={[styles.sectionTitle, { color: colors.label3 }]}>
