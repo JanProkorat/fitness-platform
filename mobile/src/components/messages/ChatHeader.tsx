@@ -25,7 +25,7 @@ export function ChatHeader({ participant, onBack, onInfoPress }: ChatHeaderProps
 
         {/* Center: Avatar + name + status — stacked vertically */}
         <View style={styles.center}>
-          <Avatar name={participant.name ?? ''} size="sm" />
+          <Avatar name={participant.name ?? ''} imageUrl={participant.avatarBlobUrl} size="sm" />
           <Text style={[styles.name, { color: colors.label }]} numberOfLines={1}>
             {participant.name ?? ''}
           </Text>

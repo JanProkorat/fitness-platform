@@ -718,7 +718,8 @@
     "per100g": "Per 100 g",
     "commonServings": "Common Servings",
     "asPlanned": "As planned ({{grams}} g)",
-    "trainerNote": "Trainer's Note"
+    "trainerNote": "Trainer's Note",
+    "photos": "Photos"
   },
   "recipeDetail": {
     "recipe": "Recipe",
@@ -729,7 +730,8 @@
     "description": "Description",
     "prepTime": "{{minutes}} min",
     "loading": "Loading recipe...",
-    "error": "Could not load recipe detail"
+    "error": "Could not load recipe detail",
+    "photos": "Photos"
   },
   "weeklyCheckIn": {
     "title": "Weekly check-ins",
@@ -835,5 +837,10 @@
     "editBadgeHint": "Opens the camera or photo library so you can update your avatar",
     "uploadSuccess": "Profile photo updated",
     "uploadError": "Could not update profile photo. Please try again."
+  },
+  "imageLightbox": {
+    "close": "Close",
+    "previous": "Previous",
+    "next": "Next"
   }
 }

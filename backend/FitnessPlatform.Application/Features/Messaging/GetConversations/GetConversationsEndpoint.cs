@@ -48,6 +48,8 @@ public class GetConversationsEndpoint(IApplicationDbContext db, PresenceTracker 
                         Name = c.Client.FirstName + " " + c.Client.LastName,
                         Initials = (c.Client.FirstName.Substring(0, 1) + c.Client.LastName.Substring(0, 1)).ToUpper(),
                         Online = false, // populated below
+                        // ClientProfile has no dedicated AvatarBlobUrl; use the user-level avatar.
+                        AvatarBlobUrl = c.Client.AvatarBlobUrl,
                     }
                     : new ParticipantDto
                     {
@@ -55,6 +57,10 @@ public class GetConversationsEndpoint(IApplicationDbContext db, PresenceTracker 
                         Name = c.Professional.FirstName + " " + c.Professional.LastName,
                         Initials = (c.Professional.FirstName.Substring(0, 1) + c.Professional.LastName.Substring(0, 1)).ToUpper(),
                         Online = false, // populated below
+                        // Prefer the professional-profile avatar; fall back to the user-level avatar.
+                        AvatarBlobUrl = c.Professional.ProfessionalProfile != null
+                            ? c.Professional.ProfessionalProfile.AvatarBlobUrl ?? c.Professional.AvatarBlobUrl
+                            : c.Professional.AvatarBlobUrl,
                     },
                 LastMessage = c.LastMessageText ?? "",
                 LastMessageAt = c.LastMessageAt ?? c.DateCreated,
@@ -95,4 +101,10 @@ public class ParticipantDto
     public string Name { get; set; } = string.Empty;
     public string Initials { get; set; } = string.Empty;
     public bool Online { get; set; }
+    /// <summary>
+    /// Avatar URL for the participant. For professionals, prefers the professional-profile
+    /// avatar; falls back to the user-level avatar. For clients, uses the user-level avatar.
+    /// Null when neither has been uploaded.
+    /// </summary>
+    public string? AvatarBlobUrl { get; set; }
 }

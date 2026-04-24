@@ -1049,6 +1049,7 @@ As a result:
 
 ---
 
+<<<<<<< Updated upstream
 ## 2026-04-15 — Visibility toggle in web food/recipe editors
 
 ### Scope
@@ -1097,6 +1098,8 @@ changes; purely a web UI + hand-written type change.
 
 ---
 
+=======
+>>>>>>> Stashed changes
 ## 2026-04-15 — Recipe visibility (Public / Private) (backend)
 
 ### Scope
