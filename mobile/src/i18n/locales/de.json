@@ -688,6 +688,7 @@
     "tip": "Tipp:",
     "dayNoteLabel": "Tagesnotiz:",
     "mealNoteLabel": "Mahlzeitennotiz:",
+    "todayPhotos": "Heutige Fotos",
     "recipe": "Rezept",
     "serving_one": "{{count}}× Portion",
     "serving_other": "{{count}}× Portionen",

@@ -803,6 +803,7 @@
     "tip": "Tip:",
     "dayNoteLabel": "Day note:",
     "mealNoteLabel": "Meal note:",
+    "todayPhotos": "Today's photos",
     "recipe": "Recipe",
     "serving_one": "{{count}}× serving",
     "serving_other": "{{count}}× servings",

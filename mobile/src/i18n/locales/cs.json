@@ -667,6 +667,7 @@
     "tip": "Pozn:",
     "dayNoteLabel": "Pozn k dni:",
     "mealNoteLabel": "Pozn k jídlu:",
+    "todayPhotos": "Fotky dne",
     "recipe": "Recept",
     "serving_one": "{{count}}× porce",
     "serving_other": "{{count}}× porce",
