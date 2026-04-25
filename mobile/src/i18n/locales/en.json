@@ -872,6 +872,7 @@
     "categoryFree": "Free",
     "totalCount": "{{count}} photos total",
     "empty": "No photos",
-    "addPhotoA11y": "Add photo to plan"
+    "addPhotoA11y": "Add photo to plan",
+    "openA11y": "Open plan photos"
   }
 }

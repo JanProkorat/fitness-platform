@@ -880,6 +880,7 @@
     "categoryFree": "Volné",
     "totalCount": "{{count}} fotek celkem",
     "empty": "Žádné fotky",
-    "addPhotoA11y": "Přidat fotku do plánu"
+    "addPhotoA11y": "Přidat fotku do plánu",
+    "openA11y": "Otevřít fotky plánu"
   }
 }

@@ -21,6 +21,7 @@ import Animated, {
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router'
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
 import { useTranslation } from 'react-i18next'
@@ -174,6 +175,7 @@ function NutritionPlanDetail({ plan }: { plan: FullPlanResponse }) {
   const scrollRef = useRef<ScrollView>(null)
   const queryClient = useQueryClient()
   const router = useRouter()
+  const tabBarHeight = useBottomTabBarHeight()
 
   // ── State ──
   const [selectedWeek, setSelectedWeek] = useState<number | null>(null)
@@ -716,6 +718,19 @@ function NutritionPlanDetail({ plan }: { plan: FullPlanResponse }) {
           )}
         </ScrollView>
       </BottomSheet>
+
+      {/* ── Plan photos FAB (nutrition only) ── */}
+      <Pressable
+        onPress={() => router.push('/(client)/plan-photos')}
+        accessibilityRole="button"
+        accessibilityLabel={t('planPhotos.openA11y')}
+        style={[
+          styles.planPhotosFab,
+          { backgroundColor: colors.gold, bottom: 20 + tabBarHeight },
+        ]}
+      >
+        <Ionicons name="camera" size={22} color="#000" />
+      </Pressable>
     </View>
   )
 }
@@ -1602,6 +1617,22 @@ const styles = StyleSheet.create({
   // Section spacing
   section: {
     marginTop: 16,
+  },
+
+  // Plan photos FAB
+  planPhotosFab: {
+    position: 'absolute',
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
   },
 
   // Questionnaire sheet

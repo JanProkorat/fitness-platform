@@ -871,6 +871,7 @@
     "categoryFree": "Frei",
     "totalCount": "{{count}} Fotos insgesamt",
     "empty": "Keine Fotos",
-    "addPhotoA11y": "Foto zum Plan hinzufügen"
+    "addPhotoA11y": "Foto zum Plan hinzufügen",
+    "openA11y": "Planfotos öffnen"
   }
 }
