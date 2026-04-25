@@ -184,6 +184,17 @@ function NutritionPlanDetail({ plan }: { plan: FullPlanResponse }) {
   const [sheetOpen, setSheetOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
 
+  /**
+   * Close the menu sheet and run `action` after the close animation completes.
+   * Running `action` on the same frame as `setMenuOpen(false)` leaves the Modal
+   * mounted mid-animation; its backdrop blocks the next sheet from opening or
+   * the next Pressable from registering. 250 ms matches the sheet's close timing.
+   */
+  const selectMenuItem = useCallback((action: () => void) => {
+    setMenuOpen(false)
+    setTimeout(action, 250)
+  }, [])
+
   const effectiveWeek = selectedWeek ?? plan.currentWeek ?? 1
   const effectiveDay = selectedDay ?? plan.currentDayOfWeek ?? 1
 
@@ -720,10 +731,9 @@ function NutritionPlanDetail({ plan }: { plan: FullPlanResponse }) {
         <View style={styles.menuList}>
           <Pressable
             style={styles.menuRow}
-            onPress={() => {
-              setMenuOpen(false)
+            onPress={() => selectMenuItem(() =>
               router.push(hrefParams('/(client)/plans/shopping', { week: String(effectiveWeek) }))
-            }}
+            )}
           >
             <Ionicons name="cart-outline" size={22} color={colors.label} />
             <Text style={[Type.body, { color: colors.label }]}>{t('nutrition.shoppingList')}</Text>
@@ -733,10 +743,7 @@ function NutritionPlanDetail({ plan }: { plan: FullPlanResponse }) {
             <>
               <Pressable
                 style={styles.menuRow}
-                onPress={() => {
-                  setMenuOpen(false)
-                  setSheetOpen(true)
-                }}
+                onPress={() => selectMenuItem(() => setSheetOpen(true))}
               >
                 <Ionicons name="clipboard-outline" size={22} color={colors.label} />
                 <Text style={[Type.body, { color: colors.label }]}>{t('planDetail.linkedQuestionnaire')}</Text>
@@ -746,10 +753,7 @@ function NutritionPlanDetail({ plan }: { plan: FullPlanResponse }) {
           )}
           <Pressable
             style={styles.menuRow}
-            onPress={() => {
-              setMenuOpen(false)
-              router.push('/(client)/plan-photos')
-            }}
+            onPress={() => selectMenuItem(() => router.push('/(client)/plan-photos'))}
           >
             <Ionicons name="images-outline" size={22} color={colors.label} />
             <Text style={[Type.body, { color: colors.label }]}>{t('planPhotos.title')}</Text>
