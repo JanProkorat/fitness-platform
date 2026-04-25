@@ -242,7 +242,7 @@ export const MealRow = React.memo(function MealRow({
             accessibilityLabel={t('mealLogPhoto.openPhotosA11y')}
             style={[styles.photoIndicator, { backgroundColor: colors.goldBg }]}
           >
-            <Ionicons name="camera" size={11} color="#000" />
+            <Ionicons name="camera" size={11} color={colors.gold} />
           </Pressable>
         )}
 
