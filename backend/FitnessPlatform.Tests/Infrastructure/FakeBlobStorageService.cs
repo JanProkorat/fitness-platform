@@ -22,4 +22,18 @@ public class FakeBlobStorageService : IBlobStorageService
         var blobUrl = containerPath;
         return Task.FromResult(new BlobUploadUrl(uploadUrl, blobUrl));
     }
+
+    /// <inheritdoc />
+    public Task DeleteAsync(string containerPath, CancellationToken ct)
+    {
+        // No-op in tests — deletion is silent.
+        DeletedPaths.Add(containerPath);
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Paths passed to <see cref="DeleteAsync"/> during the test run.
+    /// Tests can assert against this list to verify blob deletion was requested.
+    /// </summary>
+    public List<string> DeletedPaths { get; } = [];
 }

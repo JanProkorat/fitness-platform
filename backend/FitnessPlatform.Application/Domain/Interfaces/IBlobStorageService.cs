@@ -14,6 +14,14 @@ public interface IBlobStorageService
     /// <param name="ct">Cancellation token.</param>
     /// <returns>A <see cref="BlobUploadUrl"/> containing the upload URL and the final blob URL.</returns>
     Task<BlobUploadUrl> GenerateUploadUrlAsync(string containerPath, string contentType, TimeSpan expiresIn, CancellationToken ct);
+
+    /// <summary>
+    /// Deletes a blob from storage by its full container path (e.g. "plan-photos/{planId}/{guid}.jpg").
+    /// No-ops silently if the object does not exist.
+    /// </summary>
+    /// <param name="containerPath">The container/bucket path including the object key.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task DeleteAsync(string containerPath, CancellationToken ct);
 }
 
 /// <summary>

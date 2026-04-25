@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -14,6 +15,13 @@ namespace FitnessPlatform.Application.Features.ClientNutrition.SaveDayPhotos;
 /// Endpoint for saving the complete photo and note state of a day diary entry with replace semantics.
 /// Upserts the <see cref="DayLog"/> keyed by <c>(ClientId, PlanId, LogDate=todayUtc)</c>.
 /// Creates the document if it does not already exist for today.
+///
+/// <para>
+/// <b>Dual-write:</b> each photo in the replacement list is also mirrored into the
+/// <see cref="PlanPhoto"/> table (category mapped from <see cref="DayPhotoCategory"/>)
+/// so that unified plan-photo read paths see day diary photos too. Photos removed from the
+/// list are also removed from <see cref="PlanPhoto"/> by BlobUrl, matching the REPLACE semantics.
+/// </para>
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
@@ -154,6 +162,83 @@ public class SaveDayPhotosEndpoint(IMongoContext mongo, IApplicationDbContext db
             await mongo.DayLogs.UpdateOneAsync(updateFilter, update, cancellationToken: ct);
         }
 
+        // Dual-write: sync photos into PlanPhoto table with REPLACE semantics.
+        await DualWritePlanPhotosAsync(
+            clientProfile,
+            plan.ExternalId,
+            req.Photos,
+            replacementPhotos,
+            now,
+            ct);
+
         await Send.NoContentAsync(ct);
     }
+
+    /// <summary>
+    /// Syncs the PlanPhoto table to match the replacement photo list for the given plan.
+    /// <list type="bullet">
+    ///   <item>Inserts new PlanPhoto rows for blob URLs not yet in the table.</item>
+    ///   <item>Deletes PlanPhoto rows whose blob URLs are no longer in the replacement list
+    ///   (REPLACE semantics, matching SaveDayPhotos behaviour).</item>
+    /// </list>
+    /// Rows are matched by BlobUrl so the operation is idempotent.
+    /// </summary>
+    private async Task DualWritePlanPhotosAsync(
+        ClientProfile clientProfile,
+        Guid planExternalId,
+        IReadOnlyList<DayPhotoInput> inputs,
+        IReadOnlyList<DayPhoto> replacementPhotos,
+        DateTime now,
+        CancellationToken ct)
+    {
+        // Load all existing PlanPhoto rows for this client + plan that originated from
+        // day-log writes (non-Food categories only — Food photos come from SaveMealPhotos).
+        var existing = await db.PlanPhotos
+            .Where(p =>
+                p.ClientProfileId == clientProfile.Id &&
+                p.PlanId == planExternalId &&
+                p.Category != PlanPhotoCategory.Food)
+            .ToListAsync(ct);
+
+        var existingByUrl = existing.ToDictionary(p => p.BlobUrl, StringComparer.OrdinalIgnoreCase);
+        var newUrlSet = replacementPhotos.Select(p => p.BlobUrl).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        // Remove rows for blob URLs no longer in the replacement list
+        foreach (var toRemove in existing.Where(p => !newUrlSet.Contains(p.BlobUrl)))
+            db.PlanPhotos.Remove(toRemove);
+
+        // Add new rows for blob URLs not yet tracked
+        var callerUserId = clientProfile.UserId;
+
+        foreach (var input in inputs)
+        {
+            if (existingByUrl.ContainsKey(input.BlobUrl))
+                continue;
+
+            db.PlanPhotos.Add(new PlanPhoto
+            {
+                PublicId = Guid.NewGuid(),
+                ClientProfileId = clientProfile.Id,
+                PlanId = planExternalId,
+                PlanType = PlanPhotoType.Nutrition,
+                LinkId = planExternalId,
+                Category = MapCategory(input.Category),
+                BlobUrl = input.BlobUrl,
+                TakenAt = now,
+                UploadedByUserId = callerUserId,
+                DateCreated = now,
+                DateUpdated = now
+            });
+        }
+
+        await db.SaveChangesAsync(ct);
+    }
+
+    private static PlanPhotoCategory MapCategory(DayPhotoCategory category) => category switch
+    {
+        DayPhotoCategory.Food     => PlanPhotoCategory.Food,
+        DayPhotoCategory.Progress => PlanPhotoCategory.Body,
+        DayPhotoCategory.Free     => PlanPhotoCategory.FreeForm,
+        _                         => PlanPhotoCategory.FreeForm,
+    };
 }
