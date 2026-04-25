@@ -32,6 +32,7 @@ import { MacroBar } from '@/components/ui/MacroBar'
 import { MealCard } from '@/components/nutrition/MealCard'
 import {
   getFullPlan,
+  getTodayLog,
   type FullPlanResponse,
 } from '@/api/nutrition'
 import {
@@ -250,6 +251,26 @@ function NutritionPlanDetail({ plan }: { plan: FullPlanResponse }) {
         zero,
       )
   }, [currentDayObj, eatenMealIds])
+
+  // Today's diary log — used to display meal photos on the current day's cards
+  const { data: todayLog } = useQuery({
+    queryKey: ['today-log'],
+    queryFn: getTodayLog,
+    staleTime: 60_000,
+  })
+
+  // Build a mealId → photos map. Photos only exist for today's meals; for other
+  // days the map will simply have no matching entries and MealCard gets photos=[].
+  const mealPhotosByMealId = useMemo(() => {
+    const map: Record<string, { blobUrl: string; note?: string | null }[]> = {}
+    for (const entry of todayLog?.mealsEaten ?? []) {
+      if (!entry.mealId || !entry.photos?.length) continue
+      map[entry.mealId] = entry.photos
+        .filter((p) => !!p.blobUrl)
+        .map((p) => ({ blobUrl: p.blobUrl as string, note: p.note ?? null }))
+    }
+    return map
+  }, [todayLog])
 
   const publishedWeekCount = plan.publishedWeekCount ?? (plan.weeks ?? []).length ?? 0
 
@@ -636,6 +657,7 @@ function NutritionPlanDetail({ plan }: { plan: FullPlanResponse }) {
                   expanded={expandedMealIds.has(meal.mealId ?? '')}
                   onToggle={() => handleToggleMeal(meal.mealId ?? '')}
                   eaten={eatenMealIds.has(meal.mealId ?? '')}
+                  photos={mealPhotosByMealId[meal.mealId ?? ''] ?? []}
                 />
               ))
             )}
