@@ -290,7 +290,7 @@ export default function NutritionScreen() {
           onPress={handlePrevWeek}
           disabled={!hasPrevWeek}
         >
-          <Text style={[styles.weekArrowText, !hasPrevWeek && styles.weekArrowTextDisabled, { color: !hasPrevWeek ? colors.label3 : colors.label }]}>
+          <Text style={[styles.weekArrowText, !hasPrevWeek && styles.weekArrowTextDisabled, { color: !hasPrevWeek ? colors.label3 : colors.gold }]}>
             ‹
           </Text>
         </TouchableOpacity>
@@ -311,7 +311,7 @@ export default function NutritionScreen() {
           onPress={handleNextWeek}
           disabled={!hasNextWeek}
         >
-          <Text style={[styles.weekArrowText, !hasNextWeek && styles.weekArrowTextDisabled, { color: !hasNextWeek ? colors.label3 : colors.label }]}>
+          <Text style={[styles.weekArrowText, !hasNextWeek && styles.weekArrowTextDisabled, { color: !hasNextWeek ? colors.label3 : colors.gold }]}>
             ›
           </Text>
         </TouchableOpacity>
