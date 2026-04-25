@@ -169,7 +169,7 @@ export function ImageLightbox({
         {/* Meal-level note — upper third, closer to the letterboxed image top edge */}
         {trimmedMealNote ? (
           <View
-            style={[styles.noteOverlayTop, { top: height * 0.18 }]}
+            style={[styles.noteOverlayTop, { top: height * 0.08 }]}
             pointerEvents="none"
           >
             <Text style={styles.noteOverlayText} numberOfLines={4}>
@@ -181,7 +181,7 @@ export function ImageLightbox({
         {/* Per-image note — lower third, closer to the letterboxed image bottom edge */}
         {currentImageNote ? (
           <View
-            style={[styles.noteOverlayBottom, { bottom: height * 0.18 }]}
+            style={[styles.noteOverlayBottom, { bottom: height * 0.08 }]}
             pointerEvents="none"
           >
             <Text style={styles.noteOverlayText} numberOfLines={4}>
@@ -300,6 +300,7 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 14,
     lineHeight: 20,
+    textAlign: 'center',
     textShadowColor: 'rgba(0,0,0,0.6)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
