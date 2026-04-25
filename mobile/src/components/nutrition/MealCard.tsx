@@ -17,6 +17,7 @@ import { getFoodCategoryColor, RECIPE_CHIP_COLOR } from '@/constants/foodCategor
 import { NoteBanner } from '@/components/ui/NoteBanner'
 import { ImageLightbox } from '@/components/ui/ImageLightbox'
 import type { MealFood, MealRecipe, PlanMeal } from '@/api/nutrition'
+import { goldAlpha } from '@/constants/colors'
 import i18n from '@/i18n'
 import {
   computeFoodKcal,
@@ -40,9 +41,12 @@ interface MealCardProps {
   eaten?: boolean
   /** Today's diary photos for this meal (rendered as a strip below the totals row). */
   photos?: MealPhoto[]
+  /** When provided, renders a gold camera chip in the header that opens the
+   *  meal-log-photo modal so the client can upload diary photos. */
+  onPhotoPress?: () => void
 }
 
-function MealCard({ meal, expanded, onToggle, eaten, photos = [] }: MealCardProps) {
+function MealCard({ meal, expanded, onToggle, eaten, photos = [], onPhotoPress }: MealCardProps) {
   const { t } = useTranslation()
   const colors = useTheme()
   const kcal = meal.mealTotals?.kcal ?? 0
@@ -103,6 +107,26 @@ function MealCard({ meal, expanded, onToggle, eaten, photos = [] }: MealCardProp
               {t('nutrition.items', { count: itemCount })}
             </Text>
           </View>
+          {onPhotoPress && (
+            <Pressable
+              onPress={(e) => {
+                e.stopPropagation?.()
+                onPhotoPress()
+              }}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={t('nutrition.addPhotoA11y')}
+              style={[
+                styles.cameraChip,
+                {
+                  backgroundColor: goldAlpha['12'],
+                  borderColor: goldAlpha['35'],
+                },
+              ]}
+            >
+              <Ionicons name="camera" size={15} color="#000" />
+            </Pressable>
+          )}
           {eaten && (
             <Ionicons
               name="checkmark-circle"
@@ -412,6 +436,20 @@ const styles = StyleSheet.create({
   },
   mealChevron: {
     marginLeft: 4,
+  },
+  /**
+   * Gold-tinted circular camera chip — mirrors CameraButton in MealRow.
+   * 28×28, goldAlpha['12'] background, goldAlpha['35'] border, filled camera icon.
+   */
+  cameraChip: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    marginLeft: 8,
   },
   mealTotalsFooter: {
     flexDirection: 'row',

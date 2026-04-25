@@ -337,6 +337,21 @@ function NutritionPlanDetail({ plan }: { plan: FullPlanResponse }) {
     })
   }, [effectiveWeek, effectiveDay, currentDayMealIds])
 
+  /** Navigate to the meal-log-photo modal — mirrors handlePhotoPress in HasTrainerState. */
+  const handleMealPhotoPress = useCallback((meal: { mealId?: string | null; kind?: string | null; time?: string | null; mealTotals?: { kcal?: number | null } | null; foods?: unknown[] | null; recipes?: unknown[] | null }) => {
+    const totalItems =
+      (meal.foods?.length ?? 0) + (meal.recipes?.length ?? 0)
+    router.push(
+      hrefParams('/(client)/meal-log-photo', {
+        mealId: meal.mealId ?? '',
+        mealName: meal.kind ?? '',
+        mealTime: meal.time ?? '',
+        mealKcal: String(Math.round(meal.mealTotals?.kcal ?? 0)),
+        mealItemsCount: String(totalItems),
+      }),
+    )
+  }, [router])
+
   // Swipe left/right to switch days with slide animation
   const screenWidth = Dimensions.get('window').width
   const slideX = useSharedValue(0)
@@ -397,7 +412,7 @@ function NutritionPlanDetail({ plan }: { plan: FullPlanResponse }) {
           <Text
             style={[
               styles.stepperArrow,
-              { color: hasPrev ? colors.blue : colors.label3 },
+              { color: hasPrev ? colors.gold : colors.label3 },
             ]}
           >
             ‹
@@ -427,7 +442,7 @@ function NutritionPlanDetail({ plan }: { plan: FullPlanResponse }) {
           <Text
             style={[
               styles.stepperArrow,
-              { color: hasNext ? colors.blue : colors.label3 },
+              { color: hasNext ? colors.gold : colors.label3 },
             ]}
           >
             ›
@@ -658,6 +673,7 @@ function NutritionPlanDetail({ plan }: { plan: FullPlanResponse }) {
                   onToggle={() => handleToggleMeal(meal.mealId ?? '')}
                   eaten={eatenMealIds.has(meal.mealId ?? '')}
                   photos={mealPhotosByMealId[meal.mealId ?? ''] ?? []}
+                  onPhotoPress={() => handleMealPhotoPress(meal)}
                 />
               ))
             )}
@@ -940,7 +956,7 @@ function TrainingPlanDetail({ plan }: { plan: FullTrainingPlanResponse }) {
           <Text
             style={[
               styles.stepperArrow,
-              { color: hasPrev ? colors.blue : colors.label3 },
+              { color: hasPrev ? colors.gold : colors.label3 },
             ]}
           >
             ‹
@@ -970,7 +986,7 @@ function TrainingPlanDetail({ plan }: { plan: FullTrainingPlanResponse }) {
           <Text
             style={[
               styles.stepperArrow,
-              { color: hasNext ? colors.blue : colors.label3 },
+              { color: hasNext ? colors.gold : colors.label3 },
             ]}
           >
             ›
