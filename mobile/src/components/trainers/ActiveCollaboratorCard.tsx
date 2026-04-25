@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Pressable, Alert } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
+import { Colors } from '@/constants/colors'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
 import { Avatar } from '@/components/ui/Avatar'
@@ -141,7 +142,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginHorizontal: 0,
     marginBottom: 12,
-    shadowColor: '#000',
+    shadowColor: Colors.dark.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 3,

@@ -35,7 +35,7 @@ export function ScaleInput({ min = 1, max = 10, value, onChange }: ScaleInputPro
               <Text
                 style={[
                   styles.text,
-                  { color: selected ? '#000' : colors.label2 },
+                  { color: selected ? colors.onGoldChip : colors.label2 },
                 ]}
               >
                 {num}

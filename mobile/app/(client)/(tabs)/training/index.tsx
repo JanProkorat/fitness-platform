@@ -93,7 +93,7 @@ const getStyles = (colors: ReturnType<typeof useTheme>) =>
     exerciseName: { fontSize: 13, fontWeight: '600', color: colors.label2, flex: 1 },
     exerciseSets: { fontSize: 12, color: colors.label3 },
     startButton: { backgroundColor: colors.gold, borderRadius: 6, paddingVertical: 14, alignItems: 'center', marginTop: 16 },
-    startButtonText: { color: '#000', fontSize: 13, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
+    startButtonText: { color: colors.onGoldChip, fontSize: 13, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
     emptyCard: { marginHorizontal: 16, backgroundColor: colors.bg2, borderRadius: 8, borderWidth: 1, borderColor: colors.sep, padding: 32, alignItems: 'center' },
     emptyIcon: { fontSize: 40 },
     emptyText: { fontSize: 15, fontWeight: '700', color: colors.label2, marginTop: 12 },

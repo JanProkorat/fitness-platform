@@ -17,7 +17,7 @@ import { getFoodCategoryColor, RECIPE_CHIP_COLOR } from '@/constants/foodCategor
 import { NoteBanner } from '@/components/ui/NoteBanner'
 import { ImageLightbox } from '@/components/ui/ImageLightbox'
 import type { MealFood, MealRecipe, PlanMeal } from '@/api/nutrition'
-import { goldAlpha } from '@/constants/colors'
+import { goldAlpha, Colors } from '@/constants/colors'
 import i18n from '@/i18n'
 import {
   computeFoodKcal,
@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.lg,
     overflow: 'hidden',
     // iOS shadow
-    shadowColor: '#000',
+    shadowColor: Colors.dark.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 12,

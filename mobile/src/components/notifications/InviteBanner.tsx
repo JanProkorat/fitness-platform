@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react'
 import { View, Text, Pressable, StyleSheet, Animated } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/hooks/useTheme'
-import { goldAlpha } from '@/constants/colors'
+import { goldAlpha, Brand } from '@/constants/colors'
 import { cardShadow } from '@/constants/shadows'
 
 interface InviteBannerProps {
@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 13,
     borderWidth: 1,
-    shadowColor: '#c9a84c',
+    shadowColor: Brand.gold,
     ...cardShadow,
   },
   iconWrap: {

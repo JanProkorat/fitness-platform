@@ -13,6 +13,7 @@ import { useRouter } from 'expo-router';
 import api from '@/api/client';
 import { useAuthStore } from '@/stores/auth';
 import { useTheme } from '@/hooks/useTheme';
+import { Colors } from '@/constants/colors';
 
 export default function LoginScreen() {
   const colors = useTheme();
@@ -149,7 +150,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
-    color: '#000',
+    color: Colors.light.onGoldChip,
     fontSize: 14,
     fontWeight: '800',
     textTransform: 'uppercase',

@@ -2,6 +2,7 @@ import React from 'react'
 import { View, Text, StyleSheet, Pressable, Animated } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
+import { Colors } from '@/constants/colors'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
 import { Avatar } from '@/components/ui/Avatar'
@@ -60,7 +61,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     overflow: 'hidden',
     marginBottom: 8,
-    shadowColor: '#000',
+    shadowColor: Colors.dark.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 3,

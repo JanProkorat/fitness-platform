@@ -62,7 +62,7 @@ export function InviteCard({ invite, onAccept, onDecline }: InviteCardProps) {
           {
             backgroundColor: colors.bg2,
             borderColor: goldAlpha['25'],
-            shadowColor: '#c9a84c',
+            shadowColor: colors.gold,
           },
         ]}
       >

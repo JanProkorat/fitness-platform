@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next'
 import { Ionicons } from '@expo/vector-icons'
 import { useAuthStore } from '@/stores/auth'
 import { useTheme } from '@/hooks/useTheme'
+import { Colors } from '@/constants/colors'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
 import { GoldButton } from '@/components/ui/GoldButton'
@@ -583,7 +584,7 @@ const styles = StyleSheet.create({
   summaryHeaderRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   summaryCard: {
     borderRadius: Radius.lg, overflow: 'hidden', marginBottom: 14,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 3, elevation: 2,
+    shadowColor: Colors.dark.shadow, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 3, elevation: 2,
   },
   summaryCardHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

@@ -1,6 +1,7 @@
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/hooks/useTheme'
+import { Colors } from '@/constants/colors'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
 import { GoldButton } from '@/components/ui/GoldButton'
@@ -104,7 +105,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 12,
     marginTop: 28, padding: 14, paddingHorizontal: 16,
     borderRadius: Radius.lg, width: '100%',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 3, elevation: 2,
+    shadowColor: Colors.dark.shadow, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 3, elevation: 2,
   },
   metaChips: { flexDirection: 'row', gap: 8, marginTop: 24, flexWrap: 'wrap', justifyContent: 'center' },
   metaChip: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: Radius.full },

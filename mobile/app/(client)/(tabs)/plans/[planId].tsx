@@ -483,7 +483,7 @@ function NutritionPlanDetail({ plan }: { plan: FullPlanResponse }) {
           <Pressable style={styles.weekGridBackdrop} onPress={handleToggleWeekGrid} />
           <Animated.View
             entering={FadeIn.duration(200)}
-            style={[styles.weekGrid, { backgroundColor: colors.bg2, shadowColor: '#000' }]}
+            style={[styles.weekGrid, { backgroundColor: colors.bg2, shadowColor: colors.shadow }]}
           >
             {(plan.weeks ?? []).map((w) => (
               <Pressable
@@ -1058,7 +1058,7 @@ function TrainingPlanDetail({ plan }: { plan: FullTrainingPlanResponse }) {
           <Pressable style={styles.weekGridBackdrop} onPress={handleToggleWeekGrid} />
           <Animated.View
             entering={FadeIn.duration(200)}
-            style={[styles.weekGrid, { backgroundColor: colors.bg2, shadowColor: '#000' }]}
+            style={[styles.weekGrid, { backgroundColor: colors.bg2, shadowColor: colors.shadow }]}
           >
             {(plan.weeks ?? []).map((w) => (
               <Pressable

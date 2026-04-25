@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTheme } from '@/hooks/useTheme';
+import { Colors } from '@/constants/colors';
 import { addMeasurement, getLatestMeasurement } from '@/api/measurements';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { addPendingMutation } from '@/stores/offline';
@@ -201,7 +202,7 @@ export default function NewMeasurementScreen() {
             disabled={isSaving}
           >
             {isSaving ? (
-              <ActivityIndicator size="small" color="#000" />
+              <ActivityIndicator size="small" color={colors.onGoldChip} />
             ) : (
               <Text style={styles.saveButtonText}>SAVE MEASUREMENT</Text>
             )}
@@ -356,7 +357,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   saveButtonText: {
-    color: '#000',
+    color: Colors.light.onGoldChip,
     fontWeight: '800',
     fontSize: 15,
     letterSpacing: 0.5,

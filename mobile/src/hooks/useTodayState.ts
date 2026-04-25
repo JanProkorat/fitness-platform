@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useTodayStore, type PendingPlan } from '@/stores/todayStore'
 import { getFullPlan, getClientPlans, type FullPlanResponse } from '@/api/nutrition'
 import { getCollaborations } from '@/api/profile'
+import { Brand } from '@/constants/colors'
 
 // ─── Helpers ─────────────────────────────────────────────────────────
 
@@ -150,7 +151,7 @@ export function useTodayState() {
             trainerName,
             chips: [],
             startDate: item.startDate ?? '',
-            accentColor: '#c9a84c',
+            accentColor: Brand.gold,
           }
           pending.push(pendingTraining)
         }

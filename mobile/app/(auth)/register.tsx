@@ -14,6 +14,7 @@ import { useRouter } from 'expo-router';
 import api from '@/api/client';
 import { useAuthStore } from '@/stores/auth';
 import { useTheme } from '@/hooks/useTheme';
+import { Colors } from '@/constants/colors';
 
 const ROLES = ['Client', 'Trainer', 'Nutritionist'] as const;
 
@@ -280,7 +281,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   rolePillTextActive: {
-    color: '#000',
+    color: Colors.light.onGoldChip,
   },
   consentRow: {
     flexDirection: 'row',
@@ -299,7 +300,7 @@ const styles = StyleSheet.create({
   },
   checkboxChecked: {},
   checkmark: {
-    color: '#000',
+    color: Colors.light.onGoldChip,
     fontSize: 14,
     fontWeight: '800',
   },
@@ -318,7 +319,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
-    color: '#000',
+    color: Colors.light.onGoldChip,
     fontSize: 14,
     fontWeight: '800',
     textTransform: 'uppercase',

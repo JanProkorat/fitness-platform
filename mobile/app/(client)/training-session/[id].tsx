@@ -34,6 +34,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
+import { Brand } from '@/constants/colors'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
 import { href } from '@/lib/navigation'
@@ -84,7 +85,7 @@ const MUSCLE_COLORS: Record<string, string> = {
   Obliques: '#ff9500',
   LowerBack: '#3ed7be',
   Traps: '#3ed7be',
-  FullBody: '#c9a84c',
+  FullBody: Brand.gold,
   // Czech translations (the API may return localized strings)
   Hrudník: '#0b6e99',
   Ramena: '#af52de',
@@ -94,7 +95,7 @@ const MUSCLE_COLORS: Record<string, string> = {
 
 function muscleColorFor(exercise: SessionExercise): string {
   // exerciseName as fallback when no muscle group info is available
-  const fallback = '#c9a84c'
+  const fallback = Brand.gold
   if (!exercise.exerciseName) return fallback
   // Scan muscle color keys against exercise name fragments
   for (const [key, color] of Object.entries(MUSCLE_COLORS)) {
