@@ -878,6 +878,7 @@
   },
   "planPhotos": {
     "title": "Fotky z plánu",
+    "categoryAll": "Vše",
     "categoryFood": "Jídlo",
     "categoryProgress": "Postup",
     "categoryFree": "Volné",

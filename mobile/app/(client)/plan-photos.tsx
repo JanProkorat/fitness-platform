@@ -47,12 +47,13 @@ import { Toast } from '@/lib/toast'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type FilterCategory = 'Food' | 'Progress' | 'Free'
+type PhotoCategory = 'Food' | 'Progress' | 'Free'
+type FilterCategory = 'All' | PhotoCategory
 
 interface PhotoItem {
   blobUrl: string
   note?: string | null
-  category: FilterCategory
+  category: PhotoCategory
   uploadedAt?: string
 }
 
@@ -65,8 +66,8 @@ export default function PlanPhotosScreen() {
   const queryClient = useQueryClient()
   const { width } = useWindowDimensions()
 
-  // ── Active category filter (null = show all) ──
-  const [activeFilter, setActiveFilter] = useState<FilterCategory | null>(null)
+  // ── Active category filter ('All' shows everything) ──
+  const [activeFilter, setActiveFilter] = useState<FilterCategory>('All')
 
   // ── Lightbox state ──
   const [lightboxVisible, setLightboxVisible] = useState(false)
@@ -86,7 +87,7 @@ export default function PlanPhotosScreen() {
       .map((p) => ({
         blobUrl: p.blobUrl,
         note: p.note ?? null,
-        category: (p.category as FilterCategory | undefined) ?? 'Free',
+        category: (p.category as PhotoCategory | undefined) ?? 'Free',
         uploadedAt: p.uploadedAt,
       }))
   }, [dayLogQuery.data])
@@ -96,7 +97,7 @@ export default function PlanPhotosScreen() {
   const freeCount = useMemo(() => allPhotos.filter((p) => p.category === 'Free').length, [allPhotos])
 
   const visiblePhotos = useMemo(
-    () => (activeFilter ? allPhotos.filter((p) => p.category === activeFilter) : allPhotos),
+    () => (activeFilter === 'All' ? allPhotos : allPhotos.filter((p) => p.category === activeFilter)),
     [allPhotos, activeFilter],
   )
 
@@ -228,6 +229,7 @@ export default function PlanPhotosScreen() {
       <View style={styles.chipsRow}>
         {(
           [
+            { key: 'All', label: t('planPhotos.categoryAll'), count: allPhotos.length },
             { key: 'Food', label: t('planPhotos.categoryFood'), count: foodCount },
             { key: 'Progress', label: t('planPhotos.categoryProgress'), count: progressCount },
             { key: 'Free', label: t('planPhotos.categoryFree'), count: freeCount },
@@ -237,7 +239,7 @@ export default function PlanPhotosScreen() {
           return (
             <Pressable
               key={key}
-              onPress={() => setActiveFilter((prev) => (prev === key ? null : key))}
+              onPress={() => setActiveFilter(key)}
               hitSlop={6}
               accessibilityRole="button"
               style={[

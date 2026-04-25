@@ -870,6 +870,7 @@
   },
   "planPhotos": {
     "title": "Plan photos",
+    "categoryAll": "All",
     "categoryFood": "Food",
     "categoryProgress": "Progress",
     "categoryFree": "Free",

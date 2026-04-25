@@ -869,6 +869,7 @@
   },
   "planPhotos": {
     "title": "Planfotos",
+    "categoryAll": "Alle",
     "categoryFood": "Essen",
     "categoryProgress": "Fortschritt",
     "categoryFree": "Frei",
