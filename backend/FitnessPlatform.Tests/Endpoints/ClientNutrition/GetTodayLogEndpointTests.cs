@@ -304,6 +304,78 @@ public class GetTodayLogEndpointTests
     }
 
     [Fact]
+    public async Task HandleAsync_PhotoWithNote_PopulatesMealPhotoDtoNote()
+    {
+        // A MealPhoto that carries a per-photo Note must surface in the MealPhotoDto.Note field.
+        var mealId = Guid.NewGuid();
+        var food = PlanTestHelpers.CreateMealFood(foodName: "Smoothie");
+        var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.MorningSnack, foods: food);
+
+        var plan = PlanTestHelpers.CreatePlan(
+            clientId: _clientId,
+            status: NutritionPlanStatus.Active);
+        plan.DatePublished = DateTime.UtcNow;
+        plan.Weeks[0].Days[0].Meals.Add(meal);
+
+        var uploadedAt = DateTime.UtcNow.AddMinutes(-15);
+        var log = new MealLog
+        {
+            ClientId = _clientId,
+            PlanId = plan.ExternalId,
+            MealId = mealId,
+            LogDate = DateTime.UtcNow.Date,
+            EatenAt = null,
+            FoodsEaten = [food],
+            Photos =
+            [
+                new MealPhoto
+                {
+                    BlobUrl = "https://minio.local/bucket/smoothie.jpg",
+                    UploadedAt = uploadedAt,
+                    Note = "Blueberry variant"
+                },
+                new MealPhoto
+                {
+                    BlobUrl = "https://minio.local/bucket/smoothie2.jpg",
+                    UploadedAt = uploadedAt,
+                    Note = null
+                }
+            ],
+            Note = null
+        };
+
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+
+        var mealLogCollection = Substitute.For<IMongoCollection<MealLog>>();
+        mealLogCollection.FindAsync(
+                Arg.Any<FilterDefinition<MealLog>>(),
+                Arg.Any<FindOptions<MealLog, MealLog>>(),
+                Arg.Any<CancellationToken>())
+            .Returns(_ => CreateMealLogCursor([log]));
+        mongo.MealLogs.Returns(mealLogCollection);
+
+        var db = CreateMockDb();
+
+        var ep = Factory.Create<GetTodayLogEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
+            mongo, db);
+
+        await ep.HandleAsync(TestContext.Current.CancellationToken);
+
+        ep.Response.Should().NotBeNull();
+        ep.Response.MealsEaten.Should().HaveCount(1);
+
+        var dto = ep.Response.MealsEaten[0];
+        dto.Photos.Should().HaveCount(2);
+        dto.Photos[0].BlobUrl.Should().Be("https://minio.local/bucket/smoothie.jpg");
+        dto.Photos[0].Note.Should().Be("Blueberry variant");
+        dto.Photos[1].BlobUrl.Should().Be("https://minio.local/bucket/smoothie2.jpg");
+        dto.Photos[1].Note.Should().BeNull();
+    }
+
+    [Fact]
     public async Task HandleAsync_NoClaims_Returns401()
     {
         var mongo = PlanTestHelpers.CreateMockMongo();

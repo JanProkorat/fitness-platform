@@ -31,9 +31,10 @@ public class SaveMealPhotosEndpoint(IMongoContext mongo, IApplicationDbContext d
             s.Summary = "Save photos / note for a meal diary entry";
             s.Description =
                 "Replaces the Photos list and Note on the meal log with exactly what the " +
-                "client sends. Existing photo URLs that are re-submitted keep their original " +
-                "UploadedAt timestamp; new URLs receive the current UTC time. Pass an empty " +
-                "PhotoBlobUrls list to remove all photos; pass null for Note to clear it. " +
+                "client sends. Each photo may carry its own optional caption (per-photo Note). " +
+                "Existing photo URLs that are re-submitted keep their original UploadedAt " +
+                "timestamp; new URLs receive the current UTC time. Pass an empty Photos list " +
+                "to remove all photos; pass null for Note to clear the meal-level diary note. " +
                 "Never changes the meal's EatenAt state. Creates the log entry if it does " +
                 "not exist yet.";
         });
@@ -112,14 +113,23 @@ public class SaveMealPhotosEndpoint(IMongoContext mongo, IApplicationDbContext d
         var existingLog = await existingCursor.FirstOrDefaultAsync(ct);
 
         // Build the replacement photo list, preserving UploadedAt for unchanged URLs
+        // and persisting the per-photo Note caption from the request.
         var existingByUrl = (existingLog?.Photos ?? [])
-            .ToDictionary(p => p.BlobUrl, p => p.UploadedAt);
+            .ToDictionary(p => p.BlobUrl, p => p);
 
-        var replacementPhotos = req.PhotoBlobUrls
-            .Select(url => new MealPhoto
+        var replacementPhotos = req.Photos
+            .Select(input =>
             {
-                BlobUrl = url,
-                UploadedAt = existingByUrl.TryGetValue(url, out var ts) ? ts : now
+                var perPhotoNote = string.IsNullOrWhiteSpace(input.Note) ? null : input.Note.Trim();
+                var uploadedAt = existingByUrl.TryGetValue(input.BlobUrl, out var existing)
+                    ? existing.UploadedAt
+                    : now;
+                return new MealPhoto
+                {
+                    BlobUrl = input.BlobUrl,
+                    UploadedAt = uploadedAt,
+                    Note = perPhotoNote
+                };
             })
             .ToList();
 

@@ -154,7 +154,7 @@ public class GetTodayLogEndpoint(IMongoContext mongo, IApplicationDbContext db) 
                 EatenAt = log.EatenAt,
                 Totals = totals,
                 Photos = log.Photos
-                    .Select(p => new MealPhotoDto { BlobUrl = p.BlobUrl, UploadedAt = p.UploadedAt })
+                    .Select(p => new MealPhotoDto { BlobUrl = p.BlobUrl, UploadedAt = p.UploadedAt, Note = p.Note })
                     .ToList(),
                 Note = log.Note
             };

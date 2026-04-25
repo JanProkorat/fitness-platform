@@ -77,4 +77,10 @@ public class MealPhotoDto
     /// UTC timestamp when the photo was uploaded.
     /// </summary>
     public DateTime UploadedAt { get; set; }
+
+    /// <summary>
+    /// Optional per-photo caption set by the client when saving photos.
+    /// Null when no caption was provided for this photo.
+    /// </summary>
+    public string? Note { get; set; }
 }

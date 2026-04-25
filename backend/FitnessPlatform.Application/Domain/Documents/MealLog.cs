@@ -89,4 +89,12 @@ public class MealPhoto
     /// </summary>
     [BsonElement("uploadedAt")]
     public DateTime UploadedAt { get; set; }
+
+    /// <summary>
+    /// Optional caption / per-photo note (max 500 chars).
+    /// Null on existing documents — backward compatible.
+    /// </summary>
+    [BsonElement("note")]
+    [BsonIgnoreIfNull]
+    public string? Note { get; set; }
 }
