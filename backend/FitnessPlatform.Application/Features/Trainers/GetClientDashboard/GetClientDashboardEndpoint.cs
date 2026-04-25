@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -84,9 +85,9 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
             .AsNoTracking()
             .CountAsync(bm => bm.ClientProfileId == clientProfile.Id, ct);
 
-        var totalProgressPhotos = await db.ProgressPhotos
+        var totalProgressPhotos = await db.PlanPhotos
             .AsNoTracking()
-            .CountAsync(pp => pp.ClientProfileId == clientProfile.Id, ct);
+            .CountAsync(pp => pp.ClientProfileId == clientProfile.Id && pp.Category == PlanPhotoCategory.Body, ct);
 
         // Get the latest body measurement
         var latestMeasurement = await db.BodyMeasurements

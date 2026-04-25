@@ -34,9 +34,10 @@ public interface IApplicationDbContext
     DbSet<BodyMeasurement> BodyMeasurements { get; set; }
 
     /// <summary>
-    /// Progress photos.
+    /// Plan-scoped photos (body progress, food, and free-form).
+    /// Replaces the retired ProgressPhoto entity.
     /// </summary>
-    DbSet<ProgressPhoto> ProgressPhotos { get; set; }
+    DbSet<PlanPhoto> PlanPhotos { get; set; }
 
     /// <summary>
     /// Refresh tokens for JWT authentication.
