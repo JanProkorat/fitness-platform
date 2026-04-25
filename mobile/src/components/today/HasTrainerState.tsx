@@ -305,13 +305,25 @@ export function HasTrainerState() {
     return set
   }, [logQuery.data])
 
-  /** Per-meal diary photos from the log, keyed by mealId. */
+  /** Per-meal diary photos from the log, keyed by mealId. Includes per-photo captions. */
   const mealPhotosByMealId = useMemo(() => {
-    const map: Record<string, { blobUrl: string; uploadedAt?: string }[]> = {}
+    const map: Record<string, { blobUrl: string; note?: string | null; uploadedAt?: string }[]> = {}
     logQuery.data?.mealsEaten?.forEach((m) => {
       if (m.mealId && m.photos && m.photos.length > 0) {
         map[m.mealId] = m.photos
-          .filter((p): p is { blobUrl: string; uploadedAt?: string } => typeof p.blobUrl === 'string')
+          .filter((p) => typeof p.blobUrl === 'string')
+          .map((p) => ({ blobUrl: p.blobUrl as string, note: p.note ?? null, uploadedAt: p.uploadedAt }))
+      }
+    })
+    return map
+  }, [logQuery.data])
+
+  /** Meal-level diary notes from the log, keyed by mealId. Used by lightbox top overlay. */
+  const mealNoteByMealId = useMemo(() => {
+    const map: Record<string, string | null> = {}
+    logQuery.data?.mealsEaten?.forEach((m) => {
+      if (m.mealId) {
+        map[m.mealId] = m.note ?? null
       }
     })
     return map
@@ -892,6 +904,7 @@ export function HasTrainerState() {
             eatenMealIds={eatenMealIds}
             eatenMealIdsWithPhotos={eatenMealIdsWithPhotos}
             mealPhotosByMealId={mealPhotosByMealId}
+            mealNoteByMealId={mealNoteByMealId}
             eyebrow={t('today.nutritionEyebrow', { week: plan.weekNumber })}
             subline=""
             dayNote={plan.dayNote}

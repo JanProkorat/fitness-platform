@@ -13718,15 +13718,26 @@ export interface UnlogMealEatenRequest {
 
 /** Request model for saving the complete photo and note state of a meal diary entry. The Photos list and Note are replaced with exactly what the client sends. */
 export interface SaveMealPhotosRequest {
-    /** The complete list of MinIO blob URLs for photos to persist on the meal log.
+    /** The complete list of photos to persist on the meal log.
 Replaces the existing Photos list entirely — pass an empty list to remove all
-photos. The client uploads photos via the signed-URL helper and submits the
-resulting URLs here. Existing URLs that are re-submitted keep their original
-UploadedAt timestamp; new URLs receive the current UTC time. */
-    photoBlobUrls?: string[];
+photos. Each item carries the blob URL and an optional per-photo caption.
+Existing URLs that are re-submitted keep their original UploadedAt
+timestamp; new URLs receive the current UTC time. */
+    photos?: MealPhotoInput[];
     /** Optional free-text note to persist on the meal log entry (max 500 chars).
-When non-null, the stored note is replaced with the trimmed value (whitespace-only
-strings are treated as null). When null, the existing note is cleared. */
+This is the meal-level diary note. When non-null, the stored note is replaced
+with the trimmed value (whitespace-only strings are treated as null). When null,
+the existing note is cleared. */
+    note?: string | undefined;
+}
+
+/** A single photo input in a SaveMealPhotosRequest. */
+export interface MealPhotoInput {
+    /** The MinIO blob URL for this photo, as returned by the signed-URL upload helper. */
+    blobUrl?: string;
+    /** Optional per-photo caption (max 500 chars). Distinct from the meal-level
+Note — this note belongs to the individual
+photo only (e.g. "Side of guac added"). */
     note?: string | undefined;
 }
 
@@ -13810,6 +13821,9 @@ export interface MealPhotoDto {
     blobUrl?: string;
     /** UTC timestamp when the photo was uploaded. */
     uploadedAt?: string;
+    /** Optional per-photo caption set by the client when saving photos.
+Null when no caption was provided for this photo. */
+    note?: string | undefined;
 }
 
 /** Response model containing an aggregated shopping list from the nutrition plan. */

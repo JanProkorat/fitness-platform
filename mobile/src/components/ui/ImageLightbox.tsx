@@ -22,17 +22,42 @@ export interface ImageLightboxProps {
   images: string[]
   startIndex?: number
   onClose: () => void
+  /**
+   * Optional meal-level diary note. When non-empty, renders a translucent
+   * pill at the top of the screen (below safe-area inset), visible across all
+   * images. Stays constant as the user swipes — it is the meal-level note,
+   * not a per-image caption.
+   */
+  mealNote?: string | null
+  /**
+   * Optional per-image captions, index-aligned with `images`. When the user
+   * is on image at index `i` and `imageNotes[i]` is non-empty, a translucent
+   * bottom overlay caption is rendered (above the dot indicator). Updates as
+   * the user swipes.
+   */
+  imageNotes?: (string | null | undefined)[]
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export function ImageLightbox({ visible, images, startIndex = 0, onClose }: ImageLightboxProps) {
+export function ImageLightbox({
+  visible,
+  images,
+  startIndex = 0,
+  onClose,
+  mealNote,
+  imageNotes,
+}: ImageLightboxProps) {
   const { t } = useTranslation()
   const { width, height } = useWindowDimensions()
   const insets = useSafeAreaInsets()
   const listRef = useRef<FlatList<string>>(null)
   const currentIndexRef = useRef(startIndex)
   const [currentIndex, setCurrentIndex] = useState(startIndex)
+
+  // Derived caption values — computed once per render from current index
+  const trimmedMealNote = mealNote?.trim() || null
+  const currentImageNote = imageNotes?.[currentIndex]?.trim() || null
 
   // Scroll to the starting image when the modal opens or startIndex changes
   useEffect(() => {
@@ -141,6 +166,36 @@ export function ImageLightbox({ visible, images, startIndex = 0, onClose }: Imag
           <Ionicons name="close" size={28} color="white" />
         </Pressable>
 
+        {/* Meal-level note — top overlay, below safe-area inset, constant across all images */}
+        {trimmedMealNote ? (
+          <View
+            style={[
+              styles.noteOverlayTop,
+              { top: insets.top + 60, marginHorizontal: 16 },
+            ]}
+            pointerEvents="none"
+          >
+            <Text style={styles.noteOverlayText} numberOfLines={4}>
+              {trimmedMealNote}
+            </Text>
+          </View>
+        ) : null}
+
+        {/* Per-image note — bottom overlay, above dot indicator, updates on swipe */}
+        {currentImageNote ? (
+          <View
+            style={[
+              styles.noteOverlayBottom,
+              { bottom: insets.bottom + (images.length > 1 ? 48 : 16) },
+            ]}
+            pointerEvents="none"
+          >
+            <Text style={styles.noteOverlayText} numberOfLines={4}>
+              {currentImageNote}
+            </Text>
+          </View>
+        ) : null}
+
         {/* Prev / next chevrons — only shown when more than one image */}
         {images.length > 1 && (
           <>
@@ -227,6 +282,34 @@ const styles = StyleSheet.create({
   },
   dotActive: {
     color: 'white',
+  },
+  /**
+   * Translucent pill overlay for the meal-level note (top) and per-image
+   * caption (bottom). Same visual style — same component style key, positioned
+   * differently via inline `top`/`bottom` values.
+   */
+  noteOverlayTop: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  noteOverlayBottom: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  noteOverlayText: {
+    color: 'white',
+    fontSize: 14,
+    lineHeight: 20,
   },
 })
 

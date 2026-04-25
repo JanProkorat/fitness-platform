@@ -845,7 +845,11 @@
     "successToast": "Gespeichert",
     "addMorePhotos": "Weiteres Foto hinzufügen",
     "photoThumbA11y": "Foto {{index}} von {{total}}",
-    "openPhotosA11y": "Mahlzeitfotos öffnen"
+    "openPhotosA11y": "Mahlzeitfotos öffnen",
+    "photoCaption": {
+      "placeholder": "Beschriftung (optional)",
+      "a11y": "Fotobeschriftung"
+    }
   },
   "avatar": {
     "editBadgeLabel": "Profilbild ändern",

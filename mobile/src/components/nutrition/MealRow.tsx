@@ -57,8 +57,14 @@ interface MealRowProps {
   /**
    * Diary photos for this meal's log entry. When `hasPhotos` is true and the
    * user taps the gold camera indicator badge, these are opened in ImageLightbox.
+   * Each photo carries an optional per-photo caption (`note`).
    */
-  photos?: { blobUrl: string; uploadedAt?: string }[]
+  photos?: { blobUrl: string; note?: string | null; uploadedAt?: string }[]
+  /**
+   * Meal-level diary note. When non-empty, shown as a top overlay caption in
+   * the lightbox when photos are opened.
+   */
+  mealNote?: string | null
 }
 
 /**
@@ -85,6 +91,7 @@ export const MealRow = React.memo(function MealRow({
   onPhotoPress,
   hasPhotos,
   photos,
+  mealNote,
 }: MealRowProps) {
   const colors = useTheme()
   const { t } = useTranslation()
@@ -92,7 +99,9 @@ export const MealRow = React.memo(function MealRow({
   // Lightbox state — opened by tapping the gold photo-indicator badge on the row header
   const [lightboxVisible, setLightboxVisible] = useState(false)
 
-  const photoUrls = (photos ?? []).map((p) => p.blobUrl).filter(Boolean)
+  const photoList = photos ?? []
+  const photoUrls = photoList.map((p) => p.blobUrl).filter(Boolean)
+  const photoNotes = photoList.map((p) => p.note ?? null)
 
   const handleBadgePress = useCallback(() => {
     if (photoUrls.length > 0) setLightboxVisible(true)
@@ -221,12 +230,6 @@ export const MealRow = React.memo(function MealRow({
           </View>
         )}
 
-        {/* Gold camera button — always visible in accordion mode so clients can
-            attach diary photos both pre- and post-eaten. */}
-        {isExpandable && onPhotoPress && (
-          <CameraButton onPress={onPhotoPress} colors={colors} />
-        )}
-
         {/* Photo indicator — tappable badge that opens the lightbox */}
         {isExpandable && hasPhotos && (
           <Pressable
@@ -241,6 +244,12 @@ export const MealRow = React.memo(function MealRow({
           >
             <Ionicons name="camera" size={11} color={colors.gold} />
           </Pressable>
+        )}
+
+        {/* Gold camera button — always visible in accordion mode so clients can
+            attach diary photos both pre- and post-eaten. */}
+        {isExpandable && onPhotoPress && (
+          <CameraButton onPress={onPhotoPress} colors={colors} />
         )}
 
         {onToggleEaten && (
@@ -273,6 +282,8 @@ export const MealRow = React.memo(function MealRow({
             images={photoUrls}
             startIndex={0}
             onClose={handleLightboxClose}
+            mealNote={mealNote}
+            imageNotes={photoNotes}
           />
           <Animated.View style={[styles.bodyClip, animatedBodyStyle]}>
             <View

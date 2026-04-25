@@ -50,8 +50,14 @@ interface NutritionCardProps {
   /**
    * Per-meal diary photos from the log, keyed by mealId. Fed into MealRow so
    * the accordion body can display a horizontal thumbnail strip.
+   * Each photo carries an optional per-photo caption (`note`).
    */
-  mealPhotosByMealId?: Record<string, { blobUrl: string; uploadedAt?: string }[]>
+  mealPhotosByMealId?: Record<string, { blobUrl: string; note?: string | null; uploadedAt?: string }[]>
+  /**
+   * Meal-level diary note keyed by mealId. Passed to the lightbox as a top
+   * overlay caption when the user opens photos for that meal.
+   */
+  mealNoteByMealId?: Record<string, string | null>
 }
 
 /**
@@ -76,6 +82,7 @@ export function NutritionCard({
   onMarkAllEaten,
   isMarkAllLoading,
   mealPhotosByMealId,
+  mealNoteByMealId,
 }: NutritionCardProps) {
   const colors = useTheme()
   const { t } = useTranslation()
@@ -135,6 +142,7 @@ export function NutritionCard({
             }
             hasPhotos={meal.mealId ? (eatenMealIdsWithPhotos?.has(meal.mealId) ?? false) : false}
             photos={meal.mealId ? (mealPhotosByMealId?.[meal.mealId] ?? []) : []}
+            mealNote={meal.mealId ? (mealNoteByMealId?.[meal.mealId] ?? null) : null}
           />
         ))}
       </View>

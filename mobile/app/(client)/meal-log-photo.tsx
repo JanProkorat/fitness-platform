@@ -43,6 +43,7 @@ import { getMealKindConfig } from '@/constants/mealKinds'
 import {
   saveMealPhotos,
   generateMealPhotoUploadUrl,
+  type MealPhotoInput,
   type TodayPlanResponse,
   type TodayLogResponse,
 } from '@/api/nutrition'
@@ -98,8 +99,12 @@ export default function MealLogPhotoScreen() {
 
   // ── Local state (seeded from cache on mount) ──
   const [note, setNote] = useState(() => existingLog?.note ?? '')
-  const [uploadedBlobUrls, setUploadedBlobUrls] = useState<string[]>(
-    () => (existingLog?.photos ?? []).map((p) => p.blobUrl ?? '').filter(Boolean),
+  // Photos are now structured objects (blobUrl + per-photo caption note).
+  const [uploadedPhotos, setUploadedPhotos] = useState<MealPhotoInput[]>(
+    () =>
+      (existingLog?.photos ?? [])
+        .filter((p) => typeof p.blobUrl === 'string' && p.blobUrl.length > 0)
+        .map((p) => ({ blobUrl: p.blobUrl as string, note: p.note ?? null })),
   )
 
   // ── Multi-photo picker (gallery) ──
@@ -114,7 +119,10 @@ export default function MealLogPhotoScreen() {
     },
     undefined,
     (blobUrls) => {
-      setUploadedBlobUrls((prev) => [...prev, ...blobUrls])
+      setUploadedPhotos((prev) => [
+        ...prev,
+        ...blobUrls.map((url) => ({ blobUrl: url, note: null })),
+      ])
     },
   )
 
@@ -127,7 +135,7 @@ export default function MealLogPhotoScreen() {
       },
     },
     (blobUrl) => {
-      setUploadedBlobUrls((prev) => [...prev, blobUrl])
+      setUploadedPhotos((prev) => [...prev, { blobUrl, note: null }])
     },
   )
 
@@ -147,17 +155,26 @@ export default function MealLogPhotoScreen() {
     pickGallery()
   }, [pickGallery])
 
-  const handleRemovePhoto = useCallback((url: string) => {
-    setUploadedBlobUrls((prev) => prev.filter((u) => u !== url))
+  const handleRemovePhoto = useCallback((blobUrl: string) => {
+    setUploadedPhotos((prev) => prev.filter((p) => p.blobUrl !== blobUrl))
+  }, [])
+
+  const handlePhotoNoteChange = useCallback((blobUrl: string, noteText: string) => {
+    setUploadedPhotos((prev) =>
+      prev.map((p) =>
+        p.blobUrl === blobUrl ? { ...p, note: noteText.slice(0, NOTE_MAX_CHARS) || null } : p,
+      ),
+    )
   }, [])
 
   // ── Save-photos mutation — REPLACE semantics ──
   // Sends the complete final state in one call: the backend sets Photos to
-  // exactly the submitted URLs and sets Note to the submitted value (null = clear).
+  // exactly the submitted structured photo objects and sets Note to the
+  // submitted value (null = clear).
   const saveMutation = useMutation({
     mutationFn: () =>
       saveMealPhotos(mealId, {
-        photoBlobUrls: uploadedBlobUrls,
+        photos: uploadedPhotos,
         note: note.trim() || null,
       }),
     onSuccess: () => {
@@ -169,7 +186,7 @@ export default function MealLogPhotoScreen() {
   })
 
   // CTA disabled when: no photos AND note is empty/whitespace
-  const hasContent = uploadedBlobUrls.length > 0 || note.trim().length > 0
+  const hasContent = uploadedPhotos.length > 0 || note.trim().length > 0
   const isSubmitting = saveMutation.isPending
   const isLoading = isSubmitting || imageUploading
 
@@ -325,7 +342,7 @@ export default function MealLogPhotoScreen() {
               {t('mealLogPhoto.photoSectionLabel').toUpperCase()}
             </Text>
 
-            {uploadedBlobUrls.length === 0 ? (
+            {uploadedPhotos.length === 0 ? (
               /* ── Empty state: dashed drop zone ── */
               <Pressable
                 onPress={handleDropZoneTap}
@@ -358,27 +375,47 @@ export default function MealLogPhotoScreen() {
                 )}
               </Pressable>
             ) : (
-              /* ── Filled state: thumbnail grid ── */
-              <View style={styles.thumbnailGrid}>
-                {uploadedBlobUrls.map((url) => (
+              /* ── Filled state: photo rows (thumbnail + inline caption) ── */
+              <View style={styles.photoRows}>
+                {uploadedPhotos.map((photo) => (
                   <View
-                    key={url}
-                    style={[styles.thumbnailCell, { backgroundColor: colors.fill2 }]}
+                    key={photo.blobUrl}
+                    style={[styles.photoRow, { backgroundColor: colors.bg2, borderColor: colors.sep2 }]}
                   >
-                    <Image
-                      source={{ uri: url }}
-                      style={styles.thumbnailImage}
-                      resizeMode="cover"
+                    {/* Thumbnail */}
+                    <View style={[styles.thumbWrap, { backgroundColor: colors.fill2 }]}>
+                      <Image
+                        source={{ uri: photo.blobUrl }}
+                        style={styles.thumbImg}
+                        resizeMode="cover"
+                      />
+                      <Pressable
+                        onPress={() => handleRemovePhoto(photo.blobUrl)}
+                        style={[styles.thumbRemoveBtn, { backgroundColor: colors.bg2 }]}
+                        hitSlop={6}
+                        accessibilityRole="button"
+                        accessibilityLabel="Remove photo"
+                      >
+                        <Ionicons name="close" size={12} color={colors.label2} />
+                      </Pressable>
+                    </View>
+                    {/* Per-photo caption input */}
+                    <TextInput
+                      value={photo.note ?? ''}
+                      onChangeText={(text) => handlePhotoNoteChange(photo.blobUrl, text)}
+                      placeholder={t('mealLogPhoto.photoCaption.placeholder')}
+                      placeholderTextColor={colors.label3}
+                      maxLength={NOTE_MAX_CHARS}
+                      style={[
+                        styles.captionInput,
+                        {
+                          color: colors.label,
+                          backgroundColor: colors.bg,
+                          borderColor: colors.sep2,
+                        },
+                      ]}
+                      accessibilityLabel={t('mealLogPhoto.photoCaption.a11y')}
                     />
-                    <Pressable
-                      onPress={() => handleRemovePhoto(url)}
-                      style={[styles.thumbnailRemoveBtn, { backgroundColor: colors.bg2 }]}
-                      hitSlop={6}
-                      accessibilityRole="button"
-                      accessibilityLabel="Remove photo"
-                    >
-                      <Ionicons name="close" size={12} color={colors.label2} />
-                    </Pressable>
                   </View>
                 ))}
 
@@ -388,8 +425,7 @@ export default function MealLogPhotoScreen() {
                   accessibilityRole="button"
                   accessibilityLabel={t('mealLogPhoto.addMorePhotos')}
                   style={[
-                    styles.thumbnailCell,
-                    styles.addMoreTile,
+                    styles.addMoreRow,
                     {
                       backgroundColor: colors.bg2,
                       borderColor: colors.sep,
@@ -503,17 +539,7 @@ export default function MealLogPhotoScreen() {
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
 
-// Thumbnail grid: 3 columns with equal spacing. Each cell is a square whose
-// side is (screenWidth - horizontal margins - gaps) / 3. We use flex-wrap
-// instead of a fixed pixel value to stay responsive across device widths.
-const GRID_COLUMNS = 3
-const GRID_GAP = 8
 const GRID_MARGIN = 20
-
-// Approximate cell size — StyleSheet.create doesn't allow dynamic values; the
-// actual layout relies on flex: 1/GRID_COLUMNS plus maxWidth to enforce square.
-// We derive an absolute size constant only for the borderRadius computation.
-const CELL_SIZE_APPROX = (375 - GRID_MARGIN * 2 - GRID_GAP * (GRID_COLUMNS - 1)) / GRID_COLUMNS
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
@@ -594,31 +620,34 @@ const styles = StyleSheet.create({
   dropZoneIcon: { marginBottom: 6 },
   dropZoneHint: { ...Type.footnote },
 
-  // Thumbnail grid (filled state)
-  thumbnailGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: GRID_GAP,
+  // Photo rows (filled state) — vertical list, thumbnail + caption side-by-side
+  photoRows: {
+    gap: 10,
   },
-  thumbnailCell: {
-    // Each cell takes 1/GRID_COLUMNS of the available width minus gaps.
-    // Using percentage-based flex would not enforce square; instead we set
-    // width to the result of the layout calculation expressed as a percentage.
-    // The `aspectRatio: 1` makes height match width automatically.
-    width: `${(100 - (GRID_GAP * (GRID_COLUMNS - 1) / (375 - GRID_MARGIN * 2)) * 100) / GRID_COLUMNS}%`,
-    aspectRatio: 1,
+  photoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: Radius.md,
+    padding: 10,
+  },
+  thumbWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: Radius.sm,
     overflow: 'hidden',
     position: 'relative',
+    flexShrink: 0,
   },
-  thumbnailImage: {
-    width: '100%',
-    height: '100%',
+  thumbImg: {
+    width: 80,
+    height: 80,
   },
-  thumbnailRemoveBtn: {
+  thumbRemoveBtn: {
     position: 'absolute',
-    top: 5,
-    right: 5,
+    top: 4,
+    right: 4,
     width: 20,
     height: 20,
     borderRadius: 10,
@@ -626,23 +655,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 2,
   },
+  captionInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: Radius.sm,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    minHeight: 60,
+    ...Type.footnote,
+    lineHeight: 18,
+  },
 
-  // "Add more" tile
-  addMoreTile: {
+  // "Add more" row (dashed, below photo rows)
+  addMoreRow: {
     borderWidth: 2,
     borderStyle: 'dashed',
+    borderRadius: Radius.md,
+    paddingVertical: 14,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
-    // Override overflow: hidden so the dashed border is visible on Android.
-    overflow: 'visible',
-    // Re-apply borderRadius without overflow clip (visual only).
-    borderRadius: Radius.md,
+    gap: 6,
   },
   addMoreLabel: {
-    ...Type.caption2,
-    textAlign: 'center',
-    paddingHorizontal: 4,
+    ...Type.caption1,
   },
 
   // Note textarea
@@ -682,7 +718,3 @@ const styles = StyleSheet.create({
   },
   primaryBtnText: { ...Type.callout, fontWeight: '600' },
 })
-
-// Suppress unused variable lint for the approximation constant (used only in
-// a comment to explain the borderRadius logic).
-void CELL_SIZE_APPROX

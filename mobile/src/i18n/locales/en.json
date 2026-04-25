@@ -846,7 +846,11 @@
     "successToast": "Saved",
     "addMorePhotos": "Add another photo",
     "photoThumbA11y": "Photo {{index}} of {{total}}",
-    "openPhotosA11y": "Open meal photos"
+    "openPhotosA11y": "Open meal photos",
+    "photoCaption": {
+      "placeholder": "Caption (optional)",
+      "a11y": "Photo caption"
+    }
   },
   "avatar": {
     "editBadgeLabel": "Change profile photo",

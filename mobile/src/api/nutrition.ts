@@ -8,6 +8,7 @@ import type {
   PlanMeal,
   GetTodayPlanResponse,
   MealLogDto,
+  MealPhotoDto,
   GetTodayLogResponse,
   GetWeeklyOverviewResponse,
   GetRecipeResponse,
@@ -31,6 +32,7 @@ export type {
   PlanMeal,
   GetTodayPlanResponse,
   MealLogDto,
+  MealPhotoDto,
   GetTodayLogResponse,
   GetWeeklyOverviewResponse,
   GetRecipeResponse,
@@ -145,16 +147,22 @@ export async function generateMealPhotoUploadUrl(
   return data;
 }
 
+export interface MealPhotoInput {
+  blobUrl: string;
+  note?: string | null;
+}
+
 export interface SaveMealPhotosOptions {
-  photoBlobUrls?: string[];
+  photos?: MealPhotoInput[];
   note?: string | null;
 }
 
 /**
  * Replaces the photos list and note on a meal log entry with the provided values.
  * The endpoint uses REPLACE semantics: the backend sets Photos to exactly the
- * URLs in the request and sets Note to the request's value (null = clear).
- * UploadedAt is preserved for URLs that already exist in the log.
+ * structured photo objects in the request and sets Note to the request's value
+ * (null = clear). UploadedAt is preserved for URLs that already exist in the log.
+ * Each photo carries an optional per-photo caption (`note`).
  * Creates the log entry if it does not exist yet.
  */
 export async function saveMealPhotos(
