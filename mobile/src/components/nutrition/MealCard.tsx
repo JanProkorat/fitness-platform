@@ -124,7 +124,7 @@ function MealCard({ meal, expanded, onToggle, eaten, photos = [], onPhotoPress }
                 },
               ]}
             >
-              <Ionicons name="camera" size={15} color="#000" />
+              <Ionicons name="camera" size={15} color={colors.onGoldChip} />
             </Pressable>
           )}
           {eaten && (

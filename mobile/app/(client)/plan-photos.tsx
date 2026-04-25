@@ -295,7 +295,7 @@ export default function PlanPhotosScreen() {
         accessibilityLabel={t('planPhotos.addPhotoA11y')}
         style={({ pressed }) => [
           styles.fab,
-          { backgroundColor: colors.gold, opacity: pressed || isUploading ? 0.6 : 1 },
+          { backgroundColor: colors.gold, shadowColor: colors.gold, opacity: pressed || isUploading ? 0.6 : 1 },
         ]}
       >
         {isUploading ? (
@@ -401,7 +401,6 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#c9a84c',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 8,

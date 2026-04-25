@@ -49,6 +49,9 @@ const light = {
   nutritionHeroStart: '#0d2137', // Nutrition hero gradient start (dark blue)
   nutritionHeroEnd: '#1a3a52',   // Nutrition hero gradient end (mid blue)
   systemGray: '#8e8e93', // Neutral gray (swipe actions, secondary UI)
+  /** Foreground for content on the gold-tinted chip backgrounds — stays black
+   *  in both light and dark themes because the chip itself is mid-luminance. */
+  onGoldChip: '#000000',
 
   // Macros — match the system colours used in the NutritionCardHero chips
   macroProtein: '#007aff',  // blue
@@ -87,6 +90,9 @@ const dark = {
   nutritionHeroStart: '#0d2137',
   nutritionHeroEnd: '#1a3a52',
   systemGray: '#636366',
+  /** Foreground for content on the gold-tinted chip backgrounds — stays black
+   *  in both light and dark themes because the chip itself is mid-luminance. */
+  onGoldChip: '#000000',
 
   // Macros — match the system colours used in the NutritionCardHero chips
   macroProtein: '#0a84ff',  // blue
@@ -118,6 +124,7 @@ export interface ColorScheme {
   readonly nutritionHeroStart: string
   readonly nutritionHeroEnd: string
   readonly systemGray: string
+  readonly onGoldChip: string
   readonly macroProtein: string
   readonly macroCarbs: string
   readonly macroFat: string

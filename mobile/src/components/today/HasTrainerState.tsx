@@ -913,7 +913,7 @@ export function HasTrainerState() {
                     { backgroundColor: goldAlpha['12'], borderColor: goldAlpha['35'] },
                   ]}
                 >
-                  <Ionicons name="camera" size={13} color="#000" />
+                  <Ionicons name="camera" size={13} color={colors.onGoldChip} />
                 </View>
                 <Text style={[styles.photoCtaLabel, { color: colors.gold }]}>
                   {t('nutrition.photoCta')}
