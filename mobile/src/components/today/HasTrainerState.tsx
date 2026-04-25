@@ -81,6 +81,36 @@ function NoDayNutritionCard({ planName }: NoDayNutritionCardProps) {
   )
 }
 
+// ─── NoDayTrainingCard ────────────────────────────────────────────────────────
+// Shown when the user has an active training plan but today has no session
+// (rest day, week-cycle gap, or every published week is in the past on a
+// not-yet-completed plan). Prevents the "waiting for training plan" banner
+// from appearing when the plan actually exists.
+
+interface NoDayTrainingCardProps {
+  planName?: string
+}
+
+function NoDayTrainingCard({ planName }: NoDayTrainingCardProps) {
+  const colors = useTheme()
+  const { t } = useTranslation()
+  return (
+    <>
+      <SectionHeader title={t('today.todaysTraining')} />
+      <View style={[noDayCardStyles.card, { backgroundColor: colors.bg2, borderRadius: Radius.lg }]}>
+        <Text style={[noDayCardStyles.title, { color: colors.label }]}>
+          {t('today.noTrainingForToday')}
+        </Text>
+        {planName ? (
+          <Text style={[noDayCardStyles.sub, { color: colors.label2 }]}>
+            {planName}
+          </Text>
+        ) : null}
+      </View>
+    </>
+  )
+}
+
 const noDayCardStyles = StyleSheet.create({
   card: {
     marginHorizontal: 16,
@@ -269,15 +299,29 @@ export function HasTrainerState() {
     [fullPlanQuery.data?.planId, plan],
   )
 
+  // True when the user has an active training plan but today has no session
+  // (rest day, week-cycle gap, or every published week sits in the past on a
+  // not-yet-completed plan — the backend filters Active-only, so a non-null
+  // planId implies the plan is still Active). Distinguishes "plan exists but
+  // today is empty" from "no plan at all".
+  const hasActivePlanButNoTrainingToday = useMemo(
+    () => !!(training?.planId && !training.hasSession),
+    [training?.planId, training?.hasSession],
+  )
+
   const { waitingForTraining, waitingForNutrition, isWaitingForAnyPlan } = useMemo(() => {
     const hasTrainerLink = collabs.some((c) => c.role === 'Trainer')
     const hasNutritionistLink = collabs.some((c) => c.role === 'Nutritionist')
-    const wTraining = !training?.hasSession && hasTrainerLink && !hasPendingTraining
+    // Only show "waiting for training plan" when the user truly has NO active
+    // training plan assigned. If a plan exists but today has no session, we
+    // show NoDayTrainingCard instead — the plan isn't being prepared, today
+    // just doesn't have one.
+    const wTraining = !training?.planId && hasTrainerLink && !hasPendingTraining
     // Only show "waiting for nutrition plan" when the user truly has NO plan assigned.
     // If they have a plan but today is not covered, we show a different card instead.
     const wNutrition = !plan && !hasActivePlanButNoDayToday && hasNutritionistLink && !hasPendingNutrition
     return { waitingForTraining: wTraining, waitingForNutrition: wNutrition, isWaitingForAnyPlan: wTraining || wNutrition }
-  }, [collabs, training?.hasSession, plan, hasActivePlanButNoDayToday, hasPendingTraining, hasPendingNutrition])
+  }, [collabs, training?.planId, plan, hasActivePlanButNoDayToday, hasPendingTraining, hasPendingNutrition])
 
   // ── Next-week shopping prep banner ──
   const showShoppingBanner = useMemo(() => {
@@ -860,99 +904,114 @@ export function HasTrainerState() {
         </View>
       )}
 
-      {/* Today's training */}
-      {training?.hasSession && todaySessions.length > 0 && (
-        <View style={styles.section}>
-          <SectionHeader
-            title={t('today.todaysTraining')}
-            actionLabel={training.planId ? t('today.sectionActionDetail') : undefined}
-            onActionPress={
-              training.planId
-                ? () => {
-                    router.push(
-                      hrefParams('/(client)/(tabs)/plans/[planId]', {
-                        planId: training.planId!,
-                        type: 'training',
-                      }),
-                    )
-                  }
-                : undefined
-            }
-          />
-          <TrainingCard
-            planName={trainingPlanSubtitle || t('today.trainingPlan')}
-            sessions={todaySessions}
-            completedIdsBySession={completedIdsBySession}
-            sessionCompleteMap={sessionCompleteMap}
-            onToggleExercise={handleToggleExercise}
-            onToggleSession={handleToggleSession}
-            sessionCtaStateBySession={sessionCtaStateBySession}
-            onSessionCta={handleSessionCta}
-            exerciseMuscleGroups={training?.exerciseMuscleGroups ?? {}}
-            completedSetsBySessionExercise={trainingQuery.data?.completedSetsBySessionExercise ?? {}}
-          />
-        </View>
-      )}
-
-      {/* Today's nutrition */}
-      {plan && (
-        <View style={styles.section}>
-          <SectionHeader
-            title={t('today.todaysNutrition')}
-            action={
-              <Pressable
-                onPress={handlePhotoGridPress}
-                hitSlop={8}
-                accessibilityRole="button"
-                accessibilityLabel={t('nutrition.photoCta')}
-                style={styles.photoCtaBtn}
-              >
-                <View
-                  style={[
-                    styles.photoCtaIconChip,
-                    { backgroundColor: goldAlpha['12'], borderColor: goldAlpha['35'] },
-                  ]}
-                >
-                  <Ionicons name="camera" size={13} color={colors.onGoldChip} />
-                </View>
-                <Text style={[styles.photoCtaLabel, { color: colors.gold }]}>
-                  {t('nutrition.photoCta')}
-                </Text>
-              </Pressable>
-            }
-          />
-          <NutritionCard
-            consumed={consumed}
-            targets={nutritionTargets}
-            meals={sortedMeals}
-            eatenMealIds={eatenMealIds}
-            eatenMealIdsWithPhotos={eatenMealIdsWithPhotos}
-            mealPhotosByMealId={mealPhotosByMealId}
-            mealNoteByMealId={mealNoteByMealId}
-            eyebrow={t('today.nutritionEyebrow', { week: plan.weekNumber })}
-            subline=""
-            dayNote={plan.dayNote}
-            onToggleEaten={handleToggleEaten}
-            onPhotoPress={handlePhotoPress}
-            onMarkAllEaten={handleMarkAllEaten}
-            isMarkAllLoading={markAllEatenMutation.isPending}
-          />
-        </View>
-      )}
-
-      {/* "No nutrition for today" — plan exists but today is not covered by a published week */}
-      {hasActivePlanButNoDayToday && (
-        <View style={styles.section}>
-          <NoDayNutritionCard planName={fullPlanQuery.data?.planName} />
-        </View>
-      )}
-
-      {/* Next-week shopping prep banner */}
+      {/* Next-week shopping prep banner — top-of-page banner under the stat
+          strip / pending banners, ahead of any plan cards below. */}
       {showShoppingBanner !== null && (
         <View style={styles.section}>
           <ShoppingPrepBanner week={showShoppingBanner} />
         </View>
       )}
+
+      {/* Training + nutrition slots.
+          Default order is training → nutrition. Swapped when today has a
+          nutrition plan but no training session, so the "no training for
+          today" placeholder sits below the actual nutrition card instead of
+          above it. The mirrored case (training today, no nutrition today)
+          already lands correctly in the default order. */}
+      {(() => {
+        const hasTrainingToday = !!training?.hasSession && todaySessions.length > 0
+        const hasNutritionToday = !!plan
+        const trainingSlot = hasTrainingToday ? (
+          <View style={styles.section} key="training">
+            <SectionHeader
+              title={t('today.todaysTraining')}
+              actionLabel={training?.planId ? t('today.sectionActionDetail') : undefined}
+              onActionPress={
+                training?.planId
+                  ? () => {
+                      router.push(
+                        hrefParams('/(client)/(tabs)/plans/[planId]', {
+                          planId: training.planId!,
+                          type: 'training',
+                        }),
+                      )
+                    }
+                  : undefined
+              }
+            />
+            <TrainingCard
+              planName={trainingPlanSubtitle || t('today.trainingPlan')}
+              sessions={todaySessions}
+              completedIdsBySession={completedIdsBySession}
+              sessionCompleteMap={sessionCompleteMap}
+              onToggleExercise={handleToggleExercise}
+              onToggleSession={handleToggleSession}
+              sessionCtaStateBySession={sessionCtaStateBySession}
+              onSessionCta={handleSessionCta}
+              exerciseMuscleGroups={training?.exerciseMuscleGroups ?? {}}
+              completedSetsBySessionExercise={trainingQuery.data?.completedSetsBySessionExercise ?? {}}
+            />
+          </View>
+        ) : hasActivePlanButNoTrainingToday ? (
+          <View style={styles.section} key="training">
+            <NoDayTrainingCard planName={training?.planName} />
+          </View>
+        ) : null
+
+        const nutritionSlot = hasNutritionToday ? (
+          <View style={styles.section} key="nutrition">
+            <SectionHeader
+              title={t('today.todaysNutrition')}
+              action={
+                <Pressable
+                  onPress={handlePhotoGridPress}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('nutrition.photoCta')}
+                  style={styles.photoCtaBtn}
+                >
+                  <View
+                    style={[
+                      styles.photoCtaIconChip,
+                      { backgroundColor: goldAlpha['12'], borderColor: goldAlpha['35'] },
+                    ]}
+                  >
+                    <Ionicons name="camera" size={13} color={colors.onGoldChip} />
+                  </View>
+                  <Text style={[styles.photoCtaLabel, { color: colors.gold }]}>
+                    {t('nutrition.photoCta')}
+                  </Text>
+                </Pressable>
+              }
+            />
+            <NutritionCard
+              consumed={consumed}
+              targets={nutritionTargets}
+              meals={sortedMeals}
+              eatenMealIds={eatenMealIds}
+              eatenMealIdsWithPhotos={eatenMealIdsWithPhotos}
+              mealPhotosByMealId={mealPhotosByMealId}
+              mealNoteByMealId={mealNoteByMealId}
+              eyebrow={t('today.nutritionEyebrow', { week: plan!.weekNumber })}
+              subline=""
+              dayNote={plan!.dayNote}
+              onToggleEaten={handleToggleEaten}
+              onPhotoPress={handlePhotoPress}
+              onMarkAllEaten={handleMarkAllEaten}
+              isMarkAllLoading={markAllEatenMutation.isPending}
+            />
+          </View>
+        ) : hasActivePlanButNoDayToday ? (
+          <View style={styles.section} key="nutrition">
+            <NoDayNutritionCard planName={fullPlanQuery.data?.planName} />
+          </View>
+        ) : null
+
+        const nutritionFirst = hasNutritionToday && !hasTrainingToday
+        return nutritionFirst
+          ? <>{nutritionSlot}{trainingSlot}</>
+          : <>{trainingSlot}{nutritionSlot}</>
+      })()}
 
       {/* Waiting for plan card */}
       {isWaitingForAnyPlan && (
