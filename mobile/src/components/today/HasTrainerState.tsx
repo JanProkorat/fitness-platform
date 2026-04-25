@@ -899,26 +899,18 @@ export function HasTrainerState() {
           <SectionHeader
             title={t('today.todaysNutrition')}
             action={
-              <View style={styles.nutritionHeaderActions}>
-                <Text style={[styles.mealsProgress, { color: colors.label2 }]}>
-                  {t('today.mealsProgress', {
-                    done: eatenMealIds.size,
-                    total: sortedMeals.length,
-                  })}
+              <Pressable
+                onPress={handlePhotoGridPress}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={t('nutrition.photoCta')}
+                style={styles.photoCtaBtn}
+              >
+                <Ionicons name="camera-outline" size={15} color={colors.gold} />
+                <Text style={[styles.photoCtaLabel, { color: colors.gold }]}>
+                  {t('nutrition.photoCta')}
                 </Text>
-                <Pressable
-                  onPress={handlePhotoGridPress}
-                  hitSlop={8}
-                  accessibilityRole="button"
-                  accessibilityLabel={t('nutrition.photoCta')}
-                  style={styles.photoCtaBtn}
-                >
-                  <Ionicons name="camera-outline" size={15} color={colors.gold} />
-                  <Text style={[styles.photoCtaLabel, { color: colors.gold }]}>
-                    {t('nutrition.photoCta')}
-                  </Text>
-                </Pressable>
-              </View>
+              </Pressable>
             }
           />
           <NutritionCard
