@@ -716,7 +716,8 @@
       "Dinner": "Abendessen",
       "PreWorkout": "Vor dem Training",
       "PostWorkout": "Nach dem Training"
-    }
+    },
+    "photoCta": "Foto"
   },
   "training": {
     "title": "Training",
@@ -861,5 +862,14 @@
     "close": "Schließen",
     "previous": "Vorherige",
     "next": "Nächste"
+  },
+  "planPhotos": {
+    "title": "Planfotos",
+    "categoryFood": "Essen",
+    "categoryProgress": "Fortschritt",
+    "categoryFree": "Frei",
+    "totalCount": "{{count}} Fotos insgesamt",
+    "empty": "Keine Fotos",
+    "addPhotoA11y": "Foto zum Plan hinzufügen"
   }
 }

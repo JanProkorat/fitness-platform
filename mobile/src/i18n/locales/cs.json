@@ -695,7 +695,8 @@
       "Dinner": "Večeře",
       "PreWorkout": "Před tréninkem",
       "PostWorkout": "Po tréninku"
-    }
+    },
+    "photoCta": "Foto"
   },
   "mealLogPhoto": {
     "photoSectionLabel": "Přidej fotky (volitelné)",
@@ -870,5 +871,14 @@
     "close": "Zavřít",
     "previous": "Předchozí",
     "next": "Další"
+  },
+  "planPhotos": {
+    "title": "Fotky z plánu",
+    "categoryFood": "Jídlo",
+    "categoryProgress": "Postup",
+    "categoryFree": "Volné",
+    "totalCount": "{{count}} fotek celkem",
+    "empty": "Žádné fotky",
+    "addPhotoA11y": "Přidat fotku do plánu"
   }
 }

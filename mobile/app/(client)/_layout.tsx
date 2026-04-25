@@ -29,6 +29,10 @@ export default function ClientLayout() {
         name="meal-log-photo"
         options={{ animation: 'slide_from_bottom', presentation: 'modal' }}
       />
+      <Stack.Screen
+        name="plan-photos"
+        options={{ animation: 'slide_from_bottom', presentation: 'modal' }}
+      />
     </Stack>
   )
 }

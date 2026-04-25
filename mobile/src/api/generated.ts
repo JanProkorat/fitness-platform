@@ -8478,6 +8478,73 @@ export class ApiClient {
     }
 
     /**
+     * Save plan-level day photos / note for today
+     * @return No Content
+     */
+    saveDayPhotosEndpoint(saveDayPhotosRequest: SaveDayPhotosRequest, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/client/nutrition/log/day/photos";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(saveDayPhotosRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSaveDayPhotosEndpoint(_response);
+        });
+    }
+
+    protected processSaveDayPhotosEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Get current week's nutrition plan
      * @return Success
      */
@@ -8655,6 +8722,66 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<GetTodayLogResponse>(null as any);
+    }
+
+    /**
+     * Get today's plan-level day log
+     * @return Success
+     */
+    getTodayDayLogEndpoint(signal?: AbortSignal): Promise<GetTodayDayLogResponse> {
+        let url_ = this.baseUrl + "/client/nutrition/log/day/today";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetTodayDayLogEndpoint(_response);
+        });
+    }
+
+    protected processGetTodayDayLogEndpoint(response: AxiosResponse): Promise<GetTodayDayLogResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetTodayDayLogResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetTodayDayLogResponse>(null as any);
     }
 
     /**
@@ -8930,6 +9057,77 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<GenerateMealPhotoUploadUrlResponse>(null as any);
+    }
+
+    /**
+     * Generate plan-level day photo upload URL
+     * @return Success
+     */
+    generateDayPhotoUploadUrlEndpoint(generateDayPhotoUploadUrlRequest: GenerateDayPhotoUploadUrlRequest, signal?: AbortSignal): Promise<GenerateDayPhotoUploadUrlResponse> {
+        let url_ = this.baseUrl + "/client/nutrition/log/day/photo-upload-url";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(generateDayPhotoUploadUrlRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGenerateDayPhotoUploadUrlEndpoint(_response);
+        });
+    }
+
+    protected processGenerateDayPhotoUploadUrlEndpoint(response: AxiosResponse): Promise<GenerateDayPhotoUploadUrlResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GenerateDayPhotoUploadUrlResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GenerateDayPhotoUploadUrlResponse>(null as any);
     }
 
     /**
@@ -13741,6 +13939,36 @@ photo only (e.g. "Side of guac added"). */
     note?: string | undefined;
 }
 
+/** Request model for saving the complete photo and note state of a day diary entry. The Photos list and Note are replaced with exactly what the client sends (replace semantics). */
+export interface SaveDayPhotosRequest {
+    /** The complete list of plan-level photos to persist on the day log.
+Replaces the existing Photos list entirely — pass an empty list to remove all photos.
+Existing URLs that are re-submitted keep their original UploadedAt timestamp;
+new URLs receive the current UTC time. */
+    photos?: DayPhotoInput[];
+    /** Optional free-text note at the day level (max 500 chars).
+When non-null, replaces the stored note (whitespace-only treated as null).
+When null, the existing note is cleared. */
+    note?: string | undefined;
+}
+
+/** A single photo input in a SaveDayPhotosRequest. */
+export interface DayPhotoInput {
+    /** The MinIO blob URL for this photo, as returned by the signed-URL upload helper. */
+    blobUrl?: string;
+    /** Optional per-photo caption (max 500 chars). */
+    note?: string | undefined;
+    /** Display category for this photo (Food / Progress / Free). */
+    category?: DayPhotoCategory;
+}
+
+/** Display category for a DayPhoto. Maps to the three chips shown in the Fotky plánu gallery (Jídlo / Postup / Volné). */
+export enum DayPhotoCategory {
+    Food = "Food",
+    Progress = "Progress",
+    Free = "Free",
+}
+
 /** Request model for logging a meal as eaten. */
 export interface LogMealEatenRequest {
     /** Optional list of MinIO blob URLs for photos attached to this meal.
@@ -13826,6 +14054,28 @@ Null when no caption was provided for this photo. */
     note?: string | undefined;
 }
 
+/** Response model for the client's day-level diary log for today. */
+export interface GetTodayDayLogResponse {
+    /** Plan-level photos attached to today's day log.
+Empty when no photos have been uploaded for today. */
+    photos?: DayPhotoDto[];
+    /** Optional day-level note. Null when none was provided. */
+    note?: string | undefined;
+}
+
+/** DTO for a single day-level photo reference in a day log response. */
+export interface DayPhotoDto {
+    /** The MinIO blob URL for this photo. */
+    blobUrl?: string;
+    /** UTC timestamp when the photo was uploaded. */
+    uploadedAt?: string;
+    /** Optional per-photo caption set by the client when saving photos.
+Null when no caption was provided for this photo. */
+    note?: string | undefined;
+    /** Display category string (Food / Progress / Free). */
+    category?: string;
+}
+
 /** Response model containing an aggregated shopping list from the nutrition plan. */
 export interface GetShoppingListResponse {
     /** Aggregated food items with total amounts needed. */
@@ -13904,6 +14154,23 @@ Always starts with diary/{mealId}/. */
 
 /** Request model for generating a pre-signed meal diary photo upload URL. */
 export interface GenerateMealPhotoUploadUrlRequest {
+    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp", "image/heic"). */
+    contentType: string;
+    /** Declared file size in bytes. Must not exceed 10 MiB. */
+    sizeBytes?: number;
+}
+
+/** Response model containing the pre-signed upload URL and the permanent blob URL for a plan-level day diary photo. */
+export interface GenerateDayPhotoUploadUrlResponse {
+    /** Time-limited pre-signed URL the client should PUT the image file to. */
+    uploadUrl?: string;
+    /** Permanent blob URL at which the photo will be accessible after a successful upload.
+Always follows the plan-photos/{planId}/{guid}.{ext} convention. */
+    blobUrl?: string;
+}
+
+/** Request model for generating a pre-signed day-level plan photo upload URL. */
+export interface GenerateDayPhotoUploadUrlRequest {
     /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp", "image/heic"). */
     contentType: string;
     /** Declared file size in bytes. Must not exceed 10 MiB. */

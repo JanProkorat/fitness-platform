@@ -1,5 +1,5 @@
 import api from './client';
-import { MealKind } from './generated';
+import { MealKind, DayPhotoCategory } from './generated';
 import type {
   NutrientTotals,
   GlobalNutritionSettings,
@@ -20,10 +20,13 @@ import type {
   GetFullPlanResponse,
   GetClientPlansResponse,
   ClientPlanItem,
+  DayPhotoInput,
+  DayPhotoDto,
+  GetTodayDayLogResponse,
 } from './generated';
 
 // Re-export generated types and enums so consumer imports (`from '@/api/nutrition'`) still work.
-export { MealKind };
+export { MealKind, DayPhotoCategory };
 export type {
   NutrientTotals,
   GlobalNutritionSettings,
@@ -44,6 +47,9 @@ export type {
   GetFullPlanResponse,
   GetClientPlansResponse,
   ClientPlanItem,
+  DayPhotoInput,
+  DayPhotoDto,
+  GetTodayDayLogResponse,
 };
 
 /**
@@ -208,5 +214,47 @@ export async function getClientPlans(status?: PlanStatus): Promise<GetClientPlan
 
 export async function getFullPlan(): Promise<GetFullPlanResponse> {
   const { data } = await api.get<GetFullPlanResponse>('/client/nutrition/plan/full');
+  return data;
+}
+
+export interface GenerateDayPhotoUploadUrlResponse {
+  uploadUrl: string;
+  blobUrl: string;
+}
+
+/**
+ * Request a signed upload URL for a day-level plan photo.
+ * Photos land in the plan-photos/{planId}/… bucket namespace.
+ */
+export async function generateDayPhotoUploadUrl(
+  contentType: string,
+  sizeBytes: number,
+): Promise<GenerateDayPhotoUploadUrlResponse> {
+  const { data } = await api.post<GenerateDayPhotoUploadUrlResponse>(
+    '/client/nutrition/log/day/photo-upload-url',
+    { contentType, sizeBytes },
+  );
+  return data;
+}
+
+export interface SaveDayPhotosOptions {
+  photos: DayPhotoInput[];
+  note?: string | null;
+}
+
+/**
+ * Replaces the day-level photo list and note on today's day log.
+ * REPLACE semantics: the backend sets Photos to exactly the submitted list.
+ * Existing URLs that are re-submitted keep their original UploadedAt timestamp.
+ */
+export async function saveDayPhotos(opts: SaveDayPhotosOptions): Promise<void> {
+  await api.post('/client/nutrition/log/day/photos', opts);
+}
+
+/**
+ * Returns today's day-log (plan-level photos and optional day note).
+ */
+export async function getTodayDayLog(): Promise<GetTodayDayLogResponse> {
+  const { data } = await api.get<GetTodayDayLogResponse>('/client/nutrition/log/day/today');
   return data;
 }

@@ -831,7 +831,8 @@
       "Dinner": "Dinner",
       "PreWorkout": "Pre-workout",
       "PostWorkout": "Post-workout"
-    }
+    },
+    "photoCta": "Photo"
   },
   "mealLogPhoto": {
     "photoSectionLabel": "Add photos (optional)",
@@ -862,5 +863,14 @@
     "close": "Close",
     "previous": "Previous",
     "next": "Next"
+  },
+  "planPhotos": {
+    "title": "Plan photos",
+    "categoryFood": "Food",
+    "categoryProgress": "Progress",
+    "categoryFree": "Free",
+    "totalCount": "{{count}} photos total",
+    "empty": "No photos",
+    "addPhotoA11y": "Add photo to plan"
   }
 }

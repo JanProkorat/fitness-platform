@@ -773,6 +773,11 @@ export function HasTrainerState() {
     markAllEatenMutation.mutate(remaining)
   }, [plan, eatenMealIds, markAllEatenMutation])
 
+  /** Navigate to the plan-photos gallery screen. */
+  const handlePhotoGridPress = useCallback(() => {
+    router.push(href('/(client)/plan-photos'))
+  }, [router])
+
   /** Navigate to the meal-log-photo modal screen for the tapped meal. */
   const handlePhotoPress = useCallback(
     (mealId: string) => {
@@ -910,6 +915,7 @@ export function HasTrainerState() {
             dayNote={plan.dayNote}
             onToggleEaten={handleToggleEaten}
             onPhotoPress={handlePhotoPress}
+            onPhotoGridPress={handlePhotoGridPress}
             onMarkAllEaten={handleMarkAllEaten}
             isMarkAllLoading={markAllEatenMutation.isPending}
           />
