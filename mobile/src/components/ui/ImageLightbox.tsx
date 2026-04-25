@@ -166,13 +166,10 @@ export function ImageLightbox({
           <Ionicons name="close" size={28} color="white" />
         </Pressable>
 
-        {/* Meal-level note — top overlay, below safe-area inset, constant across all images */}
+        {/* Meal-level note — upper third, closer to the letterboxed image top edge */}
         {trimmedMealNote ? (
           <View
-            style={[
-              styles.noteOverlayTop,
-              { top: insets.top + 60, marginHorizontal: 16 },
-            ]}
+            style={[styles.noteOverlayTop, { top: height * 0.18 }]}
             pointerEvents="none"
           >
             <Text style={styles.noteOverlayText} numberOfLines={4}>
@@ -181,13 +178,10 @@ export function ImageLightbox({
           </View>
         ) : null}
 
-        {/* Per-image note — bottom overlay, above dot indicator, updates on swipe */}
+        {/* Per-image note — lower third, closer to the letterboxed image bottom edge */}
         {currentImageNote ? (
           <View
-            style={[
-              styles.noteOverlayBottom,
-              { bottom: insets.bottom + (images.length > 1 ? 48 : 16) },
-            ]}
+            style={[styles.noteOverlayBottom, { bottom: height * 0.18 }]}
             pointerEvents="none"
           >
             <Text style={styles.noteOverlayText} numberOfLines={4}>
@@ -284,16 +278,14 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   /**
-   * Translucent pill overlay for the meal-level note (top) and per-image
-   * caption (bottom). Same visual style — same component style key, positioned
-   * differently via inline `top`/`bottom` values.
+   * Floating caption containers — no background, positioned in the upper/lower
+   * third so they sit closer to the letterboxed image edges than to the screen
+   * edges. `top`/`bottom` values are set inline via `windowHeight * 0.18`.
    */
   noteOverlayTop: {
     position: 'absolute',
     left: 16,
     right: 16,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
@@ -301,8 +293,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 16,
     right: 16,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
@@ -310,6 +300,9 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 14,
     lineHeight: 20,
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
 })
 
