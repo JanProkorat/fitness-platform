@@ -46,7 +46,7 @@ public class PlanPhoto : PublicTimestampableEntity
     /// Whether this photo belongs to a Nutrition or Training plan context.
     /// Null when <see cref="PlanId"/> is null.
     /// </summary>
-    public PlanType? PlanType { get; set; }
+    public PlanPhotoType? PlanType { get; set; }
 
     /// <summary>
     /// Stable internal link ID — currently mirrors <see cref="PlanId"/>.

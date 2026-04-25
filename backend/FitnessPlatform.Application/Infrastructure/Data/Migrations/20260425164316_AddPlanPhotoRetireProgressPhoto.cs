@@ -94,11 +94,28 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
             // will not insert duplicate rows.
             migrationBuilder.Sql(@"
 DO $$
+DECLARE
+    orphan_count bigint;
 BEGIN
     IF EXISTS (
         SELECT 1 FROM information_schema.tables
         WHERE table_schema = 'public' AND table_name = 'progress_photos'
     ) THEN
+        -- Pre-migration audit: surface any orphaned progress_photos rows whose
+        -- client_profile no longer exists. These rows will be skipped by the
+        -- INNER JOIN in the fold INSERT below and lost when progress_photos is
+        -- dropped. We surface the count via RAISE NOTICE so the DBA can act
+        -- before committing (but we do NOT abort the migration on orphans).
+        SELECT COUNT(*)
+        INTO orphan_count
+        FROM progress_photos pp
+        LEFT JOIN client_profiles cp ON cp.id = pp.client_profile_id
+        WHERE cp.id IS NULL;
+
+        IF orphan_count > 0 THEN
+            RAISE NOTICE 'Pre-migration audit: % orphaned progress_photos rows will not be folded into plan_photos. Their client_profile_id no longer exists.', orphan_count;
+        END IF;
+
         INSERT INTO plan_photos (
             client_profile_id,
             plan_id,

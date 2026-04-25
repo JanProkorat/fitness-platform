@@ -274,4 +274,94 @@ public class PlanPhotoMigrationFoldTests : IAsyncLifetime
         var count = await _db.PlanPhotos.AsNoTracking().CountAsync(ct);
         count.Should().Be(0, "no source rows means no folded rows");
     }
+
+    /// <summary>
+    /// Verifies the pre-migration orphan audit path:
+    ///
+    ///   - 1 valid progress_photos row (with a real client_profile) is folded into plan_photos.
+    ///   - 1 orphaned progress_photos row (client_profile_id references a non-existent profile)
+    ///     is NOT folded (it is silently skipped by the INNER JOIN) and does NOT appear in
+    ///     plan_photos after the migration.
+    ///   - The migration completes without throwing an exception.
+    /// </summary>
+    [Fact]
+    public async Task MigrationFold_OrphanedProgressPhotos_NotFolded_MigrationSucceeds()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        // Bring DB to the state just before our new migration
+        await GetMigrator().MigrateAsync(PreviousMigration, ct);
+
+        // Seed one valid user + client_profile + progress_photos row
+        var (validClientProfileId, _) = await CreateUserAndClientProfileAsync();
+
+        var validPhotoPublicId = Guid.NewGuid();
+        var orphanPhotoPublicId = Guid.NewGuid();
+        var takenAt = new DateTime(2025, 6, 1, 9, 0, 0, DateTimeKind.Utc);
+        var createdAt = new DateTime(2025, 6, 1, 10, 0, 0, DateTimeKind.Utc);
+
+        await SeedProgressPhotoAsync(
+            validClientProfileId, validPhotoPublicId,
+            "https://minio/progress/valid.jpg", "valid row",
+            takenAt, createdAt);
+
+        // Seed one orphaned progress_photos row whose client_profile_id does NOT exist.
+        // The FK constraint on progress_photos.client_profile_id prevents a normal INSERT,
+        // so we disable FK triggers for this session, insert the orphan, then re-enable.
+        await using (var conn = new NpgsqlConnection(_postgres.GetConnectionString()))
+        {
+            await conn.OpenAsync(ct);
+
+            // Disable FK enforcement for this session to allow the orphan insert
+            await using (var disableCmd = conn.CreateCommand())
+            {
+                disableCmd.CommandText = "SET session_replication_role = replica;";
+                await disableCmd.ExecuteNonQueryAsync(ct);
+            }
+
+            await using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = @"
+                    INSERT INTO progress_photos
+                        (client_profile_id, public_id, blob_url, description, taken_at, date_created)
+                    VALUES
+                        (@clientProfileId, @publicId, @blobUrl, @description, @takenAt, @dateCreated)";
+                cmd.Parameters.AddWithValue("clientProfileId", 999999999L); // does not exist
+                cmd.Parameters.AddWithValue("publicId", orphanPhotoPublicId);
+                cmd.Parameters.AddWithValue("blobUrl", "https://minio/progress/orphan.jpg");
+                cmd.Parameters.AddWithValue("description", "orphaned row");
+                cmd.Parameters.AddWithValue("takenAt", takenAt.AddDays(1));
+                cmd.Parameters.AddWithValue("dateCreated", createdAt.AddDays(1));
+                await cmd.ExecuteNonQueryAsync(ct);
+            }
+
+            // Re-enable FK enforcement
+            await using (var enableCmd = conn.CreateCommand())
+            {
+                enableCmd.CommandText = "SET session_replication_role = DEFAULT;";
+                await enableCmd.ExecuteNonQueryAsync(ct);
+            }
+        }
+
+        // Apply the migration — must complete without exception even with the orphan present
+        var applyAct = async () => await GetMigrator().MigrateAsync(NewMigration, ct);
+        await applyAct.Should().NotThrowAsync(
+            "the migration must succeed even when orphaned progress_photos rows exist");
+
+        await RebuildContextAsync();
+
+        // The valid photo must be folded into plan_photos
+        var validPhotoInPlanPhotos = await _db.PlanPhotos
+            .AsNoTracking()
+            .AnyAsync(p => p.PublicId == validPhotoPublicId, ct);
+        validPhotoInPlanPhotos.Should().BeTrue(
+            "the valid progress_photos row must be folded into plan_photos");
+
+        // The orphaned photo must NOT appear in plan_photos (skipped by INNER JOIN)
+        var orphanPhotoInPlanPhotos = await _db.PlanPhotos
+            .AsNoTracking()
+            .AnyAsync(p => p.PublicId == orphanPhotoPublicId, ct);
+        orphanPhotoInPlanPhotos.Should().BeFalse(
+            "the orphaned progress_photos row has no matching client_profile and must be silently skipped");
+    }
 }
