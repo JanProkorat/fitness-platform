@@ -1,14 +1,12 @@
 import React, { useState, useCallback } from 'react'
-import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { View, StyleSheet } from 'react-native'
 import { useTheme } from '@/hooks/useTheme'
 import { Radius } from '@/constants/radius'
-import { Type } from '@/constants/typography'
 import { NutritionCardHero } from '@/components/nutrition/NutritionCardHero'
 import { MealRow } from '@/components/nutrition/MealRow'
 import { NoteBanner } from '@/components/ui/NoteBanner'
 import { GoldButton } from '@/components/ui/GoldButton'
 import { useTranslation } from 'react-i18next'
-import { Ionicons } from '@expo/vector-icons'
 import type { NutrientTotals, PlanMeal } from '@/api/nutrition'
 
 interface NutritionCardProps {
@@ -36,11 +34,6 @@ interface NutritionCardProps {
    * Only shown on un-eaten meals (post-log state uses the photo indicator instead).
    */
   onPhotoPress?: (mealId: string) => void
-  /**
-   * Called when the user taps the "📷 Foto" header button.
-   * Navigates to the plan-photos gallery screen.
-   */
-  onPhotoGridPress?: () => void
   /**
    * Set of meal IDs that already have at least one diary photo in the log.
    * Used to render the small photo indicator on eaten rows.
@@ -85,7 +78,6 @@ export function NutritionCard({
   dayNote,
   onToggleEaten,
   onPhotoPress,
-  onPhotoGridPress,
   eatenMealIdsWithPhotos,
   onMarkAllEaten,
   isMarkAllLoading,
@@ -111,27 +103,6 @@ export function NutritionCard({
 
   return (
     <View style={[styles.card, { backgroundColor: colors.bg2 }]}>
-      {/* ── Card header row: title + Foto action button ── */}
-      <View style={styles.cardHeader}>
-        <Text style={[styles.cardTitle, { color: colors.label }]} numberOfLines={1}>
-          {t('today.todaysNutrition')}
-        </Text>
-        {onPhotoGridPress ? (
-          <Pressable
-            onPress={onPhotoGridPress}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel={t('nutrition.photoCta')}
-            style={styles.photoCtaBtn}
-          >
-            <Ionicons name="camera-outline" size={15} color={colors.gold} />
-            <Text style={[styles.photoCtaLabel, { color: colors.gold }]}>
-              {t('nutrition.photoCta')}
-            </Text>
-          </Pressable>
-        ) : null}
-      </View>
-
       <NutritionCardHero
         eyebrow={eyebrow}
         consumedKcal={consumed.kcal ?? 0}
@@ -195,30 +166,6 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
     overflow: 'hidden',
     marginHorizontal: 16,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 10,
-  },
-  cardTitle: {
-    ...Type.title3,
-    flex: 1,
-    minWidth: 0,
-  },
-  photoCtaBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginLeft: 8,
-    flexShrink: 0,
-  },
-  photoCtaLabel: {
-    ...Type.subheadline,
-    fontWeight: '600',
   },
   meals: {
     paddingHorizontal: 16,

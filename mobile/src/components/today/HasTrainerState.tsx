@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo } from 'react'
-import { View, Text, StyleSheet } from 'react-native'
+import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -897,10 +898,28 @@ export function HasTrainerState() {
         <View style={styles.section}>
           <SectionHeader
             title={t('today.todaysNutrition')}
-            actionLabel={t('today.mealsProgress', {
-              done: eatenMealIds.size,
-              total: sortedMeals.length,
-            })}
+            action={
+              <View style={styles.nutritionHeaderActions}>
+                <Text style={[styles.mealsProgress, { color: colors.label2 }]}>
+                  {t('today.mealsProgress', {
+                    done: eatenMealIds.size,
+                    total: sortedMeals.length,
+                  })}
+                </Text>
+                <Pressable
+                  onPress={handlePhotoGridPress}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('nutrition.photoCta')}
+                  style={styles.photoCtaBtn}
+                >
+                  <Ionicons name="camera-outline" size={15} color={colors.gold} />
+                  <Text style={[styles.photoCtaLabel, { color: colors.gold }]}>
+                    {t('nutrition.photoCta')}
+                  </Text>
+                </Pressable>
+              </View>
+            }
           />
           <NutritionCard
             consumed={consumed}
@@ -915,7 +934,6 @@ export function HasTrainerState() {
             dayNote={plan.dayNote}
             onToggleEaten={handleToggleEaten}
             onPhotoPress={handlePhotoPress}
-            onPhotoGridPress={handlePhotoGridPress}
             onMarkAllEaten={handleMarkAllEaten}
             isMarkAllLoading={markAllEatenMutation.isPending}
           />
@@ -962,5 +980,22 @@ const styles = StyleSheet.create({
   },
   section: {
     marginTop: 24,
+  },
+  nutritionHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  mealsProgress: {
+    ...Type.footnote,
+  },
+  photoCtaBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  photoCtaLabel: {
+    ...Type.footnote,
+    fontWeight: '600',
   },
 })
