@@ -346,19 +346,20 @@ const styles = StyleSheet.create({
   // Category chips
   chipsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    paddingHorizontal: 20,
+    gap: 6,
+    paddingHorizontal: 12,
     paddingTop: 12,
     paddingBottom: 12,
   },
   chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    flex: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
     borderRadius: 99,
+    alignItems: 'center',
   },
   chipLabel: {
-    ...Type.footnote,
+    ...Type.caption1,
     fontWeight: '500',
   },
   chipLabelActive: {
