@@ -21,7 +21,7 @@ import Animated, {
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router'
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs'
+
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
 import { useTranslation } from 'react-i18next'
@@ -175,7 +175,6 @@ function NutritionPlanDetail({ plan }: { plan: FullPlanResponse }) {
   const scrollRef = useRef<ScrollView>(null)
   const queryClient = useQueryClient()
   const router = useRouter()
-  const tabBarHeight = useBottomTabBarHeight()
 
   // ── State ──
   const [selectedWeek, setSelectedWeek] = useState<number | null>(null)
@@ -183,6 +182,7 @@ function NutritionPlanDetail({ plan }: { plan: FullPlanResponse }) {
   const [expandedMap, setExpandedMap] = useState<Record<string, Set<string>>>({})
   const [weekGridVisible, setWeekGridVisible] = useState(false)
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   const effectiveWeek = selectedWeek ?? plan.currentWeek ?? 1
   const effectiveDay = selectedDay ?? plan.currentDayOfWeek ?? 1
@@ -451,23 +451,14 @@ function NutritionPlanDetail({ plan }: { plan: FullPlanResponse }) {
           </Text>
         </TouchableOpacity>
 
-        {plan.questionnaireResponseId && (
-          <Pressable
-            onPress={() => setSheetOpen(true)}
-            hitSlop={12}
-            style={[styles.nutritionQuestionnaireBtn, { backgroundColor: colors.fill }]}
-          >
-            <Ionicons name="clipboard-outline" size={20} color={colors.label} />
-          </Pressable>
-        )}
         <Pressable
-          onPress={() =>
-            router.push(hrefParams('/(client)/plans/shopping', { week: String(effectiveWeek) }))
-          }
+          onPress={() => setMenuOpen(true)}
           hitSlop={12}
-          style={[styles.nutritionShoppingBtn, { backgroundColor: colors.fill }]}
+          accessibilityRole="button"
+          accessibilityLabel={t('planDetail.menuA11y')}
+          style={[styles.nutritionMenuBtn, { backgroundColor: colors.fill }]}
         >
-          <Ionicons name="basket-outline" size={20} color={colors.label} />
+          <Ionicons name="ellipsis-horizontal" size={22} color={colors.label} />
         </Pressable>
       </View>
 
@@ -719,18 +710,52 @@ function NutritionPlanDetail({ plan }: { plan: FullPlanResponse }) {
         </ScrollView>
       </BottomSheet>
 
-      {/* ── Plan photos FAB (nutrition only) ── */}
-      <Pressable
-        onPress={() => router.push('/(client)/plan-photos')}
-        accessibilityRole="button"
-        accessibilityLabel={t('planPhotos.openA11y')}
-        style={[
-          styles.planPhotosFab,
-          { backgroundColor: colors.gold, bottom: 20 + tabBarHeight },
-        ]}
+      {/* ── Actions menu bottom sheet ── */}
+      <BottomSheet
+        visible={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        title={t('common.options')}
+        heightFraction={0.35}
       >
-        <Ionicons name="camera" size={22} color="#000" />
-      </Pressable>
+        <View style={styles.menuList}>
+          <Pressable
+            style={styles.menuRow}
+            onPress={() => {
+              setMenuOpen(false)
+              router.push(hrefParams('/(client)/plans/shopping', { week: String(effectiveWeek) }))
+            }}
+          >
+            <Ionicons name="cart-outline" size={22} color={colors.label} />
+            <Text style={[Type.body, { color: colors.label }]}>{t('nutrition.shoppingList')}</Text>
+          </Pressable>
+          <View style={[styles.menuSeparator, { backgroundColor: colors.sep2 }]} />
+          {plan.questionnaireResponseId && (
+            <>
+              <Pressable
+                style={styles.menuRow}
+                onPress={() => {
+                  setMenuOpen(false)
+                  setSheetOpen(true)
+                }}
+              >
+                <Ionicons name="clipboard-outline" size={22} color={colors.label} />
+                <Text style={[Type.body, { color: colors.label }]}>{t('planDetail.linkedQuestionnaire')}</Text>
+              </Pressable>
+              <View style={[styles.menuSeparator, { backgroundColor: colors.sep2 }]} />
+            </>
+          )}
+          <Pressable
+            style={styles.menuRow}
+            onPress={() => {
+              setMenuOpen(false)
+              router.push('/(client)/plan-photos')
+            }}
+          >
+            <Ionicons name="images-outline" size={22} color={colors.label} />
+            <Text style={[Type.body, { color: colors.label }]}>{t('planPhotos.title')}</Text>
+          </Pressable>
+        </View>
+      </BottomSheet>
     </View>
   )
 }
@@ -1012,7 +1037,7 @@ function TrainingPlanDetail({ plan }: { plan: FullTrainingPlanResponse }) {
           <Pressable
             onPress={() => setTrainingSheetOpen(true)}
             hitSlop={12}
-            style={[styles.nutritionQuestionnaireBtn, { backgroundColor: colors.fill }]}
+            style={[styles.nutritionMenuBtn, { backgroundColor: colors.fill }]}
           >
             <Ionicons name="clipboard-outline" size={20} color={colors.label} />
           </Pressable>
@@ -1413,18 +1438,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 2,
   },
-  nutritionQuestionnaireBtn: {
-    position: 'absolute',
-    right: 60,
-    top: '50%',
-    marginTop: -18,
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  nutritionShoppingBtn: {
+  nutritionMenuBtn: {
     position: 'absolute',
     right: 16,
     top: '50%',
@@ -1619,20 +1633,20 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
 
-  // Plan photos FAB
-  planPhotosFab: {
-    position: 'absolute',
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  // Actions menu sheet
+  menuList: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  menuRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 6,
+    gap: 14,
+    paddingVertical: 14,
+  },
+  menuSeparator: {
+    height: StyleSheet.hairlineWidth,
   },
 
   // Questionnaire sheet

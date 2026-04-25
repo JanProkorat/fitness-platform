@@ -182,7 +182,8 @@
   "common": {
     "back": "Zurück",
     "cancel": "Abbrechen",
-    "error": "Fehler"
+    "error": "Fehler",
+    "options": "Optionen"
   },
   "imagePicker": {
     "sourceTitle": "Quelle auswählen",
@@ -429,7 +430,8 @@
   },
   "planDetail": {
     "linkedQuestionnaire": "Verknüpfter Fragebogen",
-    "answersNotAvailable": "Antworten sind noch nicht verfügbar."
+    "answersNotAvailable": "Antworten sind noch nicht verfügbar.",
+    "menuA11y": "Menü öffnen"
   },
   "profile": {
     "title": "Profil",
@@ -670,6 +672,7 @@
     "dailyAverage": "Tagesdurchschnitt",
     "weekTotal": "Wochensumme",
     "shopping": "Einkaufsliste",
+    "shoppingList": "Einkaufsliste",
     "kcal": "kcal",
     "protein": "Eiweiß",
     "carbs": "Kohlenhydrate",

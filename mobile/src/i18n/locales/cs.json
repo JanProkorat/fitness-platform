@@ -182,7 +182,8 @@
   "common": {
     "back": "Zpět",
     "cancel": "Zrušit",
-    "error": "Chyba"
+    "error": "Chyba",
+    "options": "Možnosti"
   },
   "imagePicker": {
     "sourceTitle": "Vyberte zdroj",
@@ -436,7 +437,8 @@
   },
   "planDetail": {
     "linkedQuestionnaire": "Propojený dotazník",
-    "answersNotAvailable": "Odpovědi zatím nejsou k dispozici."
+    "answersNotAvailable": "Odpovědi zatím nejsou k dispozici.",
+    "menuA11y": "Otevřít nabídku"
   },
   "profile": {
     "title": "Profil",
@@ -649,6 +651,7 @@
     "dailyAverage": "Denní průměr",
     "weekTotal": "Týdenní součet",
     "shopping": "Nákupní seznam",
+    "shoppingList": "Nákupní seznam",
     "kcal": "kcal",
     "protein": "Bílkoviny",
     "carbs": "Sacharidy",
