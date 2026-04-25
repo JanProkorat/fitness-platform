@@ -26,7 +26,7 @@ export function SessionChip({ label, active, onPress }: SessionChipProps) {
       <Text
         style={[
           styles.label,
-          { color: active ? '#000' : colors.label2 },
+          { color: active ? colors.onGoldChip : colors.label2 },
         ]}
         numberOfLines={1}
       >

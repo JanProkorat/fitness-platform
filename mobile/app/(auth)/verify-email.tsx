@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/stores/auth';
 import { useTheme } from '@/hooks/useTheme';
+import { Colors } from '@/constants/colors';
 import { resendVerification } from '@/api/verification';
 import { connect, onEvent, disconnect } from '@/api/signalr';
 
@@ -224,7 +225,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
     letterSpacing: 2,
-    color: '#000',
+    color: Colors.light.onGoldChip,
     textTransform: 'uppercase',
   },
   secondaryBtn: {

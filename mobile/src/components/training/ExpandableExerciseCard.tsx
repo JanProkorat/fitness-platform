@@ -9,6 +9,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated'
 import { useTheme } from '@/hooks/useTheme'
+import { Colors } from '@/constants/colors'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
 
@@ -210,7 +211,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
+        shadowColor: Colors.dark.shadow,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.04,
         shadowRadius: 4,

@@ -1,3 +1,13 @@
+/**
+ * Brand colors that don't shift with the active theme. Use these in
+ * module-scope constants and hand-written data maps where `useTheme()`
+ * isn't reachable. Inside React components, prefer `useTheme().gold`
+ * (which has the same value).
+ */
+export const Brand = {
+  gold: '#c9a84c',
+} as const
+
 /** Shared gold alpha values used across components */
 export const goldAlpha = {
   '04': 'rgba(201,168,76,0.04)',
@@ -40,7 +50,7 @@ const light = {
   purple: '#af52de',
 
   // Brand
-  gold: '#c9a84c',
+  gold: Brand.gold,
   goldBg: 'rgba(201,168,76,0.10)',
 
   // Static (constant regardless of theme)
@@ -52,6 +62,8 @@ const light = {
   /** Foreground for content on the gold-tinted chip backgrounds — stays black
    *  in both light and dark themes because the chip itself is mid-luminance. */
   onGoldChip: '#000000',
+  /** Conventional iOS shadowColor — same value in both themes. */
+  shadow: '#000000',
 
   // Macros — match the system colours used in the NutritionCardHero chips
   macroProtein: '#007aff',  // blue
@@ -81,7 +93,7 @@ const dark = {
   orange: '#ff9f0a',
   purple: '#bf5af2',
 
-  gold: '#c9a84c',
+  gold: Brand.gold,
   goldBg: 'rgba(201,168,76,0.15)',
 
   // Static (constant regardless of theme)
@@ -93,6 +105,8 @@ const dark = {
   /** Foreground for content on the gold-tinted chip backgrounds — stays black
    *  in both light and dark themes because the chip itself is mid-luminance. */
   onGoldChip: '#000000',
+  /** Conventional iOS shadowColor — same value in both themes. */
+  shadow: '#000000',
 
   // Macros — match the system colours used in the NutritionCardHero chips
   macroProtein: '#0a84ff',  // blue
@@ -125,6 +139,7 @@ export interface ColorScheme {
   readonly nutritionHeroEnd: string
   readonly systemGray: string
   readonly onGoldChip: string
+  readonly shadow: string
   readonly macroProtein: string
   readonly macroCarbs: string
   readonly macroFat: string

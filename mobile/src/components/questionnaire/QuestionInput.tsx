@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/hooks/useTheme'
+import { Colors } from '@/constants/colors'
 import { Radius } from '@/constants/radius'
 import { useTranslation } from 'react-i18next'
 import { RadioGroup } from './RadioGroup'
@@ -290,13 +291,13 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md, borderWidth: 1.5,
     paddingHorizontal: 16, paddingVertical: 14,
     fontSize: 17, fontFamily: 'System', minHeight: 48,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3,
+    shadowColor: Colors.dark.shadow, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3,
   },
   numberWrap: {
     flexDirection: 'row', alignItems: 'center',
     borderRadius: Radius.md, borderWidth: 1.5,
     paddingHorizontal: 16, minHeight: 48,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3,
+    shadowColor: Colors.dark.shadow, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3,
   },
   numberInput: { flex: 1, fontSize: 17, paddingVertical: 14 },
   numberUnit: { fontSize: 15, marginLeft: 4 },
@@ -304,7 +305,7 @@ const styles = StyleSheet.create({
   choiceRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     padding: 14, paddingHorizontal: 18, borderRadius: Radius.md, borderWidth: 1.5,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3,
+    shadowColor: Colors.dark.shadow, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3,
   },
   choiceText: { fontSize: 16, flex: 1 },
   choiceCheck: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },

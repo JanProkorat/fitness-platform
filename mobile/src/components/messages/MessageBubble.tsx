@@ -52,7 +52,7 @@ export const MessageBubble = React.memo(function MessageBubble({
                     backgroundColor: colors.bg2,
                     ...Platform.select({
                       ios: {
-                        shadowColor: '#000',
+                        shadowColor: colors.shadow,
                         shadowOffset: { width: 0, height: 1 },
                         shadowOpacity: 0.06,
                         shadowRadius: 2,

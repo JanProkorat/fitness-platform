@@ -22,6 +22,7 @@ import { hrefParams } from '@/lib/navigation'
 import { Ionicons } from '@expo/vector-icons'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
+import { Colors } from '@/constants/colors'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
 import type { MealRecipe, RecipeDetail, MealFood } from '@/api/nutrition'
@@ -712,7 +713,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderRadius: Radius.lg,
     padding: 16,
-    shadowColor: '#000',
+    shadowColor: Colors.dark.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 6,

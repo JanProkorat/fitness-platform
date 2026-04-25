@@ -295,7 +295,7 @@ export default function ProfessionalProfileScreen() {
                 disabled={requestMutation.isPending}
               >
                 {requestMutation.isPending ? (
-                  <ActivityIndicator size="small" color="#000" />
+                  <ActivityIndicator size="small" color={colors.onGoldChip} />
                 ) : (
                   <Text style={styles.modalSendText}>Odeslat</Text>
                 )}
@@ -509,7 +509,7 @@ const getStyles = (colors: ReturnType<typeof useTheme>) =>
     actionButtonText: {
       fontSize: 15,
       fontWeight: '700',
-      color: '#000',
+      color: colors.onGoldChip,
     },
     actionButtonDisabled: {
       backgroundColor: colors.bg2,
@@ -598,6 +598,6 @@ const getStyles = (colors: ReturnType<typeof useTheme>) =>
     modalSendText: {
       fontSize: 14,
       fontWeight: '700',
-      color: '#000',
+      color: colors.onGoldChip,
     },
   });
