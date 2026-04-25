@@ -72,7 +72,7 @@ public class ClientProfile : PublicTimestampableEntity
     public ICollection<BodyMeasurement> BodyMeasurements { get; set; } = [];
 
     /// <summary>
-    /// Collection of progress photos uploaded for this client.
+    /// Collection of plan-scoped photos uploaded for this client (body, food, free-form).
     /// </summary>
-    public ICollection<ProgressPhoto> ProgressPhotos { get; set; } = [];
+    public ICollection<PlanPhoto> PlanPhotos { get; set; } = [];
 }

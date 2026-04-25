@@ -65,10 +65,10 @@ public class DeleteAccountEndpoint(
                 .ToListAsync(ct);
             db.BodyMeasurements.RemoveRange(measurements);
 
-            var photos = await db.ProgressPhotos
+            var photos = await db.PlanPhotos
                 .Where(pp => pp.ClientProfileId == clientProfile.Id)
                 .ToListAsync(ct);
-            db.ProgressPhotos.RemoveRange(photos);
+            db.PlanPhotos.RemoveRange(photos);
 
             var clientLinks = await db.ClientProfessionalLinks
                 .Where(cpl => cpl.ClientProfileId == clientProfile.Id)

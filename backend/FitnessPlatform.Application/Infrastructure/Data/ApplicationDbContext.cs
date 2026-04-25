@@ -38,9 +38,10 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public virtual DbSet<BodyMeasurement> BodyMeasurements { get; set; } = null!;
 
     /// <summary>
-    /// Progress photos.
+    /// Plan-scoped photos (body progress, food, and free-form).
+    /// Replaces the retired ProgressPhoto entity.
     /// </summary>
-    public virtual DbSet<ProgressPhoto> ProgressPhotos { get; set; } = null!;
+    public virtual DbSet<PlanPhoto> PlanPhotos { get; set; } = null!;
 
     /// <summary>
     /// Refresh tokens for JWT authentication.
@@ -223,6 +224,25 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 .WithMany()
                 .HasForeignKey(c => c.ProfessionalUserId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<PlanPhoto>(e =>
+        {
+            e.Property(p => p.Category).HasConversion<string>();
+            e.Property(p => p.PlanType).HasConversion<string>();
+
+            e.HasOne(p => p.ClientProfile)
+                .WithMany(cp => cp.PlanPhotos)
+                .HasForeignKey(p => p.ClientProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(p => p.UploadedByUser)
+                .WithMany()
+                .HasForeignKey(p => p.UploadedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasIndex(p => new { p.ClientProfileId, p.Category });
+            e.HasIndex(p => p.PlanId);
         });
 
         builder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);

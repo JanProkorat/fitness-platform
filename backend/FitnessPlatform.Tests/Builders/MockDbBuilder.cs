@@ -17,7 +17,7 @@ public class MockDbBuilder
     private readonly List<RefreshToken> _refreshTokens = [];
     private readonly List<InvitationToken> _invitationTokens = [];
     private readonly List<BodyMeasurement> _bodyMeasurements = [];
-    private readonly List<ProgressPhoto> _progressPhotos = [];
+    private readonly List<PlanPhoto> _planPhotos = [];
     private readonly List<ClientOnboardingData> _clientOnboardingData = [];
     private readonly List<PendingInvite> _pendingInvites = [];
     private readonly List<ClientRequest> _clientRequests = [];
@@ -63,9 +63,9 @@ public class MockDbBuilder
     public MockDbBuilder With(BodyMeasurement measurement) { _bodyMeasurements.Add(measurement); return this; }
 
     /// <summary>
-    /// Adds a <see cref="ProgressPhoto"/> to the mock context.
+    /// Adds a <see cref="PlanPhoto"/> to the mock context.
     /// </summary>
-    public MockDbBuilder With(ProgressPhoto photo) { _progressPhotos.Add(photo); return this; }
+    public MockDbBuilder With(PlanPhoto photo) { _planPhotos.Add(photo); return this; }
 
     /// <summary>
     /// Adds a <see cref="ClientOnboardingData"/> to the mock context.
@@ -111,7 +111,7 @@ public class MockDbBuilder
         var refreshTokensSet = _refreshTokens.BuildMockDbSet();
         var invitationTokensSet = _invitationTokens.BuildMockDbSet();
         var bodyMeasurementsSet = _bodyMeasurements.BuildMockDbSet();
-        var progressPhotosSet = _progressPhotos.BuildMockDbSet();
+        var planPhotosSet = _planPhotos.BuildMockDbSet();
         var clientOnboardingDataSet = _clientOnboardingData.BuildMockDbSet();
         var pendingInvitesSet = _pendingInvites.BuildMockDbSet();
         var clientRequestsSet = _clientRequests.BuildMockDbSet();
@@ -130,7 +130,7 @@ public class MockDbBuilder
         db.RefreshTokens.Returns(refreshTokensSet);
         db.InvitationTokens.Returns(invitationTokensSet);
         db.BodyMeasurements.Returns(bodyMeasurementsSet);
-        db.ProgressPhotos.Returns(progressPhotosSet);
+        db.PlanPhotos.Returns(planPhotosSet);
         db.ClientOnboardingData.Returns(clientOnboardingDataSet);
         db.PendingInvites.Returns(pendingInvitesSet);
         db.ClientRequests.Returns(clientRequestsSet);
