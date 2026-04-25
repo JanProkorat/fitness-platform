@@ -329,7 +329,8 @@
       "finished": "Dokončeno",
       "startError": "Trénink se nepodařilo spustit. Zkus to znovu."
     },
-    "noNutritionPlanForToday": "Na dnes nemáte naplánovaný jídelníček"
+    "noNutritionPlanForToday": "Na dnes nemáte naplánovaný jídelníček",
+    "noTrainingForToday": "Na dnes nemáte naplánovaný trénink"
   },
   "questionnaire": {
     "allDone": "Hotovo!",
@@ -377,6 +378,7 @@
   "messages": {
     "title": "Zprávy",
     "search": "Hledat",
+    "inputPlaceholder": "Zpráva",
     "noConversations": "Žádné konverzace nenalezeny",
     "noMessages": "Zatím žádné zprávy",
     "archived": "Archivováno",

@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { View, TextInput, Pressable, StyleSheet } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
+import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
 
 interface ChatInputBarProps {
@@ -12,6 +13,7 @@ interface ChatInputBarProps {
 
 export function ChatInputBar({ onSend, onAttachPress, onTyping }: ChatInputBarProps) {
   const colors = useTheme()
+  const { t } = useTranslation()
   const insets = useSafeAreaInsets()
   const [text, setText] = useState('')
 
@@ -59,7 +61,7 @@ export function ChatInputBar({ onSend, onAttachPress, onTyping }: ChatInputBarPr
         >
           <TextInput
             style={[styles.input, { color: colors.label }]}
-            placeholder="Message"
+            placeholder={t('messages.inputPlaceholder')}
             placeholderTextColor={colors.label3}
             value={text}
             onChangeText={handleChangeText}

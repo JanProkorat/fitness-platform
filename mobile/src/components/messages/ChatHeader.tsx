@@ -1,6 +1,7 @@
 import React from 'react'
 import { View, Text, Pressable, StyleSheet } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
 import { Avatar } from '@/components/ui/Avatar'
 import type { ParticipantDto } from '../../api/generated'
@@ -13,6 +14,7 @@ interface ChatHeaderProps {
 
 export function ChatHeader({ participant, onBack, onInfoPress }: ChatHeaderProps) {
   const colors = useTheme()
+  const { t } = useTranslation()
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
@@ -20,7 +22,7 @@ export function ChatHeader({ participant, onBack, onInfoPress }: ChatHeaderProps
         {/* Left: Back button */}
         <Pressable onPress={onBack} hitSlop={8} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={28} color={colors.gold} />
-          <Text style={{ fontSize: 16, color: colors.gold, marginLeft: 2 }}>Messages</Text>
+          <Text style={{ fontSize: 16, color: colors.gold, marginLeft: 2 }}>{t('messages.title')}</Text>
         </Pressable>
 
         {/* Center: Avatar + name + status — stacked vertically */}
@@ -37,7 +39,7 @@ export function ChatHeader({ participant, onBack, onInfoPress }: ChatHeaderProps
         {/* Right: Action buttons in circles */}
         <View style={styles.rightActions}>
           <Pressable onPress={onInfoPress} style={[styles.actionBtn, { backgroundColor: colors.fill }]}>
-            <Ionicons name="information-circle-outline" size={16} color={colors.blue} />
+            <Ionicons name="information-circle-outline" size={16} color={colors.gold} />
           </Pressable>
         </View>
       </View>

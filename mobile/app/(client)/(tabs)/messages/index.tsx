@@ -75,7 +75,7 @@ export default function MessagesScreen() {
         <View style={styles.header}>
           <Text style={[Type.largeTitle, { color: colors.label }]}>{t('messages.title')}</Text>
           <Pressable style={[styles.composeBtn, { backgroundColor: colors.fill }]}>
-            <Ionicons name="create-outline" size={18} color={colors.blue} />
+            <Ionicons name="create-outline" size={18} color={colors.gold} />
           </Pressable>
         </View>
 
@@ -152,10 +152,10 @@ export default function MessagesScreen() {
               style={styles.archivedLink}
               onPress={() => router.push(href('/(client)/messages/archived'))}
             >
-              <Text style={[styles.archivedText, { color: colors.blue }]}>
+              <Text style={[styles.archivedText, { color: colors.gold }]}>
                 {t('messages.archivedConversations')}
               </Text>
-              <Ionicons name="chevron-forward" size={14} color={colors.blue} />
+              <Ionicons name="chevron-forward" size={14} color={colors.gold} />
             </Pressable>
           </ScrollView>
         )}
