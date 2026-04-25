@@ -897,6 +897,17 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
         </div>
       </div>
 
+      <!-- ShoppingPrepBanner — rendered directly under stat strip, ahead of plan cards.
+           Shown on Fri/Sat/Sun when the next week is published. "Připravte se na další týden" -->
+      <div style="margin:12px 20px 0;display:flex;align-items:center;gap:12px;background:rgba(52,199,89,.08);border:1px solid rgba(52,199,89,.22);border-radius:var(--ios-r);padding:14px 16px">
+        <div style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#34c759,#28a745);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🛒</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:15px;font-weight:600;color:var(--ios-label);letter-spacing:-.2px">Připravte se na další týden</div>
+          <div style="font-size:12px;color:var(--ios-label2);margin-top:2px">Váš plán na další týden je připraven. Nakupte si potřebné ingredience.</div>
+        </div>
+        <div onclick="showPhone('ph-nutrition-plan-detail')" style="padding:8px 14px;border-radius:99px;background:var(--ios-green);font-size:13px;font-weight:600;color:#fff;cursor:pointer;white-space:nowrap;flex-shrink:0">Zobrazit nákupní seznam</div>
+      </div>
+
       <!-- Pending questionnaires banner -->
       <div onclick="showPhone('ph-pending-questionnaires')" style="margin:12px 20px 0;display:flex;align-items:center;gap:10px;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.25);border-radius:var(--ios-r);padding:12px 14px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(201,168,76,.18)'" onmouseout="this.style.background='rgba(201,168,76,.1)'">
         <div style="font-size:22px;flex-shrink:0">📋</div>
@@ -1213,8 +1224,12 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
       <div id="today-nutrition-block">
       <div class="ios-section-hdr">
         <div class="ios-section-title">Dnešní jídelníček</div>
-        <div style="display:flex;gap:14px;align-items:center">
-          <span class="ios-section-action" style="display:inline-flex;align-items:center;gap:4px;color:var(--ios-gold)" onclick="showPhone('ph-plan-photos')">📷 Foto</span>
+        <div style="display:flex;gap:10px;align-items:center">
+          <!-- photoCta: camera chip + label, navigates to plan-photos gallery (nutrition.photoCta = "Foto") -->
+          <span onclick="showPhone('ph-plan-photos')" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">
+            <span style="width:22px;height:22px;border-radius:11px;background:rgba(201,168,76,.12);border:1.5px solid rgba(201,168,76,.35);display:inline-flex;align-items:center;justify-content:center;font-size:11px">📷</span>
+            <span style="font-size:12px;font-weight:600;color:var(--ios-gold)">Foto</span>
+          </span>
           <span class="ios-section-action" onclick="showPhone('ph-nutrition-plan-detail')">Detail</span>
         </div>
       </div>
@@ -1257,6 +1272,10 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
                 <div class="ex-ios-name">Snídaně</div>
                 <div class="ex-ios-sets">08:00 · 431 kcal · 3 položky</div>
               </div>
+              <!-- Photo indicator badge — small 18×18 gold camera shown when meal is eaten AND has diary photos.
+                   Tapping opens the per-meal lightbox (mealLogPhoto.openPhotosA11y). -->
+              <div style="width:18px;height:18px;border-radius:9px;background:rgba(201,168,76,.12);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:9px;flex-shrink:0;margin-right:6px" onclick="event.stopPropagation();showPhone('ph-plan-photos')" title="Otevřít fotky jídla">📷</div>
+              <!-- Gold camera button (28×28) — shown ALSO on eaten rows so clients can add photos retroactively -->
               <div style="width:28px;height:28px;border-radius:50%;background:rgba(201,168,76,.12);border:1.5px solid rgba(201,168,76,.35);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;flex-shrink:0;margin-right:6px" onclick="event.stopPropagation();showPhone('ph-meal-log-photo')" title="Přidat fotku">📷</div>
               <div class="ex-ios-done done" onclick="event.stopPropagation();todayMealCheck(this)">✓</div>
               <span class="meal-chev">▼</span>
@@ -1278,6 +1297,9 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
                 <div class="ex-ios-name">Oběd</div>
                 <div class="ex-ios-sets">12:30 · 540 kcal · 3 položky</div>
               </div>
+              <!-- Photo indicator badge — small 18×18 (has photos) -->
+              <div style="width:18px;height:18px;border-radius:9px;background:rgba(201,168,76,.12);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:9px;flex-shrink:0;margin-right:6px" onclick="event.stopPropagation();showPhone('ph-plan-photos')" title="Otevřít fotky jídla">📷</div>
+              <!-- Gold camera button (28×28) -->
               <div style="width:28px;height:28px;border-radius:50%;background:rgba(201,168,76,.12);border:1.5px solid rgba(201,168,76,.35);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;flex-shrink:0;margin-right:6px" onclick="event.stopPropagation();showPhone('ph-meal-log-photo')" title="Přidat fotku">📷</div>
               <div class="ex-ios-done done" onclick="event.stopPropagation();todayMealCheck(this)">✓</div>
               <span class="meal-chev">▼</span>
@@ -1309,6 +1331,18 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
               <div class="ing-row"><div class="ing-info"><div class="ing-name">Olivový olej</div><div class="ing-cat">Oleje a tuky · 5 ml</div></div><div class="ing-kcal">31 kcal</div></div>
               <div class="ing-note"><span class="lbl">Pozn:</span> Použij extra panenský, nepřevařuj.</div>
               <div class="meal-note"><span class="lbl">Pozn k jídlu:</span> Lehká večeře 3 h před spánkem — podpoří regeneraci.</div>
+            </div>
+          </div>
+
+          <!-- Photo strip — "Fotky dne" — shown below meal rows when any diary photos exist.
+               nutrition.todayPhotos = "Fotky dne". Horizontal strip of 56×56 thumbnails. -->
+          <div style="margin-top:12px;margin-bottom:4px">
+            <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--ios-label3);padding:0 16px;margin-bottom:6px">Fotky dne</div>
+            <div style="display:flex;gap:6px;padding:0 16px;overflow-x:auto;padding-bottom:4px">
+              <!-- Snídaně photo (has photo — gold camera indicator on row replaces the camera button) -->
+              <div onclick="showPhone('ph-plan-photos')" style="width:56px;height:56px;border-radius:8px;background:rgba(255,149,0,.18);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;cursor:pointer">🥣</div>
+              <!-- Oběd photo -->
+              <div onclick="showPhone('ph-plan-photos')" style="width:56px;height:56px;border-radius:8px;background:rgba(0,122,255,.18);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;cursor:pointer">🥗</div>
             </div>
           </div>
 
@@ -3829,7 +3863,11 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
   <!-- Fixed header area (does not scroll) -->
   <div style="flex-shrink:0">
 
-    <!-- ── 1. Header row: back + week stepper + chip icons ── -->
+    <!-- ── 1. Header row: back + week stepper + ellipsis-menu button ── -->
+    <!-- The old questionnaire+shopping chips (right:60 / right:16) are replaced by a single
+         ellipsis (⋯) button that opens the actions BottomSheet.
+         BottomSheet title: "Možnosti" (common.options).
+         Sheet rows: 🛒 Nákupní seznam  |  📋 Propojený dotazník (if linked)  |  🖼 Fotky z plánu -->
     <div style="position:relative;display:flex;align-items:center;justify-content:center;gap:10px;padding:8px 16px 4px;user-select:none;min-height:44px">
       <!-- Back button (absolute left) -->
       <div style="position:absolute;left:8px;top:0;bottom:0;display:flex;align-items:center;gap:2px;cursor:pointer" onclick="showPhone('ph-plans')">
@@ -3843,13 +3881,39 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
         <div id="np-week-dates" style="font-size:11px;color:var(--ios-label2);margin-top:1px">14. 4. – 20. 4.</div>
       </div>
       <span onclick="npStepWeek(1)" style="font-size:18px;color:var(--ios-gold);cursor:pointer;padding:2px;font-weight:500">&rsaquo;</span>
-      <!-- Questionnaire chip (absolute right:60) -->
-      <div style="position:absolute;right:60px;top:50%;margin-top:-18px;width:36px;height:36px;border-radius:10px;background:var(--ios-fill);display:flex;align-items:center;justify-content:center;cursor:pointer" title="Dotazník">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ios-label)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/></svg>
+      <!-- Ellipsis menu button (absolute right:16) — opens BottomSheet with plan actions.
+           Replaced the old dual-chip layout (questionnaire icon + shopping icon). -->
+      <div onclick="document.getElementById('np-menu-sheet').style.display='flex'" style="position:absolute;right:16px;top:50%;margin-top:-18px;width:36px;height:36px;border-radius:10px;background:var(--ios-fill);display:flex;align-items:center;justify-content:center;cursor:pointer" title="Možnosti">
+        <!-- Ionicons: ellipsis-horizontal -->
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="1.5" fill="var(--ios-label)"/><circle cx="12" cy="12" r="1.5" fill="var(--ios-label)"/><circle cx="19" cy="12" r="1.5" fill="var(--ios-label)"/></svg>
       </div>
-      <!-- Shopping chip (absolute right:16) -->
-      <div style="position:absolute;right:16px;top:50%;margin-top:-18px;width:36px;height:36px;border-radius:10px;background:var(--ios-fill);display:flex;align-items:center;justify-content:center;cursor:pointer" title="Nákupní seznam">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ios-label)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.52 2.64L3.96 7h16.08l-1.56-4.36A2 2 0 0016.6 1H7.4a2 2 0 00-1.88 1.64z"/><path d="M4 7v12a2 2 0 002 2h12a2 2 0 002-2V7"/><line x1="10" y1="12" x2="10" y2="17"/><line x1="14" y1="12" x2="14" y2="17"/></svg>
+    </div>
+
+    <!-- ── Actions bottom sheet (Možnosti) ── -->
+    <!-- Mirrors the menuOpen BottomSheet in NutritionPlanDetail. Title = common.options = "Možnosti".
+         Rows: shoppingList, linkedQuestionnaire (conditional), planPhotos.title. -->
+    <div id="np-menu-sheet" onclick="if(event.target===this)this.style.display='none'" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,.45);z-index:100;align-items:flex-end;border-radius:var(--ios-phone-r)">
+      <div style="width:100%;background:var(--ios-bg);border-radius:20px 20px 0 0;padding-bottom:env(safe-area-inset-bottom,16px)">
+        <div style="width:36px;height:4px;border-radius:99px;background:var(--ios-sep2);margin:10px auto 0"></div>
+        <div style="font-size:17px;font-weight:600;color:var(--ios-label);text-align:center;padding:14px 20px 8px">Možnosti</div>
+        <!-- Row: Nákupní seznam -->
+        <div onclick="document.getElementById('np-menu-sheet').style.display='none'" style="display:flex;align-items:center;gap:14px;padding:14px 20px;cursor:pointer" onmouseover="this.style.background='var(--ios-fill2)'" onmouseout="this.style.background=''">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--ios-label)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 001.98 1.61h9.72a2 2 0 001.98-1.61L23 6H6"/></svg>
+          <span style="font-size:17px;color:var(--ios-label)">Nákupní seznam</span>
+        </div>
+        <div style="height:.5px;background:var(--ios-sep2);margin:0 20px"></div>
+        <!-- Row: Propojený dotazník (conditional — linked questionnaire) -->
+        <div onclick="document.getElementById('np-menu-sheet').style.display='none'" style="display:flex;align-items:center;gap:14px;padding:14px 20px;cursor:pointer" onmouseover="this.style.background='var(--ios-fill2)'" onmouseout="this.style.background=''">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--ios-label)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/></svg>
+          <span style="font-size:17px;color:var(--ios-label)">Propojený dotazník</span>
+        </div>
+        <div style="height:.5px;background:var(--ios-sep2);margin:0 20px"></div>
+        <!-- Row: Fotky z plánu (planPhotos.title) -->
+        <div onclick="document.getElementById('np-menu-sheet').style.display='none';showPhone('ph-plan-photos')" style="display:flex;align-items:center;gap:14px;padding:14px 20px;cursor:pointer" onmouseover="this.style.background='var(--ios-fill2)'" onmouseout="this.style.background=''">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--ios-label)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          <span style="font-size:17px;color:var(--ios-label)">Fotky z plánu</span>
+        </div>
+        <div style="height:16px"></div>
       </div>
     </div>
 
@@ -3912,30 +3976,42 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
         </div>
       </div>
 
-      <!-- ── Photos entry ── -->
-      <div class="ios-section-hdr"><div class="ios-section-title">Fotky</div><span class="ios-section-action" onclick="showPhone('ph-plan-photos')">Vše</span></div>
-      <div class="ios-card" style="margin:0 20px 16px;padding:12px 16px;display:flex;align-items:center;gap:12px;cursor:pointer" onclick="showPhone('ph-plan-photos')">
-        <div style="display:flex;gap:4px">
-          <div style="width:44px;height:44px;border-radius:10px;background:rgba(255,149,0,.15);display:flex;align-items:center;justify-content:center;font-size:20px">🥣</div>
-          <div style="width:44px;height:44px;border-radius:10px;background:rgba(0,122,255,.15);display:flex;align-items:center;justify-content:center;font-size:20px">🥗</div>
-          <div style="width:44px;height:44px;border-radius:10px;background:rgba(52,199,89,.15);display:flex;align-items:center;justify-content:center;font-size:20px">🐟</div>
+      <!-- ── Plan-photo chips row ──
+           Shipped design: category chips in a single horizontal flex row with flex:1 so they
+           fill evenly. Access via the ellipsis menu → "Fotky z plánu". The old standalone "Fotky"
+           card is replaced here by a compact chip row above the meal list that shows the
+           photo gallery summary. Chips link to ph-plan-photos (plan-photos.html). -->
+      <div style="margin:0 20px 12px">
+        <div style="font-size:13px;font-weight:600;color:var(--ios-label2);margin-bottom:8px">Fotky z plánu · 28 celkem</div>
+        <div style="display:flex;gap:6px">
+          <div onclick="showPhone('ph-plan-photos')" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:8px 10px;border-radius:99px;background:rgba(201,168,76,.14);border:1.5px solid var(--ios-gold);cursor:pointer">
+            <span style="font-size:11px;font-weight:600;color:var(--ios-gold)">Vše (28)</span>
+          </div>
+          <div onclick="showPhone('ph-plan-photos')" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:8px 10px;border-radius:99px;background:var(--ios-bg2);border:1px solid var(--ios-sep2);cursor:pointer">
+            <span style="font-size:11px;font-weight:500;color:var(--ios-label)">Jídlo (18)</span>
+          </div>
+          <div onclick="showPhone('ph-plan-photos')" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:8px 10px;border-radius:99px;background:var(--ios-bg2);border:1px solid var(--ios-sep2);cursor:pointer">
+            <span style="font-size:11px;font-weight:500;color:var(--ios-label)">Postup (6)</span>
+          </div>
+          <div onclick="showPhone('ph-plan-photos')" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:8px 10px;border-radius:99px;background:var(--ios-bg2);border:1px solid var(--ios-sep2);cursor:pointer">
+            <span style="font-size:11px;font-weight:500;color:var(--ios-label)">Volné (4)</span>
+          </div>
         </div>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:15px;font-weight:600;color:var(--ios-label)">28 fotek</div>
-          <div style="font-size:12px;color:var(--ios-label2)">Jídlo · postup · volné</div>
-        </div>
-        <span class="ios-row-chev">›</span>
       </div>
 
       <!-- ── 5. Meal list (MealCards, expanded by default) ── -->
 
       <!-- MEAL 1: Snídaně -->
+      <!-- Per-meal upload chip: gold camera button in the card header, opens meal-log-photo modal.
+           MealCard.onPhotoPress — visible always so clients can add photos retroactively. -->
       <div class="np-meal-card" style="margin:0 20px 12px;background:var(--ios-bg2);border-radius:var(--ios-r-lg);overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.12)">
         <div onclick="npToggleMeal(this)" style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;border-bottom:.5px solid rgba(0,0,0,.08)">
           <div style="flex:1">
             <div style="font-size:16px;font-weight:600;color:var(--ios-label)">Snídaně</div>
             <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">3 položky · 480 kcal</div>
           </div>
+          <!-- Upload chip: gold-tinted 28×28 camera button (MealCard.cameraChip) -->
+          <div onclick="event.stopPropagation();showPhone('ph-meal-log-photo')" style="width:28px;height:28px;border-radius:14px;background:rgba(201,168,76,.12);border:1.5px solid rgba(201,168,76,.35);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:13px" title="Přidat fotku jídla">📷</div>
           <div class="ex-ios-done done" onclick="event.stopPropagation()">&#10003;</div>
           <span class="np-meal-chev" style="font-size:14px;color:var(--ios-label3);transition:transform .2s">&#9660;</span>
         </div>
@@ -3988,6 +4064,8 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
             <div style="font-size:16px;font-weight:600;color:var(--ios-label)">Oběd</div>
             <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">3 položky · 520 kcal</div>
           </div>
+          <!-- Upload chip -->
+          <div onclick="event.stopPropagation();showPhone('ph-meal-log-photo')" style="width:28px;height:28px;border-radius:14px;background:rgba(201,168,76,.12);border:1.5px solid rgba(201,168,76,.35);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:13px" title="Přidat fotku jídla">📷</div>
           <div class="ex-ios-done done" onclick="event.stopPropagation()">&#10003;</div>
           <span class="np-meal-chev" style="font-size:14px;color:var(--ios-label3);transition:transform .2s">&#9660;</span>
         </div>
@@ -4028,6 +4106,8 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
             <div style="font-size:16px;font-weight:600;color:var(--ios-label)">Večeře</div>
             <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">3 položky · 406 kcal</div>
           </div>
+          <!-- Upload chip -->
+          <div onclick="event.stopPropagation();showPhone('ph-meal-log-photo')" style="width:28px;height:28px;border-radius:14px;background:rgba(201,168,76,.12);border:1.5px solid rgba(201,168,76,.35);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:13px" title="Přidat fotku jídla">📷</div>
           <div class="ex-ios-done" onclick="event.stopPropagation()"></div>
           <span class="np-meal-chev" style="font-size:14px;color:var(--ios-label3);transition:transform .2s">&#9660;</span>
         </div>
