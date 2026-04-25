@@ -38,12 +38,12 @@ export default function MealDetailScreen() {
   );
 
   const isEaten = useMemo(
-    () => (log?.mealsEaten ?? []).some((m) => m.mealId === mealId) ?? false,
+    () => (log?.mealsEaten ?? []).some((m) => m.mealId === mealId && m.eatenAt != null) ?? false,
     [log, mealId],
   );
 
   const markEatenMutation = useMutation({
-    mutationFn: logMealEaten,
+    mutationFn: (mealId: string) => logMealEaten(mealId),
     onMutate: async (id: string) => {
       await queryClient.cancelQueries({ queryKey: ['today-log'] });
       const previous = queryClient.getQueryData<TodayLogResponse>(['today-log']);

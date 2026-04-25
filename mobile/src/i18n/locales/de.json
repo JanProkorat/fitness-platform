@@ -182,7 +182,8 @@
   "common": {
     "back": "Zurück",
     "cancel": "Abbrechen",
-    "error": "Fehler"
+    "error": "Fehler",
+    "options": "Optionen"
   },
   "imagePicker": {
     "sourceTitle": "Quelle auswählen",
@@ -190,7 +191,8 @@
     "sourceLibrary": "Aus Galerie wählen",
     "permissionDenied": "Zugriff verweigert. Bitte erlauben Sie den Kamera- und Fotozugriff in den Einstellungen.",
     "oversize": "Das Bild ist zu groß (max {{maxMb}} MB). Bitte wählen Sie eine kleinere Datei.",
-    "invalidType": "Nicht unterstützter Dateityp. Bitte wählen Sie ein JPG-, PNG- oder WebP-Bild."
+    "invalidType": "Nicht unterstützter Dateityp. Bitte wählen Sie ein JPG-, PNG- oder WebP-Bild.",
+    "partialUpload": "{{succeeded}} von {{total}} Fotos hochgeladen"
   },
   "tabs": {
     "today": "Heute",
@@ -428,7 +430,8 @@
   },
   "planDetail": {
     "linkedQuestionnaire": "Verknüpfter Fragebogen",
-    "answersNotAvailable": "Antworten sind noch nicht verfügbar."
+    "answersNotAvailable": "Antworten sind noch nicht verfügbar.",
+    "menuA11y": "Menü öffnen"
   },
   "profile": {
     "title": "Profil",
@@ -669,6 +672,7 @@
     "dailyAverage": "Tagesdurchschnitt",
     "weekTotal": "Wochensumme",
     "shopping": "Einkaufsliste",
+    "shoppingList": "Einkaufsliste",
     "kcal": "kcal",
     "protein": "Eiweiß",
     "carbs": "Kohlenhydrate",
@@ -687,6 +691,7 @@
     "tip": "Tipp:",
     "dayNoteLabel": "Tagesnotiz:",
     "mealNoteLabel": "Mahlzeitennotiz:",
+    "todayPhotos": "Heutige Fotos",
     "recipe": "Rezept",
     "serving_one": "{{count}}× Portion",
     "serving_other": "{{count}}× Portionen",
@@ -715,7 +720,8 @@
       "Dinner": "Abendessen",
       "PreWorkout": "Vor dem Training",
       "PostWorkout": "Nach dem Training"
-    }
+    },
+    "photoCta": "Foto"
   },
   "training": {
     "title": "Training",
@@ -831,6 +837,25 @@
     "Traps": "Trapezmuskel",
     "FullBody": "Ganzkörper"
   },
+  "mealLogPhoto": {
+    "photoSectionLabel": "Fotos hinzufügen (optional)",
+    "photoPickerHint": "Tippen: Galerie · gedrückt halten: Kamera",
+    "photoPickerReplaceHint": "Tippen zum Ersetzen · X zum Entfernen",
+    "noteSectionLabel": "Notiz (optional)",
+    "notePlaceholder": "Z.B. Es war super, ich habe nur mehr Gemüse hinzugefügt…",
+    "noteCounter": "{{current}} / {{max}}",
+    "infoStrip": "Fotos und Notiz werden in deinem Plan gespeichert und sind für {{coachName}} sichtbar.",
+    "infoStripNoCoach": "Fotos und Notiz werden in deinem Plan gespeichert.",
+    "savePhoto": "Speichern",
+    "successToast": "Gespeichert",
+    "addMorePhotos": "Weiteres Foto hinzufügen",
+    "photoThumbA11y": "Foto {{index}} von {{total}}",
+    "openPhotosA11y": "Mahlzeitfotos öffnen",
+    "photoCaption": {
+      "placeholder": "Beschriftung (optional)",
+      "a11y": "Fotobeschriftung"
+    }
+  },
   "avatar": {
     "editBadgeLabel": "Profilbild ändern",
     "editBadgeHint": "Öffnet die Kamera oder Galerie, um Ihr Profilbild zu aktualisieren",
@@ -841,5 +866,16 @@
     "close": "Schließen",
     "previous": "Vorherige",
     "next": "Nächste"
+  },
+  "planPhotos": {
+    "title": "Planfotos",
+    "categoryAll": "Alle",
+    "categoryFood": "Essen",
+    "categoryProgress": "Fortschritt",
+    "categoryFree": "Frei",
+    "totalCount": "{{count}} Fotos insgesamt",
+    "empty": "Keine Fotos",
+    "addPhotoA11y": "Foto zum Plan hinzufügen",
+    "openA11y": "Planfotos öffnen"
   }
 }

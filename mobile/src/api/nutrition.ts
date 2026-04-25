@@ -1,5 +1,5 @@
 import api from './client';
-import { MealKind } from './generated';
+import { MealKind, DayPhotoCategory } from './generated';
 import type {
   NutrientTotals,
   GlobalNutritionSettings,
@@ -8,6 +8,7 @@ import type {
   PlanMeal,
   GetTodayPlanResponse,
   MealLogDto,
+  MealPhotoDto,
   GetTodayLogResponse,
   GetWeeklyOverviewResponse,
   GetRecipeResponse,
@@ -19,10 +20,13 @@ import type {
   GetFullPlanResponse,
   GetClientPlansResponse,
   ClientPlanItem,
+  DayPhotoInput,
+  DayPhotoDto,
+  GetTodayDayLogResponse,
 } from './generated';
 
 // Re-export generated types and enums so consumer imports (`from '@/api/nutrition'`) still work.
-export { MealKind };
+export { MealKind, DayPhotoCategory };
 export type {
   NutrientTotals,
   GlobalNutritionSettings,
@@ -31,6 +35,7 @@ export type {
   PlanMeal,
   GetTodayPlanResponse,
   MealLogDto,
+  MealPhotoDto,
   GetTodayLogResponse,
   GetWeeklyOverviewResponse,
   GetRecipeResponse,
@@ -42,6 +47,9 @@ export type {
   GetFullPlanResponse,
   GetClientPlansResponse,
   ClientPlanItem,
+  DayPhotoInput,
+  DayPhotoDto,
+  GetTodayDayLogResponse,
 };
 
 /**
@@ -114,8 +122,60 @@ export async function getTodayLog(): Promise<GetTodayLogResponse> {
   return data;
 }
 
-export async function logMealEaten(mealId: string): Promise<void> {
-  await api.post(`/client/nutrition/log/meals/${mealId}/eaten`);
+export interface LogMealEatenOptions {
+  photoBlobUrls?: string[];
+  note?: string;
+}
+
+export async function logMealEaten(mealId: string, opts?: LogMealEatenOptions): Promise<void> {
+  await api.post(`/client/nutrition/log/meals/${mealId}/eaten`, opts ?? {});
+}
+
+export interface GenerateMealPhotoUploadUrlResponse {
+  uploadUrl: string;
+  blobUrl: string;
+}
+
+/**
+ * Request a signed upload URL for a meal diary photo.
+ * Uses the dedicated diary endpoint so photos land in the diary/{mealId}/
+ * bucket namespace (ImageUploadScope.Diary) rather than avatars/.
+ */
+export async function generateMealPhotoUploadUrl(
+  mealId: string,
+  contentType: string,
+  sizeBytes: number,
+): Promise<GenerateMealPhotoUploadUrlResponse> {
+  const { data } = await api.post<GenerateMealPhotoUploadUrlResponse>(
+    `/client/nutrition/log/meals/${mealId}/photo-upload-url`,
+    { contentType, sizeBytes },
+  );
+  return data;
+}
+
+export interface MealPhotoInput {
+  blobUrl: string;
+  note?: string | null;
+}
+
+export interface SaveMealPhotosOptions {
+  photos?: MealPhotoInput[];
+  note?: string | null;
+}
+
+/**
+ * Replaces the photos list and note on a meal log entry with the provided values.
+ * The endpoint uses REPLACE semantics: the backend sets Photos to exactly the
+ * structured photo objects in the request and sets Note to the request's value
+ * (null = clear). UploadedAt is preserved for URLs that already exist in the log.
+ * Each photo carries an optional per-photo caption (`note`).
+ * Creates the log entry if it does not exist yet.
+ */
+export async function saveMealPhotos(
+  mealId: string,
+  opts: SaveMealPhotosOptions = {},
+): Promise<void> {
+  await api.post(`/client/nutrition/log/meals/${mealId}/photos`, opts);
 }
 
 export async function unlogMealEaten(mealId: string): Promise<void> {
@@ -154,5 +214,47 @@ export async function getClientPlans(status?: PlanStatus): Promise<GetClientPlan
 
 export async function getFullPlan(): Promise<GetFullPlanResponse> {
   const { data } = await api.get<GetFullPlanResponse>('/client/nutrition/plan/full');
+  return data;
+}
+
+export interface GenerateDayPhotoUploadUrlResponse {
+  uploadUrl: string;
+  blobUrl: string;
+}
+
+/**
+ * Request a signed upload URL for a day-level plan photo.
+ * Photos land in the plan-photos/{planId}/… bucket namespace.
+ */
+export async function generateDayPhotoUploadUrl(
+  contentType: string,
+  sizeBytes: number,
+): Promise<GenerateDayPhotoUploadUrlResponse> {
+  const { data } = await api.post<GenerateDayPhotoUploadUrlResponse>(
+    '/client/nutrition/log/day/photo-upload-url',
+    { contentType, sizeBytes },
+  );
+  return data;
+}
+
+export interface SaveDayPhotosOptions {
+  photos: DayPhotoInput[];
+  note?: string | null;
+}
+
+/**
+ * Replaces the day-level photo list and note on today's day log.
+ * REPLACE semantics: the backend sets Photos to exactly the submitted list.
+ * Existing URLs that are re-submitted keep their original UploadedAt timestamp.
+ */
+export async function saveDayPhotos(opts: SaveDayPhotosOptions): Promise<void> {
+  await api.post('/client/nutrition/log/day/photos', opts);
+}
+
+/**
+ * Returns today's day-log (plan-level photos and optional day note).
+ */
+export async function getTodayDayLog(): Promise<GetTodayDayLogResponse> {
+  const { data } = await api.get<GetTodayDayLogResponse>('/client/nutrition/log/day/today');
   return data;
 }

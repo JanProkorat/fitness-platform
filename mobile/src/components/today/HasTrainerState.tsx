@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo } from 'react'
-import { View, Text, StyleSheet } from 'react-native'
+import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -7,6 +8,7 @@ import { useTheme } from '@/hooks/useTheme'
 import { useCompletionState } from '@/hooks/useCompletionState'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
+import { goldAlpha } from '@/constants/colors'
 import { href, hrefParams } from '@/lib/navigation'
 import { StatStrip } from '@/components/ui/StatStrip'
 import { StatCard } from '@/components/ui/StatCard'
@@ -287,10 +289,46 @@ export function HasTrainerState() {
     return nextWeek
   }, [fullPlanQuery.data])
 
+  /** Meal IDs that have been confirmed as eaten (eatenAt is non-null). */
   const eatenMealIds = useMemo(() => {
     const set = new Set<string>()
-    logQuery.data?.mealsEaten?.forEach((m) => { if (m.mealId) set.add(m.mealId) })
+    logQuery.data?.mealsEaten?.forEach((m) => {
+      if (m.mealId && m.eatenAt != null) set.add(m.mealId)
+    })
     return set
+  }, [logQuery.data])
+
+  /** Meal IDs that have at least one diary photo attached (regardless of eaten state). */
+  const eatenMealIdsWithPhotos = useMemo(() => {
+    const set = new Set<string>()
+    logQuery.data?.mealsEaten?.forEach((m) => {
+      if (m.mealId && (m.photos?.length ?? 0) > 0) set.add(m.mealId)
+    })
+    return set
+  }, [logQuery.data])
+
+  /** Per-meal diary photos from the log, keyed by mealId. Includes per-photo captions. */
+  const mealPhotosByMealId = useMemo(() => {
+    const map: Record<string, { blobUrl: string; note?: string | null; uploadedAt?: string }[]> = {}
+    logQuery.data?.mealsEaten?.forEach((m) => {
+      if (m.mealId && m.photos && m.photos.length > 0) {
+        map[m.mealId] = m.photos
+          .filter((p) => typeof p.blobUrl === 'string')
+          .map((p) => ({ blobUrl: p.blobUrl as string, note: p.note ?? null, uploadedAt: p.uploadedAt }))
+      }
+    })
+    return map
+  }, [logQuery.data])
+
+  /** Meal-level diary notes from the log, keyed by mealId. Used by lightbox top overlay. */
+  const mealNoteByMealId = useMemo(() => {
+    const map: Record<string, string | null> = {}
+    logQuery.data?.mealsEaten?.forEach((m) => {
+      if (m.mealId) {
+        map[m.mealId] = m.note ?? null
+      }
+    })
+    return map
   }, [logQuery.data])
 
   const sortedMeals = useMemo(
@@ -737,6 +775,31 @@ export function HasTrainerState() {
     markAllEatenMutation.mutate(remaining)
   }, [plan, eatenMealIds, markAllEatenMutation])
 
+  /** Navigate to the plan-photos gallery screen. */
+  const handlePhotoGridPress = useCallback(() => {
+    router.push(href('/(client)/plan-photos'))
+  }, [router])
+
+  /** Navigate to the meal-log-photo modal screen for the tapped meal. */
+  const handlePhotoPress = useCallback(
+    (mealId: string) => {
+      const meal = (plan?.meals ?? []).find((m) => m.mealId === mealId)
+      if (!meal) return
+      const totalItems =
+        (meal.foods?.length ?? 0) + (meal.recipes?.length ?? 0)
+      router.push(
+        hrefParams('/(client)/meal-log-photo', {
+          mealId: meal.mealId ?? '',
+          mealName: meal.kind ?? '',
+          mealTime: meal.time ?? '',
+          mealKcal: String(Math.round(meal.mealTotals?.kcal ?? 0)),
+          mealItemsCount: String(totalItems),
+        }),
+      )
+    },
+    [plan, router],
+  )
+
   // ── Live session resume banner ──
   const liveExIdx = liveSessionStore.currentExerciseIdx
   const liveSetIdx = liveSessionStore.currentSetIdx
@@ -836,20 +899,41 @@ export function HasTrainerState() {
         <View style={styles.section}>
           <SectionHeader
             title={t('today.todaysNutrition')}
-            actionLabel={t('today.mealsProgress', {
-              done: eatenMealIds.size,
-              total: sortedMeals.length,
-            })}
+            action={
+              <Pressable
+                onPress={handlePhotoGridPress}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={t('nutrition.photoCta')}
+                style={styles.photoCtaBtn}
+              >
+                <View
+                  style={[
+                    styles.photoCtaIconChip,
+                    { backgroundColor: goldAlpha['12'], borderColor: goldAlpha['35'] },
+                  ]}
+                >
+                  <Ionicons name="camera" size={13} color={colors.onGoldChip} />
+                </View>
+                <Text style={[styles.photoCtaLabel, { color: colors.gold }]}>
+                  {t('nutrition.photoCta')}
+                </Text>
+              </Pressable>
+            }
           />
           <NutritionCard
             consumed={consumed}
             targets={nutritionTargets}
             meals={sortedMeals}
             eatenMealIds={eatenMealIds}
+            eatenMealIdsWithPhotos={eatenMealIdsWithPhotos}
+            mealPhotosByMealId={mealPhotosByMealId}
+            mealNoteByMealId={mealNoteByMealId}
             eyebrow={t('today.nutritionEyebrow', { week: plan.weekNumber })}
             subline=""
             dayNote={plan.dayNote}
             onToggleEaten={handleToggleEaten}
+            onPhotoPress={handlePhotoPress}
             onMarkAllEaten={handleMarkAllEaten}
             isMarkAllLoading={markAllEatenMutation.isPending}
           />
@@ -896,5 +980,30 @@ const styles = StyleSheet.create({
   },
   section: {
     marginTop: 24,
+  },
+  nutritionHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  mealsProgress: {
+    ...Type.footnote,
+  },
+  photoCtaBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  photoCtaIconChip: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photoCtaLabel: {
+    ...Type.footnote,
+    fontWeight: '600',
   },
 })

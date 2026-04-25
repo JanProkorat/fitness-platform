@@ -8339,17 +8339,21 @@ export class ApiClient {
      * @param mealId The unique identifier of the meal to log as eaten.
      * @return No Content
      */
-    logMealEatenEndpoint(mealId: string, signal?: AbortSignal): Promise<void> {
+    logMealEatenEndpoint(mealId: string, logMealEatenRequest: LogMealEatenRequest, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/client/nutrition/log/meals/{mealId}/eaten";
         if (mealId === undefined || mealId === null)
             throw new globalThis.Error("The parameter 'mealId' must be defined.");
         url_ = url_.replace("{mealId}", encodeURIComponent("" + mealId));
         url_ = url_.replace(/[?&]$/, "");
 
+        const content_ = JSON.stringify(logMealEatenRequest);
+
         let options_: AxiosRequestConfig = {
+            data: content_,
             method: "POST",
             url: url_,
             headers: {
+                "Content-Type": "application/json",
             },
             signal
         };
@@ -8366,6 +8370,145 @@ export class ApiClient {
     }
 
     protected processLogMealEatenEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Save photos / note for a meal diary entry
+     * @param mealId The unique identifier of the meal whose photos/note are being saved.
+    Sourced from the route segment {MealId}.
+     * @return No Content
+     */
+    saveMealPhotosEndpoint(mealId: string, saveMealPhotosRequest: SaveMealPhotosRequest, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/client/nutrition/log/meals/{mealId}/photos";
+        if (mealId === undefined || mealId === null)
+            throw new globalThis.Error("The parameter 'mealId' must be defined.");
+        url_ = url_.replace("{mealId}", encodeURIComponent("" + mealId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(saveMealPhotosRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSaveMealPhotosEndpoint(_response);
+        });
+    }
+
+    protected processSaveMealPhotosEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Save plan-level day photos / note for today
+     * @return No Content
+     */
+    saveDayPhotosEndpoint(saveDayPhotosRequest: SaveDayPhotosRequest, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/client/nutrition/log/day/photos";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(saveDayPhotosRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSaveDayPhotosEndpoint(_response);
+        });
+    }
+
+    protected processSaveDayPhotosEndpoint(response: AxiosResponse): Promise<void> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -8582,6 +8725,66 @@ export class ApiClient {
     }
 
     /**
+     * Get today's plan-level day log
+     * @return Success
+     */
+    getTodayDayLogEndpoint(signal?: AbortSignal): Promise<GetTodayDayLogResponse> {
+        let url_ = this.baseUrl + "/client/nutrition/log/day/today";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetTodayDayLogEndpoint(_response);
+        });
+    }
+
+    protected processGetTodayDayLogEndpoint(response: AxiosResponse): Promise<GetTodayDayLogResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetTodayDayLogResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetTodayDayLogResponse>(null as any);
+    }
+
+    /**
      * Get shopping list from active plan
      * @param weekFrom Starting week number (1-based, inclusive). Defaults to 1.
      * @param weekTo (optional) Ending week number (1-based, inclusive). Defaults to all weeks.
@@ -8778,6 +8981,153 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<GetFullPlanResponse>(null as any);
+    }
+
+    /**
+     * Generate meal diary photo upload URL
+     * @param mealId The unique identifier of the meal the photo will be attached to.
+    Sourced from the route segment {mealId}.
+     * @return Success
+     */
+    generateMealPhotoUploadUrlEndpoint(mealId: string, generateMealPhotoUploadUrlRequest: GenerateMealPhotoUploadUrlRequest, signal?: AbortSignal): Promise<GenerateMealPhotoUploadUrlResponse> {
+        let url_ = this.baseUrl + "/client/nutrition/log/meals/{mealId}/photo-upload-url";
+        if (mealId === undefined || mealId === null)
+            throw new globalThis.Error("The parameter 'mealId' must be defined.");
+        url_ = url_.replace("{mealId}", encodeURIComponent("" + mealId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(generateMealPhotoUploadUrlRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGenerateMealPhotoUploadUrlEndpoint(_response);
+        });
+    }
+
+    protected processGenerateMealPhotoUploadUrlEndpoint(response: AxiosResponse): Promise<GenerateMealPhotoUploadUrlResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GenerateMealPhotoUploadUrlResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GenerateMealPhotoUploadUrlResponse>(null as any);
+    }
+
+    /**
+     * Generate plan-level day photo upload URL
+     * @return Success
+     */
+    generateDayPhotoUploadUrlEndpoint(generateDayPhotoUploadUrlRequest: GenerateDayPhotoUploadUrlRequest, signal?: AbortSignal): Promise<GenerateDayPhotoUploadUrlResponse> {
+        let url_ = this.baseUrl + "/client/nutrition/log/day/photo-upload-url";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(generateDayPhotoUploadUrlRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGenerateDayPhotoUploadUrlEndpoint(_response);
+        });
+    }
+
+    protected processGenerateDayPhotoUploadUrlEndpoint(response: AxiosResponse): Promise<GenerateDayPhotoUploadUrlResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GenerateDayPhotoUploadUrlResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GenerateDayPhotoUploadUrlResponse>(null as any);
     }
 
     /**
@@ -13564,8 +13914,69 @@ export interface ClientRequestDto {
 export interface UnlogMealEatenRequest {
 }
 
+/** Request model for saving the complete photo and note state of a meal diary entry. The Photos list and Note are replaced with exactly what the client sends. */
+export interface SaveMealPhotosRequest {
+    /** The complete list of photos to persist on the meal log.
+Replaces the existing Photos list entirely — pass an empty list to remove all
+photos. Each item carries the blob URL and an optional per-photo caption.
+Existing URLs that are re-submitted keep their original UploadedAt
+timestamp; new URLs receive the current UTC time. */
+    photos?: MealPhotoInput[];
+    /** Optional free-text note to persist on the meal log entry (max 500 chars).
+This is the meal-level diary note. When non-null, the stored note is replaced
+with the trimmed value (whitespace-only strings are treated as null). When null,
+the existing note is cleared. */
+    note?: string | undefined;
+}
+
+/** A single photo input in a SaveMealPhotosRequest. */
+export interface MealPhotoInput {
+    /** The MinIO blob URL for this photo, as returned by the signed-URL upload helper. */
+    blobUrl?: string;
+    /** Optional per-photo caption (max 500 chars). Distinct from the meal-level
+Note — this note belongs to the individual
+photo only (e.g. "Side of guac added"). */
+    note?: string | undefined;
+}
+
+/** Request model for saving the complete photo and note state of a day diary entry. The Photos list and Note are replaced with exactly what the client sends (replace semantics). */
+export interface SaveDayPhotosRequest {
+    /** The complete list of plan-level photos to persist on the day log.
+Replaces the existing Photos list entirely — pass an empty list to remove all photos.
+Existing URLs that are re-submitted keep their original UploadedAt timestamp;
+new URLs receive the current UTC time. */
+    photos?: DayPhotoInput[];
+    /** Optional free-text note at the day level (max 500 chars).
+When non-null, replaces the stored note (whitespace-only treated as null).
+When null, the existing note is cleared. */
+    note?: string | undefined;
+}
+
+/** A single photo input in a SaveDayPhotosRequest. */
+export interface DayPhotoInput {
+    /** The MinIO blob URL for this photo, as returned by the signed-URL upload helper. */
+    blobUrl?: string;
+    /** Optional per-photo caption (max 500 chars). */
+    note?: string | undefined;
+    /** Display category for this photo (Food / Progress / Free). */
+    category?: DayPhotoCategory;
+}
+
+/** Display category for a DayPhoto. Maps to the three chips shown in the Fotky plánu gallery (Jídlo / Postup / Volné). */
+export enum DayPhotoCategory {
+    Food = "Food",
+    Progress = "Progress",
+    Free = "Free",
+}
+
 /** Request model for logging a meal as eaten. */
 export interface LogMealEatenRequest {
+    /** Optional list of MinIO blob URLs for photos attached to this meal.
+The client uploads photos via the signed-URL helper (Epic #65) and
+submits the resulting URLs here. When null or empty, no photos are stored. */
+    photoBlobUrls?: string[] | undefined;
+    /** Optional free-text note attached to this meal log entry (max 500 chars). */
+    note?: string | undefined;
 }
 
 /** Response model for the client's active nutrition plan for the current week. */
@@ -13619,10 +14030,50 @@ export interface MealLogDto {
     mealId?: string;
     /** Display name of the meal (resolved from the plan). */
     mealName?: string;
-    /** When the meal was eaten. */
-    eatenAt?: string;
+    /** When the meal was eaten. Null for photo/note-only log entries that have not
+been confirmed as eaten via the quick-log button. */
+    eatenAt?: string | undefined;
     /** Computed nutrient totals for this logged meal. */
     totals?: NutrientTotals;
+    /** Photos attached to this meal log entry.
+Empty list when the client logged without photos. */
+    photos?: MealPhotoDto[];
+    /** Optional free-text note the client attached when logging the meal.
+Null when no note was provided. */
+    note?: string | undefined;
+}
+
+/** DTO for a single photo reference on a meal log entry. */
+export interface MealPhotoDto {
+    /** The MinIO blob URL for this photo. */
+    blobUrl?: string;
+    /** UTC timestamp when the photo was uploaded. */
+    uploadedAt?: string;
+    /** Optional per-photo caption set by the client when saving photos.
+Null when no caption was provided for this photo. */
+    note?: string | undefined;
+}
+
+/** Response model for the client's day-level diary log for today. */
+export interface GetTodayDayLogResponse {
+    /** Plan-level photos attached to today's day log.
+Empty when no photos have been uploaded for today. */
+    photos?: DayPhotoDto[];
+    /** Optional day-level note. Null when none was provided. */
+    note?: string | undefined;
+}
+
+/** DTO for a single day-level photo reference in a day log response. */
+export interface DayPhotoDto {
+    /** The MinIO blob URL for this photo. */
+    blobUrl?: string;
+    /** UTC timestamp when the photo was uploaded. */
+    uploadedAt?: string;
+    /** Optional per-photo caption set by the client when saving photos.
+Null when no caption was provided for this photo. */
+    note?: string | undefined;
+    /** Display category string (Food / Progress / Free). */
+    category?: string;
 }
 
 /** Response model containing an aggregated shopping list from the nutrition plan. */
@@ -13690,6 +14141,40 @@ export interface FullPlanWeek {
     weekEndDate?: string;
     /** Days in this week. */
     days?: PlanDay[];
+}
+
+/** Response model containing the pre-signed upload URL and the permanent blob URL for a meal diary photo. */
+export interface GenerateMealPhotoUploadUrlResponse {
+    /** Time-limited pre-signed URL the client should PUT the image file to. */
+    uploadUrl?: string;
+    /** Permanent blob URL at which the photo will be accessible after a successful upload.
+Always starts with diary/{mealId}/. */
+    blobUrl?: string;
+}
+
+/** Request model for generating a pre-signed meal diary photo upload URL. */
+export interface GenerateMealPhotoUploadUrlRequest {
+    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp", "image/heic"). */
+    contentType: string;
+    /** Declared file size in bytes. Must not exceed 10 MiB. */
+    sizeBytes?: number;
+}
+
+/** Response model containing the pre-signed upload URL and the permanent blob URL for a plan-level day diary photo. */
+export interface GenerateDayPhotoUploadUrlResponse {
+    /** Time-limited pre-signed URL the client should PUT the image file to. */
+    uploadUrl?: string;
+    /** Permanent blob URL at which the photo will be accessible after a successful upload.
+Always follows the plan-photos/{planId}/{guid}.{ext} convention. */
+    blobUrl?: string;
+}
+
+/** Request model for generating a pre-signed day-level plan photo upload URL. */
+export interface GenerateDayPhotoUploadUrlRequest {
+    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp", "image/heic"). */
+    contentType: string;
+    /** Declared file size in bytes. Must not exceed 10 MiB. */
+    sizeBytes?: number;
 }
 
 /** Aggregated statistics for a client's body weight measurements. */

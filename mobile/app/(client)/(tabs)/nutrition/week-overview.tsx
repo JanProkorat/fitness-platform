@@ -173,7 +173,7 @@ export default function WeekOverviewScreen() {
           onPress={handlePrevWeek}
           disabled={prevWeekNumber == null}
         >
-          <Text style={[styles.weekArrowText, { color: prevWeekNumber == null ? colors.label3 : colors.label }]}>
+          <Text style={[styles.weekArrowText, { color: prevWeekNumber == null ? colors.label3 : colors.gold }]}>
             ‹
           </Text>
         </TouchableOpacity>
@@ -194,7 +194,7 @@ export default function WeekOverviewScreen() {
           onPress={handleNextWeek}
           disabled={nextWeekNumber == null}
         >
-          <Text style={[styles.weekArrowText, { color: nextWeekNumber == null ? colors.label3 : colors.label }]}>
+          <Text style={[styles.weekArrowText, { color: nextWeekNumber == null ? colors.label3 : colors.gold }]}>
             ›
           </Text>
         </TouchableOpacity>

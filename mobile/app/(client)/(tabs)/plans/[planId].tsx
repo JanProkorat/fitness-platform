@@ -21,6 +21,7 @@ import Animated, {
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router'
+
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
 import { useTranslation } from 'react-i18next'
@@ -32,6 +33,7 @@ import { MacroBar } from '@/components/ui/MacroBar'
 import { MealCard } from '@/components/nutrition/MealCard'
 import {
   getFullPlan,
+  getTodayLog,
   type FullPlanResponse,
 } from '@/api/nutrition'
 import {
@@ -180,6 +182,18 @@ function NutritionPlanDetail({ plan }: { plan: FullPlanResponse }) {
   const [expandedMap, setExpandedMap] = useState<Record<string, Set<string>>>({})
   const [weekGridVisible, setWeekGridVisible] = useState(false)
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+
+  /**
+   * Close the menu sheet and run `action` after the close animation completes.
+   * Running `action` on the same frame as `setMenuOpen(false)` leaves the Modal
+   * mounted mid-animation; its backdrop blocks the next sheet from opening or
+   * the next Pressable from registering. 250 ms matches the sheet's close timing.
+   */
+  const selectMenuItem = useCallback((action: () => void) => {
+    setMenuOpen(false)
+    setTimeout(action, 250)
+  }, [])
 
   const effectiveWeek = selectedWeek ?? plan.currentWeek ?? 1
   const effectiveDay = selectedDay ?? plan.currentDayOfWeek ?? 1
@@ -251,6 +265,26 @@ function NutritionPlanDetail({ plan }: { plan: FullPlanResponse }) {
       )
   }, [currentDayObj, eatenMealIds])
 
+  // Today's diary log — used to display meal photos on the current day's cards
+  const { data: todayLog } = useQuery({
+    queryKey: ['today-log'],
+    queryFn: getTodayLog,
+    staleTime: 60_000,
+  })
+
+  // Build a mealId → photos map. Photos only exist for today's meals; for other
+  // days the map will simply have no matching entries and MealCard gets photos=[].
+  const mealPhotosByMealId = useMemo(() => {
+    const map: Record<string, { blobUrl: string; note?: string | null }[]> = {}
+    for (const entry of todayLog?.mealsEaten ?? []) {
+      if (!entry.mealId || !entry.photos?.length) continue
+      map[entry.mealId] = entry.photos
+        .filter((p) => !!p.blobUrl)
+        .map((p) => ({ blobUrl: p.blobUrl as string, note: p.note ?? null }))
+    }
+    return map
+  }, [todayLog])
+
   const publishedWeekCount = plan.publishedWeekCount ?? (plan.weeks ?? []).length ?? 0
 
   const hasPrev = effectiveWeek > 1
@@ -316,6 +350,21 @@ function NutritionPlanDetail({ plan }: { plan: FullPlanResponse }) {
     })
   }, [effectiveWeek, effectiveDay, currentDayMealIds])
 
+  /** Navigate to the meal-log-photo modal — mirrors handlePhotoPress in HasTrainerState. */
+  const handleMealPhotoPress = useCallback((meal: { mealId?: string | null; kind?: string | null; time?: string | null; mealTotals?: { kcal?: number | null } | null; foods?: unknown[] | null; recipes?: unknown[] | null }) => {
+    const totalItems =
+      (meal.foods?.length ?? 0) + (meal.recipes?.length ?? 0)
+    router.push(
+      hrefParams('/(client)/meal-log-photo', {
+        mealId: meal.mealId ?? '',
+        mealName: meal.kind ?? '',
+        mealTime: meal.time ?? '',
+        mealKcal: String(Math.round(meal.mealTotals?.kcal ?? 0)),
+        mealItemsCount: String(totalItems),
+      }),
+    )
+  }, [router])
+
   // Swipe left/right to switch days with slide animation
   const screenWidth = Dimensions.get('window').width
   const slideX = useSharedValue(0)
@@ -376,7 +425,7 @@ function NutritionPlanDetail({ plan }: { plan: FullPlanResponse }) {
           <Text
             style={[
               styles.stepperArrow,
-              { color: hasPrev ? colors.blue : colors.label3 },
+              { color: hasPrev ? colors.gold : colors.label3 },
             ]}
           >
             ‹
@@ -406,30 +455,21 @@ function NutritionPlanDetail({ plan }: { plan: FullPlanResponse }) {
           <Text
             style={[
               styles.stepperArrow,
-              { color: hasNext ? colors.blue : colors.label3 },
+              { color: hasNext ? colors.gold : colors.label3 },
             ]}
           >
             ›
           </Text>
         </TouchableOpacity>
 
-        {plan.questionnaireResponseId && (
-          <Pressable
-            onPress={() => setSheetOpen(true)}
-            hitSlop={12}
-            style={[styles.nutritionQuestionnaireBtn, { backgroundColor: colors.fill }]}
-          >
-            <Ionicons name="clipboard-outline" size={20} color={colors.label} />
-          </Pressable>
-        )}
         <Pressable
-          onPress={() =>
-            router.push(hrefParams('/(client)/plans/shopping', { week: String(effectiveWeek) }))
-          }
+          onPress={() => setMenuOpen(true)}
           hitSlop={12}
-          style={[styles.nutritionShoppingBtn, { backgroundColor: colors.fill }]}
+          accessibilityRole="button"
+          accessibilityLabel={t('planDetail.menuA11y')}
+          style={[styles.nutritionMenuBtn, { backgroundColor: colors.fill }]}
         >
-          <Ionicons name="basket-outline" size={20} color={colors.label} />
+          <Ionicons name="ellipsis-horizontal" size={22} color={colors.label} />
         </Pressable>
       </View>
 
@@ -636,6 +676,8 @@ function NutritionPlanDetail({ plan }: { plan: FullPlanResponse }) {
                   expanded={expandedMealIds.has(meal.mealId ?? '')}
                   onToggle={() => handleToggleMeal(meal.mealId ?? '')}
                   eaten={eatenMealIds.has(meal.mealId ?? '')}
+                  photos={mealPhotosByMealId[meal.mealId ?? ''] ?? []}
+                  onPhotoPress={() => handleMealPhotoPress(meal)}
                 />
               ))
             )}
@@ -677,6 +719,46 @@ function NutritionPlanDetail({ plan }: { plan: FullPlanResponse }) {
             </View>
           )}
         </ScrollView>
+      </BottomSheet>
+
+      {/* ── Actions menu bottom sheet ── */}
+      <BottomSheet
+        visible={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        title={t('common.options')}
+        heightFraction={0.35}
+      >
+        <View style={styles.menuList}>
+          <Pressable
+            style={styles.menuRow}
+            onPress={() => selectMenuItem(() =>
+              router.push(hrefParams('/(client)/plans/shopping', { week: String(effectiveWeek) }))
+            )}
+          >
+            <Ionicons name="cart-outline" size={22} color={colors.label} />
+            <Text style={[Type.body, { color: colors.label }]}>{t('nutrition.shoppingList')}</Text>
+          </Pressable>
+          <View style={[styles.menuSeparator, { backgroundColor: colors.sep2 }]} />
+          {plan.questionnaireResponseId && (
+            <>
+              <Pressable
+                style={styles.menuRow}
+                onPress={() => selectMenuItem(() => setSheetOpen(true))}
+              >
+                <Ionicons name="clipboard-outline" size={22} color={colors.label} />
+                <Text style={[Type.body, { color: colors.label }]}>{t('planDetail.linkedQuestionnaire')}</Text>
+              </Pressable>
+              <View style={[styles.menuSeparator, { backgroundColor: colors.sep2 }]} />
+            </>
+          )}
+          <Pressable
+            style={styles.menuRow}
+            onPress={() => selectMenuItem(() => router.push('/(client)/plan-photos'))}
+          >
+            <Ionicons name="images-outline" size={22} color={colors.label} />
+            <Text style={[Type.body, { color: colors.label }]}>{t('planPhotos.title')}</Text>
+          </Pressable>
+        </View>
       </BottomSheet>
     </View>
   )
@@ -918,7 +1000,7 @@ function TrainingPlanDetail({ plan }: { plan: FullTrainingPlanResponse }) {
           <Text
             style={[
               styles.stepperArrow,
-              { color: hasPrev ? colors.blue : colors.label3 },
+              { color: hasPrev ? colors.gold : colors.label3 },
             ]}
           >
             ‹
@@ -948,7 +1030,7 @@ function TrainingPlanDetail({ plan }: { plan: FullTrainingPlanResponse }) {
           <Text
             style={[
               styles.stepperArrow,
-              { color: hasNext ? colors.blue : colors.label3 },
+              { color: hasNext ? colors.gold : colors.label3 },
             ]}
           >
             ›
@@ -959,7 +1041,7 @@ function TrainingPlanDetail({ plan }: { plan: FullTrainingPlanResponse }) {
           <Pressable
             onPress={() => setTrainingSheetOpen(true)}
             hitSlop={12}
-            style={[styles.nutritionQuestionnaireBtn, { backgroundColor: colors.fill }]}
+            style={[styles.nutritionMenuBtn, { backgroundColor: colors.fill }]}
           >
             <Ionicons name="clipboard-outline" size={20} color={colors.label} />
           </Pressable>
@@ -1360,18 +1442,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 2,
   },
-  nutritionQuestionnaireBtn: {
-    position: 'absolute',
-    right: 60,
-    top: '50%',
-    marginTop: -18,
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  nutritionShoppingBtn: {
+  nutritionMenuBtn: {
     position: 'absolute',
     right: 16,
     top: '50%',
@@ -1564,6 +1635,22 @@ const styles = StyleSheet.create({
   // Section spacing
   section: {
     marginTop: 16,
+  },
+
+  // Actions menu sheet
+  menuList: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  menuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingVertical: 14,
+  },
+  menuSeparator: {
+    height: StyleSheet.hairlineWidth,
   },
 
   // Questionnaire sheet

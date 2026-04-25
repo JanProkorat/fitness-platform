@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useRef } from 'react'
-import { View, Text, StyleSheet, Pressable } from 'react-native'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { View, Text, StyleSheet, Pressable, ScrollView, Image } from 'react-native'
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -15,7 +15,9 @@ import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
 import { getFoodCategoryColor, RECIPE_CHIP_COLOR } from '@/constants/foodCategories'
 import { NoteBanner } from '@/components/ui/NoteBanner'
+import { ImageLightbox } from '@/components/ui/ImageLightbox'
 import type { MealFood, MealRecipe, PlanMeal } from '@/api/nutrition'
+import { goldAlpha } from '@/constants/colors'
 import i18n from '@/i18n'
 import {
   computeFoodKcal,
@@ -26,21 +28,39 @@ import {
 const ANIM_DURATION = 250
 const ANIM_EASING = Easing.bezier(0.25, 0.1, 0.25, 1)
 
+export interface MealPhoto {
+  blobUrl: string
+  note?: string | null
+}
+
 interface MealCardProps {
   meal: PlanMeal
   expanded: boolean
   onToggle: () => void
   /** Whether this meal has been logged as eaten (shows a checkmark badge). */
   eaten?: boolean
+  /** Today's diary photos for this meal (rendered as a strip below the totals row). */
+  photos?: MealPhoto[]
+  /** When provided, renders a gold camera chip in the header that opens the
+   *  meal-log-photo modal so the client can upload diary photos. */
+  onPhotoPress?: () => void
 }
 
-function MealCard({ meal, expanded, onToggle, eaten }: MealCardProps) {
+function MealCard({ meal, expanded, onToggle, eaten, photos = [], onPhotoPress }: MealCardProps) {
   const { t } = useTranslation()
   const colors = useTheme()
   const kcal = meal.mealTotals?.kcal ?? 0
   const itemCount = totalMealItems(meal)
 
   const mealLabel = meal.kind ? t(`nutrition.mealKind.${meal.kind}`) : ''
+
+  // Lightbox state
+  const [lightbox, setLightbox] = useState<{ visible: boolean; startIndex: number }>({
+    visible: false,
+    startIndex: 0,
+  })
+  const photoUrls = photos.map((p) => p.blobUrl).filter(Boolean)
+  const photoNotes = photos.map((p) => p.note ?? null)
 
   // Animated accordion: content is always rendered for measurement
   const contentHeight = useSharedValue(0)
@@ -87,6 +107,26 @@ function MealCard({ meal, expanded, onToggle, eaten }: MealCardProps) {
               {t('nutrition.items', { count: itemCount })}
             </Text>
           </View>
+          {onPhotoPress && (
+            <Pressable
+              onPress={(e) => {
+                e.stopPropagation?.()
+                onPhotoPress()
+              }}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={t('nutrition.addPhotoA11y')}
+              style={[
+                styles.cameraChip,
+                {
+                  backgroundColor: goldAlpha['12'],
+                  borderColor: goldAlpha['35'],
+                },
+              ]}
+            >
+              <Ionicons name="camera" size={15} color={colors.onGoldChip} />
+            </Pressable>
+          )}
           {eaten && (
             <Ionicons
               name="checkmark-circle"
@@ -142,6 +182,31 @@ function MealCard({ meal, expanded, onToggle, eaten }: MealCardProps) {
             </View>
           )}
 
+          {/* Photo strip — shown when the card has diary photos */}
+          {photoUrls.length > 0 && (
+            <View style={[styles.photoStrip, { borderTopColor: colors.sep2 }]}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.photoStripContent}
+              >
+                {photoUrls.map((url, idx) => (
+                  <Pressable
+                    key={idx}
+                    onPress={() => setLightbox({ visible: true, startIndex: idx })}
+                    style={({ pressed }) => [pressed && { opacity: 0.75 }]}
+                  >
+                    <Image
+                      source={{ uri: url }}
+                      style={[styles.photoThumb, { borderRadius: Radius.sm }]}
+                      resizeMode="cover"
+                    />
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
           {/* Meal note */}
           {meal.note && (
             <View
@@ -160,6 +225,17 @@ function MealCard({ meal, expanded, onToggle, eaten }: MealCardProps) {
           )}
         </View>
       </Animated.View>
+
+      {/* Lightbox — rendered outside the clipped accordion so it can cover full screen */}
+      {photoUrls.length > 0 && (
+        <ImageLightbox
+          visible={lightbox.visible}
+          images={photoUrls}
+          startIndex={lightbox.startIndex}
+          imageNotes={photoNotes}
+          onClose={() => setLightbox({ visible: false, startIndex: 0 })}
+        />
+      )}
     </View>
   )
 }
@@ -361,6 +437,20 @@ const styles = StyleSheet.create({
   mealChevron: {
     marginLeft: 4,
   },
+  /**
+   * Gold-tinted circular camera chip — mirrors CameraButton in MealRow.
+   * 28×28, goldAlpha['12'] background, goldAlpha['35'] border, filled camera icon.
+   */
+  cameraChip: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    marginLeft: 8,
+  },
   mealTotalsFooter: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -437,6 +527,22 @@ const styles = StyleSheet.create({
   foodRowGrams: {
     ...Type.caption2,
     marginTop: 1,
+  },
+
+  // Photo strip
+  photoStrip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  photoStripContent: {
+    gap: 6,
+    flexDirection: 'row',
+  },
+  photoThumb: {
+    width: 56,
+    height: 56,
+    overflow: 'hidden',
   },
 
   // Meal note

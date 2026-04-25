@@ -1,0 +1,125 @@
+using System.Security.Claims;
+using FastEndpoints;
+using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using Microsoft.EntityFrameworkCore;
+using MongoDB.Driver;
+
+namespace FitnessPlatform.Application.Features.ClientNutrition.GenerateMealPhotoUploadUrl;
+
+/// <summary>
+/// Generates a pre-signed URL for the caller to upload a meal diary photo directly to blob storage.
+/// The photo lands under <c>diary/{mealId}/{guid}.{ext}</c> — the <see cref="ImageUploadScope.Diary"/>
+/// namespace — instead of the generic avatar namespace.
+/// </summary>
+/// <param name="imageUpload">Image upload service — validates content type and size, then issues the signed URL.</param>
+/// <param name="mongo">MongoDB context for ownership verification.</param>
+/// <param name="db">Relational database context for client profile lookup.</param>
+public class GenerateMealPhotoUploadUrlEndpoint(
+    IImageUploadService imageUpload,
+    IMongoContext mongo,
+    IApplicationDbContext db)
+    : Endpoint<GenerateMealPhotoUploadUrlRequest, GenerateMealPhotoUploadUrlResponse>
+{
+    /// <inheritdoc />
+    public override void Configure()
+    {
+        Post("/client/nutrition/log/meals/{MealId}/photo-upload-url");
+        Roles(AppRoles.Client);
+        Summary(s =>
+        {
+            s.Summary = "Generate meal diary photo upload URL";
+            s.Description =
+                "Returns a time-limited pre-signed URL for direct upload of a meal diary photo "
+                + "to blob storage (diary/{mealId}/{guid}.{ext}), together with the permanent "
+                + "blob URL to pass to POST /client/nutrition/log/meals/{mealId}/photos.";
+        });
+    }
+
+    /// <inheritdoc />
+    public override async Task HandleAsync(GenerateMealPhotoUploadUrlRequest req, CancellationToken ct)
+    {
+        var userId = User.FindFirstValue(AppClaims.UserId);
+
+        if (userId is null)
+        {
+            await Send.UnauthorizedAsync(ct);
+            return;
+        }
+
+        // Resolve the caller's client profile
+        var clientProfile = await db.ClientProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cp => cp.UserId == Guid.Parse(userId), ct);
+
+        if (clientProfile is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        var clientId = clientProfile.PublicId;
+
+        // Resolve the client's active nutrition plan
+        var planFilter = Builders<NutritionPlan>.Filter.And(
+            Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientId),
+            Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active));
+
+        var planCursor = await mongo.NutritionPlans.FindAsync(planFilter, cancellationToken: ct);
+        var plan = await planCursor.FirstOrDefaultAsync(ct);
+
+        if (plan is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        // Verify the mealId belongs to the active plan
+        var meal = plan.Weeks
+            .SelectMany(w => w.Days)
+            .SelectMany(d => d.Meals)
+            .FirstOrDefault(m => m.MealId == req.MealId);
+
+        if (meal is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        // Build the sub-path: {mealId}/{guid}.{ext} — prefix "diary/" is added by the service
+        var extension = GetExtension(req.ContentType);
+        var subPath = $"{req.MealId}/{Guid.NewGuid()}.{extension}";
+
+        var result = await imageUpload.GenerateUploadUrlAsync(
+            ImageUploadScope.Diary,
+            subPath,
+            req.ContentType,
+            req.SizeBytes,
+            ct);
+
+        await Send.OkAsync(new GenerateMealPhotoUploadUrlResponse
+        {
+            UploadUrl = result.UploadUrl,
+            BlobUrl = result.BlobUrl
+        }, ct);
+    }
+
+    // Returns a file extension for known image content types.
+    // image/heic is accepted by the validator; the IImageUploadService whitelist only knows
+    // jpeg/png/webp, so it will throw INVALID_IMAGE_CONTENT_TYPE for heic before the
+    // subPath reaches blob storage — but the validator catches it first and returns 400.
+    // The "heic" branch is here so the subPath is correctly formed if the service whitelist
+    // is ever extended.
+    private static string GetExtension(string contentType) => contentType.ToLowerInvariant() switch
+    {
+        "image/jpeg" => "jpg",
+        "image/png"  => "png",
+        "image/webp" => "webp",
+        "image/heic" => "heic",
+        _            => "bin",
+    };
+}

@@ -182,7 +182,8 @@
   "common": {
     "back": "Back",
     "cancel": "Cancel",
-    "error": "Error"
+    "error": "Error",
+    "options": "Options"
   },
   "imagePicker": {
     "sourceTitle": "Select source",
@@ -190,7 +191,8 @@
     "sourceLibrary": "Choose from library",
     "permissionDenied": "Permission denied. Please allow camera and photo access in Settings.",
     "oversize": "Image is too large (max {{maxMb}} MB). Please choose a smaller file.",
-    "invalidType": "Unsupported file type. Please choose a JPG, PNG, or WebP image."
+    "invalidType": "Unsupported file type. Please choose a JPG, PNG, or WebP image.",
+    "partialUpload": "{{succeeded}} of {{total}} photos uploaded"
   },
   "tabs": {
     "today": "Today",
@@ -428,7 +430,8 @@
   },
   "planDetail": {
     "linkedQuestionnaire": "Linked questionnaire",
-    "answersNotAvailable": "Answers are not available yet."
+    "answersNotAvailable": "Answers are not available yet.",
+    "menuA11y": "Open menu"
   },
   "profile": {
     "title": "Profile",
@@ -784,6 +787,7 @@
     "dailyAverage": "Daily Avg",
     "weekTotal": "Week Total",
     "shopping": "Shopping List",
+    "shoppingList": "Shopping list",
     "kcal": "kcal",
     "protein": "Protein",
     "carbs": "Carbs",
@@ -802,6 +806,7 @@
     "tip": "Tip:",
     "dayNoteLabel": "Day note:",
     "mealNoteLabel": "Meal note:",
+    "todayPhotos": "Today's photos",
     "recipe": "Recipe",
     "serving_one": "{{count}}× serving",
     "serving_other": "{{count}}× servings",
@@ -830,6 +835,26 @@
       "Dinner": "Dinner",
       "PreWorkout": "Pre-workout",
       "PostWorkout": "Post-workout"
+    },
+    "photoCta": "Photo"
+  },
+  "mealLogPhoto": {
+    "photoSectionLabel": "Add photos (optional)",
+    "photoPickerHint": "Tap: gallery · hold: camera",
+    "photoPickerReplaceHint": "Tap to replace · X to remove",
+    "noteSectionLabel": "Note (optional)",
+    "notePlaceholder": "E.g. It was great, I just added more vegetables…",
+    "noteCounter": "{{current}} / {{max}}",
+    "infoStrip": "Photos and note will be saved to your plan and are visible to {{coachName}}.",
+    "infoStripNoCoach": "Photos and note will be saved to your plan.",
+    "savePhoto": "Save",
+    "successToast": "Saved",
+    "addMorePhotos": "Add another photo",
+    "photoThumbA11y": "Photo {{index}} of {{total}}",
+    "openPhotosA11y": "Open meal photos",
+    "photoCaption": {
+      "placeholder": "Caption (optional)",
+      "a11y": "Photo caption"
     }
   },
   "avatar": {
@@ -842,5 +867,16 @@
     "close": "Close",
     "previous": "Previous",
     "next": "Next"
+  },
+  "planPhotos": {
+    "title": "Plan photos",
+    "categoryAll": "All",
+    "categoryFood": "Food",
+    "categoryProgress": "Progress",
+    "categoryFree": "Free",
+    "totalCount": "{{count}} photos total",
+    "empty": "No photos",
+    "addPhotoA11y": "Add photo to plan",
+    "openA11y": "Open plan photos"
   }
 }

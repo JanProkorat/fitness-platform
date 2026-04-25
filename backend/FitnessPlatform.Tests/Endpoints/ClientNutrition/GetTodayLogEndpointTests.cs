@@ -133,6 +133,249 @@ public class GetTodayLogEndpointTests
     }
 
     [Fact]
+    public async Task HandleAsync_LogWithPhotosAndNote_RoundTripsInResponse()
+    {
+        var mealId = Guid.NewGuid();
+        var food = PlanTestHelpers.CreateMealFood(foodName: "Salmon", amountGrams: 150, kcal: 208);
+        var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.Dinner, foods: food);
+
+        var plan = PlanTestHelpers.CreatePlan(
+            clientId: _clientId,
+            status: NutritionPlanStatus.Active);
+        plan.DatePublished = DateTime.UtcNow;
+        plan.Weeks[0].Days[0].Meals.Add(meal);
+
+        var uploadedAt = DateTime.UtcNow.AddMinutes(-5);
+        var log = new MealLog
+        {
+            ClientId = _clientId,
+            PlanId = plan.ExternalId,
+            MealId = mealId,
+            EatenAt = DateTime.UtcNow,
+            FoodsEaten = [food],
+            Photos =
+            [
+                new MealPhoto { BlobUrl = "https://minio.local/bucket/photo1.jpg", UploadedAt = uploadedAt },
+                new MealPhoto { BlobUrl = "https://minio.local/bucket/photo2.jpg", UploadedAt = uploadedAt }
+            ],
+            Note = "Great post-workout dinner"
+        };
+
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+
+        var mealLogCollection = Substitute.For<IMongoCollection<MealLog>>();
+        mealLogCollection.FindAsync(
+                Arg.Any<FilterDefinition<MealLog>>(),
+                Arg.Any<FindOptions<MealLog, MealLog>>(),
+                Arg.Any<CancellationToken>())
+            .Returns(_ => CreateMealLogCursor([log]));
+        mongo.MealLogs.Returns(mealLogCollection);
+
+        var db = CreateMockDb();
+
+        var ep = Factory.Create<GetTodayLogEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
+            mongo, db);
+
+        await ep.HandleAsync(TestContext.Current.CancellationToken);
+
+        ep.Response.Should().NotBeNull();
+        ep.Response.MealsEaten.Should().HaveCount(1);
+
+        var dto = ep.Response.MealsEaten[0];
+        dto.Photos.Should().HaveCount(2);
+        dto.Photos[0].BlobUrl.Should().Be("https://minio.local/bucket/photo1.jpg");
+        dto.Photos[0].UploadedAt.Should().Be(uploadedAt);
+        dto.Photos[1].BlobUrl.Should().Be("https://minio.local/bucket/photo2.jpg");
+        dto.Note.Should().Be("Great post-workout dinner");
+    }
+
+    [Fact]
+    public async Task HandleAsync_LogWithoutPhotosOrNote_ReturnsEmptyPhotosAndNullNote()
+    {
+        var mealId = Guid.NewGuid();
+        var food = PlanTestHelpers.CreateMealFood(foodName: "Toast");
+        var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.Breakfast, foods: food);
+
+        var plan = PlanTestHelpers.CreatePlan(
+            clientId: _clientId,
+            status: NutritionPlanStatus.Active);
+        plan.DatePublished = DateTime.UtcNow;
+        plan.Weeks[0].Days[0].Meals.Add(meal);
+
+        var log = new MealLog
+        {
+            ClientId = _clientId,
+            PlanId = plan.ExternalId,
+            MealId = mealId,
+            EatenAt = DateTime.UtcNow,
+            FoodsEaten = [food]
+            // No Photos, no Note — represents a legacy or quick-log entry
+        };
+
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+
+        var mealLogCollection = Substitute.For<IMongoCollection<MealLog>>();
+        mealLogCollection.FindAsync(
+                Arg.Any<FilterDefinition<MealLog>>(),
+                Arg.Any<FindOptions<MealLog, MealLog>>(),
+                Arg.Any<CancellationToken>())
+            .Returns(_ => CreateMealLogCursor([log]));
+        mongo.MealLogs.Returns(mealLogCollection);
+
+        var db = CreateMockDb();
+
+        var ep = Factory.Create<GetTodayLogEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
+            mongo, db);
+
+        await ep.HandleAsync(TestContext.Current.CancellationToken);
+
+        ep.Response.Should().NotBeNull();
+        ep.Response.MealsEaten.Should().HaveCount(1);
+
+        var dto = ep.Response.MealsEaten[0];
+        dto.Photos.Should().BeEmpty();
+        dto.Note.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task HandleAsync_PhotoOnlyLog_NullEatenAt_AppearsInResponse()
+    {
+        // Regression: GetTodayLog previously filtered by EatenAt >= today which excluded
+        // photo-only logs whose EatenAt is null. Verify the endpoint now returns them.
+        var mealId = Guid.NewGuid();
+        var food = PlanTestHelpers.CreateMealFood(foodName: "Yoghurt");
+        var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.AfternoonSnack, foods: food);
+
+        var plan = PlanTestHelpers.CreatePlan(
+            clientId: _clientId,
+            status: NutritionPlanStatus.Active);
+        plan.DatePublished = DateTime.UtcNow;
+        plan.Weeks[0].Days[0].Meals.Add(meal);
+
+        var uploadedAt = DateTime.UtcNow.AddMinutes(-10);
+        // Photo-only log: no EatenAt, LogDate = today, created by SaveMealPhotos
+        var photoOnlyLog = new MealLog
+        {
+            ClientId = _clientId,
+            PlanId = plan.ExternalId,
+            MealId = mealId,
+            LogDate = DateTime.UtcNow.Date,
+            EatenAt = null,
+            FoodsEaten = [food],
+            Photos = [new MealPhoto { BlobUrl = "https://minio.local/bucket/snack.jpg", UploadedAt = uploadedAt }],
+            Note = "afternoon snack photo"
+        };
+
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+
+        var mealLogCollection = Substitute.For<IMongoCollection<MealLog>>();
+        mealLogCollection.FindAsync(
+                Arg.Any<FilterDefinition<MealLog>>(),
+                Arg.Any<FindOptions<MealLog, MealLog>>(),
+                Arg.Any<CancellationToken>())
+            .Returns(_ => CreateMealLogCursor([photoOnlyLog]));
+        mongo.MealLogs.Returns(mealLogCollection);
+
+        var db = CreateMockDb();
+
+        var ep = Factory.Create<GetTodayLogEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
+            mongo, db);
+
+        await ep.HandleAsync(TestContext.Current.CancellationToken);
+
+        ep.Response.Should().NotBeNull();
+        ep.Response.MealsEaten.Should().HaveCount(1);
+
+        var dto = ep.Response.MealsEaten[0];
+        dto.EatenAt.Should().BeNull();
+        dto.Photos.Should().HaveCount(1);
+        dto.Photos[0].BlobUrl.Should().Be("https://minio.local/bucket/snack.jpg");
+        dto.Photos[0].UploadedAt.Should().Be(uploadedAt);
+        dto.Note.Should().Be("afternoon snack photo");
+    }
+
+    [Fact]
+    public async Task HandleAsync_PhotoWithNote_PopulatesMealPhotoDtoNote()
+    {
+        // A MealPhoto that carries a per-photo Note must surface in the MealPhotoDto.Note field.
+        var mealId = Guid.NewGuid();
+        var food = PlanTestHelpers.CreateMealFood(foodName: "Smoothie");
+        var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.MorningSnack, foods: food);
+
+        var plan = PlanTestHelpers.CreatePlan(
+            clientId: _clientId,
+            status: NutritionPlanStatus.Active);
+        plan.DatePublished = DateTime.UtcNow;
+        plan.Weeks[0].Days[0].Meals.Add(meal);
+
+        var uploadedAt = DateTime.UtcNow.AddMinutes(-15);
+        var log = new MealLog
+        {
+            ClientId = _clientId,
+            PlanId = plan.ExternalId,
+            MealId = mealId,
+            LogDate = DateTime.UtcNow.Date,
+            EatenAt = null,
+            FoodsEaten = [food],
+            Photos =
+            [
+                new MealPhoto
+                {
+                    BlobUrl = "https://minio.local/bucket/smoothie.jpg",
+                    UploadedAt = uploadedAt,
+                    Note = "Blueberry variant"
+                },
+                new MealPhoto
+                {
+                    BlobUrl = "https://minio.local/bucket/smoothie2.jpg",
+                    UploadedAt = uploadedAt,
+                    Note = null
+                }
+            ],
+            Note = null
+        };
+
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+
+        var mealLogCollection = Substitute.For<IMongoCollection<MealLog>>();
+        mealLogCollection.FindAsync(
+                Arg.Any<FilterDefinition<MealLog>>(),
+                Arg.Any<FindOptions<MealLog, MealLog>>(),
+                Arg.Any<CancellationToken>())
+            .Returns(_ => CreateMealLogCursor([log]));
+        mongo.MealLogs.Returns(mealLogCollection);
+
+        var db = CreateMockDb();
+
+        var ep = Factory.Create<GetTodayLogEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
+            mongo, db);
+
+        await ep.HandleAsync(TestContext.Current.CancellationToken);
+
+        ep.Response.Should().NotBeNull();
+        ep.Response.MealsEaten.Should().HaveCount(1);
+
+        var dto = ep.Response.MealsEaten[0];
+        dto.Photos.Should().HaveCount(2);
+        dto.Photos[0].BlobUrl.Should().Be("https://minio.local/bucket/smoothie.jpg");
+        dto.Photos[0].Note.Should().Be("Blueberry variant");
+        dto.Photos[1].BlobUrl.Should().Be("https://minio.local/bucket/smoothie2.jpg");
+        dto.Photos[1].Note.Should().BeNull();
+    }
+
+    [Fact]
     public async Task HandleAsync_NoClaims_Returns401()
     {
         var mongo = PlanTestHelpers.CreateMockMongo();

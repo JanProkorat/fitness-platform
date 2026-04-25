@@ -35,8 +35,9 @@ function AuthGate() {
     if (!isInitialized) return;
     SplashScreen.hideAsync();
 
-    const inAuthGroup = segments[0] === '(auth)';
-    const currentScreen = segments[1] as string | undefined;
+    const seg = segments as string[];
+    const inAuthGroup = seg[0] === '(auth)';
+    const currentScreen = seg[1] as string | undefined;
     const onVerifyScreen = inAuthGroup && currentScreen === 'verify-email';
     const onQuestionnaireScreen = inAuthGroup && currentScreen === 'questionnaire';
     const onInviteScreen = inAuthGroup && currentScreen === 'invite';

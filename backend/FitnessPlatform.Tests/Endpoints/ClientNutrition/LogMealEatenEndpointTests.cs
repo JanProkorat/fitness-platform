@@ -70,6 +70,100 @@ public class LogMealEatenEndpointTests
     }
 
     [Fact]
+    public async Task HandleAsync_WithPhotosAndNote_PersistsToMealLog()
+    {
+        var mealId = Guid.NewGuid();
+        var food = PlanTestHelpers.CreateMealFood(foodName: "Oats");
+        var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.Breakfast, foods: food);
+
+        var plan = PlanTestHelpers.CreatePlan(
+            clientId: _clientId,
+            status: NutritionPlanStatus.Active);
+        plan.DatePublished = DateTime.UtcNow;
+        plan.Weeks[0].Days[0].Meals.Add(meal);
+
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+
+        var mealLogCollection = Substitute.For<IMongoCollection<MealLog>>();
+        mongo.MealLogs.Returns(mealLogCollection);
+
+        var db = CreateMockDb();
+
+        var ep = Factory.Create<LogMealEatenEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
+            mongo, db, Substitute.For<IRealtimeNotifier>());
+
+        var photoUrls = new List<string>
+        {
+            "https://minio.local/bucket/photo1.jpg",
+            "https://minio.local/bucket/photo2.jpg"
+        };
+        const string note = "Felt great after this meal!";
+
+        await ep.HandleAsync(
+            new LogMealEatenRequest { MealId = mealId, PhotoBlobUrls = photoUrls, Note = note },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(201);
+
+        await mealLogCollection.Received(1).InsertOneAsync(
+            Arg.Is<MealLog>(log =>
+                log.ClientId == _clientId &&
+                log.MealId == mealId &&
+                log.Photos.Count == 2 &&
+                log.Photos[0].BlobUrl == photoUrls[0] &&
+                log.Photos[1].BlobUrl == photoUrls[1] &&
+                log.Note == note),
+            Arg.Any<InsertOneOptions>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleAsync_WithoutPhotosOrNote_PersistsEmptyPhotosAndNullNote()
+    {
+        var mealId = Guid.NewGuid();
+        var food = PlanTestHelpers.CreateMealFood(foodName: "Eggs");
+        var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.Breakfast, foods: food);
+
+        var plan = PlanTestHelpers.CreatePlan(
+            clientId: _clientId,
+            status: NutritionPlanStatus.Active);
+        plan.DatePublished = DateTime.UtcNow;
+        plan.Weeks[0].Days[0].Meals.Add(meal);
+
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+
+        var mealLogCollection = Substitute.For<IMongoCollection<MealLog>>();
+        mongo.MealLogs.Returns(mealLogCollection);
+
+        var db = CreateMockDb();
+
+        var ep = Factory.Create<LogMealEatenEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
+            mongo, db, Substitute.For<IRealtimeNotifier>());
+
+        // No PhotoBlobUrls or Note supplied — original quick-log path
+        await ep.HandleAsync(
+            new LogMealEatenRequest { MealId = mealId },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(201);
+
+        await mealLogCollection.Received(1).InsertOneAsync(
+            Arg.Is<MealLog>(log =>
+                log.ClientId == _clientId &&
+                log.MealId == mealId &&
+                log.Photos.Count == 0 &&
+                log.Note == null),
+            Arg.Any<InsertOneOptions>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task HandleAsync_MealNotInPlan_Returns404()
     {
         var plan = PlanTestHelpers.CreatePlan(

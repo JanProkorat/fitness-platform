@@ -100,8 +100,10 @@ public class GetClientTimelineEndpoint(
         using (var cursor = await mongo.MealLogs.FindAsync(mealFilter, cancellationToken: ct))
         {
             var logs = await cursor.ToListAsync(ct);
+            // Group by EatenAt date when available; fall back to LogDate for photo-only
+            // entries that slipped through the Gte filter (defensive).
             var perDay = logs
-                .GroupBy(l => l.EatenAt.Date)
+                .GroupBy(l => (l.EatenAt ?? l.LogDate).Date)
                 .OrderByDescending(g => g.Key);
 
             foreach (var day in perDay)
@@ -110,7 +112,7 @@ public class GetClientTimelineEndpoint(
                 {
                     Id = $"meals:{day.Key:yyyy-MM-dd}",
                     Type = "meal_day",
-                    OccurredAt = day.Max(l => l.EatenAt),
+                    OccurredAt = day.Max(l => l.EatenAt ?? l.LogDate),
                     Title = $"Zaznamenáno {day.Count()} jídel",
                     Icon = "🍽",
                 });

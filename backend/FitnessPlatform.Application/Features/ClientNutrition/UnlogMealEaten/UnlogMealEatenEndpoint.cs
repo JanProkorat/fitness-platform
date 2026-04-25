@@ -55,14 +55,20 @@ public class UnlogMealEatenEndpoint(IMongoContext mongo, IApplicationDbContext d
         var clientId = clientProfile.PublicId;
 
         // Remove any meal log entries for this meal and client logged today (UTC).
+        // Uses the same OR pattern as GetTodayLog and SaveMealPhotos to find all log
+        // variants: modern records (LogDate == today), photo-only records (EatenAt null,
+        // LogDate == today), and legacy records (LogDate = default, EatenAt in today's window).
         var today = DateTime.UtcNow.Date;
         var tomorrow = today.AddDays(1);
 
         var filter = Builders<MealLog>.Filter.And(
             Builders<MealLog>.Filter.Eq(l => l.ClientId, clientId),
             Builders<MealLog>.Filter.Eq(l => l.MealId, req.MealId),
-            Builders<MealLog>.Filter.Gte(l => l.EatenAt, today),
-            Builders<MealLog>.Filter.Lt(l => l.EatenAt, tomorrow));
+            Builders<MealLog>.Filter.Or(
+                Builders<MealLog>.Filter.Eq(l => l.LogDate, today),
+                Builders<MealLog>.Filter.And(
+                    Builders<MealLog>.Filter.Gte(l => l.EatenAt, today),
+                    Builders<MealLog>.Filter.Lt(l => l.EatenAt, tomorrow))));
 
         var deleteResult = await mongo.MealLogs.DeleteManyAsync(filter, ct);
 

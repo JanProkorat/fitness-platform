@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { View, Text, StyleSheet, Pressable } from 'react-native'
 import Animated, {
   useSharedValue,
@@ -15,7 +15,10 @@ import { getMealKindConfig } from '@/constants/mealKinds'
 import { totalMealItems } from '@/lib/nutrition-plan-helpers'
 import { FoodItemRow, RecipeItemRow } from '@/components/nutrition/MealCard'
 import { NoteBanner } from '@/components/ui/NoteBanner'
+import { ImageLightbox } from '@/components/ui/ImageLightbox'
 import type { PlanMeal } from '@/api/nutrition'
+import type { ColorScheme } from '@/constants/colors'
+import { goldAlpha } from '@/constants/colors'
 
 const ANIM_DURATION = 250
 const ANIM_EASING = Easing.bezier(0.25, 0.1, 0.25, 1)
@@ -37,6 +40,31 @@ interface MealRowProps {
    * check does not also toggle the accordion.
    */
   onToggleEaten?: () => void
+  /**
+   * Tap handler for the gold camera button. When provided, a 28×28 gold-tinted
+   * circular camera icon button is shown before the check button (accordion mode
+   * only) — visible regardless of eaten state so clients can attach diary
+   * photos retroactively.
+   *
+   * Mirrors the prototype `docs/prototypes/mobile/scenes/today.html` lines 452/473/493.
+   */
+  onPhotoPress?: () => void
+  /**
+   * When true, shows a small photo thumbnail indicator on the row to signal
+   * that at least one diary photo exists for this meal log entry.
+   */
+  hasPhotos?: boolean
+  /**
+   * Diary photos for this meal's log entry. When `hasPhotos` is true and the
+   * user taps the gold camera indicator badge, these are opened in ImageLightbox.
+   * Each photo carries an optional per-photo caption (`note`).
+   */
+  photos?: { blobUrl: string; note?: string | null; uploadedAt?: string }[]
+  /**
+   * Meal-level diary note. When non-empty, shown as a top overlay caption in
+   * the lightbox when photos are opened.
+   */
+  mealNote?: string | null
 }
 
 /**
@@ -60,9 +88,28 @@ export const MealRow = React.memo(function MealRow({
   onToggle,
   onPress,
   onToggleEaten,
+  onPhotoPress,
+  hasPhotos,
+  photos,
+  mealNote,
 }: MealRowProps) {
   const colors = useTheme()
   const { t } = useTranslation()
+
+  // Lightbox state — opened by tapping the gold photo-indicator badge on the row header
+  const [lightboxVisible, setLightboxVisible] = useState(false)
+
+  const photoList = photos ?? []
+  const photoUrls = photoList.map((p) => p.blobUrl).filter(Boolean)
+  const photoNotes = photoList.map((p) => p.note ?? null)
+
+  const handleBadgePress = useCallback(() => {
+    if (photoUrls.length > 0) setLightboxVisible(true)
+  }, [photoUrls.length])
+
+  const handleLightboxClose = useCallback(() => {
+    setLightboxVisible(false)
+  }, [])
 
   const kindConfig = getMealKindConfig(meal.kind)
   const isDark = colors.bg === '#1c1c1e'
@@ -183,6 +230,28 @@ export const MealRow = React.memo(function MealRow({
           </View>
         )}
 
+        {/* Photo indicator — tappable badge that opens the lightbox */}
+        {isExpandable && hasPhotos && (
+          <Pressable
+            onPress={(e) => {
+              e.stopPropagation?.()
+              handleBadgePress()
+            }}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={t('mealLogPhoto.openPhotosA11y')}
+            style={[styles.photoIndicator, { backgroundColor: colors.goldBg }]}
+          >
+            <Ionicons name="camera" size={11} color={colors.gold} />
+          </Pressable>
+        )}
+
+        {/* Gold camera button — always visible in accordion mode so clients can
+            attach diary photos both pre- and post-eaten. */}
+        {isExpandable && onPhotoPress && (
+          <CameraButton onPress={onPhotoPress} colors={colors} />
+        )}
+
         {onToggleEaten && (
           <CheckButton eaten={!!eaten} onPress={onToggleEaten} />
         )}
@@ -207,41 +276,51 @@ export const MealRow = React.memo(function MealRow({
       </Pressable>
 
       {isExpandable && (
-        <Animated.View style={[styles.bodyClip, animatedBodyStyle]}>
-          <View
-            onLayout={handleBodyLayout}
-            style={[
-              styles.body,
-              styles.bodyAbsolute,
-              {
-                borderTopColor: colors.sep2,
-                borderBottomColor: colors.sep2,
-                borderBottomWidth: isLast ? 0 : StyleSheet.hairlineWidth,
-              },
-            ]}
-          >
-            {/* Meal note — first element in the body so it sits right under the header */}
-            {meal.note ? (
-              <NoteBanner variant="meal" label={t('nutrition.mealNoteLabel')}>
-                {meal.note}
-              </NoteBanner>
-            ) : null}
-            {(meal.foods ?? []).map((food, idx) => (
-              <FoodItemRow
-                key={`f-${food.foodExternalId}-${idx}`}
-                food={food}
-                mealName={title}
-              />
-            ))}
-            {meal.recipes?.map((recipe, idx) => (
-              <RecipeItemRow
-                key={`r-${recipe.recipeId}-${idx}`}
-                recipe={recipe}
-                mealName={title}
-              />
-            ))}
-          </View>
-        </Animated.View>
+        <>
+          <ImageLightbox
+            visible={lightboxVisible}
+            images={photoUrls}
+            startIndex={0}
+            onClose={handleLightboxClose}
+            mealNote={mealNote}
+            imageNotes={photoNotes}
+          />
+          <Animated.View style={[styles.bodyClip, animatedBodyStyle]}>
+            <View
+              onLayout={handleBodyLayout}
+              style={[
+                styles.body,
+                styles.bodyAbsolute,
+                {
+                  borderTopColor: colors.sep2,
+                  borderBottomColor: colors.sep2,
+                  borderBottomWidth: isLast ? 0 : StyleSheet.hairlineWidth,
+                },
+              ]}
+            >
+              {/* Meal plan note — trainer's note from the plan */}
+              {meal.note ? (
+                <NoteBanner variant="meal" label={t('nutrition.mealNoteLabel')}>
+                  {meal.note}
+                </NoteBanner>
+              ) : null}
+              {(meal.foods ?? []).map((food, idx) => (
+                <FoodItemRow
+                  key={`f-${food.foodExternalId}-${idx}`}
+                  food={food}
+                  mealName={title}
+                />
+              ))}
+              {meal.recipes?.map((recipe, idx) => (
+                <RecipeItemRow
+                  key={`r-${recipe.recipeId}-${idx}`}
+                  recipe={recipe}
+                  mealName={title}
+                />
+              ))}
+            </View>
+          </Animated.View>
+        </>
       )}
     </View>
   )
@@ -275,6 +354,40 @@ function CheckButton({ eaten, onPress }: CheckButtonProps) {
       ]}
     >
       {eaten && <Ionicons name="checkmark" size={14} color={colors.onAccent} />}
+    </Pressable>
+  )
+}
+
+/**
+ * Gold-tinted circular camera button. 28×28, matching the prototype spec
+ * (docs/prototypes/mobile/scenes/today.html lines 452/473/493).
+ *
+ * Uses `goldAlpha['12']` as background and `goldAlpha['35']` as border — both
+ * come from the design-token constants, not hardcoded hex.
+ *
+ * The `colors` prop is passed in (not obtained via hook) so this component
+ * can remain a plain function without registering its own hook call, keeping
+ * MealRow's hook-call count stable.
+ */
+function CameraButton({ onPress, colors }: { onPress: () => void; colors: ColorScheme }) {
+  return (
+    <Pressable
+      onPress={(e) => {
+        e.stopPropagation?.()
+        onPress()
+      }}
+      hitSlop={8}
+      accessibilityRole="button"
+      accessibilityLabel="Add meal photo"
+      style={[
+        styles.cameraBtn,
+        {
+          backgroundColor: goldAlpha['12'],
+          borderColor: goldAlpha['35'],
+        },
+      ]}
+    >
+      <Ionicons name="camera" size={15} color={colors.onGoldChip} />
     </Pressable>
   )
 }
@@ -348,6 +461,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 10,
+  },
+  /**
+   * Gold-tinted circular camera button (prototype lines 452/473/493).
+   * 28×28 to match the prototype spec exactly.
+   */
+  cameraBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  /** Small badge shown on eaten rows that already have diary photos */
+  photoIndicator: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
   bodyClip: {
     overflow: 'hidden',

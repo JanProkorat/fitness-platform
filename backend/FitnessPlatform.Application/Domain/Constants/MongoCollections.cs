@@ -49,4 +49,9 @@ public static class MongoCollections
     /// Personal record documents collection.
     /// </summary>
     public const string PersonalRecords = "personalRecords";
+
+    /// <summary>
+    /// Day-level diary log entries (photos + note per plan day).
+    /// </summary>
+    public const string DayLogs = "dayLogs";
 }

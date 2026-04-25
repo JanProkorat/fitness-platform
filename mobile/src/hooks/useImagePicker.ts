@@ -9,11 +9,22 @@
  *  - MIME detection from URI extension (jpg/jpeg, png, webp only).
  *  - PUT upload to a caller-supplied signed URL; progress is null because
  *    React Native's fetch does not expose upload progress on all platforms.
+ *  - Optional multi-select: pass `allowsMultipleSelection: true` to enable
+ *    selecting multiple images from the gallery in a single pick() call.
+ *    On multi-select, uploads run in parallel and `onUploadedMany` is called
+ *    with the full array of succeeded blob URLs.
  *
- * Usage:
+ * Usage (single-select — existing callers unchanged):
  *   const { pick, uploading, progress, error } = useImagePicker(
  *     { source: 'both', requestUploadUrl },
  *     (blobUrl) => console.log('uploaded to', blobUrl),
+ *   );
+ *
+ * Usage (multi-select):
+ *   const { pick, uploading, progress, error } = useImagePicker(
+ *     { source: 'library', allowsMultipleSelection: true, requestUploadUrl },
+ *     undefined,
+ *     (blobUrls) => console.log('uploaded', blobUrls.length, 'photos'),
  *   );
  */
 
@@ -34,9 +45,15 @@ export interface UseImagePickerOptions {
   maxBytes?: number;
   /**
    * Aspect-ratio constraint. `undefined` = free crop; `[1, 1]` = square.
-   * When set, the picker opens in editing mode.
+   * When set, the picker opens in editing mode (single-select only).
    */
   aspect?: [number, number];
+  /**
+   * Allow selecting multiple images from the gallery in one pick() call.
+   * Defaults to false. Ignored when source is 'camera' (camera is always
+   * single-shot). When true, `onUploadedMany` fires with all succeeded URLs.
+   */
+  allowsMultipleSelection?: boolean;
   /**
    * Callback that resolves a signed upload URL.
    * The hook stays API-agnostic — the parent screen owns the endpoint logic.
@@ -48,9 +65,9 @@ export interface UseImagePickerOptions {
 }
 
 export interface UseImagePickerResult {
-  /** Triggers permission prompt → source selection → picker → upload → onUploaded. */
+  /** Triggers permission prompt → source selection → picker → upload → onUploaded / onUploadedMany. */
   pick: () => Promise<void>;
-  /** True while the PUT request is in flight. */
+  /** True while at least one PUT request is in flight. */
   uploading: boolean;
   /**
    * Upload progress in [0, 1].
@@ -90,14 +107,25 @@ function getFilename(uri: string): string {
 
 const DEFAULT_MAX_BYTES = 5 * 1024 * 1024; // 5 MiB
 
+/**
+ * @param options       Picker configuration.
+ * @param onUploaded    Called with a single blob URL after a single-select upload.
+ *                      Pass `undefined` when using multi-select via `onUploadedMany`.
+ * @param onUploadedMany Called with the full array of succeeded blob URLs after a
+ *                      multi-select pick. Only fires when `allowsMultipleSelection`
+ *                      is true. If some uploads fail, the succeeded ones are surfaced
+ *                      here and a partial-failure toast is shown.
+ */
 export function useImagePicker(
   options: UseImagePickerOptions,
-  onUploaded: (blobUrl: string) => void,
+  onUploaded: ((blobUrl: string) => void) | undefined,
+  onUploadedMany?: (blobUrls: string[]) => void,
 ): UseImagePickerResult {
   const {
     source = 'both',
     maxBytes = DEFAULT_MAX_BYTES,
     aspect,
+    allowsMultipleSelection = false,
     requestUploadUrl,
   } = options;
 
@@ -182,12 +210,16 @@ export function useImagePicker(
   async function launchPicker(
     pickerSource: 'camera' | 'library',
   ): Promise<ImagePicker.ImagePickerResult> {
+    // Camera is always single-shot; multi-select applies to library only.
+    const multiSelect = allowsMultipleSelection && pickerSource === 'library';
+
     const pickerOptions: ImagePicker.ImagePickerOptions = {
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: aspect !== undefined,
-      aspect,
+      mediaTypes: ['images'],
+      // allowsEditing is incompatible with multi-select; disable it when multi.
+      allowsEditing: !multiSelect && aspect !== undefined,
+      aspect: !multiSelect ? aspect : undefined,
       quality: 0.85,
-      allowsMultipleSelection: false,
+      allowsMultipleSelection: multiSelect,
     };
 
     if (pickerSource === 'camera') {
@@ -219,22 +251,19 @@ export function useImagePicker(
   }
 
   // -------------------------------------------------------------------------
-  // Upload
+  // Upload (single asset)
   // -------------------------------------------------------------------------
 
   async function uploadAsset(
     asset: ImagePicker.ImagePickerAsset,
     contentType: string,
     sizeBytes: number,
+    controller: AbortController,
   ): Promise<string> {
     const { uploadUrl, blobUrl } = await requestUploadUrl({
       contentType,
       sizeBytes,
     });
-
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
 
     // React Native supports sending a local-file URI via fetch body.
     // Using a plain object with uri/type/name triggers the RN FormData shim
@@ -257,6 +286,29 @@ export function useImagePicker(
     }
 
     return blobUrl;
+  }
+
+  // -------------------------------------------------------------------------
+  // Upload (single asset, with size + MIME guards)
+  // -------------------------------------------------------------------------
+
+  async function prepareAndUpload(
+    asset: ImagePicker.ImagePickerAsset,
+    controller: AbortController,
+  ): Promise<string | null> {
+    const contentType = getMimeType(asset.uri);
+    if (!contentType) {
+      // Skip assets whose extension we cannot map (MIME guard).
+      return null;
+    }
+
+    const sizeBytes = await resolveFileSize(asset);
+    if (sizeBytes > 0 && sizeBytes > maxBytes) {
+      // Skip oversized assets (size guard).
+      return null;
+    }
+
+    return uploadAsset(asset, contentType, sizeBytes, controller);
   }
 
   // -------------------------------------------------------------------------
@@ -294,45 +346,110 @@ export function useImagePicker(
 
     if (result.canceled || result.assets.length === 0) return;
 
-    const asset = result.assets[0];
+    const multiSelect = allowsMultipleSelection && pickerSource === 'library';
 
-    // 4. MIME check.
-    const contentType = getMimeType(asset.uri);
-    if (!contentType) {
-      Toast.show(t('imagePicker.invalidType'));
-      return;
-    }
+    if (!multiSelect) {
+      // ── Single-select path (unchanged behaviour) ──────────────────────────
+      const asset = result.assets[0];
 
-    // 5. Size guard.
-    const sizeBytes = await resolveFileSize(asset);
-    if (sizeBytes > 0 && sizeBytes > maxBytes) {
-      Toast.show(
-        t('imagePicker.oversize', {
-          maxMb: (maxBytes / (1024 * 1024)).toFixed(0),
+      const contentType = getMimeType(asset.uri);
+      if (!contentType) {
+        Toast.show(t('imagePicker.invalidType'));
+        return;
+      }
+
+      const sizeBytes = await resolveFileSize(asset);
+      if (sizeBytes > 0 && sizeBytes > maxBytes) {
+        Toast.show(
+          t('imagePicker.oversize', {
+            maxMb: (maxBytes / (1024 * 1024)).toFixed(0),
+          }),
+        );
+        return;
+      }
+
+      setUploading(true);
+      try {
+        const filename = getFilename(asset.uri);
+        // filename is used for Content-Disposition on some servers; passed
+        // implicitly via asset.uri in the blob fetch above.
+        void filename; // suppress unused-var lint
+
+        abortRef.current?.abort();
+        const controller = new AbortController();
+        abortRef.current = controller;
+
+        const blobUrl = await uploadAsset(asset, contentType, sizeBytes, controller);
+        onUploaded?.(blobUrl);
+      } catch (e) {
+        if (e instanceof Error && e.name === 'AbortError') return;
+        const err = e instanceof Error ? e : new Error(String(e));
+        setError(err);
+        Toast.show(t('common.error'));
+      } finally {
+        setUploading(false);
+      }
+    } else {
+      // ── Multi-select path ─────────────────────────────────────────────────
+      const assets = result.assets;
+
+      // Abort any prior upload batch and create one shared controller for
+      // this batch. Individual asset failures are caught per-asset below.
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      setUploading(true);
+
+      // Upload all assets in parallel. Each resolves to a blob URL or null
+      // (null = MIME/size guard skipped it, or per-asset upload failure).
+      const results = await Promise.all(
+        assets.map(async (asset): Promise<string | null> => {
+          try {
+            return await prepareAndUpload(asset, controller);
+          } catch (e) {
+            if (e instanceof Error && e.name === 'AbortError') throw e;
+            // Per-asset failure: log and treat as null so other uploads
+            // can still succeed.
+            return null;
+          }
         }),
-      );
-      return;
-    }
+      ).catch((e) => {
+        // AbortError from the shared controller propagated out — bail.
+        if (e instanceof Error && e.name === 'AbortError') return null;
+        throw e;
+      });
 
-    // 6. Upload.
-    setUploading(true);
-    try {
-      const filename = getFilename(asset.uri);
-      // filename is used for Content-Disposition on some servers; passed
-      // implicitly via asset.uri in the blob fetch above.
-      void filename; // suppress unused-var lint
-      const blobUrl = await uploadAsset(asset, contentType, sizeBytes);
-      onUploaded(blobUrl);
-    } catch (e) {
-      if (e instanceof Error && e.name === 'AbortError') return;
-      const err = e instanceof Error ? e : new Error(String(e));
-      setError(err);
-      Toast.show(t('common.error'));
-    } finally {
       setUploading(false);
+
+      if (results === null) {
+        // Aborted — no callback.
+        return;
+      }
+
+      const succeeded = results.filter((url): url is string => url !== null);
+      const failCount = assets.length - succeeded.length;
+
+      if (failCount > 0 && succeeded.length > 0) {
+        // Partial failure: surface what succeeded, toast the rest.
+        Toast.show(
+          t('imagePicker.partialUpload', {
+            succeeded: succeeded.length,
+            total: assets.length,
+          }),
+        );
+      } else if (failCount > 0 && succeeded.length === 0) {
+        Toast.show(t('common.error'));
+        setError(new Error(`All ${assets.length} uploads failed`));
+        return;
+      }
+
+      if (succeeded.length > 0) {
+        onUploadedMany?.(succeeded);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [source, maxBytes, aspect, requestUploadUrl, onUploaded, t]);
+  }, [source, maxBytes, aspect, allowsMultipleSelection, requestUploadUrl, onUploaded, onUploadedMany, t]);
 
   return {
     pick,
