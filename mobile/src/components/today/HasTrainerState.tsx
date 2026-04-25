@@ -8,6 +8,7 @@ import { useTheme } from '@/hooks/useTheme'
 import { useCompletionState } from '@/hooks/useCompletionState'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
+import { goldAlpha } from '@/constants/colors'
 import { href, hrefParams } from '@/lib/navigation'
 import { StatStrip } from '@/components/ui/StatStrip'
 import { StatCard } from '@/components/ui/StatCard'
@@ -906,7 +907,14 @@ export function HasTrainerState() {
                 accessibilityLabel={t('nutrition.photoCta')}
                 style={styles.photoCtaBtn}
               >
-                <Ionicons name="camera-outline" size={15} color={colors.gold} />
+                <View
+                  style={[
+                    styles.photoCtaIconChip,
+                    { backgroundColor: goldAlpha['12'], borderColor: goldAlpha['35'] },
+                  ]}
+                >
+                  <Ionicons name="camera" size={13} color="#000" />
+                </View>
                 <Text style={[styles.photoCtaLabel, { color: colors.gold }]}>
                   {t('nutrition.photoCta')}
                 </Text>
@@ -984,7 +992,15 @@ const styles = StyleSheet.create({
   photoCtaBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
+  },
+  photoCtaIconChip: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   photoCtaLabel: {
     ...Type.footnote,
