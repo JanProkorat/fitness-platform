@@ -709,7 +709,8 @@
     "savePhoto": "Uložit fotky",
     "successToast": "Uloženo",
     "addMorePhotos": "Přidat další fotku",
-    "photoThumbA11y": "Fotka {{index}} z {{total}}"
+    "photoThumbA11y": "Fotka {{index}} z {{total}}",
+    "openPhotosA11y": "Otevřít fotky jídla"
   },
   "foodDetail": {
     "nutritionValues": "Nutriční hodnoty",

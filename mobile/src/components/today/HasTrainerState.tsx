@@ -317,17 +317,6 @@ export function HasTrainerState() {
     return map
   }, [logQuery.data])
 
-  /** Per-meal diary notes from the log, keyed by mealId. */
-  const mealNoteByMealId = useMemo(() => {
-    const map: Record<string, string | null> = {}
-    logQuery.data?.mealsEaten?.forEach((m) => {
-      if (m.mealId) {
-        map[m.mealId] = m.note ?? null
-      }
-    })
-    return map
-  }, [logQuery.data])
-
   const sortedMeals = useMemo(
     () => [...(plan?.meals ?? [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
     [plan?.meals],
@@ -903,7 +892,6 @@ export function HasTrainerState() {
             eatenMealIds={eatenMealIds}
             eatenMealIdsWithPhotos={eatenMealIdsWithPhotos}
             mealPhotosByMealId={mealPhotosByMealId}
-            mealNoteByMealId={mealNoteByMealId}
             eyebrow={t('today.nutritionEyebrow', { week: plan.weekNumber })}
             subline=""
             dayNote={plan.dayNote}

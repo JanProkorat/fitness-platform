@@ -52,11 +52,6 @@ interface NutritionCardProps {
    * the accordion body can display a horizontal thumbnail strip.
    */
   mealPhotosByMealId?: Record<string, { blobUrl: string; uploadedAt?: string }[]>
-  /**
-   * Per-meal diary notes from the log, keyed by mealId. Fed into MealRow so
-   * the accordion body can display a note banner.
-   */
-  mealNoteByMealId?: Record<string, string | null>
 }
 
 /**
@@ -81,7 +76,6 @@ export function NutritionCard({
   onMarkAllEaten,
   isMarkAllLoading,
   mealPhotosByMealId,
-  mealNoteByMealId,
 }: NutritionCardProps) {
   const colors = useTheme()
   const { t } = useTranslation()
@@ -141,7 +135,6 @@ export function NutritionCard({
             }
             hasPhotos={meal.mealId ? (eatenMealIdsWithPhotos?.has(meal.mealId) ?? false) : false}
             photos={meal.mealId ? (mealPhotosByMealId?.[meal.mealId] ?? []) : []}
-            logNote={meal.mealId ? (mealNoteByMealId?.[meal.mealId] ?? null) : null}
           />
         ))}
       </View>

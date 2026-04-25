@@ -844,7 +844,8 @@
     "savePhoto": "Speichern",
     "successToast": "Gespeichert",
     "addMorePhotos": "Weiteres Foto hinzufügen",
-    "photoThumbA11y": "Foto {{index}} von {{total}}"
+    "photoThumbA11y": "Foto {{index}} von {{total}}",
+    "openPhotosA11y": "Mahlzeitfotos öffnen"
   },
   "avatar": {
     "editBadgeLabel": "Profilbild ändern",

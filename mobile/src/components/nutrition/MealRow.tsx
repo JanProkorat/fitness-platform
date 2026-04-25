@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { View, Text, StyleSheet, Pressable, ScrollView, Image } from 'react-native'
+import { View, Text, StyleSheet, Pressable } from 'react-native'
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -55,16 +55,10 @@ interface MealRowProps {
    */
   hasPhotos?: boolean
   /**
-   * Diary photos for this meal's log entry. When present and the accordion
-   * is expanded, a horizontal thumbnail strip is rendered above the food rows.
-   * Tapping a thumb opens ImageLightbox at that index.
+   * Diary photos for this meal's log entry. When `hasPhotos` is true and the
+   * user taps the gold camera indicator badge, these are opened in ImageLightbox.
    */
   photos?: { blobUrl: string; uploadedAt?: string }[]
-  /**
-   * Diary note attached to this meal's log entry. When non-empty and the
-   * accordion is expanded, a NoteBanner is rendered below the photo strip.
-   */
-  logNote?: string | null
 }
 
 /**
@@ -91,21 +85,18 @@ export const MealRow = React.memo(function MealRow({
   onPhotoPress,
   hasPhotos,
   photos,
-  logNote,
 }: MealRowProps) {
   const colors = useTheme()
   const { t } = useTranslation()
 
-  // Lightbox state for the diary photo strip
+  // Lightbox state — opened by tapping the gold photo-indicator badge on the row header
   const [lightboxVisible, setLightboxVisible] = useState(false)
-  const [lightboxIndex, setLightboxIndex] = useState(0)
 
-  const photoUrls = (photos ?? []).map((p) => p.blobUrl)
+  const photoUrls = (photos ?? []).map((p) => p.blobUrl).filter(Boolean)
 
-  const handleThumbPress = useCallback((idx: number) => {
-    setLightboxIndex(idx)
-    setLightboxVisible(true)
-  }, [])
+  const handleBadgePress = useCallback(() => {
+    if (photoUrls.length > 0) setLightboxVisible(true)
+  }, [photoUrls.length])
 
   const handleLightboxClose = useCallback(() => {
     setLightboxVisible(false)
@@ -236,11 +227,20 @@ export const MealRow = React.memo(function MealRow({
           <CameraButton onPress={onPhotoPress} colors={colors} />
         )}
 
-        {/* Photo indicator — shown on rows that already have diary photos */}
+        {/* Photo indicator — tappable badge that opens the lightbox */}
         {isExpandable && hasPhotos && (
-          <View style={[styles.photoIndicator, { backgroundColor: colors.goldBg }]}>
+          <Pressable
+            onPress={(e) => {
+              e.stopPropagation?.()
+              handleBadgePress()
+            }}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={t('mealLogPhoto.openPhotosA11y')}
+            style={[styles.photoIndicator, { backgroundColor: colors.goldBg }]}
+          >
             <Ionicons name="camera" size={11} color={colors.gold} />
-          </View>
+          </Pressable>
         )}
 
         {onToggleEaten && (
@@ -271,7 +271,7 @@ export const MealRow = React.memo(function MealRow({
           <ImageLightbox
             visible={lightboxVisible}
             images={photoUrls}
-            startIndex={lightboxIndex}
+            startIndex={0}
             onClose={handleLightboxClose}
           />
           <Animated.View style={[styles.bodyClip, animatedBodyStyle]}>
@@ -287,38 +287,6 @@ export const MealRow = React.memo(function MealRow({
                 },
               ]}
             >
-              {/* Diary photo strip — shown when this meal has log photos */}
-              {photoUrls.length > 0 && (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.photoStrip}
-                  style={styles.photoStripScroll}
-                >
-                  {photoUrls.map((url, idx) => (
-                    <Pressable
-                      key={`photo-${idx}`}
-                      onPress={() => handleThumbPress(idx)}
-                      accessibilityRole="button"
-                      accessibilityLabel={t('mealLogPhoto.photoThumbA11y', { index: idx + 1, total: photoUrls.length })}
-                    >
-                      <Image
-                        source={{ uri: url }}
-                        style={[styles.photoThumb, { borderRadius: Radius.sm }]}
-                        resizeMode="cover"
-                      />
-                    </Pressable>
-                  ))}
-                </ScrollView>
-              )}
-
-              {/* Diary note banner — shown when this meal's log has a note */}
-              {logNote ? (
-                <NoteBanner variant="meal" label={t('mealLogPhoto.noteSectionLabel')}>
-                  {logNote}
-                </NoteBanner>
-              ) : null}
-
               {/* Meal plan note — trainer's note from the plan */}
               {meal.note ? (
                 <NoteBanner variant="meal" label={t('nutrition.mealNoteLabel')}>
@@ -520,18 +488,6 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-  },
-  // Diary photo strip
-  photoStripScroll: {
-    marginTop: 12,
-  },
-  photoStrip: {
-    paddingHorizontal: 16,
-    gap: 8,
-  },
-  photoThumb: {
-    width: 64,
-    height: 64,
   },
 })
 
