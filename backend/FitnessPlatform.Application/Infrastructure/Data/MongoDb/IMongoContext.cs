@@ -53,4 +53,9 @@ public interface IMongoContext
     /// Personal record documents collection.
     /// </summary>
     IMongoCollection<PersonalRecord> PersonalRecords { get; }
+
+    /// <summary>
+    /// Day-level diary log entries (photos + note per plan day).
+    /// </summary>
+    IMongoCollection<DayLog> DayLogs { get; }
 }
