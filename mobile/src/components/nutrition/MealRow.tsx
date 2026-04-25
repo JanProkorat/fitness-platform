@@ -387,7 +387,7 @@ function CameraButton({ onPress, colors }: { onPress: () => void; colors: ColorS
         },
       ]}
     >
-      <Ionicons name="camera-outline" size={15} color="#000" />
+      <Ionicons name="camera" size={15} color="#000" />
     </Pressable>
   )
 }
