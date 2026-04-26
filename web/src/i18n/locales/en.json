@@ -655,7 +655,21 @@
     "planSubtitle": "Create and manage client's meal plan",
     "planStatus": "Status",
     "planGoalKcal": "Goal kcal",
-    "concept": "Draft"
+    "concept": "Draft",
+    "photos": {
+      "tab": "Photos",
+      "categoryAll": "All",
+      "categoryFood": "Food",
+      "categoryBody": "Body",
+      "categoryFreeForm": "Free",
+      "emptyTitle": "No photos yet",
+      "emptyHint": "Photos uploaded by the client will appear here.",
+      "viewPhoto": "View photo",
+      "photoAlt": "Plan photo",
+      "badgeFood": "Food",
+      "badgeBody": "Body",
+      "badgeFreeForm": "Free"
+    }
   },
   "apiErrors": {
     "INVALID_CREDENTIALS": "Invalid email or password.",

@@ -19,6 +19,7 @@ import { TrainingSidebar } from '@/components/training/TrainingSidebar';
 import { cn } from '@/lib/cn';
 import { DayNoteInput } from '@/components/common/DayNoteInput';
 import { CheckInBanner } from '@/components/weekly-checkin/CheckInBanner';
+import { PlanPhotosTab } from '@/components/nutrition/PlanPhotosTab';
 import { DAY_KEYS, MUSCLE_ICONS, MUSCLE_COLORS } from '@/constants/training';
 import { SessionDragWrapper } from '@/components/training/SessionDragWrapper';
 import { ExerciseDropZone } from '@/components/training/ExerciseDropZone';
@@ -63,6 +64,7 @@ export default function TrainingPlanPage() {
   const reorderExercises = useTrainingPlanStore((s) => s.reorderExercises);
 
   // ── Local UI state ──
+  const [pageTab, setPageTab] = useState<'sessions' | 'photos'>('sessions');
   const [selectedDay, setSelectedDay] = useState(1);
   const [collapsedSessions, setCollapsedSessions] = useState<Set<string>>(new Set());
   const [collapsedExercises, setCollapsedExercises] = useState<Set<string>>(new Set());
@@ -365,7 +367,43 @@ export default function TrainingPlanPage() {
         <CheckInBanner clientUserId={plan.clientId} profession="Training" />
       )}
 
-      {/* ── Week tabs ── */}
+      {/* ── Page-level tabs: Sessions / Photos ── */}
+      <div className="shrink-0 flex items-center gap-1 px-4 py-2 border-b border-border bg-bg">
+        <button
+          type="button"
+          onClick={() => setPageTab('sessions')}
+          className={cn(
+            'px-3 py-1 rounded-full text-[12px] font-medium transition-colors border',
+            pageTab === 'sessions'
+              ? 'bg-accent text-bg border-accent'
+              : 'bg-bg2 text-text3 border-border hover:bg-bg3 hover:text-text2',
+          )}
+        >
+          {t('sidebar.trainingPlan')}
+        </button>
+        <button
+          type="button"
+          onClick={() => setPageTab('photos')}
+          className={cn(
+            'px-3 py-1 rounded-full text-[12px] font-medium transition-colors border',
+            pageTab === 'photos'
+              ? 'bg-accent text-bg border-accent'
+              : 'bg-bg2 text-text3 border-border hover:bg-bg3 hover:text-text2',
+          )}
+        >
+          {t('nutrition.photos.tab')}
+        </button>
+      </div>
+
+      {/* ── Photos tab content ── */}
+      {pageTab === 'photos' && planId && (
+        <div className="flex-1 overflow-hidden">
+          <PlanPhotosTab planId={planId} />
+        </div>
+      )}
+
+      {/* ── Sessions tab content ── */}
+      {pageTab === 'sessions' && <>
       <WeekDayTabs
         weeks={weekTabs}
         days={[]}
@@ -875,6 +913,7 @@ export default function TrainingPlanPage() {
           />
         </div>
       </div>
+      </>}
 
       {/* ── Leave Page Confirmation Dialog ── */}
       <Dialog

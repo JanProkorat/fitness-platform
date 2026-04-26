@@ -654,7 +654,21 @@
     "planSubtitle": "Ernährungsplan des Klienten erstellen und verwalten",
     "planStatus": "Status",
     "planGoalKcal": "Ziel kcal",
-    "concept": "Entwurf"
+    "concept": "Entwurf",
+    "photos": {
+      "tab": "Fotos",
+      "categoryAll": "Alle",
+      "categoryFood": "Essen",
+      "categoryBody": "Fortschritt",
+      "categoryFreeForm": "Frei",
+      "emptyTitle": "Noch keine Fotos",
+      "emptyHint": "Vom Klienten hochgeladene Fotos erscheinen hier.",
+      "viewPhoto": "Foto anzeigen",
+      "photoAlt": "Planfoto",
+      "badgeFood": "Essen",
+      "badgeBody": "Fortschritt",
+      "badgeFreeForm": "Frei"
+    }
   },
   "apiErrors": {
     "INVALID_CREDENTIALS": "Ungültige E-Mail oder Passwort.",
