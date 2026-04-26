@@ -1,19 +1,25 @@
 /**
- * Plan Photos screen — day-level photo gallery for the nutrition plan.
+ * Plan Photos screen — gallery of PlanPhoto records for a nutrition/training plan.
  *
  * Prototype reference: docs/prototypes/mobile/scenes/plan-photos.html
  *
  * Layout:
- *   1. Modal header: "Fotky z plánu" title, eyebrow subtitle, close button.
- *   2. Category filter chips: Food / Progress / Free with per-category counts.
+ *   1. Modal header: "Fotky z plánu" title, total-count eyebrow, close button.
+ *   2. Category filter chips: Food / Progress / Free (UI labels) — map to
+ *      PlanPhotoCategory enum values Food / Body / FreeForm on the wire.
  *   3. 3-column square photo grid (gap 4). Tap → ImageLightbox.
  *   4. Empty state when no photos in the filtered set.
  *   5. Floating action button (gold circle, bottom-right). Tap → multi-photo
- *      picker. Uploads, then saves via saveDayPhotos (REPLACE semantics with
- *      all existing + new photos; new uploads default to Free category).
+ *      picker. Uploads via generatePlanPhotoUploadUrl + finalizePlanPhoto
+ *      (one finalize call per photo; new uploads default to FreeForm category).
+ *   6. SignalR `planphotouploaded` event invalidates the photos query.
+ *
+ * Route params:
+ *   planId — the plan's public identifier (NutritionPlan/TrainingPlan ExternalId).
+ *            Passed by plans/[planId].tsx when opening the modal.
  */
 
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   View,
   Text,
@@ -26,7 +32,7 @@ import {
   type ListRenderItemInfo,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { useRouter } from 'expo-router'
+import { useRouter, useLocalSearchParams } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Ionicons } from '@expo/vector-icons'
@@ -35,26 +41,48 @@ import { useImagePicker } from '@/hooks/useImagePicker'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
 import {
-  getTodayDayLog,
-  generateDayPhotoUploadUrl,
-  saveDayPhotos,
-  DayPhotoCategory,
-  type GetTodayDayLogResponse,
-  type DayPhotoInput,
-} from '@/api/nutrition'
+  getPlanPhotos,
+  generatePlanPhotoUploadUrl,
+  finalizePlanPhoto,
+  PlanPhotoCategory,
+  type PlanPhotoResponse,
+} from '@/api/planPhotos'
+import { onEvent } from '@/api/signalr'
 import { ImageLightbox } from '@/components/ui/ImageLightbox'
 import { Toast } from '@/lib/toast'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type PhotoCategory = 'Food' | 'Progress' | 'Free'
-type FilterCategory = 'All' | PhotoCategory
+/**
+ * UI-level filter category. Labels shown in the chips are the UI names;
+ * they map to PlanPhotoCategory enum values on the wire:
+ *   Food     → PlanPhotoCategory.Food
+ *   Progress → PlanPhotoCategory.Body
+ *   Free     → PlanPhotoCategory.FreeForm
+ */
+type UiCategory = 'Food' | 'Progress' | 'Free'
+type FilterCategory = 'All' | UiCategory
+
+/** Map from UI category to the wire-level PlanPhotoCategory value. */
+const UI_TO_WIRE: Record<UiCategory, PlanPhotoCategory> = {
+  Food: PlanPhotoCategory.Food,
+  Progress: PlanPhotoCategory.Body,
+  Free: PlanPhotoCategory.FreeForm,
+}
+
+/** Map from PlanPhotoCategory wire value back to UI category for display. */
+const WIRE_TO_UI: Record<PlanPhotoCategory, UiCategory> = {
+  [PlanPhotoCategory.Food]: 'Food',
+  [PlanPhotoCategory.Body]: 'Progress',
+  [PlanPhotoCategory.FreeForm]: 'Free',
+}
 
 interface PhotoItem {
+  id: string
   blobUrl: string
-  note?: string | null
-  category: PhotoCategory
-  uploadedAt?: string
+  description?: string | null
+  uiCategory: UiCategory
+  takenAt?: string
 }
 
 // ─── Screen ──────────────────────────────────────────────────────────────────
@@ -66,6 +94,9 @@ export default function PlanPhotosScreen() {
   const queryClient = useQueryClient()
   const { width } = useWindowDimensions()
 
+  // planId is required — passed by plans/[planId].tsx via hrefParams.
+  const { planId } = useLocalSearchParams<{ planId: string }>()
+
   // ── Active category filter ('All' shows everything) ──
   const [activeFilter, setActiveFilter] = useState<FilterCategory>('All')
 
@@ -73,54 +104,76 @@ export default function PlanPhotosScreen() {
   const [lightboxVisible, setLightboxVisible] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
 
-  // ── Query: today's day log ──
-  const dayLogQuery = useQuery<GetTodayDayLogResponse>({
-    queryKey: ['day-log-today'],
-    queryFn: getTodayDayLog,
+  // ── Query: plan photos (all pages — fetches page 1 with large pageSize) ──
+  const photosQuery = useQuery<PlanPhotoResponse[]>({
+    queryKey: ['plan-photos', planId],
+    queryFn: () => getPlanPhotos(planId ?? '', 1, 100),
+    enabled: !!planId,
     staleTime: 30_000,
   })
 
+  // ── SignalR: invalidate when a new photo is uploaded ──
+  useEffect(() => {
+    const off = onEvent('planphotouploaded', (payload: unknown) => {
+      // Invalidate the photos query for this plan (or all plan-photos queries
+      // if the payload doesn't carry the planId we need).
+      const data = payload as { planId?: string } | null
+      if (!data?.planId || data.planId === planId) {
+        queryClient.invalidateQueries({ queryKey: ['plan-photos', planId] })
+      }
+    })
+    return off
+  }, [planId, queryClient])
+
   // ── Derived photo list ──
   const allPhotos = useMemo((): PhotoItem[] => {
-    return (dayLogQuery.data?.photos ?? [])
-      .filter((p): p is typeof p & { blobUrl: string } => typeof p.blobUrl === 'string' && p.blobUrl.length > 0)
+    return (photosQuery.data ?? [])
+      .filter(
+        (p): p is PlanPhotoResponse & { blobUrl: string; id: string } =>
+          typeof p.blobUrl === 'string' && p.blobUrl.length > 0 && typeof p.id === 'string',
+      )
       .map((p) => ({
+        id: p.id,
         blobUrl: p.blobUrl,
-        note: p.note ?? null,
-        category: (p.category as PhotoCategory | undefined) ?? 'Free',
-        uploadedAt: p.uploadedAt,
+        description: p.description ?? null,
+        uiCategory: p.category != null ? (WIRE_TO_UI[p.category] ?? 'Free') : 'Free',
+        takenAt: p.takenAt,
       }))
-  }, [dayLogQuery.data])
+  }, [photosQuery.data])
 
-  const foodCount = useMemo(() => allPhotos.filter((p) => p.category === 'Food').length, [allPhotos])
-  const progressCount = useMemo(() => allPhotos.filter((p) => p.category === 'Progress').length, [allPhotos])
-  const freeCount = useMemo(() => allPhotos.filter((p) => p.category === 'Free').length, [allPhotos])
+  const foodCount = useMemo(() => allPhotos.filter((p) => p.uiCategory === 'Food').length, [allPhotos])
+  const progressCount = useMemo(() => allPhotos.filter((p) => p.uiCategory === 'Progress').length, [allPhotos])
+  const freeCount = useMemo(() => allPhotos.filter((p) => p.uiCategory === 'Free').length, [allPhotos])
 
   const visiblePhotos = useMemo(
-    () => (activeFilter === 'All' ? allPhotos : allPhotos.filter((p) => p.category === activeFilter)),
+    () =>
+      activeFilter === 'All'
+        ? allPhotos
+        : allPhotos.filter((p) => p.uiCategory === activeFilter),
     [allPhotos, activeFilter],
   )
 
   // ── Lightbox images from visible set ──
   const lightboxImages = useMemo(() => visiblePhotos.map((p) => p.blobUrl), [visiblePhotos])
-  const lightboxNotes = useMemo(() => visiblePhotos.map((p) => p.note ?? null), [visiblePhotos])
+  const lightboxNotes = useMemo(
+    () => visiblePhotos.map((p) => p.description ?? null),
+    [visiblePhotos],
+  )
 
-  // ── Save-photos mutation (REPLACE semantics) ──
-  const saveMutation = useMutation({
-    mutationFn: (newPhotos: DayPhotoInput[]) => {
-      // Merge existing photos with new ones. Preserve existing metadata.
-      const existingInputs: DayPhotoInput[] = allPhotos.map((p) => ({
-        blobUrl: p.blobUrl,
-        note: p.note ?? undefined,
-        category: p.category as DayPhotoCategory,
-      }))
-      return saveDayPhotos({
-        photos: [...existingInputs, ...newPhotos],
-        note: dayLogQuery.data?.note ?? null,
-      })
+  // ── Finalize-photo mutation (one per uploaded blob URL) ──
+  const finalizeMutation = useMutation({
+    mutationFn: async (blobUrls: string[]) => {
+      await Promise.all(
+        blobUrls.map((blobUrl) =>
+          finalizePlanPhoto(planId ?? '', {
+            blobUrl,
+            category: PlanPhotoCategory.FreeForm,
+          }),
+        ),
+      )
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['day-log-today'] })
+      queryClient.invalidateQueries({ queryKey: ['plan-photos', planId] })
       Toast.show(t('mealLogPhoto.successToast'))
     },
   })
@@ -131,33 +184,25 @@ export default function PlanPhotosScreen() {
       source: 'library',
       allowsMultipleSelection: true,
       requestUploadUrl: async ({ contentType, sizeBytes }) => {
-        return generateDayPhotoUploadUrl(contentType, sizeBytes)
+        return generatePlanPhotoUploadUrl(planId ?? '', contentType, sizeBytes)
       },
     },
     undefined,
     (blobUrls) => {
-      const newInputs: DayPhotoInput[] = blobUrls.map((url) => ({
-        blobUrl: url,
-        note: undefined,
-        category: DayPhotoCategory.Free,
-      }))
-      saveMutation.mutate(newInputs)
+      finalizeMutation.mutate(blobUrls)
     },
   )
 
-  const isUploading = galleryUploading || saveMutation.isPending
+  const isUploading = galleryUploading || finalizeMutation.isPending
 
   const handleFabPress = useCallback(() => {
     pickGallery()
   }, [pickGallery])
 
-  const handleTilePress = useCallback(
-    (index: number) => {
-      setLightboxIndex(index)
-      setLightboxVisible(true)
-    },
-    [],
-  )
+  const handleTilePress = useCallback((index: number) => {
+    setLightboxIndex(index)
+    setLightboxVisible(true)
+  }, [])
 
   const handleLightboxClose = useCallback(() => {
     setLightboxVisible(false)
@@ -195,7 +240,7 @@ export default function PlanPhotosScreen() {
   )
 
   const keyExtractor = useCallback(
-    (item: PhotoItem, index: number) => `${item.blobUrl}-${index}`,
+    (item: PhotoItem, index: number) => `${item.id}-${index}`,
     [],
   )
 
@@ -264,7 +309,7 @@ export default function PlanPhotosScreen() {
       </View>
 
       {/* ── Photo grid ── */}
-      {dayLogQuery.isLoading ? (
+      {photosQuery.isLoading ? (
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={colors.gold} />
         </View>
@@ -290,12 +335,16 @@ export default function PlanPhotosScreen() {
       {/* ── Floating action button ── */}
       <Pressable
         onPress={handleFabPress}
-        disabled={isUploading}
+        disabled={isUploading || !planId}
         accessibilityRole="button"
         accessibilityLabel={t('planPhotos.addPhotoA11y')}
         style={({ pressed }) => [
           styles.fab,
-          { backgroundColor: colors.gold, shadowColor: colors.gold, opacity: pressed || isUploading ? 0.6 : 1 },
+          {
+            backgroundColor: colors.gold,
+            shadowColor: colors.gold,
+            opacity: pressed || isUploading || !planId ? 0.6 : 1,
+          },
         ]}
       >
         {isUploading ? (

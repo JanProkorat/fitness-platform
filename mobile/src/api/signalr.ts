@@ -26,6 +26,9 @@ const KNOWN_EVENTS = [
   // Weekly check-in: fires when client responds or trainer marks reviewed.
   // Payload: { id: string, respondedAt?: string, reviewedAt?: string, dismissedAt?: string }
   'weeklycheckinupdated',
+  // Plan photo uploaded: fires when a PlanPhoto record is finalized.
+  // Payload: { planId: string, photoId: string }
+  'planphotouploaded',
 ]
 
 function createConnection(): HubConnection {
