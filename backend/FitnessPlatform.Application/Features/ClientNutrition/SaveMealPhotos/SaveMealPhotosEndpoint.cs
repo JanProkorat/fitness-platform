@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -15,6 +16,13 @@ namespace FitnessPlatform.Application.Features.ClientNutrition.SaveMealPhotos;
 /// changing the meal's eaten state. The Photos list and Note are replaced with exactly
 /// what the client sends. Creates the <see cref="MealLog"/> document if one does not
 /// already exist for today.
+///
+/// <para>
+/// <b>Dual-write:</b> each photo in the replacement list is also mirrored into the
+/// <see cref="PlanPhoto"/> table (Category = Food) so that unified plan-photo read paths
+/// (GET /client/plans/{planId}/photos) see meal diary photos too. The write is idempotent:
+/// rows are matched by BlobUrl and only inserted when they don't already exist.
+/// </para>
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
@@ -138,6 +146,8 @@ public class SaveMealPhotosEndpoint(IMongoContext mongo, IApplicationDbContext d
             ? null
             : (string.IsNullOrWhiteSpace(req.Note) ? null : req.Note.Trim());
 
+        string mealLogId;
+
         if (existingLog is null)
         {
             // Create a new photo-only log; EatenAt is intentionally left null
@@ -154,6 +164,7 @@ public class SaveMealPhotosEndpoint(IMongoContext mongo, IApplicationDbContext d
             };
 
             await mongo.MealLogs.InsertOneAsync(newLog, cancellationToken: ct);
+            mealLogId = newLog.Id.ToString();
         }
         else
         {
@@ -168,8 +179,75 @@ public class SaveMealPhotosEndpoint(IMongoContext mongo, IApplicationDbContext d
                 .Set(l => l.LogDate, todayUtc);
 
             await mongo.MealLogs.UpdateOneAsync(updateFilter, update, cancellationToken: ct);
+            mealLogId = existingLog.Id.ToString();
         }
 
+        // Dual-write: mirror photos into PlanPhoto table so unified read paths see meal photos.
+        await DualWritePlanPhotosAsync(
+            clientProfile,
+            plan.ExternalId,
+            mealLogId,
+            replacementPhotos.Select(p => p.BlobUrl).ToList(),
+            now,
+            ct);
+
         await Send.NoContentAsync(ct);
+    }
+
+    /// <summary>
+    /// Idempotent dual-write: ensures a <see cref="PlanPhoto"/> row (Category = Food) exists in
+    /// PostgreSQL for each blob URL in <paramref name="blobUrls"/>. Rows are matched by
+    /// <c>BlobUrl</c> so calling this twice with the same URLs does not create duplicates.
+    /// Does NOT remove rows that were in a previous save but are absent now — deletion is not
+    /// propagated from SaveMealPhotos to PlanPhoto because the meal-log REPLACE semantics
+    /// would create false deletions if multiple save calls differ only in the photo list order.
+    /// </summary>
+    private async Task DualWritePlanPhotosAsync(
+        ClientProfile clientProfile,
+        Guid planExternalId,
+        string mealLogId,
+        IReadOnlyList<string> blobUrls,
+        DateTime now,
+        CancellationToken ct)
+    {
+        if (blobUrls.Count == 0)
+            return;
+
+        // Load existing PlanPhoto rows for this client + plan to find which BlobUrls are new.
+        var existingUrls = await db.PlanPhotos
+            .Where(p =>
+                p.ClientProfileId == clientProfile.Id &&
+                p.PlanId == planExternalId &&
+                p.Category == PlanPhotoCategory.Food)
+            .Select(p => p.BlobUrl)
+            .ToListAsync(ct);
+
+        var existingUrlSet = existingUrls.ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var callerUserId = clientProfile.UserId;
+
+        foreach (var blobUrl in blobUrls)
+        {
+            if (existingUrlSet.Contains(blobUrl))
+                continue;
+
+            db.PlanPhotos.Add(new PlanPhoto
+            {
+                PublicId = Guid.NewGuid(),
+                ClientProfileId = clientProfile.Id,
+                PlanId = planExternalId,
+                PlanType = PlanPhotoType.Nutrition,
+                LinkId = planExternalId,
+                Category = PlanPhotoCategory.Food,
+                BlobUrl = blobUrl,
+                MealLogId = mealLogId,
+                TakenAt = now,
+                UploadedByUserId = callerUserId,
+                DateCreated = now,
+                DateUpdated = now
+            });
+        }
+
+        await db.SaveChangesAsync(ct);
     }
 }

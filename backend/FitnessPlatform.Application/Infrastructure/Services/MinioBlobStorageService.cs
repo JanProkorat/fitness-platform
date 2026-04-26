@@ -74,6 +74,19 @@ public class MinioBlobStorageService : IBlobStorageService
         return new BlobUploadUrl(uploadUrl, blobUrl);
     }
 
+    /// <inheritdoc />
+    public async Task DeleteAsync(string containerPath, CancellationToken ct)
+    {
+        await EnsureBucketWithPublicReadAsync(ct);
+
+        // RemoveObjectAsync does not throw if the object is absent — safe to call unconditionally.
+        await _client.RemoveObjectAsync(
+            new RemoveObjectArgs()
+                .WithBucket(_bucketName)
+                .WithObject(containerPath),
+            ct);
+    }
+
     /// <summary>
     /// Ensures the bucket exists AND has a public-read policy. Idempotent —
     /// safe to call on every upload. Covers the case where the bucket was

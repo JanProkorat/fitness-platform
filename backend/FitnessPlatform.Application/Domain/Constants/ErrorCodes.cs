@@ -158,6 +158,22 @@ public static class ErrorCodes
     /// <summary>The weekly check-in belongs to another professional.</summary>
     public const string CheckInNotOwned = "CHECK_IN_NOT_OWNED";
 
+    // ── Plan Photos ───────────────────────────────────────────────────
+    /// <summary>Only the uploader can delete their own plan photo.</summary>
+    public const string PlanPhotoNotOwned = "PLAN_PHOTO_NOT_OWNED";
+
+    /// <summary>Plan photo not found.</summary>
+    public const string PlanPhotoNotFound = "PLAN_PHOTO_NOT_FOUND";
+
+    /// <summary>No active plan (nutrition or training) found for the given planId.</summary>
+    public const string PlanNotFound = "PLAN_NOT_FOUND";
+
+    /// <summary>
+    /// BlobUrl does not match the expected storage prefix for this plan
+    /// (<c>plan-photos/{planId}/{guid}.{ext}</c>). Prevents path traversal and cross-plan hijacking.
+    /// </summary>
+    public const string InvalidBlobUrl = "INVALID_BLOB_URL";
+
     // ── Image Uploads ────────────────────────────────────────────────
     /// <summary>Content type is not in the allowed image whitelist (image/jpeg, image/png, image/webp).</summary>
     public const string InvalidImageContentType = "INVALID_IMAGE_CONTENT_TYPE";
