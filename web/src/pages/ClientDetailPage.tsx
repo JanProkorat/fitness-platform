@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -23,12 +23,14 @@ export default function ClientDetailPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   // Active tab — resets to 'overview' on client switch.
+  // Uses the "adjust state during render" pattern (React docs) to avoid the
+  // react-hooks/set-state-in-effect lint rule that fires on useEffect resets.
+  const [prevId, setPrevId] = useState(id);
   const [activeTab, setActiveTab] = useState<'overview' | 'photos'>('overview');
-
-  // Reset tab when the route client changes.
-  useEffect(() => {
+  if (id !== prevId) {
+    setPrevId(id);
     setActiveTab('overview');
-  }, [id]);
+  }
 
 
   const { data: client, isLoading } = useQuery({
