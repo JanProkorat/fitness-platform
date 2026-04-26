@@ -193,7 +193,7 @@ export function AppShell() {
       // Key shape verified: DashboardPage.tsx line 88 uses ['dashboard-summary'].
       queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
     },
-    planPhotoUploaded: (payload: unknown) => {
+    planphotouploaded: (payload: unknown) => {
       const data = payload as { planId?: string } | undefined;
       const planId = data?.planId;
       if (planId) {

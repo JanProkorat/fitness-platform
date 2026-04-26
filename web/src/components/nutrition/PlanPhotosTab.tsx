@@ -127,9 +127,10 @@ export function PlanPhotosTab({ planId }: PlanPhotosTabProps) {
                 {photo.category && (
                   <span className={cn(
                     'absolute top-1 left-1 text-[9px] font-semibold px-[5px] py-[1px] rounded-full',
-                    photo.category === PlanPhotoCategory.Food && 'bg-orange-100 text-orange-700',
-                    photo.category === PlanPhotoCategory.Body && 'bg-blue-100 text-blue-700',
-                    photo.category === PlanPhotoCategory.FreeForm && 'bg-purple-100 text-purple-700',
+                    // Semantic tokens from index.css — matches Tag component orange/blue/purple variants
+                    photo.category === PlanPhotoCategory.Food && 'bg-orange-bg text-orange',
+                    photo.category === PlanPhotoCategory.Body && 'bg-blue-bg text-blue',
+                    photo.category === PlanPhotoCategory.FreeForm && 'bg-purple-bg text-purple',
                   )}>
                     {t(`nutrition.photos.badge${photo.category}`)}
                   </span>
