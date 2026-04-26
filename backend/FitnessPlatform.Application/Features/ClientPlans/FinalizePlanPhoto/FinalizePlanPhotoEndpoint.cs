@@ -4,9 +4,11 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.ClientPlans.FinalizePlanPhoto;
@@ -18,12 +20,18 @@ namespace FitnessPlatform.Application.Features.ClientPlans.FinalizePlanPhoto;
 ///
 /// Ownership: looks up the plan in NutritionPlans first; falls back to TrainingPlans.
 /// Returns 404 if neither exists for the given client.
+/// After a successful insert, emits a <c>planPhotoUploaded</c> SignalR event to the owning
+/// professional (best-effort: a broadcast failure does not fail the HTTP response).
 /// </summary>
 /// <param name="mongo">MongoDB context for plan lookup.</param>
 /// <param name="db">Relational database context for profile lookup and photo insert.</param>
+/// <param name="notifier">Realtime notifier for pushing the <c>planPhotoUploaded</c> event.</param>
+/// <param name="logger">Logger.</param>
 public class FinalizePlanPhotoEndpoint(
     IMongoContext mongo,
-    IApplicationDbContext db)
+    IApplicationDbContext db,
+    IRealtimeNotifier notifier,
+    ILogger<FinalizePlanPhotoEndpoint> logger)
     : Endpoint<FinalizePlanPhotoRequest, PlanPhotoResponse>
 {
     /// <inheritdoc />
@@ -67,8 +75,8 @@ public class FinalizePlanPhotoEndpoint(
 
         var clientId = clientProfile.PublicId;
 
-        // Resolve plan type and link: nutrition first, training fallback
-        var (planType, linkId) = await ResolvePlanAsync(req.PlanId, clientId, ct);
+        // Resolve plan type, link, and owning professional: nutrition first, training fallback
+        var (planType, linkId, professionalUserId) = await ResolvePlanAsync(req.PlanId, clientId, ct);
 
         if (planType is null)
         {
@@ -98,13 +106,44 @@ public class FinalizePlanPhotoEndpoint(
         db.PlanPhotos.Add(photo);
         await db.SaveChangesAsync(ct);
 
+        // Emit planPhotoUploaded to the owning professional (best-effort).
+        if (professionalUserId.HasValue)
+        {
+            try
+            {
+                await notifier.NotifyAsync(
+                    professionalUserId.Value,
+                    "planPhotoUploaded",
+                    new PlanPhotoUploadedEvent
+                    {
+                        PlanId = photo.PlanId,
+                        PhotoId = photo.PublicId,
+                        Category = photo.Category,
+                        TakenAt = photo.TakenAt
+                    },
+                    ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex,
+                    "Failed to emit planPhotoUploaded for photo {PhotoId} to professional {ProfessionalId}",
+                    photo.PublicId, professionalUserId.Value);
+            }
+        }
+        else
+        {
+            logger.LogWarning(
+                "Could not resolve owning professional for PlanId={PlanId}; planPhotoUploaded event skipped",
+                req.PlanId);
+        }
+
         var response = MapToResponse(photo);
         HttpContext.Response.Headers.Location =
             $"/client/plans/{req.PlanId}/photos/{photo.PublicId}";
         await Send.ResponseAsync(response, StatusCodes.Status201Created, ct);
     }
 
-    private async Task<(PlanPhotoType? planType, Guid? linkId)> ResolvePlanAsync(
+    private async Task<(PlanPhotoType? planType, Guid? linkId, Guid? professionalUserId)> ResolvePlanAsync(
         Guid planId, Guid clientId, CancellationToken ct)
     {
         // Try nutrition plan
@@ -116,7 +155,8 @@ public class FinalizePlanPhotoEndpoint(
         var nutritionPlan = await nutritionCursor.FirstOrDefaultAsync(ct);
 
         if (nutritionPlan is not null)
-            return (PlanPhotoType.Nutrition, nutritionPlan.ExternalId);
+            return (PlanPhotoType.Nutrition, nutritionPlan.ExternalId,
+                nutritionPlan.NutritionistId != Guid.Empty ? nutritionPlan.NutritionistId : null);
 
         // Fall back to training plan
         var trainingFilter = Builders<TrainingPlan>.Filter.And(
@@ -127,9 +167,10 @@ public class FinalizePlanPhotoEndpoint(
         var trainingPlan = await trainingCursor.FirstOrDefaultAsync(ct);
 
         if (trainingPlan is not null)
-            return (PlanPhotoType.Training, trainingPlan.ExternalId);
+            return (PlanPhotoType.Training, trainingPlan.ExternalId,
+                trainingPlan.TrainerId != Guid.Empty ? trainingPlan.TrainerId : null);
 
-        return (null, null);
+        return (null, null, null);
     }
 
     private static PlanPhotoResponse MapToResponse(PlanPhoto photo) => new()

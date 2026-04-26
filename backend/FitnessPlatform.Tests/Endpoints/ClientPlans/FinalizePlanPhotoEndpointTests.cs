@@ -6,11 +6,13 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.ClientPlans.FinalizePlanPhoto;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints.NutritionPlans;
+using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using NSubstitute;
 
@@ -27,12 +29,16 @@ public class FinalizePlanPhotoEndpointTests
         new MockDbBuilder()
             .With(new ClientProfile { UserId = _clientId, PublicId = _clientId });
 
+    private readonly IRealtimeNotifier _notifier = Substitute.For<IRealtimeNotifier>();
+    private readonly ILogger<FinalizePlanPhotoEndpoint> _logger =
+        Substitute.For<ILogger<FinalizePlanPhotoEndpoint>>();
+
     private FinalizePlanPhotoEndpoint CreateEndpoint(IMongoContext mongo, IApplicationDbContext db) =>
         Factory.Create<FinalizePlanPhotoEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, _notifier, _logger);
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
