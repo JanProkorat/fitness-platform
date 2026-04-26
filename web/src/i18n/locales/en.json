@@ -1315,5 +1315,22 @@
     "close": "Close",
     "prev": "Previous image",
     "next": "Next image"
+  },
+  "clientDetail": {
+    "tabs": {
+      "overview": "Overview",
+      "photos": "Photos"
+    },
+    "photos": {
+      "categoryAll": "All",
+      "categoryFood": "Food",
+      "categoryBody": "Body",
+      "categoryFreeForm": "Free",
+      "planLabel": "Plan",
+      "planAll": "All plans",
+      "emptyTitle": "No photos yet",
+      "emptyDescription": "When the client uploads progress photos they will appear here, grouped by month.",
+      "photoAltPrefix": "Photo"
+    }
   }
 }
