@@ -753,7 +753,11 @@ function NutritionPlanDetail({ plan }: { plan: FullPlanResponse }) {
           )}
           <Pressable
             style={styles.menuRow}
-            onPress={() => selectMenuItem(() => router.push('/(client)/plan-photos'))}
+            onPress={() =>
+              selectMenuItem(() =>
+                router.push(hrefParams('/(client)/plan-photos', { planId: plan.planId ?? '' })),
+              )
+            }
           >
             <Ionicons name="images-outline" size={22} color={colors.label} />
             <Text style={[Type.body, { color: colors.label }]}>{t('planPhotos.title')}</Text>
