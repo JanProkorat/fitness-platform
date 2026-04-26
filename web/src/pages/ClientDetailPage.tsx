@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -9,9 +9,10 @@ import { formatWeight } from '@/lib/personalRecordFormatters';
 import { PageHeader } from '@/components/layout';
 import { Button, Tag, Dialog, Input, EditableAvatar } from '@/components/ui';
 import { PropertyList, StatsGrid } from '@/components/data';
-import { ActivityTimeline } from '@/components/domain';
+import { ActivityTimeline, ClientPhotosTimeline } from '@/components/domain';
 import { QuestionnaireAnswersSection } from '@/components/questionnaire';
 import { WeeklyCheckInSection } from '@/components/weekly-checkin/WeeklyCheckInSection';
+import { cn } from '@/lib/cn';
 
 export default function ClientDetailPage() {
   const { t, i18n } = useTranslation();
@@ -20,6 +21,14 @@ export default function ClientDetailPage() {
 
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  // Active tab — resets to 'overview' on client switch.
+  const [activeTab, setActiveTab] = useState<'overview' | 'photos'>('overview');
+
+  // Reset tab when the route client changes.
+  useEffect(() => {
+    setActiveTab('overview');
+  }, [id]);
 
 
   const { data: client, isLoading } = useQuery({
@@ -369,6 +378,39 @@ export default function ClientDetailPage() {
 
       {/* Page Content */}
       <div className="flex-1 overflow-y-auto">
+        {/* Tab bar */}
+        <div className="flex items-center gap-1 px-20 pt-4 pb-0 border-b border-border">
+          {(
+            [
+              { id: 'overview', label: t('clientDetail.tabs.overview') },
+              { id: 'photos', label: t('clientDetail.tabs.photos') },
+            ] as const
+          ).map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                'px-3 py-2 text-[13px] font-medium border-b-2 -mb-px transition-colors',
+                activeTab === tab.id
+                  ? 'border-accent text-text'
+                  : 'border-transparent text-text3 hover:text-text2',
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Photos tab */}
+        {activeTab === 'photos' && (
+          <div className="px-20">
+            <ClientPhotosTimeline clientId={id!} />
+          </div>
+        )}
+
+        {/* Overview tab */}
+        {activeTab === 'overview' && (
         <div className="px-20 py-3">
           {/* Property List */}
           <PropertyList items={propertyItems} />
@@ -436,6 +478,7 @@ export default function ClientDetailPage() {
             <p className="text-[13px] text-text3">Žádná nedávná aktivita</p>
           )}
         </div>
+        )}
       </div>
 
       {/* Edit Client Dialog */}

@@ -1300,5 +1300,22 @@
     "close": "Zavřít",
     "prev": "Předchozí obrázek",
     "next": "Další obrázek"
+  },
+  "clientDetail": {
+    "tabs": {
+      "overview": "Přehled",
+      "photos": "Fotky"
+    },
+    "photos": {
+      "categoryAll": "Vše",
+      "categoryFood": "Jídlo",
+      "categoryBody": "Tělo",
+      "categoryFreeForm": "Volné",
+      "planLabel": "Plán",
+      "planAll": "Všechny plány",
+      "emptyTitle": "Zatím žádné fotky",
+      "emptyDescription": "Jakmile klient nahraje fotky pokroku, zobrazí se zde seřazené po měsících.",
+      "photoAltPrefix": "Fotka"
+    }
   }
 }

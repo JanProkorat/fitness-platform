@@ -1300,5 +1300,22 @@
     "close": "Schließen",
     "prev": "Vorheriges Bild",
     "next": "Nächstes Bild"
+  },
+  "clientDetail": {
+    "tabs": {
+      "overview": "Übersicht",
+      "photos": "Fotos"
+    },
+    "photos": {
+      "categoryAll": "Alle",
+      "categoryFood": "Essen",
+      "categoryBody": "Körper",
+      "categoryFreeForm": "Frei",
+      "planLabel": "Plan",
+      "planAll": "Alle Pläne",
+      "emptyTitle": "Noch keine Fotos",
+      "emptyDescription": "Wenn der Klient Fortschrittsfotos hochlädt, erscheinen sie hier nach Monaten gruppiert.",
+      "photoAltPrefix": "Foto"
+    }
   }
 }
