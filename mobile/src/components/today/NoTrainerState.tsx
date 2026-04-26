@@ -1,12 +1,12 @@
 import React from 'react'
-import { View, Text, StyleSheet } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
+import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
 import { goldAlpha } from '@/constants/colors'
 import { Radius } from '@/constants/radius'
-import { GoldButton } from '@/components/ui/GoldButton'
 
 const FEATURES = [
   { icon: '🏋️', bgColor: 'rgba(0,122,255,0.12)', titleKey: 'today.featureTraining', descKey: 'today.featureTrainingDesc' },
@@ -21,27 +21,32 @@ export function NoTrainerState() {
 
   return (
     <View style={styles.container}>
-      {/* Gold notice banner */}
+      {/* Gold notice banner with embedded CTA */}
       <View style={[styles.notice, { backgroundColor: colors.goldBg, borderColor: goldAlpha['25'] }]}>
-        <View style={[styles.noticeIcon, { backgroundColor: goldAlpha['15'] }]}>
-          <Text style={styles.noticeEmoji}>🏋️</Text>
+        <View style={styles.noticeContent}>
+          <View style={[styles.noticeIcon, { backgroundColor: goldAlpha['15'] }]}>
+            <Text style={styles.noticeEmoji}>🏋️</Text>
+          </View>
+          <View style={styles.noticeBody}>
+            <Text style={[Type.headline, { color: colors.label }]}>
+              {t('today.getStarted')}
+            </Text>
+            <Text style={[Type.footnote, { color: colors.label2, marginTop: 2, lineHeight: 18 }]}>
+              {t('today.getStartedDesc')}
+            </Text>
+          </View>
         </View>
-        <View style={styles.noticeBody}>
-          <Text style={[Type.headline, { color: colors.label }]}>
-            {t('today.getStarted')}
+        <TouchableOpacity
+          style={[styles.cta, { backgroundColor: colors.gold }]}
+          activeOpacity={0.8}
+          onPress={() => router.push('/(client)/discover')}
+        >
+          <Ionicons name="search-outline" size={16} color={colors.onAccent} />
+          <Text style={[styles.ctaText, { color: colors.onAccent }]}>
+            {t('today.findTrainer')}
           </Text>
-          <Text style={[Type.footnote, { color: colors.label2, marginTop: 2, lineHeight: 18 }]}>
-            {t('today.getStartedDesc')}
-          </Text>
-        </View>
+        </TouchableOpacity>
       </View>
-
-      {/* CTA */}
-      <GoldButton
-        title={t('today.findTrainer')}
-        onPress={() => router.push('/(client)/discover')}
-        style={styles.cta}
-      />
 
       {/* Feature preview list */}
       <Text style={[Type.footnote, styles.sectionLabel, { color: colors.label3 }]}>
@@ -80,9 +85,12 @@ const styles = StyleSheet.create({
   // Notice banner
   notice: {
     marginHorizontal: 16,
+    marginBottom: 24,
     padding: 14,
     borderRadius: Radius.md,
     borderWidth: 1,
+  },
+  noticeContent: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -100,11 +108,19 @@ const styles = StyleSheet.create({
   noticeBody: {
     flex: 1,
   },
-  // CTA
+  // Embedded CTA inside the banner
   cta: {
-    marginHorizontal: 16,
-    marginTop: 12,
-    marginBottom: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 14,
+    paddingVertical: 12,
+    borderRadius: Radius.md,
+  },
+  ctaText: {
+    ...Type.subheadline,
+    fontWeight: '600',
   },
   // Feature list
   sectionLabel: {

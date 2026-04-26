@@ -178,6 +178,93 @@ public class UpdatePlanFullStateTests
         ep.HttpContext.Response.StatusCode.Should().Be(404);
     }
 
+    /// <summary>
+    /// Computes the most recent past Monday relative to today (UTC).
+    /// If today is Monday it returns the Monday one week ago so the date is strictly in the past.
+    /// Handles Sunday correctly (DayOfWeek.Sunday = 0, which would otherwise produce a negative offset).
+    /// </summary>
+    private static DateTime LastMonday()
+    {
+        var today = DateTime.UtcNow.Date;
+        int dayNum = (int)today.DayOfWeek; // Sunday=0, Monday=1, ..., Saturday=6
+        int daysBack = dayNum switch
+        {
+            0 => 6, // Sunday: last Monday was 6 days ago
+            1 => 7, // Monday: last Monday was 7 days ago (not today)
+            _ => dayNum - 1  // Tue–Sat: subtract to reach Monday
+        };
+        return today.AddDays(-daysBack);
+    }
+
+    [Fact]
+    public async Task HandleAsync_UnchangedPastStartDate_DoesNotReject()
+    {
+        // Arrange: plan already saved with a start date that is now in the past.
+        var planId = Guid.NewGuid();
+        var pastMonday = LastMonday();
+        var plan = PlanTestHelpers.CreatePlan(
+            externalId: planId,
+            nutritionistId: _nutritionistId,
+            weekCount: 1,
+            version: 1);
+        plan.StartDate = DateTime.SpecifyKind(pastMonday, DateTimeKind.Utc);
+
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+        var macroCalc = Substitute.For<IMacroCalculatorService>();
+        var ep = CreateEndpoint(mongo, macroCalc);
+
+        // Act: PUT with the same StartDate, only changing the name.
+        var req = new UpdatePlanRequest
+        {
+            PlanId = planId,
+            Name = "Renamed In-Progress Plan",
+            Version = 1,
+            StartDate = pastMonday,
+            Weeks = [BuildWeekRequest(weekNumber: 1)]
+        };
+
+        await ep.HandleAsync(req, TestContext.Current.CancellationToken);
+
+        // Assert: should succeed — ReplaceOneAsync called, not rejected.
+        await mongo.NutritionPlans.Received(1).ReplaceOneAsync(
+            Arg.Any<FilterDefinition<NutritionPlan>>(),
+            Arg.Is<NutritionPlan>(p => p.Name == "Renamed In-Progress Plan"),
+            Arg.Any<ReplaceOptions>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleAsync_NewPastStartDate_StillRejects()
+    {
+        // Arrange: plan with no start date yet.
+        var planId = Guid.NewGuid();
+        var plan = PlanTestHelpers.CreatePlan(
+            externalId: planId,
+            nutritionistId: _nutritionistId,
+            weekCount: 1,
+            version: 1);
+        // StartDate is null — not yet set.
+
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+        var macroCalc = Substitute.For<IMacroCalculatorService>();
+        var ep = CreateEndpoint(mongo, macroCalc);
+
+        // Act: PUT setting StartDate to a past Monday for the first time.
+        var req = new UpdatePlanRequest
+        {
+            PlanId = planId,
+            Name = "Plan",
+            Version = 1,
+            StartDate = LastMonday(),
+            Weeks = [BuildWeekRequest(weekNumber: 1)]
+        };
+
+        var act = () => ep.HandleAsync(req, TestContext.Current.CancellationToken);
+
+        // Assert: rejected — a past start date on a plan that never had one is blocked.
+        await act.Should().ThrowAsync<ValidationFailureException>();
+    }
+
     [Fact]
     public async Task HandleAsync_PreservesPublishedWeekStatus()
     {

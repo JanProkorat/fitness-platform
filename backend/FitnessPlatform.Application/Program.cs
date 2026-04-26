@@ -221,6 +221,22 @@ if (args.Contains("--seed"))
     return;
 }
 
+// One-shot backfill: copy per-photo notes from MongoDB into PlanPhoto.Description in Postgres.
+// Usage: dotnet run -- --backfill-photo-descriptions
+if (args.Contains("--backfill-photo-descriptions"))
+{
+    using var scope = app.Services.CreateScope();
+    var db     = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
+    var mongoc = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+    var logFactory = scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
+    var svc = new FitnessPlatform.Application.Infrastructure.Services.PhotoDescriptionBackfillService(
+        db, mongoc, logFactory.CreateLogger<FitnessPlatform.Application.Infrastructure.Services.PhotoDescriptionBackfillService>());
+    var (mealCount, dayCount) = await svc.BackfillAsync();
+    Console.WriteLine($"Meal photos updated: {mealCount}");
+    Console.WriteLine($"Day photos updated:  {dayCount}");
+    return;
+}
+
 // Middleware pipeline
 app.UseExceptionHandler();
 

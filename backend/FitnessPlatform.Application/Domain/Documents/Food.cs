@@ -96,6 +96,14 @@ public class Food
     public string? ImageUrl { get; set; }
 
     /// <summary>
+    /// URLs of the food's gallery images in blob storage.
+    /// Each entry looks like <c>foods/{foodId}/gallery-{n}.{ext}</c>.
+    /// Capped at 6 entries. Append-only via the confirm endpoint.
+    /// </summary>
+    [BsonElement("galleryImageUrls")]
+    public List<string> GalleryImageUrls { get; set; } = [];
+
+    /// <summary>
     /// Soft-delete flag.
     /// </summary>
     [BsonElement("isDeleted")]

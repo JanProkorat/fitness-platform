@@ -6,6 +6,7 @@ import {
   Pressable,
   FlatList,
 } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
 import { BottomSheet } from '@/components/ui/BottomSheet'
@@ -30,15 +31,16 @@ export function NotificationSheet({
   onDismiss,
 }: NotificationSheetProps) {
   const colors = useTheme()
+  const { t } = useTranslation()
 
   return (
     <BottomSheet
       visible={visible}
       onClose={onClose}
-      title="Notifications"
+      title={t('notifications.sheetTitle')}
       headerRight={
         <Pressable onPress={onMarkAllRead}>
-          <Text style={[Type.subheadline, { color: colors.blue }]}>Mark all as read</Text>
+          <Text style={[Type.subheadline, { color: colors.blue }]}>{t('notifications.markAllRead')}</Text>
         </Pressable>
       }
     >
@@ -46,7 +48,7 @@ export function NotificationSheet({
       {notifications.length === 0 ? (
         <View style={styles.empty}>
           <Text style={[Type.body, { color: colors.label3, textAlign: 'center' }]}>
-            No notifications yet
+            {t('notifications.empty')}
           </Text>
         </View>
       ) : (

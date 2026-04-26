@@ -236,6 +236,7 @@
     "noPlans": "No plans yet",
     "noPlansDesc": "Your trainer hasn't created any plans for you yet. Check back soon!",
     "waitingAllReady": "All set",
+    "waitingBothTitle": "Plans in progress",
     "waitingTrainingTitle": "Training plan in progress",
     "waitingNutritionTitle": "Nutrition plan in progress",
     "waitingBothDesc": "All your data has been submitted. Your trainer is now preparing personalised training and nutrition plans. You'll be notified when they're ready.",
@@ -524,7 +525,11 @@
     "nutritionPlanCompleted": "Nutrition plan completed",
     "nutritionPlanCompletedBody": "Your nutrition plan has been marked as completed.",
     "trainingPlanCompleted": "Training plan completed",
-    "trainingPlanCompletedBody": "Your training plan has been marked as completed."
+    "trainingPlanCompletedBody": "Your training plan has been marked as completed.",
+    "sheetTitle": "Notifications",
+    "markAllRead": "Mark all as read",
+    "empty": "No notifications yet",
+    "timeNow": "now"
   },
   "training": {
     "title": "Training",
@@ -891,5 +896,63 @@
     "emptyTitle": "No photos yet",
     "emptyBody": "Photos from your plans will appear here.",
     "openA11y": "Open my photos"
+  },
+  "auth": {
+    "login": {
+      "subtitle": "Sign in to continue",
+      "emailPlaceholder": "Email",
+      "passwordPlaceholder": "Password",
+      "signIn": "Sign in",
+      "signingIn": "Signing in...",
+      "noAccount": "Don't have an account?",
+      "signUp": "Sign up",
+      "forgotLink": "Forgot password?",
+      "failedTitle": "Login Failed",
+      "failedMessage": "Invalid email or password."
+    },
+    "forgot": {
+      "title": "Forgot password",
+      "subtitle": "Enter your email and we'll send you a link to reset your password.",
+      "emailPlaceholder": "Email",
+      "send": "Send reset link",
+      "sending": "Sending...",
+      "back": "← Back to sign in",
+      "sentTitle": "Check your inbox",
+      "sentBody": "If an account exists for {{email}}, you'll receive a link to reset your password.",
+      "resend": "Resend email",
+      "resending": "Resending...",
+      "failedTitle": "Request Failed",
+      "failedMessage": "Could not send reset email. Please try again later."
+    },
+    "register": {
+      "subtitle": "Create your account",
+      "firstNamePlaceholder": "First name",
+      "lastNamePlaceholder": "Last name",
+      "emailPlaceholder": "Email",
+      "passwordPlaceholder": "Password",
+      "confirmPasswordPlaceholder": "Confirm password",
+      "iAmA": "I am a",
+      "roleClient": "Client",
+      "roleClientDesc": "I want to be coached by a trainer or nutritionist",
+      "roleTrainer": "Trainer",
+      "roleTrainerDesc": "I build training plans for clients",
+      "roleNutritionist": "Nutritionist",
+      "roleNutritionistDesc": "I design nutrition plans for clients",
+      "gdprConsent": "I consent to the processing of my health data\n(GDPR Art. 9)",
+      "create": "Create account",
+      "creating": "Creating account...",
+      "haveAccount": "Already have an account?",
+      "signIn": "Sign in",
+      "missingFieldsTitle": "Missing Fields",
+      "missingFieldsMessage": "Please fill in all fields.",
+      "mismatchTitle": "Password Mismatch",
+      "mismatchMessage": "Passwords do not match.",
+      "weakPasswordTitle": "Weak Password",
+      "weakPasswordMessage": "Password must be at least 8 characters.",
+      "consentRequiredTitle": "Consent Required",
+      "consentRequiredMessage": "You must consent to health data processing to register.",
+      "failedTitle": "Registration Failed",
+      "failedMessage": "Registration failed. Please try again."
+    }
   }
 }

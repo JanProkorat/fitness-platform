@@ -1081,8 +1081,8 @@
 }
 
 .profile-avatar {
-  width: 80px;
-  height: 80px;
+  width: 84px;
+  height: 84px;
   border-radius: 50%;
   background: var(--text);
   display: flex;
@@ -1103,6 +1103,8 @@
   font-size: 11px;
   color: var(--text3);
   text-align: center;
+  line-height: 1.4;
+  max-width: 108px;
 }
 
 .profile-fields {

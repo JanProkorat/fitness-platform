@@ -57,6 +57,9 @@ public static class ErrorCodes
     /// <summary>User can only edit/delete their own custom foods.</summary>
     public const string FoodNotOwned = "FOOD_NOT_OWNED";
 
+    /// <summary>Food gallery is at its 6-entry cap; no further images can be added.</summary>
+    public const string FoodGalleryFull = "FOOD_GALLERY_FULL";
+
     // ── Recipes ──────────────────────────────────────────────────────
     /// <summary>User can only edit/delete/upload images for their own recipes.</summary>
     public const string RecipeNotOwned = "RECIPE_NOT_OWNED";

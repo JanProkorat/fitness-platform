@@ -38,7 +38,7 @@ public class GetTrainerClientPhotosEndpoint(IApplicationDbContext db)
             s.Summary = "List a client's photos (trainer view)";
             s.Description = "Returns a paginated list of plan photos across all plans for a specific client. " +
                             "Requires an active trainer-client relationship. " +
-                            "Supports category filter, date range filter, and optional month grouping. " +
+                            "Supports optional plan filter (PlanId), category filter, date range filter, and optional month grouping. " +
                             "Total count (photos or groups) is in the X-Total-Count response header.";
             s.Responses[404] = "Client not found or no active relationship with the caller";
         });
@@ -97,6 +97,12 @@ public class GetTrainerClientPhotosEndpoint(IApplicationDbContext db)
         var query = db.PlanPhotos
             .AsNoTracking()
             .Where(p => p.ClientProfileId == clientProfile.Id);
+
+        // Optional plan filter
+        if (req.PlanId.HasValue)
+        {
+            query = query.Where(p => p.PlanId == req.PlanId.Value);
+        }
 
         // Optional category filter
         if (req.Category.HasValue)

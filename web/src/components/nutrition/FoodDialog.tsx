@@ -4,12 +4,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { createFood, updateFood, requestFoodImageUploadUrl, confirmFoodImage } from '@/api/foods';
+import { createFood, updateFood } from '@/api/foods';
+import type { FoodImageSlot } from '@/api/foods';
 import { showApiError, showSuccess } from '@/lib/api-errors';
 import type { FoodSummary, FoodCategory, FoodVisibility } from '@/api/food-types';
 import { CATEGORY_CSS_COLORS, FOOD_CATEGORIES } from '@/components/nutrition/food-category';
 import { INPUT_CLASS_SM, CANCEL_BUTTON_CLASS } from '@/lib/styles';
-import { Toggle, ImagePicker, ImageLightbox } from '@/components/ui';
+import { Toggle, ImageLightbox } from '@/components/ui';
+import { FoodImageSection } from '@/components/nutrition/FoodImageSection';
 
 
 const foodSchema = z.object({
@@ -107,17 +109,13 @@ export function FoodDialog({ open, food, onClose, onSaved }: FoodDialogProps) {
     }, 150);
   };
 
-  const handleImageUploaded = async (blobUrl: string) => {
-    if (!food?.foodId) return;
-    try {
-      await confirmFoodImage(food.foodId, blobUrl);
+  const handleImageUploaded = (slot: FoodImageSlot, blobUrl: string) => {
+    if (slot === 'main') {
+      // Update the in-dialog hero immediately — no refetch shimmer.
       setCommittedImageUrl(blobUrl);
-      // Invalidate the foods list so the thumbnail updates on next render
-      await queryClient.invalidateQueries({ queryKey: ['foods'] });
-      showSuccess('foods.imageUpdated');
-    } catch (err) {
-      showApiError(err, 'foods.imageUpdateError');
     }
+    // Invalidate so the parent reloads food with fresh imageUrl / galleryImageUrls.
+    void queryClient.invalidateQueries({ queryKey: ['foods'] });
   };
 
   const mutation = useMutation({
@@ -334,21 +332,15 @@ export function FoodDialog({ open, food, onClose, onSaved }: FoodDialogProps) {
                     <textarea {...register('note')} placeholder={t('foods.notePlaceholder')} rows={2} className={`${INPUT_CLASS_SM} resize-vertical`} />
                   </div>
 
-                  {/* Hero image — only shown when editing an existing food (not during create) */}
+                  {/* Image section — only shown when editing an existing food (not during create) */}
                   {!isNew && food && (
-                    <div>
-                      <label className="mb-2 block text-xs font-medium text-text3">
-                        {t('foods.detail.image.heading')} <span className="font-normal" style={{ color: 'var(--text4)' }}>({t('common.optional')})</span>
-                      </label>
-                      <ImagePicker
-                        mode="free"
-                        initialPreviewUrl={committedImageUrl ?? undefined}
-                        requestUploadUrl={({ contentType, sizeBytes }) =>
-                          requestFoodImageUploadUrl(food.foodId, { contentType, sizeBytes })
-                        }
-                        onUploaded={handleImageUploaded}
-                      />
-                    </div>
+                    <FoodImageSection
+                      foodId={food.foodId}
+                      imageUrl={committedImageUrl}
+                      galleryImageUrls={food.galleryImageUrls ?? []}
+                      isOwner={true}
+                      onUploaded={handleImageUploaded}
+                    />
                   )}
 
                   {mutation.isError && (

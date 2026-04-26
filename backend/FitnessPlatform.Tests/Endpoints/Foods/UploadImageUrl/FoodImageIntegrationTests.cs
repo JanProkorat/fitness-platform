@@ -7,9 +7,9 @@ namespace FitnessPlatform.Tests.Endpoints.Foods.UploadImageUrl;
 
 /// <summary>
 /// Integration tests for the food image upload flow:
-///   POST /foods/{foodId}/image/upload-url  (UploadFoodImageUrlEndpoint)
-///   PUT  /foods/{foodId}/image             (ConfirmFoodImageEndpoint)
-///   GET  /foods/{foodId}                   (GetFoodEndpoint — image reflection)
+///   POST /foods/{foodId}/image/upload-url?slot=main|gallery  (UploadFoodImageUrlEndpoint)
+///   PUT  /foods/{foodId}/image?slot=main|gallery             (ConfirmFoodImageEndpoint)
+///   GET  /foods/{foodId}                                     (GetFoodEndpoint — image reflection)
 ///
 /// These tests use a real HTTP stack (FitnessApiFactory with Testcontainers) so
 /// the authentication/authorisation middleware and the full DI pipeline are
@@ -65,15 +65,15 @@ public class FoodImageIntegrationTests(FitnessApiFactory factory)
         return body!.FoodId;
     }
 
-    // ── Happy path: upload-url ─────────────────────────────────────────────────
+    // ── Happy path: upload-url (main slot) ────────────────────────────────────
 
     /// <summary>
-    /// A nutritionist requests an upload URL for their own food.
+    /// A nutritionist requests an upload URL for their own food (main slot).
     /// Expects 200 with both <c>uploadUrl</c> and <c>blobUrl</c>;
     /// <c>blobUrl</c> must equal <c>foods/{foodId}.jpg</c>.
     /// </summary>
     [Fact]
-    public async Task UploadUrl_Nutritionist_HappyPath_Returns200WithBlobUrl()
+    public async Task UploadUrl_Nutritionist_MainSlot_HappyPath_Returns200WithBlobUrl()
     {
         var client = factory.CreateClient();
         var token = await SeedUserAsync(client, "Nutritionist");
@@ -81,7 +81,7 @@ public class FoodImageIntegrationTests(FitnessApiFactory factory)
 
         TestHelpers.SetBearerToken(client, token);
         var response = await client.PostAsJsonAsync(
-            $"/foods/{foodId}/image/upload-url",
+            $"/foods/{foodId}/image/upload-url?slot=main",
             new { ContentType = "image/jpeg", SizeBytes = 102400L },
             TestContext.Current.CancellationToken);
 
@@ -93,6 +93,34 @@ public class FoodImageIntegrationTests(FitnessApiFactory factory)
         body.Should().NotBeNull();
         body!.UploadUrl.Should().NotBeNullOrEmpty();
         body.BlobUrl.Should().Be($"foods/{foodId}.jpg");
+    }
+
+    // ── Happy path: upload-url (gallery slot) ─────────────────────────────────
+
+    /// <summary>
+    /// A nutritionist requests an upload URL for their own food (gallery slot, empty gallery).
+    /// Expects 200 with <c>blobUrl</c> equal to <c>foods/{foodId}/gallery-0.jpg</c>.
+    /// </summary>
+    [Fact]
+    public async Task UploadUrl_Nutritionist_GallerySlot_EmptyGallery_Returns200WithGalleryBlobUrl()
+    {
+        var client = factory.CreateClient();
+        var token = await SeedUserAsync(client, "Nutritionist", "gallery-upload");
+        var foodId = await CreateFoodAsync(client, token);
+
+        TestHelpers.SetBearerToken(client, token);
+        var response = await client.PostAsJsonAsync(
+            $"/foods/{foodId}/image/upload-url?slot=gallery",
+            new { ContentType = "image/jpeg", SizeBytes = 102400L },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<UploadUrlResponse>(
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        body.Should().NotBeNull();
+        body!.BlobUrl.Should().Be($"foods/{foodId}/gallery-0.jpg");
     }
 
     // ── Role gate: upload-url ──────────────────────────────────────────────────
@@ -111,7 +139,7 @@ public class FoodImageIntegrationTests(FitnessApiFactory factory)
         TestHelpers.SetBearerToken(client, trainerToken);
 
         var response = await client.PostAsJsonAsync(
-            $"/foods/{foodId}/image/upload-url",
+            $"/foods/{foodId}/image/upload-url?slot=main",
             new { ContentType = "image/jpeg", SizeBytes = 102400L },
             TestContext.Current.CancellationToken);
 
@@ -131,7 +159,7 @@ public class FoodImageIntegrationTests(FitnessApiFactory factory)
         TestHelpers.SetBearerToken(client, clientToken);
 
         var response = await client.PostAsJsonAsync(
-            $"/foods/{foodId}/image/upload-url",
+            $"/foods/{foodId}/image/upload-url?slot=main",
             new { ContentType = "image/jpeg", SizeBytes = 102400L },
             TestContext.Current.CancellationToken);
 
@@ -152,21 +180,52 @@ public class FoodImageIntegrationTests(FitnessApiFactory factory)
         client.DefaultRequestHeaders.Authorization = null;
 
         var response = await client.PostAsJsonAsync(
-            $"/foods/{foodId}/image/upload-url",
+            $"/foods/{foodId}/image/upload-url?slot=main",
             new { ContentType = "image/jpeg", SizeBytes = 102400L },
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
-    // ── Happy path: confirm + GET reflection ───────────────────────────────────
+    // ── Ownership check: upload-url ────────────────────────────────────────────
 
     /// <summary>
-    /// Nutritionist confirms an image URL via PUT /foods/{foodId}/image.
+    /// Nutritionist B tries to get an upload URL for a food owned by nutritionist A.
+    /// Expects 400 with error code FOOD_NOT_OWNED in the Problem Details payload.
+    /// </summary>
+    [Fact]
+    public async Task UploadUrl_NonOwner_Returns400WithFoodNotOwnedError()
+    {
+        var client = factory.CreateClient();
+
+        // Nutritionist A creates the food
+        var tokenA = await SeedUserAsync(client, "Nutritionist", "upload-owner-a");
+        var foodId = await CreateFoodAsync(client, tokenA);
+
+        // Nutritionist B tries to get the upload URL
+        var tokenB = await SeedUserAsync(client, "Nutritionist", "upload-owner-b");
+        TestHelpers.SetBearerToken(client, tokenB);
+
+        var response = await client.PostAsJsonAsync(
+            $"/foods/{foodId}/image/upload-url?slot=main",
+            new { ContentType = "image/jpeg", SizeBytes = 102400L },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        var raw = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        raw.Should().Contain("FOOD_NOT_OWNED",
+            "the Problem Details payload must carry the FOOD_NOT_OWNED error code");
+    }
+
+    // ── Happy path: confirm + GET reflection (main slot) ──────────────────────
+
+    /// <summary>
+    /// Nutritionist confirms a main image URL via PUT /foods/{foodId}/image?slot=main.
     /// Subsequent GET /foods/{foodId} must return the DTO with imageUrl set.
     /// </summary>
     [Fact]
-    public async Task ConfirmImage_HappyPath_Returns204_AndGetReflectsImageUrl()
+    public async Task ConfirmImage_MainSlot_HappyPath_Returns204_AndGetReflectsImageUrl()
     {
         var client = factory.CreateClient();
         var token = await SeedUserAsync(client, "Nutritionist", "confirm-happy");
@@ -176,9 +235,9 @@ public class FoodImageIntegrationTests(FitnessApiFactory factory)
 
         TestHelpers.SetBearerToken(client, token);
 
-        // PUT to confirm the image
+        // PUT to confirm the main image
         var putResponse = await client.PutAsJsonAsync(
-            $"/foods/{foodId}/image",
+            $"/foods/{foodId}/image?slot=main",
             new { BlobUrl = blobUrl },
             TestContext.Current.CancellationToken);
 
@@ -199,6 +258,47 @@ public class FoodImageIntegrationTests(FitnessApiFactory factory)
         food.ImageUrl.Should().Be(blobUrl);
     }
 
+    // ── Happy path: confirm + GET reflection (gallery slot) ───────────────────
+
+    /// <summary>
+    /// Nutritionist confirms a gallery image via PUT /foods/{foodId}/image?slot=gallery.
+    /// Subsequent GET /foods/{foodId} must return the DTO with galleryImageUrls containing the blob URL.
+    /// </summary>
+    [Fact]
+    public async Task ConfirmImage_GallerySlot_HappyPath_Returns204_AndGetReflectsGalleryUrl()
+    {
+        var client = factory.CreateClient();
+        var token = await SeedUserAsync(client, "Nutritionist", "confirm-gallery");
+        var foodId = await CreateFoodAsync(client, token);
+
+        var galleryUrl = $"foods/{foodId}/gallery-0.jpg";
+
+        TestHelpers.SetBearerToken(client, token);
+
+        // PUT to confirm the gallery image
+        var putResponse = await client.PutAsJsonAsync(
+            $"/foods/{foodId}/image?slot=gallery",
+            new { BlobUrl = galleryUrl },
+            TestContext.Current.CancellationToken);
+
+        putResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        // GET must now return the food with galleryImageUrls containing the blob URL
+        var getResponse = await client.GetAsync(
+            $"/foods/{foodId}",
+            TestContext.Current.CancellationToken);
+
+        getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var food = await getResponse.Content.ReadFromJsonAsync<FoodResponseWithGallery>(
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        food.Should().NotBeNull();
+        food!.FoodId.Should().Be(foodId);
+        food.GalleryImageUrls.Should().ContainSingle(u => u == galleryUrl,
+            "the confirmed gallery blob URL must appear in galleryImageUrls");
+    }
+
     // ── Role gate: confirm ─────────────────────────────────────────────────────
 
     /// <summary>Trainer token → 403 on PUT /foods/{foodId}/image.</summary>
@@ -214,7 +314,7 @@ public class FoodImageIntegrationTests(FitnessApiFactory factory)
         TestHelpers.SetBearerToken(client, trainerToken);
 
         var response = await client.PutAsJsonAsync(
-            $"/foods/{foodId}/image",
+            $"/foods/{foodId}/image?slot=main",
             new { BlobUrl = $"foods/{foodId}.jpg" },
             TestContext.Current.CancellationToken);
 
@@ -234,7 +334,7 @@ public class FoodImageIntegrationTests(FitnessApiFactory factory)
         TestHelpers.SetBearerToken(client, clientToken);
 
         var response = await client.PutAsJsonAsync(
-            $"/foods/{foodId}/image",
+            $"/foods/{foodId}/image?slot=main",
             new { BlobUrl = $"foods/{foodId}.jpg" },
             TestContext.Current.CancellationToken);
 
@@ -261,7 +361,7 @@ public class FoodImageIntegrationTests(FitnessApiFactory factory)
         TestHelpers.SetBearerToken(client, tokenB);
 
         var response = await client.PutAsJsonAsync(
-            $"/foods/{foodId}/image",
+            $"/foods/{foodId}/image?slot=main",
             new { BlobUrl = $"foods/{foodId}.jpg" },
             TestContext.Current.CancellationToken);
 
@@ -277,4 +377,6 @@ public class FoodImageIntegrationTests(FitnessApiFactory factory)
     private record UploadUrlResponse(string UploadUrl, string BlobUrl);
 
     private record FoodResponse(Guid FoodId, string Name, string? ImageUrl);
+
+    private record FoodResponseWithGallery(Guid FoodId, string Name, string? ImageUrl, List<string> GalleryImageUrls);
 }

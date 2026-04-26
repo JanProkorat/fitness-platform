@@ -13,9 +13,7 @@ interface IngredientRow {
   foodExternalId: string;
   foodName: string;
   nutrientValuePer100Grams: { kcal: number; protein: number; carbs: number; fat: number; fiber?: number | null };
-  pieces: number;
-  servingWeightGrams: number;
-  servingLabel: string;
+  amountGrams: number;
   note: string;
 }
 
@@ -112,7 +110,7 @@ export function RecipeDialog({ open, recipe, onClose, onSaved }: RecipeDialogPro
     setIngredients(d.foods.map((f) => ({
       foodExternalId: f.foodExternalId, foodName: f.foodName,
       nutrientValuePer100Grams: f.nutrientValuePer100Grams,
-      pieces: 1, servingWeightGrams: f.amountGrams, servingLabel: `${f.amountGrams}g`,
+      amountGrams: f.amountGrams,
       note: f.note ?? '',
     })));
   };
@@ -138,9 +136,9 @@ export function RecipeDialog({ open, recipe, onClose, onSaved }: RecipeDialogPro
 
   const addFood = (food: FoodSummary) => {
     const s = food.commonServings?.[0];
-    setIngredients((p) => [...p, { foodExternalId: food.foodId, foodName: food.name, nutrientValuePer100Grams: food.nutrientValue, pieces: 1, servingWeightGrams: s?.weightGrams ?? 100, servingLabel: s?.label ?? '100g', note: '' }]);
+    setIngredients((p) => [...p, { foodExternalId: food.foodId, foodName: food.name, nutrientValuePer100Grams: food.nutrientValue, amountGrams: s?.weightGrams ?? 100, note: '' }]);
   };
-  const updatePieces = (i: number, v: number) => setIngredients((p) => p.map((r, j) => j === i ? { ...r, pieces: v } : r));
+  const updateAmountGrams = (i: number, v: number) => setIngredients((p) => p.map((r, j) => j === i ? { ...r, amountGrams: v } : r));
   const updateIngredientNote = (i: number, v: string) => setIngredients((p) => p.map((r, j) => j === i ? { ...r, note: v } : r));
   const removeIngr = (i: number) => setIngredients((p) => p.filter((_, j) => j !== i));
   const addStep = () => setSteps((p) => [...p, '']);
@@ -148,7 +146,7 @@ export function RecipeDialog({ open, recipe, onClose, onSaved }: RecipeDialogPro
   const removeStep = (i: number) => setSteps((p) => p.filter((_, j) => j !== i));
 
   const totals = ingredients.reduce((a, item) => {
-    const r = (item.pieces * item.servingWeightGrams) / 100;
+    const r = item.amountGrams / 100;
     return { kcal: a.kcal + item.nutrientValuePer100Grams.kcal * r, protein: a.protein + item.nutrientValuePer100Grams.protein * r, carbs: a.carbs + item.nutrientValuePer100Grams.carbs * r, fat: a.fat + item.nutrientValuePer100Grams.fat * r, fiber: a.fiber + (item.nutrientValuePer100Grams.fiber ?? 0) * r };
   }, { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 });
 
@@ -168,7 +166,7 @@ export function RecipeDialog({ open, recipe, onClose, onSaved }: RecipeDialogPro
       prepTimeMinutes: prepTime || null,
       steps: steps.filter((s) => s.trim()).length > 0 ? steps.filter((s) => s.trim()) : null,
       note: note.trim() || null,
-      foods: ingredients.map((i) => ({ foodExternalId: i.foodExternalId, amountGrams: i.pieces * i.servingWeightGrams, note: i.note.trim() || null })),
+      foods: ingredients.map((i) => ({ foodExternalId: i.foodExternalId, amountGrams: i.amountGrams, note: i.note.trim() || null })),
       visibility,
     };
     try {
@@ -429,8 +427,7 @@ export function RecipeDialog({ open, recipe, onClose, onSaved }: RecipeDialogPro
                             <thead>
                               <tr className="text-left text-[10px] font-medium uppercase tracking-wider text-text3">
                                 <th className="px-2.5 py-1.5 border-b border-border" style={{ width: '40%' }}>{t('common.name')}</th>
-                                <th className="px-2 py-1.5 border-b border-border w-14 text-center">{t('recipes.pieces')}</th>
-                                <th className="px-2 py-1.5 border-b border-border" style={{ width: '18%' }}>{t('recipes.serving')}</th>
+                                <th className="px-2 py-1.5 border-b border-border w-20 text-center">g</th>
                                 <th className="px-2 py-1.5 border-b border-border w-14 text-right">kcal</th>
                                 <th className="px-2 py-1.5 border-b border-border w-12 text-right">{t('nutrition.proteinShort')}</th>
                                 <th className="px-2 py-1.5 border-b border-border w-12 text-right">{t('nutrition.carbsShort')}</th>
@@ -440,11 +437,10 @@ export function RecipeDialog({ open, recipe, onClose, onSaved }: RecipeDialogPro
                               </tr>
                             </thead>
                             <tbody>
-                              {ingredients.map((item, idx) => { const g = item.pieces * item.servingWeightGrams; const r = g / 100; return (
+                              {ingredients.map((item, idx) => { const r = item.amountGrams / 100; return (
                                 <tr key={`${item.foodExternalId}-${idx}`} className="border-b border-border last:border-0 hover:bg-bg-hover transition-colors group">
                                   <td className="px-2.5 py-1.5 truncate">{item.foodName}</td>
-                                  <td className="px-1 py-1"><input type="number" min={1} value={item.pieces} onChange={(e) => updatePieces(idx, Math.max(1, Number(e.target.value) || 1))} className="w-full rounded border border-border bg-bg px-1.5 py-0.5 text-center text-[13px] text-text outline-none focus:border-border-hv" /></td>
-                                  <td className="px-2 py-1.5 text-[11px] text-text3 truncate">{item.servingLabel}</td>
+                                  <td className="px-1 py-1"><input type="number" min={1} step={1} value={item.amountGrams} onChange={(e) => updateAmountGrams(idx, Math.max(1, Number(e.target.value) || 1))} className="w-full rounded border border-border bg-bg px-1.5 py-0.5 text-center text-[13px] text-text outline-none focus:border-border-hv" /></td>
                                   <td className="px-2 py-1.5 text-right tabular-nums">{Math.round(item.nutrientValuePer100Grams.kcal * r)}</td>
                                   <td className="px-2 py-1.5 text-right tabular-nums" style={{ color: 'var(--blue)' }}>{Math.round(item.nutrientValuePer100Grams.protein * r)}g</td>
                                   <td className="px-2 py-1.5 text-right tabular-nums" style={{ color: 'var(--orange)' }}>{Math.round(item.nutrientValuePer100Grams.carbs * r)}g</td>
@@ -454,7 +450,7 @@ export function RecipeDialog({ open, recipe, onClose, onSaved }: RecipeDialogPro
                                 </tr>
                               ); }).flatMap((row, idx) => [row, (
                                 <tr key={`note-${ingredients[idx].foodExternalId}-${idx}`} className="border-b border-border last:border-0">
-                                  <td colSpan={9} className="px-2.5 pb-1.5 pt-0">
+                                  <td colSpan={8} className="px-2.5 pb-1.5 pt-0">
                                     <input
                                       value={ingredients[idx].note}
                                       onChange={(e) => updateIngredientNote(idx, e.target.value)}

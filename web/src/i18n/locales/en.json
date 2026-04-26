@@ -307,6 +307,10 @@
     "trainerSaved": "Trainer profile saved",
     "saveError": "Error saving",
     "rolesTitle": "Roles",
+    "rolesSubtitle": "Choose which services you offer to clients. Roles can be combined.",
+    "trainerRoleDesc": "Strength training, cardio, rehabilitation, conditioning",
+    "nutritionistRoleDesc": "Meal plans, macros, dietary strategies",
+    "roleRemovalNotSupported": "Role removal is not supported yet",
     "addNutritionistRole": "Also work as Nutritionist",
     "addTrainerRole": "Also work as Trainer",
     "addRoleConfirm": "Are you sure you want to add this role? This cannot be undone.",
@@ -332,7 +336,9 @@
     "maxClients": "Max clients",
     "languages": "Languages",
     "addLanguage": "Add language...",
-    "socialNetworks": "Social networks & contact",
+    "socialNetworks": "Social networks",
+    "marketplaceVisibility": "Marketplace Visibility",
+    "characters": "characters",
     "linkedin": "LinkedIn profile",
     "instagram": "Instagram handle",
     "website": "Website",
@@ -437,7 +443,19 @@
       }
     },
     "imageUpdated": "Food image updated",
-    "imageUpdateError": "Failed to update food image"
+    "imageUpdateError": "Failed to update food image",
+    "image": {
+      "mainHeading": "Main Image",
+      "mainEmpty": "No main image. Click to upload.",
+      "galleryHeading": "Photo Gallery",
+      "galleryEmpty": "No gallery photos yet.",
+      "addPhoto": "+ Add photo",
+      "galleryFull": "Gallery is full (max 6 photos)",
+      "uploadMainSuccess": "Main image updated",
+      "uploadMainError": "Failed to upload main image",
+      "uploadGallerySuccess": "Photo added to gallery",
+      "uploadGalleryError": "Failed to add gallery photo"
+    }
   },
   "recipes": {
     "title": "Recipes",

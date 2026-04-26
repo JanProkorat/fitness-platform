@@ -75,6 +75,12 @@ public class FoodSummary
     public string? ImageUrl { get; set; }
 
     /// <summary>
+    /// URLs of gallery images (up to 6 entries). Each entry points to a blob at
+    /// <c>foods/{foodId}/gallery-{n}.{ext}</c>.
+    /// </summary>
+    public List<string> GalleryImageUrls { get; set; } = [];
+
+    /// <summary>
     /// True when the authenticated caller is the nutritionist who created this food.
     /// Clients can use this flag to decide whether to show edit/delete affordances.
     /// </summary>
@@ -109,6 +115,7 @@ public class FoodSummary
         Note = food.Note,
         Visibility = food.Visibility,
         ImageUrl = food.ImageUrl,
+        GalleryImageUrls = food.GalleryImageUrls,
         IsOwnedByCurrentUser = currentUserId.HasValue
             && food.NutritionistId.HasValue
             && food.NutritionistId.Value == currentUserId.Value,

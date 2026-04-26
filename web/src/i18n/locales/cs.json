@@ -306,6 +306,10 @@
     "trainerSaved": "Profil trenéra uložen",
     "saveError": "Chyba při ukládání",
     "rolesTitle": "Role",
+    "rolesSubtitle": "Vyber, jaké služby poskytuješ klientům. Role lze kombinovat.",
+    "trainerRoleDesc": "Silový trénink, kardio, rehabilitace, kondice",
+    "nutritionistRoleDesc": "Jídelníčky, makra, stravovací strategie",
+    "roleRemovalNotSupported": "Odebrání role zatím není podporováno",
     "addNutritionistRole": "Pracovat také jako Výživový poradce",
     "addTrainerRole": "Pracovat také jako Trenér",
     "addRoleConfirm": "Opravdu chcete přidat tuto roli? Tuto akci nelze vrátit zpět.",
@@ -331,7 +335,9 @@
     "maxClients": "Max. počet klientů",
     "languages": "Jazyky",
     "addLanguage": "Přidat jazyk...",
-    "socialNetworks": "Sociální sítě & kontakt",
+    "socialNetworks": "Sociální sítě",
+    "marketplaceVisibility": "Viditelnost v Marketplace",
+    "characters": "znaků",
     "linkedin": "LinkedIn profil",
     "instagram": "Instagram handle",
     "website": "Webová stránka",
@@ -436,7 +442,19 @@
       }
     },
     "imageUpdated": "Obrázek potraviny byl aktualizován",
-    "imageUpdateError": "Nepodařilo se aktualizovat obrázek potraviny"
+    "imageUpdateError": "Nepodařilo se aktualizovat obrázek potraviny",
+    "image": {
+      "mainHeading": "Hlavní fotka",
+      "mainEmpty": "Žádná hlavní fotka. Klikněte pro nahrání.",
+      "galleryHeading": "Galerie fotek",
+      "galleryEmpty": "Zatím žádné fotky v galerii.",
+      "addPhoto": "+ Přidat fotku",
+      "galleryFull": "Galerie je plná (max 6 fotek)",
+      "uploadMainSuccess": "Hlavní fotka aktualizována",
+      "uploadMainError": "Nepodařilo se nahrát hlavní fotku",
+      "uploadGallerySuccess": "Fotka přidána do galerie",
+      "uploadGalleryError": "Nepodařilo se přidat fotku do galerie"
+    }
   },
   "recipes": {
     "title": "Recepty",

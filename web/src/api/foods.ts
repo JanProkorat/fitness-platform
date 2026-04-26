@@ -9,6 +9,9 @@ import type {
   UpdateFoodRequest,
 } from './food-types';
 
+/** Slot for food image upload: 'main' overwrites hero; 'gallery' appends (max 6). */
+export type FoodImageSlot = 'main' | 'gallery';
+
 /** Search foods by name with pagination. */
 export async function searchFoods(params: {
   q?: string;
@@ -52,20 +55,32 @@ export async function getCustomFoods(params: {
   return data;
 }
 
-/** Request a pre-signed upload URL for a food item's hero image (Nutritionist only). */
+/**
+ * Request a pre-signed upload URL for a food item image (Nutritionist only).
+ * slot=main overwrites the hero image; slot=gallery appends to the gallery (max 6).
+ */
 export async function requestFoodImageUploadUrl(
   foodId: string,
+  slot: FoodImageSlot,
   request: UploadFoodImageUrlRequest,
 ): Promise<{ uploadUrl: string; blobUrl: string }> {
   const { data } = await api.post<{ uploadUrl: string; blobUrl: string }>(
     `/foods/${foodId}/image/upload-url`,
     request,
+    { params: { slot } },
   );
   return data;
 }
 
-/** Confirm a completed food image upload by persisting its blob URL (Nutritionist only). */
-export async function confirmFoodImage(foodId: string, blobUrl: string): Promise<void> {
+/**
+ * Confirm a completed food image upload by persisting its blob URL (Nutritionist only).
+ * slot=main sets the main imageUrl; slot=gallery appends to galleryImageUrls.
+ */
+export async function confirmFoodImage(
+  foodId: string,
+  slot: FoodImageSlot,
+  blobUrl: string,
+): Promise<void> {
   const body: ConfirmFoodImageRequest = { blobUrl };
-  await api.put(`/foods/${foodId}/image`, body);
+  await api.put(`/foods/${foodId}/image`, body, { params: { slot } });
 }

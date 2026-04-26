@@ -236,6 +236,7 @@
     "noPlans": "Zatím žádné plány",
     "noPlansDesc": "Váš trenér ještě nevytvořil žádné plány. Zkuste to později!",
     "waitingAllReady": "Vše je připraveno",
+    "waitingBothTitle": "Plány se připravují",
     "waitingTrainingTitle": "Tréninkový plán se připravuje",
     "waitingNutritionTitle": "Výživový plán se připravuje",
     "waitingBothDesc": "Všechna data byla odeslána. Váš trenér nyní připravuje tréninkový i výživový plán na míru. Jakmile budou hotové, dostanete notifikaci.",
@@ -531,7 +532,11 @@
     "nutritionPlanCompleted": "Nutriční plán dokončen",
     "nutritionPlanCompletedBody": "Váš nutriční plán byl označen jako dokončený.",
     "trainingPlanCompleted": "Tréninkový plán dokončen",
-    "trainingPlanCompletedBody": "Váš tréninkový plán byl označen jako dokončený."
+    "trainingPlanCompletedBody": "Váš tréninkový plán byl označen jako dokončený.",
+    "sheetTitle": "Oznámení",
+    "markAllRead": "Označit vše jako přečtené",
+    "empty": "Zatím žádná oznámení",
+    "timeNow": "teď"
   },
   "collab": {
     "title": "Spolupráce",
@@ -899,5 +904,63 @@
     "emptyTitle": "Zatím žádné fotky",
     "emptyBody": "Fotky z vašich plánů se zobrazí zde.",
     "openA11y": "Otevřít moje fotky"
+  },
+  "auth": {
+    "login": {
+      "subtitle": "Pokračujte přihlášením",
+      "emailPlaceholder": "Email",
+      "passwordPlaceholder": "Heslo",
+      "signIn": "Přihlásit se",
+      "signingIn": "Přihlašování…",
+      "noAccount": "Nemáte účet?",
+      "signUp": "Zaregistrovat se",
+      "forgotLink": "Zapomněli jste heslo?",
+      "failedTitle": "Přihlášení selhalo",
+      "failedMessage": "Neplatný email nebo heslo."
+    },
+    "forgot": {
+      "title": "Zapomenuté heslo",
+      "subtitle": "Zadejte svůj email a pošleme vám odkaz pro reset hesla.",
+      "emailPlaceholder": "Email",
+      "send": "Odeslat odkaz pro reset",
+      "sending": "Odesílání…",
+      "back": "← Zpět na přihlášení",
+      "sentTitle": "Zkontrolujte schránku",
+      "sentBody": "Pokud existuje účet pro {{email}}, dorazí vám odkaz pro reset hesla.",
+      "resend": "Odeslat znovu",
+      "resending": "Odesílání…",
+      "failedTitle": "Požadavek selhal",
+      "failedMessage": "Nepodařilo se odeslat email. Zkuste to prosím později."
+    },
+    "register": {
+      "subtitle": "Vytvořte si účet",
+      "firstNamePlaceholder": "Jméno",
+      "lastNamePlaceholder": "Příjmení",
+      "emailPlaceholder": "Email",
+      "passwordPlaceholder": "Heslo",
+      "confirmPasswordPlaceholder": "Potvrzení hesla",
+      "iAmA": "Jsem",
+      "roleClient": "Klient",
+      "roleClientDesc": "Chci být veden trenérem nebo výživovým poradcem",
+      "roleTrainer": "Trenér",
+      "roleTrainerDesc": "Sestavuji tréninkové plány klientům",
+      "roleNutritionist": "Výživový poradce",
+      "roleNutritionistDesc": "Sestavuji jídelníčky klientům",
+      "gdprConsent": "Souhlasím se zpracováním zdravotních údajů\n(GDPR čl. 9)",
+      "create": "Vytvořit účet",
+      "creating": "Vytváření účtu…",
+      "haveAccount": "Už máte účet?",
+      "signIn": "Přihlásit se",
+      "missingFieldsTitle": "Chybějící údaje",
+      "missingFieldsMessage": "Vyplňte prosím všechna pole.",
+      "mismatchTitle": "Hesla se neshodují",
+      "mismatchMessage": "Zadaná hesla se neshodují.",
+      "weakPasswordTitle": "Slabé heslo",
+      "weakPasswordMessage": "Heslo musí mít alespoň 8 znaků.",
+      "consentRequiredTitle": "Potřebujeme souhlas",
+      "consentRequiredMessage": "Pro registraci je nutný souhlas se zpracováním zdravotních údajů.",
+      "failedTitle": "Registrace selhala",
+      "failedMessage": "Registrace selhala. Zkuste to prosím znovu."
+    }
   }
 }

@@ -61,16 +61,17 @@ export function PlanPhotosTab({ planId }: PlanPhotosTabProps) {
               type="button"
               onClick={() => setActiveCategory(key)}
               className={cn(
-                'px-3 py-1 rounded-full text-[12px] font-medium transition-colors border',
+                'flex items-center justify-center px-4 py-1.5 rounded-full text-[13px] font-medium transition-colors border',
                 isActive
                   ? 'bg-accent text-bg border-accent'
                   : 'bg-bg2 text-text3 border-border hover:bg-bg3 hover:text-text2',
               )}
             >
-              {t(labelKey)}
-              {isActive && photos.length > 0 && (
-                <span className="ml-1 opacity-70">({photos.length})</span>
-              )}
+              <span aria-hidden="true" className="inline-block min-w-[24px]" />
+              <span className="mx-1">{t(labelKey)}</span>
+              <span className="inline-block min-w-[24px] text-left tabular-nums opacity-70">
+                {isActive && photos.length > 0 ? `(${photos.length})` : ''}
+              </span>
             </button>
           );
         })}
@@ -97,13 +98,13 @@ export function PlanPhotosTab({ planId }: PlanPhotosTabProps) {
         )}
 
         {!isLoading && photos.length > 0 && (
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid gap-2 grid-cols-[repeat(auto-fill,minmax(96px,1fr))]">
             {photos.map((photo, idx) => (
               <button
                 key={photo.id ?? idx}
                 type="button"
                 className={cn(
-                  'relative aspect-square rounded-md overflow-hidden',
+                  'flex flex-col rounded-md overflow-hidden text-left',
                   'border border-border hover:border-border-md',
                   'bg-bg2 transition-all duration-100',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
@@ -111,34 +112,47 @@ export function PlanPhotosTab({ planId }: PlanPhotosTabProps) {
                 onClick={() => openLightbox(idx)}
                 title={photo.description ?? t('nutrition.photos.viewPhoto')}
               >
-                {photo.blobUrl ? (
-                  <img
-                    src={photo.blobUrl}
-                    alt={photo.description ?? `${t('nutrition.photos.photoAlt')} ${idx + 1}`}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-text4 text-[20px]">
-                    📷
-                  </div>
-                )}
-                {/* Category badge */}
-                {photo.category && (
-                  <span className={cn(
-                    'absolute top-1 left-1 text-[9px] font-semibold px-[5px] py-[1px] rounded-full',
-                    // Semantic tokens from index.css — matches Tag component orange/blue/purple variants
-                    photo.category === PlanPhotoCategory.Food && 'bg-orange-bg text-orange',
-                    photo.category === PlanPhotoCategory.Body && 'bg-blue-bg text-blue',
-                    photo.category === PlanPhotoCategory.FreeForm && 'bg-purple-bg text-purple',
-                  )}>
-                    {t(`nutrition.photos.badge${photo.category}`)}
-                  </span>
-                )}
-                {/* Date overlay */}
-                {photo.takenAt && (
-                  <div className="absolute bottom-0 left-0 right-0 bg-black/40 px-1.5 py-0.5 text-[9px] text-white/90 text-right">
-                    {new Date(photo.takenAt).toLocaleDateString()}
+                {/* Image */}
+                <div className="relative aspect-square w-full bg-bg2">
+                  {photo.blobUrl ? (
+                    <img
+                      src={photo.blobUrl}
+                      alt={photo.description ?? `${t('nutrition.photos.photoAlt')} ${idx + 1}`}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-text4 text-[20px]">
+                      📷
+                    </div>
+                  )}
+                  {/* Category badge */}
+                  {photo.category && (
+                    <span className={cn(
+                      'absolute top-1 left-1 text-[9px] font-semibold px-[5px] py-[1px] rounded-full',
+                      // Semantic tokens from index.css — matches Tag component orange/blue/purple variants
+                      photo.category === PlanPhotoCategory.Food && 'bg-orange-bg text-orange',
+                      photo.category === PlanPhotoCategory.Body && 'bg-blue-bg text-blue',
+                      photo.category === PlanPhotoCategory.FreeForm && 'bg-purple-bg text-purple',
+                    )}>
+                      {t(`nutrition.photos.badge${photo.category}`)}
+                    </span>
+                  )}
+                </div>
+
+                {/* Caption: note + upload date */}
+                {(photo.description || photo.takenAt) && (
+                  <div className="px-2 py-1.5 flex flex-col gap-0.5">
+                    {photo.description && (
+                      <div className="text-[11px] text-text2 leading-snug line-clamp-2">
+                        {photo.description}
+                      </div>
+                    )}
+                    {photo.takenAt && (
+                      <div className="text-[10px] text-text3 tabular-nums">
+                        {new Date(photo.takenAt).toLocaleDateString()}
+                      </div>
+                    )}
                   </div>
                 )}
               </button>

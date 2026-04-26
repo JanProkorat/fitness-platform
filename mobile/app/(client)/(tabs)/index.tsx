@@ -181,21 +181,6 @@ export default function TodayScreen() {
           />
         )}
 
-        {/* Pending questionnaires — visible in all states with an active link */}
-        {pendingQCount > 0 && (
-          <QuestionnaireBanner
-            count={pendingQCount}
-            coachNames={pendingQCoachNames}
-            onFill={() => {
-              if (pendingQCount > 1) {
-                router.push(href('/(client)/pending-questionnaires'))
-              } else {
-                router.push(hrefParams('/(auth)/questionnaire', { linkPublicId: pendingQItems[0]?.linkPublicId ?? '' }))
-              }
-            }}
-          />
-        )}
-
         {/* Weekly check-in banners — one per pending check-in, stacks vertically */}
         {pendingCheckIns.map((checkIn) => (
           <WeeklyCheckInBanner
@@ -211,8 +196,27 @@ export default function TodayScreen() {
         {todayState === 'no-trainer' && <NoTrainerState />}
 
         {/* ── State: has-trainer ── */}
-        {/* Pending-plan banners are rendered additively inside HasTrainerState */}
-        {todayState === 'has-trainer' && <HasTrainerState />}
+        {/* The pending-questionnaire banner is rendered inside HasTrainerState
+            (right below the stat strip) so it doesn't cover the at-a-glance stats. */}
+        {todayState === 'has-trainer' && (
+          <HasTrainerState
+            topBanner={
+              pendingQCount > 0 ? (
+                <QuestionnaireBanner
+                  count={pendingQCount}
+                  coachNames={pendingQCoachNames}
+                  onFill={() => {
+                    if (pendingQCount > 1) {
+                      router.push(href('/(client)/pending-questionnaires'))
+                    } else {
+                      router.push(hrefParams('/(auth)/questionnaire', { linkPublicId: pendingQItems[0]?.linkPublicId ?? '' }))
+                    }
+                  }}
+                />
+              ) : undefined
+            }
+          />
+        )}
       </ScrollView>
 
       <NotificationSheet

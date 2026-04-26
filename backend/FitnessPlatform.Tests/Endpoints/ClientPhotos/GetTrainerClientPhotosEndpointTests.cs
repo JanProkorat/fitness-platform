@@ -48,7 +48,8 @@ public class GetTrainerClientPhotosEndpointTests
     private static PlanPhoto MakePhoto(
         long clientProfileId,
         PlanPhotoCategory category = PlanPhotoCategory.Body,
-        DateTime? takenAt = null)
+        DateTime? takenAt = null,
+        Guid? planId = null)
     {
         return new PlanPhoto
         {
@@ -60,6 +61,7 @@ public class GetTrainerClientPhotosEndpointTests
             TakenAt = takenAt ?? DateTime.UtcNow,
             UploadedByUserId = Guid.NewGuid(),
             DateCreated = DateTime.UtcNow,
+            PlanId = planId,
         };
     }
 
@@ -426,5 +428,50 @@ public class GetTrainerClientPhotosEndpointTests
         ep.Response.Groups!.Should().HaveCount(1);
         ep.Response.Groups[0].YearMonth.Should().Be("2026-01");
         ep.HttpContext.Response.Headers["X-Total-Count"].ToString().Should().Be("3");
+    }
+
+    // ── Plan filter ───────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetTrainerClientPhotos_WithPlanIdFilter_ReturnsOnlyPhotosForThatPlan()
+    {
+        var planA = Guid.NewGuid();
+        var planB = Guid.NewGuid();
+
+        var (builder, _, _) = CreateLinkedSetup();
+
+        // 2 photos in plan A (different categories to be deterministic)
+        builder.With(MakePhoto(2, PlanPhotoCategory.Body,
+            new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc), planId: planA));
+        builder.With(MakePhoto(2, PlanPhotoCategory.Food,
+            new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc), planId: planA));
+
+        // 1 photo in plan B
+        builder.With(MakePhoto(2, PlanPhotoCategory.FreeForm,
+            new DateTime(2026, 3, 3, 0, 0, 0, DateTimeKind.Utc), planId: planB));
+
+        var db = builder.Build();
+
+        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
+            db);
+
+        await ep.HandleAsync(
+            new GetTrainerClientPhotosRequest
+            {
+                ClientId = _clientPublicId,
+                PlanId = planA,
+                Page = 1,
+                PageSize = 20,
+            },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        ep.Response.Photos.Should().NotBeNull();
+        ep.Response.Photos!.Should().HaveCount(2);
+        ep.Response.Photos.Should().AllSatisfy(p => p.PlanId.Should().Be(planA));
+        ep.HttpContext.Response.Headers["X-Total-Count"].ToString().Should().Be("2");
     }
 }

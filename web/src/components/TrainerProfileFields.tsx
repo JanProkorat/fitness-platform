@@ -1,5 +1,6 @@
+import type { CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MultiFieldInput } from './MultiFieldInput';
+import { InlineChipsInput } from './InlineChipsInput';
 
 interface TrainerProfileFieldsProps {
   bio: string;
@@ -29,6 +30,22 @@ interface TrainerProfileFieldsProps {
   acceptNewClients: boolean;
   setAcceptNewClients: (value: boolean) => void;
 }
+
+const BIO_MAX = 500;
+
+const cardStyle: CSSProperties = {
+  background: 'var(--bg2)',
+  border: '1px solid var(--border)',
+  borderRadius: 8,
+  padding: '16px 18px',
+};
+
+const innerRowStyle: CSSProperties = {
+  background: 'var(--bg)',
+  border: '1px solid var(--border)',
+  borderRadius: 'var(--radius-md)',
+  padding: '10px 12px',
+};
 
 export function TrainerProfileFields({
   bio,
@@ -61,96 +78,92 @@ export function TrainerProfileFields({
   const { t } = useTranslation();
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'start' }}>
-
-      {/* ══ LEFT COLUMN ══ */}
-      <div>
-        {/* Public Profile */}
-        <div className="section-heading">
-          {t('profile.publicProfile')}
-          <span
-            className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium"
-            style={{ background: 'var(--accent-bg)', color: 'var(--accent)', border: '1px solid var(--accent-br)' }}
-          >
-            {t('profile.visibleToClients')}
-          </span>
-        </div>
-
-        <div className="form-group">
-          <label className="form-label">{t('profile.bio')}</label>
-          <textarea
-            className="form-input"
-            rows={4}
-            value={bio}
-            onChange={(e) => setBio(e.target.value)}
-            placeholder={t('profile.bioPlaceholder')}
-          />
-        </div>
-
-        <div className="form-row">
-          <div className="form-group">
-            <label className="form-label">{t('profile.city')}</label>
-            <input
-              className="form-input"
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              placeholder={t('profile.cityPlaceholder')}
-            />
-          </div>
-          <div className="form-group">
-            <label className="form-label">{t('profile.estimatedPrice')}</label>
-            <input
-              className="form-input"
-              value={estimatedPrice}
-              onChange={(e) => setEstimatedPrice(e.target.value)}
-              placeholder={t('profile.estimatedPricePlaceholder')}
-            />
-          </div>
-        </div>
-
-        <div className="divider" />
-
-        {/* Specializations */}
-        <div className="form-group">
-          <label className="form-label">{t('profile.specializations')}</label>
-          <MultiFieldInput
-            values={specializations}
-            onChange={setSpecializations}
-            placeholder={t('profile.addSpecialization')}
-          />
-        </div>
-
-        {/* Certificates */}
-        <div className="form-group">
-          <label className="form-label">{t('profile.certificates')}</label>
-          <MultiFieldInput
-            values={certificates}
-            onChange={setCertificates}
-            placeholder={t('profile.addCertificate')}
-          />
-        </div>
+    <>
+      {/* ══ Block A — Section title + 2-col grid (Bio | Basics) ══ */}
+      <div
+        className="section-heading"
+        style={{ marginBottom: 12 }}
+      >
+        {t('profile.publicProfile')}
+        <span
+          className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium"
+          style={{
+            background: 'var(--accent-bg)',
+            color: 'var(--accent)',
+            border: '1px solid var(--accent-br)',
+          }}
+        >
+          {t('profile.visibleToClients')}
+        </span>
       </div>
 
-      {/* ══ RIGHT COLUMN ══ */}
-      <div>
-        {/* Availability & Preferences */}
-        <div className="section-heading">{t('profile.availability')}</div>
-
-        <div className="form-group">
-          <label className="form-label">{t('profile.collaborationType')}</label>
-          <select
-            className="form-select"
-            value={collaborationType}
-            onChange={(e) => setCollaborationType(e.target.value)}
-          >
-            <option value="both">{t('profile.collaborationBoth')}</option>
-            <option value="online">{t('profile.collaborationOnline')}</option>
-            <option value="inperson">{t('profile.collaborationInPerson')}</option>
-          </select>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: 14,
+          marginBottom: 14,
+        }}
+      >
+        {/* Bio card */}
+        <div style={cardStyle}>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">{t('profile.bio')}</label>
+            <textarea
+              className="form-input"
+              rows={4}
+              maxLength={BIO_MAX}
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              placeholder={t('profile.bioPlaceholder')}
+            />
+            <div
+              style={{
+                fontSize: 11,
+                color: 'var(--text3)',
+                marginTop: 4,
+              }}
+            >
+              {bio.length} / {BIO_MAX} {t('profile.characters')}
+            </div>
+          </div>
         </div>
 
-        <div className="form-row">
+        {/* Basics card */}
+        <div style={cardStyle}>
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">{t('profile.city')}</label>
+              <input
+                className="form-input"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder={t('profile.cityPlaceholder')}
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">{t('profile.estimatedPrice')}</label>
+              <input
+                className="form-input"
+                value={estimatedPrice}
+                onChange={(e) => setEstimatedPrice(e.target.value)}
+                placeholder={t('profile.estimatedPricePlaceholder')}
+              />
+            </div>
+          </div>
           <div className="form-group">
+            <label className="form-label">{t('profile.collaborationType')}</label>
+            <select
+              className="form-select"
+              value={collaborationType}
+              onChange={(e) => setCollaborationType(e.target.value)}
+            >
+              <option value="both">{t('profile.collaborationBoth')}</option>
+              <option value="online">{t('profile.collaborationOnline')}</option>
+              <option value="inperson">{t('profile.collaborationInPerson')}</option>
+            </select>
+          </div>
+          <div className="form-group" style={{ marginBottom: 0 }}>
             <label className="form-label">{t('profile.maxClients')}</label>
             <input
               className="form-input"
@@ -161,88 +174,154 @@ export function TrainerProfileFields({
               onChange={(e) => setMaxClients(Number(e.target.value))}
             />
           </div>
+        </div>
+      </div>
+
+      {/* ══ Block B — Chips card (Specializations / Certificates / Languages) ══ */}
+      <div style={{ ...cardStyle, marginBottom: 14 }}>
+        <div className="form-group">
+          <label className="form-label">{t('profile.specializations')}</label>
+          <InlineChipsInput
+            values={specializations}
+            onChange={setSpecializations}
+            placeholder={t('profile.addSpecialization')}
+            colorScheme="gold"
+          />
+        </div>
+        <div className="form-group">
+          <label className="form-label">{t('profile.certificates')}</label>
+          <InlineChipsInput
+            values={certificates}
+            onChange={setCertificates}
+            placeholder={t('profile.addCertificate')}
+            colorScheme="green"
+          />
+        </div>
+        <div className="form-group" style={{ marginBottom: 0 }}>
+          <label className="form-label">{t('profile.languages')}</label>
+          <InlineChipsInput
+            values={languages}
+            onChange={setLanguages}
+            placeholder={t('profile.addLanguage')}
+            colorScheme="gray"
+          />
+        </div>
+      </div>
+
+      {/* ══ Block C — 2-col grid (Social | Marketplace visibility) ══ */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: 14,
+          marginBottom: 14,
+        }}
+      >
+        {/* Social networks card */}
+        <div style={cardStyle}>
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+              color: 'var(--text)',
+              marginBottom: 10,
+            }}
+          >
+            {t('profile.socialNetworks')}
+          </div>
           <div className="form-group">
-            <label className="form-label">{t('profile.languages')}</label>
-            <MultiFieldInput
-              values={languages}
-              onChange={setLanguages}
-              placeholder={t('profile.addLanguage')}
+            <label className="form-label">{t('profile.linkedin')}</label>
+            <input
+              className="form-input"
+              value={linkedin}
+              onChange={(e) => setLinkedin(e.target.value)}
+              placeholder="https://linkedin.com/in/..."
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">{t('profile.instagram')}</label>
+            <input
+              className="form-input"
+              value={instagram}
+              onChange={(e) => setInstagram(e.target.value)}
+              placeholder="@handle"
+            />
+          </div>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">{t('profile.website')}</label>
+            <input
+              className="form-input"
+              value={website}
+              onChange={(e) => setWebsite(e.target.value)}
+              placeholder="https://..."
             />
           </div>
         </div>
 
-        <div className="divider" />
-
-        {/* Social Networks */}
-        <div className="section-heading">{t('profile.socialNetworks')}</div>
-
-        <div className="social-row">
-          <div className="social-icon">in</div>
-          <input
-            className="form-input"
-            value={linkedin}
-            onChange={(e) => setLinkedin(e.target.value)}
-            placeholder={t('profile.linkedin')}
-            style={{ flex: 1 }}
-          />
-        </div>
-        <div className="social-row">
-          <div className="social-icon">ig</div>
-          <input
-            className="form-input"
-            value={instagram}
-            onChange={(e) => setInstagram(e.target.value)}
-            placeholder={t('profile.instagram')}
-            style={{ flex: 1 }}
-          />
-        </div>
-        <div className="social-row">
-          <div className="social-icon">🌐</div>
-          <input
-            className="form-input"
-            value={website}
-            onChange={(e) => setWebsite(e.target.value)}
-            placeholder={t('profile.website')}
-            style={{ flex: 1 }}
-          />
-        </div>
-
-        <div className="divider" />
-
-        {/* Privacy toggles */}
-        <div className="toggle-wrap">
-          <div>
-            <div className="toggle-lbl">{t('profile.showInSearch')}</div>
-            <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
-              {t('profile.showInSearchDesc')}
-            </div>
-          </div>
-          <button
-            type="button"
-            className={`toggle${showInSearch ? ' on' : ''}`}
-            onClick={() => setShowInSearch(!showInSearch)}
+        {/* Marketplace visibility card */}
+        <div style={cardStyle}>
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+              color: 'var(--text)',
+              marginBottom: 10,
+            }}
           >
-            <span className="toggle-thumb" />
-          </button>
-        </div>
-
-        <div className="toggle-wrap" style={{ marginTop: 8 }}>
-          <div>
-            <div className="toggle-lbl">{t('profile.acceptNewClients')}</div>
-            <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
-              {t('profile.acceptNewClientsDesc')}
-            </div>
+            {t('profile.marketplaceVisibility')}
           </div>
-          <button
-            type="button"
-            className={`toggle${acceptNewClients ? ' on' : ''}`}
-            onClick={() => setAcceptNewClients(!acceptNewClients)}
+
+          <div
+            className="toggle-wrap"
+            style={{ ...innerRowStyle, marginBottom: 10 }}
           >
-            <span className="toggle-thumb" />
-          </button>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="toggle-lbl">{t('profile.showInSearch')}</div>
+              <div
+                style={{
+                  fontSize: 11,
+                  color: 'var(--text2)',
+                  marginTop: 2,
+                }}
+              >
+                {t('profile.showInSearchDesc')}
+              </div>
+            </div>
+            <button
+              type="button"
+              className={`toggle${showInSearch ? ' on' : ''}`}
+              onClick={() => setShowInSearch(!showInSearch)}
+            >
+              <span className="toggle-thumb" />
+            </button>
+          </div>
+
+          <div
+            className="toggle-wrap"
+            style={{ ...innerRowStyle, marginBottom: 0 }}
+          >
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="toggle-lbl">{t('profile.acceptNewClients')}</div>
+              <div
+                style={{
+                  fontSize: 11,
+                  color: 'var(--text2)',
+                  marginTop: 2,
+                }}
+              >
+                {t('profile.acceptNewClientsDesc')}
+              </div>
+            </div>
+            <button
+              type="button"
+              className={`toggle${acceptNewClients ? ' on' : ''}`}
+              onClick={() => setAcceptNewClients(!acceptNewClients)}
+            >
+              <span className="toggle-thumb" />
+            </button>
+          </div>
         </div>
       </div>
-
-    </div>
+    </>
   );
 }

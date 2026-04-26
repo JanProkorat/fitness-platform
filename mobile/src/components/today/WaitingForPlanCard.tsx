@@ -9,14 +9,11 @@ interface WaitingForPlanCardProps {
   waitingForTraining: boolean
   /** Client is waiting for a nutrition plan to be created */
   waitingForNutrition: boolean
-  /** Client already has at least one active/pending plan */
-  hasExistingPlan?: boolean
 }
 
 export function WaitingForPlanCard({
   waitingForTraining,
   waitingForNutrition,
-  hasExistingPlan = false,
 }: WaitingForPlanCardProps) {
   const colors = useTheme()
   const { t } = useTranslation()
@@ -25,13 +22,13 @@ export function WaitingForPlanCard({
 
   return (
     <View style={[styles.card, { backgroundColor: colors.bg2 }]}>
-      <Text style={styles.emoji}>{hasExistingPlan ? '⏳' : '✅'}</Text>
+      <Text style={styles.emoji}>⏳</Text>
       <Text style={[styles.title, { color: colors.label }]}>
-        {hasExistingPlan
-          ? waitingForTraining
+        {waitingForTraining && waitingForNutrition
+          ? t('today.waitingBothTitle')
+          : waitingForTraining
             ? t('today.waitingTrainingTitle')
-            : t('today.waitingNutritionTitle')
-          : t('today.waitingAllReady')}
+            : t('today.waitingNutritionTitle')}
       </Text>
       <Text style={[styles.desc, { color: colors.label2 }]}>
         {waitingForTraining && waitingForNutrition

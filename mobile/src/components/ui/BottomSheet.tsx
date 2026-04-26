@@ -24,8 +24,12 @@ interface BottomSheetProps {
   title?: string
   /** Optional element rendered on the right side of the header */
   headerRight?: React.ReactNode
-  /** Sheet height as a fraction of screen height (0–1). Default 0.82 */
+  /** Sheet height as a fraction of screen height (0–1). Default 0.82.
+   *  Acts as a hard cap when `fitContent` is true. */
   heightFraction?: number
+  /** When true, the sheet sizes itself to its children up to the
+   *  `heightFraction` cap, instead of always rendering at the cap. */
+  fitContent?: boolean
   /** Sheet content */
   children: React.ReactNode
 }
@@ -36,6 +40,7 @@ export function BottomSheet({
   title,
   headerRight,
   heightFraction = 0.82,
+  fitContent = false,
   children,
 }: BottomSheetProps) {
   const colors = useTheme()
@@ -65,9 +70,9 @@ export function BottomSheet({
             styles.sheet,
             {
               backgroundColor: colors.bg2,
-              height: maxHeight,
               transform: [{ translateY }],
             },
+            fitContent ? { maxHeight } : { height: maxHeight },
           ]}
         >
           {/* Drag handle */}
@@ -83,7 +88,13 @@ export function BottomSheet({
             </View>
           )}
 
-          <View style={{ flex: 1, paddingBottom: Math.max(insets.bottom, 16) }}>
+          <View
+            style={
+              fitContent
+                ? { paddingBottom: Math.max(insets.bottom, 16) }
+                : { flex: 1, paddingBottom: Math.max(insets.bottom, 16) }
+            }
+          >
             {children}
           </View>
         </Animated.View>
