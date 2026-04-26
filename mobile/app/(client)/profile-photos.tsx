@@ -49,6 +49,7 @@ import {
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 6 // month groups per page
+const OUTER_MARGIN = 20 // horizontal margin each side of the photo grid
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -147,7 +148,6 @@ export default function ProfilePhotosScreen() {
   const [lightboxIndex, setLightboxIndex] = useState(0)
 
   // ── Tile dimensions: 3 columns, 4px gap, 20px outer margin each side ──
-  const OUTER_MARGIN = 20
   const tileSize = (width - OUTER_MARGIN * 2 - GRID_GAP * 2) / 3
 
   // ── API category for current filter ──
@@ -252,7 +252,7 @@ export default function ProfilePhotosScreen() {
         />
       </View>
     ),
-    [tileSize, handleTilePress, OUTER_MARGIN],
+    [tileSize, handleTilePress],
   )
 
   const keyExtractor = useCallback(
@@ -434,7 +434,7 @@ const styles = StyleSheet.create({
   chip: {
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 99,
+    borderRadius: Radius.full,
     alignItems: 'center',
   },
   chipLabel: {
