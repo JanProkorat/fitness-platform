@@ -821,8 +821,9 @@ export function HasTrainerState() {
 
   /** Navigate to the plan-photos gallery screen. */
   const handlePhotoGridPress = useCallback(() => {
-    router.push(href('/(client)/plan-photos'))
-  }, [router])
+    if (!plan?.planId) return
+    router.push(hrefParams('/(client)/plan-photos', { planId: plan.planId }))
+  }, [router, plan?.planId])
 
   /** Navigate to the meal-log-photo modal screen for the tapped meal. */
   const handlePhotoPress = useCallback(
