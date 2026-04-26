@@ -5,11 +5,13 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.ClientNutrition.SaveMealPhotos;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints.NutritionPlans;
+using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using NSubstitute;
@@ -22,6 +24,9 @@ namespace FitnessPlatform.Tests.Endpoints.ClientNutrition;
 public class SaveMealPhotosEndpointTests
 {
     private readonly Guid _clientId = Guid.NewGuid();
+    private readonly IRealtimeNotifier _notifier = Substitute.For<IRealtimeNotifier>();
+    private readonly ILogger<SaveMealPhotosEndpoint> _logger =
+        Substitute.For<ILogger<SaveMealPhotosEndpoint>>();
 
     private IApplicationDbContext CreateMockDb() =>
         new MockDbBuilder()
@@ -96,7 +101,7 @@ public class SaveMealPhotosEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, _notifier, _logger);
 
     // ──────────────────────────────────────────────────────────────────────────
     // Replace-semantics happy-path tests

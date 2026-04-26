@@ -4,9 +4,12 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Features.ClientPlans;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.ClientNutrition.SaveDayPhotos;
@@ -25,7 +28,13 @@ namespace FitnessPlatform.Application.Features.ClientNutrition.SaveDayPhotos;
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
-public class SaveDayPhotosEndpoint(IMongoContext mongo, IApplicationDbContext db)
+/// <param name="notifier">Realtime notifier for pushing the <c>planPhotoUploaded</c> event.</param>
+/// <param name="logger">Logger.</param>
+public class SaveDayPhotosEndpoint(
+    IMongoContext mongo,
+    IApplicationDbContext db,
+    IRealtimeNotifier notifier,
+    ILogger<SaveDayPhotosEndpoint> logger)
     : Endpoint<SaveDayPhotosRequest>
 {
     /// <inheritdoc />
@@ -163,13 +172,48 @@ public class SaveDayPhotosEndpoint(IMongoContext mongo, IApplicationDbContext db
         }
 
         // Dual-write: sync photos into PlanPhoto table with REPLACE semantics.
-        await DualWritePlanPhotosAsync(
+        // Returns only the newly-inserted PlanPhoto rows so we can emit events for them.
+        var newPhotos = await DualWritePlanPhotosAsync(
             clientProfile,
             plan.ExternalId,
             req.Photos,
             replacementPhotos,
             now,
             ct);
+
+        // Emit planPhotoUploaded to the owning nutritionist for each newly-created row (best-effort).
+        if (plan.NutritionistId != Guid.Empty)
+        {
+            foreach (var newPhoto in newPhotos)
+            {
+                try
+                {
+                    await notifier.NotifyAsync(
+                        plan.NutritionistId,
+                        "planPhotoUploaded",
+                        new PlanPhotoUploadedEvent
+                        {
+                            PlanId = newPhoto.PlanId,
+                            PhotoId = newPhoto.PublicId,
+                            Category = newPhoto.Category,
+                            TakenAt = newPhoto.TakenAt
+                        },
+                        ct);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex,
+                        "Failed to emit planPhotoUploaded for photo {PhotoId} to nutritionist {NutritionistId}",
+                        newPhoto.PublicId, plan.NutritionistId);
+                }
+            }
+        }
+        else if (newPhotos.Count > 0)
+        {
+            logger.LogWarning(
+                "Could not resolve owning nutritionist for PlanId={PlanId}; planPhotoUploaded events skipped",
+                plan.ExternalId);
+        }
 
         await Send.NoContentAsync(ct);
     }
@@ -182,8 +226,9 @@ public class SaveDayPhotosEndpoint(IMongoContext mongo, IApplicationDbContext db
     ///   (REPLACE semantics, matching SaveDayPhotos behaviour).</item>
     /// </list>
     /// Rows are matched by BlobUrl so the operation is idempotent.
+    /// Returns the list of newly-inserted <see cref="PlanPhoto"/> rows.
     /// </summary>
-    private async Task DualWritePlanPhotosAsync(
+    private async Task<List<PlanPhoto>> DualWritePlanPhotosAsync(
         ClientProfile clientProfile,
         Guid planExternalId,
         IReadOnlyList<DayPhotoInput> inputs,
@@ -209,13 +254,14 @@ public class SaveDayPhotosEndpoint(IMongoContext mongo, IApplicationDbContext db
 
         // Add new rows for blob URLs not yet tracked
         var callerUserId = clientProfile.UserId;
+        var inserted = new List<PlanPhoto>();
 
         foreach (var input in inputs)
         {
             if (existingByUrl.ContainsKey(input.BlobUrl))
                 continue;
 
-            db.PlanPhotos.Add(new PlanPhoto
+            var photo = new PlanPhoto
             {
                 PublicId = Guid.NewGuid(),
                 ClientProfileId = clientProfile.Id,
@@ -229,10 +275,13 @@ public class SaveDayPhotosEndpoint(IMongoContext mongo, IApplicationDbContext db
                 UploadedByUserId = callerUserId,
                 DateCreated = now,
                 DateUpdated = now
-            });
+            };
+            db.PlanPhotos.Add(photo);
+            inserted.Add(photo);
         }
 
         await db.SaveChangesAsync(ct);
+        return inserted;
     }
 
     private static PlanPhotoCategory MapCategory(DayPhotoCategory category) => category switch

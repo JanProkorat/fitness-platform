@@ -4,9 +4,12 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Features.ClientPlans;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.ClientNutrition.SaveMealPhotos;
@@ -26,7 +29,13 @@ namespace FitnessPlatform.Application.Features.ClientNutrition.SaveMealPhotos;
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
-public class SaveMealPhotosEndpoint(IMongoContext mongo, IApplicationDbContext db)
+/// <param name="notifier">Realtime notifier for pushing the <c>planPhotoUploaded</c> event.</param>
+/// <param name="logger">Logger.</param>
+public class SaveMealPhotosEndpoint(
+    IMongoContext mongo,
+    IApplicationDbContext db,
+    IRealtimeNotifier notifier,
+    ILogger<SaveMealPhotosEndpoint> logger)
     : Endpoint<SaveMealPhotosRequest>
 {
     /// <inheritdoc />
@@ -183,13 +192,48 @@ public class SaveMealPhotosEndpoint(IMongoContext mongo, IApplicationDbContext d
         }
 
         // Dual-write: mirror photos into PlanPhoto table so unified read paths see meal photos.
-        await DualWritePlanPhotosAsync(
+        // Returns only the newly-inserted PlanPhoto rows so we can emit events for them.
+        var newPhotos = await DualWritePlanPhotosAsync(
             clientProfile,
             plan.ExternalId,
             mealLogId,
             replacementPhotos.Select(p => p.BlobUrl).ToList(),
             now,
             ct);
+
+        // Emit planPhotoUploaded to the owning nutritionist for each newly-created row (best-effort).
+        if (plan.NutritionistId != Guid.Empty)
+        {
+            foreach (var newPhoto in newPhotos)
+            {
+                try
+                {
+                    await notifier.NotifyAsync(
+                        plan.NutritionistId,
+                        "planPhotoUploaded",
+                        new PlanPhotoUploadedEvent
+                        {
+                            PlanId = newPhoto.PlanId,
+                            PhotoId = newPhoto.PublicId,
+                            Category = newPhoto.Category,
+                            TakenAt = newPhoto.TakenAt
+                        },
+                        ct);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex,
+                        "Failed to emit planPhotoUploaded for photo {PhotoId} to nutritionist {NutritionistId}",
+                        newPhoto.PublicId, plan.NutritionistId);
+                }
+            }
+        }
+        else if (newPhotos.Count > 0)
+        {
+            logger.LogWarning(
+                "Could not resolve owning nutritionist for PlanId={PlanId}; planPhotoUploaded events skipped",
+                plan.ExternalId);
+        }
 
         await Send.NoContentAsync(ct);
     }
@@ -201,8 +245,9 @@ public class SaveMealPhotosEndpoint(IMongoContext mongo, IApplicationDbContext d
     /// Does NOT remove rows that were in a previous save but are absent now — deletion is not
     /// propagated from SaveMealPhotos to PlanPhoto because the meal-log REPLACE semantics
     /// would create false deletions if multiple save calls differ only in the photo list order.
+    /// Returns the list of newly-inserted <see cref="PlanPhoto"/> rows.
     /// </summary>
-    private async Task DualWritePlanPhotosAsync(
+    private async Task<List<PlanPhoto>> DualWritePlanPhotosAsync(
         ClientProfile clientProfile,
         Guid planExternalId,
         string mealLogId,
@@ -211,7 +256,7 @@ public class SaveMealPhotosEndpoint(IMongoContext mongo, IApplicationDbContext d
         CancellationToken ct)
     {
         if (blobUrls.Count == 0)
-            return;
+            return [];
 
         // Load existing PlanPhoto rows for this client + plan to find which BlobUrls are new.
         var existingUrls = await db.PlanPhotos
@@ -225,13 +270,14 @@ public class SaveMealPhotosEndpoint(IMongoContext mongo, IApplicationDbContext d
         var existingUrlSet = existingUrls.ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         var callerUserId = clientProfile.UserId;
+        var inserted = new List<PlanPhoto>();
 
         foreach (var blobUrl in blobUrls)
         {
             if (existingUrlSet.Contains(blobUrl))
                 continue;
 
-            db.PlanPhotos.Add(new PlanPhoto
+            var photo = new PlanPhoto
             {
                 PublicId = Guid.NewGuid(),
                 ClientProfileId = clientProfile.Id,
@@ -245,9 +291,12 @@ public class SaveMealPhotosEndpoint(IMongoContext mongo, IApplicationDbContext d
                 UploadedByUserId = callerUserId,
                 DateCreated = now,
                 DateUpdated = now
-            });
+            };
+            db.PlanPhotos.Add(photo);
+            inserted.Add(photo);
         }
 
         await db.SaveChangesAsync(ct);
+        return inserted;
     }
 }
