@@ -888,5 +888,16 @@
     "empty": "Žádné fotky",
     "addPhotoA11y": "Přidat fotku do plánu",
     "openA11y": "Otevřít fotky plánu"
+  },
+  "profilePhotos": {
+    "title": "Moje fotky",
+    "totalCount": "{{count}} fotek",
+    "categoryAll": "Vše",
+    "categoryFood": "Jídlo",
+    "categoryBody": "Postup",
+    "categoryFree": "Volné",
+    "emptyTitle": "Zatím žádné fotky",
+    "emptyBody": "Fotky z vašich plánů se zobrazí zde.",
+    "openA11y": "Otevřít moje fotky"
   }
 }
