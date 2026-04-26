@@ -220,6 +220,7 @@ public class SaveDayPhotosEndpoint(IMongoContext mongo, IApplicationDbContext db
                 PublicId = Guid.NewGuid(),
                 ClientProfileId = clientProfile.Id,
                 PlanId = planExternalId,
+                // Day photos always belong to nutrition plans; training plans use a separate endpoint.
                 PlanType = PlanPhotoType.Nutrition,
                 LinkId = planExternalId,
                 Category = MapCategory(input.Category),

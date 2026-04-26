@@ -75,6 +75,9 @@ public class DeletePlanPhotoEndpoint(IApplicationDbContext db, IBlobStorageServi
 
         // Delete the blob after the DB row is removed so the record is gone
         // even if blob deletion fails (avoids orphaned DB rows).
+        // Trade-off: if DeleteAsync throws (MinIO unavailable), the DB row is already gone but
+        // the blob persists — an orphaned blob is the chosen trade-off over an orphaned DB row,
+        // since orphaned blobs are cheaper to clean up than ghost photo records visible to the client.
         if (containerPath is not null)
         {
             await blobStorage.DeleteAsync(containerPath, ct);

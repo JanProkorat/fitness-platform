@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FluentAssertions;
+using FluentValidation.TestHelper;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Entities;
@@ -243,5 +244,67 @@ public class FinalizePlanPhotoEndpointTests
 
         ep.HttpContext.Response.StatusCode.Should().Be(201);
         ep.Response.TakenAt.Should().Be(expectedTakenAt);
+    }
+
+    // ── BlobUrl prefix security regression tests (validator) ──────────────────
+
+    [Fact]
+    public void HandleAsync_BlobUrlOutsidePlanPrefix_Returns400()
+    {
+        // A malicious client passes a BlobUrl that belongs to a different planId.
+        // The validator must reject it to prevent cross-plan blob hijacking.
+        var planId = Guid.NewGuid();
+        var differentPlanId = Guid.NewGuid();
+        var validator = new FinalizePlanPhotoValidator();
+
+        var req = new FinalizePlanPhotoRequest
+        {
+            PlanId = planId,
+            BlobUrl = $"plan-photos/{differentPlanId}/{Guid.NewGuid()}.jpg",
+            Category = PlanPhotoCategory.Body
+        };
+
+        var result = validator.TestValidate(req);
+        result.ShouldHaveValidationErrorFor(x => x.BlobUrl)
+            .WithErrorCode(ErrorCodes.InvalidBlobUrl);
+    }
+
+    [Fact]
+    public void HandleAsync_BlobUrlPathTraversal_Returns400()
+    {
+        // A malicious client attempts path traversal via the BlobUrl field.
+        // The validator must reject URLs containing ".." segments.
+        var planId = Guid.NewGuid();
+        var validator = new FinalizePlanPhotoValidator();
+
+        var req = new FinalizePlanPhotoRequest
+        {
+            PlanId = planId,
+            BlobUrl = "plan-photos/../etc/passwd",
+            Category = PlanPhotoCategory.Body
+        };
+
+        var result = validator.TestValidate(req);
+        result.ShouldHaveValidationErrorFor(x => x.BlobUrl)
+            .WithErrorCode(ErrorCodes.InvalidBlobUrl);
+    }
+
+    [Fact]
+    public void HandleAsync_BlobUrlValidPrefix_Returns201()
+    {
+        // A well-formed BlobUrl in the canonical plan-photos/{planId}/{uuid}.{ext} shape
+        // must pass validator for the matching planId.
+        var planId = Guid.NewGuid();
+        var validator = new FinalizePlanPhotoValidator();
+
+        var req = new FinalizePlanPhotoRequest
+        {
+            PlanId = planId,
+            BlobUrl = $"plan-photos/{planId}/{Guid.NewGuid()}.jpg",
+            Category = PlanPhotoCategory.Body
+        };
+
+        var result = validator.TestValidate(req);
+        result.ShouldNotHaveValidationErrorFor(x => x.BlobUrl);
     }
 }

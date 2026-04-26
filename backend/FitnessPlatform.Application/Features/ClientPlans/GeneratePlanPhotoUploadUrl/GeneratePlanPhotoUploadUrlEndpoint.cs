@@ -116,6 +116,8 @@ public class GeneratePlanPhotoUploadUrlEndpoint(
         "image/png"  => "png",
         "image/webp" => "webp",
         "image/heic" => "heic",
-        _            => "bin",
+        // The validator already rejects unknown content types before this point.
+        // Throwing here ensures any future drift between validator and switch is caught loudly.
+        _ => throw new InvalidOperationException($"Unsupported content type {contentType}"),
     };
 }

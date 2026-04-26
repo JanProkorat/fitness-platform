@@ -168,6 +168,12 @@ public static class ErrorCodes
     /// <summary>No active plan (nutrition or training) found for the given planId.</summary>
     public const string PlanNotFound = "PLAN_NOT_FOUND";
 
+    /// <summary>
+    /// BlobUrl does not match the expected storage prefix for this plan
+    /// (<c>plan-photos/{planId}/{guid}.{ext}</c>). Prevents path traversal and cross-plan hijacking.
+    /// </summary>
+    public const string InvalidBlobUrl = "INVALID_BLOB_URL";
+
     // ── Image Uploads ────────────────────────────────────────────────
     /// <summary>Content type is not in the allowed image whitelist (image/jpeg, image/png, image/webp).</summary>
     public const string InvalidImageContentType = "INVALID_IMAGE_CONTENT_TYPE";
