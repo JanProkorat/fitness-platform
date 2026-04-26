@@ -129,9 +129,15 @@ export function ClientPhotosTimeline({ clientId }: ClientPhotosTimelineProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
   function openLightbox(allPhotos: PlanPhotoResponse2[], clickedIndex: number) {
+    // Build the URL list from only the photos that have a blobUrl (same
+    // compression as before), but re-derive the index so it points into
+    // that filtered array rather than the unfiltered one.
     const urls = allPhotos.map((p) => p.blobUrl ?? '').filter(Boolean);
+    const filteredIndex = allPhotos
+      .slice(0, clickedIndex)
+      .filter((p) => !!p.blobUrl).length;
     setLightboxImages(urls);
-    setLightboxIndex(clickedIndex);
+    setLightboxIndex(filteredIndex);
     setLightboxOpen(true);
   }
 
@@ -201,26 +207,34 @@ export function ClientPhotosTimeline({ clientId }: ClientPhotosTimelineProps) {
 
               {/* Photo grid — 4 columns */}
               <div className="grid grid-cols-4 gap-1.5">
-                {photos.map((photo, idx) => (
-                  <button
-                    key={photo.id ?? idx}
-                    type="button"
-                    onClick={() => openLightbox(photos, idx)}
-                    aria-label={
-                      photo.description ||
-                      t('imageLightbox.open')
-                    }
-                    className="group relative aspect-square overflow-hidden rounded-md bg-bg3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                  >
-                    {photo.blobUrl ? (
+                {photos.map((photo, idx) =>
+                  photo.blobUrl ? (
+                    <button
+                      key={photo.id ?? idx}
+                      type="button"
+                      onClick={() => openLightbox(photos, idx)}
+                      aria-label={photo.description || t('imageLightbox.open')}
+                      className="group relative aspect-square overflow-hidden rounded-md bg-bg3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                    >
                       <img
                         src={photo.blobUrl}
                         alt={photo.description ?? ''}
                         className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
                         loading="lazy"
                       />
-                    ) : (
-                      /* Placeholder for photos without a URL */
+                      {/* Category badge */}
+                      {photo.category && (
+                        <span className="absolute bottom-1 left-1 rounded px-1 py-0.5 text-[9px] font-medium bg-black/50 text-white">
+                          {t(`clientDetail.photos.category${photo.category}`)}
+                        </span>
+                      )}
+                    </button>
+                  ) : (
+                    /* Placeholder tile — no blobUrl, not interactive */
+                    <div
+                      key={photo.id ?? idx}
+                      className="relative aspect-square overflow-hidden rounded-md bg-bg3"
+                    >
                       <span
                         className="flex h-full w-full items-center justify-center text-2xl"
                         aria-hidden="true"
@@ -231,16 +245,15 @@ export function ClientPhotosTimeline({ clientId }: ClientPhotosTimelineProps) {
                             ? '🏃'
                             : '📷'}
                       </span>
-                    )}
-
-                    {/* Category badge */}
-                    {photo.category && (
-                      <span className="absolute bottom-1 left-1 rounded px-1 py-0.5 text-[9px] font-medium bg-black/50 text-white">
-                        {t(`clientDetail.photos.category${photo.category}`)}
-                      </span>
-                    )}
-                  </button>
-                ))}
+                      {/* Category badge */}
+                      {photo.category && (
+                        <span className="absolute bottom-1 left-1 rounded px-1 py-0.5 text-[9px] font-medium bg-black/50 text-white">
+                          {t(`clientDetail.photos.category${photo.category}`)}
+                        </span>
+                      )}
+                    </div>
+                  ),
+                )}
               </div>
             </div>
           );
