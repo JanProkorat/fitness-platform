@@ -13,7 +13,3 @@ export async function getPlanPhotos(
   return apiClient.getPlanPhotosEndpoint(planId, page, pageSize, category);
 }
 
-/** Delete a single plan photo by its ID. */
-export async function deletePlanPhoto(photoId: string): Promise<void> {
-  return apiClient.deletePlanPhotoEndpoint(photoId);
-}

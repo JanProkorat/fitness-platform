@@ -20,7 +20,7 @@ import { cn } from '@/lib/cn';
 import { type MealKind } from '@/components/nutrition/meal-kind';
 import { DayNoteInput } from '@/components/common/DayNoteInput';
 import { CheckInBanner } from '@/components/weekly-checkin/CheckInBanner';
-import { PlanPhotosTab } from '@/components/nutrition/PlanPhotosTab';
+import { PlanPhotosTab } from '@/components/photos/PlanPhotosTab';
 
 export default function NutritionPlanPage() {
   const { t, i18n } = useTranslation();

@@ -63,13 +63,6 @@ import { Toast } from '@/lib/toast'
 type UiCategory = 'Food' | 'Progress' | 'Free'
 type FilterCategory = 'All' | UiCategory
 
-/** Map from UI category to the wire-level PlanPhotoCategory value. */
-const UI_TO_WIRE: Record<UiCategory, PlanPhotoCategory> = {
-  Food: PlanPhotoCategory.Food,
-  Progress: PlanPhotoCategory.Body,
-  Free: PlanPhotoCategory.FreeForm,
-}
-
 /** Map from PlanPhotoCategory wire value back to UI category for display. */
 const WIRE_TO_UI: Record<PlanPhotoCategory, UiCategory> = {
   [PlanPhotoCategory.Food]: 'Food',
@@ -215,11 +208,18 @@ export default function PlanPhotosScreen() {
 
   // ── Grid item renderer ──
   const renderItem = useCallback(
-    ({ item, index }: ListRenderItemInfo<PhotoItem>) => (
+    ({ item, index }: ListRenderItemInfo<PhotoItem>) => {
+      const labelKey =
+        item.uiCategory === 'Food'
+          ? 'planPhotos.categoryFood'
+          : item.uiCategory === 'Progress'
+            ? 'planPhotos.categoryProgress'
+            : 'planPhotos.categoryFree'
+      return (
       <Pressable
         onPress={() => handleTilePress(index)}
         accessibilityRole="button"
-        accessibilityLabel={`${t('planPhotos.categoryFood')} ${index + 1}`}
+        accessibilityLabel={`${t(labelKey)} ${index + 1}`}
         style={[
           styles.tile,
           {
@@ -235,7 +235,8 @@ export default function PlanPhotosScreen() {
           resizeMode="cover"
         />
       </Pressable>
-    ),
+      )
+    },
     [handleTilePress, tileSize, colors.fill2, t],
   )
 

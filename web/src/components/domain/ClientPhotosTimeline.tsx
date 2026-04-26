@@ -28,6 +28,20 @@ interface ClientPhotosTimelineProps {
   clientId: string;
 }
 
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+/**
+ * Static map from PlanPhotoCategory to i18n key.
+ * Dynamic key construction (`t(\`…${category}\`)`) is intentionally avoided so
+ * i18next-parser can extract all keys statically, and a future enum rename
+ * won't silently break translations.
+ */
+const CATEGORY_LABEL_KEY: Record<PlanPhotoCategory, string> = {
+  [PlanPhotoCategory.Food]: 'clientDetail.photos.categoryFood',
+  [PlanPhotoCategory.Body]: 'clientDetail.photos.categoryBody',
+  [PlanPhotoCategory.FreeForm]: 'clientDetail.photos.categoryFreeForm',
+};
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /** Format a YYYY-MM key as a localised month+year label. */
@@ -46,9 +60,9 @@ export function ClientPhotosTimeline({ clientId }: ClientPhotosTimelineProps) {
   const locale = i18n.language === 'de' ? 'de-DE' : i18n.language === 'en' ? 'en-GB' : 'cs-CZ';
 
   // ── Filter state ────────────────────────────────────────────────────────────
-  // Both reset when clientId changes via `key` prop on the parent or here via
-  // explicit reset in an effect — but the simplest approach is to store filters
-  // in a sub-object keyed to clientId so stale state is never visible.
+  // Filters are local state. The component unmounts when the user switches away
+  // from the Photos tab on ClientDetailPage, so a different client mounts a
+  // fresh instance with cleared filters — no explicit reset is required.
   const [selectedCategory, setSelectedCategory] = useState<PlanPhotoCategory | ''>('');
   const [selectedPlanId, setSelectedPlanId] = useState<string>('');
 
@@ -64,12 +78,14 @@ export function ClientPhotosTimeline({ clientId }: ClientPhotosTimelineProps) {
   );
 
   // ── Fetch photos ─────────────────────────────────────────────────────────────
+  // selectedPlanId is intentionally absent from queryKey — plan filtering is
+  // applied client-side (see groups memo below); the fetch only depends on
+  // clientId and category.
   const { data: photosData, isLoading: photosLoading } = useQuery({
     queryKey: [
       'client-photos',
       clientId,
       selectedCategory || null,
-      selectedPlanId || null,
     ],
     queryFn: () =>
       getClientPhotoGroups({
@@ -225,7 +241,7 @@ export function ClientPhotosTimeline({ clientId }: ClientPhotosTimelineProps) {
                       {/* Category badge */}
                       {photo.category && (
                         <span className="absolute bottom-1 left-1 rounded px-1 py-0.5 text-[9px] font-medium bg-black/50 text-white">
-                          {t(`clientDetail.photos.category${photo.category}`)}
+                          {t(CATEGORY_LABEL_KEY[photo.category])}
                         </span>
                       )}
                     </button>
@@ -248,7 +264,7 @@ export function ClientPhotosTimeline({ clientId }: ClientPhotosTimelineProps) {
                       {/* Category badge */}
                       {photo.category && (
                         <span className="absolute bottom-1 left-1 rounded px-1 py-0.5 text-[9px] font-medium bg-black/50 text-white">
-                          {t(`clientDetail.photos.category${photo.category}`)}
+                          {t(CATEGORY_LABEL_KEY[photo.category])}
                         </span>
                       )}
                     </div>

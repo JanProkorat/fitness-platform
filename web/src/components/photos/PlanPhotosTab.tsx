@@ -1,5 +1,5 @@
 /**
- * PlanPhotosTab — Photos tab for the NutritionPlanPage.
+ * PlanPhotosTab — Photos tab shared by NutritionPlanPage and TrainingPlanPage.
  *
  * Shows a category chip row (Food / Body / FreeForm) and a 3-column thumbnail
  * grid loaded via TanStack Query. Clicking a thumbnail opens the ImageLightbox.
