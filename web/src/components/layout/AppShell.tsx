@@ -193,6 +193,16 @@ export function AppShell() {
       // Key shape verified: DashboardPage.tsx line 88 uses ['dashboard-summary'].
       queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
     },
+    planPhotoUploaded: (payload: unknown) => {
+      const data = payload as { planId?: string } | undefined;
+      const planId = data?.planId;
+      if (planId) {
+        queryClient.invalidateQueries({ queryKey: ['planPhotos', planId] });
+      } else {
+        // Broad invalidation if planId is missing
+        queryClient.invalidateQueries({ queryKey: ['planPhotos'] });
+      }
+    },
     weeklycheckinupdated: (payload: unknown) => {
       if (import.meta.env.DEV) {
         console.debug('weeklycheckinupdated', payload);

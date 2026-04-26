@@ -20,6 +20,7 @@ import { cn } from '@/lib/cn';
 import { type MealKind } from '@/components/nutrition/meal-kind';
 import { DayNoteInput } from '@/components/common/DayNoteInput';
 import { CheckInBanner } from '@/components/weekly-checkin/CheckInBanner';
+import { PlanPhotosTab } from '@/components/nutrition/PlanPhotosTab';
 
 export default function NutritionPlanPage() {
   const { t, i18n } = useTranslation();
@@ -61,6 +62,7 @@ export default function NutritionPlanPage() {
   const moveMealToDay = useNutritionPlanStore((s) => s.moveMealToDay);
 
   // ── Local UI state ──
+  const [pageTab, setPageTab] = useState<'meals' | 'photos'>('meals');
   const [selectedDay, setSelectedDay] = useState(1);
   const [weekViewExpanded, setWeekViewExpanded] = useState(false);
   const [dragOverDay, setDragOverDay] = useState<number | null>(null);
@@ -368,7 +370,43 @@ export default function NutritionPlanPage() {
         <CheckInBanner clientUserId={plan.clientId} profession="Nutrition" />
       )}
 
-      {/* ── Week tabs ── */}
+      {/* ── Page-level tabs: Meals / Photos ── */}
+      <div className="shrink-0 flex items-center gap-1 px-4 py-2 border-b border-border bg-bg">
+        <button
+          type="button"
+          onClick={() => setPageTab('meals')}
+          className={cn(
+            'px-3 py-1 rounded-full text-[12px] font-medium transition-colors border',
+            pageTab === 'meals'
+              ? 'bg-accent text-bg border-accent'
+              : 'bg-bg2 text-text3 border-border hover:bg-bg3 hover:text-text2',
+          )}
+        >
+          {t('nutrition.tabMealPlan')}
+        </button>
+        <button
+          type="button"
+          onClick={() => setPageTab('photos')}
+          className={cn(
+            'px-3 py-1 rounded-full text-[12px] font-medium transition-colors border',
+            pageTab === 'photos'
+              ? 'bg-accent text-bg border-accent'
+              : 'bg-bg2 text-text3 border-border hover:bg-bg3 hover:text-text2',
+          )}
+        >
+          {t('nutrition.photos.tab')}
+        </button>
+      </div>
+
+      {/* ── Photos tab content ── */}
+      {pageTab === 'photos' && planId && (
+        <div className="flex-1 overflow-hidden">
+          <PlanPhotosTab planId={planId} />
+        </div>
+      )}
+
+      {/* ── Meals tab content ── */}
+      {pageTab === 'meals' && <>
       <WeekDayTabs
         weeks={weekTabs}
         days={[]}
@@ -739,6 +777,7 @@ export default function NutritionPlanPage() {
           />
         </div>
       </div>
+      </>}
 
       {/* ── Leave Page Confirmation Dialog ── */}
       <Dialog

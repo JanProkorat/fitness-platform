@@ -654,7 +654,21 @@
     "planSubtitle": "Tvorba a správa jídelníčku klienta",
     "planStatus": "Status",
     "planGoalKcal": "Cíl kcal",
-    "concept": "Koncept"
+    "concept": "Koncept",
+    "photos": {
+      "tab": "Fotky",
+      "categoryAll": "Vše",
+      "categoryFood": "Jídlo",
+      "categoryBody": "Postup",
+      "categoryFreeForm": "Volné",
+      "emptyTitle": "Zatím žádné fotky",
+      "emptyHint": "Fotky nahrané klientem se zobrazí zde.",
+      "viewPhoto": "Zobrazit fotku",
+      "photoAlt": "Fotka plánu",
+      "badgeFood": "Jídlo",
+      "badgeBody": "Postup",
+      "badgeFreeForm": "Volné"
+    }
   },
   "apiErrors": {
     "INVALID_CREDENTIALS": "Neplatný email nebo heslo.",
