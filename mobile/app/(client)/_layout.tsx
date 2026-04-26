@@ -33,6 +33,10 @@ export default function ClientLayout() {
         name="plan-photos"
         options={{ animation: 'slide_from_bottom', presentation: 'modal' }}
       />
+      <Stack.Screen
+        name="profile-photos"
+        options={{ animation: 'slide_from_right', headerShown: false }}
+      />
     </Stack>
   )
 }

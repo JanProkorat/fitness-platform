@@ -879,5 +879,16 @@
     "empty": "Keine Fotos",
     "addPhotoA11y": "Foto zum Plan hinzufügen",
     "openA11y": "Planfotos öffnen"
+  },
+  "profilePhotos": {
+    "title": "Meine Fotos",
+    "totalCount": "{{count}} Fotos",
+    "categoryAll": "Alle",
+    "categoryFood": "Essen",
+    "categoryBody": "Fortschritt",
+    "categoryFree": "Frei",
+    "emptyTitle": "Noch keine Fotos",
+    "emptyBody": "Fotos aus deinen Plänen erscheinen hier.",
+    "openA11y": "Meine Fotos öffnen"
   }
 }

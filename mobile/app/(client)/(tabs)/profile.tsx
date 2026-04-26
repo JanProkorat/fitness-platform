@@ -315,6 +315,26 @@ export default function ProfileScreen() {
         {/* Personal records */}
         <PersonalRecordsCard />
 
+        {/* Photos section */}
+        <View style={styles.section}>
+          <SectionHeader title={t('profilePhotos.title')} />
+          <Pressable
+            onPress={() => router.push('/(client)/profile-photos')}
+            style={({ pressed }) => [
+              styles.photosRow,
+              { backgroundColor: colors.bg2, opacity: pressed ? 0.7 : 1 },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={t('profilePhotos.openA11y')}
+          >
+            <Ionicons name="images-outline" size={20} color={colors.label3} style={styles.profileRowIcon} />
+            <Text style={[Type.body, { color: colors.label, flex: 1 }]}>
+              {t('profilePhotos.title')}
+            </Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.label3} />
+          </Pressable>
+        </View>
+
         {/* Profile section */}
         <View style={styles.section}>
           <SectionHeader title={t('profile.title')} />
@@ -457,6 +477,13 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   logoutRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    padding: 16,
+    borderRadius: Radius.md,
+  },
+  photosRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginHorizontal: 16,

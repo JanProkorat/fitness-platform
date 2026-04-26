@@ -880,5 +880,16 @@
     "empty": "No photos",
     "addPhotoA11y": "Add photo to plan",
     "openA11y": "Open plan photos"
+  },
+  "profilePhotos": {
+    "title": "My Photos",
+    "totalCount": "{{count}} photos",
+    "categoryAll": "All",
+    "categoryFood": "Food",
+    "categoryBody": "Progress",
+    "categoryFree": "Free",
+    "emptyTitle": "No photos yet",
+    "emptyBody": "Photos from your plans will appear here.",
+    "openA11y": "Open my photos"
   }
 }
