@@ -176,8 +176,7 @@ public class SaveDayPhotosEndpoint(
         var newPhotos = await DualWritePlanPhotosAsync(
             clientProfile,
             plan.ExternalId,
-            req.Photos,
-            replacementPhotos,
+            replacementPhotos.Select(p => (p.BlobUrl, p.Note, p.Category)).ToList(),
             now,
             ct);
 
@@ -221,23 +220,26 @@ public class SaveDayPhotosEndpoint(
     /// <summary>
     /// Syncs the PlanPhoto table to match the replacement photo list for the given plan.
     /// <list type="bullet">
-    ///   <item>Inserts new PlanPhoto rows for blob URLs not yet in the table.</item>
+    ///   <item>Inserts new PlanPhoto rows for blob URLs not yet in the table, setting
+    ///   <c>Description</c> from the per-photo note.</item>
+    ///   <item>Updates <c>Description</c> and <c>DateUpdated</c> on existing rows when
+    ///   the note has changed — no other fields are touched.</item>
     ///   <item>Deletes PlanPhoto rows whose blob URLs are no longer in the replacement list
     ///   (REPLACE semantics, matching SaveDayPhotos behaviour).</item>
     /// </list>
     /// Rows are matched by BlobUrl so the operation is idempotent.
-    /// Returns the list of newly-inserted <see cref="PlanPhoto"/> rows.
+    /// Returns the list of newly-inserted <see cref="PlanPhoto"/> rows (for SignalR events).
     /// </summary>
     private async Task<List<PlanPhoto>> DualWritePlanPhotosAsync(
         ClientProfile clientProfile,
         Guid planExternalId,
-        IReadOnlyList<DayPhotoInput> inputs,
-        IReadOnlyList<DayPhoto> replacementPhotos,
+        IReadOnlyList<(string BlobUrl, string? Note, DayPhotoCategory Category)> photos,
         DateTime now,
         CancellationToken ct)
     {
         // Load all existing PlanPhoto rows for this client + plan that originated from
         // day-log writes (non-Food categories only — Food photos come from SaveMealPhotos).
+        // Load as tracked entities so Description updates are picked up by SaveChanges.
         var existing = await db.PlanPhotos
             .Where(p =>
                 p.ClientProfileId == clientProfile.Id &&
@@ -246,20 +248,28 @@ public class SaveDayPhotosEndpoint(
             .ToListAsync(ct);
 
         var existingByUrl = existing.ToDictionary(p => p.BlobUrl, StringComparer.OrdinalIgnoreCase);
-        var newUrlSet = replacementPhotos.Select(p => p.BlobUrl).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var newUrlSet = photos.Select(p => p.BlobUrl).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         // Remove rows for blob URLs no longer in the replacement list
         foreach (var toRemove in existing.Where(p => !newUrlSet.Contains(p.BlobUrl)))
             db.PlanPhotos.Remove(toRemove);
 
-        // Add new rows for blob URLs not yet tracked
+        // Insert new rows; update Description on existing rows when it has changed.
         var callerUserId = clientProfile.UserId;
         var inserted = new List<PlanPhoto>();
 
-        foreach (var input in inputs)
+        foreach (var (blobUrl, note, category) in photos)
         {
-            if (existingByUrl.ContainsKey(input.BlobUrl))
+            if (existingByUrl.TryGetValue(blobUrl, out var existingRow))
+            {
+                // Row already exists — only update Description when it has changed.
+                if (existingRow.Description != note)
+                {
+                    existingRow.Description = note;
+                    existingRow.DateUpdated = now;
+                }
                 continue;
+            }
 
             var photo = new PlanPhoto
             {
@@ -269,8 +279,9 @@ public class SaveDayPhotosEndpoint(
                 // Day photos always belong to nutrition plans; training plans use a separate endpoint.
                 PlanType = PlanPhotoType.Nutrition,
                 LinkId = planExternalId,
-                Category = MapCategory(input.Category),
-                BlobUrl = input.BlobUrl,
+                Category = MapCategory(category),
+                BlobUrl = blobUrl,
+                Description = note,
                 TakenAt = now,
                 UploadedByUserId = callerUserId,
                 DateCreated = now,

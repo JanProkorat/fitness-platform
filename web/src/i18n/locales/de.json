@@ -306,6 +306,10 @@
     "trainerSaved": "Trainerprofil gespeichert",
     "saveError": "Fehler beim Speichern",
     "rolesTitle": "Rollen",
+    "rolesSubtitle": "Wähle die Dienstleistungen, die du anbietest. Rollen können kombiniert werden.",
+    "trainerRoleDesc": "Krafttraining, Kardio, Rehabilitation, Kondition",
+    "nutritionistRoleDesc": "Ernährungspläne, Makros, Ernährungsstrategien",
+    "roleRemovalNotSupported": "Das Entfernen von Rollen wird noch nicht unterstützt",
     "addNutritionistRole": "Auch als Ernährungsberater arbeiten",
     "addTrainerRole": "Auch als Trainer arbeiten",
     "addRoleConfirm": "Möchten Sie diese Rolle wirklich hinzufügen? Dies kann nicht rückgängig gemacht werden.",
@@ -331,7 +335,9 @@
     "maxClients": "Max. Klientenzahl",
     "languages": "Sprachen",
     "addLanguage": "Sprache hinzufügen...",
-    "socialNetworks": "Soziale Netzwerke & Kontakt",
+    "socialNetworks": "Soziale Netzwerke",
+    "marketplaceVisibility": "Sichtbarkeit im Marketplace",
+    "characters": "Zeichen",
     "linkedin": "LinkedIn-Profil",
     "instagram": "Instagram-Handle",
     "website": "Webseite",
@@ -436,7 +442,19 @@
       }
     },
     "imageUpdated": "Lebensmittelbild aktualisiert",
-    "imageUpdateError": "Lebensmittelbild konnte nicht aktualisiert werden"
+    "imageUpdateError": "Lebensmittelbild konnte nicht aktualisiert werden",
+    "image": {
+      "mainHeading": "Hauptbild",
+      "mainEmpty": "Kein Hauptbild. Zum Hochladen klicken.",
+      "galleryHeading": "Fotogalerie",
+      "galleryEmpty": "Noch keine Fotos in der Galerie.",
+      "addPhoto": "+ Foto hinzufügen",
+      "galleryFull": "Galerie ist voll (max. 6 Fotos)",
+      "uploadMainSuccess": "Hauptbild aktualisiert",
+      "uploadMainError": "Hauptbild konnte nicht hochgeladen werden",
+      "uploadGallerySuccess": "Foto zur Galerie hinzugefügt",
+      "uploadGalleryError": "Foto konnte nicht zur Galerie hinzugefügt werden"
+    }
   },
   "recipes": {
     "title": "Rezepte",

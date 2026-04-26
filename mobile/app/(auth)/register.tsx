@@ -11,16 +11,23 @@ import {
   ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import api from '@/api/client';
 import { useAuthStore } from '@/stores/auth';
 import { useTheme } from '@/hooks/useTheme';
 import { Colors } from '@/constants/colors';
 
 const ROLES = ['Client', 'Trainer', 'Nutritionist'] as const;
+const ROLE_META: Record<(typeof ROLES)[number], { icon: string; labelKey: string; descKey: string }> = {
+  Client: { icon: '👤', labelKey: 'auth.register.roleClient', descKey: 'auth.register.roleClientDesc' },
+  Trainer: { icon: '🏋️', labelKey: 'auth.register.roleTrainer', descKey: 'auth.register.roleTrainerDesc' },
+  Nutritionist: { icon: '🥗', labelKey: 'auth.register.roleNutritionist', descKey: 'auth.register.roleNutritionistDesc' },
+};
 
 export default function RegisterScreen() {
   const colors = useTheme();
   const router = useRouter();
+  const { t } = useTranslation();
   const login = useAuthStore((s) => s.login);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -33,19 +40,19 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     if (!firstName.trim() || !lastName.trim() || !email.trim() || !password.trim()) {
-      Alert.alert('Missing Fields', 'Please fill in all fields.');
+      Alert.alert(t('auth.register.missingFieldsTitle'), t('auth.register.missingFieldsMessage'));
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert('Password Mismatch', 'Passwords do not match.');
+      Alert.alert(t('auth.register.mismatchTitle'), t('auth.register.mismatchMessage'));
       return;
     }
     if (password.length < 8) {
-      Alert.alert('Weak Password', 'Password must be at least 8 characters.');
+      Alert.alert(t('auth.register.weakPasswordTitle'), t('auth.register.weakPasswordMessage'));
       return;
     }
     if (!gdprConsent) {
-      Alert.alert('Consent Required', 'You must consent to health data processing to register.');
+      Alert.alert(t('auth.register.consentRequiredTitle'), t('auth.register.consentRequiredMessage'));
       return;
     }
 
@@ -87,8 +94,8 @@ export default function RegisterScreen() {
       const msg =
         e.response?.data?.errors?.generalErrors?.[0] ??
         e.response?.data?.message ??
-        'Registration failed. Please try again.';
-      Alert.alert('Registration Failed', msg);
+        t('auth.register.failedMessage');
+      Alert.alert(t('auth.register.failedTitle'), msg);
     } finally {
       setLoading(false);
     }
@@ -106,12 +113,12 @@ export default function RegisterScreen() {
         <Text style={[styles.logo, { color: colors.label }]}>
           GoodFellas <Text style={[styles.logoAccent, { color: colors.gold }]}>Platform</Text>
         </Text>
-        <Text style={[styles.subtitle, { color: colors.label3 }]}>Create your account</Text>
+        <Text style={[styles.subtitle, { color: colors.label3 }]}>{t('auth.register.subtitle')}</Text>
 
         <View style={styles.row}>
           <TextInput
             style={[styles.input, styles.halfInput, { backgroundColor: colors.bg2, borderColor: colors.sep, color: colors.label }]}
-            placeholder="First name"
+            placeholder={t('auth.register.firstNamePlaceholder')}
             placeholderTextColor={colors.label3}
             value={firstName}
             onChangeText={setFirstName}
@@ -119,7 +126,7 @@ export default function RegisterScreen() {
           />
           <TextInput
             style={[styles.input, styles.halfInput, { backgroundColor: colors.bg2, borderColor: colors.sep, color: colors.label }]}
-            placeholder="Last name"
+            placeholder={t('auth.register.lastNamePlaceholder')}
             placeholderTextColor={colors.label3}
             value={lastName}
             onChangeText={setLastName}
@@ -129,7 +136,7 @@ export default function RegisterScreen() {
 
         <TextInput
           style={[styles.input, { backgroundColor: colors.bg2, borderColor: colors.sep, color: colors.label }]}
-          placeholder="Email"
+          placeholder={t('auth.register.emailPlaceholder')}
           placeholderTextColor={colors.label3}
           value={email}
           onChangeText={setEmail}
@@ -139,7 +146,7 @@ export default function RegisterScreen() {
         />
         <TextInput
           style={[styles.input, { backgroundColor: colors.bg2, borderColor: colors.sep, color: colors.label }]}
-          placeholder="Password"
+          placeholder={t('auth.register.passwordPlaceholder')}
           placeholderTextColor={colors.label3}
           value={password}
           onChangeText={setPassword}
@@ -148,7 +155,7 @@ export default function RegisterScreen() {
         />
         <TextInput
           style={[styles.input, { backgroundColor: colors.bg2, borderColor: colors.sep, color: colors.label }]}
-          placeholder="Confirm password"
+          placeholder={t('auth.register.confirmPasswordPlaceholder')}
           placeholderTextColor={colors.label3}
           value={confirmPassword}
           onChangeText={setConfirmPassword}
@@ -156,26 +163,38 @@ export default function RegisterScreen() {
           autoComplete="new-password"
         />
 
-        <Text style={[styles.label, { color: colors.label2 }]}>I am a</Text>
-        <View style={styles.roleRow}>
-          {ROLES.map((r) => (
-            <TouchableOpacity
-              key={r}
-              style={[styles.rolePill, role === r && [styles.rolePillActive, { backgroundColor: colors.gold, borderColor: colors.gold }], role !== r && { borderColor: colors.sep }]}
-              onPress={() => setRole(r)}
-              activeOpacity={0.8}
-            >
-              <Text
+        <Text style={[styles.label, { color: colors.label2 }]}>{t('auth.register.iAmA')}</Text>
+        <View style={styles.roleStack}>
+          {ROLES.map((r) => {
+            const meta = ROLE_META[r];
+            const active = role === r;
+            return (
+              <TouchableOpacity
+                key={r}
                 style={[
-                  styles.rolePillText,
-                  role === r && styles.rolePillTextActive,
-                  role !== r && { color: colors.label3 },
+                  styles.roleCard,
+                  { backgroundColor: active ? colors.gold : colors.bg2, borderColor: active ? colors.gold : colors.sep },
                 ]}
+                onPress={() => setRole(r)}
+                activeOpacity={0.8}
               >
-                {r}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <View style={[styles.roleIconWrap, { backgroundColor: active ? 'rgba(0,0,0,0.12)' : colors.bg3 }]}>
+                  <Text style={styles.roleIcon}>{meta.icon}</Text>
+                </View>
+                <View style={styles.roleTextWrap}>
+                  <Text style={[styles.roleName, { color: active ? Colors.light.onGoldChip : colors.label }]}>
+                    {t(meta.labelKey)}
+                  </Text>
+                  <Text style={[styles.roleDesc, { color: active ? 'rgba(0,0,0,0.7)' : colors.label3 }]}>
+                    {t(meta.descKey)}
+                  </Text>
+                </View>
+                <View style={[styles.roleRadio, { borderColor: active ? Colors.light.onGoldChip : colors.sep }]}>
+                  {active && <View style={[styles.roleRadioDot, { backgroundColor: Colors.light.onGoldChip }]} />}
+                </View>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         <TouchableOpacity
@@ -187,7 +206,7 @@ export default function RegisterScreen() {
             {gdprConsent && <Text style={styles.checkmark}>✓</Text>}
           </View>
           <Text style={[styles.consentText, { color: colors.label2 }]}>
-            I consent to the processing of my health data (GDPR Art. 9)
+            {t('auth.register.gdprConsent')}
           </Text>
         </TouchableOpacity>
 
@@ -198,7 +217,7 @@ export default function RegisterScreen() {
           activeOpacity={0.8}
         >
           <Text style={styles.buttonText}>
-            {loading ? 'Creating account...' : 'Create account'}
+            {loading ? t('auth.register.creating') : t('auth.register.create')}
           </Text>
         </TouchableOpacity>
 
@@ -207,8 +226,8 @@ export default function RegisterScreen() {
           style={styles.linkRow}
         >
           <Text style={[styles.linkText, { color: colors.label3 }]}>
-            Already have an account?{' '}
-            <Text style={[styles.linkAccent, { color: colors.gold }]}>Sign in</Text>
+            {t('auth.register.haveAccount')}{' '}
+            <Text style={[styles.linkAccent, { color: colors.gold }]}>{t('auth.register.signIn')}</Text>
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -223,8 +242,8 @@ const styles = StyleSheet.create({
   inner: {
     flexGrow: 1,
     justifyContent: 'center',
-    paddingHorizontal: 32,
-    paddingVertical: 48,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
   },
   logo: {
     fontSize: 28,
@@ -240,7 +259,7 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
   },
   halfInput: {
     flex: 1,
@@ -248,72 +267,100 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderRadius: 4,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 15,
-    marginBottom: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 14,
+    marginBottom: 8,
   },
   label: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: 8,
-    marginTop: 4,
+    marginBottom: 6,
+    marginTop: 2,
   },
-  roleRow: {
+  roleStack: {
+    flexDirection: 'column',
+    gap: 6,
+    marginBottom: 12,
+  },
+  roleCard: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 16,
-  },
-  rolePill: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 4,
-    borderWidth: 1,
     alignItems: 'center',
+    gap: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    borderWidth: 1,
   },
-  rolePillActive: {},
-  rolePillText: {
-    fontSize: 13,
+  roleIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  roleIcon: {
+    fontSize: 17,
+  },
+  roleTextWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+  roleName: {
+    fontSize: 14,
     fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.2,
   },
-  rolePillTextActive: {
-    color: Colors.light.onGoldChip,
+  roleDesc: {
+    fontSize: 11,
+    lineHeight: 14,
+    marginTop: 1,
+  },
+  roleRadio: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  roleRadioDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   consentRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 10,
-    marginBottom: 20,
+    marginBottom: 12,
   },
   checkbox: {
-    width: 22,
-    height: 22,
+    width: 20,
+    height: 20,
     borderRadius: 4,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 1,
   },
   checkboxChecked: {},
   checkmark: {
     color: Colors.light.onGoldChip,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
   },
   consentText: {
     flex: 1,
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 12,
+    lineHeight: 16,
   },
   button: {
     borderRadius: 4,
-    paddingVertical: 14,
+    paddingVertical: 12,
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 4,
   },
   buttonDisabled: {
     opacity: 0.6,
@@ -326,11 +373,11 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   linkRow: {
-    marginTop: 24,
+    marginTop: 14,
     alignItems: 'center',
   },
   linkText: {
-    fontSize: 14,
+    fontSize: 13,
   },
   linkAccent: {
     fontWeight: '700',

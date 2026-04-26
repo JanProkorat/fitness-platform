@@ -10,11 +10,14 @@ namespace FitnessPlatform.Application.Features.Foods.ConfirmFoodImage;
 
 /// <summary>
 /// Persists the food image blob URL on the food document.
-/// Only the nutritionist who created the food can set its image.
+/// Main slot overwrites <c>ImageUrl</c>. Gallery slot appends to <c>GalleryImageUrls</c> (cap = 6).
+/// Only the nutritionist who created the food can set its images.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 public class ConfirmFoodImageEndpoint(IMongoContext mongo) : Endpoint<ConfirmFoodImageRequest>
 {
+    private const int GalleryCap = 6;
+
     /// <inheritdoc />
     public override void Configure()
     {
@@ -23,9 +26,11 @@ public class ConfirmFoodImageEndpoint(IMongoContext mongo) : Endpoint<ConfirmFoo
         Summary(s =>
         {
             s.Summary = "Confirm food image upload";
-            s.Description = "Sets the ImageUrl on the food document after a successful blob upload. "
+            s.Description = "Sets the image URL on the food document after a successful blob upload. "
                             + "Pass the blobUrl returned by POST /foods/{id}/image/upload-url. "
-                            + "Only the nutritionist who created the food can confirm its image.";
+                            + "Use slot=main to set the main image (overwrites); slot=gallery to append "
+                            + "to the gallery (max 6 entries). "
+                            + "Only the nutritionist who created the food can confirm its images.";
         });
     }
 
@@ -60,13 +65,35 @@ public class ConfirmFoodImageEndpoint(IMongoContext mongo) : Endpoint<ConfirmFoo
             return;
         }
 
-        var update = Builders<Food>.Update
-            .Set(f => f.ImageUrl, req.BlobUrl)
-            .Set(f => f.DateUpdated, DateTime.UtcNow);
+        var isGallery = req.Slot.Equals("gallery", StringComparison.OrdinalIgnoreCase);
+
+        UpdateDefinition<Food> update;
+
+        if (isGallery)
+        {
+            // Re-check gallery cap at confirm time (race: another confirm could have filled it
+            // between the upload-url call and this confirm call).
+            if (food.GalleryImageUrls.Count >= GalleryCap)
+            {
+                this.ThrowErrorWithCode(ErrorCodes.FoodGalleryFull,
+                    $"The food gallery is full. Maximum {GalleryCap} gallery images are allowed.");
+                return;
+            }
+
+            update = Builders<Food>.Update
+                .Push(f => f.GalleryImageUrls, req.BlobUrl)
+                .Set(f => f.DateUpdated, DateTime.UtcNow);
+        }
+        else
+        {
+            update = Builders<Food>.Update
+                .Set(f => f.ImageUrl, req.BlobUrl)
+                .Set(f => f.DateUpdated, DateTime.UtcNow);
+        }
 
         // Guard against a concurrent soft-delete between the FindAsync above and this
         // write: include IsDeleted == false in the update filter so a logically-deleted
-        // food never has its ImageUrl written, even if it slipped past the find gate.
+        // food never has its image written, even if it slipped past the find gate.
         await mongo.Foods.UpdateOneAsync(
             Builders<Food>.Filter.Eq(f => f.ExternalId, req.FoodId)
                 & Builders<Food>.Filter.Eq(f => f.IsDeleted, false),

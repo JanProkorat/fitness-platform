@@ -197,7 +197,7 @@ public class SaveMealPhotosEndpoint(
             clientProfile,
             plan.ExternalId,
             mealLogId,
-            replacementPhotos.Select(p => p.BlobUrl).ToList(),
+            replacementPhotos.Select(p => (p.BlobUrl, p.Note)).ToList(),
             now,
             ct);
 
@@ -240,42 +240,56 @@ public class SaveMealPhotosEndpoint(
 
     /// <summary>
     /// Idempotent dual-write: ensures a <see cref="PlanPhoto"/> row (Category = Food) exists in
-    /// PostgreSQL for each blob URL in <paramref name="blobUrls"/>. Rows are matched by
+    /// PostgreSQL for each photo in <paramref name="photos"/>. Rows are matched by
     /// <c>BlobUrl</c> so calling this twice with the same URLs does not create duplicates.
+    /// For new URLs a row is inserted with <c>Description</c> set from the per-photo note.
+    /// For URLs that already have a row, only <c>Description</c> and <c>DateUpdated</c> are
+    /// updated when the note has changed — no other fields are touched.
     /// Does NOT remove rows that were in a previous save but are absent now — deletion is not
     /// propagated from SaveMealPhotos to PlanPhoto because the meal-log REPLACE semantics
     /// would create false deletions if multiple save calls differ only in the photo list order.
-    /// Returns the list of newly-inserted <see cref="PlanPhoto"/> rows.
+    /// Returns the list of newly-inserted <see cref="PlanPhoto"/> rows (used for SignalR events).
     /// </summary>
     private async Task<List<PlanPhoto>> DualWritePlanPhotosAsync(
         ClientProfile clientProfile,
         Guid planExternalId,
         string mealLogId,
-        IReadOnlyList<string> blobUrls,
+        IReadOnlyList<(string BlobUrl, string? Note)> photos,
         DateTime now,
         CancellationToken ct)
     {
-        if (blobUrls.Count == 0)
+        if (photos.Count == 0)
             return [];
 
-        // Load existing PlanPhoto rows for this client + plan to find which BlobUrls are new.
-        var existingUrls = await db.PlanPhotos
+        // Load existing PlanPhoto rows for this client + plan as tracked entities so we can
+        // both detect duplicates and update Description on already-saved photos.
+        var existingRows = await db.PlanPhotos
             .Where(p =>
                 p.ClientProfileId == clientProfile.Id &&
                 p.PlanId == planExternalId &&
                 p.Category == PlanPhotoCategory.Food)
-            .Select(p => p.BlobUrl)
             .ToListAsync(ct);
 
-        var existingUrlSet = existingUrls.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var existingByUrl = existingRows.ToDictionary(
+            p => p.BlobUrl,
+            p => p,
+            StringComparer.OrdinalIgnoreCase);
 
         var callerUserId = clientProfile.UserId;
         var inserted = new List<PlanPhoto>();
 
-        foreach (var blobUrl in blobUrls)
+        foreach (var (blobUrl, note) in photos)
         {
-            if (existingUrlSet.Contains(blobUrl))
+            if (existingByUrl.TryGetValue(blobUrl, out var existing))
+            {
+                // Row already exists — only update Description when it has changed.
+                if (existing.Description != note)
+                {
+                    existing.Description = note;
+                    existing.DateUpdated = now;
+                }
                 continue;
+            }
 
             var photo = new PlanPhoto
             {
@@ -286,6 +300,7 @@ public class SaveMealPhotosEndpoint(
                 LinkId = planExternalId,
                 Category = PlanPhotoCategory.Food,
                 BlobUrl = blobUrl,
+                Description = note,
                 MealLogId = mealLogId,
                 TakenAt = now,
                 UploadedByUserId = callerUserId,

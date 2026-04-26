@@ -113,7 +113,12 @@ public class UpdatePlanEndpoint(IMongoContext mongo, IMacroCalculatorService mac
                 return;
             }
 
-            if (DateOnly.FromDateTime(req.StartDate.Value) < today)
+            // Only enforce "not in past" when the start date is being set or changed.
+            // A plan that has already started naturally has a past start date in every
+            // subsequent save — that must not block editing of other fields.
+            var isStartDateNewOrChanged = !plan.StartDate.HasValue
+                || req.StartDate.Value.Date != plan.StartDate.Value.Date;
+            if (isStartDateNewOrChanged && DateOnly.FromDateTime(req.StartDate.Value) < today)
             {
                 ThrowError(ErrorCodes.StartDateInPast, "Start date cannot be in the past.");
                 return;

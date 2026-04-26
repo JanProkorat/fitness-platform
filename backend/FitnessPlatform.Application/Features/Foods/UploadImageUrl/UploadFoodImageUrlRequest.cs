@@ -1,3 +1,5 @@
+using FastEndpoints;
+
 namespace FitnessPlatform.Application.Features.Foods.UploadImageUrl;
 
 /// <summary>
@@ -9,6 +11,13 @@ public class UploadFoodImageUrlRequest
     /// The food's public identifier (from route).
     /// </summary>
     public Guid FoodId { get; set; }
+
+    /// <summary>
+    /// Image slot: <c>main</c> (overwrites) or <c>gallery</c> (appends, max 6).
+    /// Provided as a query parameter: <c>?slot=main</c> or <c>?slot=gallery</c>.
+    /// </summary>
+    [QueryParam]
+    public string Slot { get; set; } = string.Empty;
 
     /// <summary>
     /// MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp").

@@ -690,6 +690,128 @@ public class SaveMealPhotosEndpointTests
     }
 
     // ──────────────────────────────────────────────────────────────────────────
+    // PlanPhoto dual-write — Description mirroring tests
+    // ──────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task SaveMealPhotos_NewPhotoWithNote_PersistsNoteToPlanPhotoDescription()
+    {
+        // Arrange: client + nutrition plan + meal, no existing meal log.
+        var mealId = Guid.NewGuid();
+        var food = PlanTestHelpers.CreateMealFood(foodName: "Oatmeal");
+        var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.Breakfast, foods: food);
+
+        var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
+        plan.DatePublished = DateTime.UtcNow;
+        plan.Weeks[0].Days[0].Meals.Add(meal);
+
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+        var mealLogCollection = CreateMealLogCollection(existingLogs: []);
+        mongo.MealLogs.Returns(mealLogCollection);
+
+        // No pre-existing PlanPhoto rows — new insert expected.
+        var db = new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .Build();
+
+        var ep = CreateEndpoint(mongo, db);
+
+        // Act
+        await ep.HandleAsync(
+            new SaveMealPhotosRequest
+            {
+                MealId = mealId,
+                Photos = [new MealPhotoInput { BlobUrl = "https://minio.local/bucket/note-photo.jpg", Note = "My note" }],
+                Note = null
+            },
+            TestContext.Current.CancellationToken);
+
+        // Assert: 204 and PlanPhotos.Add called with Description == "My note"
+        ep.HttpContext.Response.StatusCode.Should().Be(204);
+
+        db.PlanPhotos.Received(1).Add(Arg.Is<PlanPhoto>(p =>
+            p.BlobUrl == "https://minio.local/bucket/note-photo.jpg" &&
+            p.Description == "My note" &&
+            p.Category == PlanPhotoCategory.Food));
+    }
+
+    [Fact]
+    public async Task SaveMealPhotos_UpdatedNoteOnExistingPhoto_UpdatesPlanPhotoDescription()
+    {
+        // Arrange: client + plan + meal, plus a pre-existing PlanPhoto row for the same BlobUrl
+        // with Description = "Old".
+        var mealId = Guid.NewGuid();
+        var food = PlanTestHelpers.CreateMealFood(foodName: "Yoghurt");
+        var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.Breakfast, foods: food);
+
+        var planExternalId = Guid.NewGuid();
+        var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active, externalId: planExternalId);
+        plan.DatePublished = DateTime.UtcNow;
+        plan.Weeks[0].Days[0].Meals.Add(meal);
+
+        const string blobUrl = "https://minio.local/bucket/existing-photo.jpg";
+
+        // Pre-seed the PlanPhoto row with the old description.
+        // ClientProfileId matches ClientProfile.Id which defaults to 0 in the mock.
+        var existingPlanPhoto = new PlanPhoto
+        {
+            PublicId = Guid.NewGuid(),
+            ClientProfileId = 0,
+            PlanId = planExternalId,
+            PlanType = PlanPhotoType.Nutrition,
+            LinkId = planExternalId,
+            Category = PlanPhotoCategory.Food,
+            BlobUrl = blobUrl,
+            Description = "Old",
+            MealLogId = null,
+            TakenAt = DateTime.UtcNow.AddDays(-1),
+            UploadedByUserId = _clientId,
+            DateCreated = DateTime.UtcNow.AddDays(-1),
+            DateUpdated = DateTime.UtcNow.AddDays(-1)
+        };
+
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+        // Existing meal log with the same photo so the endpoint does an update (not insert).
+        var existingMealLog = new MealLog
+        {
+            Id = MongoDB.Bson.ObjectId.GenerateNewId(),
+            ClientId = _clientId,
+            PlanId = planExternalId,
+            MealId = mealId,
+            LogDate = DateTime.UtcNow.Date,
+            EatenAt = null,
+            FoodsEaten = meal.Foods,
+            Photos = [new MealPhoto { BlobUrl = blobUrl, UploadedAt = DateTime.UtcNow.AddDays(-1), Note = "Old" }],
+            Note = null
+        };
+        var mealLogCollection = CreateMealLogCollection(existingLogs: [existingMealLog]);
+        mongo.MealLogs.Returns(mealLogCollection);
+
+        var db = new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .With(existingPlanPhoto)
+            .Build();
+
+        var ep = CreateEndpoint(mongo, db);
+
+        // Act: POST with the same BlobUrl but an updated Note.
+        await ep.HandleAsync(
+            new SaveMealPhotosRequest
+            {
+                MealId = mealId,
+                Photos = [new MealPhotoInput { BlobUrl = blobUrl, Note = "New" }],
+                Note = null
+            },
+            TestContext.Current.CancellationToken);
+
+        // Assert: 204; Description was mutated to "New" on the existing entity;
+        // no new Add call was made (the row already existed).
+        ep.HttpContext.Response.StatusCode.Should().Be(204);
+        existingPlanPhoto.Description.Should().Be("New");
+        db.PlanPhotos.DidNotReceive().Add(Arg.Any<PlanPhoto>());
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
     // Auth / ownership guard tests
     // ──────────────────────────────────────────────────────────────────────────
 

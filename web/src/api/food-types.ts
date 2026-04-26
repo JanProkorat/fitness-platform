@@ -42,6 +42,8 @@ export interface FoodSummary {
   isOwnedByCurrentUser?: boolean;
   /** URL of the food hero image in blob storage. Null when no image has been uploaded. */
   imageUrl?: string | null;
+  /** Gallery image URLs, up to 6 entries. */
+  galleryImageUrls?: string[] | null;
 }
 
 /** Paginated food search response. */

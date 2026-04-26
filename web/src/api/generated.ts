@@ -8574,9 +8574,13 @@ export class ApiClient {
      * @param category (optional) Optional category filter (Food / Body / FreeForm).
      * @param from (optional) Optional inclusive lower bound on TakenAt (UTC).
      * @param to (optional) Optional inclusive upper bound on TakenAt (UTC).
+     * @param planId (optional) Optional plan filter. When provided, only photos belonging to this plan
+    (matching PlanPhoto.PlanId) are returned. Applies regardless of
+    PlanType; the caller is expected to know whether the plan is a
+    nutrition or training plan.
      * @return Success
      */
-    getTrainerClientPhotosEndpoint(clientId: string, page: number, pageSize: number, groupByMonth: boolean, category?: PlanPhotoCategory | null | undefined, from?: string | null | undefined, to?: string | null | undefined, signal?: AbortSignal): Promise<GetTrainerClientPhotosResponse> {
+    getTrainerClientPhotosEndpoint(clientId: string, page: number, pageSize: number, groupByMonth: boolean, category?: PlanPhotoCategory | null | undefined, from?: string | null | undefined, to?: string | null | undefined, planId?: string | null | undefined, signal?: AbortSignal): Promise<GetTrainerClientPhotosResponse> {
         let url_ = this.baseUrl + "/trainer/clients/{clientId}/photos?";
         if (clientId === undefined || clientId === null)
             throw new globalThis.Error("The parameter 'clientId' must be defined.");
@@ -8599,6 +8603,8 @@ export class ApiClient {
             url_ += "from=" + encodeURIComponent("" + from) + "&";
         if (to !== undefined && to !== null)
             url_ += "to=" + encodeURIComponent("" + to) + "&";
+        if (planId !== undefined && planId !== null)
+            url_ += "planId=" + encodeURIComponent("" + planId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {

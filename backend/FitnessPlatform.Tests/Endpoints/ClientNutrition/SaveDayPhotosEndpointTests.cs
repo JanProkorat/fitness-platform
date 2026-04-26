@@ -350,6 +350,124 @@ public class SaveDayPhotosEndpointTests
     }
 
     // ──────────────────────────────────────────────────────────────────────────
+    // PlanPhoto dual-write — Description mirroring tests
+    // ──────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task SaveDayPhotos_NewPhotoWithNote_PersistsNoteToPlanPhotoDescription()
+    {
+        // Arrange: client + nutrition plan + a day, no existing day log.
+        var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+        var dayLogCollection = CreateDayLogCollection(existingLogs: []);
+        mongo.DayLogs.Returns(dayLogCollection);
+
+        // No pre-existing PlanPhoto rows — new insert expected.
+        var db = new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .Build();
+
+        var ep = CreateEndpoint(mongo, db);
+
+        // Act
+        await ep.HandleAsync(
+            new SaveDayPhotosRequest
+            {
+                Photos =
+                [
+                    new DayPhotoInput
+                    {
+                        BlobUrl = "https://minio.local/plan-photos/note-photo.jpg",
+                        Note = "My note",
+                        Category = DayPhotoCategory.Progress
+                    }
+                ],
+                Note = null
+            },
+            TestContext.Current.CancellationToken);
+
+        // Assert: 204 and PlanPhotos.Add called with Description == "My note"
+        ep.HttpContext.Response.StatusCode.Should().Be(204);
+
+        db.PlanPhotos.Received(1).Add(Arg.Is<PlanPhoto>(p =>
+            p.BlobUrl == "https://minio.local/plan-photos/note-photo.jpg" &&
+            p.Description == "My note" &&
+            p.Category == PlanPhotoCategory.Body));
+    }
+
+    [Fact]
+    public async Task SaveDayPhotos_UpdatedNoteOnExistingPhoto_UpdatesPlanPhotoDescription()
+    {
+        // Arrange: client + plan + day; a pre-existing PlanPhoto row for the same BlobUrl
+        // with Description = "Old". First POST (not exercised here) created it.
+        var planExternalId = Guid.NewGuid();
+        var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active, externalId: planExternalId);
+
+        const string blobUrl = "https://minio.local/plan-photos/existing-photo.jpg";
+
+        // Pre-seed the PlanPhoto row with the old description.
+        // ClientProfileId matches ClientProfile.Id which defaults to 0 in the mock.
+        var existingPlanPhoto = new PlanPhoto
+        {
+            PublicId = Guid.NewGuid(),
+            ClientProfileId = 0,
+            PlanId = planExternalId,
+            PlanType = PlanPhotoType.Nutrition,
+            LinkId = planExternalId,
+            Category = PlanPhotoCategory.Body,
+            BlobUrl = blobUrl,
+            Description = "Old",
+            TakenAt = DateTime.UtcNow.AddDays(-1),
+            UploadedByUserId = _clientId,
+            DateCreated = DateTime.UtcNow.AddDays(-1),
+            DateUpdated = DateTime.UtcNow.AddDays(-1)
+        };
+
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+        // Existing day log with the same photo so the endpoint does an update (not insert).
+        var existingDayLog = new DayLog
+        {
+            Id = MongoDB.Bson.ObjectId.GenerateNewId().ToString(),
+            ClientId = _clientId,
+            PlanId = planExternalId,
+            LogDate = DateTime.UtcNow.Date,
+            Photos =
+            [
+                new DayPhoto { BlobUrl = blobUrl, UploadedAt = DateTime.UtcNow.AddDays(-1), Note = "Old", Category = DayPhotoCategory.Progress }
+            ],
+            Note = null,
+            Version = 1
+        };
+        var dayLogCollection = CreateDayLogCollection(existingLogs: [existingDayLog]);
+        mongo.DayLogs.Returns(dayLogCollection);
+
+        var db = new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .With(existingPlanPhoto)
+            .Build();
+
+        var ep = CreateEndpoint(mongo, db);
+
+        // Act: POST with the same BlobUrl but an updated Note.
+        await ep.HandleAsync(
+            new SaveDayPhotosRequest
+            {
+                Photos =
+                [
+                    new DayPhotoInput { BlobUrl = blobUrl, Note = "New", Category = DayPhotoCategory.Progress }
+                ],
+                Note = null
+            },
+            TestContext.Current.CancellationToken);
+
+        // Assert: 204; Description was mutated to "New" on the existing entity;
+        // no new Add call was made (the row already existed); only one row for that URL.
+        ep.HttpContext.Response.StatusCode.Should().Be(204);
+        existingPlanPhoto.Description.Should().Be("New");
+        db.PlanPhotos.DidNotReceive().Add(Arg.Any<PlanPhoto>());
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
     // Auth / not-found guard tests
     // ──────────────────────────────────────────────────────────────────────────
 

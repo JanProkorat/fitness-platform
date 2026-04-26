@@ -181,7 +181,12 @@ function applyExerciseProgressToCache(
 
 // ─── Component ──────────────────────────────────────────────────────
 
-export function HasTrainerState() {
+interface HasTrainerStateProps {
+  /** Optional banner element rendered between the stat strip and the rest of the page. */
+  topBanner?: React.ReactNode
+}
+
+export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
   const colors = useTheme()
   const router = useRouter()
   const queryClient = useQueryClient()
@@ -887,6 +892,9 @@ export function HasTrainerState() {
         />
       </StatStrip>
 
+      {/* Optional top banner (e.g. pending questionnaires) — sits directly under the stat strip */}
+      {topBanner}
+
       {/* Resume training banner — below stat strip, above pending plan banners */}
       {hasActiveSession && liveExerciseName ? (
         <ResumeTrainingBanner
@@ -1020,7 +1028,6 @@ export function HasTrainerState() {
           <WaitingForPlanCard
             waitingForTraining={waitingForTraining}
             waitingForNutrition={waitingForNutrition}
-            hasExistingPlan={!!plan || !!training?.hasSession}
           />
         </View>
       )}

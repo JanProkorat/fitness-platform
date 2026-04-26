@@ -1,6 +1,7 @@
 import React from 'react'
 import { View, Text, StyleSheet, Pressable } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
 import { goldAlpha, Brand } from '@/constants/colors'
@@ -20,10 +21,10 @@ const NOTIF_CONFIG: Record<Notification['type'], {
   weekly_checkin: { bg: goldAlpha['12'],                 icon: 'calendar-number',    color: Brand.gold },
 }
 
-function timeAgo(timestamp: string): string {
+function timeAgo(timestamp: string, nowLabel: string): string {
   const diff = Date.now() - new Date(timestamp).getTime()
   const mins = Math.floor(diff / 60_000)
-  if (mins < 1) return 'now'
+  if (mins < 1) return nowLabel
   if (mins < 60) return `${mins}m`
   const hours = Math.floor(mins / 60)
   if (hours < 24) return `${hours}h`
@@ -39,6 +40,7 @@ interface NotificationRowProps {
 
 export const NotificationRow = React.memo(function NotificationRow({ notification, onAction, onDismiss }: NotificationRowProps) {
   const colors = useTheme()
+  const { t } = useTranslation()
   const { type, title, body, timestamp, read, actionLabel } = notification
 
   return (
@@ -58,7 +60,7 @@ export const NotificationRow = React.memo(function NotificationRow({ notificatio
             {title}
           </Text>
           <Text style={[Type.caption1, { color: colors.label3 }]}>
-            {timeAgo(timestamp)}
+            {timeAgo(timestamp, t('notifications.timeNow'))}
           </Text>
         </View>
         <Text style={[Type.subheadline, { color: colors.label2, marginTop: 2 }]} numberOfLines={2}>

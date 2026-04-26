@@ -236,6 +236,7 @@
     "noPlans": "Noch keine Pläne",
     "noPlansDesc": "Dein Trainer hat noch keine Pläne erstellt. Schau bald wieder vorbei!",
     "waitingAllReady": "Alles bereit",
+    "waitingBothTitle": "Pläne werden erstellt",
     "waitingTrainingTitle": "Trainingsplan wird erstellt",
     "waitingNutritionTitle": "Ernährungsplan wird erstellt",
     "waitingBothDesc": "Alle Daten wurden übermittelt. Dein Trainer erstellt nun individuelle Trainings- und Ernährungspläne. Du wirst benachrichtigt, sobald sie fertig sind.",
@@ -524,7 +525,11 @@
     "nutritionPlanCompleted": "Ernährungsplan abgeschlossen",
     "nutritionPlanCompletedBody": "Dein Ernährungsplan wurde als abgeschlossen markiert.",
     "trainingPlanCompleted": "Trainingsplan abgeschlossen",
-    "trainingPlanCompletedBody": "Dein Trainingsplan wurde als abgeschlossen markiert."
+    "trainingPlanCompletedBody": "Dein Trainingsplan wurde als abgeschlossen markiert.",
+    "sheetTitle": "Benachrichtigungen",
+    "markAllRead": "Alle als gelesen markieren",
+    "empty": "Noch keine Benachrichtigungen",
+    "timeNow": "jetzt"
   },
   "collab": {
     "title": "Zusammenarbeit",
@@ -890,5 +895,63 @@
     "emptyTitle": "Noch keine Fotos",
     "emptyBody": "Fotos aus deinen Plänen erscheinen hier.",
     "openA11y": "Meine Fotos öffnen"
+  },
+  "auth": {
+    "login": {
+      "subtitle": "Zum Fortfahren anmelden",
+      "emailPlaceholder": "E-Mail",
+      "passwordPlaceholder": "Passwort",
+      "signIn": "Anmelden",
+      "signingIn": "Anmeldung…",
+      "noAccount": "Noch kein Konto?",
+      "signUp": "Registrieren",
+      "forgotLink": "Passwort vergessen?",
+      "failedTitle": "Anmeldung fehlgeschlagen",
+      "failedMessage": "Ungültige E-Mail oder Passwort."
+    },
+    "forgot": {
+      "title": "Passwort vergessen",
+      "subtitle": "Gib deine E-Mail ein und wir senden dir einen Link zum Zurücksetzen.",
+      "emailPlaceholder": "E-Mail",
+      "send": "Reset-Link senden",
+      "sending": "Senden…",
+      "back": "← Zurück zur Anmeldung",
+      "sentTitle": "Postfach prüfen",
+      "sentBody": "Falls für {{email}} ein Konto besteht, erhältst du einen Link zum Zurücksetzen des Passworts.",
+      "resend": "Erneut senden",
+      "resending": "Senden…",
+      "failedTitle": "Anfrage fehlgeschlagen",
+      "failedMessage": "E-Mail konnte nicht gesendet werden. Bitte später erneut versuchen."
+    },
+    "register": {
+      "subtitle": "Konto erstellen",
+      "firstNamePlaceholder": "Vorname",
+      "lastNamePlaceholder": "Nachname",
+      "emailPlaceholder": "E-Mail",
+      "passwordPlaceholder": "Passwort",
+      "confirmPasswordPlaceholder": "Passwort bestätigen",
+      "iAmA": "Ich bin",
+      "roleClient": "Klient",
+      "roleClientDesc": "Ich möchte von einem Trainer oder Berater betreut werden",
+      "roleTrainer": "Trainer",
+      "roleTrainerDesc": "Ich erstelle Trainingspläne für Klienten",
+      "roleNutritionist": "Ernährungsberater",
+      "roleNutritionistDesc": "Ich erstelle Ernährungspläne für Klienten",
+      "gdprConsent": "Ich willige in die Verarbeitung meiner Gesundheitsdaten ein\n(DSGVO Art. 9)",
+      "create": "Konto erstellen",
+      "creating": "Konto wird erstellt…",
+      "haveAccount": "Konto bereits vorhanden?",
+      "signIn": "Anmelden",
+      "missingFieldsTitle": "Fehlende Felder",
+      "missingFieldsMessage": "Bitte alle Felder ausfüllen.",
+      "mismatchTitle": "Passwörter stimmen nicht überein",
+      "mismatchMessage": "Die eingegebenen Passwörter stimmen nicht überein.",
+      "weakPasswordTitle": "Schwaches Passwort",
+      "weakPasswordMessage": "Das Passwort muss mindestens 8 Zeichen lang sein.",
+      "consentRequiredTitle": "Einwilligung erforderlich",
+      "consentRequiredMessage": "Zur Registrierung ist die Einwilligung in die Verarbeitung von Gesundheitsdaten erforderlich.",
+      "failedTitle": "Registrierung fehlgeschlagen",
+      "failedMessage": "Registrierung fehlgeschlagen. Bitte erneut versuchen."
+    }
   }
 }

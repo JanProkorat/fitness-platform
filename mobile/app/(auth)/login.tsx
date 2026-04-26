@@ -10,6 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import api from '@/api/client';
 import { useAuthStore } from '@/stores/auth';
 import { useTheme } from '@/hooks/useTheme';
@@ -18,6 +19,7 @@ import { Colors } from '@/constants/colors';
 export default function LoginScreen() {
   const colors = useTheme();
   const router = useRouter();
+  const { t } = useTranslation();
   const login = useAuthStore((s) => s.login);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -49,7 +51,7 @@ export default function LoginScreen() {
         data.refreshToken
       );
     } catch {
-      Alert.alert('Login Failed', 'Invalid email or password.');
+      Alert.alert(t('auth.login.failedTitle'), t('auth.login.failedMessage'));
     } finally {
       setLoading(false);
     }
@@ -64,11 +66,11 @@ export default function LoginScreen() {
         <Text style={[styles.logo, { color: colors.label }]}>
           GoodFellas <Text style={[styles.logoAccent, { color: colors.gold }]}>Platform</Text>
         </Text>
-        <Text style={[styles.subtitle, { color: colors.label3 }]}>Sign in to continue</Text>
+        <Text style={[styles.subtitle, { color: colors.label3 }]}>{t('auth.login.subtitle')}</Text>
 
         <TextInput
           style={[styles.input, { backgroundColor: colors.bg2, borderColor: colors.sep, color: colors.label }]}
-          placeholder="Email"
+          placeholder={t('auth.login.emailPlaceholder')}
           placeholderTextColor={colors.label3}
           value={email}
           onChangeText={setEmail}
@@ -78,7 +80,7 @@ export default function LoginScreen() {
         />
         <TextInput
           style={[styles.input, { backgroundColor: colors.bg2, borderColor: colors.sep, color: colors.label }]}
-          placeholder="Password"
+          placeholder={t('auth.login.passwordPlaceholder')}
           placeholderTextColor={colors.label3}
           value={password}
           onChangeText={setPassword}
@@ -93,7 +95,7 @@ export default function LoginScreen() {
           activeOpacity={0.8}
         >
           <Text style={styles.buttonText}>
-            {loading ? 'Signing in...' : 'Sign in'}
+            {loading ? t('auth.login.signingIn') : t('auth.login.signIn')}
           </Text>
         </TouchableOpacity>
 
@@ -102,8 +104,18 @@ export default function LoginScreen() {
           style={styles.linkRow}
         >
           <Text style={[styles.linkText, { color: colors.label3 }]}>
-            Don't have an account?{' '}
-            <Text style={[styles.linkAccent, { color: colors.gold }]}>Sign up</Text>
+            {t('auth.login.noAccount')}{' '}
+            <Text style={[styles.linkAccent, { color: colors.gold }]}>{t('auth.login.signUp')}</Text>
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => router.push('/(auth)/forgot-password')}
+          style={styles.forgotRow}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.forgotText, { color: colors.gold }]}>
+            {t('auth.login.forgotLink')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -156,8 +168,16 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
+  forgotRow: {
+    marginTop: 14,
+    alignItems: 'center',
+  },
+  forgotText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
   linkRow: {
-    marginTop: 24,
+    marginTop: 18,
     alignItems: 'center',
   },
   linkText: {

@@ -38,6 +38,14 @@ public class GetTrainerClientPhotosRequest
     public int PageSize { get; set; } = 20;
 
     /// <summary>
+    /// Optional plan filter. When provided, only photos belonging to this plan
+    /// (matching <c>PlanPhoto.PlanId</c>) are returned. Applies regardless of
+    /// <c>PlanType</c>; the caller is expected to know whether the plan is a
+    /// nutrition or training plan.
+    /// </summary>
+    public Guid? PlanId { get; set; }
+
+    /// <summary>
     /// When <c>true</c> the response items are <see cref="Common.MonthGroupResponse"/> objects
     /// grouped by <c>YYYY-MM</c>. When <c>false</c> (default) items are flat
     /// <see cref="Common.PlanPhotoResponse"/> objects.
