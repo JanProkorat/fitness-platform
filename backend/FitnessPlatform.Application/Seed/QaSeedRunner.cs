@@ -25,7 +25,14 @@ public static class QaSeedRunner
     public const string ClientEmail   = "qa.client@fitnessplatform.test";
     public const string TrainerEmail  = "qa.trainer@fitnessplatform.test";
     public const string NutriEmail    = "qa.nutri@fitnessplatform.test";
-    public const string Password      = "QaPass123!";
+
+    // Sourced from QA_SEED_PASSWORD via .env.test (gitignored). The harness
+    // refuses to seed without it so a missing env file fails fast instead of
+    // creating users with a default password.
+    private static string Password =>
+        Environment.GetEnvironmentVariable("QA_SEED_PASSWORD")
+            ?? throw new InvalidOperationException(
+                "QA_SEED_PASSWORD is not set. Copy .env.test.example to .env.test and fill it in.");
 
     public static async Task SeedAsync(IServiceProvider serviceProvider)
     {

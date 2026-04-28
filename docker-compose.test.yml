@@ -52,13 +52,16 @@ services:
         condition: service_healthy
       minio-test:
         condition: service_healthy
+    # JWT_SECRET and QA_SEED_PASSWORD come from .env.test (gitignored).
+    # Copy .env.test.example to .env.test and fill it in before `npm run e2e:up`.
+    env_file:
+      - .env.test
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       POSTGRES_PASSWORD: fitness_test_password
       MONGO_PASSWORD: mongo_test_password
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minio_test_password
-      JWT_SECRET: e2e-test-jwt-secret-32-chars-min--padding!!
       ConnectionStrings__PostgreSQl: "Host=postgres-test;Port=5432;Database=fitness_test;Username=fitness_admin"
       ConnectionStrings__MongoDB: "mongodb://admin:{0}@mongo-test:27017/?authSource=admin"
       MongoDB__DatabaseName: fitness_test
@@ -79,6 +82,9 @@ services:
       # Host :5101 — distinct from the dev API on :5001 so the compose stack
       # and an interactive `dotnet run` can coexist on the same host.
       - "5101:8080"
+    # JWT_SECRET comes from .env.test (gitignored).
+    env_file:
+      - .env.test
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: "https://+:8080"
@@ -88,7 +94,6 @@ services:
       MONGO_PASSWORD: mongo_test_password
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minio_test_password
-      JWT_SECRET: e2e-test-jwt-secret-32-chars-min--padding!!
       ConnectionStrings__PostgreSQl: "Host=postgres-test;Port=5432;Database=fitness_test;Username=fitness_admin"
       ConnectionStrings__MongoDB: "mongodb://admin:{0}@mongo-test:27017/?authSource=admin"
       MongoDB__DatabaseName: fitness_test

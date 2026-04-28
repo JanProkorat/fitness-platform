@@ -60,7 +60,14 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<ApplicationDbContext>());
 
 // MongoDB
-BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
+// Idempotent: MongoDB.Driver 3.x can auto-register a default Guid serializer
+// before this line runs (load-order dependent on Linux test hosts), and a
+// second RegisterSerializer call would throw. Skip if the desired serializer
+// is already in place.
+if (BsonSerializer.LookupSerializer<Guid>() is not GuidSerializer { GuidRepresentation: GuidRepresentation.Standard })
+{
+    BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
+}
 var mongoDatabaseName = builder.Configuration[ConfigKeys.MongoDbDatabaseName]
     ?? throw new InvalidOperationException("MongoDB:DatabaseName is not configured.");
 var mongoClient = new MongoClient(mongoConnection);
