@@ -18,7 +18,10 @@
     "total": "Celkem {{count}}",
     "error": "Chyba",
     "success": "Úspěch",
-    "clear": "Vymazat"
+    "clear": "Vymazat",
+    "delete": "Smazat",
+    "deleteConfirmTitle": "Smazat položku",
+    "deleteConfirmMessage": "Opravdu chcete smazat „{{name}}“?"
   },
   "validation": {
     "required": "Povinné pole",
@@ -919,6 +922,7 @@
     "save": "Uložit",
     "published": "Publikováno ✓",
     "publishWeek": "Publikovat týden {{number}}",
+    "addWeek": "+ Přidat týden",
     "restDay": "Odpočinek — žádné tréninky pro tento den",
     "exerciseLabel": "Cvik",
     "noteLabel": "Poznámka",

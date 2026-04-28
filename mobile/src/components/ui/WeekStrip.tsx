@@ -1,10 +1,10 @@
 import React from 'react'
 import { View, Text, StyleSheet } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
-
-const DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'] as const
+import { getDayLabels } from '@/lib/nutrition-plan-helpers'
 
 type DayStatus = 'done' | 'today' | 'future' | 'rest'
 
@@ -14,10 +14,14 @@ interface WeekStripProps {
 
 export function WeekStrip({ days }: WeekStripProps) {
   const colors = useTheme()
+  // Subscribe to language changes so the strip re-renders when the user
+  // switches locales — `getDayLabels()` reads `i18n.language` synchronously.
+  useTranslation()
+  const dayLabels = getDayLabels()
 
   return (
     <View style={styles.strip}>
-      {DAY_LABELS.map((label, idx) => {
+      {dayLabels.map((label, idx) => {
         const status = days[idx] ?? 'future'
         const isDone = status === 'done'
         const isToday = status === 'today'

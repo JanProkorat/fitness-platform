@@ -13,9 +13,13 @@ import { cn } from '@/lib/cn';
 import { ImageLightbox } from '@/components/ui/ImageLightbox';
 import { getPlanPhotos } from '@/api/photos';
 import { PlanPhotoCategory } from '@/api/generated';
+import { CardGrid, Card, CardBody } from '@/components/data';
 
 interface PlanPhotosTabProps {
   planId: string;
+  /** Client (profile) public id. Required because the web portal hits the
+   *  trainer endpoint (`/trainer/clients/{clientId}/photos`). */
+  clientId: string;
 }
 
 const CATEGORIES: Array<{ key: PlanPhotoCategory | null; labelKey: string }> = [
@@ -27,17 +31,35 @@ const CATEGORIES: Array<{ key: PlanPhotoCategory | null; labelKey: string }> = [
 
 const PAGE_SIZE = 60;
 
-export function PlanPhotosTab({ planId }: PlanPhotosTabProps) {
+export function PlanPhotosTab({ planId, clientId }: PlanPhotosTabProps) {
   const { t } = useTranslation();
   const [activeCategory, setActiveCategory] = useState<PlanPhotoCategory | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
-  const { data: photos = [], isLoading } = useQuery({
-    queryKey: ['planPhotos', planId, activeCategory],
-    queryFn: () => getPlanPhotos(planId, 1, PAGE_SIZE, activeCategory),
+  // Fetch the full (unfiltered) photo list once. Filtering by category
+  // happens client-side so all per-category counts stay visible regardless
+  // of which chip is selected — re-fetching per filter would give us only
+  // the active set and we couldn't show the others' counts.
+  const { data: allPhotos = [], isLoading } = useQuery({
+    queryKey: ['planPhotos', clientId, planId],
+    queryFn: () => getPlanPhotos(clientId, planId, 1, PAGE_SIZE, null),
+    enabled: !!clientId && !!planId,
     staleTime: 30_000,
   });
+
+  const counts = useMemo(() => {
+    const c: Record<string, number> = { All: allPhotos.length };
+    for (const p of allPhotos) {
+      if (p.category != null) c[p.category] = (c[p.category] ?? 0) + 1;
+    }
+    return c;
+  }, [allPhotos]);
+
+  const photos = useMemo(
+    () => (activeCategory == null ? allPhotos : allPhotos.filter((p) => p.category === activeCategory)),
+    [allPhotos, activeCategory],
+  );
 
   const imageUrls = useMemo(
     () => photos.map((p) => p.blobUrl ?? '').filter(Boolean),
@@ -51,26 +73,26 @@ export function PlanPhotosTab({ planId }: PlanPhotosTabProps) {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Category chips */}
-      <div className="shrink-0 flex items-center gap-2 px-5 py-3 border-b border-border">
+      {/* Category chips — sized to match the page-level tabs (Jídelníček / Fotky) */}
+      <div className="shrink-0 flex items-center gap-1 px-4 py-2 border-b border-border">
         {CATEGORIES.map(({ key, labelKey }) => {
           const isActive = activeCategory === key;
+          const count = counts[key === null ? 'All' : key] ?? 0;
           return (
             <button
               key={String(key)}
               type="button"
               onClick={() => setActiveCategory(key)}
               className={cn(
-                'flex items-center justify-center px-4 py-1.5 rounded-full text-[13px] font-medium transition-colors border',
+                'inline-flex items-center gap-1 px-3 py-1 rounded-full text-[12px] font-medium transition-colors border',
                 isActive
                   ? 'bg-accent text-bg border-accent'
                   : 'bg-bg2 text-text3 border-border hover:bg-bg3 hover:text-text2',
               )}
             >
-              <span aria-hidden="true" className="inline-block min-w-[24px]" />
-              <span className="mx-1">{t(labelKey)}</span>
-              <span className="inline-block min-w-[24px] text-left tabular-nums opacity-70">
-                {isActive && photos.length > 0 ? `(${photos.length})` : ''}
+              <span>{t(labelKey)}</span>
+              <span className={cn('tabular-nums', isActive ? 'opacity-90' : 'opacity-70')}>
+                ({count})
               </span>
             </button>
           );
@@ -98,66 +120,55 @@ export function PlanPhotosTab({ planId }: PlanPhotosTabProps) {
         )}
 
         {!isLoading && photos.length > 0 && (
-          <div className="grid gap-2 grid-cols-[repeat(auto-fill,minmax(96px,1fr))]">
+          <CardGrid>
             {photos.map((photo, idx) => (
-              <button
-                key={photo.id ?? idx}
-                type="button"
-                className={cn(
-                  'flex flex-col rounded-md overflow-hidden text-left',
-                  'border border-border hover:border-border-md',
-                  'bg-bg2 transition-all duration-100',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-                )}
-                onClick={() => openLightbox(idx)}
-                title={photo.description ?? t('nutrition.photos.viewPhoto')}
-              >
-                {/* Image */}
-                <div className="relative aspect-square w-full bg-bg2">
+              <Card key={photo.id ?? idx} onClick={() => openLightbox(idx)}>
+                {/* Cover — same h-40 as food/recipe/client cards */}
+                <div className="relative h-40 w-full overflow-hidden rounded-t-md bg-bg3">
                   {photo.blobUrl ? (
                     <img
                       src={photo.blobUrl}
                       alt={photo.description ?? `${t('nutrition.photos.photoAlt')} ${idx + 1}`}
-                      className="w-full h-full object-cover"
+                      className="absolute inset-0 h-full w-full object-cover"
                       loading="lazy"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-text4 text-[20px]">
+                    <div className="absolute inset-0 flex items-center justify-center text-4xl opacity-40">
                       📷
                     </div>
                   )}
-                  {/* Category badge */}
+                  {/* Category chip — top-right, mirroring food/recipe pattern */}
                   {photo.category && (
-                    <span className={cn(
-                      'absolute top-1 left-1 text-[9px] font-semibold px-[5px] py-[1px] rounded-full',
-                      // Semantic tokens from index.css — matches Tag component orange/blue/purple variants
-                      photo.category === PlanPhotoCategory.Food && 'bg-orange-bg text-orange',
-                      photo.category === PlanPhotoCategory.Body && 'bg-blue-bg text-blue',
-                      photo.category === PlanPhotoCategory.FreeForm && 'bg-purple-bg text-purple',
-                    )}>
+                    <div
+                      className={cn(
+                        'absolute top-2 right-2 inline-flex items-center rounded-full bg-white/85 backdrop-blur-sm shadow-sm px-2 py-0.5 text-[11px] font-medium',
+                        photo.category === PlanPhotoCategory.Food && 'text-orange',
+                        photo.category === PlanPhotoCategory.Body && 'text-blue',
+                        photo.category === PlanPhotoCategory.FreeForm && 'text-purple',
+                      )}
+                    >
                       {t(`nutrition.photos.badge${photo.category}`)}
-                    </span>
+                    </div>
                   )}
-                </div>
-
-                {/* Caption: note + upload date */}
-                {(photo.description || photo.takenAt) && (
-                  <div className="px-2 py-1.5 flex flex-col gap-0.5">
-                    {photo.description && (
-                      <div className="text-[11px] text-text2 leading-snug line-clamp-2">
+                  {/* Bottom gradient shows description (caption) when present */}
+                  {photo.description && (
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/55 to-transparent px-3 pb-2 pt-10">
+                      <div className="line-clamp-2 text-[12px] font-medium text-white leading-tight [text-shadow:_0_1px_2px_rgba(0,0,0,0.6)]">
                         {photo.description}
                       </div>
-                    )}
-                    {photo.takenAt && (
-                      <div className="text-[10px] text-text3 tabular-nums">
-                        {new Date(photo.takenAt).toLocaleDateString()}
-                      </div>
-                    )}
+                    </div>
+                  )}
+                </div>
+                <CardBody>
+                  <div className="text-[11px] text-text3 tabular-nums">
+                    {photo.takenAt
+                      ? new Date(photo.takenAt).toLocaleDateString()
+                      : '—'}
                   </div>
-                )}
-              </button>
+                </CardBody>
+              </Card>
             ))}
-          </div>
+          </CardGrid>
         )}
       </div>
 

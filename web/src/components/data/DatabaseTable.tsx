@@ -48,24 +48,27 @@ export function DatabaseTable<T>({
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={rowKey(row)} className="group">
+            <tr
+              key={rowKey(row)}
+              className={cn('group', onRowClick && 'cursor-pointer')}
+              role={onRowClick ? 'button' : undefined}
+              tabIndex={onRowClick ? 0 : undefined}
+              onClick={onRowClick ? () => onRowClick(row) : undefined}
+              onKeyDown={onRowClick ? (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onRowClick(row);
+                }
+              } : undefined}
+            >
               {columns.map((col, colIdx) => (
                 <td
                   key={col.key}
                   className={cn(
                     'px-3 py-[7px] text-[13px] text-text border-b border-border align-middle group-hover:bg-bg-hover',
-                    colIdx === 0 && 'font-medium cursor-pointer',
+                    colIdx === 0 && 'font-medium',
                     col.className,
                   )}
-                  onClick={colIdx === 0 && onRowClick ? () => onRowClick(row) : undefined}
-                  role={colIdx === 0 && onRowClick ? 'button' : undefined}
-                  tabIndex={colIdx === 0 && onRowClick ? 0 : undefined}
-                  onKeyDown={colIdx === 0 && onRowClick ? (e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      onRowClick(row);
-                    }
-                  } : undefined}
                 >
                   {colIdx === 0 ? (
                     <span className="hover:underline">
@@ -79,7 +82,11 @@ export function DatabaseTable<T>({
                 </td>
               ))}
               {renderRowActions && (
-                <td className="px-3 py-[7px] border-b border-border align-middle group-hover:bg-bg-hover">
+                <td
+                  className="px-3 py-[7px] border-b border-border align-middle group-hover:bg-bg-hover"
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                >
                   <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-100 flex gap-1">
                     {renderRowActions(row)}
                   </div>

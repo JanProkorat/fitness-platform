@@ -6525,13 +6525,19 @@ export class ApiClient {
     /**
      * Generate food image upload URL
      * @param foodId The food's public identifier (from route).
+     * @param slot Image slot: main (overwrites) or gallery (appends, max 6).
+    Provided as a query parameter: ?slot=main or ?slot=gallery.
      * @return Success
      */
-    uploadFoodImageUrlEndpoint(foodId: string, uploadFoodImageUrlRequest: UploadFoodImageUrlRequest, signal?: AbortSignal): Promise<UploadFoodImageUrlResponse> {
-        let url_ = this.baseUrl + "/foods/{foodId}/image/upload-url";
+    uploadFoodImageUrlEndpoint(foodId: string, slot: string, uploadFoodImageUrlRequest: UploadFoodImageUrlRequest, signal?: AbortSignal): Promise<UploadFoodImageUrlResponse> {
+        let url_ = this.baseUrl + "/foods/{foodId}/image/upload-url?";
         if (foodId === undefined || foodId === null)
             throw new globalThis.Error("The parameter 'foodId' must be defined.");
         url_ = url_.replace("{foodId}", encodeURIComponent("" + foodId));
+        if (slot === undefined || slot === null)
+            throw new globalThis.Error("The parameter 'slot' must be defined and cannot be null.");
+        else
+            url_ += "slot=" + encodeURIComponent("" + slot) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = JSON.stringify(uploadFoodImageUrlRequest);
@@ -7022,13 +7028,19 @@ export class ApiClient {
     /**
      * Confirm food image upload
      * @param foodId The food's public identifier (from route).
+     * @param slot Image slot: main (overwrites ImageUrl) or gallery (appends to GalleryImageUrls).
+    Provided as a query parameter: ?slot=main or ?slot=gallery.
      * @return No Content
      */
-    confirmFoodImageEndpoint(foodId: string, confirmFoodImageRequest: ConfirmFoodImageRequest, signal?: AbortSignal): Promise<void> {
-        let url_ = this.baseUrl + "/foods/{foodId}/image";
+    confirmFoodImageEndpoint(foodId: string, slot: string, confirmFoodImageRequest: ConfirmFoodImageRequest, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/foods/{foodId}/image?";
         if (foodId === undefined || foodId === null)
             throw new globalThis.Error("The parameter 'foodId' must be defined.");
         url_ = url_.replace("{foodId}", encodeURIComponent("" + foodId));
+        if (slot === undefined || slot === null)
+            throw new globalThis.Error("The parameter 'slot' must be defined and cannot be null.");
+        else
+            url_ += "slot=" + encodeURIComponent("" + slot) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = JSON.stringify(confirmFoodImageRequest);
@@ -12480,6 +12492,8 @@ export interface ClientDashboardItem {
     lastName?: string;
     /** Client's email address. */
     email?: string;
+    /** Optional MinIO blob URL for the client's avatar (from the user record). Null if no avatar uploaded. */
+    avatarBlobUrl?: string | undefined;
     /** Whether the trainer-client link is active. */
     isActive?: boolean;
     /** Client's fitness goal text (from ClientProfile.Goals). */
@@ -13719,6 +13733,9 @@ export interface FoodSummary {
     /** URL of the food image in blob storage (e.g. foods/{foodId}.jpg).
 Null when no image has been uploaded. */
     imageUrl?: string | undefined;
+    /** URLs of gallery images (up to 6 entries). Each entry points to a blob at
+foods/{foodId}/gallery-{n}.{ext}. */
+    galleryImageUrls?: string[];
     /** True when the authenticated caller is the nutritionist who created this food.
 Clients can use this flag to decide whether to show edit/delete affordances. */
     isOwnedByCurrentUser?: boolean;

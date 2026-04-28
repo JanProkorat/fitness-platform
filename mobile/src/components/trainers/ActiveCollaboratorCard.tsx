@@ -9,6 +9,17 @@ import { Radius } from '@/constants/radius'
 import { Avatar } from '@/components/ui/Avatar'
 import type { ActiveCollaborator } from '@/stores/auth'
 
+/**
+ * Soft tint applied to the card header so the collaborator's role is
+ * recognizable at a glance — same hue as the role badges in TrainerCard
+ * (blue for trainers, green for nutritionists) at low opacity so the
+ * avatar + name stay legible on top.
+ */
+const ROLE_HEADER_TINT: Record<string, string> = {
+  Trainer: 'rgba(0,122,255,0.08)',
+  Nutritionist: 'rgba(52,199,89,0.08)',
+}
+
 interface CollabStats {
   compliancePercent: number
   progressLabel: string
@@ -47,10 +58,13 @@ export function ActiveCollaboratorCard({
   const sinceDate = new Date(collaborator.since)
   const sinceLabel = `od ${sinceDate.getDate()}. ${sinceDate.getMonth() + 1}. ${sinceDate.getFullYear()}`
 
+  const headerTint = ROLE_HEADER_TINT[collaborator.role] ?? 'transparent'
+
   return (
     <View style={[styles.card, { backgroundColor: colors.bg2 }]}>
-      {/* Header row */}
-      <View style={styles.header}>
+      {/* Header row — tinted by the collaborator's role so trainer cards
+          read blue and nutritionist cards read green at a glance. */}
+      <View style={[styles.header, { backgroundColor: headerTint }]}>
         <View style={{ flexShrink: 0 }}>
           <Avatar name={collaborator.name} size="md" imageUrl={collaborator.avatarImageUrl} />
         </View>

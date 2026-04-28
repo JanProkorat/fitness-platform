@@ -9,12 +9,12 @@ import { RecipeDialog } from '@/components/nutrition/RecipeDialog';
 import { PageHeader, Toolbar } from '@/components/layout';
 import { Button, SearchInput } from '@/components/ui';
 import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
-import { DatabaseTable, ListView, CardGrid, Card, CardCover, CardBody, CardPropRow, MacroBadges, Pagination } from '@/components/data';
+import { DatabaseTable, ListView, CardGrid, Card, CardBody, CardPropRow, MacroBadges, Pagination } from '@/components/data';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useDialogState } from '@/hooks/useDialogState';
 
 type ViewType = 'table' | 'list' | 'cards';
-type SortKey = 'name' | 'kcal' | 'protein' | 'carbs' | 'fat' | 'fiber' | 'foodCount' | 'prepTime';
+type SortKey = 'name' | 'kcal' | 'protein' | 'carbs' | 'fat' | 'fiber' | 'prepTime';
 type SortDir = 'asc' | 'desc';
 
 export default function RecipesPage() {
@@ -57,7 +57,6 @@ export default function RecipesPage() {
         case 'carbs': cmp = a.totalNutrients.carbs - b.totalNutrients.carbs; break;
         case 'fat': cmp = a.totalNutrients.fat - b.totalNutrients.fat; break;
         case 'fiber': cmp = (a.totalNutrients.fiber ?? 0) - (b.totalNutrients.fiber ?? 0); break;
-        case 'foodCount': cmp = a.foodCount - b.foodCount; break;
         case 'prepTime': cmp = (a.prepTimeMinutes ?? 0) - (b.prepTimeMinutes ?? 0); break;
       }
       return cmp * dir;
@@ -89,7 +88,6 @@ export default function RecipesPage() {
     { key: 'carbs', label: t('foods.carbs') },
     { key: 'fat', label: t('foods.fat') },
     { key: 'fiber', label: t('foods.fiber') },
-    { key: 'foodCount', label: t('recipes.foods') },
     { key: 'prepTime', label: t('recipes.prepTime') },
   ];
 
@@ -164,7 +162,6 @@ export default function RecipesPage() {
                     ),
                   },
                   { key: 'name', label: t('recipes.recipeName'), render: (r: RecipeSummary) => r.name },
-                  { key: 'foods', label: t('recipes.foods'), width: '80px', render: (r: RecipeSummary) => <span className="text-text2">{r.foodCount}</span> },
                   { key: 'prepTime', label: t('recipes.prepTime'), width: '80px', render: (r: RecipeSummary) => <span className="text-text3">{r.prepTimeMinutes ? `${r.prepTimeMinutes} min` : '—'}</span> },
                   { key: 'kcal', label: 'kcal', width: '80px', render: (r: RecipeSummary) => <span className="tabular-nums">{Math.round(r.totalNutrients.kcal)}</span> },
                   { key: 'protein', label: t('nutrition.proteinShort'), width: '70px', render: (r: RecipeSummary) => <span className="tabular-nums" style={{ color: 'var(--blue)' }}>{Math.round(r.totalNutrients.protein)}g</span> },
@@ -198,9 +195,8 @@ export default function RecipesPage() {
                   <div>
                     <div className="text-[13px] font-medium text-text truncate">{r.name}</div>
                     <div className="text-[11px] text-text3 flex items-center gap-2 mt-0.5">
-                      <span>{r.foodCount} {t('recipes.foods').toLowerCase()}</span>
-                      {r.prepTimeMinutes && <span>· {r.prepTimeMinutes} min</span>}
-                      <span className="tabular-nums">· {Math.round(r.totalNutrients.kcal)} kcal</span>
+                      {r.prepTimeMinutes && <span>{r.prepTimeMinutes} min</span>}
+                      <span className="tabular-nums">{r.prepTimeMinutes ? '· ' : ''}{Math.round(r.totalNutrients.kcal)} kcal</span>
                     </div>
                   </div>
                 )}
@@ -214,7 +210,8 @@ export default function RecipesPage() {
             <CardGrid>
               {sortedRecipes.map((r) => (
                 <Card key={r.recipeId} onClick={() => recipeDialog.openEdit(r)}>
-                  <CardCover>
+                  {/* Taller image area with name overlay */}
+                  <div className="relative h-40 w-full overflow-hidden rounded-t-md bg-bg3">
                     {r.imageUrl ? (
                       <img
                         src={r.imageUrl}
@@ -223,17 +220,30 @@ export default function RecipesPage() {
                         className="absolute inset-0 h-full w-full object-cover"
                       />
                     ) : (
-                      <div className="absolute inset-0 flex items-center justify-center text-2xl opacity-50">
+                      <div className="absolute inset-0 flex items-center justify-center text-4xl opacity-40">
                         📖
                       </div>
                     )}
-                  </CardCover>
+                    {/* Prep-time chip — top-right corner */}
+                    {r.prepTimeMinutes && (
+                      <div className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-full bg-white/85 backdrop-blur-sm shadow-sm px-2 py-0.5 text-[11px] font-medium text-text">
+                        <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <circle cx="12" cy="12" r="9" />
+                          <polyline points="12 7 12 12 15 14" />
+                        </svg>
+                        <span className="tabular-nums">{r.prepTimeMinutes} min</span>
+                      </div>
+                    )}
+                    {/* Gradient + name overlay */}
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/55 to-transparent px-3 pb-2 pt-10">
+                      <div className="truncate text-[13px] font-bold text-white leading-tight [text-shadow:_0_1px_2px_rgba(0,0,0,0.6)]">
+                        {r.name}
+                      </div>
+                    </div>
+                  </div>
                   <CardBody>
-                    <div className="text-[13px] font-medium text-text mb-1.5 truncate">{r.name}</div>
                     <CardPropRow label="kcal">{Math.round(r.totalNutrients.kcal)}</CardPropRow>
                     <CardPropRow label={`${t('nutrition.proteinShort')} / ${t('nutrition.carbsShort')} / ${t('nutrition.fatShort')} / ${t('nutrition.fiberShort')}`}><MacroBadges nutrients={r.totalNutrients} round /></CardPropRow>
-                    <CardPropRow label={t('recipes.foods')}>{r.foodCount}</CardPropRow>
-                    {r.prepTimeMinutes && <CardPropRow label={t('recipes.prepTime')}>{r.prepTimeMinutes} min</CardPropRow>}
                   </CardBody>
                 </Card>
               ))}

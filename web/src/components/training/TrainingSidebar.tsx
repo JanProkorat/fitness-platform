@@ -8,8 +8,6 @@ import { cn } from '@/lib/cn';
 
 export interface TrainingSidebarProps {
   sessions: TrainingSession[];
-  planStatus: 'Draft' | 'Published';
-  clientName?: string | null;
 }
 
 const MUSCLE_GROUP_COLORS: Record<MuscleGroup, string> = {
@@ -48,7 +46,7 @@ const MUSCLE_GROUP_KEYS: Record<MuscleGroup, string> = {
   FullBody: 'training.muscleFullBody',
 };
 
-export function TrainingSidebar({ sessions, planStatus, clientName }: TrainingSidebarProps) {
+export function TrainingSidebar({ sessions }: TrainingSidebarProps) {
   const { t, i18n } = useTranslation();
 
   // Collect all exercises from sessions
@@ -184,33 +182,6 @@ export function TrainingSidebar({ sessions, planStatus, clientName }: TrainingSi
         )}
       </div>
 
-      {/* Plan info */}
-      <div className="p-3">
-        <div className="text-[11px] font-semibold text-text3 uppercase tracking-[0.04em] mb-2">
-          {t('training.sidebarPlan')}
-        </div>
-        <div className="text-xs flex flex-col gap-1">
-          <div className="flex justify-between">
-            <span className="text-text3">{t('training.sidebarPlanStatus')}</span>
-            <span
-              className={cn(
-                'text-[11px] rounded-full px-[6px] py-[1px] font-medium',
-                planStatus === 'Published'
-                  ? 'bg-green-bg text-green'
-                  : 'bg-bg3 text-text3',
-              )}
-            >
-              {planStatus === 'Published' ? t('training.sidebarStatusPublished') : t('training.sidebarStatusDraft')}
-            </span>
-          </div>
-          {clientName && (
-            <div className="flex justify-between">
-              <span className="text-text3">{t('training.sidebarPlanClient')}</span>
-              <span className="text-text">{clientName}</span>
-            </div>
-          )}
-        </div>
-      </div>
     </div>
   );
 }

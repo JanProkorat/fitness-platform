@@ -107,15 +107,32 @@ function TrainingPlanCard({
     return 'future'
   })
 
-  const weekProgress =
-    item.currentWeek != null && (item.totalWeeks ?? 0) > 0
-      ? item.currentWeek / (item.totalWeeks ?? 1)
-      : 0
+  // Effective current week — backend returns `currentWeek = null` when the
+  // plan is past its end date, so for a finished 1-week plan we'd otherwise
+  // show "Week 0 of 1" with an empty bar. Compute it client-side from
+  // `startDate` and clamp to `totalWeeks` so a finished plan reads as full.
+  const totalWeeks = item.totalWeeks ?? 0
+  const effectiveCurrentWeek = (() => {
+    if (item.currentWeek != null) {
+      return Math.min(item.currentWeek, totalWeeks || item.currentWeek)
+    }
+    if (item.startDate && totalWeeks > 0) {
+      const start = new Date(item.startDate)
+      const today = new Date()
+      const daysSinceStart = Math.floor((today.getTime() - start.getTime()) / 86_400_000)
+      if (daysSinceStart < 0) return 0
+      const computed = Math.floor(daysSinceStart / 7) + 1
+      return Math.min(computed, totalWeeks)
+    }
+    return 0
+  })()
+
+  const weekProgress = totalWeeks > 0 ? effectiveCurrentWeek / totalWeeks : 0
 
   const isCompleted = item.status === 'Completed'
 
   const subtitleParts: string[] = []
-  if ((item.totalWeeks ?? 0) > 0) subtitleParts.push(t('plans.weeksCount', { count: item.totalWeeks ?? 0 }))
+  if (totalWeeks > 0) subtitleParts.push(t('plans.weeksCount', { count: totalWeeks }))
   if (trainerName) subtitleParts.push(trainerName)
   const subtitle = subtitleParts.join(' · ')
 
@@ -163,22 +180,29 @@ function TrainingPlanCard({
           {/* Subtitle */}
           {subtitle.length > 0 && <Text style={styles.planSubtitle}>{subtitle}</Text>}
 
-          {/* Progress bar */}
-          {item.currentWeek != null && (
+          {/* Progress bar — always rendered for active plans so the
+              training card mirrors the nutrition one even before
+              `currentWeek` is set on the backend. Uses the
+              clamped `effectiveCurrentWeek` so a finished plan shows
+              full instead of bouncing back to 0. */}
+          {!isCompleted && totalWeeks > 0 && (
             <>
               <View style={styles.progressTrack}>
                 <View
                   style={[
                     styles.progressFill,
                     {
-                      width: `${Math.min(isCompleted ? 1 : weekProgress, 1) * 100}%`,
-                      backgroundColor: isCompleted ? colors.green : colors.gold,
+                      width: `${Math.min(weekProgress, 1) * 100}%`,
+                      backgroundColor: colors.gold,
                     },
                   ]}
                 />
               </View>
               <Text style={styles.planProgressLabel}>
-                {t('plans.weekOf', { current: item.currentWeek, total: item.totalWeeks ?? 0 })}
+                {t('plans.weekOf', {
+                  current: effectiveCurrentWeek,
+                  total: totalWeeks,
+                })}
               </Text>
             </>
           )}
@@ -189,30 +213,6 @@ function TrainingPlanCard({
             </Text>
           )}
         </LinearGradient>
-
-        {/* Stats row — publishedWeekCount / totalWeeks / hasTodaySession */}
-        <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <Text style={[styles.statNum, { color: colors.label }]}>
-              {item.publishedWeekCount ?? 0}
-            </Text>
-            <Text style={[styles.statDesc, { color: colors.label3 }]}>{t('plans.published')}</Text>
-          </View>
-          <View style={[styles.statDivider, { backgroundColor: colors.sep2 }]} />
-          <View style={styles.statItem}>
-            <Text style={[styles.statNum, { color: colors.label }]}>
-              {item.totalWeeks ?? 0}
-            </Text>
-            <Text style={[styles.statDesc, { color: colors.label3 }]}>{t('plans.totalWeeksLabel')}</Text>
-          </View>
-          <View style={[styles.statDivider, { backgroundColor: colors.sep2 }]} />
-          <View style={styles.statItem}>
-            <Text style={[styles.statNum, { color: colors.green }]}>
-              {item.hasTodaySession == null ? '—' : item.hasTodaySession ? t('plans.yes') : '—'}
-            </Text>
-            <Text style={[styles.statDesc, { color: colors.label3 }]}>{t('plans.todaySession')}</Text>
-          </View>
-        </View>
 
         {/* Week strip (only for active plans) */}
         {!isCompleted && (
@@ -244,6 +244,17 @@ function NutritionPlanCard({
   const { t } = useTranslation()
 
   const isCompleted = item.status === 'Completed'
+
+  // Day-of-week strip — mirrors TrainingPlanCard so both card types share
+  // the "this week" footer when the plan is active.
+  const currentDay = new Date().getDay()
+  const todayIdx = currentDay === 0 ? 6 : currentDay - 1
+
+  const weekDays: DayStatus[] = Array.from({ length: 7 }, (_, i) => {
+    if (i < todayIdx) return 'done'
+    if (i === todayIdx) return 'today'
+    return 'future'
+  })
 
   const weekProgress =
     item.currentWeek != null && (item.totalWeeks ?? 0) > 0
@@ -332,22 +343,15 @@ function NutritionPlanCard({
           )}
         </LinearGradient>
 
-        {/* Stats row — publishedWeekCount / totalWeeks (mirrors CompletedPlanCard for consistency) */}
-        <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <Text style={[styles.statNum, { color: colors.label }]}>
-              {item.publishedWeekCount ?? 0}
+        {/* Week strip (only for active plans) — same as TrainingPlanCard. */}
+        {!isCompleted && (
+          <View style={styles.weekStripSection}>
+            <Text style={[styles.weekStripHeader, { color: colors.label2 }]}>
+              {t('plans.thisWeek')}
             </Text>
-            <Text style={[styles.statDesc, { color: colors.label3 }]}>{t('plans.published')}</Text>
+            <WeekStrip days={weekDays} />
           </View>
-          <View style={[styles.statDivider, { backgroundColor: colors.sep2 }]} />
-          <View style={styles.statItem}>
-            <Text style={[styles.statNum, { color: colors.label }]}>
-              {item.totalWeeks ?? 0}
-            </Text>
-            <Text style={[styles.statDesc, { color: colors.label3 }]}>{t('plans.totalWeeksLabel')}</Text>
-          </View>
-        </View>
+        )}
 
       </View>
     </Pressable>
@@ -732,6 +736,7 @@ const styles = StyleSheet.create({
   },
   weekStripSection: {
     paddingHorizontal: 16,
+    paddingTop: 12,
     paddingBottom: 12,
   },
   weekStripHeader: {

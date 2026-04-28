@@ -28,6 +28,9 @@ public class ClientDashboardItem
     /// <summary>Client's email address.</summary>
     public string Email { get; set; } = string.Empty;
 
+    /// <summary>Optional MinIO blob URL for the client's avatar (from the user record). Null if no avatar uploaded.</summary>
+    public string? AvatarBlobUrl { get; set; }
+
     /// <summary>Whether the trainer-client link is active.</summary>
     public bool IsActive { get; set; }
 

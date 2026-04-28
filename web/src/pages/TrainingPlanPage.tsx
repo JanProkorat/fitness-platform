@@ -346,17 +346,14 @@ export default function TrainingPlanPage() {
             <Button variant="default" size="sm" onClick={() => setResetConfirmOpen(true)} disabled={!isDirty}>
               {t('training.discardChanges')}
             </Button>
-            <Button variant="default" size="sm" onClick={handleSave} disabled={!isDirty || isSaving}>
+            <Button variant="primary" size="sm" onClick={handleSave} disabled={!isDirty || isSaving}>
               {isSaving ? t('training.saving') : t('training.save')}
             </Button>
             {plan?.status === 'Active' && (
-              <Button variant="default" size="sm" onClick={() => setCompleteDialogOpen(true)} disabled={isDirty}>
+              <Button variant="brand" size="sm" onClick={() => setCompleteDialogOpen(true)} disabled={isDirty}>
                 {t('training.completePlan')}
               </Button>
             )}
-            <Button variant="primary" size="sm" onClick={handlePublish} disabled={isWeekPublished || isDirty || plan?.status === 'Completed'}>
-              {isWeekPublished ? t('training.published') : t('training.publishWeek', { number: selectedWeek })}
-            </Button>
           </div>
         }
       />
@@ -393,12 +390,44 @@ export default function TrainingPlanPage() {
         >
           {t('nutrition.photos.tab')}
         </button>
+
+        {/* Right side: start date + add-week */}
+        <div className="ml-auto flex items-center gap-1.5 text-text3">
+          <svg
+            className="h-3.5 w-3.5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <rect x="3" y="4" width="18" height="18" rx="2" />
+            <line x1="16" y1="2" x2="16" y2="6" />
+            <line x1="8" y1="2" x2="8" y2="6" />
+            <line x1="3" y1="10" x2="21" y2="10" />
+          </svg>
+          <span className="text-[12px] font-medium">{t('training.startDate')}</span>
+          <MondayDatePicker
+            value={plan.startDate?.split('T')[0] ?? null}
+            onChange={(val) => setStartDate(val)}
+            placeholder="—"
+            className="rounded-md border border-border bg-bg px-2.5 py-1 text-[12px] text-text outline-none transition-colors hover:border-border-md focus:border-border-hv"
+            style={{ width: 120 }}
+          />
+          {pageTab === 'sessions' && (
+            <Button variant="default" size="sm" onClick={addWeek} title={t('training.addWeek')} className="ml-1">
+              {t('training.addWeek')}
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* ── Photos tab content ── */}
       {pageTab === 'photos' && planId && (
         <div className="flex-1 overflow-hidden">
-          <PlanPhotosTab planId={planId} />
+          <PlanPhotosTab planId={planId} clientId={plan.clientId} />
         </div>
       )}
 
@@ -411,7 +440,6 @@ export default function TrainingPlanPage() {
         selectedDay={selectedDay}
         onWeekChange={setSelectedWeek}
         onDayChange={setSelectedDay}
-        onAddWeek={addWeek}
         onRemoveWeek={removeWeek}
       />
 
@@ -886,24 +914,22 @@ export default function TrainingPlanPage() {
 
         {/* Right: Training sidebar */}
         <div className="flex flex-col overflow-y-auto bg-bg2" style={{ scrollbarGutter: 'stable' }}>
-          {/* Start date picker */}
-          <div className="p-3 border-b border-border">
-            <div className="text-[11px] font-semibold text-text3 uppercase tracking-[0.04em] mb-1.5">
-              {t('training.startDate')}
-            </div>
-            <MondayDatePicker
-              value={plan.startDate?.split('T')[0] ?? null}
-              onChange={(val) => setStartDate(val)}
-              className="auth-input"
-              style={{ fontSize: 13, padding: '7px 10px', width: '100%' }}
-            />
-          </div>
+          <TrainingSidebar sessions={daySessions} />
 
-          <TrainingSidebar
-            sessions={daySessions}
-            planStatus={currentWeek?.status ?? 'Draft'}
-            clientName={clientName}
-          />
+          {/* Week-scoped action — publish */}
+          <div className="p-3 border-t border-border">
+            <div className="text-[11px] font-semibold text-text3 uppercase tracking-[0.04em] mb-2">
+              {t('nutrition.weekLabel', { number: selectedWeek })}
+            </div>
+            <Button
+              variant="brand"
+              onClick={handlePublish}
+              disabled={isWeekPublished || isDirty || plan?.status === 'Completed'}
+              className="flex w-full justify-center"
+            >
+              {isWeekPublished ? t('training.published') : t('common.publish')}
+            </Button>
+          </div>
 
           <PlanQuestionnairePanel
             clientId={plan.clientId}

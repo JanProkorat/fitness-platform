@@ -10,7 +10,7 @@ import { FoodDialog } from '@/components/nutrition/FoodDialog';
 import { PageHeader, Toolbar } from '@/components/layout';
 import { Button, SearchInput } from '@/components/ui';
 import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
-import { DatabaseTable, ListView, CardGrid, Card, CardCover, CardBody, CardPropRow, MacroBadges, Pagination } from '@/components/data';
+import { DatabaseTable, ListView, CardGrid, Card, CardBody, CardPropRow, MacroBadges, Pagination } from '@/components/data';
 import { CATEGORY_CSS_COLORS, ALL_CATEGORIES } from '@/components/nutrition/food-category';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useDialogState } from '@/hooks/useDialogState';
@@ -301,7 +301,8 @@ export default function FoodsPage() {
                   key={food.foodId}
                   onClick={isNutritionist ? () => foodDialog.openEdit(food) : undefined}
                 >
-                  <CardCover>
+                  {/* Taller image area with name + category overlay */}
+                  <div className="relative h-40 w-full overflow-hidden rounded-t-md bg-bg3">
                     {food.imageUrl ? (
                       <img
                         src={food.imageUrl}
@@ -310,23 +311,27 @@ export default function FoodsPage() {
                         className="absolute inset-0 h-full w-full object-cover"
                       />
                     ) : (
-                      <div className="absolute inset-0 flex items-center justify-center text-2xl opacity-50">
+                      <div className="absolute inset-0 flex items-center justify-center text-4xl opacity-40">
                         📦
                       </div>
                     )}
-                  </CardCover>
-                  <CardBody>
-                    <div className="text-[13px] font-medium text-text mb-1.5 truncate">
-                      {food.name}
+                    {/* Category chip — top-right corner */}
+                    <div className="absolute top-2 right-2 inline-flex items-center rounded-full bg-white/85 backdrop-blur-sm shadow-sm">
+                      <CategoryTag category={food.category ?? 'Other'} t={t} />
                     </div>
+                    {/* Gradient + name overlay */}
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/55 to-transparent px-3 pb-2 pt-10">
+                      <div className="truncate text-[13px] font-bold text-white leading-tight [text-shadow:_0_1px_2px_rgba(0,0,0,0.6)]">
+                        {food.name}
+                      </div>
+                    </div>
+                  </div>
+                  <CardBody>
                     <CardPropRow label="kcal">
                       {food.nutrientValue.kcal}
                     </CardPropRow>
                     <CardPropRow label={`${t('nutrition.proteinShort')} / ${t('nutrition.carbsShort')} / ${t('nutrition.fatShort')} / ${t('nutrition.fiberShort')}`}>
                       <MacroBadges nutrients={food.nutrientValue} />
-                    </CardPropRow>
-                    <CardPropRow label={t('foods.category')}>
-                      <CategoryTag category={food.category ?? 'Other'} t={t} />
                     </CardPropRow>
                   </CardBody>
                 </Card>
