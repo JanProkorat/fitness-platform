@@ -3,8 +3,10 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace FitnessPlatform.Application.Features.PhotoDiaryRequests.DismissRequest;
 
@@ -12,8 +14,15 @@ namespace FitnessPlatform.Application.Features.PhotoDiaryRequests.DismissRequest
 /// POST /client/photo-diary-requests/{id}/dismiss
 /// Transitions a Pending request to Dismissed, optionally recording a reason.
 /// Mutually exclusive with accept: once accepted the request is no longer Pending.
+/// After a successful transition emits a <c>photoDiaryDismissed</c> SignalR event to the
+/// <b>professional</b> group (<see cref="Domain.Entities.PhotoDiaryRequest.ProfessionalId"/>)
+/// so the trainer/nutritionist sees the update in real time.
+/// Broadcast failures are best-effort and never fail the HTTP response.
 /// </summary>
-public class DismissRequestEndpoint(IApplicationDbContext db)
+public class DismissRequestEndpoint(
+    IApplicationDbContext db,
+    IRealtimeNotifier notifier,
+    ILogger<DismissRequestEndpoint> logger)
     : Endpoint<DismissRequestRequest, DismissRequestResponse>
 {
     public override void Configure()
@@ -37,6 +46,7 @@ public class DismissRequestEndpoint(IApplicationDbContext db)
         var request = await db.PhotoDiaryRequests
             .Include(r => r.Link)
                 .ThenInclude(l => l!.ClientProfile)
+                    .ThenInclude(cp => cp.User)
             .Include(r => r.PendingInvite)
             .FirstOrDefaultAsync(r => r.Id == req.Id, ct);
 
@@ -61,6 +71,30 @@ public class DismissRequestEndpoint(IApplicationDbContext db)
 
         await db.SaveChangesAsync(ct);
 
+        // ── Emit photoDiaryDismissed to the professional group (best-effort) ─────
+        // Recipient: request.ProfessionalId  →  nutritionist/trainer group.
+        try
+        {
+            var clientName = ResolveClientName(request, emailClaim);
+            await notifier.NotifyAsync(
+                request.ProfessionalId,   // → professional group
+                "photoDiaryDismissed",
+                new PhotoDiaryDismissedEvent
+                {
+                    RequestId = request.Id,
+                    ClientName = clientName,
+                    DismissReason = request.DismissReason,
+                    DismissedAt = request.UpdatedAt,
+                },
+                ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex,
+                "Failed to emit photoDiaryDismissed for request {RequestId} to professional {ProfessionalId}",
+                request.Id, request.ProfessionalId);
+        }
+
         await Send.OkAsync(new DismissRequestResponse
         {
             Id = request.Id,
@@ -82,5 +116,23 @@ public class DismissRequestEndpoint(IApplicationDbContext db)
                 StringComparison.OrdinalIgnoreCase);
 
         return false;
+    }
+
+    /// <summary>
+    /// Resolves a display name for the client:
+    /// link-based → from the ClientProfile.User navigation; invite-based → from PendingInvite names.
+    /// Falls back to the email claim if nothing else is available.
+    /// </summary>
+    private static string ResolveClientName(
+        Domain.Entities.PhotoDiaryRequest request,
+        string? clientEmail)
+    {
+        if (request.Link?.ClientProfile?.User is { } user)
+            return $"{user.FirstName} {user.LastName}".Trim();
+
+        if (request.PendingInvite is { } invite)
+            return $"{invite.FirstName} {invite.LastName}".Trim();
+
+        return clientEmail ?? string.Empty;
     }
 }

@@ -4,9 +4,12 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.PhotoDiaryRequests.CreateRequest;
@@ -14,8 +17,22 @@ namespace FitnessPlatform.Application.Features.PhotoDiaryRequests.CreateRequest;
 /// <summary>
 /// POST /trainer/photo-diary-requests
 /// Creates a new photo diary request attached to an existing client link or pending invite.
+/// After a successful save, emits a <c>photoDiaryRequested</c> SignalR event to the
+/// <b>client</b> group so the client sees the new banner in real time:
+/// <list type="bullet">
+///   <item>Link-based: notified via <c>link.ClientProfile.UserId</c> (client group).</item>
+///   <item>Invite-based + existing user: notified via the user found by the invite e-mail.</item>
+///   <item>Invite-based + no registered user yet: no notification — the banner surfaces naturally
+///     on next sign-in via the pending-banner query (#93).</item>
+/// </list>
+/// Broadcast failures are best-effort and never fail the HTTP response.
 /// </summary>
-public class CreateRequestEndpoint(IApplicationDbContext db, IMongoContext mongo)
+public class CreateRequestEndpoint(
+    IApplicationDbContext db,
+    IMongoContext mongo,
+    IRealtimeNotifier notifier,
+    UserManager<ApplicationUser> userManager,
+    ILogger<CreateRequestEndpoint> logger)
     : Endpoint<CreateRequestRequest, CreateRequestResponse>
 {
     public override void Configure()
@@ -37,7 +54,7 @@ public class CreateRequestEndpoint(IApplicationDbContext db, IMongoContext mongo
 
         // Resolve the professional's profile (needed for ownership checks on link/invite)
         var professionalProfile = await db.ProfessionalProfiles
-            .AsNoTracking()
+            .Include(p => p.User)
             .FirstOrDefaultAsync(p => p.UserId == professionalId, ct);
 
         if (professionalProfile is null)
@@ -47,6 +64,7 @@ public class CreateRequestEndpoint(IApplicationDbContext db, IMongoContext mongo
         }
 
         Guid? clientUserId = null;
+        string? inviteEmail = null;
 
         if (req.LinkId.HasValue)
         {
@@ -79,7 +97,8 @@ public class CreateRequestEndpoint(IApplicationDbContext db, IMongoContext mongo
                 return;
             }
 
-            // clientUserId remains null for invite-based requests until the invite is accepted
+            inviteEmail = invite.Email;
+            // clientUserId resolved below after save (only if user is already registered)
         }
 
         // Validate planId ownership if provided (check both nutrition and training plans)
@@ -132,6 +151,56 @@ public class CreateRequestEndpoint(IApplicationDbContext db, IMongoContext mongo
 
         db.PhotoDiaryRequests.Add(request);
         await db.SaveChangesAsync(ct);
+
+        // ── Emit photoDiaryRequested to the client group (best-effort) ───────────
+        // Link-based: client is already known.
+        // Invite-based: resolve the registered user by e-mail; skip if not yet registered.
+        if (clientUserId is null && inviteEmail is not null)
+        {
+            var invitedUser = await userManager.FindByEmailAsync(inviteEmail);
+            clientUserId = invitedUser?.Id;
+        }
+
+        if (clientUserId.HasValue)
+        {
+            try
+            {
+                var professionalName =
+                    $"{professionalProfile.User.FirstName} {professionalProfile.User.LastName}".Trim();
+
+                // Resolve the professional's role from the claims (Trainer or Nutritionist).
+                // FastEndpoints encodes roles under the short "role" claim type, not ClaimTypes.Role.
+                var professionalRole = User.FindFirstValue("role")
+                    ?? string.Empty;
+
+                await notifier.NotifyAsync(
+                    clientUserId.Value,   // → client group
+                    "photoDiaryRequested",
+                    new PhotoDiaryRequestedEvent
+                    {
+                        RequestId = request.Id,
+                        ProfessionalName = professionalName,
+                        ProfessionalRole = professionalRole,
+                        DurationDays = request.DurationDays,
+                        PlanId = request.PlanId,
+                        CreatedAt = request.CreatedAt,
+                    },
+                    ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex,
+                    "Failed to emit photoDiaryRequested for request {RequestId} to client {ClientId}",
+                    request.Id, clientUserId.Value);
+            }
+        }
+        else if (inviteEmail is not null)
+        {
+            // No registered user for the invite e-mail yet — notification skipped intentionally.
+            logger.LogDebug(
+                "Skipping photoDiaryRequested for request {RequestId}: invite e-mail {Email} has no registered user yet",
+                request.Id, inviteEmail);
+        }
 
         await Send.CreatedAtAsync<CreateRequestEndpoint>(null, new CreateRequestResponse
         {
