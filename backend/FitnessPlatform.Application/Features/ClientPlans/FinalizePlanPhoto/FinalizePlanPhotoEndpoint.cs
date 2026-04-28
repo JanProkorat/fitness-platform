@@ -6,6 +6,7 @@ using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Features.PhotoDiaryRequests;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
@@ -21,12 +22,18 @@ namespace FitnessPlatform.Application.Features.ClientPlans.FinalizePlanPhoto;
 ///
 /// Ownership: looks up the plan in NutritionPlans first; falls back to TrainingPlans.
 /// Returns 404 if neither exists for the given client.
-/// After a successful insert, emits a <c>planPhotoUploaded</c> SignalR event to the owning
-/// professional (best-effort: a broadcast failure does not fail the HTTP response).
+/// After a successful insert:
+/// <list type="bullet">
+///   <item>Emits a <c>planPhotoUploaded</c> SignalR event to the owning professional.</item>
+///   <item>When <see cref="FinalizePlanPhotoRequest.DiaryRequestId"/> is set, additionally emits
+///     a <c>photoDiaryPhotoUploaded</c> event to the same professional group so the trainer/
+///     nutritionist can track diary progress in real time.</item>
+/// </list>
+/// Both broadcasts are best-effort: a failure does not fail the HTTP response.
 /// </summary>
 /// <param name="mongo">MongoDB context for plan lookup.</param>
 /// <param name="db">Relational database context for profile lookup and photo insert.</param>
-/// <param name="notifier">Realtime notifier for pushing the <c>planPhotoUploaded</c> event.</param>
+/// <param name="notifier">Realtime notifier for pushing the SignalR events.</param>
 /// <param name="logger">Logger.</param>
 public class FinalizePlanPhotoEndpoint(
     IMongoContext mongo,
@@ -96,6 +103,7 @@ public class FinalizePlanPhotoEndpoint(
             diaryRequest = await db.PhotoDiaryRequests
                 .Include(r => r.Link)
                     .ThenInclude(l => l!.ClientProfile)
+                        .ThenInclude(cp => cp.User)
                 .Include(r => r.PendingInvite)
                 .FirstOrDefaultAsync(r => r.Id == req.DiaryRequestId.Value, ct);
 
@@ -177,6 +185,39 @@ public class FinalizePlanPhotoEndpoint(
                 req.PlanId);
         }
 
+        // Emit photoDiaryPhotoUploaded when this photo is linked to a diary request (best-effort).
+        // Recipient: request.ProfessionalId  →  nutritionist/trainer group.
+        if (diaryRequest is not null && professionalUserId.HasValue)
+        {
+            try
+            {
+                var clientName = ResolveClientNameFromDiaryRequest(diaryRequest, callerUserId, emailClaim);
+                var dayIndex = diaryRequest.AcceptedAt.HasValue
+                    ? Math.Max(1, (DateTimeOffset.UtcNow - diaryRequest.AcceptedAt.Value).Days + 1)
+                    : 1;
+
+                await notifier.NotifyAsync(
+                    diaryRequest.ProfessionalId,  // → professional group
+                    "photoDiaryPhotoUploaded",
+                    new PhotoDiaryPhotoUploadedEvent
+                    {
+                        RequestId = diaryRequest.Id,
+                        PhotoId = photo.PublicId,
+                        ClientName = clientName,
+                        DayIndex = dayIndex,
+                        Caption = photo.Description,
+                        UploadedAt = DateTimeOffset.UtcNow,
+                    },
+                    ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex,
+                    "Failed to emit photoDiaryPhotoUploaded for request {RequestId} to professional {ProfessionalId}",
+                    diaryRequest.Id, diaryRequest.ProfessionalId);
+            }
+        }
+
         var response = MapToResponse(photo);
         HttpContext.Response.Headers.Location =
             $"/client/plans/{req.PlanId}/photos/{photo.PublicId}";
@@ -246,5 +287,22 @@ public class FinalizePlanPhotoEndpoint(
                 StringComparison.OrdinalIgnoreCase);
 
         return false;
+    }
+
+    /// <summary>
+    /// Resolves a display name for the client from the diary request's navigation properties.
+    /// </summary>
+    private static string ResolveClientNameFromDiaryRequest(
+        PhotoDiaryRequest request,
+        Guid callerUserId,
+        string? clientEmail)
+    {
+        if (request.Link?.ClientProfile?.User is { } user)
+            return $"{user.FirstName} {user.LastName}".Trim();
+
+        if (request.PendingInvite is { } invite)
+            return $"{invite.FirstName} {invite.LastName}".Trim();
+
+        return clientEmail ?? string.Empty;
     }
 }
