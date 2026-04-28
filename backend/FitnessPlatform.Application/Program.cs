@@ -11,9 +11,6 @@ using FitnessPlatform.Application.Infrastructure.Hubs;
 using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Application.Middleware;
 using FitnessPlatform.Application.Seed;
-using MongoDB.Bson;
-using MongoDB.Bson.Serialization;
-using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -59,19 +56,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
         .UseSnakeCaseNamingConvention());
 builder.Services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<ApplicationDbContext>());
 
-// MongoDB
-// Idempotent: MongoDB.Driver 3.x can auto-register a default Guid serializer
-// before this line runs (load-order dependent on Linux test hosts), making a
-// second RegisterSerializer call throw. LookupSerializer<Guid>() can itself
-// trigger that auto-registration, so try/catch is the only reliable guard.
-try
-{
-    BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
-}
-catch (BsonSerializationException)
-{
-    // Already registered — driver auto-registered a default before us.
-}
+// MongoDB — Guid serializer registered via MongoBootstrapper module
+// initializer so it runs before any other assembly touches BsonSerializer.
 var mongoDatabaseName = builder.Configuration[ConfigKeys.MongoDbDatabaseName]
     ?? throw new InvalidOperationException("MongoDB:DatabaseName is not configured.");
 var mongoClient = new MongoClient(mongoConnection);
