@@ -1,0 +1,111 @@
+# End-to-end test harness — packaged backend + datastores + deterministic seed.
+# Boot with `npm run e2e:up`, tear down with `npm run e2e:down`.
+# qa-tester prefers this stack over ad-hoc `dotnet run` when it needs known fixture state.
+
+services:
+  postgres-test:
+    image: postgres:16
+    container_name: fitness-postgres-test
+    environment:
+      POSTGRES_USER: fitness_admin
+      POSTGRES_PASSWORD: fitness_test_password
+      POSTGRES_DB: fitness_test
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fitness_admin -d fitness_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  mongo-test:
+    image: mongo:7
+    container_name: fitness-mongo-test
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: mongo_test_password
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  minio-test:
+    image: minio/minio
+    container_name: fitness-minio-test
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minio_test_password
+    command: server /data --console-address :9001
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  seed:
+    build:
+      context: ./backend
+    container_name: fitness-seed-test
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      mongo-test:
+        condition: service_healthy
+      minio-test:
+        condition: service_healthy
+    # JWT_SECRET and QA_SEED_PASSWORD come from .env.test (gitignored).
+    # Copy .env.test.example to .env.test and fill it in before `npm run e2e:up`.
+    env_file:
+      - .env.test
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      POSTGRES_PASSWORD: fitness_test_password
+      MONGO_PASSWORD: mongo_test_password
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minio_test_password
+      ConnectionStrings__PostgreSQl: "Host=postgres-test;Port=5432;Database=fitness_test;Username=fitness_admin"
+      ConnectionStrings__MongoDB: "mongodb://admin:{0}@mongo-test:27017/?authSource=admin"
+      MongoDB__DatabaseName: fitness_test
+      MinIO__Endpoint: "minio-test:9000"
+      MinIO__BucketName: "fitness-platform-test"
+      RateLimiting__Disabled: "true"
+    command: ["--qa-seed"]
+    restart: "no"
+
+  api:
+    build:
+      context: ./backend
+    container_name: fitness-api-test
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+    ports:
+      # Host :5101 — distinct from the dev API on :5001 so the compose stack
+      # and an interactive `dotnet run` can coexist on the same host.
+      - "5101:8080"
+    # JWT_SECRET comes from .env.test (gitignored).
+    env_file:
+      - .env.test
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: "https://+:8080"
+      ASPNETCORE_Kestrel__Certificates__Default__Path: "/https/aspnetapp.pfx"
+      ASPNETCORE_Kestrel__Certificates__Default__Password: "devcert"
+      POSTGRES_PASSWORD: fitness_test_password
+      MONGO_PASSWORD: mongo_test_password
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minio_test_password
+      ConnectionStrings__PostgreSQl: "Host=postgres-test;Port=5432;Database=fitness_test;Username=fitness_admin"
+      ConnectionStrings__MongoDB: "mongodb://admin:{0}@mongo-test:27017/?authSource=admin"
+      MongoDB__DatabaseName: fitness_test
+      MinIO__Endpoint: "minio-test:9000"
+      MinIO__BucketName: "fitness-platform-test"
+      Cors__AllowedOrigins__0: "http://localhost:5173"
+      Cors__AllowedOrigins__1: "http://localhost:8081"
+      RateLimiting__Disabled: "true"
+    healthcheck:
+      # Self-signed dev cert — `-k` is intentional inside the container.
+      test: ["CMD-SHELL", "curl -ksSf https://localhost:8080/swagger/v1/swagger.json | grep -q '/auth/login'"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+      start_period: 5s

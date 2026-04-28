@@ -67,7 +67,9 @@ android/
 .env
 .env.local
 .env.*.local
+.env.test
 !.env.example
+!.env.test.example
 appsettings.Development.json
 appsettings.Development.Local.json
 appsettings.Production.json
@@ -112,3 +114,4 @@ Thumbs.db
 .worktrees/
 .remember/
 .qa-artifacts/
+mobile/.qa-cache/

@@ -31,9 +31,15 @@ npm run dev                         # http://localhost:5173
 cd mobile
 npm install
 npx expo start --ios                # or --android
+
+# End-to-end test harness (packaged backend + seeded fixture on :5101)
+npm run e2e:up                      # docker compose up: postgres, mongo, minio, seed, api
+npm run e2e:down                    # docker compose down -v
 ```
 
-**Swagger docs:** http://localhost:5000/swagger
+**Swagger docs (dev):** http://localhost:5000/swagger (HTTP) or https://localhost:5001/swagger (HTTPS)
+**E2E Swagger:** https://localhost:5101/swagger (compose harness, dev cert; runs alongside dev API)
+**E2E fixture credentials:** see `docs/testing/e2e-fixtures.md`
 **API type generation:** `npm run generate-api` in `/web` or `/mobile`
 
 ---

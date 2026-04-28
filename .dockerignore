@@ -1,0 +1,44 @@
+# Build artifacts
+**/bin/
+**/obj/
+**/out/
+
+# Node / frontend packages and output
+**/node_modules/
+**/dist/
+**/build/
+**/.expo/
+
+# Platform native directories
+mobile/ios/
+mobile/android/
+mobile/.qa-cache/
+
+# Git and tooling
+.git/
+.gitignore
+.github/
+.claude/
+.worktrees/
+.idea/
+.vscode/
+
+# Test project (not needed in the runtime image)
+backend/FitnessPlatform.Tests/
+
+# Web and mobile packages (only backend is built)
+web/
+mobile/
+
+# Docker compose files
+docker-compose*.yml
+
+# Docs
+docs/
+
+# Miscellaneous
+*.md
+*.swp
+*.swo
+.DS_Store
+Thumbs.db

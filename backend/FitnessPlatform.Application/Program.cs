@@ -10,9 +10,7 @@ using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Hubs;
 using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Application.Middleware;
-using MongoDB.Bson;
-using MongoDB.Bson.Serialization;
-using MongoDB.Bson.Serialization.Serializers;
+using FitnessPlatform.Application.Seed;
 using MongoDB.Driver;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -58,8 +56,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
         .UseSnakeCaseNamingConvention());
 builder.Services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<ApplicationDbContext>());
 
-// MongoDB
-BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
+// MongoDB — Guid serializer registered via MongoBootstrapper module
+// initializer so it runs before any other assembly touches BsonSerializer.
 var mongoDatabaseName = builder.Configuration[ConfigKeys.MongoDbDatabaseName]
     ?? throw new InvalidOperationException("MongoDB:DatabaseName is not configured.");
 var mongoClient = new MongoClient(mongoConnection);
@@ -217,6 +215,20 @@ var app = builder.Build();
 if (args.Contains("--seed"))
 {
     await ApplicationDbContextSeed.SeedAsync(app.Services);
+    await MongoSeeder.SeedAsync(app.Services);
+    return;
+}
+
+// QA fixture for the docker-compose end-to-end harness. Order matters:
+// roles first (QaSeedRunner assigns roles to its users), then the QA users
+// themselves, then Mongo — MongoSeeder.RecipeSeed gates on a nutritionist
+// existing in Postgres, so QaSeedRunner has to land before it on cold boot
+// or the recipes collection stays empty until the next reseed. Idempotent
+// across reruns.
+if (args.Contains("--qa-seed"))
+{
+    await ApplicationDbContextSeed.SeedAsync(app.Services);
+    await QaSeedRunner.SeedAsync(app.Services);
     await MongoSeeder.SeedAsync(app.Services);
     return;
 }
