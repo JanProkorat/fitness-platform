@@ -2,9 +2,14 @@ import axios from 'axios';
 import { getLocales } from 'expo-localization';
 import { useAuthStore } from '../stores/auth';
 
-const API_BASE_URL = __DEV__
-  ? 'http://localhost:5000'  // iOS simulator – use HTTP port (5001 is HTTPS)
-  : 'https://api.gfplatform.com'; // production
+// `EXPO_PUBLIC_API_BASE_URL` lets QA dev builds point at the compose-exposed
+// API (https://localhost:5001) without rebuilding. Inlined at bundle time by
+// Expo, so the override is baked into the .app produced by qa-build-dev-client.sh.
+const API_BASE_URL =
+  process.env.EXPO_PUBLIC_API_BASE_URL ??
+  (__DEV__
+    ? 'http://localhost:5000'  // iOS simulator – use HTTP port (5001 is HTTPS)
+    : 'https://api.gfplatform.com'); // production
 
 const api = axios.create({
   baseURL: API_BASE_URL,

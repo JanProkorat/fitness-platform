@@ -10,6 +10,7 @@ using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Hubs;
 using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Application.Middleware;
+using FitnessPlatform.Application.Seed;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
@@ -217,6 +218,20 @@ var app = builder.Build();
 if (args.Contains("--seed"))
 {
     await ApplicationDbContextSeed.SeedAsync(app.Services);
+    await MongoSeeder.SeedAsync(app.Services);
+    return;
+}
+
+// QA fixture for the docker-compose end-to-end harness. Order matters:
+// roles first (QaSeedRunner assigns roles to its users), then the QA users
+// themselves, then Mongo — MongoSeeder.RecipeSeed gates on a nutritionist
+// existing in Postgres, so QaSeedRunner has to land before it on cold boot
+// or the recipes collection stays empty until the next reseed. Idempotent
+// across reruns.
+if (args.Contains("--qa-seed"))
+{
+    await ApplicationDbContextSeed.SeedAsync(app.Services);
+    await QaSeedRunner.SeedAsync(app.Services);
     await MongoSeeder.SeedAsync(app.Services);
     return;
 }

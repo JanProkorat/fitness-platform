@@ -112,3 +112,4 @@ Thumbs.db
 .worktrees/
 .remember/
 .qa-artifacts/
+mobile/.qa-cache/

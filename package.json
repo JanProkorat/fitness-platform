@@ -1,4 +1,10 @@
 {
+  "scripts": {
+    "e2e:up": "docker-compose -f docker-compose.test.yml up -d --build",
+    "e2e:down": "docker-compose -f docker-compose.test.yml down -v",
+    "e2e:logs": "docker-compose -f docker-compose.test.yml logs -f api",
+    "e2e:health": "curl -ksS https://localhost:5101/swagger/v1/swagger.json | head -c 200"
+  },
   "dependencies": {
     "@playwright/test": "^1.59.1"
   }
