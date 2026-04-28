@@ -169,7 +169,8 @@ public class CreateRequestEndpoint(
                     $"{professionalProfile.User.FirstName} {professionalProfile.User.LastName}".Trim();
 
                 // Resolve the professional's role from the claims (Trainer or Nutritionist).
-                var professionalRole = User.FindFirstValue(System.Security.Claims.ClaimTypes.Role)
+                // FastEndpoints encodes roles under the short "role" claim type, not ClaimTypes.Role.
+                var professionalRole = User.FindFirstValue("role")
                     ?? string.Empty;
 
                 await notifier.NotifyAsync(

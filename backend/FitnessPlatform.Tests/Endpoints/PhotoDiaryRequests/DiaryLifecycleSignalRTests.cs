@@ -6,31 +6,29 @@ using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.PhotoDiaryRequests;
-using FitnessPlatform.Application.Features.PhotoDiaryRequests.CreateRequest;
 using FitnessPlatform.Application.Features.PhotoDiaryRequests.DismissRequest;
 using FitnessPlatform.Application.Features.PhotoDiaryRequests.SubmitRequest;
 using FitnessPlatform.Application.Infrastructure.Data;
-using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Tests.Builders;
-using FitnessPlatform.Tests.Endpoints.NutritionPlans;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
-using MongoDB.Driver;
 using NSubstitute;
 using ApplicationPhotoRequest = FitnessPlatform.Application.Domain.Entities.PhotoDiaryRequest;
 
 namespace FitnessPlatform.Tests.Endpoints.PhotoDiaryRequests;
 
 /// <summary>
-/// Verifies SignalR broadcast behaviour for the four diary lifecycle events:
+/// Verifies SignalR broadcast behaviour for the diary lifecycle events
+/// that do NOT require a full integration test host:
 /// <list type="bullet">
-///   <item><c>photoDiaryRequested</c>   — emitted to the <b>client</b> after CreateRequest.</item>
 ///   <item><c>photoDiaryDismissed</c>   — emitted to the <b>professional</b> after DismissRequest.</item>
-///   <item><c>photoDiaryPhotoUploaded</c> — emitted to the <b>professional</b> after FinalizePlanPhoto
-///     when a DiaryRequestId is set (covered in PhotoDiaryPhotoUploadedSignalRTests).</item>
 ///   <item><c>photoDiarySubmitted</c>   — emitted to the <b>professional</b> after SubmitRequest.</item>
 /// </list>
-/// Uses mock-based unit tests (Factory.Create + NSubstitute) so tests run without Docker.
+/// Uses mock-based unit tests (Factory.Create + NSubstitute) so these tests run without Docker.
+///
+/// The <c>photoDiaryRequested</c> event (emitted by CreateRequest) is covered by
+/// <see cref="CreateRequestSignalRTests"/>, which uses <see cref="FitnessPlatform.Tests.Infrastructure.FitnessApiFactory"/>
+/// because <c>CreateRequestEndpoint</c> calls <c>Send.CreatedAtAsync</c> which requires
+/// a real <c>LinkGenerator</c> not available in unit-test mode.
 /// </summary>
 public class DiaryLifecycleSignalRTests
 {
@@ -45,38 +43,10 @@ public class DiaryLifecycleSignalRTests
 
     // ── Loggers ──────────────────────────────────────────────────────────────────
 
-    private readonly ILogger<CreateRequestEndpoint> _createLogger =
-        Substitute.For<ILogger<CreateRequestEndpoint>>();
     private readonly ILogger<DismissRequestEndpoint> _dismissLogger =
         Substitute.For<ILogger<DismissRequestEndpoint>>();
     private readonly ILogger<SubmitRequestEndpoint> _submitLogger =
         Substitute.For<ILogger<SubmitRequestEndpoint>>();
-
-    // ── Mongo stub for CreateRequest (plan ownership check uses Mongo) ───────────
-
-    private static IMongoContext CreateEmptyMongo()
-    {
-        var mongo = Substitute.For<IMongoContext>();
-
-        var nutritionCollection = PlanTestHelpers.CreateMockMongo().NutritionPlans;
-        mongo.NutritionPlans.Returns(nutritionCollection);
-
-        var trainingCollection = Substitute.For<IMongoCollection<Application.Domain.Documents.TrainingPlan>>();
-        trainingCollection.FindAsync(
-                Arg.Any<FilterDefinition<Application.Domain.Documents.TrainingPlan>>(),
-                Arg.Any<FindOptions<Application.Domain.Documents.TrainingPlan, Application.Domain.Documents.TrainingPlan>>(),
-                Arg.Any<CancellationToken>())
-            .Returns(_ =>
-            {
-                var cursor = Substitute.For<IAsyncCursor<Application.Domain.Documents.TrainingPlan>>();
-                cursor.Current.Returns([]);
-                cursor.MoveNextAsync(Arg.Any<CancellationToken>()).Returns(false);
-                return cursor;
-            });
-        mongo.TrainingPlans.Returns(trainingCollection);
-
-        return mongo;
-    }
 
     // ── Shared entity builders ───────────────────────────────────────────────────
 
@@ -146,239 +116,6 @@ public class DiaryLifecycleSignalRTests
         CreatedAt = DateTimeOffset.UtcNow,
         UpdatedAt = DateTimeOffset.UtcNow,
     };
-
-    // ── CreateRequest ────────────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task CreateRequest_LinkBased_EmitsPhotoDiaryRequested_ToClient()
-    {
-        var profUser = MakeProfessionalUser();
-        var clientUser = MakeClientUser();
-        var profProfile = MakeProfessionalProfile(profUser);
-        var clientProfile = MakeClientProfile(clientUser);
-        var link = MakeLink(profProfile, clientProfile);
-
-        var db = new MockDbBuilder()
-            .With(profUser)
-            .With(profProfile)
-            .With(clientUser)
-            .With(clientProfile)
-            .With(link)
-            .Build();
-
-        var userManager = EndpointTestHelpers.CreateFakeUserManager();
-        var mongo = CreateEmptyMongo();
-
-        var ep = Factory.Create<CreateRequestEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_professionalId, AppRoles.Nutritionist))),
-            db, mongo, _notifier, userManager, _createLogger);
-
-        await ep.HandleAsync(new CreateRequestRequest
-        {
-            LinkId = link.Id,
-            DurationDays = 7,
-        }, TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(201);
-
-        // The client must receive exactly one photoDiaryRequested event
-        await _notifier.Received(1).NotifyAsync(
-            _clientId,             // recipient = client group
-            "photoDiaryRequested",
-            Arg.Is<PhotoDiaryRequestedEvent>(e =>
-                e.DurationDays == 7 &&
-                e.ProfessionalName == "Jana Novakova" &&
-                e.ProfessionalRole == AppRoles.Nutritionist),
-            Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task CreateRequest_LinkBased_EventContainsCorrectRequestId()
-    {
-        var profUser = MakeProfessionalUser();
-        var clientUser = MakeClientUser();
-        var profProfile = MakeProfessionalProfile(profUser);
-        var clientProfile = MakeClientProfile(clientUser);
-        var link = MakeLink(profProfile, clientProfile);
-
-        var db = new MockDbBuilder()
-            .With(profUser)
-            .With(profProfile)
-            .With(clientUser)
-            .With(clientProfile)
-            .With(link)
-            .Build();
-
-        var userManager = EndpointTestHelpers.CreateFakeUserManager();
-        var mongo = CreateEmptyMongo();
-
-        var ep = Factory.Create<CreateRequestEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_professionalId, AppRoles.Nutritionist))),
-            db, mongo, _notifier, userManager, _createLogger);
-
-        await ep.HandleAsync(new CreateRequestRequest
-        {
-            LinkId = link.Id,
-            DurationDays = 14,
-        }, TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(201);
-
-        // RequestId in the event must match the id returned in the response
-        await _notifier.Received(1).NotifyAsync(
-            _clientId,
-            "photoDiaryRequested",
-            Arg.Is<PhotoDiaryRequestedEvent>(e => e.RequestId == ep.Response.Id),
-            Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task CreateRequest_InviteBased_ExistingUser_EmitsPhotoDiaryRequested_ToClient()
-    {
-        const string inviteEmail = "petr@example.com";
-
-        var profUser = MakeProfessionalUser();
-        var profProfile = MakeProfessionalProfile(profUser);
-        var invite = new PendingInvite
-        {
-            Id = 10,
-            ProfessionalProfileId = profProfile.Id,
-            Email = inviteEmail,
-            FirstName = "Petr",
-            LastName = "Novak",
-            SentAt = DateTime.UtcNow,
-            IsAccepted = false,
-            PublicId = Guid.NewGuid(),
-            DateCreated = DateTime.UtcNow,
-        };
-
-        var db = new MockDbBuilder()
-            .With(profUser)
-            .With(profProfile)
-            .With(invite)
-            .Build();
-
-        // UserManager returns an existing user for the invite e-mail
-        var userManager = EndpointTestHelpers.CreateFakeUserManager();
-        var existingClientUser = MakeClientUser(); // Id = _clientId
-        userManager.FindByEmailAsync(inviteEmail).Returns(existingClientUser);
-
-        var mongo = CreateEmptyMongo();
-
-        var ep = Factory.Create<CreateRequestEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_professionalId, AppRoles.Nutritionist))),
-            db, mongo, _notifier, userManager, _createLogger);
-
-        await ep.HandleAsync(new CreateRequestRequest
-        {
-            PendingInviteId = invite.Id,
-            DurationDays = 7,
-        }, TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(201);
-
-        // The registered client must receive the event
-        await _notifier.Received(1).NotifyAsync(
-            _clientId,             // recipient = existing user's client group
-            "photoDiaryRequested",
-            Arg.Any<object>(),
-            Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task CreateRequest_InviteBased_NoExistingUser_NoNotification()
-    {
-        const string inviteEmail = "unregistered@example.com";
-
-        var profUser = MakeProfessionalUser();
-        var profProfile = MakeProfessionalProfile(profUser);
-        var invite = new PendingInvite
-        {
-            Id = 11,
-            ProfessionalProfileId = profProfile.Id,
-            Email = inviteEmail,
-            FirstName = "Unknown",
-            LastName = "User",
-            SentAt = DateTime.UtcNow,
-            IsAccepted = false,
-            PublicId = Guid.NewGuid(),
-            DateCreated = DateTime.UtcNow,
-        };
-
-        var db = new MockDbBuilder()
-            .With(profUser)
-            .With(profProfile)
-            .With(invite)
-            .Build();
-
-        // UserManager returns null — no registered user for this e-mail
-        var userManager = EndpointTestHelpers.CreateFakeUserManager();
-        userManager.FindByEmailAsync(inviteEmail).Returns((ApplicationUser?)null);
-
-        var mongo = CreateEmptyMongo();
-
-        var ep = Factory.Create<CreateRequestEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_professionalId, AppRoles.Nutritionist))),
-            db, mongo, _notifier, userManager, _createLogger);
-
-        await ep.HandleAsync(new CreateRequestRequest
-        {
-            PendingInviteId = invite.Id,
-            DurationDays = 7,
-        }, TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(201);
-
-        // No notification should be sent — user hasn't registered yet
-        await _notifier.DidNotReceive().NotifyAsync(
-            Arg.Any<Guid>(),
-            "photoDiaryRequested",
-            Arg.Any<object>(),
-            Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task CreateRequest_BroadcastThrows_MutationStillSucceeds()
-    {
-        _notifier
-            .NotifyAsync(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<object>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromException(new InvalidOperationException("hub unavailable")));
-
-        var profUser = MakeProfessionalUser();
-        var clientUser = MakeClientUser();
-        var profProfile = MakeProfessionalProfile(profUser);
-        var clientProfile = MakeClientProfile(clientUser);
-        var link = MakeLink(profProfile, clientProfile);
-
-        var db = new MockDbBuilder()
-            .With(profUser)
-            .With(profProfile)
-            .With(clientUser)
-            .With(clientProfile)
-            .With(link)
-            .Build();
-
-        var userManager = EndpointTestHelpers.CreateFakeUserManager();
-        var mongo = CreateEmptyMongo();
-
-        var ep = Factory.Create<CreateRequestEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_professionalId, AppRoles.Nutritionist))),
-            db, mongo, _notifier, userManager, _createLogger);
-
-        var act = () => ep.HandleAsync(new CreateRequestRequest
-        {
-            LinkId = link.Id,
-            DurationDays = 7,
-        }, TestContext.Current.CancellationToken);
-
-        await act.Should().NotThrowAsync();
-        ep.HttpContext.Response.StatusCode.Should().Be(201);
-    }
 
     // ── DismissRequest ────────────────────────────────────────────────────────────
 
