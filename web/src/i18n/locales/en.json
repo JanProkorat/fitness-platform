@@ -18,7 +18,10 @@
     "total": "Total {{count}}",
     "error": "Error",
     "success": "Success",
-    "clear": "Clear"
+    "clear": "Clear",
+    "delete": "Delete",
+    "deleteConfirmTitle": "Delete item",
+    "deleteConfirmMessage": "Are you sure you want to delete \"{{name}}\"?"
   },
   "validation": {
     "required": "Required",
@@ -920,6 +923,7 @@
     "save": "Save",
     "published": "Published ✓",
     "publishWeek": "Publish week {{number}}",
+    "addWeek": "+ Add Week",
     "restDay": "Rest — no sessions for this day",
     "exerciseLabel": "Exercise",
     "noteLabel": "Note",

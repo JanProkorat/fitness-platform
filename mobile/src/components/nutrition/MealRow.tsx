@@ -183,11 +183,21 @@ export const MealRow = React.memo(function MealRow({
             // top border) or when it's the last collapsed row.
             borderBottomWidth:
               (isLast && !expanded) || expanded ? 0 : StyleSheet.hairlineWidth,
+            // Tint the header strip with the meal-kind palette when expanded so
+            // the header reads as the section's title surface, not just another
+            // row. Collapsed rows stay neutral to keep the list quiet.
+            // The negative horizontal margin + matching inner padding lets the
+            // tint extend edge-to-edge inside the parent NutritionCard (which
+            // pads its meal list by 16) so the strip aligns with the
+            // edge-to-edge expanded body below it.
+            backgroundColor: isExpandable && expanded ? tint : 'transparent',
+            marginHorizontal: isExpandable && expanded ? -16 : 0,
+            paddingHorizontal: isExpandable && expanded ? 16 : 0,
           },
         ]}
       >
         {isExpandable ? (
-          <View style={[styles.dot, { backgroundColor: kindConfig.accent }]} />
+          <View style={[styles.accentBar, { backgroundColor: kindConfig.accent }]} />
         ) : (
           <View style={[styles.icon, { backgroundColor: tint }]}>
             <Text style={styles.iconText}>{kindConfig.icon}</Text>
@@ -195,7 +205,14 @@ export const MealRow = React.memo(function MealRow({
         )}
 
         <View style={styles.info}>
-          <Text style={[styles.name, { color: colors.label }]} numberOfLines={1}>
+          <Text
+            style={[
+              styles.name,
+              isExpandable && styles.nameAccordion,
+              { color: colors.label },
+            ]}
+            numberOfLines={1}
+          >
             {title}
           </Text>
           <Text style={[styles.meta, { color: colors.label2 }]} numberOfLines={1}>
@@ -298,9 +315,17 @@ export const MealRow = React.memo(function MealRow({
                 },
               ]}
             >
-              {/* Meal plan note — trainer's note from the plan */}
+              {/* Meal plan note — trainer's note from the plan. Tinted with
+                  the meal-kind palette + accent bar so it reads as an
+                  extension of the section header above instead of a
+                  competing gold band. */}
               {meal.note ? (
-                <NoteBanner variant="meal" label={t('nutrition.mealNoteLabel')}>
+                <NoteBanner
+                  variant="meal"
+                  label={t('nutrition.mealNoteLabel')}
+                  tint={tint}
+                  accentColor={kindConfig.accent}
+                >
                   {meal.note}
                 </NoteBanner>
               ) : null}
@@ -398,16 +423,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   rowAccordion: {
-    paddingVertical: 12,
+    paddingVertical: 14,
     gap: 12,
   },
   rowReadOnly: {
     paddingVertical: 12,
   },
-  dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+  /**
+   * Vertical accent bar at the left of the accordion header — replaces the
+   * tiny dot and gives the meal-kind color enough visual weight to anchor
+   * the section title.
+   */
+  accentBar: {
+    width: 4,
+    height: 32,
+    borderRadius: 2,
     flexShrink: 0,
   },
   icon: {
@@ -428,6 +458,14 @@ const styles = StyleSheet.create({
   name: {
     ...Type.body,
     fontWeight: '600',
+  },
+  /**
+   * Accordion-mode title gets a heavier weight + tighter tracking so it
+   * reads as a section heading instead of yet another list-row label.
+   */
+  nameAccordion: {
+    fontWeight: '700',
+    letterSpacing: -0.2,
   },
   meta: {
     ...Type.caption1,

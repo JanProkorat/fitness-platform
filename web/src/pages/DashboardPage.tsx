@@ -17,7 +17,6 @@ import {
   ListView,
   CardGrid,
   Card,
-  CardCover,
   CardBody,
   CardPropRow,
   StatsGrid,
@@ -27,11 +26,23 @@ import {
 import { WeeklyCheckInCard } from '@/components/weekly-checkin/WeeklyCheckInCard';
 
 type ViewType = 'table' | 'list' | 'cards';
+type FilterKey = 'all' | 'active' | 'inactive' | 'withPlan' | 'noPlan' | 'lowCompliance';
+type SortKey = 'name' | 'compliance' | 'streak' | 'lastActivity' | 'kcal' | 'trains';
+type SortDir = 'asc' | 'desc';
 
 const VIEWS: { id: ViewType; label: string; icon: string }[] = [
   { id: 'table', label: 'Tabulka', icon: '⊞' },
   { id: 'list', label: 'Seznam', icon: '☰' },
   { id: 'cards', label: 'Karty', icon: '⬜' },
+];
+
+const FILTER_OPTIONS: { key: FilterKey; label: string }[] = [
+  { key: 'all', label: 'Vše' },
+  { key: 'active', label: 'Aktivní' },
+  { key: 'inactive', label: 'Neaktivní' },
+  { key: 'withPlan', label: 'S aktivním plánem' },
+  { key: 'noPlan', label: 'Bez plánu' },
+  { key: 'lowCompliance', label: 'Nízká compliance (< 50 %)' },
 ];
 
 export default function DashboardPage() {
@@ -41,6 +52,11 @@ export default function DashboardPage() {
   const user = useAuthStore((s) => s.user);
   // -- state ----------------------------------------------------------------
   const [view, setView] = useState<ViewType>('table');
+  const [filter, setFilter] = useState<FilterKey>('all');
+  const [sortKey, setSortKey] = useState<SortKey>('name');
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const [showSortMenu, setShowSortMenu] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [managedRequest, setManagedRequest] = useState<IncomingRequest | null>(null);
   const [statementText, setStatementText] = useState('');
@@ -112,6 +128,79 @@ export default function DashboardPage() {
   const totalTrainsGoal = clients.reduce((sum, c) => sum + c.trainsGoal, 0);
   const activePlansCount = clients.reduce((sum, c) => sum + c.activeNutritionPlansCount, 0);
   const alertClients = clientsWithPlans.filter((c) => c.compliance < 50);
+
+  // -- filter & sort options ------------------------------------------------
+  const sortOptions = useMemo(() => {
+    const opts: { key: SortKey; label: string }[] = [
+      { key: 'name', label: 'Jméno' },
+      { key: 'compliance', label: 'Compliance' },
+      { key: 'streak', label: 'Streak' },
+      { key: 'lastActivity', label: 'Poslední aktivita' },
+    ];
+    if (isNutritionist) opts.push({ key: 'kcal', label: 'Kalorie dnes' });
+    if (isTrainer) opts.push({ key: 'trains', label: 'Tréninky dnes' });
+    return opts;
+  }, [isNutritionist, isTrainer]);
+
+  // Derived list used by table/list/cards. Aggregates above (stats, callouts)
+  // intentionally use the unfiltered `clients`.
+  const displayedClients = useMemo(() => {
+    const filtered = clients.filter((c) => {
+      switch (filter) {
+        case 'active': return c.isActive;
+        case 'inactive': return !c.isActive;
+        case 'withPlan': return c.activeNutritionPlansCount > 0 || c.hasActiveTrainingPlan;
+        case 'noPlan': return c.activeNutritionPlansCount === 0 && !c.hasActiveTrainingPlan;
+        case 'lowCompliance':
+          return ((isNutritionist && c.activeNutritionPlansCount > 0) ||
+                  (isTrainer && c.hasActiveTrainingPlan)) && c.compliance < 50;
+        default: return true;
+      }
+    });
+    const dir = sortDir === 'asc' ? 1 : -1;
+    filtered.sort((a, b) => {
+      let cmp = 0;
+      switch (sortKey) {
+        case 'name':
+          cmp = `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`, i18n.language);
+          break;
+        case 'compliance': cmp = a.compliance - b.compliance; break;
+        case 'streak': cmp = a.streak - b.streak; break;
+        case 'lastActivity': {
+          const av = a.lastActivityAt ? new Date(a.lastActivityAt).getTime() : 0;
+          const bv = b.lastActivityAt ? new Date(b.lastActivityAt).getTime() : 0;
+          cmp = av - bv;
+          break;
+        }
+        case 'kcal': {
+          const ap = a.kcalGoal > 0 ? a.todayKcalRounded / a.kcalGoal : 0;
+          const bp = b.kcalGoal > 0 ? b.todayKcalRounded / b.kcalGoal : 0;
+          cmp = ap - bp;
+          break;
+        }
+        case 'trains': {
+          const ap = a.trainsGoal > 0 ? a.trains / a.trainsGoal : 0;
+          const bp = b.trainsGoal > 0 ? b.trains / b.trainsGoal : 0;
+          cmp = ap - bp;
+          break;
+        }
+      }
+      return cmp * dir;
+    });
+    return filtered;
+  }, [clients, filter, sortKey, sortDir, isNutritionist, isTrainer, i18n.language]);
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+    setShowSortMenu(false);
+  };
+
+  const filterLabel = FILTER_OPTIONS.find((o) => o.key === filter)?.label ?? 'Vše';
 
   // -- date string ----------------------------------------------------------
   const dateStr = new Date().toLocaleDateString(i18n.language, {
@@ -306,8 +395,54 @@ export default function DashboardPage() {
         activeView={view}
         onViewChange={(id) => setView(id as ViewType)}
       >
-        <Button variant="ghost" size="sm">⊞ Filtr</Button>
-        <Button variant="ghost" size="sm">↕ Seřadit</Button>
+        <div className="relative">
+          <Button variant="ghost" size="sm" onClick={() => { setShowFilterMenu((v) => !v); setShowSortMenu(false); }}>
+            ⊞ Filtr{filter !== 'all' ? ` · ${filterLabel}` : ''}
+          </Button>
+          {showFilterMenu && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setShowFilterMenu(false)} />
+              <div className="absolute right-0 top-full mt-1 z-20 bg-bg2 border border-border rounded-md shadow-lg py-1 min-w-[200px]">
+                {FILTER_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.key}
+                    onClick={() => { setFilter(opt.key); setShowFilterMenu(false); }}
+                    className="w-full text-left px-3 py-1.5 text-[13px] hover:bg-bg-hover transition-colors flex items-center justify-between"
+                    style={{ color: filter === opt.key ? 'var(--accent)' : 'var(--text)' }}
+                  >
+                    {opt.label}
+                    {filter === opt.key && <span className="text-[10px] ml-2">✓</span>}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+        <div className="relative">
+          <Button variant="ghost" size="sm" onClick={() => { setShowSortMenu((v) => !v); setShowFilterMenu(false); }}>
+            ↕ Seřadit
+          </Button>
+          {showSortMenu && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setShowSortMenu(false)} />
+              <div className="absolute right-0 top-full mt-1 z-20 bg-bg2 border border-border rounded-md shadow-lg py-1 min-w-[180px]">
+                {sortOptions.map((opt) => (
+                  <button
+                    key={opt.key}
+                    onClick={() => handleSort(opt.key)}
+                    className="w-full text-left px-3 py-1.5 text-[13px] hover:bg-bg-hover transition-colors flex items-center justify-between"
+                    style={{ color: sortKey === opt.key ? 'var(--accent)' : 'var(--text)' }}
+                  >
+                    {opt.label}
+                    {sortKey === opt.key && (
+                      <span className="text-[10px] ml-2">{sortDir === 'asc' ? '↑' : '↓'}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </Toolbar>
 
       <div className="flex-1 overflow-y-auto">
@@ -410,11 +545,26 @@ export default function DashboardPage() {
             </div>
           )}
 
+          {/* Empty filtered state */}
+          {clients.length > 0 && displayedClients.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-16 text-text3">
+              <span className="text-4xl">🔍</span>
+              <p className="mt-3 text-sm">Žádní klienti pro vybraný filtr.</p>
+              <button
+                type="button"
+                onClick={() => setFilter('all')}
+                className="mt-2 text-[13px] underline hover:text-text2"
+              >
+                Zrušit filtr
+              </button>
+            </div>
+          )}
+
           {/* Table view */}
-          {clients.length > 0 && view === 'table' && (
+          {displayedClients.length > 0 && view === 'table' && (
             <DatabaseTable
               columns={columns}
-              rows={clients}
+              rows={displayedClients}
               rowKey={(row) => row.publicId ?? row.email ?? ''}
               onRowClick={handleRowClick}
               onAddRow={() => setDialogOpen(true)}
@@ -447,16 +597,25 @@ export default function DashboardPage() {
           )}
 
           {/* List view */}
-          {clients.length > 0 && view === 'list' && (
+          {displayedClients.length > 0 && view === 'list' && (
             <ListView
-              items={clients}
+              items={displayedClients}
               itemKey={(item) => item.publicId ?? item.email ?? ''}
               onItemClick={handleRowClick}
-              renderAvatar={(item) => (
-                <div className="w-8 h-8 rounded-full flex items-center justify-center bg-accent-bg border border-accent-br text-[11px] font-bold text-accent">
-                  {initials(item.firstName, item.lastName)}
-                </div>
-              )}
+              renderAvatar={(item) =>
+                item.avatarBlobUrl ? (
+                  <img
+                    src={item.avatarBlobUrl}
+                    alt=""
+                    aria-hidden="true"
+                    className="w-8 h-8 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center bg-accent-bg border border-accent-br text-[11px] font-bold text-accent">
+                    {initials(item.firstName, item.lastName)}
+                  </div>
+                )
+              }
               renderInfo={(item) => (
                 <div>
                   <div className="text-[13px] font-medium text-text truncate">
@@ -513,29 +672,45 @@ export default function DashboardPage() {
           )}
 
           {/* Cards view */}
-          {clients.length > 0 && view === 'cards' && (
+          {displayedClients.length > 0 && view === 'cards' && (
             <CardGrid>
-              {clients.map((client) => (
+              {displayedClients.map((client) => (
                 <Card
                   key={client.publicId ?? client.email}
                   onClick={() => handleRowClick(client)}
                 >
-                  <CardCover>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-11 h-11 rounded-full flex items-center justify-center bg-accent-bg border border-accent-br text-base font-bold text-accent">
-                        {initials(client.firstName, client.lastName)}
+                  {/* Taller image area with name + goal overlay */}
+                  <div className="relative h-40 w-full overflow-hidden rounded-t-md bg-bg3">
+                    {client.avatarBlobUrl ? (
+                      <img
+                        src={client.avatarBlobUrl}
+                        alt=""
+                        aria-hidden="true"
+                        className="absolute inset-0 h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-20 h-20 rounded-full flex items-center justify-center bg-accent-bg border border-accent-br text-2xl font-bold text-accent">
+                          {initials(client.firstName, client.lastName)}
+                        </div>
+                      </div>
+                    )}
+                    {/* Goal chip — top-right corner */}
+                    {client.goal && (
+                      <div className="absolute top-2 right-2 inline-flex items-center rounded-full bg-white/85 backdrop-blur-sm shadow-sm">
+                        <Tag variant={client.goalTag} className="text-[10px] !py-[1px] !px-1.5">
+                          {client.goal}
+                        </Tag>
+                      </div>
+                    )}
+                    {/* Gradient + name overlay */}
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/55 to-transparent px-3 pb-2 pt-10">
+                      <div className="truncate text-[13px] font-bold text-white leading-tight [text-shadow:_0_1px_2px_rgba(0,0,0,0.6)]">
+                        {client.firstName} {client.lastName}
                       </div>
                     </div>
-                  </CardCover>
+                  </div>
                   <CardBody>
-                    <div className="text-[13px] font-semibold text-text mb-1">
-                      {client.firstName} {client.lastName}
-                    </div>
-                    <div className="mb-1">
-                      <Tag variant={client.goalTag} className="text-[11px]">
-                        {client.goal}
-                      </Tag>
-                    </div>
                     <CardPropRow label="">
                       <span
                         className="font-semibold"

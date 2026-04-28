@@ -33,6 +33,9 @@ export function MacroSidebar({ totals, targets }: MacroSidebarProps) {
         </div>
         <div className="text-[22px] font-bold text-text tracking-tight leading-none mb-[2px]">
           {totals.kcal.toLocaleString('cs-CZ')}
+          <span className="ml-1 text-[14px] font-normal text-text3">
+            / {targets.kcal.toLocaleString('cs-CZ')} kcal
+          </span>
         </div>
         <div
           className={cn(

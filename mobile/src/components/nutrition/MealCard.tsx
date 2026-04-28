@@ -14,7 +14,7 @@ import { hrefParams } from '@/lib/navigation'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
 import { getFoodCategoryColor, RECIPE_CHIP_COLOR } from '@/constants/foodCategories'
-import { NoteBanner } from '@/components/ui/NoteBanner'
+import { getMealKindConfig } from '@/constants/mealKinds'
 import { ImageLightbox } from '@/components/ui/ImageLightbox'
 import type { MealFood, MealRecipe, PlanMeal } from '@/api/nutrition'
 import { goldAlpha, Colors } from '@/constants/colors'
@@ -53,6 +53,12 @@ function MealCard({ meal, expanded, onToggle, eaten, photos = [], onPhotoPress }
   const itemCount = totalMealItems(meal)
 
   const mealLabel = meal.kind ? t(`nutrition.mealKind.${meal.kind}`) : ''
+
+  // Meal-kind palette for the header tint + accent bar (mirrors MealRow on
+  // the Today card so the plan-detail screen reads identically).
+  const kindConfig = getMealKindConfig(meal.kind)
+  const isDark = colors.bg === '#1c1c1e'
+  const headerTint = isDark ? kindConfig.tintDark : kindConfig.tintLight
 
   // Lightbox state
   const [lightbox, setLightbox] = useState<{ visible: boolean; startIndex: number }>({
@@ -97,9 +103,27 @@ function MealCard({ meal, expanded, onToggle, eaten, photos = [], onPhotoPress }
   return (
     <View style={[styles.mealCard, { backgroundColor: colors.bg2 }]}>
       <Pressable onPress={onToggle}>
-        <View style={styles.mealCardHeader}>
+        <View
+          style={[
+            styles.mealCardHeader,
+            // Tint the header strip with the meal-kind palette when expanded
+            // so the section title surface is visually distinct from the
+            // food rows below — same treatment as MealRow on Today.
+            expanded && { backgroundColor: headerTint },
+          ]}
+        >
+          <View
+            style={[styles.accentBar, { backgroundColor: kindConfig.accent }]}
+            pointerEvents="none"
+          />
           <View style={styles.mealCardInfo}>
-            <Text style={[styles.mealName, { color: colors.label }]}>
+            <Text
+              style={[
+                styles.mealName,
+                expanded && styles.mealNameExpanded,
+                { color: colors.label },
+              ]}
+            >
               {mealLabel}
             </Text>
             <Text style={[styles.mealMeta, { color: colors.label2 }]}>
@@ -107,6 +131,32 @@ function MealCard({ meal, expanded, onToggle, eaten, photos = [], onPhotoPress }
               {t('nutrition.items', { count: itemCount })}
             </Text>
           </View>
+          {/* Photo-presence indicator — visible in the header (incl. when the
+              card is collapsed) so the photo strip in the body isn't the only
+              way to discover that diary photos exist. Tapping opens the
+              lightbox without expanding the card. */}
+          {photoUrls.length > 0 && (
+            <Pressable
+              onPress={(e) => {
+                e.stopPropagation?.()
+                setLightbox({ visible: true, startIndex: 0 })
+              }}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={t('mealLogPhoto.openPhotosA11y')}
+              style={[
+                styles.photoIndicator,
+                { backgroundColor: colors.goldBg, borderColor: goldAlpha['35'] },
+              ]}
+            >
+              <Ionicons name="camera" size={12} color={colors.gold} />
+              {photoUrls.length > 1 && (
+                <Text style={[styles.photoIndicatorCount, { color: colors.gold }]}>
+                  {photoUrls.length}
+                </Text>
+              )}
+            </Pressable>
+          )}
           {onPhotoPress && (
             <Pressable
               onPress={(e) => {
@@ -149,6 +199,29 @@ function MealCard({ meal, expanded, onToggle, eaten, photos = [], onPhotoPress }
           onLayout={handleLayout}
           style={[styles.mealBodyInner, { borderTopColor: colors.sep2 }]}
         >
+          {/* Meal note — sits right under the header, mirroring MealRow on
+              the Today screen so the trainer's note for this meal is the
+              first thing the client sees when they expand the card. */}
+          {meal.note && (
+            <View
+              style={[
+                styles.mealNote,
+                { borderTopColor: colors.sep2, backgroundColor: headerTint },
+              ]}
+            >
+              <View
+                style={[styles.mealNoteAccent, { backgroundColor: kindConfig.accent }]}
+                pointerEvents="none"
+              />
+              <Text style={[styles.mealNoteText, styles.mealNoteTextAccent, { color: colors.label2 }]}>
+                <Text style={{ fontWeight: '600', color: kindConfig.accent }}>
+                  {t('nutrition.mealNoteLabel')}{' '}
+                </Text>
+                {meal.note}
+              </Text>
+            </View>
+          )}
+
           {/* Foods */}
           {meal.foods?.map((food, idx) => (
             <FoodItemRow key={`f-${food.foodExternalId}-${idx}`} food={food} mealName={mealLabel} />
@@ -207,22 +280,6 @@ function MealCard({ meal, expanded, onToggle, eaten, photos = [], onPhotoPress }
             </View>
           )}
 
-          {/* Meal note */}
-          {meal.note && (
-            <View
-              style={[
-                styles.mealNote,
-                { borderTopColor: colors.sep2, backgroundColor: colors.goldBg },
-              ]}
-            >
-              <Text style={[styles.mealNoteText, { color: colors.label2 }]}>
-                <Text style={{ fontWeight: '600', color: colors.gold }}>
-                  {t('nutrition.tip')}{' '}
-                </Text>
-                {meal.note}
-              </Text>
-            </View>
-          )}
         </View>
       </Animated.View>
 
@@ -303,6 +360,17 @@ function FoodItemRow({ food, mealName }: { food: MealFood; mealName: string }) {
                 </View>
               </View>
             )}
+            {food.note ? (
+              <Text
+                style={[styles.foodRowNote, { color: colors.label2 }]}
+                numberOfLines={2}
+              >
+                <Text style={[styles.foodRowNoteLabel, { color: colors.gold }]}>
+                  {t('nutrition.tip')}{' '}
+                </Text>
+                {food.note}
+              </Text>
+            ) : null}
           </View>
           <View style={styles.foodRowRight}>
             <Text style={[styles.foodRowKcal, { color: colors.label }]}>
@@ -314,11 +382,6 @@ function FoodItemRow({ food, mealName }: { food: MealFood; mealName: string }) {
           </View>
           <Ionicons name="chevron-forward" size={14} color={colors.label3} style={{ marginLeft: 2 }} />
         </View>
-        {food.note ? (
-          <NoteBanner variant="ingredient" label={t('nutrition.tip')}>
-            {food.note}
-          </NoteBanner>
-        ) : null}
       </Pressable>
     </View>
   )
@@ -370,6 +433,17 @@ function RecipeItemRow({ recipe, mealName }: { recipe: MealRecipe; mealName: str
                 </Text>
               </View>
             </View>
+            {recipe.note ? (
+              <Text
+                style={[styles.foodRowNote, { color: colors.label2 }]}
+                numberOfLines={2}
+              >
+                <Text style={[styles.foodRowNoteLabel, { color: colors.gold }]}>
+                  {t('nutrition.tip')}{' '}
+                </Text>
+                {recipe.note}
+              </Text>
+            ) : null}
           </View>
           <View style={styles.foodRowRight}>
             <Text style={[styles.foodRowKcal, { color: colors.label }]}>
@@ -381,11 +455,6 @@ function RecipeItemRow({ recipe, mealName }: { recipe: MealRecipe; mealName: str
           </View>
           <Ionicons name="chevron-forward" size={14} color={colors.label3} style={{ marginLeft: 2 }} />
         </View>
-        {recipe.note ? (
-          <NoteBanner variant="ingredient" label={t('nutrition.tip')}>
-            {recipe.note}
-          </NoteBanner>
-        ) : null}
       </Pressable>
     </View>
   )
@@ -417,9 +486,28 @@ const styles = StyleSheet.create({
   mealCardInfo: {
     flex: 1,
   },
+  /**
+   * Vertical accent bar at the left of the card header — same shape as the
+   * MealRow accordion bar so the plan-detail and Today views read as one
+   * design language.
+   */
+  accentBar: {
+    width: 4,
+    height: 32,
+    borderRadius: 2,
+    flexShrink: 0,
+  },
   mealName: {
     ...Type.callout,
     fontWeight: '600',
+  },
+  /**
+   * Heavier weight + tighter tracking when the card is expanded — matches
+   * the accordion-mode title style in MealRow.
+   */
+  mealNameExpanded: {
+    fontWeight: '700',
+    letterSpacing: -0.2,
   },
   mealMeta: {
     ...Type.caption1,
@@ -450,6 +538,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexShrink: 0,
     marginLeft: 8,
+  },
+  /**
+   * Compact photo-presence pill rendered in the header when the meal has
+   * one or more diary photos. Smaller and shaped like a count chip rather
+   * than the action camera button next to it, so the two read as
+   * distinct affordances (existing photos vs. add a photo).
+   */
+  photoIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 7,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1,
+    flexShrink: 0,
+    marginLeft: 8,
+  },
+  photoIndicatorCount: {
+    fontSize: 11,
+    fontWeight: '600',
   },
   mealTotalsFooter: {
     flexDirection: 'row',
@@ -528,6 +637,24 @@ const styles = StyleSheet.create({
     ...Type.caption2,
     marginTop: 1,
   },
+  /**
+   * Per-food / per-recipe note rendered as an inline annotation under the
+   * name + category chip — replaces the old full-width gold NoteBanner so
+   * the food list keeps its rhythm.
+   */
+  foodRowNote: {
+    ...Type.caption2,
+    marginTop: 4,
+    // Align with the category chip's inner text — categoryChip's
+    // paddingHorizontal is 6, so the chip's first character sits 6px in
+    // from its left edge. Matching that here puts the "Pozn." prefix
+    // visually under that first letter.
+    paddingLeft: 6,
+    lineHeight: 15,
+  },
+  foodRowNoteLabel: {
+    fontWeight: '600',
+  },
 
   // Photo strip
   photoStrip: {
@@ -551,9 +678,27 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
+  /**
+   * Vertical accent bar on the meal note — pinned to the same 16px content
+   * edge as the header bar so the two stack visually even though the note
+   * sits at the bottom of the body.
+   */
+  mealNoteAccent: {
+    position: 'absolute',
+    left: 16,
+    top: 8,
+    bottom: 8,
+    width: 4,
+    borderRadius: 2,
+  },
   mealNoteText: {
     ...Type.caption1,
     lineHeight: 18,
+  },
+  /** Push the note text right by `bar (4) + gap (12) = 16` so it lines up
+   *  with the header title's left edge when the accent bar is shown. */
+  mealNoteTextAccent: {
+    marginLeft: 16,
   },
 })
 

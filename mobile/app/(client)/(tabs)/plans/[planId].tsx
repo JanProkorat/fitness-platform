@@ -373,7 +373,38 @@ function NutritionPlanDetail({ plan }: { plan: FullPlanResponse }) {
   const swipeDay = useCallback(
     (dir: -1 | 1) => {
       const next = effectiveDay + dir
-      if (next < 1 || next > 7) return
+      // Wrap to the next week's Monday when swiping past Sunday on a week
+      // that isn't the last published one — mirrors TrainingPlanDetail.
+      if (next > 7) {
+        if (effectiveWeek < publishedWeekCount) {
+          slideX.value = withTiming(-dir * screenWidth * 0.3, { duration: 150, easing: Easing.out(Easing.ease) }, () => {
+            slideX.value = dir * screenWidth * 0.3
+            slideOpacity.value = 0
+            runOnJS(setSelectedWeek)(effectiveWeek + 1)
+            runOnJS(setSelectedDay)(1)
+            slideX.value = withTiming(0, { duration: 200, easing: Easing.out(Easing.ease) })
+            slideOpacity.value = withTiming(1, { duration: 200 })
+          })
+          scrollRef.current?.scrollTo({ y: 0, animated: false })
+        }
+        return
+      }
+      // Wrap to the previous week's Sunday when swiping back past Monday
+      // on a week that isn't the first one.
+      if (next < 1) {
+        if (effectiveWeek > 1) {
+          slideX.value = withTiming(-dir * screenWidth * 0.3, { duration: 150, easing: Easing.out(Easing.ease) }, () => {
+            slideX.value = dir * screenWidth * 0.3
+            slideOpacity.value = 0
+            runOnJS(setSelectedWeek)(effectiveWeek - 1)
+            runOnJS(setSelectedDay)(7)
+            slideX.value = withTiming(0, { duration: 200, easing: Easing.out(Easing.ease) })
+            slideOpacity.value = withTiming(1, { duration: 200 })
+          })
+          scrollRef.current?.scrollTo({ y: 0, animated: false })
+        }
+        return
+      }
 
       slideX.value = withTiming(-dir * screenWidth * 0.3, { duration: 150, easing: Easing.out(Easing.ease) }, () => {
         slideX.value = dir * screenWidth * 0.3
@@ -384,7 +415,7 @@ function NutritionPlanDetail({ plan }: { plan: FullPlanResponse }) {
       })
       scrollRef.current?.scrollTo({ y: 0, animated: false })
     },
-    [effectiveDay, screenWidth, slideX, slideOpacity],
+    [effectiveDay, effectiveWeek, publishedWeekCount, screenWidth, slideX, slideOpacity],
   )
 
   const animatedSlideStyle = useAnimatedStyle(() => ({
@@ -654,7 +685,7 @@ function NutritionPlanDetail({ plan }: { plan: FullPlanResponse }) {
               <View style={[styles.dailyNote, { backgroundColor: colors.goldBg }]}>
                 <Text style={[styles.dailyNoteText, { color: colors.label2 }]}>
                   <Text style={{ fontWeight: '600', color: colors.gold }}>
-                    {t('nutrition.tip')}{' '}
+                    {t('nutrition.dayNoteLabel')}{' '}
                   </Text>
                   {currentDayObj.note}
                 </Text>
@@ -1188,7 +1219,7 @@ function TrainingPlanDetail({ plan }: { plan: FullTrainingPlanResponse }) {
               <View style={[styles.dailyNote, { backgroundColor: colors.goldBg }]}>
                 <Text style={[styles.dailyNoteText, { color: colors.label2 }]}>
                   <Text style={{ fontWeight: '600', color: colors.gold }}>
-                    {t('nutrition.tip')}{' '}
+                    {t('nutrition.dayNoteLabel')}{' '}
                   </Text>
                   {(currentWeekObj?.dayNotes ?? {})[effectiveDay]}
                 </Text>

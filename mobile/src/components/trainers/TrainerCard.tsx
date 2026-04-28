@@ -18,6 +18,29 @@ const ROLE_BADGE_COLORS: Record<string, { bg: string; text: string }> = {
   Nutritionist: { bg: 'rgba(52,199,89,0.10)', text: '#34c759' },
 }
 
+/**
+ * Soft tint used on the card's top section so the trainer's specialization
+ * is readable at a glance — same hue as the role badge but lighter so the
+ * avatar + name stay legible. Trainers with multiple roles get the gold
+ * "combined" wash.
+ */
+const ROLE_HEADER_TINT: Record<string, string> = {
+  'Osobní trenér': 'rgba(0,122,255,0.08)',
+  'Výž. poradce': 'rgba(52,199,89,0.08)',
+  'Výživový poradce': 'rgba(52,199,89,0.08)',
+  'Trenér & poradce': goldAlpha['08'],
+  Trainer: 'rgba(0,122,255,0.08)',
+  Nutritionist: 'rgba(52,199,89,0.08)',
+}
+
+function getHeaderTint(roles: string[]): string {
+  if (roles.length === 0) return 'transparent'
+  if (roles.length === 1) return ROLE_HEADER_TINT[roles[0]] ?? 'transparent'
+  // Multiple distinct specializations — use the brand "combined" wash so we
+  // don't pick one role's color over another.
+  return goldAlpha['08']
+}
+
 export interface TrainerCardData {
   id: string
   name: string
@@ -59,10 +82,13 @@ export function TrainerCard({
   const contactDisabled = requestStatus === 'pending' || !trainer.accepting
   const waitlist = !trainer.accepting && requestStatus === 'none'
 
+  const headerTint = getHeaderTint(trainer.roles)
+
   return (
     <View style={[styles.card, { backgroundColor: colors.bg2 }]}>
-      {/* Top section */}
-      <View style={styles.top}>
+      {/* Top section — tinted by the trainer's specialization so the
+          coach's role is recognizable at a glance. */}
+      <View style={[styles.top, { backgroundColor: headerTint }]}>
         <Avatar name={trainer.name} size="md" color={trainer.avatarColor} imageUrl={trainer.avatarImageUrl} />
         <View style={styles.info}>
           <Text style={[Type.headline, { color: colors.label }]} numberOfLines={1}>

@@ -1,13 +1,14 @@
 import { cn } from '@/lib/cn';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'default' | 'primary' | 'danger' | 'ghost';
+  variant?: 'default' | 'primary' | 'brand' | 'danger' | 'ghost';
   size?: 'default' | 'sm';
 }
 
 const variantStyles: Record<NonNullable<ButtonProps['variant']>, string> = {
   default: 'border-border-md bg-bg text-text hover:bg-bg-hover',
   primary: 'bg-text text-bg border-transparent hover:opacity-85',
+  brand: 'bg-accent text-bg border-transparent hover:opacity-85 disabled:bg-accent-bg disabled:text-accent disabled:border-[var(--accent-br)] disabled:hover:opacity-100',
   danger: 'bg-red-bg text-red border-[var(--red-br)] hover:bg-[rgba(192,57,43,0.14)]',
   ghost: 'border-transparent hover:bg-bg-hover hover:border-border',
 };

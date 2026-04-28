@@ -6,6 +6,7 @@ export interface ClientDashboardItem {
   lastName: string;
   email: string;
   isActive: boolean;
+  avatarBlobUrl?: string | null;
   goal: string | null;
   compliancePercent: number;
   currentStreak: number;

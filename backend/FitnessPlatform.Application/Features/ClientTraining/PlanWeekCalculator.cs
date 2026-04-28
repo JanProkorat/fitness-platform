@@ -16,7 +16,8 @@ internal static class PlanWeekCalculator
     /// Ordered list of published week numbers (ascending). Must be non-empty.
     /// </param>
     /// <param name="totalWeeks">
-    /// Total number of weeks in the plan (for clamping).
+    /// Total number of weeks in the plan. Used to detect that the plan's
+    /// duration has elapsed (today is past the final week's last day).
     /// </param>
     /// <param name="firstPublishedDate">
     /// The <c>DatePublished</c> of the first published week, used when <paramref name="startDate"/>
@@ -28,8 +29,12 @@ internal static class PlanWeekCalculator
     /// </param>
     /// <param name="now">The current UTC date-time (injected for testability).</param>
     /// <returns>
-    /// The resolved 1-based week number, or <c>null</c> if the plan hasn't started yet
-    /// (i.e. <paramref name="startDate"/> is in the future) or there are no published weeks.
+    /// The resolved 1-based week number, or <c>null</c> when the plan hasn't started yet
+    /// (<paramref name="startDate"/> is in the future), the plan's duration has elapsed
+    /// (today is past the final week — <c>weekNumber &gt; totalWeeks</c>), or there are no
+    /// published weeks. Callers must surface this as a "no session today" state rather than
+    /// silently falling back to an arbitrary week — clamping past-end plans to the final
+    /// week causes a finished plan to keep serving today's day-of-week sessions indefinitely.
     /// </returns>
     internal static int? ResolveCurrentWeekNumber(
         DateTime? startDate,
@@ -51,8 +56,8 @@ internal static class PlanWeekCalculator
                 return null; // plan hasn't started yet
 
             weekNumber = (daysSinceStart / 7) + 1;
-            // Clamp to [1, totalWeeks]
-            weekNumber = Math.Max(1, Math.Min(weekNumber, totalWeeks));
+            if (weekNumber > totalWeeks)
+                return null; // plan's duration has elapsed — no session today
         }
         else
         {

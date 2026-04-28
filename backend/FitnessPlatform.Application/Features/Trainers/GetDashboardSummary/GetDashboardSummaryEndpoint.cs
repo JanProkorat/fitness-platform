@@ -238,6 +238,7 @@ public class GetDashboardSummaryEndpoint(
                 FirstName = link.ClientProfile.User.FirstName,
                 LastName = link.ClientProfile.User.LastName,
                 Email = link.ClientProfile.User.Email!,
+                AvatarBlobUrl = link.ClientProfile.User.AvatarBlobUrl,
                 IsActive = link.IsActive,
                 Goal = link.ClientProfile.Goals,
                 CompliancePercent = percentForViewer,

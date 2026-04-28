@@ -18,7 +18,10 @@
     "total": "Gesamt {{count}}",
     "error": "Fehler",
     "success": "Erfolg",
-    "clear": "Löschen"
+    "clear": "Löschen",
+    "delete": "Löschen",
+    "deleteConfirmTitle": "Element löschen",
+    "deleteConfirmMessage": "Möchten Sie „{{name}}“ wirklich löschen?"
   },
   "validation": {
     "required": "Pflichtfeld",
@@ -919,6 +922,7 @@
     "save": "Speichern",
     "published": "Veröffentlicht ✓",
     "publishWeek": "Woche {{number}} veröffentlichen",
+    "addWeek": "+ Woche hinzufügen",
     "restDay": "Ruhetag — keine Einheiten für diesen Tag",
     "exerciseLabel": "Übung",
     "noteLabel": "Notiz",

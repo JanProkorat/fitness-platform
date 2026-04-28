@@ -145,8 +145,15 @@ export function Sidebar({ onToggleDark }: SidebarProps) {
     <aside className="sb">
       {/* Workspace header */}
       <div className="sb-ws">
-        <div className="sb-ws-icon">GF</div>
-        <div className="sb-ws-name">GoodFellas</div>
+        <button
+          type="button"
+          onClick={() => navigate('/dashboard')}
+          className="flex flex-1 items-center gap-2 cursor-pointer bg-transparent border-0 p-0 m-0 text-left min-w-0"
+          aria-label={t('sidebar.dashboard')}
+        >
+          <div className="sb-ws-icon">GF</div>
+          <div className="sb-ws-name">GoodFellas</div>
+        </button>
         <NotificationBell />
       </div>
 
