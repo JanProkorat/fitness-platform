@@ -301,8 +301,19 @@ public class PhotoDiaryReminderScheduler(
                 Data = notificationData
             };
 
-            db.Notifications.Add(notification);
-            await db.SaveChangesAsync(ct);
+            // ── Persist in-app notification (best-effort) ────────────────────
+            try
+            {
+                db.Notifications.Add(notification);
+                await db.SaveChangesAsync(ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex,
+                    "PhotoDiaryReminderScheduler: failed to persist notification for client {ClientUserId} " +
+                    "on request {RequestId}.", clientUserId, request.Id);
+                continue;
+            }
 
             // ── Push notification (best-effort) ───────────────────────────────
             try
@@ -447,7 +458,7 @@ public class PhotoDiaryReminderScheduler(
         {
             return TimeZoneInfo.FindSystemTimeZoneById(ianaId);
         }
-        catch
+        catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException)
         {
             logger.LogWarning(
                 "PhotoDiaryReminderScheduler: unknown time zone '{IanaId}'; falling back to UTC.", ianaId);
