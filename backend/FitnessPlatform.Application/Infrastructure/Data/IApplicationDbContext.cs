@@ -130,6 +130,11 @@ public interface IApplicationDbContext
     DbSet<WeeklyCheckIn> WeeklyCheckIns { get; set; }
 
     /// <summary>
+    /// Photo diary requests sent by nutritionists to clients.
+    /// </summary>
+    DbSet<PhotoDiaryRequest> PhotoDiaryRequests { get; set; }
+
+    /// <summary>
     /// Saves all changes made in this context to the database.
     /// </summary>
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
