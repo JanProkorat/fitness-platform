@@ -125,6 +125,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     /// </summary>
     public virtual DbSet<WeeklyCheckIn> WeeklyCheckIns { get; set; } = null!;
 
+    /// <summary>
+    /// Photo diary requests sent by nutritionists to clients.
+    /// </summary>
+    public virtual DbSet<PhotoDiaryRequest> PhotoDiaryRequests { get; set; } = null!;
+
     /// <inheritdoc />
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
