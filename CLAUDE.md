@@ -32,7 +32,7 @@ cd mobile
 npm install
 npx expo start --ios                # or --android
 
-# End-to-end test harness (packaged backend + seeded fixture on :5001)
+# End-to-end test harness (packaged backend + seeded fixture on :5101)
 npm run e2e:up                      # docker compose up: postgres, mongo, minio, seed, api
 npm run e2e:down                    # docker compose down -v
 ```
