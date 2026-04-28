@@ -61,12 +61,16 @@ builder.Services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<Ap
 
 // MongoDB
 // Idempotent: MongoDB.Driver 3.x can auto-register a default Guid serializer
-// before this line runs (load-order dependent on Linux test hosts), and a
-// second RegisterSerializer call would throw. Skip if the desired serializer
-// is already in place.
-if (BsonSerializer.LookupSerializer<Guid>() is not GuidSerializer { GuidRepresentation: GuidRepresentation.Standard })
+// before this line runs (load-order dependent on Linux test hosts), making a
+// second RegisterSerializer call throw. LookupSerializer<Guid>() can itself
+// trigger that auto-registration, so try/catch is the only reliable guard.
+try
 {
     BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
+}
+catch (BsonSerializationException)
+{
+    // Already registered — driver auto-registered a default before us.
 }
 var mongoDatabaseName = builder.Configuration[ConfigKeys.MongoDbDatabaseName]
     ?? throw new InvalidOperationException("MongoDB:DatabaseName is not configured.");
