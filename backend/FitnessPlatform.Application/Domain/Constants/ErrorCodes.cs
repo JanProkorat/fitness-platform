@@ -190,6 +190,25 @@ public static class ErrorCodes
     /// </summary>
     public const string InvalidImageSubPath = "INVALID_IMAGE_SUB_PATH";
 
+    // ── Photo Diary Requests ─────────────────────────────────────────
+    /// <summary>Photo diary request not found or does not belong to the caller.</summary>
+    public const string PhotoDiaryRequestNotFound = "PHOTO_DIARY_REQUEST_NOT_FOUND";
+
+    /// <summary>The photo diary request is not in the expected status for this operation.</summary>
+    public const string PhotoDiaryRequestInvalidStatus = "PHOTO_DIARY_REQUEST_INVALID_STATUS";
+
+    /// <summary>Exactly one of linkId or pendingInviteId must be set.</summary>
+    public const string PhotoDiaryRequestLinkXorInvite = "PHOTO_DIARY_REQUEST_LINK_XOR_INVITE";
+
+    /// <summary>The referenced client-professional link does not belong to the calling professional.</summary>
+    public const string PhotoDiaryRequestLinkNotOwned = "PHOTO_DIARY_REQUEST_LINK_NOT_OWNED";
+
+    /// <summary>The referenced pending invite does not belong to the calling professional.</summary>
+    public const string PhotoDiaryRequestInviteNotOwned = "PHOTO_DIARY_REQUEST_INVITE_NOT_OWNED";
+
+    /// <summary>The referenced plan does not belong to the client associated with this link/invite.</summary>
+    public const string PhotoDiaryRequestPlanNotOwned = "PHOTO_DIARY_REQUEST_PLAN_NOT_OWNED";
+
     // ── Validation (generic) ─────────────────────────────────────────
     /// <summary>Required field is missing.</summary>
     public const string Required = "REQUIRED";
