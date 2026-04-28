@@ -248,6 +248,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
             e.HasIndex(p => new { p.ClientProfileId, p.Category });
             e.HasIndex(p => p.PlanId);
+            e.HasIndex(p => p.DiaryRequestId)
+                .HasDatabaseName("ix_plan_photos_diary_request_id");
         });
 
         builder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
