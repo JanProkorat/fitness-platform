@@ -59,6 +59,14 @@ public class PhotoDiaryRequestConfiguration : IEntityTypeConfiguration<PhotoDiar
             .OnDelete(DeleteBehavior.Restrict)
             .IsRequired(false);
 
+        // ── FK: Photos → plan_photos.diary_request_id (one-to-many, inverse) ──
+        // The forward side is configured in ApplicationDbContext's PlanPhoto block.
+        builder.HasMany(r => r.Photos)
+            .WithOne(p => p.DiaryRequest)
+            .HasForeignKey(p => p.DiaryRequestId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+
         // ── Indexes ───────────────────────────────────────────────────────────
         // Trainer's "my pending diary requests" list
         builder.HasIndex(r => new { r.ProfessionalId, r.Status })

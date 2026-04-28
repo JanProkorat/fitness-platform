@@ -119,4 +119,10 @@ public class PhotoDiaryRequest
     /// Navigation property to the pending invite (when <see cref="PendingInviteId"/> is set).
     /// </summary>
     public PendingInvite? PendingInvite { get; set; }
+
+    /// <summary>
+    /// Photos that were uploaded against this diary request.
+    /// Populated only when explicitly included; otherwise an empty collection.
+    /// </summary>
+    public ICollection<PlanPhoto> Photos { get; set; } = [];
 }

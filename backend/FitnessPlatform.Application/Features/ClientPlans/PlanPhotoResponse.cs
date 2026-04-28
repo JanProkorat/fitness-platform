@@ -58,4 +58,9 @@ public class PlanPhotoResponse
     /// The ApplicationUser.Id of the uploader.
     /// </summary>
     public Guid UploadedByUserId { get; set; }
+
+    /// <summary>
+    /// The diary request this photo is associated with, or null if none.
+    /// </summary>
+    public Guid? DiaryRequestId { get; set; }
 }
