@@ -45,5 +45,11 @@ public enum NotificationType
     WeeklyCheckInRequested,
 
     /// <summary>A client responded to a weekly check-in reminder; delivered to the professional.</summary>
-    WeeklyCheckInResponded
+    WeeklyCheckInResponded,
+
+    /// <summary>
+    /// A daily reminder sent to a client in an active photo diary workflow
+    /// when no photo has been uploaded for the current day yet.
+    /// </summary>
+    PhotoDiaryReminder
 }

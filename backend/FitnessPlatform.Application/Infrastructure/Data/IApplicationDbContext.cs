@@ -135,6 +135,12 @@ public interface IApplicationDbContext
     DbSet<PhotoDiaryRequest> PhotoDiaryRequests { get; set; }
 
     /// <summary>
+    /// Idempotency log for the daily photo-diary reminder scheduler.
+    /// One row per (DiaryRequestId, ClientLocalDate).
+    /// </summary>
+    DbSet<PhotoDiaryReminderLog> PhotoDiaryReminderLogs { get; set; }
+
+    /// <summary>
     /// Saves all changes made in this context to the database.
     /// </summary>
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

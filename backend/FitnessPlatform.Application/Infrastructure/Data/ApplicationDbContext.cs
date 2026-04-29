@@ -130,6 +130,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     /// </summary>
     public virtual DbSet<PhotoDiaryRequest> PhotoDiaryRequests { get; set; } = null!;
 
+    /// <summary>
+    /// Idempotency log for the daily photo-diary reminder scheduler.
+    /// </summary>
+    public virtual DbSet<PhotoDiaryReminderLog> PhotoDiaryReminderLogs { get; set; } = null!;
+
     /// <inheritdoc />
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -250,6 +255,22 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             e.HasIndex(p => p.PlanId);
             e.HasIndex(p => p.DiaryRequestId)
                 .HasDatabaseName("ix_plan_photos_diary_request_id");
+        });
+
+        builder.Entity<PhotoDiaryReminderLog>(e =>
+        {
+            e.HasKey(l => l.Id);
+            e.Property(l => l.ClientLocalDate).HasColumnType("date");
+
+            e.HasOne(l => l.DiaryRequest)
+                .WithMany()
+                .HasForeignKey(l => l.DiaryRequestId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Uniqueness constraint: at most one reminder log per (request, calendar day).
+            e.HasIndex(l => new { l.DiaryRequestId, l.ClientLocalDate })
+                .IsUnique()
+                .HasDatabaseName("ix_photo_diary_reminder_logs_request_date");
         });
 
         builder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
