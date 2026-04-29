@@ -1041,6 +1041,17 @@
       "title": "Photo diary · active",
       "dayCounter": "Day {{day}} of {{total}}",
       "open": "Open"
+    },
+    "dismiss": {
+      "screenTitle": "Dismiss request",
+      "warningText": "Your coach will be notified that you are dismissing the request. If you want, let them know why briefly — it will help them.",
+      "reasonLabel": "Reason (optional)",
+      "reasonPlaceholder": "E.g. I don't feel ready to share photos yet, I'd prefer to start differently…",
+      "charCount": "{{count}} / {{max}}",
+      "ctaDismiss": "Dismiss request",
+      "ctaCancel": "Cancel",
+      "successToast": "Request dismissed",
+      "errorDismiss": "Dismiss failed. Please try again."
     }
   }
 }

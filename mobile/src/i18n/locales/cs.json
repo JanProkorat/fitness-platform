@@ -1055,6 +1055,17 @@
       "title": "Foto-deník · aktivní",
       "dayCounter": "Den {{day}} ze {{total}}",
       "open": "Otevřít"
+    },
+    "dismiss": {
+      "screenTitle": "Odmítnout žádost",
+      "warningText": "Tvůj kouč bude informován, že žádost odmítáš. Pokud chceš, napiš mu krátce proč — pomůže mu to.",
+      "reasonLabel": "Důvod (volitelné)",
+      "reasonPlaceholder": "Např. Necítím se zatím na sdílení fotek, raději bychom začali jinak…",
+      "charCount": "{{count}} / {{max}}",
+      "ctaDismiss": "Odmítnout žádost",
+      "ctaCancel": "Zrušit",
+      "successToast": "Žádost odmítnuta",
+      "errorDismiss": "Odmítnutí se nezdařilo. Zkus to znovu."
     }
   }
 }
