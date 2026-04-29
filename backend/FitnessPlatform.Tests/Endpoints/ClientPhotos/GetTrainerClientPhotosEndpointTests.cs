@@ -49,7 +49,8 @@ public class GetTrainerClientPhotosEndpointTests
         long clientProfileId,
         PlanPhotoCategory category = PlanPhotoCategory.Body,
         DateTime? takenAt = null,
-        Guid? planId = null)
+        Guid? planId = null,
+        Guid? diaryRequestId = null)
     {
         return new PlanPhoto
         {
@@ -62,6 +63,7 @@ public class GetTrainerClientPhotosEndpointTests
             UploadedByUserId = Guid.NewGuid(),
             DateCreated = DateTime.UtcNow,
             PlanId = planId,
+            DiaryRequestId = diaryRequestId,
         };
     }
 
@@ -428,6 +430,40 @@ public class GetTrainerClientPhotosEndpointTests
         ep.Response.Groups!.Should().HaveCount(1);
         ep.Response.Groups[0].YearMonth.Should().Be("2026-01");
         ep.HttpContext.Response.Headers["X-Total-Count"].ToString().Should().Be("3");
+    }
+
+    // ── DiaryRequestId projection ─────────────────────────────────────────────
+
+    [Fact]
+    public async Task HandleAsync_PhotoWithDiaryRequestId_ExposesDiaryRequestIdInResponse()
+    {
+        var diaryRequestId = Guid.NewGuid();
+        var (builder, _, _) = CreateLinkedSetup();
+        // Photo with a DiaryRequestId set
+        builder.With(MakePhoto(2, PlanPhotoCategory.Body, diaryRequestId: diaryRequestId));
+        // Photo without a DiaryRequestId (null)
+        builder.With(MakePhoto(2, PlanPhotoCategory.Food));
+        var db = builder.Build();
+
+        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
+            db);
+
+        await ep.HandleAsync(
+            new GetTrainerClientPhotosRequest { ClientId = _clientPublicId, Page = 1, PageSize = 20 },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        ep.Response.Photos.Should().NotBeNull();
+        ep.Response.Photos!.Count.Should().Be(2);
+
+        var withDiary = ep.Response.Photos.Single(p => p.Category == PlanPhotoCategory.Body);
+        withDiary.DiaryRequestId.Should().Be(diaryRequestId);
+
+        var withoutDiary = ep.Response.Photos.Single(p => p.Category == PlanPhotoCategory.Food);
+        withoutDiary.DiaryRequestId.Should().BeNull();
     }
 
     // ── Plan filter ───────────────────────────────────────────────────────────

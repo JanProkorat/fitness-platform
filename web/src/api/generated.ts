@@ -20,7 +20,7 @@ export class ApiClient {
 
         this.instance = instance || axios.create();
 
-        this.baseUrl = baseUrl ?? "https://localhost:5001";
+        this.baseUrl = baseUrl ?? "http://localhost:5000";
 
     }
 
@@ -15159,6 +15159,8 @@ Null when PlanId is null. */
     uploadedByUserId?: string;
     /** When the record was created (upload timestamp), in UTC. */
     uploadedAt?: string;
+    /** The diary request this photo is associated with, or null if none. */
+    diaryRequestId?: string | undefined;
 }
 
 /** Represents a calendar-month bucket of plan photos returned when groupByMonth=true is passed to the aggregation endpoints. */

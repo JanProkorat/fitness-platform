@@ -63,6 +63,11 @@ public class PlanPhotoResponse
     public DateTime UploadedAt { get; set; }
 
     /// <summary>
+    /// The diary request this photo is associated with, or null if none.
+    /// </summary>
+    public Guid? DiaryRequestId { get; set; }
+
+    /// <summary>
     /// Maps a <see cref="PlanPhoto"/> entity to a <see cref="PlanPhotoResponse"/>.
     /// </summary>
     public static PlanPhotoResponse FromEntity(PlanPhoto p) => new()
@@ -77,5 +82,6 @@ public class PlanPhotoResponse
         TakenAt = p.TakenAt,
         UploadedByUserId = p.UploadedByUserId,
         UploadedAt = p.DateCreated,
+        DiaryRequestId = p.DiaryRequestId,
     };
 }

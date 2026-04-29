@@ -203,6 +203,43 @@ export function AppShell() {
         queryClient.invalidateQueries({ queryKey: ['planPhotos'] });
       }
     },
+    // ── Photo diary real-time events (from #94 / #97) ────────────────────────
+    photodiaryrequested: (payload: unknown) => {
+      const data = payload as { planId?: string } | undefined;
+      if (data?.planId) {
+        queryClient.invalidateQueries({ queryKey: ['diary-requests', data.planId] });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['diary-requests'] });
+      }
+    },
+    photodiarydismissed: (payload: unknown) => {
+      const data = payload as { planId?: string } | undefined;
+      if (data?.planId) {
+        queryClient.invalidateQueries({ queryKey: ['diary-requests', data.planId] });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['diary-requests'] });
+      }
+    },
+    photodiaryphotoUploaded: (payload: unknown) => {
+      // Diary photo uploads re-use the planphotouploaded path for the photo
+      // grid; here we also refresh the diary request status (InProgress count).
+      const data = payload as { planId?: string } | undefined;
+      if (data?.planId) {
+        queryClient.invalidateQueries({ queryKey: ['diary-requests', data.planId] });
+        queryClient.invalidateQueries({ queryKey: ['planPhotos', data.planId] });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['diary-requests'] });
+        queryClient.invalidateQueries({ queryKey: ['planPhotos'] });
+      }
+    },
+    photodiarysubmitted: (payload: unknown) => {
+      const data = payload as { planId?: string } | undefined;
+      if (data?.planId) {
+        queryClient.invalidateQueries({ queryKey: ['diary-requests', data.planId] });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['diary-requests'] });
+      }
+    },
     weeklycheckinupdated: (payload: unknown) => {
       if (import.meta.env.DEV) {
         console.debug('weeklycheckinupdated', payload);

@@ -19,6 +19,7 @@ import { getPlanPhotos } from '@/api/photos';
 import { PlanPhotoCategory } from '@/api/generated';
 import { CardGrid, Card, CardBody } from '@/components/data';
 import { RequestDiaryDialog } from '@/components/diary/RequestDiaryDialog';
+import { DiaryViewerPanel } from '@/components/diary/DiaryViewerPanel';
 
 interface PlanPhotosTabProps {
   planId: string;
@@ -135,6 +136,9 @@ export function PlanPhotosTab({ planId, clientId, clientName, linkId }: PlanPhot
           <span>{t('diary.request.ctaButton')}</span>
         </button>
       </div>
+
+      {/* Diary viewer panel — shows diary requests for this plan (if any) */}
+      <DiaryViewerPanel planId={planId} allPhotos={allPhotos} />
 
       {/* Photo grid */}
       <div className="flex-1 overflow-y-auto p-5">

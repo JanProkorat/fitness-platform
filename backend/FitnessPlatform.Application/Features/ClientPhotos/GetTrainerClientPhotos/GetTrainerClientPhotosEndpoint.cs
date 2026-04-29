@@ -140,6 +140,7 @@ public class GetTrainerClientPhotosEndpoint(IApplicationDbContext db)
                     TakenAt = p.TakenAt,
                     UploadedByUserId = p.UploadedByUserId,
                     UploadedAt = p.DateCreated,
+                    DiaryRequestId = p.DiaryRequestId,
                 })
                 .ToListAsync(ct);
 
@@ -188,6 +189,7 @@ public class GetTrainerClientPhotosEndpoint(IApplicationDbContext db)
                     TakenAt = p.TakenAt,
                     UploadedByUserId = p.UploadedByUserId,
                     UploadedAt = p.DateCreated,
+                    DiaryRequestId = p.DiaryRequestId,
                 })
                 .ToListAsync(ct);
 
