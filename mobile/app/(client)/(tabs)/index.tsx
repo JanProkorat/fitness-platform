@@ -22,6 +22,7 @@ import { NotificationSheet } from '@/components/notifications/NotificationSheet'
 import { InviteCard } from '@/components/notifications/InviteCard'
 import { QuestionnaireBanner } from '@/components/notifications/QuestionnaireBanner'
 import { DiaryRequestBanner } from '@/components/today/DiaryRequestBanner'
+import { DiaryWorkflowBanner } from '@/components/today/DiaryWorkflowBanner'
 import { WeeklyCheckInBanner } from '@/components/today/WeeklyCheckInBanner'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useClientInvite } from '@/hooks/useClientInvite'
@@ -30,6 +31,10 @@ import {
   type PendingQuestionnairesResponse,
   type PendingDiaryRequestItem,
 } from '@/api/questionnaire'
+import {
+  getActiveWorkflowDiaryRequests,
+  type ClientPhotoDiaryRequestSummary,
+} from '@/api/diaryRequests'
 import { getCurrentCheckIns, type CheckInSummary } from '@/api/weeklyCheckIns'
 import { onEvent } from '@/api/signalr'
 import { Toast } from '@/lib/toast'
@@ -100,6 +105,26 @@ export default function TodayScreen() {
     [pendingQQuery.data?.pendingDiaryRequests],
   )
 
+  // Active workflow diary requests (Accepted or InProgress, Mode === Workflow)
+  const activeWorkflowQuery = useQuery<ClientPhotoDiaryRequestSummary[]>({
+    queryKey: ['active-workflow-diary-requests'],
+    queryFn: getActiveWorkflowDiaryRequests,
+    enabled: hasActiveLink,
+    staleTime: 30_000,
+  })
+  const activeWorkflowItems: ClientPhotoDiaryRequestSummary[] = activeWorkflowQuery.data ?? []
+
+  // Subscribe to photoDiarySubmitted so workflow banners disappear when the diary
+  // is auto-finalized server-side (day N+1 scheduler) or submitted manually.
+  useEffect(() => {
+    const unsub = onEvent('photodiarysubmitted', () => {
+      queryClient.invalidateQueries({ queryKey: ['active-workflow-diary-requests'] })
+      queryClient.invalidateQueries({ queryKey: ['pending-questionnaires'] })
+      queryClient.invalidateQueries({ queryKey: ['notifications'] })
+    })
+    return unsub
+  }, [queryClient])
+
   const handleNotificationAction = useCallback(
     (n: (typeof notifications)[0]) => {
       markRead(n.id)
@@ -152,6 +177,7 @@ export default function TodayScreen() {
       queryClient.invalidateQueries({ queryKey: ['client-invite'] }),
       queryClient.invalidateQueries({ queryKey: ['pending-questionnaires'] }),
       queryClient.invalidateQueries({ queryKey: ['current-weekly-check-ins'] }),
+      queryClient.invalidateQueries({ queryKey: ['active-workflow-diary-requests'] }),
     ])
     setRefreshing(false)
   }, [queryClient])
@@ -225,6 +251,17 @@ export default function TodayScreen() {
                     }
                     onDismiss={() =>
                       router.push(href(`/(client)/diary/${item.requestPublicId}/dismiss`))
+                    }
+                  />
+                ))}
+
+                {/* Active workflow diary banners — one per active 7-day workflow */}
+                {activeWorkflowItems.map((item) => (
+                  <DiaryWorkflowBanner
+                    key={item.id}
+                    request={item}
+                    onOpen={() =>
+                      router.push(href(`/(client)/diary/${item.id}/workflow`))
                     }
                   />
                 ))}

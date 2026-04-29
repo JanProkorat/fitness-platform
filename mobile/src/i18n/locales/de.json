@@ -1002,8 +1002,44 @@
       "errorSubmit": "Senden fehlgeschlagen. Bitte erneut versuchen."
     },
     "workflow": {
-      "title": "7-Tage-Workflow",
-      "placeholder": "Hier siehst du den täglichen Fotoablauf. (Implementiert in #101)"
+      "title": "Foto-Tagebuch",
+      "headerSub": "Tag {{day}} von {{total}} · {{name}}",
+      "daySuffix": "Tag",
+      "daysLeft_one": "Noch {{count}} Tag bis zur Abgabe",
+      "daysLeft_other": "Noch {{count}} Tage bis zur Abgabe",
+      "dayCounter": "Tag {{day}} von {{total}}",
+      "photosCount": "{{count}} Fotos hochgeladen",
+      "addPhoto": "Heute ein Foto hinzufügen",
+      "todaySection": "Heutige Fotos ({{count}})",
+      "todaySectionEmpty": "Heutige Fotos",
+      "previousSection": "Vorherige Tage",
+      "previousDayRow": "Tag {{day}} · {{date}}",
+      "previousPhotoCount_one": "{{count}} Foto",
+      "previousPhotoCount_other": "{{count}} Fotos",
+      "coachNote": "{{name}} sieht deine Fotos in Echtzeit. Sei ehrlich — auch wenn du gesündigt hast.",
+      "finalizeCtaLabel": "Tagebuch abgeben",
+      "completedTitle": "Tagebuch abgegeben",
+      "completedSub": "Dein Coach hat alle Fotos erhalten."
+    },
+    "finalize": {
+      "title": "Tag {{day}} · abschließen",
+      "heroTitle": "Letzter Tag des Foto-Tagebuchs",
+      "heroSub": "Du hast {{photos}} Fotos über {{days}} Tage. Du kannst heute noch mehr hinzufügen oder sofort abgeben.",
+      "statPhotos": "Fotos gesamt",
+      "statDays": "Tage abgeschlossen",
+      "statAttendance": "Teilnahme",
+      "lastPhotosSection": "Letztes Foto hinzufügen",
+      "lastPhotosCta": "Letztes Foto hinzufügen",
+      "lastPhotosHint": "Galerie oder Kamera",
+      "submitCta": "An Coach abgeben",
+      "addMoreCta": "Noch ein Foto hinzufügen",
+      "successToast": "Tagebuch abgegeben!",
+      "errorSubmit": "Abgabe fehlgeschlagen. Bitte erneut versuchen."
+    },
+    "workflowBanner": {
+      "title": "Foto-Tagebuch · aktiv",
+      "dayCounter": "Tag {{day}} von {{total}}",
+      "open": "Öffnen"
     }
   }
 }
