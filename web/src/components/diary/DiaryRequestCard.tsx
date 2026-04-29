@@ -3,10 +3,8 @@
  * and (for active/completed requests) photos grouped by calendar day.
  *
  * Photos are sourced from the parent's `allPhotos` prop (already loaded
- * by PlanPhotosTab) — filtered to photos whose `takenAt` falls within
- * [acceptedAt, acceptedAt + durationDays) to associate them with this
- * request.  Because PlanPhotoResponse2 doesn't carry diaryRequestId on
- * the trainer aggregation endpoint, we rely on the date window heuristic.
+ * by PlanPhotosTab) — filtered strictly by `diaryRequestId === request.id`
+ * using the FK field now present on PlanPhotoResponse2 (ClientPhotos.Common).
  *
  * For Dismissed requests the dismiss reason is shown prominently instead.
  *
@@ -25,7 +23,7 @@ import type { PlanPhotoResponse2 } from '@/api/generated';
 
 interface Props {
   request: PhotoDiaryRequestSummary;
-  /** All plan photos already loaded — this component filters by date window. */
+  /** All plan photos already loaded — this component filters by diaryRequestId FK. */
   allPhotos: PlanPhotoResponse2[];
 }
 
@@ -44,25 +42,17 @@ interface DayGroup {
 
 function buildDayGroups(
   photos: PlanPhotoResponse2[],
+  requestId: string,
   acceptedAt: string,
   durationDays: number,
 ): DayGroup[] {
-  const acceptedDate = new Date(acceptedAt);
-  // End of diary window (exclusive)
-  const endDate = new Date(acceptedDate);
-  endDate.setDate(endDate.getDate() + durationDays);
+  // Filter strictly by the FK field — no date-window heuristic needed.
+  const diaryPhotos = photos.filter((p) => p.diaryRequestId === requestId);
 
-  // Filter photos within the window
-  const windowPhotos = photos.filter((p) => {
-    if (!p.takenAt && !p.uploadedAt) return false;
-    const ts = p.takenAt ?? p.uploadedAt ?? '';
-    const d = new Date(ts);
-    return d >= acceptedDate && d < endDate;
-  });
-
-  // Group by calendar day
+  // Group by calendar day (takenAt preferred, uploadedAt as fallback)
   const grouped = new Map<string, PlanPhotoResponse2[]>();
-  for (const photo of windowPhotos) {
+  for (const photo of diaryPhotos) {
+    if (!photo.takenAt && !photo.uploadedAt) continue;
     const ts = photo.takenAt ?? photo.uploadedAt ?? '';
     const key = toLocalDateKey(ts);
     const arr = grouped.get(key) ?? [];
@@ -106,11 +96,11 @@ export function DiaryRequestCard({ request, allPhotos }: Props) {
       status === PhotoDiaryStatus.Completed ||
       status === PhotoDiaryStatus.Accepted
     ) {
-      if (!acceptedAt) return [];
-      return buildDayGroups(allPhotos, acceptedAt, durationDays);
+      if (!acceptedAt || !request.id) return [];
+      return buildDayGroups(allPhotos, request.id, acceptedAt, durationDays);
     }
     return [];
-  }, [status, acceptedAt, durationDays, allPhotos]);
+  }, [status, acceptedAt, durationDays, allPhotos, request.id]);
 
   const totalPhotoCount = useMemo(
     () => dayGroups.reduce((sum, g) => sum + g.photos.length, 0),
