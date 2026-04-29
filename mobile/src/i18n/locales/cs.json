@@ -1013,8 +1013,48 @@
       "errorSubmit": "Odeslání se nezdařilo. Zkus to znovu."
     },
     "workflow": {
-      "title": "Sedmidenní workflow",
-      "placeholder": "Tady uvidíš každodenní průběh sdílení fotografií. (Implementováno v #101)"
+      "title": "Foto-deník",
+      "headerSub": "Den {{day}} ze {{total}} · {{name}}",
+      "daySuffix": "den",
+      "daysLeft_one": "Ještě {{count}} den do odevzdání",
+      "daysLeft_few": "Ještě {{count}} dny do odevzdání",
+      "daysLeft_many": "Ještě {{count}} dní do odevzdání",
+      "daysLeft_other": "Ještě {{count}} dní do odevzdání",
+      "dayCounter": "Den {{day}} ze {{total}}",
+      "photosCount": "{{count}} fotek nahráno",
+      "addPhoto": "Přidat fotku dnes",
+      "todaySection": "Dnešní fotky ({{count}})",
+      "todaySectionEmpty": "Dnešní fotky",
+      "previousSection": "Předchozí dny",
+      "previousDayRow": "Den {{day}} · {{date}}",
+      "previousPhotoCount_one": "{{count}} fotka",
+      "previousPhotoCount_few": "{{count}} fotky",
+      "previousPhotoCount_many": "{{count}} fotek",
+      "previousPhotoCount_other": "{{count}} fotek",
+      "coachNote": "{{name}} vidí tvé fotky v reálném čase. Buď upřímný — i když jsi zhřešil.",
+      "finalizeCtaLabel": "Odevzdat deník",
+      "completedTitle": "Deník byl odeslán",
+      "completedSub": "Tvůj kouč obdržel všechny fotky."
+    },
+    "finalize": {
+      "title": "Den {{day}} · dokončit",
+      "heroTitle": "Poslední den foto-deníku",
+      "heroSub": "Máš {{photos}} fotek za {{days}} dní. Můžeš ještě přidat dnešní, nebo rovnou odevzdat.",
+      "statPhotos": "fotek celkem",
+      "statDays": "dní splněno",
+      "statAttendance": "docházka",
+      "lastPhotosSection": "Naposledy přidat",
+      "lastPhotosCta": "Přidat poslední fotku",
+      "lastPhotosHint": "Galerie nebo fotoaparát",
+      "submitCta": "Odevzdat kouči",
+      "addMoreCta": "Přidat ještě fotku",
+      "successToast": "Deník odeslán!",
+      "errorSubmit": "Odeslání se nezdařilo. Zkus to znovu."
+    },
+    "workflowBanner": {
+      "title": "Foto-deník · aktivní",
+      "dayCounter": "Den {{day}} ze {{total}}",
+      "open": "Otevřít"
     }
   }
 }

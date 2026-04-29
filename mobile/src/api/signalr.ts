@@ -29,6 +29,10 @@ const KNOWN_EVENTS = [
   // Plan photo uploaded: fires when a PlanPhoto record is finalized.
   // Payload: { planId: string, photoId: string }
   'planphotouploaded',
+  // Photo diary submitted: fires when a diary request transitions to Completed
+  // (either via client submit OR the server-side auto-finalize scheduler on day N+1).
+  // Payload: { diaryRequestId: string }
+  'photodiarysubmitted',
 ]
 
 function createConnection(): HubConnection {

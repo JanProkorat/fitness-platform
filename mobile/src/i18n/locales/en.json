@@ -1003,8 +1003,44 @@
       "errorSubmit": "Submission failed. Please try again."
     },
     "workflow": {
-      "title": "7-Day Workflow",
-      "placeholder": "Here you will see the daily photo-sharing flow. (Implemented in #101)"
+      "title": "Photo Diary",
+      "headerSub": "Day {{day}} of {{total}} · {{name}}",
+      "daySuffix": "day",
+      "daysLeft_one": "{{count}} day left until submission",
+      "daysLeft_other": "{{count}} days left until submission",
+      "dayCounter": "Day {{day}} of {{total}}",
+      "photosCount": "{{count}} photos uploaded",
+      "addPhoto": "Add a photo today",
+      "todaySection": "Today's photos ({{count}})",
+      "todaySectionEmpty": "Today's photos",
+      "previousSection": "Previous days",
+      "previousDayRow": "Day {{day}} · {{date}}",
+      "previousPhotoCount_one": "{{count}} photo",
+      "previousPhotoCount_other": "{{count}} photos",
+      "coachNote": "{{name}} sees your photos in real time. Be honest — even if you slipped.",
+      "finalizeCtaLabel": "Submit diary",
+      "completedTitle": "Diary submitted",
+      "completedSub": "Your coach has received all photos."
+    },
+    "finalize": {
+      "title": "Day {{day}} · finish",
+      "heroTitle": "Last day of photo diary",
+      "heroSub": "You have {{photos}} photos over {{days}} days. You can still add more today, or submit right away.",
+      "statPhotos": "photos total",
+      "statDays": "days completed",
+      "statAttendance": "attendance",
+      "lastPhotosSection": "Add one last photo",
+      "lastPhotosCta": "Add last photo",
+      "lastPhotosHint": "Gallery or camera",
+      "submitCta": "Submit to coach",
+      "addMoreCta": "Add another photo",
+      "successToast": "Diary submitted!",
+      "errorSubmit": "Submission failed. Please try again."
+    },
+    "workflowBanner": {
+      "title": "Photo diary · active",
+      "dayCounter": "Day {{day}} of {{total}}",
+      "open": "Open"
     }
   }
 }
