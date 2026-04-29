@@ -183,7 +183,8 @@
     "back": "Zpět",
     "cancel": "Zrušit",
     "error": "Chyba",
-    "options": "Možnosti"
+    "options": "Možnosti",
+    "yourCoach": "váš kouč"
   },
   "imagePicker": {
     "sourceTitle": "Vyberte zdroj",
@@ -974,6 +975,27 @@
       "consentRequiredMessage": "Pro registraci je nutný souhlas se zpracováním zdravotních údajů.",
       "failedTitle": "Registrace selhala",
       "failedMessage": "Registrace selhala. Zkuste to prosím znovu."
+    }
+  },
+  "diary": {
+    "acceptWizard": {
+      "title": "Jak chceš sdílet fotky?",
+      "intro": "Vyber si způsob, který ti bude vyhovovat. {{name}} dostane fotky buď všechny najednou, nebo postupně během 7 dní.",
+      "cancel": "Zrušit",
+      "continue": "Pokračovat",
+      "bulkTitle": "Nahrát vše najednou",
+      "bulkDesc": "Nafoť, co obvykle jíš, a pošli všechny fotky jedním odesláním. Hotovo během pár minut.",
+      "workflowTitle": "Sedmidenní workflow",
+      "workflowDesc": "Během 7 dní postupně fotíš, co jíš. Každý den dostaneš připomenutí. Tvůj kouč uvidí fotky v reálném čase.",
+      "errorAccept": "Žádost se nepodařilo přijmout. Zkus to znovu."
+    },
+    "bulk": {
+      "title": "Nahrání fotografií",
+      "placeholder": "Tady budeš moci nahrát své fotografie jídel. (Implementováno v #100)"
+    },
+    "workflow": {
+      "title": "Sedmidenní workflow",
+      "placeholder": "Tady uvidíš každodenní průběh sdílení fotografií. (Implementováno v #101)"
     }
   }
 }
