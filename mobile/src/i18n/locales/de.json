@@ -981,8 +981,25 @@
       "errorAccept": "Anfrage konnte nicht angenommen werden. Bitte versuche es erneut."
     },
     "bulk": {
-      "title": "Fotos hochladen",
-      "placeholder": "Hier kannst du deine Essensfotos hochladen. (Implementiert in #100)"
+      "title": "Fotos hochladen ({{count}}/{{total}})",
+      "close": "Schließen",
+      "hint": "Füge Fotos von Mahlzeiten hinzu, die du normalerweise isst. Du kannst jedem Foto eine Beschreibung hinzufügen.",
+      "addPhotos": "Fotos hinzufügen",
+      "addPhotosHint": "Galerie oder Kamera · max 5 MB pro Foto",
+      "captionPlaceholder": "Bildbeschreibung (optional)",
+      "removePhoto": "Foto entfernen",
+      "statusUploading": "Hochladen…",
+      "statusUploaded": "Hochgeladen",
+      "statusFailed": "Fehler",
+      "retryPhoto": "Erneut versuchen",
+      "submitCta": "An {{name}} senden",
+      "cancelCta": "Abbrechen",
+      "totalStrip": "{{count}} {{photoWord}} · {{sizeMb}} MB",
+      "photo_one": "Foto",
+      "photo_other": "Fotos",
+      "successToast": "Fotos gesendet!",
+      "errorUpload": "Hochladen fehlgeschlagen. Bitte erneut versuchen.",
+      "errorSubmit": "Senden fehlgeschlagen. Bitte erneut versuchen."
     },
     "workflow": {
       "title": "7-Tage-Workflow",

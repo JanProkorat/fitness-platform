@@ -990,8 +990,27 @@
       "errorAccept": "Žádost se nepodařilo přijmout. Zkus to znovu."
     },
     "bulk": {
-      "title": "Nahrání fotografií",
-      "placeholder": "Tady budeš moci nahrát své fotografie jídel. (Implementováno v #100)"
+      "title": "Nahrát fotky ({{count}}/{{total}})",
+      "close": "Zavřít",
+      "hint": "Přidej fotky jídel, která obvykle jíš. Každou fotku můžeš popsat.",
+      "addPhotos": "Přidat fotky",
+      "addPhotosHint": "Galerie nebo fotoaparát · max 5 MB / fotka",
+      "captionPlaceholder": "Popis fotky (nepovinné)",
+      "removePhoto": "Odebrat fotku",
+      "statusUploading": "Nahrávám…",
+      "statusUploaded": "Nahráno",
+      "statusFailed": "Chyba",
+      "retryPhoto": "Zkusit znovu",
+      "submitCta": "Odeslat {{name}}",
+      "cancelCta": "Zrušit",
+      "totalStrip": "{{count}} {{photoWord}} · {{sizeMb}} MB",
+      "photo_one": "fotka",
+      "photo_few": "fotky",
+      "photo_many": "fotek",
+      "photo_other": "fotek",
+      "successToast": "Fotky odeslány!",
+      "errorUpload": "Nahrání se nezdařilo. Zkus to znovu.",
+      "errorSubmit": "Odeslání se nezdařilo. Zkus to znovu."
     },
     "workflow": {
       "title": "Sedmidenní workflow",

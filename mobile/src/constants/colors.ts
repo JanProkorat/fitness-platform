@@ -86,6 +86,9 @@ const light = {
   onGoldChip: '#000000',
   /** Conventional iOS shadowColor — same value in both themes. */
   shadow: '#000000',
+  /** Semi-transparent overlay for floating controls on image surfaces
+   *  (e.g. remove-button over a photo thumbnail). Works in both themes. */
+  overlay: 'rgba(0,0,0,0.45)',
 
   // Macros — match the system colours used in the NutritionCardHero chips
   macroProtein: '#007aff',  // blue
@@ -129,6 +132,9 @@ const dark = {
   onGoldChip: '#000000',
   /** Conventional iOS shadowColor — same value in both themes. */
   shadow: '#000000',
+  /** Semi-transparent overlay for floating controls on image surfaces
+   *  (e.g. remove-button over a photo thumbnail). Works in both themes. */
+  overlay: 'rgba(0,0,0,0.45)',
 
   // Macros — match the system colours used in the NutritionCardHero chips
   macroProtein: '#0a84ff',  // blue
@@ -166,6 +172,7 @@ export interface ColorScheme {
   readonly macroCarbs: string
   readonly macroFat: string
   readonly macroFiber: string
+  readonly overlay: string
 }
 
 export const Colors = { light, dark } as const

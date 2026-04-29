@@ -982,8 +982,25 @@
       "errorAccept": "Could not accept the request. Please try again."
     },
     "bulk": {
-      "title": "Photo Upload",
-      "placeholder": "Here you will be able to upload your food photos. (Implemented in #100)"
+      "title": "Upload photos ({{count}}/{{total}})",
+      "close": "Close",
+      "hint": "Add photos of meals you usually eat. You can add a caption to each photo.",
+      "addPhotos": "Add photos",
+      "addPhotosHint": "Gallery or camera · max 5 MB per photo",
+      "captionPlaceholder": "Photo caption (optional)",
+      "removePhoto": "Remove photo",
+      "statusUploading": "Uploading…",
+      "statusUploaded": "Uploaded",
+      "statusFailed": "Failed",
+      "retryPhoto": "Retry",
+      "submitCta": "Send to {{name}}",
+      "cancelCta": "Cancel",
+      "totalStrip": "{{count}} {{photoWord}} · {{sizeMb}} MB",
+      "photo_one": "photo",
+      "photo_other": "photos",
+      "successToast": "Photos sent!",
+      "errorUpload": "Upload failed. Please try again.",
+      "errorSubmit": "Submission failed. Please try again."
     },
     "workflow": {
       "title": "7-Day Workflow",
