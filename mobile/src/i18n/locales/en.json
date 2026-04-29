@@ -183,7 +183,8 @@
     "back": "Back",
     "cancel": "Cancel",
     "error": "Error",
-    "options": "Options"
+    "options": "Options",
+    "yourCoach": "your coach"
   },
   "imagePicker": {
     "sourceTitle": "Select source",
@@ -966,6 +967,27 @@
       "consentRequiredMessage": "You must consent to health data processing to register.",
       "failedTitle": "Registration Failed",
       "failedMessage": "Registration failed. Please try again."
+    }
+  },
+  "diary": {
+    "acceptWizard": {
+      "title": "How do you want to share photos?",
+      "intro": "Choose the method that suits you. {{name}} will receive your photos either all at once or gradually over 7 days.",
+      "cancel": "Cancel",
+      "continue": "Continue",
+      "bulkTitle": "Upload all at once",
+      "bulkDesc": "Take photos of what you usually eat and send them all in one submission. Done in just a few minutes.",
+      "workflowTitle": "7-day workflow",
+      "workflowDesc": "Over 7 days you gradually photograph what you eat. You will get a daily reminder. Your coach sees photos in real time.",
+      "errorAccept": "Could not accept the request. Please try again."
+    },
+    "bulk": {
+      "title": "Photo Upload",
+      "placeholder": "Here you will be able to upload your food photos. (Implemented in #100)"
+    },
+    "workflow": {
+      "title": "7-Day Workflow",
+      "placeholder": "Here you will see the daily photo-sharing flow. (Implemented in #101)"
     }
   }
 }

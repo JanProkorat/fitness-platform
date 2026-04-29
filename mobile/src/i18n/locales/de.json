@@ -183,7 +183,8 @@
     "back": "Zurück",
     "cancel": "Abbrechen",
     "error": "Fehler",
-    "options": "Optionen"
+    "options": "Optionen",
+    "yourCoach": "dein Coach"
   },
   "imagePicker": {
     "sourceTitle": "Quelle auswählen",
@@ -965,6 +966,27 @@
       "consentRequiredMessage": "Zur Registrierung ist die Einwilligung in die Verarbeitung von Gesundheitsdaten erforderlich.",
       "failedTitle": "Registrierung fehlgeschlagen",
       "failedMessage": "Registrierung fehlgeschlagen. Bitte erneut versuchen."
+    }
+  },
+  "diary": {
+    "acceptWizard": {
+      "title": "Wie möchtest du Fotos teilen?",
+      "intro": "Wähle die Methode, die dir am besten passt. {{name}} erhält deine Fotos entweder alle auf einmal oder schrittweise über 7 Tage.",
+      "cancel": "Abbrechen",
+      "continue": "Weiter",
+      "bulkTitle": "Alles auf einmal hochladen",
+      "bulkDesc": "Mache Fotos von dem, was du normalerweise isst, und sende sie in einer einzigen Übertragung. In wenigen Minuten erledigt.",
+      "workflowTitle": "7-Tage-Workflow",
+      "workflowDesc": "Über 7 Tage fotografierst du schrittweise, was du isst. Du erhältst täglich eine Erinnerung. Dein Coach sieht die Fotos in Echtzeit.",
+      "errorAccept": "Anfrage konnte nicht angenommen werden. Bitte versuche es erneut."
+    },
+    "bulk": {
+      "title": "Fotos hochladen",
+      "placeholder": "Hier kannst du deine Essensfotos hochladen. (Implementiert in #100)"
+    },
+    "workflow": {
+      "title": "7-Tage-Workflow",
+      "placeholder": "Hier siehst du den täglichen Fotoablauf. (Implementiert in #101)"
     }
   }
 }
