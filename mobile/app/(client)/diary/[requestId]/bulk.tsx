@@ -101,6 +101,9 @@ function photosReducer(state: PhotoEntry[], action: PhotoAction): PhotoEntry[] {
   }
 }
 
+// Decorative emoji glyph — no Type.* token covers emoji sizing per project precedent.
+const EMOJI_LARGE = 32
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 let _idCounter = 0
@@ -564,9 +567,9 @@ function PhotoTile({
         {entry.status !== 'pending' && (
           <View style={[styles.statusBadge, { backgroundColor: statusBgColor }]}>
             {entry.status === 'uploading' ? (
-              <ActivityIndicator size="small" color="#ffffff" />
+              <ActivityIndicator size="small" color={colors.onAccent} />
             ) : (
-              <Text style={styles.statusBadgeText}>
+              <Text style={[styles.statusBadgeText, { color: colors.onAccent }]}>
                 {entry.status === 'uploaded'
                   ? t('diary.bulk.statusUploaded')
                   : t('diary.bulk.statusFailed')}
@@ -581,9 +584,9 @@ function PhotoTile({
           hitSlop={8}
           accessibilityRole="button"
           accessibilityLabel={t('diary.bulk.removePhoto')}
-          style={styles.removeBtn}
+          style={[styles.removeBtn, { backgroundColor: colors.overlay }]}
         >
-          <Ionicons name="close" size={14} color="#ffffff" />
+          <Ionicons name="close" size={14} color={colors.onAccent} />
         </Pressable>
       </View>
 
@@ -615,7 +618,7 @@ function PhotoTile({
           accessibilityRole="button"
           accessibilityLabel={t('diary.bulk.retryPhoto')}
         >
-          <Text style={[Type.caption1, styles.retryBtnLabel]}>
+          <Text style={[Type.caption1, styles.retryBtnLabel, { color: colors.onAccent }]}>
             {t('diary.bulk.retryPhoto')}
           </Text>
         </Pressable>
@@ -685,7 +688,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   addCardIcon: {
-    fontSize: 32,
+    fontSize: EMOJI_LARGE,
     marginBottom: 6,
   },
   addCardTitle: {
@@ -723,7 +726,6 @@ const styles = StyleSheet.create({
   },
   statusBadgeText: {
     ...Type.caption2,
-    color: '#ffffff',
     fontWeight: '600',
   },
   removeBtn: {
@@ -732,8 +734,7 @@ const styles = StyleSheet.create({
     left: 8,
     width: 24,
     height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderRadius: Radius.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -747,7 +748,6 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   retryBtnLabel: {
-    color: '#ffffff',
     fontWeight: '600',
   },
 
