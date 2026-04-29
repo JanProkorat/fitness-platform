@@ -1355,6 +1355,26 @@
     }
   },
   "diary": {
+    "viewer": {
+      "sectionTitle": "Foto-deník",
+      "statusPending": "Čeká na klienta",
+      "statusAccepted": "Přijato",
+      "statusInProgress": "Den {{day}} ze {{total}}",
+      "statusCompleted": "Hotovo",
+      "statusDismissed": "Odmítnuto",
+      "modeBulk": "Vše najednou",
+      "modeWorkflow": "Workflow",
+      "durationDays_one": "{{count}} den",
+      "durationDays_other": "{{count}} dní",
+      "requestedOn": "Odesláno",
+      "acceptedOn": "Přijato",
+      "dismissReasonLabel": "Důvod odmítnutí",
+      "dismissReasonEmpty": "Bez uvedeného důvodu.",
+      "noPhotosYet": "Zatím žádné fotky.",
+      "photoCount_one": "{{count}} fotka",
+      "photoCount_other": "{{count}} fotek",
+      "pendingHint": "Čeká se na akceptaci od klienta."
+    },
     "request": {
       "dialogTitle": "Požádat o foto-deník",
       "dialogSubtitle": "Klient uvidí žádost jako banner a může ji přijmout nebo odmítnout.",

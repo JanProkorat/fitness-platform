@@ -47,6 +47,27 @@
   --orange:    #ad5700;
   --orange-bg: rgba(173, 87, 0, 0.08);
 
+  /* Diary request status-chip tokens */
+  --status-pending-text:    #ad5700;
+  --status-pending-bg:      rgba(173, 87, 0, 0.10);
+  --status-pending-br:      rgba(173, 87, 0, 0.22);
+
+  --status-accepted-text:   #0b6e99;
+  --status-accepted-bg:     rgba(11, 110, 153, 0.10);
+  --status-accepted-br:     rgba(11, 110, 153, 0.22);
+
+  --status-inprogress-text: #0f7b6c;
+  --status-inprogress-bg:   rgba(15, 123, 108, 0.10);
+  --status-inprogress-br:   rgba(15, 123, 108, 0.22);
+
+  --status-completed-text:  #0f7b6c;
+  --status-completed-bg:    rgba(15, 123, 108, 0.10);
+  --status-completed-br:    rgba(15, 123, 108, 0.22);
+
+  --status-dismissed-text:  #6b6860;
+  --status-dismissed-bg:    rgba(107, 104, 96, 0.10);
+  --status-dismissed-br:    rgba(107, 104, 96, 0.22);
+
   /* Radii */
   --radius:    4px;
   --radius-md: 6px;

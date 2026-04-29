@@ -1355,6 +1355,26 @@
     }
   },
   "diary": {
+    "viewer": {
+      "sectionTitle": "Fototagebuch",
+      "statusPending": "Ausstehend",
+      "statusAccepted": "Angenommen",
+      "statusInProgress": "Tag {{day}} von {{total}}",
+      "statusCompleted": "Abgeschlossen",
+      "statusDismissed": "Abgelehnt",
+      "modeBulk": "Alles auf einmal",
+      "modeWorkflow": "Workflow",
+      "durationDays_one": "{{count}} Tag",
+      "durationDays_other": "{{count}} Tage",
+      "requestedOn": "Angefragt am",
+      "acceptedOn": "Angenommen am",
+      "dismissReasonLabel": "Ablehnungsgrund",
+      "dismissReasonEmpty": "Kein Grund angegeben.",
+      "noPhotosYet": "Noch keine Fotos.",
+      "photoCount_one": "{{count}} Foto",
+      "photoCount_other": "{{count}} Fotos",
+      "pendingHint": "Warten auf Bestätigung durch den Klienten."
+    },
     "request": {
       "dialogTitle": "Fototagebuch anfordern",
       "dialogSubtitle": "Der Klient sieht die Anfrage als Banner und kann sie annehmen oder ablehnen.",

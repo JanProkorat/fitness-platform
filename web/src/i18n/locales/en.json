@@ -1356,6 +1356,26 @@
     }
   },
   "diary": {
+    "viewer": {
+      "sectionTitle": "Photo diary",
+      "statusPending": "Pending",
+      "statusAccepted": "Accepted",
+      "statusInProgress": "Day {{day}} of {{total}}",
+      "statusCompleted": "Completed",
+      "statusDismissed": "Dismissed",
+      "modeBulk": "All at once",
+      "modeWorkflow": "Workflow",
+      "durationDays_one": "{{count}} day",
+      "durationDays_other": "{{count}} days",
+      "requestedOn": "Requested",
+      "acceptedOn": "Accepted",
+      "dismissReasonLabel": "Dismiss reason",
+      "dismissReasonEmpty": "No reason provided.",
+      "noPhotosYet": "No photos yet.",
+      "photoCount_one": "{{count}} photo",
+      "photoCount_other": "{{count}} photos",
+      "pendingHint": "Waiting for the client to accept."
+    },
     "request": {
       "dialogTitle": "Request photo diary",
       "dialogSubtitle": "Client will see a banner and can accept or decline.",
