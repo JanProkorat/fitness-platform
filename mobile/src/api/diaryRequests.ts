@@ -9,6 +9,8 @@ import type {
   AcceptRequestRequest,
   AcceptRequestResponse,
   ClientPhotoDiaryRequestSummary,
+  DismissRequestRequest,
+  DismissRequestResponse,
   ListClientRequestsResponse,
   SubmitRequestResponse,
 } from './generated'
@@ -16,7 +18,12 @@ import { PhotoDiaryMode, PhotoDiaryStatus } from './generated'
 
 // Re-export so consumers only need one import.
 export { PhotoDiaryMode, PhotoDiaryStatus }
-export type { ClientPhotoDiaryRequestSummary, ListClientRequestsResponse, SubmitRequestResponse }
+export type {
+  ClientPhotoDiaryRequestSummary,
+  DismissRequestResponse,
+  ListClientRequestsResponse,
+  SubmitRequestResponse,
+}
 
 /**
  * Accept a pending photo-diary request with the chosen upload mode.
@@ -89,6 +96,34 @@ export async function submitDiaryRequest(
   const { data } = await api.post<SubmitRequestResponse>(
     `/client/photo-diary-requests/${requestId}/submit`,
     {},
+  )
+  return data
+}
+
+/**
+ * Dismiss a pending photo-diary request with an optional reason.
+ *
+ * `POST /client/photo-diary-requests/{id}/dismiss`
+ *
+ * Transitions the request from Pending → Dismissed and notifies the
+ * trainer via the `photoDiaryDismissed` SignalR event.
+ * Only Pending requests can be dismissed; calling on any other status
+ * returns 409 from the backend.
+ *
+ * The reason is omitted entirely from the request body when it is
+ * empty or whitespace — the backend accepts `null` / missing field as
+ * "no reason given".
+ */
+export async function dismissDiaryRequest(params: {
+  id: string
+  reason?: string
+}): Promise<DismissRequestResponse> {
+  const { id, reason } = params
+  const trimmed = reason?.trim()
+  const body: DismissRequestRequest = trimmed ? { reason: trimmed } : {}
+  const { data } = await api.post<DismissRequestResponse>(
+    `/client/photo-diary-requests/${id}/dismiss`,
+    body,
   )
   return data
 }

@@ -1040,6 +1040,17 @@
       "title": "Foto-Tagebuch · aktiv",
       "dayCounter": "Tag {{day}} von {{total}}",
       "open": "Öffnen"
+    },
+    "dismiss": {
+      "screenTitle": "Anfrage ablehnen",
+      "warningText": "Dein Coach wird darüber informiert, dass du die Anfrage ablehnst. Wenn du möchtest, erkläre kurz warum — das hilft ihm weiter.",
+      "reasonLabel": "Grund (optional)",
+      "reasonPlaceholder": "Z.B. Ich fühle mich noch nicht bereit, Fotos zu teilen, ich würde lieber anders beginnen…",
+      "charCount": "{{count}} / {{max}}",
+      "ctaDismiss": "Anfrage ablehnen",
+      "ctaCancel": "Abbrechen",
+      "successToast": "Anfrage abgelehnt",
+      "errorDismiss": "Ablehnen fehlgeschlagen. Bitte erneut versuchen."
     }
   }
 }
