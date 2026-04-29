@@ -220,7 +220,7 @@ export function AppShell() {
         queryClient.invalidateQueries({ queryKey: ['diary-requests'] });
       }
     },
-    photodiaryphotoUploaded: (payload: unknown) => {
+    photodiaryphotouploaded: (payload: unknown) => {
       // Diary photo uploads re-use the planphotouploaded path for the photo
       // grid; here we also refresh the diary request status (InProgress count).
       const data = payload as { planId?: string } | undefined;
