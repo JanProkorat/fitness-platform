@@ -2,21 +2,16 @@
  * NewClientDialog — invite a new client via email.
  *
  * The "Bundle photo diary" toggle (per invite-new.html prototype) is included.
- * When checked, the component attempts to POST a diary request after the invite
- * is created.
- *
- * NOTE — backend contract gap:
- *   CreateRequestRequest.pendingInviteId expects the internal integer PK of
- *   PendingInvite. CreatePendingInviteResponse only returns publicId (GUID).
- *   Until the backend exposes `id` (int64) in the create-invite response the
- *   diary POST is skipped after invite creation — the user sees a non-blocking
- *   warning toast ("Invite sent, diary request failed..."). The invite is still
- *   created successfully. See diary-requests.ts for full contract-gap note.
+ * When checked, the component fires POST /trainer/photo-diary-requests
+ * (with pendingInviteId) immediately after the invite is created.
+ * On diary failure the invite is already sent — a non-blocking warning toast
+ * tells the user they can retry from the client detail page.
  */
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { createPendingInvite } from '@/api/pending-invites';
+import { createDiaryRequest } from '@/api/diary-requests';
 import { getTrainerQuestionnaires } from '@/api/questionnaires';
 import { CANCEL_BUTTON_CLASS } from '@/lib/styles';
 import { showApiError } from '@/lib/api-errors';
@@ -79,17 +74,19 @@ export function NewClientDialog({ open, onClose }: NewClientDialogProps) {
         message: message.trim() || null,
         questionnairePublicId: selectedQuestionnaireId || null,
       }),
-    onSuccess: (_inviteResponse) => {
+    onSuccess: async (inviteResponse) => {
       queryClient.invalidateQueries({ queryKey: ['pending-invites'] });
       queryClient.invalidateQueries({ queryKey: ['sidebar-clients'] });
 
-      if (bundleDiary) {
-        // NOTE — backend contract gap: CreatePendingInviteResponse does not expose
-        // the internal integer `id` required by CreateRequestRequest.pendingInviteId.
-        // The diary POST is intentionally skipped here until the backend exposes
-        // `id` (int64) in the invite creation response.
-        // When that field is added: call createDiaryRequest({ pendingInviteId: inviteResponse.id, durationDays: diaryDurationDays })
-        addToast(i18n.t('diary.request.inviteDiaryFailed'), 'error');
+      if (bundleDiary && inviteResponse.id != null) {
+        try {
+          await createDiaryRequest({
+            pendingInviteId: inviteResponse.id,
+            durationDays: diaryDurationDays,
+          });
+        } catch {
+          addToast(i18n.t('diary.request.inviteDiaryFailed'), 'error');
+        }
       }
 
       onClose();
@@ -372,13 +369,6 @@ export function NewClientDialog({ open, onClose }: NewClientDialogProps) {
                       </div>
                     </div>
 
-                    {/* Warning about the contract gap */}
-                    <div
-                      className="rounded-md px-3 py-2 text-[11px] leading-relaxed"
-                      style={{ background: 'var(--bg)', color: 'var(--text3)', border: '1px solid var(--border)' }}
-                    >
-                      {t('diary.request.inviteCheckboxWarning')}
-                    </div>
                   </div>
                 )}
               </div>

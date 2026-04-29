@@ -2,15 +2,6 @@
  * Diary requests API module.
  *
  * Wraps the NSwag-generated createRequestEndpoint.
- *
- * NOTE — backend contract gap:
- *   CreateRequestRequest requires `linkId` (int64) or `pendingInviteId` (int64).
- *   Neither is exposed in any client-list or invite-list response today.
- *   - GetClientDashboardResponse does not include linkId.
- *   - CreatePendingInviteResponse only contains publicId (GUID), not the internal integer.
- *   Callers must supply the integer ID when available; otherwise pass undefined and the
- *   dialog will disable submission (linkId-based flow) or skip the diary POST
- *   (invite-bundled flow). Both IDs need to be surfaced by the backend in a follow-up.
  */
 import { apiClient } from '@/api/client';
 import type { CreateRequestResponse } from '@/api/generated';

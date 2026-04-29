@@ -85,11 +85,15 @@ export default function TrainingPlanPage() {
     enabled: !!plan?.clientId,
   });
 
-  const clientName = useMemo(() => {
+  const clientEntry = useMemo(() => {
     if (!plan?.clientId || !clientsData?.clients) return null;
-    const client = clientsData.clients.find((c) => c.publicId === plan.clientId);
-    return client ? `${client.firstName ?? ''} ${client.lastName ?? ''}`.trim() : null;
+    return clientsData.clients.find((c) => c.publicId === plan.clientId) ?? null;
   }, [plan?.clientId, clientsData]);
+
+  const clientName = useMemo(() => {
+    if (!clientEntry) return null;
+    return `${clientEntry.firstName ?? ''} ${clientEntry.lastName ?? ''}`.trim();
+  }, [clientEntry]);
 
   // ── Fetch muscle groups for exercises ──
   const allExerciseIds = useMemo(() => {
@@ -425,13 +429,13 @@ export default function TrainingPlanPage() {
       </div>
 
       {/* ── Photos tab content ── */}
-      {/* linkId is not passed: not yet available from any API response — see diary-requests.ts */}
       {pageTab === 'photos' && planId && (
         <div className="flex-1 overflow-hidden">
           <PlanPhotosTab
             planId={planId}
             clientId={plan.clientId}
             clientName={clientName ?? undefined}
+            linkId={clientEntry?.linkId}
           />
         </div>
       )}

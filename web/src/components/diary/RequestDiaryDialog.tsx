@@ -7,12 +7,6 @@
  *   - NutritionPlanPage (Photos tab CTA) → passes linkId + planId
  *   - ClientDetailPage (photos tab CTA)  → passes linkId only
  *   - DashboardPage                      → passes linkId only
- *
- * NOTE — backend contract gap:
- *   `linkId` is the internal integer PK of ClientProfessionalLink.
- *   It is NOT exposed in GetClientDashboardResponse or any client-list API today.
- *   Until the backend adds `linkId` to those responses the prop will be undefined
- *   and the submit button stays disabled. Track as a backend follow-up.
  */
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -28,7 +22,7 @@ export interface RequestDiaryDialogProps {
   open: boolean;
   onClose: () => void;
   /** Internal integer PK of the ClientProfessionalLink. Required for submission. */
-  linkId: number | undefined;
+  linkId?: number | null;
   /** Optional plan scope — passed from plan detail pages. */
   planId?: string;
   /** Display name shown in the client strip. */
@@ -67,7 +61,7 @@ export function RequestDiaryDialog({
   const mutation = useMutation({
     mutationFn: () =>
       createDiaryRequest({
-        linkId,
+        linkId: linkId ?? undefined,
         planId,
         durationDays,
       }),
@@ -83,7 +77,7 @@ export function RequestDiaryDialog({
 
   if (!open) return null;
 
-  const canSubmit = linkId != null && !mutation.isPending;
+  const canSubmit = !mutation.isPending;
   const charCount = message.length;
 
   return (
@@ -281,20 +275,6 @@ export function RequestDiaryDialog({
               >
                 {t('diary.request.senderInfo')}
               </div>
-
-              {/* linkId gap warning */}
-              {linkId == null && (
-                <div
-                  className="rounded-md px-3.5 py-2.5 text-[12px]"
-                  style={{
-                    background: 'var(--bg3)',
-                    border: '1px solid var(--border)',
-                    color: 'var(--text3)',
-                  }}
-                >
-                  {t('diary.request.linkIdMissing')}
-                </div>
-              )}
 
               {mutation.isError && (
                 <p style={{ fontSize: 12, color: 'var(--red)', margin: 0 }}>

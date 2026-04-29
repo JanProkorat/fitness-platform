@@ -12819,6 +12819,9 @@ export interface GetPendingInvitesResponse {
 
 /** DTO representing a single pending invitation. */
 export interface PendingInviteDto {
+    /** Internal integer primary key of the PendingInvite row.
+Used to populate pendingInviteId on the photo-diary-request create form. */
+    id?: number;
     /** Public identifier of the pending invite. */
     publicId?: string;
     /** First name of the invited client. */
@@ -12845,6 +12848,9 @@ export interface DeletePendingInviteRequest {
 
 /** Response model returned after creating a pending invitation. */
 export interface CreatePendingInviteResponse {
+    /** Internal integer primary key of the PendingInvite row.
+Used to populate pendingInviteId on the photo-diary-request create form. */
+    id?: number;
     /** Public identifier of the created pending invite. */
     publicId?: string;
     /** First name of the invited client. */
@@ -13027,6 +13033,9 @@ export interface GetClientsResponse {
 
 /** Summary of a client in the trainer's client list. */
 export interface ClientSummary {
+    /** Internal integer primary key of the ClientProfessionalLink row.
+Used to populate linkId on the photo-diary-request create form. */
+    linkId?: number;
     /** Client profile's public ID. */
     publicId?: string;
     /** Client's email address. */
@@ -13083,6 +13092,9 @@ export interface GetClientProgressRequest {
 
 /** Response model containing a client's dashboard summary for a trainer. */
 export interface GetClientDashboardResponse {
+    /** Internal integer primary key of the ClientProfessionalLink row.
+Used to populate linkId on the photo-diary-request create form. */
+    linkId?: number;
     /** The client profile's public ID. */
     clientPublicId?: string;
     /** The client's email address. */

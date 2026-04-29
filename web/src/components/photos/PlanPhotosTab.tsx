@@ -6,9 +6,8 @@
  * SignalR invalidation is handled at the AppShell level.
  *
  * The "Request photo diary" CTA button at the top-right opens RequestDiaryDialog.
- * `linkId` is the internal integer PK of ClientProfessionalLink — not exposed by
- * any current API response; the button is present but submission is disabled until
- * the backend exposes that field (known contract gap, see diary-requests.ts).
+ * `linkId` is the internal integer PK of ClientProfessionalLink, passed in by the
+ * parent page from the client-list or client-dashboard API response.
  */
 
 import { useState, useMemo } from 'react';
@@ -30,10 +29,9 @@ interface PlanPhotosTabProps {
   clientName?: string;
   /**
    * Internal integer PK of ClientProfessionalLink.
-   * Not yet exposed by any trainer API response — submission is disabled until
-   * the backend surfaces this field. See known gap note in diary-requests.ts.
+   * Sourced from the client-list or client-dashboard API response.
    */
-  linkId?: number;
+  linkId?: number | null;
 }
 
 const CATEGORIES: Array<{ key: PlanPhotoCategory | null; labelKey: string }> = [

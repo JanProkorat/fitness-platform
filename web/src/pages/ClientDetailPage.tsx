@@ -411,7 +411,6 @@ export default function ClientDetailPage() {
         {activeTab === 'photos' && (
           <div className="px-20">
             {/* Request diary CTA — top of tab, right-aligned */}
-            {/* linkId not yet available from API response — see diary-requests.ts */}
             <div className="flex justify-end pt-3 pb-1">
               <button
                 type="button"
@@ -552,11 +551,10 @@ export default function ClientDetailPage() {
       </Dialog>
 
       {/* Request Diary Dialog */}
-      {/* linkId not yet available from API response — see diary-requests.ts */}
       <RequestDiaryDialog
         open={diaryDialogOpen}
         onClose={() => setDiaryDialogOpen(false)}
-        linkId={undefined}
+        linkId={client?.linkId}
         clientName={clientName}
         clientInitials={clientInitials}
       />

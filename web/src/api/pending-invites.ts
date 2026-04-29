@@ -1,6 +1,8 @@
 import api from '@/lib/api';
 
 export interface PendingInviteDto {
+  /** Internal integer PK of the PendingInvite row. Used for diary requests. */
+  id?: number;
   publicId: string;
   firstName: string;
   lastName: string;
@@ -21,6 +23,8 @@ export interface CreatePendingInviteRequest {
 }
 
 export interface CreatePendingInviteResponse {
+  /** Internal integer PK of the PendingInvite row. Used for diary requests. */
+  id?: number;
   publicId: string;
   firstName: string;
   lastName: string;
