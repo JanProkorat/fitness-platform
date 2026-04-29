@@ -70,6 +70,7 @@ public class GetClientsEndpoint(IApplicationDbContext db) : Endpoint<GetClientsR
             .Take(req.PageSize)
             .Select(ctl => new ClientSummary
             {
+                LinkId = ctl.Id,
                 PublicId = ctl.ClientProfile.PublicId,
                 Email = ctl.ClientProfile.User.Email!,
                 FirstName = ctl.ClientProfile.User.FirstName,

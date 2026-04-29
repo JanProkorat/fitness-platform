@@ -6,6 +6,12 @@ namespace FitnessPlatform.Application.Features.Trainers.GetClientDashboard;
 public class GetClientDashboardResponse
 {
     /// <summary>
+    /// Internal integer primary key of the ClientProfessionalLink row.
+    /// Used to populate <c>linkId</c> on the photo-diary-request create form.
+    /// </summary>
+    public long LinkId { get; set; }
+
+    /// <summary>
     /// The client profile's public ID.
     /// </summary>
     public Guid ClientPublicId { get; set; }
