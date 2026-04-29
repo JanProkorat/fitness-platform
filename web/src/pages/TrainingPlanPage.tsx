@@ -425,9 +425,14 @@ export default function TrainingPlanPage() {
       </div>
 
       {/* ── Photos tab content ── */}
+      {/* linkId is not passed: not yet available from any API response — see diary-requests.ts */}
       {pageTab === 'photos' && planId && (
         <div className="flex-1 overflow-hidden">
-          <PlanPhotosTab planId={planId} clientId={plan.clientId} />
+          <PlanPhotosTab
+            planId={planId}
+            clientId={plan.clientId}
+            clientName={clientName ?? undefined}
+          />
         </div>
       )}
 

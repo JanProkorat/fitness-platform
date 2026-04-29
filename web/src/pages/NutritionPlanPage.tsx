@@ -430,7 +430,16 @@ export default function NutritionPlanPage() {
       {/* ── Photos tab content ── */}
       {pageTab === 'photos' && planId && (
         <div className="flex-1 overflow-hidden">
-          <PlanPhotosTab planId={planId} clientId={plan.clientId} />
+          {/* linkId is not passed: not yet available from any API response — see diary-requests.ts */}
+          <PlanPhotosTab
+            planId={planId}
+            clientId={plan.clientId}
+            clientName={
+              clientDashboard
+                ? `${clientDashboard.firstName} ${clientDashboard.lastName}`
+                : undefined
+            }
+          />
         </div>
       )}
 

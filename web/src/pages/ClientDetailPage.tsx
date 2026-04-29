@@ -12,6 +12,7 @@ import { PropertyList, StatsGrid } from '@/components/data';
 import { ActivityTimeline, ClientPhotosTimeline } from '@/components/domain';
 import { QuestionnaireAnswersSection } from '@/components/questionnaire';
 import { WeeklyCheckInSection } from '@/components/weekly-checkin/WeeklyCheckInSection';
+import { RequestDiaryDialog } from '@/components/diary/RequestDiaryDialog';
 import { cn } from '@/lib/cn';
 
 export default function ClientDetailPage() {
@@ -21,6 +22,8 @@ export default function ClientDetailPage() {
 
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  // Diary request dialog state
+  const [diaryDialogOpen, setDiaryDialogOpen] = useState(false);
 
   // Active tab — resets to 'overview' on client switch.
   // Uses the "adjust state during render" pattern (React docs) to avoid the
@@ -407,6 +410,23 @@ export default function ClientDetailPage() {
         {/* Photos tab */}
         {activeTab === 'photos' && (
           <div className="px-20">
+            {/* Request diary CTA — top of tab, right-aligned */}
+            {/* linkId not yet available from API response — see diary-requests.ts */}
+            <div className="flex justify-end pt-3 pb-1">
+              <button
+                type="button"
+                onClick={() => setDiaryDialogOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-medium border transition-colors"
+                style={{
+                  background: 'var(--accent-bg)',
+                  borderColor: 'var(--accent-br)',
+                  color: 'var(--accent)',
+                }}
+              >
+                <span>📸</span>
+                <span>{t('diary.request.ctaButton')}</span>
+              </button>
+            </div>
             <ClientPhotosTimeline clientId={id!} />
           </div>
         )}
@@ -530,6 +550,16 @@ export default function ClientDetailPage() {
           />
         </div>
       </Dialog>
+
+      {/* Request Diary Dialog */}
+      {/* linkId not yet available from API response — see diary-requests.ts */}
+      <RequestDiaryDialog
+        open={diaryDialogOpen}
+        onClose={() => setDiaryDialogOpen(false)}
+        linkId={undefined}
+        clientName={clientName}
+        clientInitials={clientInitials}
+      />
     </div>
   );
 }
