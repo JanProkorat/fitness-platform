@@ -1380,6 +1380,7 @@
       "dialogTitle": "Request photo diary",
       "dialogSubtitle": "Client will see a banner and can accept or decline.",
       "infoBanner": "The client will see this request as a banner on the home screen. They can accept or decline (with an optional reason).",
+      "explanation": "Ask {{clientName}} to share photos of their meals over the next several days. They choose whether to send them all at once or as a daily stream — you'll see new photos in this plan's Photos tab as they arrive.",
       "durationLabel": "Diary duration",
       "durationDays_one": "{{count}} day",
       "durationDays_other": "{{count}} days",
