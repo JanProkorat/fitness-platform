@@ -9,12 +9,13 @@ import type {
   AcceptRequestRequest,
   AcceptRequestResponse,
   ClientPhotoDiaryRequestSummary,
+  SubmitRequestResponse,
 } from './generated'
 import { PhotoDiaryMode } from './generated'
 
 // Re-export so consumers only need one import.
 export { PhotoDiaryMode }
-export type { ClientPhotoDiaryRequestSummary }
+export type { ClientPhotoDiaryRequestSummary, SubmitRequestResponse }
 
 /**
  * Accept a pending photo-diary request with the chosen upload mode.
@@ -31,6 +32,25 @@ export async function acceptDiaryRequest(
   const { data } = await api.post<AcceptRequestResponse>(
     `/client/photo-diary-requests/${requestId}/accept`,
     body,
+  )
+  return data
+}
+
+/**
+ * Submit / finalize a photo-diary bulk request.
+ *
+ * `POST /client/photo-diary-requests/{id}/submit`
+ *
+ * Transitions the request from Accepted/InProgress → Completed and
+ * notifies the trainer via the `photoDiarySubmitted` SignalR event.
+ * Call this after all photos have been uploaded and finalized.
+ */
+export async function submitDiaryRequest(
+  requestId: string,
+): Promise<SubmitRequestResponse> {
+  const { data } = await api.post<SubmitRequestResponse>(
+    `/client/photo-diary-requests/${requestId}/submit`,
+    {},
   )
   return data
 }
