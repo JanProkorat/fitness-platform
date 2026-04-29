@@ -154,7 +154,7 @@ export function RequestDiaryDialog({
                   width: 44,
                   height: 44,
                   borderRadius: 12,
-                  background: 'linear-gradient(135deg, var(--blue), #0056b3)',
+                  background: 'linear-gradient(135deg, var(--blue), var(--blue-dark))',
                   fontSize: 16,
                 }}
               >
