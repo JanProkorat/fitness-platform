@@ -45,7 +45,7 @@ export default function DiaryDismissScreen() {
           </Text>
           <Text style={[Type.caption1, { color: colors.label3, marginTop: 24, textAlign: 'center' }]}>
             {/* This screen will be implemented in issue #102 */}
-            Dismiss flow coming soon
+            {t('today.diaryBanner.dismissPlaceholder')}
           </Text>
         </View>
 

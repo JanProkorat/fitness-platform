@@ -258,7 +258,9 @@
       "accept": "Accept",
       "dismiss": "Dismiss",
       "screenTitle": "Food Photo Diary",
-      "dismissScreenTitle": "Dismiss Diary Request"
+      "dismissScreenTitle": "Dismiss Diary Request",
+      "acceptPlaceholder": "Accept wizard coming soon",
+      "dismissPlaceholder": "Dismiss flow coming soon"
     },
     "trainingPlanType": "Training plan",
     "nutritionPlanType": "Nutrition plan",

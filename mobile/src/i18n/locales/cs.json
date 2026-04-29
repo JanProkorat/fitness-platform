@@ -258,7 +258,9 @@
       "accept": "Přijmout",
       "dismiss": "Odmítnout",
       "screenTitle": "Fotografický deník jídel",
-      "dismissScreenTitle": "Odmítnout žádost o deník"
+      "dismissScreenTitle": "Odmítnout žádost o deník",
+      "acceptPlaceholder": "Přijímací průvodce bude brzy k dispozici",
+      "dismissPlaceholder": "Funkce odmítnutí bude brzy k dispozici"
     },
     "trainingPlanType": "Tréninkový plán",
     "nutritionPlanType": "Výživový plán",

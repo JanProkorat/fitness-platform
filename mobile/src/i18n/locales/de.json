@@ -258,7 +258,9 @@
       "accept": "Annehmen",
       "dismiss": "Ablehnen",
       "screenTitle": "Foto-Ernährungstagebuch",
-      "dismissScreenTitle": "Tagebuch-Anfrage ablehnen"
+      "dismissScreenTitle": "Tagebuch-Anfrage ablehnen",
+      "acceptPlaceholder": "Akzeptieren-Assistent kommt bald",
+      "dismissPlaceholder": "Ablehnungsablauf kommt bald"
     },
     "trainingPlanType": "Trainingsplan",
     "nutritionPlanType": "Ernährungsplan",

@@ -1,21 +1,12 @@
 import React, { useEffect, useRef } from 'react'
-import { View, Text, StyleSheet, Pressable, Animated } from 'react-native'
+import { View, Text, StyleSheet, Pressable, Animated, useColorScheme } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
+import { useThemeStore } from '@/stores/themeStore'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
+import { greenAlpha } from '@/constants/colors'
 import type { PendingDiaryRequestItem } from '@/api/questionnaire'
-
-// ─── Stable green alpha values matching the prototype style ───────────────────
-// We derive these from the theme's green color at render-time. The theme
-// does not expose pre-computed green alphas, so we compute them once from
-// the rgba values rather than hardcoding hex.
-const greenAlpha = {
-  bg: 'rgba(52,199,89,0.07)',
-  border: 'rgba(52,199,89,0.22)',
-  iconBg: 'rgba(52,199,89,0.15)',
-  eyebrow: '#1f8a3e',
-} as const
 
 interface DiaryRequestBannerProps {
   /** The pending diary request item from the API response. */
@@ -29,6 +20,10 @@ interface DiaryRequestBannerProps {
 export function DiaryRequestBanner({ item, onAccept, onDismiss }: DiaryRequestBannerProps) {
   const colors = useTheme()
   const { t } = useTranslation()
+  const systemScheme = useColorScheme()
+  const preference = useThemeStore((s) => s.preference)
+  const effectiveScheme = preference === 'system' ? (systemScheme ?? 'light') : preference
+  const ga = effectiveScheme === 'dark' ? greenAlpha.dark : greenAlpha.light
   const opacity = useRef(new Animated.Value(0)).current
   const translateY = useRef(new Animated.Value(-40)).current
 
@@ -62,18 +57,18 @@ export function DiaryRequestBanner({ item, onAccept, onDismiss }: DiaryRequestBa
         style={[
           styles.card,
           {
-            backgroundColor: greenAlpha.bg,
-            borderColor: greenAlpha.border,
+            backgroundColor: ga.bg,
+            borderColor: ga.border,
           },
         ]}
       >
         {/* Icon + text row */}
         <View style={styles.row}>
-          <View style={[styles.iconBox, { backgroundColor: greenAlpha.iconBg }]}>
+          <View style={[styles.iconBox, { backgroundColor: ga.iconBg }]}>
             <Text style={styles.icon}>📸</Text>
           </View>
           <View style={styles.textBlock}>
-            <Text style={[styles.eyebrow, { color: greenAlpha.eyebrow }]}>
+            <Text style={[styles.eyebrow, { color: ga.eyebrow }]}>
               {t('today.diaryBanner.from', { name: item.professionalName })}
             </Text>
             <Text style={[Type.subheadline, styles.title, { color: colors.label }]} numberOfLines={2}>
@@ -143,20 +138,20 @@ const styles = StyleSheet.create({
   iconBox: {
     width: 44,
     height: 44,
-    borderRadius: 14,
+    borderRadius: Radius.iconBox,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
   },
   icon: {
-    fontSize: 20,
+    fontSize: Type.title3.fontSize,
   },
   textBlock: {
     flex: 1,
     minWidth: 0,
   },
   eyebrow: {
-    fontSize: 11,
+    fontSize: Type.caption2.fontSize,
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.05,
@@ -166,7 +161,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   chevron: {
-    fontSize: 18,
+    fontSize: Type.headline.fontSize,
     fontWeight: '600',
     flexShrink: 0,
   },
@@ -189,7 +184,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   ctaText: {
-    fontSize: 15,
+    fontSize: Type.subheadline.fontSize,
     fontWeight: '600',
   },
 })

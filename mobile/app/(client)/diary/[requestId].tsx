@@ -45,7 +45,7 @@ export default function DiaryRequestScreen() {
           </Text>
           <Text style={[Type.caption1, { color: colors.label3, marginTop: 24, textAlign: 'center' }]}>
             {/* This screen will be implemented in issue #99 */}
-            Accept wizard coming soon
+            {t('today.diaryBanner.acceptPlaceholder')}
           </Text>
         </View>
 

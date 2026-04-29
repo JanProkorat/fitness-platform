@@ -23,6 +23,28 @@ export const goldAlpha = {
   solid: 'rgba(201,168,76,1)',
 } as const
 
+/**
+ * Scheme-aware green alpha values for diary-request and other green-tinted
+ * surfaces. Light uses iOS system green (#34c759); dark uses the dark-mode
+ * system green (#30d158).
+ */
+export const greenAlpha = {
+  light: {
+    bg: 'rgba(52,199,89,0.07)',
+    border: 'rgba(52,199,89,0.22)',
+    iconBg: 'rgba(52,199,89,0.15)',
+    /** Dark legible green for eyebrow text on a light-tinted background. */
+    eyebrow: '#1f8a3e',
+  },
+  dark: {
+    bg: 'rgba(48,209,88,0.10)',
+    border: 'rgba(48,209,88,0.28)',
+    iconBg: 'rgba(48,209,88,0.18)',
+    /** Bright readable green for eyebrow text on a dark-tinted background. */
+    eyebrow: '#30d158',
+  },
+} as const
+
 const light = {
   // Backgrounds
   bg: '#f2f2f7',
