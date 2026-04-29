@@ -449,8 +449,8 @@ export function DiaryWorkflowScreen() {
                   resizeMode="cover"
                 />
                 {photo.description ? (
-                  <View style={styles.tileCaption}>
-                    <Text style={styles.tileCaptionText} numberOfLines={1}>
+                  <View style={[styles.tileCaption, { backgroundColor: colors.overlay }]}>
+                    <Text style={[styles.tileCaptionText, { color: colors.onAccent }]} numberOfLines={1}>
                       {photo.description}
                     </Text>
                   </View>
@@ -686,10 +686,8 @@ const styles = StyleSheet.create({
     bottom: 0,
     paddingHorizontal: 8,
     paddingVertical: 6,
-    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   tileCaptionText: {
-    color: '#ffffff',
     fontSize: 11,
   },
 
