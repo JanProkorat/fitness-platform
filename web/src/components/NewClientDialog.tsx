@@ -40,7 +40,6 @@ export function NewClientDialog({ open, onClose }: NewClientDialogProps) {
   // Photo diary bundle state
   const [bundleDiary, setBundleDiary] = useState(false);
   const [diaryDurationDays, setDiaryDurationDays] = useState<DurationDays>(7);
-  const [diaryMessage, setDiaryMessage] = useState('');
 
   const [trackedOpen, setTrackedOpen] = useState(false);
 
@@ -59,7 +58,6 @@ export function NewClientDialog({ open, onClose }: NewClientDialogProps) {
       setMessage('');
       setBundleDiary(false);
       setDiaryDurationDays(7);
-      setDiaryMessage(t('diary.request.defaultMessage'));
       const defaultQ = questionnaires.find((q) => q.isDefault && q.isActive);
       setSelectedQuestionnaireId(defaultQ?.publicId ?? '');
     }
@@ -267,7 +265,7 @@ export function NewClientDialog({ open, onClose }: NewClientDialogProps) {
                         height: 32,
                         borderRadius: 10,
                         background: bundleDiary
-                          ? 'rgba(201,168,76,.15)'
+                          ? 'var(--accent-bg)'
                           : 'var(--bg3)',
                       }}
                     >
@@ -347,25 +345,6 @@ export function NewClientDialog({ open, onClose }: NewClientDialogProps) {
                             {t('diary.request.durationDays', { count: d })}
                           </button>
                         ))}
-                      </div>
-                    </div>
-
-                    {/* Diary intro message */}
-                    <div>
-                      <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.04em] text-text3">
-                        {t('diary.request.messageLabel')}
-                      </label>
-                      <textarea
-                        value={diaryMessage}
-                        onChange={(e) => setDiaryMessage(e.target.value)}
-                        placeholder={t('diary.request.messagePlaceholder')}
-                        rows={3}
-                        maxLength={500}
-                        className={`${inp} resize-none`}
-                        style={{ background: 'var(--bg)' }}
-                      />
-                      <div className="text-[10px] text-text4 text-right mt-0.5">
-                        {diaryMessage.length} / 500
                       </div>
                     </div>
 

@@ -45,7 +45,6 @@ export function RequestDiaryDialog({
   const { t } = useTranslation();
   const queryClient = useQueryClient();
 
-  const [message, setMessage] = useState('');
   const [durationDays, setDurationDays] = useState<DurationDays>(7);
 
   // Reset on open
@@ -53,7 +52,6 @@ export function RequestDiaryDialog({
   if (open !== trackedOpen) {
     setTrackedOpen(open);
     if (open) {
-      setMessage(t('diary.request.defaultMessage'));
       setDurationDays(7);
     }
   }
@@ -78,7 +76,6 @@ export function RequestDiaryDialog({
   if (!open) return null;
 
   const canSubmit = !mutation.isPending;
-  const charCount = message.length;
 
   return (
     <>
@@ -188,24 +185,6 @@ export function RequestDiaryDialog({
             </div>
 
             <div className="px-5 pb-5 flex flex-col gap-4">
-              {/* Message field */}
-              <div>
-                <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.04em] text-text3">
-                  {t('diary.request.messageLabel')}
-                </label>
-                <textarea
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder={t('diary.request.messagePlaceholder')}
-                  rows={4}
-                  maxLength={500}
-                  className="rounded-md border border-border-md bg-bg px-3 py-2 text-[13px] text-text outline-none transition-colors placeholder:text-text3 focus:border-border-hv w-full resize-none"
-                />
-                <div className="text-[10px] text-text4 text-right mt-0.5">
-                  {charCount} / 500
-                </div>
-              </div>
-
               {/* Duration selector */}
               <div>
                 <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.04em] text-text3">
@@ -268,8 +247,8 @@ export function RequestDiaryDialog({
               <div
                 className="rounded-md px-3.5 py-2.5 text-[12px] leading-relaxed"
                 style={{
-                  background: 'rgba(52,199,89,0.07)',
-                  border: '1px solid rgba(52,199,89,0.2)',
+                  background: 'var(--green-bg)',
+                  border: '1px solid var(--green-br)',
                   color: 'var(--text3)',
                 }}
               >
