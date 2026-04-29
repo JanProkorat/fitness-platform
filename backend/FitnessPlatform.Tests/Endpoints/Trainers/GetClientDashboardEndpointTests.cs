@@ -23,6 +23,7 @@ public class GetClientDashboardEndpointTests
         var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUserId(_trainerId).Build();
         var clientProfile = EntityBuilder.ClientProfile.WithId(1).WithUser(clientUser).Build();
         var link = EntityBuilder.ClientProfessionalLink
+            .WithId(99)
             .WithClientProfile(clientProfile)
             .WithProfessionalProfile(trainerProfile)
             .Build();
@@ -50,6 +51,7 @@ public class GetClientDashboardEndpointTests
         ep.Response.IsActive.Should().BeTrue();
         ep.Response.TotalMeasurements.Should().Be(0);
         ep.Response.TotalProgressPhotos.Should().Be(0);
+        ep.Response.LinkId.Should().Be(99);
     }
 
     [Fact]

@@ -52,6 +52,7 @@ public class GetPendingInvitesEndpoint(IApplicationDbContext db) : EndpointWitho
             .OrderByDescending(pi => pi.SentAt)
             .Select(pi => new PendingInviteDto
             {
+                Id = pi.Id,
                 PublicId = pi.PublicId,
                 FirstName = pi.FirstName,
                 LastName = pi.LastName,

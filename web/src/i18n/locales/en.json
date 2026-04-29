@@ -1354,5 +1354,36 @@
       "emptyDescription": "When the client uploads progress photos they will appear here, grouped by month.",
       "photoAltPrefix": "Photo"
     }
+  },
+  "diary": {
+    "request": {
+      "dialogTitle": "Request photo diary",
+      "dialogSubtitle": "Client will see a banner and can accept or decline.",
+      "infoBanner": "The client will see this request as a banner on the home screen. They can accept or decline (with an optional reason).",
+      "messageLabel": "Opening message for the client",
+      "messagePlaceholder": "Write a personal message...",
+      "defaultMessage": "To get the best picture of your eating habits before I build your plan, I'd love to receive photos of all the meals you normally eat.",
+      "durationLabel": "Diary duration",
+      "durationDays_one": "{{count}} day",
+      "durationDays_other": "{{count}} days",
+      "uploadModeLabel": "Upload mode",
+      "modeAllAtOnce": "All at once",
+      "modeAllAtOnceDesc": "Client photographs, then submits.",
+      "modeWorkflow": "Workflow",
+      "modeWorkflowDesc": "{{days}} days gradually, nutritionist sees photos live.",
+      "modeHint": "Client selects the mode when they accept the request.",
+      "senderInfo": "The client will see your name as the sender and your avatar. You will receive real-time notifications after photos are submitted.",
+      "linkIdMissing": "Unable to send: the client link ID is not yet available. This is a known backend gap — please contact support.",
+      "send": "Send request",
+      "sending": "Sending...",
+      "successToast": "Photo diary request sent",
+      "errorToast": "Failed to send diary request. Please try again.",
+      "ctaButton": "Request photo diary",
+      "photosTabCta": "Request photo diary from client",
+      "inviteCheckboxLabel": "Bundle photo diary request with this invite",
+      "inviteCheckboxHint": "After the client accepts, they will be prompted to share food photos.",
+      "inviteCheckboxWarning": "Diary request will be sent after the invite is successfully created.",
+      "inviteDiaryFailed": "Invite sent, but diary request failed. You can send it later from the client detail."
+    }
   }
 }

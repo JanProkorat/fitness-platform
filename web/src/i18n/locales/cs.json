@@ -1353,5 +1353,36 @@
       "emptyDescription": "Jakmile klient nahraje fotky pokroku, zobrazí se zde seřazené po měsících.",
       "photoAltPrefix": "Fotka"
     }
+  },
+  "diary": {
+    "request": {
+      "dialogTitle": "Požádat o foto-deník",
+      "dialogSubtitle": "Klient uvidí žádost jako banner a může ji přijmout nebo odmítnout.",
+      "infoBanner": "Klient uvidí žádost jako banner na úvodní obrazovce. Může ji přijmout nebo odmítnout (s volitelným důvodem).",
+      "messageLabel": "Úvodní zpráva pro klienta",
+      "messagePlaceholder": "Napište osobní zprávu...",
+      "defaultMessage": "Abych si udělala co nejlepší obrázek o tvých stravovacích návycích, než ti sestavím plán, ráda bych od tebe dostala fotky všech jídel, které běžně jíš.",
+      "durationLabel": "Délka deníku",
+      "durationDays_one": "{{count}} den",
+      "durationDays_other": "{{count}} dní",
+      "uploadModeLabel": "Způsob nahrání",
+      "modeAllAtOnce": "Vše najednou",
+      "modeAllAtOnceDesc": "Fotí, potom odešle.",
+      "modeWorkflow": "Workflow",
+      "modeWorkflowDesc": "{{days}} dní postupně, nutricionista vidí fotky živě.",
+      "modeHint": "Klient si vybere způsob při akceptaci žádosti.",
+      "senderInfo": "Klient uvidí tvé jméno jako odesilatele a tvůj avatar. Po odevzdání fotek budeš dostávat notifikace v reálném čase.",
+      "linkIdMissing": "Nelze odeslat: ID propojení klienta zatím není k dispozici. Toto je známý problém backendu — kontaktujte podporu.",
+      "send": "Odeslat žádost",
+      "sending": "Odesílání...",
+      "successToast": "Žádost o foto-deník odeslána",
+      "errorToast": "Nepodařilo se odeslat žádost o foto-deník. Zkuste to znovu.",
+      "ctaButton": "Požádat o foto-deník",
+      "photosTabCta": "Požádat klienta o foto-deník",
+      "inviteCheckboxLabel": "Přiložit foto-deník k pozvánce",
+      "inviteCheckboxHint": "Po akceptaci bude klient vyzván k nasdílení fotografií jídel.",
+      "inviteCheckboxWarning": "Žádost o foto-deník bude odeslána po úspěšném vytvoření pozvánky.",
+      "inviteDiaryFailed": "Pozvánka odeslána, ale žádost o foto-deník se nepodařila. Můžete ji odeslat později z detailu klienta."
+    }
   }
 }

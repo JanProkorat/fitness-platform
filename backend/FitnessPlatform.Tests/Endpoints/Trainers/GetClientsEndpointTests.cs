@@ -18,6 +18,7 @@ public class GetClientsEndpointTests
         var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUserId(_trainerId).Build();
         var clientProfile = EntityBuilder.ClientProfile.WithId(1).WithUser(clientUser).Build();
         var link = EntityBuilder.ClientProfessionalLink
+            .WithId(42)
             .WithClientProfile(clientProfile)
             .WithProfessionalProfile(trainerProfile)
             .Build();
@@ -38,6 +39,7 @@ public class GetClientsEndpointTests
 
         ep.Response.TotalCount.Should().Be(1);
         ep.Response.Clients.Should().ContainSingle(c => c.Email == "linked-client@test.com");
+        ep.Response.Clients[0].LinkId.Should().Be(42);
     }
 
     [Fact]

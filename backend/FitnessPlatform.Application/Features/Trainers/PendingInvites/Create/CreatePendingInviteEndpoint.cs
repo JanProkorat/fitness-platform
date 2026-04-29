@@ -196,6 +196,7 @@ public class CreatePendingInviteEndpoint(
 
         await Send.ResponseAsync(new CreatePendingInviteResponse
         {
+            Id = pendingInvite.Id,
             PublicId = pendingInvite.PublicId,
             FirstName = pendingInvite.FirstName,
             LastName = pendingInvite.LastName,

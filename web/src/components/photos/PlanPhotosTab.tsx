@@ -4,6 +4,10 @@
  * Shows a category chip row (Food / Body / FreeForm) and a 3-column thumbnail
  * grid loaded via TanStack Query. Clicking a thumbnail opens the ImageLightbox.
  * SignalR invalidation is handled at the AppShell level.
+ *
+ * The "Request photo diary" CTA button at the top-right opens RequestDiaryDialog.
+ * `linkId` is the internal integer PK of ClientProfessionalLink, passed in by the
+ * parent page from the client-list or client-dashboard API response.
  */
 
 import { useState, useMemo } from 'react';
@@ -14,12 +18,20 @@ import { ImageLightbox } from '@/components/ui/ImageLightbox';
 import { getPlanPhotos } from '@/api/photos';
 import { PlanPhotoCategory } from '@/api/generated';
 import { CardGrid, Card, CardBody } from '@/components/data';
+import { RequestDiaryDialog } from '@/components/diary/RequestDiaryDialog';
 
 interface PlanPhotosTabProps {
   planId: string;
   /** Client (profile) public id. Required because the web portal hits the
    *  trainer endpoint (`/trainer/clients/{clientId}/photos`). */
   clientId: string;
+  /** Display name of the client — shown in the diary request dialog's client strip. */
+  clientName?: string;
+  /**
+   * Internal integer PK of ClientProfessionalLink.
+   * Sourced from the client-list or client-dashboard API response.
+   */
+  linkId?: number | null;
 }
 
 const CATEGORIES: Array<{ key: PlanPhotoCategory | null; labelKey: string }> = [
@@ -31,11 +43,20 @@ const CATEGORIES: Array<{ key: PlanPhotoCategory | null; labelKey: string }> = [
 
 const PAGE_SIZE = 60;
 
-export function PlanPhotosTab({ planId, clientId }: PlanPhotosTabProps) {
+export function PlanPhotosTab({ planId, clientId, clientName, linkId }: PlanPhotosTabProps) {
   const { t } = useTranslation();
   const [activeCategory, setActiveCategory] = useState<PlanPhotoCategory | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [diaryDialogOpen, setDiaryDialogOpen] = useState(false);
+
+  const resolvedClientName = clientName ?? '';
+  const clientInitials = resolvedClientName
+    .split(' ')
+    .map((n) => n[0] ?? '')
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
 
   // Fetch the full (unfiltered) photo list once. Filtering by category
   // happens client-side so all per-category counts stay visible regardless
@@ -73,7 +94,7 @@ export function PlanPhotosTab({ planId, clientId }: PlanPhotosTabProps) {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Category chips — sized to match the page-level tabs (Jídelníček / Fotky) */}
+      {/* Category chips + diary CTA */}
       <div className="shrink-0 flex items-center gap-1 px-4 py-2 border-b border-border">
         {CATEGORIES.map(({ key, labelKey }) => {
           const isActive = activeCategory === key;
@@ -97,6 +118,22 @@ export function PlanPhotosTab({ planId, clientId }: PlanPhotosTabProps) {
             </button>
           );
         })}
+
+        {/* Request photo diary CTA — right-aligned */}
+        <button
+          type="button"
+          onClick={() => setDiaryDialogOpen(true)}
+          className="ml-auto inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-medium border transition-colors"
+          style={{
+            background: 'var(--accent-bg)',
+            borderColor: 'var(--accent-br)',
+            color: 'var(--accent)',
+          }}
+          title={t('diary.request.photosTabCta')}
+        >
+          <span>📸</span>
+          <span>{t('diary.request.ctaButton')}</span>
+        </button>
       </div>
 
       {/* Photo grid */}
@@ -179,6 +216,16 @@ export function PlanPhotosTab({ planId, clientId }: PlanPhotosTabProps) {
         open={lightboxOpen}
         onClose={() => setLightboxOpen(false)}
         altPrefix={t('nutrition.photos.photoAlt')}
+      />
+
+      {/* Request photo diary dialog */}
+      <RequestDiaryDialog
+        open={diaryDialogOpen}
+        onClose={() => setDiaryDialogOpen(false)}
+        linkId={linkId}
+        planId={planId}
+        clientName={resolvedClientName}
+        clientInitials={clientInitials}
       />
     </div>
   );
