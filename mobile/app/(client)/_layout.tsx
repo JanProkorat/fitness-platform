@@ -37,6 +37,10 @@ export default function ClientLayout() {
         name="profile-photos"
         options={{ animation: 'slide_from_right', headerShown: false }}
       />
+      <Stack.Screen
+        name="diary"
+        options={{ animation: 'slide_from_right' }}
+      />
     </Stack>
   )
 }

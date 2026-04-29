@@ -21,10 +21,15 @@ import { HasTrainerState } from '@/components/today/HasTrainerState'
 import { NotificationSheet } from '@/components/notifications/NotificationSheet'
 import { InviteCard } from '@/components/notifications/InviteCard'
 import { QuestionnaireBanner } from '@/components/notifications/QuestionnaireBanner'
+import { DiaryRequestBanner } from '@/components/today/DiaryRequestBanner'
 import { WeeklyCheckInBanner } from '@/components/today/WeeklyCheckInBanner'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useClientInvite } from '@/hooks/useClientInvite'
-import { getPendingQuestionnaires, type PendingQuestionnairesResponse } from '@/api/questionnaire'
+import {
+  getPendingQuestionnaires,
+  type PendingQuestionnairesResponse,
+  type PendingDiaryRequestItem,
+} from '@/api/questionnaire'
 import { getCurrentCheckIns, type CheckInSummary } from '@/api/weeklyCheckIns'
 import { onEvent } from '@/api/signalr'
 import { Toast } from '@/lib/toast'
@@ -85,6 +90,14 @@ export default function TodayScreen() {
   const pendingQCoachNames = useMemo(
     () => pendingQItems.map((i) => i.professionalName ?? ''),
     [pendingQItems],
+  )
+
+  // Pending diary requests — only Pending status (defensive; the query already filters)
+  const pendingDiaryItems: PendingDiaryRequestItem[] = useMemo(
+    () => (pendingQQuery.data?.pendingDiaryRequests ?? []).filter(
+      (r) => r.status === 'Pending',
+    ),
+    [pendingQQuery.data?.pendingDiaryRequests],
   )
 
   const handleNotificationAction = useCallback(
@@ -201,19 +214,36 @@ export default function TodayScreen() {
         {todayState === 'has-trainer' && (
           <HasTrainerState
             topBanner={
-              pendingQCount > 0 ? (
-                <QuestionnaireBanner
-                  count={pendingQCount}
-                  coachNames={pendingQCoachNames}
-                  onFill={() => {
-                    if (pendingQCount > 1) {
-                      router.push(href('/(client)/pending-questionnaires'))
-                    } else {
-                      router.push(hrefParams('/(auth)/questionnaire', { linkPublicId: pendingQItems[0]?.linkPublicId ?? '' }))
+              <>
+                {/* Diary-request banners render above questionnaire banners (ordering per #93) */}
+                {pendingDiaryItems.map((item) => (
+                  <DiaryRequestBanner
+                    key={item.requestPublicId}
+                    item={item}
+                    onAccept={() =>
+                      router.push(href(`/(client)/diary/${item.requestPublicId}`))
                     }
-                  }}
-                />
-              ) : undefined
+                    onDismiss={() =>
+                      router.push(href(`/(client)/diary/${item.requestPublicId}/dismiss`))
+                    }
+                  />
+                ))}
+
+                {/* Questionnaire banner */}
+                {pendingQCount > 0 && (
+                  <QuestionnaireBanner
+                    count={pendingQCount}
+                    coachNames={pendingQCoachNames}
+                    onFill={() => {
+                      if (pendingQCount > 1) {
+                        router.push(href('/(client)/pending-questionnaires'))
+                      } else {
+                        router.push(hrefParams('/(auth)/questionnaire', { linkPublicId: pendingQItems[0]?.linkPublicId ?? '' }))
+                      }
+                    }}
+                  />
+                )}
+              </>
             }
           />
         )}
