@@ -172,9 +172,14 @@ export function RequestDiaryDialog({
               </div>
             </div>
 
+            {/* Explanation paragraph */}
+            <p className="mx-5 mt-4 mb-0 text-[13px] leading-relaxed text-text2">
+              {t('diary.request.explanation', { clientName })}
+            </p>
+
             {/* Info banner */}
             <div
-              className="mx-5 mt-4 mb-3 rounded-md px-3.5 py-2.5 text-[12px] leading-relaxed"
+              className="mx-5 mt-3 mb-3 rounded-md px-3.5 py-2.5 text-[12px] leading-relaxed"
               style={{
                 background: 'var(--accent-bg)',
                 border: '1px solid var(--accent-br)',
