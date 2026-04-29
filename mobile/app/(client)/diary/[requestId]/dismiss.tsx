@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
     paddingTop: 14,
     paddingBottom: 14,
     minHeight: 110,
-    fontSize: 15,
+    ...Type.subheadline,
     lineHeight: 22,
   },
 
