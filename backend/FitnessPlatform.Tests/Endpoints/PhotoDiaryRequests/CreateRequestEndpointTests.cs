@@ -214,7 +214,7 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
     // ── Happy path — link-based ───────────────────────────────────────────────
 
     [Fact]
-    public async Task Create_WithValidLink_Returns201_AndPersists()
+    public async Task Create_WithValidLink_Returns200_AndPersists()
     {
         var (http, profId) = await SetupProfessionalAsync();
         var (_, clientUserId, _) = await SetupClientAsync();
@@ -225,7 +225,7 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
             new { LinkId = linkId, DurationDays = 14 },
             TestContext.Current.CancellationToken);
 
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var body = await response.Content.ReadFromJsonAsync<CreateResponseBody>(
             JsonOptions, TestContext.Current.CancellationToken);
@@ -246,7 +246,7 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
     // ── Happy path — invite-based ─────────────────────────────────────────────
 
     [Fact]
-    public async Task Create_WithValidInvite_Returns201_AndPersists()
+    public async Task Create_WithValidInvite_Returns200_AndPersists()
     {
         var (http, profId) = await SetupProfessionalAsync();
         var inviteId = await InsertPendingInviteAsync(profId, "invite-test@example.com");
@@ -256,7 +256,7 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
             new { PendingInviteId = inviteId, DurationDays = 7 },
             TestContext.Current.CancellationToken);
 
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var body = await response.Content.ReadFromJsonAsync<CreateResponseBody>(
             JsonOptions, TestContext.Current.CancellationToken);

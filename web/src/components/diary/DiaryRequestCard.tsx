@@ -113,10 +113,18 @@ export function DiaryRequestCard({ request, allPhotos }: Props) {
     setLightboxOpen(true);
   }
 
-  const lightboxUrls = useMemo(
-    () => lightboxDayPhotos.map((p) => p.blobUrl ?? '').filter(Boolean),
-    [lightboxDayPhotos],
-  );
+  // Keep URLs and captions index-aligned. Photos without a blobUrl are dropped
+  // so the lightbox doesn't get empty src strings.
+  const { lightboxUrls, lightboxCaptions } = useMemo(() => {
+    const urls: string[] = [];
+    const captions: (string | null)[] = [];
+    for (const p of lightboxDayPhotos) {
+      if (!p.blobUrl) continue;
+      urls.push(p.blobUrl);
+      captions.push(p.description ?? null);
+    }
+    return { lightboxUrls: urls, lightboxCaptions: captions };
+  }, [lightboxDayPhotos]);
 
   const modeLabel =
     mode === PhotoDiaryMode.Bulk
@@ -141,13 +149,21 @@ export function DiaryRequestCard({ request, allPhotos }: Props) {
       })
     : null;
 
-  // Colour the card border according to status
+  // Colour the card border according to status. Pending / Accepted /
+  // InProgress all share the gold "in-flight" treatment — the chip on
+  // each of them is already gold; the surrounding card matches so the
+  // whole active diary stands out, not just its status pill.
+  const isInFlight =
+    status === PhotoDiaryStatus.Pending ||
+    status === PhotoDiaryStatus.Accepted ||
+    status === PhotoDiaryStatus.InProgress;
+
   const cardBorderStyle: React.CSSProperties =
     status === PhotoDiaryStatus.Completed
       ? { border: '1px solid var(--status-completed-br)', background: 'var(--status-completed-bg)' }
       : status === PhotoDiaryStatus.Dismissed
         ? { border: '1px solid var(--status-dismissed-br)', background: 'var(--status-dismissed-bg)' }
-        : status === PhotoDiaryStatus.InProgress
+        : isInFlight
           ? { border: '1px solid var(--status-inprogress-br)', background: 'var(--status-inprogress-bg)' }
           : { border: '1px solid var(--border)', background: 'var(--bg)' };
 
@@ -295,6 +311,7 @@ export function DiaryRequestCard({ request, allPhotos }: Props) {
 
       <ImageLightbox
         images={lightboxUrls}
+        imageCaptions={lightboxCaptions}
         startIndex={lightboxIndex}
         open={lightboxOpen}
         onClose={() => setLightboxOpen(false)}

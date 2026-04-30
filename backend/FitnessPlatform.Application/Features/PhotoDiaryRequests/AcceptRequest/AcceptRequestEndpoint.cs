@@ -3,16 +3,25 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace FitnessPlatform.Application.Features.PhotoDiaryRequests.AcceptRequest;
 
 /// <summary>
 /// POST /client/photo-diary-requests/{id}/accept
 /// Transitions a Pending request to Accepted, records the chosen Mode and AcceptedAt timestamp.
+/// After a successful transition emits a <c>photoDiaryAccepted</c> SignalR event to the
+/// <b>professional</b> group (<see cref="Domain.Entities.PhotoDiaryRequest.ProfessionalId"/>)
+/// so the trainer/nutritionist's open diary card flips from Pending to Accepted in real time.
+/// Broadcast failures are best-effort and never fail the HTTP response.
 /// </summary>
-public class AcceptRequestEndpoint(IApplicationDbContext db)
+public class AcceptRequestEndpoint(
+    IApplicationDbContext db,
+    IRealtimeNotifier notifier,
+    ILogger<AcceptRequestEndpoint> logger)
     : Endpoint<AcceptRequestRequest, AcceptRequestResponse>
 {
     public override void Configure()
@@ -33,10 +42,13 @@ public class AcceptRequestEndpoint(IApplicationDbContext db)
         if (userId is null) { await Send.UnauthorizedAsync(ct); return; }
         var clientUserId = Guid.Parse(userId);
 
-        // Load the request with the link/invite for ownership check
+        // Load the request with the link/invite for ownership check.
+        // ClientProfile.User is included so ResolveClientName can populate the
+        // SignalR payload without a second round-trip.
         var request = await db.PhotoDiaryRequests
             .Include(r => r.Link)
                 .ThenInclude(l => l!.ClientProfile)
+                    .ThenInclude(cp => cp.User)
             .Include(r => r.PendingInvite)
             .FirstOrDefaultAsync(r => r.Id == req.Id, ct);
 
@@ -62,6 +74,33 @@ public class AcceptRequestEndpoint(IApplicationDbContext db)
 
         await db.SaveChangesAsync(ct);
 
+        // ── Emit photoDiaryAccepted to the professional group (best-effort) ─────
+        // Recipient: request.ProfessionalId  →  nutritionist/trainer group.
+        // The web AppShell handler invalidates ['diary-requests', planId] so the
+        // open diary card flips from Pending to Accepted/InProgress immediately.
+        try
+        {
+            var clientName = ResolveClientName(request, emailClaim);
+            await notifier.NotifyAsync(
+                request.ProfessionalId,   // → professional group
+                "photoDiaryAccepted",
+                new PhotoDiaryAcceptedEvent
+                {
+                    RequestId = request.Id,
+                    ClientName = clientName,
+                    Mode = request.Mode.ToString(),
+                    PlanId = request.PlanId,
+                    AcceptedAt = request.UpdatedAt,
+                },
+                ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex,
+                "Failed to emit photoDiaryAccepted for request {RequestId} to professional {ProfessionalId}",
+                request.Id, request.ProfessionalId);
+        }
+
         await Send.OkAsync(new AcceptRequestResponse
         {
             Id = request.Id,
@@ -84,5 +123,23 @@ public class AcceptRequestEndpoint(IApplicationDbContext db)
                 StringComparison.OrdinalIgnoreCase);
 
         return false;
+    }
+
+    /// <summary>
+    /// Resolves a display name for the client: link-based pulls from
+    /// ClientProfile.User, invite-based pulls from PendingInvite first/last
+    /// name. Falls back to the email claim if neither is populated.
+    /// </summary>
+    private static string ResolveClientName(
+        Domain.Entities.PhotoDiaryRequest request,
+        string? clientEmail)
+    {
+        if (request.Link?.ClientProfile?.User is { } user)
+            return $"{user.FirstName} {user.LastName}".Trim();
+
+        if (request.PendingInvite is { } invite)
+            return $"{invite.FirstName} {invite.LastName}".Trim();
+
+        return clientEmail ?? string.Empty;
     }
 }

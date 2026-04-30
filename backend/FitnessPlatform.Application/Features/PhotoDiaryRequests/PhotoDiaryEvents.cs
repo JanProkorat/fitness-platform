@@ -4,6 +4,7 @@ namespace FitnessPlatform.Application.Features.PhotoDiaryRequests;
 //
 // Routing summary:
 //   photoDiaryRequested    → client group  (identified by clientUserId)
+//   photoDiaryAccepted     → trainer/nutritionist group (request.ProfessionalId)
 //   photoDiaryDismissed    → trainer/nutritionist group (request.ProfessionalId)
 //   photoDiaryPhotoUploaded → trainer/nutritionist group (request.ProfessionalId)
 //   photoDiarySubmitted    → trainer/nutritionist group (request.ProfessionalId)
@@ -34,6 +35,31 @@ public class PhotoDiaryRequestedEvent
 
     /// <summary>When the request was created.</summary>
     public DateTimeOffset CreatedAt { get; init; }
+}
+
+/// <summary>
+/// Payload for the <c>photoDiaryAccepted</c> SignalR event.
+/// Emitted to the <b>professional</b> when the client accepts a diary request
+/// and picks the upload mode. Lets the trainer portal flip the diary card's
+/// status chip from "Pending" to "Accepted" / "Day 1 / N" without a refresh.
+/// </summary>
+public class PhotoDiaryAcceptedEvent
+{
+    /// <summary>Public identifier of the diary request.</summary>
+    public Guid RequestId { get; init; }
+
+    /// <summary>Display name of the client who accepted.</summary>
+    public string ClientName { get; init; } = string.Empty;
+
+    /// <summary>The upload mode the client chose (<c>Bulk</c> or <c>Workflow</c>).</summary>
+    public string Mode { get; init; } = string.Empty;
+
+    /// <summary>Optional MongoDB plan the request is scoped to — used by the
+    /// web handler to scope the cache invalidation to the right plan.</summary>
+    public Guid? PlanId { get; init; }
+
+    /// <summary>When the client accepted (UpdatedAt after the status transition).</summary>
+    public DateTimeOffset AcceptedAt { get; init; }
 }
 
 /// <summary>

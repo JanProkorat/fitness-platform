@@ -20,7 +20,7 @@ public class UploadFoodImageUrlRequest
     public string Slot { get; set; } = string.Empty;
 
     /// <summary>
-    /// MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp").
+    /// MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif")
     /// </summary>
     public string ContentType { get; set; } = string.Empty;
 

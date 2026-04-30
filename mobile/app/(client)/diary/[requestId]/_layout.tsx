@@ -1,8 +1,11 @@
 import { Stack } from 'expo-router'
 
 /**
- * Stack navigator for screens nested under a specific diary request.
- * Currently contains the dismiss confirmation screen (#102).
+ * Stack navigator for screens nested under a specific diary request:
+ * - index (accept wizard, #99)
+ * - bulk upload (#100)
+ * - workflow + finalize (#101)
+ * - dismiss (#102)
  */
 export default function DiaryRequestNestedLayout() {
   return (

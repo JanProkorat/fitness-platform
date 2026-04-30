@@ -64,6 +64,10 @@ public class CreateRequestEndpoint(
         }
 
         Guid? clientUserId = null;
+        // ClientProfile.PublicId for plan-ownership lookups — Mongo NutritionPlan/TrainingPlan
+        // store ClientId as the client's PublicId, NOT their ApplicationUser.Id (verified
+        // against ClientNutrition/GetTodayPlan + HasActiveLinkAsync helpers).
+        Guid? clientPublicId = null;
         string? inviteEmail = null;
 
         if (req.LinkId.HasValue)
@@ -82,6 +86,7 @@ public class CreateRequestEndpoint(
             }
 
             clientUserId = link.ClientProfile.UserId;
+            clientPublicId = link.ClientProfile.PublicId;
         }
         else if (req.PendingInviteId.HasValue)
         {
@@ -98,11 +103,11 @@ public class CreateRequestEndpoint(
             }
 
             inviteEmail = invite.Email;
-            // clientUserId resolved below after save (only if user is already registered)
+            // clientUserId / clientPublicId resolved below after save (only if user is already registered)
         }
 
         // Validate planId ownership if provided (check both nutrition and training plans)
-        if (req.PlanId.HasValue && clientUserId.HasValue)
+        if (req.PlanId.HasValue && clientPublicId.HasValue)
         {
             var planId = req.PlanId.Value;
 
@@ -115,7 +120,7 @@ public class CreateRequestEndpoint(
             bool planBelongsToClient;
             if (nutritionPlan is not null)
             {
-                planBelongsToClient = nutritionPlan.ClientId == clientUserId.Value;
+                planBelongsToClient = nutritionPlan.ClientId == clientPublicId.Value;
             }
             else
             {
@@ -125,7 +130,7 @@ public class CreateRequestEndpoint(
                     .FindAsync(trainingFilter, cancellationToken: ct))
                     .FirstOrDefaultAsync(ct);
 
-                planBelongsToClient = trainingPlan is not null && trainingPlan.ClientId == clientUserId.Value;
+                planBelongsToClient = trainingPlan is not null && trainingPlan.ClientId == clientPublicId.Value;
             }
 
             if (!planBelongsToClient)
@@ -202,7 +207,11 @@ public class CreateRequestEndpoint(
                 request.Id, inviteEmail);
         }
 
-        await Send.CreatedAtAsync<CreateRequestEndpoint>(null, new CreateRequestResponse
+        // Send 200 (not 201) — the project's NSwag-generated TypeScript client only handles
+        // 200 as the success branch; a 201 response would be treated as an error and surface
+        // in an error toast on the web. The rest of the codebase's POST endpoints follow
+        // this same pragmatic convention.
+        await Send.OkAsync(new CreateRequestResponse
         {
             Id = request.Id,
             ProfessionalId = request.ProfessionalId,

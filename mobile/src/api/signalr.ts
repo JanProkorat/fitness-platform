@@ -33,6 +33,18 @@ const KNOWN_EVENTS = [
   // (either via client submit OR the server-side auto-finalize scheduler on day N+1).
   // Payload: { diaryRequestId: string }
   'photodiarysubmitted',
+  // Photo diary requested: fires on the client's connection when a trainer
+  // creates a new diary request for them. The Today screen listens to this so
+  // the pending banner appears without requiring a manual refresh.
+  // Payload: { requestId: string, professionalName, professionalRole, durationDays, planId?, createdAt }
+  'photodiaryrequested',
+  // Sent to the trainer when the client accepts, dismisses, or uploads a
+  // photo. Mobile is a client-only surface today, but registering no-ops
+  // here keeps the connection warning-free if the server ever broadcasts to
+  // the wrong group.
+  'photodiaryaccepted',
+  'photodiarydismissed',
+  'photodiaryphotouploaded',
 ]
 
 function createConnection(): HubConnection {

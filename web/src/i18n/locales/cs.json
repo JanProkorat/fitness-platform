@@ -1337,26 +1337,10 @@
     "prev": "Předchozí obrázek",
     "next": "Další obrázek"
   },
-  "clientDetail": {
-    "tabs": {
-      "overview": "Přehled",
-      "photos": "Fotky"
-    },
-    "photos": {
-      "categoryAll": "Vše",
-      "categoryFood": "Jídlo",
-      "categoryBody": "Tělo",
-      "categoryFreeForm": "Volné",
-      "planLabel": "Plán",
-      "planAll": "Všechny plány",
-      "emptyTitle": "Zatím žádné fotky",
-      "emptyDescription": "Jakmile klient nahraje fotky pokroku, zobrazí se zde seřazené po měsících.",
-      "photoAltPrefix": "Fotka"
-    }
-  },
   "diary": {
     "viewer": {
       "sectionTitle": "Foto-deník",
+      "tabLabel": "Foto deníky",
       "statusPending": "Čeká na klienta",
       "statusAccepted": "Přijato",
       "statusInProgress": "Den {{day}} ze {{total}}",
@@ -1373,10 +1357,13 @@
       "dismissReasonEmpty": "Bez uvedeného důvodu.",
       "noPhotosYet": "Zatím žádné fotky.",
       "photoCount_one": "{{count}} fotka",
+      "photoCount_few": "{{count}} fotky",
+      "photoCount_many": "{{count}} fotek",
       "photoCount_other": "{{count}} fotek",
       "pendingHint": "Čeká se na akceptaci od klienta."
     },
     "request": {
+      "alreadyPending": "Klient už má jednu nevyřízenou žádost — počkej, než ji přijme nebo odmítne.",
       "dialogTitle": "Požádat o foto-deník",
       "dialogSubtitle": "Klient uvidí žádost jako banner a může ji přijmout nebo odmítnout.",
       "infoBanner": "Klient uvidí žádost jako banner na úvodní obrazovce. Může ji přijmout nebo odmítnout (s volitelným důvodem).",

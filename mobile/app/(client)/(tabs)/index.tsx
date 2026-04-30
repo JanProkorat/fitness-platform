@@ -22,7 +22,7 @@ import { NotificationSheet } from '@/components/notifications/NotificationSheet'
 import { InviteCard } from '@/components/notifications/InviteCard'
 import { QuestionnaireBanner } from '@/components/notifications/QuestionnaireBanner'
 import { DiaryRequestBanner } from '@/components/today/DiaryRequestBanner'
-import { DiaryWorkflowBanner } from '@/components/today/DiaryWorkflowBanner'
+import { ActiveDiaryBanner } from '@/components/today/ActiveDiaryBanner'
 import { WeeklyCheckInBanner } from '@/components/today/WeeklyCheckInBanner'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useClientInvite } from '@/hooks/useClientInvite'
@@ -32,7 +32,8 @@ import {
   type PendingDiaryRequestItem,
 } from '@/api/questionnaire'
 import {
-  getActiveWorkflowDiaryRequests,
+  getActiveDiaryRequests,
+  PhotoDiaryMode,
   type ClientPhotoDiaryRequestSummary,
 } from '@/api/diaryRequests'
 import { getCurrentCheckIns, type CheckInSummary } from '@/api/weeklyCheckIns'
@@ -105,24 +106,33 @@ export default function TodayScreen() {
     [pendingQQuery.data?.pendingDiaryRequests],
   )
 
-  // Active workflow diary requests (Accepted or InProgress, Mode === Workflow)
-  const activeWorkflowQuery = useQuery<ClientPhotoDiaryRequestSummary[]>({
-    queryKey: ['active-workflow-diary-requests'],
-    queryFn: getActiveWorkflowDiaryRequests,
+  // Active diary requests — both Bulk and Workflow modes, status ∈ {Accepted, InProgress}.
+  // The user can resume an unsubmitted bulk upload OR continue an active 7-day workflow.
+  const activeDiaryQuery = useQuery<ClientPhotoDiaryRequestSummary[]>({
+    queryKey: ['active-diary-requests'],
+    queryFn: getActiveDiaryRequests,
     enabled: hasActiveLink,
     staleTime: 30_000,
   })
-  const activeWorkflowItems: ClientPhotoDiaryRequestSummary[] = activeWorkflowQuery.data ?? []
+  const activeDiaryItems: ClientPhotoDiaryRequestSummary[] = activeDiaryQuery.data ?? []
 
-  // Subscribe to photoDiarySubmitted so workflow banners disappear when the diary
-  // is auto-finalized server-side (day N+1 scheduler) or submitted manually.
+  // Subscribe to photo-diary lifecycle events so banners refresh in realtime
+  // without requiring a manual pull-to-refresh.
+  //   photodiaryrequested → trainer just created a request → show pending banner
+  //   photodiarysubmitted → request transitioned to Completed → drop active banner
+  // Both events invalidate the same two queries that drive the Today banners.
   useEffect(() => {
-    const unsub = onEvent('photodiarysubmitted', () => {
-      queryClient.invalidateQueries({ queryKey: ['active-workflow-diary-requests'] })
+    const refresh = () => {
       queryClient.invalidateQueries({ queryKey: ['pending-questionnaires'] })
+      queryClient.invalidateQueries({ queryKey: ['active-diary-requests'] })
       queryClient.invalidateQueries({ queryKey: ['notifications'] })
-    })
-    return unsub
+    }
+    const unsubRequested = onEvent('photodiaryrequested', refresh)
+    const unsubSubmitted = onEvent('photodiarysubmitted', refresh)
+    return () => {
+      unsubRequested()
+      unsubSubmitted()
+    }
   }, [queryClient])
 
   const handleNotificationAction = useCallback(
@@ -177,7 +187,7 @@ export default function TodayScreen() {
       queryClient.invalidateQueries({ queryKey: ['client-invite'] }),
       queryClient.invalidateQueries({ queryKey: ['pending-questionnaires'] }),
       queryClient.invalidateQueries({ queryKey: ['current-weekly-check-ins'] }),
-      queryClient.invalidateQueries({ queryKey: ['active-workflow-diary-requests'] }),
+      queryClient.invalidateQueries({ queryKey: ['active-diary-requests'] }),
     ])
     setRefreshing(false)
   }, [queryClient])
@@ -246,23 +256,30 @@ export default function TodayScreen() {
                   <DiaryRequestBanner
                     key={item.requestPublicId}
                     item={item}
-                    onAccept={() =>
-                      router.push(href(`/(client)/diary/${item.requestPublicId}`))
-                    }
-                    onDismiss={() =>
-                      router.push(href(`/(client)/diary/${item.requestPublicId}/dismiss`))
+                    onManage={() =>
+                      router.push({
+                        pathname: '/(client)/diary/[requestId]',
+                        params: {
+                          requestId: item.requestPublicId ?? '',
+                          professionalName: item.professionalName ?? '',
+                          professionalRole: item.professionalRole ?? '',
+                          durationDays: String(item.durationDays ?? 7),
+                        },
+                      })
                     }
                   />
                 ))}
 
-                {/* Active workflow diary banners — one per active 7-day workflow */}
-                {activeWorkflowItems.map((item) => (
-                  <DiaryWorkflowBanner
+                {/* Active diary banners — workflow (day-counter) or bulk (resume-upload) */}
+                {activeDiaryItems.map((item) => (
+                  <ActiveDiaryBanner
                     key={item.id}
                     request={item}
-                    onOpen={() =>
-                      router.push(href(`/(client)/diary/${item.id}/workflow`))
-                    }
+                    onOpen={() => {
+                      const target =
+                        item.mode === PhotoDiaryMode.Workflow ? 'workflow' : 'bulk'
+                      router.push(href(`/(client)/diary/${item.id}/${target}`))
+                    }}
                   />
                 ))}
 

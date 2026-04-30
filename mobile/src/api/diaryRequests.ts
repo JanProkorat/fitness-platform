@@ -64,20 +64,24 @@ export async function getDiaryRequestById(
 }
 
 /**
- * Fetch active workflow diary requests for the client.
- * "Active" means Mode === Workflow AND Status ∈ {Accepted, InProgress}.
+ * Fetch active diary requests (both Bulk and Workflow modes) for the client.
+ * "Active" means Status ∈ {Accepted, InProgress} — i.e. the client accepted
+ * the request and either hasn't started uploading yet (Accepted) or is
+ * mid-upload (InProgress) but hasn't submitted.
+ *
+ * Used by the Today screen to render a "Resume" banner so the client can
+ * always get back to an unfinished diary regardless of mode.
  *
  * `GET /client/photo-diary-requests`
  */
-export async function getActiveWorkflowDiaryRequests(): Promise<ClientPhotoDiaryRequestSummary[]> {
+export async function getActiveDiaryRequests(): Promise<ClientPhotoDiaryRequestSummary[]> {
   const { data } = await api.get<ListClientRequestsResponse>(
     '/client/photo-diary-requests',
     { params: { page: 1, pageSize: 50 } },
   )
   return (data.items ?? []).filter(
     (r) =>
-      r.mode === PhotoDiaryMode.Workflow &&
-      (r.status === PhotoDiaryStatus.Accepted || r.status === PhotoDiaryStatus.InProgress),
+      r.status === PhotoDiaryStatus.Accepted || r.status === PhotoDiaryStatus.InProgress,
   )
 }
 

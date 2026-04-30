@@ -135,7 +135,7 @@ export function DiaryFinalizeScreen() {
     mutationFn: () => submitDiaryRequest(requestId ?? ''),
     onSuccess: () => {
       Toast.show(t('diary.finalize.successToast'))
-      queryClient.invalidateQueries({ queryKey: ['active-workflow-diary-requests'] })
+      queryClient.invalidateQueries({ queryKey: ['active-diary-requests'] })
       queryClient.invalidateQueries({ queryKey: ['diary-request', requestId] })
       queryClient.invalidateQueries({ queryKey: ['pending-questionnaires'] })
       // Navigate to Today tab

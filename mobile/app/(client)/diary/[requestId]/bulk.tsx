@@ -18,7 +18,7 @@
  *     diary-requests + today-questionnaires queries, navigate to Today.
  */
 
-import React, { useCallback, useReducer, useState } from 'react'
+import React, { useCallback, useReducer, useRef, useState } from 'react'
 import {
   View,
   Text,
@@ -36,17 +36,20 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import * as ImagePicker from 'expo-image-picker'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
-import { goldAlpha } from '@/constants/colors'
 import { generatePlanPhotoUploadUrl, finalizePlanPhoto } from '@/api/planPhotos'
-import { submitDiaryRequest } from '@/api/diaryRequests'
+import {
+  getDiaryRequestById,
+  submitDiaryRequest,
+  type ClientPhotoDiaryRequestSummary,
+} from '@/api/diaryRequests'
 import { Toast } from '@/lib/toast'
-import { href } from '@/lib/navigation'
+import { transcodeHeicToJpeg } from '@/lib/heicTranscode'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -117,6 +120,8 @@ const MIME_MAP: Record<string, string> = {
   jpeg: 'image/jpeg',
   png: 'image/png',
   webp: 'image/webp',
+  heic: 'image/heic',
+  heif: 'image/heif',
 }
 
 function getMimeType(uri: string): string {
@@ -133,41 +138,66 @@ export function DiaryBulkScreen() {
   const queryClient = useQueryClient()
   const { width } = useWindowDimensions()
 
-  const { requestId, planId, professionalName } = useLocalSearchParams<{
-    requestId: string
-    planId: string
-    professionalName?: string
-  }>()
+  const { requestId } = useLocalSearchParams<{ requestId: string }>()
+
+  // Fetch the request to derive the planId — the bulk screen is reachable both
+  // from the wizard (just-accepted, no params) and from the Today resume banner,
+  // neither of which threads planId through the URL. The PlanPhoto upload
+  // pipeline requires it because photos are scoped to a plan, not a request.
+  const requestQuery = useQuery<ClientPhotoDiaryRequestSummary | undefined>({
+    queryKey: ['diary-request', requestId],
+    queryFn: () => getDiaryRequestById(requestId ?? ''),
+    enabled: !!requestId,
+    staleTime: 30_000,
+  })
+  const planId = requestQuery.data?.planId
 
   // ── Photo list managed by a local reducer ────────────────────────────────────
   const [photos, dispatch] = useReducer(photosReducer, [])
   const [picking, setPicking] = useState(false)
 
   const uploadingCount = photos.filter((p) => p.status === 'uploading').length
-  const failedCount = photos.filter((p) => p.status === 'failed').length
   const uploadedCount = photos.filter((p) => p.status === 'uploaded').length
   const totalCount = photos.length
 
-  // Submit enabled when ≥1 photo, none uploading, no failures (AC #2).
-  const canSubmit = totalCount > 0 && uploadingCount === 0 && failedCount === 0
+  // Submit enabled when ≥1 photo. The submit mutation itself runs uploads for
+  // any 'pending' or 'failed' entries (with their captions intact) and only
+  // POSTs /submit if every upload succeeded.
+  const canSubmit = totalCount > 0 && uploadingCount === 0
+
+  // Hold the latest photos array in a ref so the upload helper always reads
+  // the user's most-recently-typed caption (the closure value would be stale
+  // because uploads run from the submit handler, not from each pick).
+  const photosRef = useRef(photos)
+  photosRef.current = photos
 
   // ── Upload a single entry ────────────────────────────────────────────────────
+  // Fetches the latest caption for this entry from `photosRef` at upload time,
+  // not from the captured `entry` argument, so captions typed AFTER the photo
+  // was picked still reach the backend.
   const uploadEntry = useCallback(
-    async (entry: PhotoEntry, effectivePlanId: string): Promise<void> => {
-      dispatch({ type: 'SET_STATUS', localId: entry.localId, status: 'uploading' })
+    async (localId: string, effectivePlanId: string): Promise<void> => {
+      const entry = photosRef.current.find((p) => p.localId === localId)
+      if (!entry) return
+
+      dispatch({ type: 'SET_STATUS', localId, status: 'uploading' })
       try {
         const contentType = getMimeType(entry.localUri)
 
-        // 1. Request presigned PUT URL.
+        // 1. Read the file first so we know its real byte size — the backend
+        //    validator rejects sizeBytes <= 0 and > 5 MiB with a 400, so we
+        //    must pass the actual blob length when requesting the signed URL.
+        const fileResponse = await fetch(entry.localUri)
+        const blob = await fileResponse.blob()
+
+        // 2. Request presigned PUT URL with the correct content-type + size.
         const { uploadUrl, blobUrl } = await generatePlanPhotoUploadUrl(
           effectivePlanId,
           contentType,
-          0, // size unknown here; server enforces its own cap
+          blob.size,
         )
 
-        // 2. PUT the raw binary to the signed URL.
-        const fileResponse = await fetch(entry.localUri)
-        const blob = await fileResponse.blob()
+        // 3. PUT the raw binary to the signed URL.
         const putResponse = await fetch(uploadUrl, {
           method: 'PUT',
           headers: { 'Content-Type': contentType },
@@ -177,17 +207,20 @@ export function DiaryBulkScreen() {
           throw new Error(`PUT ${putResponse.status} ${putResponse.statusText}`)
         }
 
-        // 3. Finalize — links the photo to this diary request.
-        //    The server transitions Accepted → InProgress on the first call.
+        // 4. Finalize — read the caption from current state (not the captured
+        //    entry from when the photo was picked) so user edits land too.
+        const latest = photosRef.current.find((p) => p.localId === localId)
+        const caption = latest?.caption?.trim() || undefined
+
         await finalizePlanPhoto(effectivePlanId, {
           blobUrl,
-          description: entry.caption || undefined,
+          description: caption,
           diaryRequestId: requestId,
         })
 
         dispatch({
           type: 'SET_STATUS',
-          localId: entry.localId,
+          localId,
           status: 'uploaded',
           remoteUrl: blobUrl,
         })
@@ -195,14 +228,14 @@ export function DiaryBulkScreen() {
         const msg = e instanceof Error ? e.message : String(e)
         dispatch({
           type: 'SET_STATUS',
-          localId: entry.localId,
+          localId,
           status: 'failed',
           errorMsg: msg,
         })
-        Toast.show(t('diary.bulk.errorUpload'))
+        throw e
       }
     },
-    [requestId, t],
+    [requestId],
   )
 
   // ── Permission check helper ──────────────────────────────────────────────────
@@ -255,8 +288,12 @@ export function DiaryBulkScreen() {
     })
   }, [t])
 
-  // ── Pick photos and start uploads ─────────────────────────────────────────────
-  const handlePickAndUpload = useCallback(async () => {
+  // ── Pick photos and queue them ─────────────────────────────────────────────
+  // Photos are NOT uploaded here — they're queued in 'pending' state so the
+  // user can type a caption first. The actual PUT + finalize happens at submit
+  // time (see submitMutation), which means whatever caption the user typed
+  // ends up on the backend.
+  const handlePick = useCallback(async () => {
     if (picking) return
     if (!planId) {
       Toast.show(t('common.error'))
@@ -292,30 +329,33 @@ export function DiaryBulkScreen() {
 
       if (result.canceled || result.assets.length === 0) return
 
-      const newEntries: PhotoEntry[] = result.assets.map((asset) => ({
+      // Transcode HEIC/HEIF → JPEG so the trainer portal can render the photos
+      // (browsers don't decode HEIC natively). No-op for other formats.
+      const transcodedUris = await Promise.all(
+        result.assets.map((asset) => transcodeHeicToJpeg(asset.uri)),
+      )
+
+      const newEntries: PhotoEntry[] = transcodedUris.map((uri) => ({
         localId: nextLocalId(),
-        localUri: asset.uri,
+        localUri: uri,
         caption: '',
         status: 'pending' as PhotoStatus,
       }))
 
       dispatch({ type: 'ADD_PHOTOS', entries: newEntries })
-
-      // Start uploads in parallel. Each upload updates its own entry status;
-      // failures keep the entry (with caption) in the list for retry (AC #1).
-      await Promise.all(newEntries.map((entry) => uploadEntry(entry, planId)))
     } finally {
       setPicking(false)
     }
-  }, [picking, planId, selectSource, ensureLibraryPermission, ensureCameraPermission, uploadEntry, t])
+  }, [picking, planId, selectSource, ensureLibraryPermission, ensureCameraPermission, t])
 
   // ── Retry a failed entry ─────────────────────────────────────────────────────
   const handleRetry = useCallback(
     (entry: PhotoEntry) => {
       if (!planId) return
-      void uploadEntry(entry, planId)
+      // Reset to pending; the next submit attempt will pick it up.
+      dispatch({ type: 'SET_STATUS', localId: entry.localId, status: 'pending' })
     },
-    [planId, uploadEntry],
+    [planId],
   )
 
   // ── Remove ────────────────────────────────────────────────────────────────────
@@ -329,22 +369,45 @@ export function DiaryBulkScreen() {
   }, [])
 
   // ── Submit mutation ───────────────────────────────────────────────────────────
+  // Two-phase: first uploads every photo that is still 'pending' or 'failed'
+  // (with the latest caption from state), then calls the diary submit endpoint.
+  // Uploaded photos are skipped on retry — only outstanding ones run again.
   const submitMutation = useMutation({
-    mutationFn: () => submitDiaryRequest(requestId),
+    mutationFn: async () => {
+      if (!planId) throw new Error('planId not loaded')
+      const outstanding = photosRef.current.filter(
+        (p) => p.status === 'pending' || p.status === 'failed',
+      )
+      if (outstanding.length > 0) {
+        const results = await Promise.allSettled(
+          outstanding.map((p) => uploadEntry(p.localId, planId)),
+        )
+        const anyFailed = results.some((r) => r.status === 'rejected')
+        if (anyFailed) {
+          // Don't call submit — let the user retry / remove failed photos.
+          throw new Error('upload-failed')
+        }
+      }
+      return submitDiaryRequest(requestId)
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['diary-requests'] })
-      queryClient.invalidateQueries({ queryKey: ['today-questionnaires'] })
+      queryClient.invalidateQueries({ queryKey: ['pending-questionnaires'] })
+      queryClient.invalidateQueries({ queryKey: ['active-diary-requests'] })
       Toast.show(t('diary.bulk.successToast'))
-      router.replace(href('/(client)'))
+      // Use router.back() instead of replace so the screen slides out using the
+      // stack's back animation — replace would just swap the screen with no
+      // transition, making the dismissal feel abrupt.
+      router.back()
     },
-    onError: () => {
-      Toast.show(t('diary.bulk.errorSubmit'))
+    onError: (err) => {
+      const msg = err instanceof Error ? err.message : ''
+      Toast.show(t(msg === 'upload-failed' ? 'diary.bulk.errorUpload' : 'diary.bulk.errorSubmit'))
     },
   })
 
   const isSubmitting = submitMutation.isPending
   const submitDisabled = !canSubmit || isSubmitting
-  const displayName = professionalName ?? ''
 
   // ── Layout constants ──────────────────────────────────────────────────────────
   const MARGIN = 20
@@ -356,67 +419,57 @@ export function DiaryBulkScreen() {
       style={[styles.container, { backgroundColor: colors.bg }]}
       edges={['top', 'bottom']}
     >
-      {/* ── Modal-style top bar ──────────────────────────────────────────── */}
-      <View style={[styles.topBar, { borderBottomColor: colors.sep2 }]}>
+      {/* ── Header: classic back button + title ─────────────────────────────── */}
+      <View style={[styles.header, { borderBottomColor: colors.sep2 }]}>
         <Pressable
           onPress={() => router.back()}
-          style={({ pressed }) => [styles.topBarSide, { opacity: pressed ? 0.5 : 1 }]}
+          hitSlop={8}
+          style={({ pressed }) => [styles.backButton, { opacity: pressed ? 0.5 : 1 }]}
           accessibilityRole="button"
-          accessibilityLabel={t('diary.bulk.close')}
+          accessibilityLabel={t('common.back')}
         >
-          <Text style={[Type.subheadline, styles.topBarAction, { color: colors.label2 }]}>
-            {t('diary.bulk.close')}
+          <Ionicons name="chevron-back" size={26} color={colors.gold} />
+          <Text style={[Type.body, styles.backLabel, { color: colors.gold }]}>
+            {t('common.back')}
           </Text>
         </Pressable>
 
         <Text
-          style={[Type.subheadline, styles.topBarTitle, { color: colors.label }]}
+          style={[Type.headline, styles.headerTitle, { color: colors.label }]}
           numberOfLines={1}
         >
-          {t('diary.bulk.title', { count: uploadedCount, total: totalCount })}
+          {totalCount > 0
+            ? t('diary.bulk.title', { count: uploadedCount, total: totalCount })
+            : t('diary.bulk.titleEmpty')}
         </Text>
 
         {/* Right spacer keeps title centred. */}
-        <View style={styles.topBarSide} />
+        <View style={styles.headerSpacer} />
       </View>
 
-      {/* ── Scrollable body ─────────────────────────────────────────────────── */}
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Hint strip */}
-        <View
-          style={[
-            styles.hintStrip,
-            { backgroundColor: goldAlpha['08'], borderColor: colors.gold },
-          ]}
-        >
-          <Text style={[Type.footnote, styles.hintText, { color: colors.label2 }]}>
-            {t('diary.bulk.hint')}
-          </Text>
-        </View>
-
-        {/* Add-photos dashed card */}
+      {/* ── Pinned add-photos card (always visible) ─────────────────────────── */}
+      <View style={styles.pinnedAddArea}>
         <Pressable
-          onPress={handlePickAndUpload}
-          disabled={picking}
+          onPress={handlePick}
+          disabled={picking || !planId}
           accessibilityRole="button"
+          accessibilityState={{ disabled: picking || !planId }}
           style={({ pressed }) => [
             styles.addCard,
             {
               backgroundColor: colors.bg2,
               borderColor: colors.sep,
-              opacity: picking || pressed ? 0.7 : 1,
+              opacity: picking || !planId ? 0.5 : pressed ? 0.7 : 1,
             },
           ]}
         >
-          {picking ? (
+          {picking || !planId ? (
             <ActivityIndicator color={colors.gold} />
           ) : (
             <>
+              <Text style={[Type.caption1, styles.addCardHintTop, { color: colors.label3 }]}>
+                {t('diary.bulk.hint')}
+              </Text>
               <Text style={styles.addCardIcon}>📷</Text>
               <Text style={[Type.callout, styles.addCardTitle, { color: colors.label }]}>
                 {t('diary.bulk.addPhotos')}
@@ -427,8 +480,15 @@ export function DiaryBulkScreen() {
             </>
           )}
         </Pressable>
+      </View>
 
-        {/* 2-column thumbnail grid */}
+      {/* ── Scrollable photo grid only ──────────────────────────────────────── */}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         {photos.length > 0 && (
           <View style={styles.grid}>
             {photos.map((entry, idx) => (
@@ -444,16 +504,6 @@ export function DiaryBulkScreen() {
                 t={t}
               />
             ))}
-          </View>
-        )}
-
-        {/* Totals strip */}
-        {photos.length > 0 && (
-          <View style={[styles.totalsStrip, { backgroundColor: colors.fill }]}>
-            <Text style={[Type.footnote, styles.totalsText, { color: colors.label2 }]}>
-              {totalCount}{' '}
-              {t(`diary.bulk.photo`, { count: totalCount })}
-            </Text>
           </View>
         )}
       </ScrollView>
@@ -483,27 +533,9 @@ export function DiaryBulkScreen() {
             <ActivityIndicator color={colors.onAccent} />
           ) : (
             <Text style={[Type.subheadline, styles.ctaLabel, { color: colors.onAccent }]}>
-              {t('diary.bulk.submitCta', { name: displayName || t('common.yourCoach') })}
+              {t('diary.bulk.submitCta')}
             </Text>
           )}
-        </Pressable>
-
-        {/* Cancel */}
-        <Pressable
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          style={({ pressed }) => [
-            styles.ctaCancel,
-            {
-              backgroundColor: colors.bg2,
-              borderColor: colors.sep2,
-              opacity: pressed ? 0.6 : 1,
-            },
-          ]}
-        >
-          <Text style={[Type.footnote, styles.ctaCancelLabel, { color: colors.label }]}>
-            {t('diary.bulk.cancelCta')}
-          </Text>
         </Pressable>
       </View>
     </SafeAreaView>
@@ -635,25 +667,32 @@ const styles = StyleSheet.create({
   },
 
   // Top bar
-  topBar: {
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 14,
+    paddingHorizontal: 12,
+    paddingTop: 8,
     paddingBottom: 10,
     borderBottomWidth: 0.5,
   },
-  topBarSide: {
-    width: 64,
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: 92,
+    paddingVertical: 6,
   },
-  topBarAction: {
+  backLabel: {
     fontWeight: '600',
+    marginLeft: -2,
   },
-  topBarTitle: {
+  headerTitle: {
     fontWeight: '600',
     flex: 1,
     textAlign: 'center',
+  },
+  headerSpacer: {
+    width: 92,
   },
 
   // Scroll
@@ -664,38 +703,41 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 14,
     paddingBottom: 130,
-    gap: 14,
   },
 
-  // Hint strip
-  hintStrip: {
-    padding: 12,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-  },
-  hintText: {
-    lineHeight: 18,
+  // Pinned add-photos area (sits between header and scrollable grid)
+  pinnedAddArea: {
+    paddingHorizontal: 20,
+    paddingTop: 14,
+    paddingBottom: 6,
   },
 
   // Add-photos dashed card
   addCard: {
-    padding: 28,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
     borderRadius: Radius.lg,
     borderWidth: 2,
     borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
+    gap: 2,
   },
   addCardIcon: {
     fontSize: EMOJI_LARGE,
-    marginBottom: 6,
+    lineHeight: EMOJI_LARGE + 2,
+    marginVertical: 0,
   },
   addCardTitle: {
     fontWeight: '600',
   },
   addCardHint: {
     textAlign: 'center',
+  },
+  addCardHintTop: {
+    textAlign: 'center',
+    marginBottom: 4,
+    lineHeight: 18,
   },
 
   // 2-column grid
@@ -751,43 +793,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  // Totals strip
-  totalsStrip: {
-    borderRadius: Radius.md,
-    padding: 10,
-    alignItems: 'center',
-  },
-  totalsText: {
-    fontWeight: '600',
-  },
-
   // Action bar
   actionBar: {
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderTopWidth: 0.5,
-    flexDirection: 'row',
-    gap: 10,
   },
   ctaSubmit: {
-    flex: 1,
     height: 50,
     borderRadius: Radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   ctaLabel: {
-    fontWeight: '600',
-  },
-  ctaCancel: {
-    height: 50,
-    paddingHorizontal: 18,
-    borderRadius: Radius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-  },
-  ctaCancelLabel: {
     fontWeight: '600',
   },
 })

@@ -1,19 +1,15 @@
 /**
- * Diary Dismiss Screen — confirm + optional reason sheet.
+ * Diary request dismiss screen.
  *
- * Per prototype docs/prototypes/mobile/scenes/diary-dismiss.html:
- *   1. Modal-style header: screen title + "Cancel" (close) button.
- *   2. Warning block: orange tint with ⚠️ icon + explanation copy.
- *   3. Optional reason textarea with character counter (max 500).
- *   4. Pinned action bar: "Dismiss request" (red) + "Cancel" (secondary).
+ * Reached from the wizard's Revoke button. The client can optionally type
+ * a reason (max 500 chars — matches the backend validator) before
+ * confirming. Submit fires `dismissDiaryRequest({ id, reason })`; the
+ * trimmed reason is omitted from the request body when empty.
  *
- * Route params: requestId (from [requestId] parent segment).
- *
- * Submit flow:
- *   dismissDiaryRequest({ id, reason }) → toast → invalidate queries → Today.
- * Cancel: router.back() — no API call.
+ * Header mirrors the wizard: gold chevron-back + "Zpět" label, centered
+ * "Foto-deník" title. Back returns to the wizard so the client can change
+ * their mind.
  */
-
 import React, { useCallback, useState } from 'react'
 import {
   View,
@@ -21,314 +17,243 @@ import {
   StyleSheet,
   Pressable,
   ScrollView,
-  TextInput,
   ActivityIndicator,
+  KeyboardAvoidingView,
   Platform,
+  TextInput,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
-import { dismissDiaryRequest } from '@/api/diaryRequests'
 import { Toast } from '@/lib/toast'
-import { href } from '@/lib/navigation'
+import { useDiaryStore } from '@/stores/diaryStore'
+import { dismissDiaryRequest } from '@/api/diaryRequests'
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const REASON_MAX_LENGTH = 500
-
-// ─── Screen ──────────────────────────────────────────────────────────────────
+const REASON_MAX = 500
 
 export function DiaryDismissScreen() {
   const colors = useTheme()
   const { t } = useTranslation()
   const router = useRouter()
   const queryClient = useQueryClient()
+  const { clearSelection } = useDiaryStore()
 
   const { requestId } = useLocalSearchParams<{ requestId: string }>()
-
   const [reason, setReason] = useState('')
 
-  // ── Dismiss mutation ──
   const dismissMutation = useMutation({
-    mutationFn: () =>
-      dismissDiaryRequest({ id: requestId ?? '', reason }),
+    mutationFn: () => dismissDiaryRequest({ id: requestId, reason }),
     onSuccess: () => {
-      Toast.show(t('diary.dismiss.successToast'))
+      clearSelection(requestId)
       queryClient.invalidateQueries({ queryKey: ['pending-questionnaires'] })
-      queryClient.invalidateQueries({ queryKey: ['active-workflow-diary-requests'] })
-      router.replace(href('/(client)/(tabs)'))
+      queryClient.invalidateQueries({ queryKey: ['diary-requests'] })
+      queryClient.invalidateQueries({ queryKey: ['active-diary-requests'] })
+      Toast.show(t('diary.dismiss.successToast'))
+      router.replace('/(client)')
     },
     onError: () => {
       Toast.show(t('diary.dismiss.errorDismiss'))
     },
   })
 
-  const handleDismiss = useCallback(() => {
+  const isLoading = dismissMutation.isPending
+
+  const handleSubmit = useCallback(() => {
+    if (isLoading) return
     dismissMutation.mutate()
-  }, [dismissMutation])
-
-  const handleCancel = useCallback(() => {
-    router.back()
-  }, [router])
-
-  const isPending = dismissMutation.isPending
+  }, [dismissMutation, isLoading])
 
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.bg }]}
       edges={['top', 'bottom']}
     >
-      {/* ── Modal header ── */}
+      {/* ── Header ────────────────────────────────────────────────── */}
       <View style={[styles.header, { borderBottomColor: colors.sep2 }]}>
         <Pressable
-          onPress={handleCancel}
-          hitSlop={12}
+          onPress={() => router.back()}
+          hitSlop={8}
+          style={({ pressed }) => [styles.backButton, { opacity: pressed ? 0.5 : 1 }]}
           accessibilityRole="button"
-          accessibilityLabel={t('diary.dismiss.ctaCancel')}
-          style={styles.headerSideBtn}
+          accessibilityLabel={t('common.back')}
         >
-          <Text style={[Type.subheadline, { color: colors.label2, fontWeight: '600' }]}>
-            {t('diary.dismiss.ctaCancel')}
+          <Ionicons name="chevron-back" size={26} color={colors.gold} />
+          <Text style={[Type.body, styles.backLabel, { color: colors.gold }]}>
+            {t('common.back')}
           </Text>
         </Pressable>
-        <Text style={[Type.subheadline, { color: colors.label, fontWeight: '600' }]}>
+
+        <Text
+          style={[Type.headline, styles.headerTitle, { color: colors.label }]}
+          numberOfLines={1}
+        >
           {t('diary.dismiss.screenTitle')}
         </Text>
-        {/* Spacer to balance the left button */}
-        <View style={styles.headerSideBtn} />
+
+        <View style={styles.headerSpacer} />
       </View>
 
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {/* ── Warning block ── */}
-        <View
-          style={[
-            styles.warningBlock,
-            { backgroundColor: colors.fill, borderColor: colors.sep2 },
-          ]}
+        {/* ── Body ─────────────────────────────────────────────────── */}
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
         >
-          <Text style={styles.warningIcon}>⚠️</Text>
-          <Text
-            style={[
-              Type.footnote,
-              styles.warningText,
-              { color: colors.label2 },
-            ]}
-          >
+          <Text style={[styles.warning, { color: colors.label2 }]}>
             {t('diary.dismiss.warningText')}
           </Text>
-        </View>
 
-        {/* ── Reason textarea ── */}
-        <View style={styles.reasonSection}>
-          <View style={styles.reasonLabelRow}>
-            <Text
-              style={[
-                Type.footnote,
-                styles.reasonLabel,
-                { color: colors.label2 },
-              ]}
-            >
-              {t('diary.dismiss.reasonLabel')}
-            </Text>
-            <Text style={[Type.caption1, { color: colors.label3 }]}>
-              {t('diary.dismiss.charCount', {
-                count: reason.length,
-                max: REASON_MAX_LENGTH,
-              })}
-            </Text>
-          </View>
-
+          <Text style={[Type.caption1, styles.label, { color: colors.label3 }]}>
+            {t('diary.dismiss.reasonLabel')}
+          </Text>
           <TextInput
+            value={reason}
+            onChangeText={(v) => v.length <= REASON_MAX && setReason(v)}
+            placeholder={t('diary.dismiss.reasonPlaceholder')}
+            placeholderTextColor={colors.label3}
+            multiline
+            textAlignVertical="top"
             style={[
-              styles.textInput,
+              styles.textarea,
               {
                 backgroundColor: colors.bg2,
                 borderColor: colors.sep2,
                 color: colors.label,
               },
             ]}
-            placeholder={t('diary.dismiss.reasonPlaceholder')}
-            placeholderTextColor={colors.label3}
-            multiline
-            textAlignVertical="top"
-            maxLength={REASON_MAX_LENGTH}
-            value={reason}
-            onChangeText={setReason}
-            editable={!isPending}
-            returnKeyType="default"
-            accessibilityLabel={t('diary.dismiss.reasonLabel')}
           />
-        </View>
-      </ScrollView>
-
-      {/* ── Pinned action bar ── */}
-      <View
-        style={[
-          styles.actionBar,
-          {
-            backgroundColor: colors.bg,
-            borderTopColor: colors.sep2,
-          },
-        ]}
-      >
-        {/* Primary: Dismiss (red) */}
-        <Pressable
-          onPress={handleDismiss}
-          disabled={isPending}
-          accessibilityRole="button"
-          accessibilityLabel={t('diary.dismiss.ctaDismiss')}
-          style={({ pressed }) => [
-            styles.ctaDismiss,
-            {
-              backgroundColor: colors.red,
-              opacity: pressed || isPending ? 0.7 : 1,
-            },
-          ]}
-        >
-          {isPending ? (
-            <ActivityIndicator color={colors.onAccent} size="small" />
-          ) : (
-            <Text style={[Type.subheadline, styles.ctaDismissText, { color: colors.onAccent }]}>
-              {t('diary.dismiss.ctaDismiss')}
-            </Text>
-          )}
-        </Pressable>
-
-        {/* Secondary: Cancel */}
-        <Pressable
-          onPress={handleCancel}
-          disabled={isPending}
-          accessibilityRole="button"
-          accessibilityLabel={t('diary.dismiss.ctaCancel')}
-          style={({ pressed }) => [
-            styles.ctaCancel,
-            {
-              backgroundColor: colors.fill,
-              borderColor: colors.sep2,
-              opacity: pressed || isPending ? 0.7 : 1,
-            },
-          ]}
-        >
-          <Text style={[Type.subheadline, styles.ctaCancelText, { color: colors.label }]}>
-            {t('diary.dismiss.ctaCancel')}
+          <Text style={[Type.caption2, styles.charCount, { color: colors.label3 }]}>
+            {t('diary.dismiss.charCount', {
+              count: reason.length,
+              max: REASON_MAX,
+            })}
           </Text>
-        </Pressable>
-      </View>
+        </ScrollView>
+
+        {/* ── Action bar ──────────────────────────────────────────── */}
+        <View
+          style={[
+            styles.actionBar,
+            { backgroundColor: colors.bg, borderTopColor: colors.sep2 },
+          ]}
+        >
+          <Pressable
+            onPress={handleSubmit}
+            disabled={isLoading}
+            style={({ pressed }) => [
+              styles.ctaPrimary,
+              {
+                backgroundColor: colors.gold,
+                opacity: isLoading ? 0.45 : pressed ? 0.8 : 1,
+              },
+            ]}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: isLoading }}
+          >
+            {isLoading ? (
+              <ActivityIndicator color={colors.onAccent} />
+            ) : (
+              <Text style={[styles.ctaPrimaryLabel, { color: colors.onAccent }]}>
+                {t('diary.dismiss.ctaDismiss')}
+              </Text>
+            )}
+          </Pressable>
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   )
 }
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
+const HEADER_SIDE_WIDTH = 92
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
+  flex: { flex: 1 },
 
-  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 4 : 8,
-    paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 10,
+    borderBottomWidth: 0.5,
   },
-  headerSideBtn: {
-    minWidth: 56,
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: HEADER_SIDE_WIDTH,
+    paddingVertical: 6,
+  },
+  backLabel: {
+    fontWeight: '600',
+    marginLeft: -2,
+  },
+  headerTitle: {
+    fontWeight: '600',
+    flex: 1,
+    textAlign: 'center',
+  },
+  headerSpacer: {
+    width: HEADER_SIDE_WIDTH,
   },
 
-  // Scroll content
-  scroll: {
+  scroll: { flex: 1 },
+  scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 24,
   },
 
-  // Warning block
-  warningBlock: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    padding: 16,
+  warning: {
+    fontSize: 15,
+    lineHeight: 22,
+    marginBottom: 20,
+  },
+  label: {
+    fontWeight: '500',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  textarea: {
+    minHeight: 140,
     borderRadius: Radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  warningIcon: {
-    fontSize: 20,
-    flexShrink: 0,
-  },
-  warningText: {
-    flex: 1,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
     lineHeight: 20,
   },
-
-  // Reason section
-  reasonSection: {
-    marginTop: 24,
-  },
-  reasonLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  reasonLabel: {
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  textInput: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: Radius.md,
-    paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 14,
-    minHeight: 110,
-    ...Type.subheadline,
-    lineHeight: 22,
+  charCount: {
+    marginTop: 6,
+    textAlign: 'right',
   },
 
-  // Action bar
   actionBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
     paddingHorizontal: 20,
     paddingTop: 12,
-    paddingBottom: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingBottom: 12,
+    borderTopWidth: 0.5,
+    gap: 10,
   },
-  ctaDismiss: {
-    flex: 1,
+  ctaPrimary: {
+    height: 50,
+    borderRadius: Radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: Radius.md,
-    minHeight: 48,
   },
-  ctaDismissText: {
-    fontWeight: '600',
-  },
-  ctaCancel: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    borderRadius: Radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    minHeight: 48,
-  },
-  ctaCancelText: {
+  ctaPrimaryLabel: {
+    ...Type.subheadline,
     fontWeight: '600',
   },
 })

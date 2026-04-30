@@ -1,14 +1,19 @@
 /**
- * Diary Workflow Screen — 7-day live photo stream.
+ * Diary Workflow Screen — multi-day live photo stream.
  *
- * Layout (per prototype diary-workflow.html):
- *   1. Page header: "Foto-deník" title + "Den X ze N · Coach" sub-line.
- *   2. Progress banner: day counter + dot strip + days-left sub-text.
- *   3. "Add photo today" primary CTA (gold button).
- *   4. Today's photos section: 2-col grid filtered to client-local-today.
- *   5. Previous days section: list rows grouped by day (Day N · date / N photos).
- *   6. Coach note strip.
- *   7. Finalize CTA — visible only on day N (currentDay >= durationDays).
+ * Layout:
+ *   1. Page header: "Foto-deník" title + "Den X ze N" sub-line.
+ *   2. Pinned dashed "Add photos" picker card — stays visible while the
+ *      photos grid below scrolls.
+ *   3. Scrollable body:
+ *        a. Staged photos (picked, not yet uploaded) — caption + remove per
+ *           tile, status badge per tile (mirrors the bulk page exactly).
+ *        b. All uploaded photos for this diary, newest first.
+ *        c. Finalize CTA — visible only on day N (currentDay >= durationDays).
+ *   4. Pinned bottom action bar: gold "Add today's photos" submit button —
+ *      runs the staged batch through the upload pipeline (does NOT submit
+ *      the diary; the diary auto-finalizes on day N+1 or via the day-N
+ *      finalize CTA).
  *
  * Data:
  *   - Request metadata: getDiaryRequestById (query key: ['diary-request', requestId]).
@@ -17,10 +22,11 @@
  *   - SignalR: planphotouploaded → invalidates photos; photoDiarySubmitted → navigates away.
  *
  * Upload pipeline: same as plan-photos.tsx (#66) — generatePlanPhotoUploadUrl +
- * finalizePlanPhoto with diaryRequestId threaded through.
+ * finalizePlanPhoto with diaryRequestId threaded through. The picker stages
+ * photos locally so the user can type a caption before the daily-batch submit.
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import {
   View,
   Text,
@@ -29,20 +35,21 @@ import {
   ScrollView,
   Image,
   ActivityIndicator,
+  TextInput,
+  ActionSheetIOS,
+  Alert,
+  Platform,
   useWindowDimensions,
-  useColorScheme,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Ionicons } from '@expo/vector-icons'
+import * as ImagePicker from 'expo-image-picker'
 import { useTheme } from '@/hooks/useTheme'
-import { useThemeStore } from '@/stores/themeStore'
-import { useImagePicker } from '@/hooks/useImagePicker'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
-import { goldAlpha } from '@/constants/colors'
 import {
   getDiaryRequestById,
   type ClientPhotoDiaryRequestSummary,
@@ -58,6 +65,7 @@ import { onEvent } from '@/api/signalr'
 import { ImageLightbox } from '@/components/ui/ImageLightbox'
 import { Toast } from '@/lib/toast'
 import { href } from '@/lib/navigation'
+import { transcodeHeicToJpeg } from '@/lib/heicTranscode'
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -72,67 +80,89 @@ function computeCurrentDay(
   return Math.min(daysSince + 1, durationDays)
 }
 
-/** ISO date string for the start of a given workflow day (midnight local). */
-function dayStartDate(acceptedAt: string, dayIndex: number): Date {
-  const accepted = new Date(acceptedAt)
-  // Reset to midnight local of accepted-at day, then add dayIndex days.
-  const base = new Date(accepted.getFullYear(), accepted.getMonth(), accepted.getDate())
-  base.setDate(base.getDate() + dayIndex)
-  return base
+/** Best-available timestamp for sorting/displaying a photo. Server returns
+ *  takenAt + dateCreated; we prefer takenAt when present and fall back to
+ *  dateCreated so newly-uploaded photos still sort correctly. */
+function photoTimestamp(p: PlanPhotoResponse): string {
+  return p.takenAt ?? p.dateCreated ?? ''
 }
 
-/** True if a photo's dateCreated falls on the client's local today. */
-function isToday(dateStr: string | undefined): boolean {
-  if (!dateStr) return false
-  const d = new Date(dateStr)
-  const now = new Date()
-  return (
-    d.getFullYear() === now.getFullYear() &&
-    d.getMonth() === now.getMonth() &&
-    d.getDate() === now.getDate()
-  )
+const MIME_MAP: Record<string, string> = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  heic: 'image/heic',
+  heif: 'image/heif',
 }
 
-/** Day index (0-based) a photo belongs to, relative to acceptedAt midnight. */
-function photoDayIndex(dateStr: string | undefined, acceptedAt: string): number {
-  if (!dateStr) return 0
-  const msPerDay = 24 * 60 * 60 * 1000
-  const acceptedMidnight = new Date(
-    new Date(acceptedAt).getFullYear(),
-    new Date(acceptedAt).getMonth(),
-    new Date(acceptedAt).getDate(),
-  ).getTime()
-  return Math.max(0, Math.floor((new Date(dateStr).getTime() - acceptedMidnight) / msPerDay))
+function getMimeType(uri: string): string {
+  const ext = uri.split('?')[0].split('.').pop()?.toLowerCase() ?? ''
+  return MIME_MAP[ext] ?? 'image/jpeg'
 }
 
-/** Format a Date as short locale date string. */
-function formatShortDate(date: Date, lng: string): string {
-  return date.toLocaleDateString(lng, { weekday: 'short', day: 'numeric', month: 'numeric' })
+let _idCounter = 0
+function nextLocalId(): string {
+  _idCounter += 1
+  return `local-${Date.now()}-${_idCounter}`
 }
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-interface PreviousDayGroup {
-  dayNumber: number   // 1-based
-  dayIndex: number    // 0-based (0 = Day 1)
-  date: Date
-  photos: PlanPhotoResponse[]
+type PhotoStatus = 'pending' | 'uploading' | 'uploaded' | 'failed'
+
+interface PhotoEntry {
+  localId: string
+  localUri: string
+  caption: string
+  status: PhotoStatus
+  remoteUrl?: string
+  errorMsg?: string
+}
+
+type PhotoAction =
+  | { type: 'ADD_PHOTOS'; entries: PhotoEntry[] }
+  | { type: 'SET_STATUS'; localId: string; status: PhotoStatus; remoteUrl?: string; errorMsg?: string }
+  | { type: 'SET_CAPTION'; localId: string; caption: string }
+  | { type: 'REMOVE'; localId: string }
+  | { type: 'CLEAR' }
+
+function photosReducer(state: PhotoEntry[], action: PhotoAction): PhotoEntry[] {
+  switch (action.type) {
+    case 'ADD_PHOTOS':
+      return [...state, ...action.entries]
+    case 'SET_STATUS':
+      return state.map((p) =>
+        p.localId === action.localId
+          ? {
+              ...p,
+              status: action.status,
+              remoteUrl: action.remoteUrl ?? p.remoteUrl,
+              errorMsg: action.status === 'failed' ? action.errorMsg : undefined,
+            }
+          : p,
+      )
+    case 'SET_CAPTION':
+      return state.map((p) =>
+        p.localId === action.localId ? { ...p, caption: action.caption } : p,
+      )
+    case 'REMOVE':
+      return state.filter((p) => p.localId !== action.localId)
+    case 'CLEAR':
+      return []
+    default:
+      return state
+  }
 }
 
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
 export function DiaryWorkflowScreen() {
   const colors = useTheme()
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const router = useRouter()
   const queryClient = useQueryClient()
   const { width } = useWindowDimensions()
-  const systemScheme = useColorScheme()
-  const preference = useThemeStore((s) => s.preference)
-  const effectiveScheme = preference === 'system' ? (systemScheme ?? 'light') : preference
-
-  const goldBg = effectiveScheme === 'dark' ? goldAlpha['10'] : goldAlpha['08']
-  const goldBorder = effectiveScheme === 'dark' ? goldAlpha['25'] : goldAlpha['20']
 
   const { requestId } = useLocalSearchParams<{ requestId: string }>()
 
@@ -141,6 +171,12 @@ export function DiaryWorkflowScreen() {
   const [lightboxImages, setLightboxImages] = useState<string[]>([])
   const [lightboxNotes, setLightboxNotes] = useState<(string | null)[]>([])
   const [lightboxIndex, setLightboxIndex] = useState(0)
+
+  // ── Local-staged photos (picked, not yet uploaded) ──
+  const [staged, dispatch] = useReducer(photosReducer, [])
+  const [picking, setPicking] = useState(false)
+  const stagedRef = useRef(staged)
+  stagedRef.current = staged
 
   // ── Query: diary request metadata ──
   const requestQuery = useQuery<ClientPhotoDiaryRequestSummary | undefined>({
@@ -157,42 +193,34 @@ export function DiaryWorkflowScreen() {
 
   // ── Query: plan photos filtered to this diary request ──
   const planId = request?.planId
+  // Backend validator caps `pageSize` at 100 — passing more (e.g. 200) returns
+  // a 400 and we silently get an empty list. 100 is plenty: even a 14-day
+  // diary with 5 photos/day tops out around 70 entries, well under the cap.
   const photosQuery = useQuery<PlanPhotoResponse[]>({
     queryKey: ['plan-photos', planId],
-    queryFn: () => getPlanPhotos(planId ?? '', 1, 200),
+    queryFn: () => getPlanPhotos(planId ?? '', 1, 100),
     enabled: !!planId,
-    staleTime: 30_000,
+    // Always refetch when the screen mounts. Without this, navigating away
+    // and back hits the cached list — which does not include photos uploaded
+    // in the meantime if the cache hasn't been invalidated by SignalR yet.
+    refetchOnMount: 'always',
+    staleTime: 0,
   })
 
-  // Photos belonging to this diary request
-  const diaryPhotos = useMemo(
-    () => (photosQuery.data ?? []).filter((p) => p.diaryRequestId === requestId),
-    [photosQuery.data, requestId],
-  )
-
-  // Today's photos
-  const todayPhotos = useMemo(
-    () => diaryPhotos.filter((p) => isToday(p.dateCreated)),
-    [diaryPhotos],
-  )
-
-  // Previous day groups (days before today, each with their photos)
-  const previousDayGroups = useMemo((): PreviousDayGroup[] => {
-    if (!request?.acceptedAt) return []
-
-    // We only show days 0..currentDay-2 (i.e., completed days before today)
-    const groups: PreviousDayGroup[] = []
-    for (let idx = 0; idx < currentDay - 1; idx++) {
-      const date = dayStartDate(request.acceptedAt, idx)
-      const dayNumber = idx + 1
-      const photos = diaryPhotos.filter(
-        (p) => photoDayIndex(p.dateCreated, request.acceptedAt!) === idx,
-      )
-      groups.push({ dayNumber, dayIndex: idx, date, photos })
-    }
-    // Show most recent first
-    return groups.slice().reverse()
-  }, [diaryPhotos, currentDay, request?.acceptedAt])
+  // All photos uploaded for this diary request, newest first. We no longer
+  // split into "today" vs "previous days" — that bucketing relied on
+  // `dateCreated` matching the client's local "today" exactly, which broke
+  // around UTC/local boundaries and hid the user's earlier uploads behind a
+  // collapsed list row. Showing every photo in one grid is what the client
+  // actually wants when they reopen the diary mid-period.
+  const diaryPhotos = useMemo(() => {
+    const list = (photosQuery.data ?? []).filter(
+      (p) => p.diaryRequestId === requestId,
+    )
+    return list
+      .slice()
+      .sort((a, b) => photoTimestamp(b).localeCompare(photoTimestamp(a)))
+  }, [photosQuery.data, requestId])
 
   // ── SignalR: invalidate photos when new upload arrives ──
   useEffect(() => {
@@ -205,53 +233,228 @@ export function DiaryWorkflowScreen() {
     return off
   }, [planId, queryClient])
 
-  // ── SignalR: navigate away when diary is submitted (auto-close or manual) ──
+  // ── SignalR: navigate away when diary is submitted ──
   useEffect(() => {
     const off = onEvent('photodiarysubmitted', (payload: unknown) => {
       const data = payload as { diaryRequestId?: string } | null
       if (!data?.diaryRequestId || data.diaryRequestId === requestId) {
-        queryClient.invalidateQueries({ queryKey: ['active-workflow-diary-requests'] })
+        queryClient.invalidateQueries({ queryKey: ['active-diary-requests'] })
         queryClient.invalidateQueries({ queryKey: ['diary-request', requestId] })
-        // Navigate back to Today — the diary is done
         router.replace(href('/(client)/(tabs)'))
       }
     })
     return off
   }, [requestId, router, queryClient])
 
-  // ── Finalize photo mutation ──
-  const finalizeMutation = useMutation({
-    mutationFn: async (blobUrl: string) => {
-      if (!planId) throw new Error('No planId')
-      return finalizePlanPhoto(planId, {
-        blobUrl,
-        category: PlanPhotoCategory.FreeForm,
-        diaryRequestId: requestId,
-      })
+  // ── Picker (stage-only, mirrors bulk.tsx) ──
+  const ensureLibraryPermission = useCallback(async (): Promise<boolean> => {
+    const result = await ImagePicker.requestMediaLibraryPermissionsAsync()
+    if (result.status !== 'granted') {
+      Toast.show(t('imagePicker.permissionDenied'))
+      return false
+    }
+    return true
+  }, [t])
+
+  const ensureCameraPermission = useCallback(async (): Promise<boolean> => {
+    const result = await ImagePicker.requestCameraPermissionsAsync()
+    if (result.status !== 'granted') {
+      Toast.show(t('imagePicker.permissionDenied'))
+      return false
+    }
+    return true
+  }, [t])
+
+  const selectSource = useCallback((): Promise<'camera' | 'library' | 'cancel'> => {
+    return new Promise((resolve) => {
+      const cameraLabel = t('imagePicker.sourceCamera')
+      const libraryLabel = t('imagePicker.sourceLibrary')
+      const cancelLabel = t('common.cancel')
+
+      if (Platform.OS === 'ios') {
+        ActionSheetIOS.showActionSheetWithOptions(
+          { options: [cancelLabel, cameraLabel, libraryLabel], cancelButtonIndex: 0 },
+          (idx) => {
+            if (idx === 1) resolve('camera')
+            else if (idx === 2) resolve('library')
+            else resolve('cancel')
+          },
+        )
+      } else {
+        Alert.alert(
+          t('imagePicker.sourceTitle'),
+          undefined,
+          [
+            { text: cameraLabel, onPress: () => resolve('camera') },
+            { text: libraryLabel, onPress: () => resolve('library') },
+            { text: cancelLabel, style: 'cancel', onPress: () => resolve('cancel') },
+          ],
+          { cancelable: true, onDismiss: () => resolve('cancel') },
+        )
+      }
+    })
+  }, [t])
+
+  const handlePick = useCallback(async () => {
+    if (picking) return
+    if (!planId) {
+      Toast.show(t('common.error'))
+      return
+    }
+
+    setPicking(true)
+    try {
+      const source = await selectSource()
+      if (source === 'cancel') return
+
+      const needCamera = source === 'camera'
+      const hasLibrary = await ensureLibraryPermission()
+      if (!hasLibrary) return
+      if (needCamera) {
+        const hasCam = await ensureCameraPermission()
+        if (!hasCam) return
+      }
+
+      let result: ImagePicker.ImagePickerResult
+      if (source === 'camera') {
+        result = await ImagePicker.launchCameraAsync({
+          mediaTypes: ['images'],
+          quality: 0.85,
+        })
+      } else {
+        result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          allowsMultipleSelection: true,
+          quality: 0.85,
+        })
+      }
+
+      if (result.canceled || result.assets.length === 0) return
+
+      const transcodedUris = await Promise.all(
+        result.assets.map((asset) => transcodeHeicToJpeg(asset.uri)),
+      )
+
+      const newEntries: PhotoEntry[] = transcodedUris.map((uri) => ({
+        localId: nextLocalId(),
+        localUri: uri,
+        caption: '',
+        status: 'pending' as PhotoStatus,
+      }))
+
+      dispatch({ type: 'ADD_PHOTOS', entries: newEntries })
+    } finally {
+      setPicking(false)
+    }
+  }, [picking, planId, selectSource, ensureLibraryPermission, ensureCameraPermission, t])
+
+  // ── Upload one staged entry ──
+  const uploadEntry = useCallback(
+    async (localId: string, effectivePlanId: string): Promise<void> => {
+      const entry = stagedRef.current.find((p) => p.localId === localId)
+      if (!entry) return
+
+      dispatch({ type: 'SET_STATUS', localId, status: 'uploading' })
+      try {
+        const contentType = getMimeType(entry.localUri)
+        const fileResponse = await fetch(entry.localUri)
+        const blob = await fileResponse.blob()
+
+        const { uploadUrl, blobUrl } = await generatePlanPhotoUploadUrl(
+          effectivePlanId,
+          contentType,
+          blob.size,
+        )
+
+        const putResponse = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': contentType },
+          body: blob,
+        })
+        if (!putResponse.ok) {
+          throw new Error(`PUT ${putResponse.status} ${putResponse.statusText}`)
+        }
+
+        const latest = stagedRef.current.find((p) => p.localId === localId)
+        const caption = latest?.caption?.trim() || undefined
+
+        await finalizePlanPhoto(effectivePlanId, {
+          blobUrl,
+          description: caption,
+          category: PlanPhotoCategory.FreeForm,
+          diaryRequestId: requestId,
+        })
+
+        dispatch({
+          type: 'SET_STATUS',
+          localId,
+          status: 'uploaded',
+          remoteUrl: blobUrl,
+        })
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e)
+        dispatch({
+          type: 'SET_STATUS',
+          localId,
+          status: 'failed',
+          errorMsg: msg,
+        })
+        throw e
+      }
+    },
+    [requestId],
+  )
+
+  // ── Daily-batch submit mutation ──
+  // Uploads every 'pending' or 'failed' staged entry. Does NOT call the diary
+  // /submit endpoint — that's the day-N "Odevzdat deník" CTA. Workflow auto-
+  // finalizes server-side on day N+1.
+  const submitMutation = useMutation({
+    mutationFn: async () => {
+      if (!planId) throw new Error('planId not loaded')
+      const outstanding = stagedRef.current.filter(
+        (p) => p.status === 'pending' || p.status === 'failed',
+      )
+      if (outstanding.length === 0) return
+      const results = await Promise.allSettled(
+        outstanding.map((p) => uploadEntry(p.localId, planId)),
+      )
+      const anyFailed = results.some((r) => r.status === 'rejected')
+      if (anyFailed) throw new Error('upload-failed')
     },
     onSuccess: () => {
+      // Fire-and-forget invalidation — awaiting the refetch here keeps the
+      // mutation in `isPending` state and freezes the gold submit button on
+      // its spinner. The page is about to dismiss anyway; on the next mount
+      // `refetchOnMount: 'always'` re-pulls the photos with the fresh upload.
       queryClient.invalidateQueries({ queryKey: ['plan-photos', planId] })
+      queryClient.invalidateQueries({ queryKey: ['active-diary-requests'] })
+      dispatch({ type: 'CLEAR' })
+      Toast.show(t('diary.workflow.todayUploadedToast'))
+      router.back()
     },
-    onError: () => {
-      Toast.show(t('diary.bulk.errorUpload'))
+    onError: (err) => {
+      const msg = err instanceof Error ? err.message : ''
+      Toast.show(t(msg === 'upload-failed' ? 'diary.bulk.errorUpload' : 'diary.bulk.errorSubmit'))
     },
   })
 
-  // ── Image picker ──
-  const { pick, uploading } = useImagePicker(
-    {
-      source: 'both',
-      requestUploadUrl: async ({ contentType, sizeBytes }) => {
-        if (!planId) throw new Error('No planId')
-        return generatePlanPhotoUploadUrl(planId, contentType, sizeBytes)
-      },
-    },
-    (blobUrl) => {
-      finalizeMutation.mutate(blobUrl)
-    },
-  )
+  const handleRetry = useCallback((entry: PhotoEntry) => {
+    dispatch({ type: 'SET_STATUS', localId: entry.localId, status: 'pending' })
+  }, [])
 
-  const isUploading = uploading || finalizeMutation.isPending
+  const handleRemove = useCallback((localId: string) => {
+    dispatch({ type: 'REMOVE', localId })
+  }, [])
+
+  const handleCaptionChange = useCallback((localId: string, value: string) => {
+    dispatch({ type: 'SET_CAPTION', localId, caption: value })
+  }, [])
+
+  const stagedUploadingCount = staged.filter((p) => p.status === 'uploading').length
+  const canSubmitStaged = staged.length > 0 && stagedUploadingCount === 0
+  const isSubmittingStaged = submitMutation.isPending
+  const submitDisabled = !canSubmitStaged || isSubmittingStaged
 
   // ── Lightbox helpers ──
   const openLightboxForPhotos = useCallback(
@@ -287,17 +490,20 @@ export function DiaryWorkflowScreen() {
         <View style={[styles.header, { borderBottomColor: colors.sep2 }]}>
           <Pressable
             onPress={() => router.back()}
-            hitSlop={12}
+            hitSlop={8}
             accessibilityRole="button"
             accessibilityLabel={t('common.back')}
-            style={[styles.closeBtn, { backgroundColor: colors.fill }]}
+            style={({ pressed }) => [styles.backButton, { opacity: pressed ? 0.5 : 1 }]}
           >
-            <Ionicons name="chevron-back" size={18} color={colors.label2} />
+            <Ionicons name="chevron-back" size={26} color={colors.gold} />
+            <Text style={[Type.body, styles.backLabel, { color: colors.gold }]}>
+              {t('common.back')}
+            </Text>
           </Pressable>
           <Text style={[Type.headline, { color: colors.label }]}>
             {t('diary.workflow.title')}
           </Text>
-          <View style={styles.closeBtnSpacer} />
+          <View style={styles.headerSpacer} />
         </View>
         <View style={styles.centered}>
           <Text style={[Type.largeTitle, { textAlign: 'center' }]}>✅</Text>
@@ -312,26 +518,21 @@ export function DiaryWorkflowScreen() {
     )
   }
 
-  const daysLeft = Math.max(0, durationDays - currentDay)
-  const daysLeftKey =
-    daysLeft === 1
-      ? 'diary.workflow.daysLeft_one'
-      : daysLeft < 5
-        ? 'diary.workflow.daysLeft_few'
-        : 'diary.workflow.daysLeft_many'
-
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={['top', 'bottom']}>
       {/* ── Header ── */}
       <View style={[styles.header, { borderBottomColor: colors.sep2 }]}>
         <Pressable
           onPress={() => router.back()}
-          hitSlop={12}
+          hitSlop={8}
           accessibilityRole="button"
           accessibilityLabel={t('common.back')}
-          style={[styles.closeBtn, { backgroundColor: colors.fill }]}
+          style={({ pressed }) => [styles.backButton, { opacity: pressed ? 0.5 : 1 }]}
         >
-          <Ionicons name="chevron-back" size={18} color={colors.label2} />
+          <Ionicons name="chevron-back" size={26} color={colors.gold} />
+          <Text style={[Type.body, styles.backLabel, { color: colors.gold }]}>
+            {t('common.back')}
+          </Text>
         </Pressable>
         <View style={styles.headerTextBlock}>
           <Text style={[Type.headline, { color: colors.label }]} numberOfLines={1}>
@@ -347,189 +548,101 @@ export function DiaryWorkflowScreen() {
             </Text>
           )}
         </View>
-        <View style={styles.closeBtnSpacer} />
+        <View style={styles.headerSpacer} />
+      </View>
+
+      {/* ── Pinned picker card (stays visible while the photos below scroll) ── */}
+      <View style={styles.pickerArea}>
+        <Pressable
+          onPress={handlePick}
+          disabled={picking || !planId}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: picking || !planId }}
+          style={({ pressed }) => [
+            styles.addCard,
+            {
+              backgroundColor: colors.bg2,
+              borderColor: colors.sep,
+              opacity: picking || !planId ? 0.5 : pressed ? 0.7 : 1,
+            },
+          ]}
+        >
+          {picking || !planId ? (
+            <ActivityIndicator color={colors.gold} />
+          ) : (
+            <>
+              <Text style={[Type.caption1, styles.addCardHintTop, { color: colors.label3 }]}>
+                {t('diary.bulk.hint')}
+              </Text>
+              <Text style={styles.addCardIcon}>📷</Text>
+              <Text style={[Type.callout, styles.addCardTitle, { color: colors.label }]}>
+                {t('diary.bulk.addPhotos')}
+              </Text>
+              <Text style={[Type.caption1, styles.addCardHint, { color: colors.label2 }]}>
+                {t('diary.bulk.addPhotosHint')}
+              </Text>
+            </>
+          )}
+        </Pressable>
       </View>
 
       <ScrollView
         contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Progress banner ── */}
-        <View
-          style={[
-            styles.progressBanner,
-            {
-              backgroundColor: goldBg,
-              borderColor: goldBorder,
-            },
-          ]}
-        >
-          <View style={styles.progressTopRow}>
-            <Text style={[Type.headline, { color: colors.label }]}>
-              {t('diary.workflow.dayCounter', { day: currentDay, total: durationDays })}
-            </Text>
-            <View style={styles.dots}>
-              {Array.from({ length: durationDays }).map((_, i) => {
-                const isDone = i < currentDay - 1
-                const isCurrent = i === currentDay - 1
-                return (
-                  <View
-                    key={i}
-                    style={[
-                      styles.dot,
-                      isDone
-                        ? { backgroundColor: colors.gold }
-                        : isCurrent
-                          ? {
-                              backgroundColor: 'transparent',
-                              borderWidth: 1.5,
-                              borderColor: colors.gold,
-                            }
-                          : { backgroundColor: colors.fill },
-                    ]}
-                  />
-                )
-              })}
-            </View>
-          </View>
-          <Text style={[Type.caption1, { color: colors.label2, marginTop: 6 }]}>
-            {daysLeft > 0
-              ? `${t(daysLeftKey, { count: daysLeft })} · ${t('diary.workflow.photosCount', { count: diaryPhotos.length })}`
-              : t('diary.workflow.photosCount', { count: diaryPhotos.length })}
-          </Text>
-        </View>
-
-        {/* ── Add photo CTA ── */}
-        <Pressable
-          onPress={pick}
-          disabled={isUploading}
-          accessibilityRole="button"
-          style={({ pressed }) => [
-            styles.addPhotoCta,
-            { backgroundColor: colors.gold, opacity: pressed || isUploading ? 0.7 : 1 },
-          ]}
-        >
-          {isUploading ? (
-            <ActivityIndicator size="small" color={colors.onAccent} />
-          ) : (
-            <Text style={[Type.subheadline, { color: colors.onAccent, fontWeight: '600' }]}>
-              + {t('diary.workflow.addPhoto')}
-            </Text>
-          )}
-        </Pressable>
-
-        {/* ── Today's photos ── */}
-        <View style={styles.sectionHeader}>
-          <Text style={[Type.footnote, styles.sectionTitle, { color: colors.label2 }]}>
-            {todayPhotos.length > 0
-              ? t('diary.workflow.todaySection', { count: todayPhotos.length })
-              : t('diary.workflow.todaySectionEmpty')}
-          </Text>
-        </View>
-
-        {todayPhotos.length === 0 ? (
-          <View style={[styles.emptyTodayBox, { backgroundColor: colors.bg2, borderColor: colors.sep2 }]}>
-            <Ionicons name="camera-outline" size={28} color={colors.label3} />
-            <Text style={[Type.footnote, { color: colors.label3, marginTop: 6 }]}>
-              {t('diary.workflow.addPhoto')}
-            </Text>
-          </View>
-        ) : (
-          <View style={[styles.photoGrid, { paddingHorizontal: MARGIN }]}>
-            {todayPhotos.map((photo, index) => (
-              <Pressable
-                key={photo.id ?? index}
-                onPress={() => openLightboxForPhotos(todayPhotos, index)}
-                accessibilityRole="button"
-                style={[styles.tile, { width: tileSize, height: tileSize, backgroundColor: colors.fill2 }]}
-              >
-                <Image
-                  source={{ uri: photo.blobUrl }}
-                  style={StyleSheet.absoluteFill}
-                  resizeMode="cover"
-                />
-                {photo.description ? (
-                  <View style={[styles.tileCaption, { backgroundColor: colors.overlay }]}>
-                    <Text style={[styles.tileCaptionText, { color: colors.onAccent }]} numberOfLines={1}>
-                      {photo.description}
-                    </Text>
-                  </View>
-                ) : null}
-              </Pressable>
+        {/* ── Staged photo grid (picked, not yet uploaded) ── */}
+        {staged.length > 0 && (
+          <View style={[styles.stagedGrid, { paddingHorizontal: MARGIN }]}>
+            {staged.map((entry, idx) => (
+              <PhotoTile
+                key={entry.localId}
+                entry={entry}
+                tileWidth={tileSize}
+                index={idx}
+                colors={colors}
+                onCaptionChange={handleCaptionChange}
+                onRemove={handleRemove}
+                onRetry={handleRetry}
+                t={t}
+              />
             ))}
           </View>
         )}
 
-        {/* ── Previous days ── */}
-        {previousDayGroups.length > 0 && (
+        {/* ── All uploaded photos for this diary, newest first ── */}
+        {diaryPhotos.length > 0 && (
           <>
             <View style={styles.sectionHeader}>
               <Text style={[Type.footnote, styles.sectionTitle, { color: colors.label2 }]}>
-                {t('diary.workflow.previousSection')}
+                {t('diary.workflow.uploadedSection', { count: diaryPhotos.length })}
               </Text>
             </View>
-
-            <View style={[styles.listCard, { backgroundColor: colors.bg2, borderColor: colors.sep2 }]}>
-              {previousDayGroups.map((group, groupIndex) => {
-                const countKey =
-                  group.photos.length === 1
-                    ? 'diary.workflow.previousPhotoCount_one'
-                    : group.photos.length < 5
-                      ? 'diary.workflow.previousPhotoCount_few'
-                      : 'diary.workflow.previousPhotoCount_many'
-                return (
-                  <React.Fragment key={group.dayIndex}>
-                    {groupIndex > 0 && (
-                      <View style={[styles.separator, { backgroundColor: colors.sep2 }]} />
-                    )}
-                    <Pressable
-                      onPress={() => {
-                        if (group.photos.length > 0) {
-                          openLightboxForPhotos(group.photos, 0)
-                        }
-                      }}
-                      accessibilityRole="button"
-                      style={({ pressed }) => [
-                        styles.listRow,
-                        { opacity: pressed ? 0.7 : 1 },
-                      ]}
-                    >
-                      <View style={[styles.rowIcon, { backgroundColor: colors.goldBg }]}>
-                        <Text style={styles.rowIconEmoji}>📸</Text>
-                      </View>
-                      <View style={styles.rowBody}>
-                        <Text style={[Type.subheadline, { color: colors.label }]}>
-                          {t('diary.workflow.previousDayRow', {
-                            day: group.dayNumber,
-                            date: formatShortDate(group.date, i18n.language),
-                          })}
-                        </Text>
-                        <Text style={[Type.caption1, { color: colors.label2 }]}>
-                          {t(countKey, { count: group.photos.length })}
-                        </Text>
-                      </View>
-                      {group.photos.length > 0 && (
-                        <Text style={[Type.headline, { color: colors.label3 }]}>›</Text>
-                      )}
-                    </Pressable>
-                  </React.Fragment>
-                )
-              })}
+            <View style={[styles.photoGrid, { paddingHorizontal: MARGIN }]}>
+              {diaryPhotos.map((photo, index) => (
+                <Pressable
+                  key={photo.id ?? index}
+                  onPress={() => openLightboxForPhotos(diaryPhotos, index)}
+                  accessibilityRole="button"
+                  style={[styles.tile, { width: tileSize, height: tileSize, backgroundColor: colors.fill2 }]}
+                >
+                  <Image
+                    source={{ uri: photo.blobUrl }}
+                    style={StyleSheet.absoluteFill}
+                    resizeMode="cover"
+                  />
+                  {photo.description ? (
+                    <View style={[styles.tileCaption, { backgroundColor: colors.overlay }]}>
+                      <Text style={[styles.tileCaptionText, { color: colors.onAccent }]} numberOfLines={1}>
+                        {photo.description}
+                      </Text>
+                    </View>
+                  ) : null}
+                </Pressable>
+              ))}
             </View>
           </>
         )}
-
-        {/* ── Coach note ── */}
-        <View
-          style={[
-            styles.coachNote,
-            { backgroundColor: colors.bg2, borderColor: colors.sep2 },
-          ]}
-        >
-          <Text style={[Type.footnote, { color: colors.label2, lineHeight: 20 }]}>
-            {t('diary.workflow.coachNote', { name: '' }).trim().replace(/^·\s*/, '')}
-          </Text>
-        </View>
 
         {/* ── Finalize CTA — only on day N ── */}
         {isFinalDay && (
@@ -550,6 +663,36 @@ export function DiaryWorkflowScreen() {
         <View style={styles.bottomSpacer} />
       </ScrollView>
 
+      {/* ── Pinned bottom action bar — daily-batch submit ── */}
+      <View
+        style={[
+          styles.actionBar,
+          { backgroundColor: colors.bg, borderTopColor: colors.sep2 },
+        ]}
+      >
+        <Pressable
+          onPress={() => submitMutation.mutate()}
+          disabled={submitDisabled}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: submitDisabled }}
+          style={({ pressed }) => [
+            styles.ctaSubmit,
+            {
+              backgroundColor: colors.gold,
+              opacity: submitDisabled ? 0.45 : pressed ? 0.8 : 1,
+            },
+          ]}
+        >
+          {isSubmittingStaged ? (
+            <ActivityIndicator color={colors.onAccent} />
+          ) : (
+            <Text style={[Type.subheadline, styles.ctaLabel, { color: colors.onAccent }]}>
+              {t('diary.workflow.addTodayPhotosCta')}
+            </Text>
+          )}
+        </Pressable>
+      </View>
+
       {/* ── Lightbox ── */}
       <ImageLightbox
         visible={lightboxVisible}
@@ -564,7 +707,122 @@ export function DiaryWorkflowScreen() {
 
 export default DiaryWorkflowScreen
 
+// ─── PhotoTile (mirrors bulk.tsx) ────────────────────────────────────────────
+
+interface PhotoTileProps {
+  entry: PhotoEntry
+  tileWidth: number
+  index: number
+  colors: ReturnType<typeof useTheme>
+  onCaptionChange: (localId: string, value: string) => void
+  onRemove: (localId: string) => void
+  onRetry: (entry: PhotoEntry) => void
+  t: ReturnType<typeof useTranslation>['t']
+}
+
+function PhotoTile({
+  entry,
+  tileWidth,
+  index,
+  colors,
+  onCaptionChange,
+  onRemove,
+  onRetry,
+  t,
+}: PhotoTileProps) {
+  const THUMB_HEIGHT = 140
+
+  const statusBgColor =
+    entry.status === 'uploaded'
+      ? colors.green
+      : entry.status === 'failed'
+        ? colors.red
+        : colors.orange
+
+  return (
+    <View
+      style={[
+        styles.stagedTile,
+        {
+          width: tileWidth,
+          backgroundColor: colors.bg2,
+          borderColor: entry.status === 'failed' ? colors.red : colors.sep2,
+        },
+      ]}
+    >
+      <View style={[styles.thumbContainer, { height: THUMB_HEIGHT }]}>
+        <Image
+          source={{ uri: entry.localUri }}
+          style={StyleSheet.absoluteFill}
+          resizeMode="cover"
+          accessibilityIgnoresInvertColors
+          accessibilityLabel={`${t('diary.bulk.removePhoto')} ${index + 1}`}
+        />
+
+        {entry.status !== 'pending' && (
+          <View style={[styles.statusBadge, { backgroundColor: statusBgColor }]}>
+            {entry.status === 'uploading' ? (
+              <ActivityIndicator size="small" color={colors.onAccent} />
+            ) : (
+              <Text style={[styles.statusBadgeText, { color: colors.onAccent }]}>
+                {entry.status === 'uploaded'
+                  ? t('diary.bulk.statusUploaded')
+                  : t('diary.bulk.statusFailed')}
+              </Text>
+            )}
+          </View>
+        )}
+
+        <Pressable
+          onPress={() => onRemove(entry.localId)}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={t('diary.bulk.removePhoto')}
+          style={[styles.removeBtn, { backgroundColor: colors.overlay }]}
+        >
+          <Ionicons name="close" size={14} color={colors.onAccent} />
+        </Pressable>
+      </View>
+
+      <TextInput
+        style={[
+          styles.captionInput,
+          Type.caption1,
+          { color: colors.label, borderTopColor: colors.sep2 },
+        ]}
+        placeholder={t('diary.bulk.captionPlaceholder')}
+        placeholderTextColor={colors.label3}
+        value={entry.caption}
+        onChangeText={(v) => onCaptionChange(entry.localId, v)}
+        returnKeyType="done"
+        multiline={false}
+        maxLength={200}
+        accessibilityLabel={t('diary.bulk.captionPlaceholder')}
+      />
+
+      {entry.status === 'failed' && (
+        <Pressable
+          onPress={() => onRetry(entry)}
+          style={({ pressed }) => [
+            styles.retryBtn,
+            { backgroundColor: colors.red, opacity: pressed ? 0.7 : 1 },
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel={t('diary.bulk.retryPhoto')}
+        >
+          <Text style={[Type.caption1, styles.retryBtnLabel, { color: colors.onAccent }]}>
+            {t('diary.bulk.retryPhoto')}
+          </Text>
+        </Pressable>
+      )}
+    </View>
+  )
+}
+
 // ─── Styles ──────────────────────────────────────────────────────────────────
+
+const EMOJI_LARGE = 32
+const HEADER_SIDE_WIDTH = 92
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
@@ -576,29 +834,33 @@ const styles = StyleSheet.create({
     gap: 8,
   },
 
-  // Header
+  // Header — matches the diary wizard (gold chevron + "Zpět" label)
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 10,
+    borderBottomWidth: 0.5,
     gap: 8,
   },
   headerTextBlock: {
     flex: 1,
     alignItems: 'center',
   },
-  closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  backButton: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
+    width: HEADER_SIDE_WIDTH,
+    paddingVertical: 6,
   },
-  closeBtnSpacer: {
-    width: 32,
+  backLabel: {
+    fontWeight: '600',
+    marginLeft: -2,
+  },
+  headerSpacer: {
+    width: HEADER_SIDE_WIDTH,
     flexShrink: 0,
   },
 
@@ -606,44 +868,89 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
 
-  // Progress banner
-  progressBanner: {
-    marginHorizontal: 20,
-    marginTop: 16,
-    marginBottom: 4,
-    padding: 16,
-    borderWidth: 1,
-    borderRadius: Radius.lg,
+  // Picker card (matches bulk.addCard)
+  pickerArea: {
+    paddingHorizontal: 20,
+    paddingTop: 14,
+    paddingBottom: 6,
   },
-  progressTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 2,
-  },
-  dots: {
-    flexDirection: 'row',
-    gap: 4,
-    alignItems: 'center',
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-
-  // Add photo CTA
-  addPhotoCta: {
-    marginHorizontal: 20,
-    marginTop: 16,
-    marginBottom: 4,
+  addCard: {
     paddingVertical: 14,
-    borderRadius: Radius.md,
+    paddingHorizontal: 20,
+    borderRadius: Radius.lg,
+    borderWidth: 2,
+    borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 2,
+  },
+  addCardIcon: {
+    fontSize: EMOJI_LARGE,
+    lineHeight: EMOJI_LARGE + 2,
+    marginVertical: 0,
+  },
+  addCardTitle: {
+    fontWeight: '600',
+  },
+  addCardHint: {
+    textAlign: 'center',
+  },
+  addCardHintTop: {
+    textAlign: 'center',
+    marginBottom: 4,
+    lineHeight: 18,
+  },
+
+  // Staged tiles grid (matches bulk.grid)
+  stagedGrid: {
     flexDirection: 'row',
-    gap: 6,
-    minHeight: 48,
+    flexWrap: 'wrap',
+    gap: 10,
+    paddingTop: 10,
+  },
+  stagedTile: {
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  thumbContainer: {
+    overflow: 'hidden',
+  },
+  statusBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: Radius.full,
+    minWidth: 24,
+    alignItems: 'center',
+  },
+  statusBadgeText: {
+    ...Type.caption2,
+    fontWeight: '600',
+  },
+  removeBtn: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    width: 24,
+    height: 24,
+    borderRadius: Radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  captionInput: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  retryBtn: {
+    alignItems: 'center',
+    paddingVertical: 6,
+  },
+  retryBtnLabel: {
+    fontWeight: '600',
   },
 
   // Section header
@@ -658,18 +965,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
 
-  // Empty today state
-  emptyTodayBox: {
-    marginHorizontal: 20,
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    paddingVertical: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderStyle: 'dashed',
-  },
-
-  // Photo grid
+  // Today's uploaded photos
   photoGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -691,49 +987,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
 
-  // List card (previous days)
-  listCard: {
-    marginHorizontal: 20,
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-  listRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    gap: 12,
-  },
-  separator: {
-    height: StyleSheet.hairlineWidth,
-    marginLeft: 16 + 36 + 12, // indent past icon
-  },
-  rowIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: Radius.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  rowIconEmoji: {
-    fontSize: 16,
-  },
-  rowBody: {
-    flex: 1,
-    minWidth: 0,
-  },
-
-  // Coach note
-  coachNote: {
-    marginHorizontal: 20,
-    marginTop: 20,
-    padding: 14,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-  },
-
   // Finalize CTA
   finalizeBtn: {
     marginHorizontal: 20,
@@ -746,5 +999,21 @@ const styles = StyleSheet.create({
 
   bottomSpacer: {
     height: 20,
+  },
+
+  // Pinned action bar
+  actionBar: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderTopWidth: 0.5,
+  },
+  ctaSubmit: {
+    height: 50,
+    borderRadius: Radius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ctaLabel: {
+    fontWeight: '600',
   },
 })

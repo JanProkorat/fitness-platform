@@ -33,6 +33,7 @@ import { ActionSheetIOS, Alert, Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
 import { Toast } from '../lib/toast';
+import { transcodeHeicToJpeg } from '../lib/heicTranscode';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -89,6 +90,8 @@ const MIME_MAP: Record<string, string> = {
   jpeg: 'image/jpeg',
   png: 'image/png',
   webp: 'image/webp',
+  heic: 'image/heic',
+  heif: 'image/heif',
 };
 
 function getMimeType(uri: string): string | null {
@@ -296,19 +299,26 @@ export function useImagePicker(
     asset: ImagePicker.ImagePickerAsset,
     controller: AbortController,
   ): Promise<string | null> {
-    const contentType = getMimeType(asset.uri);
+    // Transcode HEIC/HEIF → JPEG so the trainer portal (and any other web
+    // consumer) can render the photo. Browsers don't decode HEIC natively.
+    // No-op when the source URI is already a browser-friendly format.
+    const transcodedUri = await transcodeHeicToJpeg(asset.uri);
+    const effective: ImagePicker.ImagePickerAsset =
+      transcodedUri === asset.uri ? asset : { ...asset, uri: transcodedUri };
+
+    const contentType = getMimeType(effective.uri);
     if (!contentType) {
       // Skip assets whose extension we cannot map (MIME guard).
       return null;
     }
 
-    const sizeBytes = await resolveFileSize(asset);
+    const sizeBytes = await resolveFileSize(effective);
     if (sizeBytes > 0 && sizeBytes > maxBytes) {
       // Skip oversized assets (size guard).
       return null;
     }
 
-    return uploadAsset(asset, contentType, sizeBytes, controller);
+    return uploadAsset(effective, contentType, sizeBytes, controller);
   }
 
   // -------------------------------------------------------------------------
@@ -350,7 +360,14 @@ export function useImagePicker(
 
     if (!multiSelect) {
       // ── Single-select path (unchanged behaviour) ──────────────────────────
-      const asset = result.assets[0];
+      const rawAsset = result.assets[0];
+
+      // Transcode HEIC/HEIF → JPEG up-front (see useImagePicker's prepareAndUpload).
+      const transcodedUri = await transcodeHeicToJpeg(rawAsset.uri);
+      const asset =
+        transcodedUri === rawAsset.uri
+          ? rawAsset
+          : { ...rawAsset, uri: transcodedUri };
 
       const contentType = getMimeType(asset.uri);
       if (!contentType) {

@@ -5,7 +5,7 @@ import type { RecipeImageSlot } from '@/api/recipe-types';
 import { useToastStore } from '@/stores/toast';
 
 const GALLERY_MAX = 6;
-const ACCEPT = ['image/jpeg', 'image/png', 'image/webp'];
+const ACCEPT = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
 const MAX_BYTES = 5 * 1024 * 1024;
 
 // ─── Shared upload logic ──────────────────────────────────────────────────────

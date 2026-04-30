@@ -22,6 +22,12 @@ import { cn } from '@/lib/cn';
 export interface ImageLightboxProps {
   /** Ordered list of image URLs to cycle through. Empty list → nothing rendered. */
   images: string[];
+  /**
+   * Optional per-image captions (notes), index-aligned with `images`. When
+   * the current entry is a non-empty string, a translucent strip near the
+   * bottom of the screen displays the caption.
+   */
+  imageCaptions?: (string | null | undefined)[];
   /** Zero-based index of the image to show first. Clamped to the array bounds. */
   startIndex?: number;
   /** Whether the lightbox is open. Controlled by the parent. */
@@ -34,6 +40,7 @@ export interface ImageLightboxProps {
 
 export function ImageLightbox({
   images,
+  imageCaptions,
   startIndex = 0,
   open,
   onClose,
@@ -49,6 +56,7 @@ export function ImageLightbox({
     <LightboxViewer
       key={`${startIndex}-${images.length}`}
       images={images}
+      imageCaptions={imageCaptions}
       startIndex={startIndex}
       onClose={onClose}
       altPrefix={altPrefix}
@@ -60,12 +68,13 @@ export function ImageLightbox({
 
 interface ViewerProps {
   images: string[];
+  imageCaptions?: (string | null | undefined)[];
   startIndex: number;
   onClose: () => void;
   altPrefix?: string;
 }
 
-function LightboxViewer({ images, startIndex, onClose, altPrefix }: ViewerProps) {
+function LightboxViewer({ images, imageCaptions, startIndex, onClose, altPrefix }: ViewerProps) {
   const { t } = useTranslation();
   const multi = images.length > 1;
 
@@ -101,6 +110,7 @@ function LightboxViewer({ images, startIndex, onClose, altPrefix }: ViewerProps)
 
   const currentSrc = images[index];
   const alt = altPrefix ? `${altPrefix} ${index + 1} / ${images.length}` : '';
+  const currentCaption = imageCaptions?.[index]?.trim() || null;
 
   return (
     <>
@@ -139,6 +149,22 @@ function LightboxViewer({ images, startIndex, onClose, altPrefix }: ViewerProps)
           alt={alt}
           className="pointer-events-auto max-h-full max-w-full object-contain rounded-sm"
         />
+
+        {/* Caption strip — translucent overlay near the bottom, sits above the
+            counter. Hidden when the current image has no caption. */}
+        {currentCaption && (
+          <div
+            className={cn(
+              'pointer-events-auto absolute left-1/2 -translate-x-1/2',
+              multi ? 'bottom-14' : 'bottom-4',
+              'max-w-[90vw] rounded-md bg-black/60 px-4 py-2',
+              'text-center text-sm text-white/95 leading-relaxed',
+              'whitespace-pre-wrap break-words',
+            )}
+          >
+            {currentCaption}
+          </div>
+        )}
 
         {/* Prev / Next (only when more than one image) */}
         {multi && (

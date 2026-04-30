@@ -10,7 +10,7 @@ export interface ImagePickerProps {
   mode?: 'avatar' | 'free';
   /** Max file size in bytes. Default: 5 MiB */
   maxBytes?: number;
-  /** Accepted MIME types. Default: ['image/jpeg', 'image/png', 'image/webp'] */
+  /** Accepted MIME types. Default: ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'] */
   accept?: string[];
   /**
    * Called when the user has confirmed a file.
@@ -30,7 +30,7 @@ export interface ImagePickerProps {
 }
 
 const DEFAULT_MAX_BYTES = 5 * 1024 * 1024; // 5 MiB
-const DEFAULT_ACCEPT = ['image/jpeg', 'image/png', 'image/webp'];
+const DEFAULT_ACCEPT = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
 
 // ─── Canvas crop helper ───────────────────────────────────────────────────────
 

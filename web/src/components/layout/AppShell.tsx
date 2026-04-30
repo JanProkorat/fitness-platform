@@ -212,6 +212,16 @@ export function AppShell() {
         queryClient.invalidateQueries({ queryKey: ['diary-requests'] });
       }
     },
+    photodiaryaccepted: (payload: unknown) => {
+      // Client just accepted a Pending request — flip its status chip
+      // (Pending → Accepted/InProgress) on any open diary card.
+      const data = payload as { planId?: string } | undefined;
+      if (data?.planId) {
+        queryClient.invalidateQueries({ queryKey: ['diary-requests', data.planId] });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['diary-requests'] });
+      }
+    },
     photodiarydismissed: (payload: unknown) => {
       const data = payload as { planId?: string } | undefined;
       if (data?.planId) {

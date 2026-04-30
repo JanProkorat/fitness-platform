@@ -136,7 +136,7 @@ public class CreateRequestSignalRTests(FitnessApiFactory factory)
             new { LinkId = linkId, DurationDays = 7 },
             TestContext.Current.CancellationToken);
 
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var calls = notifier.Calls
             .Where(c => c.EventType == "photoDiaryRequested")
@@ -166,7 +166,7 @@ public class CreateRequestSignalRTests(FitnessApiFactory factory)
             new { LinkId = linkId, DurationDays = 14 },
             TestContext.Current.CancellationToken);
 
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var body = await response.Content.ReadFromJsonAsync<CreateResponseBody>(
             JsonOptions, TestContext.Current.CancellationToken);
@@ -207,7 +207,7 @@ public class CreateRequestSignalRTests(FitnessApiFactory factory)
             new { PendingInviteId = inviteId, DurationDays = 7 },
             TestContext.Current.CancellationToken);
 
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var calls = notifier.Calls
             .Where(c => c.EventType == "photoDiaryRequested")
@@ -234,7 +234,7 @@ public class CreateRequestSignalRTests(FitnessApiFactory factory)
             new { PendingInviteId = inviteId, DurationDays = 7 },
             TestContext.Current.CancellationToken);
 
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var calls = notifier.Calls
             .Where(c => c.EventType == "photoDiaryRequested")
@@ -260,8 +260,8 @@ public class CreateRequestSignalRTests(FitnessApiFactory factory)
             new { LinkId = linkId, DurationDays = 7 },
             TestContext.Current.CancellationToken);
 
-        // The HTTP response must still be 201 even though the notifier threw
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        // The HTTP response must still be 200 even though the notifier threw
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var body = await response.Content.ReadFromJsonAsync<CreateResponseBody>(
             JsonOptions, TestContext.Current.CancellationToken);

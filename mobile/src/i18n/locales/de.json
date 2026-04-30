@@ -256,12 +256,8 @@
       "subtitle": "Dein(e) {{role}} möchte, dass du {{days}} Tage lang Essensfotos teilst",
       "roleTrainer": "Trainer",
       "roleNutritionist": "Ernährungsberater",
-      "accept": "Annehmen",
-      "dismiss": "Ablehnen",
-      "screenTitle": "Foto-Ernährungstagebuch",
-      "dismissScreenTitle": "Tagebuch-Anfrage ablehnen",
-      "acceptPlaceholder": "Akzeptieren-Assistent kommt bald",
-      "dismissPlaceholder": "Ablehnungsablauf kommt bald"
+      "manage": "Anfrage verwalten",
+      "screenTitle": "Foto-Ernährungstagebuch"
     },
     "trainingPlanType": "Trainingsplan",
     "nutritionPlanType": "Ernährungsplan",
@@ -899,6 +895,14 @@
     "addPhotoA11y": "Foto zum Plan hinzufügen",
     "openA11y": "Planfotos öffnen"
   },
+  "planPhotosUpload": {
+    "title": "Fotos hinzufügen",
+    "hint": "Füge Fotos hinzu und wähle eine Kategorie. Du kannst zu jedem Foto eine Notiz schreiben.",
+    "submitCta": "Senden",
+    "successToast": "Fotos hochgeladen!",
+    "errorUpload": "Hochladen fehlgeschlagen. Bitte versuche es erneut.",
+    "errorSubmit": "Senden fehlgeschlagen. Bitte versuche es erneut."
+  },
   "profilePhotos": {
     "title": "Meine Fotos",
     "totalCount": "{{count}} Fotos",
@@ -970,19 +974,35 @@
   },
   "diary": {
     "acceptWizard": {
-      "title": "Wie möchtest du Fotos teilen?",
-      "intro": "Wähle die Methode, die dir am besten passt. {{name}} erhält deine Fotos entweder alle auf einmal oder schrittweise über 7 Tage.",
-      "cancel": "Abbrechen",
-      "continue": "Weiter",
+      "headerTitle": "Foto-Tagebuch",
+      "heroTitle": "Teile Fotos deiner Mahlzeiten",
+      "heroDesc_one": "Dein Coach möchte sehen, was du isst, um dir einen besseren Plan zu erstellen. Wähle die Methode, die dir passt — alle Fotos auf einmal oder Stück für Stück über {{count}} Tag.",
+      "heroDesc_other": "Dein Coach möchte sehen, was du isst, um dir einen besseren Plan zu erstellen. Wähle die Methode, die dir passt — alle Fotos auf einmal oder Stück für Stück über {{count}} Tage.",
+      "coachChip": "fragt 📸",
+      "modePrompt": "Wähle die Methode",
       "bulkTitle": "Alles auf einmal hochladen",
       "bulkDesc": "Mache Fotos von dem, was du normalerweise isst, und sende sie in einer einzigen Übertragung. In wenigen Minuten erledigt.",
-      "workflowTitle": "7-Tage-Workflow",
-      "workflowDesc": "Über 7 Tage fotografierst du schrittweise, was du isst. Du erhältst täglich eine Erinnerung. Dein Coach sieht die Fotos in Echtzeit.",
-      "errorAccept": "Anfrage konnte nicht angenommen werden. Bitte versuche es erneut."
+      "workflowTitle": "Mehrtägiger Workflow",
+      "workflowDesc_one": "Über {{count}} Tag fotografierst du schrittweise, was du isst. Du erhältst täglich eine Erinnerung. Dein Coach sieht die Fotos in Echtzeit.",
+      "workflowDesc_other": "Über {{count}} Tage fotografierst du schrittweise, was du isst. Du erhältst täglich eine Erinnerung. Dein Coach sieht die Fotos in Echtzeit.",
+      "accept": "Annehmen",
+      "revoke": "Ablehnen",
+      "errorAccept": "Anfrage konnte nicht angenommen werden. Bitte versuche es erneut.",
+      "errorRevoke": "Anfrage konnte nicht abgelehnt werden. Bitte versuche es erneut."
+    },
+    "dismiss": {
+      "screenTitle": "Foto-Tagebuch",
+      "warningText": "Du lehnst die Anfrage ab und dein Coach wird benachrichtigt. Du kannst kurz erklären, warum — das ist aber optional.",
+      "reasonLabel": "Grund (optional)",
+      "reasonPlaceholder": "Schreibe in wenigen Worten, warum du ablehnst…",
+      "charCount": "{{count}} / {{max}}",
+      "ctaDismiss": "Anfrage ablehnen",
+      "successToast": "Anfrage abgelehnt.",
+      "errorDismiss": "Anfrage konnte nicht abgelehnt werden. Bitte versuche es erneut."
     },
     "bulk": {
       "title": "Fotos hochladen ({{count}}/{{total}})",
-      "close": "Schließen",
+      "titleEmpty": "Fotos hochladen",
       "hint": "Füge Fotos von Mahlzeiten hinzu, die du normalerweise isst. Du kannst jedem Foto eine Beschreibung hinzufügen.",
       "addPhotos": "Fotos hinzufügen",
       "addPhotosHint": "Galerie oder Kamera · max 5 MB pro Foto",
@@ -992,11 +1012,7 @@
       "statusUploaded": "Hochgeladen",
       "statusFailed": "Fehler",
       "retryPhoto": "Erneut versuchen",
-      "submitCta": "An {{name}} senden",
-      "cancelCta": "Abbrechen",
-      "totalStrip": "{{count}} {{photoWord}} · {{sizeMb}} MB",
-      "photo_one": "Foto",
-      "photo_other": "Fotos",
+      "submitCta": "Senden",
       "successToast": "Fotos gesendet!",
       "errorUpload": "Hochladen fehlgeschlagen. Bitte erneut versuchen.",
       "errorSubmit": "Senden fehlgeschlagen. Bitte erneut versuchen."
@@ -1012,6 +1028,7 @@
       "addPhoto": "Heute ein Foto hinzufügen",
       "todaySection": "Heutige Fotos ({{count}})",
       "todaySectionEmpty": "Heutige Fotos",
+      "uploadedSection": "Hochgeladene Fotos ({{count}})",
       "previousSection": "Vorherige Tage",
       "previousDayRow": "Tag {{day}} · {{date}}",
       "previousPhotoCount_one": "{{count}} Foto",
@@ -1019,7 +1036,9 @@
       "coachNote": "{{name}} sieht deine Fotos in Echtzeit. Sei ehrlich — auch wenn du gesündigt hast.",
       "finalizeCtaLabel": "Tagebuch abgeben",
       "completedTitle": "Tagebuch abgegeben",
-      "completedSub": "Dein Coach hat alle Fotos erhalten."
+      "completedSub": "Dein Coach hat alle Fotos erhalten.",
+      "addTodayPhotosCta": "Heutige Fotos hinzufügen",
+      "todayUploadedToast": "Heutige Fotos hochgeladen."
     },
     "finalize": {
       "title": "Tag {{day}} · abschließen",
@@ -1041,16 +1060,10 @@
       "dayCounter": "Tag {{day}} von {{total}}",
       "open": "Öffnen"
     },
-    "dismiss": {
-      "screenTitle": "Anfrage ablehnen",
-      "warningText": "Dein Coach wird darüber informiert, dass du die Anfrage ablehnst. Wenn du möchtest, erkläre kurz warum — das hilft ihm weiter.",
-      "reasonLabel": "Grund (optional)",
-      "reasonPlaceholder": "Z.B. Ich fühle mich noch nicht bereit, Fotos zu teilen, ich würde lieber anders beginnen…",
-      "charCount": "{{count}} / {{max}}",
-      "ctaDismiss": "Anfrage ablehnen",
-      "ctaCancel": "Abbrechen",
-      "successToast": "Anfrage abgelehnt",
-      "errorDismiss": "Ablehnen fehlgeschlagen. Bitte erneut versuchen."
+    "bulkBanner": {
+      "title": "Foto-Tagebuch · einzureichen",
+      "headline": "Upload fortsetzen",
+      "subtitle": "Lade die Fotos zu Ende hoch und sende sie an deinen Coach."
     }
   }
 }

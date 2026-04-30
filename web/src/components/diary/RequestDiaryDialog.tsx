@@ -91,9 +91,8 @@ export function RequestDiaryDialog({
         <div
           className="pointer-events-auto flex flex-col border border-border shadow-2xl overflow-hidden"
           style={{
-            width: 480,
+            width: 560,
             maxWidth: '95vw',
-            maxHeight: '90vh',
             background: 'var(--bg)',
             borderRadius: 10,
             animation: 'dlg-slide-up .4s ease-out',
@@ -260,11 +259,6 @@ export function RequestDiaryDialog({
                 {t('diary.request.senderInfo')}
               </div>
 
-              {mutation.isError && (
-                <p style={{ fontSize: 12, color: 'var(--red)', margin: 0 }}>
-                  {t('diary.request.errorToast')}
-                </p>
-              )}
             </div>
           </div>
 

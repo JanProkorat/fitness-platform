@@ -15,11 +15,13 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/cn';
 import { ImageLightbox } from '@/components/ui/ImageLightbox';
+import { Button } from '@/components/ui/Button';
 import { getPlanPhotos } from '@/api/photos';
 import { PlanPhotoCategory } from '@/api/generated';
 import { CardGrid, Card, CardBody } from '@/components/data';
 import { RequestDiaryDialog } from '@/components/diary/RequestDiaryDialog';
 import { DiaryViewerPanel } from '@/components/diary/DiaryViewerPanel';
+import { listDiaryRequests } from '@/api/diary-requests';
 
 interface PlanPhotosTabProps {
   planId: string;
@@ -35,6 +37,13 @@ interface PlanPhotosTabProps {
   linkId?: number | null;
 }
 
+// Sentinel for the dedicated diaries tab — sits in the same chip row as the
+// photo categories so the trainer can switch to the diary list without
+// scrolling past it. Active diaries (Pending) still render as a sticky banner
+// above the photo grid on every photo-category tab so they stay visible.
+type DiariesTab = 'Diaries';
+type ActiveTab = PlanPhotoCategory | null | DiariesTab;
+
 const CATEGORIES: Array<{ key: PlanPhotoCategory | null; labelKey: string }> = [
   { key: null, labelKey: 'nutrition.photos.categoryAll' },
   { key: PlanPhotoCategory.Food, labelKey: 'nutrition.photos.categoryFood' },
@@ -46,7 +55,9 @@ const PAGE_SIZE = 60;
 
 export function PlanPhotosTab({ planId, clientId, clientName, linkId }: PlanPhotosTabProps) {
   const { t } = useTranslation();
-  const [activeCategory, setActiveCategory] = useState<PlanPhotoCategory | null>(null);
+  const [activeTab, setActiveTab] = useState<ActiveTab>(null);
+  const isDiariesTab = activeTab === 'Diaries';
+  const activeCategory = isDiariesTab ? null : (activeTab as PlanPhotoCategory | null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [diaryDialogOpen, setDiaryDialogOpen] = useState(false);
@@ -70,6 +81,24 @@ export function PlanPhotosTab({ planId, clientId, clientName, linkId }: PlanPhot
     staleTime: 30_000,
   });
 
+  // Mirror the DiaryViewerPanel's query so the chip can show a count without
+  // an extra fetch — TanStack dedupes on identical queryKey + queryFn.
+  const { data: diaryRequests = [] } = useQuery({
+    queryKey: ['diary-requests', planId],
+    queryFn: () => listDiaryRequests({ planId }),
+    enabled: !!planId,
+    staleTime: 30_000,
+  });
+  const diariesCount = diaryRequests.length;
+  // Disable the "send request" CTA while a previous request is still in
+  // flight — Pending (waiting on the client), Accepted (chosen mode but
+  // nothing uploaded yet), or InProgress (mid-upload). Stacking new
+  // requests on top of an active one isn't useful — the trainer should
+  // wait for that one to complete or be dismissed first.
+  const hasInFlightDiary = diaryRequests.some(
+    (r) => r.status === 'Pending' || r.status === 'Accepted' || r.status === 'InProgress',
+  );
+
   const counts = useMemo(() => {
     const c: Record<string, number> = { All: allPhotos.length };
     for (const p of allPhotos) {
@@ -83,10 +112,18 @@ export function PlanPhotosTab({ planId, clientId, clientName, linkId }: PlanPhot
     [allPhotos, activeCategory],
   );
 
-  const imageUrls = useMemo(
-    () => photos.map((p) => p.blobUrl ?? '').filter(Boolean),
-    [photos],
-  );
+  // Keep imageUrls and imageCaptions index-aligned. We only emit photos that
+  // have a non-empty blobUrl so the lightbox never gets empty src strings.
+  const { imageUrls, imageCaptions } = useMemo(() => {
+    const urls: string[] = [];
+    const captions: (string | null)[] = [];
+    for (const p of photos) {
+      if (!p.blobUrl) continue;
+      urls.push(p.blobUrl);
+      captions.push(p.description ?? null);
+    }
+    return { imageUrls: urls, imageCaptions: captions };
+  }, [photos]);
 
   const openLightbox = (index: number) => {
     setLightboxIndex(index);
@@ -95,16 +132,18 @@ export function PlanPhotosTab({ planId, clientId, clientName, linkId }: PlanPhot
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Category chips + diary CTA */}
-      <div className="shrink-0 flex items-center gap-1 px-4 py-2 border-b border-border">
+      {/* Category chips + diary CTA. Fixed height so the row never resizes
+          when the CTA toggles in / out — `h-12` is enough headroom for any
+          chip-button height regardless of glyph metrics. */}
+      <div className="shrink-0 flex items-center gap-1 px-4 h-12 border-b border-border">
         {CATEGORIES.map(({ key, labelKey }) => {
-          const isActive = activeCategory === key;
+          const isActive = !isDiariesTab && activeCategory === key;
           const count = counts[key === null ? 'All' : key] ?? 0;
           return (
             <button
               key={String(key)}
               type="button"
-              onClick={() => setActiveCategory(key)}
+              onClick={() => setActiveTab(key)}
               className={cn(
                 'inline-flex items-center gap-1 px-3 py-1 rounded-full text-[12px] font-medium transition-colors border',
                 isActive
@@ -120,32 +159,66 @@ export function PlanPhotosTab({ planId, clientId, clientName, linkId }: PlanPhot
           );
         })}
 
-        {/* Request photo diary CTA — right-aligned */}
+        {/* Diaries chip — sibling to the photo categories. Clicking switches to
+            the dedicated diary list. Pending diaries still appear as a sticky
+            banner above the photo grid on every other tab. */}
         <button
           type="button"
-          onClick={() => setDiaryDialogOpen(true)}
-          className="ml-auto inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-medium border transition-colors"
-          style={{
-            background: 'var(--accent-bg)',
-            borderColor: 'var(--accent-br)',
-            color: 'var(--accent)',
-          }}
-          title={t('diary.request.photosTabCta')}
+          onClick={() => setActiveTab('Diaries')}
+          className={cn(
+            'inline-flex items-center gap-1 px-3 py-1 rounded-full text-[12px] font-medium transition-colors border',
+            isDiariesTab
+              ? 'bg-accent text-bg border-accent'
+              : 'bg-bg2 text-text3 border-border hover:bg-bg3 hover:text-text2',
+          )}
         >
-          <span>📸</span>
-          <span>{t('diary.request.ctaButton')}</span>
+          <span>{t('diary.viewer.tabLabel')}</span>
+          <span className={cn('tabular-nums', isDiariesTab ? 'opacity-90' : 'opacity-70')}>
+            ({diariesCount})
+          </span>
         </button>
+
+        {/* Request photo diary CTA — only shown on the Diaries tab. The same
+            action also lives in the plan-tab sidebar (under the Publish
+            button), so the trainer always has a way to send a request. We
+            reuse the shared `Button` component with `variant="default"` so
+            this CTA matches the styling of the sidebar button on the plan
+            tab — bordered, neutral background, gold accent on the emoji. */}
+        {isDiariesTab && (
+          <Button
+            variant="default"
+            onClick={() => setDiaryDialogOpen(true)}
+            disabled={hasInFlightDiary}
+            className="ml-auto"
+            title={
+              hasInFlightDiary
+                ? t('diary.request.alreadyPending')
+                : t('diary.request.photosTabCta')
+            }
+          >
+            <span className="mr-1">📸</span>
+            {t('diary.request.ctaButton')}
+          </Button>
+        )}
       </div>
 
-      {/* Diary viewer panel — shows diary requests for this plan (if any) */}
-      <DiaryViewerPanel planId={planId} allPhotos={allPhotos} />
+      {/* Diaries tab — full list, takes the entire scroll area. */}
+      {isDiariesTab && (
+        <div className="flex-1 overflow-y-auto">
+          <DiaryViewerPanel planId={planId} allPhotos={allPhotos} />
+        </div>
+      )}
 
-      {/* Photo grid */}
-      <div className="flex-1 overflow-y-auto p-5">
-        {isLoading && (
-          <div className="text-center py-12 text-[13px] text-text3">
-            {t('common.loading')}
-          </div>
+      {/* Photo-category tabs — just the photo grid. Pending diary requests
+          live exclusively on the Diaries tab now (their full list is sorted
+          active-first), so the category tabs stay focused on the photos. */}
+      {!isDiariesTab && (
+        <>
+          <div className="flex-1 overflow-y-auto p-5">
+            {isLoading && (
+              <div className="text-center py-12 text-[13px] text-text3">
+                {t('common.loading')}
+              </div>
         )}
 
         {!isLoading && photos.length === 0 && (
@@ -211,11 +284,14 @@ export function PlanPhotosTab({ planId, clientId, clientName, linkId }: PlanPhot
             ))}
           </CardGrid>
         )}
-      </div>
+          </div>
+        </>
+      )}
 
       {/* Lightbox */}
       <ImageLightbox
         images={imageUrls}
+        imageCaptions={imageCaptions}
         startIndex={lightboxIndex}
         open={lightboxOpen}
         onClose={() => setLightboxOpen(false)}

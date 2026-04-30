@@ -42,45 +42,25 @@ export function DiaryViewerPanel({ planId, allPhotos }: Props) {
     staleTime: 30_000,
   });
 
-  // Sort: active (InProgress) first, then Accepted, Pending, Completed, Dismissed
-  const sortedRequests = useMemo(() => {
-    const ORDER: Record<string, number> = {
-      InProgress: 0,
-      Accepted: 1,
-      Pending: 2,
-      Completed: 3,
-      Dismissed: 4,
-    };
-    return [...requests].sort((a, b) => {
-      const aO = ORDER[a.status ?? ''] ?? 5;
-      const bO = ORDER[b.status ?? ''] ?? 5;
-      if (aO !== bO) return aO - bO;
-      // Secondary: newest first
-      return (b.createdAt ?? '').localeCompare(a.createdAt ?? '');
-    });
-  }, [requests]);
+  // Sort by createdAt descending — newest request first regardless of status.
+  // ISO-8601 timestamps sort lexicographically the same way they sort
+  // chronologically, so a string compare is enough here.
+  const sortedRequests = useMemo(
+    () =>
+      [...requests].sort((a, b) =>
+        (b.createdAt ?? '').localeCompare(a.createdAt ?? ''),
+      ),
+    [requests],
+  );
 
   if (!isLoading && sortedRequests.length === 0) {
-    return null; // No diary requests for this plan — don't show the panel
+    return null; // Nothing to show — drop entirely so the surrounding layout doesn't reserve space.
   }
 
+  // Full list — used by the Diaries tab. The tab chip already labels the
+  // section, so we don't repeat a "Foto deník" header row here.
   return (
-    <div className="shrink-0 px-4 pt-4 pb-3 border-b border-border">
-      {/* Section header */}
-      <div className="flex items-center gap-2 mb-3">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.04em] text-text3">
-          {t('diary.viewer.sectionTitle')}
-        </span>
-        {!isLoading && sortedRequests.length > 0 && (
-          <span
-            className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold tabular-nums"
-            style={{ background: 'var(--bg3)', color: 'var(--text3)' }}
-          >
-            {sortedRequests.length}
-          </span>
-        )}
-      </div>
-
+    <div className="shrink-0 px-4 pt-4 pb-3">
       {isLoading && (
         <div className="text-[12px] text-text3 py-2">
           {t('common.loading')}

@@ -256,12 +256,8 @@
       "subtitle": "Your {{role}} wants you to share food photos for {{days}} days",
       "roleTrainer": "trainer",
       "roleNutritionist": "nutritionist",
-      "accept": "Accept",
-      "dismiss": "Dismiss",
-      "screenTitle": "Food Photo Diary",
-      "dismissScreenTitle": "Dismiss Diary Request",
-      "acceptPlaceholder": "Accept wizard coming soon",
-      "dismissPlaceholder": "Dismiss flow coming soon"
+      "manage": "Manage the request",
+      "screenTitle": "Food Photo Diary"
     },
     "trainingPlanType": "Training plan",
     "nutritionPlanType": "Nutrition plan",
@@ -900,6 +896,14 @@
     "addPhotoA11y": "Add photo to plan",
     "openA11y": "Open plan photos"
   },
+  "planPhotosUpload": {
+    "title": "Add photos",
+    "hint": "Add photos and pick a category. You can also add a caption to each one.",
+    "submitCta": "Submit",
+    "successToast": "Photos uploaded!",
+    "errorUpload": "Upload failed. Please try again.",
+    "errorSubmit": "Submit failed. Please try again."
+  },
   "profilePhotos": {
     "title": "My Photos",
     "totalCount": "{{count}} photos",
@@ -971,19 +975,35 @@
   },
   "diary": {
     "acceptWizard": {
-      "title": "How do you want to share photos?",
-      "intro": "Choose the method that suits you. {{name}} will receive your photos either all at once or gradually over 7 days.",
-      "cancel": "Cancel",
-      "continue": "Continue",
+      "headerTitle": "Photo diary",
+      "heroTitle": "Share photos of your meals",
+      "heroDesc_one": "Your coach wants to see what you eat so they can build a better plan for you. Pick the way that suits you — all photos at once, or one by one over {{count}} day.",
+      "heroDesc_other": "Your coach wants to see what you eat so they can build a better plan for you. Pick the way that suits you — all photos at once, or one by one over {{count}} days.",
+      "coachChip": "is asking 📸",
+      "modePrompt": "Choose how to share",
       "bulkTitle": "Upload all at once",
       "bulkDesc": "Take photos of what you usually eat and send them all in one submission. Done in just a few minutes.",
-      "workflowTitle": "7-day workflow",
-      "workflowDesc": "Over 7 days you gradually photograph what you eat. You will get a daily reminder. Your coach sees photos in real time.",
-      "errorAccept": "Could not accept the request. Please try again."
+      "workflowTitle": "Multi-day workflow",
+      "workflowDesc_one": "Over {{count}} day you gradually photograph what you eat. You will get a daily reminder. Your coach sees photos in real time.",
+      "workflowDesc_other": "Over {{count}} days you gradually photograph what you eat. You will get a daily reminder. Your coach sees photos in real time.",
+      "accept": "Accept",
+      "revoke": "Revoke",
+      "errorAccept": "Could not accept the request. Please try again.",
+      "errorRevoke": "Could not revoke the request. Please try again."
+    },
+    "dismiss": {
+      "screenTitle": "Photo diary",
+      "warningText": "You're about to revoke the request — your coach will be notified. You can leave a short reason, but it's optional.",
+      "reasonLabel": "Reason (optional)",
+      "reasonPlaceholder": "Write a few words why you're declining…",
+      "charCount": "{{count}} / {{max}}",
+      "ctaDismiss": "Revoke request",
+      "successToast": "Request revoked.",
+      "errorDismiss": "Could not revoke the request. Please try again."
     },
     "bulk": {
       "title": "Upload photos ({{count}}/{{total}})",
-      "close": "Close",
+      "titleEmpty": "Upload photos",
       "hint": "Add photos of meals you usually eat. You can add a caption to each photo.",
       "addPhotos": "Add photos",
       "addPhotosHint": "Gallery or camera · max 5 MB per photo",
@@ -993,11 +1013,7 @@
       "statusUploaded": "Uploaded",
       "statusFailed": "Failed",
       "retryPhoto": "Retry",
-      "submitCta": "Send to {{name}}",
-      "cancelCta": "Cancel",
-      "totalStrip": "{{count}} {{photoWord}} · {{sizeMb}} MB",
-      "photo_one": "photo",
-      "photo_other": "photos",
+      "submitCta": "Send",
       "successToast": "Photos sent!",
       "errorUpload": "Upload failed. Please try again.",
       "errorSubmit": "Submission failed. Please try again."
@@ -1013,6 +1029,7 @@
       "addPhoto": "Add a photo today",
       "todaySection": "Today's photos ({{count}})",
       "todaySectionEmpty": "Today's photos",
+      "uploadedSection": "Uploaded photos ({{count}})",
       "previousSection": "Previous days",
       "previousDayRow": "Day {{day}} · {{date}}",
       "previousPhotoCount_one": "{{count}} photo",
@@ -1020,7 +1037,9 @@
       "coachNote": "{{name}} sees your photos in real time. Be honest — even if you slipped.",
       "finalizeCtaLabel": "Submit diary",
       "completedTitle": "Diary submitted",
-      "completedSub": "Your coach has received all photos."
+      "completedSub": "Your coach has received all photos.",
+      "addTodayPhotosCta": "Add today's photos",
+      "todayUploadedToast": "Today's photos uploaded."
     },
     "finalize": {
       "title": "Day {{day}} · finish",
@@ -1042,16 +1061,10 @@
       "dayCounter": "Day {{day}} of {{total}}",
       "open": "Open"
     },
-    "dismiss": {
-      "screenTitle": "Dismiss request",
-      "warningText": "Your coach will be notified that you are dismissing the request. If you want, let them know why briefly — it will help them.",
-      "reasonLabel": "Reason (optional)",
-      "reasonPlaceholder": "E.g. I don't feel ready to share photos yet, I'd prefer to start differently…",
-      "charCount": "{{count}} / {{max}}",
-      "ctaDismiss": "Dismiss request",
-      "ctaCancel": "Cancel",
-      "successToast": "Request dismissed",
-      "errorDismiss": "Dismiss failed. Please try again."
+    "bulkBanner": {
+      "title": "Photo diary · to submit",
+      "headline": "Resume your upload",
+      "subtitle": "Finish uploading photos and submit them to your coach."
     }
   }
 }

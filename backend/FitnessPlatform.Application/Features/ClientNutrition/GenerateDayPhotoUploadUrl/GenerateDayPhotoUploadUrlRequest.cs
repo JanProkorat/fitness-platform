@@ -6,7 +6,7 @@ namespace FitnessPlatform.Application.Features.ClientNutrition.GenerateDayPhotoU
 public class GenerateDayPhotoUploadUrlRequest
 {
     /// <summary>
-    /// MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp", "image/heic").
+    /// MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif").
     /// </summary>
     public string ContentType { get; set; } = string.Empty;
 

@@ -11,13 +11,11 @@ import type { PendingDiaryRequestItem } from '@/api/questionnaire'
 interface DiaryRequestBannerProps {
   /** The pending diary request item from the API response. */
   item: PendingDiaryRequestItem
-  /** Called when the user taps "Accept" — routes to the accept wizard. */
-  onAccept: () => void
-  /** Called when the user taps "Dismiss" — routes to the dismiss flow. */
-  onDismiss: () => void
+  /** Called when the user taps "Manage" — routes to the accept wizard. */
+  onManage: () => void
 }
 
-export function DiaryRequestBanner({ item, onAccept, onDismiss }: DiaryRequestBannerProps) {
+export function DiaryRequestBanner({ item, onManage }: DiaryRequestBannerProps) {
   const colors = useTheme()
   const { t } = useTranslation()
   const systemScheme = useColorScheme()
@@ -84,35 +82,19 @@ export function DiaryRequestBanner({ item, onAccept, onDismiss }: DiaryRequestBa
           <Text style={[styles.chevron, { color: colors.label3 }]}>›</Text>
         </View>
 
-        {/* CTAs */}
-        <View style={styles.ctaRow}>
-          <Pressable
-            onPress={onAccept}
-            style={({ pressed }) => [
-              styles.ctaAccept,
-              { backgroundColor: colors.green, opacity: pressed ? 0.8 : 1 },
-            ]}
-          >
-            <Text style={[styles.ctaText, { color: colors.onAccent }]}>
-              {t('today.diaryBanner.accept')}
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={onDismiss}
-            style={({ pressed }) => [
-              styles.ctaDismiss,
-              {
-                borderColor: colors.sep,
-                backgroundColor: colors.bg2,
-                opacity: pressed ? 0.7 : 1,
-              },
-            ]}
-          >
-            <Text style={[styles.ctaText, { color: colors.label }]}>
-              {t('today.diaryBanner.dismiss')}
-            </Text>
-          </Pressable>
-        </View>
+        {/* Single Manage CTA */}
+        <Pressable
+          onPress={onManage}
+          style={({ pressed }) => [
+            styles.ctaManage,
+            { backgroundColor: colors.green, opacity: pressed ? 0.8 : 1 },
+          ]}
+          accessibilityRole="button"
+        >
+          <Text style={[styles.ctaText, { color: colors.onAccent }]}>
+            {t('today.diaryBanner.manage')}
+          </Text>
+        </Pressable>
       </View>
     </Animated.View>
   )
@@ -165,23 +147,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     flexShrink: 0,
   },
-  ctaRow: {
+  ctaManage: {
     marginTop: 14,
-    flexDirection: 'row',
-    gap: 10,
-  },
-  ctaAccept: {
-    flex: 1,
     paddingVertical: 12,
     borderRadius: Radius.md,
     alignItems: 'center',
-  },
-  ctaDismiss: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: Radius.md,
-    alignItems: 'center',
-    borderWidth: 1,
   },
   ctaText: {
     fontSize: Type.subheadline.fontSize,
