@@ -106,10 +106,14 @@ export function DiaryFinalizeScreen() {
   const currentDay = computeCurrentDay(request?.acceptedAt, durationDays)
 
   // ── Query: photos for this diary request ──
+  // Backend validator caps `pageSize` at 100 (InclusiveBetween(1, 100)) — the
+  // earlier 200 on this query 400'd silently and the finalize summary always
+  // rendered an empty list. 100 is plenty: a 14-day diary at 5 photos/day
+  // tops out at ~70 entries, well under the cap.
   const planId = request?.planId
   const photosQuery = useQuery<PlanPhotoResponse[]>({
     queryKey: ['plan-photos', planId],
-    queryFn: () => getPlanPhotos(planId ?? '', 1, 200),
+    queryFn: () => getPlanPhotos(planId ?? '', 1, 100),
     enabled: !!planId,
     staleTime: 30_000,
   })
