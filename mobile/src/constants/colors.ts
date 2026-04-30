@@ -23,6 +23,28 @@ export const goldAlpha = {
   solid: 'rgba(201,168,76,1)',
 } as const
 
+/**
+ * Scheme-aware green alpha values for diary-request and other green-tinted
+ * surfaces. Light uses iOS system green (#34c759); dark uses the dark-mode
+ * system green (#30d158).
+ */
+export const greenAlpha = {
+  light: {
+    bg: 'rgba(52,199,89,0.07)',
+    border: 'rgba(52,199,89,0.22)',
+    iconBg: 'rgba(52,199,89,0.15)',
+    /** Dark legible green for eyebrow text on a light-tinted background. */
+    eyebrow: '#1f8a3e',
+  },
+  dark: {
+    bg: 'rgba(48,209,88,0.10)',
+    border: 'rgba(48,209,88,0.28)',
+    iconBg: 'rgba(48,209,88,0.18)',
+    /** Bright readable green for eyebrow text on a dark-tinted background. */
+    eyebrow: '#30d158',
+  },
+} as const
+
 const light = {
   // Backgrounds
   bg: '#f2f2f7',
@@ -64,6 +86,9 @@ const light = {
   onGoldChip: '#000000',
   /** Conventional iOS shadowColor — same value in both themes. */
   shadow: '#000000',
+  /** Semi-transparent overlay for floating controls on image surfaces
+   *  (e.g. remove-button over a photo thumbnail). Works in both themes. */
+  overlay: 'rgba(0,0,0,0.45)',
 
   // Macros — match the system colours used in the NutritionCardHero chips
   macroProtein: '#007aff',  // blue
@@ -107,6 +132,9 @@ const dark = {
   onGoldChip: '#000000',
   /** Conventional iOS shadowColor — same value in both themes. */
   shadow: '#000000',
+  /** Semi-transparent overlay for floating controls on image surfaces
+   *  (e.g. remove-button over a photo thumbnail). Works in both themes. */
+  overlay: 'rgba(0,0,0,0.45)',
 
   // Macros — match the system colours used in the NutritionCardHero chips
   macroProtein: '#0a84ff',  // blue
@@ -144,6 +172,7 @@ export interface ColorScheme {
   readonly macroCarbs: string
   readonly macroFat: string
   readonly macroFiber: string
+  readonly overlay: string
 }
 
 export const Colors = { light, dark } as const

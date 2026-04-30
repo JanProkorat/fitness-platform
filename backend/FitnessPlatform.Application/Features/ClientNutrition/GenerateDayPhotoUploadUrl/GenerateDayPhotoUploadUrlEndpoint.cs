@@ -102,6 +102,7 @@ public class GenerateDayPhotoUploadUrlEndpoint(
         "image/png"  => "png",
         "image/webp" => "webp",
         "image/heic" => "heic",
+        "image/heif" => "heif",
         _            => "bin",
     };
 }

@@ -82,7 +82,8 @@ public class GetPlanPhotosEndpoint(IApplicationDbContext db)
                 PlanId = p.PlanId,
                 PlanType = p.PlanType,
                 DateCreated = p.DateCreated,
-                UploadedByUserId = p.UploadedByUserId
+                UploadedByUserId = p.UploadedByUserId,
+                DiaryRequestId = p.DiaryRequestId
             })
             .ToListAsync(ct);
 

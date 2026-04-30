@@ -183,7 +183,8 @@
     "back": "Back",
     "cancel": "Cancel",
     "error": "Error",
-    "options": "Options"
+    "options": "Options",
+    "yourCoach": "your coach"
   },
   "imagePicker": {
     "sourceTitle": "Select source",
@@ -249,6 +250,15 @@
     "questionnaireTitle": "New questionnaire to fill",
     "questionnaireDesc": "Your trainer sent you a questionnaire. Fill it in to set up your plan.",
     "questionnaireFill": "Fill in",
+    "diaryBanner": {
+      "from": "From {{name}}",
+      "title": "Share photos of your meals",
+      "subtitle": "Your {{role}} wants you to share food photos for {{days}} days",
+      "roleTrainer": "trainer",
+      "roleNutritionist": "nutritionist",
+      "manage": "Manage the request",
+      "screenTitle": "Food Photo Diary"
+    },
     "trainingPlanType": "Training plan",
     "nutritionPlanType": "Nutrition plan",
     "startsOn": "Starts {{date}}",
@@ -886,6 +896,14 @@
     "addPhotoA11y": "Add photo to plan",
     "openA11y": "Open plan photos"
   },
+  "planPhotosUpload": {
+    "title": "Add photos",
+    "hint": "Add photos and pick a category. You can also add a caption to each one.",
+    "submitCta": "Submit",
+    "successToast": "Photos uploaded!",
+    "errorUpload": "Upload failed. Please try again.",
+    "errorSubmit": "Submit failed. Please try again."
+  },
   "profilePhotos": {
     "title": "My Photos",
     "totalCount": "{{count}} photos",
@@ -953,6 +971,100 @@
       "consentRequiredMessage": "You must consent to health data processing to register.",
       "failedTitle": "Registration Failed",
       "failedMessage": "Registration failed. Please try again."
+    }
+  },
+  "diary": {
+    "acceptWizard": {
+      "headerTitle": "Photo diary",
+      "heroTitle": "Share photos of your meals",
+      "heroDesc_one": "Your coach wants to see what you eat so they can build a better plan for you. Pick the way that suits you — all photos at once, or one by one over {{count}} day.",
+      "heroDesc_other": "Your coach wants to see what you eat so they can build a better plan for you. Pick the way that suits you — all photos at once, or one by one over {{count}} days.",
+      "coachChip": "is asking 📸",
+      "modePrompt": "Choose how to share",
+      "bulkTitle": "Upload all at once",
+      "bulkDesc": "Take photos of what you usually eat and send them all in one submission. Done in just a few minutes.",
+      "workflowTitle": "Multi-day workflow",
+      "workflowDesc_one": "Over {{count}} day you gradually photograph what you eat. You will get a daily reminder. Your coach sees photos in real time.",
+      "workflowDesc_other": "Over {{count}} days you gradually photograph what you eat. You will get a daily reminder. Your coach sees photos in real time.",
+      "accept": "Accept",
+      "revoke": "Revoke",
+      "errorAccept": "Could not accept the request. Please try again.",
+      "errorRevoke": "Could not revoke the request. Please try again."
+    },
+    "dismiss": {
+      "screenTitle": "Photo diary",
+      "warningText": "You're about to revoke the request — your coach will be notified. You can leave a short reason, but it's optional.",
+      "reasonLabel": "Reason (optional)",
+      "reasonPlaceholder": "Write a few words why you're declining…",
+      "charCount": "{{count}} / {{max}}",
+      "ctaDismiss": "Revoke request",
+      "successToast": "Request revoked.",
+      "errorDismiss": "Could not revoke the request. Please try again."
+    },
+    "bulk": {
+      "title": "Upload photos ({{count}}/{{total}})",
+      "titleEmpty": "Upload photos",
+      "hint": "Add photos of meals you usually eat. You can add a caption to each photo.",
+      "addPhotos": "Add photos",
+      "addPhotosHint": "Gallery or camera · max 5 MB per photo",
+      "captionPlaceholder": "Photo caption (optional)",
+      "removePhoto": "Remove photo",
+      "statusUploading": "Uploading…",
+      "statusUploaded": "Uploaded",
+      "statusFailed": "Failed",
+      "retryPhoto": "Retry",
+      "submitCta": "Send",
+      "successToast": "Photos sent!",
+      "errorUpload": "Upload failed. Please try again.",
+      "errorSubmit": "Submission failed. Please try again."
+    },
+    "workflow": {
+      "title": "Photo Diary",
+      "headerSub": "Day {{day}} of {{total}} · {{name}}",
+      "daySuffix": "day",
+      "daysLeft_one": "{{count}} day left until submission",
+      "daysLeft_other": "{{count}} days left until submission",
+      "dayCounter": "Day {{day}} of {{total}}",
+      "photosCount": "{{count}} photos uploaded",
+      "addPhoto": "Add a photo today",
+      "todaySection": "Today's photos ({{count}})",
+      "todaySectionEmpty": "Today's photos",
+      "uploadedSection": "Uploaded photos ({{count}})",
+      "previousSection": "Previous days",
+      "previousDayRow": "Day {{day}} · {{date}}",
+      "previousPhotoCount_one": "{{count}} photo",
+      "previousPhotoCount_other": "{{count}} photos",
+      "coachNote": "{{name}} sees your photos in real time. Be honest — even if you slipped.",
+      "finalizeCtaLabel": "Submit diary",
+      "completedTitle": "Diary submitted",
+      "completedSub": "Your coach has received all photos.",
+      "addTodayPhotosCta": "Add today's photos",
+      "todayUploadedToast": "Today's photos uploaded."
+    },
+    "finalize": {
+      "title": "Day {{day}} · finish",
+      "heroTitle": "Last day of photo diary",
+      "heroSub": "You have {{photos}} photos over {{days}} days. You can still add more today, or submit right away.",
+      "statPhotos": "photos total",
+      "statDays": "days completed",
+      "statAttendance": "attendance",
+      "lastPhotosSection": "Add one last photo",
+      "lastPhotosCta": "Add last photo",
+      "lastPhotosHint": "Gallery or camera",
+      "submitCta": "Submit to coach",
+      "addMoreCta": "Add another photo",
+      "successToast": "Diary submitted!",
+      "errorSubmit": "Submission failed. Please try again."
+    },
+    "workflowBanner": {
+      "title": "Photo diary · active",
+      "dayCounter": "Day {{day}} of {{total}}",
+      "open": "Open"
+    },
+    "bulkBanner": {
+      "title": "Photo diary · to submit",
+      "headline": "Resume your upload",
+      "subtitle": "Finish uploading photos and submit them to your coach."
     }
   }
 }

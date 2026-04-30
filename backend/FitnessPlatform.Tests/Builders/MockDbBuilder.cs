@@ -26,6 +26,7 @@ public class MockDbBuilder
     private readonly List<DevicePushToken> _devicePushTokens = [];
     private readonly List<WeeklyCheckInSetting> _weeklyCheckInSettings = [];
     private readonly List<WeeklyCheckInClientOverride> _weeklyCheckInClientOverrides = [];
+    private readonly List<PhotoDiaryRequest> _photoDiaryRequests = [];
 
     /// <summary>
     /// Adds an <see cref="ApplicationUser"/> to the mock context.
@@ -98,6 +99,11 @@ public class MockDbBuilder
     public MockDbBuilder With(WeeklyCheckInClientOverride o) { _weeklyCheckInClientOverrides.Add(o); return this; }
 
     /// <summary>
+    /// Adds a <see cref="PhotoDiaryRequest"/> to the mock context.
+    /// </summary>
+    public MockDbBuilder With(PhotoDiaryRequest request) { _photoDiaryRequests.Add(request); return this; }
+
+    /// <summary>
     /// Builds a mocked <see cref="IApplicationDbContext"/> with all registered entities as queryable DbSets.
     /// </summary>
     public IApplicationDbContext Build()
@@ -120,6 +126,7 @@ public class MockDbBuilder
         var devicePushTokensSet = _devicePushTokens.BuildMockDbSet();
         var weeklyCheckInSettingsSet = _weeklyCheckInSettings.BuildMockDbSet();
         var weeklyCheckInClientOverridesSet = _weeklyCheckInClientOverrides.BuildMockDbSet();
+        var photoDiaryRequestsSet = _photoDiaryRequests.BuildMockDbSet();
 
         var db = Substitute.For<IApplicationDbContext>();
 
@@ -139,6 +146,7 @@ public class MockDbBuilder
         db.DevicePushTokens.Returns(devicePushTokensSet);
         db.WeeklyCheckInSettings.Returns(weeklyCheckInSettingsSet);
         db.WeeklyCheckInClientOverrides.Returns(weeklyCheckInClientOverridesSet);
+        db.PhotoDiaryRequests.Returns(photoDiaryRequestsSet);
 
         db.SaveChangesAsync(Arg.Any<CancellationToken>()).Returns(1);
 

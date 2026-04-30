@@ -42,6 +42,11 @@ public static class EntityBuilder
     /// Creates a new <see cref="ClientOnboardingDataBuilder"/>.
     /// </summary>
     public static ClientOnboardingDataBuilder ClientOnboardingData => new();
+
+    /// <summary>
+    /// Creates a new <see cref="PendingInviteBuilder"/>.
+    /// </summary>
+    public static PendingInviteBuilder PendingInvite => new();
 }
 
 /// <summary>
@@ -189,6 +194,7 @@ public class ClientProfileBuilder
 /// </summary>
 public class ClientProfessionalLinkBuilder
 {
+    private long _id;
     private long _clientProfileId;
     private long _professionalProfileId;
     private UserRole _professionalRole = UserRole.Trainer;
@@ -196,6 +202,11 @@ public class ClientProfessionalLinkBuilder
     private ClientProfile? _clientProfile;
     private ProfessionalProfile? _professionalProfile;
     private DateTime _dateCreated = DateTime.UtcNow;
+
+    /// <summary>
+    /// Sets the internal ID.
+    /// </summary>
+    public ClientProfessionalLinkBuilder WithId(long id) { _id = id; return this; }
 
     /// <summary>
     /// Sets the client profile ID.
@@ -237,6 +248,7 @@ public class ClientProfessionalLinkBuilder
     /// </summary>
     public ClientProfessionalLink Build() => new()
     {
+        Id = _id,
         ClientProfileId = _clientProfileId, ProfessionalProfileId = _professionalProfileId,
         ProfessionalRole = _professionalRole, IsActive = _isActive,
         ClientProfile = _clientProfile!, ProfessionalProfile = _professionalProfile!,
@@ -356,6 +368,71 @@ public class InvitationTokenBuilder
     {
         ProfessionalProfileId = _professionalProfileId, Email = _email, Token = _token,
         ExpiresAt = _expiresAt, IsUsed = _isUsed, ProfessionalProfile = _professionalProfile!
+    };
+}
+
+/// <summary>
+/// Builder for <see cref="Application.Domain.Entities.PendingInvite"/> test entities.
+/// </summary>
+public class PendingInviteBuilder
+{
+    private long _id;
+    private long _professionalProfileId = 1;
+    private string _firstName = "Invited";
+    private string _lastName = "Client";
+    private string _email = "invited@test.com";
+    private DateTime _sentAt = DateTime.UtcNow;
+    private bool _isAccepted;
+    private ProfessionalProfile? _professionalProfile;
+
+    /// <summary>
+    /// Sets the internal ID.
+    /// </summary>
+    public PendingInviteBuilder WithId(long id) { _id = id; return this; }
+
+    /// <summary>
+    /// Sets the professional profile ID.
+    /// </summary>
+    public PendingInviteBuilder WithProfessionalProfileId(long id) { _professionalProfileId = id; return this; }
+
+    /// <summary>
+    /// Sets the first name.
+    /// </summary>
+    public PendingInviteBuilder WithFirstName(string fn) { _firstName = fn; return this; }
+
+    /// <summary>
+    /// Sets the last name.
+    /// </summary>
+    public PendingInviteBuilder WithLastName(string ln) { _lastName = ln; return this; }
+
+    /// <summary>
+    /// Sets the email.
+    /// </summary>
+    public PendingInviteBuilder WithEmail(string email) { _email = email; return this; }
+
+    /// <summary>
+    /// Marks the invite as accepted.
+    /// </summary>
+    public PendingInviteBuilder Accepted() { _isAccepted = true; return this; }
+
+    /// <summary>
+    /// Sets the ProfessionalProfile navigation property.
+    /// </summary>
+    public PendingInviteBuilder WithProfessionalProfile(ProfessionalProfile pp) { _professionalProfile = pp; _professionalProfileId = pp.Id; return this; }
+
+    /// <summary>
+    /// Builds the <see cref="Application.Domain.Entities.PendingInvite"/> instance.
+    /// </summary>
+    public Application.Domain.Entities.PendingInvite Build() => new()
+    {
+        Id = _id,
+        ProfessionalProfileId = _professionalProfileId,
+        FirstName = _firstName,
+        LastName = _lastName,
+        Email = _email,
+        SentAt = _sentAt,
+        IsAccepted = _isAccepted,
+        ProfessionalProfile = _professionalProfile!
     };
 }
 

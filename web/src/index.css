@@ -39,12 +39,38 @@
   --green-bg:  rgba(15, 123, 108, 0.08);
   --green-br:  rgba(15, 123, 108, 0.2);
   --blue:      #0b6e99;
+  --blue-dark: #0056b3;
   --blue-bg:   rgba(11, 110, 153, 0.08);
   --blue-br:   rgba(11, 110, 153, 0.2);
   --purple:    #6940a5;
   --purple-bg: rgba(105, 64, 165, 0.08);
   --orange:    #ad5700;
   --orange-bg: rgba(173, 87, 0, 0.08);
+
+  /* Diary request status-chip tokens.
+     Active-but-unfinished statuses (Pending / Accepted / InProgress) all use
+     the brand-gold accent so the trainer can spot live diaries at a glance.
+     Completed keeps the calmer teal-green. Dismissed uses red to signal the
+     client opted out (was previously grey, but red reads more clearly). */
+  --status-pending-text:    var(--accent);
+  --status-pending-bg:      var(--accent-bg);
+  --status-pending-br:      var(--accent-br);
+
+  --status-accepted-text:   var(--accent);
+  --status-accepted-bg:     var(--accent-bg);
+  --status-accepted-br:     var(--accent-br);
+
+  --status-inprogress-text: var(--accent);
+  --status-inprogress-bg:   var(--accent-bg);
+  --status-inprogress-br:   var(--accent-br);
+
+  --status-completed-text:  #0f7b6c;
+  --status-completed-bg:    rgba(15, 123, 108, 0.10);
+  --status-completed-br:    rgba(15, 123, 108, 0.22);
+
+  --status-dismissed-text:  var(--red);
+  --status-dismissed-bg:    var(--red-bg);
+  --status-dismissed-br:    var(--red-br);
 
   /* Radii */
   --radius:    4px;

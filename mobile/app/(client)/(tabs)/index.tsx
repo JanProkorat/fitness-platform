@@ -21,10 +21,21 @@ import { HasTrainerState } from '@/components/today/HasTrainerState'
 import { NotificationSheet } from '@/components/notifications/NotificationSheet'
 import { InviteCard } from '@/components/notifications/InviteCard'
 import { QuestionnaireBanner } from '@/components/notifications/QuestionnaireBanner'
+import { DiaryRequestBanner } from '@/components/today/DiaryRequestBanner'
+import { ActiveDiaryBanner } from '@/components/today/ActiveDiaryBanner'
 import { WeeklyCheckInBanner } from '@/components/today/WeeklyCheckInBanner'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useClientInvite } from '@/hooks/useClientInvite'
-import { getPendingQuestionnaires, type PendingQuestionnairesResponse } from '@/api/questionnaire'
+import {
+  getPendingQuestionnaires,
+  type PendingQuestionnairesResponse,
+  type PendingDiaryRequestItem,
+} from '@/api/questionnaire'
+import {
+  getActiveDiaryRequests,
+  PhotoDiaryMode,
+  type ClientPhotoDiaryRequestSummary,
+} from '@/api/diaryRequests'
 import { getCurrentCheckIns, type CheckInSummary } from '@/api/weeklyCheckIns'
 import { onEvent } from '@/api/signalr'
 import { Toast } from '@/lib/toast'
@@ -87,6 +98,43 @@ export default function TodayScreen() {
     [pendingQItems],
   )
 
+  // Pending diary requests — only Pending status (defensive; the query already filters)
+  const pendingDiaryItems: PendingDiaryRequestItem[] = useMemo(
+    () => (pendingQQuery.data?.pendingDiaryRequests ?? []).filter(
+      (r) => r.status === 'Pending',
+    ),
+    [pendingQQuery.data?.pendingDiaryRequests],
+  )
+
+  // Active diary requests — both Bulk and Workflow modes, status ∈ {Accepted, InProgress}.
+  // The user can resume an unsubmitted bulk upload OR continue an active 7-day workflow.
+  const activeDiaryQuery = useQuery<ClientPhotoDiaryRequestSummary[]>({
+    queryKey: ['active-diary-requests'],
+    queryFn: getActiveDiaryRequests,
+    enabled: hasActiveLink,
+    staleTime: 30_000,
+  })
+  const activeDiaryItems: ClientPhotoDiaryRequestSummary[] = activeDiaryQuery.data ?? []
+
+  // Subscribe to photo-diary lifecycle events so banners refresh in realtime
+  // without requiring a manual pull-to-refresh.
+  //   photodiaryrequested → trainer just created a request → show pending banner
+  //   photodiarysubmitted → request transitioned to Completed → drop active banner
+  // Both events invalidate the same two queries that drive the Today banners.
+  useEffect(() => {
+    const refresh = () => {
+      queryClient.invalidateQueries({ queryKey: ['pending-questionnaires'] })
+      queryClient.invalidateQueries({ queryKey: ['active-diary-requests'] })
+      queryClient.invalidateQueries({ queryKey: ['notifications'] })
+    }
+    const unsubRequested = onEvent('photodiaryrequested', refresh)
+    const unsubSubmitted = onEvent('photodiarysubmitted', refresh)
+    return () => {
+      unsubRequested()
+      unsubSubmitted()
+    }
+  }, [queryClient])
+
   const handleNotificationAction = useCallback(
     (n: (typeof notifications)[0]) => {
       markRead(n.id)
@@ -139,6 +187,7 @@ export default function TodayScreen() {
       queryClient.invalidateQueries({ queryKey: ['client-invite'] }),
       queryClient.invalidateQueries({ queryKey: ['pending-questionnaires'] }),
       queryClient.invalidateQueries({ queryKey: ['current-weekly-check-ins'] }),
+      queryClient.invalidateQueries({ queryKey: ['active-diary-requests'] }),
     ])
     setRefreshing(false)
   }, [queryClient])
@@ -201,19 +250,54 @@ export default function TodayScreen() {
         {todayState === 'has-trainer' && (
           <HasTrainerState
             topBanner={
-              pendingQCount > 0 ? (
-                <QuestionnaireBanner
-                  count={pendingQCount}
-                  coachNames={pendingQCoachNames}
-                  onFill={() => {
-                    if (pendingQCount > 1) {
-                      router.push(href('/(client)/pending-questionnaires'))
-                    } else {
-                      router.push(hrefParams('/(auth)/questionnaire', { linkPublicId: pendingQItems[0]?.linkPublicId ?? '' }))
+              <>
+                {/* Diary-request banners render above questionnaire banners (ordering per #93) */}
+                {pendingDiaryItems.map((item) => (
+                  <DiaryRequestBanner
+                    key={item.requestPublicId}
+                    item={item}
+                    onManage={() =>
+                      router.push({
+                        pathname: '/(client)/diary/[requestId]',
+                        params: {
+                          requestId: item.requestPublicId ?? '',
+                          professionalName: item.professionalName ?? '',
+                          professionalRole: item.professionalRole ?? '',
+                          durationDays: String(item.durationDays ?? 7),
+                        },
+                      })
                     }
-                  }}
-                />
-              ) : undefined
+                  />
+                ))}
+
+                {/* Active diary banners — workflow (day-counter) or bulk (resume-upload) */}
+                {activeDiaryItems.map((item) => (
+                  <ActiveDiaryBanner
+                    key={item.id}
+                    request={item}
+                    onOpen={() => {
+                      const target =
+                        item.mode === PhotoDiaryMode.Workflow ? 'workflow' : 'bulk'
+                      router.push(href(`/(client)/diary/${item.id}/${target}`))
+                    }}
+                  />
+                ))}
+
+                {/* Questionnaire banner */}
+                {pendingQCount > 0 && (
+                  <QuestionnaireBanner
+                    count={pendingQCount}
+                    coachNames={pendingQCoachNames}
+                    onFill={() => {
+                      if (pendingQCount > 1) {
+                        router.push(href('/(client)/pending-questionnaires'))
+                      } else {
+                        router.push(hrefParams('/(auth)/questionnaire', { linkPublicId: pendingQItems[0]?.linkPublicId ?? '' }))
+                      }
+                    }}
+                  />
+                )}
+              </>
             }
           />
         )}

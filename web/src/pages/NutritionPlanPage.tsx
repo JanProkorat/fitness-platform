@@ -15,6 +15,8 @@ import type { PlanMeal, MealFood, NutrientTotals } from '@/api/plan-types';
 import { SortableMealItem } from '@/components/nutrition/SortableMealItem';
 import { ShoppingListDrawer } from '@/components/nutrition/ShoppingListDrawer';
 import { PublishWeekDialog, CompletePlanDialog, AddMealDialog } from '@/components/nutrition/PlanDialogs';
+import { RequestDiaryDialog } from '@/components/diary/RequestDiaryDialog';
+import { listDiaryRequests } from '@/api/diary-requests';
 import { showSuccess, showApiError } from '@/lib/api-errors';
 import { cn } from '@/lib/cn';
 import { type MealKind } from '@/components/nutrition/meal-kind';
@@ -75,6 +77,21 @@ export default function NutritionPlanPage() {
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const [publishDialogOpen, setPublishDialogOpen] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [diaryDialogOpen, setDiaryDialogOpen] = useState(false);
+
+  // Same query the Photos tab + DiaryViewerPanel use — TanStack dedupes by key
+  // so this fires zero extra requests once any of those have already loaded.
+  // Used to disable the sidebar "send request" button while a request is
+  // already in flight (Pending / Accepted / InProgress) for this plan.
+  const { data: planDiaryRequests = [] } = useQuery({
+    queryKey: ['diary-requests', planId],
+    queryFn: () => listDiaryRequests({ planId: planId! }),
+    enabled: !!planId,
+    staleTime: 30_000,
+  });
+  const hasInFlightDiary = planDiaryRequests.some(
+    (r) => r.status === 'Pending' || r.status === 'Accepted' || r.status === 'InProgress',
+  );
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
 
@@ -430,7 +447,16 @@ export default function NutritionPlanPage() {
       {/* ── Photos tab content ── */}
       {pageTab === 'photos' && planId && (
         <div className="flex-1 overflow-hidden">
-          <PlanPhotosTab planId={planId} clientId={plan.clientId} />
+          <PlanPhotosTab
+            planId={planId}
+            clientId={plan.clientId}
+            clientName={
+              clientDashboard
+                ? `${clientDashboard.firstName} ${clientDashboard.lastName}`
+                : undefined
+            }
+            linkId={clientDashboard?.linkId}
+          />
         </div>
       )}
 
@@ -776,6 +802,16 @@ export default function NutritionPlanPage() {
               >
                 {isWeekPublished ? t('nutrition.published') : t('nutrition.publishWeekButton')}
               </Button>
+              <Button
+                variant="default"
+                onClick={() => setDiaryDialogOpen(true)}
+                disabled={hasInFlightDiary}
+                title={hasInFlightDiary ? t('diary.request.alreadyPending') : undefined}
+                className="flex w-full justify-center"
+              >
+                <span className="mr-1">📸</span>
+                {t('diary.request.ctaButton')}
+              </Button>
             </div>
           </div>
 
@@ -824,6 +860,24 @@ export default function NutritionPlanPage() {
         isCompleting={isCompleting}
         onComplete={handleComplete}
         onClose={() => setCompleteDialogOpen(false)}
+      />
+
+      {/* ── Photo Diary Request Dialog ── */}
+      <RequestDiaryDialog
+        open={diaryDialogOpen}
+        onClose={() => setDiaryDialogOpen(false)}
+        linkId={clientDashboard?.linkId}
+        planId={planId}
+        clientName={
+          clientDashboard
+            ? `${clientDashboard.firstName} ${clientDashboard.lastName}`
+            : ''
+        }
+        clientInitials={
+          clientDashboard
+            ? `${clientDashboard.firstName?.[0] ?? ''}${clientDashboard.lastName?.[0] ?? ''}`.toUpperCase()
+            : '?'
+        }
       />
 
       {/* ── Reset Confirmation Dialog ── */}

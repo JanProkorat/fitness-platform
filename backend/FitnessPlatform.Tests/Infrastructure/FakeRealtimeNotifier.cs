@@ -10,6 +10,7 @@ public class FakeRealtimeNotifier : IRealtimeNotifier
 {
     private readonly List<NotifyCall> _calls = [];
     private readonly Lock _lock = new();
+    private bool _throwOnNextCall;
 
     /// <summary>
     /// Returns a snapshot of all recorded <c>NotifyAsync</c> invocations.
@@ -27,6 +28,12 @@ public class FakeRealtimeNotifier : IRealtimeNotifier
     {
         lock (_lock)
         {
+            if (_throwOnNextCall)
+            {
+                _throwOnNextCall = false;
+                throw new InvalidOperationException("hub unavailable (simulated)");
+            }
+
             _calls.Add(new NotifyCall(userId, eventType, payload));
         }
 
@@ -38,7 +45,21 @@ public class FakeRealtimeNotifier : IRealtimeNotifier
     /// </summary>
     public void Reset()
     {
-        lock (_lock) _calls.Clear();
+        lock (_lock)
+        {
+            _calls.Clear();
+            _throwOnNextCall = false;
+        }
+    }
+
+    /// <summary>
+    /// Configures the notifier to throw <see cref="InvalidOperationException"/> on the next
+    /// <c>NotifyAsync</c> call. Use in tests that verify broadcast failures are non-fatal.
+    /// After the single throw the notifier returns to normal recording behaviour.
+    /// </summary>
+    public void SimulateThrowOnNextCall()
+    {
+        lock (_lock) _throwOnNextCall = true;
     }
 
     /// <summary>

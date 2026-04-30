@@ -10,7 +10,7 @@ namespace FitnessPlatform.Application.Infrastructure.Services;
 /// Validates image uploads and delegates signed-URL generation to
 /// <see cref="IBlobStorageService"/>.
 ///
-/// <para><b>Allowed content types:</b> <c>image/jpeg</c>, <c>image/png</c>, <c>image/webp</c>.</para>
+/// <para><b>Allowed content types:</b> <c>image/jpeg</c>, <c>image/png</c>, <c>image/webp</c>, <c>image/heic</c>, <c>image/heif</c>.</para>
 /// <para><b>Maximum file size:</b> <see cref="MaxImageSizeBytes"/> (5 MiB).</para>
 ///
 /// <para><b>Blob-path conventions by scope:</b></para>
@@ -33,6 +33,8 @@ public class ImageUploadService(IBlobStorageService blobStorage) : IImageUploadS
             ["image/jpeg"] = "jpg",
             ["image/png"] = "png",
             ["image/webp"] = "webp",
+            ["image/heic"] = "heic",
+            ["image/heif"] = "heif",
         };
 
     /// <summary>Pre-signed URL validity window for image uploads.</summary>

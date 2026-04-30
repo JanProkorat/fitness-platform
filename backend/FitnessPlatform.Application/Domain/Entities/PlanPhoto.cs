@@ -92,7 +92,10 @@ public class PlanPhoto : PublicTimestampableEntity
     public Guid UploadedByUserId { get; set; }
 
     /// <summary>
-    /// Reserved for issue #92 (diary-request flow). Null until that feature ships.
+    /// FK to the <see cref="PhotoDiaryRequest"/> this photo was uploaded against.
+    /// Null for photos that were not uploaded as part of a diary request.
+    /// On diary-request deletion the column is set to NULL (SetNull) so the photo
+    /// remains in the plan timeline.
     /// </summary>
     public Guid? DiaryRequestId { get; set; }
 
@@ -107,4 +110,10 @@ public class PlanPhoto : PublicTimestampableEntity
     /// Navigation property to the user who uploaded the photo.
     /// </summary>
     public ApplicationUser UploadedByUser { get; set; } = null!;
+
+    /// <summary>
+    /// Navigation property to the diary request this photo belongs to.
+    /// Null when <see cref="DiaryRequestId"/> is null.
+    /// </summary>
+    public PhotoDiaryRequest? DiaryRequest { get; set; }
 }

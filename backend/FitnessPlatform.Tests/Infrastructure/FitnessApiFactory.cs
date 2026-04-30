@@ -98,6 +98,17 @@ public class FitnessApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
                 services.Remove(blobDescriptor);
 
             services.AddSingleton<IBlobStorageService, FakeBlobStorageService>();
+
+            // Replace push notification service with in-memory fake so integration tests
+            // can assert on sent pushes without a real Expo endpoint.
+            var pushDescriptor = services.SingleOrDefault(
+                d => d.ServiceType == typeof(IPushNotificationService));
+            if (pushDescriptor is not null)
+                services.Remove(pushDescriptor);
+
+            services.AddSingleton<FakePushNotificationService>();
+            services.AddSingleton<IPushNotificationService>(
+                sp => sp.GetRequiredService<FakePushNotificationService>());
         });
 
         builder.UseEnvironment("Development");

@@ -1337,21 +1337,55 @@
     "prev": "Vorheriges Bild",
     "next": "Nächstes Bild"
   },
-  "clientDetail": {
-    "tabs": {
-      "overview": "Übersicht",
-      "photos": "Fotos"
+  "diary": {
+    "viewer": {
+      "sectionTitle": "Fototagebuch",
+      "tabLabel": "Fototagebücher",
+      "statusPending": "Ausstehend",
+      "statusAccepted": "Angenommen",
+      "statusInProgress": "Tag {{day}} von {{total}}",
+      "statusCompleted": "Abgeschlossen",
+      "statusDismissed": "Abgelehnt",
+      "modeBulk": "Alles auf einmal",
+      "modeWorkflow": "Workflow",
+      "durationDays_one": "{{count}} Tag",
+      "durationDays_other": "{{count}} Tage",
+      "requestedOn": "Angefragt am",
+      "acceptedOn": "Angenommen am",
+      "dismissReasonLabel": "Ablehnungsgrund",
+      "dismissReasonEmpty": "Kein Grund angegeben.",
+      "noPhotosYet": "Noch keine Fotos.",
+      "photoCount_one": "{{count}} Foto",
+      "photoCount_other": "{{count}} Fotos",
+      "pendingHint": "Warten auf Bestätigung durch den Klienten."
     },
-    "photos": {
-      "categoryAll": "Alle",
-      "categoryFood": "Essen",
-      "categoryBody": "Körper",
-      "categoryFreeForm": "Frei",
-      "planLabel": "Plan",
-      "planAll": "Alle Pläne",
-      "emptyTitle": "Noch keine Fotos",
-      "emptyDescription": "Wenn der Klient Fortschrittsfotos hochlädt, erscheinen sie hier nach Monaten gruppiert.",
-      "photoAltPrefix": "Foto"
+    "request": {
+      "alreadyPending": "Der Klient hat bereits eine offene Anfrage — warte, bis er sie annimmt oder ablehnt.",
+      "dialogTitle": "Fototagebuch anfordern",
+      "dialogSubtitle": "Der Klient sieht die Anfrage als Banner und kann sie annehmen oder ablehnen.",
+      "infoBanner": "Der Klient sieht die Anfrage als Banner auf dem Startbildschirm. Er kann sie annehmen oder ablehnen (mit optionalem Grund).",
+      "explanation": "Bitte {{clientName}}, in den nächsten Tagen Fotos der Mahlzeiten zu teilen. Der Client wählt, ob alle auf einmal oder als täglicher Stream — neue Fotos erscheinen im Foto-Tab dieses Plans, sobald sie eintreffen.",
+      "durationLabel": "Tagebuchdauer",
+      "durationDays_one": "{{count}} Tag",
+      "durationDays_other": "{{count}} Tage",
+      "uploadModeLabel": "Upload-Modus",
+      "modeAllAtOnce": "Alles auf einmal",
+      "modeAllAtOnceDesc": "Klient fotografiert, dann sendet er alles.",
+      "modeWorkflow": "Workflow",
+      "modeWorkflowDesc": "{{days}} Tage schrittweise, Ernährungsberater sieht Fotos live.",
+      "modeHint": "Der Klient wählt den Modus bei der Annahme der Anfrage.",
+      "senderInfo": "Der Klient sieht Ihren Namen als Absender und Ihren Avatar. Nach dem Einreichen der Fotos erhalten Sie Echtzeit-Benachrichtigungen.",
+      "linkIdMissing": "Senden nicht möglich: Die Client-Link-ID ist noch nicht verfügbar. Dies ist eine bekannte Backend-Lücke — bitte kontaktieren Sie den Support.",
+      "send": "Anfrage senden",
+      "sending": "Wird gesendet...",
+      "successToast": "Fototagebuch-Anfrage gesendet",
+      "errorToast": "Fehler beim Senden der Fototagebuch-Anfrage. Bitte versuchen Sie es erneut.",
+      "ctaButton": "Fototagebuch anfordern",
+      "photosTabCta": "Fototagebuch vom Klienten anfordern",
+      "inviteCheckboxLabel": "Fototagebuch-Anfrage zur Einladung hinzufügen",
+      "inviteCheckboxHint": "Nach der Annahme wird der Klient aufgefordert, Fotos seiner Mahlzeiten zu teilen.",
+      "inviteCheckboxWarning": "Die Fototagebuch-Anfrage wird nach erfolgreicher Erstellung der Einladung gesendet.",
+      "inviteDiaryFailed": "Einladung gesendet, aber Fototagebuch-Anfrage fehlgeschlagen. Sie können sie später über das Klientendetail senden."
     }
   }
 }

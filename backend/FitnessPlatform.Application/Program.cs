@@ -199,6 +199,10 @@ builder.Services.AddScoped<IRealtimeNotifier, SignalRNotifier>();
 builder.Services.AddSingleton<WeeklyCheckInScheduler>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<WeeklyCheckInScheduler>());
 
+// Photo diary reminder scheduler — registered as both singleton (for test access) and hosted service.
+builder.Services.AddSingleton<PhotoDiaryReminderScheduler>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<PhotoDiaryReminderScheduler>());
+
 // Compliance
 builder.Services.AddScoped<IComplianceService, ComplianceService>();
 

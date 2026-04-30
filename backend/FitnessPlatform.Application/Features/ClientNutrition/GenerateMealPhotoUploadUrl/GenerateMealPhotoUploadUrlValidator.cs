@@ -17,6 +17,7 @@ public class GenerateMealPhotoUploadUrlValidator : Validator<GenerateMealPhotoUp
         "image/png",
         "image/webp",
         "image/heic",
+        "image/heif",
     ];
 
     /// <summary>Maximum allowed image file size: 10 MiB.</summary>

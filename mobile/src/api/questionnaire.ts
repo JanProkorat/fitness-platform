@@ -4,6 +4,7 @@ import type {
   SubmittedResponseItem,
   SubmittedAnswerItem,
   PendingQuestionnaireItem,
+  PendingDiaryRequestItem,
   GetClientPendingQuestionnairesResponse,
   GetClientSubmittedResponsesResponse,
 } from './generated'
@@ -14,6 +15,7 @@ export type {
   SubmittedResponseItem,
   SubmittedAnswerItem,
   PendingQuestionnaireItem,
+  PendingDiaryRequestItem,
   GetClientPendingQuestionnairesResponse,
 }
 

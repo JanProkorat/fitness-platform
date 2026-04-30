@@ -16,7 +16,7 @@
  * also used for chip counts once all groups are loaded client-side.
  */
 
-import React, { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import {
   View,
   Text,
@@ -27,11 +27,10 @@ import {
   ActivityIndicator,
   useWindowDimensions,
   type SectionListRenderItemInfo,
-  ScrollView,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
-import { useInfiniteQuery } from '@tanstack/react-query'
+import { useInfiniteQuery, useQueries } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/hooks/useTheme'
@@ -120,6 +119,15 @@ function PhotoRow({ row, tileSize, onPress, sectionYearMonth }: PhotoRowProps) {
           ) : (
             <Ionicons name="image-outline" size={20} color={colors.label3} />
           )}
+          {/* Caption overlay — bottom strip so the trainer's note is visible
+              without opening the lightbox. Matches the diary workflow tiles. */}
+          {photo.description ? (
+            <View style={[styles.tileCaption, { backgroundColor: colors.overlay }]}>
+              <Text style={[styles.tileCaptionText, { color: colors.onAccent }]} numberOfLines={2}>
+                {photo.description}
+              </Text>
+            </View>
+          ) : null}
         </Pressable>
       ))}
       {/* Pad the last row so tiles stay left-aligned */}
@@ -145,6 +153,7 @@ export default function ProfilePhotosScreen() {
   // ── Lightbox state ──
   const [lightboxVisible, setLightboxVisible] = useState(false)
   const [lightboxImages, setLightboxImages] = useState<string[]>([])
+  const [lightboxNotes, setLightboxNotes] = useState<(string | null)[]>([])
   const [lightboxIndex, setLightboxIndex] = useState(0)
 
   // ── Tile dimensions: 3 columns, 4px gap, 20px outer margin each side ──
@@ -169,6 +178,44 @@ export default function ProfilePhotosScreen() {
       return fetched < lastPage.totalCount ? lastPage.page + 1 : undefined
     },
   })
+
+  // ── Per-category total counts ──
+  // The infinite query above only knows the count for the active filter,
+  // so the inactive chips would show no number. We fetch a tiny
+  // groupByMonth=false / pageSize=1 page per category in parallel and read
+  // X-Total-Count from the response — that header carries the photo total
+  // for the requested filter without paying for the full payload.
+  const COUNT_FILTERS: FilterCategory[] = ['All', 'Food', 'Body', 'FreeForm']
+  const countQueries = useQueries({
+    queries: COUNT_FILTERS.map((cat) => ({
+      queryKey: ['my-photos-count', cat],
+      queryFn: () =>
+        getMyPhotos({
+          page: 1,
+          pageSize: 1,
+          groupByMonth: false,
+          category: categoryToApi(cat),
+        }),
+      // Counts shift slowly compared to scrolling — keep them warm for a
+      // minute so flipping chips doesn't trigger 4 fresh requests each time.
+      staleTime: 60_000,
+    })),
+  })
+  const categoryCounts: Record<FilterCategory, number> = useMemo(() => {
+    const out = { All: 0, Food: 0, Body: 0, FreeForm: 0 } as Record<FilterCategory, number>
+    COUNT_FILTERS.forEach((cat, i) => {
+      out[cat] = countQueries[i].data?.totalCount ?? 0
+    })
+    return out
+    // COUNT_FILTERS is a stable array literal; the count queries object reference
+    // changes every render but its `data` references are what we actually depend on.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    countQueries[0].data?.totalCount,
+    countQueries[1].data?.totalCount,
+    countQueries[2].data?.totalCount,
+    countQueries[3].data?.totalCount,
+  ])
 
   // ── Flatten all fetched groups ──
   const allGroups = useMemo(
@@ -210,12 +257,24 @@ export default function ProfilePhotosScreen() {
     (photo: PlanPhotoResponse2, sectionYearMonth: string) => {
       const section = allGroups.find((g) => g.yearMonth === sectionYearMonth)
       const sectionPhotos = section?.photos ?? []
-      const urls = sectionPhotos
-        .map((p) => p.blobUrl)
-        .filter((u): u is string => typeof u === 'string')
-      const photoIndex = sectionPhotos.findIndex((p) => p.id === photo.id || p.blobUrl === photo.blobUrl)
+      // Keep urls and notes index-aligned: drop entries with no blobUrl from
+      // both arrays so the caption that shows with each photo is the one the
+      // trainer wrote on it.
+      const urls: string[] = []
+      const notes: (string | null)[] = []
+      let photoIndex = 0
+      for (let i = 0; i < sectionPhotos.length; i++) {
+        const p = sectionPhotos[i]
+        if (typeof p.blobUrl !== 'string') continue
+        if (p.id === photo.id || p.blobUrl === photo.blobUrl) {
+          photoIndex = urls.length
+        }
+        urls.push(p.blobUrl)
+        notes.push(p.description ?? null)
+      }
       setLightboxImages(urls)
-      setLightboxIndex(Math.max(0, photoIndex))
+      setLightboxNotes(notes)
+      setLightboxIndex(photoIndex)
       setLightboxVisible(true)
     },
     [allGroups],
@@ -283,37 +342,36 @@ export default function ProfilePhotosScreen() {
   const isEmpty = !isInitialLoading && sectionListData.length === 0
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={['bottom']}>
-      {/* ── Page header (back nav provided by Stack in _layout.tsx) ── */}
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={['top', 'bottom']}>
+      {/* ── Page header — same gold chevron + label pattern as the diary wizard ── */}
       <View style={[styles.pageHeader, { borderBottomColor: colors.sep2 }]}>
         <Pressable
           onPress={() => router.back()}
-          hitSlop={12}
+          hitSlop={8}
           accessibilityRole="button"
           accessibilityLabel={t('common.back')}
-          style={styles.backButton}
+          style={({ pressed }) => [styles.backButton, { opacity: pressed ? 0.5 : 1 }]}
         >
-          <Ionicons name="chevron-back" size={24} color={colors.gold} />
+          <Ionicons name="chevron-back" size={26} color={colors.gold} />
+          <Text style={[Type.body, styles.backLabel, { color: colors.gold }]}>
+            {t('common.back')}
+          </Text>
         </Pressable>
         <View style={styles.headerText}>
-          <Text style={[styles.headerTitle, { color: colors.label }]}>
+          <Text style={[styles.headerTitle, { color: colors.label }]} numberOfLines={1}>
             {t('profilePhotos.title')}
           </Text>
           {totalPhotoCount > 0 && (
-            <Text style={[styles.headerSub, { color: colors.label2 }]}>
+            <Text style={[styles.headerSub, { color: colors.label2 }]} numberOfLines={1}>
               {t('profilePhotos.totalCount', { count: totalPhotoCount })}
             </Text>
           )}
         </View>
+        <View style={styles.headerSpacer} />
       </View>
 
-      {/* ── Category filter chips ── */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.chipsRow}
-        style={[styles.chipsContainer, { borderBottomColor: colors.sep2 }]}
-      >
+      {/* ── Category filter chips — fixed single row, no horizontal scroll ── */}
+      <View style={[styles.chipsRow, { borderBottomColor: colors.sep2 }]}>
         {chips.map(({ key, label }) => {
           const isActive = activeFilter === key
           return (
@@ -330,6 +388,7 @@ export default function ProfilePhotosScreen() {
               ]}
             >
               <Text
+                numberOfLines={1}
                 style={[
                   styles.chipLabel,
                   { color: isActive ? colors.gold : colors.label },
@@ -337,11 +396,19 @@ export default function ProfilePhotosScreen() {
                 ]}
               >
                 {label}
+                <Text
+                  style={[
+                    styles.chipCount,
+                    { color: isActive ? colors.gold : colors.label3 },
+                  ]}
+                >
+                  {' '}({categoryCounts[key]})
+                </Text>
               </Text>
             </Pressable>
           )
         })}
-      </ScrollView>
+      </View>
 
       {/* ── Content ── */}
       {isInitialLoading ? (
@@ -379,6 +446,7 @@ export default function ProfilePhotosScreen() {
       <ImageLightbox
         visible={lightboxVisible}
         images={lightboxImages}
+        imageNotes={lightboxNotes}
         startIndex={lightboxIndex}
         onClose={handleLightboxClose}
       />
@@ -389,60 +457,83 @@ export default function ProfilePhotosScreen() {
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
 const GRID_GAP = 4
+const HEADER_SIDE_WIDTH = 92
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
 
-  // Page header
+  // Page header — gold chevron + "Zpět" label, mirrors the diary wizard
   pageHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 10,
+    borderBottomWidth: 0.5,
+    gap: 8,
   },
   backButton: {
-    padding: 8,
-    marginRight: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: HEADER_SIDE_WIDTH,
+    paddingVertical: 6,
+  },
+  backLabel: {
+    fontWeight: '600',
+    marginLeft: -2,
   },
   headerText: {
     flex: 1,
     minWidth: 0,
+    alignItems: 'center',
   },
   headerTitle: {
-    ...Type.title3,
+    ...Type.headline,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   headerSub: {
     ...Type.caption1,
     marginTop: 2,
+    textAlign: 'center',
   },
-
-  // Chips
-  chipsContainer: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    flexGrow: 0,
+  headerSpacer: {
+    width: HEADER_SIDE_WIDTH,
     flexShrink: 0,
   },
+
+  // Chips — single row, no horizontal scroll. Each chip flexes equally so
+  // the four labels (Vše / Jídlo / Tělo / Volné) always fit on one line.
   chipsRow: {
     flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    flex: 1,
+    minWidth: 0,
+    paddingHorizontal: 6,
+    paddingVertical: 5,
     borderRadius: Radius.full,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   chipLabel: {
-    ...Type.subheadline,
+    fontSize: 12,
+    lineHeight: 14,
     fontWeight: '500',
   },
   chipLabelActive: {
     fontWeight: '600',
+  },
+  chipCount: {
+    fontSize: 11,
+    fontVariant: ['tabular-nums'],
   },
 
   // Section list
@@ -469,6 +560,18 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  tileCaption: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+  },
+  tileCaptionText: {
+    fontSize: 10,
+    lineHeight: 12,
   },
 
   // Empty state

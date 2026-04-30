@@ -1337,21 +1337,59 @@
     "prev": "Předchozí obrázek",
     "next": "Další obrázek"
   },
-  "clientDetail": {
-    "tabs": {
-      "overview": "Přehled",
-      "photos": "Fotky"
+  "diary": {
+    "viewer": {
+      "sectionTitle": "Foto-deník",
+      "tabLabel": "Foto deníky",
+      "statusPending": "Čeká na klienta",
+      "statusAccepted": "Přijato",
+      "statusInProgress": "Den {{day}} ze {{total}}",
+      "statusCompleted": "Hotovo",
+      "statusDismissed": "Odmítnuto",
+      "modeBulk": "Vše najednou",
+      "modeWorkflow": "Workflow",
+      "durationDays_one": "{{count}} den",
+      "durationDays_few": "{{count}} dny",
+      "durationDays_other": "{{count}} dní",
+      "requestedOn": "Odesláno",
+      "acceptedOn": "Přijato",
+      "dismissReasonLabel": "Důvod odmítnutí",
+      "dismissReasonEmpty": "Bez uvedeného důvodu.",
+      "noPhotosYet": "Zatím žádné fotky.",
+      "photoCount_one": "{{count}} fotka",
+      "photoCount_few": "{{count}} fotky",
+      "photoCount_many": "{{count}} fotek",
+      "photoCount_other": "{{count}} fotek",
+      "pendingHint": "Čeká se na akceptaci od klienta."
     },
-    "photos": {
-      "categoryAll": "Vše",
-      "categoryFood": "Jídlo",
-      "categoryBody": "Tělo",
-      "categoryFreeForm": "Volné",
-      "planLabel": "Plán",
-      "planAll": "Všechny plány",
-      "emptyTitle": "Zatím žádné fotky",
-      "emptyDescription": "Jakmile klient nahraje fotky pokroku, zobrazí se zde seřazené po měsících.",
-      "photoAltPrefix": "Fotka"
+    "request": {
+      "alreadyPending": "Klient už má jednu nevyřízenou žádost — počkej, než ji přijme nebo odmítne.",
+      "dialogTitle": "Požádat o foto-deník",
+      "dialogSubtitle": "Klient uvidí žádost jako banner a může ji přijmout nebo odmítnout.",
+      "infoBanner": "Klient uvidí žádost jako banner na úvodní obrazovce. Může ji přijmout nebo odmítnout (s volitelným důvodem).",
+      "explanation": "Požádejte {{clientName}} o sdílení fotek jídel během následujících dnů. Klient si vybere, zda fotky pošle najednou nebo postupně — nové fotky uvidíte v záložce Fotky tohoto plánu, jakmile dorazí.",
+      "durationLabel": "Délka deníku",
+      "durationDays_one": "{{count}} den",
+      "durationDays_few": "{{count}} dny",
+      "durationDays_other": "{{count}} dní",
+      "uploadModeLabel": "Způsob nahrání",
+      "modeAllAtOnce": "Vše najednou",
+      "modeAllAtOnceDesc": "Fotí, potom odešle.",
+      "modeWorkflow": "Workflow",
+      "modeWorkflowDesc": "{{days}} dní postupně, nutricionista vidí fotky živě.",
+      "modeHint": "Klient si vybere způsob při akceptaci žádosti.",
+      "senderInfo": "Klient uvidí tvé jméno jako odesilatele a tvůj avatar. Po odevzdání fotek budeš dostávat notifikace v reálném čase.",
+      "linkIdMissing": "Nelze odeslat: ID propojení klienta zatím není k dispozici. Toto je známý problém backendu — kontaktujte podporu.",
+      "send": "Odeslat žádost",
+      "sending": "Odesílání...",
+      "successToast": "Žádost o foto-deník odeslána",
+      "errorToast": "Nepodařilo se odeslat žádost o foto-deník. Zkuste to znovu.",
+      "ctaButton": "Požádat o foto-deník",
+      "photosTabCta": "Požádat klienta o foto-deník",
+      "inviteCheckboxLabel": "Přiložit foto-deník k pozvánce",
+      "inviteCheckboxHint": "Po akceptaci bude klient vyzván k nasdílení fotografií jídel.",
+      "inviteCheckboxWarning": "Žádost o foto-deník bude odeslána po úspěšném vytvoření pozvánky.",
+      "inviteDiaryFailed": "Pozvánka odeslána, ale žádost o foto-deník se nepodařila. Můžete ji odeslat později z detailu klienta."
     }
   }
 }

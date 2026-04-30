@@ -9,9 +9,10 @@
  *      PlanPhotoCategory enum values Food / Body / FreeForm on the wire.
  *   3. 3-column square photo grid (gap 4). Tap → ImageLightbox.
  *   4. Empty state when no photos in the filtered set.
- *   5. Floating action button (gold circle, bottom-right). Tap → multi-photo
- *      picker. Uploads via generatePlanPhotoUploadUrl + finalizePlanPhoto
- *      (one finalize call per photo; new uploads default to FreeForm category).
+ *   5. Floating action button (gold circle, bottom-right). Tap → opens the
+ *      dedicated `plan-photos-upload` screen where the client picks source
+ *      (camera / library), sets the category for the batch, and types a
+ *      caption per photo before submitting.
  *   6. SignalR `planphotouploaded` event invalidates the photos query.
  *
  * Route params:
@@ -19,7 +20,7 @@
  *            Passed by plans/[planId].tsx when opening the modal.
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   View,
   Text,
@@ -33,23 +34,20 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter, useLocalSearchParams } from 'expo-router'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/hooks/useTheme'
-import { useImagePicker } from '@/hooks/useImagePicker'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
+import { hrefParams } from '@/lib/navigation'
 import {
   getPlanPhotos,
-  generatePlanPhotoUploadUrl,
-  finalizePlanPhoto,
   PlanPhotoCategory,
   type PlanPhotoResponse,
 } from '@/api/planPhotos'
 import { onEvent } from '@/api/signalr'
 import { ImageLightbox } from '@/components/ui/ImageLightbox'
-import { Toast } from '@/lib/toast'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -153,44 +151,14 @@ export default function PlanPhotosScreen() {
     [visiblePhotos],
   )
 
-  // ── Finalize-photo mutation (one per uploaded blob URL) ──
-  const finalizeMutation = useMutation({
-    mutationFn: async (blobUrls: string[]) => {
-      await Promise.all(
-        blobUrls.map((blobUrl) =>
-          finalizePlanPhoto(planId ?? '', {
-            blobUrl,
-            category: PlanPhotoCategory.FreeForm,
-          }),
-        ),
-      )
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['plan-photos', planId] })
-      Toast.show(t('mealLogPhoto.successToast'))
-    },
-  })
-
-  // ── Multi-photo picker ──
-  const { pick: pickGallery, uploading: galleryUploading } = useImagePicker(
-    {
-      source: 'library',
-      allowsMultipleSelection: true,
-      requestUploadUrl: async ({ contentType, sizeBytes }) => {
-        return generatePlanPhotoUploadUrl(planId ?? '', contentType, sizeBytes)
-      },
-    },
-    undefined,
-    (blobUrls) => {
-      finalizeMutation.mutate(blobUrls)
-    },
-  )
-
-  const isUploading = galleryUploading || finalizeMutation.isPending
-
+  // ── FAB → navigate to the dedicated upload screen ──
+  // The screen owns the source-pick / category / per-photo caption flow.
+  // Uploaded photos invalidate ['plan-photos', planId], which this gallery
+  // listens for via the SignalR hook above plus its own staleTime.
   const handleFabPress = useCallback(() => {
-    pickGallery()
-  }, [pickGallery])
+    if (!planId) return
+    router.push(hrefParams('/(client)/plan-photos-upload', { planId }))
+  }, [planId, router])
 
   const handleTilePress = useCallback((index: number) => {
     setLightboxIndex(index)
@@ -234,10 +202,17 @@ export default function PlanPhotosScreen() {
           style={StyleSheet.absoluteFill}
           resizeMode="cover"
         />
+        {item.description && item.description.trim().length > 0 && (
+          <View style={[styles.tileCaption, { backgroundColor: colors.overlay }]}>
+            <Text style={[styles.tileCaptionText, { color: colors.onAccent }]} numberOfLines={2}>
+              {item.description}
+            </Text>
+          </View>
+        )}
       </Pressable>
       )
     },
-    [handleTilePress, tileSize, colors.fill2, t],
+    [handleTilePress, tileSize, colors.fill2, colors.overlay, colors.onAccent, t],
   )
 
   const keyExtractor = useCallback(
@@ -336,7 +311,7 @@ export default function PlanPhotosScreen() {
       {/* ── Floating action button ── */}
       <Pressable
         onPress={handleFabPress}
-        disabled={isUploading || !planId}
+        disabled={!planId}
         accessibilityRole="button"
         accessibilityLabel={t('planPhotos.addPhotoA11y')}
         style={({ pressed }) => [
@@ -344,15 +319,11 @@ export default function PlanPhotosScreen() {
           {
             backgroundColor: colors.gold,
             shadowColor: colors.gold,
-            opacity: pressed || isUploading || !planId ? 0.6 : 1,
+            opacity: pressed || !planId ? 0.6 : 1,
           },
         ]}
       >
-        {isUploading ? (
-          <ActivityIndicator size="small" color={colors.onAccent} />
-        ) : (
-          <Ionicons name="add" size={28} color={colors.onAccent} />
-        )}
+        <Ionicons name="add" size={28} color={colors.onAccent} />
       </Pressable>
 
       {/* ── ImageLightbox ── */}
@@ -428,6 +399,19 @@ const styles = StyleSheet.create({
   tile: {
     borderRadius: Radius.sm,
     overflow: 'hidden',
+  },
+  tileCaption: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+  },
+  tileCaptionText: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: '500',
   },
 
   // Empty / loading state

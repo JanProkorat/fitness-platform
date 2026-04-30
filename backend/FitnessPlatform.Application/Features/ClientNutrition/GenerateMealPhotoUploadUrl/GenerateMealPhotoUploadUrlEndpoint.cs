@@ -109,17 +109,16 @@ public class GenerateMealPhotoUploadUrlEndpoint(
     }
 
     // Returns a file extension for known image content types.
-    // image/heic is accepted by the validator; the IImageUploadService whitelist only knows
-    // jpeg/png/webp, so it will throw INVALID_IMAGE_CONTENT_TYPE for heic before the
-    // subPath reaches blob storage — but the validator catches it first and returns 400.
-    // The "heic" branch is here so the subPath is correctly formed if the service whitelist
-    // is ever extended.
+    // The IImageUploadService whitelist now includes heic/heif as well, so all
+    // five branches map to a real subPath. The "_ => bin" fallback only fires
+    // for content types both the validator and the service reject — defensive.
     private static string GetExtension(string contentType) => contentType.ToLowerInvariant() switch
     {
         "image/jpeg" => "jpg",
         "image/png"  => "png",
         "image/webp" => "webp",
         "image/heic" => "heic",
+        "image/heif" => "heif",
         _            => "bin",
     };
 }

@@ -4,7 +4,9 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Features.PhotoDiaryRequests;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
@@ -20,12 +22,18 @@ namespace FitnessPlatform.Application.Features.ClientPlans.FinalizePlanPhoto;
 ///
 /// Ownership: looks up the plan in NutritionPlans first; falls back to TrainingPlans.
 /// Returns 404 if neither exists for the given client.
-/// After a successful insert, emits a <c>planPhotoUploaded</c> SignalR event to the owning
-/// professional (best-effort: a broadcast failure does not fail the HTTP response).
+/// After a successful insert:
+/// <list type="bullet">
+///   <item>Emits a <c>planPhotoUploaded</c> SignalR event to the owning professional.</item>
+///   <item>When <see cref="FinalizePlanPhotoRequest.DiaryRequestId"/> is set, additionally emits
+///     a <c>photoDiaryPhotoUploaded</c> event to the same professional group so the trainer/
+///     nutritionist can track diary progress in real time.</item>
+/// </list>
+/// Both broadcasts are best-effort: a failure does not fail the HTTP response.
 /// </summary>
 /// <param name="mongo">MongoDB context for plan lookup.</param>
 /// <param name="db">Relational database context for profile lookup and photo insert.</param>
-/// <param name="notifier">Realtime notifier for pushing the <c>planPhotoUploaded</c> event.</param>
+/// <param name="notifier">Realtime notifier for pushing the SignalR events.</param>
 /// <param name="logger">Logger.</param>
 public class FinalizePlanPhotoEndpoint(
     IMongoContext mongo,
@@ -46,7 +54,10 @@ public class FinalizePlanPhotoEndpoint(
                 "Inserts a PlanPhoto row after the client has PUT the blob to the pre-signed URL. "
                 + "The plan is looked up in NutritionPlans first; if not found, TrainingPlans. "
                 + "Returns 404 if neither exists for this client. "
-                + "Sets PlanType and LinkId automatically from the found plan.";
+                + "Sets PlanType and LinkId automatically from the found plan. "
+                + "When DiaryRequestId is provided the photo is linked to the diary request; "
+                + "the request must be owned by the calling client and in Accepted or InProgress "
+                + "status. The first photo upload for an Accepted request transitions it to InProgress.";
         });
     }
 
@@ -54,6 +65,7 @@ public class FinalizePlanPhotoEndpoint(
     public override async Task HandleAsync(FinalizePlanPhotoRequest req, CancellationToken ct)
     {
         var userId = User.FindFirstValue(AppClaims.UserId);
+        var emailClaim = User.FindFirstValue(AppClaims.Email);
 
         if (userId is null)
         {
@@ -84,6 +96,33 @@ public class FinalizePlanPhotoEndpoint(
             return;
         }
 
+        // ── Diary request validation (only when DiaryRequestId is provided) ──
+        PhotoDiaryRequest? diaryRequest = null;
+        if (req.DiaryRequestId.HasValue)
+        {
+            diaryRequest = await db.PhotoDiaryRequests
+                .Include(r => r.Link)
+                    .ThenInclude(l => l!.ClientProfile)
+                        .ThenInclude(cp => cp.User)
+                .Include(r => r.PendingInvite)
+                .FirstOrDefaultAsync(r => r.Id == req.DiaryRequestId.Value, ct);
+
+            // 404 if not found or owned by another client — don't leak existence
+            if (diaryRequest is null || !IsDiaryRequestOwnedByClient(diaryRequest, callerUserId, emailClaim))
+            {
+                await Send.NotFoundAsync(ct);
+                return;
+            }
+
+            // 409 if status is not Accepted or InProgress
+            if (diaryRequest.Status is not (PhotoDiaryStatus.Accepted or PhotoDiaryStatus.InProgress))
+            {
+                await this.SendProblemAsync(409, ErrorCodes.PhotoDiaryRequestInvalidStatus,
+                    "Photos can only be uploaded against diary requests in Accepted or InProgress status.", ct);
+                return;
+            }
+        }
+
         var now = DateTime.UtcNow;
 
         var photo = new PlanPhoto
@@ -99,11 +138,20 @@ public class FinalizePlanPhotoEndpoint(
             MealLogId = req.Category == PlanPhotoCategory.Food ? req.MealLogId : null,
             TakenAt = req.TakenAt ?? now,
             UploadedByUserId = callerUserId,
+            DiaryRequestId = req.DiaryRequestId,
             DateCreated = now,
             DateUpdated = now
         };
 
         db.PlanPhotos.Add(photo);
+
+        // Transition Accepted → InProgress on first photo upload
+        if (diaryRequest is { Status: PhotoDiaryStatus.Accepted })
+        {
+            diaryRequest.Status = PhotoDiaryStatus.InProgress;
+            diaryRequest.UpdatedAt = DateTimeOffset.UtcNow;
+        }
+
         await db.SaveChangesAsync(ct);
 
         // Emit planPhotoUploaded to the owning professional (best-effort).
@@ -135,6 +183,39 @@ public class FinalizePlanPhotoEndpoint(
             logger.LogWarning(
                 "Could not resolve owning professional for PlanId={PlanId}; planPhotoUploaded event skipped",
                 req.PlanId);
+        }
+
+        // Emit photoDiaryPhotoUploaded when this photo is linked to a diary request (best-effort).
+        // Recipient: request.ProfessionalId  →  nutritionist/trainer group.
+        if (diaryRequest is not null && professionalUserId.HasValue)
+        {
+            try
+            {
+                var clientName = ResolveClientNameFromDiaryRequest(diaryRequest, callerUserId, emailClaim);
+                var dayIndex = diaryRequest.AcceptedAt.HasValue
+                    ? Math.Max(1, (DateTimeOffset.UtcNow - diaryRequest.AcceptedAt.Value).Days + 1)
+                    : 1;
+
+                await notifier.NotifyAsync(
+                    diaryRequest.ProfessionalId,  // → professional group
+                    "photoDiaryPhotoUploaded",
+                    new PhotoDiaryPhotoUploadedEvent
+                    {
+                        RequestId = diaryRequest.Id,
+                        PhotoId = photo.PublicId,
+                        ClientName = clientName,
+                        DayIndex = dayIndex,
+                        Caption = photo.Description,
+                        UploadedAt = DateTimeOffset.UtcNow,
+                    },
+                    ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex,
+                    "Failed to emit photoDiaryPhotoUploaded for request {RequestId} to professional {ProfessionalId}",
+                    diaryRequest.Id, diaryRequest.ProfessionalId);
+            }
         }
 
         var response = MapToResponse(photo);
@@ -184,6 +265,44 @@ public class FinalizePlanPhotoEndpoint(
         PlanId = photo.PlanId,
         PlanType = photo.PlanType,
         DateCreated = photo.DateCreated,
-        UploadedByUserId = photo.UploadedByUserId
+        UploadedByUserId = photo.UploadedByUserId,
+        DiaryRequestId = photo.DiaryRequestId
     };
+
+    /// <summary>
+    /// Returns true when the diary request is owned by the calling client —
+    /// either via a link (ClientProfile.UserId match) or via a pending invite
+    /// (email match). Mirrors the ownership check in the other diary-request endpoints.
+    /// </summary>
+    private static bool IsDiaryRequestOwnedByClient(
+        PhotoDiaryRequest request,
+        Guid clientUserId,
+        string? clientEmail)
+    {
+        if (request.Link is not null)
+            return request.Link.ClientProfile.UserId == clientUserId;
+
+        if (request.PendingInvite is not null && clientEmail is not null)
+            return string.Equals(request.PendingInvite.Email, clientEmail,
+                StringComparison.OrdinalIgnoreCase);
+
+        return false;
+    }
+
+    /// <summary>
+    /// Resolves a display name for the client from the diary request's navigation properties.
+    /// </summary>
+    private static string ResolveClientNameFromDiaryRequest(
+        PhotoDiaryRequest request,
+        Guid callerUserId,
+        string? clientEmail)
+    {
+        if (request.Link?.ClientProfile?.User is { } user)
+            return $"{user.FirstName} {user.LastName}".Trim();
+
+        if (request.PendingInvite is { } invite)
+            return $"{invite.FirstName} {invite.LastName}".Trim();
+
+        return clientEmail ?? string.Empty;
+    }
 }

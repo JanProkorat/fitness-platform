@@ -20,7 +20,7 @@ export class ApiClient {
 
         this.instance = instance || axios.create();
 
-        this.baseUrl = baseUrl ?? "https://localhost:5001";
+        this.baseUrl = baseUrl ?? "http://localhost:5000";
 
     }
 
@@ -4912,7 +4912,7 @@ export class ApiClient {
     }
 
     /**
-     * Get all pending questionnaires for the client
+     * Get pending questionnaires and diary requests for the client
      * @return Success
      */
     getClientPendingQuestionnairesEndpoint(signal?: AbortSignal): Promise<GetClientPendingQuestionnairesResponse> {
@@ -5366,6 +5366,449 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<GenerateProfessionalAvatarUploadUrlResponse>(null as any);
+    }
+
+    /**
+     * Submit / finalize a photo diary
+     * @param id The photo diary request ID (from route).
+     * @return Success
+     */
+    submitRequestEndpoint(id: string, signal?: AbortSignal): Promise<SubmitRequestResponse> {
+        let url_ = this.baseUrl + "/client/photo-diary-requests/{id}/submit";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSubmitRequestEndpoint(_response);
+        });
+    }
+
+    protected processSubmitRequestEndpoint(response: AxiosResponse): Promise<SubmitRequestResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<SubmitRequestResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SubmitRequestResponse>(null as any);
+    }
+
+    /**
+     * List photo diary requests (trainer view)
+     * @param page Page number (1-based). Defaults to 1.
+     * @param pageSize Number of items per page. Defaults to 20.
+     * @param status (optional) Optional filter by status.
+     * @param linkId (optional) Optional filter by client-professional link ID.
+     * @param pendingInviteId (optional) Optional filter by pending invite ID.
+     * @param planId (optional) Optional filter by plan ID.
+     * @return Success
+     */
+    listTrainerRequestsEndpoint(page: number, pageSize: number, status?: PhotoDiaryStatus | null | undefined, linkId?: number | null | undefined, pendingInviteId?: number | null | undefined, planId?: string | null | undefined, signal?: AbortSignal): Promise<ListTrainerRequestsResponse> {
+        let url_ = this.baseUrl + "/trainer/photo-diary-requests?";
+        if (page === undefined || page === null)
+            throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
+        else
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === undefined || pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' must be defined and cannot be null.");
+        else
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (status !== undefined && status !== null)
+            url_ += "status=" + encodeURIComponent("" + status) + "&";
+        if (linkId !== undefined && linkId !== null)
+            url_ += "linkId=" + encodeURIComponent("" + linkId) + "&";
+        if (pendingInviteId !== undefined && pendingInviteId !== null)
+            url_ += "pendingInviteId=" + encodeURIComponent("" + pendingInviteId) + "&";
+        if (planId !== undefined && planId !== null)
+            url_ += "planId=" + encodeURIComponent("" + planId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processListTrainerRequestsEndpoint(_response);
+        });
+    }
+
+    protected processListTrainerRequestsEndpoint(response: AxiosResponse): Promise<ListTrainerRequestsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<ListTrainerRequestsResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ListTrainerRequestsResponse>(null as any);
+    }
+
+    /**
+     * Create a photo diary request
+     * @return Success
+     */
+    createRequestEndpoint(createRequestRequest: CreateRequestRequest, signal?: AbortSignal): Promise<CreateRequestResponse> {
+        let url_ = this.baseUrl + "/trainer/photo-diary-requests";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(createRequestRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreateRequestEndpoint(_response);
+        });
+    }
+
+    protected processCreateRequestEndpoint(response: AxiosResponse): Promise<CreateRequestResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<CreateRequestResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<CreateRequestResponse>(null as any);
+    }
+
+    /**
+     * List photo diary requests (client view)
+     * @param page Page number (1-based). Defaults to 1.
+     * @param pageSize Number of items per page. Defaults to 20.
+     * @param status (optional) Optional filter by status.
+     * @param planId (optional) Optional filter by plan ID.
+     * @return Success
+     */
+    listClientRequestsEndpoint(page: number, pageSize: number, status?: PhotoDiaryStatus | null | undefined, planId?: string | null | undefined, signal?: AbortSignal): Promise<ListClientRequestsResponse> {
+        let url_ = this.baseUrl + "/client/photo-diary-requests?";
+        if (page === undefined || page === null)
+            throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
+        else
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === undefined || pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' must be defined and cannot be null.");
+        else
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (status !== undefined && status !== null)
+            url_ += "status=" + encodeURIComponent("" + status) + "&";
+        if (planId !== undefined && planId !== null)
+            url_ += "planId=" + encodeURIComponent("" + planId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processListClientRequestsEndpoint(_response);
+        });
+    }
+
+    protected processListClientRequestsEndpoint(response: AxiosResponse): Promise<ListClientRequestsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<ListClientRequestsResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ListClientRequestsResponse>(null as any);
+    }
+
+    /**
+     * Dismiss a photo diary request
+     * @param id The photo diary request ID (from route).
+     * @return Success
+     */
+    dismissRequestEndpoint(id: string, dismissRequestRequest: DismissRequestRequest, signal?: AbortSignal): Promise<DismissRequestResponse> {
+        let url_ = this.baseUrl + "/client/photo-diary-requests/{id}/dismiss";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(dismissRequestRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDismissRequestEndpoint(_response);
+        });
+    }
+
+    protected processDismissRequestEndpoint(response: AxiosResponse): Promise<DismissRequestResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<DismissRequestResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<DismissRequestResponse>(null as any);
+    }
+
+    /**
+     * Accept a photo diary request
+     * @param id The photo diary request ID (from route).
+     * @return Success
+     */
+    acceptRequestEndpoint(id: string, acceptRequestRequest: AcceptRequestRequest, signal?: AbortSignal): Promise<AcceptRequestResponse> {
+        let url_ = this.baseUrl + "/client/photo-diary-requests/{id}/accept";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(acceptRequestRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processAcceptRequestEndpoint(_response);
+        });
+    }
+
+    protected processAcceptRequestEndpoint(response: AxiosResponse): Promise<AcceptRequestResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<AcceptRequestResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<AcceptRequestResponse>(null as any);
     }
 
     /**
@@ -12376,6 +12819,9 @@ export interface GetPendingInvitesResponse {
 
 /** DTO representing a single pending invitation. */
 export interface PendingInviteDto {
+    /** Internal integer primary key of the PendingInvite row.
+Used to populate pendingInviteId on the photo-diary-request create form. */
+    id?: number;
     /** Public identifier of the pending invite. */
     publicId?: string;
     /** First name of the invited client. */
@@ -12402,6 +12848,9 @@ export interface DeletePendingInviteRequest {
 
 /** Response model returned after creating a pending invitation. */
 export interface CreatePendingInviteResponse {
+    /** Internal integer primary key of the PendingInvite row.
+Used to populate pendingInviteId on the photo-diary-request create form. */
+    id?: number;
     /** Public identifier of the created pending invite. */
     publicId?: string;
     /** First name of the invited client. */
@@ -12584,6 +13033,9 @@ export interface GetClientsResponse {
 
 /** Summary of a client in the trainer's client list. */
 export interface ClientSummary {
+    /** Internal integer primary key of the ClientProfessionalLink row.
+Used to populate linkId on the photo-diary-request create form. */
+    linkId?: number;
     /** Client profile's public ID. */
     publicId?: string;
     /** Client's email address. */
@@ -12640,6 +13092,9 @@ export interface GetClientProgressRequest {
 
 /** Response model containing a client's dashboard summary for a trainer. */
 export interface GetClientDashboardResponse {
+    /** Internal integer primary key of the ClientProfessionalLink row.
+Used to populate linkId on the photo-diary-request create form. */
+    linkId?: number;
     /** The client profile's public ID. */
     clientPublicId?: string;
     /** The client's email address. */
@@ -13175,8 +13630,33 @@ export interface ClientAnswerDto {
     fileUrl?: string | undefined;
 }
 
+/** Combined banner response. Diary requests come first (ordering convention documented on the endpoint summary); questionnaires second. */
 export interface GetClientPendingQuestionnairesResponse {
+    /** Pending photo-diary requests addressed to this client.
+Always populated before Items so the mobile banner stack
+renders diary banners above questionnaire banners. */
+    pendingDiaryRequests?: PendingDiaryRequestItem[];
+    /** Pending / in-progress questionnaires for this client (one per active professional link). */
     items?: PendingQuestionnaireItem[];
+}
+
+/** Banner DTO for a single pending photo-diary request. Shape mirrors PendingQuestionnaireItem so the mobile banner component can render both types with a single rendering pattern. */
+export interface PendingDiaryRequestItem {
+    /** Public identifier of the diary request (same as PhotoDiaryRequest.Id). */
+    requestPublicId?: string;
+    /** Display name of the professional who sent the request. */
+    professionalName?: string;
+    /** Role of the professional ("Trainer" or "Nutritionist"). */
+    professionalRole?: string | undefined;
+    /** How many days the client has to upload photos (default 7). */
+    durationDays?: number;
+    /** Always "Pending" for items returned by this endpoint. */
+    status?: string;
+    /** Optional MongoDB plan ID the diary request is scoped to.
+Null when the request has no plan context. */
+    planId?: string | undefined;
+    /** When the request was created (UTC). */
+    createdAt?: string;
 }
 
 export interface PendingQuestionnaireItem {
@@ -13270,6 +13750,148 @@ export interface GenerateProfessionalAvatarUploadUrlRequest {
     contentType: string;
     /** Declared file size in bytes. Must not exceed 5 MiB. */
     sizeBytes?: number;
+}
+
+/** Response returned after a client submits / finalizes a photo diary. */
+export interface SubmitRequestResponse {
+    id?: string;
+    status?: PhotoDiaryStatus;
+    completedAt?: string | undefined;
+}
+
+/** Lifecycle status of a PhotoDiaryRequest. */
+export enum PhotoDiaryStatus {
+    Pending = "Pending",
+    Accepted = "Accepted",
+    Dismissed = "Dismissed",
+    InProgress = "InProgress",
+    Completed = "Completed",
+}
+
+/** Route parameters for submitting / finalizing a photo diary. */
+export interface SubmitRequestRequest {
+}
+
+/** Paginated list of photo diary requests for a trainer. */
+export interface ListTrainerRequestsResponse {
+    items?: PhotoDiaryRequestSummary[];
+}
+
+/** Summary DTO for a single photo diary request in a list. */
+export interface PhotoDiaryRequestSummary {
+    id?: string;
+    professionalId?: string;
+    linkId?: number | undefined;
+    pendingInviteId?: number | undefined;
+    planId?: string | undefined;
+    durationDays?: number;
+    mode?: PhotoDiaryMode | undefined;
+    status?: PhotoDiaryStatus;
+    dismissReason?: string | undefined;
+    acceptedAt?: string | undefined;
+    completedAt?: string | undefined;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+/** The mode a client chooses when accepting a photo diary request. */
+export enum PhotoDiaryMode {
+    Bulk = "Bulk",
+    Workflow = "Workflow",
+}
+
+/** Query parameters for listing trainer photo diary requests. */
+export interface ListTrainerRequestsRequest {
+}
+
+/** Paginated list of photo diary requests visible to the authenticated client. */
+export interface ListClientRequestsResponse {
+    items?: ClientPhotoDiaryRequestSummary[];
+}
+
+/** Summary DTO for a photo diary request in the client list view. */
+export interface ClientPhotoDiaryRequestSummary {
+    id?: string;
+    professionalId?: string;
+    linkId?: number | undefined;
+    pendingInviteId?: number | undefined;
+    planId?: string | undefined;
+    durationDays?: number;
+    mode?: PhotoDiaryMode | undefined;
+    status?: PhotoDiaryStatus;
+    dismissReason?: string | undefined;
+    acceptedAt?: string | undefined;
+    completedAt?: string | undefined;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+/** Query parameters for the client's photo diary request list. */
+export interface ListClientRequestsRequest {
+}
+
+/** Response returned after a client dismisses a photo diary request. */
+export interface DismissRequestResponse {
+    id?: string;
+    status?: PhotoDiaryStatus;
+    dismissReason?: string | undefined;
+}
+
+/** Route + body for dismissing a photo diary request. */
+export interface DismissRequestRequest {
+    /** Optional reason for dismissal (max 500 characters). */
+    reason?: string | undefined;
+}
+
+/** Response body returned after creating a photo diary request. */
+export interface CreateRequestResponse {
+    /** The new request's ID. */
+    id?: string;
+    /** The professional (nutritionist) who created the request. */
+    professionalId?: string;
+    /** The client-professional link this request is attached to (if link-based). */
+    linkId?: number | undefined;
+    /** The pending invite this request is bundled with (if invite-based). */
+    pendingInviteId?: number | undefined;
+    /** Optional plan scope for this request. */
+    planId?: string | undefined;
+    /** How many days the client has to upload photos. */
+    durationDays?: number;
+    /** Current lifecycle status (always Pending on creation). */
+    status?: PhotoDiaryStatus;
+    /** When the request was created. */
+    createdAt?: string;
+}
+
+/** Request body for creating a new photo diary request. Exactly one of LinkId or PendingInviteId must be set. */
+export interface CreateRequestRequest {
+    /** Internal ID of an existing client-professional link.
+Mutually exclusive with PendingInviteId. */
+    linkId?: number | undefined;
+    /** Internal ID of a pending invite.
+Mutually exclusive with LinkId. */
+    pendingInviteId?: number | undefined;
+    /** Optional MongoDB external identifier of the nutrition or training plan this request is scoped to.
+When set, must belong to the same client as the link/invite. */
+    planId?: string | undefined;
+    /** How many days the client has to upload photos (Workflow mode).
+Defaults to 7. Allowed range: 1–30. */
+    durationDays?: number;
+}
+
+/** Response returned after a client accepts a photo diary request. */
+export interface AcceptRequestResponse {
+    id?: string;
+    status?: PhotoDiaryStatus;
+    mode?: PhotoDiaryMode | undefined;
+    acceptedAt?: string | undefined;
+}
+
+/** Route + body for accepting a photo diary request. */
+export interface AcceptRequestRequest {
+    /** The upload mode chosen by the client.
+Must be a valid PhotoDiaryMode value. */
+    mode?: PhotoDiaryMode;
 }
 
 /** Detailed nutrition plan response including all weeks, days, meals, and foods. */
@@ -14442,6 +15064,8 @@ export interface PlanPhotoResponse {
     dateCreated?: string;
     /** The ApplicationUser.Id of the uploader. */
     uploadedByUserId?: string;
+    /** The diary request this photo is associated with, or null if none. */
+    diaryRequestId?: string | undefined;
 }
 
 /** Categorises a PlanPhoto for display grouping and filtering in the app. Maps to the three chips shown in the Fotky plánu gallery (Jídlo / Tělo / Volné). */
@@ -14491,6 +15115,12 @@ export interface FinalizePlanPhotoRequest {
     /** MongoDB MealLog ObjectId string. Required when Category is
 Food, otherwise ignored. */
     mealLogId?: string | undefined;
+    /** Optional diary request ID. When set, the photo is linked to this diary request.
+The diary request must be owned by the calling client and must be in
+Accepted or
+InProgress status.
+On the first upload for an Accepted request the request is transitioned to InProgress. */
+    diaryRequestId?: string | undefined;
 }
 
 /** Request model for deleting a plan photo by its public identifier. */
@@ -14529,6 +15159,8 @@ Null when PlanId is null. */
     uploadedByUserId?: string;
     /** When the record was created (upload timestamp), in UTC. */
     uploadedAt?: string;
+    /** The diary request this photo is associated with, or null if none. */
+    diaryRequestId?: string | undefined;
 }
 
 /** Represents a calendar-month bucket of plan photos returned when groupByMonth=true is passed to the aggregation endpoints. */

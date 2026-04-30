@@ -29,6 +29,8 @@ const MIME_MAP: Record<string, string> = {
   jpeg: 'image/jpeg',
   png: 'image/png',
   webp: 'image/webp',
+  heic: 'image/heic',
+  heif: 'image/heif',
 };
 
 function getMimeType(uri: string): string | null {
@@ -53,10 +55,18 @@ describe('getMimeType', () => {
     expect(getMimeType('file:///tmp/photo.webp')).toBe('image/webp');
   });
 
+  it('returns image/heic for .heic URIs', () => {
+    expect(getMimeType('file:///tmp/photo.heic')).toBe('image/heic');
+  });
+
+  it('returns image/heif for .heif URIs', () => {
+    expect(getMimeType('file:///tmp/photo.heif')).toBe('image/heif');
+  });
+
   it('returns null for unsupported extensions', () => {
     expect(getMimeType('file:///tmp/photo.gif')).toBeNull();
     expect(getMimeType('file:///tmp/photo.bmp')).toBeNull();
-    expect(getMimeType('file:///tmp/photo.heic')).toBeNull();
+    expect(getMimeType('file:///tmp/photo.tiff')).toBeNull();
   });
 
   it('ignores query-string parameters when determining extension', () => {

@@ -1338,21 +1338,55 @@
     "prev": "Previous image",
     "next": "Next image"
   },
-  "clientDetail": {
-    "tabs": {
-      "overview": "Overview",
-      "photos": "Photos"
+  "diary": {
+    "viewer": {
+      "sectionTitle": "Photo diary",
+      "tabLabel": "Photo diaries",
+      "statusPending": "Pending",
+      "statusAccepted": "Accepted",
+      "statusInProgress": "Day {{day}} of {{total}}",
+      "statusCompleted": "Completed",
+      "statusDismissed": "Dismissed",
+      "modeBulk": "All at once",
+      "modeWorkflow": "Workflow",
+      "durationDays_one": "{{count}} day",
+      "durationDays_other": "{{count}} days",
+      "requestedOn": "Requested",
+      "acceptedOn": "Accepted",
+      "dismissReasonLabel": "Dismiss reason",
+      "dismissReasonEmpty": "No reason provided.",
+      "noPhotosYet": "No photos yet.",
+      "photoCount_one": "{{count}} photo",
+      "photoCount_other": "{{count}} photos",
+      "pendingHint": "Waiting for the client to accept."
     },
-    "photos": {
-      "categoryAll": "All",
-      "categoryFood": "Food",
-      "categoryBody": "Body",
-      "categoryFreeForm": "Free",
-      "planLabel": "Plan",
-      "planAll": "All plans",
-      "emptyTitle": "No photos yet",
-      "emptyDescription": "When the client uploads progress photos they will appear here, grouped by month.",
-      "photoAltPrefix": "Photo"
+    "request": {
+      "alreadyPending": "The client already has one outstanding request — wait until they accept or dismiss it.",
+      "dialogTitle": "Request photo diary",
+      "dialogSubtitle": "Client will see a banner and can accept or decline.",
+      "infoBanner": "The client will see this request as a banner on the home screen. They can accept or decline (with an optional reason).",
+      "explanation": "Ask {{clientName}} to share photos of their meals over the next several days. They choose whether to send them all at once or as a daily stream — you'll see new photos in this plan's Photos tab as they arrive.",
+      "durationLabel": "Diary duration",
+      "durationDays_one": "{{count}} day",
+      "durationDays_other": "{{count}} days",
+      "uploadModeLabel": "Upload mode",
+      "modeAllAtOnce": "All at once",
+      "modeAllAtOnceDesc": "Client photographs, then submits.",
+      "modeWorkflow": "Workflow",
+      "modeWorkflowDesc": "{{days}} days gradually, nutritionist sees photos live.",
+      "modeHint": "Client selects the mode when they accept the request.",
+      "senderInfo": "The client will see your name as the sender and your avatar. You will receive real-time notifications after photos are submitted.",
+      "linkIdMissing": "Unable to send: the client link ID is not yet available. This is a known backend gap — please contact support.",
+      "send": "Send request",
+      "sending": "Sending...",
+      "successToast": "Photo diary request sent",
+      "errorToast": "Failed to send diary request. Please try again.",
+      "ctaButton": "Request photo diary",
+      "photosTabCta": "Request photo diary from client",
+      "inviteCheckboxLabel": "Bundle photo diary request with this invite",
+      "inviteCheckboxHint": "After the client accepts, they will be prompted to share food photos.",
+      "inviteCheckboxWarning": "Diary request will be sent after the invite is successfully created.",
+      "inviteDiaryFailed": "Invite sent, but diary request failed. You can send it later from the client detail."
     }
   }
 }

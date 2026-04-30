@@ -183,7 +183,8 @@
     "back": "Zpět",
     "cancel": "Zrušit",
     "error": "Chyba",
-    "options": "Možnosti"
+    "options": "Možnosti",
+    "yourCoach": "váš kouč"
   },
   "imagePicker": {
     "sourceTitle": "Vyberte zdroj",
@@ -249,6 +250,15 @@
     "questionnaireTitle": "Nový dotazník k vyplnění",
     "questionnaireDesc": "Váš trenér vám odeslal dotazník. Vyplňte ho pro nastavení vašeho plánu.",
     "questionnaireFill": "Vyplnit",
+    "diaryBanner": {
+      "from": "Od {{name}}",
+      "title": "Sdílejte fotky svých jídel",
+      "subtitle": "Váš {{role}} chce, abyste sdíleli fotky jídel po dobu {{days}} dní",
+      "roleTrainer": "trenér",
+      "roleNutritionist": "výživový poradce",
+      "manage": "Spravovat žádost",
+      "screenTitle": "Fotografický deník jídel"
+    },
     "trainingPlanType": "Tréninkový plán",
     "nutritionPlanType": "Výživový plán",
     "startsOn": "Začíná {{date}}",
@@ -894,6 +904,14 @@
     "addPhotoA11y": "Přidat fotku do plánu",
     "openA11y": "Otevřít fotky plánu"
   },
+  "planPhotosUpload": {
+    "title": "Přidat fotky",
+    "hint": "Přidej fotky a vyber jejich kategorii. Ke každé můžeš napsat poznámku.",
+    "submitCta": "Odeslat",
+    "successToast": "Fotky odeslány!",
+    "errorUpload": "Nahrání se nezdařilo. Zkus to znovu.",
+    "errorSubmit": "Odeslání se nezdařilo. Zkus to znovu."
+  },
   "profilePhotos": {
     "title": "Moje fotky",
     "totalCount": "{{count}} fotek",
@@ -961,6 +979,109 @@
       "consentRequiredMessage": "Pro registraci je nutný souhlas se zpracováním zdravotních údajů.",
       "failedTitle": "Registrace selhala",
       "failedMessage": "Registrace selhala. Zkuste to prosím znovu."
+    }
+  },
+  "diary": {
+    "acceptWizard": {
+      "headerTitle": "Foto-deník",
+      "heroTitle": "Sdílej fotky svých jídel",
+      "heroDesc_one": "Tvůj kouč chce vidět, co jíš, aby pro tebe mohl sestavit lepší plán. Vyber si způsob, který ti bude vyhovovat — všechny fotky najednou, nebo postupně během {{count}} dne.",
+      "heroDesc_few": "Tvůj kouč chce vidět, co jíš, aby pro tebe mohl sestavit lepší plán. Vyber si způsob, který ti bude vyhovovat — všechny fotky najednou, nebo postupně během {{count}} dnů.",
+      "heroDesc_many": "Tvůj kouč chce vidět, co jíš, aby pro tebe mohl sestavit lepší plán. Vyber si způsob, který ti bude vyhovovat — všechny fotky najednou, nebo postupně během {{count}} dní.",
+      "heroDesc_other": "Tvůj kouč chce vidět, co jíš, aby pro tebe mohl sestavit lepší plán. Vyber si způsob, který ti bude vyhovovat — všechny fotky najednou, nebo postupně během {{count}} dní.",
+      "coachChip": "žádá tě 📸",
+      "modePrompt": "Vyber způsob sdílení",
+      "bulkTitle": "Nahrát vše najednou",
+      "bulkDesc": "Nafoť, co obvykle jíš, a pošli všechny fotky jedním odesláním. Hotovo během pár minut.",
+      "workflowTitle": "Vícedenní workflow",
+      "workflowDesc_one": "Během {{count}} dne postupně fotíš, co jíš. Každý den dostaneš připomenutí. Tvůj kouč uvidí fotky v reálném čase.",
+      "workflowDesc_few": "Během {{count}} dnů postupně fotíš, co jíš. Každý den dostaneš připomenutí. Tvůj kouč uvidí fotky v reálném čase.",
+      "workflowDesc_many": "Během {{count}} dní postupně fotíš, co jíš. Každý den dostaneš připomenutí. Tvůj kouč uvidí fotky v reálném čase.",
+      "workflowDesc_other": "Během {{count}} dní postupně fotíš, co jíš. Každý den dostaneš připomenutí. Tvůj kouč uvidí fotky v reálném čase.",
+      "accept": "Přijmout",
+      "revoke": "Odmítnout",
+      "errorAccept": "Žádost se nepodařilo přijmout. Zkus to znovu.",
+      "errorRevoke": "Žádost se nepodařilo odmítnout. Zkus to znovu."
+    },
+    "dismiss": {
+      "screenTitle": "Foto-deník",
+      "warningText": "Žádost odmítneš a tvůj kouč o tom dostane oznámení. Můžeš mu napsat krátký důvod, ale není to povinné.",
+      "reasonLabel": "Důvod (nepovinný)",
+      "reasonPlaceholder": "Napiš pár slov, proč žádost odmítáš…",
+      "charCount": "{{count}} / {{max}}",
+      "ctaDismiss": "Odmítnout žádost",
+      "successToast": "Žádost odmítnuta.",
+      "errorDismiss": "Žádost se nepodařilo odmítnout. Zkus to znovu."
+    },
+    "bulk": {
+      "title": "Nahrát fotky ({{count}}/{{total}})",
+      "titleEmpty": "Nahrát fotky",
+      "hint": "Přidej fotky jídel, která obvykle jíš. Každou fotku můžeš popsat.",
+      "addPhotos": "Přidat fotky",
+      "addPhotosHint": "Galerie nebo fotoaparát · max 5 MB / fotka",
+      "captionPlaceholder": "Popis fotky (nepovinné)",
+      "removePhoto": "Odebrat fotku",
+      "statusUploading": "Nahrávám…",
+      "statusUploaded": "Nahráno",
+      "statusFailed": "Chyba",
+      "retryPhoto": "Zkusit znovu",
+      "submitCta": "Odeslat",
+      "successToast": "Fotky odeslány!",
+
+      "errorUpload": "Nahrání se nezdařilo. Zkus to znovu.",
+      "errorSubmit": "Odeslání se nezdařilo. Zkus to znovu."
+    },
+    "workflow": {
+      "title": "Foto-deník",
+      "headerSub": "Den {{day}} ze {{total}} · {{name}}",
+      "daySuffix": "den",
+      "daysLeft_one": "Ještě {{count}} den do odevzdání",
+      "daysLeft_few": "Ještě {{count}} dny do odevzdání",
+      "daysLeft_many": "Ještě {{count}} dní do odevzdání",
+      "daysLeft_other": "Ještě {{count}} dní do odevzdání",
+      "dayCounter": "Den {{day}} ze {{total}}",
+      "photosCount": "{{count}} fotek nahráno",
+      "addPhoto": "Přidat fotku dnes",
+      "todaySection": "Dnešní fotky ({{count}})",
+      "todaySectionEmpty": "Dnešní fotky",
+      "uploadedSection": "Nahrané fotky ({{count}})",
+      "previousSection": "Předchozí dny",
+      "previousDayRow": "Den {{day}} · {{date}}",
+      "previousPhotoCount_one": "{{count}} fotka",
+      "previousPhotoCount_few": "{{count}} fotky",
+      "previousPhotoCount_many": "{{count}} fotek",
+      "previousPhotoCount_other": "{{count}} fotek",
+      "coachNote": "{{name}} vidí tvé fotky v reálném čase. Buď upřímný — i když jsi zhřešil.",
+      "finalizeCtaLabel": "Odevzdat deník",
+      "completedTitle": "Deník byl odeslán",
+      "completedSub": "Tvůj kouč obdržel všechny fotky.",
+      "addTodayPhotosCta": "Přidat dnešní fotky",
+      "todayUploadedToast": "Dnešní fotky odeslány."
+    },
+    "finalize": {
+      "title": "Den {{day}} · dokončit",
+      "heroTitle": "Poslední den foto-deníku",
+      "heroSub": "Máš {{photos}} fotek za {{days}} dní. Můžeš ještě přidat dnešní, nebo rovnou odevzdat.",
+      "statPhotos": "fotek celkem",
+      "statDays": "dní splněno",
+      "statAttendance": "docházka",
+      "lastPhotosSection": "Naposledy přidat",
+      "lastPhotosCta": "Přidat poslední fotku",
+      "lastPhotosHint": "Galerie nebo fotoaparát",
+      "submitCta": "Odevzdat kouči",
+      "addMoreCta": "Přidat ještě fotku",
+      "successToast": "Deník odeslán!",
+      "errorSubmit": "Odeslání se nezdařilo. Zkus to znovu."
+    },
+    "workflowBanner": {
+      "title": "Foto-deník · aktivní",
+      "dayCounter": "Den {{day}} ze {{total}}",
+      "open": "Otevřít"
+    },
+    "bulkBanner": {
+      "title": "Foto-deník · k odeslání",
+      "headline": "Pokračuj v nahrávání",
+      "subtitle": "Dokončete nahrávání fotek a odešlete je svému kouči."
     }
   }
 }

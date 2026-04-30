@@ -39,4 +39,13 @@ public class FinalizePlanPhotoRequest
     /// <see cref="PlanPhotoCategory.Food"/>, otherwise ignored.
     /// </summary>
     public string? MealLogId { get; set; }
+
+    /// <summary>
+    /// Optional diary request ID. When set, the photo is linked to this diary request.
+    /// The diary request must be owned by the calling client and must be in
+    /// <see cref="Domain.Enums.PhotoDiaryStatus.Accepted"/> or
+    /// <see cref="Domain.Enums.PhotoDiaryStatus.InProgress"/> status.
+    /// On the first upload for an Accepted request the request is transitioned to InProgress.
+    /// </summary>
+    public Guid? DiaryRequestId { get; set; }
 }

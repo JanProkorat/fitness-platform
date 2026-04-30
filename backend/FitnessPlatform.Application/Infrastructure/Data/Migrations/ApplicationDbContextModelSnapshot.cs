@@ -1141,6 +1141,120 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.ToTable("pending_invites", (string)null);
                 });
 
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.PhotoDiaryReminderLog", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateOnly>("ClientLocalDate")
+                        .HasColumnType("date")
+                        .HasColumnName("client_local_date");
+
+                    b.Property<Guid>("DiaryRequestId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("diary_request_id");
+
+                    b.Property<DateTime>("SentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("sent_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_photo_diary_reminder_logs");
+
+                    b.HasIndex("DiaryRequestId", "ClientLocalDate")
+                        .IsUnique()
+                        .HasDatabaseName("ix_photo_diary_reminder_logs_request_date");
+
+                    b.ToTable("photo_diary_reminder_logs", (string)null);
+                });
+
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.PhotoDiaryRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("AcceptedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("accepted_at");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("DismissReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("dismiss_reason");
+
+                    b.Property<int>("DurationDays")
+                        .HasColumnType("integer")
+                        .HasColumnName("duration_days");
+
+                    b.Property<long?>("LinkId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("link_id");
+
+                    b.Property<int?>("Mode")
+                        .HasColumnType("integer")
+                        .HasColumnName("mode");
+
+                    b.Property<long?>("PendingInviteId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("pending_invite_id");
+
+                    b.Property<Guid?>("PlanId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("plan_id");
+
+                    b.Property<Guid>("ProfessionalId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("professional_id");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_photo_diary_requests");
+
+                    b.HasIndex("LinkId")
+                        .HasDatabaseName("ix_photo_diary_requests_link_id");
+
+                    b.HasIndex("PendingInviteId")
+                        .HasDatabaseName("ix_photo_diary_requests_pending_invite_id");
+
+                    b.HasIndex("ProfessionalId", "Status")
+                        .HasDatabaseName("ix_photo_diary_requests_professional_status");
+
+                    b.ToTable("photo_diary_requests", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_photo_diary_requests_accepted_at_with_accepted_status", "(status IN (2,4,5) AND accepted_at IS NOT NULL) OR (status NOT IN (2,4,5) AND accepted_at IS NULL)");
+
+                            t.HasCheckConstraint("ck_photo_diary_requests_completed_at_only_when_completed", "(status = 5 AND completed_at IS NOT NULL) OR (status != 5 AND completed_at IS NULL)");
+
+                            t.HasCheckConstraint("ck_photo_diary_requests_dismiss_reason_only_when_dismissed", "(status = 3 OR dismiss_reason IS NULL)");
+
+                            t.HasCheckConstraint("ck_photo_diary_requests_duration_days_range", "duration_days >= 1 AND duration_days <= 30");
+
+                            t.HasCheckConstraint("ck_photo_diary_requests_link_xor_invite", "(link_id IS NOT NULL AND pending_invite_id IS NULL) OR (link_id IS NULL AND pending_invite_id IS NOT NULL)");
+
+                            t.HasCheckConstraint("ck_photo_diary_requests_mode_with_accepted_status", "(status IN (2,4,5) AND mode IS NOT NULL) OR (status NOT IN (2,4,5) AND mode IS NULL)");
+                        });
+                });
+
             modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.PlanPhoto", b =>
                 {
                     b.Property<long>("Id")
@@ -1213,6 +1327,9 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_plan_photos");
+
+                    b.HasIndex("DiaryRequestId")
+                        .HasDatabaseName("ix_plan_photos_diary_request_id");
 
                     b.HasIndex("PlanId")
                         .HasDatabaseName("ix_plan_photos_plan_id");
@@ -2155,6 +2272,46 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Navigation("Questionnaire");
                 });
 
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.PhotoDiaryReminderLog", b =>
+                {
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.PhotoDiaryRequest", "DiaryRequest")
+                        .WithMany()
+                        .HasForeignKey("DiaryRequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_photo_diary_reminder_logs_photo_diary_requests_diary_reques");
+
+                    b.Navigation("DiaryRequest");
+                });
+
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.PhotoDiaryRequest", b =>
+                {
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.ClientProfessionalLink", "Link")
+                        .WithMany()
+                        .HasForeignKey("LinkId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_photo_diary_requests_client_professional_links_link_id");
+
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.PendingInvite", "PendingInvite")
+                        .WithMany()
+                        .HasForeignKey("PendingInviteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_photo_diary_requests_pending_invites_pending_invite_id");
+
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.ApplicationUser", "Professional")
+                        .WithMany()
+                        .HasForeignKey("ProfessionalId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_photo_diary_requests_users_professional_id");
+
+                    b.Navigation("Link");
+
+                    b.Navigation("PendingInvite");
+
+                    b.Navigation("Professional");
+                });
+
             modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.PlanPhoto", b =>
                 {
                     b.HasOne("FitnessPlatform.Application.Domain.Entities.ClientProfile", "ClientProfile")
@@ -2164,6 +2321,12 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_plan_photos_client_profiles_client_profile_id");
 
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.PhotoDiaryRequest", "DiaryRequest")
+                        .WithMany("Photos")
+                        .HasForeignKey("DiaryRequestId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_plan_photos_photo_diary_requests_diary_request_id");
+
                     b.HasOne("FitnessPlatform.Application.Domain.Entities.ApplicationUser", "UploadedByUser")
                         .WithMany()
                         .HasForeignKey("UploadedByUserId")
@@ -2172,6 +2335,8 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasConstraintName("fk_plan_photos_users_uploaded_by_user_id");
 
                     b.Navigation("ClientProfile");
+
+                    b.Navigation("DiaryRequest");
 
                     b.Navigation("UploadedByUser");
                 });
@@ -2400,6 +2565,11 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
             modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.Conversation", b =>
                 {
                     b.Navigation("Messages");
+                });
+
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.PhotoDiaryRequest", b =>
+                {
+                    b.Navigation("Photos");
                 });
 
             modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.ProfessionalProfile", b =>

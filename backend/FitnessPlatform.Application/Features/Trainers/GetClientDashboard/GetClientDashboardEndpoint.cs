@@ -190,6 +190,7 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
 
         await Send.OkAsync(new GetClientDashboardResponse
         {
+            LinkId = link.Id,
             ClientPublicId = clientProfile.PublicId,
             Email = clientProfile.User.Email!,
             FirstName = clientProfile.User.FirstName,
