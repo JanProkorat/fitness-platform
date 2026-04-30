@@ -64,9 +64,9 @@
   --status-inprogress-bg:   var(--accent-bg);
   --status-inprogress-br:   var(--accent-br);
 
-  --status-completed-text:  #0f7b6c;
-  --status-completed-bg:    rgba(15, 123, 108, 0.10);
-  --status-completed-br:    rgba(15, 123, 108, 0.22);
+  --status-completed-text:  var(--green);
+  --status-completed-bg:    var(--green-bg);
+  --status-completed-br:    var(--green-br);
 
   --status-dismissed-text:  var(--red);
   --status-dismissed-bg:    var(--red-bg);

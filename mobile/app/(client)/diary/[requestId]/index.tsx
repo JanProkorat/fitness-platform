@@ -179,7 +179,7 @@ export function DiaryAcceptWizardScreen() {
           <View style={[styles.coachCard, { backgroundColor: colors.bg2 }]}>
             <Avatar name={displayName} size="sm" />
             <View style={styles.coachText}>
-              <Text style={[Type.headline, { color: colors.label, fontSize: 15 }]}>
+              <Text style={[Type.subheadline, { color: colors.label, fontWeight: '600' }]}>
                 {displayName}
               </Text>
               {roleLabel ? (
