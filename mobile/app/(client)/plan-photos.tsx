@@ -203,8 +203,8 @@ export default function PlanPhotosScreen() {
           resizeMode="cover"
         />
         {item.description && item.description.trim().length > 0 && (
-          <View style={styles.tileCaption}>
-            <Text style={styles.tileCaptionText} numberOfLines={2}>
+          <View style={[styles.tileCaption, { backgroundColor: colors.overlay }]}>
+            <Text style={[styles.tileCaptionText, { color: colors.onAccent }]} numberOfLines={2}>
               {item.description}
             </Text>
           </View>
@@ -212,7 +212,7 @@ export default function PlanPhotosScreen() {
       </Pressable>
       )
     },
-    [handleTilePress, tileSize, colors.fill2, t],
+    [handleTilePress, tileSize, colors.fill2, colors.overlay, colors.onAccent, t],
   )
 
   const keyExtractor = useCallback(
@@ -407,10 +407,8 @@ const styles = StyleSheet.create({
     bottom: 0,
     paddingHorizontal: 6,
     paddingVertical: 4,
-    backgroundColor: 'rgba(0,0,0,0.55)',
   },
   tileCaptionText: {
-    color: '#ffffff',
     fontSize: 11,
     lineHeight: 14,
     fontWeight: '500',
