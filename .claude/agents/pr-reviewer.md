@@ -587,8 +587,13 @@ Handle each status:
 
 - **Any `fail` row** → STOP. Do NOT merge. Return BLOCKED with the
   failing job name, a one-line root-cause hypothesis from reading
-  `gh run view <run-id> --log-failed` (or the job's web log), and a
-  scope-tagged fix list. The orchestrator routes to the owning dev
+  the failing job's log, and a scope-tagged fix list. Prefer the
+  tightest fetch first to keep context lean per Working Principles §6:
+  if a GitHub MCP is configured (see `.mcp.json`), use
+  `mcp__github__get_workflow_run_logs` with `tail_lines: 200`;
+  otherwise `gh run view <run-id> --log-failed --job <failing-job-id>`
+  scoped to the single failing job; full `gh run view <run-id>
+  --log-failed` is the last resort. The orchestrator routes to the owning dev
   sub-agent (backend → `backend-dotnet`, web → `web-react`,
   mobile → `mobile-expo`). When the fix is pushed, CI re-runs
   automatically; the orchestrator re-dispatches you once checks go
