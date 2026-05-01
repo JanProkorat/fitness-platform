@@ -7,7 +7,7 @@ maxTurns: 150
 permissionMode: acceptEdits
 color: blue
 skills: fe-endpoint, mongo-document, regen-api, signalr-event, root-cause-swarm
-mcpServers: context7, mongodb
+mcpServers: context7, mongodb, roslyn-navigator
 ---
 
 # backend-dotnet — ASP.NET Core 10 specialist
@@ -188,6 +188,28 @@ reading them inline. Inline reads pollute your context with files you'll
 forget; Explore returns a summary you can act on. Reserve inline reads
 for ≤2 known files (single exemplar pattern — see Working Principles §6
 in root `CLAUDE.md`).
+
+## Symbol lookups — prefer the Roslyn MCP over `grep`
+
+For find-references, find-implementations, rename-symbol, "where is
+`X` defined", or "what calls this method" questions in `/backend`,
+use the `roslyn-navigator` MCP rather than `grep`. Roslyn understands
+the C# project graph: it resolves partial classes, generated code,
+and inheritance chains, and distinguishes `Foo.Bar` (the method) from
+a parameter named `Bar`. The MCP tools are stdout-streamed, so a
+"find all usages of `IRealtimeNotifier.Broadcast`" query returns a
+precise list with file:line, not a noisy text-match list.
+
+Reach for `grep` only for non-symbol text (literal strings, comments,
+config keys, JSON keys, route paths in attribute values that
+sometimes string-format around the symbol). When in doubt: try the
+Roslyn MCP first; fall back to `grep` only if the symbol is too
+synthetic for the compiler to model (e.g. dynamically-generated route
+templates).
+
+The MCP is registered in `.mcp.json` as `roslyn-navigator` and
+requires the `cwm-roslyn-navigator` dotnet global tool on `$PATH`
+(install per the tool's README on a fresh machine).
 
 ## When to reach for a skill
 - Creating a brand-new endpoint? Invoke the `fe-endpoint` skill to scaffold

@@ -4,6 +4,10 @@
       "command": "npx",
       "args": ["-y", "xcodebuildmcp@latest", "mcp"]
     },
+    "roslyn-navigator": {
+      "command": "cwm-roslyn-navigator",
+      "args": []
+    },
     "github": {
       "command": ".claude/scripts/with-keychain-secret.sh",
       "args": [
