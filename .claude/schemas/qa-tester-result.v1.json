@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": ".claude/schemas/qa-tester-result.v1.json",
+  "title": "QA Tester Result v1",
+  "description": "Structured verdict written by qa-tester after verifying a GitHub issue's acceptance criteria. Orchestrator reads this to decide whether to re-route fixes to dev agents or proceed to pr-reviewer.",
+  "type": "object",
+  "required": [
+    "$schema",
+    "issue_number",
+    "verdict",
+    "acceptance_criteria_results"
+  ],
+  "properties": {
+    "$schema":     { "const": ".claude/schemas/qa-tester-result.v1.json" },
+    "issue_number":{ "type": "integer", "minimum": 1 },
+    "verdict":     { "enum": ["PASS", "PARTIAL", "FAIL"] },
+    "acceptance_criteria_results": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["ac", "met", "evidence"],
+        "properties": {
+          "ac":       { "type": "string", "maxLength": 400, "description": "Verbatim AC bullet from issue body." },
+          "met":      { "type": "boolean" },
+          "evidence": { "type": "string", "maxLength": 800, "description": "One-line evidence: test name, screenshot path, log line, etc." }
+        },
+        "additionalProperties": false
+      }
+    },
+    "regressions_found": {
+      "type": "array",
+      "items": { "type": "string", "maxLength": 400 }
+    },
+    "i18n_check": {
+      "enum": ["pass", "fail", "n/a"],
+      "description": "Whether new user-facing copy lands in cs/en/de. n/a when issue has no UI strings."
+    },
+    "prototype_fidelity_check": {
+      "enum": ["pass", "fail", "n/a"],
+      "description": "Whether the rendered UI matches docs/prototypes/<package>/scenes/*.html. n/a for non-UI issues."
+    },
+    "verification_runs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["scope", "passed"],
+        "properties": {
+          "scope":  { "enum": ["backend-build", "backend-test", "web-build", "mobile-typecheck", "mobile-prebuild-check", "playwright", "ios-simulator"] },
+          "passed": { "type": "boolean" },
+          "notes":  { "type": "string", "maxLength": 400 }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

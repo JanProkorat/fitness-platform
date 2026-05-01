@@ -1,6 +1,7 @@
 ---
 name: mongo-document
-description: Scaffold a new MongoDB document class under `backend/FitnessPlatform.Application/Domain/Documents/` with the required `Id`, `ExternalId`, optimistic-concurrency `Version` field, and audit timestamps. Invoke whenever a backend task introduces a new denormalized collection (plans, logs, snapshots, etc.) or needs a new root aggregate in Mongo. Not for embedded sub-documents — those don't need the Version field.
+description: Scaffold a new MongoDB root aggregate under Domain/Documents/ with Id, ExternalId, optimistic-concurrency Version, audit timestamps. Invoke for new denormalized collections. Not for embedded sub-documents.
+argument-hint: "<DocumentName> <collection-name>"
 ---
 
 # mongo-document — scaffold a Mongo aggregate

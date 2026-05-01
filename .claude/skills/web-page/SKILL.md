@@ -1,6 +1,7 @@
 ---
 name: web-page
-description: Scaffold a new route page in `/web/src/pages/` following the portal's idiom — TanStack Query for load, React Hook Form + Zod for forms, headless Tailwind primitives from `@/components/ui`, i18n keys in cs/en/de, no hardcoded colors/spacing, no `any`. Invoke when a task asks for a "new page", "new route", or "new screen" in the trainer web portal.
+description: Scaffold a new route page in /web/src/pages/ — TanStack Query, RHF + Zod, Tailwind UI, i18n cs/en/de, no `any`, no hardcoded colors/spacing. Invoke for "new page", "new route" in trainer portal.
+argument-hint: "<PageName> <route-path>"
 ---
 
 # web-page — scaffold a trainer-portal page
@@ -8,6 +9,17 @@ description: Scaffold a new route page in `/web/src/pages/` following the portal
 Use when adding a route page to `/web`. This skill codifies the idioms used
 across `src/pages/*.tsx` so new pages fit the existing conventions without
 drift.
+
+## Read-ONE-exemplar
+
+When choosing an exemplar to model from, read **exactly ONE existing
+page** with a similar shape (list / detail / editor / form). The
+portal's idiom is consistent enough that one is sufficient. Fall back
+to a second exemplar ONLY if the first is incomplete (e.g. doesn't
+cover the form-validation pattern you need). **Never read more than
+two**. If you genuinely need broader research, dispatch an Explore
+sub-agent with `model: "haiku"` instead — inline reads pollute your
+context.
 
 ## Decide first
 

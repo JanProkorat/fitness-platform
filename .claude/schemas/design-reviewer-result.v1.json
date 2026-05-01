@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": ".claude/schemas/design-reviewer-result.v1.json",
+  "title": "Design Reviewer Result v1",
+  "description": "Pre-implementation gate output. Written by design-reviewer after reading the GitHub issue + the orchestrator's dispatch brief. Orchestrator reads this to decide APPROVE → dispatch dev / NEEDS-REVISION → tighten brief and re-submit / BLOCK → surface to user.",
+  "type": "object",
+  "required": [
+    "$schema",
+    "issue_number",
+    "verdict",
+    "approved_scope"
+  ],
+  "properties": {
+    "$schema":      { "const": ".claude/schemas/design-reviewer-result.v1.json" },
+    "issue_number": { "type": "integer", "minimum": 1 },
+    "verdict":      { "enum": ["APPROVE", "NEEDS-REVISION", "BLOCK"] },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["severity", "area", "detail"],
+        "properties": {
+          "severity": { "enum": ["BLOCKING", "MAJOR", "MINOR"] },
+          "area": {
+            "enum": [
+              "scope",
+              "architecture",
+              "security",
+              "i18n",
+              "tests",
+              "branch",
+              "conflict",
+              "ac-coverage",
+              "generated-files",
+              "package-boundary"
+            ]
+          },
+          "detail": { "type": "string", "maxLength": 800 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "approved_scope": {
+      "type": "object",
+      "required": ["sub_agent", "base_branch", "branch_name", "files_in_scope"],
+      "properties": {
+        "sub_agent": { "enum": ["backend-dotnet", "web-react", "mobile-expo"] },
+        "base_branch": {
+          "type": "string",
+          "description": "Either 'develop' (standalone) or 'feature/<epic>-<short>' (sub-issue of an epic)."
+        },
+        "branch_name": {
+          "type": "string",
+          "pattern": "^(feature|fix|refactor|docs|chore)/[0-9]+-[a-z0-9-]+$"
+        },
+        "files_in_scope": {
+          "type": "array",
+          "items": { "type": "string", "maxLength": 400 },
+          "minItems": 1,
+          "description": "Explicit files or globs the dev agent is authorised to touch. pr-reviewer enforces this on the diff."
+        },
+        "files_out_of_scope": {
+          "type": "array",
+          "items": { "type": "string", "maxLength": 400 }
+        },
+        "required_reads": {
+          "type": "array",
+          "items": { "type": "string", "maxLength": 400 },
+          "description": "Files the dev agent MUST read before writing code (existing patterns to follow). Saves a speculative grep-storm."
+        },
+        "error_paths": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["status_code", "scenario"],
+            "properties": {
+              "status_code": { "type": "integer", "minimum": 100, "maximum": 599 },
+              "scenario":    { "type": "string", "maxLength": 400 }
+            },
+            "additionalProperties": false
+          },
+          "description": "Structured error scenarios. Feeds into TDD mode (one failing test per error path) and qa-tester verification."
+        },
+        "needs_library_research": {
+          "type": "boolean",
+          "description": "Set true ONLY when the WI touches APIs not used elsewhere in the codebase. Triggers a Haiku research scout in the dev agent. Default false."
+        },
+        "estimated_complexity": {
+          "enum": ["XS", "S", "M", "L", "XL"],
+          "description": "Sizing tag. Drives ship-epic fast-path eligibility — XS/S routine, L/XL pulls out of fast-path."
+        }
+      },
+      "additionalProperties": false
+    },
+    "blocked_reason": {
+      "type": ["string", "null"],
+      "maxLength": 800
+    },
+    "round": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 3,
+      "description": "Which round of design-review this result represents. After round 3 NEEDS-REVISION, escalate to user."
+    }
+  },
+  "additionalProperties": false
+}

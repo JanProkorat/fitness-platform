@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": ".claude/schemas/ship-epic-state.v1.json",
+  "title": "Ship-Epic Pipeline State v1",
+  "description": "Persisted by the ship-epic skill at every phase boundary. Read by reinject-state.sh on SessionStart so orchestration survives /clear and compact.",
+  "type": "object",
+  "required": [
+    "$schema",
+    "epic_number",
+    "epic_branch",
+    "phase",
+    "children",
+    "started_at",
+    "updated_at"
+  ],
+  "properties": {
+    "$schema":     { "const": ".claude/schemas/ship-epic-state.v1.json" },
+    "epic_number": { "type": "integer", "minimum": 1 },
+    "epic_branch": {
+      "type": "string",
+      "pattern": "^feature/[0-9]+-[a-z0-9-]+$"
+    },
+    "phase": {
+      "enum": [
+        "creating",
+        "design-reviewing",
+        "dispatching",
+        "merging-children",
+        "epic-pr",
+        "done"
+      ]
+    },
+    "fast_path": {
+      "type": "boolean",
+      "description": "True when ship-epic took the deferred-gate fast-path (consolidated approval). False or absent for the regular per-child flow."
+    },
+    "epic_pr": {
+      "type": ["integer", "null"],
+      "minimum": 1,
+      "description": "Set after the consolidated epic PR is opened against develop."
+    },
+    "children": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["issue", "status"],
+        "properties": {
+          "issue":  { "type": "integer", "minimum": 1 },
+          "status": {
+            "enum": [
+              "todo",
+              "design-review",
+              "in-progress",
+              "qa",
+              "review",
+              "merged",
+              "blocked"
+            ]
+          },
+          "branch": {
+            "type": "string",
+            "pattern": "^(feature|fix|refactor|docs|chore)/[0-9]+-[a-z0-9-]+$"
+          },
+          "pr": {
+            "type": ["integer", "null"],
+            "minimum": 1
+          },
+          "depends_on": {
+            "type": "array",
+            "items": { "type": "integer", "minimum": 1 },
+            "description": "Other child issue numbers that must reach 'merged' before this child's dev dispatch can begin."
+          },
+          "estimated_complexity": {
+            "enum": ["XS", "S", "M", "L", "XL"]
+          },
+          "blocked_reason": {
+            "type": ["string", "null"],
+            "maxLength": 400
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "started_at": {
+      "type": "string",
+      "description": "ISO-8601 timestamp of Phase 0 epic-branch creation."
+    },
+    "updated_at": {
+      "type": "string",
+      "description": "ISO-8601 timestamp of the last write."
+    }
+  },
+  "additionalProperties": false
+}

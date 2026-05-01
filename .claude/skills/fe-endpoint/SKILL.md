@@ -1,6 +1,7 @@
 ---
 name: fe-endpoint
-description: Scaffold a new FastEndpoints endpoint in the .NET backend — creates the Request / Response / Validator / Endpoint quartet under the correct feature folder plus a paired xUnit test file wired up with Testcontainers helpers. Invoke whenever a backend task says "add endpoint", "new API", "expose a route", or introduces a new HTTP verb under /backend.
+description: Scaffold a new FastEndpoints endpoint — Request / Response / Validator / Endpoint quartet plus xUnit + Testcontainers test. Invoke for "add endpoint", "new API", "expose a route" under /backend. TDD mode opt-in.
+argument-hint: "<Feature> <HttpVerb> <Action> [TDD]"
 ---
 
 # fe-endpoint — scaffold a FastEndpoints endpoint
@@ -159,6 +160,73 @@ exact fixture base class name and helpers used.
 5. If the request/response shape or route changed existing contracts, tell
    the orchestrator to run the `regen-api` skill for `/web` and `/mobile`
    before either client is updated.
+
+## TDD mode (opt-in)
+
+When the orchestrator's prompt contains the word **"TDD"** or the
+phrase **"test-first"**, switch to red-green-refactor discipline.
+This is slower but tighter — every test is written from the AC, runs
+RED first, then minimal code makes it GREEN.
+
+### Iron law
+
+The integration test must run, **fail with a meaningful error**, and
+have its failure observed BEFORE the endpoint implementation exists.
+A passing test against a stub doesn't prove anything.
+
+### Steps in TDD mode
+
+1. **Read `approved_scope.error_paths`** from
+   `state/handoff-design-<issue>.json`. Each entry becomes one
+   integration test (one `[Fact]` per status code / scenario).
+2. **Write the integration test FIRST**: HTTP-level via
+   `WebApplicationFactory<TestStartup>` + Testcontainers. Use the
+   shared `IntegrationTestFixture` and the existing
+   `ITestUser`/`AuthenticatedHttpClient` helpers. Reference exactly
+   ONE existing endpoint test as exemplar (see Read-ONE-exemplar
+   in §read-one-exemplar — the patterns are consistent).
+3. **Run the test**: `dotnet test --filter "FullName~<Action>"` — it
+   MUST fail. Confirm the failure mode is what you expect (404 on
+   missing endpoint, not a compilation error). If the test passes
+   against an empty endpoint, the test is wrong — broaden it.
+4. **Scaffold the Request / Response / Validator / Endpoint** (the
+   non-TDD steps above) with **minimal logic** to make the test
+   pass. Don't gold-plate. No extra error paths, no extra fields.
+5. **Run again**: GREEN.
+6. **Refactor**: extract helpers, tidy naming, add XML doc-comments.
+   Re-run the test after each refactor.
+7. **Repeat for the next error path**: write next failing test,
+   make it green, refactor. One AC per cycle.
+
+### Don't, in TDD mode
+
+- Don't write the endpoint first and then add tests against it. The
+  whole point is the test-first failure proves the test exercises
+  the right path.
+- Don't write 5 tests upfront. One per RED-GREEN cycle.
+- Don't merge a test that doesn't have an observed failure history.
+  If the orchestrator dispatched in TDD mode, the dev-handoff JSON
+  should include a brief "RED → GREEN" note per test in `tests_added`.
+
+### When to skip TDD mode
+
+If the orchestrator dispatched WITHOUT "TDD" in the prompt, fall
+through to the regular After-scaffolding flow. TDD mode is opt-in;
+the default (ad-hoc tests after implementation) is still acceptable
+for routine endpoints with simple AC.
+
+## Read-ONE-exemplar
+
+When choosing an exemplar to model from, read **exactly ONE existing
+endpoint** in the same feature folder (or the closest analogue if the
+folder is new). The project's vertical-slice patterns are consistent
+enough that one is sufficient.
+
+Fall back to a second exemplar ONLY if the first is incomplete (e.g.
+it doesn't cover the auth/role pattern you need). **Never read more
+than two**. Inline reads pollute the agent's context with files it'll
+forget; if you genuinely need broader research, dispatch an Explore
+sub-agent with `model: "haiku"` instead.
 
 ## Related skills to chain
 

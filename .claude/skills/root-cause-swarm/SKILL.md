@@ -1,6 +1,6 @@
 ---
 name: root-cause-swarm
-description: Parallel hypothesis exploration for gnarly bugs whose root cause is not obvious. Enforce Working Principles §1 (never submit a speculative patch) when a reproducible bug could plausibly originate in several layers — serialization drift, DI lifetime, race condition, config/env skew, version skew, auth/tenancy, stale cache, external integration — and a single-shot "best guess" would waste a round. Invoke when a bug has defeated one focused investigation, when the user says "intermittent" / "works on my machine" / "used to work" / "random", or when the diff-and-fix loop has already burnt one attempt. Produces a ranked hypothesis report with reproducing tests or falsification proofs from a fan-out of parallel Agent calls, then names the winner before any fix is written.
+description: Parallel hypothesis exploration for multi-layer bugs (Working Principles §1). Invoke for "intermittent", "works on my machine", "random", or after one focused investigation failed. Produces ranked hypothesis report.
 ---
 
 # root-cause-swarm — parallel hypothesis probes for non-obvious bugs
@@ -105,6 +105,20 @@ the probe will read:
 - Probe that reads `/web/**` → `web-react`
 - Probe that reads `/mobile/**` → `mobile-expo`
 - Probe that spans packages or reads docs/infra only → `general-purpose`
+
+### Model selection per phase
+
+- **Falsification probes (Step 2)** → `model: "haiku"` on the `Agent`
+  call. Probes are short-lived, single-bucket, fan-out friendly.
+  Haiku is the right cost-tier for parallel falsification.
+- **Synthesis (Step 3)** → run on the orchestrator's current model
+  (typically Sonnet or Opus). Synthesis weighs 5–7 probe outputs and
+  picks the winning hypothesis — needs reasoning, not throughput.
+
+If a Haiku probe returns unusable output (cites <3 file paths, contains
+no concrete code snippet, or "could not find" without trying an
+alternative query), re-dispatch the same probe with `model: "sonnet"`
+before falling back to "could not falsify".
 
 Never let one sub-agent cross package boundaries — the "one sub-agent =
 one package" rule from `.claude/CLAUDE.md` still applies. A probe that

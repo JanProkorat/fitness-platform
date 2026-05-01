@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": ".claude/schemas/dev-handoff.v1.json",
+  "title": "Dev Agent Handoff v1",
+  "description": "Structured artifact written by backend-dotnet / web-react / mobile-expo as their final step before returning control to the orchestrator. Replaces prose summaries — orchestrator reads this file to decide next action.",
+  "type": "object",
+  "required": [
+    "$schema",
+    "agent",
+    "issue_number",
+    "branch_name",
+    "base_branch",
+    "scope",
+    "commits_pushed",
+    "files_changed",
+    "verification"
+  ],
+  "properties": {
+    "$schema":         { "const": ".claude/schemas/dev-handoff.v1.json" },
+    "agent":           { "enum": ["backend-dotnet", "web-react", "mobile-expo"] },
+    "scope":           { "enum": ["backend", "web", "mobile"] },
+    "issue_number":    { "type": "integer", "minimum": 1 },
+    "branch_name":     {
+      "type": "string",
+      "pattern": "^(feature|fix|refactor|docs|chore)/[0-9]+-[a-z0-9-]+$"
+    },
+    "base_branch": {
+      "type": "string",
+      "description": "Either 'develop' (standalone) or 'feature/<epic>-<short>' (sub-issue of an epic)."
+    },
+    "commits_pushed":  { "type": "boolean" },
+    "pr_number":       { "type": ["integer", "null"], "minimum": 1 },
+    "files_changed":   {
+      "type": "array",
+      "items": { "type": "string", "maxLength": 400 },
+      "minItems": 1
+    },
+    "tests_added":     {
+      "type": "array",
+      "items": { "type": "string", "maxLength": 400 }
+    },
+    "verification": {
+      "type": "object",
+      "description": "Constrained verification shape — no raw shell strings. Orchestrator/QA substitutes into a fixed template.",
+      "required": ["tool"],
+      "properties": {
+        "tool": { "enum": ["dotnet-test", "dotnet-build", "web-build", "web-typecheck", "mobile-typecheck", "mobile-prebuild-check"] },
+        "filter": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._~-]+$",
+          "maxLength": 200,
+          "description": "FQN fragment for test filters. No whitespace, quotes, or shell metacharacters allowed."
+        },
+        "passed": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "rule_citations": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^(rules/[a-z0-9-]+\\.md#[a-z0-9-]+|skills/[a-z0-9-]+/(SKILL\\.md|references/[a-z0-9-]+\\.md)#[a-z0-9-]+|CLAUDE\\.md → [A-Za-z0-9_. -]+)$",
+        "maxLength": 200
+      },
+      "description": "Anchor refs the dev agent followed. Optional (until Tier 3.2 rules folder ships) but encouraged. Validated for resolvability by validate-handoff.py."
+    },
+    "status": {
+      "enum": ["complete", "incomplete"],
+      "default": "complete",
+      "description": "Set 'incomplete' if the dev agent hit its maxTurns cap mid-task; orchestrator decides resume vs split."
+    },
+    "incomplete_reason": {
+      "type": ["string", "null"],
+      "maxLength": 400
+    }
+  },
+  "additionalProperties": false
+}

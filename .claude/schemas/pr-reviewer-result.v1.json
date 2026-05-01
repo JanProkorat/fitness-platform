@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": ".claude/schemas/pr-reviewer-result.v1.json",
+  "title": "PR Reviewer Result v1",
+  "description": "Structured verdict from pr-reviewer after the two-pass review (self + fresh-eyes sub-reviewer). Orchestrator reads this to decide REWORK vs READY-FOR-MERGE.",
+  "type": "object",
+  "required": [
+    "$schema",
+    "pr_number",
+    "passes_complete",
+    "verdict",
+    "base_branch"
+  ],
+  "properties": {
+    "$schema":         { "const": ".claude/schemas/pr-reviewer-result.v1.json" },
+    "pr_number":       { "type": "integer", "minimum": 1 },
+    "base_branch":     {
+      "type": "string",
+      "description": "PR base branch — 'develop', 'main', or 'feature/<epic>-<short>'."
+    },
+    "passes_complete": {
+      "enum": ["self-only", "fresh-eyes-only", "both"],
+      "description": "Which review passes have been completed. 'both' is required for READY-FOR-MERGE verdict."
+    },
+    "verdict":         { "enum": ["READY-FOR-MERGE", "NEEDS-REWORK", "BLOCKED"] },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["severity", "scope", "detail"],
+        "properties": {
+          "severity": { "enum": ["BLOCKING", "MAJOR", "MINOR"] },
+          "scope":    { "enum": ["backend", "web", "mobile", "docs-infra"] },
+          "file":     { "type": "string", "maxLength": 400 },
+          "line":     { "type": "integer", "minimum": 1 },
+          "rule":     {
+            "type": "string",
+            "maxLength": 400,
+            "description": "Rule citation if applicable, e.g. 'rules/code-quality.md#no-hardcoded-colors'."
+          },
+          "found":    { "type": "string", "maxLength": 800, "description": "The offending code excerpt." },
+          "fix":      { "type": "string", "maxLength": 800, "description": "Suggested replacement." },
+          "detail":   { "type": "string", "maxLength": 800 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "merge_strategy": {
+      "enum": ["squash", "rebase", null],
+      "description": "Determined by PR's type:* label. squash for feature/bug/refactor; rebase for docs/chore. null when verdict is not READY-FOR-MERGE."
+    },
+    "blocked_reason": {
+      "type": ["string", "null"],
+      "maxLength": 400,
+      "description": "Set when verdict=BLOCKED — e.g. 'PR touches backend/Migrations/** (merge exclusion list)'."
+    },
+    "ci_status": {
+      "enum": ["pass", "fail", "pending", "n/a"],
+      "description": "Result of `gh pr checks <N>` at time of writing."
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,6 +1,6 @@
 ---
 name: notion-docs
-description: Build and incrementally maintain the GoodFellas project's documentation in Notion. Use this skill in two situations — (1) the first time, to bootstrap a full hub-and-sub-pages documentation tree under a new root Notion page from the current state of `/backend`, `/web`, `/mobile`, and `docs/prototypes/`; (2) at the end of every completed task, to update the affected Notion pages and append a Changelog entry. Replaces the old `progress-update` / `docs/PROGRESS.md` workflow. Invoke whenever the user says "update the docs", "bootstrap Notion documentation", "finish the task" (post-task hook), "regenerate docs for X", or whenever an orchestrator or sub-agent finishes a change that touches code or prototypes — even if the user doesn't explicitly mention documentation.
+description: Build + maintain GoodFellas Notion docs. Two modes — bootstrap (initial hub-and-sub-page tree) and update (post-task changelog entry). Invoke on "update the docs", "bootstrap Notion", task-finish hook.
 ---
 
 # notion-docs — project documentation in Notion
@@ -21,6 +21,15 @@ Decide the mode before doing anything else:
 - Otherwise (task just finished, small change, "update the docs") → **update**.
 
 If genuinely ambiguous, ask once with `AskUserQuestion`. Don't guess.
+
+## Model selection
+
+| Mode | Model | Why |
+|---|---|---|
+| `bootstrap` | **Opus** | First-time design of the doc tree — needs reasoning to map code/prototype state into hub-and-sub-page structure. |
+| `update` | **Sonnet** | Templated content from a known structure. Cheap and fast for the post-task changelog append. |
+
+When invoked from the orchestrator's auto-merge flow, `update` mode runs on the orchestrator's current model unless explicitly overridden — Sonnet is the default for that path.
 
 ## Notion conventions this skill assumes
 

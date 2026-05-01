@@ -111,6 +111,8 @@ Thumbs.db
 **/.claude/pending-question.md
 **/.claude/history/
 **/.claude/.typecheck-state/
+**/.claude/hooks/log/
+**/.claude/state/
 .worktrees/
 .remember/
 .qa-artifacts/

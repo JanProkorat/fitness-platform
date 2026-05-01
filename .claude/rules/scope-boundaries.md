@@ -1,0 +1,42 @@
+# Rules: Scope boundaries
+
+Universal across the project — every dev sub-agent and `pr-reviewer`
+follow these. Cite anchors; never restate.
+
+## Scope to dev-agent mapping
+
+| `scope:*` label | Dev agent        | Folder            |
+|-----------------|------------------|-------------------|
+| `backend`       | `backend-dotnet` | `/backend/**`     |
+| `web`           | `web-react`      | `/web/**`         |
+| `mobile`        | `mobile-expo`    | `/mobile/**`      |
+| `docs-infra`    | (orchestrator)   | `/docs/**`, `.github/**`, root configs |
+
+## Package-boundary rule
+
+A sub-agent **never** modifies files outside its package's folder. If a
+cross-cut is required, return to the orchestrator and route explicitly.
+`pr-reviewer` enforces this on the diff — a backend-dotnet PR that
+touches `/web/src/**` is an automatic BLOCKING finding.
+
+## Cross-package coordination
+
+Cross-package issues are dispatched **sequentially**, not in parallel:
+
+1. `backend-dotnet` finishes the backend slice + opens the PR (or
+   commits to the shared issue branch).
+2. Orchestrator hands off to `web-react` / `mobile-expo` (each runs
+   `regen-api` in its own package before touching call sites).
+3. The orchestrator runs `regen-api` directly **only** when no client
+   work follows.
+
+A single issue requiring backend + web + mobile changes ends up on **one
+branch with one PR** — sub-agents run sequentially on the same branch
+(each re-pulls before editing). Parallel fan-out is for *different
+issues*, never for splitting one issue across packages.
+
+## When in doubt
+
+If you cannot tell which package an issue belongs to, ask via
+`AskUserQuestion` before delegating. Never let a sub-agent guess across
+boundaries.
