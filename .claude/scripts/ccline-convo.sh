@@ -13,19 +13,31 @@
 # and then reports `current − baseline` so the percentage reflects only what
 # has been added since session start. See .claude/claude-tooling.md for the
 # full setup notes.
+
+# Intentional: `set -u` only, no `-e` / `-o pipefail`. The statusline must
+# never crash the prompt — every command degrades gracefully via 2>/dev/null
+# fallbacks. Adding -e/pipefail would convert benign python parse failures
+# (transcript shape drift, ccusage missing) into a blank statusline.
 set -u
 
 BASELINE_DIR="$HOME/.claude/.statusline-baselines"
 mkdir -p "$BASELINE_DIR"
 
+# Prune baseline files older than 14 days. Tiny single-int files, but they'd
+# accumulate one-per-session indefinitely without this. Best-effort.
+find "$BASELINE_DIR" -type f -name '*.txt' -mtime +14 -delete 2>/dev/null || true
+
+# Resolve python3 portably — prefer PATH, fall back to the macOS system path.
+PYTHON="$(command -v python3 || echo /usr/bin/python3)"
+
 input="$(cat)"
 
-session_id="$(printf '%s' "$input" | /usr/bin/python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("session_id",""))' 2>/dev/null)"
-transcript="$(printf '%s' "$input" | /usr/bin/python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("transcript_path",""))' 2>/dev/null)"
+session_id="$(printf '%s' "$input" | "$PYTHON" -c 'import json,sys; d=json.load(sys.stdin); print(d.get("session_id",""))' 2>/dev/null)"
+transcript="$(printf '%s' "$input" | "$PYTHON" -c 'import json,sys; d=json.load(sys.stdin); print(d.get("transcript_path",""))' 2>/dev/null)"
 
 current_tokens=0
 if [ -n "$transcript" ] && [ -f "$transcript" ]; then
-  current_tokens="$(/usr/bin/python3 -c '
+  current_tokens="$("$PYTHON" -c '
 import json, sys
 total = 0
 try:
@@ -47,11 +59,17 @@ print(total)
   current_tokens="${current_tokens:-0}"
 fi
 
-baseline_file="$BASELINE_DIR/$session_id.txt"
-if [ -n "$session_id" ] && [ ! -f "$baseline_file" ]; then
-  echo "$current_tokens" > "$baseline_file"
+# Baseline logic — only when we have a session_id AND a non-zero current
+# total. Persisting a 0 baseline (silent python parse failure or empty
+# transcript) would lock the wrapper into "delta == current" forever.
+baseline=0
+if [ -n "$session_id" ]; then
+  baseline_file="$BASELINE_DIR/$session_id.txt"
+  if [ ! -f "$baseline_file" ] && [ "$current_tokens" -gt 0 ]; then
+    echo "$current_tokens" > "$baseline_file"
+  fi
+  baseline="$(cat "$baseline_file" 2>/dev/null || echo 0)"
 fi
-baseline="$(cat "$baseline_file" 2>/dev/null || echo 0)"
 
 delta=$(( current_tokens - baseline ))
 [ "$delta" -lt 0 ] && delta=0
@@ -81,7 +99,7 @@ left="⚡ ${pct}% [${bar}] · ${pretty} convo"
 block_summary=""
 if command -v ccusage >/dev/null 2>&1; then
   block_summary="$(ccusage blocks --active --token-limit max --json 2>/dev/null \
-    | /usr/bin/python3 -c '
+    | "$PYTHON" -c '
 import json, sys, datetime
 try:
     d = json.load(sys.stdin)
