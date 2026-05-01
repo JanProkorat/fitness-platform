@@ -326,7 +326,22 @@ concurrently. Each dev sub-agent is started inside its own worktree
 ### 1a. Worktree setup (parallel dispatches only)
 
 Before dispatching the dev sub-agent, create the worktree off the epic
-branch:
+branch. **Prefer the `git-worktree` MCP** (registered in `.mcp.json`)
+over raw shell — it returns structured paths/branch names, surfaces
+errors as MCP responses instead of stderr the orchestrator has to
+parse, and avoids path-escaping bugs on slugged titles. Call its
+worktree-create tool with:
+
+- `path`: `.worktrees/<N>-<short>` (relative to repo root)
+- `branch`: `<type>/<N>-<short-kebab>` (new branch — the child's)
+- `commit` / `base`: `origin/$EPIC_BRANCH`
+
+Where `<N>` is the child issue number, `<short>` is ≤20 chars of the
+title slugged, and `<type>` matches the child's `type:*` label.
+
+If the MCP isn't reachable in the current session (e.g. running
+ship-epic from an environment without the `git-worktree` server), fall
+back to:
 
 ```bash
 git fetch origin "$EPIC_BRANCH"
@@ -334,12 +349,10 @@ git worktree add .worktrees/<N>-<short> \
     -b <type>/<N>-<short-kebab> "origin/$EPIC_BRANCH"
 ```
 
-Where `<N>` is the child issue number, `<short>` is ≤20 chars of the
-title slugged, and `<type>` matches the child's `type:*` label. For
-serial dispatches on a freshly-merged epic branch, skip the worktree
-and let the dev sub-agent branch off the main checkout — but make sure
-the main checkout is on `$EPIC_BRANCH` first (`git checkout
-$EPIC_BRANCH && git pull --ff-only`).
+For serial dispatches on a freshly-merged epic branch, skip the
+worktree entirely and let the dev sub-agent branch off the main
+checkout — but make sure the main checkout is on `$EPIC_BRANCH` first
+(`git checkout $EPIC_BRANCH && git pull --ff-only`).
 
 ### 1b. Run design-review (Rule 5.5)
 
@@ -417,7 +430,9 @@ Sub-issue PRs auto-merge per rule 8a — no per-PR user pause.
   pass). For exclusion BLOCKED (migrations, Mongo data scripts), the
   user merges that one PR by hand onto the epic branch and tells you
   to continue.
-- When `pr-reviewer` returns MERGED, remove the worktree:
+- When `pr-reviewer` returns MERGED, remove the worktree. **Prefer
+  the `git-worktree` MCP's worktree-remove tool** with `path:
+  .worktrees/<N>-<short>`. Fallback when the MCP isn't reachable:
   ```bash
   git worktree remove .worktrees/<N>-<short>
   ```
