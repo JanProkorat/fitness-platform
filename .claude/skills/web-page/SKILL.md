@@ -156,6 +156,20 @@ Adjust for the actual shape:
 4. Open devtools network tab — no polling (only initial load + post-mutation
    invalidation fetches).
 
+## Final step — i18n validation
+
+Before reporting done, invoke the `i18n-expert` skill to audit cs / en / de
+key parity for any new user-facing copy the scaffold introduced:
+
+```
+Skill: i18n-expert:i18n-expert  audit web/src/i18n/locales/{cs,en,de}.json for the new <prefix>.* keys (cs is the source of truth)
+```
+
+The skill flags missing keys per locale, hardcoded strings that bypassed
+`useTranslation()`, pluralization gaps, and ICU-format drift. Required when
+the scaffold introduces any new user-facing string — skip only when the
+new page adds zero new copy (e.g. a pure-routing wrapper).
+
 ## Related skills to chain
 
 - **`design:design-critique`** — after the page renders, run a pass on
