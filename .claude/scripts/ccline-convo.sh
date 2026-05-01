@@ -96,9 +96,22 @@ fi
 left="⚡ ${pct}% [${bar}] · ${pretty} convo"
 
 # Right side — 5h-block usage from ccusage. Optional; degrades gracefully.
+#
+# By default we let ccusage auto-detect the cap from usage history, which
+# matches what Claude Code's `/status` reports. Hardcoding `--token-limit
+# max` would force the Max20 tier cap (~6.5M tokens) regardless of the
+# user's actual plan, so the percentage would diverge from /status (e.g.
+# 12.6% here vs 82% in /status on a Max5 plan).
+#
+# Override via CCLINE_BLOCK_TOKEN_LIMIT (e.g. "max", "pro", "max5") if the
+# auto-detected cap isn't what you want.
 block_summary=""
 if command -v ccusage >/dev/null 2>&1; then
-  block_summary="$(ccusage blocks --active --token-limit max --json 2>/dev/null \
+  ccusage_args=(blocks --active --json)
+  if [ -n "${CCLINE_BLOCK_TOKEN_LIMIT:-}" ]; then
+    ccusage_args+=(--token-limit "$CCLINE_BLOCK_TOKEN_LIMIT")
+  fi
+  block_summary="$(ccusage "${ccusage_args[@]}" 2>/dev/null \
     | "$PYTHON" -c '
 import json, sys, datetime
 try:
