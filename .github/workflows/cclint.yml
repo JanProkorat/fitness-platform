@@ -3,9 +3,9 @@ name: Claude Code Lint
 on:
   push:
     branches: [main, develop]
-    paths: ['.claude/**', 'CLAUDE.md']
+    paths: ['.claude/**', 'CLAUDE.md', '.github/workflows/cclint.yml']
   pull_request:
-    paths: ['.claude/**', 'CLAUDE.md']
+    paths: ['.claude/**', 'CLAUDE.md', '.github/workflows/cclint.yml']
 
 jobs:
   cclint:
