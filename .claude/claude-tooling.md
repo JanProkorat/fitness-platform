@@ -20,13 +20,17 @@ visibility into the 5-hour window without context-switching.
 
 ### Install
 
-CCometixLine ships as a single binary. Install per the upstream README
-(typically a download or `cargo install` step) and place it on `$PATH`
-or under `~/.claude/ccline/ccline`. Verify:
+CCometixLine ships as a single binary. Install per the upstream
+README and place the binary either on `$PATH` or under
+`~/.claude/ccline/ccline` (the path the wire-up snippet below
+expects). Verify:
 
 ```bash
 ~/.claude/ccline/ccline --help    # or: ccline --help if on $PATH
 ```
+
+Update the `command` path in the snippet below if you placed the
+binary somewhere else.
 
 ### Wire-up — `~/.claude/settings.json`
 
