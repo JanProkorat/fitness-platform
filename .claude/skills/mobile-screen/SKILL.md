@@ -188,6 +188,22 @@ renders but the hardware back button / swipe gesture breaks.
 3. Grep for hex literals in the new file — there should be none:
    `grep -E "#[0-9a-fA-F]{3,8}" mobile/app/<path>`.
 
+## Token-compliance scan (post-scaffold)
+
+After the screen renders, invoke the
+`delightful-design-system:audit-with-delightful` skill (or the
+`audit_css` MCP tool from the same plugin) to flag any hardcoded
+colors, spacing, font sizes, or radii in the new file. Use the
+output as a **hardcoded-value detector only** — the skill is
+opinionated toward Delightful's OKLCH neo-brutalist tokens, so
+ignore its replacement suggestions; route real fixes back to this
+project's `useTheme()` tokens (`theme.colors.*`, `theme.spacing.*`,
+`theme.typography.*`, `theme.radius.*`). Brand gold `#c9a84c` must
+only appear via the theme entry, never inline.
+
+Required when the scaffold introduces any new styling. Skip when
+the new screen is a pure-routing wrapper with no styling.
+
 ## Final step — i18n validation
 
 Before reporting done, invoke the `i18n-expert` skill to audit cs / en / de

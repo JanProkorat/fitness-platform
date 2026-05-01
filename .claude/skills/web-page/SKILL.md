@@ -156,6 +156,22 @@ Adjust for the actual shape:
 4. Open devtools network tab — no polling (only initial load + post-mutation
    invalidation fetches).
 
+## Token-compliance scan (post-scaffold)
+
+After the page renders, invoke the
+`delightful-design-system:audit-with-delightful` skill (or the
+`audit_css` MCP tool from the same plugin) to flag any hardcoded
+colors, spacing, font sizes, or radii in the new file. Use the
+output as a **hardcoded-value detector only** — the skill is
+opinionated toward Delightful's OKLCH neo-brutalist tokens, so
+ignore its replacement suggestions; route real fixes back to this
+project's Tailwind theme (`text-text`, `bg-surface`, `gap-6`,
+etc.). Brand gold `#c9a84c` must only appear via the theme entry,
+never inline.
+
+Required when the scaffold introduces any new styling. Skip when
+the new page is a pure-routing wrapper with no styling.
+
 ## Final step — i18n validation
 
 Before reporting done, invoke the `i18n-expert` skill to audit cs / en / de
