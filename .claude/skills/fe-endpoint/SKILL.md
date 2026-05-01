@@ -230,20 +230,11 @@ sub-agent with `model: "haiku"` instead.
 
 ## Related skills to chain
 
-- **`testcontainers:testcontainers-dotnet`** — source of truth for
-  Testcontainers for .NET (4.10+) fixture patterns: container
-  lifecycle, image pinning, networking, parallel-test isolation, and
-  resource cleanup. **Invoke when** the test in step 5 needs a
-  container the existing `EndpointFixture` / `IntegrationTestFixture`
-  doesn't already cover — e.g. a new DB engine (Redis, RabbitMQ),
-  an S3-compatible blob mock outside MinIO, or a non-default
-  PostgreSQL/MongoDB version. The skill returns the canonical
-  `Container.Builder()` / `WaitUntil` / `OneTimeFixture` recipes you
-  can adapt into a new helper alongside the existing ones.
-  **Skip when** you're reusing the existing Postgres + Mongo + MinIO
-  fixtures (the common case — most new endpoints don't introduce new
-  infra). The fe-endpoint scaffold output above is unchanged by this
-  reference; the skill is purely a lookup for atypical fixtures.
+- **`testcontainers:testcontainers-dotnet`** — Testcontainers for .NET
+  4.10+ fixture patterns. Invoke when step 5 needs a container the
+  existing `EndpointFixture` / `IntegrationTestFixture` doesn't cover
+  (new DB engine, non-default Postgres/Mongo version, S3 mock outside
+  MinIO); returns canonical `Container.Builder()` / `WaitUntil` recipes.
 - **`gc-sec-review`** — run after scaffolding endpoints that touch auth,
   ownership, or abuse-prone surfaces (invites, password reset, file upload).
   It catches IDOR / injection / rate-limit gaps the template can't encode.
