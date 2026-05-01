@@ -1,6 +1,6 @@
 ---
 name: ui-tradeoff
-description: Enforce the two-attempt stop rule for UI iteration (Working Principles §4). Invoke when a mobile/web animation, layout, or state-sync behaviour has failed twice in a row on the same surface — expand/collapse stuttering, animations that don't trigger, completion-state sync drifting, content flashing before animating, any case where the user has said "it does not work" or equivalent on the same surface twice. Produces a tradeoff doc in `docs/ui-tradeoffs/` comparing 2-3 candidate approaches and asks the user for a screen recording before more code is written.
+description: Enforce two-attempt stop rule (Working Principles §4) when an animation / layout / state-sync has failed twice on a surface. Produces tradeoff doc; demands screen recording before attempt #3.
 ---
 
 # ui-tradeoff — stop and rethink before attempt #3

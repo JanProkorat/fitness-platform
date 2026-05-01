@@ -1,6 +1,8 @@
 ---
 name: ship-epic
-description: End-to-end orchestration of a GitHub epic using the **epic-branch model** — read the epic and its sub-issues, create a single `feature/<epic-N>-<short>` epic branch off `develop`, dispatch the right dev sub-agents (in parallel when safe) to worktree-isolated sub-issue branches **rooted off the epic branch**, loop each child through the dev → qa-tester → pr-reviewer gates defined in `.claude/CLAUDE.md`, **auto-merge each sub-issue PR into the epic branch** (no per-PR user pause), then open ONE consolidated epic PR against `develop`, present it to the user, wait for explicit same-turn authorization, merge, and document the shipped changes via `notion-docs`. Develop never sees a half-shipped epic. Invoke when the user says "ship epic #N", "implement epic <URL>", "drive epic #N to green", or hands over an epic issue and expects autonomous multi-PR delivery. Orchestrator-only; sub-agents never invoke this skill themselves.
+description: GitHub epic orchestration via epic-branch model — design-review + dispatch children off epic, auto-merge children, open epic PR, same-turn auth merge, notion-docs. Invoke on "ship epic #N". Orchestrator-only.
+disable-model-invocation: true
+argument-hint: "<epic-issue-number-or-URL>"
 ---
 
 # ship-epic — drive a GitHub epic to merge end-to-end
@@ -76,6 +78,41 @@ the end" choice. The epic-branch model is the single mode — sub-issue
 PRs auto-merge into the epic branch, and authorization is required
 only once, at the epic merge to `develop` (Phase 3).
 
+## State persistence (survives `/clear` and compact)
+
+Every phase boundary writes `.claude/state/ship-epic.json` so the
+orchestration can resume after a context reset. The
+`reinject-state.sh` SessionStart hook reads this file on every fresh
+session and surfaces it back as context.
+
+**Write the state file at every transition:**
+
+- After Phase 0 step 4 (epic branch created + pushed): `phase: "creating"`.
+- Just before each child dispatch in Phase 1: append/update that
+  child's entry with `status: "in-progress"`, current `branch`,
+  current `pr` (null until opened).
+- After each child merge: bump that entry to `status: "merged"`.
+- When opening the epic PR (Phase 2): `phase: "epic-pr"` and capture
+  the epic PR number on a new top-level field if useful.
+- After the epic merge (Phase 2b): `phase: "done"`, then move on to
+  Phase 3.
+
+**Schema:** [`schemas/ship-epic-state.v1.json`](../../schemas/ship-epic-state.v1.json)
+— validated by `reinject-state.sh` on every SessionStart. Required
+fields: `epic_number`, `epic_branch`, `phase` (`creating |
+design-reviewing | dispatching | merging-children | epic-pr | done`),
+`children` array (each `{ issue, status, branch?, pr?, depends_on?,
+estimated_complexity?, blocked_reason? }`), `started_at`, `updated_at`
+(ISO-8601). Optional `fast_path: bool` and `epic_pr: int` once those
+phases are reached. Every state-file write must include the literal
+`"$schema": ".claude/schemas/ship-epic-state.v1.json"` field — that's
+how the validator finds the schema.
+
+**On session start with a non-empty state file**: the reinject hook
+emits the current epic + children. If `phase != "done"`, the
+orchestrator picks up where it left off — usually by re-running the
+loop body for the first child whose `status != "merged"`.
+
 ---
 
 ## Phase 0 — Read the epic, build the work list, and create the epic branch
@@ -147,6 +184,136 @@ branch (`gh issue comment <N> --body "Epic branch:
 into develop."`). Route via `github-issues` rather than running `gh`
 directly.
 
+## Phase 0a — Dependency resolution (topo-sort + cycle detection)
+
+After Phase 0 builds the child list and BEFORE the fast-path check
+(0b) runs, resolve any explicit cross-child dependencies declared in
+the issue bodies.
+
+### How children declare dependencies
+
+Each child issue body MAY contain a "Depends on #N" or
+"**Depends on:** #N, #M" line — the `github-issues` agent supports
+this syntax in issue templates. Parse those out into a
+`depends_on: [int]` array on each child entry.
+
+### Topological sort
+
+Sort children so each comes after every issue it depends on. Standard
+Kahn's algorithm works fine — pick a child with no remaining open
+deps, schedule it, remove it from the dep list of its dependents,
+repeat. Ties (multiple ready-now children) preserve their original
+issue-order so the user sees a stable plan.
+
+### Cycle detection
+
+If after topo-sort there are still children with unresolved deps, you
+have a cycle. **Fail loudly** — emit the cycle path
+(`#A → #B → #A`) and surface it via `AskUserQuestion`. Do NOT
+dispatch any of the cycle's members. The user fixes the issue
+metadata (drops one of the dependencies), then ship-epic re-runs
+Phase 0a.
+
+### Effect on dispatch
+
+After topo-sort + cycle detection passes:
+
+- Children with **no remaining deps** are eligible for parallel
+  dispatch in Phase 1 (and the fast-path check in 0b).
+- Children with deps are held until all their deps reach
+  `status: merged` in `state/ship-epic.json`. The ship-epic loop
+  re-checks eligibility after each child merge.
+- Persist `depends_on` to each child entry in the state file so
+  re-injected sessions know the dependency graph.
+
+### Why an explicit declaration
+
+Implicit dependencies (e.g. "child B touches a file child A creates")
+are not detected here — that's the design-reviewer's job (Phase 1b
+contradiction guard). This phase only handles dependencies the user
+explicitly declared in the issue body. Unstated deps that surface
+only at design-review time pull the affected child out of the
+fast-path; the rest of the epic continues.
+
+## Phase 0b — Fast-path eligibility check (deferred-gate)
+
+After Phase 0 creates the epic branch and BEFORE the per-child loop
+runs, check if the epic qualifies for the deferred-gate fast-path.
+The default flow runs design-review per child with separate user
+visibility per round; the fast-path consolidates that into ONE
+approval prompt covering "epic plan + all child design-reviews" so
+small routine epics don't burn N+1 user touchpoints.
+
+### Trigger conditions — ALL must hold
+
+1. **Size bound:** the epic has either a single child, OR ≤3 sibling
+   children whose `approved_scope.files_in_scope` are **disjoint**
+   (no pair overlaps).
+2. **Per-child complexity:** every child's
+   `approved_scope.estimated_complexity` is in `{XS, S}`.
+3. **No new entity:** no child's `files_in_scope` contains a path
+   under `backend/.../Domain/Entities/` or
+   `backend/.../Domain/Documents/`. New aggregates always need full
+   per-child user visibility.
+4. **AC quality:** every child issue body has ≥3 concrete AC bullets
+   (well-specified — `github-issues` enforces this on creation, but
+   re-verify here).
+5. **Scope-label match:** every child's `scope:*` label matches the
+   orchestrator's intended dispatch. No orchestrator-side scope
+   guesses (a guess is a soft signal that the issue is under-defined).
+
+### Contradiction guard
+
+Before offering the fast-path, scan each child's design-review
+findings (if any have already run). If ANY child has:
+
+- A new `DbSet` or aggregate added.
+- `files_in_scope` crossing package boundary (`backend` + `web` in
+  same child).
+- `estimated_complexity` ≥ M.
+- `rule_citations` including architecture anchors
+  (`rules/code-quality.md#no-re-layered-services`, etc.).
+
+→ **Suppress the fast-path offer**. Require per-child approvals.
+The cost of this guard is small; the cost of an architectural
+decision flying past unreviewed is not.
+
+### Fast-path action
+
+Instead of asking the user for separate approvals (epic plan → child
+1 design review → child 2 design review → ...), present ONE
+consolidated `AskUserQuestion`:
+
+> "Epic plan + design-review summary for all N children. Approve to
+> dispatch all in parallel."
+
+Include in the question body:
+- The epic title and number.
+- Each child: number, title, sub-agent, `estimated_complexity`,
+  `files_in_scope` summary, `error_paths` count.
+- A note that any individual child can later self-eject from the
+  fast-path if its design-review actually returns NEEDS-REVISION.
+
+On approval, dispatch ALL children's design-review + dev pipelines
+**concurrently** (each in its own worktree per
+[`rules/branch-and-pr.md#parallel-sub-agents-one-branch-each`](../../rules/branch-and-pr.md#parallel-sub-agents-one-branch-each)).
+
+### Fall-back
+
+Any child whose design-review returns NEEDS-REVISION or BLOCK pulls
+itself out of the fast-path:
+
+- The orchestrator surfaces that single child's issue to the user.
+- The other children continue without interruption.
+- When the user resolves the blocked child, ship-epic resumes its
+  per-child loop for that one child only.
+
+### When the fast-path is rejected
+
+If any of the trigger conditions fails, fall through to the regular
+Phase 1 loop (one design-review per child, default user visibility).
+This is the safe default — never auto-promote ambiguous epics.
+
 ## Phase 1 — Per-child execution loop (sub-issue → epic branch)
 
 For each child issue the plan says to run next, execute this sub-loop.
@@ -174,7 +341,27 @@ and let the dev sub-agent branch off the main checkout — but make sure
 the main checkout is on `$EPIC_BRANCH` first (`git checkout
 $EPIC_BRANCH && git pull --ff-only`).
 
-### 1b. Dispatch the dev sub-agent
+### 1b. Run design-review (Rule 5.5)
+
+**Before dispatching the dev sub-agent**, invoke `design-reviewer`
+with the child issue + dispatch brief (target sub-agent, base branch
+= `$EPIC_BRANCH`, scope summary, guessed `files_in_scope`). Read the
+result at `.claude/state/handoff-design-<N>.json`:
+
+- **APPROVE** → proceed to 1c. Pass `approved_scope` forward — the
+  dev sub-agent reads it as its first action.
+- **NEEDS-REVISION** → tighten the brief per the findings, re-submit.
+  Loop up to 3 rounds total. Round 4 → escalate to user, mark this
+  child as blocked in `state/ship-epic.json`, continue with siblings.
+- **BLOCK** → surface `blocked_reason` to user. Common: AC ambiguity
+  → route to `github-issues` to clarify; missing parent epic branch
+  → can't happen here since you created it in Phase 0.
+
+If a child design-reviews to BLOCK while siblings are mid-flight,
+let the siblings continue (the BLOCKED child pulls itself out of the
+fast-path; ship-epic resumes when the user resolves the block).
+
+### 1c. Dispatch the dev sub-agent
 
 Using the `Agent` tool with the correct subagent_type from the
 scope→agent map in `.claude/CLAUDE.md`:

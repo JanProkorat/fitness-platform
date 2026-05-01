@@ -1,6 +1,6 @@
 ---
 name: regen-api
-description: Regenerate the TypeScript API client (generated.ts) from the running backend's Swagger document via NSwag. Invoke after any backend change that adds/removes/renames routes, modifies request or response shapes, or touches DTOs. Covers both /web and /mobile.
+description: Regenerate TS API client (generated.ts) from running backend Swagger via NSwag. Invoke after any route / request / response / DTO change. Covers /web and /mobile.
 ---
 
 # regen-api — regenerate TypeScript API client

@@ -1,6 +1,6 @@
 ---
 name: signalr-event
-description: Wire a new SignalR realtime event end-to-end across backend, web, and mobile. Invoke when a task needs "push", "realtime", "broadcast", "live update", or whenever a backend mutation should cause clients to invalidate queries without polling. Coordinates changes in all three packages — the orchestrator should run this skill and dispatch each package section to the matching sub-agent in order.
+description: Wire a new SignalR event across backend, web, mobile. Invoke for "push", "realtime", "broadcast", "live update", or backend mutations that invalidate client queries. Orchestrator-run; dispatches per-package in order.
 ---
 
 # signalr-event — add a realtime event end-to-end

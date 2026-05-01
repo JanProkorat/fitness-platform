@@ -1,6 +1,7 @@
 ---
 name: mobile-screen
-description: Scaffold a new Expo Router screen in `/mobile/app/` following the client app's idiom — `useTheme()` tokens only (no hardcoded colors/spacing), TanStack Query for server data, Zustand for app state, i18n keys in cs/en/de, no `any`, proper `_layout.tsx` in sub-screen folders. Invoke when a task asks for a "new screen", "new tab", "new flow" in the mobile app.
+description: Scaffold a new Expo Router screen in `/mobile/app/` — useTheme() tokens, TanStack Query, Zustand, i18n cs/en/de, no `any`, `_layout.tsx` for sub-folders. Invoke for "new screen", "new tab", "new flow" in mobile.
+argument-hint: "<ScreenName> <route-group>"
 ---
 
 # mobile-screen — scaffold an Expo Router screen
@@ -8,6 +9,17 @@ description: Scaffold a new Expo Router screen in `/mobile/app/` following the c
 Use when adding a screen to `/mobile/app/`. This skill codifies the idioms
 that keep mobile consistent with the tokenized design system and the
 Zustand/TanStack Query split.
+
+## Read-ONE-exemplar
+
+When choosing an exemplar to model from, read **exactly ONE existing
+screen** with a similar shape (tab / detail / list / form / nested
+flow). Mobile's idiom is consistent enough that one is sufficient.
+Fall back to a second exemplar ONLY if the first is incomplete (e.g.
+doesn't cover the haptics or `_layout.tsx` pattern you need).
+**Never read more than two**. If you genuinely need broader research,
+dispatch an Explore sub-agent with `model: "haiku"` instead — inline
+reads pollute your context.
 
 ## Decide first
 

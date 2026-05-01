@@ -336,3 +336,52 @@ implementations, bulk doc generation, multi-PR scaffolding):
 
 This prevents the output-token blowups and truncated transcripts that lost work
 on earlier refactors (prototype split, Notion bootstrap).
+
+### 6. Token discipline — context hygiene + research delegation
+
+Subscription is a 5h window + weekly limit (shared across Claude.ai and Claude
+Code). Once exhausted, "extra usage" bills at API rates. Token frugality
+directly extends working hours per week.
+
+- **Between unrelated issues → `/clear`.** Cleanest restart; main context
+  stays the size of your brief, not 30 turns of stale state.
+- **Mid-large-task at ~70% context → `/compact`.** Always tell `/compact`
+  what to preserve: `/compact preserve list of changed files, test commands,
+  current branch name`.
+- **Before invoking `ship-epic`** on a multi-child epic, ensure context is
+  fresh. Long pipelines fill context fast; starting from clean state means
+  the orchestrator has the full window for state-tracking, not stale chat.
+- **Research-heavy lookups → subagent.** If you're about to read 5+ files or
+  grep across a wide surface to answer a question, dispatch an Explore /
+  general-purpose subagent (Haiku for scout-level, Sonnet for synthesis).
+  Sub-agent returns a summary; main context stays clean.
+- **`web_search` / `web_fetch` calls** — use the Haiku model. These calls
+  return long-form pages; running them through Opus/Sonnet wastes a lot of
+  context tokens for a job Haiku does competently.
+
+The global `~/.claude/CLAUDE.md` carries the cross-project version of this
+rule and the full model-selection matrix.
+
+### 7. Don't pass spec text verbatim into sub-agent prompts
+
+When the orchestrator dispatches a sub-agent, **never** pass through
+verbatim issue bodies, prototype HTML, schema documents, or other
+source files in the `Agent` prompt. The spec is data; the agent's
+prompt is built from the skill's instructions plus the specific facts
+the orchestrator extracted (issue number, branch, scope summary, file
+list).
+
+Why it matters: passing a 5-KB issue body into 5 parallel sub-agents
+costs 25 KB at the dispatch boundary, plus another 25 KB on every
+turn that re-references it. The model already has access to the issue
+via `gh issue view <N>` — it doesn't need a copy in the prompt.
+
+What to do instead:
+
+- Reference data by ID: "the issue is #142, fetch via gh".
+- Reference files by path: "read `mobile/src/screens/Today/index.tsx`".
+- Pass extracted facts only: "scope: mobile; touch `Today/`; the AC
+  is 4 bullets, summarised as <one sentence>".
+
+`ship-epic` and `signalr-event` MUST follow this rule when fanning out
+parallel children.

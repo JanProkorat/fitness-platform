@@ -1,6 +1,7 @@
 ---
 name: prototype-scene
-description: Add a new scene to an existing HTML prototype (mobile_prototype.html, notion_portal.html, trainer_prototype.html) or scaffold a new prototype file from scratch. Use whenever the user says "add a screen to the prototype", "new scene", "prototype a view", or asks to create a fresh prototype file. The skill encodes the exact wiring conventions each prototype uses so new scenes stay consistent (nav button, scene container, visibility toggle, design tokens).
+description: Add a scene to an existing HTML prototype (mobile/trainer/notion) or scaffold a new one. Encodes per-file wiring (nav, scene container, visibility, tokens). Invoke for "add scene", "prototype a view".
+argument-hint: "<prototype-file> <scene-id> <scene-title>"
 ---
 
 # prototype-scene — HTML prototype scaffolding
