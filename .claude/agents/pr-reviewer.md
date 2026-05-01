@@ -279,9 +279,18 @@ not improvise a parallel checklist.
 - FastEndpoints pattern in /backend: one endpoint per file,
   `Configure()` + `HandleAsync()`.
 - Security surface: auth, IDOR, injection, upload, invite endpoints
-  deserve extra scrutiny. If the diff touches them, mark the PR as
-  "recommend running `gc-sec-review` before merge" and add that to
-  your verdict — do not try to do a security review yourself.
+  deserve extra scrutiny. If the diff touches any of them:
+  1. Run a lightweight first-pass OWASP sweep by invoking
+     `Skill: owasp-security` with the diff as input — it surfaces
+     OWASP Top-10 / ASVS / LLM Top-10 hits at review time. Treat its
+     findings as inputs to your classification (BLOCKING / NIT /
+     QUESTION) per step 3c — same as any other hard-rule hit.
+  2. Mark the PR as "recommend running `gc-sec-review` before merge"
+     and add that to your verdict — do not try to do a deeper security
+     review yourself. `owasp-security` is a fast pre-screen; the
+     `gc-sec-review` chainable plugin is the deeper review and stays
+     a separate, recommended step (no duplication: owasp-security runs
+     inside first-pass, gc-sec-review runs as a follow-up).
 
 **3c. Classify every finding into BLOCKING / NIT / QUESTION** and tag
 each with a scope label (`[scope:backend]`, `[scope:web]`,
