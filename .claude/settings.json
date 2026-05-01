@@ -85,6 +85,7 @@
     ],
     "Stop": [
       {
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",
@@ -95,6 +96,7 @@
     ],
     "UserPromptSubmit": [
       {
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",
@@ -116,6 +118,7 @@
     ],
     "SubagentStop": [
       {
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",
