@@ -4,7 +4,7 @@ description: Pre-implementation design review. Reads the GitHub issue + orchestr
 tools: Bash, Read, Grep, Glob, Write
 model: opus
 maxTurns: 40
-color: magenta
+color: pink
 ---
 
 # design-reviewer — Pre-implementation gate
