@@ -194,12 +194,12 @@ After the screen renders, invoke the
 `delightful-design-system:audit-with-delightful` skill (or the
 `audit_css` MCP tool from the same plugin) to flag any hardcoded
 colors, spacing, font sizes, or radii in the new file. Use the
-output as a **hardcoded-value detector only** — the skill is
-opinionated toward Delightful's OKLCH neo-brutalist tokens, so
-ignore its replacement suggestions; route real fixes back to this
-project's `useTheme()` tokens (`theme.colors.*`, `theme.spacing.*`,
-`theme.typography.*`, `theme.radius.*`). Brand gold `#c9a84c` must
-only appear via the theme entry, never inline.
+output as a **hardcoded-value detector only** — the skill maps to
+Delightful's OKLCH tokens by default, so ignore its replacement
+suggestions; route real fixes back to this project's `useTheme()`
+tokens (`theme.colors.*`, `theme.spacing.*`, `theme.typography.*`,
+`theme.radius.*`). Brand gold `#c9a84c` must only appear via the
+theme entry, never inline.
 
 Required when the scaffold introduces any new styling. Skip when
 the new screen is a pure-routing wrapper with no styling.
