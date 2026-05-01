@@ -555,22 +555,31 @@ For each linked scene:
    parity. First try the automated path:
 
    - Invoke `Skill: playwright-skill:playwright-skill` with the
-     visual-regression recipe — capture the current render of the
-     touched route (web at `:5173`, mobile-web at `:8081` for
-     `react-native-web` AC flows) and diff it against the stored
-     baseline at `.qa-artifacts/baselines/<scene>.png`.
-   - **No drift** → criterion ✅ PASS; no human eyeball needed.
-   - **Drift detected** → attach the diff PNG plus both screenshots
-     from step 2 to the verdict, mark the criterion ⚠️ UNVERIFIED —
-     REQUIRES HUMAN REVIEW, and ask the orchestrator to get the user
-     to eyeball them. Do not PASS on a visual claim you can't prove.
-   - **No baseline yet for this scene** → capture the current render
-     as the new baseline at `.qa-artifacts/baselines/<scene>.png`,
-     mention "baseline established this run" in the verdict, and
-     mark the criterion ✅ PASS for this run; subsequent runs diff
-     against it. Baselines live under `.qa-artifacts/baselines/`;
-     commit them if cross-machine / CI consistency is wanted, leave
-     them gitignored if the project treats them as local-only.
+     visual-regression recipe — capture the current render of every
+     route the AC exercises (web at `:5173`, mobile-web at `:8081`
+     for `react-native-web` AC flows) and diff each against its
+     stored baseline at `.qa-artifacts/baselines/<scene>-<route>.png`
+     (one baseline per (scene, route) pair, kept globally
+     cross-issue — the whole point of a regression baseline).
+   - **No drift on every route** → criterion ✅ PASS; no human
+     eyeball needed.
+   - **Drift detected on any route** → attach the diff PNG plus both
+     screenshots from step 2 to the verdict, mark the criterion ⚠️
+     UNVERIFIED — REQUIRES HUMAN REVIEW, and ask the orchestrator
+     to get the user to eyeball them. Do not PASS on a visual claim
+     you can't prove.
+   - **No baseline yet for a (scene, route) pair** → DO NOT
+     auto-adopt the current render; a silent first-run adoption
+     would bake in any regression the dev shipped. Attach the
+     candidate PNG to the verdict, mark the criterion ⚠️ UNVERIFIED
+     — REQUIRES HUMAN BASELINE APPROVAL, and ask the orchestrator
+     to get the user to confirm the render is correct before
+     committing it as `.qa-artifacts/baselines/<scene>-<route>.png`.
+     Future runs diff against it.
+
+   Baselines stay local-only by default — `.qa-artifacts/` is
+   gitignored repo-wide. Lift the gitignore rule for
+   `.qa-artifacts/baselines/` to share baselines across machines / CI.
 
 If the issue links no prototype, skip step 5 entirely and note
 "No prototype linked — fidelity check not applicable" in the verdict.
