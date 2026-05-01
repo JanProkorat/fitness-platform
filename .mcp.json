@@ -8,6 +8,10 @@
       "command": "cwm-roslyn-navigator",
       "args": []
     },
+    "git-worktree": {
+      "command": "npx",
+      "args": ["-y", "github:Mandalorian007/git-worktree-mcp"]
+    },
     "github": {
       "command": ".claude/scripts/with-keychain-secret.sh",
       "args": [

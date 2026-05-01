@@ -770,6 +770,17 @@ branches may live in their own worktrees with their own dev sub-agents
 mid-task. The orchestrator decides whether to rebase now or after the
 sibling's next push.
 
+When you do need to inspect / list / remove a worktree as part of a
+post-merge cleanup (e.g. confirming the sub-issue branch's worktree
+has been torn down), prefer the `git-worktree` MCP (registered in
+`.mcp.json`) over raw `git worktree` shell calls. The MCP returns
+structured results and avoids path-escape bugs on slugged sub-issue
+titles. Fall back to `git worktree list` / `git worktree remove` only
+if the MCP isn't reachable in the session — but actual worktree
+create/remove operations are owned by `ship-epic`, not by you;
+typically you only ever *report* the cleanup needed and let the
+orchestrator drive the MCP calls.
+
 ### S6. Return the merge verdict
 
 ```
