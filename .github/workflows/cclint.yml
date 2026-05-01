@@ -1,0 +1,32 @@
+name: Claude Code Lint
+
+on:
+  push:
+    branches: [main, develop]
+    paths: ['.claude/**', 'CLAUDE.md', '.github/workflows/cclint.yml']
+  pull_request:
+    paths: ['.claude/**', 'CLAUDE.md', '.github/workflows/cclint.yml']
+
+jobs:
+  cclint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Informational at introduction: cclint surfaces findings on .claude/**
+      # but does not block the build. Tighten to fail-on=error in a follow-up
+      # once the existing tree is clean (see #175 follow-up cleanup issue).
+      - name: Run cclint
+        id: cclint
+        continue-on-error: true
+        run: npx -y @carlrannaberg/cclint --root .
+
+      - name: Note status
+        if: steps.cclint.outcome == 'failure'
+        run: echo "::warning::cclint reported findings — see the previous step's log. Workflow will not fail the PR while introduction is informational."
