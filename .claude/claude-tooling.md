@@ -121,6 +121,12 @@ The script lives in this repo at
   stale. Delete the baseline file to refresh.
 - The script assumes the **1M-token Opus 4.7 cap** by default. Set
   `CCLINE_CAP_TOKENS=200000` (or whatever) for non-1M models.
+- The right-side 5h-block percentage is computed by `ccusage` with
+  auto-detection by default — that matches what `/status` reports for
+  the same window. Set `CCLINE_BLOCK_TOKEN_LIMIT=max` (or `pro` /
+  `max5` / `max20`) to force a specific tier cap; useful for
+  projection / planning views, but the default auto-detect is what
+  most people want.
 
 ### Troubleshooting
 
