@@ -552,10 +552,25 @@ For each linked scene:
 
 4. **When the difference is inherently visual** (spacing that reads
    wrong, a shadow, a curve, a transition), code alone cannot prove
-   parity. Attach both screenshots from step 2 to the verdict, mark
-   the criterion ⚠️ UNVERIFIED — REQUIRES HUMAN REVIEW, and ask the
-   orchestrator to get the user to eyeball them. Do not PASS on a
-   visual claim you can't prove.
+   parity. First try the automated path:
+
+   - Invoke `Skill: playwright-skill:playwright-skill` with the
+     visual-regression recipe — capture the current render of the
+     touched route (web at `:5173`, mobile-web at `:8081` for
+     `react-native-web` AC flows) and diff it against the stored
+     baseline at `.qa-artifacts/baselines/<scene>.png`.
+   - **No drift** → criterion ✅ PASS; no human eyeball needed.
+   - **Drift detected** → attach the diff PNG plus both screenshots
+     from step 2 to the verdict, mark the criterion ⚠️ UNVERIFIED —
+     REQUIRES HUMAN REVIEW, and ask the orchestrator to get the user
+     to eyeball them. Do not PASS on a visual claim you can't prove.
+   - **No baseline yet for this scene** → capture the current render
+     as the new baseline at `.qa-artifacts/baselines/<scene>.png`,
+     mention "baseline established this run" in the verdict, and
+     mark the criterion ✅ PASS for this run; subsequent runs diff
+     against it. Baselines live under `.qa-artifacts/baselines/`;
+     commit them if cross-machine / CI consistency is wanted, leave
+     them gitignored if the project treats them as local-only.
 
 If the issue links no prototype, skip step 5 entirely and note
 "No prototype linked — fidelity check not applicable" in the verdict.
