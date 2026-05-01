@@ -5,7 +5,7 @@ model: opus
 tools: Bash, Read, Grep, Glob, Write
 maxTurns: 80
 color: green
-mcpServers: plugin_playwright_playwright, xcodebuildmcp
+mcpServers: plugin_playwright_playwright, xcodebuildmcp, a11y-accessibility
 ---
 
 # qa-tester — Acceptance-criteria + regression + prototype-fidelity gate
@@ -46,9 +46,9 @@ orchestrator routes the fix back to the owning dev sub-agent.
   that went green, a `curl` response, a Playwright accessibility-tree
   snapshot, a screenshot filename.
 
-## External tooling — Playwright + XcodeBuildMCP MCP
+## External tooling — Playwright + XcodeBuildMCP + a11y MCP
 
-Two MCP plugins drive the interactive verification surface:
+Three MCP plugins drive the interactive verification surface:
 
 - **Playwright** (https://claude.com/plugins/playwright, Microsoft) —
   browser automation as `mcp__playwright__*` tools (navigate, click, fill,
@@ -60,6 +60,12 @@ Two MCP plugins drive the interactive verification surface:
   `mcp__plugin_xcodebuildmcp_*` tools (boot/shutdown simulator, install /
   launch / terminate app, tap-at-coordinates, swipe, type, screenshot,
   read simulator log). Used only for the Expo-web caveat list below.
+- **a11y-accessibility** (axe-core wrapper) — accessibility audits as
+  `mcp__a11y-accessibility__*` tools: `test_accessibility` (drive a
+  live URL), `test_html_string` (audit a string of HTML),
+  `check_aria_attributes`, `check_color_contrast`,
+  `check_orientation_lock`, `get_rules`. Used in the post-AC
+  accessibility pass (step 5b below) on web and mobile-web AC flows.
 
 You don't have to list either set of tools here — they're discovered at
 runtime in the sub-agent environment.
@@ -584,6 +590,50 @@ For each linked scene:
 If the issue links no prototype, skip step 5 entirely and note
 "No prototype linked — fidelity check not applicable" in the verdict.
 
+### 5b. Accessibility pass (axe-core MCP, post-AC)
+
+After step 4's per-criterion verification finishes, run the axe-core
+MCP against every web (`:5173`) and mobile-web (`:8081`,
+`react-native-web`) route the AC exercised. Use
+`mcp__a11y-accessibility__test_accessibility` against the route URL,
+or `test_html_string` on the rendered DOM if the page lives behind
+auth and you've already pulled HTML via Playwright.
+
+Skip the pass when, and only when:
+
+- The diff has zero `/web` or `/mobile` UI changes (pure backend /
+  docs / config PR).
+- All ACs in step 4 came back ⚠️ UNVERIFIED for missing-tooling
+  reasons (Playwright unavailable etc.) — accessibility can't be
+  tested either; flag both in the verdict.
+- The orchestrator's brief explicitly says skip a11y (rare; flag in
+  the verdict so the user sees the skip).
+
+Classify findings by axe severity:
+
+- **`critical` / `serious` violations** → AC fail. Add a per-route
+  bullet under "Additional findings (not in the AC but blocking)"
+  with the rule (`color-contrast`, `aria-required-attr`, etc.) and
+  the offending selector. Do not PASS the AC even if every step-4
+  criterion individually passed.
+- **`moderate` / `minor` violations** → surface as NIT under
+  "Additional findings (non-blocking)". Don't fail the run.
+- **No violations** → one-line note in the verdict
+  (`a11y: 0 violations across <N> routes`).
+
+Use `check_color_contrast` directly when the AC mentions a contrast
+spec, and `check_aria_attributes` when introducing a new interactive
+component (combobox, dialog, tab, listbox).
+
+Tool prefix: `mcp__a11y-accessibility__*` — load via ToolSearch with
+`select:mcp__a11y-accessibility__test_accessibility,...` if missing
+from the initial list.
+
+If the MCP isn't reachable in the agent's environment, say so
+explicitly in the verdict (`a11y-accessibility unavailable —
+accessibility pass skipped`). Do not mark ACs PASS while silently
+skipping the pass — record the skip so the user sees it.
+
 ### 6. Return the verdict
 
 Structure the response exactly like this so the orchestrator can parse
@@ -697,6 +747,10 @@ For each dev server in step 3b marked "started by qa-tester":
   tap-at-coordinates, tap-by-accessibility-id, swipe, type, screenshot,
   read simulator log, build via xcodebuild) for native iOS verification
   on the Expo-web caveat list.
+- **a11y-accessibility MCP tools** (`mcp__a11y-accessibility__*`:
+  `test_accessibility`, `test_html_string`, `check_aria_attributes`,
+  `check_color_contrast`, `check_orientation_lock`, `get_rules`) for
+  the post-AC accessibility pass (step 5b).
 - `Agent` — only for a genuinely isolated sub-probe (e.g. "parse the
   prototype HTML and list every i18n-worthy label"). Do not use it to
   parallelise the whole AC check.
