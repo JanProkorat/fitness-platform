@@ -1,0 +1,127 @@
+# Render Blueprint — Fitness Platform backend (dev environment)
+#
+# Deploys ONE service:
+#   - fitness-api    Web Service (Docker) — ASP.NET Core 10 / FastEndpoints API
+#
+# CONFIG MODEL: appsettings.Development.json is in .gitignore, so the file does
+# NOT ship in the Docker image. Every dev-environment value must be supplied
+# as an env var below; secrets are declared `sync: false` so Render prompts
+# for them on first deploy.
+#
+# Note on ASPNETCORE_ENVIRONMENT=Development: this skips UseHttpsRedirection
+# in Program.cs, which is required because Render terminates TLS at the edge
+# and the request reaches the container as plain HTTP. Setting Production
+# would cause an HTTPS redirect loop.
+#
+# External dependencies (paste URLs/keys in Render dashboard on first deploy):
+#   - PostgreSQL    Supabase (paste full conn string + password)
+#   - MongoDB       Atlas    (paste full conn string with `{0}` placeholder + password)
+#   - Blob storage  Cloudflare R2 (paste endpoint + access keys)
+#   - Email         Resend   (paste API token)
+#
+# Apply with: Render dashboard → Blueprints → New Blueprint Instance.
+
+services:
+  - type: web
+    name: fitness-api
+    runtime: docker
+    plan: starter                # free tier sleeps after 15 min idle; bump for prod
+    region: frankfurt
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health/live   # cheap liveness probe — no DB pings
+    autoDeploy: true
+    branch: develop
+
+    envVars:
+      # ── ASP.NET Core runtime ───────────────────────────────────────────
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Development          # skips UseHttpsRedirection (Render terminates
+                                    # TLS at the edge → would otherwise redirect-loop)
+      - key: ASPNETCORE_HTTP_PORTS
+        value: "8080"
+
+      # ── Postgres (Supabase) ────────────────────────────────────────────
+      # Full connection string MINUS the password; ConnectionStringFactory
+      # appends ;Password={POSTGRES_PASSWORD} at runtime.
+      # Example value:
+      #   Host=aws-1-eu-west-2.pooler.supabase.com;Database=postgres;Username=postgres.<PROJECT>;SSL Mode=Require;Trust Server Certificate=true
+      - key: ConnectionStrings__PostgreSQL
+        sync: false
+      - key: POSTGRES_PASSWORD
+        sync: false
+
+      # ── MongoDB (Atlas) ────────────────────────────────────────────────
+      # Connection string MUST contain `{0}` where the password goes;
+      # ConnectionStringFactory.BuildMongo substitutes it. Example:
+      #   mongodb+srv://<USER>:{0}@<CLUSTER>.mongodb.net/?appName=fitness-dev
+      - key: ConnectionStrings__MongoDB
+        sync: false
+      - key: MONGO_PASSWORD
+        sync: false
+      - key: MongoDB__DatabaseName
+        value: fitness_dev
+
+      # ── JWT ────────────────────────────────────────────────────────────
+      - key: JWT_SECRET
+        generateValue: true         # Render generates a 256-bit random value once
+      - key: Jwt__Issuer
+        value: FitnessPlatform
+      - key: Jwt__Audience
+        value: FitnessPlatform
+      - key: Jwt__AccessTokenExpirationMinutes
+        value: "15"
+      - key: Jwt__RefreshTokenExpirationDays
+        value: "7"
+
+      # ── Blob storage (Cloudflare R2 — 10 GB free, S3-compatible) ──────
+      # Cloudflare setup (one-time, in the dashboard):
+      #   1. Create bucket `fitness-platform-dev` in your R2 namespace.
+      #   2. Bucket → Settings → Public Access → "Allow Access" via R2.dev.
+      #      Cloudflare gives you a `https://pub-<hash>.r2.dev` URL.
+      #   3. Manage R2 API Tokens → Create Token → Object Read & Write,
+      #      scoped to that bucket. Save the Access Key ID + Secret.
+      # The MinIO .NET client speaks plain S3 to R2 once the flags below
+      # disable bucket auto-provisioning + the public-read policy call
+      # (R2 manages public access via the dashboard, not S3 PutBucketPolicy).
+      - key: MinIO__Endpoint
+        sync: false                 # <ACCOUNT_ID>.r2.cloudflarestorage.com
+      - key: MinIO__PublicEndpoint
+        value: https://pub-b21414194c8b407492b727f12c20ffcb.r2.dev
+      - key: MinIO__BucketName
+        value: fitness-platform-dev
+      - key: MinIO__Secure
+        value: "true"
+      - key: MinIO__Region
+        value: auto
+      - key: MinIO__ManageBucket
+        value: "false"
+      - key: MinIO__PublicUrlIncludesBucket
+        value: "false"
+      - key: MINIO_ACCESS_KEY
+        sync: false                 # R2 API token Access Key ID
+      - key: MINIO_SECRET_KEY
+        sync: false                 # R2 API token Secret Access Key
+
+      # ── CORS / app URL ─────────────────────────────────────────────────
+      # ASP.NET binds string arrays via __0, __1 indexed env vars.
+      - key: Cors__AllowedOrigins__0
+        sync: false                 # e.g. https://fitness-web.onrender.com
+      - key: App__BaseUrl
+        sync: false                 # e.g. https://fitness-web.onrender.com
+
+      # ── Email (Resend) ─────────────────────────────────────────────────
+      - key: Email__Provider
+        value: Resend
+      - key: Email__FromAddress
+        value: onboarding@resend.dev   # swap to noreply@<your-domain> once you
+                                       # own + verify a domain in Resend
+      - key: Email__FromName
+        value: Fitness Platform
+      - key: Resend__ApiToken
+        sync: false
+
+      # ── Rate limiting ──────────────────────────────────────────────────
+      - key: RateLimiting__Disabled
+        value: "false"
