@@ -37,8 +37,15 @@ public class RegisterValidator : Validator<RegisterRequest>
             .NotEmpty()
             .MaximumLength(50);
 
-        RuleFor(x => x.Role)
+        RuleFor(x => x.Roles)
             .NotEmpty()
+            .WithMessage("At least one role is required.")
+            .Must(roles => !roles.Contains("Client", StringComparer.OrdinalIgnoreCase) ||
+                           !roles.Any(r => string.Equals(r, "Trainer", StringComparison.OrdinalIgnoreCase) ||
+                                           string.Equals(r, "Nutritionist", StringComparison.OrdinalIgnoreCase)))
+            .WithMessage("Cannot combine Client role with Trainer or Nutritionist.");
+
+        RuleForEach(x => x.Roles)
             .Must(r => Enum.TryParse<UserRole>(r, ignoreCase: true, out _))
             .WithMessage("Role must be one of: Admin, Trainer, Nutritionist, Client.");
 

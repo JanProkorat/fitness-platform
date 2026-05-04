@@ -28,7 +28,7 @@ public class RegisterEndpoint(UserManager<ApplicationUser> userManager, IApplica
         {
             s.Summary = "Register a new user";
             s.Description = "Creates a new user account with the specified role and GDPR consent.";
-            s.Responses[201] = "Registration successful";
+            s.Response<RegisterResponse>(201, "Registration successful");
             s.Responses[400] = "Validation error";
         });
     }
@@ -58,21 +58,18 @@ public class RegisterEndpoint(UserManager<ApplicationUser> userManager, IApplica
             ThrowIfAnyErrors();
         }
 
-        var role = Enum.Parse<UserRole>(req.Role, ignoreCase: true);
-        await userManager.AddToRoleAsync(user, role.ToString());
+        var roles = req.Roles.Select(r => Enum.Parse<UserRole>(r, ignoreCase: true)).Distinct().ToList();
+        await userManager.AddToRolesAsync(user, roles.Select(r => r.ToString()));
 
-        // Create role-specific profile
-        switch (role)
+        // Create role-specific profiles
+        if (roles.Any(r => r == UserRole.Trainer || r == UserRole.Nutritionist))
         {
-            case UserRole.Trainer:
-                dbContext.ProfessionalProfiles.Add(new ProfessionalProfile { UserId = user.Id });
-                break;
-            case UserRole.Nutritionist:
-                dbContext.ProfessionalProfiles.Add(new ProfessionalProfile { UserId = user.Id });
-                break;
-            case UserRole.Client:
-                dbContext.ClientProfiles.Add(new ClientProfile { UserId = user.Id });
-                break;
+            dbContext.ProfessionalProfiles.Add(new ProfessionalProfile { UserId = user.Id });
+        }
+
+        if (roles.Contains(UserRole.Client))
+        {
+            dbContext.ClientProfiles.Add(new ClientProfile { UserId = user.Id });
         }
 
         // Generate email verification token
@@ -99,7 +96,7 @@ public class RegisterEndpoint(UserManager<ApplicationUser> userManager, IApplica
             nameof(ApplicationUser),
             user.Id,
             HttpContext.Connection.RemoteIpAddress?.ToString(),
-            newValues: $"{{\"gdprConsent\":true,\"role\":\"{role}\"}}",
+            newValues: $"{{\"gdprConsent\":true,\"roles\":[{string.Join(",", roles.Select(r => $"\"{r}\""))}]}}",
             ct: ct);
 
         await Send.ResponseAsync(new RegisterResponse

@@ -31,9 +31,9 @@ public class RegisterRequest
     public string LastName { get; set; } = string.Empty;
 
     /// <summary>
-    /// The role the user is registering as.
+    /// The roles the user is registering as. Must contain at least one of: Trainer, Nutritionist, Client.
     /// </summary>
-    public string Role { get; set; } = string.Empty;
+    public List<string> Roles { get; set; } = new();
 
     /// <summary>
     /// Explicit GDPR consent for processing health data.

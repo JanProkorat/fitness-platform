@@ -22,7 +22,7 @@ public class RegisterEndpointTests
     {
         _userManager.CreateAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>())
             .Returns(IdentityResult.Success);
-        _userManager.AddToRoleAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>())
+        _userManager.AddToRolesAsync(Arg.Any<ApplicationUser>(), Arg.Any<IEnumerable<string>>())
             .Returns(IdentityResult.Success);
 
         var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _emailService);
@@ -34,7 +34,7 @@ public class RegisterEndpointTests
             ConfirmPassword = "TestPass1!",
             FirstName = "John",
             LastName = "Doe",
-            Role = "Client",
+            Roles = new List<string> { "Client" },
             GdprConsent = true
         };
 
@@ -60,7 +60,7 @@ public class RegisterEndpointTests
             ConfirmPassword = "TestPass1!",
             FirstName = "John",
             LastName = "Doe",
-            Role = "Client",
+            Roles = new List<string> { "Client" },
             GdprConsent = true
         };
 
@@ -74,7 +74,7 @@ public class RegisterEndpointTests
     {
         _userManager.CreateAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>())
             .Returns(IdentityResult.Success);
-        _userManager.AddToRoleAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>())
+        _userManager.AddToRolesAsync(Arg.Any<ApplicationUser>(), Arg.Any<IEnumerable<string>>())
             .Returns(IdentityResult.Success);
 
         var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _emailService);
@@ -86,14 +86,15 @@ public class RegisterEndpointTests
             ConfirmPassword = "TestPass1!",
             FirstName = "Jane",
             LastName = "Doe",
-            Role = "Trainer",
+            Roles = new List<string> { "Trainer" },
             GdprConsent = true
         };
 
         await ep.HandleAsync(req, CancellationToken.None);
 
-        await _userManager.Received(1).AddToRoleAsync(
-            Arg.Any<ApplicationUser>(), "Trainer");
+        await _userManager.Received(1).AddToRolesAsync(
+            Arg.Any<ApplicationUser>(),
+            Arg.Is<IEnumerable<string>>(r => r.Contains("Trainer")));
     }
 
     [Fact]
@@ -101,7 +102,7 @@ public class RegisterEndpointTests
     {
         _userManager.CreateAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>())
             .Returns(IdentityResult.Success);
-        _userManager.AddToRoleAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>())
+        _userManager.AddToRolesAsync(Arg.Any<ApplicationUser>(), Arg.Any<IEnumerable<string>>())
             .Returns(IdentityResult.Success);
 
         var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _emailService);
@@ -113,7 +114,7 @@ public class RegisterEndpointTests
             ConfirmPassword = "TestPass1!",
             FirstName = "John",
             LastName = "Doe",
-            Role = "Client",
+            Roles = new List<string> { "Client" },
             GdprConsent = true
         }, CancellationToken.None);
 
@@ -125,7 +126,7 @@ public class RegisterEndpointTests
     {
         _userManager.CreateAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>())
             .Returns(IdentityResult.Success);
-        _userManager.AddToRoleAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>())
+        _userManager.AddToRolesAsync(Arg.Any<ApplicationUser>(), Arg.Any<IEnumerable<string>>())
             .Returns(IdentityResult.Success);
 
         var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _emailService);
@@ -137,7 +138,7 @@ public class RegisterEndpointTests
             ConfirmPassword = "TestPass1!",
             FirstName = "Jane",
             LastName = "Doe",
-            Role = "Trainer",
+            Roles = new List<string> { "Trainer" },
             GdprConsent = true
         }, CancellationToken.None);
 
@@ -150,7 +151,7 @@ public class RegisterEndpointTests
         ApplicationUser? capturedUser = null;
         _userManager.CreateAsync(Arg.Do<ApplicationUser>(u => capturedUser = u), Arg.Any<string>())
             .Returns(IdentityResult.Success);
-        _userManager.AddToRoleAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>())
+        _userManager.AddToRolesAsync(Arg.Any<ApplicationUser>(), Arg.Any<IEnumerable<string>>())
             .Returns(IdentityResult.Success);
 
         var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _emailService);
@@ -162,7 +163,7 @@ public class RegisterEndpointTests
             ConfirmPassword = "TestPass1!",
             FirstName = "Jane",
             LastName = "Doe",
-            Role = "Client",
+            Roles = new List<string> { "Client" },
             GdprConsent = true
         };
 
@@ -178,7 +179,7 @@ public class RegisterEndpointTests
     {
         _userManager.CreateAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>())
             .Returns(IdentityResult.Success);
-        _userManager.AddToRoleAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>())
+        _userManager.AddToRolesAsync(Arg.Any<ApplicationUser>(), Arg.Any<IEnumerable<string>>())
             .Returns(IdentityResult.Success);
 
         var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _emailService);
@@ -190,7 +191,7 @@ public class RegisterEndpointTests
             ConfirmPassword = "TestPass1!",
             FirstName = "Jane",
             LastName = "Doe",
-            Role = "Client",
+            Roles = new List<string> { "Client" },
             GdprConsent = true
         }, CancellationToken.None);
 
@@ -203,5 +204,38 @@ public class RegisterEndpointTests
             Arg.Any<string?>(),
             Arg.Is<string?>(s => s != null && s.Contains("gdprConsent")),
             Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleAsync_TrainerAndNutritionistRoles_CreatesOneProfessionalProfile_AndAssignsBothRoles()
+    {
+        _userManager.CreateAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>())
+            .Returns(IdentityResult.Success);
+        _userManager.AddToRolesAsync(Arg.Any<ApplicationUser>(), Arg.Any<IEnumerable<string>>())
+            .Returns(IdentityResult.Success);
+
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _emailService);
+
+        await ep.HandleAsync(new RegisterRequest
+        {
+            Email = "dual@example.com",
+            Password = "TestPass1!",
+            ConfirmPassword = "TestPass1!",
+            FirstName = "Alex",
+            LastName = "Smith",
+            Roles = new List<string> { "Trainer", "Nutritionist" },
+            GdprConsent = true
+        }, CancellationToken.None);
+
+        // Both Trainer and Nutritionist roles are assigned in a single call
+        await _userManager.Received(1).AddToRolesAsync(
+            Arg.Any<ApplicationUser>(),
+            Arg.Is<IEnumerable<string>>(r => r.Contains("Trainer") && r.Contains("Nutritionist")));
+
+        // Exactly ONE ProfessionalProfile row is created (not two)
+        _db.ProfessionalProfiles.Received(1).Add(Arg.Any<ProfessionalProfile>());
+
+        // No ClientProfile should be created
+        _db.ClientProfiles.DidNotReceive().Add(Arg.Any<ClientProfile>());
     }
 }

@@ -55,7 +55,7 @@ public class AuthFlowTests(FitnessApiFactory factory)
             ConfirmPassword = "TestPass1!",
             FirstName = "John",
             LastName = "Doe",
-            Role = "Client",
+            Roles = new[] { "Client" },
             GdprConsent = false
         }, cancellationToken: TestContext.Current.CancellationToken);
 
