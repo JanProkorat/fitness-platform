@@ -5178,26 +5178,23 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
       </div>
     </div>
 
-    <!-- Exercise rotation strip -->
-    <div class="ios-section-hdr" style="margin-top:14px"><div class="ios-section-title">Pořadí cviků</div></div>
+    <!-- Exercise reference list (one round = these in order) -->
+    <div class="ios-section-hdr" style="margin-top:14px"><div class="ios-section-title">Jedno kolo</div></div>
     <div style="margin:0 16px;display:flex;flex-direction:column;gap:6px">
-      <!-- Active -->
-      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(201,168,76,.1);border:1.5px solid var(--ios-gold);border-radius:var(--ios-r)">
-        <div style="width:8px;height:8px;border-radius:50%;background:var(--ios-gold);flex-shrink:0"></div>
-        <div style="flex:1;font-size:14px;font-weight:700;color:var(--ios-gold)">Pull-ups</div>
-        <div style="font-size:13px;font-weight:700;color:var(--ios-gold)">5 reps</div>
-      </div>
-      <!-- Next 1 -->
       <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--ios-bg2);border:1px solid var(--ios-sep2);border-radius:var(--ios-r)">
-        <div style="width:8px;height:8px;border-radius:50%;background:var(--ios-label4);flex-shrink:0"></div>
-        <div style="flex:1;font-size:14px;font-weight:600;color:var(--ios-label2)">Push-ups</div>
-        <div style="font-size:13px;font-weight:600;color:var(--ios-label3)">10 reps</div>
+        <div style="min-width:18px;font-size:11px;font-weight:700;color:var(--ios-label3);text-align:center">1</div>
+        <div style="flex:1;font-size:14px;font-weight:600;color:var(--ios-label)">Pull-ups</div>
+        <div style="font-size:13px;font-weight:600;color:var(--ios-label2)">5 reps</div>
       </div>
-      <!-- Next 2 -->
       <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--ios-bg2);border:1px solid var(--ios-sep2);border-radius:var(--ios-r)">
-        <div style="width:8px;height:8px;border-radius:50%;background:var(--ios-label4);flex-shrink:0"></div>
-        <div style="flex:1;font-size:14px;font-weight:600;color:var(--ios-label2)">Sit-ups</div>
-        <div style="font-size:13px;font-weight:600;color:var(--ios-label3)">15 reps</div>
+        <div style="min-width:18px;font-size:11px;font-weight:700;color:var(--ios-label3);text-align:center">2</div>
+        <div style="flex:1;font-size:14px;font-weight:600;color:var(--ios-label)">Push-ups</div>
+        <div style="font-size:13px;font-weight:600;color:var(--ios-label2)">10 reps</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--ios-bg2);border:1px solid var(--ios-sep2);border-radius:var(--ios-r)">
+        <div style="min-width:18px;font-size:11px;font-weight:700;color:var(--ios-label3);text-align:center">3</div>
+        <div style="flex:1;font-size:14px;font-weight:600;color:var(--ios-label)">Sit-ups</div>
+        <div style="font-size:13px;font-weight:600;color:var(--ios-label2)">15 reps</div>
       </div>
     </div>
 
@@ -5212,9 +5209,15 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
       </div>
       <div style="display:flex;justify-content:space-between;margin-top:4px">
         <div style="font-size:10px;color:var(--ios-label3)">0:00</div>
-        <div style="font-size:10px;font-weight:600;color:var(--ios-label3)">84% uplynulo</div>
+        <div style="font-size:10px;font-weight:600;color:var(--ios-label3)">62% uplynulo</div>
         <div style="font-size:10px;color:var(--ios-label3)">12:00</div>
       </div>
+    </div>
+
+    <!-- Finish CTA — manual transition to live-results-summary -->
+    <div style="margin:18px 16px 0">
+      <div onclick="showPhone('ph-live-results-summary')" style="background:var(--ios-gold);color:#fff;text-align:center;font-size:16px;font-weight:700;padding:14px;border-radius:var(--ios-r);cursor:pointer;letter-spacing:.3px">Zaznamenat výsledek</div>
+      <div style="font-size:11px;color:var(--ios-label3);text-align:center;margin-top:6px">Po stisku přejdeš na souhrn a uložíš trénink.</div>
     </div>
 
     <div style="height:16px"></div>
