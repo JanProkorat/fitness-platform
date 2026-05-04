@@ -76,15 +76,20 @@ export default function RegisterPage() {
 
   const handleStep1Continue = () => {
     if (selectedRoles.size === 0) return;
+    setError(null);
     setStep(2);
   };
 
   const handleStep2Continue = async () => {
     const valid = await trigger();
-    if (valid) setStep(3);
+    if (valid) {
+      setError(null);
+      setStep(3);
+    }
   };
 
   const handleBack = () => {
+    setError(null);
     if (step === 3) setStep(2);
     else if (step === 2 && !fromInvite) setStep(1);
   };
@@ -95,14 +100,16 @@ export default function RegisterPage() {
     setError(null);
     setLoading(true);
     try {
-      const role = fromInvite ? 'Client' : (selectedRoles.has('Trainer') ? 'Trainer' : 'Nutritionist');
+      const roles: string[] = fromInvite
+        ? ['Client']
+        : Array.from(selectedRoles); // selectedRoles is Set<Role>; Role = 'Trainer' | 'Nutritionist' — matches backend UserRole names
       await apiClient.registerEndpoint({
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email,
         password: data.password,
         confirmPassword: data.confirmPassword,
-        role,
+        roles,
         gdprConsent: true,
       });
       setRegisteredEmail(data.email);

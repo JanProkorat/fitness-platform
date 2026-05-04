@@ -21,7 +21,7 @@ public static class TestHelpers
             ConfirmPassword = password,
             FirstName = firstName,
             LastName = lastName,
-            Role = role,
+            Roles = new[] { role },
             GdprConsent = true
         });
     }

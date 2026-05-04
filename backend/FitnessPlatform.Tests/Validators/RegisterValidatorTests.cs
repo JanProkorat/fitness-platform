@@ -15,7 +15,7 @@ public class RegisterValidatorTests
         ConfirmPassword = "TestPass1!",
         FirstName = "John",
         LastName = "Doe",
-        Role = "Client",
+        Roles = new List<string> { "Client" },
         GdprConsent = true
     };
 
@@ -107,15 +107,23 @@ public class RegisterValidatorTests
         _validator.TestValidate(req).ShouldHaveValidationErrorFor(x => x.LastName);
     }
 
-    [Theory]
-    [InlineData("")]
-    [InlineData("InvalidRole")]
-    [InlineData("SuperAdmin")]
-    public void Role_InvalidOrEmpty_Fails(string role)
+    [Fact]
+    public void Roles_Empty_Fails()
     {
         var req = ValidRequest();
-        req.Role = role;
-        _validator.TestValidate(req).ShouldHaveValidationErrorFor(x => x.Role);
+        req.Roles = new List<string>();
+        _validator.TestValidate(req).ShouldHaveValidationErrorFor(x => x.Roles);
+    }
+
+    [Theory]
+    [InlineData("InvalidRole")]
+    [InlineData("SuperAdmin")]
+    public void Roles_ContainsInvalidRole_Fails(string invalidRole)
+    {
+        var req = ValidRequest();
+        req.Roles = new List<string> { invalidRole };
+        var result = _validator.TestValidate(req);
+        result.IsValid.Should().BeFalse();
     }
 
     [Theory]
@@ -123,11 +131,39 @@ public class RegisterValidatorTests
     [InlineData("Trainer")]
     [InlineData("Nutritionist")]
     [InlineData("Admin")]
-    public void Role_ValidValues_Pass(string role)
+    public void Roles_SingleValidRole_Passes(string role)
     {
         var req = ValidRequest();
-        req.Role = role;
-        _validator.TestValidate(req).ShouldNotHaveValidationErrorFor(x => x.Role);
+        req.Roles = new List<string> { role };
+        _validator.TestValidate(req).ShouldNotHaveValidationErrorFor(x => x.Roles);
+    }
+
+    [Fact]
+    public void Roles_TrainerAndNutritionist_Passes()
+    {
+        var req = ValidRequest();
+        req.Roles = new List<string> { "Trainer", "Nutritionist" };
+        _validator.TestValidate(req).ShouldNotHaveValidationErrorFor(x => x.Roles);
+    }
+
+    [Fact]
+    public void Roles_ClientAndTrainer_Fails()
+    {
+        var req = ValidRequest();
+        req.Roles = new List<string> { "Client", "Trainer" };
+        var result = _validator.TestValidate(req);
+        result.ShouldHaveValidationErrorFor(x => x.Roles)
+            .WithErrorMessage("Cannot combine Client role with Trainer or Nutritionist.");
+    }
+
+    [Fact]
+    public void Roles_ClientAndNutritionist_Fails()
+    {
+        var req = ValidRequest();
+        req.Roles = new List<string> { "Client", "Nutritionist" };
+        var result = _validator.TestValidate(req);
+        result.ShouldHaveValidationErrorFor(x => x.Roles)
+            .WithErrorMessage("Cannot combine Client role with Trainer or Nutritionist.");
     }
 
     [Fact]

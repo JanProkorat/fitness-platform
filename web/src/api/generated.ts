@@ -20,7 +20,7 @@ export class ApiClient {
 
         this.instance = instance || axios.create();
 
-        this.baseUrl = baseUrl ?? "http://localhost:5000";
+        this.baseUrl = baseUrl ?? "https://localhost:5001";
 
     }
 
@@ -11550,7 +11550,7 @@ export class ApiClient {
 
     /**
      * Register a new user
-     * @return Success
+     * @return Registration successful
      */
     registerEndpoint(registerRequest: RegisterRequest, signal?: AbortSignal): Promise<RegisterResponse> {
         let url_ = this.baseUrl + "/auth/register";
@@ -11590,12 +11590,12 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 200) {
+        if (status === 201) {
             const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<RegisterResponse>(result200);
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<RegisterResponse>(result201);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -12431,7 +12431,7 @@ Always starts with avatars/. */
 
 /** Request model for generating a pre-signed avatar upload URL. */
 export interface GenerateAvatarUploadUrlRequest {
-    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp"). */
+    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif") */
     contentType: string;
     /** Declared file size in bytes. Must not exceed 5 MiB. */
     sizeBytes?: number;
@@ -13275,7 +13275,7 @@ Gallery slot: recipes/{recipeId}/gallery-{n}.{ext}. */
 
 /** Request model for generating a pre-signed upload URL for a recipe image. */
 export interface UploadRecipeImageUrlRequest {
-    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp"). */
+    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif") */
     contentType: string;
     /** Declared file size in bytes. Must not exceed 5 MiB. */
     sizeBytes?: number;
@@ -13746,7 +13746,7 @@ Always starts with avatars/. */
 
 /** Request model for generating a pre-signed professional avatar upload URL. */
 export interface GenerateProfessionalAvatarUploadUrlRequest {
-    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp"). */
+    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif") */
     contentType: string;
     /** Declared file size in bytes. Must not exceed 5 MiB. */
     sizeBytes?: number;
@@ -14320,7 +14320,7 @@ Always starts with foods/. */
 
 /** Request model for generating a pre-signed upload URL for a food image. */
 export interface UploadFoodImageUrlRequest {
-    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp"). */
+    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif") */
     contentType: string;
     /** Declared file size in bytes. Must not exceed 5 MiB. */
     sizeBytes?: number;
@@ -15096,7 +15096,7 @@ Pass this to POST /client/plans/{planId}/photos to finalize the record. */
 
 /** Request model for generating a pre-signed plan photo upload URL. */
 export interface GeneratePlanPhotoUploadUrlRequest {
-    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp"). */
+    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif") */
     contentType: string;
     /** Declared file size in bytes. Must not exceed 5 MiB. */
     sizeBytes?: number;
@@ -15433,7 +15433,7 @@ Always starts with diary/{mealId}/. */
 
 /** Request model for generating a pre-signed meal diary photo upload URL. */
 export interface GenerateMealPhotoUploadUrlRequest {
-    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp", "image/heic"). */
+    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"). */
     contentType: string;
     /** Declared file size in bytes. Must not exceed 10 MiB. */
     sizeBytes?: number;
@@ -15450,7 +15450,7 @@ Always follows the plan-photos/{planId}/{guid}.{ext} convention. */
 
 /** Request model for generating a pre-signed day-level plan photo upload URL. */
 export interface GenerateDayPhotoUploadUrlRequest {
-    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp", "image/heic"). */
+    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"). */
     contentType: string;
     /** Declared file size in bytes. Must not exceed 10 MiB. */
     sizeBytes?: number;
@@ -15809,8 +15809,8 @@ export interface RegisterRequest {
     firstName: string;
     /** User's last name. */
     lastName: string;
-    /** The role the user is registering as. */
-    role: string;
+    /** The roles the user is registering as. Must contain at least one of: Trainer, Nutritionist, Client. */
+    roles: string[];
     /** Explicit GDPR consent for processing health data. */
     gdprConsent?: boolean;
 }

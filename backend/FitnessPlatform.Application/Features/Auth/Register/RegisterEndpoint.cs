@@ -6,6 +6,7 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 
 namespace FitnessPlatform.Application.Features.Auth.Register;
 
@@ -16,7 +17,8 @@ namespace FitnessPlatform.Application.Features.Auth.Register;
 /// <param name="dbContext">Database context.</param>
 /// <param name="audit">Audit logging service.</param>
 /// <param name="emailService">Email sending service.</param>
-public class RegisterEndpoint(UserManager<ApplicationUser> userManager, IApplicationDbContext dbContext, IAuditService audit, IEmailService emailService) : Endpoint<RegisterRequest, RegisterResponse>
+/// <param name="logger">Logger for non-fatal send failures.</param>
+public class RegisterEndpoint(UserManager<ApplicationUser> userManager, IApplicationDbContext dbContext, IAuditService audit, IEmailService emailService, ILogger<RegisterEndpoint> logger) : Endpoint<RegisterRequest, RegisterResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -28,7 +30,7 @@ public class RegisterEndpoint(UserManager<ApplicationUser> userManager, IApplica
         {
             s.Summary = "Register a new user";
             s.Description = "Creates a new user account with the specified role and GDPR consent.";
-            s.Responses[201] = "Registration successful";
+            s.Response<RegisterResponse>(201, "Registration successful");
             s.Responses[400] = "Validation error";
         });
     }
@@ -58,21 +60,18 @@ public class RegisterEndpoint(UserManager<ApplicationUser> userManager, IApplica
             ThrowIfAnyErrors();
         }
 
-        var role = Enum.Parse<UserRole>(req.Role, ignoreCase: true);
-        await userManager.AddToRoleAsync(user, role.ToString());
+        var roles = req.Roles.Select(r => Enum.Parse<UserRole>(r, ignoreCase: true)).Distinct().ToList();
+        await userManager.AddToRolesAsync(user, roles.Select(r => r.ToString()));
 
-        // Create role-specific profile
-        switch (role)
+        // Create role-specific profiles
+        if (roles.Any(r => r == UserRole.Trainer || r == UserRole.Nutritionist))
         {
-            case UserRole.Trainer:
-                dbContext.ProfessionalProfiles.Add(new ProfessionalProfile { UserId = user.Id });
-                break;
-            case UserRole.Nutritionist:
-                dbContext.ProfessionalProfiles.Add(new ProfessionalProfile { UserId = user.Id });
-                break;
-            case UserRole.Client:
-                dbContext.ClientProfiles.Add(new ClientProfile { UserId = user.Id });
-                break;
+            dbContext.ProfessionalProfiles.Add(new ProfessionalProfile { UserId = user.Id });
+        }
+
+        if (roles.Contains(UserRole.Client))
+        {
+            dbContext.ClientProfiles.Add(new ClientProfile { UserId = user.Id });
         }
 
         // Generate email verification token
@@ -88,9 +87,19 @@ public class RegisterEndpoint(UserManager<ApplicationUser> userManager, IApplica
 
         await dbContext.SaveChangesAsync(ct);
 
-        // Send verification email
+        // Send verification email — non-fatal: if the send fails the user is already created
+        // and can re-trigger sending via /auth/resend-verification.
         var language = HttpContext.Request.Headers.AcceptLanguage.FirstOrDefault() ?? "en";
-        await emailService.SendEmailVerificationAsync(user.Email!, tokenValue, language, ct);
+        try
+        {
+            await emailService.SendEmailVerificationAsync(user.Email!, tokenValue, language, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogError(ex,
+                "Failed to send verification email to {Email} during registration. User {UserId} created; they can request a resend.",
+                user.Email, user.Id);
+        }
 
         // Audit: GDPR consent recorded at registration
         await audit.LogAsync(
@@ -99,7 +108,7 @@ public class RegisterEndpoint(UserManager<ApplicationUser> userManager, IApplica
             nameof(ApplicationUser),
             user.Id,
             HttpContext.Connection.RemoteIpAddress?.ToString(),
-            newValues: $"{{\"gdprConsent\":true,\"role\":\"{role}\"}}",
+            newValues: $"{{\"gdprConsent\":true,\"roles\":[{string.Join(",", roles.Select(r => $"\"{r}\""))}]}}",
             ct: ct);
 
         await Send.ResponseAsync(new RegisterResponse
