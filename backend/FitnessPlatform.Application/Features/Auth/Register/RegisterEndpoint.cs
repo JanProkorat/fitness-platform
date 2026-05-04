@@ -6,6 +6,7 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 
 namespace FitnessPlatform.Application.Features.Auth.Register;
 
@@ -16,7 +17,8 @@ namespace FitnessPlatform.Application.Features.Auth.Register;
 /// <param name="dbContext">Database context.</param>
 /// <param name="audit">Audit logging service.</param>
 /// <param name="emailService">Email sending service.</param>
-public class RegisterEndpoint(UserManager<ApplicationUser> userManager, IApplicationDbContext dbContext, IAuditService audit, IEmailService emailService) : Endpoint<RegisterRequest, RegisterResponse>
+/// <param name="logger">Logger for non-fatal send failures.</param>
+public class RegisterEndpoint(UserManager<ApplicationUser> userManager, IApplicationDbContext dbContext, IAuditService audit, IEmailService emailService, ILogger<RegisterEndpoint> logger) : Endpoint<RegisterRequest, RegisterResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -85,9 +87,19 @@ public class RegisterEndpoint(UserManager<ApplicationUser> userManager, IApplica
 
         await dbContext.SaveChangesAsync(ct);
 
-        // Send verification email
+        // Send verification email — non-fatal: if the send fails the user is already created
+        // and can re-trigger sending via /auth/resend-verification.
         var language = HttpContext.Request.Headers.AcceptLanguage.FirstOrDefault() ?? "en";
-        await emailService.SendEmailVerificationAsync(user.Email!, tokenValue, language, ct);
+        try
+        {
+            await emailService.SendEmailVerificationAsync(user.Email!, tokenValue, language, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogError(ex,
+                "Failed to send verification email to {Email} during registration. User {UserId} created; they can request a resend.",
+                user.Email, user.Id);
+        }
 
         // Audit: GDPR consent recorded at registration
         await audit.LogAsync(

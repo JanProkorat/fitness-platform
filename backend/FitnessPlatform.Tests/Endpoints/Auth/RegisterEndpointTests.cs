@@ -6,6 +6,7 @@ using FitnessPlatform.Application.Features.Auth.Register;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Tests.Builders;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace FitnessPlatform.Tests.Endpoints.Auth;
@@ -16,6 +17,7 @@ public class RegisterEndpointTests
     private readonly IApplicationDbContext _db = new MockDbBuilder().Build();
     private readonly IAuditService _audit = Substitute.For<IAuditService>();
     private readonly IEmailService _emailService = Substitute.For<IEmailService>();
+    private readonly ILogger<RegisterEndpoint> _logger = Substitute.For<ILogger<RegisterEndpoint>>();
 
     [Fact]
     public async Task HandleAsync_ValidRequest_Returns201WithUserId()
@@ -25,7 +27,7 @@ public class RegisterEndpointTests
         _userManager.AddToRolesAsync(Arg.Any<ApplicationUser>(), Arg.Any<IEnumerable<string>>())
             .Returns(IdentityResult.Success);
 
-        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _emailService);
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _emailService, _logger);
 
         var req = new RegisterRequest
         {
@@ -51,7 +53,7 @@ public class RegisterEndpointTests
         _userManager.CreateAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>())
             .Returns(IdentityResult.Failed(new IdentityError { Description = "Email already taken." }));
 
-        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _emailService);
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _emailService, _logger);
 
         var req = new RegisterRequest
         {
@@ -77,7 +79,7 @@ public class RegisterEndpointTests
         _userManager.AddToRolesAsync(Arg.Any<ApplicationUser>(), Arg.Any<IEnumerable<string>>())
             .Returns(IdentityResult.Success);
 
-        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _emailService);
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _emailService, _logger);
 
         var req = new RegisterRequest
         {
@@ -105,7 +107,7 @@ public class RegisterEndpointTests
         _userManager.AddToRolesAsync(Arg.Any<ApplicationUser>(), Arg.Any<IEnumerable<string>>())
             .Returns(IdentityResult.Success);
 
-        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _emailService);
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _emailService, _logger);
 
         await ep.HandleAsync(new RegisterRequest
         {
@@ -129,7 +131,7 @@ public class RegisterEndpointTests
         _userManager.AddToRolesAsync(Arg.Any<ApplicationUser>(), Arg.Any<IEnumerable<string>>())
             .Returns(IdentityResult.Success);
 
-        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _emailService);
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _emailService, _logger);
 
         await ep.HandleAsync(new RegisterRequest
         {
@@ -154,7 +156,7 @@ public class RegisterEndpointTests
         _userManager.AddToRolesAsync(Arg.Any<ApplicationUser>(), Arg.Any<IEnumerable<string>>())
             .Returns(IdentityResult.Success);
 
-        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _emailService);
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _emailService, _logger);
 
         var req = new RegisterRequest
         {
@@ -182,7 +184,7 @@ public class RegisterEndpointTests
         _userManager.AddToRolesAsync(Arg.Any<ApplicationUser>(), Arg.Any<IEnumerable<string>>())
             .Returns(IdentityResult.Success);
 
-        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _emailService);
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _emailService, _logger);
 
         await ep.HandleAsync(new RegisterRequest
         {
@@ -214,7 +216,7 @@ public class RegisterEndpointTests
         _userManager.AddToRolesAsync(Arg.Any<ApplicationUser>(), Arg.Any<IEnumerable<string>>())
             .Returns(IdentityResult.Success);
 
-        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _emailService);
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _emailService, _logger);
 
         await ep.HandleAsync(new RegisterRequest
         {
@@ -237,5 +239,46 @@ public class RegisterEndpointTests
 
         // No ClientProfile should be created
         _db.ClientProfiles.DidNotReceive().Add(Arg.Any<ClientProfile>());
+    }
+
+    [Fact]
+    public async Task HandleAsync_EmailSendFails_StillReturns201_AndUserIsCreated()
+    {
+        _userManager.CreateAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>())
+            .Returns(IdentityResult.Success);
+        _userManager.AddToRolesAsync(Arg.Any<ApplicationUser>(), Arg.Any<IEnumerable<string>>())
+            .Returns(IdentityResult.Success);
+
+        _emailService
+            .SendEmailVerificationAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns<Task>(_ => throw new InvalidOperationException("smtp down"));
+
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _emailService, _logger);
+
+        var req = new RegisterRequest
+        {
+            Email = "noemail@example.com",
+            Password = "TestPass1!",
+            ConfirmPassword = "TestPass1!",
+            FirstName = "John",
+            LastName = "Doe",
+            Roles = new List<string> { "Client" },
+            GdprConsent = true
+        };
+
+        await ep.HandleAsync(req, CancellationToken.None);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(201);
+
+        await _userManager.Received(1).CreateAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>());
+
+        _db.EmailVerificationTokens.Received(1).Add(Arg.Any<EmailVerificationToken>());
+
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("noemail@example.com")),
+            Arg.Is<Exception>(ex => ex is InvalidOperationException && ex.Message == "smtp down"),
+            Arg.Any<Func<object, Exception?, string>>());
     }
 }
