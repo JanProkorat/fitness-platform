@@ -7,6 +7,7 @@ using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Application.Infrastructure.HealthChecks;
 using FitnessPlatform.Application.Infrastructure.Hubs;
 using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Application.Middleware;
@@ -18,11 +19,6 @@ using Resend;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
-
-builder.Configuration.AddJsonFile(
-    $"appsettings.{builder.Environment.EnvironmentName}.Local.json",
-    optional: true,
-    reloadOnChange: true);
 
 // Serilog
 builder.Host.UseSerilog((context, config) => config
@@ -213,6 +209,12 @@ builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
+// Health checks — `/health/live` is the cheap liveness probe (no deps),
+// `/health` runs the readiness checks tagged "ready" (Postgres + Mongo ping).
+builder.Services.AddHealthChecks()
+    .AddCheck<PostgresHealthCheck>("postgres", tags: ["ready"])
+    .AddCheck<MongoHealthCheck>("mongodb", tags: ["ready"]);
+
 var app = builder.Build();
 
 // Seed data
@@ -255,6 +257,18 @@ if (args.Contains("--backfill-photo-descriptions"))
 
 // Middleware pipeline
 app.UseExceptionHandler();
+
+// Health endpoints — registered before HTTPS redirect / auth so they remain
+// reachable on plain HTTP (Render terminates TLS at the edge) and don't
+// require credentials.
+app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = _ => false,
+});
+app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready"),
+});
 
 if (!app.Environment.IsDevelopment())
 {

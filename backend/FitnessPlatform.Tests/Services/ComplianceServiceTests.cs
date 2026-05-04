@@ -395,7 +395,11 @@ public class ComplianceServiceTests
         var ex1 = Guid.NewGuid();
         var today = DateTime.UtcNow.Date;
         var yesterday = today.AddDays(-1);
-        var weekStart = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
+        // Anchor weekStart on yesterday so the week the test arranges always
+        // contains yesterday — without this, when today is a Monday, yesterday
+        // (Sunday) lands in the previous Monday-starting week and the data ends
+        // up in the wrong slot.
+        var weekStart = yesterday.AddDays(-(((int)yesterday.DayOfWeek + 6) % 7));
 
         var trainingPlan = TrainingCompletionTestHelpers.CreateActivePlan(
             clientId: _clientId,
@@ -430,7 +434,11 @@ public class ComplianceServiceTests
         var ex1 = Guid.NewGuid();
         var today = DateTime.UtcNow.Date;
         var yesterday = today.AddDays(-1);
-        var weekStart = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
+        // Anchor weekStart on yesterday so the week the test arranges always
+        // contains yesterday — without this, when today is a Monday, yesterday
+        // (Sunday) lands in the previous Monday-starting week and the data ends
+        // up in the wrong slot.
+        var weekStart = yesterday.AddDays(-(((int)yesterday.DayOfWeek + 6) % 7));
 
         // Nutrition plan with a meal for yesterday
         var nutritionPlan = PlanTestHelpers.CreatePlan(
@@ -482,7 +490,11 @@ public class ComplianceServiceTests
         var ex1 = Guid.NewGuid();
         var today = DateTime.UtcNow.Date;
         var yesterday = today.AddDays(-1);
-        var weekStart = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
+        // Anchor weekStart on yesterday so the week the test arranges always
+        // contains yesterday — without this, when today is a Monday, yesterday
+        // (Sunday) lands in the previous Monday-starting week and the data ends
+        // up in the wrong slot.
+        var weekStart = yesterday.AddDays(-(((int)yesterday.DayOfWeek + 6) % 7));
 
         var yesterdayDow = (int)yesterday.DayOfWeek;
         yesterdayDow = yesterdayDow == 0 ? 7 : yesterdayDow;
@@ -773,7 +785,11 @@ public class ComplianceServiceTests
         var ex1 = Guid.NewGuid();
         var today = DateTime.UtcNow.Date;
         var yesterday = today.AddDays(-1);
-        var weekStart = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
+        // Anchor weekStart on yesterday so the week the test arranges always
+        // contains yesterday — without this, when today is a Monday, yesterday
+        // (Sunday) lands in the previous Monday-starting week and the data ends
+        // up in the wrong slot.
+        var weekStart = yesterday.AddDays(-(((int)yesterday.DayOfWeek + 6) % 7));
 
         var yesterdayDow = (int)yesterday.DayOfWeek;
         yesterdayDow = yesterdayDow == 0 ? 7 : yesterdayDow;

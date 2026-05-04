@@ -9,15 +9,10 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<Applicatio
     {
         var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
 
-        // Mirror Program.cs's config chain: layer appsettings.{env}.Local.json
-        // on top of appsettings.{env}.json so dev-only overrides (e.g. the
-        // localhost Postgres in appsettings.Development.Local.json) win over
-        // the shared dev connection string that ships in git.
         var configuration = new ConfigurationBuilder()
             .SetBasePath(Directory.GetCurrentDirectory())
             .AddJsonFile("appsettings.json", optional: false)
             .AddJsonFile($"appsettings.{environment}.json", optional: true)
-            .AddJsonFile($"appsettings.{environment}.Local.json", optional: true)
             .AddEnvironmentVariables()
             .Build();
 
