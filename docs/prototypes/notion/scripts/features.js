@@ -986,6 +986,7 @@ function renderSectionTemplates(){
     if(_tplSearch && !t.name.toLowerCase().includes(_tplSearch) && !t.desc.toLowerCase().includes(_tplSearch)) return false;
     return true;
   });
+  var deleteBtn = '<button title="Smazat" onclick="event.stopPropagation();showToast(\'Šablona smazána\')" style="background:none;border:none;padding:4px;color:var(--t3);cursor:pointer">🗑</button>';
   // Table
   var tbody = document.getElementById('templates-tbody'); if(tbody){
     tbody.innerHTML = list.map(function(t){
@@ -995,12 +996,12 @@ function renderSectionTemplates(){
         : 'background:'+clr+'1f;color:'+clr+';border:1px solid '+clr+'4d';
       return '<tr class="db-row" onclick="openDialog(\'dlg-section-template\')">'
         +'<td><div style="font-weight:600;color:var(--t)">'+t.name+'</div><div style="font-size:11px;color:var(--t3);margin-top:1px">'+t.desc+'</div></td>'
-        +'<td><span class="tag" style="'+pillStyle+'">'+t.type+'</span></td>'
+        +'<td><span class="tag" style="'+pillStyle+';cursor:pointer" onclick="event.stopPropagation();openSectionTypeInfo(\''+t.type+'\')">'+t.type+'</span></td>'
         +'<td>'+t.exercises+'</td>'
         +'<td>~'+t.durationMin+' min</td>'
         +'<td style="color:var(--t2)">'+t.configSummary+'</td>'
         +'<td style="color:var(--t3)">'+t.used+'×</td>'
-        +'<td style="text-align:right"><button class="btn" style="font-size:12px;padding:4px 10px" onclick="event.stopPropagation();showToast(\'Šablona vložena do plánu\')">Použít</button></td>'
+        +'<td style="text-align:right">'+deleteBtn+'</td>'
         +'</tr>';
     }).join('');
   }
@@ -1012,10 +1013,10 @@ function renderSectionTemplates(){
         ? 'background:var(--acc-bg);color:var(--acc);border:1px solid var(--acc-br)'
         : 'background:'+clr+'1f;color:'+clr+';border:1px solid '+clr+'4d';
       return '<div onclick="openDialog(\'dlg-section-template\')" style="display:flex;align-items:center;gap:14px;padding:10px 14px;background:var(--bg2);border:1px solid var(--br);border-radius:8px;cursor:pointer">'
-        +'<span class="tag" style="'+pillStyle+';flex-shrink:0">'+t.type+'</span>'
+        +'<span class="tag" style="'+pillStyle+';flex-shrink:0;cursor:pointer" onclick="event.stopPropagation();openSectionTypeInfo(\''+t.type+'\')">'+t.type+'</span>'
         +'<div style="flex:1;min-width:0"><div style="font-weight:600;color:var(--t)">'+t.name+'</div><div style="font-size:12px;color:var(--t3);margin-top:1px">'+t.desc+'</div></div>'
         +'<div style="text-align:right;color:var(--t3);font-size:12px;flex-shrink:0">'+t.exercises+' cv. · ~'+t.durationMin+' min<br><span>'+t.configSummary+'</span></div>'
-        +'<button class="btn" style="font-size:12px;padding:5px 12px" onclick="event.stopPropagation();showToast(\'Šablona vložena do plánu\')">Použít</button>'
+        +deleteBtn
         +'</div>';
     }).join('');
   }
@@ -1027,10 +1028,10 @@ function renderSectionTemplates(){
         ? 'background:var(--acc-bg);color:var(--acc);border:1px solid var(--acc-br)'
         : 'background:'+clr+'1f;color:'+clr+';border:1px solid '+clr+'4d';
       return '<div onclick="openDialog(\'dlg-section-template\')" style="background:var(--bg2);border:1px solid var(--br);border-radius:10px;padding:14px;cursor:pointer;display:flex;flex-direction:column;gap:10px">'
-        +'<div style="display:flex;align-items:center;justify-content:space-between"><span class="tag" style="'+pillStyle+'">'+t.type+'</span><span style="font-size:11px;color:var(--t3)">Použito '+t.used+'×</span></div>'
+        +'<div style="display:flex;align-items:center;justify-content:space-between"><span class="tag" style="'+pillStyle+';cursor:pointer" onclick="event.stopPropagation();openSectionTypeInfo(\''+t.type+'\')">'+t.type+'</span><span style="font-size:11px;color:var(--t3)">Použito '+t.used+'×</span></div>'
         +'<div><div style="font-weight:700;color:var(--t)">'+t.name+'</div><div style="font-size:12px;color:var(--t3);margin-top:3px;line-height:1.4">'+t.desc+'</div></div>'
         +'<div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--t3);padding-top:8px;border-top:1px solid var(--br)"><span>'+t.exercises+' cviků · ~'+t.durationMin+' min</span><span style="color:var(--t)">'+t.configSummary+'</span></div>'
-        +'<button class="btn" style="font-size:12px;padding:6px;width:100%;margin-top:2px" onclick="event.stopPropagation();showToast(\'Šablona vložena do plánu\')">Použít</button>'
+        +'<div style="display:flex;justify-content:flex-end">'+deleteBtn+'</div>'
         +'</div>';
     }).join('');
   }
@@ -1041,4 +1042,75 @@ function dlgTemplateOnTypeChange(sel){
   var cfg=document.getElementById('dlg-tpl-config');
   if(cfg) cfg.style.display=(v==='Strength'||v==='Conditioning')?'none':'';
 }
+
+// ── SECTION TYPE INFO DIALOG ──────────────────────────────────────────────────
+var SECTION_TYPE_INFO = {
+  Strength: {
+    title: 'Strength', sub: 'Klasická série × opakování × odpočinek',
+    desc: 'Silové sety s definovanými opakováními, váhou a pauzou. Vhodné pro hypertrofii, maximální sílu i kondici se zátěží.',
+    config: 'Žádná extra konfigurace',
+    result: 'Opakování · váha · odpočinek (volitelné)',
+    mtype: 'Reps',
+    examples: ['Bench press · 4×8 · 80 kg', 'Dřep · 5×5 · 100 kg']
+  },
+  Conditioning: {
+    title: 'Conditioning', sub: 'Kardio na čas / vzdálenost',
+    desc: 'Aerobní nebo metabolicky náročná práce: běh, veslování, kolo, plavání. Loguje se čas nebo vzdálenost bez sérií.',
+    config: 'Žádná extra konfigurace',
+    result: 'Čas · vzdálenost (nebo oboji)',
+    mtype: 'Time',
+    examples: ['Běh 5 km', 'Veslařský ergometr 2 000 m']
+  },
+  AMRAP: {
+    title: 'AMRAP', sub: 'Kolik kol stihneš za daný čas',
+    desc: 'As Many Rounds As Possible. Trenér nastaví čas (a volitelně max. kol). Klient dělá tolik kol sekvence, kolik stihne.',
+    config: 'Časový limit (min) · max. kol (0 = neom.)',
+    result: 'Počet dokončených kol · čas',
+    mtype: 'Reps',
+    examples: ['12-min AMRAP — Pull-ups 5 / Push-ups 10 / Sit-ups 15']
+  },
+  EMOM: {
+    title: 'EMOM', sub: 'Every Minute On the Minute',
+    desc: 'Každou minutu nový set; pokud se v dané minutě cvik nestihne, kolo je neúspěšné. Zbytek minuty = odpočinek.',
+    config: 'Interval (s) · Počet kol',
+    result: 'Splněná kola · neúspěšná kola',
+    mtype: 'Reps',
+    examples: ['EMOM 10 — 10 burpees každou minutu']
+  },
+  Tabata: {
+    title: 'Tabata', sub: '8 × 20 s práce / 10 s pauza',
+    desc: 'Klasický Tabata: 8 kol po 20 sekundách práce a 10 sekundách odpočinku. Plně konfigurovatelné.',
+    config: 'Práce (s) · Pauza (s) · Počet kol',
+    result: 'Celkem reps · volitelně reps na kolo',
+    mtype: 'Reps',
+    examples: ['Tabata Burpees · 8 × 20s/10s', 'Tabata vlastní váha']
+  },
+  ForTime: {
+    title: 'ForTime', sub: 'Dokonči předepsané cviky co nejrychleji',
+    desc: 'Trenér zadá pevný počet opakování a cviků; klient prochází sekvenci na čas. Ukončí se po dokončení nebo po time-capu.',
+    config: 'Časový limit (min)',
+    result: 'Celkový čas · dokončené reps',
+    mtype: 'Reps',
+    examples: ['Fran — 21-15-9 thrusters & pull-ups', 'Cindy — 20 min AMRAP-style']
+  }
+};
+
+function openSectionTypeInfo(type){
+  var info = SECTION_TYPE_INFO[type];
+  if (!info) return;
+  var clr = sectionTypeColor(type);
+  var pillStyle = clr.indexOf('var(')===0
+    ? 'background:var(--acc-bg);color:var(--acc);border:1px solid var(--acc-br)'
+    : 'background:'+clr+'1f;color:'+clr+';border:1px solid '+clr+'4d';
+  document.getElementById('dlg-stinfo-title').textContent = info.title;
+  document.getElementById('dlg-stinfo-sub').textContent = info.sub;
+  document.getElementById('dlg-stinfo-pill-wrap').innerHTML = '<span class="tag" style="'+pillStyle+';font-size:13px;padding:4px 12px">'+info.title+'</span>';
+  document.getElementById('dlg-stinfo-desc').textContent = info.desc;
+  document.getElementById('dlg-stinfo-config').textContent = info.config;
+  document.getElementById('dlg-stinfo-result').textContent = info.result;
+  document.getElementById('dlg-stinfo-mtype').textContent = info.mtype;
+  document.getElementById('dlg-stinfo-examples').innerHTML = info.examples.map(function(e){return '• '+e;}).join('<br>');
+  openDialog('dlg-section-type-info');
+}
+
 renderDashboard();

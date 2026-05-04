@@ -25,7 +25,6 @@
   <button class="tn-btn" onclick="showScreen('s-training')">Trén. plán</button>
   <button class="tn-btn" onclick="showScreen('s-training-session-builder')">Plán · sekce</button>
   <button class="tn-btn" onclick="showScreen('s-training-section-templates')">Šablony sekcí</button>
-  <button class="tn-btn" onclick="showScreen('s-training-section-types')">Typy sekcí</button>
   <button class="tn-btn" onclick="showScreen('s-training-form-fix')">Oprava form. sérií</button>
   <button class="tn-btn" onclick="showScreen('s-messages')">Zprávy</button>
   <div class="tn-sep"></div>
@@ -52,7 +51,7 @@
 <!-- ═══════════════════════════════════════════════════════════
      DASHBOARD
 ═══════════════════════════════════════════════════════════ -->
-<!-- include: scenes/dashboard.html --><!-- include: scenes/client.html --><!-- include: scenes/training.html --><!-- include: scenes/training-session-builder.html --><!-- include: scenes/training-section-templates.html --><!-- include: scenes/training-section-types.html --><!-- include: scenes/training-form-fix.html --><!-- include: scenes/messages.html --><!-- include: scenes/nutrition.html --><!-- include: scenes/foods.html --><!-- include: scenes/recipes.html --><!-- include: scenes/goals.html --><!-- include: scenes/settings-checkins.html --><!-- include: scenes/profile.html --><!-- include: scenes/client-photos.html --><!-- include: scenes/login.html --><!-- include: scenes/register.html --><!-- include: scenes/forgot.html --></div><!-- #canvas -->
+<!-- include: scenes/dashboard.html --><!-- include: scenes/client.html --><!-- include: scenes/training.html --><!-- include: scenes/training-session-builder.html --><!-- include: scenes/training-section-templates.html --><!-- include: scenes/training-form-fix.html --><!-- include: scenes/messages.html --><!-- include: scenes/nutrition.html --><!-- include: scenes/foods.html --><!-- include: scenes/recipes.html --><!-- include: scenes/goals.html --><!-- include: scenes/settings-checkins.html --><!-- include: scenes/profile.html --><!-- include: scenes/client-photos.html --><!-- include: scenes/login.html --><!-- include: scenes/register.html --><!-- include: scenes/forgot.html --></div><!-- #canvas -->
 
 <!-- ══════════════════════════════════════════════════════════════
      DIALOGY
@@ -854,6 +853,42 @@
     <div class="dlg-footer">
       <button class="btn" onclick="closeDialog('dlg-section-template')">Zrušit</button>
       <button class="btn primary" onclick="closeDialog('dlg-section-template');showToast('Šablona uložena')">Uložit šablonu</button>
+    </div>
+  </div>
+</div>
+
+<!-- Section type info dialog -->
+<div class="overlay" id="dlg-section-type-info" onclick="closeOnOverlay(event,'dlg-section-type-info')">
+  <div class="dlg-card">
+    <div class="dlg-hdr">
+      <div>
+        <div class="dlg-title" id="dlg-stinfo-title">Typ sekce</div>
+        <div style="font-size:12px;color:var(--t3);margin-top:2px" id="dlg-stinfo-sub">—</div>
+      </div>
+      <button class="dlg-close" onclick="closeDialog('dlg-section-type-info')">✕</button>
+    </div>
+    <div class="dlg-body">
+      <div id="dlg-stinfo-pill-wrap" style="margin-bottom:14px"></div>
+      <div id="dlg-stinfo-desc" style="font-size:13px;color:var(--t2);line-height:1.55;margin-bottom:18px"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:18px">
+        <div style="background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:12px">
+          <div style="font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Konfigurace</div>
+          <div id="dlg-stinfo-config" style="font-size:13px;color:var(--t)"></div>
+        </div>
+        <div style="background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:12px">
+          <div style="font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Co se loguje</div>
+          <div id="dlg-stinfo-result" style="font-size:13px;color:var(--t)"></div>
+        </div>
+        <div style="background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:12px">
+          <div style="font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Default MovementType</div>
+          <div id="dlg-stinfo-mtype" style="font-size:13px;color:var(--t)"></div>
+        </div>
+      </div>
+      <div style="font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Příklady</div>
+      <div id="dlg-stinfo-examples" style="font-size:13px;color:var(--t2);line-height:1.55"></div>
+    </div>
+    <div class="dlg-footer">
+      <button class="btn" onclick="closeDialog('dlg-section-type-info')">Zavřít</button>
     </div>
   </div>
 </div>

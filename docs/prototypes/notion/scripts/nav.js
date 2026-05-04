@@ -29,8 +29,7 @@ function buildSidebar(containerId, activeScreen){
   html+='<div class="sb-div"></div><div class="sb-sec"><div class="sb-sec-lbl">Databáze</div>';
   html+='<div class="sb-item'+(activeScreen==='s-foods'?' active':'')+'" onclick="showScreen(\'s-foods\')"><span class="sbi-icon">📦</span><span class="sbi-lbl">Potraviny</span></div>';
   html+='<div class="sb-item'+(activeScreen==='s-recipes'?' active':'')+'" onclick="showScreen(\'s-recipes\')"><span class="sbi-icon">📖</span><span class="sbi-lbl">Recepty</span></div>';
-  html+='<div class="sb-item'+(activeScreen==='s-training-section-templates'?' active':'')+'" onclick="showScreen(\'s-training-section-templates\')"><span class="sbi-icon">📚</span><span class="sbi-lbl">Šablony sekcí</span></div>';
-  html+='<div class="sb-item'+(activeScreen==='s-training-section-types'?' active':'')+'" onclick="showScreen(\'s-training-section-types\')"><span class="sbi-icon">📑</span><span class="sbi-lbl">Typy sekcí</span></div></div>';
+  html+='<div class="sb-item'+(activeScreen==='s-training-section-templates'?' active':'')+'" onclick="showScreen(\'s-training-section-templates\')"><span class="sbi-icon">📚</span><span class="sbi-lbl">Šablony sekcí</span></div></div>';
   html+='<div class="sb-user"><div class="sb-avatar">MT</div><div><div style="font-size:13px;font-weight:500">Marek Trenér</div><div style="font-size:11px;color:var(--t3)">Trenér & výživa</div></div></div>';
   els.forEach(function(el){el.innerHTML=html;});
 }
@@ -44,7 +43,7 @@ function showScreen(id){
   document.querySelectorAll('.tn-btn').forEach(function(b){if(b.getAttribute('onclick')==="showScreen('"+id+"')") b.classList.add('active');});
   window.scrollTo(0,0);
   // Build sidebars
-  var sbMap={'s-dashboard':'sb-dashboard','s-client':'sb-client','s-training':'sb-training','s-training-session-builder':'sb-training','s-training-section-templates':'sb-training','s-training-section-types':'sb-training','s-training-form-fix':'sb-training','s-messages':'sb-messages','s-nutrition':'sb-nutrition','s-foods':'sb-foods','s-goals':'sb-goals','s-settings-checkins':'sb-settings-checkins','s-client-photos':'sb-client-photos','s-profile':'sb-profile','s-recipes':'sb-recipes'};
+  var sbMap={'s-dashboard':'sb-dashboard','s-client':'sb-client','s-training':'sb-training','s-training-session-builder':'sb-training','s-training-section-templates':'sb-training','s-training-form-fix':'sb-training','s-messages':'sb-messages','s-nutrition':'sb-nutrition','s-foods':'sb-foods','s-goals':'sb-goals','s-settings-checkins':'sb-settings-checkins','s-client-photos':'sb-client-photos','s-profile':'sb-profile','s-recipes':'sb-recipes'};
   if(sbMap[id]) buildSidebar(sbMap[id],id);
   // Init nutrition editor
   if(id==='s-nutrition'&&!_nutrInit){_nutrInit=true;initNutrition();}
