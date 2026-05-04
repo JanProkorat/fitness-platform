@@ -725,6 +725,7 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
       <button class="pb" onclick="showPhone('ph-live-fortime')">Živý ForTime</button>
       <button class="pb" onclick="showPhone('ph-live-time-distance')">Živý Čas/Distance</button>
       <button class="pb" onclick="showPhone('ph-live-results-summary')">Výsledky tréninku</button>
+      <button class="pb" onclick="showPhone('ph-live-session-runner')">Living session · runner</button>
       <button class="pb" onclick="showPhone('ph-food-detail')">Detail potraviny</button>
       <button class="pb" onclick="showPhone('ph-recipe-detail')">Detail receptu</button>
       <button class="pb" onclick="showPhone('ph-onb-intro')">Dotazník — intro</button>
@@ -5691,6 +5692,142 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
 
 </div>
 </div>
+<div class="phone-wrap">
+<div class="phone-label">Session runner</div>
+<div class="phone" id="ph-live-session-runner" style="display:none">
+  <div class="di"></div>
+  <div class="status-bar">
+    <span class="sb-time">9:41</span>
+    <div class="sb-icons">
+      <svg width="17" height="12" viewBox="0 0 17 12"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0" width="3" height="12" rx="1"/><rect x="13.5" y="1" width="3" height="11" rx="1"/></svg>
+      <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 2.5C10.5 2.5 12.7 3.6 14.2 5.3L15.5 4C13.6 1.9 11 .5 8 .5S2.4 1.9.5 4L1.8 5.3C3.3 3.6 5.5 2.5 8 2.5ZM8 6C9.7 6 11.2 6.7 12.3 7.8L13.6 6.5C12.1 5.1 10.1 4 8 4S3.9 5.1 2.4 6.5L3.7 7.8C4.8 6.7 6.3 6 8 6ZM8 9.5C9 9.5 9.9 9.9 10.5 10.6L8 13.5 5.5 10.6C6.1 9.9 7 9.5 8 9.5Z"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12"><rect x="0" y="1" width="21" height="10" rx="3.5" stroke="#000" stroke-width="1" fill="none"/><rect x="22" y="4" width="2.5" height="4" rx="1" fill="#000" opacity=".4"/><rect x="1.5" y="2.5" width="15" height="7" rx="2" fill="#000"/></svg>
+    </div>
+  </div>
+
+  <!-- No tab bar — scroll area extends to bottom -->
+  <div class="scroll-area" style="bottom:0;padding-bottom:24px">
+
+    <!-- ── Top bar ── -->
+    <div class="lt-topbar" style="display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--ios-bg2);border-bottom:.5px solid var(--ios-sep2)">
+      <div style="width:32px;height:32px;border-radius:10px;background:var(--ios-fill);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--ios-label2)">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3l8 8M11 3l-8 8"/></svg>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:16px;font-weight:700;color:var(--ios-label);letter-spacing:-.2px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Push A · Pondělí</div>
+        <div style="font-size:11px;color:var(--ios-label3);font-weight:500;margin-top:1px">Sekce 2/3</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:20px;font-weight:700;color:var(--ios-gold);letter-spacing:-.2px;font-variant-numeric:tabular-nums">08:42</div>
+        <div style="font-size:10px;color:var(--ios-label3);font-weight:500;margin-top:1px">elapsed</div>
+      </div>
+    </div>
+
+    <!-- ── Section progress strip ── -->
+    <div style="padding:14px 16px 12px;background:var(--ios-bg);border-bottom:.5px solid var(--ios-sep2)">
+      <div style="display:flex;gap:8px">
+
+        <!-- Section 1: done — green tick -->
+        <div style="flex:1;border-radius:12px;padding:8px 10px;background:rgba(52,199,89,.08);border:1.5px solid rgba(52,199,89,.35)">
+          <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
+            <span style="font-size:12px;color:var(--ios-green)">✓</span>
+            <span style="font-size:10px;font-weight:700;color:var(--ios-green);letter-spacing:.02em">HOTOVO</span>
+          </div>
+          <div style="font-size:11px;font-weight:600;color:var(--ios-label2);line-height:1.2">Rozcvička</div>
+          <div style="font-size:10px;color:var(--ios-label3);margin-top:1px">Strength</div>
+        </div>
+
+        <!-- Section 2: active — gold border + pulse -->
+        <div style="flex:1;border-radius:12px;padding:8px 10px;background:rgba(201,168,76,.1);border:2px solid var(--ios-gold);position:relative">
+          <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
+            <span style="font-size:12px;color:var(--ios-gold)">▶</span>
+            <span style="font-size:10px;font-weight:700;color:var(--ios-gold);letter-spacing:.02em">AKTIVNÍ</span>
+          </div>
+          <div style="font-size:11px;font-weight:700;color:var(--ios-label);line-height:1.2">Hlavní WOD</div>
+          <div style="font-size:10px;color:var(--ios-gold);margin-top:1px;font-weight:600">AMRAP 12'</div>
+        </div>
+
+        <!-- Section 3: pending — dim -->
+        <div style="flex:1;border-radius:12px;padding:8px 10px;background:var(--ios-fill2);border:1.5px solid var(--ios-sep);opacity:.6">
+          <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
+            <span style="font-size:12px;color:var(--ios-label3)">○</span>
+            <span style="font-size:10px;font-weight:700;color:var(--ios-label3);letter-spacing:.02em">ČEKÁ</span>
+          </div>
+          <div style="font-size:11px;font-weight:600;color:var(--ios-label2);line-height:1.2">Cooldown</div>
+          <div style="font-size:10px;color:var(--ios-label3);margin-top:1px">Conditioning</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── Active section card ── -->
+    <div style="margin:14px 16px 0">
+      <div style="background:var(--ios-bg2);border-radius:var(--ios-r-lg);overflow:hidden;border:1.5px solid var(--ios-gold)">
+        <!-- Card header -->
+        <div style="padding:16px 16px 12px;background:rgba(201,168,76,.06)">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+            <div style="font-size:20px;font-weight:700;color:var(--ios-label);flex:1">Hlavní WOD</div>
+            <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;background:rgba(201,168,76,.15);color:var(--ios-gold);border:1px solid rgba(201,168,76,.3)">AMRAP 12 min</span>
+          </div>
+          <div style="font-size:12px;color:var(--ios-label2);line-height:1.5">Cardio + síla. Drž tempo, neztrácej formu.</div>
+        </div>
+
+        <!-- Exercise list -->
+        <div style="padding:8px 0;border-top:.5px solid var(--ios-sep2)">
+          <div style="padding:8px 16px;display:flex;align-items:center;gap:10px;border-bottom:.5px solid var(--ios-sep2)">
+            <div style="flex:1;font-size:13px;font-weight:500;color:var(--ios-label)">Pull-ups</div>
+            <div style="font-size:12px;color:var(--ios-label3)">5 reps</div>
+          </div>
+          <div style="padding:8px 16px;display:flex;align-items:center;gap:10px;border-bottom:.5px solid var(--ios-sep2)">
+            <div style="flex:1;font-size:13px;font-weight:500;color:var(--ios-label)">Push-ups</div>
+            <div style="font-size:12px;color:var(--ios-label3)">10 reps</div>
+          </div>
+          <div style="padding:8px 16px;display:flex;align-items:center;gap:10px">
+            <div style="flex:1;font-size:13px;font-weight:500;color:var(--ios-label)">Sit-ups</div>
+            <div style="font-size:12px;color:var(--ios-label3)">15 reps</div>
+          </div>
+        </div>
+
+        <!-- CTA -->
+        <div style="padding:12px 16px;border-top:.5px solid var(--ios-sep2)">
+          <div class="ios-btn ios-btn-primary" style="font-size:16px;padding:15px;letter-spacing:.3px;font-weight:700" onclick="showToast('Spouštím AMRAP timer...')">▶ Spustit AMRAP</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Done section preview (collapsed) ── -->
+    <div style="margin:12px 16px 0">
+      <div style="background:var(--ios-bg2);border-radius:var(--ios-r);padding:12px 14px;border:.5px solid var(--ios-sep2);opacity:.85">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:14px;color:var(--ios-green)">✓</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;color:var(--ios-label)">Rozcvička</div>
+            <div style="font-size:11px;color:var(--ios-label3);margin-top:1px">2 cviky · 4:30 trvání</div>
+          </div>
+          <div style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:99px;background:rgba(52,199,89,.1);color:var(--ios-green)">Hotovo</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Pending section preview (collapsed) ── -->
+    <div style="margin:8px 16px 0">
+      <div style="background:var(--ios-bg2);border-radius:var(--ios-r);padding:12px 14px;border:.5px solid var(--ios-sep2);opacity:.55">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:14px;color:var(--ios-label3)">○</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;color:var(--ios-label2)">Cooldown</div>
+            <div style="font-size:11px;color:var(--ios-label3);margin-top:1px">2 cviky · ~6 min</div>
+          </div>
+          <div style="font-size:11px;font-weight:500;color:var(--ios-label3)">Čeká</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="height:24px"></div>
+  </div>
+
+</div>
+</div>
 <!-- ═══════════════════════════════════════════
      FOTO-DENÍK — žádost od poradce
 ═══════════════════════════════════════════ -->
@@ -6450,7 +6587,7 @@ function showPhone(id){
   document.querySelectorAll('.phone').forEach(function(p){ p.style.display='none'; });
   var el = document.getElementById(id); if(el) el.style.display='block';
   document.querySelectorAll('.pb').forEach(function(b){ b.classList.remove('active'); });
-  var map = {'ph-today':'Dnes','ph-invite-detail':'Detail pozvánky','ph-discover':'Spolupráce','ph-trainer-profile':'Profil trenéra','ph-plans':'Plány','ph-plan-history':'Archiv plánů','ph-plan-detail-complete':'Dokončený plán','ph-nutrition-plan-detail':'Detail výživového plánu','ph-training-plan-detail':'Detail tréninku','ph-food-detail':'Detail potraviny','ph-recipe-detail':'Detail receptu','ph-pending-questionnaires':'Čekající dotazníky','ph-weekly-checkin':'Check-in — vyplnit','ph-weekly-checkin-sent':'Check-in — odesláno','ph-profile':'Profil','ph-messages':'Zprávy','ph-archive':'Archiv','ph-chat':'Chat detail','ph-chat-former':'Chat — bývalý trenér','ph-live-training':'Živý trénink','ph-live-amrap':'Živý AMRAP','ph-live-emom':'Živý EMOM','ph-live-tabata':'Živá Tabata','ph-live-fortime':'Živý ForTime','ph-live-time-distance':'Živý Čas/Distance','ph-live-results-summary':'Výsledky tréninku','ph-diary-request':'Žádost','ph-diary-dismiss':'Odmítnutí','ph-diary-accept-wizard':'Výběr způsobu','ph-diary-bulk':'Hromadné nahrání','ph-diary-workflow':'Aktivní workflow','ph-diary-finalize':'Dokončení','ph-meal-log-photo':'Log jídla · foto','ph-plan-photos':'Fotky plánu','ph-profile-photos':'Timeline fotek'};
+  var map = {'ph-today':'Dnes','ph-invite-detail':'Detail pozvánky','ph-discover':'Spolupráce','ph-trainer-profile':'Profil trenéra','ph-plans':'Plány','ph-plan-history':'Archiv plánů','ph-plan-detail-complete':'Dokončený plán','ph-nutrition-plan-detail':'Detail výživového plánu','ph-training-plan-detail':'Detail tréninku','ph-food-detail':'Detail potraviny','ph-recipe-detail':'Detail receptu','ph-pending-questionnaires':'Čekající dotazníky','ph-weekly-checkin':'Check-in — vyplnit','ph-weekly-checkin-sent':'Check-in — odesláno','ph-profile':'Profil','ph-messages':'Zprávy','ph-archive':'Archiv','ph-chat':'Chat detail','ph-chat-former':'Chat — bývalý trenér','ph-live-training':'Živý trénink','ph-live-amrap':'Živý AMRAP','ph-live-emom':'Živý EMOM','ph-live-tabata':'Živá Tabata','ph-live-fortime':'Živý ForTime','ph-live-time-distance':'Živý Čas/Distance','ph-live-results-summary':'Výsledky tréninku','ph-live-session-runner':'Living session · runner','ph-diary-request':'Žádost','ph-diary-dismiss':'Odmítnutí','ph-diary-accept-wizard':'Výběr způsobu','ph-diary-bulk':'Hromadné nahrání','ph-diary-workflow':'Aktivní workflow','ph-diary-finalize':'Dokončení','ph-meal-log-photo':'Log jídla · foto','ph-plan-photos':'Fotky plánu','ph-profile-photos':'Timeline fotek'};
   document.querySelectorAll('.pb').forEach(function(b){
     if(b.textContent.trim() === map[id]) b.classList.add('active');
   });
