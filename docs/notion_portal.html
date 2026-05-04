@@ -566,7 +566,6 @@ body.dark .btn-auth-primary { color: #0d0900; }
   <button class="tn-btn" onclick="showScreen('s-training')">Trén. plán</button>
   <button class="tn-btn" onclick="showScreen('s-training-session-builder')">Plán · sekce</button>
   <button class="tn-btn" onclick="showScreen('s-training-section-templates')">Šablony sekcí</button>
-  <button class="tn-btn" onclick="showScreen('s-training-form-fix')">Oprava form. sérií</button>
   <button class="tn-btn" onclick="showScreen('s-messages')">Zprávy</button>
   <div class="tn-sep"></div>
   <div class="tn-lbl">Výživa</div>
@@ -1393,125 +1392,6 @@ body.dark .btn-auth-primary { color: #0d0900; }
         <button class="btn" style="font-size:12px;padding:4px 10px" disabled>›</button>
       </div>
     </div>
-  </div>
-</div>
-</div>
-</div>
-<div id="s-training-form-fix" class="screen">
-<div class="shell">
-<div class="sb" id="sb-training"></div>
-<div class="main">
-  <div class="bc"><a onclick="showScreen('s-dashboard')">Dashboard</a><span class="bc-sep">/</span><a onclick="showScreen('s-client')">Petra Horáková</a><span class="bc-sep">/</span><span>Tréninkový plán · Oprava formuláře</span></div>
-  <div class="ph">
-    <div class="ph-icon">🛠</div>
-    <h1>Oprava formuláře sérií — návrh</h1>
-  </div>
-  <div class="pc" style="max-width:720px">
-
-    <!-- ── PŘED opravou ── -->
-    <div style="margin-bottom:24px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-        <div style="width:10px;height:10px;border-radius:50%;background:#ff3b30;flex-shrink:0"></div>
-        <div style="font-size:15px;font-weight:600;color:var(--t)">Před opravou</div>
-      </div>
-      <!-- Broken set grid: no borders, no focus ring -->
-      <div class="card" style="padding:16px 18px;overflow:visible">
-        <div style="font-size:12px;font-weight:600;color:var(--t3);margin-bottom:8px">Bench press — série</div>
-        <table style="width:100%;border-collapse:collapse;font-size:13px">
-          <thead>
-            <tr style="color:var(--t3)">
-              <th style="text-align:left;padding:5px 8px;font-weight:500">#</th>
-              <th style="text-align:left;padding:5px 8px;font-weight:500">Váha (kg)</th>
-              <th style="text-align:left;padding:5px 8px;font-weight:500">Opakování</th>
-              <th style="text-align:left;padding:5px 8px;font-weight:500">Odpočinek (s)</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td style="padding:5px 8px;color:var(--t2)">1</td>
-              <!-- No border, no focus ring — looks broken -->
-              <td style="padding:4px 6px"><input type="number" value="80" style="width:72px;padding:5px;border:none;border-radius:4px;background:var(--bg2);font-size:13px;color:var(--t);outline:none"></td>
-              <td style="padding:4px 6px"><input type="number" value="8" style="width:72px;padding:5px;border:none;border-radius:4px;background:var(--bg2);font-size:13px;color:var(--t);outline:none"></td>
-              <td style="padding:4px 6px"><input type="number" value="90" style="width:72px;padding:5px;border:none;border-radius:4px;background:var(--bg2);font-size:13px;color:var(--t);outline:none"></td>
-            </tr>
-            <tr>
-              <td style="padding:5px 8px;color:var(--t2)">2</td>
-              <td style="padding:4px 6px"><input type="number" value="82.5" style="width:72px;padding:5px;border:none;border-radius:4px;background:var(--bg2);font-size:13px;color:var(--t);outline:none"></td>
-              <td style="padding:4px 6px"><input type="number" value="8" style="width:72px;padding:5px;border:none;border-radius:4px;background:var(--bg2);font-size:13px;color:var(--t);outline:none"></td>
-              <td style="padding:4px 6px"><input type="number" value="90" style="width:72px;padding:5px;border:none;border-radius:4px;background:var(--bg2);font-size:13px;color:var(--t);outline:none"></td>
-            </tr>
-            <tr>
-              <td style="padding:5px 8px;color:var(--t2)">3</td>
-              <td style="padding:4px 6px"><input type="number" value="85" style="width:72px;padding:5px;border:none;border-radius:4px;background:var(--bg2);font-size:13px;color:var(--t);outline:none"></td>
-              <td style="padding:4px 6px"><input type="number" value="7" style="width:72px;padding:5px;border:none;border-radius:4px;background:var(--bg2);font-size:13px;color:var(--t);outline:none"></td>
-              <td style="padding:4px 6px"><input type="number" value="120" style="width:72px;padding:5px;border:none;border-radius:4px;background:var(--bg2);font-size:13px;color:var(--t);outline:none"></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <!-- Problem callout -->
-      <div class="callout" style="margin-top:10px;background:rgba(255,59,48,.06);border:1px solid rgba(255,59,48,.25);border-left:3px solid #ff3b30">
-        <div class="callout-icon">⚠</div>
-        <div class="callout-body">
-          <div class="callout-text">Problém: trenér nevidí kde je editor aktivní; nedostává potvrzení, že se uložilo.</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── PO opravě ── -->
-    <div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-        <div style="width:10px;height:10px;border-radius:50%;background:#34c759;flex-shrink:0"></div>
-        <div style="font-size:15px;font-weight:600;color:var(--t)">Po opravě</div>
-      </div>
-      <!-- Fixed set grid: visible borders, focus ring, save confirmation -->
-      <div class="card" style="padding:16px 18px;overflow:visible">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <div style="font-size:12px;font-weight:600;color:var(--t3)">Bench press — série</div>
-          <!-- Save confirmation pill aligned right -->
-          <span style="font-size:11px;font-weight:500;padding:2px 9px;border-radius:99px;background:rgba(52,199,89,.1);color:#34c759;border:1px solid rgba(52,199,89,.25)">✓ Uloženo · před 2 s</span>
-        </div>
-        <table style="width:100%;border-collapse:collapse;font-size:13px">
-          <thead>
-            <tr style="color:var(--t3)">
-              <th style="text-align:left;padding:5px 8px;font-weight:500">#</th>
-              <th style="text-align:left;padding:5px 8px;font-weight:500">Váha (kg)</th>
-              <th style="text-align:left;padding:5px 8px;font-weight:500">Opakování</th>
-              <th style="text-align:left;padding:5px 8px;font-weight:500">Odpočinek (s)</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td style="padding:5px 8px;color:var(--t2)">1</td>
-              <td style="padding:4px 6px"><input type="number" value="80" style="width:72px;padding:5px;border:1px solid var(--br);border-radius:4px;background:var(--bg2);font-size:13px;color:var(--t);outline:none"></td>
-              <!-- Middle cell: focused with accent ring -->
-              <td style="padding:4px 6px"><input type="number" value="8" style="width:72px;padding:5px;border:1px solid var(--br);border-radius:4px;background:var(--bg2);font-size:13px;color:var(--t);outline:2px solid var(--acc);outline-offset:1px"></td>
-              <td style="padding:4px 6px"><input type="number" value="90" style="width:72px;padding:5px;border:1px solid var(--br);border-radius:4px;background:var(--bg2);font-size:13px;color:var(--t);outline:none"></td>
-            </tr>
-            <tr>
-              <td style="padding:5px 8px;color:var(--t2)">2</td>
-              <td style="padding:4px 6px"><input type="number" value="82.5" style="width:72px;padding:5px;border:1px solid var(--br);border-radius:4px;background:var(--bg2);font-size:13px;color:var(--t);outline:none"></td>
-              <td style="padding:4px 6px"><input type="number" value="8" style="width:72px;padding:5px;border:1px solid var(--br);border-radius:4px;background:var(--bg2);font-size:13px;color:var(--t);outline:none"></td>
-              <td style="padding:4px 6px"><input type="number" value="90" style="width:72px;padding:5px;border:1px solid var(--br);border-radius:4px;background:var(--bg2);font-size:13px;color:var(--t);outline:none"></td>
-            </tr>
-            <tr>
-              <td style="padding:5px 8px;color:var(--t2)">3</td>
-              <td style="padding:4px 6px"><input type="number" value="85" style="width:72px;padding:5px;border:1px solid var(--br);border-radius:4px;background:var(--bg2);font-size:13px;color:var(--t);outline:none"></td>
-              <td style="padding:4px 6px"><input type="number" value="7" style="width:72px;padding:5px;border:1px solid var(--br);border-radius:4px;background:var(--bg2);font-size:13px;color:var(--t);outline:none"></td>
-              <td style="padding:4px 6px"><input type="number" value="120" style="width:72px;padding:5px;border:1px solid var(--br);border-radius:4px;background:var(--bg2);font-size:13px;color:var(--t);outline:none"></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <!-- Fixes callout -->
-      <div class="callout" style="margin-top:10px;background:rgba(52,199,89,.06);border:1px solid rgba(52,199,89,.25);border-left:3px solid #34c759">
-        <div class="callout-icon">✓</div>
-        <div class="callout-body">
-          <div class="callout-text">Opravy: <strong>Viditelné rámečky</strong> · <strong>focus ring na aktivní buňce</strong> (<code>var(--acc)</code>, 2px) · <strong>potvrzení uložení s časovou značkou</strong>.</div>
-        </div>
-      </div>
-    </div>
-
   </div>
 </div>
 </div>
@@ -4289,7 +4169,7 @@ function buildSidebar(containerId, activeScreen){
   html+='<div class="sb-item'+(activeScreen==='s-profile'?' active':'')+'" onclick="showScreen(\'s-profile\')"><span class="sbi-icon">👤</span><span class="sbi-lbl">Profil</span></div>';
   html+='<div class="sb-item'+(activeScreen==='s-messages'?' active':'')+'" onclick="showScreen(\'s-messages\')"><span class="sbi-icon">✉</span><span class="sbi-lbl">Zprávy</span><span class="sbi-badge">1</span></div></div>';
   html+='<div class="sb-div"></div><div class="sb-sec"><div class="sb-sec-lbl">Klienti</div>';
-  var clientScreens=['s-client','s-training','s-training-session-builder','s-training-form-fix','s-nutrition','s-goals','s-client-photos','s-settings-checkins'];
+  var clientScreens=['s-client','s-training','s-training-session-builder','s-nutrition','s-goals','s-client-photos','s-settings-checkins'];
   CLIENTS.forEach(function(cl){
     var isCl=clientScreens.indexOf(activeScreen)!==-1&&cl.id===1;
     html+='<div class="sb-item'+(isCl?' active':'')+'" onclick="showScreen(\'s-client\')"><span class="sbi-icon">👤</span><span class="sbi-lbl">'+cl.name+'</span><div class="sb-acts"><span>···</span></div></div>';
@@ -4317,7 +4197,7 @@ function showScreen(id){
   document.querySelectorAll('.tn-btn').forEach(function(b){if(b.getAttribute('onclick')==="showScreen('"+id+"')") b.classList.add('active');});
   window.scrollTo(0,0);
   // Build sidebars
-  var sbMap={'s-dashboard':'sb-dashboard','s-client':'sb-client','s-training':'sb-training','s-training-session-builder':'sb-training','s-training-section-templates':'sb-training','s-training-form-fix':'sb-training','s-messages':'sb-messages','s-nutrition':'sb-nutrition','s-foods':'sb-foods','s-goals':'sb-goals','s-settings-checkins':'sb-settings-checkins','s-client-photos':'sb-client-photos','s-profile':'sb-profile','s-recipes':'sb-recipes'};
+  var sbMap={'s-dashboard':'sb-dashboard','s-client':'sb-client','s-training':'sb-training','s-training-session-builder':'sb-training','s-training-section-templates':'sb-training','s-messages':'sb-messages','s-nutrition':'sb-nutrition','s-foods':'sb-foods','s-goals':'sb-goals','s-settings-checkins':'sb-settings-checkins','s-client-photos':'sb-client-photos','s-profile':'sb-profile','s-recipes':'sb-recipes'};
   if(sbMap[id]) buildSidebar(sbMap[id],id);
   // Init nutrition editor
   if(id==='s-nutrition'&&!_nutrInit){_nutrInit=true;initNutrition();}
