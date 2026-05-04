@@ -1,0 +1,126 @@
+# Netlify build + deploy config — trainer/nutritionist web portal (dev environment)
+#
+# Pairs with the Render-hosted backend at https://dev-fitnessplatform.onrender.com.
+# We use edge-side proxy redirects (Option B) so the browser sees same-origin
+# requests — no cross-origin / no CORS allowlist update on the API needed.
+# `[[redirects]]` rules below mirror what `vite.config.ts` does in dev.
+
+[build]
+  base = "web"
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# ── Backend API proxy (mirrors vite.config.ts dev proxy paths) ────────────
+# Each rule forwards a backend route to the Render API. `force = true` ensures
+# the proxy fires even if a static file with the same path happens to exist.
+
+[[redirects]]
+  from = "/auth/*"
+  to = "https://dev-fitnessplatform.onrender.com/auth/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/users/*"
+  to = "https://dev-fitnessplatform.onrender.com/users/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/trainer/*"
+  to = "https://dev-fitnessplatform.onrender.com/trainer/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/client/*"
+  to = "https://dev-fitnessplatform.onrender.com/client/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/foods/*"
+  to = "https://dev-fitnessplatform.onrender.com/foods/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/nutrition/*"
+  to = "https://dev-fitnessplatform.onrender.com/nutrition/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/recipes/*"
+  to = "https://dev-fitnessplatform.onrender.com/recipes/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/training/*"
+  to = "https://dev-fitnessplatform.onrender.com/training/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/exercises/*"
+  to = "https://dev-fitnessplatform.onrender.com/exercises/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/conversations/*"
+  to = "https://dev-fitnessplatform.onrender.com/conversations/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/swagger/*"
+  to = "https://dev-fitnessplatform.onrender.com/swagger/:splat"
+  status = 200
+  force = true
+
+# SignalR hub — WebSocket upgrades pass through Netlify redirects since 2021.
+[[redirects]]
+  from = "/hubs/*"
+  to = "https://dev-fitnessplatform.onrender.com/hubs/:splat"
+  status = 200
+  force = true
+
+# Backend health endpoints (handy for browser-side smoke checks).
+[[redirects]]
+  from = "/health"
+  to = "https://dev-fitnessplatform.onrender.com/health"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/health/*"
+  to = "https://dev-fitnessplatform.onrender.com/health/:splat"
+  status = 200
+  force = true
+
+# ── SPA fallback ─────────────────────────────────────────────────────────
+# Any client-side route not matched above falls back to index.html so React
+# Router can resolve it. MUST come after all backend proxy rules.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# ── Caching ──────────────────────────────────────────────────────────────
+# Vite emits hashed filenames into /assets, so they can be cached forever.
+# index.html must always revalidate so the browser picks up new asset hashes.
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
