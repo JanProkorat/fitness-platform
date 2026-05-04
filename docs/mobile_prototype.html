@@ -719,6 +719,12 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
       <button class="pb" onclick="showPhone('ph-nutrition-plan-detail')">Detail výživového plánu</button>
       <button class="pb" onclick="showPhone('ph-training-plan-detail')">Detail tréninku</button>
       <button class="pb" onclick="showPhone('ph-live-training')">Živý trénink</button>
+      <button class="pb" onclick="showPhone('ph-live-amrap')">Živý AMRAP</button>
+      <button class="pb" onclick="showPhone('ph-live-emom')">Živý EMOM</button>
+      <button class="pb" onclick="showPhone('ph-live-tabata')">Živá Tabata</button>
+      <button class="pb" onclick="showPhone('ph-live-fortime')">Živý ForTime</button>
+      <button class="pb" onclick="showPhone('ph-live-time-distance')">Živý Čas/Distance</button>
+      <button class="pb" onclick="showPhone('ph-live-results-summary')">Výsledky tréninku</button>
       <button class="pb" onclick="showPhone('ph-food-detail')">Detail potraviny</button>
       <button class="pb" onclick="showPhone('ph-recipe-detail')">Detail receptu</button>
       <button class="pb" onclick="showPhone('ph-onb-intro')">Dotazník — intro</button>
@@ -5115,6 +5121,577 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
   #ph-live-training[data-state="prestart"] .lt-roadmap-wrap { display:none; }
 </style>
 <!-- ═══════════════════════════════════════════
+     ŽIVÝ AMRAP — full-screen AMRAP runner
+     Topbar · Rounds counter · Exercise strip · Progress bar
+═══════════════════════════════════════════ -->
+<div class="phone-wrap">
+<div class="phone-label">Živý trénink — AMRAP</div>
+<div class="phone" id="ph-live-amrap" style="display:none">
+  <div class="di"></div>
+  <div class="status-bar">
+    <span class="sb-time">9:41</span>
+    <div class="sb-icons">
+      <svg width="17" height="12" viewBox="0 0 17 12"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0" width="3" height="12" rx="1"/><rect x="13.5" y="1" width="3" height="11" rx="1"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12"><rect x="0" y="1" width="21" height="10" rx="3.5" stroke="#000" stroke-width="1" fill="none"/><rect x="22" y="4" width="2.5" height="4" rx="1" fill="#000" opacity=".4"/><rect x="1.5" y="2.5" width="15" height="7" rx="2" fill="#000"/></svg>
+    </div>
+  </div>
+
+  <div class="scroll-area" style="bottom:0;padding-bottom:24px">
+
+    <!-- Topbar -->
+    <div class="lt-topbar" style="display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--ios-bg2);border-bottom:.5px solid var(--ios-sep2)">
+      <div style="width:32px;height:32px;border-radius:10px;background:var(--ios-fill);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--ios-label2)">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3l8 8M11 3l-8 8"/></svg>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:10px;font-weight:700;color:var(--ios-gold);text-transform:uppercase;letter-spacing:.1em">AMRAP · 12 min</div>
+        <div style="font-size:15px;font-weight:700;color:var(--ios-label);letter-spacing:-.2px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Hrudník</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:24px;font-weight:700;color:var(--ios-gold);letter-spacing:-.5px;font-variant-numeric:tabular-nums">07:24</div>
+        <div style="font-size:10px;color:var(--ios-label3);font-weight:500;margin-top:1px">elapsed</div>
+      </div>
+    </div>
+
+    <!-- Big rounds counter -->
+    <div style="margin:20px 16px 0;text-align:center">
+      <div style="font-size:12px;font-weight:700;color:var(--ios-label3);text-transform:uppercase;letter-spacing:.12em;margin-bottom:6px">Počet kol</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:20px">
+        <div style="width:52px;height:52px;border-radius:50%;background:var(--ios-fill);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:26px;font-weight:300;color:var(--ios-label2)">−</div>
+        <div style="font-size:88px;font-weight:700;color:var(--ios-gold);letter-spacing:-4px;font-variant-numeric:tabular-nums;line-height:1">8</div>
+        <div style="width:52px;height:52px;border-radius:50%;background:var(--ios-gold);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:26px;font-weight:700;color:#fff">+</div>
+      </div>
+      <div style="font-size:12px;color:var(--ios-label3);margin-top:4px">Klepni + pro přidání kola</div>
+    </div>
+
+    <!-- Extra reps stepper -->
+    <div style="margin:14px 16px 0;background:var(--ios-bg2);border:1px solid var(--ios-sep2);border-radius:var(--ios-r);padding:12px 14px;display:flex;align-items:center;gap:10px">
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:600;color:var(--ios-label2)">Navíc opakování</div>
+        <div style="font-size:11px;color:var(--ios-label3);margin-top:1px">nedokončené kolo</div>
+      </div>
+      <div style="display:flex;align-items:center;background:var(--ios-fill);border-radius:99px;overflow:hidden;height:36px">
+        <div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:500;color:var(--ios-label2);cursor:pointer">−</div>
+        <div style="min-width:32px;text-align:center;font-size:16px;font-weight:700;color:var(--ios-gold)">0</div>
+        <div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:500;color:var(--ios-label2);cursor:pointer">+</div>
+      </div>
+    </div>
+
+    <!-- Exercise rotation strip -->
+    <div class="ios-section-hdr" style="margin-top:14px"><div class="ios-section-title">Pořadí cviků</div></div>
+    <div style="margin:0 16px;display:flex;flex-direction:column;gap:6px">
+      <!-- Active -->
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(201,168,76,.1);border:1.5px solid var(--ios-gold);border-radius:var(--ios-r)">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--ios-gold);flex-shrink:0"></div>
+        <div style="flex:1;font-size:14px;font-weight:700;color:var(--ios-gold)">Pull-ups</div>
+        <div style="font-size:13px;font-weight:700;color:var(--ios-gold)">5 reps</div>
+      </div>
+      <!-- Next 1 -->
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--ios-bg2);border:1px solid var(--ios-sep2);border-radius:var(--ios-r)">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--ios-label4);flex-shrink:0"></div>
+        <div style="flex:1;font-size:14px;font-weight:600;color:var(--ios-label2)">Push-ups</div>
+        <div style="font-size:13px;font-weight:600;color:var(--ios-label3)">10 reps</div>
+      </div>
+      <!-- Next 2 -->
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--ios-bg2);border:1px solid var(--ios-sep2);border-radius:var(--ios-r)">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--ios-label4);flex-shrink:0"></div>
+        <div style="flex:1;font-size:14px;font-weight:600;color:var(--ios-label2)">Sit-ups</div>
+        <div style="font-size:13px;font-weight:600;color:var(--ios-label3)">15 reps</div>
+      </div>
+    </div>
+
+    <!-- Time-cap progress bar -->
+    <div style="margin:16px 16px 0">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="font-size:11px;font-weight:600;color:var(--ios-label3);text-transform:uppercase;letter-spacing:.08em">Čas do konce</div>
+        <div style="font-size:11px;font-weight:700;color:var(--ios-gold)">4:36 zbývá</div>
+      </div>
+      <div style="height:8px;background:var(--ios-fill);border-radius:99px;overflow:hidden">
+        <div style="height:100%;width:62%;background:var(--ios-gold);border-radius:99px"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:4px">
+        <div style="font-size:10px;color:var(--ios-label3)">0:00</div>
+        <div style="font-size:10px;font-weight:600;color:var(--ios-label3)">84% uplynulo</div>
+        <div style="font-size:10px;color:var(--ios-label3)">12:00</div>
+      </div>
+    </div>
+
+    <div style="height:16px"></div>
+  </div>
+
+</div>
+</div>
+<!-- ═══════════════════════════════════════════
+     ŽIVÝ EMOM — EMOM runner
+     Topbar · Bell hero · Done/Failed · Dots strip · Assignments
+═══════════════════════════════════════════ -->
+<div class="phone-wrap">
+<div class="phone-label">Živý trénink — EMOM</div>
+<div class="phone" id="ph-live-emom" style="display:none">
+  <div class="di"></div>
+  <div class="status-bar">
+    <span class="sb-time">9:41</span>
+    <div class="sb-icons">
+      <svg width="17" height="12" viewBox="0 0 17 12"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0" width="3" height="12" rx="1"/><rect x="13.5" y="1" width="3" height="11" rx="1"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12"><rect x="0" y="1" width="21" height="10" rx="3.5" stroke="#000" stroke-width="1" fill="none"/><rect x="22" y="4" width="2.5" height="4" rx="1" fill="#000" opacity=".4"/><rect x="1.5" y="2.5" width="15" height="7" rx="2" fill="#000"/></svg>
+    </div>
+  </div>
+
+  <div class="scroll-area" style="bottom:0;padding-bottom:24px">
+
+    <!-- Topbar -->
+    <div class="lt-topbar" style="display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--ios-bg2);border-bottom:.5px solid var(--ios-sep2)">
+      <div style="width:32px;height:32px;border-radius:10px;background:var(--ios-fill);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--ios-label2)">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3l8 8M11 3l-8 8"/></svg>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:10px;font-weight:700;color:var(--ios-gold);text-transform:uppercase;letter-spacing:.1em">EMOM 10 · 12 min</div>
+        <div style="font-size:15px;font-weight:700;color:var(--ios-label);letter-spacing:-.2px;margin-top:1px">Celotělový kondičák</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:24px;font-weight:700;color:var(--ios-gold);letter-spacing:-.5px;font-variant-numeric:tabular-nums">0:23</div>
+        <div style="font-size:10px;color:var(--ios-label3);font-weight:500;margin-top:1px">do zvoní</div>
+      </div>
+    </div>
+
+    <!-- Minute-bell hero -->
+    <div style="margin:16px 16px 0;background:var(--ios-bg2);border:1px solid var(--ios-sep2);border-radius:var(--ios-r-lg);padding:20px 16px;text-align:center">
+      <div style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.25);border-radius:99px;margin-bottom:14px">
+        <span style="font-size:14px">🔔</span>
+        <span style="font-size:11px;font-weight:700;color:var(--ios-gold);text-transform:uppercase;letter-spacing:.1em">Bell zazní za 0:23</span>
+      </div>
+      <div style="font-size:42px;font-weight:700;color:var(--ios-label);letter-spacing:-.5px;line-height:1.1">Kolo 5 / 12</div>
+      <div style="font-size:22px;font-weight:600;color:var(--ios-gold);margin-top:6px;letter-spacing:-.2px">5 Burpees</div>
+      <div style="font-size:13px;color:var(--ios-label3);margin-top:4px">Cvik tohoto kola</div>
+    </div>
+
+    <!-- Done / Failed buttons -->
+    <div style="margin:12px 16px 0;display:flex;flex-direction:column;gap:8px">
+      <div style="padding:16px;border-radius:var(--ios-r-lg);background:var(--ios-gold);text-align:center;cursor:pointer">
+        <div style="font-size:16px;font-weight:700;color:#fff;letter-spacing:.3px">✓ Splněno toto kolo</div>
+      </div>
+      <div style="padding:12px;border-radius:var(--ios-r-lg);background:var(--ios-fill);border:1px solid var(--ios-sep2);text-align:center;cursor:pointer">
+        <div style="font-size:14px;font-weight:600;color:var(--ios-red);letter-spacing:.1px">✗ Nesplněno</div>
+      </div>
+    </div>
+
+    <!-- Completed-rounds dots strip -->
+    <div style="margin:14px 16px 0;background:var(--ios-bg2);border:1px solid var(--ios-sep2);border-radius:var(--ios-r);padding:12px 14px">
+      <div style="font-size:11px;font-weight:600;color:var(--ios-label3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Průběh — 12 kol</div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap">
+        <!-- 4 done (gold) -->
+        <div style="width:28px;height:28px;border-radius:50%;background:var(--ios-gold);display:flex;align-items:center;justify-content:center"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div style="width:28px;height:28px;border-radius:50%;background:var(--ios-gold);display:flex;align-items:center;justify-content:center"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div style="width:28px;height:28px;border-radius:50%;background:var(--ios-gold);display:flex;align-items:center;justify-content:center"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div style="width:28px;height:28px;border-radius:50%;background:var(--ios-gold);display:flex;align-items:center;justify-content:center"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <!-- 1 failed (red) -->
+        <div style="width:28px;height:28px;border-radius:50%;background:var(--ios-red);display:flex;align-items:center;justify-content:center"><span style="font-size:12px;color:#fff;font-weight:700">✗</span></div>
+        <!-- 1 active (pulsing gold outline) -->
+        <div style="width:28px;height:28px;border-radius:50%;border:2.5px solid var(--ios-gold);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--ios-gold)">5</div>
+        <!-- rest dim -->
+        <div style="width:28px;height:28px;border-radius:50%;background:var(--ios-fill2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:var(--ios-label4)">7</div>
+        <div style="width:28px;height:28px;border-radius:50%;background:var(--ios-fill2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:var(--ios-label4)">8</div>
+        <div style="width:28px;height:28px;border-radius:50%;background:var(--ios-fill2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:var(--ios-label4)">9</div>
+        <div style="width:28px;height:28px;border-radius:50%;background:var(--ios-fill2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:var(--ios-label4)">10</div>
+        <div style="width:28px;height:28px;border-radius:50%;background:var(--ios-fill2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:var(--ios-label4)">11</div>
+        <div style="width:28px;height:28px;border-radius:50%;background:var(--ios-fill2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:var(--ios-label4)">12</div>
+      </div>
+    </div>
+
+    <!-- Round assignments -->
+    <div class="ios-section-hdr" style="margin-top:14px"><div class="ios-section-title">Rozpis kol</div></div>
+    <div class="ios-card" style="margin:0 16px;overflow:hidden">
+      <div style="background:var(--ios-bg2)">
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:.5px solid var(--ios-sep2);background:rgba(201,168,76,.06)">
+          <div style="width:24px;height:24px;border-radius:99px;border:2px solid var(--ios-gold);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--ios-gold);flex-shrink:0">5</div>
+          <div style="flex:1;font-size:13px;font-weight:700;color:var(--ios-gold)">Min 5: 5 burpees</div>
+          <div style="font-size:11px;color:var(--ios-gold)">Aktuální</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:.5px solid var(--ios-sep2)">
+          <div style="width:24px;height:24px;border-radius:99px;background:var(--ios-fill2);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:var(--ios-label3);flex-shrink:0">6</div>
+          <div style="flex:1;font-size:13px;font-weight:500;color:var(--ios-label2)">Min 6: 10 air squats</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:.5px solid var(--ios-sep2)">
+          <div style="width:24px;height:24px;border-radius:99px;background:var(--ios-fill2);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:var(--ios-label3);flex-shrink:0">7</div>
+          <div style="flex:1;font-size:13px;font-weight:500;color:var(--ios-label2)">Min 7: 15 sit-ups</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px">
+          <div style="width:24px;height:24px;border-radius:99px;background:var(--ios-fill2);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:var(--ios-label3);flex-shrink:0">…</div>
+          <div style="flex:1;font-size:13px;font-weight:500;color:var(--ios-label3)">Pak se opakuje</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="height:16px"></div>
+  </div>
+
+</div>
+</div>
+<!-- ═══════════════════════════════════════════
+     ŽIVÁ TABATA — Tabata runner
+     Topbar · Work/Rest hero (full-bleed) · Round dots · Reps entry
+═══════════════════════════════════════════ -->
+<div class="phone-wrap">
+<div class="phone-label">Živý trénink — Tabata</div>
+<div class="phone" id="ph-live-tabata" style="display:none">
+  <div class="di"></div>
+  <div class="status-bar">
+    <span class="sb-time">9:41</span>
+    <div class="sb-icons">
+      <svg width="17" height="12" viewBox="0 0 17 12"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0" width="3" height="12" rx="1"/><rect x="13.5" y="1" width="3" height="11" rx="1"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12"><rect x="0" y="1" width="21" height="10" rx="3.5" stroke="#000" stroke-width="1" fill="none"/><rect x="22" y="4" width="2.5" height="4" rx="1" fill="#000" opacity=".4"/><rect x="1.5" y="2.5" width="15" height="7" rx="2" fill="#000"/></svg>
+    </div>
+  </div>
+
+  <div class="scroll-area" style="bottom:0;padding-bottom:24px">
+
+    <!-- Topbar -->
+    <div class="lt-topbar" style="display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--ios-bg2);border-bottom:.5px solid var(--ios-sep2)">
+      <div style="width:32px;height:32px;border-radius:10px;background:var(--ios-fill);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--ios-label2)">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3l8 8M11 3l-8 8"/></svg>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:10px;font-weight:700;color:var(--ios-label3);text-transform:uppercase;letter-spacing:.1em">Tabata</div>
+        <div style="font-size:15px;font-weight:700;color:var(--ios-label);letter-spacing:-.2px;margin-top:1px">Kolo 3 / 8</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <div style="width:28px;height:28px;border-radius:8px;background:var(--ios-fill);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;color:var(--ios-label3)">⏸</div>
+      </div>
+    </div>
+
+    <!-- WORK phase hero (~70% viewport height approximation) -->
+    <div style="margin:12px 16px 0;border-radius:var(--ios-r-lg);overflow:hidden;background:linear-gradient(135deg,#8b0000 0%,#c0392b 50%,#e74c3c 100%);padding:32px 20px 28px;text-align:center">
+      <div style="font-size:13px;font-weight:800;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.25em;margin-bottom:8px">WORK</div>
+      <div style="font-size:80px;font-weight:700;color:#fff;letter-spacing:-3px;font-variant-numeric:tabular-nums;line-height:1;margin-bottom:8px">12<span style="font-size:36px;font-weight:500;letter-spacing:0">s</span></div>
+      <div style="font-size:22px;font-weight:700;color:rgba(255,255,255,.95);letter-spacing:-.2px">Burpees</div>
+
+      <!-- REST phase preview below -->
+      <div style="margin-top:18px;background:rgba(0,0,0,.25);border-radius:12px;padding:10px 16px;display:flex;align-items:center;justify-content:center;gap:14px">
+        <div style="text-align:center">
+          <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.12em;margin-bottom:2px">Dále: REST</div>
+          <div style="font-size:24px;font-weight:700;color:rgba(255,255,255,.7);font-variant-numeric:tabular-nums">10<span style="font-size:14px;font-weight:500">s</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Round counter strip -->
+    <div style="margin:12px 16px 0;background:var(--ios-bg2);border:1px solid var(--ios-sep2);border-radius:var(--ios-r);padding:10px 14px">
+      <div style="font-size:11px;font-weight:600;color:var(--ios-label3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">8 kol</div>
+      <div style="display:flex;gap:6px">
+        <!-- 2 done -->
+        <div style="flex:1;height:8px;border-radius:99px;background:var(--ios-gold)"></div>
+        <div style="flex:1;height:8px;border-radius:99px;background:var(--ios-gold)"></div>
+        <!-- 1 active -->
+        <div style="flex:1;height:8px;border-radius:99px;background:rgba(201,168,76,.5);box-shadow:0 0 6px rgba(201,168,76,.5)"></div>
+        <!-- 5 remaining -->
+        <div style="flex:1;height:8px;border-radius:99px;background:var(--ios-fill)"></div>
+        <div style="flex:1;height:8px;border-radius:99px;background:var(--ios-fill)"></div>
+        <div style="flex:1;height:8px;border-radius:99px;background:var(--ios-fill)"></div>
+        <div style="flex:1;height:8px;border-radius:99px;background:var(--ios-fill)"></div>
+        <div style="flex:1;height:8px;border-radius:99px;background:var(--ios-fill)"></div>
+      </div>
+    </div>
+
+    <!-- Optional reps entry -->
+    <div style="margin:12px 16px 0;background:var(--ios-bg2);border:1px solid var(--ios-sep2);border-radius:var(--ios-r);padding:12px 14px;display:flex;align-items:center;gap:10px">
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600;color:var(--ios-label)">Opakování toto kolo</div>
+        <div style="font-size:11px;color:var(--ios-label3);margin-top:1px">Zaznamenat počet</div>
+      </div>
+      <div style="display:flex;align-items:center;background:var(--ios-fill);border-radius:99px;overflow:hidden;height:36px">
+        <div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:500;color:var(--ios-label2);cursor:pointer">−</div>
+        <div style="min-width:32px;text-align:center;font-size:16px;font-weight:700;color:var(--ios-gold)">7</div>
+        <div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:500;color:var(--ios-label2);cursor:pointer">+</div>
+      </div>
+    </div>
+
+    <div style="height:16px"></div>
+  </div>
+
+</div>
+</div>
+<!-- ═══════════════════════════════════════════
+     ŽIVÝ FORTIME — ForTime runner
+     Topbar · Big count-up clock · Checklist · FINISH button
+═══════════════════════════════════════════ -->
+<div class="phone-wrap">
+<div class="phone-label">Živý trénink — ForTime</div>
+<div class="phone" id="ph-live-fortime" style="display:none">
+  <div class="di"></div>
+  <div class="status-bar">
+    <span class="sb-time">9:41</span>
+    <div class="sb-icons">
+      <svg width="17" height="12" viewBox="0 0 17 12"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0" width="3" height="12" rx="1"/><rect x="13.5" y="1" width="3" height="11" rx="1"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12"><rect x="0" y="1" width="21" height="10" rx="3.5" stroke="#000" stroke-width="1" fill="none"/><rect x="22" y="4" width="2.5" height="4" rx="1" fill="#000" opacity=".4"/><rect x="1.5" y="2.5" width="15" height="7" rx="2" fill="#000"/></svg>
+    </div>
+  </div>
+
+  <div class="scroll-area" style="bottom:0;padding-bottom:24px">
+
+    <!-- Topbar -->
+    <div class="lt-topbar" style="display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--ios-bg2);border-bottom:.5px solid var(--ios-sep2)">
+      <div style="width:32px;height:32px;border-radius:10px;background:var(--ios-fill);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--ios-label2)">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3l8 8M11 3l-8 8"/></svg>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:10px;font-weight:700;color:var(--ios-label3);text-transform:uppercase;letter-spacing:.1em">ForTime</div>
+        <div style="font-size:15px;font-weight:700;color:var(--ios-label);letter-spacing:-.2px;margin-top:1px">Cíl 21-15-9</div>
+      </div>
+    </div>
+
+    <!-- Big count-up clock -->
+    <div style="margin:20px 16px 0;text-align:center">
+      <div style="font-size:12px;font-weight:600;color:var(--ios-label3);text-transform:uppercase;letter-spacing:.12em;margin-bottom:4px">Uplynulý čas</div>
+      <div style="font-size:80px;font-weight:700;color:var(--ios-gold);letter-spacing:-3px;font-variant-numeric:tabular-nums;line-height:1">06:42</div>
+    </div>
+
+    <!-- Sets checklist -->
+    <div class="ios-section-hdr" style="margin-top:14px"><div class="ios-section-title">Plán — 21-15-9</div></div>
+    <div class="ios-card" style="margin:0 16px;overflow:hidden">
+      <div style="background:var(--ios-bg2)">
+        <!-- done -->
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:.5px solid var(--ios-sep2)">
+          <div style="width:22px;height:22px;border-radius:50%;background:var(--ios-green);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div style="flex:1;font-size:13px;font-weight:500;color:var(--ios-label3);text-decoration:line-through">21 thrusters</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:.5px solid var(--ios-sep2)">
+          <div style="width:22px;height:22px;border-radius:50%;background:var(--ios-green);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div style="flex:1;font-size:13px;font-weight:500;color:var(--ios-label3);text-decoration:line-through">21 pull-ups</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:.5px solid var(--ios-sep2)">
+          <div style="width:22px;height:22px;border-radius:50%;background:var(--ios-green);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div style="flex:1;font-size:13px;font-weight:500;color:var(--ios-label3);text-decoration:line-through">15 thrusters</div>
+        </div>
+        <!-- active -->
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:.5px solid var(--ios-sep2);background:rgba(201,168,76,.05)">
+          <div style="width:22px;height:22px;border-radius:50%;border:2px solid var(--ios-gold);display:flex;align-items:center;justify-content:center;flex-shrink:0"><div style="width:8px;height:8px;border-radius:50%;background:var(--ios-gold)"></div></div>
+          <div style="flex:1;font-size:13px;font-weight:700;color:var(--ios-gold)">15 pull-ups</div>
+          <div style="font-size:11px;font-weight:600;color:var(--ios-gold)">Aktuální</div>
+        </div>
+        <!-- pending -->
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:.5px solid var(--ios-sep2)">
+          <div style="width:22px;height:22px;border-radius:50%;border:2px solid var(--ios-sep);display:flex;align-items:center;justify-content:center;flex-shrink:0"></div>
+          <div style="flex:1;font-size:13px;font-weight:500;color:var(--ios-label3)">9 thrusters</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px">
+          <div style="width:22px;height:22px;border-radius:50%;border:2px solid var(--ios-sep);display:flex;align-items:center;justify-content:center;flex-shrink:0"></div>
+          <div style="flex:1;font-size:13px;font-weight:500;color:var(--ios-label3)">9 pull-ups</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FINISH button -->
+    <div style="margin:16px 16px 0">
+      <div style="padding:18px;border-radius:var(--ios-r-lg);background:var(--ios-green);text-align:center;cursor:pointer;box-shadow:0 4px 16px rgba(52,199,89,.35)">
+        <div style="font-size:20px;font-weight:800;color:#fff;letter-spacing:.5px">🏁 DOKONČIT</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.8);margin-top:4px">Stiskni po posledním opakování</div>
+      </div>
+    </div>
+
+    <div style="height:16px"></div>
+  </div>
+
+</div>
+</div>
+<!-- ═══════════════════════════════════════════
+     ŽIVÝ CAS/VZDÁLENOST — single timed exercise runner
+     Topbar · Count-down timer · Pause/Skip · Distance entry · Next preview
+═══════════════════════════════════════════ -->
+<div class="phone-wrap">
+<div class="phone-label">Živý trénink — Čas/Distance</div>
+<div class="phone" id="ph-live-time-distance" style="display:none">
+  <div class="di"></div>
+  <div class="status-bar">
+    <span class="sb-time">9:41</span>
+    <div class="sb-icons">
+      <svg width="17" height="12" viewBox="0 0 17 12"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0" width="3" height="12" rx="1"/><rect x="13.5" y="1" width="3" height="11" rx="1"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12"><rect x="0" y="1" width="21" height="10" rx="3.5" stroke="#000" stroke-width="1" fill="none"/><rect x="22" y="4" width="2.5" height="4" rx="1" fill="#000" opacity=".4"/><rect x="1.5" y="2.5" width="15" height="7" rx="2" fill="#000"/></svg>
+    </div>
+  </div>
+
+  <div class="scroll-area" style="bottom:0;padding-bottom:24px">
+
+    <!-- Topbar -->
+    <div class="lt-topbar" style="display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--ios-bg2);border-bottom:.5px solid var(--ios-sep2)">
+      <div style="width:32px;height:32px;border-radius:10px;background:var(--ios-fill);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--ios-label2)">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3l8 8M11 3l-8 8"/></svg>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:10px;font-weight:600;color:var(--ios-label3);text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Push A · Cvik 3/4</div>
+        <div style="font-size:15px;font-weight:700;color:var(--ios-label);letter-spacing:-.2px;margin-top:1px">Běh 5 min</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:18px;font-weight:700;color:var(--ios-gold);letter-spacing:-.3px;font-variant-numeric:tabular-nums">00:28</div>
+        <div style="font-size:10px;color:var(--ios-label3);font-weight:500;margin-top:1px">elapsed</div>
+      </div>
+    </div>
+
+    <!-- Count-down timer hero -->
+    <div style="margin:24px 16px 0;text-align:center">
+      <div style="font-size:12px;font-weight:600;color:var(--ios-label3);text-transform:uppercase;letter-spacing:.12em;margin-bottom:6px">Zbývá</div>
+      <div style="font-size:88px;font-weight:700;color:var(--ios-gold);letter-spacing:-4px;font-variant-numeric:tabular-nums;line-height:1">4:32</div>
+      <div style="font-size:13px;color:var(--ios-label3);margin-top:6px">z 5:00 min</div>
+      <!-- Progress -->
+      <div style="margin:12px 32px 0">
+        <div style="height:6px;background:var(--ios-fill);border-radius:99px;overflow:hidden">
+          <div style="height:100%;width:9%;background:var(--ios-gold);border-radius:99px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pause / Skip buttons -->
+    <div style="margin:20px 16px 0;display:flex;gap:10px">
+      <div style="flex:1;padding:14px;border-radius:var(--ios-r-lg);background:var(--ios-fill);border:1px solid var(--ios-sep2);text-align:center;cursor:pointer">
+        <div style="font-size:22px;margin-bottom:2px">⏸</div>
+        <div style="font-size:13px;font-weight:600;color:var(--ios-label2)">Pauza</div>
+      </div>
+      <div style="flex:1;padding:14px;border-radius:var(--ios-r-lg);background:var(--ios-fill);border:1px solid var(--ios-sep2);text-align:center;cursor:pointer">
+        <div style="font-size:22px;margin-bottom:2px">⏭</div>
+        <div style="font-size:13px;font-weight:600;color:var(--ios-label2)">Přeskočit</div>
+      </div>
+    </div>
+
+    <!-- Distance entry (visible pre-finish, collapsed look) -->
+    <div style="margin:14px 16px 0;background:var(--ios-bg2);border:1px solid var(--ios-sep2);border-radius:var(--ios-r-lg);overflow:hidden">
+      <div style="padding:10px 14px;border-bottom:.5px solid var(--ios-sep2);display:flex;align-items:center;justify-content:space-between">
+        <div style="font-size:13px;font-weight:600;color:var(--ios-label)">Vzdálenost (m)</div>
+        <div style="font-size:11px;color:var(--ios-label3)">Vyplnit po dokončení</div>
+      </div>
+      <div style="padding:12px 14px;display:flex;align-items:center;gap:10px">
+        <div style="flex:1;background:var(--ios-fill);border:1px solid var(--ios-sep);border-radius:9px;padding:10px 14px">
+          <div style="font-size:18px;font-weight:700;color:var(--ios-label4);font-variant-numeric:tabular-nums">—</div>
+          <div style="font-size:11px;color:var(--ios-label4);margin-top:1px">metrů</div>
+        </div>
+        <div style="padding:11px 18px;border-radius:9px;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.2);cursor:pointer">
+          <div style="font-size:13px;font-weight:700;color:var(--ios-gold)">Potvrdit</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Next exercise preview -->
+    <div style="margin:14px 16px 0;background:var(--ios-bg2);border:1px solid var(--ios-sep2);border-radius:var(--ios-r);padding:12px 14px;display:flex;align-items:center;gap:12px">
+      <div style="font-size:10px;font-weight:700;color:var(--ios-label3);letter-spacing:.1em;flex-shrink:0;text-transform:uppercase">Další</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:600;color:var(--ios-label)">Bench press</div>
+        <div style="font-size:11px;color:var(--ios-label3);margin-top:1px">3 série × 8 reps · 80 kg</div>
+      </div>
+      <div style="width:10px;height:10px;border-radius:50%;background:rgba(11,110,153,.7);flex-shrink:0"></div>
+    </div>
+
+    <div style="height:16px"></div>
+  </div>
+
+</div>
+</div>
+<!-- ═══════════════════════════════════════════
+     VÝSLEDKY TRÉNINKU — Post-WOD summary card
+     Celebration · Stats grid · Breakdown · Save button
+═══════════════════════════════════════════ -->
+<div class="phone-wrap">
+<div class="phone-label">Výsledky tréninku</div>
+<div class="phone" id="ph-live-results-summary" style="display:none">
+  <div class="di"></div>
+  <div class="status-bar">
+    <span class="sb-time">9:41</span>
+    <div class="sb-icons">
+      <svg width="17" height="12" viewBox="0 0 17 12"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0" width="3" height="12" rx="1"/><rect x="13.5" y="1" width="3" height="11" rx="1"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12"><rect x="0" y="1" width="21" height="10" rx="3.5" stroke="#000" stroke-width="1" fill="none"/><rect x="22" y="4" width="2.5" height="4" rx="1" fill="#000" opacity=".4"/><rect x="1.5" y="2.5" width="15" height="7" rx="2" fill="#000"/></svg>
+    </div>
+  </div>
+
+  <div class="scroll-area" style="bottom:0;padding-bottom:24px">
+
+    <!-- Topbar -->
+    <div class="lt-topbar" style="display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--ios-bg2);border-bottom:.5px solid var(--ios-sep2)">
+      <div style="width:32px;height:32px;border-radius:10px;background:var(--ios-fill);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--ios-label2)">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3l8 8M11 3l-8 8"/></svg>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:10px;font-weight:700;color:var(--ios-label3);text-transform:uppercase;letter-spacing:.1em">Push A</div>
+        <div style="font-size:15px;font-weight:700;color:var(--ios-label);letter-spacing:-.2px;margin-top:1px">Trénink dokončen</div>
+      </div>
+    </div>
+
+    <!-- Celebration hero -->
+    <div class="ios-card" style="margin:14px 16px 0;overflow:hidden">
+      <div style="padding:24px 20px 18px;background:linear-gradient(135deg,#1a2a1a 0%,#0d2a0d 100%);text-align:center">
+        <div style="font-size:52px;line-height:1;margin-bottom:10px">🎉</div>
+        <div style="font-size:26px;font-weight:700;color:#fff;letter-spacing:-.3px">Hotovo!</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.65);margin-top:6px">Push A · AMRAP 12 min</div>
+      </div>
+
+      <!-- Primary WOD result -->
+      <div style="background:rgba(201,168,76,.08);border-top:.5px solid rgba(201,168,76,.2);border-bottom:.5px solid rgba(201,168,76,.2);padding:14px 16px;text-align:center">
+        <div style="font-size:11px;font-weight:700;color:var(--ios-gold);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">AMRAP výsledek</div>
+        <div style="font-size:32px;font-weight:700;color:var(--ios-gold);letter-spacing:-.5px">8 kol + 12 reps</div>
+        <div style="font-size:13px;color:var(--ios-label3);margin-top:2px">Čas: 12:00</div>
+      </div>
+
+      <!-- Stats grid -->
+      <div style="background:var(--ios-bg2);padding:14px 16px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+          <div style="background:var(--ios-fill2);border-radius:var(--ios-r);padding:12px 14px">
+            <div style="font-size:10px;color:var(--ios-label3);font-weight:600;text-transform:uppercase;letter-spacing:.08em">Čas</div>
+            <div style="font-size:22px;font-weight:700;color:var(--ios-gold);letter-spacing:-.3px;margin-top:4px;font-variant-numeric:tabular-nums">12:00</div>
+          </div>
+          <div style="background:var(--ios-fill2);border-radius:var(--ios-r);padding:12px 14px">
+            <div style="font-size:10px;color:var(--ios-label3);font-weight:600;text-transform:uppercase;letter-spacing:.08em">Kola</div>
+            <div style="font-size:22px;font-weight:700;color:var(--ios-label);letter-spacing:-.3px;margin-top:4px">8</div>
+          </div>
+          <div style="background:var(--ios-fill2);border-radius:var(--ios-r);padding:12px 14px">
+            <div style="font-size:10px;color:var(--ios-label3);font-weight:600;text-transform:uppercase;letter-spacing:.08em">Navíc reps</div>
+            <div style="font-size:22px;font-weight:700;color:var(--ios-label);letter-spacing:-.3px;margin-top:4px">12</div>
+          </div>
+          <div style="background:var(--ios-fill2);border-radius:var(--ios-r);padding:12px 14px">
+            <div style="font-size:10px;color:var(--ios-label3);font-weight:600;text-transform:uppercase;letter-spacing:.08em">Celkem reps</div>
+            <div style="font-size:22px;font-weight:700;color:var(--ios-label);letter-spacing:-.3px;margin-top:4px">252</div>
+          </div>
+        </div>
+
+        <!-- Per-exercise breakdown -->
+        <div style="margin-bottom:12px">
+          <div style="font-size:11px;font-weight:700;color:var(--ios-label3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Cviky</div>
+          <div style="background:var(--ios-bg);border:1px solid var(--ios-sep2);border-radius:var(--ios-r);overflow:hidden">
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:.5px solid var(--ios-sep2)">
+              <div style="flex:1;font-size:13px;font-weight:600;color:var(--ios-label)">Běh 5 min</div>
+              <div style="font-size:13px;font-weight:700;color:var(--ios-gold)">4:58</div>
+              <div style="font-size:11px;color:var(--ios-label3)">1 250 m</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:.5px solid var(--ios-sep2)">
+              <div style="flex:1;font-size:13px;font-weight:600;color:var(--ios-label)">Bench press</div>
+              <div style="font-size:13px;font-weight:700;color:var(--ios-gold)">4 × 8</div>
+              <div style="font-size:11px;color:var(--ios-label3)">@ 80 kg</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:.5px solid var(--ios-sep2)">
+              <div style="flex:1;font-size:13px;font-weight:600;color:var(--ios-label)">Pull-ups</div>
+              <div style="font-size:13px;font-weight:700;color:var(--ios-gold)">5 reps</div>
+              <div style="font-size:11px;color:var(--ios-label3)">8 kol</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 12px">
+              <div style="flex:1;font-size:13px;font-weight:600;color:var(--ios-label)">Sit-ups</div>
+              <div style="font-size:13px;font-weight:700;color:var(--ios-gold)">15 reps</div>
+              <div style="font-size:11px;color:var(--ios-label3)">8 kol</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Save button -->
+        <div style="padding:16px;border-radius:var(--ios-r-lg);background:var(--ios-gold);text-align:center;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+          <span style="font-size:18px">💾</span>
+          <div style="font-size:16px;font-weight:700;color:#fff;letter-spacing:.2px">Uložit trénink</div>
+        </div>
+        <div style="margin-top:8px;text-align:center">
+          <div style="font-size:12px;font-weight:500;color:var(--ios-label3);cursor:pointer">Zahodit a nezapisovat</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="height:16px"></div>
+  </div>
+
+</div>
+</div>
+<!-- ═══════════════════════════════════════════
      FOTO-DENÍK — žádost od poradce
 ═══════════════════════════════════════════ -->
 <div class="phone-wrap">
@@ -5873,7 +6450,7 @@ function showPhone(id){
   document.querySelectorAll('.phone').forEach(function(p){ p.style.display='none'; });
   var el = document.getElementById(id); if(el) el.style.display='block';
   document.querySelectorAll('.pb').forEach(function(b){ b.classList.remove('active'); });
-  var map = {'ph-today':'Dnes','ph-invite-detail':'Detail pozvánky','ph-discover':'Spolupráce','ph-trainer-profile':'Profil trenéra','ph-plans':'Plány','ph-plan-history':'Archiv plánů','ph-plan-detail-complete':'Dokončený plán','ph-nutrition-plan-detail':'Detail výživového plánu','ph-training-plan-detail':'Detail tréninku','ph-food-detail':'Detail potraviny','ph-recipe-detail':'Detail receptu','ph-pending-questionnaires':'Čekající dotazníky','ph-weekly-checkin':'Check-in — vyplnit','ph-weekly-checkin-sent':'Check-in — odesláno','ph-profile':'Profil','ph-messages':'Zprávy','ph-archive':'Archiv','ph-chat':'Chat detail','ph-chat-former':'Chat — bývalý trenér','ph-live-training':'Živý trénink','ph-diary-request':'Žádost','ph-diary-dismiss':'Odmítnutí','ph-diary-accept-wizard':'Výběr způsobu','ph-diary-bulk':'Hromadné nahrání','ph-diary-workflow':'Aktivní workflow','ph-diary-finalize':'Dokončení','ph-meal-log-photo':'Log jídla · foto','ph-plan-photos':'Fotky plánu','ph-profile-photos':'Timeline fotek'};
+  var map = {'ph-today':'Dnes','ph-invite-detail':'Detail pozvánky','ph-discover':'Spolupráce','ph-trainer-profile':'Profil trenéra','ph-plans':'Plány','ph-plan-history':'Archiv plánů','ph-plan-detail-complete':'Dokončený plán','ph-nutrition-plan-detail':'Detail výživového plánu','ph-training-plan-detail':'Detail tréninku','ph-food-detail':'Detail potraviny','ph-recipe-detail':'Detail receptu','ph-pending-questionnaires':'Čekající dotazníky','ph-weekly-checkin':'Check-in — vyplnit','ph-weekly-checkin-sent':'Check-in — odesláno','ph-profile':'Profil','ph-messages':'Zprávy','ph-archive':'Archiv','ph-chat':'Chat detail','ph-chat-former':'Chat — bývalý trenér','ph-live-training':'Živý trénink','ph-live-amrap':'Živý AMRAP','ph-live-emom':'Živý EMOM','ph-live-tabata':'Živá Tabata','ph-live-fortime':'Živý ForTime','ph-live-time-distance':'Živý Čas/Distance','ph-live-results-summary':'Výsledky tréninku','ph-diary-request':'Žádost','ph-diary-dismiss':'Odmítnutí','ph-diary-accept-wizard':'Výběr způsobu','ph-diary-bulk':'Hromadné nahrání','ph-diary-workflow':'Aktivní workflow','ph-diary-finalize':'Dokončení','ph-meal-log-photo':'Log jídla · foto','ph-plan-photos':'Fotky plánu','ph-profile-photos':'Timeline fotek'};
   document.querySelectorAll('.pb').forEach(function(b){
     if(b.textContent.trim() === map[id]) b.classList.add('active');
   });
