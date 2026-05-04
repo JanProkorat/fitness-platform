@@ -10,6 +10,16 @@ RUN dotnet restore FitnessPlatform.Application/FitnessPlatform.Application.cspro
 
 # Copy everything else and publish
 COPY . .
+
+# Workaround for a Linux MSBuild bug in .NET SDK 10.0.103: the glob evaluation
+# for EmbeddedResource/Compile items enumerates `DefaultItemExcludes` (bin/**,
+# obj/**) and throws DirectoryNotFoundException if any exclude subfolder is
+# missing. The exception is swallowed, and the literal `**/*.resx` glob reaches
+# the compiler as a filename, producing MSB3552. Pre-creating the Debug folder
+# lets the enumeration walk cleanly. The Release publish never writes to it.
+# Mirrors .github/workflows/backend.yml.
+RUN mkdir -p FitnessPlatform.Application/bin/Debug
+
 RUN dotnet publish FitnessPlatform.Application/FitnessPlatform.Application.csproj \
     -c Release \
     -o /app \
