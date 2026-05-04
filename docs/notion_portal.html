@@ -4183,18 +4183,19 @@ function currentMeals(){return NUTRITION.weeks[NUTRITION.currentWeek].days[NUTRI
 
 // ── SIDEBAR ───────────────────────────────────────────────────────────────────
 function buildSidebar(containerId, activeScreen){
-  var el=document.getElementById(containerId); if(!el) return;
+  var els=document.querySelectorAll('[id="'+containerId+'"]'); if(!els.length) return;
   var html='<div class="sb-ws"><div class="sb-ws-icon">GF</div><div class="sb-ws-name">GoodFellas</div><div class="sb-ws-chev">⌄</div></div>';
   html+='<div class="sb-div"></div>';
   html+='<div class="sb-sec"><div class="sb-item'+(activeScreen==='s-dashboard'?' active':'')+'" onclick="showScreen(\'s-dashboard\')"><span class="sbi-icon">⊞</span><span class="sbi-lbl">Dashboard</span></div>';
   html+='<div class="sb-item'+(activeScreen==='s-profile'?' active':'')+'" onclick="showScreen(\'s-profile\')"><span class="sbi-icon">👤</span><span class="sbi-lbl">Profil</span></div>';
   html+='<div class="sb-item'+(activeScreen==='s-messages'?' active':'')+'" onclick="showScreen(\'s-messages\')"><span class="sbi-icon">✉</span><span class="sbi-lbl">Zprávy</span><span class="sbi-badge">1</span></div></div>';
   html+='<div class="sb-div"></div><div class="sb-sec"><div class="sb-sec-lbl">Klienti</div>';
+  var clientScreens=['s-client','s-training','s-training-session-builder','s-training-form-fix','s-nutrition','s-goals','s-client-photos','s-settings-checkins'];
   CLIENTS.forEach(function(cl){
-    var isCl=activeScreen==='s-client'&&cl.id===1;
+    var isCl=clientScreens.indexOf(activeScreen)!==-1&&cl.id===1;
     html+='<div class="sb-item'+(isCl?' active':'')+'" onclick="showScreen(\'s-client\')"><span class="sbi-icon">👤</span><span class="sbi-lbl">'+cl.name+'</span><div class="sb-acts"><span>···</span></div></div>';
     if(isCl){
-      html+='<div class="sb-item indent'+(activeScreen==='s-training'?' active':'')+'" onclick="showScreen(\'s-training\')"><span class="sbi-icon">🏋️</span><span class="sbi-lbl">Trén. plán</span></div>';
+      html+='<div class="sb-item indent'+((activeScreen==='s-training'||activeScreen==='s-training-session-builder')?' active':'')+'" onclick="showScreen(\'s-training-session-builder\')"><span class="sbi-icon">🏋️</span><span class="sbi-lbl">Trén. plán</span></div>';
       html+='<div class="sb-item indent'+(activeScreen==='s-nutrition'?' active':'')+'" onclick="showScreen(\'s-nutrition\')"><span class="sbi-icon">🥗</span><span class="sbi-lbl">Jídelníček</span></div>';
       html+='<div class="sb-item indent'+(activeScreen==='s-goals'?' active':'')+'" onclick="showScreen(\'s-goals\')"><span class="sbi-icon">🎯</span><span class="sbi-lbl">Cíle a makra</span></div>';
     }
@@ -4202,9 +4203,11 @@ function buildSidebar(containerId, activeScreen){
   html+='<div class="sb-item" onclick="openDialog(\'dlg-new-client\')" style="color:var(--t3)"><span class="sbi-icon">+</span><span class="sbi-lbl">Přidat klienta</span></div></div>';
   html+='<div class="sb-div"></div><div class="sb-sec"><div class="sb-sec-lbl">Databáze</div>';
   html+='<div class="sb-item'+(activeScreen==='s-foods'?' active':'')+'" onclick="showScreen(\'s-foods\')"><span class="sbi-icon">📦</span><span class="sbi-lbl">Potraviny</span></div>';
-  html+='<div class="sb-item'+(activeScreen==='s-recipes'?' active':'')+'" onclick="showScreen(\'s-recipes\')"><span class="sbi-icon">📖</span><span class="sbi-lbl">Recepty</span></div></div>';
+  html+='<div class="sb-item'+(activeScreen==='s-recipes'?' active':'')+'" onclick="showScreen(\'s-recipes\')"><span class="sbi-icon">📖</span><span class="sbi-lbl">Recepty</span></div>';
+  html+='<div class="sb-item'+(activeScreen==='s-training-section-templates'?' active':'')+'" onclick="showScreen(\'s-training-section-templates\')"><span class="sbi-icon">📚</span><span class="sbi-lbl">Šablony sekcí</span></div>';
+  html+='<div class="sb-item'+(activeScreen==='s-training-section-types'?' active':'')+'" onclick="showScreen(\'s-training-section-types\')"><span class="sbi-icon">📑</span><span class="sbi-lbl">Typy sekcí</span></div></div>';
   html+='<div class="sb-user"><div class="sb-avatar">MT</div><div><div style="font-size:13px;font-weight:500">Marek Trenér</div><div style="font-size:11px;color:var(--t3)">Trenér & výživa</div></div></div>';
-  el.innerHTML=html;
+  els.forEach(function(el){el.innerHTML=html;});
 }
 
 // ── SCREEN SWITCHING ──────────────────────────────────────────────────────────
