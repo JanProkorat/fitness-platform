@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GoodFellas Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style><!-- include: styles/tokens.css --><!-- include: styles/layout.css --><!-- include: styles/components.css --></style>
+</head>
+<body>
+
+<!-- ══ TOP NAV ════════════════════════════════════════════════════════════════ -->
+<div id="tnav">
+  <div class="tn-logo">GF Platform</div>
+  <div class="tn-sep"></div>
+  <div class="tn-lbl">Auth</div>
+  <button class="tn-btn" onclick="showScreen('s-login')">Přihlášení</button>
+  <button class="tn-btn" onclick="showScreen('s-register')">Registrace</button>
+  <button class="tn-btn" onclick="showScreen('s-forgot')">Zapomenuté heslo</button>
+  <div class="tn-sep"></div>
+  <div class="tn-lbl">Trenér</div>
+  <button class="tn-btn active" onclick="showScreen('s-dashboard')">Dashboard</button>
+  <button class="tn-btn" onclick="showScreen('s-client')">Klient</button>
+  <button class="tn-btn" onclick="showScreen('s-training')">Trén. plán</button>
+  <button class="tn-btn" onclick="showScreen('s-training-session-builder')">Plán · sekce</button>
+  <button class="tn-btn" onclick="showScreen('s-training-section-templates')">Šablony sekcí</button>
+  <button class="tn-btn" onclick="showScreen('s-training-section-types')">Typy sekcí</button>
+  <button class="tn-btn" onclick="showScreen('s-training-form-fix')">Oprava form. sérií</button>
+  <button class="tn-btn" onclick="showScreen('s-messages')">Zprávy</button>
+  <div class="tn-sep"></div>
+  <div class="tn-lbl">Výživa</div>
+  <button class="tn-btn" onclick="showScreen('s-nutrition')">Jídelníček</button>
+  <button class="tn-btn" onclick="showScreen('s-foods')">Databáze potravin</button>
+  <button class="tn-btn" onclick="showScreen('s-recipes')">Recepty</button>
+  <button class="tn-btn" onclick="showScreen('s-goals')">Cíle klienta</button>
+  <div class="tn-sep"></div>
+  <div class="tn-lbl">Fotky</div>
+  <button class="tn-btn" onclick="showScreen('s-client-photos')">Fotky klienta</button>
+  <button class="tn-btn" onclick="openDialog('dlg-diary-request')">Nová žádost o deník</button>
+  <div class="tn-sep"></div>
+  <div class="tn-lbl">Nastavení</div>
+  <button class="tn-btn" onclick="showScreen('s-profile')">Profil</button>
+  <button class="tn-btn" onclick="showScreen('s-settings-checkins')">Týdenní check-iny</button>
+  <div class="tn-right">
+    <button class="tn-icon" onclick="toggleDark()" id="dark-btn" title="Tmavý režim">☾</button>
+  </div>
+</div>
+
+<div id="canvas">
+
+<!-- ═══════════════════════════════════════════════════════════
+     DASHBOARD
+═══════════════════════════════════════════════════════════ -->
+<!-- include: scenes/dashboard.html --><!-- include: scenes/client.html --><!-- include: scenes/training.html --><!-- include: scenes/training-session-builder.html --><!-- include: scenes/training-section-templates.html --><!-- include: scenes/training-section-types.html --><!-- include: scenes/training-form-fix.html --><!-- include: scenes/messages.html --><!-- include: scenes/nutrition.html --><!-- include: scenes/foods.html --><!-- include: scenes/recipes.html --><!-- include: scenes/goals.html --><!-- include: scenes/settings-checkins.html --><!-- include: scenes/profile.html --><!-- include: scenes/client-photos.html --><!-- include: scenes/login.html --><!-- include: scenes/register.html --><!-- include: scenes/forgot.html --></div><!-- #canvas -->
+
+<!-- ══════════════════════════════════════════════════════════════
+     DIALOGY
+══════════════════════════════════════════════════════════════ -->
+
+<!-- Nový klient — pozvánka (matches web NewClientDialog.tsx) -->
+<div class="overlay" id="dlg-new-client" onclick="closeOnOverlay(event,'dlg-new-client')">
+  <div class="dialog" style="max-width:520px;padding:0;overflow:hidden">
+    <!-- Hero -->
+    <div style="height:90px;background:var(--acc-bg);display:flex;align-items:center;justify-content:center">
+      <span style="font-size:36px;opacity:.6">✉️</span>
+    </div>
+    <div class="dlg-hdr">
+      <div>
+        <div class="dlg-title">Pozvat klienta</div>
+        <div style="font-size:12px;color:var(--t3);margin-top:2px">Klient dostane email s odkazem pro nastavení hesla a přijetí pozvánky.</div>
+      </div>
+      <button class="dlg-close" onclick="closeDialog('dlg-new-client')">✕</button>
+    </div>
+    <div class="dlg-body">
+      <!-- Name + email -->
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Jméno</label><input class="form-input" placeholder="Jan"></div>
+        <div class="form-group"><label class="form-label">Příjmení</label><input class="form-input" placeholder="Novák"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" placeholder="jan@example.cz"></div>
+
+      <!-- Intro message -->
+      <div class="form-group">
+        <label class="form-label">Úvodní zpráva <span style="color:var(--t4);font-weight:400">(volitelné)</span></label>
+        <textarea class="form-input" rows="3" maxlength="500" placeholder="Představ se, popiš další kroky, přidej odkaz na video…"></textarea>
+        <div style="font-size:10px;color:var(--t4);text-align:right;margin-top:2px">0 / 500</div>
+      </div>
+
+      <div class="form-divider"></div>
+
+      <!-- Questionnaire attachment -->
+      <div class="form-section-title">📋 Přiložit dotazník</div>
+      <div class="form-group">
+        <label class="form-label">Šablona dotazníku</label>
+        <select class="form-select">
+          <option value="">Bez dotazníku</option>
+          <option selected>Vstupní dotazník — trénink (Výchozí)</option>
+          <option>Výživový vstupní dotazník</option>
+          <option>Kontrolní dotazník po 8 týdnech</option>
+        </select>
+        <div style="font-size:11px;color:var(--t3);margin-top:4px">Klient vyplní dotazník po přijetí pozvánky. Odpovědi uvidíš v jeho profilu.</div>
+      </div>
+
+      <div class="form-divider"></div>
+
+      <!-- Photo-diary attachment -->
+      <div class="form-section-title" style="display:flex;align-items:center;justify-content:space-between">
+        <span>📸 Přiložit foto-deník</span>
+        <div class="toggle on" id="dlg-new-client-diary-toggle" onclick="this.classList.toggle('on');document.getElementById('dlg-new-client-diary-body').style.display = this.classList.contains('on') ? '' : 'none'"><div class="toggle-thumb"></div></div>
+      </div>
+      <div id="dlg-new-client-diary-body">
+        <div style="font-size:12px;color:var(--t2);margin-bottom:10px">Po akceptaci pozvánky bude klient vyzván k nasdílení fotografií jídel.</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Délka deníku</label>
+            <select class="form-select">
+              <option>3 dny</option>
+              <option selected>7 dní</option>
+              <option>14 dní</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Režim odesílání</label>
+            <select class="form-select">
+              <option>Vybere klient při akceptaci</option>
+              <option>Vše najednou</option>
+              <option>Denní workflow</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Zpráva ke žádosti</label>
+          <textarea class="form-input" rows="3" maxlength="500" placeholder="Osobní zpráva pro klienta…">Abych si udělala co nejlepší obrázek o tvých stravovacích návycích, než ti sestavím plán, ráda bych od tebe dostala fotky všech jídel, které běžně jíš.</textarea>
+          <div style="font-size:10px;color:var(--t4);text-align:right;margin-top:2px">187 / 500</div>
+        </div>
+      </div>
+    </div>
+    <div class="dlg-footer">
+      <button class="btn" onclick="closeDialog('dlg-new-client')">Zrušit</button>
+      <button class="btn primary" onclick="closeDialog('dlg-new-client');showToast('Pozvánka odeslána')">Odeslat pozvánku</button>
+    </div>
+  </div>
+</div>
+
+<!-- Foto-deník — samostatná žádost pro existujícího klienta (z detailu plánu) -->
+<div class="overlay" id="dlg-diary-request" onclick="closeOnOverlay(event,'dlg-diary-request')">
+  <div class="dialog" style="max-width:520px;padding:0;overflow:hidden">
+    <!-- Hero -->
+    <div style="height:90px;background:rgba(52,199,89,.1);display:flex;align-items:center;justify-content:center">
+      <span style="font-size:36px;opacity:.8">📸</span>
+    </div>
+    <div class="dlg-hdr">
+      <div>
+        <div class="dlg-title">Požádat o foto-deník</div>
+        <div style="font-size:12px;color:var(--t3);margin-top:2px">Klient uvidí žádost jako banner na úvodní obrazovce v mobilu.</div>
+      </div>
+      <button class="dlg-close" onclick="closeDialog('dlg-diary-request')">✕</button>
+    </div>
+    <div class="dlg-body">
+      <!-- Client strip -->
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rm);margin-bottom:16px">
+        <div style="width:32px;height:32px;border-radius:8px;background:rgba(0,122,255,.12);color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0">PH</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:var(--t)">Petra Horáková</div>
+          <div style="font-size:11px;color:var(--t2)">Výživa · Týden 4 / 12</div>
+        </div>
+      </div>
+
+      <!-- Info callout -->
+      <div class="callout" style="margin-bottom:16px;background:rgba(201,168,76,.06);border:1px solid var(--acc-br)">
+        <div class="callout-icon">ℹ</div>
+        <div class="callout-body">
+          <div class="callout-text" style="font-size:12px">Klient může žádost přijmout nebo odmítnout (s volitelným důvodem). Po akceptaci si vybere mezi jednorázovým nahráním nebo denním workflow — fotky uvidíš v reálném čase.</div>
+        </div>
+      </div>
+
+      <!-- Duration -->
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Délka deníku</label>
+          <select class="form-select">
+            <option>3 dny</option>
+            <option selected>7 dní</option>
+            <option>14 dní</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Režim odesílání</label>
+          <select class="form-select">
+            <option>Vybere klient při akceptaci</option>
+            <option>Vše najednou</option>
+            <option>Denní workflow</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Message -->
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">Zpráva pro klienta</label>
+        <textarea class="form-input" rows="4" maxlength="500" placeholder="Osobní zpráva pro klienta…">Abych si udělala co nejlepší obrázek o tvých stravovacích návycích, než ti sestavím plán, ráda bych od tebe dostala fotky všech jídel, které běžně jíš.</textarea>
+        <div style="font-size:10px;color:var(--t4);text-align:right;margin-top:2px">187 / 500</div>
+      </div>
+    </div>
+    <div class="dlg-footer">
+      <button class="btn" onclick="closeDialog('dlg-diary-request')">Zrušit</button>
+      <button class="btn primary" onclick="closeDialog('dlg-diary-request');showToast('Žádost odeslána')">Odeslat žádost</button>
+    </div>
+  </div>
+</div>
+
+<!-- Upravit klienta -->
+<div class="overlay" id="dlg-edit-client" onclick="closeOnOverlay(event,'dlg-edit-client')">
+  <div class="dialog" style="max-width:480px">
+    <div class="dlg-hdr"><div class="dlg-title">Upravit profil – Petra Horáková</div><button class="dlg-close" onclick="closeDialog('dlg-edit-client')">✕</button></div>
+    <div class="dlg-body">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Jméno</label><input class="form-input" value="Petra"></div>
+        <div class="form-group"><label class="form-label">Příjmení</label><input class="form-input" value="Horáková"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Email</label><input class="form-input" value="petra@example.cz"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Výška (cm)</label><input class="form-input" value="168"></div>
+        <div class="form-group"><label class="form-label">Váha (kg)</label><input class="form-input" value="63.1"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Alergie / omezení</label><input class="form-input" value="Laktóza (mírná)" placeholder="např. lepek, laktóza..."></div>
+      <div class="form-group"><label class="form-label">Poznámka trenéra</label><textarea class="form-input" rows="3" placeholder="Interní poznámka..."></textarea></div>
+    </div>
+    <div class="dlg-footer">
+      <button class="btn" onclick="closeDialog('dlg-edit-client')">Zrušit</button>
+      <button class="btn primary" onclick="closeDialog('dlg-edit-client');showToast('Profil uložen')">Uložit</button>
+    </div>
+  </div>
+</div>
+
+<!-- Individuální rozvrh check-inu pro klienta -->
+<div class="overlay" id="dlg-checkin-override" onclick="closeOnOverlay(event,'dlg-checkin-override')">
+  <div class="dialog" style="max-width:480px">
+    <div class="dlg-hdr"><div class="dlg-title">Individuální rozvrh — Tomáš Navrátil</div><button class="dlg-close" onclick="closeDialog('dlg-checkin-override')">✕</button></div>
+    <div class="dlg-body">
+      <div class="callout" style="margin-bottom:14px;background:rgba(201,168,76,.06);border:1px solid var(--acc-br)">
+        <div class="callout-icon">ℹ</div>
+        <div class="callout-body">
+          <div class="callout-text" style="font-size:12px">Odškrtni <strong>Výchozí</strong> u pole, které chceš u tohoto klienta upravit. Zaškrtnutá políčka přebírají nastavení z výchozího rozvrhu pro Trénink.</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <label class="form-label" style="margin:0">Aktivní</label>
+          <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--t2);cursor:pointer">
+            <input type="checkbox"> Výchozí
+          </label>
+        </div>
+        <div class="toggle-wrap" style="margin:0;padding:8px 10px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rm)">
+          <span class="toggle-lbl">Posílat check-in tomuto klientovi</span>
+          <div class="toggle on" onclick="this.classList.toggle('on')"><div class="toggle-thumb"></div></div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <label class="form-label" style="margin:0">Den v týdnu</label>
+            <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--t2);cursor:pointer">
+              <input type="checkbox"> Výchozí
+            </label>
+          </div>
+          <select class="form-select">
+            <option>Pondělí</option>
+            <option selected>Úterý</option>
+            <option>Středa</option>
+            <option>Čtvrtek</option>
+            <option>Pátek</option>
+            <option>Sobota</option>
+            <option>Neděle</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <label class="form-label" style="margin:0">Čas (hodina)</label>
+            <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--t2);cursor:pointer">
+              <input type="checkbox"> Výchozí
+            </label>
+          </div>
+          <select class="form-select">
+            <option>06:00</option><option>07:00</option><option>08:00</option>
+            <option>09:00</option><option>10:00</option><option>11:00</option>
+            <option>12:00</option><option>13:00</option><option>14:00</option>
+            <option>15:00</option><option>16:00</option><option>17:00</option>
+            <option>18:00</option><option>19:00</option><option selected>20:00</option>
+            <option>21:00</option><option>22:00</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <label class="form-label" style="margin:0">Zpráva pro klienta</label>
+          <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--t2);cursor:pointer">
+            <input type="checkbox" checked> Výchozí
+          </label>
+        </div>
+        <textarea class="form-input" rows="2" maxlength="200" placeholder="Individuální zpráva pro tohoto klienta…" disabled style="background:var(--bg3);color:var(--t2)">Pokud plánuješ dlouhou cestu, dej vědět — přizpůsobím týdenní rozložení.</textarea>
+        <div style="font-size:11px;color:var(--t3);margin-top:4px">Používá výchozí zprávu</div>
+      </div>
+    </div>
+    <div class="dlg-footer">
+      <button class="btn danger" onclick="closeDialog('dlg-checkin-override');showToast('Rozvrh vrácen na výchozí')">Vrátit vše na výchozí</button>
+      <button class="btn" onclick="closeDialog('dlg-checkin-override')">Zrušit</button>
+      <button class="btn primary" onclick="closeDialog('dlg-checkin-override');showToast('Rozvrh uložen')">Uložit</button>
+    </div>
+  </div>
+</div>
+
+<!-- Filtr klientů -->
+<div class="overlay" id="dlg-filter" onclick="closeOnOverlay(event,'dlg-filter')">
+  <div class="dialog" style="max-width:360px">
+    <div class="dlg-hdr"><div class="dlg-title">Filtrovat klienty</div><button class="dlg-close" onclick="closeDialog('dlg-filter')">✕</button></div>
+    <div class="dlg-body">
+      <div class="form-group"><label class="form-label">Cíl</label><select class="form-select"><option value="">Vše</option><option>Hubnutí</option><option>Nabírání</option><option>Kondice</option></select></div>
+      <div class="form-group"><label class="form-label">Compliance (min %)</label><input class="form-input" type="range" min="0" max="100" value="0" oninput="this.nextElementSibling.textContent=this.value+'%'"><span style="font-size:12px;color:var(--t3)">0%</span></div>
+      <div class="form-group"><label class="form-label">Poslední aktivita</label><select class="form-select"><option>Kdykoliv</option><option>Dnes</option><option>Posledních 3 dní</option><option>Posledního týdne</option></select></div>
+    </div>
+    <div class="dlg-footer">
+      <button class="btn" onclick="closeDialog('dlg-filter')">Zrušit</button>
+      <button class="btn primary" onclick="closeDialog('dlg-filter');showToast('Filtr aplikován')">Použít</button>
+    </div>
+  </div>
+</div>
+
+<!-- Přidat potravinu do plánu -->
+<!-- ═══════ Food detail dialog (view + edit, mirrors FoodDialog.tsx) ═══════ -->
+<div class="overlay" id="dlg-food-detail" onclick="closeOnOverlay(event,'dlg-food-detail')">
+  <div class="dialog" id="dlg-food-detail-inner" style="max-width:500px;padding:0;overflow:hidden;display:flex;flex-direction:column">
+    <!-- Hero -->
+    <div style="height:120px;background:var(--bg3);position:relative;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+      <span style="font-size:40px;opacity:.2">📦</span>
+      <div id="food-dlg-hero-overlay" style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 30%,rgba(0,0,0,.4));display:flex;flex-direction:column;justify-content:flex-end;padding:12px 20px">
+        <div id="food-dlg-hero-name" style="font-size:20px;font-weight:700;color:#fff;letter-spacing:-.02em">Kuřecí prsa</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.75);margin-top:2px;display:flex;align-items:center;gap:6px">
+          <span id="food-dlg-hero-cat" class="tag tag-blue" style="font-size:10px">Proteiny</span>
+          <span>na 100 g</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 20px;border-bottom:1px solid var(--br);flex-shrink:0">
+      <div style="flex:1;min-width:0">
+        <div id="food-dlg-title" style="font-size:16px;font-weight:600;color:var(--t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Kuřecí prsa</div>
+        <div id="food-dlg-subtitle" style="font-size:12px;color:var(--t3);margin-top:2px">Libové, bez vidit. tuku</div>
+      </div>
+      <button onclick="closeDialog('dlg-food-detail')" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--t3);padding:4px">✕</button>
+    </div>
+
+    <!-- Body (scrollable) -->
+    <div style="flex:1;overflow-y:auto;padding:12px 20px;min-height:0">
+
+      <!-- VIEW MODE content -->
+      <div id="food-dlg-view">
+        <!-- Macro strip -->
+        <div style="display:flex;gap:8px;margin-bottom:14px">
+          <div style="flex:1;text-align:center;background:var(--bg2);border:1px solid var(--br);border-radius:6px;padding:8px 4px"><div id="food-dlg-kcal" style="font-size:16px;font-weight:700;color:var(--acc);letter-spacing:-.02em">115</div><div style="font-size:11px;color:var(--t3);margin-top:2px">kcal</div></div>
+          <div style="flex:1;text-align:center;background:var(--bg2);border:1px solid var(--br);border-radius:6px;padding:8px 4px"><div id="food-dlg-p" style="font-size:16px;font-weight:700;color:var(--blue);letter-spacing:-.02em">21.5g</div><div style="font-size:11px;color:var(--t3);margin-top:2px">Bílkoviny</div></div>
+          <div style="flex:1;text-align:center;background:var(--bg2);border:1px solid var(--br);border-radius:6px;padding:8px 4px"><div id="food-dlg-c" style="font-size:16px;font-weight:700;color:var(--orange);letter-spacing:-.02em">0g</div><div style="font-size:11px;color:var(--t3);margin-top:2px">Sacharidy</div></div>
+          <div style="flex:1;text-align:center;background:var(--bg2);border:1px solid var(--br);border-radius:6px;padding:8px 4px"><div id="food-dlg-f" style="font-size:16px;font-weight:700;color:var(--purple);letter-spacing:-.02em">2.5g</div><div style="font-size:11px;color:var(--t3);margin-top:2px">Tuky</div></div>
+          <div style="flex:1;text-align:center;background:var(--bg2);border:1px solid var(--br);border-radius:6px;padding:8px 4px"><div id="food-dlg-fi" style="font-size:16px;font-weight:700;color:var(--green);letter-spacing:-.02em">0g</div><div style="font-size:11px;color:var(--t3);margin-top:2px">Vláknina</div></div>
+        </div>
+
+        <!-- Localized names -->
+        <div style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;margin-top:14px">Lokalizované názvy</div>
+        <div id="food-dlg-loc">
+          <div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px"><span style="width:24px;text-align:center;font-size:10px;font-weight:600;color:var(--t3)">EN</span><span style="color:var(--t)">Chicken breast</span></div>
+          <div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px"><span style="width:24px;text-align:center;font-size:10px;font-weight:600;color:var(--t3)">CS</span><span style="color:var(--t)">Kuřecí prsa</span></div>
+          <div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px"><span style="width:24px;text-align:center;font-size:10px;font-weight:600;color:var(--t3)">DE</span><span style="color:var(--t)">Hähnchenbrust</span></div>
+        </div>
+
+        <!-- Note callout -->
+        <div id="food-dlg-note" style="background:var(--acc-bg);border:1px solid var(--acc-br);border-radius:6px;padding:10px 12px;font-size:13px;color:var(--t2);line-height:1.5;margin-top:14px;display:flex;gap:8px;align-items:center">
+          <span style="font-size:16px;flex-shrink:0">💡</span>
+          <span id="food-dlg-note-text">Libové, bez vidit. tuku</span>
+        </div>
+
+        <div style="height:16px"></div>
+      </div>
+
+      <!-- EDIT MODE content -->
+      <div id="food-dlg-edit" style="display:none">
+        <!-- Meta pills -->
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+          <div style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:var(--rm);background:var(--bg2);border:1px solid var(--br);font-size:12px">
+            <span style="font-weight:500;color:var(--t3)">Kategorie</span>
+            <select class="form-select" style="background:transparent;border:none;outline:none;font-size:12px;color:var(--t);padding:0;min-width:90px">
+              <option>Proteiny</option><option>Sacharidy</option><option>Zelenina</option>
+              <option>Ovoce</option><option>Tuky</option><option>Mléčné</option>
+              <option>Nápoje</option><option>Suplementy</option><option>Ostatní</option>
+            </select>
+          </div>
+          <div style="display:inline-flex;align-items:center;gap:8px;padding:4px 10px;border-radius:var(--rm);background:var(--bg2);border:1px solid var(--br);font-size:12px">
+            <span style="font-weight:500;color:var(--t3)">Veřejná</span>
+            <div class="toggle on" onclick="this.classList.toggle('on')" style="transform:scale(.75);transform-origin:right"><div class="toggle-thumb"></div></div>
+          </div>
+        </div>
+
+        <!-- Editable macros -->
+        <label style="display:block;font-size:11px;font-weight:500;color:var(--t3);margin-bottom:8px">Nutriční hodnoty na 100 g</label>
+        <div style="display:flex;gap:6px;margin-bottom:14px">
+          <div style="flex:1;text-align:center;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rm);padding:6px 4px"><input class="tabular-nums" type="number" value="115" style="width:100%;text-align:center;font-size:14px;font-weight:700;background:transparent;border:none;outline:none;color:var(--acc);letter-spacing:-.01em"><div style="font-size:10px;margin-top:1px;color:var(--t3)">kcal</div></div>
+          <div style="flex:1;text-align:center;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rm);padding:6px 4px"><input class="tabular-nums" type="number" value="21.5" style="width:100%;text-align:center;font-size:14px;font-weight:700;background:transparent;border:none;outline:none;color:var(--blue)"><div style="font-size:10px;margin-top:1px;color:var(--t3)">B (g)</div></div>
+          <div style="flex:1;text-align:center;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rm);padding:6px 4px"><input class="tabular-nums" type="number" value="0" style="width:100%;text-align:center;font-size:14px;font-weight:700;background:transparent;border:none;outline:none;color:var(--orange)"><div style="font-size:10px;margin-top:1px;color:var(--t3)">S (g)</div></div>
+          <div style="flex:1;text-align:center;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rm);padding:6px 4px"><input class="tabular-nums" type="number" value="2.5" style="width:100%;text-align:center;font-size:14px;font-weight:700;background:transparent;border:none;outline:none;color:var(--purple)"><div style="font-size:10px;margin-top:1px;color:var(--t3)">T (g)</div></div>
+          <div style="flex:1;text-align:center;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rm);padding:6px 4px"><input class="tabular-nums" type="number" value="0" style="width:100%;text-align:center;font-size:14px;font-weight:700;background:transparent;border:none;outline:none;color:var(--green)"><div style="font-size:10px;margin-top:1px;color:var(--t3)">Vl (g)</div></div>
+        </div>
+
+        <!-- Localized names -->
+        <label style="display:block;font-size:11px;font-weight:500;color:var(--t3);margin-bottom:6px">Lokalizované názvy</label>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-size:10px;font-weight:600;color:var(--t3);width:24px;text-align:center;flex-shrink:0">EN</span><input class="form-input" value="Chicken breast" placeholder="English name" style="flex:1;font-size:13px;padding:6px 10px"></div>
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-size:10px;font-weight:600;color:var(--t3);width:24px;text-align:center;flex-shrink:0">CS</span><input class="form-input" value="Kuřecí prsa" placeholder="Český název" style="flex:1;font-size:13px;padding:6px 10px"></div>
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-size:10px;font-weight:600;color:var(--t3);width:24px;text-align:center;flex-shrink:0">DE</span><input class="form-input" value="Hähnchenbrust" placeholder="Deutscher Name" style="flex:1;font-size:13px;padding:6px 10px"></div>
+        </div>
+
+        <!-- Note -->
+        <label style="display:block;font-size:11px;font-weight:500;color:var(--t3);margin-bottom:4px">Poznámka <span style="font-weight:400;color:var(--t4)">(volitelné)</span></label>
+        <textarea class="form-input" rows="2" placeholder="Poznámka pro klienty…" style="font-size:13px;padding:6px 10px;width:100%">Libové, bez vidit. tuku</textarea>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div id="food-dlg-footer" style="display:flex;align-items:center;justify-content:space-between;padding:10px 20px;border-top:1px solid var(--br);flex-shrink:0">
+      <div id="food-dlg-footer-back"></div>
+      <div id="food-dlg-footer-actions" style="display:flex;align-items:center;gap:8px">
+        <!-- Populated by toggleFoodDlgMode -->
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════ Recipe detail dialog (view + edit, mirrors RecipeDialog.tsx) ═══════ -->
+<div class="overlay" id="dlg-recipe-detail" onclick="closeOnOverlay(event,'dlg-recipe-detail')">
+  <div class="dialog" style="max-width:600px;padding:0;overflow:hidden;display:flex;flex-direction:column">
+    <!-- Hero -->
+    <div style="height:160px;background:var(--bg3);position:relative;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+      <span style="font-size:48px;opacity:.2">🍽️</span>
+      <div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 40%,rgba(0,0,0,.45));display:flex;flex-direction:column;justify-content:flex-end;padding:14px 20px">
+        <div id="recipe-dlg-hero-name" style="font-size:22px;font-weight:700;color:#fff;letter-spacing:-.02em;line-height:1.2">Losos s quinoou a grilovanou zeleninou</div>
+        <div id="recipe-dlg-hero-meta" style="font-size:13px;color:rgba(255,255,255,.75);margin-top:3px">6 ingrediencí · 25 min</div>
+      </div>
+    </div>
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 20px;border-bottom:1px solid var(--br);flex-shrink:0">
+      <div style="flex:1;min-width:0">
+        <div id="recipe-dlg-title" style="font-size:16px;font-weight:600;color:var(--t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Losos s quinoou</div>
+        <div id="recipe-dlg-subtitle" style="font-size:12px;color:var(--t3);margin-top:2px">6 ingrediencí · 25 min</div>
+      </div>
+      <button onclick="closeDialog('dlg-recipe-detail')" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--t3);padding:4px">✕</button>
+    </div>
+
+    <!-- Body -->
+    <div style="flex:1;overflow-y:auto;padding:12px 20px;min-height:0">
+
+      <!-- Description -->
+      <div id="recipe-dlg-description" style="font-size:13px;color:var(--t2);margin-bottom:12px">Vyvážené jídlo bohaté na omega-3 mastné kyseliny a kvalitní bílkoviny. Ideální po tréninku pro regeneraci svalů.</div>
+
+      <!-- Macro strip -->
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <div style="flex:1;text-align:center;background:var(--bg2);border:1px solid var(--br);border-radius:6px;padding:8px 4px"><div id="recipe-dlg-kcal" style="font-size:16px;font-weight:700;color:var(--acc);letter-spacing:-.02em">485</div><div style="font-size:11px;color:var(--t3);margin-top:2px">kcal</div></div>
+        <div style="flex:1;text-align:center;background:var(--bg2);border:1px solid var(--br);border-radius:6px;padding:8px 4px"><div id="recipe-dlg-p" style="font-size:16px;font-weight:700;color:var(--blue);letter-spacing:-.02em">38g</div><div style="font-size:11px;color:var(--t3);margin-top:2px">Bílkoviny</div></div>
+        <div style="flex:1;text-align:center;background:var(--bg2);border:1px solid var(--br);border-radius:6px;padding:8px 4px"><div id="recipe-dlg-c" style="font-size:16px;font-weight:700;color:var(--orange);letter-spacing:-.02em">36g</div><div style="font-size:11px;color:var(--t3);margin-top:2px">Sacharidy</div></div>
+        <div style="flex:1;text-align:center;background:var(--bg2);border:1px solid var(--br);border-radius:6px;padding:8px 4px"><div id="recipe-dlg-f" style="font-size:16px;font-weight:700;color:var(--purple);letter-spacing:-.02em">18g</div><div style="font-size:11px;color:var(--t3);margin-top:2px">Tuky</div></div>
+        <div style="flex:1;text-align:center;background:var(--bg2);border:1px solid var(--br);border-radius:6px;padding:8px 4px"><div id="recipe-dlg-fi" style="font-size:16px;font-weight:700;color:var(--green);letter-spacing:-.02em">6g</div><div style="font-size:11px;color:var(--t3);margin-top:2px">Vláknina</div></div>
+      </div>
+
+      <!-- Ingredients -->
+      <div style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;margin-top:14px">Ingredience</div>
+      <div id="recipe-dlg-ingredients">
+        <div style="padding:5px 0;border-bottom:1px solid var(--br);font-size:13px"><div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center"><span style="color:var(--t)">Losos filet</span><span class="tabular-nums" style="color:var(--t2);text-align:right">150g</span><span class="tabular-nums" style="color:var(--t3);font-size:12px;text-align:right;min-width:52px">280 kcal</span></div></div>
+        <div style="padding:5px 0;border-bottom:1px solid var(--br);font-size:13px"><div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center"><span style="color:var(--t)">Quinoa</span><span class="tabular-nums" style="color:var(--t2);text-align:right">60g</span><span class="tabular-nums" style="color:var(--t3);font-size:12px;text-align:right;min-width:52px">110 kcal</span></div></div>
+        <div style="padding:5px 0;border-bottom:1px solid var(--br);font-size:13px"><div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center"><span style="color:var(--t)">Cuketa</span><span class="tabular-nums" style="color:var(--t2);text-align:right">100g</span><span class="tabular-nums" style="color:var(--t3);font-size:12px;text-align:right;min-width:52px">17 kcal</span></div></div>
+        <div style="padding:5px 0;border-bottom:1px solid var(--br);font-size:13px"><div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center"><span style="color:var(--t)">Paprika</span><span class="tabular-nums" style="color:var(--t2);text-align:right">80g</span><span class="tabular-nums" style="color:var(--t3);font-size:12px;text-align:right;min-width:52px">26 kcal</span></div></div>
+        <div style="padding:5px 0;border-bottom:1px solid var(--br);font-size:13px"><div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center"><span style="color:var(--t)">Olivový olej</span><span class="tabular-nums" style="color:var(--t2);text-align:right">10ml</span><span class="tabular-nums" style="color:var(--t3);font-size:12px;text-align:right;min-width:52px">88 kcal</span></div></div>
+        <div style="padding:5px 0;font-size:13px"><div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center"><span style="color:var(--t)">Citrón</span><span class="tabular-nums" style="color:var(--t2);text-align:right">15g</span><span class="tabular-nums" style="color:var(--t3);font-size:12px;text-align:right;min-width:52px">4 kcal</span></div></div>
+      </div>
+
+      <!-- Steps -->
+      <div style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;margin-top:14px">Postup přípravy</div>
+      <div id="recipe-dlg-steps" style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:center;gap:10px"><div style="width:22px;height:22px;border-radius:50%;background:var(--acc-bg);color:var(--acc);font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0">1</div><div style="font-size:13px;color:var(--t2);line-height:1.6">Quinou propláchni a vař 15 minut ve dvojnásobku vody. Nech odpočinout pod pokličkou.</div></div>
+        <div style="display:flex;align-items:center;gap:10px"><div style="width:22px;height:22px;border-radius:50%;background:var(--acc-bg);color:var(--acc);font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0">2</div><div style="font-size:13px;color:var(--t2);line-height:1.6">Lososa osoľ, opepři a potři olivovým olejem. Griluj na pánvi z každé strany 4 minuty.</div></div>
+        <div style="display:flex;align-items:center;gap:10px"><div style="width:22px;height:22px;border-radius:50%;background:var(--acc-bg);color:var(--acc);font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0">3</div><div style="font-size:13px;color:var(--t2);line-height:1.6">Cuketu a papriku nakrájej na plátky, griluj 3–4 minuty z každé strany.</div></div>
+        <div style="display:flex;align-items:center;gap:10px"><div style="width:22px;height:22px;border-radius:50%;background:var(--acc-bg);color:var(--acc);font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0">4</div><div style="font-size:13px;color:var(--t2);line-height:1.6">Servíruj lososa na lůžku z quinoy s grilovanou zeleninou. Zakápni citrónem.</div></div>
+      </div>
+
+      <!-- Note -->
+      <div style="background:var(--acc-bg);border:1px solid var(--acc-br);border-radius:6px;padding:10px 12px;font-size:13px;color:var(--t2);line-height:1.5;margin-top:14px;display:flex;gap:8px;align-items:center">
+        <span style="font-size:16px;flex-shrink:0">💡</span>
+        <span>Lososa nekupuj farmového — ideálně divoký aljašský. Pokud nemáš quinou, nahraď bulghurem.</span>
+      </div>
+
+      <div style="height:16px"></div>
+    </div>
+
+    <!-- Footer -->
+    <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:10px 20px;border-top:1px solid var(--br);flex-shrink:0">
+      <button class="btn" onclick="closeDialog('dlg-recipe-detail')">Zavřít</button>
+      <button class="btn primary" onclick="showToast('Recept se upraví')">✏ Upravit recept</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ Original add-to-plan dialog (used from plan editor) ═══════ -->
+<div class="overlay" id="dlg-add-food-to-plan" onclick="closeOnOverlay(event,'dlg-add-food-to-plan')">
+  <div class="dialog" style="max-width:560px">
+    <div class="dlg-hdr"><div class="dlg-title">Přidat potravinu</div><button class="dlg-close" onclick="closeDialog('dlg-add-food-to-plan')">✕</button></div>
+    <div class="dlg-body">
+      <div class="search-wrap" style="margin-bottom:10px">
+        <span style="color:var(--t3)">🔍</span>
+        <input type="text" id="plan-food-search" placeholder="Hledat potravinu nebo recept..." oninput="filterPlanFoods(this.value)">
+      </div>
+      <div class="filter-bar" style="margin-bottom:10px">
+        <div class="chip active" onclick="setPlanFoodTab('foods',this)">Potraviny</div>
+        <div class="chip" onclick="setPlanFoodTab('recipes',this)">Recepty</div>
+        <div class="chip" onclick="setPlanFoodTab('recent',this)">Nedávné</div>
+      </div>
+      <div id="plan-food-results" style="max-height:280px;overflow-y:auto;border:1px solid var(--br);border-radius:var(--rm)"></div>
+      <div class="form-divider"></div>
+      <div id="plan-food-selected" style="display:none">
+        <div class="form-section-title" id="plan-food-sel-name">Kuřecí prsa</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Množství (g)</label><input class="form-input" type="number" id="plan-food-amt" value="100" oninput="updateFoodPreview()"></div>
+          <div class="form-group"><label class="form-label">Kalorie</label><input class="form-input" id="plan-food-kcal" readonly style="background:var(--bg2)"></div>
+        </div>
+        <div class="form-row-3">
+          <div class="form-group"><label class="form-label" style="color:var(--blue)">Bílkoviny (g)</label><input class="form-input" id="plan-food-p" readonly style="background:var(--bg2)"></div>
+          <div class="form-group"><label class="form-label" style="color:var(--orange)">Sacharidy (g)</label><input class="form-input" id="plan-food-c" readonly style="background:var(--bg2)"></div>
+          <div class="form-group"><label class="form-label" style="color:var(--purple)">Tuky (g)</label><input class="form-input" id="plan-food-f" readonly style="background:var(--bg2)"></div>
+        </div>
+      </div>
+    </div>
+    <div class="dlg-footer">
+      <button class="btn" onclick="closeDialog('dlg-add-food-to-plan')">Zrušit</button>
+      <button class="btn primary" id="plan-food-add-btn" disabled onclick="confirmAddFoodToPlan()">Přidat do jídla</button>
+    </div>
+  </div>
+</div>
+
+<!-- Přidat jídlo / recept do plánu -->
+<div class="overlay" id="dlg-add-meal" onclick="closeOnOverlay(event,'dlg-add-meal')">
+  <div class="dialog" style="max-width:480px">
+    <div class="dlg-hdr"><div class="dlg-title">Přidat jídlo</div><button class="dlg-close" onclick="closeDialog('dlg-add-meal')">✕</button></div>
+    <div class="dlg-body">
+      <div class="form-group"><label class="form-label">Název jídla</label><input class="form-input" placeholder="např. Snídaně, Oběd, Svačina..."></div>
+      <div class="form-group"><label class="form-label">Čas</label><input class="form-input" type="time" value="08:00"></div>
+      <div class="form-divider"></div>
+      <div class="form-section-title">Zkopírovat z receptu (volitelné)</div>
+      <div class="search-wrap" style="margin-bottom:8px">
+        <span style="color:var(--t3)">🔍</span>
+        <input type="text" placeholder="Vyhledat recept..." oninput="searchRecipes(this.value)">
+      </div>
+      <div id="recipe-results" style="max-height:160px;overflow-y:auto;border:1px solid var(--br);border-radius:var(--rm)"></div>
+    </div>
+    <div class="dlg-footer">
+      <button class="btn" onclick="closeDialog('dlg-add-meal')">Zrušit</button>
+      <button class="btn primary" onclick="addMealToPlan()">Přidat jídlo</button>
+    </div>
+  </div>
+</div>
+
+<!-- Přidat vlastní potravinu do databáze -->
+<div class="overlay" id="dlg-add-food" onclick="closeOnOverlay(event,'dlg-add-food')">
+  <div class="dialog" style="max-width:500px">
+    <div class="dlg-hdr"><div class="dlg-title">Nová vlastní potravina</div><button class="dlg-close" onclick="closeDialog('dlg-add-food')">✕</button></div>
+    <div class="dlg-body">
+      <div class="form-group"><label class="form-label">Název</label><input class="form-input" id="new-food-name" placeholder="např. Proteinový koktejl"></div>
+      <div class="form-group"><label class="form-label">Kategorie</label><select class="form-select" id="new-food-cat"><option>Proteiny</option><option>Sacharidy</option><option>Zelenina</option><option>Ovoce</option><option>Tuky</option><option>Mléčné</option><option>Suplementy</option></select></div>
+      <div class="form-section-title" style="margin-top:4px">Nutriční hodnoty na 100 g</div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Kalorie (kcal)</label><input class="form-input" id="new-food-kcal" type="number" placeholder="0" oninput="calcNewFoodCheck()"></div>
+        <div class="form-group" style="display:flex;align-items:flex-end"><div style="font-size:11px;color:var(--t3);padding-bottom:8px" id="new-food-check"></div></div>
+      </div>
+      <div class="form-row-3">
+        <div class="form-group"><label class="form-label" style="color:var(--blue)">Bílkoviny (g)</label><input class="form-input" id="new-food-p" type="number" placeholder="0" oninput="calcNewFoodCheck()"></div>
+        <div class="form-group"><label class="form-label" style="color:var(--orange)">Sacharidy (g)</label><input class="form-input" id="new-food-c" type="number" placeholder="0" oninput="calcNewFoodCheck()"></div>
+        <div class="form-group"><label class="form-label" style="color:var(--purple)">Tuky (g)</label><input class="form-input" id="new-food-f" type="number" placeholder="0" oninput="calcNewFoodCheck()"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Čárový kód EAN (volitelné)</label><input class="form-input" placeholder="8590000000000"></div>
+      <div class="form-group"><label class="form-label">Alergeny</label><input class="form-input" placeholder="např. lepek, laktóza, vejce..."></div>
+    </div>
+    <div class="dlg-footer">
+      <button class="btn" onclick="closeDialog('dlg-add-food')">Zrušit</button>
+      <button class="btn primary" onclick="saveNewFood()">Uložit potravinu</button>
+    </div>
+  </div>
+</div>
+
+<!-- Nákupní seznam -->
+<div class="overlay" id="dlg-shopping-list" onclick="closeOnOverlay(event,'dlg-shopping-list')">
+  <div class="dialog" style="max-width:440px">
+    <div class="dlg-hdr"><div class="dlg-title">🛒 Nákupní seznam</div><button class="dlg-close" onclick="closeDialog('dlg-shopping-list')">✕</button></div>
+    <div class="dlg-body">
+      <div class="form-row" style="margin-bottom:12px">
+        <div class="form-group"><label class="form-label">Od týdne</label><select class="form-select"><option>Týden 1</option><option>Týden 2</option></select></div>
+        <div class="form-group"><label class="form-label">Do týdne</label><select class="form-select"><option>Týden 1</option><option selected>Týden 2</option></select></div>
+      </div>
+      <div id="shopping-list-content"></div>
+    </div>
+    <div class="dlg-footer">
+      <button class="btn" onclick="closeDialog('dlg-shopping-list')">Zavřít</button>
+      <button class="btn primary" onclick="exportShoppingList()">Exportovat PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- Přidat cvik do plánu -->
+<div class="overlay" id="dlg-add-exercise" onclick="closeOnOverlay(event,'dlg-add-exercise')">
+  <div class="dialog" style="max-width:520px">
+    <div class="dlg-hdr"><div class="dlg-title">Přidat cvik</div><button class="dlg-close" onclick="closeDialog('dlg-add-exercise')">✕</button></div>
+    <div class="dlg-body">
+      <div class="search-wrap" style="margin-bottom:10px">
+        <span style="color:var(--t3)">🔍</span>
+        <input type="text" placeholder="Hledat cvik..." oninput="searchExercises(this.value)" id="ex-search">
+      </div>
+      <div class="filter-bar" style="margin-bottom:8px">
+        <div class="chip active">Vše</div>
+        <div class="chip">Prsa</div>
+        <div class="chip">Záda</div>
+        <div class="chip">Nohy</div>
+        <div class="chip">Ramena</div>
+        <div class="chip">Paže</div>
+      </div>
+      <div id="ex-search-results" style="max-height:240px;overflow-y:auto;border:1px solid var(--br);border-radius:var(--rm)"></div>
+      <div class="form-divider"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Série</label><input class="form-input" type="number" value="3" id="ex-sets"></div>
+        <div class="form-group"><label class="form-label">Opakování</label><input class="form-input" value="10-12" id="ex-reps"></div>
+        <div class="form-group"><label class="form-label">Váha (kg)</label><input class="form-input" type="number" id="ex-weight" placeholder="BW"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Odpočinek (sec)</label><input class="form-input" type="number" value="90" id="ex-rest"></div>
+    </div>
+    <div class="dlg-footer">
+      <button class="btn" onclick="closeDialog('dlg-add-exercise')">Zrušit</button>
+      <button class="btn primary" onclick="addExercise()">Přidat cvik</button>
+    </div>
+  </div>
+</div>
+
+<!-- Detail session -->
+<div class="overlay" id="dlg-session-detail" onclick="closeOnOverlay(event,'dlg-session-detail')">
+  <div class="dialog" style="max-width:440px">
+    <div class="dlg-hdr"><div class="dlg-title">Push A – Pondělí</div><button class="dlg-close" onclick="closeDialog('dlg-session-detail')">✕</button></div>
+    <div class="dlg-body">
+      <div class="form-row" style="margin-bottom:12px">
+        <div class="form-group"><label class="form-label">Název session</label><input class="form-input" value="Push A"></div>
+        <div class="form-group"><label class="form-label">Odhadovaná doba (min)</label><input class="form-input" type="number" value="60"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Poznámka trenéra</label><textarea class="form-input" rows="2" placeholder="Zaměřit se na techniku..."></textarea></div>
+      <div class="form-divider"></div>
+      <div style="font-size:12px;font-weight:600;color:var(--t);margin-bottom:8px">Cviky v sessioni</div>
+      <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--bg2);border-radius:var(--r);font-size:13px">
+          <span style="color:var(--t3);cursor:grab">⠿</span><span style="flex:1">Bench press s činkou</span><span style="color:var(--t3);font-size:12px">4×8–10 · 80 kg</span>
+          <span style="color:var(--t4);cursor:pointer;font-size:12px">✕</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--bg2);border-radius:var(--r);font-size:13px">
+          <span style="color:var(--t3);cursor:grab">⠿</span><span style="flex:1">Vojenský tlak</span><span style="color:var(--t3);font-size:12px">3×10–12 · 55 kg</span>
+          <span style="color:var(--t4);cursor:pointer;font-size:12px">✕</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--bg2);border-radius:var(--r);font-size:13px">
+          <span style="color:var(--t3);cursor:grab">⠿</span><span style="flex:1">Kliky na bradlech</span><span style="color:var(--t3);font-size:12px">3×12 · BW</span>
+          <span style="color:var(--t4);cursor:pointer;font-size:12px">✕</span>
+        </div>
+      </div>
+      <div class="meal-add-btn" onclick="openDialog('dlg-add-exercise');closeDialog('dlg-session-detail')"><span>+</span><span>Přidat cvik</span></div>
+    </div>
+    <div class="dlg-footer">
+      <button class="btn danger" onclick="closeDialog('dlg-session-detail');showToast('Session smazána')">Smazat session</button>
+      <button class="btn" onclick="closeDialog('dlg-session-detail')">Zavřít</button>
+      <button class="btn primary" onclick="closeDialog('dlg-session-detail');showToast('Uloženo')">Uložit</button>
+    </div>
+  </div>
+</div>
+
+<!-- Přidat session -->
+<div class="overlay" id="dlg-add-session" onclick="closeOnOverlay(event,'dlg-add-session')">
+  <div class="dialog" style="max-width:400px">
+    <div class="dlg-hdr"><div class="dlg-title">Nová tréninková session</div><button class="dlg-close" onclick="closeDialog('dlg-add-session')">✕</button></div>
+    <div class="dlg-body">
+      <div class="form-group"><label class="form-label">Název session</label><input class="form-input" placeholder="např. Push A, Horní partie, Kardio..."></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Den v týdnu</label><select class="form-select"><option>Pondělí</option><option>Úterý</option><option>Středa</option><option>Čtvrtek</option><option>Pátek</option><option>Sobota</option><option>Neděle</option></select></div>
+        <div class="form-group"><label class="form-label">Délka (min)</label><input class="form-input" type="number" value="60"></div>
+      </div>
+      <div class="toggle-wrap">
+        <span class="toggle-lbl">Zkopírovat cviky z existující session</span>
+        <div class="toggle" onclick="this.classList.toggle('on')"><div class="toggle-thumb"></div></div>
+      </div>
+    </div>
+    <div class="dlg-footer">
+      <button class="btn" onclick="closeDialog('dlg-add-session')">Zrušit</button>
+      <button class="btn primary" onclick="closeDialog('dlg-add-session');showToast('Session přidána')">Vytvořit</button>
+    </div>
+  </div>
+</div>
+
+<!-- Dokončit plán — confirmation -->
+<div class="overlay" id="dlg-complete-plan" onclick="closeOnOverlay(event,'dlg-complete-plan')">
+  <div class="dialog" style="max-width:420px">
+    <div class="dlg-hdr"><div class="dlg-title">Dokončit plán</div><button class="dlg-close" onclick="closeDialog('dlg-complete-plan')">✕</button></div>
+    <div class="dlg-body">
+      <div style="display:flex;align-items:flex-start;gap:12px">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--acc-bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">✓</div>
+        <div>
+          <div style="font-size:14px;font-weight:500;margin-bottom:6px">Opravdu chcete tento plán označit jako dokončený?</div>
+          <div style="font-size:13px;color:var(--t2);line-height:1.6">
+            Plán bude přesunut do stavu <span class="tag tag-acc" style="font-size:11px">Dokončený</span> a klient bude informován.<br>
+            Po dokončení můžete vytvořit nový plán s novým dotazníkem.
+          </div>
+          <div style="margin-top:12px;padding:10px 12px;border-radius:var(--rm);background:var(--bg2);border:1px solid var(--br);font-size:12px;color:var(--t2)">
+            <div style="font-weight:500;color:var(--t);margin-bottom:4px">⚠ Tuto akci nelze vrátit</div>
+            Dokončený plán nebude možné znovu aktivovat. Místo toho vytvořte nový plán.
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="dlg-footer">
+      <button class="btn" onclick="closeDialog('dlg-complete-plan')">Zrušit</button>
+      <button class="btn" style="background:var(--acc);color:#fff;border-color:var(--acc)" onclick="completePlan()">Dokončit plán</button>
+    </div>
+  </div>
+</div>
+
+<!-- Šablona sekce — nová / upravit -->
+<div class="overlay" id="dlg-section-template" onclick="closeOnOverlay(event,'dlg-section-template')">
+  <div class="dialog" style="max-width:580px;padding:0;overflow:hidden;display:flex;flex-direction:column;max-height:90vh">
+    <div class="dlg-hdr">
+      <div>
+        <div class="dlg-title">Nová šablona sekce</div>
+        <div style="font-size:12px;color:var(--t3);margin-top:2px">Vyplňte základní informace o šabloně a přidejte cviky.</div>
+      </div>
+      <button class="dlg-close" onclick="closeDialog('dlg-section-template')">✕</button>
+    </div>
+    <div class="dlg-body" style="overflow-y:auto;flex:1;min-height:0">
+      <!-- Name -->
+      <div class="form-group">
+        <label class="form-label">Název šablony</label>
+        <input class="form-input" placeholder="např. Silový rozcvičovací blok">
+      </div>
+      <!-- Description -->
+      <div class="form-group">
+        <label class="form-label">Popis</label>
+        <textarea class="form-input" rows="3" placeholder="Stručný popis obsahu a účelu šablony…" style="font-style:italic"></textarea>
+      </div>
+      <!-- Type -->
+      <div class="form-group">
+        <label class="form-label">Typ sekce</label>
+        <select class="form-select" onchange="dlgTemplateOnTypeChange(this)">
+          <option value="Strength" selected>Strength</option>
+          <option value="Conditioning">Conditioning</option>
+          <option value="AMRAP">AMRAP</option>
+          <option value="EMOM">EMOM</option>
+          <option value="Tabata">Tabata</option>
+          <option value="ForTime">ForTime</option>
+        </select>
+      </div>
+
+      <!-- Conditional config block (hidden for Strength / Conditioning) -->
+      <div id="dlg-tpl-config" style="display:none">
+        <div class="form-divider"></div>
+        <div class="form-section-title">⚙ Konfigurace typu</div>
+        <div style="font-size:11px;color:var(--t3);margin-bottom:12px">Konfigurace závisí na zvoleném typu — vyplňte pouze relevantní pole.</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Time cap (min) <span style="color:var(--t4);font-weight:400">AMRAP / ForTime</span></label>
+            <input class="form-input" type="number" placeholder="12" min="1">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Interval (s) <span style="color:var(--t4);font-weight:400">EMOM</span></label>
+            <input class="form-input" type="number" placeholder="60" min="10">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Kol celkem <span style="color:var(--t4);font-weight:400">EMOM</span></label>
+            <input class="form-input" type="number" placeholder="10" min="1">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Práce (s) <span style="color:var(--t4);font-weight:400">Tabata</span></label>
+            <input class="form-input" type="number" placeholder="20" min="5">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Pauza (s) <span style="color:var(--t4);font-weight:400">Tabata</span></label>
+            <input class="form-input" type="number" placeholder="10" min="5">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Kol <span style="color:var(--t4);font-weight:400">Tabata</span></label>
+            <input class="form-input" type="number" placeholder="8" min="1">
+          </div>
+        </div>
+        <div class="form-divider"></div>
+      </div>
+
+      <!-- Exercises stub -->
+      <div class="form-section-title">🏋️ Cviky v šabloně</div>
+      <!-- Exercise row 1 -->
+      <div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--rm);padding:10px 12px;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <div style="flex:1;font-size:13px;font-weight:500;color:var(--t)">Dřep s velkou činkou</div>
+          <span class="tag tag-blue" style="font-size:10px">Reps</span>
+        </div>
+        <div style="display:grid;grid-template-columns:32px 1fr 80px 80px 80px;gap:6px;align-items:center;font-size:11px;color:var(--t3)">
+          <div style="text-align:center">#</div>
+          <div>Cvik</div>
+          <div style="text-align:center">Váha</div>
+          <div style="text-align:center">Reps</div>
+          <div style="text-align:center">Pauza</div>
+        </div>
+        <div style="display:grid;grid-template-columns:32px 1fr 80px 80px 80px;gap:6px;align-items:center;margin-top:4px">
+          <div style="text-align:center;font-size:12px;color:var(--t3)">1</div>
+          <div style="font-size:12px;color:var(--t2)">Dřep</div>
+          <input class="form-input" style="padding:4px 6px;font-size:12px;text-align:center" placeholder="kg">
+          <input class="form-input" style="padding:4px 6px;font-size:12px;text-align:center" placeholder="5">
+          <input class="form-input" style="padding:4px 6px;font-size:12px;text-align:center" placeholder="90s">
+        </div>
+      </div>
+      <!-- Exercise row 2 -->
+      <div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--rm);padding:10px 12px;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <div style="flex:1;font-size:13px;font-weight:500;color:var(--t)">Bench press s činkou</div>
+          <span class="tag tag-blue" style="font-size:10px">Reps</span>
+        </div>
+        <div style="display:grid;grid-template-columns:32px 1fr 80px 80px 80px;gap:6px;align-items:center;font-size:11px;color:var(--t3)">
+          <div style="text-align:center">#</div>
+          <div>Cvik</div>
+          <div style="text-align:center">Váha</div>
+          <div style="text-align:center">Reps</div>
+          <div style="text-align:center">Pauza</div>
+        </div>
+        <div style="display:grid;grid-template-columns:32px 1fr 80px 80px 80px;gap:6px;align-items:center;margin-top:4px">
+          <div style="text-align:center;font-size:12px;color:var(--t3)">1</div>
+          <div style="font-size:12px;color:var(--t2)">Bench press</div>
+          <input class="form-input" style="padding:4px 6px;font-size:12px;text-align:center" placeholder="kg">
+          <input class="form-input" style="padding:4px 6px;font-size:12px;text-align:center" placeholder="5">
+          <input class="form-input" style="padding:4px 6px;font-size:12px;text-align:center" placeholder="90s">
+        </div>
+      </div>
+      <!-- Add exercise ghost button -->
+      <button class="btn" style="width:100%;font-size:12px;padding:8px;color:var(--t3);border-style:dashed" onclick="showToast('Hledání cviků — prototyp')">+ Přidat cvik</button>
+    </div>
+    <div class="dlg-footer">
+      <button class="btn" onclick="closeDialog('dlg-section-template')">Zrušit</button>
+      <button class="btn primary" onclick="closeDialog('dlg-section-template');showToast('Šablona uložena')">Uložit šablonu</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#37352f;color:#fff;padding:8px 16px;border-radius:6px;font-size:13px;font-weight:500;z-index:2000;opacity:0;transition:opacity .2s;pointer-events:none"></div>
+
+<script><!-- include: scripts/data.js --><!-- include: scripts/nav.js --><!-- include: scripts/features.js --></script>
+</body>
+</html>

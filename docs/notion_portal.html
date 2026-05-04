@@ -1330,148 +1330,70 @@ body.dark .btn-auth-primary { color: #0d0900; }
 <div class="sb" id="sb-training"></div>
 <div class="main">
   <div class="bc"><a onclick="showScreen('s-dashboard')">Dashboard</a><span class="bc-sep">/</span><span>Knihovna</span><span class="bc-sep">/</span><span>Šablony sekcí</span></div>
+
   <div class="ph">
     <div class="ph-icon">📚</div>
     <h1>Šablony sekcí</h1>
-    <div style="display:flex;gap:8px;margin-top:6px">
-      <span class="tag tag-gray">Knihovna</span>
-    </div>
-    <div style="margin-top:8px;font-size:13px;color:var(--t3)">Předdefinované sekce, které lze vložit do tréninkového plánu jedním klikem.</div>
+    <div class="ph-sub">Předdefinované sekce, které lze vložit do tréninkového plánu jedním klikem.</div>
   </div>
+
   <div class="toolbar">
-    <div style="flex:1;max-width:260px">
-      <div class="search-wrap">
-        <span style="color:var(--t3)">🔍</span>
-        <input type="text" placeholder="Hledat šablonu...">
-      </div>
+    <div class="tb-view active" id="tv-table" onclick="switchTemplatesView('table')">⊞ Tabulka</div>
+    <div class="tb-view" id="tv-list" onclick="switchTemplatesView('list')">☰ Seznam</div>
+    <div class="tb-view" id="tv-cards" onclick="switchTemplatesView('cards')">⬜ Karty</div>
+    <div class="tb-sep"></div>
+    <div class="search-wrap" style="width:240px">
+      <span style="color:var(--t3)">🔍</span>
+      <input type="text" id="templates-search" placeholder="Hledat šablonu..." oninput="searchTemplates(this.value)">
     </div>
-    <div class="filter-bar" style="flex:1">
-      <div class="chip active">Vše</div>
-      <div class="chip">Strength</div>
-      <div class="chip">Conditioning</div>
-      <div class="chip">AMRAP</div>
-      <div class="chip">EMOM</div>
-      <div class="chip">Tabata</div>
-      <div class="chip">ForTime</div>
-    </div>
-    <div style="margin-left:auto">
-      <button class="btn primary">+ Nová šablona</button>
-    </div>
+    <select class="form-select" onchange="filterTemplates(this.value)" style="padding:6px 10px;font-size:13px;min-width:160px">
+      <option value="all" selected>Všechny typy</option>
+      <option value="Strength">Strength</option>
+      <option value="Conditioning">Conditioning</option>
+      <option value="AMRAP">AMRAP</option>
+      <option value="EMOM">EMOM</option>
+      <option value="Tabata">Tabata</option>
+      <option value="ForTime">ForTime</option>
+    </select>
+    <div style="margin-left:auto"><button class="btn primary" onclick="openDialog('dlg-section-template')">+ Nová šablona</button></div>
   </div>
-  <div class="pc">
 
-    <!-- Template rows -->
-    <!-- 1: Klasický rozcvičkový blok — Strength -->
-    <div class="card" style="margin-bottom:8px;padding:14px 18px;display:flex;align-items:center;gap:16px">
-      <!-- Type pill: Strength = blue -->
-      <span style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;background:rgba(0,122,255,.1);color:#007aff;flex-shrink:0;min-width:90px;text-align:center">Strength</span>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:14px;font-weight:600;color:var(--t)">Klasický rozcvičkový blok</div>
-        <div style="font-size:12px;color:var(--t3);margin-top:2px">Dynamická mobilizace kloubů a aktivace svalových skupin před silovým blokem.</div>
-        <div style="display:flex;gap:12px;margin-top:6px">
-          <span style="font-size:11px;color:var(--t3)">5 cviků</span>
-          <span style="font-size:11px;color:var(--t3)">~5 min</span>
-        </div>
-      </div>
-      <div style="font-size:12px;color:var(--t3);flex-shrink:0;text-align:right;min-width:80px">Použito 12×</div>
-      <div style="display:flex;gap:6px;flex-shrink:0">
-        <button class="btn primary" style="font-size:12px;padding:5px 12px" onclick="showToast('Šablona vložena do plánu')">Použít</button>
-        <button class="btn" style="font-size:12px;padding:5px 12px">Upravit</button>
+  <div class="pc" style="padding:12px 80px">
+    <div id="templates-table-view">
+      <div class="db-wrap">
+        <table class="db-table">
+          <thead>
+            <tr>
+              <th style="width:30%">Název</th>
+              <th style="width:120px">Typ</th>
+              <th style="width:80px">Cviky</th>
+              <th style="width:100px">Doba</th>
+              <th>Konfigurace</th>
+              <th style="width:80px">Použito</th>
+              <th style="width:100px"></th>
+            </tr>
+          </thead>
+          <tbody id="templates-tbody"></tbody>
+        </table>
       </div>
     </div>
 
-    <!-- 2: 5×5 dřepy + tlak — Strength -->
-    <div class="card" style="margin-bottom:8px;padding:14px 18px;display:flex;align-items:center;gap:16px">
-      <span style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;background:rgba(0,122,255,.1);color:#007aff;flex-shrink:0;min-width:90px;text-align:center">Strength</span>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:14px;font-weight:600;color:var(--t)">5×5 dřepy + tlak</div>
-        <div style="font-size:12px;color:var(--t3);margin-top:2px">Klasický silový 5×5 blok — dřep s velkou činkou a tlak na lavici.</div>
-        <div style="display:flex;gap:12px;margin-top:6px">
-          <span style="font-size:11px;color:var(--t3)">2 cviky</span>
-          <span style="font-size:11px;color:var(--t3)">~25 min</span>
-        </div>
-      </div>
-      <div style="font-size:12px;color:var(--t3);flex-shrink:0;text-align:right;min-width:80px">Použito 8×</div>
-      <div style="display:flex;gap:6px;flex-shrink:0">
-        <button class="btn primary" style="font-size:12px;padding:5px 12px" onclick="showToast('Šablona vložena do plánu')">Použít</button>
-        <button class="btn" style="font-size:12px;padding:5px 12px">Upravit</button>
-      </div>
+    <div id="templates-list-view" style="display:none">
+      <div id="templates-list" style="display:flex;flex-direction:column;gap:8px"></div>
     </div>
 
-    <!-- 3: 12-min AMRAP — Push — AMRAP = gold -->
-    <div class="card" style="margin-bottom:8px;padding:14px 18px;display:flex;align-items:center;gap:16px;border-color:var(--acc-br)">
-      <span style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;background:var(--acc-bg);color:var(--acc);border:1px solid var(--acc-br);flex-shrink:0;min-width:90px;text-align:center">AMRAP</span>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:14px;font-weight:600;color:var(--t)">12-min AMRAP — Push</div>
-        <div style="font-size:12px;color:var(--t3);margin-top:2px">Pull-ups / Push-ups / Sit-ups — max kol za 12 minut.</div>
-        <div style="display:flex;gap:12px;margin-top:6px">
-          <span style="font-size:11px;color:var(--t3)">3 cviky</span>
-          <span style="font-size:11px;color:var(--t3)">12 min</span>
-        </div>
-      </div>
-      <div style="font-size:12px;color:var(--t3);flex-shrink:0;text-align:right;min-width:80px">Použito 6×</div>
-      <div style="display:flex;gap:6px;flex-shrink:0">
-        <button class="btn primary" style="font-size:12px;padding:5px 12px" onclick="showToast('Šablona vložena do plánu')">Použít</button>
-        <button class="btn" style="font-size:12px;padding:5px 12px">Upravit</button>
-      </div>
+    <div id="templates-cards-view" style="display:none">
+      <div class="card-grid" id="templates-cards-grid"></div>
     </div>
 
-    <!-- 4: EMOM 10 — Burpees — EMOM = purple -->
-    <div class="card" style="margin-bottom:8px;padding:14px 18px;display:flex;align-items:center;gap:16px">
-      <!-- EMOM purple — using rgba token family; note: no token for purple, documented inline -->
-      <span style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;background:rgba(175,82,222,.1);color:#af52de;flex-shrink:0;min-width:90px;text-align:center">EMOM</span>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:14px;font-weight:600;color:var(--t)">EMOM 10 — Burpees</div>
-        <div style="font-size:12px;color:var(--t3);margin-top:2px">10 kol, každou minutu 10 burpees. Zbývající čas = odpočinek.</div>
-        <div style="display:flex;gap:12px;margin-top:6px">
-          <span style="font-size:11px;color:var(--t3)">1 cvik</span>
-          <span style="font-size:11px;color:var(--t3)">10 min</span>
-        </div>
-      </div>
-      <div style="font-size:12px;color:var(--t3);flex-shrink:0;text-align:right;min-width:80px">Použito 4×</div>
-      <div style="display:flex;gap:6px;flex-shrink:0">
-        <button class="btn primary" style="font-size:12px;padding:5px 12px" onclick="showToast('Šablona vložena do plánu')">Použít</button>
-        <button class="btn" style="font-size:12px;padding:5px 12px">Upravit</button>
+    <div style="margin-top:14px;display:flex;align-items:center;justify-content:space-between;padding:0 4px">
+      <div style="font-size:12px;color:var(--t3)">Zobrazeno <strong style="color:var(--t)">1–8</strong> z 8</div>
+      <div style="display:flex;gap:4px">
+        <button class="btn" style="font-size:12px;padding:4px 10px" disabled>‹</button>
+        <button class="btn primary" style="font-size:12px;padding:4px 10px">1</button>
+        <button class="btn" style="font-size:12px;padding:4px 10px" disabled>›</button>
       </div>
     </div>
-
-    <!-- 5: Tabata — vlastní váha — Tabata = red -->
-    <div class="card" style="margin-bottom:8px;padding:14px 18px;display:flex;align-items:center;gap:16px">
-      <!-- Tabata red — using rgba; no token for red, documented inline -->
-      <span style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;background:rgba(255,59,48,.1);color:#ff3b30;flex-shrink:0;min-width:90px;text-align:center">Tabata</span>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:14px;font-weight:600;color:var(--t)">Tabata — vlastní váha</div>
-        <div style="font-size:12px;color:var(--t3);margin-top:2px">8 kol, 20s práce / 10s pauza. Cvik: Burpees.</div>
-        <div style="display:flex;gap:12px;margin-top:6px">
-          <span style="font-size:11px;color:var(--t3)">1 cvik</span>
-          <span style="font-size:11px;color:var(--t3)">4 min</span>
-        </div>
-      </div>
-      <div style="font-size:12px;color:var(--t3);flex-shrink:0;text-align:right;min-width:80px">Použito 9×</div>
-      <div style="display:flex;gap:6px;flex-shrink:0">
-        <button class="btn primary" style="font-size:12px;padding:5px 12px" onclick="showToast('Šablona vložena do plánu')">Použít</button>
-        <button class="btn" style="font-size:12px;padding:5px 12px">Upravit</button>
-      </div>
-    </div>
-
-    <!-- 6: Klidný cooldown — Conditioning = green -->
-    <div class="card" style="margin-bottom:8px;padding:14px 18px;display:flex;align-items:center;gap:16px">
-      <span style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;background:rgba(52,199,89,.1);color:#34c759;flex-shrink:0;min-width:90px;text-align:center">Conditioning</span>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:14px;font-weight:600;color:var(--t)">Klidný cooldown</div>
-        <div style="font-size:12px;color:var(--t3);margin-top:2px">Chůze + strečink hrudníku. Dechová obnova po intenzivním tréninku.</div>
-        <div style="display:flex;gap:12px;margin-top:6px">
-          <span style="font-size:11px;color:var(--t3)">2 cviky</span>
-          <span style="font-size:11px;color:var(--t3)">~6 min</span>
-        </div>
-      </div>
-      <div style="font-size:12px;color:var(--t3);flex-shrink:0;text-align:right;min-width:80px">Použito 11×</div>
-      <div style="display:flex;gap:6px;flex-shrink:0">
-        <button class="btn primary" style="font-size:12px;padding:5px 12px" onclick="showToast('Šablona vložena do plánu')">Použít</button>
-        <button class="btn" style="font-size:12px;padding:5px 12px">Upravit</button>
-      </div>
-    </div>
-
   </div>
 </div>
 </div>
@@ -4264,6 +4186,132 @@ body.dark .btn-auth-primary { color: #0d0900; }
   </div>
 </div>
 
+<!-- Šablona sekce — nová / upravit -->
+<div class="overlay" id="dlg-section-template" onclick="closeOnOverlay(event,'dlg-section-template')">
+  <div class="dialog" style="max-width:580px;padding:0;overflow:hidden;display:flex;flex-direction:column;max-height:90vh">
+    <div class="dlg-hdr">
+      <div>
+        <div class="dlg-title">Nová šablona sekce</div>
+        <div style="font-size:12px;color:var(--t3);margin-top:2px">Vyplňte základní informace o šabloně a přidejte cviky.</div>
+      </div>
+      <button class="dlg-close" onclick="closeDialog('dlg-section-template')">✕</button>
+    </div>
+    <div class="dlg-body" style="overflow-y:auto;flex:1;min-height:0">
+      <!-- Name -->
+      <div class="form-group">
+        <label class="form-label">Název šablony</label>
+        <input class="form-input" placeholder="např. Silový rozcvičovací blok">
+      </div>
+      <!-- Description -->
+      <div class="form-group">
+        <label class="form-label">Popis</label>
+        <textarea class="form-input" rows="3" placeholder="Stručný popis obsahu a účelu šablony…" style="font-style:italic"></textarea>
+      </div>
+      <!-- Type -->
+      <div class="form-group">
+        <label class="form-label">Typ sekce</label>
+        <select class="form-select" onchange="dlgTemplateOnTypeChange(this)">
+          <option value="Strength" selected>Strength</option>
+          <option value="Conditioning">Conditioning</option>
+          <option value="AMRAP">AMRAP</option>
+          <option value="EMOM">EMOM</option>
+          <option value="Tabata">Tabata</option>
+          <option value="ForTime">ForTime</option>
+        </select>
+      </div>
+
+      <!-- Conditional config block (hidden for Strength / Conditioning) -->
+      <div id="dlg-tpl-config" style="display:none">
+        <div class="form-divider"></div>
+        <div class="form-section-title">⚙ Konfigurace typu</div>
+        <div style="font-size:11px;color:var(--t3);margin-bottom:12px">Konfigurace závisí na zvoleném typu — vyplňte pouze relevantní pole.</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Time cap (min) <span style="color:var(--t4);font-weight:400">AMRAP / ForTime</span></label>
+            <input class="form-input" type="number" placeholder="12" min="1">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Interval (s) <span style="color:var(--t4);font-weight:400">EMOM</span></label>
+            <input class="form-input" type="number" placeholder="60" min="10">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Kol celkem <span style="color:var(--t4);font-weight:400">EMOM</span></label>
+            <input class="form-input" type="number" placeholder="10" min="1">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Práce (s) <span style="color:var(--t4);font-weight:400">Tabata</span></label>
+            <input class="form-input" type="number" placeholder="20" min="5">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Pauza (s) <span style="color:var(--t4);font-weight:400">Tabata</span></label>
+            <input class="form-input" type="number" placeholder="10" min="5">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Kol <span style="color:var(--t4);font-weight:400">Tabata</span></label>
+            <input class="form-input" type="number" placeholder="8" min="1">
+          </div>
+        </div>
+        <div class="form-divider"></div>
+      </div>
+
+      <!-- Exercises stub -->
+      <div class="form-section-title">🏋️ Cviky v šabloně</div>
+      <!-- Exercise row 1 -->
+      <div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--rm);padding:10px 12px;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <div style="flex:1;font-size:13px;font-weight:500;color:var(--t)">Dřep s velkou činkou</div>
+          <span class="tag tag-blue" style="font-size:10px">Reps</span>
+        </div>
+        <div style="display:grid;grid-template-columns:32px 1fr 80px 80px 80px;gap:6px;align-items:center;font-size:11px;color:var(--t3)">
+          <div style="text-align:center">#</div>
+          <div>Cvik</div>
+          <div style="text-align:center">Váha</div>
+          <div style="text-align:center">Reps</div>
+          <div style="text-align:center">Pauza</div>
+        </div>
+        <div style="display:grid;grid-template-columns:32px 1fr 80px 80px 80px;gap:6px;align-items:center;margin-top:4px">
+          <div style="text-align:center;font-size:12px;color:var(--t3)">1</div>
+          <div style="font-size:12px;color:var(--t2)">Dřep</div>
+          <input class="form-input" style="padding:4px 6px;font-size:12px;text-align:center" placeholder="kg">
+          <input class="form-input" style="padding:4px 6px;font-size:12px;text-align:center" placeholder="5">
+          <input class="form-input" style="padding:4px 6px;font-size:12px;text-align:center" placeholder="90s">
+        </div>
+      </div>
+      <!-- Exercise row 2 -->
+      <div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--rm);padding:10px 12px;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <div style="flex:1;font-size:13px;font-weight:500;color:var(--t)">Bench press s činkou</div>
+          <span class="tag tag-blue" style="font-size:10px">Reps</span>
+        </div>
+        <div style="display:grid;grid-template-columns:32px 1fr 80px 80px 80px;gap:6px;align-items:center;font-size:11px;color:var(--t3)">
+          <div style="text-align:center">#</div>
+          <div>Cvik</div>
+          <div style="text-align:center">Váha</div>
+          <div style="text-align:center">Reps</div>
+          <div style="text-align:center">Pauza</div>
+        </div>
+        <div style="display:grid;grid-template-columns:32px 1fr 80px 80px 80px;gap:6px;align-items:center;margin-top:4px">
+          <div style="text-align:center;font-size:12px;color:var(--t3)">1</div>
+          <div style="font-size:12px;color:var(--t2)">Bench press</div>
+          <input class="form-input" style="padding:4px 6px;font-size:12px;text-align:center" placeholder="kg">
+          <input class="form-input" style="padding:4px 6px;font-size:12px;text-align:center" placeholder="5">
+          <input class="form-input" style="padding:4px 6px;font-size:12px;text-align:center" placeholder="90s">
+        </div>
+      </div>
+      <!-- Add exercise ghost button -->
+      <button class="btn" style="width:100%;font-size:12px;padding:8px;color:var(--t3);border-style:dashed" onclick="showToast('Hledání cviků — prototyp')">+ Přidat cvik</button>
+    </div>
+    <div class="dlg-footer">
+      <button class="btn" onclick="closeDialog('dlg-section-template')">Zrušit</button>
+      <button class="btn primary" onclick="closeDialog('dlg-section-template');showToast('Šablona uložena')">Uložit šablonu</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div id="toast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#37352f;color:#fff;padding:8px 16px;border-radius:6px;font-size:13px;font-weight:500;z-index:2000;opacity:0;transition:opacity .2s;pointer-events:none"></div>
 
@@ -4334,6 +4382,29 @@ function tmplMeals(){
   ];
 }
 
+var SECTION_TEMPLATES_DB = [
+  { name:'Klasický rozcvičkový blok', type:'Strength',     desc:'Dynamická mobilizace kloubů a aktivace svalových skupin před silovým blokem.', exercises:5, durationMin:5,  configSummary:'—',                 used:12 },
+  { name:'5×5 dřepy + tlak',          type:'Strength',     desc:'Klasický silový 5×5 blok — dřep s velkou činkou a tlak na lavici.',          exercises:2, durationMin:25, configSummary:'5×5 reps',            used:8  },
+  { name:'12-min AMRAP — Push',       type:'AMRAP',        desc:'Pull-ups / Push-ups / Sit-ups — max kol za 12 minut.',                       exercises:3, durationMin:12, configSummary:'12 min · ∞ kol',       used:6  },
+  { name:'EMOM 10 — Burpees',         type:'EMOM',         desc:'10 kol, každou minutu 10 burpees. Zbývající čas = odpočinek.',                exercises:1, durationMin:10, configSummary:'10×60s · 1 cvik',      used:4  },
+  { name:'Tabata — vlastní váha',     type:'Tabata',       desc:'8 kol, 20s práce / 10s pauza. Cvik: Burpees.',                                exercises:1, durationMin:4,  configSummary:'8 × 20s/10s',           used:9  },
+  { name:'ForTime 21-15-9',           type:'ForTime',      desc:'Klasický „Fran" — 21-15-9 thrusters & pull-ups na čas.',                       exercises:2, durationMin:8,  configSummary:'time cap 8 min',        used:3  },
+  { name:'Klidný cooldown',           type:'Conditioning', desc:'Chůze + strečink hrudníku. Dechová obnova po intenzivním tréninku.',         exercises:2, durationMin:6,  configSummary:'—',                 used:11 },
+  { name:'Veslařská výzva 2 km',      type:'Conditioning', desc:'Veslo na 2 km nebo 8 minut, podle toho co dřív.',                            exercises:1, durationMin:8,  configSummary:'cap 8 min · 2 000 m', used:2  },
+];
+
+function sectionTypeColor(t){
+  switch(t){
+    case 'Strength':     return '#007aff';
+    case 'Conditioning': return '#34c759';
+    case 'AMRAP':        return 'var(--acc)';
+    case 'EMOM':         return '#af52de';
+    case 'Tabata':       return '#ff3b30';
+    case 'ForTime':      return '#ff9f0a';
+    default:             return '#8e8e93';
+  }
+}
+
 // ── HELPERS ──────────────────────────────────────────────────────────────────
 function getFood(name){return FOODS_DB.find(function(f){return f.name===name;})||{name:name,kcal:100,p:5,c:10,f:3};}
 function calcFood(name,amt){var f=getFood(name);var r=amt/100;return{kcal:Math.round(f.kcal*r),p:Math.round(f.p*r*10)/10,c:Math.round(f.c*r*10)/10,f:Math.round(f.f*r*10)/10};}
@@ -4389,6 +4460,7 @@ function showScreen(id){
   if(id==='s-messages'){renderMessages();}
   if(id==='s-foods'){renderFoods();}
   if(id==='s-recipes'){renderRecipesGrid();}
+  if(id==='s-training-section-templates'){renderSectionTemplates();}
   if(id==='s-dashboard'){renderDashboard();}
 }
 
@@ -5392,6 +5464,90 @@ function doResetPassword() {
 }
 
 buildSidebar('sb-dashboard','s-dashboard');
+
+// ── Section templates ──────────────────────────────────────────────────────────
+var _tplView='table';
+var _tplFilter='all';
+var _tplSearch='';
+
+function switchTemplatesView(v){
+  _tplView=v;
+  document.querySelectorAll('#templates-table-view,#templates-list-view,#templates-cards-view').forEach(function(el){el.style.display='none';});
+  document.getElementById('templates-'+v+'-view').style.display='';
+  document.querySelectorAll('#tv-table,#tv-list,#tv-cards').forEach(function(el){el.classList.remove('active');});
+  document.getElementById('tv-'+v).classList.add('active');
+  renderSectionTemplates();
+}
+
+function filterTemplates(t){
+  _tplFilter=t;
+  renderSectionTemplates();
+}
+
+function searchTemplates(q){_tplSearch=(q||'').toLowerCase();renderSectionTemplates();}
+
+function renderSectionTemplates(){
+  if(typeof SECTION_TEMPLATES_DB==='undefined') return;
+  var list = SECTION_TEMPLATES_DB.filter(function(t){
+    if(_tplFilter!=='all' && t.type!==_tplFilter) return false;
+    if(_tplSearch && !t.name.toLowerCase().includes(_tplSearch) && !t.desc.toLowerCase().includes(_tplSearch)) return false;
+    return true;
+  });
+  // Table
+  var tbody = document.getElementById('templates-tbody'); if(tbody){
+    tbody.innerHTML = list.map(function(t){
+      var clr = sectionTypeColor(t.type);
+      var pillStyle = clr.indexOf('var(')===0
+        ? 'background:var(--acc-bg);color:var(--acc);border:1px solid var(--acc-br)'
+        : 'background:'+clr+'1f;color:'+clr+';border:1px solid '+clr+'4d';
+      return '<tr class="db-row" onclick="openDialog(\'dlg-section-template\')">'
+        +'<td><div style="font-weight:600;color:var(--t)">'+t.name+'</div><div style="font-size:11px;color:var(--t3);margin-top:1px">'+t.desc+'</div></td>'
+        +'<td><span class="tag" style="'+pillStyle+'">'+t.type+'</span></td>'
+        +'<td>'+t.exercises+'</td>'
+        +'<td>~'+t.durationMin+' min</td>'
+        +'<td style="color:var(--t2)">'+t.configSummary+'</td>'
+        +'<td style="color:var(--t3)">'+t.used+'×</td>'
+        +'<td style="text-align:right"><button class="btn" style="font-size:12px;padding:4px 10px" onclick="event.stopPropagation();showToast(\'Šablona vložena do plánu\')">Použít</button></td>'
+        +'</tr>';
+    }).join('');
+  }
+  // List view
+  var listEl = document.getElementById('templates-list'); if(listEl){
+    listEl.innerHTML = list.map(function(t){
+      var clr = sectionTypeColor(t.type);
+      var pillStyle = clr.indexOf('var(')===0
+        ? 'background:var(--acc-bg);color:var(--acc);border:1px solid var(--acc-br)'
+        : 'background:'+clr+'1f;color:'+clr+';border:1px solid '+clr+'4d';
+      return '<div onclick="openDialog(\'dlg-section-template\')" style="display:flex;align-items:center;gap:14px;padding:10px 14px;background:var(--bg2);border:1px solid var(--br);border-radius:8px;cursor:pointer">'
+        +'<span class="tag" style="'+pillStyle+';flex-shrink:0">'+t.type+'</span>'
+        +'<div style="flex:1;min-width:0"><div style="font-weight:600;color:var(--t)">'+t.name+'</div><div style="font-size:12px;color:var(--t3);margin-top:1px">'+t.desc+'</div></div>'
+        +'<div style="text-align:right;color:var(--t3);font-size:12px;flex-shrink:0">'+t.exercises+' cv. · ~'+t.durationMin+' min<br><span>'+t.configSummary+'</span></div>'
+        +'<button class="btn" style="font-size:12px;padding:5px 12px" onclick="event.stopPropagation();showToast(\'Šablona vložena do plánu\')">Použít</button>'
+        +'</div>';
+    }).join('');
+  }
+  // Cards view
+  var grid = document.getElementById('templates-cards-grid'); if(grid){
+    grid.innerHTML = list.map(function(t){
+      var clr = sectionTypeColor(t.type);
+      var pillStyle = clr.indexOf('var(')===0
+        ? 'background:var(--acc-bg);color:var(--acc);border:1px solid var(--acc-br)'
+        : 'background:'+clr+'1f;color:'+clr+';border:1px solid '+clr+'4d';
+      return '<div onclick="openDialog(\'dlg-section-template\')" style="background:var(--bg2);border:1px solid var(--br);border-radius:10px;padding:14px;cursor:pointer;display:flex;flex-direction:column;gap:10px">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between"><span class="tag" style="'+pillStyle+'">'+t.type+'</span><span style="font-size:11px;color:var(--t3)">Použito '+t.used+'×</span></div>'
+        +'<div><div style="font-weight:700;color:var(--t)">'+t.name+'</div><div style="font-size:12px;color:var(--t3);margin-top:3px;line-height:1.4">'+t.desc+'</div></div>'
+        +'<div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--t3);padding-top:8px;border-top:1px solid var(--br)"><span>'+t.exercises+' cviků · ~'+t.durationMin+' min</span><span style="color:var(--t)">'+t.configSummary+'</span></div>'
+        +'<button class="btn" style="font-size:12px;padding:6px;width:100%;margin-top:2px" onclick="event.stopPropagation();showToast(\'Šablona vložena do plánu\')">Použít</button>'
+        +'</div>';
+    }).join('');
+  }
+}
+
+function dlgTemplateOnTypeChange(sel){
+  var v=sel.value;
+  var cfg=document.getElementById('dlg-tpl-config');
+  if(cfg) cfg.style.display=(v==='Strength'||v==='Conditioning')?'none':'';
+}
 renderDashboard();
 </script>
 </body>
