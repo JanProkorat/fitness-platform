@@ -1,0 +1,47 @@
+name: Keep dev services alive
+
+# Pings the deployed dev API's /health endpoint on a cron so:
+#   1. Render's free-tier API container doesn't sleep after 15 min idle
+#   2. Atlas Mongo (60-day idle pause) gets touched
+#   3. Supabase Postgres (7-day idle pause) gets touched
+#
+# Hitting /health (not /health/live) does all three in one HTTP call —
+# the readiness probe runs CanConnectAsync against Postgres + ping
+# command against Mongo.
+#
+# This is a workaround for free-tier sleep, not a fix. Once the dev env
+# moves to a paid Render plan (Starter+ doesn't sleep), drop this workflow.
+
+on:
+  schedule:
+    # Every 14 min — under Render's 15-min sleep threshold, with a 1-min
+    # buffer for GitHub Actions cron delivery delays (which can lag 5–30
+    # min under heavy GH load).
+    - cron: '*/14 * * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  # If GH cron delivery stacks runs (delayed firing), let the latest one
+  # finish without queueing duplicates.
+  group: keep-alive
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Ping /health (Render + Postgres + Mongo)
+        run: |
+          status=$(curl -sk -o /tmp/body -w "%{http_code}" \
+            --max-time 60 \
+            https://dev-fitnessplatform.onrender.com/health)
+          echo "HTTP $status"
+          cat /tmp/body 2>/dev/null || true
+          # Job's purpose is to wake the container, not gate on health.
+          # Log non-2xx as a warning but exit 0 so we don't spam alerts
+          # on transient failures (DB blip, deploy in progress, etc.).
+          case "$status" in
+            2*) exit 0 ;;
+            *)  echo "::warning::Non-2xx response: $status" ; exit 0 ;;
+          esac
