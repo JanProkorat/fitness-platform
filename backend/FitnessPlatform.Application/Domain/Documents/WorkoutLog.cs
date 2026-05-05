@@ -75,6 +75,14 @@ public class WorkoutLog
     public bool IsCompleted { get; set; }
 
     /// <summary>
+    /// WOD format result for the whole session (e.g. ForTime total, AMRAP round count).
+    /// Null for Standard workouts or when not yet recorded.
+    /// </summary>
+    [BsonElement("wodResult")]
+    [BsonIgnoreIfNull]
+    public WodResult? WodResult { get; set; }
+
+    /// <summary>
     /// Exercises performed in this workout.
     /// </summary>
     [BsonElement("exercises")]

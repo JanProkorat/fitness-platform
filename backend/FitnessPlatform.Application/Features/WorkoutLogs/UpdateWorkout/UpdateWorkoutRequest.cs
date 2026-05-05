@@ -1,5 +1,8 @@
 using FitnessPlatform.Application.Domain.Documents;
 
+// Note: WodResult is the domain document type — used directly as DTO here
+// because it is a pure data carrier with no behavioural logic.
+
 namespace FitnessPlatform.Application.Features.WorkoutLogs.UpdateWorkout;
 
 /// <summary>
@@ -24,6 +27,12 @@ public class UpdateWorkoutRequest
     public string? Notes { get; set; }
 
     /// <summary>
+    /// WOD format result for the whole session (ForTime, AMRAP, etc.).
+    /// Null for Standard workouts or when not yet recorded.
+    /// </summary>
+    public WodResult? WodResult { get; set; }
+
+    /// <summary>
     /// Current state of exercises performed.
     /// </summary>
     public List<UpdateWorkoutExerciseRequest> Exercises { get; set; } = [];
@@ -43,6 +52,12 @@ public class UpdateWorkoutExerciseRequest
     /// Snapshot of the exercise name.
     /// </summary>
     public string ExerciseName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// WOD format result for this individual exercise.
+    /// Null for Standard exercises or when not yet recorded.
+    /// </summary>
+    public WodResult? WodResult { get; set; }
 
     /// <summary>
     /// Sets performed for this exercise.
