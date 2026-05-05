@@ -28,6 +28,7 @@ const FoodsPage = lazy(() => import('@/pages/FoodsPage'));
 const RecipesPage = lazy(() => import('@/pages/RecipesPage'));
 const NutritionPlanPage = lazy(() => import('@/pages/NutritionPlanPage'));
 const ExercisesPage = lazy(() => import('@/pages/ExercisesPage'));
+const SectionTemplatesPage = lazy(() => import('@/pages/SectionTemplatesPage'));
 const TrainingPlanPage = lazy(() => import('@/pages/TrainingPlanPage'));
 
 function DefaultRedirect() {
@@ -113,6 +114,7 @@ export default function App() {
                 }
               >
                 <Route path="/exercises" element={<ExercisesPage />} />
+                <Route path="/section-templates" element={<SectionTemplatesPage />} />
                 <Route path="/clients/:id/training-plans/:planId" element={<TrainingPlanPage />} />
               </Route>
             </Route>

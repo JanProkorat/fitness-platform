@@ -3,6 +3,8 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getTrainingPlan, completeTrainingPlan } from '@/api/training-plans';
+import { listSectionTemplates } from '@/api/sectionTemplates';
+import type { SectionTemplateResponse } from '@/api/sectionTemplates';
 import { PlanQuestionnairePanel } from '@/components/questionnaire/PlanQuestionnairePanel';
 import { getExercise } from '@/api/exercises';
 import type { MuscleGroup } from '@/api/exercise-types';
@@ -27,7 +29,7 @@ import { WeekOverviewGrid } from '@/components/training/WeekOverviewGrid';
 import { ExerciseCardHeader } from '@/components/training/ExerciseCardHeader';
 import { SetRow } from '@/components/training/SetRow';
 import { MovementTypePill } from '@/components/training/MovementTypePill';
-import { SessionFormatBar } from '@/components/training/SessionFormatBar';
+import { SectionFormatBar } from '@/components/training/SectionFormatBar';
 import { ExerciseFormatBar } from '@/components/training/ExerciseFormatBar';
 
 export default function TrainingPlanPage() {
@@ -77,6 +79,10 @@ export default function TrainingPlanPage() {
   const [collapsedExercises, setCollapsedExercises] = useState<Set<string>>(new Set());
   const [addingSessionDay, setAddingSessionDay] = useState<number | null>(null);
   const [newSessionName, setNewSessionName] = useState('');
+  const [templateConfirmTarget, setTemplateConfirmTarget] = useState<{
+    sessionId: string;
+    template: SectionTemplateResponse;
+  } | null>(null);
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
@@ -136,6 +142,14 @@ export default function TrainingPlanPage() {
 
   const exerciseDetailsMap = exerciseDetailsData?.muscleMap;
   const exerciseFullMap = exerciseDetailsData?.fullMap;
+
+  // ── Load section templates for the apply-template affordance ──
+  const { data: templatesData } = useQuery({
+    queryKey: ['section-templates-all'],
+    queryFn: () => listSectionTemplates({ page: 1, pageSize: 200 }),
+    staleTime: 60_000,
+  });
+  const sectionTemplates = templatesData?.templates ?? [];
 
   // ── Load plan on mount ──
   useEffect(() => {
@@ -251,6 +265,36 @@ export default function TrainingPlanPage() {
     } finally {
       setIsCompleting(false);
     }
+  };
+
+  // Apply-template client-side splice: replaces exercises + format of the target session.
+  const applyTemplateToSession = (sessionId: string, template: SectionTemplateResponse) => {
+    const store = useTrainingPlanStore.getState();
+    if (!store.plan) return;
+    useTrainingPlanStore.setState({
+      plan: {
+        ...store.plan,
+        weeks: store.plan.weeks.map((w) =>
+          w.weekNumber !== selectedWeek
+            ? w
+            : {
+                ...w,
+                sessions: w.sessions.map((s) =>
+                  s.sessionId !== sessionId
+                    ? s
+                    : {
+                        ...s,
+                        format: template.defaultFormat ?? 'Standard',
+                        formatConfig: template.defaultFormatConfig ?? null,
+                        exercises: template.defaultExercises.map((ex) => ({ ...ex })),
+                      },
+                ),
+              },
+        ),
+      },
+      isDirty: true,
+    });
+    setTemplateConfirmTarget(null);
   };
 
   const handleAddSession = (dow: number) => {
@@ -707,14 +751,78 @@ export default function TrainingPlanPage() {
                   {/* Session body — animated collapse */}
                   <div className="collapse-grid" data-open={isSessionOpen}>
                     <div className="collapse-content">
-                      {/* Session format bar */}
-                      <SessionFormatBar
+                      {/* Section format bar */}
+                      <SectionFormatBar
                         format={session.format}
                         formatConfig={session.formatConfig}
                         onFormatChange={(fmt, cfg) =>
                           updateSessionFormat(selectedWeek, session.sessionId, fmt, cfg)
                         }
                       />
+
+                      {/* Apply-template affordance */}
+                      {sectionTemplates.length > 0 && (
+                        <div
+                          className="flex items-center gap-2 px-3 py-1.5 border-b border-border"
+                          style={{ background: 'var(--bg2)' }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <span style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 500, userSelect: 'none' }}>
+                            {t('training.section.applyTemplate')}
+                          </span>
+                          <div className="relative inline-flex shrink-0">
+                            <select
+                              value=""
+                              onChange={(e) => {
+                                const tpl = sectionTemplates.find(
+                                  (x) => x.templateId === e.target.value,
+                                );
+                                if (!tpl) return;
+                                if (session.exercises.length > 0) {
+                                  setTemplateConfirmTarget({ sessionId: session.sessionId, template: tpl });
+                                } else {
+                                  applyTemplateToSession(session.sessionId, tpl);
+                                }
+                              }}
+                              style={{
+                                appearance: 'none',
+                                WebkitAppearance: 'none',
+                                border: '1px solid var(--border)',
+                                borderRadius: 'var(--radius)',
+                                background: 'var(--bg)',
+                                color: 'var(--text2)',
+                                fontSize: 11,
+                                fontFamily: 'inherit',
+                                fontWeight: 500,
+                                padding: '2px 20px 2px 8px',
+                                cursor: 'pointer',
+                                outline: 'none',
+                                lineHeight: '18px',
+                              }}
+                            >
+                              <option value="">— {t('training.template.selectPrompt')} —</option>
+                              {sectionTemplates.map((tpl) => (
+                                <option key={tpl.templateId} value={tpl.templateId}>
+                                  {tpl.name}
+                                </option>
+                              ))}
+                            </select>
+                            <span
+                              style={{
+                                position: 'absolute',
+                                right: 5,
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                fontSize: 8,
+                                color: 'var(--text4)',
+                                pointerEvents: 'none',
+                              }}
+                            >
+                              ▾
+                            </span>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Session note */}
                       <div style={{ padding: '4px 8px 6px' }}>
@@ -1044,6 +1152,38 @@ export default function TrainingPlanPage() {
       >
         <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
           {t('training.discardMessage')}
+        </p>
+      </Dialog>
+
+      {/* ── Apply Template Confirm Dialog ── */}
+      <Dialog
+        open={!!templateConfirmTarget}
+        onClose={() => setTemplateConfirmTarget(null)}
+        title={t('training.section.applyTemplate')}
+        maxWidth={400}
+        footer={
+          <>
+            <Button onClick={() => setTemplateConfirmTarget(null)}>{t('training.cancel')}</Button>
+            <Button
+              variant="primary"
+              onClick={() => {
+                if (templateConfirmTarget) {
+                  applyTemplateToSession(
+                    templateConfirmTarget.sessionId,
+                    templateConfirmTarget.template,
+                  );
+                }
+              }}
+            >
+              {t('training.template.applyConfirm')}
+            </Button>
+          </>
+        }
+      >
+        <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
+          {t('training.template.applyConfirmMessage', {
+            name: templateConfirmTarget?.template.name ?? '',
+          })}
         </p>
       </Dialog>
 

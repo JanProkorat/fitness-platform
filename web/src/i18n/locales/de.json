@@ -111,6 +111,7 @@
     "settings": "Einstellungen",
     "recipes": "Rezepte",
     "exercises": "Übungen",
+    "sectionTemplates": "Abschnittsvorlagen",
     "trainingPlans": "Trainingspläne",
     "messages": "Nachrichten",
     "clientsSection": "KLIENTEN",
@@ -1008,6 +1009,38 @@
       "durationSeconds": "Dauer (s)",
       "distanceLabel": "Distanz (m)",
       "distanceMeters": "Distanz (m)"
+    },
+    "section": {
+      "label": "Abschnitt",
+      "addSection": "Abschnitt hinzufügen",
+      "removeSection": "Abschnitt entfernen",
+      "applyTemplate": "Vorlage anwenden"
+    },
+    "template": {
+      "pageTitle": "Abschnittsvorlagen",
+      "pageSubtitle": "Verwalten Sie Ihre Abschnittsvorlagen für Trainingspläne.",
+      "addTemplate": "Vorlage hinzufügen",
+      "editTitle": "Vorlage bearbeiten",
+      "createTitle": "Neue Vorlage",
+      "nameLabel": "Name",
+      "namePlaceholder": "Vorlagenname...",
+      "search": "Vorlagen suchen...",
+      "noTemplates": "Noch keine Abschnittsvorlagen",
+      "noTemplatesHint": "Erstellen Sie eine Abschnittsvorlage und verwenden Sie sie in Trainingsplänen.",
+      "exerciseCount": "{{count}} Übungen",
+      "savedAt": "Gespeichert {{date}}",
+      "applyConfirm": "Vorlage anwenden",
+      "applyConfirmMessage": "Vorlage «{{name}}» anwenden? Vorhandene Übungen in diesem Abschnitt werden ersetzt.",
+      "selectPrompt": "Vorlage auswählen",
+      "created": "Vorlage erstellt.",
+      "createError": "Vorlage konnte nicht erstellt werden.",
+      "updated": "Vorlage aktualisiert.",
+      "updateError": "Vorlage konnte nicht aktualisiert werden.",
+      "deleted": "Vorlage gelöscht.",
+      "deleteError": "Vorlage konnte nicht gelöscht werden.",
+      "deleteConfirmTitle": "Vorlage löschen",
+      "deleteConfirmMessage": "Möchten Sie die Vorlage «{{name}}» wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
+      "versionConflict": "Vorlage wurde anderswo geändert, wird neu geladen."
     }
   },
   "exercises": {

@@ -111,6 +111,7 @@
     "settings": "Settings",
     "recipes": "Recipes",
     "exercises": "Exercises",
+    "sectionTemplates": "Section Templates",
     "trainingPlans": "Training Plans",
     "messages": "Messages",
     "clientsSection": "CLIENTS",
@@ -1009,6 +1010,38 @@
       "durationSeconds": "Duration (s)",
       "distanceLabel": "Distance (m)",
       "distanceMeters": "Distance (m)"
+    },
+    "section": {
+      "label": "Section",
+      "addSection": "Add section",
+      "removeSection": "Remove section",
+      "applyTemplate": "Apply template"
+    },
+    "template": {
+      "pageTitle": "Section Templates",
+      "pageSubtitle": "Manage your section templates for training plans.",
+      "addTemplate": "Add Template",
+      "editTitle": "Edit Template",
+      "createTitle": "New Template",
+      "nameLabel": "Name",
+      "namePlaceholder": "Template name...",
+      "search": "Search templates...",
+      "noTemplates": "No section templates yet",
+      "noTemplatesHint": "Create a section template and use it in training plans.",
+      "exerciseCount": "{{count}} exercises",
+      "savedAt": "Saved {{date}}",
+      "applyConfirm": "Apply Template",
+      "applyConfirmMessage": "Apply template «{{name}}»? Existing exercises in this section will be replaced.",
+      "selectPrompt": "Select template",
+      "created": "Template created.",
+      "createError": "Failed to create template.",
+      "updated": "Template updated.",
+      "updateError": "Failed to update template.",
+      "deleted": "Template deleted.",
+      "deleteError": "Failed to delete template.",
+      "deleteConfirmTitle": "Delete Template",
+      "deleteConfirmMessage": "Are you sure you want to delete the template «{{name}}»? This cannot be undone.",
+      "versionConflict": "Template was changed elsewhere, reloading."
     }
   },
   "exercises": {

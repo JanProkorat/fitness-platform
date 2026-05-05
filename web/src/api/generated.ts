@@ -11899,8 +11899,25 @@ export interface WorkoutExercise {
     exerciseExternalId?: string;
     /** Snapshot of the exercise name. */
     exerciseName?: string;
+    /** WOD format result for this individual exercise.
+Null for Standard exercises or when not yet recorded. */
+    wodResult?: WodResult | undefined;
     /** Actual sets performed. */
     sets?: WorkoutSet[];
+}
+
+/** Records the outcome of a WOD (Workout Of the Day) format session or exercise. Which fields are meaningful depends on the WorkoutFormat. All fields are nullable — only those relevant to the actual result need to be set. */
+export interface WodResult {
+    /** Number of complete rounds completed (AMRAP, Tabata). */
+    roundsCompleted?: number | undefined;
+    /** Extra reps accumulated after the last complete round (AMRAP). */
+    extraReps?: number | undefined;
+    /** Total time taken to complete the workout in seconds (ForTime). */
+    totalTimeSeconds?: number | undefined;
+    /** List of round numbers that were not completed (Tabata, EMOM). */
+    failedRounds?: number[] | undefined;
+    /** Reps completed per round, indexed 1-based (Tabata, EMOM, AMRAP). */
+    repsByRound?: number[] | undefined;
 }
 
 /** A single set actually performed during a workout with recorded values. */
@@ -11929,6 +11946,9 @@ export interface UpdateWorkoutRequest {
     mood?: number | undefined;
     /** Optional client notes. */
     notes?: string | undefined;
+    /** WOD format result for the whole session (ForTime, AMRAP, etc.).
+Null for Standard workouts or when not yet recorded. */
+    wodResult?: WodResult | undefined;
     /** Current state of exercises performed. */
     exercises?: UpdateWorkoutExerciseRequest[];
 }
@@ -11939,6 +11959,9 @@ export interface UpdateWorkoutExerciseRequest {
     exerciseExternalId?: string;
     /** Snapshot of the exercise name. */
     exerciseName?: string;
+    /** WOD format result for this individual exercise.
+Null for Standard exercises or when not yet recorded. */
+    wodResult?: WodResult | undefined;
     /** Sets performed for this exercise. */
     sets?: UpdateWorkoutSetRequest[];
 }
@@ -12518,8 +12541,35 @@ export interface TrainingSession {
     order?: number;
     /** Optional coach notes for this session. */
     notes?: string | undefined;
+    /** Workout format for this session. Defaults to Standard (sets-and-reps). */
+    format?: WorkoutFormat;
+    /** Format configuration for non-Standard sessions. Null when Format is Standard. */
+    formatConfig?: WodConfig | undefined;
     /** Exercises in this session. */
     exercises?: SessionExercise[];
+}
+
+/** Defines the workout format / scoring methodology for a training session or exercise. */
+export enum WorkoutFormat {
+    Standard = "Standard",
+    ForTime = "ForTime",
+    AMRAP = "AMRAP",
+    EMOM = "EMOM",
+    Tabata = "Tabata",
+}
+
+/** Configuration parameters for a WOD (Workout Of the Day) format. Which fields are meaningful depends on the WorkoutFormat. All fields are nullable — only those relevant to the chosen format are expected to be set. */
+export interface WodConfig {
+    /** Maximum allowed time in seconds (used by ForTime and AMRAP). */
+    timeCapSeconds?: number | undefined;
+    /** Duration of each interval in seconds (used by EMOM). */
+    intervalSeconds?: number | undefined;
+    /** Total number of rounds (used by EMOM and Tabata). */
+    totalRounds?: number | undefined;
+    /** Work interval duration in seconds (used by Tabata). */
+    workSeconds?: number | undefined;
+    /** Rest interval duration in seconds (used by Tabata). */
+    restSeconds?: number | undefined;
 }
 
 /** An exercise within a training session — denormalized snapshot of exercise data. */
@@ -12534,8 +12584,22 @@ export interface SessionExercise {
     notes?: string | undefined;
     /** Rest time between sets in seconds. */
     restSeconds?: number | undefined;
+    /** How performance for this exercise is measured. Defaults to Reps. */
+    movementType?: MovementType;
+    /** Per-exercise format override. Null means the exercise inherits the session's format. */
+    format?: WorkoutFormat | undefined;
+    /** Per-exercise format configuration. Null when Format is null or Standard. */
+    formatConfig?: WodConfig | undefined;
     /** Planned sets for this exercise. */
     sets?: ExerciseSet[];
+}
+
+/** Defines how performance in an exercise is measured. */
+export enum MovementType {
+    Reps = "Reps",
+    Time = "Time",
+    Distance = "Distance",
+    RepsForTime = "RepsForTime",
 }
 
 /** A single set within an exercise — represents planned (prescription) values. */
@@ -12602,6 +12666,10 @@ export interface UpdateSessionRequest {
     order?: number;
     /** Optional coach notes. */
     notes?: string | undefined;
+    /** Workout format for this session. Defaults to Standard. */
+    format?: WorkoutFormat;
+    /** Format configuration. Required for non-Standard formats; must be null for Standard. */
+    formatConfig?: WodConfig | undefined;
     /** Exercises in this session. */
     exercises?: UpdateSessionExerciseRequest[];
 }
@@ -12618,6 +12686,12 @@ export interface UpdateSessionExerciseRequest {
     notes?: string | undefined;
     /** Rest time between sets in seconds. */
     restSeconds?: number | undefined;
+    /** How performance for this exercise is measured. Defaults to Reps. */
+    movementType?: MovementType;
+    /** Per-exercise format override. Null means the exercise inherits the session's format. */
+    format?: WorkoutFormat | undefined;
+    /** Per-exercise format configuration. Null when Format is null or Standard. */
+    formatConfig?: WodConfig | undefined;
     /** Planned sets for this exercise. */
     sets?: UpdateExerciseSetRequest[];
 }

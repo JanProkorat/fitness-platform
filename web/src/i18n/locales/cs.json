@@ -111,6 +111,7 @@
     "settings": "Nastavení",
     "recipes": "Recepty",
     "exercises": "Cviky",
+    "sectionTemplates": "Šablony sekcí",
     "trainingPlans": "Tréninkové plány",
     "messages": "Zprávy",
     "clientsSection": "KLIENTI",
@@ -1008,6 +1009,38 @@
       "durationSeconds": "Trvání (s)",
       "distanceLabel": "Vzdálenost (m)",
       "distanceMeters": "Vzdálenost (m)"
+    },
+    "section": {
+      "label": "Sekce",
+      "addSection": "Přidat sekci",
+      "removeSection": "Odebrat sekci",
+      "applyTemplate": "Použít šablonu"
+    },
+    "template": {
+      "pageTitle": "Šablony sekcí",
+      "pageSubtitle": "Spravujte své tréninkové šablony sekcí.",
+      "addTemplate": "Přidat šablonu",
+      "editTitle": "Upravit šablonu",
+      "createTitle": "Nová šablona",
+      "nameLabel": "Název",
+      "namePlaceholder": "Název šablony...",
+      "search": "Hledat šablony...",
+      "noTemplates": "Zatím žádné šablony sekcí",
+      "noTemplatesHint": "Vytvořte šablonu sekce a použijte ji v tréninkových plánech.",
+      "exerciseCount": "{{count}} cviků",
+      "savedAt": "Uloženo {{date}}",
+      "applyConfirm": "Použít šablonu",
+      "applyConfirmMessage": "Použít šablonu «{{name}}»? Stávající cviky v sekci budou nahrazeny.",
+      "selectPrompt": "Vybrat šablonu",
+      "created": "Šablona vytvořena.",
+      "createError": "Nepodařilo se vytvořit šablonu.",
+      "updated": "Šablona aktualizována.",
+      "updateError": "Nepodařilo se aktualizovat šablonu.",
+      "deleted": "Šablona smazána.",
+      "deleteError": "Nepodařilo se smazat šablonu.",
+      "deleteConfirmTitle": "Smazat šablonu",
+      "deleteConfirmMessage": "Opravdu chcete smazat šablonu «{{name}}»? Tuto akci nelze vrátit.",
+      "versionConflict": "Šablona byla změněna jinde, načítám znovu."
     }
   },
   "exercises": {
