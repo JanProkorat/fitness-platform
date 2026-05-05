@@ -2,10 +2,13 @@ import api from './client';
 import {
   SetType,
   MuscleGroup,
+  WorkoutFormat,
+  MovementType,
 } from './generated';
 import type {
   ExerciseSet,
   SessionExercise,
+  TrainingSection,
   TrainingSession,
   GetTodaySessionResponse,
   GetFullTrainingPlanResponse,
@@ -13,13 +16,15 @@ import type {
   SessionDto,
   ExerciseDto,
   SetDto,
+  WodConfig,
 } from './generated';
 
 // Re-export generated types and enums so consumer imports (`from '@/api/training'`) still work.
-export { SetType, MuscleGroup };
+export { SetType, MuscleGroup, WorkoutFormat, MovementType };
 export type {
   ExerciseSet,
   SessionExercise,
+  TrainingSection,
   TrainingSession,
   GetTodaySessionResponse,
   GetFullTrainingPlanResponse,
@@ -27,14 +32,11 @@ export type {
   SessionDto,
   ExerciseDto,
   SetDto,
+  WodConfig,
 };
 
-// Re-export WOD types introduced in #205.
-// These are hand-declared until regen-api is run against the updated backend.
+// Re-export WodResult from wod-types (hand-declared until fully superseded by generated).
 export type {
-  WorkoutFormat,
-  MovementType,
-  WodConfig,
   WodResult,
   WodSessionExercise,
 } from './wod-types';

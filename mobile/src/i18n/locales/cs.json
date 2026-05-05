@@ -909,6 +909,23 @@
       "increaseDistance": "Zvýšit vzdálenost",
       "decreaseReps": "Snížit opakování",
       "increaseReps": "Zvýšit opakování"
+    },
+    "section": {
+      "label": "Sekce",
+      "defaultName": "Hlavní",
+      "empty": "Tato sekce neobsahuje žádné cviky",
+      "exerciseCount_one": "{{count}} cvik",
+      "exerciseCount_few": "{{count}} cviky",
+      "exerciseCount_other": "{{count}} cviků",
+      "nextSection": "NÁSLEDUJÍCÍ SEKCE",
+      "startSection": "▶ Spustit sekci",
+      "skipSection": "Přeskočit sekci",
+      "wodSectionHint": "Tato sekce má WOD formát",
+      "sectionExercisesHint_one": "{{count}} cvik",
+      "sectionExercisesHint_few": "{{count}} cviky",
+      "sectionExercisesHint_other": "{{count}} cviků",
+      "sectionOf": "Sekce {{current}} ze {{total}}",
+      "sectionActionDetail": "Detail"
     }
   },
   "muscleGroup": {
