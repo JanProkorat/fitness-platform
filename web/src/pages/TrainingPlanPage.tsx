@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { getTrainingPlan, completeTrainingPlan } from '@/api/training-plans';
 import { listSectionTemplates } from '@/api/sectionTemplates';
 import type { SectionTemplateResponse } from '@/api/sectionTemplates';
+import type { WorkoutFormat, MovementType, SetType } from '@/api/training-plan-types';
 import { PlanQuestionnairePanel } from '@/components/questionnaire/PlanQuestionnairePanel';
 import { getExercise } from '@/api/exercises';
 import type { MuscleGroup } from '@/api/exercise-types';
@@ -145,11 +146,11 @@ export default function TrainingPlanPage() {
 
   // ── Load section templates for the apply-template affordance ──
   const { data: templatesData } = useQuery({
-    queryKey: ['section-templates-all'],
-    queryFn: () => listSectionTemplates({ page: 1, pageSize: 200 }),
+    queryKey: ['section-templates'],
+    queryFn: () => listSectionTemplates(),
     staleTime: 60_000,
   });
-  const sectionTemplates = templatesData?.templates ?? [];
+  const sectionTemplates = templatesData ?? [];
 
   // ── Load plan on mount ──
   useEffect(() => {
@@ -284,9 +285,33 @@ export default function TrainingPlanPage() {
                     ? s
                     : {
                         ...s,
-                        format: template.defaultFormat ?? 'Standard',
+                        // Generated SectionTemplateResponse.defaultFormat is string | undefined; safe cast
+                        // because the backend only emits WorkoutFormat enum values.
+                        format: (template.defaultFormat ?? 'Standard') as WorkoutFormat,
                         formatConfig: template.defaultFormatConfig ?? null,
-                        exercises: template.defaultExercises.map((ex) => ({ ...ex })),
+                        // Map generated SessionExercise (all fields optional per NSwag) to the local
+                        // SessionExercise shape (required fields). Backend guarantees well-formed data
+                        // for stored template exercises, so fallbacks here are defensive only.
+                        exercises: (template.defaultExercises ?? []).map((ex) => ({
+                          exerciseExternalId: ex.exerciseExternalId ?? '',
+                          exerciseName: ex.exerciseName ?? '',
+                          order: ex.order ?? 1,
+                          notes: ex.notes ?? null,
+                          restSeconds: ex.restSeconds ?? null,
+                          movementType: (ex.movementType ?? 'Reps') as MovementType,
+                          format: (ex.format ?? null) as WorkoutFormat | null,
+                          formatConfig: ex.formatConfig ?? null,
+                          sets: (ex.sets ?? []).map((s) => ({
+                            setNumber: s.setNumber ?? 1,
+                            type: (s.type ?? 'Normal') as SetType,
+                            reps: s.reps ?? null,
+                            weightKg: s.weightKg ?? null,
+                            durationSeconds: s.durationSeconds ?? null,
+                            rpe: s.rpe ?? null,
+                            distanceMeters: s.distanceMeters ?? null,
+                            restSeconds: s.restSeconds ?? null,
+                          })),
+                        })),
                       },
                 ),
               },
@@ -775,9 +800,9 @@ export default function TrainingPlanPage() {
                               value=""
                               onChange={(e) => {
                                 const tpl = sectionTemplates.find(
-                                  (x) => x.templateId === e.target.value,
+                                  (x) => x.templateId === e.target.value && !!x.templateId,
                                 );
-                                if (!tpl) return;
+                                if (!tpl?.templateId) return;
                                 if (session.exercises.length > 0) {
                                   setTemplateConfirmTarget({ sessionId: session.sessionId, template: tpl });
                                 } else {
@@ -802,8 +827,8 @@ export default function TrainingPlanPage() {
                             >
                               <option value="">— {t('training.template.selectPrompt')} —</option>
                               {sectionTemplates.map((tpl) => (
-                                <option key={tpl.templateId} value={tpl.templateId}>
-                                  {tpl.name}
+                                <option key={tpl.templateId} value={tpl.templateId ?? ''}>
+                                  {tpl.name ?? ''}
                                 </option>
                               ))}
                             </select>

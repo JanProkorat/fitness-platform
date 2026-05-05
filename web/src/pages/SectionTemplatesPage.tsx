@@ -11,17 +11,14 @@ import {
   deleteSectionTemplate,
 } from '@/api/sectionTemplates';
 import type { SectionTemplateResponse } from '@/api/sectionTemplates';
+import { WorkoutFormat } from '@/api/generated';
 import { useApiMutation } from '@/hooks/useApiMutation';
 import { useConfirmDelete } from '@/hooks/useConfirmDelete';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { PageHeader } from '@/components/layout';
 import { Button, Dialog, SearchInput } from '@/components/ui';
-import { Pagination } from '@/components/data';
 import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
-import { showApiError, showSuccess } from '@/lib/api-errors';
 import { INPUT_CLASS_SM } from '@/lib/styles';
-
-const PAGE_SIZE = 50;
 
 // ── Zod schema for create/edit dialog ──────────────────────────────────────
 
@@ -46,15 +43,15 @@ function TemplateDialog({ open, template, onClose, onSaved }: TemplateDialogProp
   const form = useForm<TemplateFormValues>({
     resolver: zodResolver(templateSchema),
     defaultValues: { name: '' },
-    values: template ? { name: template.name } : undefined,
+    values: template ? { name: template.name ?? '' } : undefined,
   });
 
   const createMutation = useApiMutation(
     (values: TemplateFormValues) =>
       createSectionTemplate({
         name: values.name,
-        defaultFormat: null,
-        defaultFormatConfig: null,
+        defaultFormat: undefined,
+        defaultFormatConfig: undefined,
         defaultExercises: [],
       }),
     {
@@ -70,12 +67,15 @@ function TemplateDialog({ open, template, onClose, onSaved }: TemplateDialogProp
 
   const updateMutation = useApiMutation(
     (values: TemplateFormValues) => {
-      if (!template) return Promise.reject(new Error('no template'));
+      if (!template?.templateId) return Promise.reject(new Error('no template'));
       return updateSectionTemplate(template.templateId, {
         name: values.name,
-        defaultFormat: template.defaultFormat,
-        defaultFormatConfig: template.defaultFormatConfig,
-        defaultExercises: template.defaultExercises,
+        // Generated SectionTemplateResponse.defaultFormat is string | undefined; safe cast because
+        // backend only emits WorkoutFormat enum values.
+        defaultFormat: (template.defaultFormat as WorkoutFormat | undefined) ?? undefined,
+        defaultFormatConfig: template.defaultFormatConfig ?? undefined,
+        // The dialog only edits name; preserve exercises by omitting (backend keeps existing).
+        defaultExercises: undefined,
         version: template.version,
       });
     },
@@ -132,7 +132,7 @@ function TemplateDialog({ open, template, onClose, onSaved }: TemplateDialogProp
           )}
         </div>
 
-        {isEditing && (
+        {isEditing && template.updatedAt && (
           <p className="text-[11px] text-text3">
             {t('training.template.savedAt', {
               date: new Date(template.updatedAt).toLocaleDateString(),
@@ -150,16 +150,15 @@ export default function SectionTemplatesPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
 
-  const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<SectionTemplateResponse | null>(null);
 
-  const debouncedSearch = useDebouncedValue(search, 300, () => setPage(1));
+  const debouncedSearch = useDebouncedValue(search, 300);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['section-templates', page, debouncedSearch],
-    queryFn: () => listSectionTemplates({ page, pageSize: PAGE_SIZE }),
+    queryKey: ['section-templates'],
+    queryFn: () => listSectionTemplates(),
   });
 
   const invalidate = () => {
@@ -174,12 +173,10 @@ export default function SectionTemplatesPage() {
 
   const confirmDelete = useConfirmDelete(deleteMutation);
 
-  const totalPages = data ? Math.ceil((data.totalCount ?? 0) / PAGE_SIZE) : 0;
-
-  // Client-side search filter (server doesn't filter by name yet)
-  const filteredTemplates = (data?.templates ?? []).filter((tpl) =>
+  // Client-side search filter
+  const filteredTemplates = (data ?? []).filter((tpl) =>
     debouncedSearch
-      ? tpl.name.toLowerCase().includes(debouncedSearch.toLowerCase())
+      ? (tpl.name ?? '').toLowerCase().includes(debouncedSearch.toLowerCase())
       : true,
   );
 
@@ -195,7 +192,9 @@ export default function SectionTemplatesPage() {
 
   const handleDeleteClick = (e: React.MouseEvent, tpl: SectionTemplateResponse) => {
     e.stopPropagation();
-    confirmDelete.requestDelete(tpl.templateId, tpl.name);
+    if (tpl.templateId) {
+      confirmDelete.requestDelete(tpl.templateId, tpl.name ?? '');
+    }
   };
 
   const formatLabel = (format: string | null): string => {
@@ -270,7 +269,7 @@ export default function SectionTemplatesPage() {
                         ) : null}
                         <span>
                           {t('training.template.exerciseCount', {
-                            count: tpl.defaultExercises.length,
+                            count: tpl.defaultExercises?.length ?? 0,
                           })}
                         </span>
                       </div>
@@ -278,7 +277,7 @@ export default function SectionTemplatesPage() {
 
                     {/* Updated-at */}
                     <span className="shrink-0 text-[11px] text-text3">
-                      {new Date(tpl.updatedAt).toLocaleDateString()}
+                      {tpl.updatedAt ? new Date(tpl.updatedAt).toLocaleDateString() : ''}
                     </span>
 
                     {/* Delete */}
@@ -302,13 +301,6 @@ export default function SectionTemplatesPage() {
                 ))}
               </div>
 
-              <Pagination
-                page={page}
-                totalPages={totalPages}
-                totalCount={data?.totalCount ?? 0}
-                onPageChange={setPage}
-                className="mt-3"
-              />
             </>
           )}
         </div>

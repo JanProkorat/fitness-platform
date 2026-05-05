@@ -3524,6 +3524,353 @@ export class ApiClient {
     }
 
     /**
+     * Update section template
+     * @param templateId The template's public identifier (route parameter).
+     * @return Success
+     */
+    updateSectionTemplateEndpoint(templateId: string, updateSectionTemplateRequest: UpdateSectionTemplateRequest, signal?: AbortSignal): Promise<SectionTemplateResponse> {
+        let url_ = this.baseUrl + "/training/section-templates/{templateId}";
+        if (templateId === undefined || templateId === null)
+            throw new globalThis.Error("The parameter 'templateId' must be defined.");
+        url_ = url_.replace("{templateId}", encodeURIComponent("" + templateId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(updateSectionTemplateRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateSectionTemplateEndpoint(_response);
+        });
+    }
+
+    protected processUpdateSectionTemplateEndpoint(response: AxiosResponse): Promise<SectionTemplateResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<SectionTemplateResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SectionTemplateResponse>(null as any);
+    }
+
+    /**
+     * Get section template
+     * @param templateId The template's public identifier (route parameter).
+     * @return Success
+     */
+    getSectionTemplateEndpoint(templateId: string, signal?: AbortSignal): Promise<SectionTemplateResponse> {
+        let url_ = this.baseUrl + "/training/section-templates/{templateId}";
+        if (templateId === undefined || templateId === null)
+            throw new globalThis.Error("The parameter 'templateId' must be defined.");
+        url_ = url_.replace("{templateId}", encodeURIComponent("" + templateId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetSectionTemplateEndpoint(_response);
+        });
+    }
+
+    protected processGetSectionTemplateEndpoint(response: AxiosResponse): Promise<SectionTemplateResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<SectionTemplateResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SectionTemplateResponse>(null as any);
+    }
+
+    /**
+     * Delete section template
+     * @param templateId The template's public identifier (route parameter).
+     * @return No Content
+     */
+    deleteSectionTemplateEndpoint(templateId: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/training/section-templates/{templateId}";
+        if (templateId === undefined || templateId === null)
+            throw new globalThis.Error("The parameter 'templateId' must be defined.");
+        url_ = url_.replace("{templateId}", encodeURIComponent("" + templateId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDeleteSectionTemplateEndpoint(_response);
+        });
+    }
+
+    protected processDeleteSectionTemplateEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * List section templates
+     * @param page Page number (1-based). Defaults to 1.
+     * @param pageSize Page size. Defaults to 50.
+     * @return Success
+     */
+    listSectionTemplatesEndpoint(page: number, pageSize: number, signal?: AbortSignal): Promise<SectionTemplateResponse[]> {
+        let url_ = this.baseUrl + "/training/section-templates?";
+        if (page === undefined || page === null)
+            throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
+        else
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === undefined || pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' must be defined and cannot be null.");
+        else
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processListSectionTemplatesEndpoint(_response);
+        });
+    }
+
+    protected processListSectionTemplatesEndpoint(response: AxiosResponse): Promise<SectionTemplateResponse[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<SectionTemplateResponse[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SectionTemplateResponse[]>(null as any);
+    }
+
+    /**
+     * Create section template
+     * @return Success
+     */
+    createSectionTemplateEndpoint(createSectionTemplateRequest: CreateSectionTemplateRequest, signal?: AbortSignal): Promise<SectionTemplateResponse> {
+        let url_ = this.baseUrl + "/training/section-templates";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(createSectionTemplateRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreateSectionTemplateEndpoint(_response);
+        });
+    }
+
+    protected processCreateSectionTemplateEndpoint(response: AxiosResponse): Promise<SectionTemplateResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<SectionTemplateResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SectionTemplateResponse>(null as any);
+    }
+
+    /**
      * Generate recipe image upload URL
      * @param recipeId The recipe's public identifier (from route).
      * @param slot Image slot: main (overwrites) or gallery (appends, max 6).
@@ -12541,11 +12888,20 @@ export interface TrainingSession {
     order?: number;
     /** Optional coach notes for this session. */
     notes?: string | undefined;
-    /** Workout format for this session. Defaults to Standard (sets-and-reps). */
-    format?: WorkoutFormat;
-    /** Format configuration for non-Standard sessions. Null when Format is Standard. */
+    /** Session-level workout format. Kept nullable for one release as an inheritable default —
+sections inherit when their own Format is null. Null means Standard. */
+    format?: WorkoutFormat | undefined;
+    /** Session-level format configuration. Null when Format is null or Standard. */
     formatConfig?: WodConfig | undefined;
-    /** Exercises in this session. */
+    /** Sections in this session. Each section contains its own exercises.
+Schema-on-read: if a stored document has only flat exercises and no sections,
+a single default section named "Hlavní" is synthesized via WithBackfilledSections. */
+    sections?: TrainingSection[];
+    /** Legacy flat exercises list. Only present in documents written before the sections migration.
+Not written on new saves. Used by WithBackfilledSections for schema-on-read. */
+    legacyExercises?: SessionExercise[] | undefined;
+    /** Flat view of all exercises across all sections. Read-only convenience accessor.
+Not stored in MongoDB — computed from Sections. */
     exercises?: SessionExercise[];
 }
 
@@ -12570,6 +12926,22 @@ export interface WodConfig {
     workSeconds?: number | undefined;
     /** Rest interval duration in seconds (used by Tabata). */
     restSeconds?: number | undefined;
+}
+
+/** An ordered section within a training session (e.g. "Warm-up", "Hlavní", "Cool-down"). Embedded sub-document inside Sections. */
+export interface TrainingSection {
+    /** Client-side stable identifier for this section. */
+    sectionId?: string;
+    /** Display order within the session (0-based). */
+    order?: number;
+    /** Display name of the section (e.g. "Hlavní", "Warm-up"). */
+    name?: string;
+    /** Workout format for this section. Null means the section inherits the session-level format. */
+    format?: WorkoutFormat | undefined;
+    /** Format configuration for this section. Null when Format is null or Standard. */
+    formatConfig?: WodConfig | undefined;
+    /** Exercises in this section. */
+    exercises?: SessionExercise[];
 }
 
 /** An exercise within a training session — denormalized snapshot of exercise data. */
@@ -12666,21 +13038,38 @@ export interface UpdateSessionRequest {
     order?: number;
     /** Optional coach notes. */
     notes?: string | undefined;
-    /** Workout format for this session. Defaults to Standard. */
-    format?: WorkoutFormat;
-    /** Format configuration. Required for non-Standard formats; must be null for Standard. */
+    /** Session-level workout format. Null means no format override at session level.
+Sections inherit this when their own Format is null. */
+    format?: WorkoutFormat | undefined;
+    /** Session-level format configuration. Null when Format is null or Standard. */
     formatConfig?: WodConfig | undefined;
-    /** Exercises in this session. */
+    /** Ordered sections in this session. Each section contains its own exercises. */
+    sections?: UpdateSectionRequest[];
+}
+
+/** Represents a training section submitted in a full-state session update. */
+export interface UpdateSectionRequest {
+    /** Optional existing section identifier. New GUID generated if null. */
+    sectionId?: string | undefined;
+    /** Display order within the session (0-based). */
+    order?: number;
+    /** Display name of the section (e.g. "Hlavní", "Warm-up"). */
+    name?: string;
+    /** Workout format for this section. Null means section inherits the session-level format. */
+    format?: WorkoutFormat | undefined;
+    /** Format configuration. Required for non-Standard, non-null section formats; must be null for Standard. */
+    formatConfig?: WodConfig | undefined;
+    /** Exercises in this section. */
     exercises?: UpdateSessionExerciseRequest[];
 }
 
-/** Represents an exercise entry in a training session update. */
+/** Represents an exercise entry in a training section update. */
 export interface UpdateSessionExerciseRequest {
     /** External (public) identifier of the exercise. */
     exerciseExternalId?: string;
     /** Display name of the exercise (snapshot at time of planning). */
     exerciseName?: string;
-    /** Display order within the session (1-based). */
+    /** Display order within the section (1-based). */
     order?: number;
     /** Optional coach notes for this exercise. */
     notes?: string | undefined;
@@ -12688,7 +13077,7 @@ export interface UpdateSessionExerciseRequest {
     restSeconds?: number | undefined;
     /** How performance for this exercise is measured. Defaults to Reps. */
     movementType?: MovementType;
-    /** Per-exercise format override. Null means the exercise inherits the session's format. */
+    /** Per-exercise format override. Null means the exercise inherits the section's format. */
     format?: WorkoutFormat | undefined;
     /** Per-exercise format configuration. Null when Format is null or Standard. */
     formatConfig?: WodConfig | undefined;
@@ -13335,6 +13724,106 @@ export interface CancelQuestionnaireRequest {
 export interface AssignQuestionnaireRequest {
     /** Public identifier of the questionnaire to assign. */
     questionnairePublicId?: string;
+}
+
+/** Response DTO for a single section template. */
+export interface SectionTemplateResponse {
+    /** Template's public identifier. */
+    templateId?: string;
+    /** Display name of the template. */
+    name?: string;
+    /** Default workout format. Null means no format override. */
+    defaultFormat?: string | undefined;
+    /** Default format configuration. */
+    defaultFormatConfig?: WodConfig | undefined;
+    /** Default exercises pre-populated when applying this template. */
+    defaultExercises?: SessionExercise[];
+    /** Optimistic concurrency version. */
+    version?: number;
+    /** When this template was created. */
+    createdAt?: string;
+    /** When this template was last updated. */
+    updatedAt?: string;
+}
+
+/** Request for updating an existing section template. */
+export interface UpdateSectionTemplateRequest {
+    /** Updated display name of the template. */
+    name: string;
+    /** Updated default workout format. Null means no format override. */
+    defaultFormat?: WorkoutFormat | undefined;
+    /** Updated default format configuration. */
+    defaultFormatConfig?: WodConfig | undefined;
+    /** Updated default exercises. */
+    defaultExercises?: CreateSectionTemplateExerciseRequest[];
+    /** Expected version for optimistic concurrency control. */
+    version?: number;
+}
+
+/** An exercise entry in a section template. */
+export interface CreateSectionTemplateExerciseRequest {
+    /** External (public) identifier of the exercise. */
+    exerciseExternalId?: string;
+    /** Display name of the exercise (snapshot). */
+    exerciseName?: string;
+    /** Display order within the section (1-based). */
+    order?: number;
+    /** Optional coach notes for this exercise. */
+    notes?: string | undefined;
+    /** Rest time between sets in seconds. */
+    restSeconds?: number | undefined;
+    /** How performance for this exercise is measured. Defaults to Reps. */
+    movementType?: MovementType;
+    /** Per-exercise format override. Null means inherits the section's format. */
+    format?: WorkoutFormat | undefined;
+    /** Per-exercise format configuration. Null when Format is null or Standard. */
+    formatConfig?: WodConfig | undefined;
+    /** Planned sets for this exercise. */
+    sets?: CreateSectionTemplateSetRequest[];
+}
+
+/** A planned set in a section template exercise. */
+export interface CreateSectionTemplateSetRequest {
+    /** Set number within the exercise (1-based). */
+    setNumber?: number;
+    /** Type of set. */
+    type?: SetType;
+    /** Target number of repetitions. */
+    reps?: number | undefined;
+    /** Target weight in kilograms. */
+    weightKg?: number | undefined;
+    /** Target duration in seconds. */
+    durationSeconds?: number | undefined;
+    /** Target RPE (1-10). */
+    rpe?: number | undefined;
+    /** Target distance in meters. */
+    distanceMeters?: number | undefined;
+    /** Rest time after this set in seconds. */
+    restSeconds?: number | undefined;
+}
+
+/** Request for listing the calling trainer's section templates. */
+export interface ListSectionTemplatesRequest {
+}
+
+/** Request for retrieving a single section template by its public identifier. */
+export interface GetSectionTemplateRequest {
+}
+
+/** Request for deleting a section template. */
+export interface DeleteSectionTemplateRequest {
+}
+
+/** Request for creating a new section template. */
+export interface CreateSectionTemplateRequest {
+    /** Display name of the template. */
+    name: string;
+    /** Default workout format. Null means no format override (Standard / inherits from session). */
+    defaultFormat?: WorkoutFormat | undefined;
+    /** Default format configuration. Null when DefaultFormat is null or Standard. */
+    defaultFormatConfig?: WodConfig | undefined;
+    /** Default exercises to pre-populate when applying this template. */
+    defaultExercises?: CreateSectionTemplateExerciseRequest[];
 }
 
 /** Response model containing the pre-signed upload URL and the permanent blob URL. */
