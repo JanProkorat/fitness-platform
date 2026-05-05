@@ -29,6 +29,16 @@ export type {
   SetDto,
 };
 
+// Re-export WOD types introduced in #205.
+// These are hand-declared until regen-api is run against the updated backend.
+export type {
+  WorkoutFormat,
+  MovementType,
+  WodConfig,
+  WodResult,
+  WodSessionExercise,
+} from './wod-types';
+
 /**
  * @deprecated Use `GetTodaySessionResponse` from generated. Kept as alias for backward compatibility.
  */

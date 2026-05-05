@@ -45,12 +45,15 @@ import type { UpdateWorkoutRequest } from '@/api/workouts'
 import type { SessionExercise, ExerciseSet, MuscleGroup } from '@/api/training'
 import { getTodaySession } from '@/api/training'
 import { getMuscleGroupColor } from '@/constants/muscleGroups'
+import type { WorkoutFormat, WodConfig, WodResult, MovementType } from '@/api/wod-types'
 
 import { useLiveSessionStore } from '@/stores/liveSessionStore'
 import { addPendingMutation } from '@/stores/offline'
 
 import { LiveSessionHeader } from '@/components/training/LiveSessionHeader'
 import { LiveExerciseFocus } from '@/components/training/LiveExerciseFocus'
+import { TimedExerciseFocus } from '@/components/training/TimedExerciseFocus'
+import { WodTimerHero } from '@/components/training/WodTimerHero'
 import { RestTimerHero } from '@/components/training/RestTimerHero'
 import { PrFlash } from '@/components/training/PrFlash'
 import { LiveFinishedSummary } from '@/components/training/LiveFinishedSummary'
@@ -62,6 +65,34 @@ import {
   formatSeconds,
 } from '@/components/training/liveTrainingHelpers'
 import type { ExerciseSummaryInput } from '@/components/training/liveTrainingHelpers'
+
+// ─── WOD-aware session/exercise type helpers ──────────────────────────────────
+
+/**
+ * The generated SessionExercise type doesn't yet include WOD fields (regen-api
+ * requires a running backend outside this agent's allowlist). Cast to this
+ * extended interface when reading movementType / format / formatConfig.
+ */
+interface WodAwareExercise extends SessionExercise {
+  movementType?: MovementType
+  format?: WorkoutFormat | null
+  formatConfig?: WodConfig | null
+}
+
+/**
+ * The generated TrainingSession type doesn't yet include WOD fields.
+ */
+interface WodAwareSession {
+  sessionId?: string
+  name?: string
+  exercises?: SessionExercise[]
+  format?: WorkoutFormat | null
+  formatConfig?: WodConfig | null
+}
+
+function isWodFormat(format: WorkoutFormat | null | undefined): format is WorkoutFormat {
+  return format != null && format !== 'Standard'
+}
 
 // ─── Muscle group → color map (mirrors the prototype) ────────────────────────
 
@@ -748,6 +779,7 @@ export default function WorkoutLogScreen() {
     startedAt,
     finishedAt,
     formOverrides,
+    wodResults,
     start: storeStart,
     markSetDone: storeMarkSetDone,
     skipSet: storeSkipSet,
@@ -758,6 +790,7 @@ export default function WorkoutLogScreen() {
     close: storeClose,
     finish: storeFinish,
     discard: storeDiscard,
+    finalizeWod: storeFinalizeWod,
   } = store
 
   // ── Phase: prestart | running | finished ──
@@ -777,6 +810,11 @@ export default function WorkoutLogScreen() {
   const [loadedLogId, setLoadedLogId] = useState<string | null>(
     id !== 'new' && id ? id : (activeLogId ?? null),
   )
+  // ── WOD session-level format info ──
+  const [sessionFormat, setSessionFormat] = useState<WorkoutFormat | null>(null)
+  const [sessionFormatConfig, setSessionFormatConfig] = useState<WodConfig | null>(null)
+  /** When true, the WOD hero is shown for the whole session block. */
+  const [showWodHero, setShowWodHero] = useState(false)
 
   // ── Local form state (reps / weight steppers) ──
   const [formReps, setFormReps] = useState(0)
@@ -841,13 +879,22 @@ export default function WorkoutLogScreen() {
       try {
         const resp = await getTodaySession()
         const sessions = resp.sessions ?? []
-        const session =
+        const rawSession =
           (sessionId && sessions.find((s) => s.sessionId === sessionId)) ||
           sessions[0]
-        if (!session) return
+        if (!rawSession) return
+        // Cast to WOD-aware type (new fields may not be in generated types yet)
+        const session = rawSession as unknown as WodAwareSession
         setSessionDisplayName(session.name ?? '')
         setExercises(session.exercises ?? [])
         setExerciseMuscleGroups(resp.exerciseMuscleGroups ?? {})
+        // Capture session-level WOD format
+        const fmt = session.format ?? null
+        setSessionFormat(fmt)
+        setSessionFormatConfig(session.formatConfig ?? null)
+        if (isWodFormat(fmt)) {
+          setShowWodHero(true)
+        }
       } catch {
         // Non-fatal — screen still works with empty exercises in pre-start
       }
@@ -1021,7 +1068,11 @@ export default function WorkoutLogScreen() {
     storeStart({ sessionId: sessionId ?? '' }, logId ?? '', planId ?? '')
     setPhase('running')
     prefillForm(0, 0, exercises)
-  }, [storeStart, loadedLogId, activeLogId, exercises, sessionId, planId, prefillForm])
+    // If session has a WOD format, show the hero overlay immediately after start
+    if (isWodFormat(sessionFormat)) {
+      setShowWodHero(true)
+    }
+  }, [storeStart, loadedLogId, activeLogId, exercises, sessionId, planId, prefillForm, sessionFormat])
 
   const handleSetDone = useCallback(() => {
     const ex = exercises[currentExerciseIdx]
@@ -1208,6 +1259,24 @@ export default function WorkoutLogScreen() {
     exitToToday()
   }, [storeDiscard, exitToToday, queryClient])
 
+  // ── WOD finalize ──
+  const handleWodFinish = useCallback(
+    (key: string, result: WodResult) => {
+      storeFinalizeWod(key, result)
+      setShowWodHero(false)
+      // After WOD hero, finish the session
+      storeFinish()
+      setPhase('finished')
+      const logId = loadedLogId ?? activeLogId
+      if (logId) void finalizeWorkout(logId)
+    },
+    [storeFinalizeWod, storeFinish, loadedLogId, activeLogId, finalizeWorkout],
+  )
+
+  const handleWodCancel = useCallback(() => {
+    setShowWodHero(false)
+  }, [])
+
   // ── Derived: total sets done (for header) ──
   const totalSetsDone = useMemo(() => {
     let n = 0
@@ -1327,30 +1396,116 @@ export default function WorkoutLogScreen() {
         {/* ── RUNNING ── */}
         {phase === 'running' && currentExercise && (
           <Animated.View key="running" entering={SlideInRight.duration(240)} exiting={SlideOutLeft.duration(180)}>
-            <LiveExerciseFocus
-              exerciseName={currentExercise.exerciseName ?? ''}
-              muscleColor={muscleColorFor(currentExercise)}
-              muscleLabel={currentExercise.exerciseName?.split(' ')[0] ?? ''}
-              exerciseIndex={currentExerciseIdx + 1}
-              exerciseTotal={exercises.length}
-              currentSet={currentSetIdx + 1}
-              totalSets={currentExercise.sets?.length ?? 0}
-              setStatuses={setStatuses}
-              reps={formReps}
-              plannedReps={currentExercise.sets?.[currentSetIdx]?.reps ?? 0}
-              weightKg={formWeight}
-              plannedWeightKg={currentExercise.sets?.[currentSetIdx]?.weightKg ?? 0}
-              onRepsChange={(delta) =>
-                setFormReps((prev) => Math.max(1, Math.round((prev + delta) * 10) / 10))
+            {/* Branch on per-exercise format or movement type */}
+            {(() => {
+              const wodEx = currentExercise as unknown as WodAwareExercise
+              const exFormat = wodEx.format
+              const movementType = wodEx.movementType ?? 'Reps'
+              const currentSet = currentExercise.sets?.[currentSetIdx]
+
+              // Per-exercise WOD format override → show WodTimerHero for this exercise
+              if (isWodFormat(exFormat) && wodEx.formatConfig) {
+                return (
+                  <WodTimerHero
+                    label={currentExercise.exerciseName ?? ''}
+                    format={exFormat}
+                    config={wodEx.formatConfig}
+                    onFinish={(result) => {
+                      const exId = currentExercise.exerciseExternalId ?? `ex-${currentExerciseIdx}`
+                      storeFinalizeWod(exId, result)
+                      // Advance to next exercise
+                      const nextExIdx = currentExerciseIdx + 1
+                      if (nextExIdx >= exercises.length) {
+                        storeFinish()
+                        setPhase('finished')
+                        const logId = loadedLogId ?? activeLogId
+                        if (logId) void finalizeWorkout(logId)
+                      } else {
+                        storeAdvance(nextExIdx, 0)
+                        prefillForm(nextExIdx, 0, exercises)
+                      }
+                    }}
+                    onCancel={handleWodCancel}
+                  />
+                )
               }
-              onWeightChange={(delta) =>
-                setFormWeight((prev) => Math.max(0, Math.round((prev + delta) * 10) / 10))
+
+              // Time or Distance movement type → show TimedExerciseFocus
+              if (movementType === 'Time' || movementType === 'Distance') {
+                return (
+                  <TimedExerciseFocus
+                    exerciseName={currentExercise.exerciseName ?? ''}
+                    muscleColor={muscleColorFor(currentExercise)}
+                    muscleLabel={currentExercise.exerciseName?.split(' ')[0] ?? ''}
+                    exerciseIndex={currentExerciseIdx + 1}
+                    exerciseTotal={exercises.length}
+                    currentSet={currentSetIdx + 1}
+                    totalSets={currentExercise.sets?.length ?? 0}
+                    setStatuses={setStatuses}
+                    movementType={movementType}
+                    plannedDurationSeconds={currentSet?.durationSeconds ?? 60}
+                    plannedDistanceMeters={
+                      (currentSet as (typeof currentSet & { distanceMeters?: number }) | undefined)
+                        ?.distanceMeters ?? 100
+                    }
+                    onSetDone={(durationSeconds, distanceMeters) => {
+                      const exId = currentExercise.exerciseExternalId ?? `ex-${currentExerciseIdx}`
+                      // Record actuals — reuse formOverrides shape; duration→reps slot, distance→weight slot
+                      storeMarkSetDone(exId, currentSetIdx, {
+                        reps: durationSeconds != null ? Math.round(durationSeconds) : undefined,
+                        weightKg: distanceMeters != null ? distanceMeters : undefined,
+                      })
+                      const { nextExIdx, nextSetIdx, isLast } = computeNext(
+                        currentExerciseIdx,
+                        currentSetIdx,
+                        exercises,
+                      )
+                      if (isLast) {
+                        storeFinish()
+                        setPhase('finished')
+                        const logId = loadedLogId ?? activeLogId
+                        if (logId) void finalizeWorkout(logId)
+                      } else {
+                        storeStartRest(currentExercise.restSeconds ?? currentSet?.restSeconds ?? 60)
+                        persistUpdate()
+                        pendingAdvanceRef.current = { ex: nextExIdx, set: nextSetIdx }
+                      }
+                    }}
+                    onSkipSet={handleSkipSet}
+                    onSkipExercise={() => setShowSkipExerciseConfirm(true)}
+                    onGoToSet={handleGoToSet}
+                  />
+                )
               }
-              onSetDone={handleSetDone}
-              onSkipSet={handleSkipSet}
-              onSkipExercise={() => setShowSkipExerciseConfirm(true)}
-              onGoToSet={handleGoToSet}
-            />
+
+              // Default: reps × weight (Reps or RepsForTime)
+              return (
+                <LiveExerciseFocus
+                  exerciseName={currentExercise.exerciseName ?? ''}
+                  muscleColor={muscleColorFor(currentExercise)}
+                  muscleLabel={currentExercise.exerciseName?.split(' ')[0] ?? ''}
+                  exerciseIndex={currentExerciseIdx + 1}
+                  exerciseTotal={exercises.length}
+                  currentSet={currentSetIdx + 1}
+                  totalSets={currentExercise.sets?.length ?? 0}
+                  setStatuses={setStatuses}
+                  reps={formReps}
+                  plannedReps={currentExercise.sets?.[currentSetIdx]?.reps ?? 0}
+                  weightKg={formWeight}
+                  plannedWeightKg={currentExercise.sets?.[currentSetIdx]?.weightKg ?? 0}
+                  onRepsChange={(delta) =>
+                    setFormReps((prev) => Math.max(1, Math.round((prev + delta) * 10) / 10))
+                  }
+                  onWeightChange={(delta) =>
+                    setFormWeight((prev) => Math.max(0, Math.round((prev + delta) * 10) / 10))
+                  }
+                  onSetDone={handleSetDone}
+                  onSkipSet={handleSkipSet}
+                  onSkipExercise={() => setShowSkipExerciseConfirm(true)}
+                  onGoToSet={handleGoToSet}
+                />
+              )
+            })()}
 
             {/* Sets list for current exercise */}
             <View style={styles.sectionHdrWrap}>
@@ -1453,6 +1608,24 @@ export default function WorkoutLogScreen() {
         onConfirm={handleSkipExercise}
         onCancel={() => setShowSkipExerciseConfirm(false)}
       />
+
+      {/* Session-level WOD hero overlay — shown when the whole session is a WOD format */}
+      {showWodHero && isWodFormat(sessionFormat) && sessionFormatConfig && (
+        <Animated.View
+          key="wod-overlay"
+          entering={SlideInDown.duration(280)}
+          exiting={SlideOutDown.duration(220)}
+          style={StyleSheet.absoluteFill}
+        >
+          <WodTimerHero
+            label={sessionDisplayName}
+            format={sessionFormat}
+            config={sessionFormatConfig}
+            onFinish={(result) => handleWodFinish('__session__', result)}
+            onCancel={handleWodCancel}
+          />
+        </Animated.View>
+      )}
     </SafeAreaView>
   )
 }
