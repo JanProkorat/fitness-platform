@@ -983,7 +983,32 @@
     "dayNotePlaceholder": "Poznámka ke dni...",
     "planSubtitle": "Tvorba a správa tréninkového plánu klienta",
     "expandWeekView": "Zobrazit týdenní přehled",
-    "collapseWeekView": "Skrýt týdenní přehled"
+    "collapseWeekView": "Skrýt týdenní přehled",
+    "format": {
+      "standard": "Standardní",
+      "emom": "EMOM",
+      "amrap": "AMRAP",
+      "forTime": "Na čas",
+      "tabata": "Tabata",
+      "inherit": "Zdědit ({{parent}})"
+    },
+    "movementType": {
+      "reps": "Opakování",
+      "time": "Čas",
+      "distance": "Vzdálenost",
+      "repsForTime": "Opakování na čas"
+    },
+    "wod": {
+      "timeCap": "Časový limit",
+      "interval": "Interval",
+      "rounds": "Kol",
+      "workSeconds": "Práce",
+      "restSeconds": "Odpočinek",
+      "durationLabel": "Trvání (s)",
+      "durationSeconds": "Trvání (s)",
+      "distanceLabel": "Vzdálenost (m)",
+      "distanceMeters": "Vzdálenost (m)"
+    }
   },
   "exercises": {
     "title": "Cviky",

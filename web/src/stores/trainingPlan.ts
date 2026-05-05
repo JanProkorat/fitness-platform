@@ -4,6 +4,9 @@ import type {
   TrainingSession,
   ExerciseSet,
   UpdateTrainingPlanRequest,
+  WorkoutFormat,
+  MovementType,
+  WodConfig,
 } from '@/api/training-plan-types';
 import { updateTrainingPlan, publishTrainingWeek } from '@/api/training-plans';
 import { showApiError, showSuccess } from '@/lib/api-errors';
@@ -42,6 +45,11 @@ interface TrainingPlanState {
   // Exercise field mutations
   updateExerciseNotes: (weekNumber: number, sessionId: string, exerciseIndex: number, notes: string) => void;
   updateExerciseRestSeconds: (weekNumber: number, sessionId: string, exerciseIndex: number, restSeconds: number | null) => void;
+  updateExerciseMovementType: (weekNumber: number, sessionId: string, exerciseIndex: number, movementType: MovementType) => void;
+  updateExerciseFormat: (weekNumber: number, sessionId: string, exerciseIndex: number, format: WorkoutFormat | null, formatConfig?: WodConfig | null) => void;
+
+  // Session format mutations
+  updateSessionFormat: (weekNumber: number, sessionId: string, format: WorkoutFormat, formatConfig?: WodConfig | null) => void;
 
   // Cross-week mutations
   moveSessionToWeek: (fromWeek: number, toWeek: number, sessionId: string, targetDayOfWeek: number, insertIndex?: number) => void;
@@ -88,7 +96,28 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
   isSaving: false,
   selectedWeek: 1,
 
-  setPlan: (plan) => set({ plan, originalPlan: structuredClone(plan), isDirty: false, selectedWeek: 1 }),
+  setPlan: (rawPlan) => {
+    // Normalize plans that pre-date the format/movementType fields so
+    // the rest of the store can assume these fields are always present.
+    const plan: TrainingPlanDetail = {
+      ...rawPlan,
+      weeks: rawPlan.weeks.map((w) => ({
+        ...w,
+        sessions: w.sessions.map((s) => ({
+          ...s,
+          format: s.format ?? 'Standard',
+          formatConfig: s.formatConfig ?? null,
+          exercises: s.exercises.map((e) => ({
+            ...e,
+            movementType: e.movementType ?? 'Reps',
+            format: e.format ?? null,
+            formatConfig: e.formatConfig ?? null,
+          })),
+        })),
+      })),
+    };
+    set({ plan, originalPlan: structuredClone(plan), isDirty: false, selectedWeek: 1 });
+  },
   setSelectedWeek: (week) => set({ selectedWeek: week }),
   revert: () => {
     const { originalPlan } = get();
@@ -104,6 +133,8 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
       dayOfWeek,
       name,
       order: 1,
+      format: 'Standard',
+      formatConfig: null,
       exercises: [],
     };
     set({
@@ -189,7 +220,10 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
           {
             ...exercise,
             order: s.exercises.length + 1,
-            sets: [{ setNumber: 1, type: 'Normal' as const, reps: null, weightKg: null, durationSeconds: null, rpe: null, distanceMeters: null }],
+            movementType: 'Reps' as const,
+            format: null,
+            formatConfig: null,
+            sets: [{ setNumber: 1, type: 'Normal' as const, reps: null, weightKg: null, durationSeconds: null, rpe: null, distanceMeters: null, restSeconds: null }],
           },
         ],
       })),
@@ -295,11 +329,23 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
     set({
       plan: updateSession(plan, weekNumber, sessionId, (s) => ({
         ...s,
-        exercises: s.exercises.map((e, i) =>
-          i === exerciseIndex
-            ? { ...e, sets: [...e.sets, { setNumber: e.sets.length + 1, type: 'Normal' as const, reps: null, weightKg: null, durationSeconds: null, rpe: null, distanceMeters: null }] }
-            : e,
-        ),
+        exercises: s.exercises.map((e, i) => {
+          if (i !== exerciseIndex) return e;
+          // Carry over non-null values from the last set as defaults so the
+          // trainer doesn't have to re-enter weights/reps for every new set.
+          const lastSet = e.sets[e.sets.length - 1];
+          const newSet: ExerciseSet = {
+            setNumber: e.sets.length + 1,
+            type: 'Normal' as const,
+            reps: lastSet?.reps ?? null,
+            weightKg: lastSet?.weightKg ?? null,
+            durationSeconds: lastSet?.durationSeconds ?? null,
+            rpe: null,
+            distanceMeters: lastSet?.distanceMeters ?? null,
+            restSeconds: lastSet?.restSeconds ?? null,
+          };
+          return { ...e, sets: [...e.sets, newSet] };
+        }),
       })),
       isDirty: true,
     });
@@ -356,6 +402,47 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
       plan: updateSession(plan, weekNumber, sessionId, (s) => ({
         ...s,
         exercises: s.exercises.map((e, i) => (i === exerciseIndex ? { ...e, restSeconds } : e)),
+      })),
+      isDirty: true,
+    });
+  },
+
+  updateExerciseMovementType: (weekNumber, sessionId, exerciseIndex, movementType) => {
+    const { plan } = get();
+    if (!plan) return;
+    set({
+      plan: updateSession(plan, weekNumber, sessionId, (s) => ({
+        ...s,
+        exercises: s.exercises.map((e, i) => (i === exerciseIndex ? { ...e, movementType } : e)),
+      })),
+      isDirty: true,
+    });
+  },
+
+  updateExerciseFormat: (weekNumber, sessionId, exerciseIndex, format, formatConfig) => {
+    const { plan } = get();
+    if (!plan) return;
+    set({
+      plan: updateSession(plan, weekNumber, sessionId, (s) => ({
+        ...s,
+        exercises: s.exercises.map((e, i) =>
+          i === exerciseIndex
+            ? { ...e, format: format ?? null, formatConfig: formatConfig ?? null }
+            : e,
+        ),
+      })),
+      isDirty: true,
+    });
+  },
+
+  updateSessionFormat: (weekNumber, sessionId, format, formatConfig) => {
+    const { plan } = get();
+    if (!plan) return;
+    set({
+      plan: updateSession(plan, weekNumber, sessionId, (s) => ({
+        ...s,
+        format,
+        formatConfig: formatConfig ?? null,
       })),
       isDirty: true,
     });
@@ -646,12 +733,17 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
             name: s.name,
             order: s.order,
             notes: s.notes,
+            format: s.format,
+            formatConfig: s.formatConfig,
             exercises: s.exercises.map((e) => ({
               exerciseExternalId: e.exerciseExternalId,
               exerciseName: e.exerciseName,
               order: e.order,
               notes: e.notes,
               restSeconds: e.restSeconds,
+              movementType: e.movementType,
+              format: e.format,
+              formatConfig: e.formatConfig,
               sets: e.sets.map((st) => ({
                 setNumber: st.setNumber,
                 type: st.type,

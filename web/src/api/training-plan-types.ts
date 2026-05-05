@@ -1,6 +1,42 @@
 /** Set type enum values. */
 export type SetType = 'Normal' | 'Warmup' | 'Dropset' | 'Superset';
 
+/**
+ * Workout format / scoring methodology for a session or exercise.
+ * Mirrors backend WorkoutFormat enum.
+ */
+export type WorkoutFormat = 'Standard' | 'ForTime' | 'AMRAP' | 'EMOM' | 'Tabata';
+
+/**
+ * How performance in an exercise is measured.
+ * Mirrors backend MovementType enum.
+ */
+export type MovementType = 'Reps' | 'Time' | 'Distance' | 'RepsForTime';
+
+/**
+ * Configuration parameters for a WOD format.
+ * Only fields relevant to the chosen format are expected to be set.
+ */
+export interface WodConfig {
+  timeCapSeconds?: number | null;
+  intervalSeconds?: number | null;
+  totalRounds?: number | null;
+  workSeconds?: number | null;
+  restSeconds?: number | null;
+}
+
+/**
+ * Records the outcome of a WOD format session or exercise.
+ * Only fields relevant to the actual result need to be set.
+ */
+export interface WodResult {
+  roundsCompleted?: number | null;
+  extraReps?: number | null;
+  totalTimeSeconds?: number | null;
+  failedRounds?: number[] | null;
+  repsByRound?: number[] | null;
+}
+
 /** A single set within an exercise. */
 export interface ExerciseSet {
   setNumber: number;
@@ -20,6 +56,12 @@ export interface SessionExercise {
   order: number;
   notes?: string | null;
   restSeconds?: number | null;
+  /** How performance for this exercise is measured. Defaults to Reps. */
+  movementType: MovementType;
+  /** Per-exercise format override. Null means inherit session format. */
+  format?: WorkoutFormat | null;
+  /** Per-exercise format config. Null when format is null or Standard. */
+  formatConfig?: WodConfig | null;
   sets: ExerciseSet[];
 }
 
@@ -30,6 +72,10 @@ export interface TrainingSession {
   name: string;
   order: number;
   notes?: string | null;
+  /** Workout format for this session. Defaults to Standard. */
+  format: WorkoutFormat;
+  /** Format config for non-Standard sessions. Null when format is Standard. */
+  formatConfig?: WodConfig | null;
   exercises: SessionExercise[];
 }
 
@@ -116,6 +162,8 @@ export interface UpdateSessionRequest {
   name: string;
   order: number;
   notes?: string | null;
+  format: WorkoutFormat;
+  formatConfig?: WodConfig | null;
   exercises: UpdateSessionExerciseRequest[];
 }
 
@@ -126,6 +174,9 @@ export interface UpdateSessionExerciseRequest {
   order: number;
   notes?: string | null;
   restSeconds?: number | null;
+  movementType: MovementType;
+  format?: WorkoutFormat | null;
+  formatConfig?: WodConfig | null;
   sets: UpdateExerciseSetRequest[];
 }
 
