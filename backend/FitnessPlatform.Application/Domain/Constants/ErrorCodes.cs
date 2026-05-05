@@ -209,6 +209,23 @@ public static class ErrorCodes
     /// <summary>The referenced plan does not belong to the client associated with this link/invite.</summary>
     public const string PhotoDiaryRequestPlanNotOwned = "PHOTO_DIARY_REQUEST_PLAN_NOT_OWNED";
 
+    // ── Section Templates ────────────────────────────────────────────
+    /// <summary>Section template not found.</summary>
+    public const string SectionTemplateNotFound = "SECTION_TEMPLATE_NOT_FOUND";
+
+    /// <summary>Section template belongs to another trainer.</summary>
+    public const string SectionTemplateNotOwned = "SECTION_TEMPLATE_NOT_OWNED";
+
+    /// <summary>Section template version mismatch (optimistic concurrency).</summary>
+    public const string SectionTemplateVersionConflict = "SECTION_TEMPLATE_VERSION_CONFLICT";
+
+    // ── Training Sections ────────────────────────────────────────────
+    /// <summary>Session sections list is empty.</summary>
+    public const string SectionsRequired = "SECTIONS_REQUIRED";
+
+    /// <summary>Duplicate Order values across sections in the same session.</summary>
+    public const string SectionOrderDuplicate = "SECTION_ORDER_DUPLICATE";
+
     // ── Validation (generic) ─────────────────────────────────────────
     /// <summary>Required field is missing.</summary>
     public const string Required = "REQUIRED";

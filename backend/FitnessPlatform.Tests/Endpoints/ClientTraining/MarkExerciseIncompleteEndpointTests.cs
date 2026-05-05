@@ -298,25 +298,34 @@ public class MarkExerciseIncompleteEndpointTests
             SessionId = _sessionId,
             StartedAt = now.Date.AddHours(9),
             IsCompleted = true,
-            Exercises =
+            Sections =
             [
-                new Application.Domain.Documents.WorkoutExercise
+                new Application.Domain.Documents.WorkoutSection
                 {
-                    ExerciseExternalId = _exercise1,
-                    ExerciseName = "Squat",
-                    Sets =
+                    SectionId = Guid.NewGuid(),
+                    Order = 0,
+                    Name = "Hlavní",
+                    Exercises =
                     [
-                        new Application.Domain.Documents.WorkoutSet { SetNumber = 1, Reps = 5, WeightKg = 100m, CompletedAt = now },
-                        new Application.Domain.Documents.WorkoutSet { SetNumber = 2, Reps = 5, WeightKg = 100m, CompletedAt = now }
-                    ]
-                },
-                new Application.Domain.Documents.WorkoutExercise
-                {
-                    ExerciseExternalId = _exercise2,
-                    ExerciseName = "Deadlift",
-                    Sets =
-                    [
-                        new Application.Domain.Documents.WorkoutSet { SetNumber = 1, Reps = 3, WeightKg = 140m, CompletedAt = now }
+                        new Application.Domain.Documents.WorkoutExercise
+                        {
+                            ExerciseExternalId = _exercise1,
+                            ExerciseName = "Squat",
+                            Sets =
+                            [
+                                new Application.Domain.Documents.WorkoutSet { SetNumber = 1, Reps = 5, WeightKg = 100m, CompletedAt = now },
+                                new Application.Domain.Documents.WorkoutSet { SetNumber = 2, Reps = 5, WeightKg = 100m, CompletedAt = now }
+                            ]
+                        },
+                        new Application.Domain.Documents.WorkoutExercise
+                        {
+                            ExerciseExternalId = _exercise2,
+                            ExerciseName = "Deadlift",
+                            Sets =
+                            [
+                                new Application.Domain.Documents.WorkoutSet { SetNumber = 1, Reps = 3, WeightKg = 140m, CompletedAt = now }
+                            ]
+                        }
                     ]
                 }
             ]

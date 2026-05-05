@@ -54,4 +54,9 @@ public static class MongoCollections
     /// Day-level diary log entries (photos + note per plan day).
     /// </summary>
     public const string DayLogs = "dayLogs";
+
+    /// <summary>
+    /// Section template documents (per-trainer reusable training section templates).
+    /// </summary>
+    public const string SectionTemplates = "sectionTemplates";
 }

@@ -113,19 +113,28 @@ public class CompleteWorkoutEndpointTests
                             DayOfWeek = 1,
                             Name = "Test Session",
                             Order = 1,
-                            Exercises =
+                            Sections =
                             [
-                                new SessionExercise
+                                new TrainingSection
                                 {
-                                    ExerciseExternalId = exerciseA,
-                                    ExerciseName = "Exercise A",
-                                    Order = 1
-                                },
-                                new SessionExercise
-                                {
-                                    ExerciseExternalId = exerciseB,
-                                    ExerciseName = "Exercise B",
-                                    Order = 2
+                                    SectionId = Guid.NewGuid(),
+                                    Order = 0,
+                                    Name = "Hlavní",
+                                    Exercises =
+                                    [
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = exerciseA,
+                                            ExerciseName = "Exercise A",
+                                            Order = 1
+                                        },
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = exerciseB,
+                                            ExerciseName = "Exercise B",
+                                            Order = 2
+                                        }
+                                    ]
                                 }
                             ]
                         }
@@ -223,19 +232,28 @@ public class CompleteWorkoutEndpointTests
                             DayOfWeek = 1,
                             Name = "Test Session",
                             Order = 1,
-                            Exercises =
+                            Sections =
                             [
-                                new SessionExercise
+                                new TrainingSection
                                 {
-                                    ExerciseExternalId = exerciseA,
-                                    ExerciseName = "Exercise A",
-                                    Order = 1
-                                },
-                                new SessionExercise
-                                {
-                                    ExerciseExternalId = exerciseB,
-                                    ExerciseName = "Exercise B",
-                                    Order = 2
+                                    SectionId = Guid.NewGuid(),
+                                    Order = 0,
+                                    Name = "Hlavní",
+                                    Exercises =
+                                    [
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = exerciseA,
+                                            ExerciseName = "Exercise A",
+                                            Order = 1
+                                        },
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = exerciseB,
+                                            ExerciseName = "Exercise B",
+                                            Order = 2
+                                        }
+                                    ]
                                 }
                             ]
                         }
@@ -334,13 +352,22 @@ public class CompleteWorkoutEndpointTests
                             DayOfWeek = 1,
                             Name = "Midnight Session",
                             Order = 1,
-                            Exercises =
+                            Sections =
                             [
-                                new SessionExercise
+                                new TrainingSection
                                 {
-                                    ExerciseExternalId = exerciseA,
-                                    ExerciseName = "Exercise A",
-                                    Order = 1
+                                    SectionId = Guid.NewGuid(),
+                                    Order = 0,
+                                    Name = "Hlavní",
+                                    Exercises =
+                                    [
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = exerciseA,
+                                            ExerciseName = "Exercise A",
+                                            Order = 1
+                                        }
+                                    ]
                                 }
                             ]
                         }

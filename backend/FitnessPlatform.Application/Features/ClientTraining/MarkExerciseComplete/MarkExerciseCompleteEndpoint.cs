@@ -89,6 +89,7 @@ public class MarkExerciseCompleteEndpoint(
             return;
         }
 
+        session.WithBackfilledSections();
         var exerciseExists = session.Exercises.Any(e => e.ExerciseExternalId == req.ExerciseExternalId);
         if (!exerciseExists)
         {

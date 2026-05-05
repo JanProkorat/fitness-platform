@@ -58,4 +58,9 @@ public interface IMongoContext
     /// Day-level diary log entries (photos + note per plan day).
     /// </summary>
     IMongoCollection<DayLog> DayLogs { get; }
+
+    /// <summary>
+    /// Section template documents (per-trainer reusable training section templates).
+    /// </summary>
+    IMongoCollection<SectionTemplate> SectionTemplates { get; }
 }

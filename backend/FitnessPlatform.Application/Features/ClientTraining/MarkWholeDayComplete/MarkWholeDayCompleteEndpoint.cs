@@ -88,6 +88,7 @@ public class MarkWholeDayCompleteEndpoint(
 
         foreach (var session in sessionsForDay)
         {
+            session.WithBackfilledSections();
             var allExerciseIds = session.Exercises.Select(e => e.ExerciseExternalId).ToList();
 
             var completionFilter = Builders<TrainingCompletion>.Filter.Eq(c => c.ClientId, clientId)

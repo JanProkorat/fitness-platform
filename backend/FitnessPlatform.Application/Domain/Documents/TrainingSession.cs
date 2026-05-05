@@ -41,22 +41,67 @@ public class TrainingSession
     public string? Notes { get; set; }
 
     /// <summary>
-    /// Workout format for this session. Defaults to Standard (sets-and-reps).
+    /// Session-level workout format. Kept nullable for one release as an inheritable default —
+    /// sections inherit when their own Format is null. Null means Standard.
     /// </summary>
     [BsonElement("format")]
+    [BsonIgnoreIfNull]
     [BsonRepresentation(BsonType.String)]
-    public WorkoutFormat Format { get; set; } = WorkoutFormat.Standard;
+    public WorkoutFormat? Format { get; set; }
 
     /// <summary>
-    /// Format configuration for non-Standard sessions. Null when Format is Standard.
+    /// Session-level format configuration. Null when Format is null or Standard.
     /// </summary>
     [BsonElement("formatConfig")]
     [BsonIgnoreIfNull]
     public WodConfig? FormatConfig { get; set; }
 
     /// <summary>
-    /// Exercises in this session.
+    /// Sections in this session. Each section contains its own exercises.
+    /// Schema-on-read: if a stored document has only flat <c>exercises</c> and no <c>sections</c>,
+    /// a single default section named "Hlavní" is synthesized via <see cref="WithBackfilledSections"/>.
+    /// </summary>
+    [BsonElement("sections")]
+    public List<TrainingSection> Sections { get; set; } = [];
+
+    /// <summary>
+    /// Legacy flat exercises list. Only present in documents written before the sections migration.
+    /// Not written on new saves. Used by <see cref="WithBackfilledSections"/> for schema-on-read.
     /// </summary>
     [BsonElement("exercises")]
-    public List<SessionExercise> Exercises { get; set; } = [];
+    [BsonIgnoreIfNull]
+    public List<SessionExercise>? LegacyExercises { get; set; }
+
+    /// <summary>
+    /// Returns a view of this session with legacy flat-exercise documents backfilled into a default section.
+    /// If <see cref="Sections"/> is already populated this is a no-op.
+    /// </summary>
+    public TrainingSession WithBackfilledSections()
+    {
+        if (Sections.Count > 0 || LegacyExercises is null || LegacyExercises.Count == 0)
+            return this;
+
+        Sections =
+        [
+            new TrainingSection
+            {
+                SectionId = Guid.NewGuid(),
+                Order = 0,
+                Name = "Hlavní",
+                Format = null,
+                FormatConfig = null,
+                Exercises = LegacyExercises
+            }
+        ];
+        LegacyExercises = null;
+        return this;
+    }
+
+    /// <summary>
+    /// Flat view of all exercises across all sections. Read-only convenience accessor.
+    /// Not stored in MongoDB — computed from <see cref="Sections"/>.
+    /// </summary>
+    [BsonIgnore]
+    public IReadOnlyList<SessionExercise> Exercises =>
+        Sections.SelectMany(s => s.Exercises).ToList();
 }

@@ -243,6 +243,7 @@ internal static class TrainingProgressBroadcaster
         var count = 0;
         foreach (var session in plannedSessions)
         {
+            session.WithBackfilledSections();
             if (session.Exercises.Count == 0)
                 continue;
 

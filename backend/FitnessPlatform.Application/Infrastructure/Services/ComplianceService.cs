@@ -326,6 +326,7 @@ public class ComplianceService : IComplianceService
     private async Task<bool> IsSessionCompleteForDateAsync(
         Guid clientId, TrainingSession session, DateTime date, CancellationToken ct)
     {
+        session.WithBackfilledSections();
         if (session.Exercises.Count == 0)
             return false;
 

@@ -250,7 +250,7 @@ public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
                 StartedAt = t3.AddMinutes(-30),
                 CompletedAt = t3,
                 IsCompleted = true,
-                Exercises = [],
+                Sections = [],
                 DateCreated = DateTime.UtcNow,
             }, cancellationToken: TestContext.Current.CancellationToken);
         }

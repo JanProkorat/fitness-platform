@@ -160,6 +160,7 @@ public class CompleteWorkoutEndpoint(
             return;
         }
 
+        session.WithBackfilledSections();
         var allExerciseIds = session.Exercises.Select(e => e.ExerciseExternalId).ToList();
 
         // Resolve clientId as PublicId — TrainingCompletion keyed by ClientProfile.PublicId,
