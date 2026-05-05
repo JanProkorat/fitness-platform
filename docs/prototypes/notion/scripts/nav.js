@@ -15,7 +15,7 @@ function buildSidebar(containerId, activeScreen){
   html+='<div class="sb-item'+(activeScreen==='s-profile'?' active':'')+'" onclick="showScreen(\'s-profile\')"><span class="sbi-icon">👤</span><span class="sbi-lbl">Profil</span></div>';
   html+='<div class="sb-item'+(activeScreen==='s-messages'?' active':'')+'" onclick="showScreen(\'s-messages\')"><span class="sbi-icon">✉</span><span class="sbi-lbl">Zprávy</span><span class="sbi-badge">1</span></div></div>';
   html+='<div class="sb-div"></div><div class="sb-sec"><div class="sb-sec-lbl">Klienti</div>';
-  var clientScreens=['s-client','s-training','s-training-session-builder','s-training-form-fix','s-nutrition','s-goals','s-client-photos','s-settings-checkins'];
+  var clientScreens=['s-client','s-training','s-training-session-builder','s-nutrition','s-goals','s-client-photos','s-settings-checkins'];
   CLIENTS.forEach(function(cl){
     var isCl=clientScreens.indexOf(activeScreen)!==-1&&cl.id===1;
     html+='<div class="sb-item'+(isCl?' active':'')+'" onclick="showScreen(\'s-client\')"><span class="sbi-icon">👤</span><span class="sbi-lbl">'+cl.name+'</span><div class="sb-acts"><span>···</span></div></div>';
@@ -43,7 +43,7 @@ function showScreen(id){
   document.querySelectorAll('.tn-btn').forEach(function(b){if(b.getAttribute('onclick')==="showScreen('"+id+"')") b.classList.add('active');});
   window.scrollTo(0,0);
   // Build sidebars
-  var sbMap={'s-dashboard':'sb-dashboard','s-client':'sb-client','s-training':'sb-training','s-training-session-builder':'sb-training','s-training-section-templates':'sb-training','s-training-form-fix':'sb-training','s-messages':'sb-messages','s-nutrition':'sb-nutrition','s-foods':'sb-foods','s-goals':'sb-goals','s-settings-checkins':'sb-settings-checkins','s-client-photos':'sb-client-photos','s-profile':'sb-profile','s-recipes':'sb-recipes'};
+  var sbMap={'s-dashboard':'sb-dashboard','s-client':'sb-client','s-training':'sb-training','s-training-session-builder':'sb-training','s-training-section-templates':'sb-training','s-messages':'sb-messages','s-nutrition':'sb-nutrition','s-foods':'sb-foods','s-goals':'sb-goals','s-settings-checkins':'sb-settings-checkins','s-client-photos':'sb-client-photos','s-profile':'sb-profile','s-recipes':'sb-recipes'};
   if(sbMap[id]) buildSidebar(sbMap[id],id);
   // Init nutrition editor
   if(id==='s-nutrition'&&!_nutrInit){_nutrInit=true;initNutrition();}

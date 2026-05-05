@@ -97,22 +97,96 @@
 .tp-ex-set-grid .tp-set-cell{padding:6px 8px;color:var(--ios-label);border-bottom:.5px solid var(--ios-sep2)}
 .tp-ex-set-grid .tp-set-cell:last-child,.tp-ex-set-grid .tp-set-hdr:last-child{text-align:center}
 
-/* Session groups (multi-session per day) */
-.tp-session{margin:0 20px 20px;border-radius:var(--ios-r-lg);overflow:hidden;background:var(--ios-bg2);box-shadow:0 4px 12px rgba(0,0,0,.12)}
-.tp-session .tp-session-header{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;user-select:none}
+/* Session groups (multi-session per day).
+
+   Mirrors the nutrition `MealCard` but with the kind-colored rail PINNED to
+   the far-left edge of the WHOLE card — the border-left runs the full
+   height of the session, so the rail is continuous through the header,
+   every section band, and every exercise row. Subordinate section bars
+   sit inset, lining up under the session content. */
+.tp-session{margin:0 20px 20px;border-radius:var(--ios-r-lg);overflow:hidden;background:var(--ios-bg2);box-shadow:0 4px 12px rgba(0,0,0,.12);border-left:4px solid var(--ios-label3)}
+.tp-session .tp-session-header{display:flex;align-items:center;gap:12px;padding:14px 14px;cursor:pointer;user-select:none;transition:background .2s}
 .tp-session .tp-session-body{display:none}
-.tp-session.expanded .tp-session-body{display:block}
-.tp-session .tp-session-chev{font-size:14px;color:var(--ios-label3);transition:transform .2s;flex-shrink:0;margin-left:auto}
+.tp-session.expanded .tp-session-body{display:block;border-top:.5px solid var(--ios-sep)}
+.tp-session .tp-session-chev{font-size:14px;color:var(--ios-label3);transition:transform .2s;flex-shrink:0}
 .tp-session.expanded .tp-session-chev{transform:rotate(180deg)}
 .tp-session .tp-session-exercises .tp-ex-card{margin:0;border-radius:0;box-shadow:none;border-top:.5px solid var(--ios-sep2)}
 .tp-session .tp-session-exercises .tp-ex-card:last-child{border-bottom:none}
-.tp-session-order{width:28px;height:28px;border-radius:8px;background:var(--ios-fill);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:var(--sf-semi);color:var(--ios-label);flex-shrink:0}
+
+/* Exercise cards inside a section (e.g. live-training prestart, where the
+   .tp-section sits outside a .tp-session wrapper) render flat too. */
+.tp-section .tp-ex-card{margin:0;border-radius:0;box-shadow:none}
+.tp-section .tp-ex-card + .tp-ex-card{border-top:.5px solid var(--ios-sep2)}
 .tp-session-progress{font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;background:var(--ios-fill);color:var(--ios-label2);flex-shrink:0}
 
-/* Section blocks inside sessions (collapsible, same pattern as session) */
+/* Session name gets a heavier weight + tighter tracking when expanded,
+   same treatment as MealCard's mealNameExpanded. */
+.tp-session.expanded .tp-session-name{font-weight:700;letter-spacing:-.2px}
+
+/* Session-kind palette — colors the full-height edge rail (border-left on
+   the .tp-session card) + tints the header bg when expanded. Matches
+   mealKinds.ts so training/nutrition read as one design language. */
+.tp-session.kind-morning{border-left-color:#ff9500}
+.tp-session.kind-morning.expanded .tp-session-header{background:rgba(255,149,0,.10)}
+.tp-session.kind-noon{border-left-color:#34c759}
+.tp-session.kind-noon.expanded .tp-session-header{background:rgba(52,199,89,.10)}
+.tp-session.kind-afternoon{border-left-color:#007aff}
+.tp-session.kind-afternoon.expanded .tp-session-header{background:rgba(0,122,255,.10)}
+.tp-session.kind-evening{border-left-color:#af52de}
+.tp-session.kind-evening.expanded .tp-session-header{background:rgba(175,82,222,.10)}
+.tp-session.kind-late{border-left-color:#ff3b30}
+.tp-session.kind-late.expanded .tp-session-header{background:rgba(255,59,48,.10)}
+
+/* Section blocks inside sessions — subordinate banded label rows.
+   NOT card-like: no shadow/border/radius — they sit flush inside the session
+   body and group exercises below. The format-colored bar is INSET (~14px
+   from the card edge, where the session bar previously was) so it visually
+   nests under the session content. */
+.tp-section{}
+.tp-section + .tp-section .tp-section-header{border-top:.5px solid var(--ios-sep2)}
+.tp-section .tp-section-header{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 12px 7px 14px;
+  background:rgba(120,120,128,.06);
+  cursor:pointer;user-select:none;
+}
+.tp-section-accent-bar{
+  width:3px;height:18px;border-radius:2px;flex-shrink:0;
+  background:var(--ios-label3);
+}
+.tp-section .tp-section-label{
+  font-size:11px;font-weight:700;color:var(--ios-label2);
+  text-transform:uppercase;letter-spacing:.06em;
+}
+.tp-section .tp-section-format{
+  font-size:9.5px;font-weight:700;padding:2px 6px;border-radius:99px;
+  text-transform:uppercase;letter-spacing:.04em;
+}
+.tp-section .tp-section-chev{
+  font-size:10px;color:var(--ios-label3);transition:transform .2s;flex-shrink:0;
+}
+.tp-section.expanded .tp-section-chev{transform:rotate(180deg)}
 .tp-section .tp-section-body{display:none}
 .tp-section.expanded .tp-section-body{display:block}
-.tp-section.expanded .tp-section-chev{transform:rotate(180deg)}
+
+/* Smaller done indicator for subordinate rows (sections inside sessions) */
+.ex-ios-done.sm{width:18px;height:18px;border-width:1.5px;font-size:11px}
+
+/* Format-colored bar — inset on the section header. The matching section
+   header band is tinted with a lighter version (6% alpha) of the same hue
+   so the chip, the bar, and the band read as one color family. */
+.tp-section.format-strength .tp-section-accent-bar{background:#007aff}
+.tp-section.format-strength .tp-section-header{background:rgba(0,122,255,.06)}
+.tp-section.format-conditioning .tp-section-accent-bar{background:#34c759}
+.tp-section.format-conditioning .tp-section-header{background:rgba(52,199,89,.06)}
+.tp-section.format-amrap .tp-section-accent-bar{background:#af52de}
+.tp-section.format-amrap .tp-section-header{background:rgba(175,82,222,.06)}
+.tp-section.format-emom .tp-section-accent-bar{background:#ff9500}
+.tp-section.format-emom .tp-section-header{background:rgba(255,149,0,.06)}
+.tp-section.format-fortime .tp-section-accent-bar{background:#ff3b30}
+.tp-section.format-fortime .tp-section-header{background:rgba(255,59,48,.06)}
+.tp-section.format-tabata .tp-section-accent-bar{background:#3ed7be}
+.tp-section.format-tabata .tp-section-header{background:rgba(62,215,190,.06)}
 
 /* Gradient backgrounds for cards */
 .grad-push{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%)}

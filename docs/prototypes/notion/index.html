@@ -25,7 +25,6 @@
   <button class="tn-btn" onclick="showScreen('s-training')">Trén. plán</button>
   <button class="tn-btn" onclick="showScreen('s-training-session-builder')">Plán · sekce</button>
   <button class="tn-btn" onclick="showScreen('s-training-section-templates')">Šablony sekcí</button>
-  <button class="tn-btn" onclick="showScreen('s-training-form-fix')">Oprava form. sérií</button>
   <button class="tn-btn" onclick="showScreen('s-messages')">Zprávy</button>
   <div class="tn-sep"></div>
   <div class="tn-lbl">Výživa</div>
@@ -51,7 +50,7 @@
 <!-- ═══════════════════════════════════════════════════════════
      DASHBOARD
 ═══════════════════════════════════════════════════════════ -->
-<!-- include: scenes/dashboard.html --><!-- include: scenes/client.html --><!-- include: scenes/training.html --><!-- include: scenes/training-session-builder.html --><!-- include: scenes/training-section-templates.html --><!-- include: scenes/training-form-fix.html --><!-- include: scenes/messages.html --><!-- include: scenes/nutrition.html --><!-- include: scenes/foods.html --><!-- include: scenes/recipes.html --><!-- include: scenes/goals.html --><!-- include: scenes/settings-checkins.html --><!-- include: scenes/profile.html --><!-- include: scenes/client-photos.html --><!-- include: scenes/login.html --><!-- include: scenes/register.html --><!-- include: scenes/forgot.html --></div><!-- #canvas -->
+<!-- include: scenes/dashboard.html --><!-- include: scenes/client.html --><!-- include: scenes/training.html --><!-- include: scenes/training-session-builder.html --><!-- include: scenes/training-section-templates.html --><!-- include: scenes/messages.html --><!-- include: scenes/nutrition.html --><!-- include: scenes/foods.html --><!-- include: scenes/recipes.html --><!-- include: scenes/goals.html --><!-- include: scenes/settings-checkins.html --><!-- include: scenes/profile.html --><!-- include: scenes/client-photos.html --><!-- include: scenes/login.html --><!-- include: scenes/register.html --><!-- include: scenes/forgot.html --></div><!-- #canvas -->
 
 <!-- ══════════════════════════════════════════════════════════════
      DIALOGY
@@ -859,7 +858,7 @@
 
 <!-- Section type info dialog -->
 <div class="overlay" id="dlg-section-type-info" onclick="closeOnOverlay(event,'dlg-section-type-info')">
-  <div class="dlg-card">
+  <div class="dialog" style="max-width:560px">
     <div class="dlg-hdr">
       <div>
         <div class="dlg-title" id="dlg-stinfo-title">Typ sekce</div>

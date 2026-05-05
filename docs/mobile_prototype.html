@@ -213,22 +213,96 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
 .tp-ex-set-grid .tp-set-cell{padding:6px 8px;color:var(--ios-label);border-bottom:.5px solid var(--ios-sep2)}
 .tp-ex-set-grid .tp-set-cell:last-child,.tp-ex-set-grid .tp-set-hdr:last-child{text-align:center}
 
-/* Session groups (multi-session per day) */
-.tp-session{margin:0 20px 20px;border-radius:var(--ios-r-lg);overflow:hidden;background:var(--ios-bg2);box-shadow:0 4px 12px rgba(0,0,0,.12)}
-.tp-session .tp-session-header{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;user-select:none}
+/* Session groups (multi-session per day).
+
+   Mirrors the nutrition `MealCard` but with the kind-colored rail PINNED to
+   the far-left edge of the WHOLE card — the border-left runs the full
+   height of the session, so the rail is continuous through the header,
+   every section band, and every exercise row. Subordinate section bars
+   sit inset, lining up under the session content. */
+.tp-session{margin:0 20px 20px;border-radius:var(--ios-r-lg);overflow:hidden;background:var(--ios-bg2);box-shadow:0 4px 12px rgba(0,0,0,.12);border-left:4px solid var(--ios-label3)}
+.tp-session .tp-session-header{display:flex;align-items:center;gap:12px;padding:14px 14px;cursor:pointer;user-select:none;transition:background .2s}
 .tp-session .tp-session-body{display:none}
-.tp-session.expanded .tp-session-body{display:block}
-.tp-session .tp-session-chev{font-size:14px;color:var(--ios-label3);transition:transform .2s;flex-shrink:0;margin-left:auto}
+.tp-session.expanded .tp-session-body{display:block;border-top:.5px solid var(--ios-sep)}
+.tp-session .tp-session-chev{font-size:14px;color:var(--ios-label3);transition:transform .2s;flex-shrink:0}
 .tp-session.expanded .tp-session-chev{transform:rotate(180deg)}
 .tp-session .tp-session-exercises .tp-ex-card{margin:0;border-radius:0;box-shadow:none;border-top:.5px solid var(--ios-sep2)}
 .tp-session .tp-session-exercises .tp-ex-card:last-child{border-bottom:none}
-.tp-session-order{width:28px;height:28px;border-radius:8px;background:var(--ios-fill);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:var(--sf-semi);color:var(--ios-label);flex-shrink:0}
+
+/* Exercise cards inside a section (e.g. live-training prestart, where the
+   .tp-section sits outside a .tp-session wrapper) render flat too. */
+.tp-section .tp-ex-card{margin:0;border-radius:0;box-shadow:none}
+.tp-section .tp-ex-card + .tp-ex-card{border-top:.5px solid var(--ios-sep2)}
 .tp-session-progress{font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;background:var(--ios-fill);color:var(--ios-label2);flex-shrink:0}
 
-/* Section blocks inside sessions (collapsible, same pattern as session) */
+/* Session name gets a heavier weight + tighter tracking when expanded,
+   same treatment as MealCard's mealNameExpanded. */
+.tp-session.expanded .tp-session-name{font-weight:700;letter-spacing:-.2px}
+
+/* Session-kind palette — colors the full-height edge rail (border-left on
+   the .tp-session card) + tints the header bg when expanded. Matches
+   mealKinds.ts so training/nutrition read as one design language. */
+.tp-session.kind-morning{border-left-color:#ff9500}
+.tp-session.kind-morning.expanded .tp-session-header{background:rgba(255,149,0,.10)}
+.tp-session.kind-noon{border-left-color:#34c759}
+.tp-session.kind-noon.expanded .tp-session-header{background:rgba(52,199,89,.10)}
+.tp-session.kind-afternoon{border-left-color:#007aff}
+.tp-session.kind-afternoon.expanded .tp-session-header{background:rgba(0,122,255,.10)}
+.tp-session.kind-evening{border-left-color:#af52de}
+.tp-session.kind-evening.expanded .tp-session-header{background:rgba(175,82,222,.10)}
+.tp-session.kind-late{border-left-color:#ff3b30}
+.tp-session.kind-late.expanded .tp-session-header{background:rgba(255,59,48,.10)}
+
+/* Section blocks inside sessions — subordinate banded label rows.
+   NOT card-like: no shadow/border/radius — they sit flush inside the session
+   body and group exercises below. The format-colored bar is INSET (~14px
+   from the card edge, where the session bar previously was) so it visually
+   nests under the session content. */
+.tp-section{}
+.tp-section + .tp-section .tp-section-header{border-top:.5px solid var(--ios-sep2)}
+.tp-section .tp-section-header{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 12px 7px 14px;
+  background:rgba(120,120,128,.06);
+  cursor:pointer;user-select:none;
+}
+.tp-section-accent-bar{
+  width:3px;height:18px;border-radius:2px;flex-shrink:0;
+  background:var(--ios-label3);
+}
+.tp-section .tp-section-label{
+  font-size:11px;font-weight:700;color:var(--ios-label2);
+  text-transform:uppercase;letter-spacing:.06em;
+}
+.tp-section .tp-section-format{
+  font-size:9.5px;font-weight:700;padding:2px 6px;border-radius:99px;
+  text-transform:uppercase;letter-spacing:.04em;
+}
+.tp-section .tp-section-chev{
+  font-size:10px;color:var(--ios-label3);transition:transform .2s;flex-shrink:0;
+}
+.tp-section.expanded .tp-section-chev{transform:rotate(180deg)}
 .tp-section .tp-section-body{display:none}
 .tp-section.expanded .tp-section-body{display:block}
-.tp-section.expanded .tp-section-chev{transform:rotate(180deg)}
+
+/* Smaller done indicator for subordinate rows (sections inside sessions) */
+.ex-ios-done.sm{width:18px;height:18px;border-width:1.5px;font-size:11px}
+
+/* Format-colored bar — inset on the section header. The matching section
+   header band is tinted with a lighter version (6% alpha) of the same hue
+   so the chip, the bar, and the band read as one color family. */
+.tp-section.format-strength .tp-section-accent-bar{background:#007aff}
+.tp-section.format-strength .tp-section-header{background:rgba(0,122,255,.06)}
+.tp-section.format-conditioning .tp-section-accent-bar{background:#34c759}
+.tp-section.format-conditioning .tp-section-header{background:rgba(52,199,89,.06)}
+.tp-section.format-amrap .tp-section-accent-bar{background:#af52de}
+.tp-section.format-amrap .tp-section-header{background:rgba(175,82,222,.06)}
+.tp-section.format-emom .tp-section-accent-bar{background:#ff9500}
+.tp-section.format-emom .tp-section-header{background:rgba(255,149,0,.06)}
+.tp-section.format-fortime .tp-section-accent-bar{background:#ff3b30}
+.tp-section.format-fortime .tp-section-header{background:rgba(255,59,48,.06)}
+.tp-section.format-tabata .tp-section-accent-bar{background:#3ed7be}
+.tp-section.format-tabata .tp-section-header{background:rgba(62,215,190,.06)}
 
 /* Gradient backgrounds for cards */
 .grad-push{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%)}
@@ -1016,14 +1090,14 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
 
         <div style="background:var(--ios-bg2)">
 
-          <!-- ── SESSION 1 — Ranní trénink (Push A, 2/4 done) ── -->
-          <div class="tp-session expanded" data-session-id="session-1" style="margin:12px 16px;box-shadow:0 2px 8px rgba(0,0,0,.06)" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.tp-section-header')||event.target.closest('.ios-btn')||event.target.closest('.ex-ios-done')||event.target.closest('.lt-session-cta-footer'))return;this.classList.toggle('expanded')">
+          <!-- ── SESSION 1 — Ranní trénink (Push A, 2/6 done) ── -->
+          <div class="tp-session kind-morning expanded" data-session-id="session-1" style="margin:12px 16px;box-shadow:0 2px 8px rgba(0,0,0,.06)" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.tp-section-header')||event.target.closest('.ios-btn')||event.target.closest('.ex-ios-done')||event.target.closest('.lt-session-cta-footer'))return;this.classList.toggle('expanded')">
             <div class="tp-session-header">
-              <div class="tp-session-order">1</div>
               <div style="flex:1;min-width:0">
-                <div style="font-size:15px;font-weight:600;color:var(--ios-label)">Ranní trénink · Push A</div>
+                <div class="tp-session-name" style="font-size:16px;font-weight:600;color:var(--ios-label)">Ranní trénink · Push A</div>
                 <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">08:00 · 6 cviků · 55 min</div>
               </div>
+              <div class="tp-session-progress">2/6</div>
               <div class="ex-ios-done" onclick="event.stopPropagation();todaySessionCheck(this)"></div>
               <span class="tp-session-chev">▼</span>
             </div>
@@ -1031,13 +1105,14 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
               <div class="tp-session-exercises">
 
                 <!-- ── SECTION: Rozcvička · Strength ── -->
-                <div class="tp-section expanded">
-                  <div class="tp-section-header" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.ex-ios-done'))return;this.parentElement.classList.toggle('expanded')" style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--ios-bg2);border-bottom:.5px solid var(--ios-sep2);cursor:pointer">
-                    <div style="font-size:12px;font-weight:700;color:var(--ios-label);text-transform:uppercase;letter-spacing:.06em">Rozcvička</div>
-                    <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:rgba(0,122,255,.12);color:#007aff;border:1px solid rgba(0,122,255,.3);text-transform:uppercase;letter-spacing:.05em">Strength</span>
+                <div class="tp-section format-strength expanded">
+                  <div class="tp-section-header" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.ex-ios-done'))return;this.parentElement.classList.toggle('expanded')">
+                    <div class="tp-section-accent-bar"></div>
+                    <div class="tp-section-label">Rozcvička</div>
+                    <span class="tp-section-format" style="background:rgba(0,122,255,.12);color:#007aff">Strength</span>
                     <div style="flex:1"></div>
-                    <div class="ex-ios-done done" onclick="event.stopPropagation();todaySectionCheck(this)">✓</div>
-                    <span class="tp-section-chev" style="font-size:11px;color:var(--ios-label3);transition:transform .2s">▼</span>
+                    <div class="ex-ios-done sm done" onclick="event.stopPropagation();todaySectionCheck(this)">✓</div>
+                    <span class="tp-section-chev">▼</span>
                   </div>
                   <div class="tp-section-body">
 
@@ -1064,13 +1139,14 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
                 </div>
 
                 <!-- ── SECTION: Hlavní · Strength ── -->
-                <div class="tp-section expanded">
-                  <div class="tp-section-header" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.ex-ios-done'))return;this.parentElement.classList.toggle('expanded')" style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--ios-bg2);border-bottom:.5px solid var(--ios-sep2);cursor:pointer">
-                    <div style="font-size:12px;font-weight:700;color:var(--ios-label);text-transform:uppercase;letter-spacing:.06em">Hlavní</div>
-                    <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:rgba(0,122,255,.12);color:#007aff;border:1px solid rgba(0,122,255,.3);text-transform:uppercase;letter-spacing:.05em">Strength</span>
+                <div class="tp-section format-strength expanded">
+                  <div class="tp-section-header" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.ex-ios-done'))return;this.parentElement.classList.toggle('expanded')">
+                    <div class="tp-section-accent-bar"></div>
+                    <div class="tp-section-label">Hlavní</div>
+                    <span class="tp-section-format" style="background:rgba(0,122,255,.12);color:#007aff">Strength</span>
                     <div style="flex:1"></div>
-                    <div class="ex-ios-done" onclick="event.stopPropagation();todaySectionCheck(this)"></div>
-                    <span class="tp-section-chev" style="font-size:11px;color:var(--ios-label3);transition:transform .2s">▼</span>
+                    <div class="ex-ios-done sm" onclick="event.stopPropagation();todaySectionCheck(this)"></div>
+                    <span class="tp-section-chev">▼</span>
                   </div>
                   <div class="tp-section-body">
 
@@ -1181,13 +1257,14 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
                 </div>
 
                 <!-- ── SECTION: Cooldown · Conditioning ── -->
-                <div class="tp-section expanded">
-                  <div class="tp-section-header" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.ex-ios-done'))return;this.parentElement.classList.toggle('expanded')" style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--ios-bg2);border-bottom:.5px solid var(--ios-sep2);cursor:pointer">
-                    <div style="font-size:12px;font-weight:700;color:var(--ios-label);text-transform:uppercase;letter-spacing:.06em">Cooldown</div>
-                    <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:rgba(52,199,89,.12);color:#34c759;border:1px solid rgba(52,199,89,.3);text-transform:uppercase;letter-spacing:.05em">Conditioning</span>
+                <div class="tp-section format-conditioning expanded">
+                  <div class="tp-section-header" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.ex-ios-done'))return;this.parentElement.classList.toggle('expanded')">
+                    <div class="tp-section-accent-bar"></div>
+                    <div class="tp-section-label">Cooldown</div>
+                    <span class="tp-section-format" style="background:rgba(52,199,89,.12);color:#34c759">Conditioning</span>
                     <div style="flex:1"></div>
-                    <div class="ex-ios-done" onclick="event.stopPropagation();todaySectionCheck(this)"></div>
-                    <span class="tp-section-chev" style="font-size:11px;color:var(--ios-label3);transition:transform .2s">▼</span>
+                    <div class="ex-ios-done sm" onclick="event.stopPropagation();todaySectionCheck(this)"></div>
+                    <span class="tp-section-chev">▼</span>
                   </div>
                   <div class="tp-section-body">
 
@@ -1220,14 +1297,14 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
             </div>
           </div>
 
-          <!-- ── SESSION 2 — Odpolední trénink (Pull A, 0/3 done) ── -->
-          <div class="tp-session expanded" data-session-id="session-2" style="margin:0 16px 12px;box-shadow:0 2px 8px rgba(0,0,0,.06)" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.tp-section-header')||event.target.closest('.ios-btn')||event.target.closest('.ex-ios-done')||event.target.closest('.lt-session-cta-footer'))return;this.classList.toggle('expanded')">
+          <!-- ── SESSION 2 — Odpolední trénink (Pull A, 0/4 done) ── -->
+          <div class="tp-session kind-afternoon expanded" data-session-id="session-2" style="margin:0 16px 12px;box-shadow:0 2px 8px rgba(0,0,0,.06)" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.tp-section-header')||event.target.closest('.ios-btn')||event.target.closest('.ex-ios-done')||event.target.closest('.lt-session-cta-footer'))return;this.classList.toggle('expanded')">
             <div class="tp-session-header">
-              <div class="tp-session-order">2</div>
               <div style="flex:1;min-width:0">
-                <div style="font-size:15px;font-weight:600;color:var(--ios-label)">Odpolední trénink · Pull A</div>
+                <div class="tp-session-name" style="font-size:16px;font-weight:600;color:var(--ios-label)">Odpolední trénink · Pull A</div>
                 <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">17:30 · 4 cviky · 55 min</div>
               </div>
+              <div class="tp-session-progress">0/4</div>
               <div class="ex-ios-done" onclick="event.stopPropagation();todaySessionCheck(this)"></div>
               <span class="tp-session-chev">▼</span>
             </div>
@@ -1235,13 +1312,14 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
               <div class="tp-session-exercises">
 
                 <!-- ── SECTION: Rozcvička · Strength ── -->
-                <div class="tp-section expanded">
-                  <div class="tp-section-header" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.ex-ios-done'))return;this.parentElement.classList.toggle('expanded')" style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--ios-bg2);border-bottom:.5px solid var(--ios-sep2);cursor:pointer">
-                    <div style="font-size:12px;font-weight:700;color:var(--ios-label);text-transform:uppercase;letter-spacing:.06em">Rozcvička</div>
-                    <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:rgba(0,122,255,.12);color:#007aff;border:1px solid rgba(0,122,255,.3);text-transform:uppercase;letter-spacing:.05em">Strength</span>
+                <div class="tp-section format-strength expanded">
+                  <div class="tp-section-header" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.ex-ios-done'))return;this.parentElement.classList.toggle('expanded')">
+                    <div class="tp-section-accent-bar"></div>
+                    <div class="tp-section-label">Rozcvička</div>
+                    <span class="tp-section-format" style="background:rgba(0,122,255,.12);color:#007aff">Strength</span>
                     <div style="flex:1"></div>
-                    <div class="ex-ios-done" onclick="event.stopPropagation();todaySectionCheck(this)"></div>
-                    <span class="tp-section-chev" style="font-size:11px;color:var(--ios-label3);transition:transform .2s">▼</span>
+                    <div class="ex-ios-done sm" onclick="event.stopPropagation();todaySectionCheck(this)"></div>
+                    <span class="tp-section-chev">▼</span>
                   </div>
                   <div class="tp-section-body">
 
@@ -1268,13 +1346,14 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
                 </div>
 
                 <!-- ── SECTION: Hlavní · Strength ── -->
-                <div class="tp-section expanded">
-                  <div class="tp-section-header" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.ex-ios-done'))return;this.parentElement.classList.toggle('expanded')" style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--ios-bg2);border-bottom:.5px solid var(--ios-sep2);cursor:pointer">
-                    <div style="font-size:12px;font-weight:700;color:var(--ios-label);text-transform:uppercase;letter-spacing:.06em">Hlavní</div>
-                    <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:rgba(0,122,255,.12);color:#007aff;border:1px solid rgba(0,122,255,.3);text-transform:uppercase;letter-spacing:.05em">Strength</span>
+                <div class="tp-section format-strength expanded">
+                  <div class="tp-section-header" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.ex-ios-done'))return;this.parentElement.classList.toggle('expanded')">
+                    <div class="tp-section-accent-bar"></div>
+                    <div class="tp-section-label">Hlavní</div>
+                    <span class="tp-section-format" style="background:rgba(0,122,255,.12);color:#007aff">Strength</span>
                     <div style="flex:1"></div>
-                    <div class="ex-ios-done" onclick="event.stopPropagation();todaySectionCheck(this)"></div>
-                    <span class="tp-section-chev" style="font-size:11px;color:var(--ios-label3);transition:transform .2s">▼</span>
+                    <div class="ex-ios-done sm" onclick="event.stopPropagation();todaySectionCheck(this)"></div>
+                    <span class="tp-section-chev">▼</span>
                   </div>
                   <div class="tp-section-body">
 
@@ -4736,11 +4815,10 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
     <!-- ══════════════════════════════════════════
          SESSION 1 — Ranní trénink (2/4 done)
     ══════════════════════════════════════════ -->
-    <div class="tp-session expanded" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.ios-btn'))return;this.classList.toggle('expanded')">
+    <div class="tp-session kind-morning expanded" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.tp-section-header')||event.target.closest('.ex-ios-done')||event.target.closest('.ios-btn'))return;this.classList.toggle('expanded')">
       <div class="tp-session-header">
-        <div class="tp-session-order">1</div>
         <div style="flex:1;min-width:0">
-          <div style="font-size:15px;font-weight:600;color:var(--ios-label)">Ranní trénink</div>
+          <div class="tp-session-name" style="font-size:16px;font-weight:600;color:var(--ios-label)">Ranní trénink</div>
           <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">4 cviky · 45 min · odpočinek 120 s</div>
         </div>
         <div class="tp-session-progress" style="background:rgba(52,199,89,.12);color:var(--ios-green)">2/4</div>
@@ -4748,6 +4826,19 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
       </div>
       <div class="tp-session-body">
         <div class="tp-session-exercises">
+
+          <!-- ── SECTION: Hlavní · Strength ── -->
+          <div class="tp-section format-strength expanded">
+            <div class="tp-section-header" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.ex-ios-done'))return;this.parentElement.classList.toggle('expanded')">
+              <div class="tp-section-accent-bar"></div>
+              <div class="tp-section-label">Hlavní</div>
+              <span class="tp-section-format" style="background:rgba(0,122,255,.12);color:#007aff">Strength</span>
+              <div style="flex:1"></div>
+              <div class="ex-ios-done sm done" onclick="event.stopPropagation()">&#10003;</div>
+              <span class="tp-section-chev">&#9660;</span>
+            </div>
+            <div class="tp-section-body">
+
           <!-- S1 Exercise 1: Dřep s činkou — completed -->
           <div class="tp-ex-card expanded" onclick="event.stopPropagation();this.classList.toggle('expanded')">
             <div class="tp-ex-header">
@@ -4802,6 +4893,21 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
             </div>
           </div>
 
+            </div><!-- /Hlavní section body -->
+          </div><!-- /Hlavní section -->
+
+          <!-- ── SECTION: Doplňkové · Strength ── -->
+          <div class="tp-section format-strength expanded">
+            <div class="tp-section-header" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.ex-ios-done'))return;this.parentElement.classList.toggle('expanded')">
+              <div class="tp-section-accent-bar"></div>
+              <div class="tp-section-label">Doplňkové</div>
+              <span class="tp-section-format" style="background:rgba(0,122,255,.12);color:#007aff">Strength</span>
+              <div style="flex:1"></div>
+              <div class="ex-ios-done sm" onclick="event.stopPropagation()"></div>
+              <span class="tp-section-chev">&#9660;</span>
+            </div>
+            <div class="tp-section-body">
+
           <!-- S1 Exercise 3: Bulharské dřepy — pending -->
           <div class="tp-ex-card expanded" onclick="event.stopPropagation();this.classList.toggle('expanded')">
             <div class="tp-ex-header">
@@ -4854,6 +4960,10 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
               </div>
             </div>
           </div>
+
+            </div><!-- /Doplňkové section body -->
+          </div><!-- /Doplňkové section -->
+
         </div>
 
         <!-- Session 1 totals footer -->
@@ -4867,11 +4977,10 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
     <!-- ══════════════════════════════════════════
          SESSION 2 — Odpolední trénink (0/3 done)
     ══════════════════════════════════════════ -->
-    <div class="tp-session expanded" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.ios-btn'))return;this.classList.toggle('expanded')">
+    <div class="tp-session kind-afternoon expanded" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.tp-section-header')||event.target.closest('.ex-ios-done')||event.target.closest('.ios-btn'))return;this.classList.toggle('expanded')">
       <div class="tp-session-header">
-        <div class="tp-session-order">2</div>
         <div style="flex:1;min-width:0">
-          <div style="font-size:15px;font-weight:600;color:var(--ios-label)">Odpolední trénink</div>
+          <div class="tp-session-name" style="font-size:16px;font-weight:600;color:var(--ios-label)">Odpolední trénink</div>
           <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">3 cviky · 50 min · odpočinek 90 s</div>
         </div>
         <div class="tp-session-progress">0/3</div>
@@ -4879,6 +4988,19 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
       </div>
       <div class="tp-session-body">
         <div class="tp-session-exercises">
+
+          <!-- ── SECTION: Hlavní · Strength ── -->
+          <div class="tp-section format-strength expanded">
+            <div class="tp-section-header" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.ex-ios-done'))return;this.parentElement.classList.toggle('expanded')">
+              <div class="tp-section-accent-bar"></div>
+              <div class="tp-section-label">Hlavní</div>
+              <span class="tp-section-format" style="background:rgba(0,122,255,.12);color:#007aff">Strength</span>
+              <div style="flex:1"></div>
+              <div class="ex-ios-done sm" onclick="event.stopPropagation()"></div>
+              <span class="tp-section-chev">&#9660;</span>
+            </div>
+            <div class="tp-section-body">
+
           <!-- S2 Exercise 1: T-bar přítahy — pending -->
           <div class="tp-ex-card expanded" onclick="event.stopPropagation();this.classList.toggle('expanded')">
             <div class="tp-ex-header">
@@ -4903,6 +5025,21 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
               </div>
             </div>
           </div>
+
+            </div><!-- /Hlavní section body -->
+          </div><!-- /Hlavní section -->
+
+          <!-- ── SECTION: Core · Conditioning ── -->
+          <div class="tp-section format-conditioning expanded">
+            <div class="tp-section-header" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.ex-ios-done'))return;this.parentElement.classList.toggle('expanded')">
+              <div class="tp-section-accent-bar"></div>
+              <div class="tp-section-label">Core</div>
+              <span class="tp-section-format" style="background:rgba(52,199,89,.12);color:#34c759">Conditioning</span>
+              <div style="flex:1"></div>
+              <div class="ex-ios-done sm" onclick="event.stopPropagation()"></div>
+              <span class="tp-section-chev">&#9660;</span>
+            </div>
+            <div class="tp-section-body">
 
           <!-- S2 Exercise 2: Zkracovačky — pending -->
           <div class="tp-ex-card expanded" onclick="event.stopPropagation();this.classList.toggle('expanded')">
@@ -4953,6 +5090,10 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
               </div>
             </div>
           </div>
+
+            </div><!-- /Core section body -->
+          </div><!-- /Core section -->
+
         </div>
 
         <!-- Session 2 totals footer -->
@@ -5045,6 +5186,30 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
         <div class="lt-prestart-exlist" style="background:var(--ios-bg2)"></div>
       </div>
       <div style="height:20px"></div>
+    </div>
+
+    <!-- ═══ STATE: SECTION-RUNNER (entry between prestart and running) ═══
+         The user lands here after tapping "Start trénink". They see the
+         session split into sections, with the active section foregrounded
+         and a primary CTA to start it. Done sections are summarized,
+         pending sections are dimmed previews. When a section is finished
+         the flow returns here so the user can start the next one. -->
+    <div class="lt-state-section-runner" style="display:none">
+      <!-- Section progress strip (one chip per section) -->
+      <div class="lt-sr-progress" style="padding:14px 16px 12px;background:var(--ios-bg);border-bottom:.5px solid var(--ios-sep2)">
+        <div class="lt-sr-progress-row" style="display:flex;gap:8px"></div>
+      </div>
+
+      <!-- Active section card (foregrounded) -->
+      <div class="lt-sr-active-wrap" style="margin:14px 16px 0"></div>
+
+      <!-- Done sections (collapsed previews) -->
+      <div class="lt-sr-done-list" style="margin:12px 16px 0;display:flex;flex-direction:column;gap:8px"></div>
+
+      <!-- Pending sections (dimmed previews) -->
+      <div class="lt-sr-pending-list" style="margin:8px 16px 0;display:flex;flex-direction:column;gap:8px"></div>
+
+      <div style="height:24px"></div>
     </div>
 
     <!-- ═══ STATE: RUNNING ═══ -->
@@ -5253,9 +5418,10 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
   #ph-live-training .lt-pr-overlay.show .lt-pr-card { transform:scale(1); opacity:1; }
   /* Ensure the PR banner in the finished state only uses flex when shown */
   #ph-live-training .lt-finished-pr.show { display:flex !important; }
-  /* Roadmap (progress bar + exercise pills) is only meaningful once the
-     session has started; hide it on the prestart overview. */
-  #ph-live-training[data-state="prestart"] .lt-roadmap-wrap { display:none; }
+  /* Roadmap (progress bar + exercise pills) is only meaningful while a
+     section is actively running — hide on prestart and section-runner. */
+  #ph-live-training[data-state="prestart"] .lt-roadmap-wrap,
+  #ph-live-training[data-state="section-runner"] .lt-roadmap-wrap { display:none; }
 </style>
 <!-- ═══════════════════════════════════════════
      ŽIVÝ AMRAP — full-screen AMRAP runner
@@ -8419,6 +8585,11 @@ var _ltMuscleColor = {
 };
 
 // Mock session catalog (mirrors #today-training-card).
+//
+// `sections` defines the section grouping for the prestart overview and the
+// running flow's section breadcrumb. Each section's `exerciseIds` references
+// `exercises[].id` — exercises must remain in the visit order, sections then
+// describe how they group.
 var _ltSessions = {
   'session-1': {
     name: 'Ranní trénink · Push A',
@@ -8429,6 +8600,10 @@ var _ltSessions = {
       { text:'Paže',    bg:'rgba(255,149,0,.22)',  color:'#ff9500' }
     ],
     meta: '4 cviky · 13 sérií · ~45 min',
+    sections: [
+      { label:'Hlavní',     format:'Strength', cssClass:'format-strength', formatBg:'rgba(0,122,255,.12)', formatColor:'#007aff', exerciseIds:['s1-ex1','s1-ex2'] },
+      { label:'Doplňková',  format:'Strength', cssClass:'format-strength', formatBg:'rgba(0,122,255,.12)', formatColor:'#007aff', exerciseIds:['s1-ex3','s1-ex4'] }
+    ],
     exercises: [
       { id:'s1-ex1', name:'Bench press s činkou', muscle:'Hrudník', shortName:'Bench', rest:90,
         sets:[{reps:10,weight:80},{reps:10,weight:80},{reps:9,weight:82.5},{reps:8,weight:82.5}] },
@@ -8448,6 +8623,10 @@ var _ltSessions = {
       { text:'Paže',  bg:'rgba(255,149,0,.22)',  color:'#ff9500' }
     ],
     meta: '3 cviky · 9 sérií · ~50 min',
+    sections: [
+      { label:'Hlavní',     format:'Strength',     cssClass:'format-strength',     formatBg:'rgba(0,122,255,.12)',  formatColor:'#007aff', exerciseIds:['s2-ex1','s2-ex2'] },
+      { label:'Doplňková',  format:'Conditioning', cssClass:'format-conditioning', formatBg:'rgba(52,199,89,.12)',  formatColor:'#34c759', exerciseIds:['s2-ex3'] }
+    ],
     exercises: [
       { id:'s2-ex1', name:'T-bar přítahy',                muscle:'Záda', shortName:'T-bar', rest:90,
         sets:[{reps:8,weight:60},{reps:8,weight:60},{reps:8,weight:60}] },
@@ -8459,12 +8638,36 @@ var _ltSessions = {
   }
 };
 
+// Returns { section, sectionIdx, exerciseIdxInSection, sectionExerciseCount }
+// for the exercise at the given global index, or null when the session has
+// no sections defined.
+function _ltSectionForExercise(globalIdx) {
+  var session = _ltSession();
+  if (!session.sections) return null;
+  var ex = session.exercises[globalIdx];
+  if (!ex) return null;
+  for (var i = 0; i < session.sections.length; i++) {
+    var s = session.sections[i];
+    var idx = s.exerciseIds.indexOf(ex.id);
+    if (idx >= 0) {
+      return {
+        section: s,
+        sectionIdx: i,
+        exerciseIdxInSection: idx,
+        sectionExerciseCount: s.exerciseIds.length
+      };
+    }
+  }
+  return null;
+}
+
 // ── Runtime state (resets on page reload) ─────────────────────────
 var _ltState = null;
 function _ltInitState(sessionId) {
   _ltState = {
     sessionId: sessionId,
-    phase: 'prestart',            // prestart | running | finished
+    phase: 'prestart',            // prestart | section-runner | running | finished
+    currentSectionIdx: 0,
     currentExerciseIdx: 0,
     currentSetIdx: 0,
     // log[exId][setIdx] = { reps, weight, done:boolean, skipped?:boolean }
@@ -8530,12 +8733,96 @@ function showLiveSummary(sessionId) {
 }
 
 // ── Actions ──────────────────────────────────────────────────────
+
+// Pressing "Start trénink" lands the user on the section-runner — they see
+// the session split into sections, with the first section foregrounded.
+// They explicitly start each section from there.
 function liveStart() {
-  _ltState.phase = 'running';
-  _ltState.currentExerciseIdx = 0;
+  _ltState.phase = 'section-runner';
+  _ltState.currentSectionIdx = 0;
+  _ltState.currentExerciseIdx = _ltSectionFirstExerciseIdx(0);
   _ltState.currentSetIdx = 0;
-  _ltPrefillForm();
   _ltStartElapsed();
+  _ltRender();
+}
+
+// Resolve the global exercises[] index of the first exercise in section
+// `sectionIdx`, or 0 when the session has no sections.
+function _ltSectionFirstExerciseIdx(sectionIdx) {
+  var session = _ltSession();
+  if (!session.sections || !session.sections[sectionIdx]) return 0;
+  var firstId = session.sections[sectionIdx].exerciseIds[0];
+  for (var i = 0; i < session.exercises.length; i++) {
+    if (session.exercises[i].id === firstId) return i;
+  }
+  return 0;
+}
+
+// Returns true if every set of every exercise in the section at sectionIdx
+// has been logged as done (skipped sets do NOT count as done).
+function _ltIsSectionComplete(sectionIdx) {
+  var session = _ltSession();
+  if (!session.sections || !session.sections[sectionIdx]) return false;
+  var sec = session.sections[sectionIdx];
+  for (var i = 0; i < sec.exerciseIds.length; i++) {
+    var ex = session.exercises.find(function(e) { return e.id === sec.exerciseIds[i]; });
+    if (!ex) continue;
+    var log = _ltState.log[ex.id] || {};
+    for (var si = 0; si < ex.sets.length; si++) {
+      if (!log[si] || !log[si].done) return false;
+    }
+  }
+  return true;
+}
+
+// Tapping the section's primary CTA from the section-runner — drops the
+// user into the per-exercise running view scoped to that section's first
+// pending exercise. The user can still flip between sections via the
+// roadmap pills, but the default flow is one section at a time.
+function liveStartSection(sectionIdx) {
+  if (sectionIdx == null) sectionIdx = _ltState.currentSectionIdx;
+  _ltState.currentSectionIdx = sectionIdx;
+  _ltState.currentExerciseIdx = _ltSectionFirstExerciseIdx(sectionIdx);
+  _ltState.currentSetIdx = 0;
+  _ltState.phase = 'running';
+  _ltPrefillForm();
+  _ltRender();
+}
+
+// Manual "I'm done with this section" — surfaces from the section-runner
+// when the user wants to move on without finishing every set (e.g. they
+// did the section in the gym and just want to mark it done).
+function liveSkipSectionDone() {
+  var session = _ltSession();
+  var sec = session.sections && session.sections[_ltState.currentSectionIdx];
+  if (!sec) return;
+  // Mark each set in the section as done with planned values.
+  sec.exerciseIds.forEach(function(eid) {
+    var ex = session.exercises.find(function(e) { return e.id === eid; });
+    if (!ex) return;
+    _ltState.log[ex.id] = _ltState.log[ex.id] || {};
+    ex.sets.forEach(function(s, si) {
+      if (!_ltState.log[ex.id][si] || !_ltState.log[ex.id][si].done) {
+        _ltState.log[ex.id][si] = { reps: s.reps, weight: s.weight, done: true };
+      }
+    });
+  });
+  _ltAdvanceSectionOrFinish();
+}
+
+// Move to the next section (or finish the workout if this was the last).
+// Called both from liveSkipSectionDone() and from _ltAdvanceAfterSet()
+// when the last set of the section's last exercise is logged.
+function _ltAdvanceSectionOrFinish() {
+  var session = _ltSession();
+  if (!session.sections) { _ltFinish(); return; }
+  var nextIdx = _ltState.currentSectionIdx + 1;
+  if (nextIdx >= session.sections.length) { _ltFinish(); return; }
+  _ltState.currentSectionIdx = nextIdx;
+  _ltState.currentExerciseIdx = _ltSectionFirstExerciseIdx(nextIdx);
+  _ltState.currentSetIdx = 0;
+  _ltState.phase = 'section-runner';
+  _ltPrefillForm();
   _ltRender();
 }
 
@@ -8599,11 +8886,25 @@ function liveHideConfirm() {
 }
 
 function _ltAdvanceAfterSet(startRest) {
-  var ex = _ltSession().exercises[_ltState.currentExerciseIdx];
+  var session = _ltSession();
+  var ex = session.exercises[_ltState.currentExerciseIdx];
   var lastSet = _ltState.currentSetIdx >= ex.sets.length - 1;
-  var lastEx  = _ltState.currentExerciseIdx >= _ltSession().exercises.length - 1;
+  var lastEx  = _ltState.currentExerciseIdx >= session.exercises.length - 1;
 
   if (lastSet && lastEx) { _ltFinish(); return; }
+
+  // Detect the section boundary: if this was the last set of the current
+  // section's last exercise, return to the section-runner instead of
+  // advancing into the next section's first exercise. The user explicitly
+  // starts the next section from there.
+  var ctx = _ltSectionForExercise(_ltState.currentExerciseIdx);
+  var lastInSection = ctx && lastSet && ctx.exerciseIdxInSection >= ctx.sectionExerciseCount - 1;
+
+  if (lastInSection) {
+    // Skip rest — section transitions don't need an inter-set timer.
+    _ltAdvanceSectionOrFinish();
+    return;
+  }
 
   // Compute next target (we advance AFTER the rest, not before, so the
   // running screen stays on the set the user just finished — matches
@@ -8833,7 +9134,7 @@ function _ltRender() {
   phone.setAttribute('data-state', _ltState.phase);
 
   // Toggle main state containers.
-  ['prestart','running','finished'].forEach(function(s) {
+  ['prestart','section-runner','running','finished'].forEach(function(s) {
     var el = phone.querySelector('.lt-state-' + s);
     if (el) el.style.display = s === _ltState.phase ? '' : 'none';
   });
@@ -8843,6 +9144,7 @@ function _ltRender() {
   _ltRenderRoadmap();
 
   if (_ltState.phase === 'prestart') _ltRenderPrestart();
+  else if (_ltState.phase === 'section-runner') _ltRenderSectionRunner();
   else if (_ltState.phase === 'running') _ltRenderRunning();
   else if (_ltState.phase === 'finished') _ltRenderFinished();
 
@@ -8909,41 +9211,208 @@ function _ltRenderPrestart() {
       return '<span style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:99px;background:' + c.bg + ';color:' + c.color + '">' + c.text + '</span>';
     }).join('');
   }
+  // Build a map exerciseId → ex so sections can render in declared order
+  // even if exercises[] is not laid out section-by-section.
+  var exById = {};
+  session.exercises.forEach(function(ex) { exById[ex.id] = ex; });
+
+  // Render an exercise card (flat — no margin/radius/shadow; sections
+  // strip card chrome via .tp-section .tp-ex-card global rule).
+  function renderExCard(ex) {
+    var dot = _ltMuscleOf(ex);
+    var first = ex.sets[0];
+    var target = ex.sets.length + ' × ' + first.reps + ' opak · ' + (first.weight > 0 ? (first.weight + ' kg') : 'BW');
+    var gridRows = ex.sets.map(function(s, si) {
+      var last = si === ex.sets.length - 1 ? 'border:none' : '';
+      var wt = s.weight > 0 ? (s.weight + ' kg') : 'BW';
+      return '<div class="tp-set-cell" style="' + last + '">' + (si + 1) + '</div>' +
+             '<div class="tp-set-cell" style="' + last + '">' + s.reps + '</div>' +
+             '<div class="tp-set-cell" style="' + last + '">' + wt + '</div>' +
+             '<div class="tp-set-cell" style="' + last + '">' + (s.rest ? (s.rest + ' s') : '—') + '</div>' +
+             '<div class="tp-set-cell" style="' + last + ';color:var(--ios-label3)">—</div>';
+    }).join('');
+
+    return '<div class="tp-ex-card" onclick="todayExToggle(this)">' +
+      '<div class="tp-ex-header">' +
+        '<div class="ex-ios-dot" style="background:' + dot + ';flex-shrink:0"></div>' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-size:15px;font-weight:600;color:var(--ios-label)">' + ex.name + '</div>' +
+          '<div style="font-size:12px;color:var(--ios-label2);margin-top:2px">' + target + '</div>' +
+        '</div>' +
+        '<span class="tp-ex-chev">▼</span>' +
+      '</div>' +
+      '<div class="tp-ex-body" style="border-top:.5px solid var(--ios-sep2);background:var(--ios-fill2)">' +
+        '<div class="tp-ex-set-grid" style="padding:4px 16px 0">' +
+          '<div class="tp-set-hdr">S</div>' +
+          '<div class="tp-set-hdr">Opak.</div>' +
+          '<div class="tp-set-hdr">Váha</div>' +
+          '<div class="tp-set-hdr">Odp.</div>' +
+          '<div class="tp-set-hdr">Stav</div>' +
+          gridRows +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
   var list = phone.querySelector('.lt-prestart-exlist');
   if (list) {
-    list.innerHTML = session.exercises.map(function(ex, i) {
-      var dot = _ltMuscleOf(ex);
-      var first = ex.sets[0];
-      var target = ex.sets.length + ' × ' + first.reps + ' opak · ' + (first.weight > 0 ? (first.weight + ' kg') : 'BW');
-      var topBorder = i > 0 ? 'border-top:.5px solid var(--ios-sep2);' : '';
-      var gridRows = ex.sets.map(function(s, si) {
-        var last = si === ex.sets.length - 1 ? 'border:none' : '';
-        var wt = s.weight > 0 ? (s.weight + ' kg') : 'BW';
-        return '<div class="tp-set-cell" style="' + last + '">' + (si + 1) + '</div>' +
-               '<div class="tp-set-cell" style="' + last + '">' + s.reps + '</div>' +
-               '<div class="tp-set-cell" style="' + last + '">' + wt + '</div>' +
-               '<div class="tp-set-cell" style="' + last + '">' + (s.rest ? (s.rest + ' s') : '—') + '</div>' +
-               '<div class="tp-set-cell" style="' + last + ';color:var(--ios-label3)">—</div>';
-      }).join('');
+    if (session.sections && session.sections.length > 0) {
+      // Section-grouped layout — mirrors the home-page training card.
+      list.innerHTML = session.sections.map(function(sec) {
+        var exHtml = sec.exerciseIds.map(function(eid) {
+          var ex = exById[eid];
+          return ex ? renderExCard(ex) : '';
+        }).join('');
 
-      return '<div class="tp-ex-card" style="margin:0;border-radius:0;box-shadow:none;' + topBorder + '" onclick="todayExToggle(this)">' +
-        '<div class="tp-ex-header">' +
-          '<div class="ex-ios-dot" style="background:' + dot + ';flex-shrink:0"></div>' +
-          '<div style="flex:1;min-width:0">' +
-            '<div style="font-size:15px;font-weight:600;color:var(--ios-label)">' + ex.name + '</div>' +
-            '<div style="font-size:12px;color:var(--ios-label2);margin-top:2px">' + target + '</div>' +
+        return '<div class="tp-section ' + sec.cssClass + ' expanded">' +
+          '<div class="tp-section-header" onclick="if(event.target.closest(\'.tp-ex-card\'))return;this.parentElement.classList.toggle(\'expanded\')">' +
+            '<div class="tp-section-accent-bar"></div>' +
+            '<div class="tp-section-label">' + sec.label + '</div>' +
+            '<span class="tp-section-format" style="background:' + sec.formatBg + ';color:' + sec.formatColor + '">' + sec.format + '</span>' +
+            '<div style="flex:1"></div>' +
+            '<span class="tp-section-chev">▼</span>' +
           '</div>' +
-          '<span class="tp-ex-chev">▼</span>' +
+          '<div class="tp-section-body">' + exHtml + '</div>' +
+        '</div>';
+      }).join('');
+    } else {
+      // Fallback: flat exercise list (no sections defined).
+      list.innerHTML = session.exercises.map(function(ex, i) {
+        var topBorder = i > 0 ? 'style="border-top:.5px solid var(--ios-sep2)"' : '';
+        return '<div ' + topBorder + '>' + renderExCard(ex) + '</div>';
+      }).join('');
+    }
+  }
+}
+
+// Section-runner state — the "drop-zone" between session start and the
+// per-exercise running view. Layout mirrors live-session-runner.html: a
+// section-progress strip across the top, the active section foregrounded
+// as a card with its exercises listed and a primary CTA to start it,
+// and done/pending sections collapsed below.
+function _ltRenderSectionRunner() {
+  var phone = document.getElementById('ph-live-training');
+  var session = _ltSession();
+  if (!session.sections) return;
+
+  var activeIdx = _ltState.currentSectionIdx;
+  var exById = {};
+  session.exercises.forEach(function(ex) { exById[ex.id] = ex; });
+
+  // Render an exercise summary row (no card chrome — sits inside the
+  // active section card's body).
+  function renderSectionExRow(ex, isLast) {
+    var dot = _ltMuscleOf(ex);
+    var first = ex.sets[0];
+    var target = ex.sets.length + ' × ' + first.reps + ' opak' + (first.weight > 0 ? (' · ' + first.weight + ' kg') : ' · BW');
+    var br = isLast ? '' : 'border-bottom:.5px solid var(--ios-sep2);';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;' + br + '">' +
+      '<div class="ex-ios-dot" style="background:' + dot + ';flex-shrink:0"></div>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-size:14px;font-weight:600;color:var(--ios-label)">' + ex.name + '</div>' +
+        '<div style="font-size:11px;color:var(--ios-label3);margin-top:1px">' + target + '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  // ── Section progress chips (across the top) ─────────────────────────
+  var progressEl = phone.querySelector('.lt-sr-progress-row');
+  if (progressEl) {
+    progressEl.innerHTML = session.sections.map(function(sec, i) {
+      var done = _ltIsSectionComplete(i);
+      var isActive = i === activeIdx;
+      var bg, border, iconColor, icon, labelColor, statusLabel, formatColor;
+      if (done) {
+        bg = 'rgba(52,199,89,.08)'; border = 'rgba(52,199,89,.35)';
+        iconColor = 'var(--ios-green)'; icon = '✓';
+        labelColor = 'var(--ios-label2)'; statusLabel = 'HOTOVO'; formatColor = 'var(--ios-label3)';
+      } else if (isActive) {
+        bg = 'rgba(201,168,76,.1)'; border = 'var(--ios-gold)';
+        iconColor = 'var(--ios-gold)'; icon = '▶';
+        labelColor = 'var(--ios-label)'; statusLabel = 'AKTIVNÍ'; formatColor = 'var(--ios-gold)';
+      } else {
+        bg = 'var(--ios-fill2)'; border = 'var(--ios-sep)';
+        iconColor = 'var(--ios-label3)'; icon = '○';
+        labelColor = 'var(--ios-label2)'; statusLabel = 'ČEKÁ'; formatColor = 'var(--ios-label3)';
+      }
+      var borderWidth = isActive ? '2px' : '1.5px';
+      var opacity = (!done && !isActive) ? '.6' : '1';
+      var clickHandler = !done ? ' onclick="liveStartSection(' + i + ')"' : '';
+      var cursor = !done ? 'pointer' : 'default';
+      return '<div style="flex:1;border-radius:12px;padding:8px 10px;background:' + bg + ';border:' + borderWidth + ' solid ' + border + ';opacity:' + opacity + ';cursor:' + cursor + '"' + clickHandler + '>' +
+        '<div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">' +
+          '<span style="font-size:12px;color:' + iconColor + '">' + icon + '</span>' +
+          '<span style="font-size:10px;font-weight:700;color:' + iconColor + ';letter-spacing:.02em">' + statusLabel + '</span>' +
         '</div>' +
-        '<div class="tp-ex-body" style="border-top:.5px solid var(--ios-sep2);background:var(--ios-fill2)">' +
-          '<div class="tp-ex-set-grid" style="padding:4px 16px 0">' +
-            '<div class="tp-set-hdr">S</div>' +
-            '<div class="tp-set-hdr">Opak.</div>' +
-            '<div class="tp-set-hdr">Váha</div>' +
-            '<div class="tp-set-hdr">Odp.</div>' +
-            '<div class="tp-set-hdr">Stav</div>' +
-            gridRows +
+        '<div style="font-size:11px;font-weight:' + (isActive ? '700' : '600') + ';color:' + labelColor + ';line-height:1.2">' + sec.label + '</div>' +
+        '<div style="font-size:10px;color:' + formatColor + ';margin-top:1px;font-weight:' + (isActive ? '600' : '500') + '">' + sec.format + '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  // ── Active section card ─────────────────────────────────────────────
+  var activeWrap = phone.querySelector('.lt-sr-active-wrap');
+  var activeSec = session.sections[activeIdx];
+  if (activeWrap && activeSec) {
+    var exHtml = activeSec.exerciseIds.map(function(eid, i) {
+      var ex = exById[eid];
+      if (!ex) return '';
+      return renderSectionExRow(ex, i === activeSec.exerciseIds.length - 1);
+    }).join('');
+
+    var sectionMeta = activeSec.exerciseIds.length + ' cviků';
+    activeWrap.innerHTML =
+      '<div class="tp-section ' + activeSec.cssClass + ' expanded" style="border-radius:var(--ios-r-lg);overflow:hidden;border:1.5px solid var(--ios-gold);box-shadow:0 4px 12px rgba(0,0,0,.06);background:var(--ios-bg2);margin:0">' +
+        '<div class="tp-section-header" style="padding:14px 16px">' +
+          '<div class="tp-section-accent-bar" style="height:24px"></div>' +
+          '<div style="flex:1;min-width:0">' +
+            '<div style="font-size:18px;font-weight:700;color:var(--ios-label);letter-spacing:-.2px;line-height:1.1">' + activeSec.label + '</div>' +
+            '<div style="font-size:11px;color:var(--ios-label3);margin-top:2px;font-weight:500">' + sectionMeta + '</div>' +
           '</div>' +
+          '<span class="tp-section-format" style="background:' + activeSec.formatBg + ';color:' + activeSec.formatColor + '">' + activeSec.format + '</span>' +
+        '</div>' +
+        '<div class="tp-section-body" style="background:var(--ios-bg2)">' + exHtml + '</div>' +
+        '<div style="padding:12px 16px;border-top:.5px solid var(--ios-sep2)">' +
+          '<div class="ios-btn ios-btn-primary" style="font-size:16px;padding:15px;letter-spacing:.3px;font-weight:700" onclick="liveStartSection(' + activeIdx + ')">▶ Spustit sekci</div>' +
+          '<div onclick="liveSkipSectionDone()" style="text-align:center;font-size:12px;font-weight:600;color:var(--ios-label3);cursor:pointer;padding:8px 4px 0">Označit sekci jako hotovou</div>' +
+        '</div>' +
+      '</div>';
+  }
+
+  // ── Done sections (collapsed previews above the active card? no — below) ─
+  // For simplicity, render the done + pending lists ABOVE the active card
+  // would invert hierarchy; we keep the active card foregrounded and put
+  // the previews below.
+  var doneListEl = phone.querySelector('.lt-sr-done-list');
+  if (doneListEl) {
+    doneListEl.innerHTML = session.sections.map(function(sec, i) {
+      if (!_ltIsSectionComplete(i)) return '';
+      return '<div style="background:var(--ios-bg2);border-radius:var(--ios-r);padding:12px 14px;border:.5px solid var(--ios-sep2);opacity:.85">' +
+        '<div style="display:flex;align-items:center;gap:10px">' +
+          '<span style="font-size:14px;color:var(--ios-green)">✓</span>' +
+          '<div style="flex:1;min-width:0">' +
+            '<div style="font-size:13px;font-weight:600;color:var(--ios-label)">' + sec.label + '</div>' +
+            '<div style="font-size:11px;color:var(--ios-label3);margin-top:1px">' + sec.exerciseIds.length + ' cviků · ' + sec.format + '</div>' +
+          '</div>' +
+          '<div style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:99px;background:rgba(52,199,89,.1);color:var(--ios-green)">Hotovo</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  var pendingListEl = phone.querySelector('.lt-sr-pending-list');
+  if (pendingListEl) {
+    pendingListEl.innerHTML = session.sections.map(function(sec, i) {
+      // Pending = not done AND not the active section.
+      if (_ltIsSectionComplete(i) || i === activeIdx) return '';
+      return '<div style="background:var(--ios-bg2);border-radius:var(--ios-r);padding:12px 14px;border:.5px solid var(--ios-sep2);opacity:.55">' +
+        '<div style="display:flex;align-items:center;gap:10px">' +
+          '<span style="font-size:14px;color:var(--ios-label3)">○</span>' +
+          '<div style="flex:1;min-width:0">' +
+            '<div style="font-size:13px;font-weight:600;color:var(--ios-label2)">' + sec.label + '</div>' +
+            '<div style="font-size:11px;color:var(--ios-label3);margin-top:1px">' + sec.exerciseIds.length + ' cviků · ' + sec.format + '</div>' +
+          '</div>' +
+          '<div style="font-size:11px;font-weight:500;color:var(--ios-label3)">Čeká</div>' +
         '</div>' +
       '</div>';
     }).join('');
@@ -8957,11 +9426,23 @@ function _ltRenderRunning() {
   if (!ex) return;
   var mc = _ltMuscleOf(ex);  // small identifier dot only — everything else is gold
 
-  // Hero — small muscle-color dot beside a neutral "muscle · cvik X/Y" label.
+  // Hero — small muscle-color dot beside a section-aware label.
+  // Format: "Hlavní (Strength) · Hrudník · Cvik 1/2" so the user always knows
+  // which section + format they're in, plus the exercise position within it.
   var dotEl = phone.querySelector('.lt-running-dot');
   if (dotEl) dotEl.style.background = mc;
   var musEl = phone.querySelector('.lt-running-musclelabel');
-  if (musEl) musEl.textContent = ex.muscle + ' · Cvik ' + (_ltState.currentExerciseIdx + 1) + '/' + session.exercises.length;
+  if (musEl) {
+    var ctx = _ltSectionForExercise(_ltState.currentExerciseIdx);
+    var label;
+    if (ctx) {
+      label = ctx.section.label + ' (' + ctx.section.format + ') · ' + ex.muscle +
+        ' · Cvik ' + (ctx.exerciseIdxInSection + 1) + '/' + ctx.sectionExerciseCount;
+    } else {
+      label = ex.muscle + ' · Cvik ' + (_ltState.currentExerciseIdx + 1) + '/' + session.exercises.length;
+    }
+    musEl.textContent = label;
+  }
   var nameEl = phone.querySelector('.lt-running-exname');
   if (nameEl) nameEl.textContent = ex.name;
   var curEl = phone.querySelector('.lt-running-setcurr');
