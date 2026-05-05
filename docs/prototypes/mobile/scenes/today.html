@@ -197,7 +197,7 @@
         <div style="background:var(--ios-bg2)">
 
           <!-- ── SESSION 1 — Ranní trénink (Push A, 2/4 done) ── -->
-          <div class="tp-session expanded" data-session-id="session-1" style="margin:12px 16px;box-shadow:0 2px 8px rgba(0,0,0,.06)" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.ios-btn')||event.target.closest('.ex-ios-done')||event.target.closest('.lt-session-cta-footer'))return;this.classList.toggle('expanded')">
+          <div class="tp-session expanded" data-session-id="session-1" style="margin:12px 16px;box-shadow:0 2px 8px rgba(0,0,0,.06)" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.tp-section-header')||event.target.closest('.ios-btn')||event.target.closest('.ex-ios-done')||event.target.closest('.lt-session-cta-footer'))return;this.classList.toggle('expanded')">
             <div class="tp-session-header">
               <div class="tp-session-order">1</div>
               <div style="flex:1;min-width:0">
@@ -211,10 +211,15 @@
               <div class="tp-session-exercises">
 
                 <!-- ── SECTION: Rozcvička · Strength ── -->
-                <div style="display:flex;align-items:center;gap:8px;padding:10px 14px 6px 14px;background:var(--ios-bg2);border-bottom:.5px solid var(--ios-sep2)">
-                  <div style="font-size:12px;font-weight:700;color:var(--ios-label);text-transform:uppercase;letter-spacing:.06em">Rozcvička</div>
-                  <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:rgba(0,122,255,.12);color:#007aff;border:1px solid rgba(0,122,255,.3);text-transform:uppercase;letter-spacing:.05em">Strength</span>
-                </div>
+                <div class="tp-section expanded">
+                  <div class="tp-section-header" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.ex-ios-done'))return;this.parentElement.classList.toggle('expanded')" style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--ios-bg2);border-bottom:.5px solid var(--ios-sep2);cursor:pointer">
+                    <div style="font-size:12px;font-weight:700;color:var(--ios-label);text-transform:uppercase;letter-spacing:.06em">Rozcvička</div>
+                    <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:rgba(0,122,255,.12);color:#007aff;border:1px solid rgba(0,122,255,.3);text-transform:uppercase;letter-spacing:.05em">Strength</span>
+                    <div style="flex:1"></div>
+                    <div class="ex-ios-done done" onclick="event.stopPropagation();todaySectionCheck(this)">✓</div>
+                    <span class="tp-section-chev" style="font-size:11px;color:var(--ios-label3);transition:transform .2s">▼</span>
+                  </div>
+                  <div class="tp-section-body">
 
                 <!-- S1 · EX0 Mobilita ramen — done (warm-up) -->
                 <div class="tp-ex-card" onclick="event.stopPropagation();todayExToggle(this)">
@@ -235,11 +240,19 @@
                   </div>
                 </div>
 
-                <!-- ── SECTION: Hlavní · Strength ── -->
-                <div style="display:flex;align-items:center;gap:8px;padding:10px 14px 6px 14px;background:var(--ios-bg2);border-bottom:.5px solid var(--ios-sep2)">
-                  <div style="font-size:12px;font-weight:700;color:var(--ios-label);text-transform:uppercase;letter-spacing:.06em">Hlavní</div>
-                  <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:rgba(0,122,255,.12);color:#007aff;border:1px solid rgba(0,122,255,.3);text-transform:uppercase;letter-spacing:.05em">Strength</span>
+                  </div>
                 </div>
+
+                <!-- ── SECTION: Hlavní · Strength ── -->
+                <div class="tp-section expanded">
+                  <div class="tp-section-header" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.ex-ios-done'))return;this.parentElement.classList.toggle('expanded')" style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--ios-bg2);border-bottom:.5px solid var(--ios-sep2);cursor:pointer">
+                    <div style="font-size:12px;font-weight:700;color:var(--ios-label);text-transform:uppercase;letter-spacing:.06em">Hlavní</div>
+                    <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:rgba(0,122,255,.12);color:#007aff;border:1px solid rgba(0,122,255,.3);text-transform:uppercase;letter-spacing:.05em">Strength</span>
+                    <div style="flex:1"></div>
+                    <div class="ex-ios-done" onclick="event.stopPropagation();todaySectionCheck(this)"></div>
+                    <span class="tp-section-chev" style="font-size:11px;color:var(--ios-label3);transition:transform .2s">▼</span>
+                  </div>
+                  <div class="tp-section-body">
 
                 <!-- S1 · EX1 Bench press — done -->
                 <div class="tp-ex-card" onclick="event.stopPropagation();todayExToggle(this)">
@@ -344,11 +357,19 @@
                   </div>
                 </div>
 
-                <!-- ── SECTION: Cooldown · Conditioning ── -->
-                <div style="display:flex;align-items:center;gap:8px;padding:10px 14px 6px 14px;background:var(--ios-bg2);border-bottom:.5px solid var(--ios-sep2)">
-                  <div style="font-size:12px;font-weight:700;color:var(--ios-label);text-transform:uppercase;letter-spacing:.06em">Cooldown</div>
-                  <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:rgba(52,199,89,.12);color:#34c759;border:1px solid rgba(52,199,89,.3);text-transform:uppercase;letter-spacing:.05em">Conditioning</span>
+                  </div>
                 </div>
+
+                <!-- ── SECTION: Cooldown · Conditioning ── -->
+                <div class="tp-section expanded">
+                  <div class="tp-section-header" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.ex-ios-done'))return;this.parentElement.classList.toggle('expanded')" style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--ios-bg2);border-bottom:.5px solid var(--ios-sep2);cursor:pointer">
+                    <div style="font-size:12px;font-weight:700;color:var(--ios-label);text-transform:uppercase;letter-spacing:.06em">Cooldown</div>
+                    <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:rgba(52,199,89,.12);color:#34c759;border:1px solid rgba(52,199,89,.3);text-transform:uppercase;letter-spacing:.05em">Conditioning</span>
+                    <div style="flex:1"></div>
+                    <div class="ex-ios-done" onclick="event.stopPropagation();todaySectionCheck(this)"></div>
+                    <span class="tp-section-chev" style="font-size:11px;color:var(--ios-label3);transition:transform .2s">▼</span>
+                  </div>
+                  <div class="tp-section-body">
 
                 <!-- S1 · EX6 Strečink hrudníku — pending (cooldown) -->
                 <div class="tp-ex-card" onclick="event.stopPropagation();todayExToggle(this)">
@@ -369,6 +390,9 @@
                   </div>
                 </div>
 
+                  </div>
+                </div>
+
               </div>
             </div>
             <div class="lt-session-cta-footer">
@@ -377,7 +401,7 @@
           </div>
 
           <!-- ── SESSION 2 — Odpolední trénink (Pull A, 0/3 done) ── -->
-          <div class="tp-session expanded" data-session-id="session-2" style="margin:0 16px 12px;box-shadow:0 2px 8px rgba(0,0,0,.06)" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.ios-btn')||event.target.closest('.ex-ios-done')||event.target.closest('.lt-session-cta-footer'))return;this.classList.toggle('expanded')">
+          <div class="tp-session expanded" data-session-id="session-2" style="margin:0 16px 12px;box-shadow:0 2px 8px rgba(0,0,0,.06)" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.tp-section-header')||event.target.closest('.ios-btn')||event.target.closest('.ex-ios-done')||event.target.closest('.lt-session-cta-footer'))return;this.classList.toggle('expanded')">
             <div class="tp-session-header">
               <div class="tp-session-order">2</div>
               <div style="flex:1;min-width:0">
@@ -391,10 +415,15 @@
               <div class="tp-session-exercises">
 
                 <!-- ── SECTION: Rozcvička · Strength ── -->
-                <div style="display:flex;align-items:center;gap:8px;padding:10px 14px 6px 14px;background:var(--ios-bg2);border-bottom:.5px solid var(--ios-sep2)">
-                  <div style="font-size:12px;font-weight:700;color:var(--ios-label);text-transform:uppercase;letter-spacing:.06em">Rozcvička</div>
-                  <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:rgba(0,122,255,.12);color:#007aff;border:1px solid rgba(0,122,255,.3);text-transform:uppercase;letter-spacing:.05em">Strength</span>
-                </div>
+                <div class="tp-section expanded">
+                  <div class="tp-section-header" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.ex-ios-done'))return;this.parentElement.classList.toggle('expanded')" style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--ios-bg2);border-bottom:.5px solid var(--ios-sep2);cursor:pointer">
+                    <div style="font-size:12px;font-weight:700;color:var(--ios-label);text-transform:uppercase;letter-spacing:.06em">Rozcvička</div>
+                    <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:rgba(0,122,255,.12);color:#007aff;border:1px solid rgba(0,122,255,.3);text-transform:uppercase;letter-spacing:.05em">Strength</span>
+                    <div style="flex:1"></div>
+                    <div class="ex-ios-done" onclick="event.stopPropagation();todaySectionCheck(this)"></div>
+                    <span class="tp-section-chev" style="font-size:11px;color:var(--ios-label3);transition:transform .2s">▼</span>
+                  </div>
+                  <div class="tp-section-body">
 
                 <!-- S2 · EX0 Mobilita zad — pending (warm-up) -->
                 <div class="tp-ex-card" onclick="event.stopPropagation();todayExToggle(this)">
@@ -415,11 +444,19 @@
                   </div>
                 </div>
 
-                <!-- ── SECTION: Hlavní · Strength ── -->
-                <div style="display:flex;align-items:center;gap:8px;padding:10px 14px 6px 14px;background:var(--ios-bg2);border-bottom:.5px solid var(--ios-sep2)">
-                  <div style="font-size:12px;font-weight:700;color:var(--ios-label);text-transform:uppercase;letter-spacing:.06em">Hlavní</div>
-                  <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:rgba(0,122,255,.12);color:#007aff;border:1px solid rgba(0,122,255,.3);text-transform:uppercase;letter-spacing:.05em">Strength</span>
+                  </div>
                 </div>
+
+                <!-- ── SECTION: Hlavní · Strength ── -->
+                <div class="tp-section expanded">
+                  <div class="tp-section-header" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.ex-ios-done'))return;this.parentElement.classList.toggle('expanded')" style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--ios-bg2);border-bottom:.5px solid var(--ios-sep2);cursor:pointer">
+                    <div style="font-size:12px;font-weight:700;color:var(--ios-label);text-transform:uppercase;letter-spacing:.06em">Hlavní</div>
+                    <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:rgba(0,122,255,.12);color:#007aff;border:1px solid rgba(0,122,255,.3);text-transform:uppercase;letter-spacing:.05em">Strength</span>
+                    <div style="flex:1"></div>
+                    <div class="ex-ios-done" onclick="event.stopPropagation();todaySectionCheck(this)"></div>
+                    <span class="tp-section-chev" style="font-size:11px;color:var(--ios-label3);transition:transform .2s">▼</span>
+                  </div>
+                  <div class="tp-section-body">
 
                 <!-- S2 · EX1 T-bar přítahy -->
                 <div class="tp-ex-card" onclick="event.stopPropagation();todayExToggle(this)">
@@ -490,6 +527,10 @@
                     </div>
                   </div>
                 </div>
+
+                  </div>
+                </div>
+
               </div>
             </div>
             <div class="lt-session-cta-footer">

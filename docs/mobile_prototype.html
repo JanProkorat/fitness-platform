@@ -225,6 +225,11 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
 .tp-session-order{width:28px;height:28px;border-radius:8px;background:var(--ios-fill);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:var(--sf-semi);color:var(--ios-label);flex-shrink:0}
 .tp-session-progress{font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;background:var(--ios-fill);color:var(--ios-label2);flex-shrink:0}
 
+/* Section blocks inside sessions (collapsible, same pattern as session) */
+.tp-section .tp-section-body{display:none}
+.tp-section.expanded .tp-section-body{display:block}
+.tp-section.expanded .tp-section-chev{transform:rotate(180deg)}
+
 /* Gradient backgrounds for cards */
 .grad-push{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%)}
 .grad-nutrition{background:linear-gradient(135deg,#0d2137 0%,#1a3a52 100%)}
@@ -1012,7 +1017,7 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
         <div style="background:var(--ios-bg2)">
 
           <!-- ── SESSION 1 — Ranní trénink (Push A, 2/4 done) ── -->
-          <div class="tp-session expanded" data-session-id="session-1" style="margin:12px 16px;box-shadow:0 2px 8px rgba(0,0,0,.06)" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.ios-btn')||event.target.closest('.ex-ios-done')||event.target.closest('.lt-session-cta-footer'))return;this.classList.toggle('expanded')">
+          <div class="tp-session expanded" data-session-id="session-1" style="margin:12px 16px;box-shadow:0 2px 8px rgba(0,0,0,.06)" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.tp-section-header')||event.target.closest('.ios-btn')||event.target.closest('.ex-ios-done')||event.target.closest('.lt-session-cta-footer'))return;this.classList.toggle('expanded')">
             <div class="tp-session-header">
               <div class="tp-session-order">1</div>
               <div style="flex:1;min-width:0">
@@ -1026,10 +1031,15 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
               <div class="tp-session-exercises">
 
                 <!-- ── SECTION: Rozcvička · Strength ── -->
-                <div style="display:flex;align-items:center;gap:8px;padding:10px 14px 6px 14px;background:var(--ios-bg2);border-bottom:.5px solid var(--ios-sep2)">
-                  <div style="font-size:12px;font-weight:700;color:var(--ios-label);text-transform:uppercase;letter-spacing:.06em">Rozcvička</div>
-                  <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:rgba(0,122,255,.12);color:#007aff;border:1px solid rgba(0,122,255,.3);text-transform:uppercase;letter-spacing:.05em">Strength</span>
-                </div>
+                <div class="tp-section expanded">
+                  <div class="tp-section-header" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.ex-ios-done'))return;this.parentElement.classList.toggle('expanded')" style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--ios-bg2);border-bottom:.5px solid var(--ios-sep2);cursor:pointer">
+                    <div style="font-size:12px;font-weight:700;color:var(--ios-label);text-transform:uppercase;letter-spacing:.06em">Rozcvička</div>
+                    <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:rgba(0,122,255,.12);color:#007aff;border:1px solid rgba(0,122,255,.3);text-transform:uppercase;letter-spacing:.05em">Strength</span>
+                    <div style="flex:1"></div>
+                    <div class="ex-ios-done done" onclick="event.stopPropagation();todaySectionCheck(this)">✓</div>
+                    <span class="tp-section-chev" style="font-size:11px;color:var(--ios-label3);transition:transform .2s">▼</span>
+                  </div>
+                  <div class="tp-section-body">
 
                 <!-- S1 · EX0 Mobilita ramen — done (warm-up) -->
                 <div class="tp-ex-card" onclick="event.stopPropagation();todayExToggle(this)">
@@ -1050,11 +1060,19 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
                   </div>
                 </div>
 
-                <!-- ── SECTION: Hlavní · Strength ── -->
-                <div style="display:flex;align-items:center;gap:8px;padding:10px 14px 6px 14px;background:var(--ios-bg2);border-bottom:.5px solid var(--ios-sep2)">
-                  <div style="font-size:12px;font-weight:700;color:var(--ios-label);text-transform:uppercase;letter-spacing:.06em">Hlavní</div>
-                  <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:rgba(0,122,255,.12);color:#007aff;border:1px solid rgba(0,122,255,.3);text-transform:uppercase;letter-spacing:.05em">Strength</span>
+                  </div>
                 </div>
+
+                <!-- ── SECTION: Hlavní · Strength ── -->
+                <div class="tp-section expanded">
+                  <div class="tp-section-header" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.ex-ios-done'))return;this.parentElement.classList.toggle('expanded')" style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--ios-bg2);border-bottom:.5px solid var(--ios-sep2);cursor:pointer">
+                    <div style="font-size:12px;font-weight:700;color:var(--ios-label);text-transform:uppercase;letter-spacing:.06em">Hlavní</div>
+                    <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:rgba(0,122,255,.12);color:#007aff;border:1px solid rgba(0,122,255,.3);text-transform:uppercase;letter-spacing:.05em">Strength</span>
+                    <div style="flex:1"></div>
+                    <div class="ex-ios-done" onclick="event.stopPropagation();todaySectionCheck(this)"></div>
+                    <span class="tp-section-chev" style="font-size:11px;color:var(--ios-label3);transition:transform .2s">▼</span>
+                  </div>
+                  <div class="tp-section-body">
 
                 <!-- S1 · EX1 Bench press — done -->
                 <div class="tp-ex-card" onclick="event.stopPropagation();todayExToggle(this)">
@@ -1159,11 +1177,19 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
                   </div>
                 </div>
 
-                <!-- ── SECTION: Cooldown · Conditioning ── -->
-                <div style="display:flex;align-items:center;gap:8px;padding:10px 14px 6px 14px;background:var(--ios-bg2);border-bottom:.5px solid var(--ios-sep2)">
-                  <div style="font-size:12px;font-weight:700;color:var(--ios-label);text-transform:uppercase;letter-spacing:.06em">Cooldown</div>
-                  <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:rgba(52,199,89,.12);color:#34c759;border:1px solid rgba(52,199,89,.3);text-transform:uppercase;letter-spacing:.05em">Conditioning</span>
+                  </div>
                 </div>
+
+                <!-- ── SECTION: Cooldown · Conditioning ── -->
+                <div class="tp-section expanded">
+                  <div class="tp-section-header" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.ex-ios-done'))return;this.parentElement.classList.toggle('expanded')" style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--ios-bg2);border-bottom:.5px solid var(--ios-sep2);cursor:pointer">
+                    <div style="font-size:12px;font-weight:700;color:var(--ios-label);text-transform:uppercase;letter-spacing:.06em">Cooldown</div>
+                    <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:rgba(52,199,89,.12);color:#34c759;border:1px solid rgba(52,199,89,.3);text-transform:uppercase;letter-spacing:.05em">Conditioning</span>
+                    <div style="flex:1"></div>
+                    <div class="ex-ios-done" onclick="event.stopPropagation();todaySectionCheck(this)"></div>
+                    <span class="tp-section-chev" style="font-size:11px;color:var(--ios-label3);transition:transform .2s">▼</span>
+                  </div>
+                  <div class="tp-section-body">
 
                 <!-- S1 · EX6 Strečink hrudníku — pending (cooldown) -->
                 <div class="tp-ex-card" onclick="event.stopPropagation();todayExToggle(this)">
@@ -1184,6 +1210,9 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
                   </div>
                 </div>
 
+                  </div>
+                </div>
+
               </div>
             </div>
             <div class="lt-session-cta-footer">
@@ -1192,7 +1221,7 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
           </div>
 
           <!-- ── SESSION 2 — Odpolední trénink (Pull A, 0/3 done) ── -->
-          <div class="tp-session expanded" data-session-id="session-2" style="margin:0 16px 12px;box-shadow:0 2px 8px rgba(0,0,0,.06)" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.ios-btn')||event.target.closest('.ex-ios-done')||event.target.closest('.lt-session-cta-footer'))return;this.classList.toggle('expanded')">
+          <div class="tp-session expanded" data-session-id="session-2" style="margin:0 16px 12px;box-shadow:0 2px 8px rgba(0,0,0,.06)" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.tp-section-header')||event.target.closest('.ios-btn')||event.target.closest('.ex-ios-done')||event.target.closest('.lt-session-cta-footer'))return;this.classList.toggle('expanded')">
             <div class="tp-session-header">
               <div class="tp-session-order">2</div>
               <div style="flex:1;min-width:0">
@@ -1206,10 +1235,15 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
               <div class="tp-session-exercises">
 
                 <!-- ── SECTION: Rozcvička · Strength ── -->
-                <div style="display:flex;align-items:center;gap:8px;padding:10px 14px 6px 14px;background:var(--ios-bg2);border-bottom:.5px solid var(--ios-sep2)">
-                  <div style="font-size:12px;font-weight:700;color:var(--ios-label);text-transform:uppercase;letter-spacing:.06em">Rozcvička</div>
-                  <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:rgba(0,122,255,.12);color:#007aff;border:1px solid rgba(0,122,255,.3);text-transform:uppercase;letter-spacing:.05em">Strength</span>
-                </div>
+                <div class="tp-section expanded">
+                  <div class="tp-section-header" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.ex-ios-done'))return;this.parentElement.classList.toggle('expanded')" style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--ios-bg2);border-bottom:.5px solid var(--ios-sep2);cursor:pointer">
+                    <div style="font-size:12px;font-weight:700;color:var(--ios-label);text-transform:uppercase;letter-spacing:.06em">Rozcvička</div>
+                    <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:rgba(0,122,255,.12);color:#007aff;border:1px solid rgba(0,122,255,.3);text-transform:uppercase;letter-spacing:.05em">Strength</span>
+                    <div style="flex:1"></div>
+                    <div class="ex-ios-done" onclick="event.stopPropagation();todaySectionCheck(this)"></div>
+                    <span class="tp-section-chev" style="font-size:11px;color:var(--ios-label3);transition:transform .2s">▼</span>
+                  </div>
+                  <div class="tp-section-body">
 
                 <!-- S2 · EX0 Mobilita zad — pending (warm-up) -->
                 <div class="tp-ex-card" onclick="event.stopPropagation();todayExToggle(this)">
@@ -1230,11 +1264,19 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
                   </div>
                 </div>
 
-                <!-- ── SECTION: Hlavní · Strength ── -->
-                <div style="display:flex;align-items:center;gap:8px;padding:10px 14px 6px 14px;background:var(--ios-bg2);border-bottom:.5px solid var(--ios-sep2)">
-                  <div style="font-size:12px;font-weight:700;color:var(--ios-label);text-transform:uppercase;letter-spacing:.06em">Hlavní</div>
-                  <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:rgba(0,122,255,.12);color:#007aff;border:1px solid rgba(0,122,255,.3);text-transform:uppercase;letter-spacing:.05em">Strength</span>
+                  </div>
                 </div>
+
+                <!-- ── SECTION: Hlavní · Strength ── -->
+                <div class="tp-section expanded">
+                  <div class="tp-section-header" onclick="if(event.target.closest('.tp-ex-card')||event.target.closest('.ex-ios-done'))return;this.parentElement.classList.toggle('expanded')" style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--ios-bg2);border-bottom:.5px solid var(--ios-sep2);cursor:pointer">
+                    <div style="font-size:12px;font-weight:700;color:var(--ios-label);text-transform:uppercase;letter-spacing:.06em">Hlavní</div>
+                    <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:rgba(0,122,255,.12);color:#007aff;border:1px solid rgba(0,122,255,.3);text-transform:uppercase;letter-spacing:.05em">Strength</span>
+                    <div style="flex:1"></div>
+                    <div class="ex-ios-done" onclick="event.stopPropagation();todaySectionCheck(this)"></div>
+                    <span class="tp-section-chev" style="font-size:11px;color:var(--ios-label3);transition:transform .2s">▼</span>
+                  </div>
+                  <div class="tp-section-body">
 
                 <!-- S2 · EX1 T-bar přítahy -->
                 <div class="tp-ex-card" onclick="event.stopPropagation();todayExToggle(this)">
@@ -1305,6 +1347,10 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
                     </div>
                   </div>
                 </div>
+
+                  </div>
+                </div>
+
               </div>
             </div>
             <div class="lt-session-cta-footer">
@@ -7968,6 +8014,17 @@ function updateTrainingProgress(cardEl) {
       sessionCheck.classList.toggle('done', allDone);
       sessionCheck.textContent = allDone ? '\u2713' : '';
     }
+    s.querySelectorAll('.tp-section').forEach(function(sec) {
+      var secCards = sec.querySelectorAll('.tp-ex-card');
+      var secTotal = secCards.length;
+      var secDone = sec.querySelectorAll('.tp-ex-card .tp-ex-header .ex-ios-done.done').length;
+      var secCheck = sec.querySelector('.tp-section-header > .ex-ios-done');
+      if (secCheck) {
+        var allDone = secTotal > 0 && secDone === secTotal;
+        secCheck.classList.toggle('done', allDone);
+        secCheck.textContent = allDone ? '\u2713' : '';
+      }
+    });
   });
   var label = cardEl.querySelector('.tp-day-progress-label');
   if (label) label.textContent = done + '/' + total + ' hotovo';
@@ -8004,6 +8061,18 @@ function todaySessionCheck(checkEl) {
     c.textContent = turningOn ? '\u2713' : '';
   });
   updateTrainingProgress(session.closest('#today-training-card'));
+  updateTrainingStatTile();
+}
+
+function todaySectionCheck(checkEl) {
+  var section = checkEl.closest('.tp-section');
+  if (!section) return;
+  var turningOn = !checkEl.classList.contains('done');
+  section.querySelectorAll('.tp-ex-card .tp-ex-header .ex-ios-done').forEach(function(c) {
+    c.classList.toggle('done', turningOn);
+    c.textContent = turningOn ? '\u2713' : '';
+  });
+  updateTrainingProgress(section.closest('#today-training-card'));
   updateTrainingStatTile();
 }
 
