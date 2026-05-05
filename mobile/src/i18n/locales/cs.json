@@ -863,6 +863,52 @@
       "setSkipped": "přeskočeno",
       "preStartReady": "Připravený?",
       "preStartMeta": "{{exercises}} cviky · {{sets}} sérií · ~{{minutes}} min"
+    },
+    "format": {
+      "standard": "Standardní",
+      "emom": "EMOM",
+      "amrap": "AMRAP",
+      "tabata": "Tabata",
+      "forTime": "Na čas"
+    },
+    "movementType": {
+      "reps": "Opakování",
+      "time": "Čas",
+      "distance": "Vzdálenost",
+      "repsForTime": "Opak. na čas"
+    },
+    "wod": {
+      "timeCap": "Časový limit",
+      "timeCapRemaining": "Zbývá {{time}}",
+      "timeCapped": "Čas vypršel!",
+      "interval": "Interval",
+      "rounds": "Kola",
+      "workSeconds": "Práce (s)",
+      "restSeconds": "Odpočinek (s)",
+      "extraReps": "Bonusová opak.",
+      "failedRoundsLabel": "Nesplněná kola",
+      "roundOf": "Kolo {{current}} / {{total}}",
+      "tapToAdd": "klepnutím přidat",
+      "tapToAddRound": "Klepnutím přidat kolo",
+      "repsThisRound": "Opak. v tomto kole",
+      "workPhase": "PRÁCE · {{seconds}} s",
+      "restPhase": "ODPOČINEK · {{seconds}} s",
+      "start": "▶ Start",
+      "resume": "▶ Pokračovat",
+      "pause": "⏸ Pauza",
+      "finish": "DOKONČIT",
+      "finishNow": "Dokončit hned",
+      "saveResult": "✓ Uložit výsledek",
+      "markFailed": "Nesplněno toto kolo",
+      "unmarkFailed": "Vrátit jako splněné",
+      "startTimer": "▶ Spustit časovač",
+      "pauseTimer": "⏸ Pozastavit",
+      "plannedDuration": "Plán: {{seconds}} s",
+      "distanceMeters": "Vzdálenost (m)",
+      "decreaseDistance": "Snížit vzdálenost",
+      "increaseDistance": "Zvýšit vzdálenost",
+      "decreaseReps": "Snížit opakování",
+      "increaseReps": "Zvýšit opakování"
     }
   },
   "muscleGroup": {

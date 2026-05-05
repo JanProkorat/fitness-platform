@@ -637,6 +637,52 @@
       "setSkipped": "skipped",
       "preStartReady": "Ready?",
       "preStartMeta": "{{exercises}} exercises · {{sets}} sets · ~{{minutes}} min"
+    },
+    "format": {
+      "standard": "Standard",
+      "emom": "EMOM",
+      "amrap": "AMRAP",
+      "tabata": "Tabata",
+      "forTime": "For Time"
+    },
+    "movementType": {
+      "reps": "Reps",
+      "time": "Time",
+      "distance": "Distance",
+      "repsForTime": "Reps for Time"
+    },
+    "wod": {
+      "timeCap": "Time Cap",
+      "timeCapRemaining": "{{time}} left",
+      "timeCapped": "Time's up!",
+      "interval": "Interval",
+      "rounds": "Rounds",
+      "workSeconds": "Work (s)",
+      "restSeconds": "Rest (s)",
+      "extraReps": "Extra reps",
+      "failedRoundsLabel": "Failed rounds",
+      "roundOf": "Round {{current}} / {{total}}",
+      "tapToAdd": "tap to add",
+      "tapToAddRound": "Tap to add a round",
+      "repsThisRound": "Reps this round",
+      "workPhase": "WORK · {{seconds}} s",
+      "restPhase": "REST · {{seconds}} s",
+      "start": "▶ Start",
+      "resume": "▶ Resume",
+      "pause": "⏸ Pause",
+      "finish": "FINISH",
+      "finishNow": "Finish now",
+      "saveResult": "✓ Save result",
+      "markFailed": "Mark round failed",
+      "unmarkFailed": "Unmark failed",
+      "startTimer": "▶ Start timer",
+      "pauseTimer": "⏸ Pause",
+      "plannedDuration": "Plan: {{seconds}} s",
+      "distanceMeters": "Distance (m)",
+      "decreaseDistance": "Decrease distance",
+      "increaseDistance": "Increase distance",
+      "decreaseReps": "Decrease reps",
+      "increaseReps": "Increase reps"
     }
   },
   "muscleGroup": {
