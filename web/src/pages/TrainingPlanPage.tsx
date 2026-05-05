@@ -25,6 +25,10 @@ import { SessionDragWrapper } from '@/components/training/SessionDragWrapper';
 import { ExerciseDropZone } from '@/components/training/ExerciseDropZone';
 import { WeekOverviewGrid } from '@/components/training/WeekOverviewGrid';
 import { ExerciseCardHeader } from '@/components/training/ExerciseCardHeader';
+import { SetRow } from '@/components/training/SetRow';
+import { MovementTypePill } from '@/components/training/MovementTypePill';
+import { SessionFormatBar } from '@/components/training/SessionFormatBar';
+import { ExerciseFormatBar } from '@/components/training/ExerciseFormatBar';
 
 export default function TrainingPlanPage() {
   const { planId } = useParams<{ planId: string }>();
@@ -54,6 +58,9 @@ export default function TrainingPlanPage() {
   const updateSessionName = useTrainingPlanStore((s) => s.updateSessionName);
   const updateSessionNotes = useTrainingPlanStore((s) => s.updateSessionNotes);
   const updateExerciseNotes = useTrainingPlanStore((s) => s.updateExerciseNotes);
+  const updateExerciseMovementType = useTrainingPlanStore((s) => s.updateExerciseMovementType);
+  const updateExerciseFormat = useTrainingPlanStore((s) => s.updateExerciseFormat);
+  const updateSessionFormat = useTrainingPlanStore((s) => s.updateSessionFormat);
   // updateExerciseRestSeconds and revert available via useTrainingPlanStore when needed
   const updateDayNote = useTrainingPlanStore((s) => s.updateDayNote);
   const setStartDate = useTrainingPlanStore((s) => s.setStartDate);
@@ -700,6 +707,15 @@ export default function TrainingPlanPage() {
                   {/* Session body — animated collapse */}
                   <div className="collapse-grid" data-open={isSessionOpen}>
                     <div className="collapse-content">
+                      {/* Session format bar */}
+                      <SessionFormatBar
+                        format={session.format}
+                        formatConfig={session.formatConfig}
+                        onFormatChange={(fmt, cfg) =>
+                          updateSessionFormat(selectedWeek, session.sessionId, fmt, cfg)
+                        }
+                      />
+
                       {/* Session note */}
                       <div style={{ padding: '4px 8px 6px' }}>
                         <input
@@ -786,54 +802,70 @@ export default function TrainingPlanPage() {
                             {/* Exercise card body — sets table */}
                             <div className="collapse-grid" data-open={isExOpen}>
                               <div className="collapse-content">
+                                {/* Per-exercise format override */}
+                                <ExerciseFormatBar
+                                  format={ex.format}
+                                  formatConfig={ex.formatConfig}
+                                  sessionFormat={session.format}
+                                  onFormatChange={(fmt, cfg) =>
+                                    updateExerciseFormat(selectedWeek, session.sessionId, exIdx, fmt, cfg)
+                                  }
+                                />
+
                                 <div className="px-3 py-2">
-                                  {/* Sets table header */}
-                                  <div className="grid gap-2 mb-1" style={{ gridTemplateColumns: '28px 1fr 68px 68px 90px 20px' }}>
-                                    <span className="text-[10px] font-medium text-text3 uppercase text-center">#</span>
-                                    <span className="text-[10px] font-medium text-text3 uppercase">{t('training.exerciseLabel')}</span>
-                                    <span className="text-[10px] font-medium text-text3 uppercase text-right">{t('training.weightLabel')}</span>
-                                    <span className="text-[10px] font-medium text-text3 uppercase text-right">{t('training.repsLabel')}</span>
-                                    <span className="text-[10px] font-medium text-text3 uppercase text-right">{t('training.restSecondsLabel')}</span>
-                                    <span />
+                                  {/* MovementType picker + sets table header */}
+                                  <div className="flex items-center justify-between mb-1">
+                                    <MovementTypePill
+                                      value={ex.movementType}
+                                      onChange={(mt) =>
+                                        updateExerciseMovementType(selectedWeek, session.sessionId, exIdx, mt)
+                                      }
+                                    />
+                                    {/* Column header labels — adapt to movementType */}
+                                    <div className="flex items-center gap-2 text-[10px] font-medium text-text3 uppercase">
+                                      {ex.movementType === 'Reps' && (
+                                        <>
+                                          <span className="w-[68px] text-right">{t('training.weightLabel')}</span>
+                                          <span className="w-[68px] text-right">{t('training.repsLabel')}</span>
+                                          <span className="w-[90px] text-right">{t('training.restSecondsLabel')}</span>
+                                        </>
+                                      )}
+                                      {ex.movementType === 'Time' && (
+                                        <>
+                                          <span className="w-[80px] text-right">{t('training.wod.durationLabel')}</span>
+                                          <span className="w-[90px] text-right">{t('training.restSecondsLabel')}</span>
+                                        </>
+                                      )}
+                                      {ex.movementType === 'Distance' && (
+                                        <>
+                                          <span className="w-[80px] text-right">{t('training.wod.distanceLabel')}</span>
+                                          <span className="w-[80px] text-right">{t('training.wod.durationLabel')}</span>
+                                          <span className="w-[90px] text-right">{t('training.restSecondsLabel')}</span>
+                                        </>
+                                      )}
+                                      {ex.movementType === 'RepsForTime' && (
+                                        <>
+                                          <span className="w-[68px] text-right">{t('training.repsLabel')}</span>
+                                          <span className="w-[90px] text-right">{t('training.restSecondsLabel')}</span>
+                                        </>
+                                      )}
+                                      <span className="w-5" />
+                                    </div>
                                   </div>
 
-                                  {/* Set rows */}
+                                  {/* Set rows — extracted to SetRow component */}
                                   {ex.sets.map((s, sIdx) => (
-                                    <div key={sIdx} className="grid gap-2 mb-[2px] group/set" style={{ gridTemplateColumns: '28px 1fr 68px 68px 90px 20px' }}>
-                                      <span className="text-center text-[11px] font-mono text-text4 self-center">{s.setNumber}</span>
-                                      <span className="text-[12px] text-text2 self-center truncate">{ex.exerciseName}</span>
-                                      <input
-                                        type="number" placeholder="--" value={s.weightKg ?? ''}
-                                        onClick={(e) => e.stopPropagation()}
-                                        onChange={(e) => updateSet(selectedWeek, session.sessionId, exIdx, sIdx, { weightKg: e.target.value ? Number(e.target.value) : null })}
-                                        style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: 12, color: 'var(--text)', fontFamily: 'inherit', padding: '2px 6px', borderRadius: 'var(--radius)', textAlign: 'right', transition: 'background 0.1s' }}
-                                        onFocus={(e) => { e.target.style.background = 'var(--bg-active)'; }}
-                                        onBlur={(e) => { e.target.style.background = 'transparent'; }}
-                                      />
-                                      <input
-                                        type="number" placeholder="--" value={s.reps ?? ''}
-                                        onClick={(e) => e.stopPropagation()}
-                                        onChange={(e) => updateSet(selectedWeek, session.sessionId, exIdx, sIdx, { reps: e.target.value ? Number(e.target.value) : null })}
-                                        style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: 12, color: 'var(--text)', fontFamily: 'inherit', padding: '2px 6px', borderRadius: 'var(--radius)', textAlign: 'right', transition: 'background 0.1s' }}
-                                        onFocus={(e) => { e.target.style.background = 'var(--bg-active)'; }}
-                                        onBlur={(e) => { e.target.style.background = 'transparent'; }}
-                                      />
-                                      <input
-                                        type="number" placeholder="--" value={s.restSeconds ?? ''}
-                                        onClick={(e) => e.stopPropagation()}
-                                        onChange={(e) => updateSet(selectedWeek, session.sessionId, exIdx, sIdx, { restSeconds: e.target.value ? Number(e.target.value) : null })}
-                                        style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: 12, color: 'var(--text)', fontFamily: 'inherit', padding: '2px 6px', borderRadius: 'var(--radius)', textAlign: 'right', transition: 'background 0.1s' }}
-                                        onFocus={(e) => { e.target.style.background = 'var(--bg-active)'; }}
-                                        onBlur={(e) => { e.target.style.background = 'transparent'; }}
-                                      />
-                                      <button
-                                        onClick={() => removeSet(selectedWeek, session.sessionId, exIdx, sIdx)}
-                                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 11, color: 'var(--text4)', borderRadius: 'var(--radius)', transition: 'color 0.1s', opacity: 0 }}
-                                        className="group-hover/set:!opacity-100"
-                                        onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--red)'; }}
-                                        onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text4)'; }}
-                                      >✕</button>
-                                    </div>
+                                    <SetRow
+                                      key={sIdx}
+                                      set={s}
+                                      movementType={ex.movementType}
+                                      onUpdate={(updates) =>
+                                        updateSet(selectedWeek, session.sessionId, exIdx, sIdx, updates)
+                                      }
+                                      onRemove={() =>
+                                        removeSet(selectedWeek, session.sessionId, exIdx, sIdx)
+                                      }
+                                    />
                                   ))}
 
                                   {/* Add set */}
