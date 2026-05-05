@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 
 namespace FitnessPlatform.Application.Features.TrainingPlans.UpdateTrainingPlan;
@@ -54,6 +55,16 @@ public class UpdateSessionRequest
     public string? Notes { get; set; }
 
     /// <summary>
+    /// Workout format for this session. Defaults to Standard.
+    /// </summary>
+    public WorkoutFormat Format { get; set; } = WorkoutFormat.Standard;
+
+    /// <summary>
+    /// Format configuration. Required for non-Standard formats; must be null for Standard.
+    /// </summary>
+    public WodConfig? FormatConfig { get; set; }
+
+    /// <summary>
     /// Exercises in this session.
     /// </summary>
     public List<UpdateSessionExerciseRequest> Exercises { get; set; } = [];
@@ -88,6 +99,21 @@ public class UpdateSessionExerciseRequest
     /// Rest time between sets in seconds.
     /// </summary>
     public int? RestSeconds { get; set; }
+
+    /// <summary>
+    /// How performance for this exercise is measured. Defaults to Reps.
+    /// </summary>
+    public MovementType MovementType { get; set; } = MovementType.Reps;
+
+    /// <summary>
+    /// Per-exercise format override. Null means the exercise inherits the session's format.
+    /// </summary>
+    public WorkoutFormat? Format { get; set; }
+
+    /// <summary>
+    /// Per-exercise format configuration. Null when Format is null or Standard.
+    /// </summary>
+    public WodConfig? FormatConfig { get; set; }
 
     /// <summary>
     /// Planned sets for this exercise.
