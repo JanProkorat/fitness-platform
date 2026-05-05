@@ -40,6 +40,10 @@ export interface SessionLike {
 export interface FormOverride {
   reps?: number
   weightKg?: number
+  /** Actual duration for MovementType.Time exercises (seconds). */
+  durationSeconds?: number
+  /** Actual distance for MovementType.Distance exercises (metres). */
+  distanceMeters?: number
 }
 
 export interface LiveSessionState {

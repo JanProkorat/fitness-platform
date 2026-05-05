@@ -45,7 +45,14 @@ import type { UpdateWorkoutRequest } from '@/api/workouts'
 import type { SessionExercise, ExerciseSet, MuscleGroup } from '@/api/training'
 import { getTodaySession } from '@/api/training'
 import { getMuscleGroupColor } from '@/constants/muscleGroups'
-import type { WorkoutFormat, WodConfig, WodResult, MovementType } from '@/api/wod-types'
+import type {
+  WorkoutFormat,
+  WodConfig,
+  WodResult,
+  MovementType,
+  UpdateWorkoutWodRequest,
+  UpdateWodExerciseRequest,
+} from '@/api/wod-types'
 
 import { useLiveSessionStore } from '@/stores/liveSessionStore'
 import { addPendingMutation } from '@/stores/offline'
@@ -833,8 +840,8 @@ export default function WorkoutLogScreen() {
 
   // ── Mutations ──
   const updateMutation = useMutation({
-    mutationFn: ({ logId, req }: { logId: string; req: UpdateWorkoutRequest }) =>
-      updateWorkout(logId, req),
+    mutationFn: ({ logId, req }: { logId: string; req: UpdateWorkoutWodRequest }) =>
+      updateWorkout(logId, req as UpdateWorkoutRequest),
     onError: (_err, vars) => {
       if (!isConnected) {
         addPendingMutation({
@@ -979,36 +986,47 @@ export default function WorkoutLogScreen() {
   // before React re-renders and this callback's closure is rebuilt. Using
   // `getState()` guarantees the PUT body reflects the freshly-marked set
   // instead of the pre-mutation snapshot (which would persist N-1 sets).
-  const buildRequest = useCallback((): UpdateWorkoutRequest => {
+  const buildRequest = useCallback((): UpdateWorkoutWodRequest => {
     const state = useLiveSessionStore.getState()
-    return {
-      exercises: exercises.map((ex) => {
-        const exId = ex.exerciseExternalId ?? ''
-        const doneSetIndices = state.completedSets[exId] ?? []
-        const skippedSetIndices = state.skippedSets[exId] ?? []
-        const sets = (ex.sets ?? []).map((planned, si) => {
-          const override = state.formOverrides[exId]?.[si]
-          const isDone = doneSetIndices.includes(si)
-          const isSkipped = skippedSetIndices.includes(si)
-          // `planned.setNumber` from the plan is already 1-based; fall back to
-          // `si + 1` only when the plan entry doesn't carry it. Previously this
-          // was `(planned.setNumber ?? si) + 1`, which double-incremented
-          // real plan set numbers (1,2,3 → 2,3,4) and left the WorkoutLog
-          // misaligned with the plan.
-          return {
-            setNumber: planned.setNumber ?? si + 1,
-            reps: isDone ? (override?.reps ?? planned.reps) : undefined,
-            weightKg: isDone ? (override?.weightKg ?? planned.weightKg) : undefined,
-            completedAt:
-              isDone || isSkipped ? new Date().toISOString() : undefined,
-          }
-        })
+    const exerciseList: UpdateWodExerciseRequest[] = exercises.map((ex) => {
+      const exId = ex.exerciseExternalId ?? ''
+      const doneSetIndices = state.completedSets[exId] ?? []
+      const skippedSetIndices = state.skippedSets[exId] ?? []
+      const sets = (ex.sets ?? []).map((planned, si) => {
+        const override = state.formOverrides[exId]?.[si]
+        const isDone = doneSetIndices.includes(si)
+        const isSkipped = skippedSetIndices.includes(si)
+        // `planned.setNumber` from the plan is already 1-based; fall back to
+        // `si + 1` only when the plan entry doesn't carry it. Previously this
+        // was `(planned.setNumber ?? si) + 1`, which double-incremented
+        // real plan set numbers (1,2,3 → 2,3,4) and left the WorkoutLog
+        // misaligned with the plan.
         return {
-          exerciseExternalId: exId,
-          exerciseName: ex.exerciseName ?? '',
-          sets,
+          setNumber: planned.setNumber ?? si + 1,
+          reps: isDone ? (override?.reps ?? planned.reps) : undefined,
+          weightKg: isDone ? (override?.weightKg ?? planned.weightKg) : undefined,
+          // Time-movement actuals: durationSeconds replaces the reps slot.
+          durationSeconds: isDone ? (override?.durationSeconds ?? null) : undefined,
+          // Distance-movement actuals: distanceMeters replaces the weightKg slot.
+          distanceMeters: isDone ? (override?.distanceMeters ?? null) : undefined,
+          completedAt:
+            isDone || isSkipped ? new Date().toISOString() : undefined,
         }
-      }),
+      })
+      // Per-exercise WOD result (only present when the exercise has a format override).
+      const exWodResult = state.wodResults[exId] ?? null
+      return {
+        exerciseExternalId: exId,
+        exerciseName: ex.exerciseName ?? '',
+        sets,
+        wodResult: exWodResult ?? undefined,
+      }
+    })
+    // Session-level WOD result (present when the whole session is a WOD format).
+    const sessionWodResult = state.wodResults['__session__'] ?? null
+    return {
+      exercises: exerciseList,
+      wodResult: sessionWodResult ?? undefined,
     }
   }, [exercises])
 
@@ -1450,10 +1468,12 @@ export default function WorkoutLogScreen() {
                     }
                     onSetDone={(durationSeconds, distanceMeters) => {
                       const exId = currentExercise.exerciseExternalId ?? `ex-${currentExerciseIdx}`
-                      // Record actuals — reuse formOverrides shape; duration→reps slot, distance→weight slot
+                      // Record actuals into their dedicated fields so buildRequest()
+                      // can forward them to UpdateWorkoutWodRequest correctly.
                       storeMarkSetDone(exId, currentSetIdx, {
-                        reps: durationSeconds != null ? Math.round(durationSeconds) : undefined,
-                        weightKg: distanceMeters != null ? distanceMeters : undefined,
+                        durationSeconds:
+                          durationSeconds != null ? Math.round(durationSeconds) : undefined,
+                        distanceMeters: distanceMeters != null ? distanceMeters : undefined,
                       })
                       const { nextExIdx, nextSetIdx, isLast } = computeNext(
                         currentExerciseIdx,
