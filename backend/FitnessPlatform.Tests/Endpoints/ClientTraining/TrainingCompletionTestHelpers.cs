@@ -48,13 +48,22 @@ public static class TrainingCompletionTestHelpers
                         DayOfWeek = d,
                         Name = $"Day {d} Session",
                         Order = 1,
-                        Exercises = exIds.Select((id, i) => new SessionExercise
-                        {
-                            ExerciseExternalId = id,
-                            ExerciseName = $"Exercise {i + 1}",
-                            Order = i + 1,
-                            Sets = []
-                        }).ToList()
+                        Sections =
+                        [
+                            new TrainingSection
+                            {
+                                SectionId = Guid.NewGuid(),
+                                Order = 0,
+                                Name = "Hlavní",
+                                Exercises = exIds.Select((id, i) => new SessionExercise
+                                {
+                                    ExerciseExternalId = id,
+                                    ExerciseName = $"Exercise {i + 1}",
+                                    Order = i + 1,
+                                    Sets = []
+                                }).ToList()
+                            }
+                        ]
                     }).ToList()
                 }
             ],

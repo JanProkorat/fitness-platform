@@ -89,6 +89,7 @@ public class MarkExerciseIncompleteEndpoint(
         }
 
         // Validate the exercise exists in the session
+        session.WithBackfilledSections();
         var exerciseExists = session.Exercises.Any(e => e.ExerciseExternalId == req.ExerciseExternalId);
         if (!exerciseExists)
         {
@@ -166,6 +167,7 @@ public class MarkExerciseIncompleteEndpoint(
 
             foreach (var log in matchingLogs)
             {
+                log.WithBackfilledSections();
                 var exerciseEntry = log.Exercises
                     .FirstOrDefault(e => e.ExerciseExternalId == req.ExerciseExternalId);
 

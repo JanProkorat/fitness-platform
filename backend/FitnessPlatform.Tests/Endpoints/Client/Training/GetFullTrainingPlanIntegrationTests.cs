@@ -117,19 +117,28 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                             Name = "Leg Day",
                             Order = 1,
                             Notes = "Focus on depth",
-                            Exercises =
+                            Sections =
                             [
-                                new SessionExercise
+                                new TrainingSection
                                 {
-                                    ExerciseExternalId = squatId,
-                                    ExerciseName = "Squat",
-                                    Order = 1,
-                                    RestSeconds = 120,
-                                    Sets =
+                                    SectionId = Guid.NewGuid(),
+                                    Order = 0,
+                                    Name = "Hlavní",
+                                    Exercises =
                                     [
-                                        new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 8, WeightKg = 100 },
-                                        new ExerciseSet { SetNumber = 2, Type = SetType.Normal, Reps = 8, WeightKg = 100 },
-                                        new ExerciseSet { SetNumber = 3, Type = SetType.Normal, Reps = 8, WeightKg = 100 }
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = squatId,
+                                            ExerciseName = "Squat",
+                                            Order = 1,
+                                            RestSeconds = 120,
+                                            Sets =
+                                            [
+                                                new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 8, WeightKg = 100 },
+                                                new ExerciseSet { SetNumber = 2, Type = SetType.Normal, Reps = 8, WeightKg = 100 },
+                                                new ExerciseSet { SetNumber = 3, Type = SetType.Normal, Reps = 8, WeightKg = 100 }
+                                            ]
+                                        }
                                     ]
                                 }
                             ]
@@ -141,19 +150,28 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                             DayOfWeek = 1,
                             Name = "Push Day",
                             Order = 2,
-                            Exercises =
+                            Sections =
                             [
-                                new SessionExercise
+                                new TrainingSection
                                 {
-                                    ExerciseExternalId = benchId,
-                                    ExerciseName = "Bench Press",
-                                    Order = 1,
-                                    RestSeconds = 90,
-                                    Sets =
+                                    SectionId = Guid.NewGuid(),
+                                    Order = 0,
+                                    Name = "Hlavní",
+                                    Exercises =
                                     [
-                                        new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 10, WeightKg = 80 },
-                                        new ExerciseSet { SetNumber = 2, Type = SetType.Normal, Reps = 10, WeightKg = 80 },
-                                        new ExerciseSet { SetNumber = 3, Type = SetType.Normal, Reps = 10, WeightKg = 80 }
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = benchId,
+                                            ExerciseName = "Bench Press",
+                                            Order = 1,
+                                            RestSeconds = 90,
+                                            Sets =
+                                            [
+                                                new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 10, WeightKg = 80 },
+                                                new ExerciseSet { SetNumber = 2, Type = SetType.Normal, Reps = 10, WeightKg = 80 },
+                                                new ExerciseSet { SetNumber = 3, Type = SetType.Normal, Reps = 10, WeightKg = 80 }
+                                            ]
+                                        }
                                     ]
                                 }
                             ]
@@ -175,18 +193,27 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
             StartedAt = DateTime.UtcNow.AddDays(-6),
             IsCompleted = false,
             DateCreated = DateTime.UtcNow.AddDays(-6),
-            Exercises =
+            Sections =
             [
-                new WorkoutExercise
+                new WorkoutSection
                 {
-                    ExerciseExternalId = squatId,
-                    ExerciseName = "Squat",
-                    Sets =
+                    SectionId = Guid.NewGuid(),
+                    Order = 0,
+                    Name = "Hlavní",
+                    Exercises =
                     [
-                        new WorkoutSet { SetNumber = 1, Reps = 8, WeightKg = 100, CompletedAt = DateTime.UtcNow.AddDays(-6).AddMinutes(5) },
-                        new WorkoutSet { SetNumber = 2, Reps = 8, WeightKg = 100, CompletedAt = DateTime.UtcNow.AddDays(-6).AddMinutes(8) },
-                        // Set 3 not completed
-                        new WorkoutSet { SetNumber = 3, Reps = 0, WeightKg = 100, CompletedAt = null }
+                        new WorkoutExercise
+                        {
+                            ExerciseExternalId = squatId,
+                            ExerciseName = "Squat",
+                            Sets =
+                            [
+                                new WorkoutSet { SetNumber = 1, Reps = 8, WeightKg = 100, CompletedAt = DateTime.UtcNow.AddDays(-6).AddMinutes(5) },
+                                new WorkoutSet { SetNumber = 2, Reps = 8, WeightKg = 100, CompletedAt = DateTime.UtcNow.AddDays(-6).AddMinutes(8) },
+                                // Set 3 not completed
+                                new WorkoutSet { SetNumber = 3, Reps = 0, WeightKg = 100, CompletedAt = null }
+                            ]
+                        }
                     ]
                 }
             ]

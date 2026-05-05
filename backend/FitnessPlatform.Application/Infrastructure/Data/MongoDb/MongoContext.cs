@@ -25,6 +25,7 @@ public class MongoContext : IMongoContext
         TrainingCompletions = database.GetCollection<TrainingCompletion>(MongoCollections.TrainingCompletions);
         PersonalRecords = database.GetCollection<PersonalRecord>(MongoCollections.PersonalRecords);
         DayLogs = database.GetCollection<DayLog>(MongoCollections.DayLogs);
+        SectionTemplates = database.GetCollection<SectionTemplate>(MongoCollections.SectionTemplates);
     }
 
     /// <inheritdoc />
@@ -56,4 +57,7 @@ public class MongoContext : IMongoContext
 
     /// <inheritdoc />
     public IMongoCollection<DayLog> DayLogs { get; }
+
+    /// <inheritdoc />
+    public IMongoCollection<SectionTemplate> SectionTemplates { get; }
 }

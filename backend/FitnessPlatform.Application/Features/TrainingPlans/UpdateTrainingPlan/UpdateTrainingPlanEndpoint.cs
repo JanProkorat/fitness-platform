@@ -142,26 +142,34 @@ public class UpdateTrainingPlanEndpoint(IMongoContext mongo)
                     Notes = rs.Notes?.Trim(),
                     Format = rs.Format,
                     FormatConfig = rs.FormatConfig,
-                    Exercises = rs.Exercises.Select(re => new SessionExercise
+                    Sections = rs.Sections.Select(rsec => new TrainingSection
                     {
-                        ExerciseExternalId = re.ExerciseExternalId,
-                        ExerciseName = re.ExerciseName,
-                        Order = re.Order,
-                        Notes = re.Notes?.Trim(),
-                        RestSeconds = re.RestSeconds,
-                        MovementType = re.MovementType,
-                        Format = re.Format,
-                        FormatConfig = re.FormatConfig,
-                        Sets = re.Sets.Select(rset => new ExerciseSet
+                        SectionId = rsec.SectionId ?? Guid.NewGuid(),
+                        Order = rsec.Order,
+                        Name = rsec.Name,
+                        Format = rsec.Format,
+                        FormatConfig = rsec.FormatConfig,
+                        Exercises = rsec.Exercises.Select(re => new SessionExercise
                         {
-                            SetNumber = rset.SetNumber,
-                            Type = rset.Type,
-                            Reps = rset.Reps,
-                            WeightKg = rset.WeightKg,
-                            DurationSeconds = rset.DurationSeconds,
-                            Rpe = rset.Rpe,
-                            DistanceMeters = rset.DistanceMeters,
-                            RestSeconds = rset.RestSeconds
+                            ExerciseExternalId = re.ExerciseExternalId,
+                            ExerciseName = re.ExerciseName,
+                            Order = re.Order,
+                            Notes = re.Notes?.Trim(),
+                            RestSeconds = re.RestSeconds,
+                            MovementType = re.MovementType,
+                            Format = re.Format,
+                            FormatConfig = re.FormatConfig,
+                            Sets = re.Sets.Select(rset => new ExerciseSet
+                            {
+                                SetNumber = rset.SetNumber,
+                                Type = rset.Type,
+                                Reps = rset.Reps,
+                                WeightKg = rset.WeightKg,
+                                DurationSeconds = rset.DurationSeconds,
+                                Rpe = rset.Rpe,
+                                DistanceMeters = rset.DistanceMeters,
+                                RestSeconds = rset.RestSeconds
+                            }).ToList()
                         }).ToList()
                     }).ToList()
                 }).ToList()

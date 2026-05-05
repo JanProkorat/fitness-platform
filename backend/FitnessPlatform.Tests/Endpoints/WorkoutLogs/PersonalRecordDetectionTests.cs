@@ -243,21 +243,30 @@ public class PersonalRecordDetectionTests(FitnessApiFactory factory)
             IsCompleted = true,
             CompletedAt = DateTime.UtcNow.AddDays(-1).AddHours(1),
             DateCreated = DateTime.UtcNow.AddDays(-1),
-            Exercises =
+            Sections =
             [
-                new WorkoutExercise
+                new WorkoutSection
                 {
-                    ExerciseExternalId = exerciseId,
-                    ExerciseName = "Deadlift",
-                    Sets =
+                    SectionId = Guid.NewGuid(),
+                    Order = 0,
+                    Name = "Hlavní",
+                    Exercises =
                     [
-                        new WorkoutSet
+                        new WorkoutExercise
                         {
-                            SetNumber = 1,
-                            Reps = 5,
-                            WeightKg = 100m,
-                            CompletedAt = DateTime.UtcNow.AddDays(-1).AddMinutes(10),
-                            IsPR = true
+                            ExerciseExternalId = exerciseId,
+                            ExerciseName = "Deadlift",
+                            Sets =
+                            [
+                                new WorkoutSet
+                                {
+                                    SetNumber = 1,
+                                    Reps = 5,
+                                    WeightKg = 100m,
+                                    CompletedAt = DateTime.UtcNow.AddDays(-1).AddMinutes(10),
+                                    IsPR = true
+                                }
+                            ]
                         }
                     ]
                 }

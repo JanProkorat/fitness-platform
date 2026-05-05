@@ -70,6 +70,7 @@ public class UpdateWorkoutEndpoint(
         // ── Snapshot previously-completed sets BEFORE we overwrite them ──────────
         // Key: (exerciseExternalId, setNumber) → true if already completed.
         // Used downstream to determine which sets are *newly* completed this call.
+        log.WithBackfilledSections();
         var previouslyCompleted = log.Exercises
             .SelectMany(e => e.Sets
                 .Where(s => s.CompletedAt.HasValue)
@@ -77,10 +78,12 @@ public class UpdateWorkoutEndpoint(
             .ToHashSet();
 
         // ── Build new exercise list from request ──────────────────────────────────
+        // The UpdateWorkout API accepts a flat exercise list (offline-first protocol).
+        // Exercises are stored inside a single default section named "Hlavní".
         log.Mood = req.Mood;
         log.Notes = req.Notes?.Trim();
         log.WodResult = req.WodResult;
-        log.Exercises = req.Exercises.Select(re => new WorkoutExercise
+        var exercises = req.Exercises.Select(re => new WorkoutExercise
         {
             ExerciseExternalId = re.ExerciseExternalId,
             ExerciseName = re.ExerciseName,
@@ -96,6 +99,24 @@ public class UpdateWorkoutEndpoint(
                 CompletedAt = rs.CompletedAt
             }).ToList()
         }).ToList();
+        // Preserve existing section structure when available; otherwise use a single default section.
+        if (log.Sections.Count == 1)
+        {
+            log.Sections[0].Exercises = exercises;
+        }
+        else
+        {
+            log.Sections =
+            [
+                new WorkoutSection
+                {
+                    SectionId = log.Sections.Count > 0 ? log.Sections[0].SectionId : Guid.NewGuid(),
+                    Order = 0,
+                    Name = "Hlavní",
+                    Exercises = exercises
+                }
+            ];
+        }
         log.DateUpdated = DateTime.UtcNow;
 
         await mongo.WorkoutLogs.ReplaceOneAsync(
@@ -167,14 +188,13 @@ public class UpdateWorkoutEndpoint(
             var exercise = exerciseGroup.First().Exercise;
 
             // ── 1. Historical max from prior COMPLETED workout logs ───────────────
-            // Filter to logs that actually contain this exercise to minimise scan.
+            // Exercises now live inside sections, so ElemMatch on a flat exercises field is not
+            // available. Filter by clientId + isCompleted + not-this-log; exercise lookup is done
+            // in-memory below.
             var priorLogFilter = Builders<WorkoutLog>.Filter.And(
                 Builders<WorkoutLog>.Filter.Eq(w => w.ClientId, clientId),
                 Builders<WorkoutLog>.Filter.Eq(w => w.IsCompleted, true),
-                Builders<WorkoutLog>.Filter.Ne(w => w.ExternalId, log.ExternalId),
-                Builders<WorkoutLog>.Filter.ElemMatch(
-                    w => w.Exercises,
-                    Builders<WorkoutExercise>.Filter.Eq(e => e.ExerciseExternalId, exerciseExternalId)));
+                Builders<WorkoutLog>.Filter.Ne(w => w.ExternalId, log.ExternalId));
 
             using var priorCursor = await mongo.WorkoutLogs.FindAsync(
                 priorLogFilter,
@@ -186,6 +206,7 @@ public class UpdateWorkoutEndpoint(
 
             foreach (var priorLog in priorLogs)
             {
+                priorLog.WithBackfilledSections();
                 var priorEx = priorLog.Exercises
                     .FirstOrDefault(e => e.ExerciseExternalId == exerciseExternalId);
 
