@@ -1,4 +1,6 @@
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using FitnessPlatform.Application.Domain.Enums;
 
 namespace FitnessPlatform.Application.Domain.Documents;
 
@@ -38,6 +40,28 @@ public class SessionExercise
     [BsonElement("restSeconds")]
     [BsonIgnoreIfNull]
     public int? RestSeconds { get; set; }
+
+    /// <summary>
+    /// How performance for this exercise is measured. Defaults to Reps.
+    /// </summary>
+    [BsonElement("movementType")]
+    [BsonRepresentation(BsonType.String)]
+    public MovementType MovementType { get; set; } = MovementType.Reps;
+
+    /// <summary>
+    /// Per-exercise format override. Null means the exercise inherits the session's format.
+    /// </summary>
+    [BsonElement("format")]
+    [BsonIgnoreIfNull]
+    [BsonRepresentation(BsonType.String)]
+    public WorkoutFormat? Format { get; set; }
+
+    /// <summary>
+    /// Per-exercise format configuration. Null when Format is null or Standard.
+    /// </summary>
+    [BsonElement("formatConfig")]
+    [BsonIgnoreIfNull]
+    public WodConfig? FormatConfig { get; set; }
 
     /// <summary>
     /// Planned sets for this exercise.

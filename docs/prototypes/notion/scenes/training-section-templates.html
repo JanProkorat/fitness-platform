@@ -1,0 +1,73 @@
+<div id="s-training-section-templates" class="screen">
+<div class="shell">
+<div class="sb" id="sb-training"></div>
+<div class="main">
+  <div class="bc"><a onclick="showScreen('s-dashboard')">Dashboard</a><span class="bc-sep">/</span><span>Knihovna</span><span class="bc-sep">/</span><span>Šablony sekcí</span></div>
+
+  <div class="ph">
+    <div class="ph-icon">📚</div>
+    <h1>Šablony sekcí</h1>
+    <div class="ph-sub">Předdefinované sekce, které lze vložit do tréninkového plánu jedním klikem.</div>
+  </div>
+
+  <div class="toolbar">
+    <div class="tb-view active" id="tv-table" onclick="switchTemplatesView('table')">⊞ Tabulka</div>
+    <div class="tb-view" id="tv-list" onclick="switchTemplatesView('list')">☰ Seznam</div>
+    <div class="tb-view" id="tv-cards" onclick="switchTemplatesView('cards')">⬜ Karty</div>
+    <div class="tb-sep"></div>
+    <div class="search-wrap" style="width:240px">
+      <span style="color:var(--t3)">🔍</span>
+      <input type="text" id="templates-search" placeholder="Hledat šablonu..." oninput="searchTemplates(this.value)">
+    </div>
+    <select class="form-select" onchange="filterTemplates(this.value)" style="padding:6px 10px;font-size:13px;min-width:160px">
+      <option value="all" selected>Všechny typy</option>
+      <option value="Strength">Strength</option>
+      <option value="Conditioning">Conditioning</option>
+      <option value="AMRAP">AMRAP</option>
+      <option value="EMOM">EMOM</option>
+      <option value="Tabata">Tabata</option>
+      <option value="ForTime">ForTime</option>
+    </select>
+    <div style="margin-left:auto"><button class="btn primary" onclick="openDialog('dlg-section-template')">+ Nová šablona</button></div>
+  </div>
+
+  <div class="pc" style="padding:12px 80px">
+    <div id="templates-table-view">
+      <div class="db-wrap">
+        <table class="db-table">
+          <thead>
+            <tr>
+              <th style="width:30%">Název</th>
+              <th style="width:120px">Typ</th>
+              <th style="width:80px">Cviky</th>
+              <th style="width:100px">Doba</th>
+              <th>Konfigurace</th>
+              <th style="width:80px">Použito</th>
+              <th style="width:44px"></th>
+            </tr>
+          </thead>
+          <tbody id="templates-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="templates-list-view" style="display:none">
+      <div id="templates-list" style="display:flex;flex-direction:column;gap:8px"></div>
+    </div>
+
+    <div id="templates-cards-view" style="display:none">
+      <div class="card-grid" id="templates-cards-grid"></div>
+    </div>
+
+    <div style="margin-top:14px;display:flex;align-items:center;justify-content:space-between;padding:0 4px">
+      <div style="font-size:12px;color:var(--t3)">Zobrazeno <strong style="color:var(--t)">1–8</strong> z 8</div>
+      <div style="display:flex;gap:4px">
+        <button class="btn" style="font-size:12px;padding:4px 10px" disabled>‹</button>
+        <button class="btn primary" style="font-size:12px;padding:4px 10px">1</button>
+        <button class="btn" style="font-size:12px;padding:4px 10px" disabled>›</button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</div>

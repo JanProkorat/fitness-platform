@@ -21,6 +21,7 @@
 
 import { create } from 'zustand'
 import { createMMKV } from 'react-native-mmkv'
+import type { WodResult } from '@/api/wod-types'
 
 const MMKV_KEY = 'session'
 const mmkv = createMMKV({ id: 'mmkv.liveSession' })
@@ -39,6 +40,10 @@ export interface SessionLike {
 export interface FormOverride {
   reps?: number
   weightKg?: number
+  /** Actual duration for MovementType.Time exercises (seconds). */
+  durationSeconds?: number
+  /** Actual distance for MovementType.Distance exercises (metres). */
+  distanceMeters?: number
 }
 
 export interface LiveSessionState {
@@ -70,6 +75,12 @@ export interface LiveSessionState {
    * Populated by markSetDone() when actuals differ from the plan.
    */
   formOverrides: Record<string, Record<number, FormOverride>>
+  /**
+   * WOD outcomes keyed by exerciseExternalId (for per-exercise format overrides)
+   * or by a special sentinel key `__session__` for session-level WODs.
+   * Populated by finalizeWod(); persisted to MMKV.
+   */
+  wodResults: Record<string, WodResult>
 }
 
 interface LiveSessionActions {
@@ -133,6 +144,33 @@ interface LiveSessionActions {
 
   /** Returns true iff activeLogId is set and finishedAt is null. */
   hasActiveSession: () => boolean
+
+  // ── WOD result actions ────────────────────────────────────────────────────
+
+  /**
+   * Increments `roundsCompleted` for the given key by 1.
+   * key = exerciseExternalId for per-exercise WODs, `__session__` for session WODs.
+   */
+  recordRound: (key: string) => void
+
+  /**
+   * Toggles a failed-round marker for the given round number.
+   * If the round is already in failedRounds it is removed; otherwise appended.
+   */
+  markRoundFailed: (key: string, roundNumber: number) => void
+
+  /**
+   * Sets `extraReps` for the given key.
+   * Used by AMRAP at the end of the time cap.
+   */
+  setExtraReps: (key: string, reps: number) => void
+
+  /**
+   * Writes the final WodResult for the given key to the store.
+   * Call at the moment the timer expires or the user taps FINISH.
+   * Persists to MMKV.
+   */
+  finalizeWod: (key: string, result: WodResult) => void
 }
 
 export type LiveSessionStore = LiveSessionState & LiveSessionActions
@@ -153,6 +191,7 @@ const INITIAL_STATE: LiveSessionState = {
   restSeconds: null,
   finishedAt: null,
   formOverrides: {},
+  wodResults: {},
 }
 
 function getPersistedSession(): LiveSessionState {
@@ -301,5 +340,60 @@ export const useLiveSessionStore = create<LiveSessionStore>((set, get) => ({
   hasActiveSession() {
     const { activeLogId, finishedAt } = get()
     return activeLogId !== null && finishedAt === null
+  },
+
+  recordRound(key) {
+    const s = get()
+    const prev = s.wodResults[key] ?? {}
+    const next: LiveSessionState = {
+      ...s,
+      wodResults: {
+        ...s.wodResults,
+        [key]: { ...prev, roundsCompleted: (prev.roundsCompleted ?? 0) + 1 },
+      },
+    }
+    persist(next)
+    set(next)
+  },
+
+  markRoundFailed(key, roundNumber) {
+    const s = get()
+    const prev = s.wodResults[key] ?? {}
+    const existing = prev.failedRounds ?? []
+    const next: LiveSessionState = {
+      ...s,
+      wodResults: {
+        ...s.wodResults,
+        [key]: {
+          ...prev,
+          failedRounds: existing.includes(roundNumber)
+            ? existing.filter((r) => r !== roundNumber)
+            : [...existing, roundNumber].sort((a, b) => a - b),
+        },
+      },
+    }
+    persist(next)
+    set(next)
+  },
+
+  setExtraReps(key, reps) {
+    const s = get()
+    const prev = s.wodResults[key] ?? {}
+    const next: LiveSessionState = {
+      ...s,
+      wodResults: { ...s.wodResults, [key]: { ...prev, extraReps: reps } },
+    }
+    persist(next)
+    set(next)
+  },
+
+  finalizeWod(key, result) {
+    const s = get()
+    const next: LiveSessionState = {
+      ...s,
+      wodResults: { ...s.wodResults, [key]: result },
+    }
+    persist(next)
+    set(next)
   },
 }))

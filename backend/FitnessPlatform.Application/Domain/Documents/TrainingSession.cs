@@ -1,4 +1,6 @@
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using FitnessPlatform.Application.Domain.Enums;
 
 namespace FitnessPlatform.Application.Domain.Documents;
 
@@ -37,6 +39,20 @@ public class TrainingSession
     [BsonElement("notes")]
     [BsonIgnoreIfNull]
     public string? Notes { get; set; }
+
+    /// <summary>
+    /// Workout format for this session. Defaults to Standard (sets-and-reps).
+    /// </summary>
+    [BsonElement("format")]
+    [BsonRepresentation(BsonType.String)]
+    public WorkoutFormat Format { get; set; } = WorkoutFormat.Standard;
+
+    /// <summary>
+    /// Format configuration for non-Standard sessions. Null when Format is Standard.
+    /// </summary>
+    [BsonElement("formatConfig")]
+    [BsonIgnoreIfNull]
+    public WodConfig? FormatConfig { get; set; }
 
     /// <summary>
     /// Exercises in this session.

@@ -140,6 +140,8 @@ public class UpdateTrainingPlanEndpoint(IMongoContext mongo)
                     Name = rs.Name,
                     Order = rs.Order,
                     Notes = rs.Notes?.Trim(),
+                    Format = rs.Format,
+                    FormatConfig = rs.FormatConfig,
                     Exercises = rs.Exercises.Select(re => new SessionExercise
                     {
                         ExerciseExternalId = re.ExerciseExternalId,
@@ -147,6 +149,9 @@ public class UpdateTrainingPlanEndpoint(IMongoContext mongo)
                         Order = re.Order,
                         Notes = re.Notes?.Trim(),
                         RestSeconds = re.RestSeconds,
+                        MovementType = re.MovementType,
+                        Format = re.Format,
+                        FormatConfig = re.FormatConfig,
                         Sets = re.Sets.Select(rset => new ExerciseSet
                         {
                             SetNumber = rset.SetNumber,

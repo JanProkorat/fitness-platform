@@ -984,7 +984,32 @@
     "dayNotePlaceholder": "Day note...",
     "planSubtitle": "Create and manage client's training plan",
     "expandWeekView": "Show week overview",
-    "collapseWeekView": "Hide week overview"
+    "collapseWeekView": "Hide week overview",
+    "format": {
+      "standard": "Standard",
+      "emom": "EMOM",
+      "amrap": "AMRAP",
+      "forTime": "For Time",
+      "tabata": "Tabata",
+      "inherit": "Inherit ({{parent}})"
+    },
+    "movementType": {
+      "reps": "Reps",
+      "time": "Time",
+      "distance": "Distance",
+      "repsForTime": "Reps for Time"
+    },
+    "wod": {
+      "timeCap": "Time cap",
+      "interval": "Interval",
+      "rounds": "Rounds",
+      "workSeconds": "Work",
+      "restSeconds": "Rest",
+      "durationLabel": "Duration (s)",
+      "durationSeconds": "Duration (s)",
+      "distanceLabel": "Distance (m)",
+      "distanceMeters": "Distance (m)"
+    }
   },
   "exercises": {
     "title": "Exercises",

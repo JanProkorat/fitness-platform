@@ -79,10 +79,12 @@ public class UpdateWorkoutEndpoint(
         // ── Build new exercise list from request ──────────────────────────────────
         log.Mood = req.Mood;
         log.Notes = req.Notes?.Trim();
+        log.WodResult = req.WodResult;
         log.Exercises = req.Exercises.Select(re => new WorkoutExercise
         {
             ExerciseExternalId = re.ExerciseExternalId,
             ExerciseName = re.ExerciseName,
+            WodResult = re.WodResult,
             Sets = re.Sets.Select(rs => new WorkoutSet
             {
                 SetNumber = rs.SetNumber,

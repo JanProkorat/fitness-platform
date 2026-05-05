@@ -1,0 +1,427 @@
+<div id="s-training-session-builder" class="screen">
+<div class="shell">
+<div class="sb" id="sb-training"></div>
+<div class="main" style="display:flex;flex-direction:column;overflow:hidden;padding:0">
+
+  <!-- ── Topbar: matches TrainingPlanPage PageHeader ── -->
+  <div style="height:44px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:8px;padding:0 16px;background:var(--bg);flex-shrink:0">
+    <div style="display:flex;align-items:center;gap:8px;min-width:0">
+      <span style="font-size:15px">🏋️</span>
+      <div style="min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--t);line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Silový A/B – Petra Horáková</div>
+        <div style="font-size:11px;color:var(--t3);display:flex;align-items:center;gap:4px">
+          <a style="cursor:pointer;color:var(--t3)" onclick="showScreen('s-dashboard')">Dashboard</a>
+          <span style="color:var(--t4)">/</span>
+          <a style="cursor:pointer;color:var(--t3)" onclick="showScreen('s-client')">Petra Horáková</a>
+          <span style="color:var(--t4)">/</span>
+          <span style="color:var(--t2)">Tréninkový plán</span>
+        </div>
+      </div>
+    </div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:6px">
+      <!-- unsaved indicator -->
+      <span style="font-size:11px;color:var(--acc);display:flex;align-items:center;gap:4px">
+        <span style="width:6px;height:6px;border-radius:50%;background:var(--acc);display:inline-block"></span>
+        Neuložené změny
+      </span>
+      <button class="btn" onclick="showToast('Změny zahozeny')">Zahodit</button>
+      <button class="btn" onclick="showToast('Uloženo')">Uložit</button>
+      <button class="btn" style="color:var(--acc);border-color:var(--acc-br)" onclick="showToast('Plán dokončen')">✓ Dokončit plán</button>
+      <button class="btn primary" onclick="showToast('Týden publikován')">Publikovat</button>
+    </div>
+  </div>
+
+  <!-- ── Tab bar: plan tabs + start date picker + add week ── -->
+  <div style="height:38px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:6px;padding:0 12px;background:var(--bg);flex-shrink:0">
+    <!-- main plan tab (active) -->
+    <div class="tb-view active" style="font-size:12px;padding:4px 12px">Tréninkový plán</div>
+    <div class="tb-view" style="font-size:12px;padding:4px 12px" onclick="showToast('Fotky')">Fotky</div>
+    <div style="flex:1"></div>
+    <!-- start date -->
+    <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--t3)">
+      <span>Začátek:</span>
+      <input type="date" value="2026-05-04" style="padding:3px 7px;border:1px solid var(--br);border-radius:var(--rm);font-size:12px;color:var(--t);background:var(--bg2);outline:none">
+    </div>
+    <button class="btn" style="font-size:12px;padding:4px 10px;margin-left:4px" onclick="showToast('Týden přidán')">+ Přidat týden</button>
+  </div>
+
+  <!-- ── Week tabs ── -->
+  <div style="height:34px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:4px;padding:0 12px;background:var(--bg);flex-shrink:0;overflow-x:auto">
+    <div style="font-size:12px;font-weight:600;padding:4px 12px;border-radius:99px;background:var(--acc-bg);color:var(--acc);border:1px solid var(--acc-br);cursor:pointer;white-space:nowrap">
+      Týden 1 ✓
+    </div>
+    <div style="font-size:12px;padding:4px 12px;border-radius:99px;border:1px solid var(--br);color:var(--t2);cursor:pointer;white-space:nowrap" onclick="showToast('Týden 2')">Týden 2</div>
+    <div style="font-size:12px;padding:4px 12px;border-radius:99px;border:1px solid var(--br);color:var(--t2);cursor:pointer;white-space:nowrap" onclick="showToast('Týden 3')">Týden 3</div>
+  </div>
+
+  <!-- ── Day tabs row (full-width flex, matches TrainingDayTabs) ── -->
+  <div style="display:flex;align-items:stretch;border-bottom:1px solid var(--br);background:var(--bg);flex-shrink:0">
+    <!-- Active day: Po (Monday) -->
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 4px;cursor:pointer;border-bottom:2px solid var(--acc);background:var(--bg)">
+      <div style="font-size:13px;font-weight:700;color:var(--t)">Po</div>
+      <div style="font-size:10px;color:var(--t3);margin-top:1px">1tr · 7cv</div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 4px;cursor:pointer;border-bottom:2px solid transparent" onclick="showToast('Út')">
+      <div style="font-size:13px;font-weight:500;color:var(--t2)">Út</div>
+      <div style="font-size:10px;color:var(--t3);margin-top:1px">1tr · 4cv</div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 4px;cursor:pointer;border-bottom:2px solid transparent" onclick="showToast('St')">
+      <div style="font-size:13px;font-weight:500;color:var(--t2)">St</div>
+      <div style="font-size:10px;color:var(--t4);margin-top:1px">volno</div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 4px;cursor:pointer;border-bottom:2px solid transparent" onclick="showToast('Čt')">
+      <div style="font-size:13px;font-weight:500;color:var(--t2)">Čt</div>
+      <div style="font-size:10px;color:var(--t3);margin-top:1px">1tr · 5cv</div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 4px;cursor:pointer;border-bottom:2px solid transparent" onclick="showToast('Pá')">
+      <div style="font-size:13px;font-weight:500;color:var(--t2)">Pá</div>
+      <div style="font-size:10px;color:var(--t3);margin-top:1px">1tr · 5cv</div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 4px;cursor:pointer;border-bottom:2px solid transparent" onclick="showToast('So')">
+      <div style="font-size:13px;font-weight:500;color:var(--t2)">So</div>
+      <div style="font-size:10px;color:var(--t4);margin-top:1px">volno</div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 4px;cursor:pointer;border-bottom:2px solid transparent" onclick="showToast('Ne')">
+      <div style="font-size:13px;font-weight:500;color:var(--t2)">Ne</div>
+      <div style="font-size:10px;color:var(--t4);margin-top:1px">volno</div>
+    </div>
+    <!-- expand week toggle -->
+    <button type="button" onclick="showToast('Přehled týdne')" style="flex-shrink:0;padding:0 10px;border:none;background:none;cursor:pointer;color:var(--t3);font-family:inherit;font-size:14px;align-self:stretch;border-bottom:2px solid transparent">⊞</button>
+  </div>
+
+  <!-- ── Body: main column + right sidebar ── -->
+  <div style="display:grid;grid-template-columns:1fr 256px;flex:1;overflow:hidden;min-height:0">
+
+    <!-- ──────────────────── MAIN COLUMN ──────────────────── -->
+    <div style="overflow-y:auto;padding:16px 20px;border-right:1px solid var(--br)">
+
+      <!-- Session card: Push A -->
+      <div style="background:var(--bg2);border:1px solid var(--br);border-radius:12px;padding:0;overflow:hidden;margin-bottom:16px">
+
+        <!-- Session header -->
+        <div style="padding:14px 16px 10px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:10px">
+          <span style="color:var(--t4);cursor:grab;font-size:14px;flex-shrink:0">⋮⋮</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:15px;font-weight:600;color:var(--t)">Push A</div>
+            <div style="font-size:12px;color:var(--t3);margin-top:2px">7 cviků · ~55 min</div>
+          </div>
+          <span style="color:var(--t3);cursor:pointer;font-size:16px;padding:0 4px" onclick="showToast('Menu')">⋮</span>
+        </div>
+
+        <!-- ───────────────────────────────────────── -->
+        <!-- SECTION 1: Warm-up · Strength             -->
+        <!-- ───────────────────────────────────────── -->
+        <div style="margin:12px 12px 0;border:1px solid rgba(0,122,255,.2);border-left:3px solid #007aff;border-radius:8px;background:var(--bg);overflow:hidden">
+          <!-- Section header row -->
+          <div style="padding:10px 12px 8px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:8px">
+            <span style="color:var(--t4);cursor:grab;font-size:12px;flex-shrink:0">⋮⋮</span>
+            <input type="text" value="Rozcvička" style="flex:1;border:none;outline:none;background:transparent;font-size:13px;font-weight:600;color:var(--t);min-width:0">
+            <!-- Strength pill: #007aff -->
+            <span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:99px;background:rgba(0,122,255,.1);color:#007aff;border:1px solid rgba(0,122,255,.2);white-space:nowrap;flex-shrink:0;cursor:pointer" onclick="openSectionTypeInfo('Strength')">Strength</span>
+            <button class="btn" style="font-size:11px;padding:2px 8px;flex-shrink:0;color:var(--t3)" onclick="showToast('Uloženo jako šablona')">Uložit jako šablonu</button>
+            <span style="color:var(--t3);cursor:pointer;font-size:14px;padding:0 2px;flex-shrink:0" onclick="showToast('Menu sekce')">⋮</span>
+          </div>
+          <!-- Description row -->
+          <div style="padding:6px 12px 8px;border-bottom:1px solid var(--br)">
+            <input type="text" value="Aktivace ramen + zápěstí, 5 min" style="width:100%;border:none;outline:none;background:transparent;font-size:12px;font-style:italic;color:var(--t2)">
+          </div>
+
+          <!-- Exercise 1: Kruhy ramen (collapsed, Time) -->
+          <div style="border-bottom:1px solid var(--br)">
+            <div style="padding:8px 12px;display:flex;align-items:center;gap:8px">
+              <span style="color:var(--t4);cursor:grab;font-size:12px;flex-shrink:0">⋮⋮</span>
+              <div style="width:4px;height:26px;border-radius:2px;background:#007aff;flex-shrink:0;margin-right:2px"></div>
+              <span style="font-size:13px;color:var(--t3);cursor:pointer;flex-shrink:0" onclick="this.textContent=this.textContent==='▶'?'▼':'▶'">▶</span>
+              <span style="font-size:13px;font-weight:600;color:var(--t);flex:1;min-width:0">Kruhy ramen</span>
+              <span style="font-size:11px;font-weight:500;padding:2px 7px;border-radius:99px;background:var(--bg2);border:1px solid var(--br);color:var(--t3);flex-shrink:0">Ramena</span>
+              <span style="font-size:12px;color:var(--t2);flex-shrink:0">1 × 30 s</span>
+              <span style="color:var(--t4);cursor:pointer;font-size:13px;flex-shrink:0" onclick="showToast('Duplicita')">⧉</span>
+            </div>
+          </div>
+
+          <!-- Exercise 2: Mobility zápěstí (collapsed, Time) -->
+          <div style="border-bottom:1px solid var(--br)">
+            <div style="padding:8px 12px;display:flex;align-items:center;gap:8px">
+              <span style="color:var(--t4);cursor:grab;font-size:12px;flex-shrink:0">⋮⋮</span>
+              <div style="width:4px;height:26px;border-radius:2px;background:#007aff;flex-shrink:0;margin-right:2px"></div>
+              <span style="font-size:13px;color:var(--t3);cursor:pointer;flex-shrink:0">▶</span>
+              <span style="font-size:13px;font-weight:600;color:var(--t);flex:1;min-width:0">Mobility zápěstí</span>
+              <span style="font-size:11px;font-weight:500;padding:2px 7px;border-radius:99px;background:var(--bg2);border:1px solid var(--br);color:var(--t3);flex-shrink:0">Zápěstí</span>
+              <span style="font-size:12px;color:var(--t2);flex-shrink:0">1 × 30 s</span>
+              <span style="color:var(--t4);cursor:pointer;font-size:13px;flex-shrink:0" onclick="showToast('Duplicita')">⧉</span>
+            </div>
+          </div>
+
+          <!-- + Add exercise -->
+          <div style="padding:8px 12px">
+            <button class="btn" style="font-size:12px;color:var(--t3)" onclick="showToast('Přidat cvik')">+ Přidat cvik</button>
+          </div>
+        </div>
+        <!-- /Section 1 -->
+
+        <!-- ───────────────────────────────────────── -->
+        <!-- SECTION 2: Hlavní · AMRAP 12 min          -->
+        <!-- ───────────────────────────────────────── -->
+        <div style="margin:10px 12px 0;border:1px solid rgba(201,168,76,.3);border-left:3px solid var(--acc);border-radius:8px;background:var(--bg);overflow:hidden">
+          <!-- Section header row -->
+          <div style="padding:10px 12px 8px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:8px">
+            <span style="color:var(--t4);cursor:grab;font-size:12px;flex-shrink:0">⋮⋮</span>
+            <input type="text" value="Hlavní WOD" style="flex:1;border:none;outline:none;background:transparent;font-size:13px;font-weight:600;color:var(--t);min-width:0">
+            <!-- AMRAP gold pill: var(--acc) -->
+            <span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:99px;background:var(--acc-bg);color:var(--acc);border:1px solid var(--acc-br);white-space:nowrap;flex-shrink:0;cursor:pointer" onclick="openSectionTypeInfo('AMRAP')">AMRAP</span>
+            <button class="btn" style="font-size:11px;padding:2px 8px;flex-shrink:0;color:var(--t3)" onclick="showToast('Uloženo jako šablona')">Uložit jako šablonu</button>
+            <span style="color:var(--t3);cursor:pointer;font-size:14px;padding:0 2px;flex-shrink:0" onclick="showToast('Menu sekce')">⋮</span>
+          </div>
+          <!-- Description row -->
+          <div style="padding:6px 12px 8px;border-bottom:1px solid var(--br)">
+            <input type="text" value="Cardio + síla. Drž tempo, neztrácej formu." style="width:100%;border:none;outline:none;background:transparent;font-size:12px;font-style:italic;color:var(--t2)">
+          </div>
+          <!-- Format config row (AMRAP specific) -->
+          <div style="padding:8px 12px;border-bottom:1px solid var(--br);display:flex;gap:16px;align-items:center;background:var(--bga)">
+            <div style="display:flex;align-items:center;gap:6px">
+              <label style="font-size:11px;color:var(--t3);font-weight:500;white-space:nowrap">Časový limit</label>
+              <input type="number" value="12" style="width:52px;padding:3px 7px;border:1px solid var(--br);border-radius:var(--rm);font-size:13px;font-weight:600;color:var(--t);background:var(--bg)">
+              <span style="font-size:11px;color:var(--t3)">min</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <label style="font-size:11px;color:var(--t3);font-weight:500;white-space:nowrap">Počet kol (0=neom.)</label>
+              <input type="number" value="0" style="width:52px;padding:3px 7px;border:1px solid var(--br);border-radius:var(--rm);font-size:13px;font-weight:600;color:var(--t);background:var(--bg)">
+            </div>
+          </div>
+
+          <!-- Exercise 1: Pull-ups (EXPANDED, Reps) -->
+          <div style="border-bottom:1px solid var(--br)">
+            <!-- Exercise header row -->
+            <div style="padding:8px 12px;display:flex;align-items:center;gap:8px">
+              <span style="color:var(--t4);cursor:grab;font-size:12px;flex-shrink:0">⋮⋮</span>
+              <div style="width:4px;height:26px;border-radius:2px;background:var(--acc);flex-shrink:0;margin-right:2px"></div>
+              <span style="font-size:13px;color:var(--t3);cursor:pointer;flex-shrink:0">▼</span>
+              <span style="font-size:13px;font-weight:600;color:var(--t);flex:1;min-width:0">Pull-ups</span>
+              <span style="font-size:11px;font-weight:500;padding:2px 7px;border-radius:99px;background:var(--bg2);border:1px solid var(--br);color:var(--t3);flex-shrink:0">Záda</span>
+              <span style="font-size:12px;color:var(--t2);flex-shrink:0">1 × 5 opak.</span>
+              <span style="color:var(--t4);cursor:pointer;font-size:13px;flex-shrink:0" onclick="showToast('Duplicita')">⧉</span>
+            </div>
+            <!-- Set table (EXPANDED) -->
+            <div style="padding:4px 16px 10px 36px;background:var(--bga)">
+              <div style="display:grid;grid-template-columns:28px 1fr 80px 80px 80px 28px;gap:0;font-size:11px;font-weight:600;color:var(--t3);padding:4px 0 4px;border-bottom:1px solid var(--br)">
+                <span>#</span>
+                <span>Cvik</span>
+                <span>Váha (kg)</span>
+                <span>Opakování</span>
+                <span>Pauza (s)</span>
+                <span></span>
+              </div>
+              <div style="display:grid;grid-template-columns:28px 1fr 80px 80px 80px 28px;gap:0;font-size:12px;align-items:center;padding:5px 0;border-bottom:1px solid var(--br)">
+                <span style="color:var(--t3)">1</span>
+                <span style="color:var(--t2)">Pull-ups</span>
+                <input type="text" value="—" style="border:none;outline:none;background:transparent;font-size:12px;color:var(--t);width:100%">
+                <input type="number" value="5" style="border:none;outline:none;background:transparent;font-size:12px;font-weight:600;color:var(--t);width:100%">
+                <input type="number" value="60" style="border:none;outline:none;background:transparent;font-size:12px;color:var(--t);width:100%">
+                <span style="color:var(--t4);cursor:pointer;font-size:12px" onclick="showToast('Série smazána')">✕</span>
+              </div>
+              <button class="btn" style="font-size:11px;margin-top:6px;color:var(--t3)" onclick="showToast('Série přidána')">+ Série</button>
+            </div>
+          </div>
+
+          <!-- Exercise 2: Push-ups (collapsed, Reps) -->
+          <div style="border-bottom:1px solid var(--br)">
+            <div style="padding:8px 12px;display:flex;align-items:center;gap:8px">
+              <span style="color:var(--t4);cursor:grab;font-size:12px;flex-shrink:0">⋮⋮</span>
+              <div style="width:4px;height:26px;border-radius:2px;background:var(--acc);flex-shrink:0;margin-right:2px"></div>
+              <span style="font-size:13px;color:var(--t3);cursor:pointer;flex-shrink:0">▶</span>
+              <span style="font-size:13px;font-weight:600;color:var(--t);flex:1;min-width:0">Push-ups</span>
+              <span style="font-size:11px;font-weight:500;padding:2px 7px;border-radius:99px;background:var(--bg2);border:1px solid var(--br);color:var(--t3);flex-shrink:0">Hrudník</span>
+              <span style="font-size:12px;color:var(--t2);flex-shrink:0">1 × 10 opak.</span>
+              <span style="color:var(--t4);cursor:pointer;font-size:13px;flex-shrink:0" onclick="showToast('Duplicita')">⧉</span>
+            </div>
+          </div>
+
+          <!-- Exercise 3: Sit-ups (collapsed, Reps) -->
+          <div style="border-bottom:1px solid var(--br)">
+            <div style="padding:8px 12px;display:flex;align-items:center;gap:8px">
+              <span style="color:var(--t4);cursor:grab;font-size:12px;flex-shrink:0">⋮⋮</span>
+              <div style="width:4px;height:26px;border-radius:2px;background:var(--acc);flex-shrink:0;margin-right:2px"></div>
+              <span style="font-size:13px;color:var(--t3);cursor:pointer;flex-shrink:0">▶</span>
+              <span style="font-size:13px;font-weight:600;color:var(--t);flex:1;min-width:0">Sit-ups</span>
+              <span style="font-size:11px;font-weight:500;padding:2px 7px;border-radius:99px;background:var(--bg2);border:1px solid var(--br);color:var(--t3);flex-shrink:0">Břicho</span>
+              <span style="font-size:12px;color:var(--t2);flex-shrink:0">1 × 15 opak.</span>
+              <span style="color:var(--t4);cursor:pointer;font-size:13px;flex-shrink:0" onclick="showToast('Duplicita')">⧉</span>
+            </div>
+          </div>
+
+          <!-- + Add exercise -->
+          <div style="padding:8px 12px">
+            <button class="btn" style="font-size:12px;color:var(--t3)" onclick="showToast('Přidat cvik')">+ Přidat cvik</button>
+          </div>
+        </div>
+        <!-- /Section 2 -->
+
+        <!-- ───────────────────────────────────────── -->
+        <!-- SECTION 3: Cooldown · Conditioning        -->
+        <!-- ───────────────────────────────────────── -->
+        <div style="margin:10px 12px 12px;border:1px solid rgba(52,199,89,.2);border-left:3px solid #34c759;border-radius:8px;background:var(--bg);overflow:hidden">
+          <!-- Section header row -->
+          <div style="padding:10px 12px 8px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:8px">
+            <span style="color:var(--t4);cursor:grab;font-size:12px;flex-shrink:0">⋮⋮</span>
+            <input type="text" value="Strečink + chůze" style="flex:1;border:none;outline:none;background:transparent;font-size:13px;font-weight:600;color:var(--t);min-width:0">
+            <!-- Conditioning green pill: #34c759 -->
+            <span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:99px;background:rgba(52,199,89,.1);color:#34c759;border:1px solid rgba(52,199,89,.2);white-space:nowrap;flex-shrink:0;cursor:pointer" onclick="openSectionTypeInfo('Conditioning')">Conditioning</span>
+            <button class="btn" style="font-size:11px;padding:2px 8px;flex-shrink:0;color:var(--t3)" onclick="showToast('Uloženo jako šablona')">Uložit jako šablonu</button>
+            <span style="color:var(--t3);cursor:pointer;font-size:14px;padding:0 2px;flex-shrink:0" onclick="showToast('Menu sekce')">⋮</span>
+          </div>
+          <!-- Description row -->
+          <div style="padding:6px 12px 8px;border-bottom:1px solid var(--br)">
+            <input type="text" value="Klidná dechová obnova" style="width:100%;border:none;outline:none;background:transparent;font-size:12px;font-style:italic;color:var(--t2)">
+          </div>
+
+          <!-- Exercise 1: Chůze (collapsed, Time) -->
+          <div style="border-bottom:1px solid var(--br)">
+            <div style="padding:8px 12px;display:flex;align-items:center;gap:8px">
+              <span style="color:var(--t4);cursor:grab;font-size:12px;flex-shrink:0">⋮⋮</span>
+              <div style="width:4px;height:26px;border-radius:2px;background:#34c759;flex-shrink:0;margin-right:2px"></div>
+              <span style="font-size:13px;color:var(--t3);cursor:pointer;flex-shrink:0">▶</span>
+              <span style="font-size:13px;font-weight:600;color:var(--t);flex:1;min-width:0">Chůze</span>
+              <span style="font-size:11px;font-weight:500;padding:2px 7px;border-radius:99px;background:var(--bg2);border:1px solid var(--br);color:var(--t3);flex-shrink:0">Kardio</span>
+              <span style="font-size:12px;color:var(--t2);flex-shrink:0">1 × 5:00</span>
+              <span style="color:var(--t4);cursor:pointer;font-size:13px;flex-shrink:0" onclick="showToast('Duplicita')">⧉</span>
+            </div>
+          </div>
+
+          <!-- Exercise 2: Strečink hrudníku (collapsed, Time) -->
+          <div style="border-bottom:1px solid var(--br)">
+            <div style="padding:8px 12px;display:flex;align-items:center;gap:8px">
+              <span style="color:var(--t4);cursor:grab;font-size:12px;flex-shrink:0">⋮⋮</span>
+              <div style="width:4px;height:26px;border-radius:2px;background:#34c759;flex-shrink:0;margin-right:2px"></div>
+              <span style="font-size:13px;color:var(--t3);cursor:pointer;flex-shrink:0">▶</span>
+              <span style="font-size:13px;font-weight:600;color:var(--t);flex:1;min-width:0">Strečink hrudníku</span>
+              <span style="font-size:11px;font-weight:500;padding:2px 7px;border-radius:99px;background:var(--bg2);border:1px solid var(--br);color:var(--t3);flex-shrink:0">Hrudník</span>
+              <span style="font-size:12px;color:var(--t2);flex-shrink:0">1 × 60 s</span>
+              <span style="color:var(--t4);cursor:pointer;font-size:13px;flex-shrink:0" onclick="showToast('Duplicita')">⧉</span>
+            </div>
+          </div>
+
+          <!-- + Add exercise -->
+          <div style="padding:8px 12px">
+            <button class="btn" style="font-size:12px;color:var(--t3)" onclick="showToast('Přidat cvik')">+ Přidat cvik</button>
+          </div>
+        </div>
+        <!-- /Section 3 -->
+
+        <!-- ── + Add Section split button ── -->
+        <div style="padding:0 12px 14px">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+            <button class="btn primary" style="font-size:12px;padding:5px 12px" onclick="showToast('Šablona sekce vložena')">+ Přidat sekci ze šablony</button>
+            <button class="btn" style="font-size:12px;padding:5px 12px" onclick="showToast('Nová prázdná sekce přidána')">+ Vytvořit novou sekci</button>
+          </div>
+          <!-- Template chip strip -->
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+            <span style="font-size:11px;color:var(--t3);flex-shrink:0">Šablony:</span>
+            <span style="font-size:11px;font-weight:500;padding:2px 9px;border-radius:99px;background:var(--acc-bg);border:1px solid var(--acc-br);color:var(--acc);cursor:pointer" onclick="showToast('Pull-Up Tabata vložena')">Pull-Up Tabata</span>
+            <span style="font-size:11px;font-weight:500;padding:2px 9px;border-radius:99px;background:var(--acc-bg);border:1px solid var(--acc-br);color:var(--acc);cursor:pointer" onclick="showToast('5×5 Squats Strength vložena')">5×5 Squats Strength</span>
+            <span style="font-size:11px;font-weight:500;padding:2px 9px;border-radius:99px;background:var(--acc-bg);border:1px solid var(--acc-br);color:var(--acc);cursor:pointer" onclick="showToast('12-min AMRAP vložena')">12-min AMRAP — Push</span>
+            <span style="font-size:11px;color:var(--t3);cursor:pointer">···</span>
+          </div>
+        </div>
+
+      </div>
+      <!-- /Session card: Push A -->
+
+      <!-- Add session button -->
+      <div onclick="showToast('Nový trénink přidán')" style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border:1px dashed var(--br);border-radius:var(--rm);background:none;cursor:pointer;color:var(--t3);font-size:13px" onmouseover="this.style.color='var(--t)';this.style.borderColor='var(--brm)'" onmouseout="this.style.color='var(--t3)';this.style.borderColor='var(--br)'">
+        <span>+</span><span>Přidat trénink</span>
+      </div>
+
+    </div>
+    <!-- /MAIN COLUMN -->
+
+    <!-- ──────────────────── RIGHT SIDEBAR (256px) ──────────────────── -->
+    <div style="background:var(--bg2);display:flex;flex-direction:column;overflow-y:auto">
+
+      <!-- Volume stats card -->
+      <div style="padding:14px 14px 10px;border-bottom:1px solid var(--br)">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:8px">Objem</div>
+        <div style="font-size:32px;font-weight:700;color:var(--t);line-height:1">13</div>
+        <div style="font-size:11px;color:var(--t3);margin-top:2px;margin-bottom:10px">Celkové série</div>
+        <div style="display:flex;gap:10px;font-size:12px;color:var(--t2)">
+          <span>Cviky <strong style="color:var(--t)">7</strong></span>
+          <span>·</span>
+          <span>Objem <strong style="color:var(--t)">~1,2 t</strong></span>
+        </div>
+      </div>
+
+      <!-- Muscle groups breakdown -->
+      <div style="padding:14px;border-bottom:1px solid var(--br)">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:10px">Svalové skupiny</div>
+
+        <!-- Hrudník -->
+        <div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+            <span style="color:var(--t)">Hrudník</span>
+            <span style="color:var(--t3)">4 série</span>
+          </div>
+          <div style="height:5px;background:var(--bg3);border-radius:99px;overflow:hidden">
+            <div style="width:80%;height:100%;border-radius:99px;background:#007aff"></div>
+          </div>
+        </div>
+
+        <!-- Záda -->
+        <div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+            <span style="color:var(--t)">Záda</span>
+            <span style="color:var(--t3)">3 série</span>
+          </div>
+          <div style="height:5px;background:var(--bg3);border-radius:99px;overflow:hidden">
+            <div style="width:60%;height:100%;border-radius:99px;background:#34c759"></div>
+          </div>
+        </div>
+
+        <!-- Ramena -->
+        <div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+            <span style="color:var(--t)">Ramena</span>
+            <span style="color:var(--t3)">2 série</span>
+          </div>
+          <div style="height:5px;background:var(--bg3);border-radius:99px;overflow:hidden">
+            <div style="width:40%;height:100%;border-radius:99px;background:var(--acc)"></div>
+          </div>
+        </div>
+
+        <!-- Triceps -->
+        <div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+            <span style="color:var(--t)">Triceps</span>
+            <span style="color:var(--t3)">2 série</span>
+          </div>
+          <div style="height:5px;background:var(--bg3);border-radius:99px;overflow:hidden">
+            <div style="width:40%;height:100%;border-radius:99px;background:#ff9f0a"></div>
+            <!-- #ff9f0a = ForTime/orange palette anchor -->
+          </div>
+        </div>
+
+        <!-- Břicho -->
+        <div style="margin-bottom:0">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+            <span style="color:var(--t)">Břicho</span>
+            <span style="color:var(--t3)">2 série</span>
+          </div>
+          <div style="height:5px;background:var(--bg3);border-radius:99px;overflow:hidden">
+            <div style="width:40%;height:100%;border-radius:99px;background:#af52de"></div>
+            <!-- #af52de = EMOM palette anchor -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Publish button -->
+      <div style="padding:12px">
+        <button class="btn primary" style="width:100%;justify-content:center;font-size:13px;padding:9px 0" onclick="showToast('Týden publikován')">Publikovat týden</button>
+      </div>
+
+    </div>
+    <!-- /RIGHT SIDEBAR -->
+
+  </div>
+  <!-- /Body grid -->
+
+</div>
+</div>
+</div>

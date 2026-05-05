@@ -983,7 +983,32 @@
     "dayNotePlaceholder": "Tagesnotiz...",
     "planSubtitle": "Trainingsplan des Klienten erstellen und verwalten",
     "expandWeekView": "Wochenübersicht anzeigen",
-    "collapseWeekView": "Wochenübersicht ausblenden"
+    "collapseWeekView": "Wochenübersicht ausblenden",
+    "format": {
+      "standard": "Standard",
+      "emom": "EMOM",
+      "amrap": "AMRAP",
+      "forTime": "Auf Zeit",
+      "tabata": "Tabata",
+      "inherit": "Erben ({{parent}})"
+    },
+    "movementType": {
+      "reps": "Wiederholungen",
+      "time": "Zeit",
+      "distance": "Distanz",
+      "repsForTime": "Wiederholungen auf Zeit"
+    },
+    "wod": {
+      "timeCap": "Zeitlimit",
+      "interval": "Intervall",
+      "rounds": "Runden",
+      "workSeconds": "Arbeit",
+      "restSeconds": "Pause",
+      "durationLabel": "Dauer (s)",
+      "durationSeconds": "Dauer (s)",
+      "distanceLabel": "Distanz (m)",
+      "distanceMeters": "Distanz (m)"
+    }
   },
   "exercises": {
     "title": "Übungen",

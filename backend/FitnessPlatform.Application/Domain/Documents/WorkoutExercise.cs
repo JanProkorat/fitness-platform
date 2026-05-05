@@ -20,6 +20,14 @@ public class WorkoutExercise
     public string ExerciseName { get; set; } = string.Empty;
 
     /// <summary>
+    /// WOD format result for this individual exercise.
+    /// Null for Standard exercises or when not yet recorded.
+    /// </summary>
+    [BsonElement("wodResult")]
+    [BsonIgnoreIfNull]
+    public WodResult? WodResult { get; set; }
+
+    /// <summary>
     /// Actual sets performed.
     /// </summary>
     [BsonElement("sets")]

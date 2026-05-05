@@ -12,6 +12,7 @@ import type {
   MarkWholeDayCompleteResponse,
   SessionCompletionSummary,
 } from './generated';
+import type { WodResult } from './wod-types';
 
 // Re-export generated request/response types so consumer imports
 // (`from '@/api/trainingCompletion'`) continue to work unchanged.
@@ -28,6 +29,9 @@ export type {
   MarkWholeDayCompleteResponse,
   SessionCompletionSummary,
 };
+
+// Re-export WodResult so callers can type-narrow their completion payloads.
+export type { WodResult };
 
 // ─── API calls ───────────────────────────────────────────────────────────────
 

@@ -835,6 +835,52 @@
       "setSkipped": "übersprungen",
       "preStartReady": "Bereit?",
       "preStartMeta": "{{exercises}} Übungen · {{sets}} Sätze · ~{{minutes}} Min"
+    },
+    "format": {
+      "standard": "Standard",
+      "emom": "EMOM",
+      "amrap": "AMRAP",
+      "tabata": "Tabata",
+      "forTime": "Auf Zeit"
+    },
+    "movementType": {
+      "reps": "Wiederholungen",
+      "time": "Zeit",
+      "distance": "Distanz",
+      "repsForTime": "Wdh. auf Zeit"
+    },
+    "wod": {
+      "timeCap": "Zeitlimit",
+      "timeCapRemaining": "Noch {{time}}",
+      "timeCapped": "Zeit abgelaufen!",
+      "interval": "Intervall",
+      "rounds": "Runden",
+      "workSeconds": "Arbeit (s)",
+      "restSeconds": "Pause (s)",
+      "extraReps": "Bonus-Wdh.",
+      "failedRoundsLabel": "Fehlgeschlagene Runden",
+      "roundOf": "Runde {{current}} / {{total}}",
+      "tapToAdd": "tippen zum Hinzufügen",
+      "tapToAddRound": "Tippen um Runde hinzuzufügen",
+      "repsThisRound": "Wdh. in dieser Runde",
+      "workPhase": "ARBEIT · {{seconds}} s",
+      "restPhase": "PAUSE · {{seconds}} s",
+      "start": "▶ Start",
+      "resume": "▶ Weiter",
+      "pause": "⏸ Pause",
+      "finish": "FERTIG",
+      "finishNow": "Jetzt beenden",
+      "saveResult": "✓ Ergebnis speichern",
+      "markFailed": "Runde als fehlgeschlagen markieren",
+      "unmarkFailed": "Als erfüllt markieren",
+      "startTimer": "▶ Timer starten",
+      "pauseTimer": "⏸ Anhalten",
+      "plannedDuration": "Plan: {{seconds}} s",
+      "distanceMeters": "Distanz (m)",
+      "decreaseDistance": "Distanz verringern",
+      "increaseDistance": "Distanz erhöhen",
+      "decreaseReps": "Wdh. verringern",
+      "increaseReps": "Wdh. erhöhen"
     }
   },
   "muscleGroup": {
