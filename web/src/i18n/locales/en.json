@@ -1032,7 +1032,9 @@
       "tabataWork": "Work (s)",
       "tabataRest": "Rest (s)",
       "tabataRounds": "Rounds",
-      "fortimeTimeCap": "Time cap (min)"
+      "fortimeTimeCap": "Time cap (min)",
+      "collapse": "Collapse section",
+      "expand": "Expand section"
     },
     "template": {
       "pageTitle": "Section Templates",
