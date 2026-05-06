@@ -76,20 +76,32 @@ public class GetTrainingPlanResponse
     /// <summary>
     /// Maps a <see cref="TrainingPlan"/> document to a detailed response DTO.
     /// </summary>
-    public static GetTrainingPlanResponse FromDocument(TrainingPlan plan) => new()
+    public static GetTrainingPlanResponse FromDocument(TrainingPlan plan)
     {
-        PlanId = plan.ExternalId,
-        ClientId = plan.ClientId,
-        TrainerId = plan.TrainerId,
-        Name = plan.Name,
-        Description = plan.Description,
-        Status = plan.Status.ToString(),
-        Weeks = plan.Weeks,
-        Version = plan.Version,
-        DateCreated = plan.DateCreated,
-        DateUpdated = plan.DateUpdated,
-        StartDate = plan.StartDate,
-        DateCompleted = plan.DateCompleted,
-        QuestionnaireResponseId = plan.QuestionnaireResponseId
-    };
+        // Schema-on-read: materialize legacy flat exercises into a default "Hlavní" section.
+        foreach (var week in plan.Weeks)
+        {
+            foreach (var session in week.Sessions)
+            {
+                session.WithBackfilledSections();
+            }
+        }
+
+        return new GetTrainingPlanResponse
+        {
+            PlanId = plan.ExternalId,
+            ClientId = plan.ClientId,
+            TrainerId = plan.TrainerId,
+            Name = plan.Name,
+            Description = plan.Description,
+            Status = plan.Status.ToString(),
+            Weeks = plan.Weeks,
+            Version = plan.Version,
+            DateCreated = plan.DateCreated,
+            DateUpdated = plan.DateUpdated,
+            StartDate = plan.StartDate,
+            DateCompleted = plan.DateCompleted,
+            QuestionnaireResponseId = plan.QuestionnaireResponseId
+        };
+    }
 }
