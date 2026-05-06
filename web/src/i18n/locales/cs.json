@@ -1031,7 +1031,9 @@
       "tabataWork": "Práce (s)",
       "tabataRest": "Pauza (s)",
       "tabataRounds": "Počet kol",
-      "fortimeTimeCap": "Časový limit (min)"
+      "fortimeTimeCap": "Časový limit (min)",
+      "collapse": "Sbalit sekci",
+      "expand": "Rozbalit sekci"
     },
     "template": {
       "pageTitle": "Šablony sekcí",

@@ -1031,7 +1031,9 @@
       "tabataWork": "Arbeit (s)",
       "tabataRest": "Pause (s)",
       "tabataRounds": "Runden",
-      "fortimeTimeCap": "Zeitlimit (min)"
+      "fortimeTimeCap": "Zeitlimit (min)",
+      "collapse": "Abschnitt zuklappen",
+      "expand": "Abschnitt aufklappen"
     },
     "template": {
       "pageTitle": "Abschnittsvorlagen",
