@@ -9,27 +9,23 @@ import { MovementTypePill } from '@/components/training/MovementTypePill';
 import { ExerciseFormatBar } from '@/components/training/ExerciseFormatBar';
 import { SectionFormatPill } from '@/components/training/SectionFormatPill';
 import { SectionFormatConfigRow } from '@/components/training/SectionFormatConfigRow';
+import { Button } from '@/components/ui';
 import { cn } from '@/lib/cn';
 import { MUSCLE_COLORS, MUSCLE_ICONS } from '@/constants/training';
 import type { ExerciseSet } from '@/api/training-plan-types';
 
-// Map workout format to a Tailwind left-border color class.
-// Uses Tailwind palette classes only — no hex literals.
-function formatBorderClass(format: WorkoutFormat): string {
-  switch (format) {
-    case 'AMRAP':
-      return 'border-l-blue-500';
-    case 'EMOM':
-      return 'border-l-amber-500';
-    case 'Tabata':
-      return 'border-l-purple-500';
-    case 'ForTime':
-      return 'border-l-green-500';
-    default:
-      // Standard — neutral left border color
-      return 'border-l-border';
-  }
-}
+/**
+ * Left accent bar — Tailwind border-l color classes per format.
+ * Applied as `border-l-[3px]` on the card root.
+ * Palette only — no hex literals.
+ */
+const FORMAT_BAR_CLASSES: Record<WorkoutFormat, string> = {
+  Standard: 'border-l-gray-300',
+  AMRAP:    'border-l-amber-500',
+  EMOM:     'border-l-purple-500',
+  Tabata:   'border-l-pink-500',
+  ForTime:  'border-l-orange-500',
+};
 
 interface SectionCardCallbacks {
   onUpdate: (patch: Partial<Pick<TrainingSection, 'name' | 'format' | 'formatConfig' | 'notes'>>) => void;
@@ -91,8 +87,9 @@ export function SectionCard({
     <div
       className={cn(
         'rounded-md border border-border bg-bg mb-2 overflow-hidden',
+        // Left accent bar — 3px colored left border, format-specific color
         'border-l-[3px]',
-        formatBorderClass(section.format),
+        FORMAT_BAR_CLASSES[section.format],
       )}
     >
       {/* ── Section header row ── */}
@@ -123,14 +120,15 @@ export function SectionCard({
         />
 
         {/* Save as template */}
-        <button
+        <Button
           type="button"
+          variant="default"
+          size="sm"
           onClick={(e) => { e.stopPropagation(); onSaveAsTemplate(); }}
-          className="text-[11px] text-text3 px-2 py-1 rounded-md transition-colors hover:bg-bg3 hover:text-text2 shrink-0"
-          style={{ fontFamily: 'inherit' }}
+          className="shrink-0"
         >
           {t('training.section.saveAsTemplate')}
-        </button>
+        </Button>
 
         {/* Three-dot menu */}
         <div className="relative shrink-0">
