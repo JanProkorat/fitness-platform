@@ -1014,7 +1014,8 @@
       "label": "Abschnitt",
       "addSection": "Abschnitt hinzufügen",
       "removeSection": "Abschnitt entfernen",
-      "applyTemplate": "Vorlage anwenden"
+      "applyTemplate": "Vorlage anwenden",
+      "defaultName": "Haupt"
     },
     "template": {
       "pageTitle": "Abschnittsvorlagen",

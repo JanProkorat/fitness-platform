@@ -1014,7 +1014,8 @@
       "label": "Sekce",
       "addSection": "Přidat sekci",
       "removeSection": "Odebrat sekci",
-      "applyTemplate": "Použít šablonu"
+      "applyTemplate": "Použít šablonu",
+      "defaultName": "Hlavní"
     },
     "template": {
       "pageTitle": "Šablony sekcí",
