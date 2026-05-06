@@ -21,7 +21,10 @@ import type { SessionCtaState } from './trainingCardHelpers'
  * synthesize a single default section wrapping all flat exercises.
  * This matches the schema-on-read semantics of WithBackfilledSections on the backend.
  */
-function getEffectiveSections(session: TrainingSession): TrainingSection[] {
+function getEffectiveSections(
+  session: TrainingSession,
+  t: (key: string) => string,
+): TrainingSection[] {
   if (session.sections && session.sections.length > 0) {
     return session.sections
   }
@@ -32,7 +35,7 @@ function getEffectiveSections(session: TrainingSession): TrainingSection[] {
     {
       sectionId: 'default',
       order: 0,
-      name: 'Hlavní',
+      name: t('training.section.defaultName'),
       format: undefined,
       formatConfig: undefined,
       exercises,
@@ -315,7 +318,7 @@ export function TrainingCard({
           ) : undefined
 
           // Derive sections (falls back to single default section for legacy flat plans)
-          const sections = getEffectiveSections(session)
+          const sections = getEffectiveSections(session, t)
 
           return (
             <ExpandableSessionCard

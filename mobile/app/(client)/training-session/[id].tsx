@@ -104,9 +104,13 @@ interface WodAwareSession {
 
 /**
  * Returns effective sections for a session.
- * Falls back to a single "Hlavní" section wrapping flat exercises for legacy plans.
+ * Falls back to a single default section wrapping flat exercises for legacy plans.
+ * The section name is resolved via t() so en/de users don't see hardcoded Czech.
  */
-function getEffectiveSections(session: WodAwareSession): TrainingSection[] {
+function getEffectiveSections(
+  session: WodAwareSession,
+  t: (key: string) => string,
+): TrainingSection[] {
   if (session.sections && session.sections.length > 0) {
     return session.sections
   }
@@ -116,7 +120,7 @@ function getEffectiveSections(session: WodAwareSession): TrainingSection[] {
     {
       sectionId: 'default',
       order: 0,
-      name: 'Hlavní',
+      name: t('training.section.defaultName'),
       format: undefined,
       formatConfig: undefined,
       exercises,
@@ -950,7 +954,7 @@ export default function WorkoutLogScreen() {
         setSessionFormat(fmt)
         setSessionFormatConfig(session.formatConfig ?? null)
         // Load sections (falls back to single default section for flat plans)
-        const effectiveSections = getEffectiveSections(session)
+        const effectiveSections = getEffectiveSections(session, t)
         setSections(effectiveSections)
         // If the session has a non-Standard format, show WOD hero immediately
         if (isWodFormat(fmt)) {
