@@ -1015,7 +1015,8 @@
       "label": "Section",
       "addSection": "Add section",
       "removeSection": "Remove section",
-      "applyTemplate": "Apply template"
+      "applyTemplate": "Apply template",
+      "defaultName": "Main"
     },
     "template": {
       "pageTitle": "Section Templates",

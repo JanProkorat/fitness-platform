@@ -4,6 +4,7 @@ import type {
   TrainingSession,
   ExerciseSet,
   UpdateTrainingPlanRequest,
+  UpdateSectionRequest,
   WorkoutFormat,
   MovementType,
   WodConfig,
@@ -727,35 +728,49 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
         weeks: plan.weeks.map((w) => ({
           weekNumber: w.weekNumber,
           dayNotes: w.dayNotes,
-          sessions: w.sessions.map((s) => ({
-            sessionId: s.sessionId,
-            dayOfWeek: s.dayOfWeek,
-            name: s.name,
-            order: s.order,
-            notes: s.notes,
-            format: s.format,
-            formatConfig: s.formatConfig,
-            exercises: s.exercises.map((e) => ({
-              exerciseExternalId: e.exerciseExternalId,
-              exerciseName: e.exerciseName,
-              order: e.order,
-              notes: e.notes,
-              restSeconds: e.restSeconds,
-              movementType: e.movementType,
-              format: e.format,
-              formatConfig: e.formatConfig,
-              sets: e.sets.map((st) => ({
-                setNumber: st.setNumber,
-                type: st.type,
-                reps: st.reps,
-                weightKg: st.weightKg,
-                durationSeconds: st.durationSeconds,
-                rpe: st.rpe,
-                distanceMeters: st.distanceMeters,
-                restSeconds: st.restSeconds,
+          sessions: w.sessions.map((s) => {
+            // Backend requires Sections.NotEmpty(). The store carries a flat
+            // exercises list (pre-sections model). Wrap into a single synthetic
+            // "Hlavní" section so the validator passes. The backend's schema-on-read
+            // backfill uses exactly this section name as its default.
+            const syntheticSection: UpdateSectionRequest = {
+              sectionId: null,
+              order: 0,
+              name: 'Hlavní',
+              format: s.format,
+              formatConfig: s.formatConfig,
+              exercises: s.exercises.map((e) => ({
+                exerciseExternalId: e.exerciseExternalId,
+                exerciseName: e.exerciseName,
+                order: e.order,
+                notes: e.notes,
+                restSeconds: e.restSeconds,
+                movementType: e.movementType,
+                format: e.format,
+                formatConfig: e.formatConfig,
+                sets: e.sets.map((st) => ({
+                  setNumber: st.setNumber,
+                  type: st.type,
+                  reps: st.reps,
+                  weightKg: st.weightKg,
+                  durationSeconds: st.durationSeconds,
+                  rpe: st.rpe,
+                  distanceMeters: st.distanceMeters,
+                  restSeconds: st.restSeconds,
+                })),
               })),
-            })),
-          })),
+            };
+            return {
+              sessionId: s.sessionId,
+              dayOfWeek: s.dayOfWeek,
+              name: s.name,
+              order: s.order,
+              notes: s.notes,
+              format: s.format,
+              formatConfig: s.formatConfig,
+              sections: [syntheticSection],
+            };
+          }),
         })),
       };
 

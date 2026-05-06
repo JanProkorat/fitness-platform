@@ -155,6 +155,22 @@ export interface UpdateTrainingWeekRequest {
   dayNotes?: Record<number, string> | null;
 }
 
+/** Section data within a session update. */
+export interface UpdateSectionRequest {
+  /** Stable section identifier. Pass the existing ID to preserve identity across saves. */
+  sectionId?: string | null;
+  /** Display order within the session (0-based). */
+  order: number;
+  /** Display name of the section (e.g. "Hlavní", "Warm-up"). */
+  name: string;
+  /** Workout format for this section. Null means inherit the session-level format. */
+  format?: WorkoutFormat | null;
+  /** Format configuration. Null when format is null or Standard. */
+  formatConfig?: WodConfig | null;
+  /** Exercises belonging to this section. */
+  exercises: UpdateSessionExerciseRequest[];
+}
+
 /** Session data within a full-state plan update. */
 export interface UpdateSessionRequest {
   sessionId?: string | null;
@@ -164,7 +180,8 @@ export interface UpdateSessionRequest {
   notes?: string | null;
   format: WorkoutFormat;
   formatConfig?: WodConfig | null;
-  exercises: UpdateSessionExerciseRequest[];
+  /** Ordered sections in this session. Must be non-empty. */
+  sections: UpdateSectionRequest[];
 }
 
 /** Exercise data within a session update. */
