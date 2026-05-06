@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { cn } from '@/lib/cn';
 import type { WorkoutFormat, WodConfig } from '@/api/training-plan-types';
 
 const FORMATS: WorkoutFormat[] = ['Standard', 'EMOM', 'AMRAP', 'ForTime', 'Tabata'];
@@ -18,6 +19,18 @@ function defaultConfig(format: WorkoutFormat): WodConfig | null {
   }
 }
 
+/**
+ * Format-specific pill color classes (Tailwind palette — no hex literals).
+ * Applied to the pill wrapper element which renders as a styled <select>.
+ */
+const FORMAT_PILL_CLASSES: Record<WorkoutFormat, string> = {
+  Standard: 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200',
+  AMRAP:    'bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100',
+  EMOM:     'bg-purple-50 text-purple-700 border-purple-300 hover:bg-purple-100',
+  Tabata:   'bg-pink-50 text-pink-700 border-pink-300 hover:bg-pink-100',
+  ForTime:  'bg-orange-50 text-orange-700 border-orange-300 hover:bg-orange-100',
+};
+
 interface SectionFormatPillProps {
   format: WorkoutFormat;
   onFormatChange: (format: WorkoutFormat, config: WodConfig | null) => void;
@@ -26,7 +39,8 @@ interface SectionFormatPillProps {
 
 /**
  * Inline format pill for the section header row.
- * Shows the current format as a coloured pill with a dropdown to switch formats.
+ * Shows the current format as a coloured pill with a native select to switch formats.
+ * Colors come from FORMAT_PILL_CLASSES — no hex literals, no CSS vars.
  */
 export function SectionFormatPill({
   format,
@@ -46,22 +60,19 @@ export function SectionFormatPill({
         value={format}
         disabled={disabled}
         onChange={(e) => handleFormatChange(e.target.value as WorkoutFormat)}
-        style={{
-          appearance: 'none',
-          WebkitAppearance: 'none',
-          border: '1px solid var(--border)',
-          borderRadius: 99,
-          background: format !== 'Standard' ? 'var(--accent-bg)' : 'var(--bg)',
-          color: format !== 'Standard' ? 'var(--accent)' : 'var(--text2)',
-          fontSize: 11,
-          fontFamily: 'inherit',
-          fontWeight: 600,
-          padding: '2px 20px 2px 9px',
-          cursor: disabled ? 'default' : 'pointer',
-          outline: 'none',
-          lineHeight: '18px',
-          whiteSpace: 'nowrap',
-        }}
+        className={cn(
+          // Base pill shape
+          'inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold',
+          'cursor-pointer outline-none appearance-none leading-[18px] whitespace-nowrap',
+          // Right padding to leave room for the chevron indicator
+          'pr-[22px]',
+          // Transition
+          'transition-colors duration-100',
+          // Disabled state
+          disabled && 'cursor-default opacity-60',
+          // Format-specific colors
+          FORMAT_PILL_CLASSES[format],
+        )}
       >
         {FORMATS.map((f) => (
           <option key={f} value={f}>
@@ -69,16 +80,10 @@ export function SectionFormatPill({
           </option>
         ))}
       </select>
+      {/* Chevron indicator — pointer-events:none so it doesn't block the select */}
       <span
-        style={{
-          position: 'absolute',
-          right: 6,
-          top: '50%',
-          transform: 'translateY(-50%)',
-          fontSize: 8,
-          color: 'var(--text4)',
-          pointerEvents: 'none',
-        }}
+        className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-[8px] leading-none"
+        aria-hidden="true"
       >
         ▾
       </span>
