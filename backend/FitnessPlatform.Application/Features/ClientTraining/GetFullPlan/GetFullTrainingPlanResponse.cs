@@ -104,7 +104,41 @@ public class SessionDto
     /// </summary>
     public int? EstimatedDurationMinutes { get; set; }
 
-    /// <summary>Exercises in this session.</summary>
+    /// <summary>
+    /// Sections in this session, ordered by their Order field.
+    /// Schema-on-read: legacy documents with only flat exercises are backfilled into a single
+    /// "Hlavní" section before this response is built.
+    /// </summary>
+    public List<SectionDto> Sections { get; set; } = [];
+
+    /// <summary>
+    /// Flat list of all exercises across all sections, in section order.
+    /// Kept for backward-compatibility with callers that don't yet read Sections.
+    /// </summary>
+    public List<ExerciseDto> Exercises { get; set; } = [];
+}
+
+/// <summary>
+/// An ordered section within a session (e.g. "Hlavní", "Warm-up", "Cool-down").
+/// </summary>
+public class SectionDto
+{
+    /// <summary>Stable identifier for this section.</summary>
+    public Guid SectionId { get; set; }
+
+    /// <summary>Display order within the session (0-based).</summary>
+    public int Order { get; set; }
+
+    /// <summary>Display name (e.g. "Hlavní", "Warm-up").</summary>
+    public string Name { get; set; } = "";
+
+    /// <summary>
+    /// Workout format for this section (e.g. "Emom", "Amrap", "Tabata", "ForTime").
+    /// Null means the section uses the default Standard format.
+    /// </summary>
+    public string? Format { get; set; }
+
+    /// <summary>Exercises within this section.</summary>
     public List<ExerciseDto> Exercises { get; set; } = [];
 }
 

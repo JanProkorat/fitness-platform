@@ -373,6 +373,320 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
             "non-owner must receive 404 so plan existence is not revealed");
     }
 
+    /// <summary>
+    /// Section round-trip: a plan with explicit sections must return those sections in the response,
+    /// preserving order, name, format, and per-section exercises.
+    /// The backward-compat flat Exercises list must equal the concatenation across sections in order.
+    /// </summary>
+    [Fact]
+    public async Task GetFullPlan_WithExplicitSections_ReturnsSectionsAndFlatExercises()
+    {
+        var httpClient = factory.CreateClient();
+
+        var clientEmail = UniqueEmail();
+        await TestHelpers.RegisterAsync(httpClient, clientEmail, "TestPass1!", "Section", "Client", "Client");
+        var (accessToken, _) = await TestHelpers.LoginAsync(httpClient, clientEmail, "TestPass1!");
+
+        Guid clientPublicId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var user = await db.Users.FirstAsync(
+                u => u.Email == clientEmail,
+                TestContext.Current.CancellationToken);
+            var profile = await db.ClientProfiles.FirstAsync(
+                cp => cp.UserId == user.Id,
+                TestContext.Current.CancellationToken);
+            clientPublicId = profile.PublicId;
+        }
+
+        var squatId = Guid.NewGuid();
+        var benchId = Guid.NewGuid();
+
+        var squatExercise = new Exercise
+        {
+            ExternalId = squatId,
+            Name = "Squat",
+            MuscleGroups = [MuscleGroup.Quadriceps],
+            Equipment = ExerciseEquipment.Barbell,
+            Category = ExerciseCategory.Strength,
+            Difficulty = ExerciseDifficulty.Intermediate,
+            IsActive = true,
+            Source = "system",
+            DateCreated = DateTime.UtcNow
+        };
+
+        var benchExercise = new Exercise
+        {
+            ExternalId = benchId,
+            Name = "Bench Press",
+            MuscleGroups = [MuscleGroup.Chest],
+            Equipment = ExerciseEquipment.Barbell,
+            Category = ExerciseCategory.Strength,
+            Difficulty = ExerciseDifficulty.Intermediate,
+            IsActive = true,
+            Source = "system",
+            DateCreated = DateTime.UtcNow
+        };
+
+        var planId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var warmUpSectionId = Guid.NewGuid();
+        var mainSectionId = Guid.NewGuid();
+
+        var plan = new TrainingPlan
+        {
+            ExternalId = planId,
+            ClientId = clientPublicId,
+            TrainerId = Guid.NewGuid(),
+            Name = "Sections Round-trip Plan",
+            Status = TrainingPlanStatus.Active,
+            Version = 1,
+            DateCreated = DateTime.UtcNow.AddDays(-5),
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = DateTime.UtcNow.AddDays(-4),
+                    Sessions =
+                    [
+                        new TrainingSession
+                        {
+                            SessionId = sessionId,
+                            DayOfWeek = 2,
+                            Name = "Full Body",
+                            Order = 1,
+                            Sections =
+                            [
+                                new TrainingSection
+                                {
+                                    SectionId = warmUpSectionId,
+                                    Order = 0,
+                                    Name = "Warm-up",
+                                    Format = null,
+                                    Exercises =
+                                    [
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = squatId,
+                                            ExerciseName = "Squat",
+                                            Order = 1,
+                                            Sets = [new ExerciseSet { SetNumber = 1, Type = SetType.Warmup, Reps = 10 }]
+                                        }
+                                    ]
+                                },
+                                new TrainingSection
+                                {
+                                    SectionId = mainSectionId,
+                                    Order = 1,
+                                    Name = "Hlavní",
+                                    Format = Application.Domain.Enums.WorkoutFormat.AMRAP,
+                                    Exercises =
+                                    [
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = benchId,
+                                            ExerciseName = "Bench Press",
+                                            Order = 1,
+                                            Sets = [new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 8, WeightKg = 80 }]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        };
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+            await mongo.Exercises.InsertOneAsync(squatExercise, cancellationToken: TestContext.Current.CancellationToken);
+            await mongo.Exercises.InsertOneAsync(benchExercise, cancellationToken: TestContext.Current.CancellationToken);
+            await mongo.TrainingPlans.InsertOneAsync(plan, cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        TestHelpers.SetBearerToken(httpClient, accessToken);
+        var response = await httpClient.GetAsync(
+            $"/client/training/plans/{planId}",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
+
+        var jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            Converters = { new JsonStringEnumConverter() }
+        };
+
+        var body = await response.Content.ReadFromJsonAsync<FullPlanResponse>(
+            jsonOptions,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        body.Should().NotBeNull();
+
+        var session = body!.Weeks[0].Sessions[0];
+
+        // ── Sections round-trip ───────────────────────────────────────────────────
+        session.Sections.Should().HaveCount(2, "two sections were persisted");
+
+        var warmUp = session.Sections.First(s => s.SectionId == warmUpSectionId);
+        warmUp.Order.Should().Be(0);
+        warmUp.Name.Should().Be("Warm-up");
+        warmUp.Format.Should().BeNull("Warm-up has no format");
+        warmUp.Exercises.Should().HaveCount(1);
+        warmUp.Exercises[0].ExerciseExternalId.Should().Be(squatId);
+
+        var main = session.Sections.First(s => s.SectionId == mainSectionId);
+        main.Order.Should().Be(1);
+        main.Name.Should().Be("Hlavní");
+        main.Format.Should().Be("AMRAP");
+        main.Exercises.Should().HaveCount(1);
+        main.Exercises[0].ExerciseExternalId.Should().Be(benchId);
+
+        // ── Backward-compat flat list equals sections concatenated in order ────────
+        session.Exercises.Should().HaveCount(2, "total exercises across both sections");
+        session.Exercises[0].ExerciseExternalId.Should().Be(squatId, "Warm-up exercise comes first (Order=0)");
+        session.Exercises[1].ExerciseExternalId.Should().Be(benchId, "Hlavní exercise comes second (Order=1)");
+    }
+
+    /// <summary>
+    /// Schema-on-read backfill: a plan stored with only flat LegacyExercises (no Sections)
+    /// must be transparently backfilled into a single "Hlavní" section at read time.
+    /// </summary>
+    [Fact]
+    public async Task GetFullPlan_WithLegacyFlatExercises_BackfillsIntoHlavniSection()
+    {
+        var httpClient = factory.CreateClient();
+
+        var clientEmail = UniqueEmail();
+        await TestHelpers.RegisterAsync(httpClient, clientEmail, "TestPass1!", "Legacy", "Client", "Client");
+        var (accessToken, _) = await TestHelpers.LoginAsync(httpClient, clientEmail, "TestPass1!");
+
+        Guid clientPublicId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var user = await db.Users.FirstAsync(
+                u => u.Email == clientEmail,
+                TestContext.Current.CancellationToken);
+            var profile = await db.ClientProfiles.FirstAsync(
+                cp => cp.UserId == user.Id,
+                TestContext.Current.CancellationToken);
+            clientPublicId = profile.PublicId;
+        }
+
+        var squatId = Guid.NewGuid();
+        var squatExercise = new Exercise
+        {
+            ExternalId = squatId,
+            Name = "Squat",
+            MuscleGroups = [MuscleGroup.Quadriceps],
+            Equipment = ExerciseEquipment.Barbell,
+            Category = ExerciseCategory.Strength,
+            Difficulty = ExerciseDifficulty.Intermediate,
+            IsActive = true,
+            Source = "system",
+            DateCreated = DateTime.UtcNow
+        };
+
+        var planId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+
+        // Build a plan whose session has only LegacyExercises and an empty Sections list.
+        // This simulates a pre-sections document in MongoDB.
+        var legacySession = new TrainingSession
+        {
+            SessionId = sessionId,
+            DayOfWeek = 3,
+            Name = "Legacy Day",
+            Order = 1,
+            Sections = [], // explicitly empty — legacy document
+            LegacyExercises =
+            [
+                new SessionExercise
+                {
+                    ExerciseExternalId = squatId,
+                    ExerciseName = "Squat",
+                    Order = 1,
+                    Sets =
+                    [
+                        new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 5, WeightKg = 80 },
+                        new ExerciseSet { SetNumber = 2, Type = SetType.Normal, Reps = 5, WeightKg = 80 }
+                    ]
+                }
+            ]
+        };
+
+        var plan = new TrainingPlan
+        {
+            ExternalId = planId,
+            ClientId = clientPublicId,
+            TrainerId = Guid.NewGuid(),
+            Name = "Legacy Flat Plan",
+            Status = TrainingPlanStatus.Active,
+            Version = 1,
+            DateCreated = DateTime.UtcNow.AddDays(-3),
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = DateTime.UtcNow.AddDays(-2),
+                    Sessions = [legacySession]
+                }
+            ]
+        };
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+            await mongo.Exercises.InsertOneAsync(squatExercise, cancellationToken: TestContext.Current.CancellationToken);
+            await mongo.TrainingPlans.InsertOneAsync(plan, cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        TestHelpers.SetBearerToken(httpClient, accessToken);
+        var response = await httpClient.GetAsync(
+            $"/client/training/plans/{planId}",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
+
+        var jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            Converters = { new JsonStringEnumConverter() }
+        };
+
+        var body = await response.Content.ReadFromJsonAsync<FullPlanResponse>(
+            jsonOptions,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        body.Should().NotBeNull();
+
+        var session = body!.Weeks[0].Sessions[0];
+
+        // ── Schema-on-read: one section backfilled as "Hlavní" ───────────────────
+        session.Sections.Should().HaveCount(1, "legacy exercises must be wrapped in a single default section");
+        var hlavni = session.Sections[0];
+        hlavni.Name.Should().Be("Hlavní");
+        hlavni.Format.Should().BeNull();
+        hlavni.Exercises.Should().HaveCount(1);
+        hlavni.Exercises[0].ExerciseExternalId.Should().Be(squatId);
+        hlavni.Exercises[0].Sets.Should().HaveCount(2);
+
+        // ── Backward-compat flat list also populated ─────────────────────────────
+        session.Exercises.Should().HaveCount(1);
+        session.Exercises[0].ExerciseExternalId.Should().Be(squatId);
+
+        // ── Muscle-group enrichment works for backfilled exercises ────────────────
+        session.Exercises[0].MuscleGroups.Should().Contain(MuscleGroup.Quadriceps);
+    }
+
     // ── Local response DTOs (per slice rules — not shared across features) ────────
 
     private record FullPlanResponse(
@@ -405,6 +719,14 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
         int CompletedExerciseCount,
         int TotalExerciseCount,
         int? EstimatedDurationMinutes,
+        List<SectionResponse> Sections,
+        List<ExerciseResponse> Exercises);
+
+    private record SectionResponse(
+        Guid SectionId,
+        int Order,
+        string Name,
+        string? Format,
         List<ExerciseResponse> Exercises);
 
     private record ExerciseResponse(
