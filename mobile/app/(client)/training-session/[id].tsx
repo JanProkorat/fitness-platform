@@ -42,17 +42,23 @@ import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 
 import { startWorkout, updateWorkout, completeWorkout } from '@/api/workouts'
 import type { UpdateWorkoutRequest } from '@/api/workouts'
-import type { SessionExercise, ExerciseSet, MuscleGroup } from '@/api/training'
+import type {
+  SessionExercise,
+  ExerciseSet,
+  MuscleGroup,
+  TrainingSection,
+  WorkoutFormat,
+  WodConfig,
+  MovementType,
+} from '@/api/training'
 import { getTodaySession } from '@/api/training'
 import { getMuscleGroupColor } from '@/constants/muscleGroups'
 import type {
-  WorkoutFormat,
-  WodConfig,
   WodResult,
-  MovementType,
   UpdateWorkoutWodRequest,
   UpdateWodExerciseRequest,
 } from '@/api/wod-types'
+import { SectionHeader } from '@/components/training/SectionHeader'
 
 import { useLiveSessionStore } from '@/stores/liveSessionStore'
 import { addPendingMutation } from '@/stores/offline'
@@ -76,25 +82,68 @@ import type { ExerciseSummaryInput } from '@/components/training/liveTrainingHel
 // ─── WOD-aware session/exercise type helpers ──────────────────────────────────
 
 /**
- * The generated SessionExercise type doesn't yet include WOD fields (regen-api
- * requires a running backend outside this agent's allowlist). Cast to this
- * extended interface when reading movementType / format / formatConfig.
+ * WodAwareExercise is now just an alias for SessionExercise — all WOD fields
+ * (movementType, format, formatConfig) are present in the generated type.
+ * Kept as an alias to avoid churning call sites.
  */
-interface WodAwareExercise extends SessionExercise {
-  movementType?: MovementType
-  format?: WorkoutFormat | null
-  formatConfig?: WodConfig | null
-}
+type WodAwareExercise = SessionExercise
 
 /**
- * The generated TrainingSession type doesn't yet include WOD fields.
+ * The generated TrainingSession type now includes sections and WOD fields.
  */
 interface WodAwareSession {
   sessionId?: string
   name?: string
   exercises?: SessionExercise[]
+  sections?: TrainingSection[]
   format?: WorkoutFormat | null
   formatConfig?: WodConfig | null
+}
+
+// ─── Section helpers ──────────────────────────────────────────────────────────
+
+/**
+ * Returns effective sections for a session.
+ * Falls back to a single default section wrapping flat exercises for legacy plans.
+ * The section name is resolved via t() so en/de users don't see hardcoded Czech.
+ */
+function getEffectiveSections(
+  session: WodAwareSession,
+  t: (key: string) => string,
+): TrainingSection[] {
+  if (session.sections && session.sections.length > 0) {
+    return session.sections
+  }
+  const exercises = session.exercises ?? []
+  if (exercises.length === 0) return []
+  return [
+    {
+      sectionId: 'default',
+      order: 0,
+      name: t('training.section.defaultName'),
+      format: undefined,
+      formatConfig: undefined,
+      exercises,
+    },
+  ]
+}
+
+/**
+ * Returns the flat exercises array for a given section, resolving format inheritance.
+ * Section format inherits from session format when not explicitly set.
+ */
+function resolveSection(
+  section: TrainingSection,
+  sessionFormat: WorkoutFormat | null,
+  sessionFormatConfig: WodConfig | null,
+): { format: WorkoutFormat | null; formatConfig: WodConfig | null; exercises: SessionExercise[] } {
+  const fmt = section.format ?? sessionFormat ?? null
+  const config = section.formatConfig ?? sessionFormatConfig ?? null
+  return {
+    format: fmt,
+    formatConfig: config,
+    exercises: section.exercises ?? [],
+  }
 }
 
 function isWodFormat(format: WorkoutFormat | null | undefined): format is WorkoutFormat {
@@ -778,6 +827,7 @@ export default function WorkoutLogScreen() {
     activeLogId,
     currentExerciseIdx,
     currentSetIdx,
+    currentSectionIdx,
     completedSets,
     skippedSets,
     skippedExercises,
@@ -794,6 +844,7 @@ export default function WorkoutLogScreen() {
     startRest: storeStartRest,
     skipRest: storeSkipRest,
     advance: storeAdvance,
+    advanceSection: storeAdvanceSection,
     close: storeClose,
     finish: storeFinish,
     discard: storeDiscard,
@@ -810,6 +861,7 @@ export default function WorkoutLogScreen() {
 
   // ── Session exercises (from API) ──
   const [exercises, setExercises] = useState<SessionExercise[]>([])
+  const [sections, setSections] = useState<TrainingSection[]>([])
   const [exerciseMuscleGroups, setExerciseMuscleGroups] = useState<
     Record<string, MuscleGroup[]>
   >({})
@@ -820,8 +872,10 @@ export default function WorkoutLogScreen() {
   // ── WOD session-level format info ──
   const [sessionFormat, setSessionFormat] = useState<WorkoutFormat | null>(null)
   const [sessionFormatConfig, setSessionFormatConfig] = useState<WodConfig | null>(null)
-  /** When true, the WOD hero is shown for the whole session block. */
+  /** When true, the WOD hero is shown for the current section's WOD format. */
   const [showWodHero, setShowWodHero] = useState(false)
+  /** Whether we're in the between-sections selector (section-runner) phase. */
+  const [showSectionRunner, setShowSectionRunner] = useState(false)
 
   // ── Local form state (reps / weight steppers) ──
   const [formReps, setFormReps] = useState(0)
@@ -885,12 +939,12 @@ export default function WorkoutLogScreen() {
     async function load() {
       try {
         const resp = await getTodaySession()
-        const sessions = resp.sessions ?? []
+        const sessionList = resp.sessions ?? []
         const rawSession =
-          (sessionId && sessions.find((s) => s.sessionId === sessionId)) ||
-          sessions[0]
+          (sessionId && sessionList.find((s) => s.sessionId === sessionId)) ||
+          sessionList[0]
         if (!rawSession) return
-        // Cast to WOD-aware type (new fields may not be in generated types yet)
+        // Cast to WOD-aware type (sections + format fields)
         const session = rawSession as unknown as WodAwareSession
         setSessionDisplayName(session.name ?? '')
         setExercises(session.exercises ?? [])
@@ -899,6 +953,10 @@ export default function WorkoutLogScreen() {
         const fmt = session.format ?? null
         setSessionFormat(fmt)
         setSessionFormatConfig(session.formatConfig ?? null)
+        // Load sections (falls back to single default section for flat plans)
+        const effectiveSections = getEffectiveSections(session, t)
+        setSections(effectiveSections)
+        // If the session has a non-Standard format, show WOD hero immediately
         if (isWodFormat(fmt)) {
           setShowWodHero(true)
         }
@@ -1022,13 +1080,18 @@ export default function WorkoutLogScreen() {
         wodResult: exWodResult ?? undefined,
       }
     })
-    // Session-level WOD result (present when the whole session is a WOD format).
-    const sessionWodResult = state.wodResults['__session__'] ?? null
+    // Section-level WOD result: use the current (or first) section's sectionId as the key.
+    // If there are multiple sections, only the active section's WOD result is sent as the
+    // top-level wodResult. Per-exercise results are already in exerciseList entries.
+    const activeSectionId = sections[currentSectionIdx ?? 0]?.sectionId ?? null
+    const sectionWodResult = activeSectionId != null
+      ? (state.wodResults[activeSectionId] ?? null)
+      : null
     return {
       exercises: exerciseList,
-      wodResult: sessionWodResult ?? undefined,
+      wodResult: sectionWodResult ?? undefined,
     }
-  }, [exercises])
+  }, [exercises, sections, currentSectionIdx])
 
   const persistUpdate = useCallback(() => {
     const logId = loadedLogId ?? activeLogId
@@ -1079,18 +1142,31 @@ export default function WorkoutLogScreen() {
 
   const handleStart = useCallback(() => {
     const logId = loadedLogId ?? activeLogId
-    // TODO: handle case where logId is not yet available when resuming an existing log
     if (!sessionId) {
       console.warn('[handleStart] sessionId is empty — route param may be malformed')
     }
     storeStart({ sessionId: sessionId ?? '' }, logId ?? '', planId ?? '')
     setPhase('running')
-    prefillForm(0, 0, exercises)
-    // If session has a WOD format, show the hero overlay immediately after start
-    if (isWodFormat(sessionFormat)) {
-      setShowWodHero(true)
+
+    // When sessions have sections, start with the first section's exercises
+    const firstSection = sections[0]
+    if (firstSection) {
+      const resolved = resolveSection(firstSection, sessionFormat, sessionFormatConfig)
+      const firstSectionExercises = resolved.exercises
+      // Update the active exercise list to the first section's exercises
+      setExercises(firstSectionExercises)
+      prefillForm(0, 0, firstSectionExercises)
+      // If first section has a WOD format, show the hero overlay
+      if (isWodFormat(resolved.format)) {
+        setShowWodHero(true)
+      }
+    } else {
+      prefillForm(0, 0, exercises)
+      if (isWodFormat(sessionFormat)) {
+        setShowWodHero(true)
+      }
     }
-  }, [storeStart, loadedLogId, activeLogId, exercises, sessionId, planId, prefillForm, sessionFormat])
+  }, [storeStart, loadedLogId, activeLogId, exercises, sections, sessionId, planId, prefillForm, sessionFormat, sessionFormatConfig])
 
   const handleSetDone = useCallback(() => {
     const ex = exercises[currentExerciseIdx]
@@ -1114,11 +1190,20 @@ export default function WorkoutLogScreen() {
     )
 
     if (isLast) {
-      // Last set of last exercise — finish
-      storeFinish()
-      setPhase('finished')
-      const logId = loadedLogId ?? activeLogId
-      if (logId) void finalizeWorkout(logId)
+      // Last set of last exercise in this section — check for more sections
+      const nextSectionIdx = (currentSectionIdx ?? 0) + 1
+      if (nextSectionIdx < sections.length) {
+        // More sections remain — persist then advance to section-runner
+        persistUpdate()
+        storeAdvanceSection(nextSectionIdx)
+        setShowSectionRunner(true)
+      } else {
+        // No more sections — finish session
+        storeFinish()
+        setPhase('finished')
+        const logId = loadedLogId ?? activeLogId
+        if (logId) void finalizeWorkout(logId)
+      }
       return
     }
 
@@ -1132,6 +1217,8 @@ export default function WorkoutLogScreen() {
     pendingAdvanceRef.current = { ex: nextExIdx, set: nextSetIdx }
   }, [
     exercises,
+    sections,
+    currentSectionIdx,
     currentExerciseIdx,
     currentSetIdx,
     formReps,
@@ -1140,6 +1227,7 @@ export default function WorkoutLogScreen() {
     storeMarkSetDone,
     storeFinish,
     storeStartRest,
+    storeAdvanceSection,
     loadedLogId,
     activeLogId,
     finalizeWorkout,
@@ -1170,10 +1258,17 @@ export default function WorkoutLogScreen() {
       exercises,
     )
     if (isLast) {
-      storeFinish()
-      setPhase('finished')
-      const logId = loadedLogId ?? activeLogId
-      if (logId) void finalizeWorkout(logId)
+      const nextSectionIdx = (currentSectionIdx ?? 0) + 1
+      if (nextSectionIdx < sections.length) {
+        persistUpdate()
+        storeAdvanceSection(nextSectionIdx)
+        setShowSectionRunner(true)
+      } else {
+        storeFinish()
+        setPhase('finished')
+        const logId = loadedLogId ?? activeLogId
+        if (logId) void finalizeWorkout(logId)
+      }
       return
     }
     storeAdvance(nextExIdx, nextSetIdx)
@@ -1181,11 +1276,14 @@ export default function WorkoutLogScreen() {
     persistUpdate()
   }, [
     exercises,
+    sections,
+    currentSectionIdx,
     currentExerciseIdx,
     currentSetIdx,
     storeSkipSet,
     storeFinish,
     storeAdvance,
+    storeAdvanceSection,
     prefillForm,
     loadedLogId,
     activeLogId,
@@ -1202,10 +1300,17 @@ export default function WorkoutLogScreen() {
 
     const nextExIdx = currentExerciseIdx + 1
     if (nextExIdx >= exercises.length) {
-      storeFinish()
-      setPhase('finished')
-      const logId = loadedLogId ?? activeLogId
-      if (logId) void finalizeWorkout(logId)
+      const nextSectionIdx = (currentSectionIdx ?? 0) + 1
+      if (nextSectionIdx < sections.length) {
+        persistUpdate()
+        storeAdvanceSection(nextSectionIdx)
+        setShowSectionRunner(true)
+      } else {
+        storeFinish()
+        setPhase('finished')
+        const logId = loadedLogId ?? activeLogId
+        if (logId) void finalizeWorkout(logId)
+      }
       return
     }
     storeAdvance(nextExIdx, 0)
@@ -1213,10 +1318,13 @@ export default function WorkoutLogScreen() {
     persistUpdate()
   }, [
     exercises,
+    sections,
+    currentSectionIdx,
     currentExerciseIdx,
     storeSkipExercise,
     storeFinish,
     storeAdvance,
+    storeAdvanceSection,
     prefillForm,
     loadedLogId,
     activeLogId,
@@ -1279,16 +1387,24 @@ export default function WorkoutLogScreen() {
 
   // ── WOD finalize ──
   const handleWodFinish = useCallback(
-    (key: string, result: WodResult) => {
-      storeFinalizeWod(key, result)
+    (sectionId: string, result: WodResult) => {
+      storeFinalizeWod(sectionId, result)
       setShowWodHero(false)
-      // After WOD hero, finish the session
-      storeFinish()
-      setPhase('finished')
-      const logId = loadedLogId ?? activeLogId
-      if (logId) void finalizeWorkout(logId)
+      // After WOD hero, check if there are more sections
+      const nextSectionIdx = (currentSectionIdx ?? 0) + 1
+      if (nextSectionIdx < sections.length) {
+        // More sections remain — advance to section-runner
+        storeAdvanceSection(nextSectionIdx)
+        setShowSectionRunner(true)
+      } else {
+        // All sections done — finish the session
+        storeFinish()
+        setPhase('finished')
+        const logId = loadedLogId ?? activeLogId
+        if (logId) void finalizeWorkout(logId)
+      }
     },
-    [storeFinalizeWod, storeFinish, loadedLogId, activeLogId, finalizeWorkout],
+    [storeFinalizeWod, storeFinish, storeAdvanceSection, loadedLogId, activeLogId, finalizeWorkout, currentSectionIdx, sections],
   )
 
   const handleWodCancel = useCallback(() => {
@@ -1616,6 +1732,78 @@ export default function WorkoutLogScreen() {
         </Animated.View>
       )}
 
+      {/* Section runner overlay — shown between sections when next section is ready */}
+      {showSectionRunner && sections.length > 1 && (() => {
+        const nextIdx = currentSectionIdx ?? 0
+        const nextSection = sections[nextIdx]
+        if (!nextSection) return null
+        const resolved = resolveSection(nextSection, sessionFormat, sessionFormatConfig)
+        const exerciseCount = resolved.exercises.length
+        const isWod = isWodFormat(resolved.format)
+        return (
+          <Animated.View
+            key="section-runner"
+            entering={SlideInDown.duration(260)}
+            exiting={SlideOutDown.duration(220)}
+            style={[StyleSheet.absoluteFill, { backgroundColor: colors.bg, padding: 20, justifyContent: 'center' }]}
+          >
+            <Text style={[styles.sectionHdr, { color: colors.label2, marginBottom: 16 }]}>
+              {t('training.section.nextSection')}
+            </Text>
+            <SectionHeader
+              name={nextSection.name ?? t('training.section.defaultName')}
+              format={resolved.format}
+              exerciseCount={exerciseCount}
+            />
+            <Text style={[styles.sectionHdr, { color: colors.label3, marginTop: 12, marginBottom: 24 }]}>
+              {isWod
+                ? t('training.section.wodSectionHint')
+                : t('training.section.sectionExercisesHint', { count: exerciseCount })}
+            </Text>
+            <Pressable
+              style={[styles.setsListCard, { backgroundColor: colors.gold, borderColor: 'transparent', padding: 16, alignItems: 'center' }]}
+              onPress={() => {
+                setShowSectionRunner(false)
+                // If section has a WOD format, show the WOD hero
+                if (isWod) {
+                  setShowWodHero(true)
+                } else {
+                  // Update exercises to this section's exercises
+                  setExercises(resolved.exercises)
+                  storeAdvance(0, 0)
+                  prefillForm(0, 0, resolved.exercises)
+                }
+              }}
+            >
+              <Text style={[styles.sectionHdr, { color: colors.onAccent }]}>
+                {t('training.section.startSection')}
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[{ alignItems: 'center', paddingVertical: 14 }]}
+              onPress={() => {
+                setShowSectionRunner(false)
+                // Skip this section — advance to next
+                const nextNextIdx = (currentSectionIdx ?? 0) + 1
+                if (nextNextIdx < sections.length) {
+                  storeAdvanceSection(nextNextIdx)
+                  setShowSectionRunner(true)
+                } else {
+                  storeFinish()
+                  setPhase('finished')
+                  const logId = loadedLogId ?? activeLogId
+                  if (logId) void finalizeWorkout(logId)
+                }
+              }}
+            >
+              <Text style={[{ fontSize: 13, fontWeight: '500' }, { color: colors.label3 }]}>
+                {t('training.section.skipSection')}
+              </Text>
+            </Pressable>
+          </Animated.View>
+        )
+      })()}
+
       {/* PR flash overlay */}
       <PrFlash
         visible={prVisible}
@@ -1629,23 +1817,33 @@ export default function WorkoutLogScreen() {
         onCancel={() => setShowSkipExerciseConfirm(false)}
       />
 
-      {/* Session-level WOD hero overlay — shown when the whole session is a WOD format */}
-      {showWodHero && isWodFormat(sessionFormat) && sessionFormatConfig && (
-        <Animated.View
-          key="wod-overlay"
-          entering={SlideInDown.duration(280)}
-          exiting={SlideOutDown.duration(220)}
-          style={StyleSheet.absoluteFill}
-        >
-          <WodTimerHero
-            label={sessionDisplayName}
-            format={sessionFormat}
-            config={sessionFormatConfig}
-            onFinish={(result) => handleWodFinish('__session__', result)}
-            onCancel={handleWodCancel}
-          />
-        </Animated.View>
-      )}
+      {/* Section-level WOD hero overlay — shown when the active section has a WOD format */}
+      {showWodHero && (() => {
+        const activeSectionIdx = currentSectionIdx ?? 0
+        const activeSection = sections[activeSectionIdx]
+        const resolved = activeSection
+          ? resolveSection(activeSection, sessionFormat, sessionFormatConfig)
+          : null
+        if (!resolved || !isWodFormat(resolved.format) || !resolved.formatConfig) return null
+        const sectionId = activeSection?.sectionId ?? `section-${activeSectionIdx}`
+        const sectionLabel = activeSection?.name ?? sessionDisplayName
+        return (
+          <Animated.View
+            key={`wod-overlay-${sectionId}`}
+            entering={SlideInDown.duration(280)}
+            exiting={SlideOutDown.duration(220)}
+            style={StyleSheet.absoluteFill}
+          >
+            <WodTimerHero
+              label={sectionLabel}
+              format={resolved.format}
+              config={resolved.formatConfig}
+              onFinish={(result) => handleWodFinish(sectionId, result)}
+              onCancel={handleWodCancel}
+            />
+          </Animated.View>
+        )
+      })()}
     </SafeAreaView>
   )
 }

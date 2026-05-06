@@ -881,6 +881,21 @@
       "increaseDistance": "Distanz erhöhen",
       "decreaseReps": "Wdh. verringern",
       "increaseReps": "Wdh. erhöhen"
+    },
+    "section": {
+      "label": "Abschnitt",
+      "defaultName": "Haupt",
+      "empty": "Dieser Abschnitt enthält keine Übungen",
+      "exerciseCount_one": "{{count}} Übung",
+      "exerciseCount_other": "{{count}} Übungen",
+      "nextSection": "NÄCHSTER ABSCHNITT",
+      "startSection": "▶ Abschnitt starten",
+      "skipSection": "Abschnitt überspringen",
+      "wodSectionHint": "Dieser Abschnitt hat ein WOD-Format",
+      "sectionExercisesHint_one": "{{count}} Übung",
+      "sectionExercisesHint_other": "{{count}} Übungen",
+      "sectionOf": "Abschnitt {{current}} von {{total}}",
+      "sectionActionDetail": "Detail"
     }
   },
   "muscleGroup": {

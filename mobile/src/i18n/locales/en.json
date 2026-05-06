@@ -683,6 +683,21 @@
       "increaseDistance": "Increase distance",
       "decreaseReps": "Decrease reps",
       "increaseReps": "Increase reps"
+    },
+    "section": {
+      "label": "Section",
+      "defaultName": "Main",
+      "empty": "This section has no exercises",
+      "exerciseCount_one": "{{count}} exercise",
+      "exerciseCount_other": "{{count}} exercises",
+      "nextSection": "NEXT SECTION",
+      "startSection": "▶ Start section",
+      "skipSection": "Skip section",
+      "wodSectionHint": "This section has a WOD format",
+      "sectionExercisesHint_one": "{{count}} exercise",
+      "sectionExercisesHint_other": "{{count}} exercises",
+      "sectionOf": "Section {{current}} of {{total}}",
+      "sectionActionDetail": "Detail"
     }
   },
   "muscleGroup": {

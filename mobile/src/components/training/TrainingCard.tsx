@@ -8,10 +8,40 @@ import { Radius } from '@/constants/radius'
 import { ProgressRing } from '@/components/ui/ProgressRing'
 import { ExpandableSessionCard } from '@/components/training/ExpandableSessionCard'
 import { ExpandableExerciseCard } from '@/components/training/ExpandableExerciseCard'
+import { SectionHeader } from '@/components/training/SectionHeader'
 import { SetGrid } from '@/components/training/SetGrid'
 import { getMuscleGroupColor } from '@/constants/muscleGroups'
-import type { TrainingSession, MuscleGroup } from '@/api/training'
+import type { TrainingSession, TrainingSection, MuscleGroup } from '@/api/training'
 import type { SessionCtaState } from './trainingCardHelpers'
+
+// ─── Section fallback ──────────────────────────────────────────────────────────
+
+/**
+ * If a session has no sections (legacy flat plan not yet backfilled),
+ * synthesize a single default section wrapping all flat exercises.
+ * This matches the schema-on-read semantics of WithBackfilledSections on the backend.
+ */
+function getEffectiveSections(
+  session: TrainingSession,
+  t: (key: string) => string,
+): TrainingSection[] {
+  if (session.sections && session.sections.length > 0) {
+    return session.sections
+  }
+  // Fallback: wrap flat exercises in a single default section
+  const exercises = session.exercises ?? []
+  if (exercises.length === 0) return []
+  return [
+    {
+      sectionId: 'default',
+      order: 0,
+      name: t('training.section.defaultName'),
+      format: undefined,
+      formatConfig: undefined,
+      exercises,
+    },
+  ]
+}
 
 interface TrainingCardProps {
   /** Eyebrow text shown above the aggregate headline (e.g. "Plan name · Week 3"). */
@@ -287,6 +317,9 @@ export function TrainingCard({
             </Pressable>
           ) : undefined
 
+          // Derive sections (falls back to single default section for legacy flat plans)
+          const sections = getEffectiveSections(session, t)
+
           return (
             <ExpandableSessionCard
               key={sessionId}
@@ -297,67 +330,99 @@ export function TrainingCard({
               totalCount={trackableCount}
               headerRight={sessionCheckbox}
             >
-              {/* Exercise cards */}
-              {exercises.map((exercise, exIdx) => {
-                const exId = exercise.exerciseExternalId ?? null
-                const isDone = exId != null && completedIds.has(exId)
-                const sets = exercise.sets ?? []
-                const completedSetNumbers =
-                  exId != null
-                    ? (completedSetsBySessionExercise[sessionId]?.[exId] ?? [])
-                    : []
+              {/* Section-grouped exercise cards */}
+              {sections.map((section, sectionIdx) => {
+                const sectionExercises = section.exercises ?? []
+                // Show section header when there are multiple sections or
+                // when it's a WOD-formatted section (always worth labelling).
+                const showSectionHeader =
+                  sections.length > 1 ||
+                  (section.format != null && section.format !== 'Standard')
 
-                // Exercise summary: "N série · M opak · K kg"
-                const setCount = sets.length
-                const firstReps = sets[0]?.reps
-                const firstWeight = sets[0]?.weightKg
-                const exSummaryParts: string[] = [`${setCount} ${t('training.set').toLowerCase()}`]
-                if (firstReps != null) exSummaryParts.push(`${firstReps} ${t('training.reps').toLowerCase()}`)
-                if (firstWeight != null) exSummaryParts.push(`${firstWeight} kg`)
-
-                // Dot color: first muscle group for this exercise, or neutral grey fallback.
-                const exMuscleGroups = exId != null ? (exerciseMuscleGroups[exId] ?? []) : []
-                const primaryMg = exMuscleGroups[0]
-                const dotColor = primaryMg != null
-                  ? getMuscleGroupColor(primaryMg, colors)
-                  : colors.label3
+                // Empty section edge case — show band with empty-state row
+                const hasExercises = sectionExercises.length > 0
 
                 return (
-                  <ExpandableExerciseCard
-                    key={exId ?? exIdx}
-                    name={exercise.exerciseName ?? ''}
-                    summaryText={exSummaryParts.join(' · ')}
-                    dotColor={dotColor}
-                    isCompleted={isDone}
-                    defaultExpanded
-                    nested
-                    nestedFirst={exIdx === 0}
-                    onToggle={
-                      onToggleExercise && exId != null
-                        ? () => onToggleExercise(sessionId, exId)
-                        : undefined
-                    }
-                  >
-                    <SetGrid sets={sets} completedSetNumbers={completedSetNumbers} />
-                    {exercise.notes ? (
-                      <View
-                        style={[
-                          styles.exerciseNote,
-                          {
-                            backgroundColor: colors.gold + '0a',
-                            borderTopColor: colors.sep2,
-                          },
-                        ]}
-                      >
-                        <Text style={[Type.caption1, { color: colors.label2, lineHeight: 18 }]}>
-                          <Text style={{ fontWeight: '600', color: colors.gold }}>
-                            {t('today.exerciseNoteLabel')}{' '}
-                          </Text>
-                          {exercise.notes}
+                  <View key={section.sectionId ?? `section-${sectionIdx}`}>
+                    {showSectionHeader && (
+                      <SectionHeader
+                        name={section.name ?? t('training.section.defaultName')}
+                        format={section.format}
+                        exerciseCount={sectionExercises.length}
+                      />
+                    )}
+
+                    {!hasExercises && (
+                      <View style={[styles.sectionEmpty, { borderBottomColor: colors.sep2 }]}>
+                        <Text style={[Type.caption1, { color: colors.label3 }]}>
+                          {t('training.section.empty')}
                         </Text>
                       </View>
-                    ) : null}
-                  </ExpandableExerciseCard>
+                    )}
+
+                    {sectionExercises.map((exercise, exIdx) => {
+                      const exId = exercise.exerciseExternalId ?? null
+                      const isDone = exId != null && completedIds.has(exId)
+                      const sets = exercise.sets ?? []
+                      const completedSetNumbers =
+                        exId != null
+                          ? (completedSetsBySessionExercise[sessionId]?.[exId] ?? [])
+                          : []
+
+                      // Exercise summary: "N série · M opak · K kg"
+                      const setCount = sets.length
+                      const firstReps = sets[0]?.reps
+                      const firstWeight = sets[0]?.weightKg
+                      const exSummaryParts: string[] = [`${setCount} ${t('training.set').toLowerCase()}`]
+                      if (firstReps != null) exSummaryParts.push(`${firstReps} ${t('training.reps').toLowerCase()}`)
+                      if (firstWeight != null) exSummaryParts.push(`${firstWeight} kg`)
+
+                      // Dot color: first muscle group for this exercise, or neutral grey fallback.
+                      const exMuscleGroups = exId != null ? (exerciseMuscleGroups[exId] ?? []) : []
+                      const primaryMg = exMuscleGroups[0]
+                      const dotColor = primaryMg != null
+                        ? getMuscleGroupColor(primaryMg, colors)
+                        : colors.label3
+
+                      return (
+                        <ExpandableExerciseCard
+                          key={exId ?? exIdx}
+                          name={exercise.exerciseName ?? ''}
+                          summaryText={exSummaryParts.join(' · ')}
+                          dotColor={dotColor}
+                          isCompleted={isDone}
+                          defaultExpanded
+                          nested
+                          nestedFirst={exIdx === 0 && !showSectionHeader}
+                          onToggle={
+                            onToggleExercise && exId != null
+                              ? () => onToggleExercise(sessionId, exId)
+                              : undefined
+                          }
+                        >
+                          <SetGrid sets={sets} completedSetNumbers={completedSetNumbers} />
+                          {exercise.notes ? (
+                            <View
+                              style={[
+                                styles.exerciseNote,
+                                {
+                                  backgroundColor: colors.gold + '0a',
+                                  borderTopColor: colors.sep2,
+                                },
+                              ]}
+                            >
+                              <Text style={[Type.caption1, { color: colors.label2, lineHeight: 18 }]}>
+                                <Text style={{ fontWeight: '600', color: colors.gold }}>
+                                  {t('today.exerciseNoteLabel')}{' '}
+                                </Text>
+                                {exercise.notes}
+                              </Text>
+                            </View>
+                          ) : null}
+                        </ExpandableExerciseCard>
+                      )
+                    })}
+                  </View>
                 )
               })}
 
@@ -440,6 +505,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  sectionEmpty: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
 })
 

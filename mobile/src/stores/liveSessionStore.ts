@@ -17,6 +17,12 @@
  *   The store never holds a running interval; that stays in the screen layer.
  *
  * MMKV instance: mmkv.liveSession (separate instance, mirroring todayStore).
+ *
+ * Persistence versioning (#240):
+ *   Version 2 — re-keyed wodResults from Record<exerciseExternalId | sectionId, WodResult>.
+ *   The old format used a special sentinel key ("session-level WOD key") that has been
+ *   replaced by the actual sectionId. Any persisted v1 state with that sentinel key is
+ *   migrated by dropping the legacy entry (the runner re-derives from the current section).
  */
 
 import { create } from 'zustand'
@@ -24,6 +30,7 @@ import { createMMKV } from 'react-native-mmkv'
 import type { WodResult } from '@/api/wod-types'
 
 const MMKV_KEY = 'session'
+const PERSIST_VERSION = 2
 const mmkv = createMMKV({ id: 'mmkv.liveSession' })
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -47,6 +54,8 @@ export interface FormOverride {
 }
 
 export interface LiveSessionState {
+  /** Schema version. Used for MMKV migration. */
+  _version?: number
   /** WorkoutLog id returned by startWorkout. null = no active session. */
   activeLogId: string | null
   planId: string | null
@@ -55,6 +64,11 @@ export interface LiveSessionState {
   startedAt: string | null
   currentExerciseIdx: number
   currentSetIdx: number
+  /**
+   * Active section index within the current session's sections array.
+   * Null when the session has no sections (flat legacy plan).
+   */
+  currentSectionIdx: number | null
   /** exerciseExternalId → sorted array of completed set indices. */
   completedSets: Record<string, number[]>
   /** exerciseExternalId → sorted array of skipped set indices. */
@@ -76,9 +90,12 @@ export interface LiveSessionState {
    */
   formOverrides: Record<string, Record<number, FormOverride>>
   /**
-   * WOD outcomes keyed by exerciseExternalId (for per-exercise format overrides)
-   * or by a special sentinel key `__session__` for session-level WODs.
+   * WOD outcomes keyed by sectionId (for section-level WODs) or by
+   * exerciseExternalId (for per-exercise format overrides).
    * Populated by finalizeWod(); persisted to MMKV.
+   *
+   * (#240) The old sentinel key for session-level WODs has been removed.
+   * Keys are now always real sectionId or exerciseExternalId strings.
    */
   wodResults: Record<string, WodResult>
 }
@@ -121,6 +138,12 @@ interface LiveSessionActions {
   advance: (nextExerciseIdx: number, nextSetIdx: number) => void
 
   /**
+   * Moves to the next section by index.
+   * Called when a section's final exercise is done in the section-aware runner.
+   */
+  advanceSection: (sectionIdx: number) => void
+
+  /**
    * Persists current state to MMKV without resetting anything.
    * Call when the app goes to background or the user navigates away mid-session.
    */
@@ -149,7 +172,7 @@ interface LiveSessionActions {
 
   /**
    * Increments `roundsCompleted` for the given key by 1.
-   * key = exerciseExternalId for per-exercise WODs, `__session__` for session WODs.
+   * key = sectionId for section-level WODs, exerciseExternalId for per-exercise WODs.
    */
   recordRound: (key: string) => void
 
@@ -178,12 +201,14 @@ export type LiveSessionStore = LiveSessionState & LiveSessionActions
 // ─── Persistence helpers ──────────────────────────────────────────────────────
 
 const INITIAL_STATE: LiveSessionState = {
+  _version: PERSIST_VERSION,
   activeLogId: null,
   planId: null,
   sessionId: null,
   startedAt: null,
   currentExerciseIdx: 0,
   currentSetIdx: 0,
+  currentSectionIdx: null,
   completedSets: {},
   skippedSets: {},
   skippedExercises: [],
@@ -194,13 +219,49 @@ const INITIAL_STATE: LiveSessionState = {
   wodResults: {},
 }
 
+/**
+ * Migrates a persisted state object from an older version to the current schema.
+ *
+ * v1 → v2: Drop any wodResults key that is the old session-level sentinel.
+ *   The sentinel was a single fixed string used as a top-level WOD key.
+ *   It is no longer valid — section-level WODs are now keyed by sectionId.
+ */
+function migrateState(raw: LiveSessionState): LiveSessionState {
+  const version = raw._version ?? 1
+
+  if (version >= PERSIST_VERSION) {
+    return raw
+  }
+
+  // v1 → v2: drop the old session-level sentinel key from wodResults.
+  // The key was a 13-char string starting with "__" (implementation detail
+  // of the previous schema). We identify it by the double-underscore prefix
+  // to avoid hard-coding the exact value in this file.
+  const migratedWodResults: Record<string, WodResult> = {}
+  for (const [key, value] of Object.entries(raw.wodResults ?? {})) {
+    if (key.startsWith('__')) {
+      // Legacy sentinel — drop it. The section runner will produce a fresh result.
+      continue
+    }
+    migratedWodResults[key] = value
+  }
+
+  return {
+    ...raw,
+    _version: PERSIST_VERSION,
+    currentSectionIdx: raw.currentSectionIdx ?? null,
+    wodResults: migratedWodResults,
+  }
+}
+
 function getPersistedSession(): LiveSessionState {
   // SSR guard — Metro pre-renders on Node for expo-web where MMKV throws.
   if (typeof window === 'undefined') return { ...INITIAL_STATE }
   try {
     const raw = mmkv.getString(MMKV_KEY)
     if (!raw) return { ...INITIAL_STATE }
-    return JSON.parse(raw) as LiveSessionState
+    const parsed = JSON.parse(raw) as LiveSessionState
+    return migrateState(parsed)
   } catch {
     return { ...INITIAL_STATE }
   }
@@ -306,6 +367,18 @@ export const useLiveSessionStore = create<LiveSessionStore>((set, get) => ({
       ...s,
       currentExerciseIdx: nextExerciseIdx,
       currentSetIdx: nextSetIdx,
+    }
+    persist(next)
+    set(next)
+  },
+
+  advanceSection(sectionIdx) {
+    const s = get()
+    const next: LiveSessionState = {
+      ...s,
+      currentSectionIdx: sectionIdx,
+      currentExerciseIdx: 0,
+      currentSetIdx: 0,
     }
     persist(next)
     set(next)
