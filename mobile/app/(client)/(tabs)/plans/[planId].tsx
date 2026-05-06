@@ -38,7 +38,9 @@ import {
 } from '@/api/nutrition'
 import {
   getFullTrainingPlan,
-  type FullTrainingPlanResponse,
+  type GetFullTrainingPlanResponse,
+  type SectionDto,
+  type WorkoutFormat,
   type MuscleGroup,
 } from '@/api/training'
 import {
@@ -55,6 +57,7 @@ import { hrefParams } from '@/lib/navigation'
 import { DaySummaryHero, type BodyPartEntry } from '@/components/training/DaySummaryHero'
 import { ExpandableSessionCard } from '@/components/training/ExpandableSessionCard'
 import { ExpandableExerciseCard } from '@/components/training/ExpandableExerciseCard'
+import { SectionHeader } from '@/components/training/SectionHeader'
 import { getMuscleGroupColor } from '@/constants/muscleGroups'
 import { SetGrid } from '@/components/training/SetGrid'
 
@@ -807,7 +810,7 @@ function todayDayOfWeek(): number {
   return d === 0 ? 7 : d
 }
 
-function TrainingPlanDetail({ plan }: { plan: FullTrainingPlanResponse }) {
+function TrainingPlanDetail({ plan }: { plan: GetFullTrainingPlanResponse }) {
   const colors = useTheme()
   const { t } = useTranslation()
   const scrollRef = useRef<ScrollView>(null)
@@ -882,7 +885,11 @@ function TrainingPlanDetail({ plan }: { plan: FullTrainingPlanResponse }) {
   const dayBodyParts = useMemo((): BodyPartEntry[] => {
     const map = new Map<MuscleGroup, { done: number; total: number }>()
     for (const session of currentDaySessions) {
-      for (const ex of (session.exercises ?? [])) {
+      // Prefer section-grouped exercises; fall back to flat list for legacy data.
+      const allExercises = (session.sections ?? []).length > 0
+        ? (session.sections ?? []).flatMap((sec) => sec.exercises ?? [])
+        : (session.exercises ?? [])
+      for (const ex of allExercises) {
         for (const mg of (ex.muscleGroups ?? [])) {
           const prev = map.get(mg) ?? { done: 0, total: 0 }
           map.set(mg, {
@@ -1253,9 +1260,34 @@ function TrainingPlanDetail({ plan }: { plan: FullTrainingPlanResponse }) {
                   if (session.estimatedDurationMinutes != null) {
                     summaryParts.push(t('training.duration', { minutes: session.estimatedDurationMinutes }))
                   }
-                  if ((session.exercises ?? [])[0]?.restSeconds != null) {
-                    summaryParts.push(t('training.restLabel', { seconds: (session.exercises ?? [])[0]!.restSeconds }))
-                  }
+
+                  // Resolve ordered sections. Fall back to a synthetic single section
+                  // from flat exercises for any legacy data that slips through.
+                  const sections: SectionDto[] =
+                    (session.sections ?? []).length > 0
+                      ? [...(session.sections ?? [])].sort(
+                          (a, b) => (a.order ?? 0) - (b.order ?? 0),
+                        )
+                      : (session.exercises ?? []).length > 0
+                        ? [{
+                            sectionId: session.sessionId ?? '',
+                            order: 0,
+                            name: t('training.section.defaultName'),
+                            format: undefined,
+                            exercises: [...(session.exercises ?? [])].sort(
+                              (a, b) => (a.order ?? 0) - (b.order ?? 0),
+                            ),
+                          }]
+                        : []
+
+                  // All exercise IDs across sections (for expand-all default).
+                  const allExIds = new Set(
+                    sections.flatMap((sec) =>
+                      (sec.exercises ?? []).map((ex) => ex.exerciseExternalId ?? ''),
+                    ),
+                  )
+                  const exerciseKey = `${effectiveWeek}-${effectiveDay}-${session.sessionId ?? ''}`
+                  const expandedExercises = expandedExercisesMap[exerciseKey] ?? allExIds
 
                   return (
                     <ExpandableSessionCard
@@ -1267,66 +1299,83 @@ function TrainingPlanDetail({ plan }: { plan: FullTrainingPlanResponse }) {
                       totalCount={session.totalExerciseCount ?? 0}
                       defaultExpanded={isSessionExpanded}
                     >
-                      {/* Exercise cards */}
-                      {(session.exercises ?? [])
-                        .slice()
-                        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-                        .map((exercise) => {
-                          const exerciseKey = `${effectiveWeek}-${effectiveDay}-${session.sessionId ?? ''}`
-                          const allExIds = new Set(
-                            (session.exercises ?? []).map((ex) => ex.exerciseExternalId ?? ''),
-                          )
-                          const expandedExercises =
-                            expandedExercisesMap[exerciseKey] ?? allExIds
-                          const isExExpanded = expandedExercises.has(exercise.exerciseExternalId ?? '')
+                      {/* Section-grouped exercise cards (read-only) */}
+                      {sections.map((section) => (
+                        <View key={section.sectionId}>
+                          {/* Section band header — only shown when there are multiple sections
+                              OR the single section has a non-Standard format (WOD). */}
+                          {(sections.length > 1 || (section.format != null && section.format !== 'Standard')) && (
+                            <SectionHeader
+                              name={section.name ?? ''}
+                              format={section.format as WorkoutFormat | undefined}
+                              exerciseCount={(section.exercises ?? []).length}
+                            />
+                          )}
 
-                          // Exercise summary
-                          const setCount = (exercise.sets ?? []).length
-                          const firstReps = exercise.sets?.[0]?.reps
-                          const firstWeight = exercise.sets?.[0]?.weightKg
-                          const exSummaryParts: string[] = [
-                            `${setCount} ${t('training.set').toLowerCase()}`,
-                          ]
-                          if (firstReps != null) {
-                            exSummaryParts.push(`${firstReps} ${t('training.reps').toLowerCase()}`)
-                          }
-                          if (firstWeight != null) {
-                            exSummaryParts.push(`${firstWeight} kg`)
-                          }
+                          {/* Empty section state */}
+                          {(section.exercises ?? []).length === 0 && (
+                            <View style={styles.sectionEmpty}>
+                              <Text style={[Type.caption1, { color: colors.label3 }]}>
+                                {t('training.section.empty')}
+                              </Text>
+                            </View>
+                          )}
 
-                          const exerciseBadges = (exercise.muscleGroups ?? []).map((mg) => ({
-                            label: t(`muscleGroup.${mg}`),
-                            color: getMuscleGroupColor(mg, colors),
-                          }))
+                          {/* Exercises in this section */}
+                          {(section.exercises ?? [])
+                            .slice()
+                            .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+                            .map((exercise) => {
+                              const isExExpanded = expandedExercises.has(exercise.exerciseExternalId ?? '')
 
-                          return (
-                            <ExpandableExerciseCard
-                              key={exercise.exerciseExternalId ?? ''}
-                              name={exercise.exerciseName ?? ''}
-                              summaryText={exSummaryParts.join(' · ')}
-                              bodyParts={exerciseBadges}
-                              isCompleted={exercise.isCompleted ?? false}
-                              defaultExpanded={isExExpanded}
-                            >
-                              <SetGrid sets={exercise.sets ?? []} />
-                              {exercise.notes && (
-                                <View
-                                  style={[
-                                    styles.exerciseNote,
-                                    { backgroundColor: 'rgba(201,168,76,0.04)', borderTopColor: colors.sep2 },
-                                  ]}
+                              const setCount = (exercise.sets ?? []).length
+                              const firstReps = exercise.sets?.[0]?.reps
+                              const firstWeight = exercise.sets?.[0]?.weightKg
+                              const exSummaryParts: string[] = [
+                                `${setCount} ${t('training.set').toLowerCase()}`,
+                              ]
+                              if (firstReps != null) {
+                                exSummaryParts.push(`${firstReps} ${t('training.reps').toLowerCase()}`)
+                              }
+                              if (firstWeight != null) {
+                                exSummaryParts.push(`${firstWeight} kg`)
+                              }
+
+                              const exerciseBadges = (exercise.muscleGroups ?? []).map((mg) => ({
+                                label: t(`muscleGroup.${mg}`),
+                                color: getMuscleGroupColor(mg, colors),
+                              }))
+
+                              return (
+                                <ExpandableExerciseCard
+                                  key={exercise.exerciseExternalId ?? ''}
+                                  name={exercise.exerciseName ?? ''}
+                                  summaryText={exSummaryParts.join(' · ')}
+                                  bodyParts={exerciseBadges}
+                                  isCompleted={exercise.isCompleted ?? false}
+                                  defaultExpanded={isExExpanded}
                                 >
-                                  <Text style={[Type.caption1, { color: colors.label2, lineHeight: 18 }]}>
-                                    <Text style={{ fontWeight: '600', color: colors.gold }}>
-                                      {t('nutrition.tip')}{' '}
-                                    </Text>
-                                    {exercise.notes}
-                                  </Text>
-                                </View>
-                              )}
-                            </ExpandableExerciseCard>
-                          )
-                        })}
+                                  <SetGrid sets={exercise.sets ?? []} />
+                                  {exercise.notes && (
+                                    <View
+                                      style={[
+                                        styles.exerciseNote,
+                                        { backgroundColor: 'rgba(201,168,76,0.04)', borderTopColor: colors.sep2 },
+                                      ]}
+                                    >
+                                      <Text style={[Type.caption1, { color: colors.label2, lineHeight: 18 }]}>
+                                        <Text style={{ fontWeight: '600', color: colors.gold }}>
+                                          {t('nutrition.tip')}{' '}
+                                        </Text>
+                                        {exercise.notes}
+                                      </Text>
+                                    </View>
+                                  )}
+                                </ExpandableExerciseCard>
+                              )
+                            })}
+                        </View>
+                      ))}
                     </ExpandableSessionCard>
                   )
                 })}
@@ -1637,6 +1686,11 @@ const styles = StyleSheet.create({
   sessionsWrap: {
     paddingHorizontal: 20,
     paddingBottom: 8,
+  },
+  // Empty-section row: shown when a section exists but has zero exercises.
+  sectionEmpty: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
   },
   exerciseNote: {
     paddingHorizontal: 16,
