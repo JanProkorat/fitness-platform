@@ -15522,7 +15522,27 @@ export interface SessionDto {
 Currently null — a reliable heuristic requires product-defined set-duration
 assumptions that haven't been finalised. Will be added as an additive change. */
     estimatedDurationMinutes?: number | undefined;
-    /** Exercises in this session. */
+    /** Sections in this session, ordered by their Order field.
+Schema-on-read: legacy documents with only flat exercises are backfilled into a single
+"Hlavní" section before this response is built. */
+    sections?: SectionDto[];
+    /** Flat list of all exercises across all sections, in section order.
+Kept for backward-compatibility with callers that don't yet read Sections. */
+    exercises?: ExerciseDto[];
+}
+
+/** An ordered section within a session (e.g. "Hlavní", "Warm-up", "Cool-down"). */
+export interface SectionDto {
+    /** Stable identifier for this section. */
+    sectionId?: string;
+    /** Display order within the session (0-based). */
+    order?: number;
+    /** Display name (e.g. "Hlavní", "Warm-up"). */
+    name?: string;
+    /** Workout format for this section (e.g. "Emom", "Amrap", "Tabata", "ForTime").
+Null means the section uses the default Standard format. */
+    format?: string | undefined;
+    /** Exercises within this section. */
     exercises?: ExerciseDto[];
 }
 
