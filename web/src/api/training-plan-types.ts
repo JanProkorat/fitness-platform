@@ -65,6 +65,28 @@ export interface SessionExercise {
   sets: ExerciseSet[];
 }
 
+/**
+ * An ordered section within a training session (e.g. "Warm-up", "Hlavní").
+ * The editor always works with sections — legacy plans without sections are
+ * wrapped in a single synthetic "Hlavní" section on load.
+ */
+export interface TrainingSection {
+  /** Stable client-side identifier; reused across saves. New sections get crypto.randomUUID(). */
+  sectionId: string;
+  /** Display order within the session (0-based). */
+  order: number;
+  /** Display name (e.g. "Hlavní", "Rozcvička"). */
+  name: string;
+  /** Section-level workout format. Defaults to Standard. */
+  format: WorkoutFormat;
+  /** Format config. Null when format is Standard. */
+  formatConfig?: WodConfig | null;
+  /** Optional coach notes for this section. */
+  notes?: string | null;
+  /** Exercises in this section. */
+  exercises: SessionExercise[];
+}
+
 /** A training session within a week. */
 export interface TrainingSession {
   sessionId: string;
@@ -72,10 +94,20 @@ export interface TrainingSession {
   name: string;
   order: number;
   notes?: string | null;
-  /** Workout format for this session. Defaults to Standard. */
+  /** Session-level workout format (kept as inheritable default). */
   format: WorkoutFormat;
-  /** Format config for non-Standard sessions. Null when format is Standard. */
+  /** Session-level format config. */
   formatConfig?: WodConfig | null;
+  /**
+   * Sections in this session. The editor always works with sections.
+   * Legacy plans (flat exercises, no sections) are wrapped on load.
+   */
+  sections: TrainingSection[];
+  /**
+   * Flat view of exercises across all sections — present on API response
+   * objects only (computed, not stored). The store does not use this field;
+   * it reads from sections instead.
+   */
   exercises: SessionExercise[];
 }
 
