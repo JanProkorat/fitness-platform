@@ -8,18 +8,80 @@ what the mobile app captures when the client finishes.
 
 The data lives in the backend's `Domain/Documents/`:
 
-- `TrainingSession.Format` (`WorkoutFormat`) + `TrainingSession.FormatConfig`
-  (`WodConfig?`) — session-wide.
-- `SessionExercise.Format` (`WorkoutFormat?` — `null` means "inherit from session")
-  + `SessionExercise.FormatConfig`.
+- `TrainingSession.Sections` (`List<TrainingSection>`) — ordered sections
+  (see [Sections](#sections)).
+- `TrainingSection.Format` (`WorkoutFormat?`) +
+  `TrainingSection.FormatConfig` (`WodConfig?`) — section-wide. `null`
+  means "inherit from session".
+- `TrainingSession.Format` + `TrainingSession.FormatConfig` — session-wide
+  defaults inherited by sections that leave their own `Format` null. Kept
+  nullable for one release as a back-compat handle while plans migrate
+  to per-section formats.
+- `SessionExercise.Format` (`WorkoutFormat?` — `null` means "inherit from
+  section") + `SessionExercise.FormatConfig`.
 - `SessionExercise.MovementType` (`MovementType`) — controls the set-table
   columns.
-- `WorkoutLog.WodResult` + `WorkoutExercise.WodResult` (`WodResult?`) —
-  outcome captured at the end of the live workout.
+- `WorkoutLog.Sections` (`List<WorkoutSection>`) + each section's
+  `WorkoutExercise.WodResult` (`WodResult?`) — outcome captured at the
+  end of the live workout, keyed by section.
 
-Per-exercise format overrides session-level format. A `Standard` session
-with one `EMOM` exercise will run that exercise as a single-exercise WOD
-inside an otherwise reps×weight session.
+Format inheritance flows session → section → exercise. Per-exercise
+format overrides section format; section format overrides session
+format. A `Standard` section with one `EMOM` exercise will run that
+exercise as a single-exercise WOD inside an otherwise reps×weight
+section.
+
+---
+
+## Sections
+
+A training session is a list of **sections**. Each section carries its
+own format and config and groups the exercises that run under that
+format. The mobile live runner advances one section at a time
+(prestart → section-runner → running → finished); the trainer portal
+authors plans as sections, with format chips and accent bars matching
+the mobile bands.
+
+- **`TrainingSession.Sections: List<TrainingSection>`** — ordered by
+  `TrainingSection.Order`. A session always has ≥1 section. Legacy plans
+  stored without sections materialize on read as a single default
+  section named `Hlavní` wrapping the flat exercises (no data
+  migration; pure schema-on-read backfill in
+  `TrainingSession.WithBackfilledSections()`). The same backfill
+  applies to legacy `WorkoutLog` documents
+  (`WorkoutLog.Sections` / `WorkoutSection`).
+- **`TrainingSection`** — embedded sub-document, not a root aggregate.
+  Fields: `SectionId` (Guid, client-side stable), `Order` (int), `Name`
+  (string — e.g. `"Hlavní"`, `"Warm-up"`, `"Cool-down"`), `Format`
+  (`WorkoutFormat?`), `FormatConfig` (`WodConfig?`), `Exercises`
+  (`List<SessionExercise>`).
+- **Per-exercise overrides** still apply within a section — a
+  `Conditioning` section running AMRAP can host one `Standard` exercise
+  by setting that exercise's `Format = Standard`.
+
+### Section templates
+
+Reusable section blueprints live in their own collection
+(`Domain/Documents/SectionTemplate.cs`, root aggregate with
+`Id` / `ExternalId` / `Version` / audit fields and per-trainer
+ownership via `OwnerTrainerId`). Trainers create templates in the
+**Šablony sekcí** admin page in the portal and apply them to any
+in-progress session — selection splices the template's
+`DefaultFormat`, `DefaultFormatConfig`, and `DefaultExercises` into
+the active section, then the trainer saves the plan through the
+standard `UpdateTrainingPlan` flow.
+
+Endpoints (`Features/SectionTemplates/`, all trainer-only auth):
+
+- `POST /training/section-templates` — create
+- `GET  /training/section-templates` — list (own templates only)
+- `GET  /training/section-templates/{templateId}` — get
+- `PUT  /training/section-templates/{templateId}` — update
+  (optimistic concurrency on `Version`)
+- `DELETE /training/section-templates/{templateId}` — delete
+
+Cross-trainer access returns `403 Forbidden`; missing template returns
+`404 Not Found`.
 
 ---
 
@@ -146,15 +208,26 @@ scored in actual training contexts.
 
 The `UpdateTrainingPlan` validator (`Features/TrainingPlans/UpdateTrainingPlan/`)
 enforces these at write time. Failing them returns `400 Bad Request` with
-RFC 7807 Problem Details. The same rules apply at the per-exercise level
-when `SessionExercise.Format` is non-null.
+RFC 7807 Problem Details. **The validator now operates per-section, not
+per-session** — every section's `Format` / `FormatConfig` is checked
+independently, and the same rules apply at the per-exercise level when
+`SessionExercise.Format` is non-null. The `CreateSectionTemplate` and
+`UpdateSectionTemplate` validators apply the same rules to template
+defaults.
 
 - `EMOM` — `IntervalSeconds > 0` AND `TotalRounds > 0`.
 - `AMRAP` / `ForTime` — `TimeCapSeconds > 0`.
 - `Tabata` — `WorkSeconds > 0` AND `RestSeconds > 0` AND `TotalRounds > 0`.
 - `Standard` — `FormatConfig` MUST be `null`.
 
-Existing plans created before the format work was added continue to load
-unchanged: the Mongo schema-on-read plus C# property defaults (`Format =
-Standard`, `MovementType = Reps`, nullable `FormatConfig` / `WodResult` /
-per-exercise `Format`) backfill the missing fields silently.
+Additional section-level invariants:
+
+- A session must contain ≥1 section.
+- Each section's `Order` is unique within the session.
+
+Existing plans created before the format / section work was added
+continue to load unchanged: the Mongo schema-on-read plus C# property
+defaults (`Sections = [{ Hlavní }]` from the legacy flat `Exercises`,
+`Format = Standard`, `MovementType = Reps`, nullable `FormatConfig` /
+`WodResult` / per-exercise `Format`) backfill the missing fields
+silently.
