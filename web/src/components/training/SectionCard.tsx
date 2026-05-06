@@ -7,7 +7,8 @@ import { ExerciseCardHeader } from '@/components/training/ExerciseCardHeader';
 import { SetRow } from '@/components/training/SetRow';
 import { MovementTypePill } from '@/components/training/MovementTypePill';
 import { ExerciseFormatBar } from '@/components/training/ExerciseFormatBar';
-import { SectionFormatBar } from '@/components/training/SectionFormatBar';
+import { SectionFormatPill } from '@/components/training/SectionFormatPill';
+import { SectionFormatConfigRow } from '@/components/training/SectionFormatConfigRow';
 import { cn } from '@/lib/cn';
 import { MUSCLE_COLORS, MUSCLE_ICONS } from '@/constants/training';
 import type { ExerciseSet } from '@/api/training-plan-types';
@@ -115,14 +116,11 @@ export function SectionCard({
           style={{ fontFamily: 'inherit', minWidth: 0 }}
         />
 
-        {/* Format selector (scoped to this section) */}
-        <div onClick={(e) => e.stopPropagation()}>
-          <SectionFormatBar
-            format={section.format}
-            formatConfig={section.formatConfig}
-            onFormatChange={(fmt, cfg) => onUpdate({ format: fmt, formatConfig: cfg })}
-          />
-        </div>
+        {/* Format pill — inline in header row */}
+        <SectionFormatPill
+          format={section.format}
+          onFormatChange={(fmt, cfg) => onUpdate({ format: fmt, formatConfig: cfg })}
+        />
 
         {/* Save as template */}
         <button
@@ -182,6 +180,17 @@ export function SectionCard({
           onBlur={(e) => { e.target.style.background = 'transparent'; }}
         />
       </div>
+
+      {/* ── Format config row (non-Standard formats only) ── */}
+      {section.format !== 'Standard' && (
+        <SectionFormatConfigRow
+          format={section.format}
+          formatConfig={section.formatConfig}
+          onChange={(patch) =>
+            onUpdate({ formatConfig: { ...(section.formatConfig ?? {}), ...patch } })
+          }
+        />
+      )}
 
       {/* ── Exercise list ── */}
       <div className="px-2 pt-1">
