@@ -9,7 +9,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated'
 import { useTheme } from '@/hooks/useTheme'
-import { Colors } from '@/constants/colors'
+import { Colors, type ColorScheme } from '@/constants/colors'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
 
@@ -19,6 +19,27 @@ const layoutTransition = LinearTransition.duration(ANIM_DURATION).easing(
   Easing.out(Easing.cubic),
 )
 
+/**
+ * Maps a session's start hour to the prototype kind-color.
+ *
+ * Prototype mapping (components.css, kind-* palette):
+ *   05–10  morning   → orange  #ff9500
+ *   11–13  noon      → green   #34c759
+ *   14–16  afternoon → blue    #007aff
+ *   17–20  evening   → purple  #af52de
+ *   else   late      → red     #ff3b30
+ *
+ * All colors are sourced from the theme (no inline hex).
+ */
+function sessionKindColor(startHour: number | null | undefined, colors: ColorScheme): string {
+  if (startHour == null) return colors.orange  // fallback: morning
+  if (startHour >= 5 && startHour <= 10) return colors.orange
+  if (startHour >= 11 && startHour <= 13) return colors.green
+  if (startHour >= 14 && startHour <= 16) return colors.blue
+  if (startHour >= 17 && startHour <= 20) return colors.purple
+  return colors.red
+}
+
 interface ExpandableSessionCardProps {
   order: number
   name: string
@@ -26,6 +47,12 @@ interface ExpandableSessionCardProps {
   summaryText: string
   completedCount: number
   totalCount: number
+  /**
+   * Hour component (0–23) of the session's scheduled start time.
+   * Used to pick a time-of-day accent color for the left bar and expanded
+   * header tint. Null / undefined → falls back to morning orange.
+   */
+  startHour?: number | null
   defaultExpanded?: boolean
   /**
    * Optional node injected at the right side of the header row, between the
@@ -40,10 +67,14 @@ interface ExpandableSessionCardProps {
 /**
  * Collapsible session card that mirrors .tp-session in the prototype.
  *
- * The body is always mounted so the inner exercise cards preserve their own
- * expand/collapse state. When `isOpen` toggles, the body's `height` flips
- * between `0` and `auto`; Reanimated's `LinearTransition` layout animation on
- * the outer wrapper then interpolates the frame change smoothly.
+ * - A 4 px left bar colored by time-of-day (`startHour`) mirrors the
+ *   `.tp-session.kind-*` border-left rule.
+ * - When expanded, the header band is tinted with the same hue at 10% alpha
+ *   (`kindColor + '1a'`), matching `.tp-session.kind-*.expanded .tp-session-header`.
+ * - The body is always mounted so the inner exercise cards preserve their own
+ *   expand/collapse state. When `isOpen` toggles, the body's `height` flips
+ *   between `0` and `auto`; Reanimated's `LinearTransition` layout animation on
+ *   the outer wrapper then interpolates the frame change smoothly.
  */
 export function ExpandableSessionCard({
   order,
@@ -51,6 +82,7 @@ export function ExpandableSessionCard({
   summaryText,
   completedCount,
   totalCount,
+  startHour,
   defaultExpanded = false,
   headerRight,
   children,
@@ -78,12 +110,24 @@ export function ExpandableSessionCard({
   const pillColor = allDone ? colors.green : colors.label2
   const pillBg = allDone ? colors.green + '1E' : colors.fill
 
+  // Left-bar accent color — derived from session start hour, matches prototype kind palette.
+  const kindColor = sessionKindColor(startHour, colors)
+  // Header tint when expanded: same hue at 10% alpha. '1a' = 26/255 ≈ 10.2%.
+  const headerBg = isOpen ? kindColor + '1a' : 'transparent'
+
   return (
     <Animated.View
       layout={layoutTransition}
-      style={[styles.card, { backgroundColor: colors.bg2, borderColor: colors.sep2 }]}
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.bg2,
+          borderColor: colors.sep2,
+          borderLeftColor: kindColor,
+        },
+      ]}
     >
-      <Pressable onPress={handleToggle} style={styles.header}>
+      <Pressable onPress={handleToggle} style={[styles.header, { backgroundColor: headerBg }]}>
         {/* Order chip */}
         <View style={[styles.orderChip, { backgroundColor: colors.fill }]}>
           <Text style={[Type.footnote, { color: colors.label, fontWeight: '700' }]}>
@@ -134,13 +178,15 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
     overflow: 'hidden',
     borderWidth: 1,
+    // 4 px left bar — color is set inline from kindColor.
+    borderLeftWidth: 4,
     marginBottom: 12,
     ...Platform.select({
       ios: {
         shadowColor: Colors.dark.shadow,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.12,
+        shadowRadius: 12,
       },
       android: { elevation: 2 },
     }),
@@ -182,10 +228,11 @@ const styles = StyleSheet.create({
     height: 0,
   },
   body: {
-    borderTopWidth: 1,
-    paddingHorizontal: 12,
-    paddingTop: 10,
-    paddingBottom: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    // No horizontal padding — exercise rows are flush with the section edges
+    // per prototype (.tp-session-exercises .tp-ex-card { margin:0 }).
+    paddingTop: 0,
+    paddingBottom: 0,
     gap: 0,
   },
 })

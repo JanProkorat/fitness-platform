@@ -63,6 +63,8 @@ const light = {
   // Fills (interactive elements)
   fill: 'rgba(120,120,128,0.12)',
   fill2: 'rgba(120,120,128,0.08)',
+  /** Ultra-light neutral tint (~6% alpha) — matches .tp-section-header bg in prototype. */
+  fill3: 'rgba(120,120,128,0.06)',
 
   // System
   blue: '#007aff',
@@ -111,6 +113,8 @@ const dark = {
 
   fill: 'rgba(120,120,128,0.24)',
   fill2: 'rgba(120,120,128,0.16)',
+  /** Ultra-light neutral tint (~6% alpha) — matches .tp-section-header bg in prototype. */
+  fill3: 'rgba(120,120,128,0.06)',
 
   blue: '#0a84ff',
   green: '#30d158',
@@ -154,6 +158,8 @@ export interface ColorScheme {
   readonly label3: string
   readonly fill: string
   readonly fill2: string
+  /** Ultra-light neutral tint (~6% alpha) — matches .tp-section-header bg in prototype. */
+  readonly fill3: string
   readonly blue: string
   readonly green: string
   readonly red: string

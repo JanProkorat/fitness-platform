@@ -223,7 +223,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   nestedHeader: {
-    paddingHorizontal: 4,
+    // Flush with parent section edges — no inner horizontal inset.
+    // Rows are separated only by hairline border-top per prototype.
+    paddingHorizontal: 0,
   },
   header: {
     flexDirection: 'row',
