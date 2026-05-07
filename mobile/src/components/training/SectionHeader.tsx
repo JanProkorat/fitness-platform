@@ -5,11 +5,14 @@
  * (docs/prototypes/mobile/styles/components.css).
  *
  * Format-to-color mapping via `useTheme()` tokens only — never hardcoded hex:
- *   Standard  → colors.blue
- *   AMRAP     → colors.purple
- *   EMOM      → colors.orange
- *   ForTime   → colors.red
- *   Tabata    → colors.green  (teal in prototype; nearest theme token)
+ *   Standard  → label3 text / fill2 bg (neutral)
+ *   AMRAP     → orange text / orange + '14' bg
+ *   EMOM      → purple text / purple + '14' bg
+ *   ForTime   → blue   text / blue   + '14' bg
+ *   Tabata    → red    text / red    + '14' bg
+ *
+ * The accent bar on the left still uses the saturated accent color for
+ * visual contrast regardless of the chip's softer treatment.
  */
 
 import React from 'react'
@@ -18,26 +21,28 @@ import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
 import type { WorkoutFormat } from '@/api/training'
+import type { ColorScheme } from '@/constants/colors'
+import { FORMAT_LABEL_KEYS, formatChipColor, formatChipBg } from '@/constants/training'
 
-// ─── Format → theme color ──────────────────────────────────────────────────────
+// ─── Format → accent bar color ─────────────────────────────────────────────────
 
 /**
- * Returns the accent color token for a given section format.
- * All values come from `useTheme()` — no hex literals.
+ * Returns the saturated accent color used on the 3 px left rail.
+ * Kept separate from the chip palette so the bar remains high-contrast.
  */
 export function formatAccentColor(
   format: WorkoutFormat | null | undefined,
-  colors: ReturnType<typeof useTheme>,
+  colors: ColorScheme,
 ): string {
   switch (format) {
     case 'AMRAP':
-      return colors.purple
-    case 'EMOM':
       return colors.orange
+    case 'EMOM':
+      return colors.purple
     case 'ForTime':
-      return colors.red
+      return colors.blue
     case 'Tabata':
-      return colors.green
+      return colors.red
     case 'Standard':
     default:
       return colors.blue
@@ -67,6 +72,8 @@ export function SectionHeader({ name, format, exerciseCount }: SectionHeaderProp
 
   const accentColor = formatAccentColor(format, colors)
   const headerBg = accentColor + '0f' // ~6% opacity tint, matches prototype
+  // WOD formats: any non-null, non-Standard format.
+  // Re-checked inline in JSX for TypeScript narrowing.
   const isWod = format != null && format !== 'Standard'
 
   return (
@@ -76,11 +83,22 @@ export function SectionHeader({ name, format, exerciseCount }: SectionHeaderProp
 
       {/* Content row */}
       <View style={styles.content}>
-        {/* Format chip — only shown for non-Standard sections */}
-        {isWod && (
-          <View style={[styles.formatChip, { backgroundColor: accentColor + '22', borderColor: accentColor + '44' }]}>
-            <Text style={[styles.formatChipText, { color: accentColor }]}>
-              {t(`training.format.${format.toLowerCase()}`)}
+        {/* Format chip — only shown for non-Standard sections.
+            `isWod` already narrows format to a non-null, non-Standard WOD
+            type; the extra `format != null` below satisfies the TS narrowing
+            flow without re-asserting the Standard exclusion. */}
+        {isWod && format != null && (
+          <View
+            style={[
+              styles.formatChip,
+              {
+                backgroundColor: formatChipBg(format, colors),
+                borderColor: formatChipColor(format, colors) + '33',
+              },
+            ]}
+          >
+            <Text style={[styles.formatChipText, { color: formatChipColor(format, colors) }]}>
+              {t(`training.format.${FORMAT_LABEL_KEYS[format]}`)}
             </Text>
           </View>
         )}
