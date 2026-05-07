@@ -778,7 +778,7 @@
     "activeWorkout": "Aktivní trénink",
     "addExercise": "Přidat cvik",
     "addSet": "Přidat sérii",
-    "set": "Sada",
+    "set": "S",
     "reps": "Opak.",
     "weight": "Váha",
     "rest": "Odp.",
@@ -925,7 +925,8 @@
       "sectionExercisesHint_few": "{{count}} cviky",
       "sectionExercisesHint_other": "{{count}} cviků",
       "sectionOf": "Sekce {{current}} ze {{total}}",
-      "sectionActionDetail": "Detail"
+      "sectionActionDetail": "Detail",
+      "completeA11y": "Označit celou sekci jako hotovou"
     }
   },
   "muscleGroup": {

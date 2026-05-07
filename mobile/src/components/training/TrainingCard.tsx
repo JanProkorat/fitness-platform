@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useState, useCallback } from 'react'
 import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useTranslation } from 'react-i18next'
@@ -321,17 +321,101 @@ export function TrainingCard({
           const sections = getEffectiveSections(session, t)
 
           return (
-            <ExpandableSessionCard
+            <SessionSectionList
               key={sessionId}
+              sessionId={sessionId}
               order={idx + 1}
               name={session.name ?? ''}
               summaryText={sessionSummary}
+              completedIds={completedIds}
+              trackableCount={trackableCount}
+              sections={sections}
+              sessionCheckbox={sessionCheckbox}
+              showCta={showCta}
+              ctaState={ctaState}
+              ctaPending={ctaPending}
+              session={session}
+              exerciseMuscleGroups={exerciseMuscleGroups}
+              completedSetsBySessionExercise={completedSetsBySessionExercise[sessionId] ?? {}}
+              onToggleExercise={onToggleExercise}
+              onSessionCta={onSessionCta}
+              t={t}
+            />
+          )
+        })}
+      </View>
+    </View>
+  )
+}
+
+// ─── SessionSectionList ───────────────────────────────────────────────────────
+// Extracted so section-collapse state lives per session, not globally.
+
+interface SessionSectionListProps {
+  sessionId: string
+  order: number
+  name: string
+  summaryText: string
+  completedIds: ReadonlySet<string>
+  trackableCount: number
+  sections: ReturnType<typeof getEffectiveSections>
+  sessionCheckbox: React.ReactNode
+  showCta: boolean
+  ctaState: SessionCtaState | undefined
+  ctaPending: boolean
+  session: TrainingSession
+  exerciseMuscleGroups: Record<string, MuscleGroup[]>
+  completedSetsBySessionExercise: Record<string, number[]>
+  onToggleExercise?: (sessionId: string, exerciseExternalId: string) => void
+  onSessionCta?: (session: TrainingSession, state: SessionCtaState) => void
+  t: (key: string, opts?: Record<string, unknown>) => string
+}
+
+function SessionSectionList({
+  sessionId,
+  order,
+  name,
+  summaryText,
+  completedIds,
+  trackableCount,
+  sections,
+  sessionCheckbox,
+  showCta,
+  ctaState,
+  ctaPending,
+  session,
+  exerciseMuscleGroups,
+  completedSetsBySessionExercise,
+  onToggleExercise,
+  onSessionCta,
+  t,
+}: SessionSectionListProps) {
+  const colors = useTheme()
+
+  // Per-section expand/collapse state. Defaults all to true.
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(
+      sections.map((s, i) => [s.sectionId ?? `section-${i}`, true])
+    )
+  )
+
+  const handleToggleSection = useCallback((sectionKey: string) => {
+    setExpandedSections((prev) => ({ ...prev, [sectionKey]: !prev[sectionKey] }))
+  }, [])
+
+  return (
+            <ExpandableSessionCard
+              key={sessionId}
+              order={order}
+              name={name}
+              summaryText={summaryText}
               completedCount={completedIds.size}
               totalCount={trackableCount}
               headerRight={sessionCheckbox}
             >
               {/* Section-grouped exercise cards */}
               {sections.map((section, sectionIdx) => {
+                const sectionKey = section.sectionId ?? `section-${sectionIdx}`
                 const sectionExercises = section.exercises ?? []
                 // Show section header when there are multiple sections or
                 // when it's a WOD-formatted section (always worth labelling).
@@ -341,17 +425,47 @@ export function TrainingCard({
 
                 // Empty section edge case — show band with empty-state row
                 const hasExercises = sectionExercises.length > 0
+                const isExpanded = expandedSections[sectionKey] ?? true
+
+                // Section-complete state: every trackable exercise in this section is done.
+                const trackableExercises = sectionExercises.filter(
+                  (e) => e.exerciseExternalId != null,
+                )
+                const isSectionComplete =
+                  trackableExercises.length > 0 &&
+                  trackableExercises.every((e) => completedIds.has(e.exerciseExternalId!))
+
+                // onToggleSectionComplete: toggle all exercises in the section.
+                const handleToggleSectionComplete =
+                  onToggleExercise && trackableExercises.length > 0
+                    ? () => {
+                        for (const ex of trackableExercises) {
+                          const exId = ex.exerciseExternalId!
+                          // If complete → mark all incomplete by toggling each done one
+                          // If incomplete → mark all complete by toggling each undone one
+                          const isDone = completedIds.has(exId)
+                          if (isSectionComplete ? isDone : !isDone) {
+                            onToggleExercise(sessionId, exId)
+                          }
+                        }
+                      }
+                    : undefined
 
                 return (
-                  <View key={section.sectionId ?? `section-${sectionIdx}`}>
+                  <View key={sectionKey}>
                     {showSectionHeader && (
                       <SectionHeader
                         name={section.name ?? t('training.section.defaultName')}
                         format={section.format}
                         exerciseCount={sectionExercises.length}
+                        isExpanded={isExpanded}
+                        onToggleExpanded={() => handleToggleSection(sectionKey)}
+                        isSectionComplete={isSectionComplete}
+                        onToggleSectionComplete={handleToggleSectionComplete}
                       />
                     )}
 
+                    {/* Empty-section placeholder — always shown regardless of expand state */}
                     {!hasExercises && (
                       <View style={[styles.sectionEmpty, { borderBottomColor: colors.sep2 }]}>
                         <Text style={[Type.caption1, { color: colors.label3 }]}>
@@ -360,13 +474,14 @@ export function TrainingCard({
                       </View>
                     )}
 
-                    {sectionExercises.map((exercise, exIdx) => {
+                    {/* Exercise rows — hidden when the section is collapsed */}
+                    {isExpanded && sectionExercises.map((exercise, exIdx) => {
                       const exId = exercise.exerciseExternalId ?? null
                       const isDone = exId != null && completedIds.has(exId)
                       const sets = exercise.sets ?? []
                       const completedSetNumbers =
                         exId != null
-                          ? (completedSetsBySessionExercise[sessionId]?.[exId] ?? [])
+                          ? (completedSetsBySessionExercise[exId] ?? [])
                           : []
 
                       // Exercise summary: "N série · M opak · K kg"
@@ -426,8 +541,8 @@ export function TrainingCard({
                 )
               })}
 
-              {/* Per-session CTA footer */}
-              {showCta && (
+              {/* Per-session CTA footer — ctaState and onSessionCta are non-null when showCta is true */}
+              {showCta && ctaState != null && onSessionCta != null && (
                 <SessionCtaFooter
                   session={session}
                   state={ctaState}
@@ -436,10 +551,6 @@ export function TrainingCard({
                 />
               )}
             </ExpandableSessionCard>
-          )
-        })}
-      </View>
-    </View>
   )
 }
 

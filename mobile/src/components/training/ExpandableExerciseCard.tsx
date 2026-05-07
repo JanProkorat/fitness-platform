@@ -223,9 +223,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   nestedHeader: {
-    // Flush with parent section edges — no inner horizontal inset.
-    // Rows are separated only by hairline border-top per prototype.
-    paddingHorizontal: 0,
+    // Match section header's 14 px left inset so the dot has breathing room
+    // from the card edge (Fix #4). Right side keeps the standard 12 px.
+    paddingLeft: 14,
+    paddingRight: 12,
   },
   header: {
     flexDirection: 'row',

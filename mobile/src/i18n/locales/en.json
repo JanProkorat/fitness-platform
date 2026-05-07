@@ -553,7 +553,7 @@
     "activeWorkout": "Active Workout",
     "addExercise": "Add Exercise",
     "addSet": "Add Set",
-    "set": "Set",
+    "set": "S",
     "reps": "Reps",
     "weight": "Weight",
     "rest": "Rest",
@@ -697,7 +697,8 @@
       "sectionExercisesHint_one": "{{count}} exercise",
       "sectionExercisesHint_other": "{{count}} exercises",
       "sectionOf": "Section {{current}} of {{total}}",
-      "sectionActionDetail": "Detail"
+      "sectionActionDetail": "Detail",
+      "completeA11y": "Mark whole section as done"
     }
   },
   "muscleGroup": {

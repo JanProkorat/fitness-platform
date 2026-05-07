@@ -752,7 +752,7 @@
     "activeWorkout": "Aktives Training",
     "addExercise": "Übung hinzufügen",
     "addSet": "Satz hinzufügen",
-    "set": "Satz",
+    "set": "S",
     "reps": "Wdh.",
     "weight": "Gewicht",
     "rest": "Pause",
@@ -895,7 +895,8 @@
       "sectionExercisesHint_one": "{{count}} Übung",
       "sectionExercisesHint_other": "{{count}} Übungen",
       "sectionOf": "Abschnitt {{current}} von {{total}}",
-      "sectionActionDetail": "Detail"
+      "sectionActionDetail": "Detail",
+      "completeA11y": "Gesamten Abschnitt als erledigt markieren"
     }
   },
   "muscleGroup": {
