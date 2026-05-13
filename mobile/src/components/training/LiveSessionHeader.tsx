@@ -7,10 +7,29 @@ import { useTranslation } from 'react-i18next'
 import { formatSeconds } from './liveTrainingHelpers'
 
 interface LiveSessionHeaderProps {
+  /** Session display name. */
   sessionName: string
+  /**
+   * Currently active workout (section) name. Only rendered in the running
+   * layout (when `isPreStart` is false). On pre-start the title row shows the
+   * session name beneath the static "AKTIVNÍ TRÉNINK" eyebrow instead.
+   */
+  workoutName: string
   elapsedSeconds: number
-  setsDone: number
-  setsTotal: number
+  /** 1-based index of the currently active workout among the session's workouts. */
+  workoutsCurrent: number
+  workoutsTotal: number
+  /**
+   * When true the header is in pre-start mode:
+   *   - eyebrow = static "AKTIVNÍ TRÉNINK" label
+   *   - title   = sessionName
+   *   - progress = `0 / N workoutů` (nothing active yet)
+   * When false the header is in running/finished mode:
+   *   - eyebrow = sessionName
+   *   - title   = workoutName (currently active workout)
+   *   - progress = `current / total workoutů` (1-based position-in-line)
+   */
+  isPreStart?: boolean
   onClose: () => void
   /** When true the close button shows a spinner and is disabled (flush in-flight). */
   closePending?: boolean
@@ -18,13 +37,16 @@ interface LiveSessionHeaderProps {
 
 /**
  * Top bar shown during a live training session.
- * Contains: close button, plan/session name, elapsed timer, sets progress pill.
+ * Contains: close button, session name + active workout name, elapsed timer,
+ * workouts position pill ("3 / 5 workoutů" — current-in-line, NOT finished count).
  */
 export function LiveSessionHeader({
   sessionName,
+  workoutName,
   elapsedSeconds,
-  setsDone,
-  setsTotal,
+  workoutsCurrent,
+  workoutsTotal,
+  isPreStart = false,
   onClose,
   closePending = false,
 }: LiveSessionHeaderProps) {
@@ -52,26 +74,32 @@ export function LiveSessionHeader({
         )}
       </Pressable>
 
-      {/* Session label + name */}
+      {/* Eyebrow + title — branches on isPreStart (see prop docstring). */}
       <View style={styles.titleWrap}>
-        <Text style={[styles.eyebrow, { color: colors.label3 }]}>
-          {t('training.live.activeLabel')}
+        <Text
+          style={[styles.eyebrow, { color: colors.label3 }]}
+          numberOfLines={1}
+        >
+          {isPreStart ? t('training.live.activeLabel') : sessionName}
         </Text>
         <Text
           style={[styles.sessionName, { color: colors.label }]}
           numberOfLines={1}
         >
-          {sessionName}
+          {isPreStart ? sessionName : workoutName}
         </Text>
       </View>
 
-      {/* Elapsed + sets progress */}
+      {/* Elapsed + workouts progress (0/N on prestart, current/total when running) */}
       <View style={styles.statsWrap}>
         <Text style={[styles.elapsed, { color: colors.gold }]}>
           {formatSeconds(elapsedSeconds)}
         </Text>
         <Text style={[styles.setsProgress, { color: colors.label3 }]}>
-          {t('training.live.setsProgress', { done: setsDone, total: setsTotal })}
+          {t('training.live.workoutsProgress', {
+            done: isPreStart ? 0 : workoutsCurrent,
+            total: workoutsTotal,
+          })}
         </Text>
       </View>
     </View>

@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
 import { View, Text, StyleSheet, Pressable, type LayoutChangeEvent } from 'react-native'
-import { LinearGradient } from 'expo-linear-gradient'
 import { Ionicons } from '@expo/vector-icons'
 import Animated, {
   useSharedValue,
@@ -79,26 +78,18 @@ export function DaySummaryHero({
     exercisesCount > 0 ? Math.min(completedExercises / exercisesCount, 1) : 0
 
   return (
-    <LinearGradient
-      // grad-push palette from prototype — semantic training domain colors
-      colors={['#1a1a2e', '#16213e']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.container}
-    >
+    <View style={[styles.container, { backgroundColor: colors.bg2 }]}>
       {/* Header: "Daily overview" label · chevron — tap to expand/collapse */}
       <Pressable
         onPress={toggleExpanded}
         style={styles.topRow}
         hitSlop={8}
       >
-        <Text style={styles.heading}>{t('nutrition.dailyOverview')}</Text>
+        <Text style={[styles.heading, { color: colors.label }]}>
+          {t('nutrition.dailyOverview')}
+        </Text>
         <Animated.View style={[styles.chevron, chevronStyle]}>
-          <Ionicons
-            name="chevron-down"
-            size={16}
-            color="rgba(255,255,255,0.6)"
-          />
+          <Ionicons name="chevron-down" size={16} color={colors.label3} />
         </Animated.View>
       </Pressable>
 
@@ -123,8 +114,8 @@ export function DaySummaryHero({
 
       {/* Progress bars: label · track · count — sessions above, exercises below */}
       <View style={styles.overallRow}>
-        <Text style={styles.overallLabel}>{t('training.sessionsLabel')}</Text>
-        <View style={styles.overallTrack}>
+        <Text style={[styles.overallLabel, { color: colors.label2 }]}>{t('training.sessionsLabel')}</Text>
+        <View style={[styles.overallTrack, { backgroundColor: colors.fill2 }]}>
           <View
             style={[
               styles.overallFill,
@@ -132,7 +123,7 @@ export function DaySummaryHero({
             ]}
           />
         </View>
-        <Text style={styles.overallLabel}>
+        <Text style={[styles.overallLabel, { color: colors.label2 }]}>
           {t('training.completedRatio', {
             done: completedSessions,
             total: sessionsCount,
@@ -140,8 +131,8 @@ export function DaySummaryHero({
         </Text>
       </View>
       <View style={[styles.overallRow, styles.overallRowStacked]}>
-        <Text style={styles.overallLabel}>{t('training.exercisesLabel')}</Text>
-        <View style={styles.overallTrack}>
+        <Text style={[styles.overallLabel, { color: colors.label2 }]}>{t('training.exercisesLabel')}</Text>
+        <View style={[styles.overallTrack, { backgroundColor: colors.fill2 }]}>
           <View
             style={[
               styles.overallFill,
@@ -149,14 +140,14 @@ export function DaySummaryHero({
             ]}
           />
         </View>
-        <Text style={styles.overallLabel}>
+        <Text style={[styles.overallLabel, { color: colors.label2 }]}>
           {t('training.completedRatio', {
             done: completedExercises,
             total: exercisesCount,
           })}
         </Text>
       </View>
-    </LinearGradient>
+    </View>
   )
 }
 
@@ -182,7 +173,6 @@ const styles = StyleSheet.create({
   heading: {
     ...Type.subheadline,
     fontWeight: '600',
-    color: '#fff',
     flex: 1,
   },
   chevron: {
@@ -207,7 +197,6 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 6,
     borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.15)',
     overflow: 'hidden',
   },
   overallFill: {
@@ -217,7 +206,6 @@ const styles = StyleSheet.create({
   overallLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: 'rgba(255,255,255,0.6)',
     flexShrink: 0,
   },
 })

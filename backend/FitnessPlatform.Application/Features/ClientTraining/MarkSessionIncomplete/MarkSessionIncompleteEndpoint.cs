@@ -125,6 +125,8 @@ public class MarkSessionIncompleteEndpoint(
 
         var update = Builders<TrainingCompletion>.Update
             .Set(c => c.CompletedExerciseIds, new List<Guid>())
+            .Set(c => c.CompletedExerciseIdsBySection, new Dictionary<string, List<Guid>>())
+            .Set(c => c.CompletedSectionIds, new List<Guid>())
             .Set(c => c.DateUpdated, DateTime.UtcNow)
             .Set(c => c.Version, newVersion);
 

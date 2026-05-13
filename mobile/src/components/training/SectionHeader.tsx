@@ -1,32 +1,21 @@
 /**
- * SectionHeader — accent bar + section label + format chip + collapse chevron
+ * SectionHeader — section label + format chip + collapse chevron
  * (+ optional section-complete button).
  *
- * Mirrors .tp-section-header / .tp-section-accent-bar / .tp-section-label /
- * .tp-section-format in the prototype (docs/prototypes/mobile/styles/components.css).
+ * Mirrors .tp-section-header / .tp-section-label / .tp-section-format in the
+ * prototype (docs/prototypes/mobile/styles/components.css).
  *
- * Layout order matches the prototype:
- *   [3px × 18px accent pill]  [LABEL uppercase 11/700]  [FORMAT chip]  <flex spacer>
- *   [count]  [section-complete button]  [chevron]
+ * Layout order:
+ *   [LABEL column: name / format chip / subtitle / note]  <flex spacer>
+ *   [duration]  [section-complete button]  [chevron]
  *
  * Styling notes:
- * - Header background is tinted per format (mirrors prototype CSS lines 178–189):
- *     Standard  → fill3 (neutral ~6% alpha)
- *     AMRAP     → orange + '0f' (~6% alpha)
- *     EMOM      → orange + '0f'  (wait — EMOM is orange in prototype, but chip is purple)
- *   Actually the prototype maps:
- *     strength/Standard → blue tint  → but we use fill3 for Standard (neutral)
- *     conditioning      → green tint
- *     amrap             → purple tint
- *     emom              → orange tint
- *     fortime           → red tint
- *     tabata            → teal/green tint
- *   We mirror this using `formatChipBg` which already encodes the format→tint map.
- * - Accent bar pill: saturated hue at full opacity (3 × 18 px rounded).
- * - Format chip: hidden for Standard.
+ * - No accent bar pill — removed in favour of the format chip inside labelCol.
+ * - Format chip: shown for every format including Standard, positioned inside
+ *   labelCol between the name and the subtitle.
  * - Section is collapsible: tapping the header (outside the complete button) toggles
  *   `isExpanded`. A chevron rotates 0°→180° when expanded. Defaults to `true`.
- * - Section-complete button: round 20 × 20 check indicator (outline / filled green).
+ * - Section-complete button: round 24×24 check indicator (outline / filled green).
  *   Taps call `onToggleSectionComplete()`. Does NOT propagate to the collapse toggle.
  *
  * All colors via `useTheme()` tokens — no inline hex.
@@ -39,58 +28,44 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
-  Easing,
 } from 'react-native-reanimated'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
-import type { WorkoutFormat } from '@/api/training'
+import type { WorkoutFormat, WodConfig } from '@/api/training'
 import type { ColorScheme } from '@/constants/colors'
+import { Type, interFamily } from '@/constants/typography'
+import { Radius } from '@/constants/radius'
 import { FORMAT_LABEL_KEYS, formatChipColor, formatChipBg } from '@/constants/training'
+import { formatDurationCompact } from '@/lib/training-plan-format'
+import { TRAINING_ANIM_DURATION, trainingEasing } from './animations'
 
-const CHEVRON_DURATION = 220
-const chevronEasing = Easing.out(Easing.cubic)
-
-// ─── Format → accent bar color ─────────────────────────────────────────────────
-
-/**
- * Returns the saturated accent color for the 3 px × 18 px bar pill.
- * Source-of-truth is `formatChipColor` — the bar uses the same hue.
- */
-export function formatAccentColor(
-  format: WorkoutFormat | null | undefined,
-  colors: ColorScheme,
-): string {
-  switch (format) {
-    case 'AMRAP':
-      return colors.orange
-    case 'EMOM':
-      return colors.purple
-    case 'ForTime':
-      return colors.blue
-    case 'Tabata':
-      return colors.red
-    case 'Standard':
-    default:
-      return colors.label3
-  }
-}
+// Chevron rotation matches the content fade + layout interpolation duration
+// so the icon and the body finish their animations in lockstep.
+const CHEVRON_DURATION = TRAINING_ANIM_DURATION
+const chevronEasing = trainingEasing
 
 // ─── Format → header background tint ───────────────────────────────────────────
 
 /**
- * Returns the header background tint per format.
- * Mirrors prototype CSS lines 178–189 (.tp-section.format-* .tp-section-header).
- * Uses the same soft alpha as `formatChipBg` (6–8%) so the two tokens stay in sync.
- * Standard falls back to `colors.fill3` (neutral ~6% alpha).
+ * Returns the header background tint.
+ *
+ * Design choice: section bands stay clean white (transparent over the session
+ * card's bg2). Format identity lives in the colored accent pill and the small
+ * format chip. Exercise rows below are tinted grey instead — that visual swap
+ * makes the workout label stand out as the "section title" while exercises
+ * read as a contained group.
+ *
+ * Exported so callers (e.g. `TrainingCard`) can give note banners the same
+ * background as the header they sit beneath, creating a visual extension
+ * rather than a separate strip.
  */
-function formatHeaderBg(
-  format: WorkoutFormat | null | undefined,
-  colors: ColorScheme,
+export function sectionHeaderBg(
+  _format: WorkoutFormat | null | undefined,
+  _colors: ColorScheme,
 ): string {
-  if (format == null || format === 'Standard') return colors.fill3
-  // formatChipBg already encodes the format→tint map with '14' (8%) alpha.
-  // Re-use it directly — any 6–8% alpha is within spec.
-  return formatChipBg(format, colors)
+  // Currently always transparent — kept as a function so future per-format
+  // tinting only requires changing this one place.
+  return 'transparent'
 }
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
@@ -100,7 +75,29 @@ export interface SectionHeaderProps {
   name: string
   /** Workout format for this section. Null / undefined → treated as Standard. */
   format?: WorkoutFormat | null
-  /** Optional exercise count for the trailing badge. */
+  /**
+   * Optional WOD format configuration. When set on a non-Standard format the
+   * header renders a single-line subtitle under the name describing the
+   * prescription (rounds × interval, work/rest, target rounds).
+   */
+  formatConfig?: WodConfig | null
+  /**
+   * Optional coach note for the whole section/workout. Rendered as a small
+   * italic caption under the section name when the header is expanded.
+   * Hidden when null, undefined, or whitespace-only, or when collapsed.
+   */
+  notes?: string | null
+  /**
+   * Optional estimated duration in seconds for the trailing badge.
+   * Only populated for non-Standard workouts (the trainer-portal session
+   * summary mirrors this same field).
+   */
+  durationSeconds?: number | null
+  /**
+   * Number of exercises in this section. Used as the inline subtitle (next
+   * to the format chip) for Standard workouts which don't carry a WOD
+   * prescription. Pluralized via `training.section.exerciseCount`.
+   */
   exerciseCount?: number
   /**
    * Whether every exercise in this section is already completed.
@@ -127,23 +124,48 @@ export interface SectionHeaderProps {
    * Defaults to `true`.
    */
   defaultExpanded?: boolean
+  /**
+   * When true, the chevron is hidden and tapping the header is a no-op.
+   * The complete-section checkbox still works. Use for empty sections
+   * (e.g. ForTime "Running" with no exercises) where there is nothing to
+   * expand into.
+   */
+  nonExpandable?: boolean
+  /**
+   * When true, the 1 px bottom divider on the header is suppressed.
+   *
+   * Use when the element immediately below the header already renders its own
+   * top border so that only one hairline is visible:
+   *   - Section collapsed  → the parent `sectionWrap` borderBottomWidth already
+   *     provides the row-level divider; suppressing avoids a double-line.
+   *   - Section expanded with a non-empty `section.notes`  → the note banner's
+   *     own borderTopWidth acts as the divider.
+   *
+   * Default: false (bottom border shown).
+   */
+  suppressBottomDivider?: boolean
 }
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 /**
- * Renders the section band header in the correct prototype order:
- * accent pill → LABEL → format chip → spacer → count → [complete btn] → chevron
+ * Renders the section band header:
+ * [labelCol: name / chip / subtitle / note] → spacer → [duration] → [complete btn] → chevron
  */
 export function SectionHeader({
   name,
   format,
+  formatConfig,
+  durationSeconds,
   exerciseCount,
+  notes,
   isSectionComplete,
   onToggleSectionComplete,
   isExpanded: isExpandedProp,
   onToggleExpanded: onToggleExpandedProp,
   defaultExpanded = true,
+  nonExpandable = false,
+  suppressBottomDivider = false,
 }: SectionHeaderProps) {
   const colors = useTheme()
   const { t } = useTranslation()
@@ -160,6 +182,7 @@ export function SectionHeader({
   }))
 
   const handleToggle = useCallback(() => {
+    if (nonExpandable) return
     if (isControlled) {
       onToggleExpandedProp?.()
     } else {
@@ -172,7 +195,7 @@ export function SectionHeader({
         return next
       })
     }
-  }, [isControlled, onToggleExpandedProp, chevronProgress])
+  }, [isControlled, onToggleExpandedProp, chevronProgress, nonExpandable])
 
   // Keep the chevron in sync when driven from outside
   React.useEffect(() => {
@@ -184,83 +207,182 @@ export function SectionHeader({
     }
   }, [isControlled, isExpanded, chevronProgress])
 
-  const accentColor = formatAccentColor(format, colors)
-  const headerBg = formatHeaderBg(format, colors)
-  // WOD formats: any non-null, non-Standard format.
+  const headerBg = sectionHeaderBg(format, colors)
+  // WOD formats: any non-null, non-Standard format — used to gate the subtitle.
   const isWod = format != null && format !== 'Standard'
 
-  const showCompleteBtn = onToggleSectionComplete !== undefined
+  // Render the indicator whenever the parent provides the completion state —
+  // even without a toggle callback (e.g. plan-detail uses the indicator
+  // read-only as a visual status). Tappable behavior only kicks in when
+  // `onToggleSectionComplete` is also supplied.
+  const showCompleteBtn = isSectionComplete !== undefined
+  const isInteractiveCompleteBtn = onToggleSectionComplete !== undefined
+
+  // Single-line prescription subtitle — only for WOD formats with a meaningful
+  // config. Mirrors session-header subtitle style ("N · M · …" with ` · `).
+  const subtitleParts: string[] = []
+  if (isWod && format != null && formatConfig) {
+    const c = formatConfig
+    if (format === 'EMOM' && c.totalRounds && c.intervalSeconds) {
+      subtitleParts.push(
+        `${c.totalRounds} ${t('training.format.roundsShort', { count: c.totalRounds })}`,
+        `${formatDurationCompact(c.intervalSeconds)} ${t('training.format.perRound')}`,
+      )
+    } else if (format === 'Tabata' && c.totalRounds && c.workSeconds && c.restSeconds) {
+      subtitleParts.push(
+        `${c.totalRounds} ${t('training.format.roundsShort', { count: c.totalRounds })}`,
+        `${formatDurationCompact(c.workSeconds)} / ${formatDurationCompact(c.restSeconds)}`,
+      )
+    } else if (format === 'AMRAP' && c.totalRounds) {
+      subtitleParts.push(
+        `${t('training.format.targetRounds')}: ${c.totalRounds}`,
+      )
+    }
+  }
+  // Subtitle priority:
+  //   1. WOD prescription (rounds × interval, work/rest, target rounds)
+  //   2. Standard fallback — pluralized exercise count ("3 cviky")
+  const subtitle = subtitleParts.length > 0
+    ? subtitleParts.join(' · ')
+    : (exerciseCount != null && exerciseCount > 0
+        ? t('training.section.exerciseCount', { count: exerciseCount })
+        : null)
 
   return (
     <Pressable
       onPress={handleToggle}
-      style={[styles.container, { backgroundColor: headerBg }]}
+      style={[
+        styles.container,
+        {
+          backgroundColor: headerBg,
+          // Solid 1 px line below the workout title so it reads as clearly
+          // separated from the first exercise row beneath it. Matches the
+          // weight of the section divider in TrainingCard.
+          // Suppressed when the immediately-following element already renders
+          // its own top border (note banner, sectionWrap bottom border when
+          // collapsed) — avoids stacked double-hairline artifacts.
+          borderBottomWidth: suppressBottomDivider ? 0 : StyleSheet.hairlineWidth,
+          borderBottomColor: colors.sep2,
+        },
+      ]}
       accessibilityRole="button"
       accessibilityState={{ expanded: isExpanded }}
     >
-      {/* 3 × 18 px accent pill */}
-      <View style={[styles.accentBar, { backgroundColor: accentColor }]} />
+      {/* Label column: name / format chip / optional subtitle / optional note.
+          Format chip always shown (including Standard), positioned between
+          the name and the subtitle. */}
+      <View style={styles.labelCol}>
+        <Text style={[styles.sectionLabel, { color: colors.label }]} numberOfLines={1}>
+          {name}
+        </Text>
 
-      {/* Section label — uppercase, 11/700, label2 */}
-      <Text style={[styles.sectionLabel, { color: colors.label2 }]} numberOfLines={1}>
-        {name}
-      </Text>
-
-      {/* Format chip — only shown for non-Standard sections */}
-      {isWod && format != null && (
-        <View
-          style={[
-            styles.formatChip,
-            {
-              backgroundColor: formatChipBg(format, colors),
-              borderColor: formatChipColor(format, colors) + '33',
-            },
-          ]}
-        >
-          <Text style={[styles.formatChipText, { color: formatChipColor(format, colors) }]}>
-            {t(`training.format.${FORMAT_LABEL_KEYS[format]}`)}
+        {/* Format chip + subtitle on the same row, with the chip first.
+            The subtitle (when present) describes the WOD prescription
+            ("10 kol · 1 min / kolo"); placing it inline with the chip mirrors
+            the food-row pattern in MealCard where the category chip and the
+            grams/kcal annotation share a line. */}
+        {(format != null || subtitle) && (
+          <View style={styles.chipRow}>
+            {format != null && (
+              <View
+                style={[
+                  styles.formatChip,
+                  { backgroundColor: formatChipBg(format, colors) },
+                ]}
+              >
+                <Text style={[styles.formatChipText, { color: formatChipColor(format, colors) }]}>
+                  {t(`training.format.${FORMAT_LABEL_KEYS[format]}`)}
+                </Text>
+              </View>
+            )}
+            {subtitle && (
+              <Text
+                style={[styles.sectionSubtitle, { color: colors.label3 }]}
+                numberOfLines={1}
+              >
+                {subtitle}
+              </Text>
+            )}
+          </View>
+        )}
+        {/* Section (workout) note — small italic caption under the name.
+            Only shown when expanded and note is non-empty. Lives inside the
+            header's existing padding box (no extra border/background). */}
+        {isExpanded && notes != null && notes.trim().length > 0 && (
+          <Text style={[Type.caption1, styles.noteText, { color: colors.label2, lineHeight: 18 }]}>
+            <Text style={{ fontFamily: interFamily('600'), fontWeight: '600', color: colors.gold }}>
+              {t('today.sectionNoteLabel')}{' '}
+            </Text>
+            {notes}
           </Text>
-        </View>
-      )}
+        )}
+      </View>
 
       {/* Flex spacer */}
       <View style={styles.spacer} />
 
-      {/* Exercise count badge — trailing, small, label3 */}
-      {exerciseCount != null && exerciseCount > 0 && (
+      {/* Estimated duration — only for non-Standard workouts (Standard
+          duration is undefined since it depends on per-set rest + perceived
+          effort). Same compact formatter as the session summary. */}
+      {durationSeconds != null && durationSeconds > 0 && (
         <Text style={[styles.exerciseCount, { color: colors.label3 }]}>
-          {t('training.section.exerciseCount', { count: exerciseCount })}
+          {formatDurationCompact(durationSeconds)}
         </Text>
       )}
 
-      {/* Section-complete round button — same visual family as per-exercise check */}
+      {/* Section-complete round button — MealRow CheckButton pattern: 24×24,
+          radius 12, borderWidth 2. Placed directly (no slot wrapper needed since
+          all three levels now use the same checkbox size). marginLeft from the
+          parent gap handles spacing from adjacent elements. */}
       {showCompleteBtn && (
-        <Pressable
-          onPress={(e) => {
-            e.stopPropagation()
-            onToggleSectionComplete()
-          }}
-          hitSlop={8}
-          accessibilityRole="checkbox"
-          accessibilityState={{ checked: isSectionComplete ?? false }}
-          accessibilityLabel={t('training.section.completeA11y')}
-          style={[
-            styles.completeBtn,
-            isSectionComplete
-              ? { backgroundColor: colors.green + '22' }
-              : { borderWidth: 1, borderColor: colors.sep2 },
-          ]}
-        >
-          {isSectionComplete && (
-            <Ionicons name="checkmark" size={12} color={colors.green} />
-          )}
-        </Pressable>
+        isInteractiveCompleteBtn ? (
+          <Pressable
+            onPress={(e) => {
+              e.stopPropagation()
+              onToggleSectionComplete!()
+            }}
+            hitSlop={8}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: isSectionComplete ?? false }}
+            accessibilityLabel={t('training.section.completeA11y')}
+            style={[
+              styles.completeBtn,
+              isSectionComplete
+                ? { backgroundColor: colors.green, borderColor: colors.green }
+                : { borderColor: colors.sep },
+            ]}
+          >
+            {isSectionComplete && (
+              <Ionicons name="checkmark" size={14} color={colors.onAccent} />
+            )}
+          </Pressable>
+        ) : (
+          <View
+            style={[
+              styles.completeBtn,
+              isSectionComplete
+                ? { backgroundColor: colors.green, borderColor: colors.green }
+                : { borderColor: colors.sep },
+            ]}
+          >
+            {isSectionComplete && (
+              <Ionicons name="checkmark" size={14} color={colors.onAccent} />
+            )}
+          </View>
+        )
       )}
 
-      {/* Collapse chevron — rotates 180° when expanded */}
-      <Animated.View style={[styles.chevron, chevronStyle]}>
-        <Ionicons name="chevron-down" size={14} color={colors.label3} />
-      </Animated.View>
+      {/* Collapse chevron — rotates 180° when expanded. When the section has
+          nothing to expand into (empty ForTime), render a same-width spacer
+          so the trailing checkbox column stays aligned with rows that do
+          have a chevron. */}
+      {nonExpandable ? (
+        <View style={styles.chevronSpacer} />
+      ) : (
+        <Animated.View style={[styles.chevron, chevronStyle]}>
+          <Ionicons name="chevron-down" size={14} color={colors.label3} />
+        </Animated.View>
+      )}
     </Pressable>
   )
 }
@@ -269,41 +391,58 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 7,
+    paddingVertical: 12,
     paddingLeft: 14,
-    paddingRight: 10,
+    // Match the exercise card's nested-row paddingRight so the trailing
+    // [checkbox] [chevron] column lines up across section headers and the
+    // exercise rows nested under them.
+    paddingRight: 12,
     gap: 8,
-    minHeight: 34,
+    minHeight: 44,
   },
-  accentBar: {
-    // 3 × 18 rounded pill matching .tp-section-accent-bar
-    width: 3,
-    height: 18,
-    borderRadius: 2,
-    flexShrink: 0,
-  },
-  sectionLabel: {
-    // 11 px, 700 weight, uppercase, tight letter-spacing — mirrors .tp-section-label
-    fontSize: 11,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
+  labelCol: {
     flexShrink: 1,
     minWidth: 0,
   },
+  sectionLabel: {
+    // Workout name — matches the food/recipe row in MealCard:
+    //   Type.subheadline + fontWeight 500 (medium, not bold).
+    ...Type.subheadline,
+    fontWeight: '500',
+  },
+  sectionSubtitle: {
+    // Inline with the format chip (same row). label3, small.
+    fontSize: 12,
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+  },
+  noteText: {
+    // Section note — caption under the workout name. marginTop gives breathing
+    // room from the name/subtitle; no extra padding or border (lives inside
+    // the header's existing padding box).
+    marginTop: 4,
+  },
   formatChip: {
+    // Matches MealCard's `categoryChip` — small rounded-square (not a pill),
+    // no border. Lives inside `chipRow` next to the subtitle, so no marginTop
+    // here (the row owns the top spacing).
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 99,
-    borderWidth: 1,
+    borderRadius: Radius.sm,
     flexShrink: 0,
   },
   formatChipText: {
-    // ~9.5 px → use 10 px (RN doesn't render fractionals reliably)
-    fontSize: 10,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
+    // Matches MealCard's `categoryChipText` — caption2 + 600 weight + tight
+    // letter-spacing, no uppercase transform.
+    ...Type.caption2,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
   spacer: {
     flex: 1,
@@ -312,18 +451,29 @@ const styles = StyleSheet.create({
     fontSize: 11,
     flexShrink: 0,
   },
+  // Section-complete button — MealRow CheckButton pattern: 24×24, radius 12,
+  // borderWidth 2. Placed directly (no slot wrapper) since all levels match.
   completeBtn: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
   },
   chevron: {
     flexShrink: 0,
+    marginLeft: 8,
+  },
+  // Empty placeholder rendered in place of the chevron on non-expandable
+  // sections so the trailing column lines up with sections that have a chevron.
+  // width: 16 matches the chevron icon size; marginLeft: 8 mirrors styles.trailing
+  // in MealRow.
+  chevronSpacer: {
     width: 16,
-    alignItems: 'center',
+    marginLeft: 8,
+    flexShrink: 0,
   },
 })
 

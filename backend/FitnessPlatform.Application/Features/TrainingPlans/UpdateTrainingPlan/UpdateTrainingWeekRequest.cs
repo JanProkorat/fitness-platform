@@ -102,6 +102,11 @@ public class UpdateSectionRequest
     public WodConfig? FormatConfig { get; set; }
 
     /// <summary>
+    /// Optional coach note for this workout/section.
+    /// </summary>
+    public string? Notes { get; set; }
+
+    /// <summary>
     /// Exercises in this section.
     /// </summary>
     public List<UpdateSessionExerciseRequest> Exercises { get; set; } = [];

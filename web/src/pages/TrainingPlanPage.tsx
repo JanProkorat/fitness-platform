@@ -19,12 +19,17 @@ import { MondayDatePicker } from '@/components/ui/MondayDatePicker';
 import { WeekDayTabs } from '@/components/nutrition';
 import type { WeekTabData } from '@/components/nutrition/WeekDayTabs';
 import { TrainingSidebar } from '@/components/training/TrainingSidebar';
+import { SectionTemplateSearch } from '@/components/training/SectionTemplateSearch';
 import { cn } from '@/lib/cn';
+import { isWeekFinished, todayWeekdayInPlan } from '@/lib/training-plan-dates';
+import { estimatedSectionDurationSeconds, formatDurationCompact } from '@/lib/training-plan-format';
+import { computePlanLocks, exerciseLockKey } from '@/lib/training-plan-locks';
 import { DayNoteInput } from '@/components/common/DayNoteInput';
 import { CheckInBanner } from '@/components/weekly-checkin/CheckInBanner';
 import { PlanPhotosTab } from '@/components/photos/PlanPhotosTab';
 import { DAY_KEYS } from '@/constants/training';
 import { SessionDragWrapper } from '@/components/training/SessionDragWrapper';
+import { SectionDragWrapper } from '@/components/training/SectionDragWrapper';
 import { WeekOverviewGrid } from '@/components/training/WeekOverviewGrid';
 import { SectionCard } from '@/components/training/SectionCard';
 
@@ -49,19 +54,23 @@ export default function TrainingPlanPage() {
   const removeSession = useTrainingPlanStore((s) => s.removeSession);
   const addSection = useTrainingPlanStore((s) => s.addSection);
   const removeSection = useTrainingPlanStore((s) => s.removeSection);
+  const duplicateSection = useTrainingPlanStore((s) => s.duplicateSection);
   const updateSection = useTrainingPlanStore((s) => s.updateSection);
+  const reorderSections = useTrainingPlanStore((s) => s.reorderSections);
+  const moveSectionToSession = useTrainingPlanStore((s) => s.moveSectionToSession);
+  const invalidIds = useTrainingPlanStore((s) => s.invalidIds);
   const addSectionFromTemplate = useTrainingPlanStore((s) => s.addSectionFromTemplate);
   const addExerciseToSection = useTrainingPlanStore((s) => s.addExerciseToSection);
   const removeExerciseFromSection = useTrainingPlanStore((s) => s.removeExerciseFromSection);
   const duplicateExerciseInSection = useTrainingPlanStore((s) => s.duplicateExerciseInSection);
   const addSet = useTrainingPlanStore((s) => s.addSet);
   const removeSet = useTrainingPlanStore((s) => s.removeSet);
+  const duplicateSet = useTrainingPlanStore((s) => s.duplicateSet);
   const updateSet = useTrainingPlanStore((s) => s.updateSet);
   const updateSessionName = useTrainingPlanStore((s) => s.updateSessionName);
   const updateSessionNotes = useTrainingPlanStore((s) => s.updateSessionNotes);
   const updateExerciseNotes = useTrainingPlanStore((s) => s.updateExerciseNotes);
   const updateExerciseMovementType = useTrainingPlanStore((s) => s.updateExerciseMovementType);
-  const updateExerciseFormat = useTrainingPlanStore((s) => s.updateExerciseFormat);
   // updateExerciseRestSeconds and revert available via useTrainingPlanStore when needed
   const updateDayNote = useTrainingPlanStore((s) => s.updateDayNote);
   const setStartDate = useTrainingPlanStore((s) => s.setStartDate);
@@ -72,8 +81,10 @@ export default function TrainingPlanPage() {
   const [pageTab, setPageTab] = useState<'sessions' | 'photos'>('sessions');
   const [selectedDay, setSelectedDay] = useState(1);
   const [collapsedSessions, setCollapsedSessions] = useState<Set<string>>(new Set());
-  const [addingSessionDay, setAddingSessionDay] = useState<number | null>(null);
-  const [newSessionName, setNewSessionName] = useState('');
+  // Section collapse state lives at the page level so it survives moving a
+  // section between sessions (a SectionCard instance otherwise unmounts and
+  // its local state resets when the parent session changes).
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [templateConfirmTarget, setTemplateConfirmTarget] = useState<{
     sessionId: string;
     template: SectionTemplateResponse;
@@ -90,6 +101,9 @@ export default function TrainingPlanPage() {
   const [pendingNav, setPendingNav] = useState<string | null>(null);
   const [dragOverDay, setDragOverDay] = useState<number | null>(null);
   const dayHoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Set during `confirmLeave` so the popstate trap and pushState interceptor
+  // don't re-trigger as we're intentionally tearing down the trap to leave.
+  const skipDirtyTrapRef = useRef(false);
   const [weekViewExpanded, setWeekViewExpanded] = useState(false);
 
   // ── Resolve client name ──
@@ -179,6 +193,9 @@ export default function TrainingPlanPage() {
   useEffect(() => {
     if (!isDirty) return;
     const handler = () => {
+      // skipDirtyTrapRef is set by confirmLeave so we don't re-trap
+      // the popstate fired by our own history.go() call.
+      if (skipDirtyTrapRef.current) return;
       window.history.pushState(null, '', location.pathname + location.search);
       setPendingNav('__back__');
     };
@@ -192,6 +209,8 @@ export default function TrainingPlanPage() {
     const origPush = window.history.pushState.bind(window.history);
     const currentPath = location.pathname + location.search;
     window.history.pushState = function (...args: Parameters<typeof origPush>) {
+      // Same skip flag — let confirmLeave's navigate() through.
+      if (skipDirtyTrapRef.current) return origPush(...args);
       const url = typeof args[2] === 'string' ? args[2] : '';
       if (url && url !== currentPath && !url.startsWith(currentPath + '#')) {
         setPendingNav(url);
@@ -205,12 +224,19 @@ export default function TrainingPlanPage() {
   const confirmLeave = () => {
     const target = pendingNav;
     setPendingNav(null);
+    skipDirtyTrapRef.current = true;
     useTrainingPlanStore.setState({ isDirty: false });
     if (target === '__back__') {
-      window.history.back();
+      // We pushed two sentinels (one on mount, one inside the popstate
+      // handler when the user clicked browser-back). Go back two entries
+      // in a single call so we land on the real previous page.
+      window.history.go(-2);
     } else if (target) {
       navigate(target);
     }
+    // Reset after the current task — by then React has re-rendered with
+    // isDirty=false and the effect cleanups have detached the listeners.
+    setTimeout(() => { skipDirtyTrapRef.current = false; }, 0);
   };
 
   // ── Toggle helpers ──
@@ -219,6 +245,14 @@ export default function TrainingPlanPage() {
       const next = new Set(prev);
       if (next.has(sessionId)) next.delete(sessionId);
       else next.add(sessionId);
+      return next;
+    });
+  }, []);
+  const toggleSection = useCallback((sectionId: string) => {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(sectionId)) next.delete(sectionId);
+      else next.add(sectionId);
       return next;
     });
   }, []);
@@ -313,13 +347,6 @@ export default function TrainingPlanPage() {
     setTemplateConfirmTarget(null);
   };
 
-  const handleAddSession = (dow: number) => {
-    if (!newSessionName.trim()) return;
-    addSession(selectedWeek, dow, newSessionName.trim());
-    setNewSessionName('');
-    setAddingSessionDay(null);
-  };
-
   const handleConfirmSaveAsTemplate = async () => {
     if (!saveAsTemplateTarget || !plan) return;
     const session = plan.weeks
@@ -379,6 +406,14 @@ export default function TrainingPlanPage() {
   // ── Derived data ──
   const currentWeek = plan?.weeks.find((w) => w.weekNumber === selectedWeek) ?? plan?.weeks[0];
   const isWeekPublished = currentWeek?.status === 'Published';
+  // Week is "finished" — read-only historical record — when it's published AND
+  // the current date is on or after the start of the next week.
+  const isCurrentWeekFinished =
+    !!plan && !!currentWeek && isWeekFinished(plan, currentWeek.weekNumber, currentWeek.status);
+
+  // Derived locks reflecting client-side completions — exercises/sections/sessions
+  // the client has already marked finished must not be edited.
+  const planLocks = useMemo(() => computePlanLocks(plan), [plan]);
 
   const daySessions = useMemo(
     () =>
@@ -391,11 +426,15 @@ export default function TrainingPlanPage() {
   // Week tab data
   const weekTabs: WeekTabData[] = useMemo(() => {
     if (!plan) return [];
-    return plan.weeks.map((w) => ({
-      index: w.weekNumber,
-      label: t('nutrition.weekLabel', { number: w.weekNumber }),
-      isTemplate: w.status === 'Published',
-    }));
+    return plan.weeks.map((w) => {
+      const finished = isWeekFinished(plan, w.weekNumber, w.status);
+      return {
+        index: w.weekNumber,
+        label: t('nutrition.weekLabel', { number: w.weekNumber }),
+        isPublished: w.status === 'Published' && !finished,
+        isFinished: finished,
+      };
+    });
   }, [plan, t]);
 
   // Day tab data
@@ -419,6 +458,18 @@ export default function TrainingPlanPage() {
   useEffect(() => {
     if (plan && !planLoaded) setPlanLoaded(true);
   }, [plan, planLoaded]);
+
+  // One-shot: when the plan first loads, if today falls inside the currently
+  // selected week, default `selectedDay` to today's weekday. Subsequent plan
+  // refreshes (saves, navigation back) don't re-fire — the trainer's own day
+  // selection is preserved.
+  const didApplyTodayDay = useRef(false);
+  useEffect(() => {
+    if (!plan || didApplyTodayDay.current) return;
+    didApplyTodayDay.current = true;
+    const wd = todayWeekdayInPlan(plan, selectedWeek);
+    if (wd != null) setSelectedDay(wd);
+  }, [plan, selectedWeek]);
 
   useEffect(() => {
     if (!plan) return;
@@ -670,11 +721,13 @@ export default function TrainingPlanPage() {
             className="tab-content-transition flex-1 overflow-y-auto"
             style={{ padding: '12px 20px' }}
             onDragOver={(e) => {
+              if (isCurrentWeekFinished) return;
               if (e.dataTransfer.types.includes('application/session-json')) {
                 e.preventDefault();
               }
             }}
             onDrop={(e) => {
+              if (isCurrentWeekFinished) return;
               if (!e.dataTransfer.types.includes('application/session-json')) return;
               e.preventDefault();
               try {
@@ -702,6 +755,19 @@ export default function TrainingPlanPage() {
               } catch { /* ignore */ }
             }}
           >
+            {/*
+              Inner wrapper carries the read-only styling for finished weeks.
+              `pointer-events-none` is intentionally NOT on the outer scroll
+              container — that would block wheel/touch scrolling. With it on
+              the inner content the scroll container stays interactive while
+              every input/button/click below is dead.
+            */}
+            <div
+              className={cn(
+                isCurrentWeekFinished && 'pointer-events-none opacity-70 select-none',
+              )}
+              aria-disabled={isCurrentWeekFinished || undefined}
+            >
             {/* Day note */}
             <DayNoteInput
               note={currentWeek?.dayNotes?.[selectedDay]}
@@ -718,6 +784,7 @@ export default function TrainingPlanPage() {
 
             {daySessions.map((session) => {
               const isSessionOpen = !collapsedSessions.has(session.sessionId);
+              const isSessionLocked = planLocks.sessionIds.has(session.sessionId);
 
               return (
                 <SessionDragWrapper
@@ -726,15 +793,27 @@ export default function TrainingPlanPage() {
                   selectedDay={selectedDay}
                   selectedWeek={selectedWeek}
                 >
-                  <div className="rounded-md border border-border bg-bg transition-all duration-100 hover:border-border-md">
-                  {/* Session header */}
+                  <div
+                    className="rounded-md border border-border bg-bg transition-all duration-100 hover:border-border-md overflow-hidden"
+                    style={{ borderLeft: '4px solid var(--accent)' }}
+                  >
+                  {/* Session header — tinted background (lighter version of the accent bar) */}
                   <div
                     className={cn(
-                      'group flex items-center gap-1.5 px-3 py-2 cursor-grab active:cursor-grabbing select-none transition-colors hover:bg-bg3',
+                      'group flex items-center gap-1.5 px-3 py-2 cursor-grab active:cursor-grabbing select-none transition-colors',
                       isSessionOpen && 'border-b border-border',
                     )}
+                    style={{ background: 'var(--accent-bg)' }}
                     onClick={() => toggleSession(session.sessionId)}
                   >
+                    {/* Drag handle indicator — visual hint that the session is draggable */}
+                    <span
+                      className="text-text4 select-none"
+                      style={{ fontSize: 14 }}
+                      aria-hidden="true"
+                    >
+                      ⠿
+                    </span>
                     <span
                       className={cn(
                         'text-[10px] text-text3 transition-transform duration-150 w-3 inline-flex items-center justify-center',
@@ -754,12 +833,31 @@ export default function TrainingPlanPage() {
                         type="text"
                         value={session.name}
                         onChange={(e) => updateSessionName(selectedWeek, session.sessionId, e.target.value)}
-                        className="w-full bg-transparent text-[13px] font-semibold text-text outline-none"
+                        placeholder={t('training.sessionNamePlaceholder')}
+                        readOnly={isSessionLocked}
+                        className={cn(
+                          'w-full bg-transparent text-[13px] font-semibold text-text outline-none placeholder:text-text3 rounded-sm',
+                          invalidIds.has(session.sessionId) && 'ring-1 ring-red',
+                          isSessionLocked && 'cursor-default',
+                        )}
                         style={{ fontFamily: 'inherit' }}
                       />
                     </span>
                     <span className="text-xs text-text3 tabular-nums">
-                      {t('training.exerciseSummary', { exercises: session.exercises.length, sets: session.exercises.reduce((s, e) => s + e.sets.length, 0) })}
+                      {(() => {
+                        const total = session.sections.length;
+                        const durations = session.sections.map((sec) =>
+                          estimatedSectionDurationSeconds(sec.format, sec.formatConfig),
+                        );
+                        const timedSeconds = durations.reduce<number>((sum, d) => sum + (d ?? 0), 0);
+                        const untimedCount = durations.filter((d) => d == null || d === 0).length;
+                        const parts: string[] = [t('training.workoutCount', { count: total })];
+                        if (timedSeconds > 0) parts.push(formatDurationCompact(timedSeconds));
+                        if (timedSeconds > 0 && untimedCount > 0) {
+                          parts.push(t('training.workoutUntimedCount', { count: untimedCount }));
+                        }
+                        return parts.join(' · ');
+                      })()}
                     </span>
                     <button
                       type="button"
@@ -833,13 +931,81 @@ export default function TrainingPlanPage() {
                         />
                       </div>
 
-                      {/* Section cards */}
-                      <div className="px-2 pt-1">
+                      {/* Section cards — drag-and-drop reorder within this session */}
+                      <div
+                        className="px-2 pt-1"
+                        onDragOver={(e) => {
+                          if (isCurrentWeekFinished) return;
+                          if (!e.dataTransfer.types.includes('application/section-json')) return;
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = 'move';
+                        }}
+                        onDrop={(e) => {
+                          if (isCurrentWeekFinished) return;
+                          if (!e.dataTransfer.types.includes('application/section-json')) return;
+                          e.preventDefault();
+                          try {
+                            const data = JSON.parse(e.dataTransfer.getData('application/section-json'));
+                            if (data.type !== 'section' || !data.sectionId) return;
+
+                            // Compute target index from mouse Y over section children.
+                            const sectionEls = Array.from(
+                              e.currentTarget.querySelectorAll('[data-section-id]'),
+                            );
+                            let targetIndex = sectionEls.length;
+                            for (let i = 0; i < sectionEls.length; i++) {
+                              const rect = sectionEls[i].getBoundingClientRect();
+                              if (e.clientY < rect.top + rect.height / 2) {
+                                targetIndex = i;
+                                break;
+                              }
+                            }
+
+                            if (data.sessionId === session.sessionId) {
+                              // Same-session reorder
+                              const fromIdx = session.sections.findIndex((s) => s.sectionId === data.sectionId);
+                              if (fromIdx < 0) return;
+                              const toIdx = targetIndex > fromIdx ? targetIndex - 1 : targetIndex;
+                              if (toIdx === fromIdx) return;
+                              reorderSections(selectedWeek, session.sessionId, fromIdx, toIdx);
+                            } else {
+                              // Cross-session move within the same week
+                              moveSectionToSession(
+                                selectedWeek,
+                                data.sessionId,
+                                session.sessionId,
+                                data.sectionId,
+                                targetIndex,
+                              );
+                            }
+                          } catch { /* ignore malformed payloads */ }
+                        }}
+                      >
                         {session.sections.map((section) => (
-                          <SectionCard
+                          <SectionDragWrapper
                             key={section.sectionId}
+                            sessionId={session.sessionId}
+                            sectionId={section.sectionId}
+                          >
+                          <SectionCard
                             section={section}
-                            sessionFormat={session.format}
+                            isExpanded={!collapsedSections.has(section.sectionId)}
+                            onToggleExpanded={() => toggleSection(section.sectionId)}
+                            hasError={invalidIds.has(section.sectionId)}
+                            isSectionLocked={planLocks.sectionIds.has(section.sectionId)}
+                            lockedExerciseIds={new Set(
+                              section.exercises
+                                .filter((ex) =>
+                                  planLocks.exerciseKeys.has(
+                                    exerciseLockKey(
+                                      session.sessionId,
+                                      section.sectionId,
+                                      ex.exerciseExternalId,
+                                    ),
+                                  ),
+                                )
+                                .map((ex) => ex.exerciseExternalId),
+                            )}
                             exerciseDetailsMap={exerciseDetailsMap}
                             exerciseFullMap={exerciseFullMap}
                             onUpdate={(patch) =>
@@ -847,6 +1013,9 @@ export default function TrainingPlanPage() {
                             }
                             onRemove={() =>
                               removeSection(selectedWeek, session.sessionId, section.sectionId)
+                            }
+                            onDuplicate={() =>
+                              duplicateSection(selectedWeek, session.sessionId, section.sectionId)
                             }
                             onAddExercise={(exercise) =>
                               addExerciseToSection(selectedWeek, session.sessionId, section.sectionId, exercise)
@@ -860,6 +1029,9 @@ export default function TrainingPlanPage() {
                             onAddSet={(exIdx) =>
                               addSet(selectedWeek, session.sessionId, section.sectionId, exIdx)
                             }
+                            onDuplicateSet={(exIdx, sIdx) =>
+                              duplicateSet(selectedWeek, session.sessionId, section.sectionId, exIdx, sIdx)
+                            }
                             onRemoveSet={(exIdx, sIdx) =>
                               removeSet(selectedWeek, session.sessionId, section.sectionId, exIdx, sIdx)
                             }
@@ -872,9 +1044,6 @@ export default function TrainingPlanPage() {
                             onUpdateExerciseMovementType={(exIdx, mt) =>
                               updateExerciseMovementType(selectedWeek, session.sessionId, section.sectionId, exIdx, mt)
                             }
-                            onUpdateExerciseFormat={(exIdx, fmt, cfg) =>
-                              updateExerciseFormat(selectedWeek, session.sessionId, section.sectionId, exIdx, fmt, cfg)
-                            }
                             onSaveAsTemplate={() =>
                               setSaveAsTemplateTarget({
                                 sessionId: session.sessionId,
@@ -883,15 +1052,18 @@ export default function TrainingPlanPage() {
                               })
                             }
                           />
+                          </SectionDragWrapper>
                         ))}
                       </div>
 
-                      {/* Add section affordances */}
-                      <div className="flex items-center gap-2 px-3 py-2 border-t border-border">
+                      {/* Add section affordances:
+                          • Plain "Vytvořit novou sekci" button (always visible)
+                          • Typeahead search to load from a saved SectionTemplate (only when at least one exists) */}
+                      <div className="flex items-center gap-3 px-3 py-2 border-t border-border">
                         <button
                           type="button"
                           onClick={() => addSection(selectedWeek, session.sessionId, 'Standard')}
-                          className="flex items-center gap-1 text-[11px] text-text3 transition-colors hover:text-text"
+                          className="flex items-center gap-1 text-[11px] text-text3 transition-colors hover:text-text whitespace-nowrap"
                           style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
                         >
                           <span>+</span>
@@ -900,21 +1072,13 @@ export default function TrainingPlanPage() {
                         {sectionTemplates.length > 0 && (
                           <>
                             <span className="text-text4 text-[10px]">·</span>
-                            <span style={{ fontSize: 10, color: 'var(--text4)', userSelect: 'none' }}>
-                              {t('training.section.addFromTemplate')}
-                            </span>
-                            <div className="flex flex-wrap gap-1">
-                              {sectionTemplates.map((tpl) => (
-                                <button
-                                  key={tpl.templateId}
-                                  type="button"
-                                  onClick={() => addSectionFromTemplate(selectedWeek, session.sessionId, tpl)}
-                                  className="px-2 py-0.5 rounded-full text-[10px] border border-border text-text3 transition-colors hover:bg-accent-bg hover:text-accent hover:border-accent"
-                                  style={{ background: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
-                                >
-                                  {tpl.name ?? ''}
-                                </button>
-                              ))}
+                            <div className="flex-1 min-w-[180px]">
+                              <SectionTemplateSearch
+                                templates={sectionTemplates}
+                                onSelect={(tpl) =>
+                                  addSectionFromTemplate(selectedWeek, session.sessionId, tpl)
+                                }
+                              />
                             </div>
                           </>
                         )}
@@ -926,38 +1090,16 @@ export default function TrainingPlanPage() {
               );
             })}
 
-            {/* Add session */}
-            {addingSessionDay === selectedDay ? (
-              <div className="flex gap-2 mt-2">
-                <input
-                  autoFocus
-                  value={newSessionName}
-                  onChange={(e) => setNewSessionName(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddSession(selectedDay)}
-                  placeholder={t('training.sessionNamePlaceholder')}
-                  className="flex-1 rounded-md border border-border-md bg-bg px-3 py-2 text-[13px] text-text outline-none transition-colors duration-150 placeholder:text-text3 focus:border-border-hv"
-                  style={{ fontFamily: 'inherit' }}
-                />
-                <Button size="sm" variant="primary" onClick={() => handleAddSession(selectedDay)}>
-                  {t('training.addButton')}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => { setAddingSessionDay(null); setNewSessionName(''); }}
-                >
-                  {t('training.cancelButton')}
-                </Button>
-              </div>
-            ) : (
-              <div
-                className="flex items-center gap-1.5 px-3 py-2 mt-2 border border-dashed border-border rounded-md cursor-pointer text-text3 text-[13px] transition-colors hover:bg-bg-hover hover:text-text"
-                onClick={() => setAddingSessionDay(selectedDay)}
-              >
-                <span>+</span>
-                <span>{t('training.addSessionButton')}</span>
-              </div>
-            )}
+            {/* Add session — creates an unnamed session immediately;
+                user can rename it inline via the session-header input. */}
+            <div
+              className="flex items-center gap-1.5 px-3 py-2 mt-2 border border-dashed border-border rounded-md cursor-pointer text-text3 text-[13px] transition-colors hover:bg-bg-hover hover:text-text"
+              onClick={() => addSession(selectedWeek, selectedDay, '')}
+            >
+              <span>+</span>
+              <span>{t('training.addSessionButton')}</span>
+            </div>
+            </div>
           </div>
         </div>
 

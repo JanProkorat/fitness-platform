@@ -9,7 +9,6 @@ export { SectionFormatConfigRow } from './SectionFormatConfigRow';
 export { SectionFormatBar } from './SectionFormatBar';
 /** @deprecated Use SectionFormatBar instead */
 export { SectionFormatBar as SessionFormatBar } from './SectionFormatBar';
-export { ExerciseFormatBar } from './ExerciseFormatBar';
 
 export type { ExerciseBlockProps, ExerciseSet } from './ExerciseBlock';
 export type { SessionCardProps } from './SessionCard';

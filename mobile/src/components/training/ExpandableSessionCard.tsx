@@ -1,23 +1,23 @@
 import React, { useCallback, useState } from 'react'
-import { View, Text, Pressable, StyleSheet, Platform } from 'react-native'
+import { View, Text, Pressable, StyleSheet } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import Animated, {
-  LinearTransition,
   useSharedValue,
   useAnimatedStyle,
   withTiming,
-  Easing,
 } from 'react-native-reanimated'
 import { useTheme } from '@/hooks/useTheme'
-import { Colors, type ColorScheme } from '@/constants/colors'
-import { Type } from '@/constants/typography'
+import { type ColorScheme } from '@/constants/colors'
+import { Type, interFamily } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
+import {
+  TRAINING_ANIM_DURATION,
+  trainingEasing,
+} from './animations'
+import { AnimatedCollapse } from './AnimatedCollapse'
 
-const ANIM_DURATION = 260
-const easing = Easing.out(Easing.cubic)
-const layoutTransition = LinearTransition.duration(ANIM_DURATION).easing(
-  Easing.out(Easing.cubic),
-)
+const ANIM_DURATION = TRAINING_ANIM_DURATION
+const easing = trainingEasing
 
 /**
  * Maps a session's start hour to the prototype kind-color.
@@ -31,8 +31,27 @@ const layoutTransition = LinearTransition.duration(ANIM_DURATION).easing(
  *
  * All colors are sourced from the theme (no inline hex).
  */
-function sessionKindColor(startHour: number | null | undefined, colors: ColorScheme): string {
-  if (startHour == null) return colors.orange  // fallback: morning
+/**
+ * Picks a color for the session card's left bar + expanded header tint.
+ *
+ *   - When the session has a known start hour, the color reflects the
+ *     time-of-day (morning / noon / afternoon / evening / late).
+ *   - When it doesn't, we fall back to a cycle keyed by `index` so multiple
+ *     sessions on the same day each get a distinct hue (mirrors the prototype:
+ *     session #1 orange, #2 blue, #3 purple, …).
+ */
+function sessionKindColor(
+  startHour: number | null | undefined,
+  colors: ColorScheme,
+  index: number = 0,
+): string {
+  if (startHour == null) {
+    // No start time recorded — cycle by sibling index so each session on the
+    // same day gets a distinct hue. Order matches the prototype: orange, blue,
+    // then expanded with the same kind palette.
+    const cycle = [colors.orange, colors.blue, colors.purple, colors.green, colors.red]
+    return cycle[index % cycle.length]
+  }
   if (startHour >= 5 && startHour <= 10) return colors.orange
   if (startHour >= 11 && startHour <= 13) return colors.green
   if (startHour >= 14 && startHour <= 16) return colors.blue
@@ -41,7 +60,6 @@ function sessionKindColor(startHour: number | null | undefined, colors: ColorSch
 }
 
 interface ExpandableSessionCardProps {
-  order: number
   name: string
   /** Short descriptor e.g. "4 cviky · 45 min" */
   summaryText: string
@@ -50,10 +68,23 @@ interface ExpandableSessionCardProps {
   /**
    * Hour component (0–23) of the session's scheduled start time.
    * Used to pick a time-of-day accent color for the left bar and expanded
-   * header tint. Null / undefined → falls back to morning orange.
+   * header tint. Null / undefined → falls back to the index-based cycle so
+   * each session on the day gets a distinct hue.
    */
   startHour?: number | null
+  /**
+   * 0-based index of this session among its siblings on the same day.
+   * Drives the fallback color cycle when `startHour` is unset.
+   */
+  index?: number
   defaultExpanded?: boolean
+  /**
+   * When true, suppresses the top hairline divider so the first session strip
+   * doesn't have a border between it and the hero section above.
+   * Mirrors the `isLast` pattern on MealRow — only the first session skips the
+   * divider; all subsequent sessions get a hairline top border for separation.
+   */
+  isFirst?: boolean
   /**
    * Optional node injected at the right side of the header row, between the
    * progress pill and the chevron. Use this to render a session-level checkbox.
@@ -61,6 +92,15 @@ interface ExpandableSessionCardProps {
    * does NOT collapse/expand the card.
    */
   headerRight?: React.ReactNode
+  /**
+   * When true, renders this session as a fully-chromed standalone card
+   * (rounded corners, horizontal margin, bottom gap, subtle shadow) — suitable
+   * for plan-detail views where each session is visually separated.
+   *
+   * Default `false` keeps the flat full-width strip layout used on the Today
+   * screen (no chrome, hairline top divider between siblings).
+   */
+  standalone?: boolean
   children: React.ReactNode
 }
 
@@ -71,20 +111,20 @@ interface ExpandableSessionCardProps {
  *   `.tp-session.kind-*` border-left rule.
  * - When expanded, the header band is tinted with the same hue at 10% alpha
  *   (`kindColor + '1a'`), matching `.tp-session.kind-*.expanded .tp-session-header`.
- * - The body is always mounted so the inner exercise cards preserve their own
- *   expand/collapse state. When `isOpen` toggles, the body's `height` flips
- *   between `0` and `auto`; Reanimated's `LinearTransition` layout animation on
- *   the outer wrapper then interpolates the frame change smoothly.
+ * - Uses `AnimatedCollapse` for the body — the same measured-height pattern as
+ *   `MealCard` so the training and nutrition accordions feel identical.
  */
 export function ExpandableSessionCard({
-  order,
   name,
   summaryText,
   completedCount,
   totalCount,
   startHour,
+  index = 0,
   defaultExpanded = false,
+  isFirst = false,
   headerRight,
+  standalone = false,
   children,
 }: ExpandableSessionCardProps) {
   const colors = useTheme()
@@ -111,49 +151,59 @@ export function ExpandableSessionCard({
   const pillBg = allDone ? colors.green + '1E' : colors.fill
 
   // Left-bar accent color — derived from session start hour, matches prototype kind palette.
-  const kindColor = sessionKindColor(startHour, colors)
+  const kindColor = sessionKindColor(startHour, colors, index)
   // Header tint when expanded: same hue at 10% alpha. '1a' = 26/255 ≈ 10.2%.
   const headerBg = isOpen ? kindColor + '1a' : 'transparent'
 
   return (
-    <Animated.View
-      layout={layoutTransition}
+    <View
       style={[
         styles.card,
-        {
-          backgroundColor: colors.bg2,
-          borderColor: colors.sep2,
-          borderLeftColor: kindColor,
+        standalone ? styles.cardStandalone : {
+          borderTopWidth: isFirst ? 0 : StyleSheet.hairlineWidth,
+          borderTopColor: colors.sep2,
         },
+        { backgroundColor: colors.bg2 },
+        standalone && { shadowColor: colors.shadow },
       ]}
     >
       <Pressable onPress={handleToggle} style={[styles.header, { backgroundColor: headerBg }]}>
-        {/* Order chip */}
-        <View style={[styles.orderChip, { backgroundColor: colors.fill }]}>
-          <Text style={[Type.footnote, { color: colors.label, fontWeight: '700' }]}>
-            {order}
-          </Text>
-        </View>
-
-        {/* Name + summary */}
+        {/* 4 × 32 px inline accent pill — matches MealRow's accentBar pattern, colored by time-of-day */}
+        <View style={[styles.accentBar, { backgroundColor: kindColor }]} />
+        {/* Name + summary — typography mirrors MealRow's accordion header so
+            training + nutrition rows on the Today screen read as the same
+            visual primitive (Type.body 700 with -0.2 tracking on the title,
+            Type.caption1 on the meta line). */}
         <View style={styles.nameWrap}>
-          <Text style={[Type.callout, { color: colors.label, fontWeight: '600' }]} numberOfLines={1}>
+          <Text
+            style={[
+              Type.body,
+              {
+                color: colors.label,
+                fontWeight: '700',
+                letterSpacing: -0.2,
+              },
+            ]}
+            numberOfLines={1}
+          >
             {name}
           </Text>
-          <Text style={[Type.caption1, { color: colors.label2, marginTop: 1 }]} numberOfLines={1}>
+          <Text style={[Type.caption1, { color: colors.label2, marginTop: 2 }]} numberOfLines={1}>
             {summaryText}
           </Text>
         </View>
 
         {/* Done/total pill */}
         <View style={[styles.progressPill, { backgroundColor: pillBg }]}>
-          <Text style={[Type.caption1, { color: pillColor, fontWeight: '600' }]}>
+          <Text style={[Type.caption1, { color: pillColor, fontFamily: interFamily('600'), fontWeight: '600' }]}>
             {completedCount}/{totalCount}
           </Text>
         </View>
 
-        {/* Optional header-right slot (e.g. session-level checkbox) */}
-        {headerRight}
+        {/* Optional header-right slot (e.g. session-level checkbox).
+            Rendered directly — all three levels now use the same 24×24 checkbox
+            so no fixed-width slot wrapper is needed for alignment. */}
+        {headerRight !== undefined && headerRight}
 
         {/* Chevron */}
         <Animated.View style={[styles.chevron, chevronStyle]}>
@@ -161,50 +211,65 @@ export function ExpandableSessionCard({
         </Animated.View>
       </Pressable>
 
-      {/* Collapsible body — always mounted so nested exercise state persists.
-          `height: 0 + overflow: hidden` clips it; the outer LinearTransition
-          animates the card's frame change smoothly. */}
-      <View style={[styles.collapsibleWrap, !isOpen && styles.collapsed]}>
-        <View style={[styles.body, { borderTopColor: colors.sep }]}>
-          {children}
-        </View>
-      </View>
-    </Animated.View>
+      {/* Collapsible body — AnimatedCollapse renders content always (for
+          measurement) and animates height. The hairline top border is applied
+          only when expanded via the innerStyle prop so a collapsed card doesn't
+          show a stray hairline beneath the header. */}
+      <AnimatedCollapse
+        expanded={isOpen}
+        innerStyle={[
+          styles.body,
+          isOpen && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.sep },
+        ]}
+      >
+        {children}
+      </AnimatedCollapse>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
+  // Flat full-width strip — no rounded corners, no border, no shadow.
+  // Top hairline divider is applied inline (suppressed on isFirst).
+  // overflow:hidden clips the expanded body without a separate wrapper.
   card: {
-    borderRadius: Radius.md,
     overflow: 'hidden',
-    borderWidth: 1,
-    // 4 px left bar — color is set inline from kindColor.
-    borderLeftWidth: 4,
+  },
+  // Standalone card chrome for plan-detail views — each session gets its own
+  // rounded, shadowed card separated by bottom margin (no hairline dividers).
+  cardStandalone: {
+    borderRadius: Radius.md,
+    marginHorizontal: 16,
     marginBottom: 12,
-    ...Platform.select({
-      ios: {
-        shadowColor: Colors.dark.shadow,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.12,
-        shadowRadius: 12,
-      },
-      android: { elevation: 2 },
-    }),
+    // iOS shadow
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    // Android shadow
+    elevation: 3,
+  },
+  // 4 px × 32 px inline accent pill — matches MealRow's accentBar pattern.
+  // Inline flex child at the very start of the header row; no absolute positioning.
+  accentBar: {
+    width: 4,
+    height: 32,
+    borderRadius: 2,
+    flexShrink: 0,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    gap: 10,
-  },
-  orderChip: {
-    width: 28,
-    height: 28,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
+    // paddingVertical + gap match MealRow's `rowAccordion` (14 / 12) so
+    // training and nutrition rows have the same row height + internal
+    // rhythm on the Today screen.
+    paddingVertical: 14,
+    // paddingRight matches SectionHeader so the trailing checkbox + chevron
+    // sit at the exact same X across both header families.
+    // paddingLeft matches MealRow's left inset (14) now that the accent bar is
+    // an inline flex child rather than an absolute overlay.
+    paddingLeft: 14,
+    paddingRight: 10,
+    gap: 12,
   },
   nameWrap: {
     flex: 1,
@@ -218,17 +283,11 @@ const styles = StyleSheet.create({
   },
   chevron: {
     flexShrink: 0,
-  },
-  collapsibleWrap: {
-    // No `overflow: hidden` — we *want* the body to overflow when `height: 0`
-    // so that the outer card's LinearTransition clips the children progressively
-    // as the card's frame animates shut. The card itself has `overflow: hidden`.
-  },
-  collapsed: {
-    height: 0,
+    marginLeft: 8,
   },
   body: {
-    borderTopWidth: StyleSheet.hairlineWidth,
+    // borderTop is applied via innerStyle only when `isOpen` so a collapsed
+    // card doesn't show a stray hairline beneath the header.
     // No horizontal padding — exercise rows are flush with the section edges
     // per prototype (.tp-session-exercises .tp-ex-card { margin:0 }).
     paddingTop: 0,

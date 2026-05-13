@@ -1,17 +1,15 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { TrainingSection, WodConfig, WorkoutFormat, MovementType } from '@/api/training-plan-types';
+import type { TrainingSection, WorkoutFormat, MovementType } from '@/api/training-plan-types';
 import type { MuscleGroup } from '@/api/exercise-types';
 import { ExerciseSearch } from '@/components/training/ExerciseSearch';
 import { ExerciseCardHeader } from '@/components/training/ExerciseCardHeader';
 import { SetRow } from '@/components/training/SetRow';
+import { WodExerciseRow } from '@/components/training/WodExerciseRow';
 import { MovementTypePill } from '@/components/training/MovementTypePill';
-import { ExerciseFormatBar } from '@/components/training/ExerciseFormatBar';
 import { SectionFormatPill } from '@/components/training/SectionFormatPill';
 import { SectionFormatConfigRow } from '@/components/training/SectionFormatConfigRow';
-import { Button } from '@/components/ui';
 import { cn } from '@/lib/cn';
-import { MUSCLE_COLORS, MUSCLE_ICONS } from '@/constants/training';
 import type { ExerciseSet } from '@/api/training-plan-types';
 
 /**
@@ -27,53 +25,65 @@ const FORMAT_BAR_CLASSES: Record<WorkoutFormat, string> = {
   ForTime:  'border-l-orange-500',
 };
 
+
 interface SectionCardCallbacks {
   onUpdate: (patch: Partial<Pick<TrainingSection, 'name' | 'format' | 'formatConfig' | 'notes'>>) => void;
   onRemove: () => void;
+  onDuplicate: () => void;
   onAddExercise: (exercise: { exerciseExternalId: string; exerciseName: string }) => void;
   onRemoveExercise: (exerciseIndex: number) => void;
   onDuplicateExercise: (exerciseIndex: number) => void;
   onAddSet: (exerciseIndex: number) => void;
   onRemoveSet: (exerciseIndex: number, setIndex: number) => void;
+  onDuplicateSet: (exerciseIndex: number, setIndex: number) => void;
   onUpdateSet: (exerciseIndex: number, setIndex: number, updates: Partial<ExerciseSet>) => void;
   onUpdateExerciseNotes: (exerciseIndex: number, notes: string) => void;
   onUpdateExerciseMovementType: (exerciseIndex: number, movementType: MovementType) => void;
-  onUpdateExerciseFormat: (exerciseIndex: number, format: WorkoutFormat | null, formatConfig?: WodConfig | null) => void;
   onSaveAsTemplate: () => void;
   // Exercise detail lookups (may be undefined while loading)
   exerciseDetailsMap?: Map<string, MuscleGroup[]>;
   exerciseFullMap?: Map<string, { muscleGroups: MuscleGroup[]; difficulty: string }>;
-  // Session-level format (for exercise format inheritance display)
-  sessionFormat: WorkoutFormat;
 }
 
 interface SectionCardProps extends SectionCardCallbacks {
   section: TrainingSection;
   weekLabel?: string;
+  /** Controlled collapse state — owned by the page so it survives cross-session moves. */
+  isExpanded: boolean;
+  onToggleExpanded: () => void;
+  /** True when last save validation flagged this section (missing name or empty exercises). */
+  hasError?: boolean;
+  /** Section is read-only — every exercise in it has been completed by the client. */
+  isSectionLocked?: boolean;
+  /** Exercise IDs that the client has marked complete; their inputs are locked. */
+  lockedExerciseIds?: Set<string>;
 }
 
 export function SectionCard({
   section,
-  sessionFormat,
+  isExpanded,
+  onToggleExpanded,
+  hasError,
+  isSectionLocked,
+  lockedExerciseIds,
   onUpdate,
   onRemove,
+  onDuplicate,
   onAddExercise,
   onRemoveExercise,
   onDuplicateExercise,
   onAddSet,
   onRemoveSet,
+  onDuplicateSet,
   onUpdateSet,
   onUpdateExerciseNotes,
   onUpdateExerciseMovementType,
-  onUpdateExerciseFormat,
   onSaveAsTemplate,
   exerciseDetailsMap,
   exerciseFullMap,
 }: SectionCardProps) {
   const { t } = useTranslation();
-  const [isExpanded, setIsExpanded] = useState(true);
   const [collapsedExercises, setCollapsedExercises] = useState<Set<number>>(new Set());
-  const [menuOpen, setMenuOpen] = useState(false);
 
   const toggleExercise = (idx: number) => {
     setCollapsedExercises((prev) => {
@@ -86,15 +96,21 @@ export function SectionCard({
 
   return (
     <div
+      aria-disabled={isSectionLocked || undefined}
       className={cn(
         'rounded-md border border-border bg-bg mb-2 overflow-hidden',
         // Left accent bar — 3px colored left border, format-specific color
         'border-l-[3px]',
         FORMAT_BAR_CLASSES[section.format],
+        hasError && 'ring-1 ring-red',
+        isSectionLocked && 'opacity-70 pointer-events-none select-none',
       )}
     >
-      {/* ── Section header row ── */}
-      <div className="flex items-center gap-1.5 px-3 py-2 border-b border-border bg-bg2">
+      {/* ── Section header row — neutral grey background, matches the format-config row below ── */}
+      <div
+        data-section-drag-image
+        className="flex items-center gap-1.5 px-3 py-2 border-b border-border bg-bg2"
+      >
         {/* Drag handle — rendered for visual fidelity; DnD wiring is out of scope for this PR */}
         <span
           className="text-text4 cursor-grab active:cursor-grabbing select-none"
@@ -107,7 +123,7 @@ export function SectionCard({
         {/* Chevron collapse toggle */}
         <button
           type="button"
-          onClick={() => setIsExpanded((v) => !v)}
+          onClick={() => onToggleExpanded()}
           className="flex items-center justify-center shrink-0 w-4 h-4 text-text4 transition-colors hover:text-text2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border-md"
           aria-label={isExpanded ? t('training.section.collapse') : t('training.section.expand')}
           aria-expanded={isExpanded}
@@ -128,7 +144,7 @@ export function SectionCard({
           onClick={(e) => {
             // Only toggle when the click target is the wrapper div, not the input
             if (e.target === e.currentTarget) {
-              setIsExpanded((v) => !v);
+              onToggleExpanded();
             }
           }}
         >
@@ -148,57 +164,82 @@ export function SectionCard({
           onFormatChange={(fmt, cfg) => onUpdate({ format: fmt, formatConfig: cfg })}
         />
 
-        {/* Save as template */}
-        <Button
+        {/* Save as template — icon button, label appears as native tooltip on hover */}
+        <button
           type="button"
-          variant="default"
-          size="sm"
           onClick={(e) => { e.stopPropagation(); onSaveAsTemplate(); }}
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px',
+            fontSize: 11, color: 'var(--text4)', borderRadius: 'var(--radius)',
+            transition: 'color 0.1s',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text2)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text4)'; }}
+          title={t('training.section.saveAsTemplate')}
+          aria-label={t('training.section.saveAsTemplate')}
           className="shrink-0"
         >
-          {t('training.section.saveAsTemplate')}
-        </Button>
-
-        {/* Three-dot menu */}
-        <div className="relative shrink-0">
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); setMenuOpen((v) => !v); }}
-            className="flex items-center justify-center w-6 h-6 rounded-md text-text4 transition-colors hover:bg-bg3 hover:text-text2"
-            style={{ fontFamily: 'inherit' }}
-            aria-label={t('common.actions')}
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
           >
-            ⋯
-          </button>
-          {menuOpen && (
-            <>
-              {/* Backdrop to close menu on outside click */}
-              <div
-                className="fixed inset-0 z-10"
-                onClick={() => setMenuOpen(false)}
-              />
-              <div
-                className="absolute right-0 top-7 z-20 min-w-[140px] rounded-md border border-border bg-bg shadow-md py-1"
-              >
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onRemove(); }}
-                  className="w-full px-3 py-1.5 text-left text-[12px] text-danger transition-colors hover:bg-bg2"
-                  style={{ fontFamily: 'inherit' }}
-                >
-                  {t('training.section.delete')}
-                </button>
-              </div>
-            </>
-          )}
-        </div>
+            <path d="M13.5 14H2.5V2h8.5l2.5 2.5z" />
+            <path d="M4.5 2v3.5h5V2" />
+            <path d="M4.5 9h7v5h-7z" />
+          </svg>
+        </button>
+
+        {/* Duplicate */}
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onDuplicate(); }}
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px',
+            fontSize: 11, color: 'var(--text4)', borderRadius: 'var(--radius)',
+            transition: 'color 0.1s',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text2)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text4)'; }}
+          title={t('training.section.duplicate')}
+          aria-label={t('training.section.duplicate')}
+        >
+          ⧉
+        </button>
+
+        {/* Remove */}
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onRemove(); }}
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px',
+            fontSize: 11, color: 'var(--text4)', borderRadius: 'var(--radius)',
+            transition: 'color 0.1s',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--red)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text4)'; }}
+          title={t('training.section.delete')}
+          aria-label={t('training.section.delete')}
+        >
+          ✕
+        </button>
       </div>
 
-      {/* ── Collapsible body ── */}
-      {isExpanded && (
-        <>
+      {/* ── Collapsible body — uses the same grid-rows transition as session cards. ── */}
+      <div className="collapse-grid" data-open={isExpanded}>
+        <div className="collapse-content">
           {/* ── Notes row ── */}
-          <div style={{ padding: '3px 8px 4px' }} onClick={(e) => e.stopPropagation()}>
+          <div
+            style={{ padding: '3px 8px 4px', borderBottom: '1px solid var(--border)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
             <input
               type="text"
               value={section.notes ?? ''}
@@ -222,11 +263,14 @@ export function SectionCard({
             />
           )}
 
-          {/* ── Exercise list ── */}
-          <div className="px-2 pt-1">
+          {/* ── Exercise list — flat rows separated by dividers, no card chrome ── */}
+          <div>
             {section.exercises.map((ex, exIdx) => {
               const exKey = exIdx;
               const isExOpen = !collapsedExercises.has(exKey);
+              // Editor branches on the section format. There is no per-exercise
+              // format override — every exercise inherits its section's format.
+              const isWodFormat = section.format !== 'Standard';
               const setsCount = ex.sets.length;
               const repsValues = ex.sets.map((s) => s.reps).filter((r): r is number => r != null);
               const weightValues = ex.sets.map((s) => s.weightKg).filter((w): w is number => w != null);
@@ -239,16 +283,20 @@ export function SectionCard({
               const totalVolume = ex.sets.reduce((sum, s) => sum + ((s.reps ?? 0) * (s.weightKg ?? 0)), 0);
 
               const muscleGroups = exerciseDetailsMap?.get(ex.exerciseExternalId) ?? [];
-              const primaryMuscle = muscleGroups[0] as string | undefined;
-              const muscleColor = primaryMuscle ? (MUSCLE_COLORS[primaryMuscle] ?? 'var(--accent)') : 'var(--accent)';
-              const muscleIcon = primaryMuscle ? (MUSCLE_ICONS[primaryMuscle] ?? '🏋️') : '🏋️';
               const difficulty = exerciseFullMap?.get(ex.exerciseExternalId)?.difficulty;
+
+              const isExerciseLocked =
+                lockedExerciseIds?.has(ex.exerciseExternalId) ?? false;
 
               return (
                 <div
                   key={exKey}
                   data-item-id={String(exIdx)}
-                  className="rounded-md border border-border bg-bg mb-1.5 overflow-hidden transition-all duration-100 hover:border-border-md"
+                  aria-disabled={isExerciseLocked || undefined}
+                  className={cn(
+                    'bg-bg border-b border-border last:border-b-0 transition-colors hover:bg-bg-hover',
+                    isExerciseLocked && 'opacity-70 pointer-events-none select-none',
+                  )}
                 >
                   <ExerciseCardHeader
                     exercise={ex}
@@ -257,87 +305,21 @@ export function SectionCard({
                     weightStr={weightStr}
                     setsCount={setsCount}
                     totalVolume={totalVolume}
+                    isWod={isWodFormat}
                     isOpen={isExOpen}
                     onToggle={() => toggleExercise(exKey)}
                     onDuplicate={() => onDuplicateExercise(exIdx)}
                     onRemove={() => onRemoveExercise(exIdx)}
                     difficulty={difficulty}
-                    muscleColor={muscleColor}
-                    muscleIcon={muscleIcon}
                   />
 
                   <div className="collapse-grid" data-open={isExOpen}>
                     <div className="collapse-content">
-                      {/* Per-exercise format override */}
-                      <ExerciseFormatBar
-                        format={ex.format}
-                        formatConfig={ex.formatConfig}
-                        sessionFormat={sessionFormat}
-                        onFormatChange={(fmt, cfg) => onUpdateExerciseFormat(exIdx, fmt, cfg)}
-                      />
-
                       <div className="px-3 py-2">
-                        {/* MovementType picker + column headers */}
-                        <div className="flex items-center justify-between mb-1">
-                          <MovementTypePill
-                            value={ex.movementType}
-                            onChange={(mt) => onUpdateExerciseMovementType(exIdx, mt)}
-                          />
-                          <div className="flex items-center gap-2 text-[10px] font-medium text-text3 uppercase">
-                            {ex.movementType === 'Reps' && (
-                              <>
-                                <span className="w-[68px] text-right">{t('training.weightLabel')}</span>
-                                <span className="w-[68px] text-right">{t('training.repsLabel')}</span>
-                                <span className="w-[90px] text-right">{t('training.restSecondsLabel')}</span>
-                              </>
-                            )}
-                            {ex.movementType === 'Time' && (
-                              <>
-                                <span className="w-[80px] text-right">{t('training.wod.durationLabel')}</span>
-                                <span className="w-[90px] text-right">{t('training.restSecondsLabel')}</span>
-                              </>
-                            )}
-                            {ex.movementType === 'Distance' && (
-                              <>
-                                <span className="w-[80px] text-right">{t('training.wod.distanceLabel')}</span>
-                                <span className="w-[80px] text-right">{t('training.wod.durationLabel')}</span>
-                                <span className="w-[90px] text-right">{t('training.restSecondsLabel')}</span>
-                              </>
-                            )}
-                            {ex.movementType === 'RepsForTime' && (
-                              <>
-                                <span className="w-[68px] text-right">{t('training.repsLabel')}</span>
-                                <span className="w-[90px] text-right">{t('training.restSecondsLabel')}</span>
-                              </>
-                            )}
-                            <span className="w-5" />
-                          </div>
-                        </div>
-
-                        {/* Set rows */}
-                        {ex.sets.map((s, sIdx) => (
-                          <SetRow
-                            key={sIdx}
-                            set={s}
-                            movementType={ex.movementType}
-                            onUpdate={(updates) => onUpdateSet(exIdx, sIdx, updates)}
-                            onRemove={() => onRemoveSet(exIdx, sIdx)}
-                          />
-                        ))}
-
-                        {/* Add set */}
-                        <button
-                          type="button"
-                          onClick={() => onAddSet(exIdx)}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', fontSize: 11, color: 'var(--text4)', fontFamily: 'inherit', transition: 'color 0.1s' }}
-                          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text3)'; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text4)'; }}
-                        >
-                          + {t('training.addSet')}
-                        </button>
-
-                        {/* Exercise note */}
-                        <div style={{ marginTop: 6, borderTop: '1px solid var(--border)', paddingTop: 6 }}>
+                        {/* Exercise note — placed above the series table so the
+                            trainer can leave coaching cues right under the
+                            exercise header. */}
+                        <div style={{ marginBottom: 6, borderBottom: '1px solid var(--border)', paddingBottom: 6 }}>
                           <input
                             type="text"
                             value={ex.notes ?? ''}
@@ -352,6 +334,73 @@ export function SectionCard({
                             onBlur={(e) => { e.target.style.background = 'transparent'; }}
                           />
                         </div>
+                        {isWodFormat ? (
+                          /* WOD formats — single line: movement pill + inline labeled inputs. */
+                          ex.sets.length > 0 && (
+                            <div className="flex items-center gap-3 flex-wrap">
+                              <MovementTypePill
+                                value={ex.movementType}
+                                onChange={(mt) => onUpdateExerciseMovementType(exIdx, mt)}
+                              />
+                              <WodExerciseRow
+                                set={ex.sets[0]}
+                                movementType={ex.movementType}
+                                sectionFormat={section.format}
+                                onUpdate={(updates) => onUpdateSet(exIdx, 0, updates)}
+                              />
+                            </div>
+                          )
+                        ) : (
+                          <div style={{ paddingLeft: 6, paddingRight: 6 }}>
+                            {/* Standard layout: classic strength-training table —
+                                series, weight, reps, rest. No movement-type
+                                picker; reps/weight/rest are the only columns
+                                that apply, so we hard-code that variant.
+                                Header uses the same 6-column grid as `SetRow`
+                                so each label sits exactly above its column. */}
+                            <div
+                              className="grid gap-2 mb-1 items-center text-[10px] font-medium text-text3 uppercase"
+                              style={{ gridTemplateColumns: '28px 1fr 68px 68px 90px 56px' }}
+                            >
+                              {/* Match SetRow's 6-column grid AND its child
+                                  order: setNumber (col 1), 1fr spacer (col 2),
+                                  weight / reps / rest (cols 3-5), remove
+                                  button (col 6). `whitespace-nowrap` keeps
+                                  longer labels like "ODPOČINEK (S)" on one
+                                  line. */}
+                              <span className="text-center whitespace-nowrap">{t('training.setsLabel')}</span>
+                              <span />
+                              <span className="text-center whitespace-nowrap">{t('training.weightLabel')}</span>
+                              <span className="text-center whitespace-nowrap">{t('training.repsLabel')}</span>
+                              <span className="text-center whitespace-nowrap">{t('training.restSecondsLabel')}</span>
+                              <span />
+                            </div>
+
+                            {/* Set rows */}
+                            {ex.sets.map((s, sIdx) => (
+                              <SetRow
+                                key={sIdx}
+                                set={s}
+                                movementType="Reps"
+                                onUpdate={(updates) => onUpdateSet(exIdx, sIdx, updates)}
+                                onDuplicate={() => onDuplicateSet(exIdx, sIdx)}
+                                onRemove={() => onRemoveSet(exIdx, sIdx)}
+                              />
+                            ))}
+
+                            {/* Add set */}
+                            <button
+                              type="button"
+                              onClick={() => onAddSet(exIdx)}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', fontSize: 11, color: 'var(--text4)', fontFamily: 'inherit', transition: 'color 0.1s' }}
+                              onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text3)'; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text4)'; }}
+                            >
+                              + {t('training.addSet')}
+                            </button>
+                          </div>
+                        )}
+
                       </div>
                     </div>
                   </div>
@@ -361,13 +410,17 @@ export function SectionCard({
           </div>
 
           {/* ── Add exercise ── */}
-          <div className="px-2 pb-2" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="px-2 pb-2 pt-2"
+            style={{ borderTop: '1px solid var(--border)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
             <ExerciseSearch
               onSelect={(exercise) => onAddExercise(exercise)}
             />
           </div>
-        </>
-      )}
+        </div>
+      </div>
     </div>
   );
 }

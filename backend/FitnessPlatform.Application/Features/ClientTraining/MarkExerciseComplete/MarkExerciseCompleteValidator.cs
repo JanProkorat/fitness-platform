@@ -18,5 +18,8 @@ public class MarkExerciseCompleteValidator : Validator<MarkExerciseCompleteReque
 
         RuleFor(x => x.ExerciseExternalId)
             .NotEmpty();
+
+        RuleFor(x => x.SectionId)
+            .NotEmpty();
     }
 }

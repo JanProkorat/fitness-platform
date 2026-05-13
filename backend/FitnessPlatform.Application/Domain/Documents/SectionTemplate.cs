@@ -36,6 +36,13 @@ public class SectionTemplate
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
+    /// Optional coach notes describing the workout as a whole.
+    /// </summary>
+    [BsonElement("notes")]
+    [BsonIgnoreIfNull]
+    public string? Notes { get; set; }
+
+    /// <summary>
     /// Default workout format for sections created from this template.
     /// Null means no format override (Standard / inherits from session).
     /// </summary>

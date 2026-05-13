@@ -32,10 +32,15 @@ import { getTodaySession, type TodayTrainingResponse, type TrainingSession } fro
 import {
   markExerciseComplete,
   markExerciseIncomplete,
+  markSectionComplete,
+  markSectionIncomplete,
   markSessionComplete,
   markSessionIncomplete,
+  markWholeDayComplete,
   type MarkExerciseCompleteResponse,
   type MarkExerciseIncompleteResponse,
+  type MarkSectionCompleteResponse,
+  type MarkSectionIncompleteResponse,
   type MarkSessionCompleteResponse,
   type MarkSessionIncompleteResponse,
 } from '@/api/trainingCompletion'
@@ -131,8 +136,23 @@ const noDayCardStyles = StyleSheet.create({
 // Standalone helper (not a method) so it can be called from mutation onSuccess
 // without `this` binding issues.
 
-type CompletionResponseSource = 'exercise' | 'session'
-
+/**
+ * Apply a server completion response to the TanStack Query cache.
+ *
+ * Optimistic state (written in onMutate) is always the source of truth for
+ * `completedExerciseIdsBySectionAndSession`. This function only updates
+ * `versionBySession` from the response so subsequent requests use the correct
+ * optimistic-concurrency token.
+ *
+ * The previous session-source branch that re-derived per-section completion
+ * from `completedExerciseCount >= totalExerciseCount` was removed because the
+ * backend counts unique catalog ids for `completedExerciseCount` but
+ * `totalExerciseCount` is `Sections.SelectMany(s => s.Exercises).Count` —
+ * including duplicates when the same catalog exercise appears in multiple
+ * sections. This made `isSessionComplete` evaluate to false even after a
+ * successful session mark, causing the for-loop to overwrite all sections with
+ * empty arrays, undoing the correct optimistic state.
+ */
 function applyExerciseProgressToCache(
   queryClient: ReturnType<typeof useQueryClient>,
   sessionId: string,
@@ -141,36 +161,14 @@ function applyExerciseProgressToCache(
     | MarkExerciseIncompleteResponse
     | MarkSessionCompleteResponse
     | MarkSessionIncompleteResponse,
-  source: CompletionResponseSource,
-  allExerciseIds: string[],
 ): void {
   queryClient.setQueryData<TodayTrainingResponse>(['today-training'], (prev) => {
     if (!prev) return prev
-
-    const isSessionComplete =
-      source === 'exercise'
-        ? (response as MarkExerciseCompleteResponse).sessionComplete ?? false
-        : (response.completedExerciseCount ?? 0) >= (response.totalExerciseCount ?? 1)
-
-    const prevIds: string[] =
-      (prev.completedExerciseIdsBySession ?? {})[sessionId] ?? []
-
-    let newIds: string[]
-    if (isSessionComplete) {
-      newIds = allExerciseIds
-    } else {
-      // Per-exercise toggle: keep optimistic ids (already updated in onMutate).
-      newIds = prevIds
-    }
 
     const prevVersion = (prev.versionBySession ?? {})[sessionId] ?? 1
 
     return {
       ...prev,
-      completedExerciseIdsBySession: {
-        ...(prev.completedExerciseIdsBySession ?? {}),
-        [sessionId]: newIds,
-      },
       versionBySession: {
         ...(prev.versionBySession ?? {}),
         [sessionId]: response.version ?? prevVersion,
@@ -387,9 +385,13 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
 
   // ── Client-side completion state (multi-session) ──────────────────────────
   const {
+    completedIdsBySectionAndSession,
     completedIdsBySession,
+    completedSectionIdsBySession,
     sessionCompleteMap,
+    completedIdsForSection,
     completedIdsFor,
+    completedSectionIdsFor,
     aggregateDone,
     aggregateTotal,
   } = useCompletionState(trainingQuery.data)
@@ -398,34 +400,44 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
   const toggleExerciseMutation = useMutation({
     mutationFn: async ({
       sessionId,
+      sectionId,
       exerciseExternalId,
       complete,
     }: {
       sessionId: string
+      sectionId: string
       exerciseExternalId: string
       complete: boolean
     }) => {
       const cache = queryClient.getQueryData<TodayTrainingResponse>(['today-training'])
       const version = (cache?.versionBySession ?? {})[sessionId]
-      const req = { version }
+      const req = { version, sectionId }
       if (complete) {
         return markExerciseComplete(sessionId, exerciseExternalId, req)
       } else {
         return markExerciseIncomplete(sessionId, exerciseExternalId, req)
       }
     },
-    onMutate: async ({ sessionId, exerciseExternalId, complete }) => {
+    onMutate: async ({ sessionId, sectionId, exerciseExternalId, complete }) => {
       await queryClient.cancelQueries({ queryKey: ['today-training'] })
       const previous = queryClient.getQueryData<TodayTrainingResponse>(['today-training'])
       if (previous) {
-        const prevIds: string[] = (previous.completedExerciseIdsBySession ?? {})[sessionId] ?? []
-        const nextIdsSet = new Set(prevIds)
+        // Write to completedExerciseIdsBySectionAndSession so the per-section
+        // set for this exact section is updated. Other sections' sets are
+        // untouched — fixes the cross-section bleed bug.
+        const prevBySectionAndSession = previous.completedExerciseIdsBySectionAndSession ?? {}
+        const prevSessionSections: Record<string, string[]> = {
+          ...(prevBySectionAndSession[sessionId] ?? {}),
+        }
+        const prevSectionIds: string[] = prevSessionSections[sectionId] ?? []
+        const nextIdsSet = new Set(prevSectionIds)
         if (complete) {
           nextIdsSet.add(exerciseExternalId)
         } else {
           nextIdsSet.delete(exerciseExternalId)
         }
-        const nextIds = Array.from(nextIdsSet)
+        prevSessionSections[sectionId] = Array.from(nextIdsSet)
+
         // NOTE: do NOT bump versionBySession here. `mutationFn` reads the
         // version from the cache after `onMutate` runs and sends it as the
         // optimistic-concurrency token; bumping it would send the wrong
@@ -456,9 +468,9 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
 
         queryClient.setQueryData<TodayTrainingResponse>(['today-training'], {
           ...previous,
-          completedExerciseIdsBySession: {
-            ...(previous.completedExerciseIdsBySession ?? {}),
-            [sessionId]: nextIds,
+          completedExerciseIdsBySectionAndSession: {
+            ...prevBySectionAndSession,
+            [sessionId]: prevSessionSections,
           },
           completedSetsBySessionExercise: {
             ...(previous.completedSetsBySessionExercise ?? {}),
@@ -475,12 +487,58 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
       queryClient.invalidateQueries({ queryKey: ['today-training'] })
     },
     onSuccess: (response, { sessionId }) => {
+      applyExerciseProgressToCache(queryClient, sessionId, response)
+      queryClient.invalidateQueries({ queryKey: ['compliance-score'] })
+    },
+  })
+
+  // ── Mutation: toggle a single section complete/incomplete ─────────────────
+  // Used for sections that don't track at the exercise level (typically
+  // ForTime workouts that are just a name + time cap, e.g. "Running").
+  const toggleSectionMutation = useMutation({
+    mutationFn: async ({
+      sessionId,
+      sectionId,
+      complete,
+    }: {
+      sessionId: string
+      sectionId: string
+      complete: boolean
+    }) => {
       const cache = queryClient.getQueryData<TodayTrainingResponse>(['today-training'])
-      const session = (cache?.sessions ?? []).find((s) => s.sessionId === sessionId)
-      const allExIds = (session?.exercises ?? [])
-        .map((e) => e.exerciseExternalId)
-        .filter((id): id is string => id != null)
-      applyExerciseProgressToCache(queryClient, sessionId, response, 'exercise', allExIds)
+      const version = (cache?.versionBySession ?? {})[sessionId]
+      const req = { version }
+      if (complete) {
+        return markSectionComplete(sessionId, sectionId, req)
+      } else {
+        return markSectionIncomplete(sessionId, sectionId, req)
+      }
+    },
+    onMutate: async ({ sessionId, sectionId, complete }) => {
+      await queryClient.cancelQueries({ queryKey: ['today-training'] })
+      const previous = queryClient.getQueryData<TodayTrainingResponse>(['today-training'])
+      if (previous) {
+        const prevIds: string[] = (previous.completedSectionIdsBySession ?? {})[sessionId] ?? []
+        const nextIdsSet = new Set(prevIds)
+        if (complete) nextIdsSet.add(sectionId)
+        else nextIdsSet.delete(sectionId)
+        queryClient.setQueryData<TodayTrainingResponse>(['today-training'], {
+          ...previous,
+          completedSectionIdsBySession: {
+            ...(previous.completedSectionIdsBySession ?? {}),
+            [sessionId]: Array.from(nextIdsSet),
+          },
+        })
+      }
+      return { previous }
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['today-training'], context.previous)
+      }
+      queryClient.invalidateQueries({ queryKey: ['today-training'] })
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['compliance-score'] })
     },
   })
@@ -502,18 +560,37 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
       const previous = queryClient.getQueryData<TodayTrainingResponse>(['today-training'])
       if (previous) {
         const session = (previous.sessions ?? []).find((s) => s.sessionId === sessionId)
-        const allExIds = (session?.exercises ?? [])
-          .map((e) => e.exerciseExternalId)
-          .filter((id): id is string => id != null)
         // NOTE: do NOT bump versionBySession here (see toggleExerciseMutation
         // for the full rationale).
         //
-        // When marking a session complete, build a planned-sets sub-map for
-        // every trackable exercise so the per-set ✓ column fills immediately.
-        // The subsequent refetch reconciles with the backend's derivation.
-        // When unmarking, clear every exercise's set-level entries for this
-        // session so the per-set ✓ column clears immediately.
+        // When marking a session complete, write per-section id lists into
+        // completedExerciseIdsBySectionAndSession so the per-section sets
+        // reflect the full section exercise ids immediately.
+        // When unmarking, clear every section's list for this session.
+        // Also build planned-sets sub-map for the per-set ✓ column.
+        const prevBySectionAndSession = previous.completedExerciseIdsBySectionAndSession ?? {}
+        const nextSessionSections: Record<string, string[]> = {}
         const plannedSetsByEx: Record<string, number[]> = {}
+        // Section-id list for the "all sections of this session are done"
+        // optimistic update — required because workouts with NO trackable
+        // exercises (e.g. ForTime "Beh") are marked complete via
+        // `completedSectionIdsBySession`, not the per-exercise map. The
+        // session-complete API response doesn't return this field, so
+        // populating it here is the only thing that makes the exercise-
+        // free workout flip to "done" before the next refetch.
+        const allSectionIds: string[] = []
+
+        for (const sec of session?.sections ?? []) {
+          if (!sec.sectionId) continue
+          const trackableIds = (sec.exercises ?? [])
+            .map((e) => e.exerciseExternalId)
+            .filter((id): id is string => id != null)
+          nextSessionSections[sec.sectionId] = complete ? trackableIds : []
+          allSectionIds.push(sec.sectionId)
+        }
+
+        // Flat planned-sets map (keyed by exId) for the per-set column.
+        // Falls back to session.exercises when sections aren't available.
         for (const ex of session?.exercises ?? []) {
           const exId = ex.exerciseExternalId
           if (!exId) continue
@@ -523,6 +600,7 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
             .sort((a, b) => a - b)
           if (nums.length > 0) plannedSetsByEx[exId] = nums
         }
+
         const nextSetsForSession: Record<string, Record<string, number[]>> = complete
           ? {
               ...(previous.completedSetsBySessionExercise ?? {}),
@@ -535,9 +613,16 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
 
         queryClient.setQueryData<TodayTrainingResponse>(['today-training'], {
           ...previous,
-          completedExerciseIdsBySession: {
-            ...(previous.completedExerciseIdsBySession ?? {}),
-            [sessionId]: complete ? allExIds : [],
+          completedExerciseIdsBySectionAndSession: {
+            ...prevBySectionAndSession,
+            [sessionId]: nextSessionSections,
+          },
+          completedSectionIdsBySession: {
+            ...(previous.completedSectionIdsBySession ?? {}),
+            // Mark every section in the session as complete (covers
+            // exercise-free WOD sections like ForTime). On uncomplete,
+            // clear the list so those sections flip back to "not done".
+            [sessionId]: complete ? allSectionIds : [],
           },
           completedSetsBySessionExercise: nextSetsForSession,
         })
@@ -551,12 +636,7 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
       queryClient.invalidateQueries({ queryKey: ['today-training'] })
     },
     onSuccess: (response, { sessionId }) => {
-      const cache = queryClient.getQueryData<TodayTrainingResponse>(['today-training'])
-      const session = (cache?.sessions ?? []).find((s) => s.sessionId === sessionId)
-      const allExIds = (session?.exercises ?? [])
-        .map((e) => e.exerciseExternalId)
-        .filter((id): id is string => id != null)
-      applyExerciseProgressToCache(queryClient, sessionId, response, 'session', allExIds)
+      applyExerciseProgressToCache(queryClient, sessionId, response)
       queryClient.invalidateQueries({ queryKey: ['compliance-score'] })
     },
   })
@@ -604,7 +684,14 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
     const result: Record<string, SessionCtaState> = {}
     for (const session of todaySessions) {
       if (!session.sessionId) continue
-      const completedIds = completedIdsFor(session.sessionId)
+      // Per-section completion map for this session (sectionId → completed exId set).
+      // Using the section-keyed map rather than the flat union prevents a catalog
+      // exercise that appears in both W1 and W3 from satisfying W3's completion
+      // check just because the user marked it in W1.
+      const sectionMap =
+        completedIdsBySectionAndSession.get(session.sessionId) ??
+        new Map<string, ReadonlySet<string>>()
+      const sectionIds = completedSectionIdsFor(session.sessionId)
       // When a live session is in-flight for this session (sets done but no
       // full exercise ticked yet), bump not-started → in-progress so the CTA
       // reads "Continue training" rather than "Start training".
@@ -612,20 +699,142 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
         hasActiveSession && session.sessionId === liveSessionId
       result[session.sessionId] = deriveSessionCtaState(
         session,
-        completedIds,
+        sectionMap,
+        sectionIds,
         isLiveForThisSession,
       )
     }
     return result
-  }, [todaySessions, completedIdsFor, hasActiveSession, liveSessionId])
+  }, [todaySessions, completedIdsBySectionAndSession, completedSectionIdsFor, hasActiveSession, liveSessionId])
 
   const handleToggleExercise = useCallback(
-    (sessionId: string, exerciseExternalId: string) => {
-      const ids = completedIdsFor(sessionId)
+    (sessionId: string, sectionId: string, exerciseExternalId: string) => {
+      const ids = completedIdsForSection(sessionId, sectionId)
       const complete = !ids.has(exerciseExternalId)
-      toggleExerciseMutation.mutate({ sessionId, exerciseExternalId, complete })
+      toggleExerciseMutation.mutate({ sessionId, sectionId, exerciseExternalId, complete })
     },
-    [toggleExerciseMutation, completedIdsFor],
+    [toggleExerciseMutation, completedIdsForSection],
+  )
+
+  /**
+   * Batch handler for section/workout-complete toggles.
+   *
+   * Unlike the sequential-mutateAsync loop it replaces, this applies ONE
+   * combined optimistic setQueryData upfront so ALL exercise checkboxes flip
+   * at the same instant (no sequential "wave"). HTTP requests are then issued
+   * one at a time in the background, each reading the latest version token
+   * from the cache after the previous response has updated it, preserving the
+   * server's optimistic-concurrency invariant.
+   *
+   * single-exercise toggles (individual exercise row taps) still go through
+   * toggleExerciseMutation — this handler is only for batch operations.
+   *
+   * `sectionId` is now required so each HTTP request carries the correct section
+   * context, preventing cross-section bleed on the backend.
+   */
+  const handleToggleExercises = useCallback(
+    async (sessionId: string, sectionId: string, exerciseIds: string[], complete: boolean) => {
+      // ── Step 1: cancel in-flight queries and snapshot the cache ──────────
+      await queryClient.cancelQueries({ queryKey: ['today-training'] })
+      const previous = queryClient.getQueryData<TodayTrainingResponse>(['today-training'])
+
+      // ── Step 2: apply ONE combined optimistic update ──────────────────────
+      if (previous) {
+        const session = (previous.sessions ?? []).find((s) => s.sessionId === sessionId)
+
+        // Write to completedExerciseIdsBySectionAndSession[sessionId][sectionId].
+        const prevBySectionAndSession = previous.completedExerciseIdsBySectionAndSession ?? {}
+        const prevSessionSections: Record<string, string[]> = {
+          ...(prevBySectionAndSession[sessionId] ?? {}),
+        }
+        const prevSectionIds: string[] = prevSessionSections[sectionId] ?? []
+        const nextIdsSet = new Set(prevSectionIds)
+
+        // Build a per-exercise planned-sets map for every id in the batch,
+        // mirroring the per-exercise logic in toggleExerciseMutation.onMutate
+        // but applied to the whole batch at once.
+        const prevSessionSetsMap: Record<string, number[]> =
+          (previous.completedSetsBySessionExercise ?? {})[sessionId] ?? {}
+        let nextSetsForSession: Record<string, number[]> = { ...prevSessionSetsMap }
+
+        for (const exId of exerciseIds) {
+          if (complete) {
+            nextIdsSet.add(exId)
+            // Write planned set numbers so per-set ✓ column fills immediately.
+            const plannedEx = session?.exercises?.find((e) => e.exerciseExternalId === exId)
+            const plannedSetNumbers = (plannedEx?.sets ?? [])
+              .map((s) => s.setNumber)
+              .filter((n): n is number => n != null)
+              .sort((a, b) => a - b)
+            if (plannedSetNumbers.length > 0) {
+              nextSetsForSession[exId] = plannedSetNumbers
+            }
+          } else {
+            nextIdsSet.delete(exId)
+            // Remove set-level entry so per-set ✓ column clears immediately.
+            const { [exId]: _omitted, ...rest } = nextSetsForSession
+            nextSetsForSession = rest
+          }
+        }
+
+        prevSessionSections[sectionId] = Array.from(nextIdsSet)
+
+        // NOTE: do NOT bump versionBySession here — the server response is
+        // what advances the version token (same rationale as toggleExerciseMutation).
+        queryClient.setQueryData<TodayTrainingResponse>(['today-training'], {
+          ...previous,
+          completedExerciseIdsBySectionAndSession: {
+            ...prevBySectionAndSession,
+            [sessionId]: prevSessionSections,
+          },
+          completedSetsBySessionExercise: {
+            ...(previous.completedSetsBySessionExercise ?? {}),
+            [sessionId]: nextSetsForSession,
+          },
+        })
+      }
+
+      // ── Step 3: serialize HTTP requests in the background ─────────────────
+      // Read the version from cache before each request — applyExerciseProgressToCache
+      // in step 4 updates it after each response, so the next request sees the
+      // correct token and avoids 409s.
+      const cache = () => queryClient.getQueryData<TodayTrainingResponse>(['today-training'])
+
+      for (const exId of exerciseIds) {
+        try {
+          const version = (cache()?.versionBySession ?? {})[sessionId]
+          const req = { version, sectionId }
+          const response = complete
+            ? await markExerciseComplete(sessionId, exId, req)
+            : await markExerciseIncomplete(sessionId, exId, req)
+
+          // ── Step 5: apply server response to cache after each success ────
+          // Same as toggleExerciseMutation.onSuccess — updates versionBySession
+          // so the next iteration reads the correct token.
+          applyExerciseProgressToCache(queryClient, sessionId, response)
+        } catch {
+          // ── Step 6: on error, restore snapshot and stop ──────────────────
+          if (previous) {
+            queryClient.setQueryData(['today-training'], previous)
+          }
+          queryClient.invalidateQueries({ queryKey: ['today-training'] })
+          break
+        }
+      }
+
+      // ── Step 7: invalidate compliance score once after the whole batch ────
+      queryClient.invalidateQueries({ queryKey: ['compliance-score'] })
+    },
+    [queryClient],
+  )
+
+  const handleToggleSection = useCallback(
+    (sessionId: string, sectionId: string) => {
+      const ids = completedSectionIdsFor(sessionId)
+      const complete = !ids.has(sectionId)
+      toggleSectionMutation.mutate({ sessionId, sectionId, complete })
+    },
+    [toggleSectionMutation, completedSectionIdsFor],
   )
 
   const handleToggleSession = useCallback(
@@ -824,6 +1033,81 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
     markAllEatenMutation.mutate(remaining)
   }, [plan, eatenMealIds, markAllEatenMutation])
 
+  // ── Mutation: mark every training session for the day complete ─────────────
+  const markAllTrainingDoneMutation = useMutation({
+    mutationFn: () => markWholeDayComplete({}),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ['today-training'] })
+      const previous = queryClient.getQueryData<TodayTrainingResponse>(['today-training'])
+      if (previous) {
+        const prevBySectionAndSession = previous.completedExerciseIdsBySectionAndSession ?? {}
+        const nextBySectionAndSession: Record<string, Record<string, string[]>> = {
+          ...prevBySectionAndSession,
+        }
+        const nextSetsBySessionExercise: Record<string, Record<string, number[]>> = {
+          ...(previous.completedSetsBySessionExercise ?? {}),
+        }
+
+        for (const session of previous.sessions ?? []) {
+          const sessionId = session.sessionId
+          if (!sessionId) continue
+          // Skip sessions that are already complete — no-op, same as toggleSession.
+          if (sessionCompleteMap[sessionId]) continue
+
+          const nextSessionSections: Record<string, string[]> = {}
+          const plannedSetsByEx: Record<string, number[]> = {}
+
+          for (const sec of session.sections ?? []) {
+            if (!sec.sectionId) continue
+            const trackableIds = (sec.exercises ?? [])
+              .map((e) => e.exerciseExternalId)
+              .filter((id): id is string => id != null)
+            nextSessionSections[sec.sectionId] = trackableIds
+          }
+
+          // Build planned-sets map from flat exercises list for the per-set ✓ column.
+          for (const ex of session.exercises ?? []) {
+            const exId = ex.exerciseExternalId
+            if (!exId) continue
+            const nums = (ex.sets ?? [])
+              .map((s) => s.setNumber)
+              .filter((n): n is number => n != null)
+              .sort((a, b) => a - b)
+            if (nums.length > 0) plannedSetsByEx[exId] = nums
+          }
+
+          nextBySectionAndSession[sessionId] = nextSessionSections
+          nextSetsBySessionExercise[sessionId] = plannedSetsByEx
+        }
+
+        queryClient.setQueryData<TodayTrainingResponse>(['today-training'], {
+          ...previous,
+          completedExerciseIdsBySectionAndSession: nextBySectionAndSession,
+          completedSetsBySessionExercise: nextSetsBySessionExercise,
+        })
+      }
+      return { previous }
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['today-training'], context.previous)
+      }
+      queryClient.invalidateQueries({ queryKey: ['today-training'] })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['compliance-score'] })
+    },
+  })
+
+  const handleMarkAllTrainingDone = useCallback(() => {
+    // Skip if every session is already marked complete.
+    const hasIncomplete = todaySessions.some(
+      (s) => s.sessionId != null && !sessionCompleteMap[s.sessionId],
+    )
+    if (!hasIncomplete) return
+    markAllTrainingDoneMutation.mutate()
+  }, [todaySessions, sessionCompleteMap, markAllTrainingDoneMutation])
+
   /** Navigate to the plan-photos gallery screen. */
   const handlePhotoGridPress = useCallback(() => {
     if (!plan?.planId) return
@@ -914,9 +1198,12 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
       )}
 
       {/* Next-week shopping prep banner — top-of-page banner under the stat
-          strip / pending banners, ahead of any plan cards below. */}
+          strip / pending banners, ahead of any plan cards below.
+          `marginBottom: -8` pulls the next section up so the gap between the
+          banner and the first plan card reads ~8 px instead of the full 16 px
+          rhythm used between regular sections. */}
       {showShoppingBanner !== null && (
-        <View style={styles.section}>
+        <View style={[styles.section, { marginBottom: -8 }]}>
           <ShoppingPrepBanner week={showShoppingBanner} />
         </View>
       )}
@@ -931,7 +1218,7 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
         const hasTrainingToday = !!training?.hasSession && todaySessions.length > 0
         const hasNutritionToday = !!plan
         const trainingSlot = hasTrainingToday ? (
-          <View style={styles.section} key="training">
+          <View style={[styles.section, { marginBottom: -8 }]} key="training">
             <SectionHeader
               title={t('today.todaysTraining')}
               actionLabel={training?.planId ? t('today.sectionActionDetail') : undefined}
@@ -951,14 +1238,20 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
             <TrainingCard
               planName={trainingPlanSubtitle || t('today.trainingPlan')}
               sessions={todaySessions}
+              completedIdsBySectionAndSession={completedIdsBySectionAndSession}
               completedIdsBySession={completedIdsBySession}
+              completedSectionIdsBySession={completedSectionIdsBySession}
               sessionCompleteMap={sessionCompleteMap}
               onToggleExercise={handleToggleExercise}
+              onToggleExercises={handleToggleExercises}
+              onToggleSection={handleToggleSection}
               onToggleSession={handleToggleSession}
               sessionCtaStateBySession={sessionCtaStateBySession}
               onSessionCta={handleSessionCta}
               exerciseMuscleGroups={training?.exerciseMuscleGroups ?? {}}
               completedSetsBySessionExercise={trainingQuery.data?.completedSetsBySessionExercise ?? {}}
+              onMarkAllTrainingDone={handleMarkAllTrainingDone}
+              isMarkAllTrainingLoading={markAllTrainingDoneMutation.isPending}
             />
           </View>
         ) : hasActivePlanButNoTrainingToday ? (
@@ -968,7 +1261,7 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
         ) : null
 
         const nutritionSlot = hasNutritionToday ? (
-          <View style={styles.section} key="nutrition">
+          <View style={[styles.section, { marginBottom: -8 }]} key="nutrition">
             <SectionHeader
               title={t('today.todaysNutrition')}
               action={
@@ -1046,7 +1339,7 @@ const styles = StyleSheet.create({
     marginBottom: -12,
   },
   section: {
-    marginTop: 24,
+    marginTop: 16,
   },
   nutritionHeaderActions: {
     flexDirection: 'row',

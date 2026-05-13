@@ -8606,6 +8606,164 @@ export class ApiClient {
     }
 
     /**
+     * Un-mark a section as complete
+     * @param sessionId The session ID (from the training plan). Bound from the route.
+     * @param sectionId The section ID within the session. Bound from the route.
+     * @return Success
+     */
+    markSectionIncompleteEndpoint(sessionId: string, sectionId: string, markSectionIncompleteRequest: MarkSectionIncompleteRequest, signal?: AbortSignal): Promise<MarkSectionIncompleteResponse> {
+        let url_ = this.baseUrl + "/client/training/sessions/{sessionId}/sections/{sectionId}/complete";
+        if (sessionId === undefined || sessionId === null)
+            throw new globalThis.Error("The parameter 'sessionId' must be defined.");
+        url_ = url_.replace("{sessionId}", encodeURIComponent("" + sessionId));
+        if (sectionId === undefined || sectionId === null)
+            throw new globalThis.Error("The parameter 'sectionId' must be defined.");
+        url_ = url_.replace("{sectionId}", encodeURIComponent("" + sectionId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(markSectionIncompleteRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "DELETE",
+            url: url_,
+            headers: {
+                "Content-Type": "*/*",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processMarkSectionIncompleteEndpoint(_response);
+        });
+    }
+
+    protected processMarkSectionIncompleteEndpoint(response: AxiosResponse): Promise<MarkSectionIncompleteResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<MarkSectionIncompleteResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<MarkSectionIncompleteResponse>(null as any);
+    }
+
+    /**
+     * Mark a section complete
+     * @param sessionId The session ID (from the training plan). Bound from the route.
+     * @param sectionId The section ID within the session. Bound from the route.
+     * @return Success
+     */
+    markSectionCompleteEndpoint(sessionId: string, sectionId: string, markSectionCompleteRequest: MarkSectionCompleteRequest, signal?: AbortSignal): Promise<MarkSectionCompleteResponse> {
+        let url_ = this.baseUrl + "/client/training/sessions/{sessionId}/sections/{sectionId}/complete";
+        if (sessionId === undefined || sessionId === null)
+            throw new globalThis.Error("The parameter 'sessionId' must be defined.");
+        url_ = url_.replace("{sessionId}", encodeURIComponent("" + sessionId));
+        if (sectionId === undefined || sectionId === null)
+            throw new globalThis.Error("The parameter 'sectionId' must be defined.");
+        url_ = url_.replace("{sectionId}", encodeURIComponent("" + sectionId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(markSectionCompleteRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processMarkSectionCompleteEndpoint(_response);
+        });
+    }
+
+    protected processMarkSectionCompleteEndpoint(response: AxiosResponse): Promise<MarkSectionCompleteResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<MarkSectionCompleteResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<MarkSectionCompleteResponse>(null as any);
+    }
+
+    /**
      * Un-mark an exercise as complete
      * @param sessionId The session ID (from the training plan). Bound from the route.
      * @param exerciseExternalId The exercise external ID within the session. Bound from the route.
@@ -12854,6 +13012,10 @@ export interface GetTrainingPlanResponse {
     /** Linked questionnaire response (cross-DB reference to PostgreSQL QuestionnaireResponse.PublicId).
 Null if no questionnaire is linked to this plan. */
     questionnaireResponseId?: string | undefined;
+    /** All completion records for the plan's client, sorted by (Date asc, SessionId asc).
+Populated by the endpoint after loading the plan; the client side should filter
+to dates that fall within the plan's active weeks. */
+    completions?: TrainingPlanCompletionDto[];
 }
 
 /** A single week within a training plan. */
@@ -12940,6 +13102,8 @@ export interface TrainingSection {
     format?: WorkoutFormat | undefined;
     /** Format configuration for this section. Null when Format is null or Standard. */
     formatConfig?: WodConfig | undefined;
+    /** Optional coach note for this workout/section. */
+    notes?: string | undefined;
     /** Exercises in this section. */
     exercises?: SessionExercise[];
 }
@@ -13002,6 +13166,22 @@ export enum SetType {
     Superset = "Superset",
 }
 
+/** Per-(date, sessionId) completion record for the plan's client. One entry per (clientId, date, sessionId) tuple. Surfaces which exercises have already been marked complete so the trainer editor can lock the corresponding fields. */
+export interface TrainingPlanCompletionDto {
+    date?: string;
+    sessionId?: string;
+    /** Flat list of completed exercise external IDs for this session on this date.
+Deprecated. Use CompletedExerciseIdsBySection for section-aware tracking.
+Retained for backward compatibility. */
+    completedExerciseIds?: string[];
+    /** Section-aware completed exercise IDs. Key = SectionId, value = list of completed
+ExerciseExternalIds within that section. Populated via read-time backfill so legacy
+completion documents are transparently migrated. */
+    completedExerciseIdsBySection?: { [key: string]: string[]; };
+    completedSectionIds?: string[];
+    version?: number;
+}
+
 /** Request for a full-state update of a training plan. */
 export interface UpdateTrainingPlanRequest {
     /** Updated display name. */
@@ -13059,6 +13239,8 @@ export interface UpdateSectionRequest {
     format?: WorkoutFormat | undefined;
     /** Format configuration. Required for non-Standard, non-null section formats; must be null for Standard. */
     formatConfig?: WodConfig | undefined;
+    /** Optional coach note for this workout/section. */
+    notes?: string | undefined;
     /** Exercises in this section. */
     exercises?: UpdateSessionExerciseRequest[];
 }
@@ -13732,6 +13914,8 @@ export interface SectionTemplateResponse {
     templateId?: string;
     /** Display name of the template. */
     name?: string;
+    /** Optional coach notes describing the workout as a whole. */
+    notes?: string | undefined;
     /** Default workout format. Null means no format override. */
     defaultFormat?: string | undefined;
     /** Default format configuration. */
@@ -13750,6 +13934,8 @@ export interface SectionTemplateResponse {
 export interface UpdateSectionTemplateRequest {
     /** Updated display name of the template. */
     name: string;
+    /** Updated optional coach notes describing the workout as a whole. */
+    notes?: string | undefined;
     /** Updated default workout format. Null means no format override. */
     defaultFormat?: WorkoutFormat | undefined;
     /** Updated default format configuration. */
@@ -13818,6 +14004,8 @@ export interface DeleteSectionTemplateRequest {
 export interface CreateSectionTemplateRequest {
     /** Display name of the template. */
     name: string;
+    /** Optional coach notes describing the workout as a whole. */
+    notes?: string | undefined;
     /** Default workout format. Null means no format override (Standard / inherits from session). */
     defaultFormat?: WorkoutFormat | undefined;
     /** Default format configuration. Null when DefaultFormat is null or Standard. */
@@ -15357,6 +15545,58 @@ Defaults to today UTC when not provided. */
     version?: number | undefined;
 }
 
+/** Response for un-marking a section as complete. */
+export interface MarkSectionIncompleteResponse {
+    /** The session ID that was updated. */
+    sessionId?: string;
+    /** The section ID that was un-marked. */
+    sectionId?: string;
+    /** The date for which the completion was removed. */
+    date?: string;
+    /** How many exercises in this session are now marked complete. */
+    completedExerciseCount?: number;
+    /** Total number of exercises in this session (from the plan). */
+    totalExerciseCount?: number;
+    /** Current version of the underlying completion document (for subsequent writes). */
+    version?: number;
+}
+
+/** Request model for un-marking a section as complete. */
+export interface MarkSectionIncompleteRequest {
+    /** The date for which the completion should be removed (UTC date only).
+Defaults to today UTC when not provided. */
+    completedOn?: string | undefined;
+    /** Client-supplied version of the completion document for optimistic concurrency. */
+    version?: number | undefined;
+}
+
+/** Response for marking a section complete. Returns a lightweight progress summary so the mobile client can update section progress indicators without an extra round-trip. */
+export interface MarkSectionCompleteResponse {
+    /** The session ID that was updated. */
+    sessionId?: string;
+    /** The section ID that was marked complete. */
+    sectionId?: string;
+    /** The date for which the completion was recorded. */
+    date?: string;
+    /** How many exercises in this session are now marked complete. */
+    completedExerciseCount?: number;
+    /** Total number of exercises in this session (from the plan). */
+    totalExerciseCount?: number;
+    /** Current version of the underlying completion document (for subsequent writes). */
+    version?: number;
+}
+
+/** Request model for marking a section complete within a session. Used for sections that have no exercises (e.g. a ForTime "Running" section). */
+export interface MarkSectionCompleteRequest {
+    /** The date on which the section was completed (UTC date only).
+Defaults to today UTC when not provided. */
+    completedOn?: string | undefined;
+    /** Client-supplied version of the existing completion document, used for optimistic
+concurrency. Required when a completion document already exists for this
+(clientId, date, sessionId) tuple; ignored for new documents. */
+    version?: number | undefined;
+}
+
 /** Response for un-marking an exercise as complete. */
 export interface MarkExerciseIncompleteResponse {
     /** The session ID that was updated. */
@@ -15378,6 +15618,11 @@ export interface MarkExerciseIncompleteRequest {
     /** The date for which the completion should be removed (UTC date only).
 Defaults to today UTC when not provided. */
     completedOn?: string | undefined;
+    /** The section ID within the session that contains this exercise.
+Required so that un-marking only removes the exercise from the specified section,
+leaving other sections' completion state for the same catalog exercise untouched.
+Bound from the request body. */
+    sectionId: string;
     /** Client-supplied version of the completion document for optimistic concurrency. */
     version?: number | undefined;
 }
@@ -15403,6 +15648,11 @@ export interface MarkExerciseCompleteRequest {
     /** The date on which the exercise was completed (UTC date only).
 Defaults to today UTC when not provided. */
     completedOn?: string | undefined;
+    /** The section ID within the session that contains this exercise.
+Required so that the same catalog exercise in different sections is tracked
+independently (section-aware completion).
+Bound from the request body. */
+    sectionId: string;
     /** Client-supplied version of the existing completion document, used for optimistic
 concurrency. Required when a completion document already exists for this
 (clientId, date, sessionId) tuple; ignored for new documents. */
@@ -15442,8 +15692,24 @@ sessions. */
     exerciseMuscleGroups?: { [key: string]: MuscleGroup[]; };
     /** Per-session completed exercise IDs, keyed by SessionId. Sourced from
 TrainingCompletion documents for today. Empty dictionary when no session
-has any completed exercise for today (or when no active plan exists). */
+has any completed exercise for today (or when no active plan exists).
+Deprecated. Use CompletedExerciseIdsBySectionAndSession for
+section-aware completion tracking. This field is retained for backward compatibility
+with mobile and web clients that have not yet migrated to the new field. */
     completedExerciseIdsBySession?: { [key: string]: string[]; };
+    /** Section-aware completed exercise IDs for today.
+Outer key = SessionId, inner key = SectionId, value = list of completed ExerciseExternalIds
+within that section.
+Sourced from TrainingCompletion documents with read-time backfill for legacy data.
+Empty dictionary when no exercises have been completed for today. */
+    completedExerciseIdsBySectionAndSession?: { [key: string]: { [key: string]: string[]; }; };
+    /** Per-session completed section IDs, keyed by SessionId. Sourced from
+TrainingCompletion documents for today. Empty dictionary when no
+section has been section-completed for today (or no active plan exists).
+Sections appear here when the client tapped a section-level checkbox
+(e.g. on a ForTime "Running" workout that has no exercises) or when
+MarkSessionComplete fanned out section IDs. */
+    completedSectionIdsBySession?: { [key: string]: string[]; };
     /** Per-session optimistic-concurrency version numbers for today, keyed by SessionId.
 Matches the Version on the TrainingCompletion document. Used by the client to
 send the If-Match-style version header on subsequent mark/unmark requests.
@@ -15522,7 +15788,27 @@ export interface SessionDto {
 Currently null — a reliable heuristic requires product-defined set-duration
 assumptions that haven't been finalised. Will be added as an additive change. */
     estimatedDurationMinutes?: number | undefined;
-    /** Exercises in this session. */
+    /** Sections in this session, ordered by their Order field.
+Schema-on-read: legacy documents with only flat exercises are backfilled into a single
+"Hlavní" section before this response is built. */
+    sections?: SectionDto[];
+    /** Flat list of all exercises across all sections, in section order.
+Kept for backward-compatibility with callers that don't yet read Sections. */
+    exercises?: ExerciseDto[];
+}
+
+/** An ordered section within a session (e.g. "Hlavní", "Warm-up", "Cool-down"). */
+export interface SectionDto {
+    /** Stable identifier for this section. */
+    sectionId?: string;
+    /** Display order within the session (0-based). */
+    order?: number;
+    /** Display name (e.g. "Hlavní", "Warm-up"). */
+    name?: string;
+    /** Workout format for this section (e.g. "Emom", "Amrap", "Tabata", "ForTime").
+Null means the section uses the default Standard format. */
+    format?: string | undefined;
+    /** Exercises within this section. */
     exercises?: ExerciseDto[];
 }
 

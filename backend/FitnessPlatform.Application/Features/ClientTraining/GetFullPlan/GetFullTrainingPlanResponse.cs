@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 
 namespace FitnessPlatform.Application.Features.ClientTraining.GetFullPlan;
@@ -137,6 +138,19 @@ public class SectionDto
     /// Null means the section uses the default Standard format.
     /// </summary>
     public string? Format { get; set; }
+
+    /// <summary>
+    /// Full format-configuration object for the section (rounds, intervals, work/rest timings).
+    /// Null when Format is null or Standard.
+    /// Mirrors <see cref="FitnessPlatform.Application.Domain.Documents.WodConfig"/> on TrainingSection.
+    /// </summary>
+    public WodConfig? FormatConfig { get; set; }
+
+    /// <summary>
+    /// Optional coach note for this section.
+    /// Mirrors the Notes property on TrainingSection.
+    /// </summary>
+    public string? Notes { get; set; }
 
     /// <summary>Exercises within this section.</summary>
     public List<ExerciseDto> Exercises { get; set; } = [];

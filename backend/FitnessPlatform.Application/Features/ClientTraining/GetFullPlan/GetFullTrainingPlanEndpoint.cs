@@ -158,11 +158,21 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
             .Select(s => s.SessionId)
             .ToList();
 
+        // Inner dict is keyed by ExerciseExternalId, but the same catalog
+        // exercise can legitimately appear in multiple sections of a single
+        // session (e.g. "Bench press" in both a warm-up and the main block).
+        // Plain `ToDictionary` would crash on the duplicate key — collapse
+        // duplicates by taking the first occurrence per catalog id; downstream
+        // code only needs ANY matching planned exercise to look up its set
+        // list, and shared-catalog instances within one session have identical
+        // set-number prescriptions for the legacy flat completion path.
         var sessionExerciseLookup = plan.Weeks
             .SelectMany(w => w.Sessions)
             .ToDictionary(
                 s => s.SessionId,
-                s => s.Exercises.ToDictionary(e => e.ExerciseExternalId));
+                s => s.Exercises
+                    .GroupBy(e => e.ExerciseExternalId)
+                    .ToDictionary(g => g.Key, g => g.First()));
 
         if (planSessionIds.Count > 0)
         {
@@ -297,6 +307,8 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
                         Order = sec.Order,
                         Name = sec.Name,
                         Format = sec.Format?.ToString(),
+                        FormatConfig = sec.FormatConfig,
+                        Notes = sec.Notes,
                         Exercises = sectionExerciseDtos
                     };
                 }).ToList();

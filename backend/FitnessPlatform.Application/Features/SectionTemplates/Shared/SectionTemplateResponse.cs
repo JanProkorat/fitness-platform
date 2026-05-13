@@ -13,6 +13,9 @@ public class SectionTemplateResponse
     /// <summary>Display name of the template.</summary>
     public string Name { get; set; } = string.Empty;
 
+    /// <summary>Optional coach notes describing the workout as a whole.</summary>
+    public string? Notes { get; set; }
+
     /// <summary>Default workout format. Null means no format override.</summary>
     public string? DefaultFormat { get; set; }
 
@@ -36,6 +39,7 @@ public class SectionTemplateResponse
     {
         TemplateId = t.ExternalId,
         Name = t.Name,
+        Notes = t.Notes,
         DefaultFormat = t.DefaultFormat?.ToString(),
         DefaultFormatConfig = t.DefaultFormatConfig,
         DefaultExercises = t.DefaultExercises,

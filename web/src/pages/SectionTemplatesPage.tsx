@@ -1,148 +1,31 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
 import {
   listSectionTemplates,
-  createSectionTemplate,
-  updateSectionTemplate,
   deleteSectionTemplate,
 } from '@/api/sectionTemplates';
 import type { SectionTemplateResponse } from '@/api/sectionTemplates';
-import { WorkoutFormat } from '@/api/generated';
+import type { WorkoutFormat as WorkoutFormatType, WodConfig } from '@/api/training-plan-types';
+import { FORMAT_LABEL_KEYS, FORMAT_BG_COLORS, FORMAT_COLORS } from '@/constants/training';
 import { useApiMutation } from '@/hooks/useApiMutation';
 import { useConfirmDelete } from '@/hooks/useConfirmDelete';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
-import { PageHeader } from '@/components/layout';
-import { Button, Dialog, SearchInput } from '@/components/ui';
+import { PageHeader, Toolbar } from '@/components/layout';
+import type { ToolbarView } from '@/components/layout';
+import { Button, SearchInput } from '@/components/ui';
+import { Pagination, ListView, CardGrid, Card, CardBody, CardPropRow, DatabaseTable } from '@/components/data';
 import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
-import { INPUT_CLASS_SM } from '@/lib/styles';
+import { WorkoutDialog } from '@/components/training/WorkoutDialog';
+import { estimatedSectionDurationSeconds, formatDurationCompact } from '@/lib/training-plan-format';
 
-// ── Zod schema for create/edit dialog ──────────────────────────────────────
+// ── Constants ───────────────────────────────────────────────────────────────
 
-const templateSchema = z.object({
-  name: z.string().min(1).max(200),
-});
-type TemplateFormValues = z.infer<typeof templateSchema>;
+const ALL_FORMATS: WorkoutFormatType[] = ['Standard', 'AMRAP', 'EMOM', 'Tabata', 'ForTime'];
 
-// ── Dialog component ────────────────────────────────────────────────────────
+const PAGE_SIZE = 20;
 
-interface TemplateDialogProps {
-  open: boolean;
-  template: SectionTemplateResponse | null;
-  onClose: () => void;
-  onSaved: () => void;
-}
-
-function TemplateDialog({ open, template, onClose, onSaved }: TemplateDialogProps) {
-  const { t } = useTranslation();
-  const isEditing = template !== null;
-
-  const form = useForm<TemplateFormValues>({
-    resolver: zodResolver(templateSchema),
-    defaultValues: { name: '' },
-    values: template ? { name: template.name ?? '' } : undefined,
-  });
-
-  const createMutation = useApiMutation(
-    (values: TemplateFormValues) =>
-      createSectionTemplate({
-        name: values.name,
-        defaultFormat: undefined,
-        defaultFormatConfig: undefined,
-        defaultExercises: [],
-      }),
-    {
-      successKey: 'training.template.created',
-      errorKey: 'training.template.createError',
-      onSuccess: () => {
-        onSaved();
-        onClose();
-        form.reset();
-      },
-    },
-  );
-
-  const updateMutation = useApiMutation(
-    (values: TemplateFormValues) => {
-      if (!template?.templateId) return Promise.reject(new Error('no template'));
-      return updateSectionTemplate(template.templateId, {
-        name: values.name,
-        // Generated SectionTemplateResponse.defaultFormat is string | undefined; safe cast because
-        // backend only emits WorkoutFormat enum values.
-        defaultFormat: (template.defaultFormat as WorkoutFormat | undefined) ?? undefined,
-        defaultFormatConfig: template.defaultFormatConfig ?? undefined,
-        // The dialog only edits name; preserve exercises by omitting (backend keeps existing).
-        defaultExercises: undefined,
-        version: template.version,
-      });
-    },
-    {
-      successKey: 'training.template.updated',
-      errorKey: 'training.template.updateError',
-      onSuccess: () => {
-        onSaved();
-        onClose();
-      },
-    },
-  );
-
-  const handleSubmit = form.handleSubmit((values) => {
-    if (isEditing) {
-      updateMutation.mutate(values);
-    } else {
-      createMutation.mutate(values);
-    }
-  });
-
-  const isPending = createMutation.isPending || updateMutation.isPending;
-
-  return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      title={isEditing ? t('training.template.editTitle') : t('training.template.createTitle')}
-      maxWidth={440}
-      footer={
-        <>
-          <Button onClick={onClose} disabled={isPending}>
-            {t('common.cancel')}
-          </Button>
-          <Button variant="primary" onClick={handleSubmit} disabled={isPending}>
-            {isPending ? t('common.saving') : isEditing ? t('common.save') : t('common.create')}
-          </Button>
-        </>
-      }
-    >
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-        <div className="flex flex-col gap-1">
-          <label className="text-[12px] font-medium text-text2">
-            {t('training.template.nameLabel')}
-          </label>
-          <input
-            {...form.register('name')}
-            className={INPUT_CLASS_SM}
-            placeholder={t('training.template.namePlaceholder')}
-            autoFocus
-          />
-          {form.formState.errors.name && (
-            <span className="text-[11px] text-red">{form.formState.errors.name.message}</span>
-          )}
-        </div>
-
-        {isEditing && template.updatedAt && (
-          <p className="text-[11px] text-text3">
-            {t('training.template.savedAt', {
-              date: new Date(template.updatedAt).toLocaleDateString(),
-            })}
-          </p>
-        )}
-      </form>
-    </Dialog>
-  );
-}
+const filterClass = 'rounded-md border border-border-md bg-bg px-3 py-[6px] text-[13px] text-text outline-none transition-colors focus:border-border-hv';
 
 // ── Page ────────────────────────────────────────────────────────────────────
 
@@ -150,12 +33,26 @@ export default function SectionTemplatesPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
 
+  type ViewType = 'table' | 'list' | 'cards';
+  const [view, setView] = useState<ViewType>('table');
+  const VIEWS: ToolbarView[] = [
+    { id: 'table', label: t('common.viewTable'), icon: '⊞' },
+    { id: 'list',  label: t('common.viewList'),  icon: '☰' },
+    { id: 'cards', label: t('common.viewCards'), icon: '⬜' },
+  ];
+
+  const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const [formatFilter, setFormatFilter] = useState<string>('');
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<SectionTemplateResponse | null>(null);
 
-  const debouncedSearch = useDebouncedValue(search, 300);
+  const debouncedSearch = useDebouncedValue(search, 300, () => setPage(1));
 
+  // Single query loads all templates (backend cap: 200). Filters + pagination
+  // are applied client-side — same visual UX as ExercisesPage but no backend
+  // search/filter calls per keystroke.
   const { data, isLoading } = useQuery({
     queryKey: ['section-templates'],
     queryFn: () => listSectionTemplates(),
@@ -173,12 +70,27 @@ export default function SectionTemplatesPage() {
 
   const confirmDelete = useConfirmDelete(deleteMutation);
 
-  // Client-side search filter
-  const filteredTemplates = (data ?? []).filter((tpl) =>
-    debouncedSearch
-      ? (tpl.name ?? '').toLowerCase().includes(debouncedSearch.toLowerCase())
-      : true,
-  );
+  // Filter → paginate
+  const { totalCount, totalPages, pageItems } = useMemo(() => {
+    const all = data ?? [];
+    const q = debouncedSearch.trim().toLowerCase();
+    const filtered = all.filter((tpl) => {
+      if (q && !(tpl.name ?? '').toLowerCase().includes(q)) return false;
+      if (formatFilter) {
+        const f = tpl.defaultFormat ?? 'Standard';
+        if (f !== formatFilter) return false;
+      }
+      return true;
+    });
+    const total = filtered.length;
+    const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    const start = (page - 1) * PAGE_SIZE;
+    return {
+      totalCount: total,
+      totalPages: pages,
+      pageItems: filtered.slice(start, start + PAGE_SIZE),
+    };
+  }, [data, debouncedSearch, formatFilter, page]);
 
   const openCreate = () => {
     setEditingTemplate(null);
@@ -197,11 +109,6 @@ export default function SectionTemplatesPage() {
     }
   };
 
-  const formatLabel = (format: string | null): string => {
-    if (!format || format === 'Standard') return '';
-    return t(`training.format.${format.charAt(0).toLowerCase() + format.slice(1)}`);
-  };
-
   return (
     <div className="flex h-full flex-col">
       <PageHeader
@@ -215,99 +122,227 @@ export default function SectionTemplatesPage() {
         }
       />
 
-      {/* Toolbar */}
-      <div className="shrink-0 flex items-center gap-3 px-20 py-2 border-b border-border bg-bg">
-        <SearchInput
-          placeholder={t('training.template.search')}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-[280px]"
-        />
-      </div>
+      <Toolbar
+        views={VIEWS}
+        activeView={view}
+        onViewChange={(id) => setView(id as ViewType)}
+        className="px-6 py-1.5"
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <SearchInput
+            placeholder={t('training.template.search')}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-[240px]"
+          />
+          <select
+            value={formatFilter}
+            onChange={(e) => { setFormatFilter(e.target.value); setPage(1); }}
+            className={filterClass}
+          >
+            <option value="">{t('training.template.allFormats')}</option>
+            {ALL_FORMATS.map((f) => (
+              <option key={f} value={f}>{t(`training.format.${FORMAT_LABEL_KEYS[f]}`)}</option>
+            ))}
+          </select>
+        </div>
+      </Toolbar>
 
-      {/* Content */}
       <div className="flex-1 overflow-y-auto">
-        <div className="px-20 py-3">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-20 text-text3">
-              {t('common.loading')}
-            </div>
-          ) : !filteredTemplates.length ? (
-            <div className="flex flex-col items-center justify-center py-20 text-text3">
-              <span className="text-4xl">📋</span>
-              <p className="mt-3 text-sm">{t('training.template.noTemplates')}</p>
-              <p className="mt-1 text-xs text-text3">{t('training.template.noTemplatesHint')}</p>
-            </div>
-          ) : (
-            <>
-              <div className="flex flex-col gap-1">
-                {filteredTemplates.map((tpl) => (
-                  <div
-                    key={tpl.templateId}
-                    className="flex items-center gap-3 px-4 py-3 rounded-md border border-border bg-bg hover:border-border-md hover:bg-bg2 cursor-pointer transition-colors"
-                    onClick={() => openEdit(tpl)}
-                  >
-                    {/* Icon */}
-                    <div
-                      className="shrink-0 h-9 w-9 rounded-md flex items-center justify-center text-sm"
-                      style={{ background: 'var(--accent-bg)', color: 'var(--accent)' }}
-                    >
+        <div className="px-6 py-3">
+        {/* Templates content — branches on view (table / list / cards) */}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-20 text-text3">
+            {t('common.loading')}
+          </div>
+        ) : !pageItems.length ? (
+          <div className="flex flex-col items-center justify-center py-20 text-text3">
+            <span className="text-4xl">📋</span>
+            <p className="mt-3 text-sm">{t('training.template.noTemplates')}</p>
+            <p className="mt-1 text-xs text-text3">{t('training.template.noTemplatesHint')}</p>
+          </div>
+        ) : view === 'table' ? (
+          <>
+            <DatabaseTable
+              columns={[
+                {
+                  key: 'icon', label: '', width: '52px',
+                  render: () => (
+                    <div className="h-10 w-10 rounded-sm bg-bg3 flex items-center justify-center text-sm shrink-0" aria-hidden="true">
                       📋
                     </div>
-
-                    {/* Name + format chip */}
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[13px] font-medium text-text truncate">{tpl.name}</div>
-                      <div className="text-[11px] text-text3 mt-0.5 flex items-center gap-2">
-                        {tpl.defaultFormat && tpl.defaultFormat !== 'Standard' ? (
-                          <span
-                            className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                            style={{ background: 'var(--accent-bg)', color: 'var(--accent)' }}
-                          >
-                            {formatLabel(tpl.defaultFormat)}
-                          </span>
-                        ) : null}
-                        <span>
-                          {t('training.template.exerciseCount', {
-                            count: tpl.defaultExercises?.length ?? 0,
-                          })}
+                  ),
+                },
+                { key: 'name', label: t('training.template.colName'), render: (tpl) => tpl.name },
+                {
+                  key: 'format', label: t('training.template.colFormat'), width: '140px',
+                  render: (tpl) => {
+                    const fmt = ((tpl.defaultFormat ?? 'Standard') as WorkoutFormatType);
+                    return (
+                      <span
+                        className="inline-flex rounded-sm px-1.5 py-[1px] text-[10px] font-semibold"
+                        style={{ background: FORMAT_BG_COLORS[fmt], color: FORMAT_COLORS[fmt] }}
+                      >
+                        {t(`training.format.${FORMAT_LABEL_KEYS[fmt]}`)}
+                      </span>
+                    );
+                  },
+                },
+                {
+                  key: 'exercises', label: t('training.template.colExercises'), width: '90px',
+                  render: (tpl) => <span className="tabular-nums">{tpl.defaultExercises?.length ?? 0}</span>,
+                },
+                {
+                  key: 'duration', label: t('training.template.colDuration'), width: '110px',
+                  render: (tpl) => {
+                    const fmt = ((tpl.defaultFormat ?? 'Standard') as WorkoutFormatType);
+                    const dur = estimatedSectionDurationSeconds(fmt, tpl.defaultFormatConfig as WodConfig | null | undefined);
+                    return <span className="tabular-nums">{dur != null && dur > 0 ? formatDurationCompact(dur) : '—'}</span>;
+                  },
+                },
+                {
+                  key: 'updated', label: t('training.template.colUpdated'), width: '120px',
+                  render: (tpl) => (
+                    <span className="text-text3 tabular-nums">
+                      {tpl.updatedAt ? new Date(tpl.updatedAt).toLocaleDateString() : '—'}
+                    </span>
+                  ),
+                },
+              ]}
+              rows={pageItems}
+              rowKey={(tpl) => tpl.templateId ?? tpl.name ?? ''}
+              onRowClick={(tpl) => openEdit(tpl)}
+              renderRowActions={(tpl) => (
+                <button
+                  onClick={(e) => handleDeleteClick(e, tpl)}
+                  disabled={deleteMutation.isPending}
+                  className="rounded-sm p-1 text-text3 transition-colors hover:text-red disabled:cursor-not-allowed disabled:opacity-30"
+                  title={t('common.delete')}
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              )}
+            />
+            <Pagination page={page} totalPages={totalPages} totalCount={totalCount} onPageChange={setPage} className="mt-3" />
+          </>
+        ) : view === 'list' ? (
+          <>
+            <ListView
+              items={pageItems}
+              itemKey={(tpl) => tpl.templateId ?? tpl.name ?? ''}
+              onItemClick={(tpl) => openEdit(tpl)}
+              renderAvatar={() => (
+                <div className="w-10 h-10 rounded-sm flex items-center justify-center text-sm shrink-0" style={{ background: 'var(--accent-bg)', color: 'var(--accent)' }}>
+                  📋
+                </div>
+              )}
+              renderInfo={(tpl) => {
+                const fmt = ((tpl.defaultFormat ?? 'Standard') as WorkoutFormatType);
+                const exerciseCount = tpl.defaultExercises?.length ?? 0;
+                const durationSec = estimatedSectionDurationSeconds(
+                  fmt,
+                  tpl.defaultFormatConfig as WodConfig | null | undefined,
+                );
+                return (
+                  <div>
+                    <div className="text-[13px] font-medium text-text truncate">{tpl.name}</div>
+                    <div className="text-[11px] text-text3 flex items-center gap-2 mt-0.5">
+                      <span
+                        className="inline-flex rounded-sm px-1.5 py-[1px] text-[10px] font-semibold"
+                        style={{ background: FORMAT_BG_COLORS[fmt], color: FORMAT_COLORS[fmt] }}
+                      >
+                        {t(`training.format.${FORMAT_LABEL_KEYS[fmt]}`)}
+                      </span>
+                      <span className="tabular-nums">
+                        {t('training.template.exerciseCount', { count: exerciseCount })}
+                        {durationSec != null && durationSec > 0 && <> · ≈ {formatDurationCompact(durationSec)}</>}
+                      </span>
+                    </div>
+                  </div>
+                );
+              }}
+              renderRight={(tpl) =>
+                tpl.updatedAt ? (
+                  <span className="text-[11px] text-text3 tabular-nums">
+                    {new Date(tpl.updatedAt).toLocaleDateString()}
+                  </span>
+                ) : null
+              }
+              renderActions={(tpl) => (
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleDeleteClick(e, tpl); }}
+                  disabled={deleteMutation.isPending}
+                  className="rounded-sm p-1 text-text3 transition-colors hover:text-red"
+                  title={t('common.delete')}
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              )}
+            />
+            <Pagination page={page} totalPages={totalPages} totalCount={totalCount} onPageChange={setPage} className="mt-3" />
+          </>
+        ) : (
+          <>
+            <CardGrid>
+              {pageItems.map((tpl) => {
+                const fmt = ((tpl.defaultFormat ?? 'Standard') as WorkoutFormatType);
+                const exerciseCount = tpl.defaultExercises?.length ?? 0;
+                const durationSec = estimatedSectionDurationSeconds(
+                  fmt,
+                  tpl.defaultFormatConfig as WodConfig | null | undefined,
+                );
+                return (
+                  <Card key={tpl.templateId} onClick={() => openEdit(tpl)}>
+                    {/* Tall cover area with emoji + name overlay */}
+                    <div className="relative h-40 w-full overflow-hidden rounded-t-md bg-bg3">
+                      <div className="absolute inset-0 flex items-center justify-center text-4xl opacity-40">
+                        📋
+                      </div>
+                      {/* Format chip — top-right */}
+                      <div className="absolute top-2 right-2 inline-flex items-center rounded-full bg-white/85 backdrop-blur-sm shadow-sm">
+                        <span
+                          className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                          style={{ background: FORMAT_BG_COLORS[fmt], color: FORMAT_COLORS[fmt] }}
+                        >
+                          {t(`training.format.${FORMAT_LABEL_KEYS[fmt]}`)}
                         </span>
                       </div>
+                      {/* Gradient + name overlay */}
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/55 to-transparent px-3 pb-2 pt-10">
+                        <div className="truncate text-[13px] font-bold text-white leading-tight [text-shadow:_0_1px_2px_rgba(0,0,0,0.6)]">
+                          {tpl.name}
+                        </div>
+                      </div>
                     </div>
-
-                    {/* Updated-at */}
-                    <span className="shrink-0 text-[11px] text-text3">
-                      {tpl.updatedAt ? new Date(tpl.updatedAt).toLocaleDateString() : ''}
-                    </span>
-
-                    {/* Delete */}
-                    <button
-                      type="button"
-                      onClick={(e) => handleDeleteClick(e, tpl)}
-                      disabled={deleteMutation.isPending}
-                      className="shrink-0 rounded-sm p-1 text-text3 transition-colors hover:text-red disabled:opacity-30"
-                      title={t('common.delete')}
-                    >
-                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-            </>
-          )}
+                    <CardBody>
+                      <CardPropRow label={t('training.template.colExercises')}>
+                        {exerciseCount}
+                      </CardPropRow>
+                      <CardPropRow label={t('training.template.colDuration')}>
+                        {durationSec != null && durationSec > 0 ? formatDurationCompact(durationSec) : '—'}
+                      </CardPropRow>
+                      {tpl.updatedAt && (
+                        <CardPropRow label={t('training.template.colUpdated')}>
+                          {new Date(tpl.updatedAt).toLocaleDateString()}
+                        </CardPropRow>
+                      )}
+                    </CardBody>
+                  </Card>
+                );
+              })}
+            </CardGrid>
+            <Pagination page={page} totalPages={totalPages} totalCount={totalCount} onPageChange={setPage} className="mt-3" />
+          </>
+        )}
         </div>
       </div>
 
       {/* Create / Edit dialog */}
-      <TemplateDialog
+      <WorkoutDialog
         open={dialogOpen}
         template={editingTemplate}
         onClose={() => {

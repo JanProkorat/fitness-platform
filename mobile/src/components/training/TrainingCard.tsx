@@ -3,11 +3,14 @@ import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-nati
 import { Ionicons } from '@expo/vector-icons'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
-import { Type } from '@/constants/typography'
+import { AnimatedCollapse } from './AnimatedCollapse'
+import { Type, interFamily } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
 import { ProgressRing } from '@/components/ui/ProgressRing'
+import { GoldButton } from '@/components/ui/GoldButton'
 import { ExpandableSessionCard } from '@/components/training/ExpandableSessionCard'
 import { ExpandableExerciseCard } from '@/components/training/ExpandableExerciseCard'
+import { estimatedSectionDurationSeconds, formatDurationCompact } from '@/lib/training-plan-format'
 import { SectionHeader } from '@/components/training/SectionHeader'
 import { SetGrid } from '@/components/training/SetGrid'
 import { getMuscleGroupColor } from '@/constants/muscleGroups'
@@ -49,16 +52,44 @@ interface TrainingCardProps {
   /** All sessions scheduled for today, ordered by `order`. */
   sessions: TrainingSession[]
   /**
-   * Per-session completed-exercise IDs, keyed by sessionId.
-   * Derived from the optimistic mutation cache.
+   * Per-session, per-section completed-exercise IDs.
+   * Outer key = sessionId, inner key = sectionId, value = set of exerciseExternalIds.
+   * Derived from `completedExerciseIdsBySectionAndSession` in the optimistic cache.
+   * Each section's set is independent so the same catalog exercise in two sections
+   * of one session is tracked separately (fixes cross-section bleed).
+   */
+  completedIdsBySectionAndSession: ReadonlyMap<string, ReadonlyMap<string, ReadonlySet<string>>>
+  /**
+   * Session-level union of all section completion sets, keyed by sessionId.
+   * Used only for aggregate counters and CTA-state derivation where a
+   * section-scoped set is not needed.
    */
   completedIdsBySession: Record<string, ReadonlySet<string>>
+  /**
+   * Per-session completed-section IDs, keyed by sessionId. Sections live here
+   * when they don't track at the exercise level (e.g. ForTime "Running"
+   * workouts that have no exercises).
+   */
+  completedSectionIdsBySession?: Record<string, ReadonlySet<string>>
   /**
    * Per-session "is the whole session complete" flags, keyed by sessionId.
    */
   sessionCompleteMap: Record<string, boolean>
   /** Called when the user taps a per-exercise checkbox. */
-  onToggleExercise?: (sessionId: string, exerciseExternalId: string) => void
+  onToggleExercise?: (sessionId: string, sectionId: string, exerciseExternalId: string) => void
+  /**
+   * Called when the section-complete checkbox is tapped on a section that
+   * has trackable exercises. Receives the sectionId, the full array of exercise
+   * IDs that need to flip, and the target completion state.
+   * Using this instead of firing N separate `onToggleExercise` calls avoids a
+   * race where parallel mutations all read the same stale version token from cache.
+   */
+  onToggleExercises?: (sessionId: string, sectionId: string, exerciseIds: string[], complete: boolean) => void
+  /**
+   * Called when the user taps the section-complete checkbox on a section
+   * that has no trackable exercises (typically ForTime).
+   */
+  onToggleSection?: (sessionId: string, sectionId: string) => void
   /** Called when the user taps a session-level checkbox. */
   onToggleSession?: (sessionId: string) => void
   /**
@@ -87,6 +118,13 @@ interface TrainingCardProps {
    * Defaults to `{}` when omitted.
    */
   completedSetsBySessionExercise?: Record<string, Record<string, number[]>>
+  /**
+   * Called when the user taps "Mark whole day done". Hidden when every session
+   * is already marked complete or there are no sessions.
+   */
+  onMarkAllTrainingDone?: () => void
+  /** True while the markWholeDayComplete mutation is in flight. */
+  isMarkAllTrainingLoading?: boolean
 }
 
 // ─── formatSets ───────────────────────────────────────────────────────────────
@@ -118,7 +156,7 @@ function SessionCtaFooter({ session, state, isPending, onPress }: SessionCtaFoot
   const { t } = useTranslation()
 
   return (
-    <View style={ctaStyles.footerButton}>
+    <View style={[ctaStyles.footerButton, { borderTopColor: colors.sep2 }]}>
       <Pressable
         onPress={() => {
           if (!isPending) onPress(session, state)
@@ -150,6 +188,9 @@ const ctaStyles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 16,
     paddingTop: 12,
+    // Hairline above the CTA so the boundary between the last exercise row
+    // and the action zone is unambiguous.
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   primaryButton: {
     borderRadius: Radius.md,
@@ -161,6 +202,7 @@ const ctaStyles = StyleSheet.create({
   },
   primaryLabel: {
     ...Type.callout,
+    fontFamily: interFamily('700'),
     fontWeight: '700',
   },
 })
@@ -170,29 +212,38 @@ const ctaStyles = StyleSheet.create({
 export function TrainingCard({
   planName,
   sessions,
+  completedIdsBySectionAndSession,
   completedIdsBySession,
+  completedSectionIdsBySession = {},
   sessionCompleteMap,
   onToggleExercise,
+  onToggleExercises,
+  onToggleSection,
   onToggleSession,
   sessionCtaStateBySession,
   onSessionCta,
   isSessionCtaPending,
   exerciseMuscleGroups = {},
   completedSetsBySessionExercise = {},
+  onMarkAllTrainingDone,
+  isMarkAllTrainingLoading,
 }: TrainingCardProps) {
   const colors = useTheme()
   const { t } = useTranslation()
 
-  // Aggregate exercise counts across all sessions for the hero ring.
-  const totalExercises = sessions.reduce(
-    (sum, s) => sum + (s.exercises ?? []).filter((e) => e.exerciseExternalId != null).length,
-    0,
-  )
-  const completedExercises = sessions.reduce((sum, s) => {
+  // Aggregate training-session counts for the hero ring. The ring tracks how
+  // many of today's training sessions the client has fully completed (via
+  // the per-session checkbox / live runner finish flow).
+  const totalSessions = sessions.length
+  const completedSessions = sessions.reduce((sum, s) => {
     if (!s.sessionId) return sum
-    const ids = completedIdsBySession[s.sessionId] ?? new Set<string>()
-    return sum + ids.size
+    return sum + (sessionCompleteMap[s.sessionId] ? 1 : 0)
   }, 0)
+
+  // True iff at least one session is not yet marked complete — controls CTA visibility.
+  const hasIncompleteSessions = sessions.some(
+    (s) => s.sessionId != null && !sessionCompleteMap[s.sessionId],
+  )
 
   // Deduplicated muscle groups across all exercises (first-seen order).
   const aggregatedMuscleGroups = useMemo<MuscleGroup[]>(() => {
@@ -215,9 +266,7 @@ export function TrainingCard({
   }, [sessions, exerciseMuscleGroups])
 
   // Hero headline: "N tréninkových jednotek"
-  const heroHeadline = t('today.sessionsCount', { count: sessions.length })
-  // Hero subtitle: "M cviků"
-  const heroSubtitle = t('today.exercisesCount', { count: totalExercises })
+  const heroHeadline = t('today.sessionsCount', { count: totalSessions })
 
   return (
     <View style={[styles.card, { backgroundColor: colors.bg2 }]}>
@@ -236,11 +285,6 @@ export function TrainingCard({
             {/* Aggregate session count headline */}
             <Text style={[styles.sessionName, { color: colors.onAccent }]}>
               {heroHeadline}
-            </Text>
-
-            {/* Subtitle: total exercises */}
-            <Text style={[styles.subtitle, { color: colors.onAccent }]}>
-              {heroSubtitle}
             </Text>
 
             {/* Muscle-group chips — deduplicated across all sessions */}
@@ -263,11 +307,11 @@ export function TrainingCard({
             )}
           </View>
 
-          {/* Progress ring: total completed / total exercises */}
+          {/* Progress ring: completed / total training sessions */}
           <View style={styles.ringContainer}>
             <ProgressRing
-              current={completedExercises}
-              total={totalExercises}
+              current={completedSessions}
+              total={totalSessions}
               size={56}
               strokeWidth={5}
               color={colors.gold}
@@ -282,13 +326,36 @@ export function TrainingCard({
       <View style={[styles.body, { backgroundColor: colors.bg2 }]}>
         {sessions.map((session, idx) => {
           const sessionId = session.sessionId ?? `session-${idx}`
+          // Session-union set used only for CTA state and aggregate counts.
           const completedIds = completedIdsBySession[sessionId] ?? new Set<string>()
+          // Per-section map for this session — passed to SessionSectionList for
+          // per-exercise display so cross-section bleed is impossible.
+          const sessionSectionCompletionMap =
+            completedIdsBySectionAndSession.get(sessionId) ?? new Map<string, ReadonlySet<string>>()
           const isComplete = sessionCompleteMap[sessionId] ?? false
-          const exercises = session.exercises ?? []
 
-          // Session summary text: "N cviků"
-          const trackableCount = exercises.filter((e) => e.exerciseExternalId != null).length
-          const sessionSummary = t('today.exercisesCount', { count: trackableCount })
+          // Session summary mirrors the trainer-portal logic: workouts (= sections)
+          // count, total timed duration, and untimed count when there's a mix.
+          // See `web/src/pages/TrainingPlanPage.tsx` for the source of this formula.
+          const sectionsForSummary = getEffectiveSections(session, t)
+          const sectionDurations = sectionsForSummary.map((sec) =>
+            estimatedSectionDurationSeconds(sec.format, sec.formatConfig),
+          )
+          const timedSeconds = sectionDurations.reduce<number>(
+            (sum, d) => sum + (d ?? 0),
+            0,
+          )
+          const untimedCount = sectionDurations.filter(
+            (d) => d == null || d === 0,
+          ).length
+          const summaryParts: string[] = [
+            t('training.workoutCount', { count: sectionsForSummary.length }),
+          ]
+          if (timedSeconds > 0) summaryParts.push(formatDurationCompact(timedSeconds))
+          if (timedSeconds > 0 && untimedCount > 0) {
+            summaryParts.push(t('training.workoutUntimedCount', { count: untimedCount }))
+          }
+          const sessionSummary = summaryParts.join(' · ')
 
           // Per-session CTA — hide entirely when the session is finished;
           // completion is already surfaced by the session-level checkbox.
@@ -298,6 +365,8 @@ export function TrainingCard({
           const ctaPending = isSessionCtaPending?.(sessionId) ?? false
 
           // Session-level checkbox injected into the session card header.
+          // Uses the View+inner-icon pattern from MealRow's CheckButton so the
+          // styling lines up with the section- and exercise-level checkboxes.
           const sessionCheckbox = onToggleSession ? (
             <Pressable
               onPress={(e) => {
@@ -308,12 +377,16 @@ export function TrainingCard({
               accessibilityRole="checkbox"
               accessibilityState={{ checked: isComplete }}
               accessibilityLabel={t('today.sessionCheckboxA11y')}
+              style={[
+                styles.sessionCheck,
+                isComplete
+                  ? { backgroundColor: colors.green, borderColor: colors.green }
+                  : { backgroundColor: 'transparent', borderColor: colors.sep },
+              ]}
             >
-              <Ionicons
-                name={isComplete ? 'checkmark-circle' : 'ellipse-outline'}
-                size={24}
-                color={isComplete ? colors.green : colors.label3}
-              />
+              {isComplete && (
+                <Ionicons name="checkmark" size={14} color={colors.onAccent} />
+              )}
             </Pressable>
           ) : undefined
 
@@ -324,11 +397,14 @@ export function TrainingCard({
             <SessionSectionList
               key={sessionId}
               sessionId={sessionId}
-              order={idx + 1}
+              index={idx}
+              isFirst={idx === 0}
+              isSessionComplete={isComplete}
               name={session.name ?? ''}
               summaryText={sessionSummary}
               completedIds={completedIds}
-              trackableCount={trackableCount}
+              sectionCompletionMap={sessionSectionCompletionMap}
+              completedSectionIds={completedSectionIdsBySession[sessionId] ?? new Set<string>()}
               sections={sections}
               sessionCheckbox={sessionCheckbox}
               showCta={showCta}
@@ -338,12 +414,26 @@ export function TrainingCard({
               exerciseMuscleGroups={exerciseMuscleGroups}
               completedSetsBySessionExercise={completedSetsBySessionExercise[sessionId] ?? {}}
               onToggleExercise={onToggleExercise}
+              onToggleExercises={onToggleExercises}
+              onToggleSection={onToggleSection}
               onSessionCta={onSessionCta}
               t={t}
             />
           )
         })}
       </View>
+
+      {/* Mark whole day done — hidden when every session is already complete or no sessions */}
+      {onMarkAllTrainingDone && hasIncompleteSessions && sessions.length > 0 && (
+        <View style={styles.markAllWrap}>
+          <GoldButton
+            title={t('today.markAllTrainingDone')}
+            onPress={onMarkAllTrainingDone}
+            loading={isMarkAllTrainingLoading}
+            icon="checkmark"
+          />
+        </View>
+      )}
     </View>
   )
 }
@@ -353,11 +443,34 @@ export function TrainingCard({
 
 interface SessionSectionListProps {
   sessionId: string
-  order: number
+  index: number
+  /**
+   * When true, suppresses the top hairline divider on the session strip —
+   * the first session needs no separator between itself and the hero above.
+   * Passed through to `ExpandableSessionCard`.
+   */
+  isFirst: boolean
+  /**
+   * Whether the parent session has been marked complete. Used as a fallback
+   * for empty sections that don't have an explicit `completedSectionIds`
+   * entry yet (e.g. immediately after `markSessionComplete`).
+   */
+  isSessionComplete: boolean
   name: string
   summaryText: string
+  /**
+   * Session-union of all section completion sets. Used for aggregate counts
+   * (completedWorkouts tally) where section-scoped precision is not needed.
+   */
   completedIds: ReadonlySet<string>
-  trackableCount: number
+  /**
+   * Per-section completion map for this session (inner key = sectionId).
+   * Used for per-exercise `isDone` computation so the same catalog exercise
+   * in two sections of one session is tracked independently.
+   */
+  sectionCompletionMap: ReadonlyMap<string, ReadonlySet<string>>
+  /** Section IDs that have been section-completed for this session. */
+  completedSectionIds: ReadonlySet<string>
   sections: ReturnType<typeof getEffectiveSections>
   sessionCheckbox: React.ReactNode
   showCta: boolean
@@ -366,18 +479,24 @@ interface SessionSectionListProps {
   session: TrainingSession
   exerciseMuscleGroups: Record<string, MuscleGroup[]>
   completedSetsBySessionExercise: Record<string, number[]>
-  onToggleExercise?: (sessionId: string, exerciseExternalId: string) => void
+  onToggleExercise?: (sessionId: string, sectionId: string, exerciseExternalId: string) => void
+  /** Batch variant — dispatches N exercise toggles sequentially to avoid version-token races. */
+  onToggleExercises?: (sessionId: string, sectionId: string, exerciseIds: string[], complete: boolean) => void
+  onToggleSection?: (sessionId: string, sectionId: string) => void
   onSessionCta?: (session: TrainingSession, state: SessionCtaState) => void
   t: (key: string, opts?: Record<string, unknown>) => string
 }
 
 function SessionSectionList({
   sessionId,
-  order,
+  index,
+  isFirst,
+  isSessionComplete,
   name,
   summaryText,
   completedIds,
-  trackableCount,
+  sectionCompletionMap,
+  completedSectionIds,
   sections,
   sessionCheckbox,
   showCta,
@@ -387,15 +506,19 @@ function SessionSectionList({
   exerciseMuscleGroups,
   completedSetsBySessionExercise,
   onToggleExercise,
+  onToggleExercises,
+  onToggleSection,
   onSessionCta,
   t,
 }: SessionSectionListProps) {
   const colors = useTheme()
 
-  // Per-section expand/collapse state. Defaults all to true.
+  // Per-section expand/collapse state. Defaults all to false — sessions
+  // collapse by default (ExpandableSessionCard.defaultExpanded = false), and
+  // their workouts/exercises mirror that so the card opens flat.
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(
-      sections.map((s, i) => [s.sectionId ?? `section-${i}`, true])
+      sections.map((s, i) => [s.sectionId ?? `section-${i}`, false])
     )
   )
 
@@ -403,140 +526,242 @@ function SessionSectionList({
     setExpandedSections((prev) => ({ ...prev, [sectionKey]: !prev[sectionKey] }))
   }, [])
 
+  // Session-header progress is by workouts (sections), not exercises.
+  // A workout counts as finished when:
+  //   - it has trackable exercises AND every one is in that section's per-section
+  //     completed set (uses `sectionCompletionMap` to avoid cross-section bleed), OR
+  //   - it has no trackable exercises (e.g. ForTime "Running") AND its
+  //     sectionId is in `completedSectionIds`.
+  const totalWorkouts = sections.length
+  const completedWorkouts = sections.filter((sec) => {
+    const trackable = (sec.exercises ?? []).filter((e) => e.exerciseExternalId != null)
+    if (trackable.length > 0) {
+      const sectionCompletedIds =
+        sec.sectionId != null ? (sectionCompletionMap.get(sec.sectionId) ?? new Set<string>()) : new Set<string>()
+      return trackable.every((e) => sectionCompletedIds.has(e.exerciseExternalId!))
+    }
+    return sec.sectionId != null && completedSectionIds.has(sec.sectionId)
+  }).length
+
   return (
             <ExpandableSessionCard
               key={sessionId}
-              order={order}
+              index={index}
+              isFirst={isFirst}
               name={name}
               summaryText={summaryText}
-              completedCount={completedIds.size}
-              totalCount={trackableCount}
+              completedCount={completedWorkouts}
+              totalCount={totalWorkouts}
               headerRight={sessionCheckbox}
             >
               {/* Section-grouped exercise cards */}
               {sections.map((section, sectionIdx) => {
                 const sectionKey = section.sectionId ?? `section-${sectionIdx}`
                 const sectionExercises = section.exercises ?? []
-                // Show section header when there are multiple sections or
-                // when it's a WOD-formatted section (always worth labelling).
-                const showSectionHeader =
-                  sections.length > 1 ||
-                  (section.format != null && section.format !== 'Standard')
+                // Always render the section header — the user needs the
+                // "mark whole section finished" checkbox even on single-section
+                // sessions, and the visual fidelity to the prototype requires
+                // a band per section regardless of count.
+                const showSectionHeader = true
+                // WOD-format sections store a single round-prescription "set"
+                // per exercise. The "set" concept doesn't apply, so the row's
+                // summary skips the count prefix and the row is non-expandable.
+                const isWodFormat =
+                  section.format != null && section.format !== 'Standard'
 
                 // Empty section edge case — show band with empty-state row
                 const hasExercises = sectionExercises.length > 0
-                const isExpanded = expandedSections[sectionKey] ?? true
+                // Empty sections (e.g. ForTime "Running") have no body to show,
+                // so they always render collapsed — keeps the card to a single
+                // header row matching the missing chevron.
+                const isExpanded = hasExercises && (expandedSections[sectionKey] ?? false)
 
-                // Section-complete state: every trackable exercise in this section is done.
+                // Per-section completed-exercise set — the source of truth for
+                // per-exercise isDone and isSectionComplete. Using this instead
+                // of the session-union `completedIds` prevents a catalog exercise
+                // referenced in two sections from having both instances flip when
+                // only one is tapped.
+                const sectionCompletedIds: ReadonlySet<string> =
+                  section.sectionId != null
+                    ? (sectionCompletionMap.get(section.sectionId) ?? new Set<string>())
+                    : new Set<string>()
+
+                // Section-complete state:
+                //   - sections with trackable exercises → all of them must be done
+                //     in THIS section's set (not the session union).
+                //   - sections with zero trackable exercises (e.g. ForTime
+                //     "Running") → look up their sectionId in
+                //     `completedSectionIds`, falling back to the session-level
+                //     flag while the optimistic cache catches up.
                 const trackableExercises = sectionExercises.filter(
                   (e) => e.exerciseExternalId != null,
                 )
-                const isSectionComplete =
-                  trackableExercises.length > 0 &&
-                  trackableExercises.every((e) => completedIds.has(e.exerciseExternalId!))
+                const sectionInCompletedSet =
+                  section.sectionId != null && completedSectionIds.has(section.sectionId)
+                const isSectionComplete = trackableExercises.length > 0
+                  ? trackableExercises.every((e) => sectionCompletedIds.has(e.exerciseExternalId!))
+                  : (sectionInCompletedSet || isSessionComplete)
 
-                // onToggleSectionComplete: toggle all exercises in the section.
-                const handleToggleSectionComplete =
-                  onToggleExercise && trackableExercises.length > 0
-                    ? () => {
-                        for (const ex of trackableExercises) {
-                          const exId = ex.exerciseExternalId!
-                          // If complete → mark all incomplete by toggling each done one
-                          // If incomplete → mark all complete by toggling each undone one
-                          const isDone = completedIds.has(exId)
-                          if (isSectionComplete ? isDone : !isDone) {
-                            onToggleExercise(sessionId, exId)
-                          }
+                // onToggleSectionComplete:
+                //   - For sections WITH trackable exercises, fan out to the
+                //     existing per-exercise toggle so the section becomes
+                //     complete iff every exercise in it is complete.
+                //   - For sections with no trackable exercises (ForTime "Running"),
+                //     call the section-level endpoint directly so the section
+                //     can be marked done without exercises to attach to.
+                let handleToggleSectionComplete: (() => void) | undefined
+                if (trackableExercises.length > 0) {
+                  // Prefer the batch variant (onToggleExercises) so all N mutations
+                  // are dispatched sequentially via mutateAsync — each one reads the
+                  // version updated by the previous response rather than racing on
+                  // the same stale token. Fall back to firing individual onToggleExercise
+                  // calls only when the batch handler is not provided.
+                  if (onToggleExercises && section.sectionId != null) {
+                    const secId = section.sectionId
+                    handleToggleSectionComplete = () => {
+                      const idsToFlip: string[] = []
+                      for (const ex of trackableExercises) {
+                        const exId = ex.exerciseExternalId!
+                        const isDone = sectionCompletedIds.has(exId)
+                        if (isSectionComplete ? isDone : !isDone) {
+                          idsToFlip.push(exId)
                         }
                       }
-                    : undefined
+                      if (idsToFlip.length > 0) {
+                        // `complete` flips to the OPPOSITE of the current section state.
+                        const targetComplete = !isSectionComplete
+                        onToggleExercises(sessionId, secId, idsToFlip, targetComplete)
+                      }
+                    }
+                  } else if (onToggleExercise && section.sectionId != null) {
+                    const secId = section.sectionId
+                    handleToggleSectionComplete = () => {
+                      for (const ex of trackableExercises) {
+                        const exId = ex.exerciseExternalId!
+                        const isDone = sectionCompletedIds.has(exId)
+                        if (isSectionComplete ? isDone : !isDone) {
+                          onToggleExercise(sessionId, secId, exId)
+                        }
+                      }
+                    }
+                  }
+                } else if (onToggleSection && section.sectionId != null) {
+                  const secId = section.sectionId
+                  handleToggleSectionComplete = () => onToggleSection(sessionId, secId)
+                }
 
+                const sectionDuration = estimatedSectionDurationSeconds(
+                  section.format,
+                  section.formatConfig,
+                )
+
+                const isLastSection = sectionIdx === sections.length - 1
                 return (
-                  <View key={sectionKey}>
+                  <View
+                    key={sectionKey}
+                    style={[
+                      styles.sectionWrap,
+                      isLastSection
+                        ? { borderBottomWidth: 0 }
+                        : { borderBottomColor: colors.sep2 },
+                    ]}
+                  >
                     {showSectionHeader && (
                       <SectionHeader
                         name={section.name ?? t('training.section.defaultName')}
                         format={section.format}
+                        formatConfig={section.formatConfig}
+                        durationSeconds={sectionDuration}
                         exerciseCount={sectionExercises.length}
+                        notes={section.notes}
                         isExpanded={isExpanded}
                         onToggleExpanded={() => handleToggleSection(sectionKey)}
                         isSectionComplete={isSectionComplete}
                         onToggleSectionComplete={handleToggleSectionComplete}
+                        // No exercises → no detail to expand into. ForTime
+                        // workouts can legitimately be just a name + time cap
+                        // (e.g. "Running"); other empty sections share the same
+                        // UX — drop the chevron and disable the row toggle.
+                        nonExpandable={!hasExercises}
+                        // Case A — section collapsed: the parent sectionWrap's
+                        // borderBottomWidth already provides the row-level
+                        // divider; the header's own bottom border would stack
+                        // on top of it producing a double-hairline.
+                        //
+                        // Case B — section expanded: the note now renders inside
+                        // the header's labelCol; no standalone note banner below.
+                        // Suppress the bottom border only when collapsed (case A).
+                        suppressBottomDivider={!isExpanded}
                       />
                     )}
 
-                    {/* Empty-section placeholder — always shown regardless of expand state */}
-                    {!hasExercises && (
-                      <View style={[styles.sectionEmpty, { borderBottomColor: colors.sep2 }]}>
-                        <Text style={[Type.caption1, { color: colors.label3 }]}>
-                          {t('training.section.empty')}
-                        </Text>
-                      </View>
-                    )}
+                    {/* Exercise rows — AnimatedCollapse renders content always
+                        (for measurement) and animates height. Empty sections
+                        (no exercises) are forced collapsed via `isExpanded`
+                        above, so no body renders for them. */}
+                    <AnimatedCollapse expanded={isExpanded}>
+                        {sectionExercises.map((exercise, exIdx) => {
+                          const exId = exercise.exerciseExternalId ?? null
+                          // Use the per-section set so the same catalog exercise in
+                          // another section of this session is unaffected.
+                          const isDone = exId != null && sectionCompletedIds.has(exId)
+                          const sets = exercise.sets ?? []
+                          const completedSetNumbers =
+                            exId != null
+                              ? (completedSetsBySessionExercise[exId] ?? [])
+                              : []
 
-                    {/* Exercise rows — hidden when the section is collapsed */}
-                    {isExpanded && sectionExercises.map((exercise, exIdx) => {
-                      const exId = exercise.exerciseExternalId ?? null
-                      const isDone = exId != null && completedIds.has(exId)
-                      const sets = exercise.sets ?? []
-                      const completedSetNumbers =
-                        exId != null
-                          ? (completedSetsBySessionExercise[exId] ?? [])
-                          : []
-
-                      // Exercise summary: "N série · M opak · K kg"
-                      const setCount = sets.length
-                      const firstReps = sets[0]?.reps
-                      const firstWeight = sets[0]?.weightKg
-                      const exSummaryParts: string[] = [`${setCount} ${t('training.set').toLowerCase()}`]
-                      if (firstReps != null) exSummaryParts.push(`${firstReps} ${t('training.reps').toLowerCase()}`)
-                      if (firstWeight != null) exSummaryParts.push(`${firstWeight} kg`)
-
-                      // Dot color: first muscle group for this exercise, or neutral grey fallback.
-                      const exMuscleGroups = exId != null ? (exerciseMuscleGroups[exId] ?? []) : []
-                      const primaryMg = exMuscleGroups[0]
-                      const dotColor = primaryMg != null
-                        ? getMuscleGroupColor(primaryMg, colors)
-                        : colors.label3
-
-                      return (
-                        <ExpandableExerciseCard
-                          key={exId ?? exIdx}
-                          name={exercise.exerciseName ?? ''}
-                          summaryText={exSummaryParts.join(' · ')}
-                          dotColor={dotColor}
-                          isCompleted={isDone}
-                          defaultExpanded
-                          nested
-                          nestedFirst={exIdx === 0 && !showSectionHeader}
-                          onToggle={
-                            onToggleExercise && exId != null
-                              ? () => onToggleExercise(sessionId, exId)
-                              : undefined
+                          // Exercise summary:
+                          //   Standard → "N série · M opak · K kg"
+                          //   WOD      → "M opak · K kg" (no series count — the
+                          //              single stored row is the round prescription)
+                          const setCount = sets.length
+                          const firstReps = sets[0]?.reps
+                          const firstWeight = sets[0]?.weightKg
+                          const exSummaryParts: string[] = []
+                          if (!isWodFormat) {
+                            exSummaryParts.push(`${setCount} ${t('training.set').toLowerCase()}`)
                           }
-                        >
-                          <SetGrid sets={sets} completedSetNumbers={completedSetNumbers} />
-                          {exercise.notes ? (
-                            <View
-                              style={[
-                                styles.exerciseNote,
-                                {
-                                  backgroundColor: colors.gold + '0a',
-                                  borderTopColor: colors.sep2,
-                                },
-                              ]}
+                          if (firstReps != null) exSummaryParts.push(`${firstReps} ${t('training.reps').toLowerCase()}`)
+                          if (firstWeight != null) exSummaryParts.push(`${firstWeight} kg`)
+
+                          // Dot color: first muscle group for this exercise, or neutral grey fallback.
+                          const exMuscleGroups = exId != null ? (exerciseMuscleGroups[exId] ?? []) : []
+                          const primaryMg = exMuscleGroups[0]
+                          // Fallback to brand gold (not label3 grey) so the dot
+                          // stays visible even on the format-tinted section bands
+                          // when muscle-group data hasn't loaded yet.
+                          const dotColor = primaryMg != null
+                            ? getMuscleGroupColor(primaryMg, colors)
+                            : colors.gold
+
+                          return (
+                            <ExpandableExerciseCard
+                              key={exId ?? exIdx}
+                              name={exercise.exerciseName ?? ''}
+                              summaryText={exSummaryParts.join(' · ')}
+                              dotColor={dotColor}
+                              isCompleted={isDone}
+                              defaultExpanded={false}
+                              nested
+                              nestedFirst={exIdx === 0 && !showSectionHeader}
+                              nonExpandable={isWodFormat}
+                              // WOD exercises don't track per-exercise completion —
+                              // the whole section is marked done via the section
+                              // header's checkbox instead.
+                              hideCompletionIndicator={isWodFormat}
+                              onToggle={
+                                onToggleExercise && exId != null && section.sectionId != null
+                                  ? () => onToggleExercise(sessionId, section.sectionId!, exId)
+                                  : undefined
+                              }
+                              notes={exercise.notes}
                             >
-                              <Text style={[Type.caption1, { color: colors.label2, lineHeight: 18 }]}>
-                                <Text style={{ fontWeight: '600', color: colors.gold }}>
-                                  {t('today.exerciseNoteLabel')}{' '}
-                                </Text>
-                                {exercise.notes}
-                              </Text>
-                            </View>
-                          ) : null}
-                        </ExpandableExerciseCard>
-                      )
-                    })}
+                              <SetGrid sets={sets} completedSetNumbers={completedSetNumbers} />
+                            </ExpandableExerciseCard>
+                          )
+                        })}
+                    </AnimatedCollapse>
                   </View>
                 )
               })}
@@ -574,6 +799,7 @@ const styles = StyleSheet.create({
   },
   planName: {
     ...Type.caption1,
+    fontFamily: interFamily('600'),
     fontWeight: '600',
     opacity: 0.7,
     textTransform: 'uppercase',
@@ -583,11 +809,6 @@ const styles = StyleSheet.create({
   sessionName: {
     ...Type.title2,
     letterSpacing: -0.3,
-  },
-  subtitle: {
-    ...Type.footnote,
-    opacity: 0.7,
-    marginTop: 2,
   },
   chipRow: {
     flexDirection: 'row',
@@ -602,6 +823,7 @@ const styles = StyleSheet.create({
   },
   chipLabel: {
     ...Type.caption2,
+    fontFamily: interFamily('600'),
     fontWeight: '600',
   },
   ringContainer: {
@@ -609,18 +831,37 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   body: {
-    padding: 12,
+    // No padding — session strips run edge-to-edge inside the card body,
+    // matching the MealRow strips inside NutritionCard.
     gap: 0,
-  },
-  exerciseNote: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderTopWidth: StyleSheet.hairlineWidth,
   },
   sectionEmpty: {
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  // Hairline below every section — matches the divider style used between
+  // food/recipe rows and between meal cards in NutritionCard. Color supplied
+  // inline from the theme (sep2 — the lighter of the two separator tokens).
+  sectionWrap: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  // Session-level checkbox — MealRow CheckButton pattern: 24×24, radius 12,
+  // borderWidth 2. marginLeft 10 matches MealRow's `styles.check.marginLeft`.
+  sessionCheck: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 10,
+  },
+  // Mirrors NutritionCard's ctaWrap — same padding values for visual parity.
+  markAllWrap: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 16,
   },
 })
 

@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import type { WorkoutFormat, WodConfig } from '@/api/training-plan-types';
+import { FORMAT_LABEL_KEYS } from '@/constants/training';
 
 const FORMATS: WorkoutFormat[] = ['Standard', 'EMOM', 'AMRAP', 'ForTime', 'Tabata'];
 
@@ -214,7 +215,7 @@ export function SessionFormatBar({
         >
           {FORMATS.map((f) => (
             <option key={f} value={f}>
-              {t(`training.format.${f.charAt(0).toLowerCase() + f.slice(1)}`)}
+              {t(`training.format.${FORMAT_LABEL_KEYS[f]}`)}
             </option>
           ))}
         </select>

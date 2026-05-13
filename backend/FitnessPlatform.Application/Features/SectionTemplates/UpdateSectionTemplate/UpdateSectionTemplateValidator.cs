@@ -21,6 +21,10 @@ public class UpdateSectionTemplateValidator : Validator<UpdateSectionTemplateReq
             .NotEmpty()
             .MaximumLength(200);
 
+        RuleFor(x => x.Notes)
+            .MaximumLength(2000)
+            .When(x => !string.IsNullOrEmpty(x.Notes));
+
         RuleFor(x => x.Version)
             .GreaterThanOrEqualTo(1);
 

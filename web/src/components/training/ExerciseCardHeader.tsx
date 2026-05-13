@@ -16,8 +16,10 @@ interface ExerciseCardHeaderProps {
   onDuplicate: () => void;
   onRemove: () => void;
   difficulty?: string;
-  muscleColor?: string;
-  muscleIcon?: string;
+  /** When the parent section is a WOD format (AMRAP/EMOM/Tabata/ForTime),
+   *  the "set" concept doesn't apply — the one stored row holds the round
+   *  prescription. Hide the `{setsCount}×` summary prefix in that case. */
+  isWod?: boolean;
 }
 
 export function ExerciseCardHeader({
@@ -32,14 +34,12 @@ export function ExerciseCardHeader({
   onDuplicate,
   onRemove,
   difficulty,
-  muscleColor,
-  muscleIcon,
+  isWod,
 }: ExerciseCardHeaderProps) {
   const { t } = useTranslation();
 
   const primaryMuscle = muscleGroups[0] as string | undefined;
-  const displayMuscleColor = muscleColor ?? (primaryMuscle ? MUSCLE_COLORS[primaryMuscle] ?? 'var(--accent)' : 'var(--accent)');
-  const displayMuscleIcon = muscleIcon ?? (primaryMuscle ? MUSCLE_ICONS[primaryMuscle] ?? '🏋️' : '🏋️');
+  const muscleIcon = primaryMuscle ? (MUSCLE_ICONS[primaryMuscle] ?? '🏋️') : '🏋️';
 
   const diffLevel = difficulty === 'Beginner' ? 1 : difficulty === 'Intermediate' ? 2 : difficulty === 'Advanced' ? 3 : 0;
   const diffColor = difficulty === 'Beginner' ? 'var(--green)' : difficulty === 'Intermediate' ? 'var(--orange)' : difficulty === 'Advanced' ? 'var(--red)' : 'var(--text4)';
@@ -52,14 +52,8 @@ export function ExerciseCardHeader({
       )}
       onClick={onToggle}
     >
-      {/* Colored left bar */}
-      <div
-        className="w-[4px] self-stretch shrink-0 rounded-full"
-        style={{ background: displayMuscleColor }}
-      />
-
-      {/* Muscle icon */}
-      <span className="text-[20px] leading-none shrink-0">{displayMuscleIcon}</span>
+      {/* Muscle-group icon */}
+      <span className="text-[18px] leading-none shrink-0" aria-hidden="true">{muscleIcon}</span>
 
       <span
         className={cn(
@@ -89,7 +83,9 @@ export function ExerciseCardHeader({
             </span>
           ))}
           <span className="text-[11px] text-text3 tabular-nums">
-            {setsCount}×{repsStr} · {weightStr} kg
+            {isWod
+              ? `${repsStr} · ${weightStr} kg`
+              : `${setsCount}×${repsStr} · ${weightStr} kg`}
           </span>
         </div>
       </div>

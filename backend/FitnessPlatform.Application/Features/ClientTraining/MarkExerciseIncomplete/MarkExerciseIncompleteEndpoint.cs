@@ -88,12 +88,20 @@ public class MarkExerciseIncompleteEndpoint(
             return;
         }
 
-        // Validate the exercise exists in the session
+        // Validate the exercise exists in the session (section-aware).
         session.WithBackfilledSections();
-        var exerciseExists = session.Exercises.Any(e => e.ExerciseExternalId == req.ExerciseExternalId);
+
+        var section = session.Sections.FirstOrDefault(s => s.SectionId == req.SectionId);
+        if (section is null)
+        {
+            await this.SendProblemAsync(404, ErrorCodes.TrainingSectionNotFound, "The section was not found in the specified session.", ct);
+            return;
+        }
+
+        var exerciseExists = section.Exercises.Any(e => e.ExerciseExternalId == req.ExerciseExternalId);
         if (!exerciseExists)
         {
-            await this.SendProblemAsync(404, ErrorCodes.TrainingExerciseNotFound, "The exercise was not found in the specified session.", ct);
+            await this.SendProblemAsync(404, ErrorCodes.TrainingExerciseNotFound, "The exercise was not found in the specified section.", ct);
             return;
         }
 
@@ -105,9 +113,33 @@ public class MarkExerciseIncompleteEndpoint(
         using var completionCursor = await mongo.TrainingCompletions.FindAsync(completionFilter, cancellationToken: ct);
         var existing = await completionCursor.FirstOrDefaultAsync(ct);
 
-        if (existing is null || !existing.CompletedExerciseIds.Contains(req.ExerciseExternalId))
+        // Auto-backfill: legacy completion docs (written before per-section
+        // tracking was added) carry the flat `CompletedExerciseIds` but
+        // leave `CompletedExerciseIdsBySection` null. The idempotency check
+        // + removal logic below only consult the per-section dict, so
+        // without this step the legacy doc would short-circuit at "nothing
+        // to remove" and the flat list would never clear — the exercise
+        // would reappear as complete after every refresh via the read-time
+        // backfill in `TrainingCompletionBackfill`. Populating the dict
+        // up-front gives the removal logic something to delete from.
+        if (existing is not null
+            && (existing.CompletedExerciseIdsBySection is null
+                || existing.CompletedExerciseIdsBySection.Count == 0)
+            && existing.CompletedExerciseIds.Count > 0)
         {
-            // Idempotent: already not complete
+            var effective = TrainingCompletionBackfill.GetEffectiveCompletedExerciseIdsBySection(existing, session);
+            existing.CompletedExerciseIdsBySection = effective.ToDictionary(
+                kvp => kvp.Key.ToString(),
+                kvp => kvp.Value.ToList());
+        }
+
+        // Idempotency: check whether this exercise is complete in this specific section.
+        var sectionList = existing?.CompletedExerciseIdsBySection?.GetValueOrDefault(req.SectionId.ToString());
+        var isCompleteInSection = sectionList is not null && sectionList.Contains(req.ExerciseExternalId);
+
+        if (existing is null || !isCompleteInSection)
+        {
+            // Not complete in this section — nothing to remove
             var completedCount = existing?.CompletedExerciseIds.Count ?? 0;
             await Send.OkAsync(new MarkExerciseIncompleteResponse
             {
@@ -129,13 +161,30 @@ public class MarkExerciseIncompleteEndpoint(
             return;
         }
 
-        var newIds = existing.CompletedExerciseIds.Where(id => id != req.ExerciseExternalId).ToList();
+        // ── Remove from the section-aware dict (only this section) ───────
+        existing.CompletedExerciseIdsBySection ??= new Dictionary<string, List<Guid>>();
+        if (existing.CompletedExerciseIdsBySection.TryGetValue(req.SectionId.ToString(), out var currentSectionList))
+        {
+            currentSectionList.Remove(req.ExerciseExternalId);
+            if (currentSectionList.Count == 0)
+                existing.CompletedExerciseIdsBySection.Remove(req.SectionId.ToString());
+        }
+
+        // ── Mirror: only remove from the legacy flat list if NO other section still has this exId ──
+        var stillPresentInAnotherSection = existing.CompletedExerciseIdsBySection
+            .Any(kvp => kvp.Value.Contains(req.ExerciseExternalId));
+
+        var newIds = stillPresentInAnotherSection
+            ? existing.CompletedExerciseIds
+            : existing.CompletedExerciseIds.Where(id => id != req.ExerciseExternalId).ToList();
+
         var newVersion = existing.Version + 1;
 
         var versionedFilter = completionFilter
                               & Builders<TrainingCompletion>.Filter.Eq(c => c.Version, existing.Version);
 
         var update = Builders<TrainingCompletion>.Update
+            .Set(c => c.CompletedExerciseIdsBySection, existing.CompletedExerciseIdsBySection)
             .Set(c => c.CompletedExerciseIds, newIds)
             .Set(c => c.DateUpdated, DateTime.UtcNow)
             .Set(c => c.Version, newVersion);

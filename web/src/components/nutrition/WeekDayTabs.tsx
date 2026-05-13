@@ -5,7 +5,16 @@ export interface WeekTabData {
   index: number;
   label: string;
   badge?: string;
-  isTemplate?: boolean;
+  /**
+   * Week is published and currently active (start <= now < end).
+   * Renders an amber hourglass icon. Has no effect when `isFinished` is true.
+   */
+  isPublished?: boolean;
+  /**
+   * Week is published AND its end date has passed — read-only historical record.
+   * Renders the green check icon. Takes precedence over `isPublished`.
+   */
+  isFinished?: boolean;
 }
 
 export interface DayTabData {
@@ -126,13 +135,23 @@ export function WeekDayTabs({
                 >
                   <span className="text-[11px]">📅</span>
                   {week.label}
-                  {week.isTemplate && (
-                    <span className="text-[10px] rounded-full px-[5px] bg-green-bg text-green">
+                  {week.isFinished ? (
+                    <span
+                      className="text-[10px] rounded-full px-[5px] bg-green-bg text-green"
+                      title="Týden byl ukončen"
+                    >
                       ✓
                     </span>
-                  )}
+                  ) : week.isPublished ? (
+                    <span
+                      className="text-[10px] rounded-full px-[5px] bg-orange-bg text-orange"
+                      title="Týden je publikován a stále upravitelný"
+                    >
+                      ⏳
+                    </span>
+                  ) : null}
                 </button>
-                {onRemoveWeek && weeks.length > 1 && !week.isTemplate && (
+                {onRemoveWeek && weeks.length > 1 && !week.isPublished && !week.isFinished && (
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); onRemoveWeek(week.index); }}

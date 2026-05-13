@@ -1,36 +1,55 @@
 import React from 'react'
-import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { ScrollView, View, Text, StyleSheet } from 'react-native'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
 import { useTranslation } from 'react-i18next'
-import type { LiveSummary } from './liveTrainingHelpers'
+import type { WorkoutFormat } from '@/api/wod-types'
+
+export interface FinishedWorkoutCardData {
+  name: string
+  format: WorkoutFormat | null
+  durationFormatted: string | null
+  metaText: string | null
+}
 
 interface LiveFinishedSummaryProps {
   sessionName: string
-  summary: LiveSummary
-  onBackToToday: () => void
+  durationFormatted: string
+  workouts: FinishedWorkoutCardData[]
+  prCount: number
 }
 
 /**
- * Finished-session summary shown after all sets are complete (or the user
- * finishes early). Displays a 2×2 stat grid: Čas / Série / Opakování / Objem.
- * Shows a gold PR banner when prCount > 0.
+ * Session summary shown when the entire training session is finished.
+ *
+ * Layout:
+ *   - Hero card (dark blue): 🎉 + "Trénink dokončen!" + session name + total time.
+ *   - Optional PR banner.
+ *   - Internally-scrollable list of per-workout cards.
+ *
+ * The page-level "Zpět na dnešek" CTA lives outside this component
+ * (pinned to the screen bottom by `training-session/[id].tsx`).
  */
 export function LiveFinishedSummary({
   sessionName,
-  summary,
-  onBackToToday,
+  durationFormatted,
+  workouts,
+  prCount,
 }: LiveFinishedSummaryProps) {
   const colors = useTheme()
   const { t } = useTranslation()
 
   return (
-    <View
-      style={[styles.card, { backgroundColor: colors.bg2, borderColor: colors.sep2 }]}
-    >
-      {/* Hero */}
-      <View style={[styles.heroSection, { backgroundColor: colors.heroBg }]}>
+    <View style={styles.root}>
+      {/* Hero card — its own bordered card. Carries session time directly
+          under the session name (replaces the old 2×2 stats grid). */}
+      <View
+        style={[
+          styles.heroCard,
+          { backgroundColor: colors.heroBg, borderColor: colors.sep2 },
+        ]}
+      >
         <Text style={styles.confetti}>🎉</Text>
         <Text style={[styles.heroTitle, { color: colors.onAccent }]}>
           {t('training.live.finishedTitle')}
@@ -38,157 +57,124 @@ export function LiveFinishedSummary({
         <Text style={[styles.heroSubtitle, { color: colors.onAccent + 'b3' }]}>
           {sessionName}
         </Text>
+        <Text style={[styles.heroDuration, { color: colors.gold }]}>
+          {durationFormatted}
+        </Text>
       </View>
 
-      {/* Body */}
-      <View style={[styles.body, { backgroundColor: colors.bg2 }]}>
-        {/* 2×2 stat grid */}
-        <View style={styles.grid}>
-          <View style={[styles.statCell, { backgroundColor: colors.fill2 }]}>
-            <Text style={[styles.statLabel, { color: colors.label3 }]}>
-              {t('training.live.statTime')}
+      {/* PR banner */}
+      {prCount > 0 && (
+        <View
+          style={[
+            styles.prBanner,
+            { backgroundColor: colors.goldBg, borderColor: colors.gold + '4d' },
+          ]}
+        >
+          <Text style={styles.prTrophy}>🏆</Text>
+          <View style={styles.prText}>
+            <Text style={[styles.prTitle, { color: colors.gold }]}>
+              {t('training.live.prBannerTitle')}
             </Text>
-            <Text style={[styles.statValueGold, { color: colors.gold }]}>
-              {summary.durationFormatted}
-            </Text>
-          </View>
-
-          <View style={[styles.statCell, { backgroundColor: colors.fill2 }]}>
-            <Text style={[styles.statLabel, { color: colors.label3 }]}>
-              {t('training.live.statSeries')}
-            </Text>
-            <Text style={[styles.statValue, { color: colors.label }]}>
-              {summary.setsDone}
-              <Text style={[styles.statValueSub, { color: colors.label3 }]}>
-                /{summary.setsPlanned}
-              </Text>
-            </Text>
-          </View>
-
-          <View style={[styles.statCell, { backgroundColor: colors.fill2 }]}>
-            <Text style={[styles.statLabel, { color: colors.label3 }]}>
-              {t('training.live.statReps')}
-            </Text>
-            <Text style={[styles.statValue, { color: colors.label }]}>
-              {summary.totalReps}
-            </Text>
-          </View>
-
-          <View style={[styles.statCell, { backgroundColor: colors.fill2 }]}>
-            <Text style={[styles.statLabel, { color: colors.label3 }]}>
-              {t('training.live.statExercises')}
-            </Text>
-            <Text style={[styles.statValue, { color: colors.label }]}>
-              {summary.exerciseCount}
+            <Text style={[styles.prSubtitle, { color: colors.label2 }]}>
+              {t('training.live.prBannerSubtitle', { count: prCount })}
             </Text>
           </View>
         </View>
+      )}
 
-        {/* PR banner */}
-        {summary.prCount > 0 && (
+      {/* Workouts list — flex:1 so it claims the remaining viewport
+          between the hero / PR banner and the pinned CTA. ScrollView
+          handles overflow when the session has many workouts. */}
+      <ScrollView
+        style={styles.workoutsScroll}
+        contentContainerStyle={styles.workoutsContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {workouts.map((w, i) => (
           <View
+            key={`${w.name}-${i}`}
             style={[
-              styles.prBanner,
-              { backgroundColor: colors.goldBg, borderColor: colors.gold + '4d' },
+              styles.workoutCard,
+              { backgroundColor: colors.bg2, borderColor: colors.sep2 },
             ]}
           >
-            <Text style={styles.prTrophy}>🏆</Text>
-            <View style={styles.prText}>
-              <Text style={[styles.prTitle, { color: colors.gold }]}>
-                {t('training.live.prBannerTitle')}
+            <View style={styles.workoutHeaderRow}>
+              <Text
+                style={[styles.workoutName, { color: colors.label }]}
+                numberOfLines={1}
+              >
+                {w.name}
               </Text>
-              <Text style={[styles.prSubtitle, { color: colors.label2 }]}>
-                {t('training.live.prBannerSubtitle', { count: summary.prCount })}
-              </Text>
+              {w.format != null && w.format !== 'Standard' && (
+                <View style={[styles.formatChip, { backgroundColor: colors.goldBg }]}>
+                  <Text style={[styles.formatChipText, { color: colors.gold }]}>
+                    {w.format.toUpperCase()}
+                  </Text>
+                </View>
+              )}
             </View>
+            {(w.durationFormatted != null || w.metaText != null) && (
+              <View style={styles.workoutMetaRow}>
+                {w.durationFormatted != null && (
+                  <Text style={[styles.workoutMetaItem, { color: colors.label2 }]}>
+                    {w.durationFormatted}
+                  </Text>
+                )}
+                {w.durationFormatted != null && w.metaText != null && (
+                  <Text style={[styles.workoutMetaDot, { color: colors.label3 }]}>
+                    ·
+                  </Text>
+                )}
+                {w.metaText != null && (
+                  <Text style={[styles.workoutMetaItem, { color: colors.label2 }]}>
+                    {w.metaText}
+                  </Text>
+                )}
+              </View>
+            )}
           </View>
-        )}
-
-        {/* Back to today CTA */}
-        <Pressable
-          style={[styles.ctaBtn, { backgroundColor: colors.gold }]}
-          onPress={onBackToToday}
-        >
-          <Text style={[styles.ctaBtnText, { color: colors.onAccent }]}>
-            {t('training.live.backToToday')}
-          </Text>
-        </Pressable>
-      </View>
+        ))}
+      </ScrollView>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  card: {
-    marginHorizontal: 16,
-    marginTop: 16,
+  root: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    gap: 12,
+  },
+  heroCard: {
+    width: '100%',
     borderRadius: Radius.md,
     borderWidth: StyleSheet.hairlineWidth,
-    overflow: 'hidden',
-  },
-  heroSection: {
-    // backgroundColor applied inline via colors.heroBg
-    paddingTop: 28,
-    paddingBottom: 22,
     paddingHorizontal: 20,
+    paddingTop: 22,
+    paddingBottom: 18,
     alignItems: 'center',
   },
   confetti: {
-    fontSize: 48,
-    lineHeight: 56,
-    marginBottom: 10,
+    fontSize: 44,
+    lineHeight: 52,
+    marginBottom: 8,
   },
   heroTitle: {
-    // color applied inline via colors.onAccent
     ...Type.title2,
     letterSpacing: -0.2,
-    lineHeight: 30,
   },
   heroSubtitle: {
     fontSize: 13,
-    marginTop: 6,
+    marginTop: 4,
     textAlign: 'center',
   },
-  body: {
-    padding: 16,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 12,
-  },
-  statCell: {
-    width: '46%',
-    flexGrow: 1,
-    borderRadius: Radius.sm,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-  },
-  statLabel: {
-    fontSize: 10,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.08 * 10,
-    marginBottom: 4,
-  },
-  statValueGold: {
-    fontSize: 24,
+  heroDuration: {
+    fontSize: 28,
     fontWeight: '700',
-    letterSpacing: -0.3,
-    marginTop: 4,
+    letterSpacing: -0.5,
     fontVariant: ['tabular-nums'],
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    letterSpacing: -0.3,
-    marginTop: 4,
-    fontVariant: ['tabular-nums'],
-  },
-  statValueSub: {
-    fontSize: 13,
-    fontWeight: '500',
+    marginTop: 8,
   },
   prBanner: {
     flexDirection: 'row',
@@ -197,7 +183,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: Radius.sm,
     padding: 14,
-    marginBottom: 12,
   },
   prTrophy: {
     fontSize: 28,
@@ -213,15 +198,54 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 1,
   },
-  ctaBtn: {
-    borderRadius: Radius.sm,
-    paddingVertical: 15,
-    alignItems: 'center',
+  workoutsScroll: {
+    flex: 1,
   },
-  ctaBtnText: {
-    fontSize: 16,
+  workoutsContent: {
+    paddingBottom: 4,
+    gap: 8,
+  },
+  workoutCard: {
+    width: '100%',
+    borderRadius: Radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  workoutHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  workoutName: {
+    ...Type.headline,
+    flex: 1,
+    minWidth: 0,
+  },
+  formatChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: Radius.sm,
+  },
+  formatChipText: {
+    fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 0.3,
+    letterSpacing: 0.04 * 11,
+  },
+  workoutMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginTop: 4,
+  },
+  workoutMetaItem: {
+    fontSize: 13,
+    fontVariant: ['tabular-nums'],
+  },
+  workoutMetaDot: {
+    fontSize: 13,
+    marginHorizontal: 6,
   },
 })
 

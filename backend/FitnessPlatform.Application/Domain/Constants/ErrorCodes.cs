@@ -139,6 +139,9 @@ public static class ErrorCodes
     /// <summary>The exercise was not found in the specified session.</summary>
     public const string TrainingExerciseNotFound = "TRAINING_EXERCISE_NOT_FOUND";
 
+    /// <summary>The section was not found in the specified session.</summary>
+    public const string TrainingSectionNotFound = "TRAINING_SECTION_NOT_FOUND";
+
     /// <summary>No active training plan found for the client.</summary>
     public const string NoActiveTrainingPlan = "NO_ACTIVE_TRAINING_PLAN";
 

@@ -68,6 +68,7 @@ public class UpdateSectionTemplateEndpoint(IMongoContext mongo)
 
         // Mutate
         template.Name = req.Name.Trim();
+        template.Notes = req.Notes?.Trim();
         template.DefaultFormat = req.DefaultFormat;
         template.DefaultFormatConfig = req.DefaultFormatConfig;
         template.DefaultExercises = req.DefaultExercises.Select(e => new SessionExercise

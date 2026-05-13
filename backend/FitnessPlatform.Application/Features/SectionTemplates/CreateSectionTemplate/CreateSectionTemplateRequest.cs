@@ -11,6 +11,9 @@ public class CreateSectionTemplateRequest
     /// <summary>Display name of the template.</summary>
     public string Name { get; set; } = string.Empty;
 
+    /// <summary>Optional coach notes describing the workout as a whole.</summary>
+    public string? Notes { get; set; }
+
     /// <summary>Default workout format. Null means no format override (Standard / inherits from session).</summary>
     public WorkoutFormat? DefaultFormat { get; set; }
 

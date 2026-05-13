@@ -45,6 +45,7 @@ public class CreateSectionTemplateEndpoint(IMongoContext mongo)
             ExternalId = Guid.NewGuid(),
             OwnerTrainerId = trainerId,
             Name = req.Name.Trim(),
+            Notes = req.Notes?.Trim(),
             DefaultFormat = req.DefaultFormat,
             DefaultFormatConfig = req.DefaultFormatConfig,
             DefaultExercises = req.DefaultExercises.Select(e => new SessionExercise

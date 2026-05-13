@@ -162,6 +162,17 @@ public class CompleteWorkoutEndpoint(
 
         session.WithBackfilledSections();
         var allExerciseIds = session.Exercises.Select(e => e.ExerciseExternalId).ToList();
+        var allSectionIds = session.Sections.Select(s => s.SectionId).ToList();
+        // Per-section attribution. Required so the Today card flips every
+        // workout (including exercise-free WODs like ForTime "Beh") to
+        // "done" on read. Without this, the read-time backfill in
+        // `TrainingCompletionBackfill` falls back to first-section-wins
+        // attribution from the flat list, which leaves shared-exercise
+        // sections (e.g. AMRAP reusing an earlier section's lift) and
+        // exercise-free sections marked incomplete.
+        var completedBySection = session.Sections.ToDictionary(
+            s => s.SectionId.ToString(),
+            s => s.Exercises.Select(e => e.ExerciseExternalId).ToList());
 
         // Resolve clientId as PublicId — TrainingCompletion keyed by ClientProfile.PublicId,
         // not the raw UserId stored on WorkoutLog.ClientId.
@@ -194,8 +205,22 @@ public class CompleteWorkoutEndpoint(
 
         if (existing is not null)
         {
-            // Idempotency: if the doc already contains every exercise id, no write needed.
-            if (allExerciseIds.All(id => existing.CompletedExerciseIds.Contains(id)))
+            // Idempotency: skip the write only when every per-session field
+            // already matches the full session set. Checking the flat list
+            // alone (the old behaviour) left legacy docs stuck with empty
+            // `CompletedExerciseIdsBySection` / `CompletedSectionIds`,
+            // which kept AMRAP + ForTime workouts marked as un-done on the
+            // Today card even after the live session finalised.
+            var sectionDictAligned =
+                existing.CompletedExerciseIdsBySection is not null
+                && completedBySection.All(kvp =>
+                    existing.CompletedExerciseIdsBySection!.TryGetValue(kvp.Key, out var ids)
+                    && kvp.Value.All(id => ids.Contains(id)));
+            var sectionIdsAligned = allSectionIds.All(id =>
+                (existing.CompletedSectionIds ?? new List<Guid>()).Contains(id));
+            if (allExerciseIds.All(id => existing.CompletedExerciseIds.Contains(id))
+                && sectionDictAligned
+                && sectionIdsAligned)
                 return;
 
             var versionedFilter = completionFilter
@@ -203,6 +228,8 @@ public class CompleteWorkoutEndpoint(
 
             var update = Builders<TrainingCompletion>.Update
                 .Set(c => c.CompletedExerciseIds, allExerciseIds)
+                .Set(c => c.CompletedExerciseIdsBySection, completedBySection)
+                .Set(c => c.CompletedSectionIds, allSectionIds)
                 .Set(c => c.DateUpdated, DateTime.UtcNow)
                 .Set(c => c.Version, existing.Version + 1);
 
@@ -217,6 +244,8 @@ public class CompleteWorkoutEndpoint(
                 Date = date,
                 SessionId = sessionId,
                 CompletedExerciseIds = allExerciseIds,
+                CompletedExerciseIdsBySection = completedBySection,
+                CompletedSectionIds = allSectionIds,
                 DateCreated = DateTime.UtcNow,
                 Version = 1
             };

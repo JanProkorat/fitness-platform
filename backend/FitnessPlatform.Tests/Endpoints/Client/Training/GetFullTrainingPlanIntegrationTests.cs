@@ -727,7 +727,16 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
         int Order,
         string Name,
         string? Format,
+        WodConfigResponse? FormatConfig,
+        string? Notes,
         List<ExerciseResponse> Exercises);
+
+    private record WodConfigResponse(
+        int? TimeCapSeconds,
+        int? IntervalSeconds,
+        int? TotalRounds,
+        int? WorkSeconds,
+        int? RestSeconds);
 
     private record ExerciseResponse(
         Guid ExerciseExternalId,

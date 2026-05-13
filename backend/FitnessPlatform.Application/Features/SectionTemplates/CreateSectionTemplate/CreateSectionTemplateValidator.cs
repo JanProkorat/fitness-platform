@@ -19,6 +19,10 @@ public class CreateSectionTemplateValidator : Validator<CreateSectionTemplateReq
             .NotEmpty()
             .MaximumLength(200);
 
+        RuleFor(x => x.Notes)
+            .MaximumLength(2000)
+            .When(x => !string.IsNullOrEmpty(x.Notes));
+
         // Format / FormatConfig invariants
         RuleFor(x => x.DefaultFormatConfig)
             .Null()

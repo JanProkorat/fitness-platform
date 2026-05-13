@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/cn';
 import type { WorkoutFormat, WodConfig } from '@/api/training-plan-types';
+import { FORMAT_LABEL_KEYS, FORMAT_BG_COLORS, FORMAT_COLORS } from '@/constants/training';
 
 const FORMATS: WorkoutFormat[] = ['Standard', 'EMOM', 'AMRAP', 'ForTime', 'Tabata'];
 
@@ -18,18 +19,6 @@ function defaultConfig(format: WorkoutFormat): WodConfig | null {
       return null;
   }
 }
-
-/**
- * Format-specific pill color classes (Tailwind palette — no hex literals).
- * Applied to the pill wrapper element which renders as a styled <select>.
- */
-const FORMAT_PILL_CLASSES: Record<WorkoutFormat, string> = {
-  Standard: 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200',
-  AMRAP:    'bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100',
-  EMOM:     'bg-purple-50 text-purple-700 border-purple-300 hover:bg-purple-100',
-  Tabata:   'bg-pink-50 text-pink-700 border-pink-300 hover:bg-pink-100',
-  ForTime:  'bg-orange-50 text-orange-700 border-orange-300 hover:bg-orange-100',
-};
 
 interface SectionFormatPillProps {
   format: WorkoutFormat;
@@ -60,9 +49,11 @@ export function SectionFormatPill({
         value={format}
         disabled={disabled}
         onChange={(e) => handleFormatChange(e.target.value as WorkoutFormat)}
+        style={{ background: FORMAT_BG_COLORS[format], color: FORMAT_COLORS[format] }}
         className={cn(
-          // Base pill shape
-          'inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold',
+          // Base pill shape — borderless to match the static chip style on
+          // the workouts table and exercise muscle-group chips.
+          'inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold',
           'cursor-pointer outline-none appearance-none leading-[18px] whitespace-nowrap',
           // Right padding to leave room for the chevron indicator
           'pr-[22px]',
@@ -70,13 +61,11 @@ export function SectionFormatPill({
           'transition-colors duration-100',
           // Disabled state
           disabled && 'cursor-default opacity-60',
-          // Format-specific colors
-          FORMAT_PILL_CLASSES[format],
         )}
       >
         {FORMATS.map((f) => (
           <option key={f} value={f}>
-            {t(`training.format.${f.charAt(0).toLowerCase() + f.slice(1)}`)}
+            {t(`training.format.${FORMAT_LABEL_KEYS[f]}`)}
           </option>
         ))}
       </select>

@@ -15,6 +15,9 @@ public class UpdateSectionTemplateRequest
     /// <summary>Updated display name of the template.</summary>
     public string Name { get; set; } = string.Empty;
 
+    /// <summary>Updated optional coach notes describing the workout as a whole.</summary>
+    public string? Notes { get; set; }
+
     /// <summary>Updated default workout format. Null means no format override.</summary>
     public WorkoutFormat? DefaultFormat { get; set; }
 

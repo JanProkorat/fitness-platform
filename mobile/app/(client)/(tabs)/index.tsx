@@ -177,19 +177,35 @@ export default function TodayScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true)
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['today-plan'] }),
-      queryClient.invalidateQueries({ queryKey: ['today-log'] }),
-      queryClient.invalidateQueries({ queryKey: ['today-training'] }),
-      queryClient.invalidateQueries({ queryKey: ['compliance-score'] }),
-      queryClient.invalidateQueries({ queryKey: ['nutrition-plan-full'] }),
-      queryClient.invalidateQueries({ queryKey: ['notifications'] }),
-      queryClient.invalidateQueries({ queryKey: ['client-invite'] }),
-      queryClient.invalidateQueries({ queryKey: ['pending-questionnaires'] }),
-      queryClient.invalidateQueries({ queryKey: ['current-weekly-check-ins'] }),
-      queryClient.invalidateQueries({ queryKey: ['active-diary-requests'] }),
-    ])
-    setRefreshing(false)
+    try {
+      await Promise.all([
+        // Today data
+        queryClient.invalidateQueries({ queryKey: ['today-plan'] }),
+        queryClient.invalidateQueries({ queryKey: ['today-log'] }),
+        queryClient.invalidateQueries({ queryKey: ['today-training'] }),
+        queryClient.invalidateQueries({ queryKey: ['compliance-score'] }),
+        // Full nutrition plan — two keys in use across the screen:
+        //   ['nutrition-plan-full'] drives useTodayState (pending-plan detection)
+        //   ['nutrition', 'full-plan'] drives HasTrainerState's fullPlanQuery
+        queryClient.invalidateQueries({ queryKey: ['nutrition-plan-full'] }),
+        queryClient.invalidateQueries({ queryKey: ['nutrition', 'full-plan'] }),
+        // Active plans (training pending-plan detection in useTodayState)
+        queryClient.invalidateQueries({ queryKey: ['client-plans-active'] }),
+        // Collaborations (coach/trainer name + waiting-for-plan logic)
+        queryClient.invalidateQueries({ queryKey: ['collaborations'] }),
+        // Measurements (weight trend cards)
+        queryClient.invalidateQueries({ queryKey: ['measurement-stats'] }),
+        queryClient.invalidateQueries({ queryKey: ['measurements-recent-7'] }),
+        // Notifications and banners
+        queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+        queryClient.invalidateQueries({ queryKey: ['client-invite'] }),
+        queryClient.invalidateQueries({ queryKey: ['pending-questionnaires'] }),
+        queryClient.invalidateQueries({ queryKey: ['current-weekly-check-ins'] }),
+        queryClient.invalidateQueries({ queryKey: ['active-diary-requests'] }),
+      ])
+    } finally {
+      setRefreshing(false)
+    }
   }, [queryClient])
 
   // ── Loading state ──

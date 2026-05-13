@@ -44,6 +44,13 @@ public class TrainingSection
     public WodConfig? FormatConfig { get; set; }
 
     /// <summary>
+    /// Optional coach note for this workout/section.
+    /// </summary>
+    [BsonElement("notes")]
+    [BsonIgnoreIfNull]
+    public string? Notes { get; set; }
+
+    /// <summary>
     /// Exercises in this section.
     /// </summary>
     [BsonElement("exercises")]

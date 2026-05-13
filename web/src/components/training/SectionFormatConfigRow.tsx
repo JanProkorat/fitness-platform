@@ -1,10 +1,31 @@
 import { useTranslation } from 'react-i18next';
 import type { WorkoutFormat, WodConfig } from '@/api/training-plan-types';
+import { estimatedSectionDurationSeconds, formatDurationCompact } from '@/lib/training-plan-format';
 
 interface SectionFormatConfigRowProps {
   format: WorkoutFormat;
   formatConfig?: WodConfig | null;
   onChange: (patch: Partial<WodConfig>) => void;
+}
+
+/** Right-aligned duration caption — `≈ 12 min` / `≈ 4 min 30 s` / `≈ 40 s`. */
+function DurationCaption({
+  format,
+  formatConfig,
+}: {
+  format: WorkoutFormat;
+  formatConfig?: WodConfig | null;
+}) {
+  const seconds = estimatedSectionDurationSeconds(format, formatConfig);
+  if (seconds == null || seconds <= 0) return null;
+  return (
+    <span
+      className="ml-auto text-[11px] text-text3"
+      style={{ fontWeight: 500, whiteSpace: 'nowrap' }}
+    >
+      ≈ {formatDurationCompact(seconds)}
+    </span>
+  );
 }
 
 const inputStyle: React.CSSProperties = {
@@ -92,6 +113,7 @@ export function SectionFormatConfigRow({
               }
             />
           </div>
+          <DurationCaption format={format} formatConfig={formatConfig} />
         </div>
       );
 
@@ -124,6 +146,7 @@ export function SectionFormatConfigRow({
               }
             />
           </div>
+          <DurationCaption format={format} formatConfig={formatConfig} />
         </div>
       );
 
@@ -166,6 +189,7 @@ export function SectionFormatConfigRow({
               }
             />
           </div>
+          <DurationCaption format={format} formatConfig={formatConfig} />
         </div>
       );
 
@@ -224,6 +248,7 @@ export function SectionFormatConfigRow({
               }
             />
           </div>
+          <DurationCaption format={format} formatConfig={formatConfig} />
         </div>
       );
 

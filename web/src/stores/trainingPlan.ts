@@ -13,8 +13,11 @@ import type {
   WodConfig,
 } from '@/api/training-plan-types';
 import type { SectionTemplateResponse } from '@/api/sectionTemplates';
-import { updateTrainingPlan, publishTrainingWeek } from '@/api/training-plans';
+import { updateTrainingPlan, publishTrainingWeek, getTrainingPlan } from '@/api/training-plans';
 import { showApiError, showSuccess } from '@/lib/api-errors';
+import { currentWeekNumber } from '@/lib/training-plan-dates';
+import { useToastStore } from '@/stores/toast';
+import i18n from '@/i18n';
 
 interface TrainingPlanState {
   plan: TrainingPlanDetail | null;
@@ -22,6 +25,8 @@ interface TrainingPlanState {
   isDirty: boolean;
   isSaving: boolean;
   selectedWeek: number;
+  /** IDs of session/section entities flagged by the last failed pre-save validation. */
+  invalidIds: Set<string>;
 
   setPlan: (plan: TrainingPlanDetail) => void;
   setSelectedWeek: (week: number) => void;
@@ -37,8 +42,16 @@ interface TrainingPlanState {
   // Section mutations
   addSection: (weekNumber: number, sessionId: string, format?: WorkoutFormat) => void;
   removeSection: (weekNumber: number, sessionId: string, sectionId: string) => void;
+  duplicateSection: (weekNumber: number, sessionId: string, sectionId: string) => void;
   updateSection: (weekNumber: number, sessionId: string, sectionId: string, patch: Partial<Pick<TrainingSection, 'name' | 'format' | 'formatConfig' | 'notes'>>) => void;
   reorderSections: (weekNumber: number, sessionId: string, fromIdx: number, toIdx: number) => void;
+  moveSectionToSession: (
+    weekNumber: number,
+    fromSessionId: string,
+    toSessionId: string,
+    sectionId: string,
+    toIdx: number,
+  ) => void;
   addSectionFromTemplate: (weekNumber: number, sessionId: string, template: SectionTemplateResponse) => void;
 
   // Exercise mutations (now scoped to section)
@@ -59,13 +72,13 @@ interface TrainingPlanState {
   // Set mutations (section-scoped)
   addSet: (weekNumber: number, sessionId: string, sectionId: string, exerciseIndex: number) => void;
   removeSet: (weekNumber: number, sessionId: string, sectionId: string, exerciseIndex: number, setIndex: number) => void;
+  duplicateSet: (weekNumber: number, sessionId: string, sectionId: string, exerciseIndex: number, setIndex: number) => void;
   updateSet: (weekNumber: number, sessionId: string, sectionId: string, exerciseIndex: number, setIndex: number, updates: Partial<ExerciseSet>) => void;
 
   // Exercise field mutations (section-scoped)
   updateExerciseNotes: (weekNumber: number, sessionId: string, sectionId: string, exerciseIndex: number, notes: string) => void;
   updateExerciseRestSeconds: (weekNumber: number, sessionId: string, sectionId: string, exerciseIndex: number, restSeconds: number | null) => void;
   updateExerciseMovementType: (weekNumber: number, sessionId: string, sectionId: string, exerciseIndex: number, movementType: MovementType) => void;
-  updateExerciseFormat: (weekNumber: number, sessionId: string, sectionId: string, exerciseIndex: number, format: WorkoutFormat | null, formatConfig?: WodConfig | null) => void;
 
   // Session format mutations (session-level inheritable default)
   updateSessionFormat: (weekNumber: number, sessionId: string, format: WorkoutFormat, formatConfig?: WodConfig | null) => void;
@@ -90,6 +103,13 @@ interface TrainingPlanState {
   // Persistence
   save: () => Promise<void>;
   publishWeek: (weekNumber: number) => Promise<void>;
+  /**
+   * Re-fetch the current plan from the server and overwrite **only**
+   * `completions` on both `plan` and `originalPlan`. Used by the SignalR
+   * `trainingprogressupdated` listener so the editor reacts in real time
+   * to client-side completions without clobbering unsaved trainer edits.
+   */
+  refreshCompletions: () => Promise<void>;
 }
 
 function updateSession(
@@ -124,6 +144,30 @@ function patchSection(
   });
 }
 
+/**
+ * Collapse an exercise to a single set with no rest — the WOD round prescription.
+ * Used when a section's format flips Standard → non-Standard.
+ * No-op when the exercise already has 0 or 1 sets and no rest.
+ */
+function pruneToSingleSet(ex: SessionExercise): SessionExercise {
+  if (ex.sets.length === 0) return ex;
+  const [first] = ex.sets;
+  if (ex.sets.length === 1 && first.restSeconds == null) return ex;
+  return { ...ex, sets: [{ ...first, restSeconds: null }] };
+}
+
+/**
+ * After a section format change, prune every exercise to a single (no-rest) set
+ * when the new format is non-Standard.
+ */
+function pruneSectionExercisesIfNonStandard(
+  exercises: SessionExercise[],
+  sectionFormat: WorkoutFormat,
+): SessionExercise[] {
+  if (sectionFormat === 'Standard') return exercises;
+  return exercises.map(pruneToSingleSet);
+}
+
 /** Create a default single-set exercise from a search result. */
 function makeNewExercise(exercise: { exerciseExternalId: string; exerciseName: string }, order: number): SessionExercise {
   return {
@@ -144,6 +188,7 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
   isDirty: false,
   isSaving: false,
   selectedWeek: 1,
+  invalidIds: new Set(),
 
   setPlan: (rawPlan) => {
     // Normalize exercises helper — fills in defaults for pre-sections legacy exercises.
@@ -228,7 +273,14 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
         }),
       })),
     };
-    set({ plan, originalPlan: structuredClone(plan), isDirty: false, selectedWeek: 1 });
+    // Default the selected week to whichever week contains today, falling back
+    // to week 1 when the plan has no startDate or is wholly in the future / past.
+    set({
+      plan,
+      originalPlan: structuredClone(plan),
+      isDirty: false,
+      selectedWeek: currentWeekNumber(plan),
+    });
   },
   setSelectedWeek: (week) => set({ selectedWeek: week }),
   revert: () => {
@@ -243,7 +295,7 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
     const defaultSection: TrainingSection = {
       sectionId: crypto.randomUUID(),
       order: 0,
-      name: 'Hlavní',
+      name: '',
       format: 'Standard',
       formatConfig: null,
       notes: null,
@@ -368,10 +420,48 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
     });
   },
 
+  duplicateSection: (weekNumber, sessionId, sectionId) => {
+    const { plan } = get();
+    if (!plan) return;
+    set({
+      plan: updateSession(plan, weekNumber, sessionId, (s) => {
+        const sourceIdx = s.sections.findIndex((sec) => sec.sectionId === sectionId);
+        if (sourceIdx === -1) return s;
+        const source = s.sections[sourceIdx];
+        const clone: TrainingSection = {
+          ...source,
+          sectionId: crypto.randomUUID(),
+          exercises: source.exercises.map((ex) => ({
+            ...ex,
+            sets: ex.sets.map((st) => ({ ...st })),
+          })),
+        };
+        const sections = [
+          ...s.sections.slice(0, sourceIdx + 1),
+          clone,
+          ...s.sections.slice(sourceIdx + 1),
+        ].map((sec, i) => ({ ...sec, order: i }));
+        return { ...s, sections, exercises: sections.flatMap((sec) => sec.exercises) };
+      }),
+      isDirty: true,
+    });
+  },
+
   updateSection: (weekNumber, sessionId, sectionId, patch) => {
     const { plan } = get();
     if (!plan) return;
-    set({ plan: patchSection(plan, weekNumber, sessionId, sectionId, (sec) => ({ ...sec, ...patch })), isDirty: true });
+    set({
+      plan: patchSection(plan, weekNumber, sessionId, sectionId, (sec) => {
+        const next = { ...sec, ...patch };
+        // If the section format flips to non-Standard, collapse every exercise
+        // to a single (no-rest) set — its WOD round prescription.
+        if (patch.format !== undefined && patch.format !== sec.format) {
+          next.exercises = pruneSectionExercisesIfNonStandard(next.exercises, next.format);
+        }
+        return next;
+      }),
+      isDirty: true,
+    });
   },
 
   reorderSections: (weekNumber, sessionId, fromIdx, toIdx) => {
@@ -385,6 +475,49 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
         const reordered = sections.map((sec, i) => ({ ...sec, order: i }));
         return { ...s, sections: reordered, exercises: reordered.flatMap((sec) => sec.exercises) };
       }),
+      isDirty: true,
+    });
+  },
+
+  moveSectionToSession: (weekNumber, fromSessionId, toSessionId, sectionId, toIdx) => {
+    const { plan } = get();
+    if (!plan) return;
+    if (fromSessionId === toSessionId) return;
+
+    // Locate the source section
+    const week = plan.weeks.find((w) => w.weekNumber === weekNumber);
+    if (!week) return;
+    const fromSession = week.sessions.find((s) => s.sessionId === fromSessionId);
+    if (!fromSession) return;
+    const moved = fromSession.sections.find((sec) => sec.sectionId === sectionId);
+    if (!moved) return;
+
+    set({
+      plan: {
+        ...plan,
+        weeks: plan.weeks.map((w) => {
+          if (w.weekNumber !== weekNumber) return w;
+          return {
+            ...w,
+            sessions: w.sessions.map((s) => {
+              if (s.sessionId === fromSessionId) {
+                const sections = s.sections
+                  .filter((sec) => sec.sectionId !== sectionId)
+                  .map((sec, i) => ({ ...sec, order: i }));
+                return { ...s, sections, exercises: sections.flatMap((sec) => sec.exercises) };
+              }
+              if (s.sessionId === toSessionId) {
+                const sections = [...s.sections];
+                const insertAt = Math.max(0, Math.min(toIdx, sections.length));
+                sections.splice(insertAt, 0, moved);
+                const reordered = sections.map((sec, i) => ({ ...sec, order: i }));
+                return { ...s, sections: reordered, exercises: reordered.flatMap((sec) => sec.exercises) };
+              }
+              return s;
+            }),
+          };
+        }),
+      },
       isDirty: true,
     });
   },
@@ -656,6 +789,26 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
     });
   },
 
+  duplicateSet: (weekNumber, sessionId, sectionId, exerciseIndex, setIndex) => {
+    const { plan } = get();
+    if (!plan) return;
+    set({
+      plan: patchSection(plan, weekNumber, sessionId, sectionId, (sec) => ({
+        ...sec,
+        exercises: sec.exercises.map((e, i) => {
+          if (i !== exerciseIndex) return e;
+          const source = e.sets[setIndex];
+          if (!source) return e;
+          const clone: ExerciseSet = { ...source };
+          const next = [...e.sets.slice(0, setIndex + 1), clone, ...e.sets.slice(setIndex + 1)]
+            .map((st, si) => ({ ...st, setNumber: si + 1 }));
+          return { ...e, sets: next };
+        }),
+      })),
+      isDirty: true,
+    });
+  },
+
   updateSet: (weekNumber, sessionId, sectionId, exerciseIndex, setIndex, updates) => {
     const { plan } = get();
     if (!plan) return;
@@ -703,22 +856,6 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
       plan: patchSection(plan, weekNumber, sessionId, sectionId, (sec) => ({
         ...sec,
         exercises: sec.exercises.map((e, i) => (i === exerciseIndex ? { ...e, movementType } : e)),
-      })),
-      isDirty: true,
-    });
-  },
-
-  updateExerciseFormat: (weekNumber, sessionId, sectionId, exerciseIndex, format, formatConfig) => {
-    const { plan } = get();
-    if (!plan) return;
-    set({
-      plan: patchSection(plan, weekNumber, sessionId, sectionId, (sec) => ({
-        ...sec,
-        exercises: sec.exercises.map((e, i) =>
-          i === exerciseIndex
-            ? { ...e, format: format ?? null, formatConfig: formatConfig ?? null }
-            : e,
-        ),
       })),
       isDirty: true,
     });
@@ -1019,7 +1156,95 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
     const { plan } = get();
     if (!plan) return;
 
-    set({ isSaving: true });
+    // Pre-save validation — surface field-level issues with toast lines and
+    // mark the offending IDs so cards can highlight themselves.
+    const issues: string[] = [];
+    const invalidIds = new Set<string>();
+    for (const w of plan.weeks) {
+      for (const s of w.sessions) {
+        if (!s.name?.trim()) {
+          invalidIds.add(s.sessionId);
+          issues.push(
+            i18n.t('training.validation.sessionMissingName', { week: w.weekNumber }),
+          );
+        }
+        for (const sec of s.sections) {
+          if (!sec.name?.trim()) {
+            invalidIds.add(sec.sectionId);
+            issues.push(
+              i18n.t('training.validation.workoutMissingName', {
+                session: s.name?.trim() || i18n.t('training.untitledSession'),
+              }),
+            );
+          }
+          // ForTime sections legitimately have no exercises (the workout IS the time cap).
+          if (sec.format !== 'ForTime' && sec.exercises.length === 0) {
+            invalidIds.add(sec.sectionId);
+            issues.push(
+              i18n.t('training.validation.workoutNoExercises', {
+                workout: sec.name?.trim() || i18n.t('training.untitledWorkout'),
+              }),
+            );
+          }
+
+          // Per-exercise/set requirements per format:
+          //   Standard          → every set needs reps + rest (weight stays optional)
+          //   EMOM / AMRAP / ForTime → first set needs reps
+          //   Tabata            → no required fields
+          for (const ex of sec.exercises) {
+            const workoutLabel = sec.name?.trim() || i18n.t('training.untitledWorkout');
+            const exerciseLabel = ex.exerciseName || i18n.t('training.unnamedExercise');
+            if (ex.sets.length === 0) {
+              invalidIds.add(sec.sectionId);
+              issues.push(
+                i18n.t('training.validation.exerciseNoSets', {
+                  workout: workoutLabel,
+                  exercise: exerciseLabel,
+                }),
+              );
+              continue;
+            }
+            if (sec.format === 'Standard') {
+              const allFilled = ex.sets.every(
+                (st) => st.reps != null && st.restSeconds != null,
+              );
+              if (!allFilled) {
+                invalidIds.add(sec.sectionId);
+                issues.push(
+                  i18n.t('training.validation.exerciseSetMissing', {
+                    workout: workoutLabel,
+                    exercise: exerciseLabel,
+                  }),
+                );
+              }
+            } else if (sec.format !== 'Tabata') {
+              // EMOM / AMRAP / ForTime — first set's reps required.
+              if (ex.sets[0].reps == null) {
+                invalidIds.add(sec.sectionId);
+                issues.push(
+                  i18n.t('training.validation.exerciseRepsMissing', {
+                    workout: workoutLabel,
+                    exercise: exerciseLabel,
+                  }),
+                );
+              }
+            }
+          }
+        }
+      }
+    }
+    if (issues.length > 0) {
+      set({ invalidIds });
+      const headline = i18n.t('training.validation.headline');
+      // Show up to 5 distinct lines so the toast doesn't grow indefinitely.
+      const lines = Array.from(new Set(issues)).slice(0, 5);
+      const more = issues.length > lines.length
+        ? '\n' + i18n.t('training.validation.andMore', { count: issues.length - lines.length })
+        : '';
+      useToastStore.getState().addToast(`${headline}\n${lines.join('\n')}${more}`, 'error');
+      return;
+    }
+    set({ invalidIds: new Set(), isSaving: true });
     try {
       const request: UpdateTrainingPlanRequest = {
         name: plan.name,
@@ -1044,6 +1269,7 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
               name: sec.name,
               format: sec.format,
               formatConfig: sec.formatConfig,
+              notes: sec.notes,
               exercises: sec.exercises.map((e) => ({
                 exerciseExternalId: e.exerciseExternalId,
                 exerciseName: e.exerciseName,
@@ -1051,8 +1277,9 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
                 notes: e.notes,
                 restSeconds: e.restSeconds,
                 movementType: e.movementType,
-                format: e.format,
-                formatConfig: e.formatConfig,
+                // Per-exercise format override is removed from the editor; always null on save.
+                format: null,
+                formatConfig: null,
                 sets: e.sets.map((st) => ({
                   setNumber: st.setNumber,
                   type: st.type,
@@ -1099,6 +1326,26 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
       showApiError(err, 'training.publishError');
     } finally {
       set({ isSaving: false });
+    }
+  },
+
+  refreshCompletions: async () => {
+    const { plan } = get();
+    if (!plan) return;
+    try {
+      const fresh = await getTrainingPlan(plan.planId);
+      const completions = fresh.completions ?? [];
+      set((state) => ({
+        plan: state.plan ? { ...state.plan, completions } : state.plan,
+        // originalPlan tracks server-state too, so it must move with the
+        // freshly fetched completions — otherwise revert() would surface
+        // stale completion data.
+        originalPlan: state.originalPlan
+          ? { ...state.originalPlan, completions }
+          : state.originalPlan,
+      }));
+    } catch {
+      // Non-critical — UI will catch up on the next manual save / load.
     }
   },
 }));

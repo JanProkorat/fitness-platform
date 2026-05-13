@@ -120,6 +120,35 @@ export interface TrainingWeek {
   dayNotes?: Record<number, string> | null;
 }
 
+/**
+ * One completion record produced by the mobile client when the user marks
+ * exercises complete. Surfaces (date, session, completed-exerciseIds) tuples
+ * so the trainer editor can lock fields the client has already finished.
+ */
+export interface TrainingPlanCompletion {
+  /** Calendar date the completion applies to (ISO yyyy-mm-dd). */
+  date: string;
+  sessionId: string;
+  /**
+   * @deprecated Use `completedExerciseIdsBySection` instead. Kept for one
+   * release while the backend emits both fields. When `completedExerciseIdsBySection`
+   * is present, this flat list is ignored by lock derivation.
+   */
+  completedExerciseIds: string[];
+  /**
+   * Per-section completion map: key = sectionId, value = exerciseExternalIds
+   * completed within that section. Prefer this over the deprecated flat
+   * `completedExerciseIds` field.
+   */
+  completedExerciseIdsBySection?: Record<string, string[]>;
+  /**
+   * Section IDs the client has marked done at the section level (used for
+   * sections without exercises, e.g. ForTime "Running" workouts).
+   */
+  completedSectionIds: string[];
+  version: number;
+}
+
 /** Full training plan detail. */
 export interface TrainingPlanDetail {
   planId: string;
@@ -129,6 +158,8 @@ export interface TrainingPlanDetail {
   description?: string | null;
   status: 'Draft' | 'Active' | 'Completed' | 'Archived';
   weeks: TrainingWeek[];
+  /** Per-(date,session) completion records — one entry per (date, sessionId). */
+  completions?: TrainingPlanCompletion[];
   version: number;
   dateCreated: string;
   dateUpdated?: string | null;
@@ -199,6 +230,8 @@ export interface UpdateSectionRequest {
   format?: WorkoutFormat | null;
   /** Format configuration. Null when format is null or Standard. */
   formatConfig?: WodConfig | null;
+  /** Optional coach note for this workout/section. */
+  notes?: string | null;
   /** Exercises belonging to this section. */
   exercises: UpdateSessionExerciseRequest[];
 }

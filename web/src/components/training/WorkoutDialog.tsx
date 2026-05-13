@@ -276,7 +276,31 @@ export function WorkoutDialog({ open, template, onClose, onSaved }: WorkoutDialo
         return true;
     }
   })();
-  const canSave = name.trim() !== '' && formatConfigReady && exercises.length > 0;
+  // Per-exercise set requirements depend on the format:
+  //   Standard          → every set needs reps + rest (weight stays optional —
+  //                       bodyweight exercises legitimately have none).
+  //   EMOM/AMRAP        → single round, reps required (weight optional).
+  //   Tabata            → no required fields (each interval is for time;
+  //                       reps don't apply, weight is optional).
+  //   ForTime           → single round, reps required.
+  const exerciseSetsReady = exercises.every((row) => {
+    if (row.sets.length === 0) return false;
+    if (format === 'Standard') {
+      return row.sets.every((s) => s.reps !== '' && s.restSeconds !== '');
+    }
+    if (format === 'Tabata') {
+      return true;
+    }
+    return row.sets[0].reps !== '';
+  });
+  // ForTime workouts can stand on their own (e.g. "Running" with just a time
+  // cap) — no exercises required. All other formats need at least one.
+  const exercisesRequirementMet = format === 'ForTime' || exercises.length > 0;
+  const canSave =
+    name.trim() !== '' &&
+    formatConfigReady &&
+    exercisesRequirementMet &&
+    exerciseSetsReady;
 
   return (
     <>
@@ -581,23 +605,26 @@ export function WorkoutDialog({ open, template, onClose, onSaved }: WorkoutDialo
                           ) : (
                             <div className="px-2.5 py-1.5">
                               <div className="flex flex-wrap items-center gap-3">
-                                <span className="inline-flex items-center gap-1.5">
-                                  <span className="text-[11px] font-medium uppercase text-text3">
-                                    {t('training.repsLabel')}
+                                {/* Reps — hidden for Tabata (each work interval is for time, not a rep target). */}
+                                {format !== 'Tabata' && (
+                                  <span className="inline-flex items-center gap-1.5">
+                                    <span className="text-[11px] font-medium uppercase text-text3">
+                                      {t('training.repsLabel')}
+                                    </span>
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      step={1}
+                                      value={row.sets[0]?.reps ?? ''}
+                                      onChange={(e) =>
+                                        updateSet(exIdx, 0, {
+                                          reps: e.target.value === '' ? '' : Number(e.target.value),
+                                        })
+                                      }
+                                      className="w-16 rounded border border-border bg-bg px-1.5 py-0.5 text-center text-[13px] text-text outline-none focus:border-border-hv"
+                                    />
                                   </span>
-                                  <input
-                                    type="number"
-                                    min={0}
-                                    step={1}
-                                    value={row.sets[0]?.reps ?? ''}
-                                    onChange={(e) =>
-                                      updateSet(exIdx, 0, {
-                                        reps: e.target.value === '' ? '' : Number(e.target.value),
-                                      })
-                                    }
-                                    className="w-16 rounded border border-border bg-bg px-1.5 py-0.5 text-center text-[13px] text-text outline-none focus:border-border-hv"
-                                  />
-                                </span>
+                                )}
                                 <span className="inline-flex items-center gap-1.5">
                                   <span className="text-[11px] font-medium uppercase text-text3">
                                     {t('training.weightLabel')}

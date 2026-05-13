@@ -4,6 +4,10 @@ import type {
   MarkExerciseCompleteResponse,
   MarkExerciseIncompleteRequest,
   MarkExerciseIncompleteResponse,
+  MarkSectionCompleteRequest,
+  MarkSectionCompleteResponse,
+  MarkSectionIncompleteRequest,
+  MarkSectionIncompleteResponse,
   MarkSessionCompleteRequest,
   MarkSessionCompleteResponse,
   MarkSessionIncompleteRequest,
@@ -21,6 +25,10 @@ export type {
   MarkExerciseCompleteResponse,
   MarkExerciseIncompleteRequest,
   MarkExerciseIncompleteResponse,
+  MarkSectionCompleteRequest,
+  MarkSectionCompleteResponse,
+  MarkSectionIncompleteRequest,
+  MarkSectionIncompleteResponse,
   MarkSessionCompleteRequest,
   MarkSessionCompleteResponse,
   MarkSessionIncompleteRequest,
@@ -37,12 +45,14 @@ export type { WodResult };
 
 /**
  * Mark a single exercise within a session as complete.
+ * `sectionId` is required to identify which section instance of a catalog
+ * exercise is being marked, preventing cross-section completion bleed.
  * Idempotent — re-completing an already-complete exercise returns success.
  */
 export async function markExerciseComplete(
   sessionId: string,
   exerciseExternalId: string,
-  request: MarkExerciseCompleteRequest = {},
+  request: MarkExerciseCompleteRequest,
 ): Promise<MarkExerciseCompleteResponse> {
   const { data } = await api.post<MarkExerciseCompleteResponse>(
     `/client/training/sessions/${sessionId}/exercises/${exerciseExternalId}/complete`,
@@ -53,15 +63,52 @@ export async function markExerciseComplete(
 
 /**
  * Remove the completion mark for a single exercise within a session.
+ * `sectionId` is required to identify which section instance is being
+ * un-marked, leaving other sections' completion state for the same catalog
+ * exercise untouched.
  * Idempotent — if the exercise is already not marked complete, returns success.
  */
 export async function markExerciseIncomplete(
   sessionId: string,
   exerciseExternalId: string,
-  request: MarkExerciseIncompleteRequest = {},
+  request: MarkExerciseIncompleteRequest,
 ): Promise<MarkExerciseIncompleteResponse> {
   const { data } = await api.delete<MarkExerciseIncompleteResponse>(
     `/client/training/sessions/${sessionId}/exercises/${exerciseExternalId}/complete`,
+    { data: request },
+  );
+  return data;
+}
+
+/**
+ * Mark a single section (workout) within a session as complete.
+ * Used for sections that don't track at the exercise level — typically
+ * ForTime workouts that are just a name + time cap (e.g. "Running").
+ * Idempotent.
+ */
+export async function markSectionComplete(
+  sessionId: string,
+  sectionId: string,
+  request: MarkSectionCompleteRequest = {},
+): Promise<MarkSectionCompleteResponse> {
+  const { data } = await api.post<MarkSectionCompleteResponse>(
+    `/client/training/sessions/${sessionId}/sections/${sectionId}/complete`,
+    request,
+  );
+  return data;
+}
+
+/**
+ * Remove the completion mark for a single section within a session.
+ * Idempotent.
+ */
+export async function markSectionIncomplete(
+  sessionId: string,
+  sectionId: string,
+  request: MarkSectionIncompleteRequest = {},
+): Promise<MarkSectionIncompleteResponse> {
+  const { data } = await api.delete<MarkSectionIncompleteResponse>(
+    `/client/training/sessions/${sessionId}/sections/${sectionId}/complete`,
     { data: request },
   );
   return data;

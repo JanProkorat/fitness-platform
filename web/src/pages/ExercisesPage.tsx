@@ -6,38 +6,35 @@ import type { CreateExerciseRequest, ExerciseSummary, MuscleGroup, ExerciseEquip
 import { showApiError, showSuccess } from '@/lib/api-errors';
 import { useApiMutation } from '@/hooks/useApiMutation';
 import { useConfirmDelete } from '@/hooks/useConfirmDelete';
-import { PageHeader } from '@/components/layout';
-import { Button, Dialog } from '@/components/ui';
-import { Pagination } from '@/components/data';
+import { PageHeader, Toolbar } from '@/components/layout';
+import type { ToolbarView } from '@/components/layout';
+import { Button, Dialog, SearchInput } from '@/components/ui';
+import { Pagination, ListView, CardGrid, Card, CardBody, CardPropRow, DatabaseTable } from '@/components/data';
 import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
 import { INPUT_CLASS } from '@/lib/styles';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
-
-const muscleGroupColors: Record<string, string> = {
-  Chest: 'bg-red-500/15 text-red-400',
-  Back: 'bg-blue-500/15 text-blue-400',
-  Shoulders: 'bg-orange-500/15 text-orange-400',
-  Biceps: 'bg-purple-500/15 text-purple-400',
-  Triceps: 'bg-pink-500/15 text-pink-400',
-  Quadriceps: 'bg-green-500/15 text-green-400',
-  Hamstrings: 'bg-emerald-500/15 text-emerald-400',
-  Glutes: 'bg-teal-500/15 text-teal-400',
-  Abs: 'bg-yellow-500/15 text-yellow-400',
-  Cardio: 'bg-cyan-500/15 text-cyan-400',
-};
+import { MUSCLE_BG_COLORS, MUSCLE_COLORS } from '@/constants/training';
 
 const allMuscleGroups: MuscleGroup[] = ['Chest', 'Back', 'Shoulders', 'Biceps', 'Triceps', 'Forearms', 'Quadriceps', 'Hamstrings', 'Glutes', 'Calves', 'Abs', 'Obliques', 'LowerBack', 'Traps', 'FullBody'];
 const allEquipment: ExerciseEquipment[] = ['None', 'Dumbbells', 'Barbell', 'Machine', 'TRX', 'Kettlebell', 'Bodyweight'];
 const allCategories: ExerciseCategory[] = ['Strength', 'Cardio', 'Mobility', 'Technique', 'Warmup'];
 const allDifficulties: ExerciseDifficulty[] = ['Beginner', 'Intermediate', 'Advanced'];
 
-const filterClass = 'rounded-sm border border-border bg-bg2 px-3 py-2 text-sm text-text outline-none';
+const filterClass = 'rounded-md border border-border-md bg-bg px-3 py-[6px] text-[13px] text-text outline-none transition-colors focus:border-border-hv';
 
 export default function ExercisesPage() {
   const { t } = useTranslation();
 
   const sortedByLabel = <T extends string>(items: T[], prefix: string): T[] =>
     [...items].sort((a, b) => t(`${prefix}.${a}`).localeCompare(t(`${prefix}.${b}`)));
+
+  type ViewType = 'table' | 'list' | 'cards';
+  const [view, setView] = useState<ViewType>('table');
+  const VIEWS: ToolbarView[] = [
+    { id: 'table', label: t('common.viewTable'), icon: '⊞' },
+    { id: 'list',  label: t('common.viewList'),  icon: '☰' },
+    { id: 'cards', label: t('common.viewCards'), icon: '⬜' },
+  ];
 
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -157,26 +154,19 @@ export default function ExercisesPage() {
         }
       />
 
-      <div className="flex-1 overflow-y-auto p-6">
-        {/* Search / filter bar */}
-        <div className="mb-4 flex flex-wrap gap-3">
-          <div className="relative flex-1">
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={t('exercises.search')}
-              className="w-full rounded-md border border-border-md bg-bg px-4 py-2.5 pl-10 text-sm text-text outline-none transition-colors placeholder:text-text3 focus:border-border-hv"
-            />
-            <svg
-              className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text3"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
+      <Toolbar
+        views={VIEWS}
+        activeView={view}
+        onViewChange={(id) => setView(id as ViewType)}
+        className="px-6 py-1.5"
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <SearchInput
+            placeholder={t('exercises.search')}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-[240px]"
+          />
           <select value={muscleGroup} onChange={(e) => { setMuscleGroup(e.target.value); setPage(1); }} className={filterClass}>
             <option value="">{t('exercises.allMuscleGroups')}</option>
             {sortedByLabel(allMuscleGroups, 'enums.muscleGroup').map((mg) => <option key={mg} value={mg}>{t(`enums.muscleGroup.${mg}`)}</option>)}
@@ -194,71 +184,183 @@ export default function ExercisesPage() {
             {sortedByLabel(allDifficulties, 'enums.difficulty').map((d) => <option key={d} value={d}>{t(`enums.difficulty.${d}`)}</option>)}
           </select>
         </div>
+      </Toolbar>
 
-        {/* Exercises table */}
-        <div className="rounded-sm border border-border bg-bg2">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-20 text-text3">
-              {t('common.loading')}
-            </div>
-          ) : !data?.exercises?.length ? (
-            <div className="flex flex-col items-center justify-center py-20 text-text3">
-              <span className="text-4xl">&#x1F3CB;</span>
-              <p className="mt-3 text-sm">{t('exercises.noExercises')}</p>
-              <p className="mt-1 text-xs text-text3">{t('exercises.noExercisesHint')}</p>
-            </div>
-          ) : (
-            <>
-              {/* Table header */}
-              <div className="grid grid-cols-[1fr_180px_100px_100px_100px_60px] gap-4 border-b border-border px-5 py-3">
-                <span className="lbl">{t('exercises.exerciseName')}</span>
-                <span className="lbl">{t('exercises.muscleGroups')}</span>
-                <span className="lbl">{t('exercises.equipment')}</span>
-                <span className="lbl">{t('exercises.category')}</span>
-                <span className="lbl">{t('exercises.difficulty')}</span>
-                <span className="lbl" />
-              </div>
-
-              {/* Rows */}
-              {data.exercises.map((exercise) => (
-                <div
-                  key={exercise.exerciseId}
-                  onClick={() => openEditDialog(exercise)}
-                  className="grid grid-cols-[1fr_180px_100px_100px_100px_60px] cursor-pointer items-center gap-4 border-b border-border px-5 py-3 transition-colors last:border-0 hover:bg-bg-hover"
-                >
-                  <span className="truncate text-sm font-semibold">{exercise.name}</span>
-                  <div className="flex flex-wrap gap-1">
-                    {exercise.muscleGroups?.map((mg) => (
+      <div className="flex-1 overflow-y-auto">
+        <div className="px-6 py-3">
+        {/* Exercises content — branches on view (table / list / cards) */}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-20 text-text3">
+            {t('common.loading')}
+          </div>
+        ) : !data?.exercises?.length ? (
+          <div className="flex flex-col items-center justify-center py-20 text-text3">
+            <span className="text-4xl">&#x1F3CB;</span>
+            <p className="mt-3 text-sm">{t('exercises.noExercises')}</p>
+            <p className="mt-1 text-xs text-text3">{t('exercises.noExercisesHint')}</p>
+          </div>
+        ) : view === 'table' ? (
+          <>
+            <DatabaseTable
+              columns={[
+                {
+                  key: 'icon', label: '', width: '52px',
+                  render: () => (
+                    <div className="h-10 w-10 rounded-sm bg-bg3 flex items-center justify-center text-sm shrink-0" aria-hidden="true">
+                      🏋️
+                    </div>
+                  ),
+                },
+                { key: 'name', label: t('exercises.exerciseName'), render: (ex) => ex.name },
+                {
+                  key: 'muscleGroups', label: t('exercises.muscleGroups'), width: '180px',
+                  render: (ex) => (
+                    <div className="flex flex-wrap gap-1">
+                      {ex.muscleGroups?.map((mg) => (
+                        <span
+                          key={mg}
+                          className="inline-flex rounded-sm px-1.5 py-[1px] text-[10px] font-semibold"
+                          style={{ background: MUSCLE_BG_COLORS[mg] ?? 'var(--bg3)', color: MUSCLE_COLORS[mg] ?? 'var(--text3)' }}
+                        >
+                          {t(`enums.muscleGroup.${mg}`)}
+                        </span>
+                      ))}
+                    </div>
+                  ),
+                },
+                {
+                  key: 'equipment', label: t('exercises.equipment'), width: '110px',
+                  render: (ex) => <span className="text-text3">{ex.equipment ? t(`enums.equipment.${ex.equipment}`) : '—'}</span>,
+                },
+                {
+                  key: 'category', label: t('exercises.category'), width: '110px',
+                  render: (ex) => <span className="text-text3">{ex.category ? t(`enums.category.${ex.category}`) : '—'}</span>,
+                },
+                {
+                  key: 'difficulty', label: t('exercises.difficulty'), width: '110px',
+                  render: (ex) => <span className="text-text3">{ex.difficulty ? t(`enums.difficulty.${ex.difficulty}`) : '—'}</span>,
+                },
+              ]}
+              rows={data.exercises}
+              rowKey={(ex) => ex.exerciseId}
+              onRowClick={(ex) => openEditDialog(ex)}
+              renderRowActions={(ex) =>
+                ex.isCustom ? (
+                  <button
+                    onClick={(e) => handleDeleteClick(e, ex)}
+                    disabled={deleteMutation.isPending}
+                    title={t('common.delete')}
+                    className="rounded-sm p-1 text-text3 transition-colors hover:text-red disabled:cursor-not-allowed disabled:opacity-30"
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                ) : null
+              }
+            />
+            <Pagination page={page} totalPages={totalPages} totalCount={data.totalCount} onPageChange={setPage} className="mt-3" />
+          </>
+        ) : view === 'list' ? (
+          <>
+            <ListView
+              items={data.exercises}
+              itemKey={(ex) => ex.exerciseId}
+              onItemClick={(ex) => openEditDialog(ex)}
+              renderAvatar={() => (
+                <div className="w-10 h-10 rounded-sm flex items-center justify-center text-sm shrink-0" style={{ background: 'var(--accent-bg)', color: 'var(--accent)' }}>
+                  🏋️
+                </div>
+              )}
+              renderInfo={(ex) => (
+                <div>
+                  <div className="text-[13px] font-medium text-text truncate">{ex.name}</div>
+                  <div className="mt-0.5 flex flex-wrap gap-1">
+                    {ex.muscleGroups?.map((mg) => (
                       <span
                         key={mg}
-                        className={`inline-flex rounded-sm px-1.5 py-0.5 text-[10px] font-semibold ${muscleGroupColors[mg] ?? 'bg-bg3 text-text3'}`}
+                        className="inline-flex rounded-sm px-1.5 py-[1px] text-[10px] font-semibold"
+                        style={{ background: MUSCLE_BG_COLORS[mg] ?? 'var(--bg3)', color: MUSCLE_COLORS[mg] ?? 'var(--text3)' }}
                       >
                         {t(`enums.muscleGroup.${mg}`)}
                       </span>
                     ))}
                   </div>
-                  <span className="text-sm text-text2">{exercise.equipment ? t(`enums.equipment.${exercise.equipment}`) : '-'}</span>
-                  <span className="text-sm text-text2">{exercise.category ? t(`enums.category.${exercise.category}`) : '-'}</span>
-                  <span className="text-sm text-text2">{exercise.difficulty ? t(`enums.difficulty.${exercise.difficulty}`) : '-'}</span>
-                  <div className="text-center">
-                    {exercise.isCustom && (
-                      <button
-                        onClick={(e) => handleDeleteClick(e, exercise)}
-                        disabled={deleteMutation.isPending}
-                        className="rounded-sm p-1 text-text3 transition-colors hover:text-red disabled:opacity-30"
-                      >
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    )}
-                  </div>
                 </div>
+              )}
+              renderRight={(ex) => (
+                <>
+                  {ex.equipment && <span className="text-[11px] text-text3">{t(`enums.equipment.${ex.equipment}`)}</span>}
+                  {ex.difficulty && <span className="text-[11px] text-text3">· {t(`enums.difficulty.${ex.difficulty}`)}</span>}
+                </>
+              )}
+              renderActions={(ex) =>
+                ex.isCustom ? (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDeleteClick(e, ex); }}
+                    className="rounded-sm p-1 text-text3 transition-colors hover:text-red"
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                ) : null
+              }
+            />
+            <Pagination page={page} totalPages={totalPages} totalCount={data.totalCount} onPageChange={setPage} className="mt-3" />
+          </>
+        ) : (
+          <>
+            <CardGrid>
+              {data.exercises.map((ex) => (
+                <Card key={ex.exerciseId} onClick={() => openEditDialog(ex)}>
+                  {/* Tall cover area with emoji + name overlay */}
+                  <div className="relative h-40 w-full overflow-hidden rounded-t-md bg-bg3">
+                    <div className="absolute inset-0 flex items-center justify-center text-4xl opacity-40">
+                      🏋️
+                    </div>
+                    {/* Difficulty chip — top-right */}
+                    {ex.difficulty && (
+                      <div className="absolute top-2 right-2 inline-flex items-center rounded-full bg-white/85 backdrop-blur-sm shadow-sm px-2 py-0.5 text-[11px] font-medium text-text">
+                        {t(`enums.difficulty.${ex.difficulty}`)}
+                      </div>
+                    )}
+                    {/* Gradient + name overlay */}
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/55 to-transparent px-3 pb-2 pt-10">
+                      <div className="truncate text-[13px] font-bold text-white leading-tight [text-shadow:_0_1px_2px_rgba(0,0,0,0.6)]">
+                        {ex.name}
+                      </div>
+                    </div>
+                  </div>
+                  <CardBody>
+                    <div className="mb-1.5 flex flex-wrap gap-1">
+                      {ex.muscleGroups?.map((mg) => (
+                        <span
+                          key={mg}
+                          className="inline-flex rounded-sm px-1.5 py-[1px] text-[10px] font-semibold"
+                          style={{ background: MUSCLE_BG_COLORS[mg] ?? 'var(--bg3)', color: MUSCLE_COLORS[mg] ?? 'var(--text3)' }}
+                        >
+                          {t(`enums.muscleGroup.${mg}`)}
+                        </span>
+                      ))}
+                    </div>
+                    {ex.equipment && (
+                      <CardPropRow label={t('exercises.equipment')}>
+                        {t(`enums.equipment.${ex.equipment}`)}
+                      </CardPropRow>
+                    )}
+                    {ex.category && (
+                      <CardPropRow label={t('exercises.category')}>
+                        {t(`enums.category.${ex.category}`)}
+                      </CardPropRow>
+                    )}
+                  </CardBody>
+                </Card>
               ))}
-
-              <Pagination page={page} totalPages={totalPages} totalCount={data.totalCount} onPageChange={setPage} className="border-t border-border px-5 py-3" />
-            </>
-          )}
+            </CardGrid>
+            <Pagination page={page} totalPages={totalPages} totalCount={data.totalCount} onPageChange={setPage} className="mt-3" />
+          </>
+        )}
         </div>
       </div>
 

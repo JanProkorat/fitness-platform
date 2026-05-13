@@ -7,10 +7,10 @@ import type {
 
 export type { SectionTemplateResponse, CreateSectionTemplateRequest, UpdateSectionTemplateRequest };
 
-/** List section templates for the authenticated trainer. */
+/** List section templates for the authenticated trainer. Backend caps pageSize at 200. */
 export async function listSectionTemplates(): Promise<SectionTemplateResponse[]> {
   const { data } = await api.get<SectionTemplateResponse[]>('/training/section-templates', {
-    params: { page: 1, pageSize: 500 },
+    params: { page: 1, pageSize: 200 },
   });
   return data;
 }

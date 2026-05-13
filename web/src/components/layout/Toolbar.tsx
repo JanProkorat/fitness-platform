@@ -11,6 +11,12 @@ export interface ToolbarProps {
   activeView?: string;
   onViewChange?: (id: string) => void;
   children?: React.ReactNode;
+  /**
+   * Override the default container classes (e.g. to drop the wide `px-20`
+   * page padding when the toolbar holds many widgets). Replaces the default
+   * spacing — supply your own `px-*` and `py-*` if you pass this.
+   */
+  className?: string;
 }
 
 export function Toolbar({
@@ -18,9 +24,15 @@ export function Toolbar({
   activeView,
   onViewChange,
   children,
+  className,
 }: ToolbarProps) {
   return (
-    <div className="flex items-center gap-1 border-b border-border px-20 py-1.5">
+    <div
+      className={cn(
+        'flex items-center gap-1 border-b border-border',
+        className ?? 'px-20 py-1.5',
+      )}
+    >
       {/* View switcher */}
       {views?.map((view) => (
         <button

@@ -149,6 +149,7 @@ public class UpdateTrainingPlanEndpoint(IMongoContext mongo)
                         Name = rsec.Name,
                         Format = rsec.Format,
                         FormatConfig = rsec.FormatConfig,
+                        Notes = rsec.Notes?.Trim(),
                         Exercises = rsec.Exercises.Select(re => new SessionExercise
                         {
                             ExerciseExternalId = re.ExerciseExternalId,
