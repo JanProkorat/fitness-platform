@@ -179,8 +179,11 @@ public class ExerciseDto
     /// <summary>
     /// Movement type — drives which set field the prescription uses
     /// (reps / duration / distance / reps-for-time). Required for the
-    /// client to render the correct summary string. Defaults to "Reps"
-    /// when the underlying exercise carries no explicit value.
+    /// client to render the correct summary string. Serialised as the
+    /// enum's string name (e.g. "Reps", "Time", "Distance",
+    /// "RepsForTime"); the client casts to its `MovementType` enum.
+    /// Defaults to "Reps" when the underlying exercise carries no
+    /// explicit value.
     /// </summary>
     public string MovementType { get; set; } = "Reps";
 

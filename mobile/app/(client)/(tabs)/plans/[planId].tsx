@@ -1427,9 +1427,18 @@ function TrainingPlanDetail({ plan }: { plan: GetFullTrainingPlanResponse }) {
                                 // RepsForTime + "BW" fallback for unset
                                 // weight + duration formatting (`900 s` →
                                 // `15 min`).
+                                // `GetFullTrainingPlan` serialises
+                                // `movementType` as the enum's string
+                                // name (NSwag emits it as a plain
+                                // `string`, not the typed enum). The
+                                // values match `MovementType` exactly,
+                                // so a `as` cast is sound.
                                 const exSummary = formatExerciseSummary(
                                   sets,
-                                  (exercise as unknown as { movementType?: import('@/api/training').MovementType }).movementType,
+                                  exercise.movementType as
+                                    | import('@/api/training').MovementType
+                                    | null
+                                    | undefined,
                                   isWodFormat,
                                 )
 

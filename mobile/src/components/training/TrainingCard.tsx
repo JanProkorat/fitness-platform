@@ -724,7 +724,7 @@ function SessionSectionList({
                             sets,
                             // SessionExercise carries `movementType` only on
                             // newer plans; older payloads default to Reps.
-                            (exercise as unknown as { movementType?: import('@/api/training').MovementType }).movementType,
+                            exercise.movementType,
                             isWodFormat,
                           )
 

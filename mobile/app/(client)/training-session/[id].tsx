@@ -817,7 +817,7 @@ function RoundsList({ sectionExercises, totalRounds, currentRound }: RoundsListP
                 <Text style={[setsListStyles.plannedText, { color: colors.label2 }]}>
                   {formatExerciseSummary(
                     exercise.sets ?? [],
-                    (exercise as unknown as { movementType?: import('@/api/training').MovementType }).movementType,
+                    exercise.movementType,
                     true,
                   )}
                 </Text>
@@ -1256,7 +1256,7 @@ function PreStart({ sessionName, sections, exerciseMuscleGroups, onStart }: PreS
                   // portal render.
                   const exSummary = formatExerciseSummary(
                     sets,
-                    (exercise as unknown as { movementType?: import('@/api/training').MovementType }).movementType,
+                    exercise.movementType,
                     sectionIsWod,
                   )
 
@@ -3325,7 +3325,7 @@ export default function WorkoutLogScreen() {
                                 >
                                   {formatExerciseSummary(
                                     ex.sets ?? [],
-                                    (ex as unknown as { movementType?: import('@/api/training').MovementType }).movementType,
+                                    ex.movementType,
                                     true,
                                   )}
                                 </Text>
@@ -3427,7 +3427,7 @@ export default function WorkoutLogScreen() {
                                 >
                                   {formatExerciseSummary(
                                     ex.sets ?? [],
-                                    (ex as unknown as { movementType?: import('@/api/training').MovementType }).movementType,
+                                    ex.movementType,
                                     true,
                                   )}
                                 </Text>

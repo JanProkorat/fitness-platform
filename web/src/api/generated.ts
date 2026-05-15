@@ -15808,6 +15808,13 @@ export interface SectionDto {
     /** Workout format for this section (e.g. "Emom", "Amrap", "Tabata", "ForTime").
 Null means the section uses the default Standard format. */
     format?: string | undefined;
+    /** Full format-configuration object for the section (rounds, intervals, work/rest timings).
+Null when Format is null or Standard.
+Mirrors WodConfig on TrainingSection. */
+    formatConfig?: WodConfig | undefined;
+    /** Optional coach note for this section.
+Mirrors the Notes property on TrainingSection. */
+    notes?: string | undefined;
     /** Exercises within this section. */
     exercises?: ExerciseDto[];
 }
@@ -15824,6 +15831,11 @@ export interface ExerciseDto {
     notes?: string | undefined;
     /** Rest time between sets in seconds. */
     restSeconds?: number | undefined;
+    /** Movement type — drives which set field the prescription uses
+(reps / duration / distance / reps-for-time). Required for the
+client to render the correct summary string. Defaults to "Reps"
+when the underlying exercise carries no explicit value. */
+    movementType?: string;
     /** Target muscle groups fetched from the Exercise document.
 Empty list when the exercise no longer exists in the database. */
     muscleGroups?: MuscleGroup[];
@@ -15845,6 +15857,8 @@ export interface SetDto {
     weightKg?: number | undefined;
     /** Target duration in seconds (for timed exercises). */
     durationSeconds?: number | undefined;
+    /** Target distance in meters (for distance-based exercises). */
+    distanceMeters?: number | undefined;
     /** Rest time after this set in seconds. */
     restSeconds?: number | undefined;
     /** When this set was completed, or null if not yet done. */
