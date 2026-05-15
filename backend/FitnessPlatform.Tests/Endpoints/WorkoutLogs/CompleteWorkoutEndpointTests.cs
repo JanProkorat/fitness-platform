@@ -206,6 +206,7 @@ public class CompleteWorkoutEndpointTests
         // Arrange
         var publicId = Guid.NewGuid();
         var sessionId = Guid.NewGuid();
+        var sectionId = Guid.NewGuid();
         var exerciseA = Guid.NewGuid();
         var exerciseB = Guid.NewGuid();
         var startedAt = DateTime.UtcNow;
@@ -236,7 +237,7 @@ public class CompleteWorkoutEndpointTests
                             [
                                 new TrainingSection
                                 {
-                                    SectionId = Guid.NewGuid(),
+                                    SectionId = sectionId,
                                     Order = 0,
                                     Name = "Hlavní",
                                     Exercises =
@@ -272,12 +273,20 @@ public class CompleteWorkoutEndpointTests
             sessionId: sessionId,
             startedAt: startedAt);
 
-        // Pre-existing completion doc with both exercises and version=3.
+        // Pre-existing completion doc with the full section-aware shape
+        // — flat list + per-section dict + section-id list all aligned
+        // with the plan. This is what `CompleteWorkoutEndpoint` writes on
+        // every fan-out now, so a doc in this shape should be a no-op.
         var existingCompletion = TrainingCompletionTestHelpers.CreateCompletion(
             clientId: publicId,
             sessionId: sessionId,
             date: startedAt.Date,
             completedExerciseIds: [exerciseA, exerciseB],
+            completedSectionIds: [sectionId],
+            completedExerciseIdsBySection: new Dictionary<string, List<Guid>>
+            {
+                [sectionId.ToString()] = [exerciseA, exerciseB],
+            },
             version: existingVersion);
 
         var (mongo, completionCollection) = TrainingCompletionTestHelpers.CreateMockMongo(
