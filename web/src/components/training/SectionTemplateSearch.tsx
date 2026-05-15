@@ -133,7 +133,7 @@ export function SectionTemplateSearch({
                   : t('training.section.templateSearchEmpty')}
               </div>
             )}
-            {filtered.map((tpl) => {
+            {filtered.map((tpl, i) => {
               const fmt = (tpl.defaultFormat ?? 'Standard') as WorkoutFormat;
               const exerciseCount = tpl.defaultExercises?.length ?? 0;
               const durationSeconds = estimatedSectionDurationSeconds(
@@ -142,7 +142,11 @@ export function SectionTemplateSearch({
               );
               return (
                 <div
-                  key={tpl.templateId ?? tpl.name ?? Math.random().toString()}
+                  // Stable key derived from `templateId` first, then `name`,
+                  // then the row index — `Math.random()` here violated the
+                  // React Compiler `react-hooks/purity` rule (impurity in
+                  // render) and broke CI.
+                  key={tpl.templateId ?? tpl.name ?? `tpl-${i}`}
                   onClick={() => handleSelect(tpl)}
                   style={{
                     display: 'flex',

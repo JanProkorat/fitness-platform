@@ -972,6 +972,8 @@
     "addSessionButton": "Einheit hinzufügen",
     "addButton": "Hinzufügen",
     "cancelButton": "Abbrechen",
+    "weekFinishedTooltip": "Woche ist abgeschlossen",
+    "weekPublishedTooltip": "Woche ist veröffentlicht und noch bearbeitbar",
     "sidebarVolume": "Trainingsvolumen",
     "sidebarTotalSets": "Sätze gesamt",
     "sidebarDayOverview": "Tagesübersicht",

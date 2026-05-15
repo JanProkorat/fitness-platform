@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/cn';
 
 export interface WeekTabData {
@@ -52,6 +53,7 @@ export function WeekDayTabs({
   onRemoveWeek,
   onReorderWeeks,
 }: WeekDayTabsProps) {
+  const { t } = useTranslation();
   const [dragOverWeek, setDragOverWeek] = useState<number | null>(null);
   const weekHoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [weekDragOver, setWeekDragOver] = useState<number | null>(null);
@@ -166,14 +168,14 @@ export function WeekDayTabs({
                     {week.isFinished ? (
                       <span
                         className="text-[10px] rounded-full px-[5px] bg-green-bg text-green font-normal"
-                        title="Týden byl ukončen"
+                        title={t('training.weekFinishedTooltip')}
                       >
                         ✓
                       </span>
                     ) : week.isPublished ? (
                       <span
                         className="text-[10px] rounded-full px-[5px] bg-orange-bg text-orange font-normal"
-                        title="Týden je publikován a stále upravitelný"
+                        title={t('training.weekPublishedTooltip')}
                       >
                         ⏳
                       </span>

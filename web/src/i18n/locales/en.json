@@ -973,6 +973,8 @@
     "addSessionButton": "Add session",
     "addButton": "Add",
     "cancelButton": "Cancel",
+    "weekFinishedTooltip": "Week is finished",
+    "weekPublishedTooltip": "Week is published and still editable",
     "sidebarVolume": "Training volume",
     "sidebarTotalSets": "total sets",
     "sidebarDayOverview": "Day overview",

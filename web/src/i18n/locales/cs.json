@@ -976,6 +976,8 @@
     "addSessionButton": "Přidat trénink",
     "addButton": "Přidat",
     "cancelButton": "Zrušit",
+    "weekFinishedTooltip": "Týden byl ukončen",
+    "weekPublishedTooltip": "Týden je publikován a stále upravitelný",
     "sidebarVolume": "Objem tréninku",
     "sidebarTotalSets": "sérií celkem",
     "sidebarDayOverview": "Přehled dne",
