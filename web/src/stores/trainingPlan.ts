@@ -1,15 +1,23 @@
 import { create } from 'zustand';
 import type {
   TrainingPlanDetail,
+  TrainingSection,
   TrainingSession,
+  SessionExercise,
   ExerciseSet,
   UpdateTrainingPlanRequest,
+  UpdateSectionRequest,
   WorkoutFormat,
   MovementType,
+  SetType,
   WodConfig,
 } from '@/api/training-plan-types';
-import { updateTrainingPlan, publishTrainingWeek } from '@/api/training-plans';
+import type { SectionTemplateResponse } from '@/api/sectionTemplates';
+import { updateTrainingPlan, publishTrainingWeek, getTrainingPlan } from '@/api/training-plans';
 import { showApiError, showSuccess } from '@/lib/api-errors';
+import { currentWeekNumber } from '@/lib/training-plan-dates';
+import { useToastStore } from '@/stores/toast';
+import i18n from '@/i18n';
 
 interface TrainingPlanState {
   plan: TrainingPlanDetail | null;
@@ -17,6 +25,8 @@ interface TrainingPlanState {
   isDirty: boolean;
   isSaving: boolean;
   selectedWeek: number;
+  /** IDs of session/section entities flagged by the last failed pre-save validation. */
+  invalidIds: Set<string>;
 
   setPlan: (plan: TrainingPlanDetail) => void;
   setSelectedWeek: (week: number) => void;
@@ -29,7 +39,29 @@ interface TrainingPlanState {
   updateSessionName: (weekNumber: number, sessionId: string, name: string) => void;
   updateSessionNotes: (weekNumber: number, sessionId: string, notes: string) => void;
 
-  // Exercise mutations
+  // Section mutations
+  addSection: (weekNumber: number, sessionId: string, format?: WorkoutFormat) => void;
+  removeSection: (weekNumber: number, sessionId: string, sectionId: string) => void;
+  duplicateSection: (weekNumber: number, sessionId: string, sectionId: string) => void;
+  updateSection: (weekNumber: number, sessionId: string, sectionId: string, patch: Partial<Pick<TrainingSection, 'name' | 'format' | 'formatConfig' | 'notes'>>) => void;
+  reorderSections: (weekNumber: number, sessionId: string, fromIdx: number, toIdx: number) => void;
+  moveSectionToSession: (
+    weekNumber: number,
+    fromSessionId: string,
+    toSessionId: string,
+    sectionId: string,
+    toIdx: number,
+  ) => void;
+  addSectionFromTemplate: (weekNumber: number, sessionId: string, template: SectionTemplateResponse) => void;
+
+  // Exercise mutations (now scoped to section)
+  addExerciseToSection: (weekNumber: number, sessionId: string, sectionId: string, exercise: { exerciseExternalId: string; exerciseName: string }) => void;
+  removeExerciseFromSection: (weekNumber: number, sessionId: string, sectionId: string, exerciseIndex: number) => void;
+  duplicateExerciseInSection: (weekNumber: number, sessionId: string, sectionId: string, exerciseIndex: number) => void;
+  reorderExercisesInSection: (weekNumber: number, sessionId: string, sectionId: string, fromIndex: number, toIndex: number) => void;
+  reorderExercisesInSectionByIds: (weekNumber: number, sessionId: string, sectionId: string, orderedIds: string[]) => void;
+
+  // Legacy exercise mutations (kept for DnD cross-session moves — operate on the first section)
   addExercise: (weekNumber: number, sessionId: string, exercise: { exerciseExternalId: string; exerciseName: string }) => void;
   removeExercise: (weekNumber: number, sessionId: string, exerciseIndex: number) => void;
   duplicateExercise: (weekNumber: number, sessionId: string, exerciseIndex: number) => void;
@@ -37,18 +69,18 @@ interface TrainingPlanState {
   reorderExercisesByIds: (weekNumber: number, sessionId: string, orderedIds: string[]) => void;
   moveExerciseToSession: (weekNumber: number, fromSessionId: string, toSessionId: string, fromIndex: number, toIndex: number) => void;
 
-  // Set mutations
-  addSet: (weekNumber: number, sessionId: string, exerciseIndex: number) => void;
-  removeSet: (weekNumber: number, sessionId: string, exerciseIndex: number, setIndex: number) => void;
-  updateSet: (weekNumber: number, sessionId: string, exerciseIndex: number, setIndex: number, updates: Partial<ExerciseSet>) => void;
+  // Set mutations (section-scoped)
+  addSet: (weekNumber: number, sessionId: string, sectionId: string, exerciseIndex: number) => void;
+  removeSet: (weekNumber: number, sessionId: string, sectionId: string, exerciseIndex: number, setIndex: number) => void;
+  duplicateSet: (weekNumber: number, sessionId: string, sectionId: string, exerciseIndex: number, setIndex: number) => void;
+  updateSet: (weekNumber: number, sessionId: string, sectionId: string, exerciseIndex: number, setIndex: number, updates: Partial<ExerciseSet>) => void;
 
-  // Exercise field mutations
-  updateExerciseNotes: (weekNumber: number, sessionId: string, exerciseIndex: number, notes: string) => void;
-  updateExerciseRestSeconds: (weekNumber: number, sessionId: string, exerciseIndex: number, restSeconds: number | null) => void;
-  updateExerciseMovementType: (weekNumber: number, sessionId: string, exerciseIndex: number, movementType: MovementType) => void;
-  updateExerciseFormat: (weekNumber: number, sessionId: string, exerciseIndex: number, format: WorkoutFormat | null, formatConfig?: WodConfig | null) => void;
+  // Exercise field mutations (section-scoped)
+  updateExerciseNotes: (weekNumber: number, sessionId: string, sectionId: string, exerciseIndex: number, notes: string) => void;
+  updateExerciseRestSeconds: (weekNumber: number, sessionId: string, sectionId: string, exerciseIndex: number, restSeconds: number | null) => void;
+  updateExerciseMovementType: (weekNumber: number, sessionId: string, sectionId: string, exerciseIndex: number, movementType: MovementType) => void;
 
-  // Session format mutations
+  // Session format mutations (session-level inheritable default)
   updateSessionFormat: (weekNumber: number, sessionId: string, format: WorkoutFormat, formatConfig?: WodConfig | null) => void;
 
   // Cross-week mutations
@@ -71,6 +103,13 @@ interface TrainingPlanState {
   // Persistence
   save: () => Promise<void>;
   publishWeek: (weekNumber: number) => Promise<void>;
+  /**
+   * Re-fetch the current plan from the server and overwrite **only**
+   * `completions` on both `plan` and `originalPlan`. Used by the SignalR
+   * `trainingprogressupdated` listener so the editor reacts in real time
+   * to client-side completions without clobbering unsaved trainer edits.
+   */
+  refreshCompletions: () => Promise<void>;
 }
 
 function updateSession(
@@ -89,34 +128,159 @@ function updateSession(
   };
 }
 
+/** Patch a specific section within a session; also recomputes the flat exercises view. */
+function patchSection(
+  plan: TrainingPlanDetail,
+  weekNumber: number,
+  sessionId: string,
+  sectionId: string,
+  updater: (section: TrainingSection) => TrainingSection,
+): TrainingPlanDetail {
+  return updateSession(plan, weekNumber, sessionId, (s) => {
+    const sections = s.sections.map((sec) =>
+      sec.sectionId === sectionId ? updater(sec) : sec,
+    );
+    return { ...s, sections, exercises: sections.flatMap((sec) => sec.exercises) };
+  });
+}
+
+/**
+ * Collapse an exercise to a single set with no rest — the WOD round prescription.
+ * Used when a section's format flips Standard → non-Standard.
+ * No-op when the exercise already has 0 or 1 sets and no rest.
+ */
+function pruneToSingleSet(ex: SessionExercise): SessionExercise {
+  if (ex.sets.length === 0) return ex;
+  const [first] = ex.sets;
+  if (ex.sets.length === 1 && first.restSeconds == null) return ex;
+  return { ...ex, sets: [{ ...first, restSeconds: null }] };
+}
+
+/**
+ * After a section format change, prune every exercise to a single (no-rest) set
+ * when the new format is non-Standard.
+ */
+function pruneSectionExercisesIfNonStandard(
+  exercises: SessionExercise[],
+  sectionFormat: WorkoutFormat,
+): SessionExercise[] {
+  if (sectionFormat === 'Standard') return exercises;
+  return exercises.map(pruneToSingleSet);
+}
+
+/** Create a default single-set exercise from a search result. */
+function makeNewExercise(exercise: { exerciseExternalId: string; exerciseName: string }, order: number): SessionExercise {
+  return {
+    ...exercise,
+    order,
+    movementType: 'Reps' as const,
+    format: null,
+    formatConfig: null,
+    notes: null,
+    restSeconds: null,
+    sets: [{ setNumber: 1, type: 'Normal' as const, reps: null, weightKg: null, durationSeconds: null, rpe: null, distanceMeters: null, restSeconds: null }],
+  };
+}
+
 export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
   plan: null,
   originalPlan: null,
   isDirty: false,
   isSaving: false,
   selectedWeek: 1,
+  invalidIds: new Set(),
 
   setPlan: (rawPlan) => {
-    // Normalize plans that pre-date the format/movementType fields so
-    // the rest of the store can assume these fields are always present.
+    // Normalize exercises helper — fills in defaults for pre-sections legacy exercises.
+    const normalizeExercise = (e: SessionExercise): SessionExercise => ({
+      ...e,
+      exerciseExternalId: e.exerciseExternalId ?? '',
+      exerciseName: e.exerciseName ?? '',
+      order: e.order ?? 1,
+      movementType: (e.movementType ?? 'Reps') as MovementType,
+      format: (e.format ?? null) as WorkoutFormat | null,
+      formatConfig: e.formatConfig ?? null,
+      sets: (e.sets ?? []).map((s) => ({
+        setNumber: s.setNumber ?? 1,
+        type: (s.type ?? 'Normal') as SetType,
+        reps: s.reps ?? null,
+        weightKg: s.weightKg ?? null,
+        durationSeconds: s.durationSeconds ?? null,
+        rpe: s.rpe ?? null,
+        distanceMeters: s.distanceMeters ?? null,
+        restSeconds: s.restSeconds ?? null,
+      })),
+    });
+
     const plan: TrainingPlanDetail = {
       ...rawPlan,
       weeks: rawPlan.weeks.map((w) => ({
         ...w,
-        sessions: w.sessions.map((s) => ({
-          ...s,
-          format: s.format ?? 'Standard',
-          formatConfig: s.formatConfig ?? null,
-          exercises: s.exercises.map((e) => ({
-            ...e,
-            movementType: e.movementType ?? 'Reps',
-            format: e.format ?? null,
-            formatConfig: e.formatConfig ?? null,
-          })),
-        })),
+        sessions: w.sessions.map((s) => {
+          const sessionFormat = (s.format ?? 'Standard') as WorkoutFormat;
+
+          // If the API returned sections, use them directly.
+          const rawSections = (s as TrainingSession & { sections?: unknown[] }).sections;
+          // Cast through unknown to avoid TS complaints — generated type has sections?: TrainingSection[]
+          const apiSections = rawSections as Array<{
+            sectionId?: string;
+            order?: number;
+            name?: string;
+            format?: WorkoutFormat;
+            formatConfig?: WodConfig | null;
+            notes?: string | null;
+            exercises?: SessionExercise[];
+          }> | undefined;
+
+          let sections: TrainingSection[];
+
+          if (apiSections && apiSections.length > 0) {
+            // Post-#244 response: map API sections directly.
+            sections = apiSections.map((sec, idx) => ({
+              sectionId: sec.sectionId ?? crypto.randomUUID(),
+              order: sec.order ?? idx,
+              name: sec.name ?? 'Sekce',
+              format: (sec.format ?? sessionFormat) as WorkoutFormat,
+              formatConfig: sec.formatConfig ?? null,
+              notes: sec.notes ?? null,
+              exercises: (sec.exercises ?? []).map(normalizeExercise),
+            }));
+          } else {
+            // Legacy flat exercises — synthesize one default section.
+            const flatExercises = (s.exercises ?? []).map(normalizeExercise);
+            sections = [
+              {
+                sectionId: crypto.randomUUID(),
+                order: 0,
+                name: 'Hlavní',
+                format: sessionFormat,
+                formatConfig: s.formatConfig ?? null,
+                notes: null,
+                exercises: flatExercises,
+              },
+            ];
+          }
+
+          return {
+            ...s,
+            format: sessionFormat,
+            formatConfig: s.formatConfig ?? null,
+            sections,
+            // Keep a flat exercises view derived from all sections for the header
+            // exercise count. This is recomputed each time sections change.
+            exercises: sections.flatMap((sec) => sec.exercises),
+          };
+        }),
       })),
     };
-    set({ plan, originalPlan: structuredClone(plan), isDirty: false, selectedWeek: 1 });
+    // Default the selected week to whichever week contains today, falling back
+    // to week 1 when the plan has no startDate or is wholly in the future / past.
+    set({
+      plan,
+      originalPlan: structuredClone(plan),
+      isDirty: false,
+      selectedWeek: currentWeekNumber(plan),
+    });
   },
   setSelectedWeek: (week) => set({ selectedWeek: week }),
   revert: () => {
@@ -128,6 +292,15 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
   addSession: (weekNumber, dayOfWeek, name) => {
     const { plan } = get();
     if (!plan) return;
+    const defaultSection: TrainingSection = {
+      sectionId: crypto.randomUUID(),
+      order: 0,
+      name: '',
+      format: 'Standard',
+      formatConfig: null,
+      notes: null,
+      exercises: [],
+    };
     const newSession: TrainingSession = {
       sessionId: crypto.randomUUID(),
       dayOfWeek,
@@ -135,6 +308,7 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
       order: 1,
       format: 'Standard',
       formatConfig: null,
+      sections: [defaultSection],
       exercises: [],
     };
     set({
@@ -209,81 +383,312 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
     set({ plan: updateSession(plan, weekNumber, sessionId, (s) => ({ ...s, notes: notes || null })), isDirty: true });
   },
 
-  addExercise: (weekNumber, sessionId, exercise) => {
+  // ── Section mutations ──────────────────────────────────────────────────────
+
+  addSection: (weekNumber, sessionId, format = 'Standard') => {
     const { plan } = get();
     if (!plan) return;
     set({
-      plan: updateSession(plan, weekNumber, sessionId, (s) => ({
-        ...s,
-        exercises: [
-          ...s.exercises,
-          {
-            ...exercise,
-            order: s.exercises.length + 1,
-            movementType: 'Reps' as const,
-            format: null,
-            formatConfig: null,
-            sets: [{ setNumber: 1, type: 'Normal' as const, reps: null, weightKg: null, durationSeconds: null, rpe: null, distanceMeters: null, restSeconds: null }],
-          },
-        ],
+      plan: updateSession(plan, weekNumber, sessionId, (s) => {
+        const newSection: TrainingSection = {
+          sectionId: crypto.randomUUID(),
+          order: s.sections.length,
+          name: '',
+          format,
+          formatConfig: null,
+          notes: null,
+          exercises: [],
+        };
+        const sections = [...s.sections, newSection];
+        return { ...s, sections, exercises: sections.flatMap((sec) => sec.exercises) };
+      }),
+      isDirty: true,
+    });
+  },
+
+  removeSection: (weekNumber, sessionId, sectionId) => {
+    const { plan } = get();
+    if (!plan) return;
+    set({
+      plan: updateSession(plan, weekNumber, sessionId, (s) => {
+        const sections = s.sections
+          .filter((sec) => sec.sectionId !== sectionId)
+          .map((sec, i) => ({ ...sec, order: i }));
+        return { ...s, sections, exercises: sections.flatMap((sec) => sec.exercises) };
+      }),
+      isDirty: true,
+    });
+  },
+
+  duplicateSection: (weekNumber, sessionId, sectionId) => {
+    const { plan } = get();
+    if (!plan) return;
+    set({
+      plan: updateSession(plan, weekNumber, sessionId, (s) => {
+        const sourceIdx = s.sections.findIndex((sec) => sec.sectionId === sectionId);
+        if (sourceIdx === -1) return s;
+        const source = s.sections[sourceIdx];
+        const clone: TrainingSection = {
+          ...source,
+          sectionId: crypto.randomUUID(),
+          exercises: source.exercises.map((ex) => ({
+            ...ex,
+            sets: ex.sets.map((st) => ({ ...st })),
+          })),
+        };
+        const sections = [
+          ...s.sections.slice(0, sourceIdx + 1),
+          clone,
+          ...s.sections.slice(sourceIdx + 1),
+        ].map((sec, i) => ({ ...sec, order: i }));
+        return { ...s, sections, exercises: sections.flatMap((sec) => sec.exercises) };
+      }),
+      isDirty: true,
+    });
+  },
+
+  updateSection: (weekNumber, sessionId, sectionId, patch) => {
+    const { plan } = get();
+    if (!plan) return;
+    set({
+      plan: patchSection(plan, weekNumber, sessionId, sectionId, (sec) => {
+        const next = { ...sec, ...patch };
+        // If the section format flips to non-Standard, collapse every exercise
+        // to a single (no-rest) set — its WOD round prescription.
+        if (patch.format !== undefined && patch.format !== sec.format) {
+          next.exercises = pruneSectionExercisesIfNonStandard(next.exercises, next.format);
+        }
+        return next;
+      }),
+      isDirty: true,
+    });
+  },
+
+  reorderSections: (weekNumber, sessionId, fromIdx, toIdx) => {
+    const { plan } = get();
+    if (!plan) return;
+    set({
+      plan: updateSession(plan, weekNumber, sessionId, (s) => {
+        const sections = [...s.sections];
+        const [moved] = sections.splice(fromIdx, 1);
+        sections.splice(toIdx, 0, moved);
+        const reordered = sections.map((sec, i) => ({ ...sec, order: i }));
+        return { ...s, sections: reordered, exercises: reordered.flatMap((sec) => sec.exercises) };
+      }),
+      isDirty: true,
+    });
+  },
+
+  moveSectionToSession: (weekNumber, fromSessionId, toSessionId, sectionId, toIdx) => {
+    const { plan } = get();
+    if (!plan) return;
+    if (fromSessionId === toSessionId) return;
+
+    // Locate the source section
+    const week = plan.weeks.find((w) => w.weekNumber === weekNumber);
+    if (!week) return;
+    const fromSession = week.sessions.find((s) => s.sessionId === fromSessionId);
+    if (!fromSession) return;
+    const moved = fromSession.sections.find((sec) => sec.sectionId === sectionId);
+    if (!moved) return;
+
+    set({
+      plan: {
+        ...plan,
+        weeks: plan.weeks.map((w) => {
+          if (w.weekNumber !== weekNumber) return w;
+          return {
+            ...w,
+            sessions: w.sessions.map((s) => {
+              if (s.sessionId === fromSessionId) {
+                const sections = s.sections
+                  .filter((sec) => sec.sectionId !== sectionId)
+                  .map((sec, i) => ({ ...sec, order: i }));
+                return { ...s, sections, exercises: sections.flatMap((sec) => sec.exercises) };
+              }
+              if (s.sessionId === toSessionId) {
+                const sections = [...s.sections];
+                const insertAt = Math.max(0, Math.min(toIdx, sections.length));
+                sections.splice(insertAt, 0, moved);
+                const reordered = sections.map((sec, i) => ({ ...sec, order: i }));
+                return { ...s, sections: reordered, exercises: reordered.flatMap((sec) => sec.exercises) };
+              }
+              return s;
+            }),
+          };
+        }),
+      },
+      isDirty: true,
+    });
+  },
+
+  addSectionFromTemplate: (weekNumber, sessionId, template) => {
+    const { plan } = get();
+    if (!plan) return;
+    set({
+      plan: updateSession(plan, weekNumber, sessionId, (s) => {
+        const newSection: TrainingSection = {
+          sectionId: crypto.randomUUID(),
+          order: s.sections.length,
+          name: template.name ?? '',
+          format: (template.defaultFormat ?? 'Standard') as WorkoutFormat,
+          formatConfig: template.defaultFormatConfig ?? null,
+          notes: null,
+          exercises: (template.defaultExercises ?? []).map((ex, idx) => ({
+            exerciseExternalId: ex.exerciseExternalId ?? '',
+            exerciseName: ex.exerciseName ?? '',
+            order: ex.order ?? idx + 1,
+            notes: ex.notes ?? null,
+            restSeconds: ex.restSeconds ?? null,
+            movementType: (ex.movementType ?? 'Reps') as MovementType,
+            format: (ex.format ?? null) as WorkoutFormat | null,
+            formatConfig: ex.formatConfig ?? null,
+            sets: (ex.sets ?? []).map((st) => ({
+              setNumber: st.setNumber ?? 1,
+              type: (st.type ?? 'Normal') as SetType,
+              reps: st.reps ?? null,
+              weightKg: st.weightKg ?? null,
+              durationSeconds: st.durationSeconds ?? null,
+              rpe: st.rpe ?? null,
+              distanceMeters: st.distanceMeters ?? null,
+              restSeconds: st.restSeconds ?? null,
+            })),
+          })),
+        };
+        const sections = [...s.sections, newSection];
+        return { ...s, sections, exercises: sections.flatMap((sec) => sec.exercises) };
+      }),
+      isDirty: true,
+    });
+  },
+
+  // ── Section-scoped exercise mutations ────────────────────────────────────
+
+  addExerciseToSection: (weekNumber, sessionId, sectionId, exercise) => {
+    const { plan } = get();
+    if (!plan) return;
+    set({
+      plan: patchSection(plan, weekNumber, sessionId, sectionId, (sec) => {
+        const exercises = [...sec.exercises, makeNewExercise(exercise, sec.exercises.length + 1)];
+        return { ...sec, exercises };
+      }),
+      isDirty: true,
+    });
+  },
+
+  removeExerciseFromSection: (weekNumber, sessionId, sectionId, exerciseIndex) => {
+    const { plan } = get();
+    if (!plan) return;
+    set({
+      plan: patchSection(plan, weekNumber, sessionId, sectionId, (sec) => ({
+        ...sec,
+        exercises: sec.exercises.filter((_, i) => i !== exerciseIndex).map((e, i) => ({ ...e, order: i + 1 })),
       })),
       isDirty: true,
     });
+  },
+
+  duplicateExerciseInSection: (weekNumber, sessionId, sectionId, exerciseIndex) => {
+    const { plan } = get();
+    if (!plan) return;
+    set({
+      plan: patchSection(plan, weekNumber, sessionId, sectionId, (sec) => {
+        const original = sec.exercises[exerciseIndex];
+        if (!original) return sec;
+        const copy = structuredClone(original);
+        const exercises = [...sec.exercises];
+        exercises.splice(exerciseIndex + 1, 0, copy);
+        return { ...sec, exercises: exercises.map((e, i) => ({ ...e, order: i + 1 })) };
+      }),
+      isDirty: true,
+    });
+  },
+
+  reorderExercisesInSection: (weekNumber, sessionId, sectionId, fromIndex, toIndex) => {
+    const { plan } = get();
+    if (!plan) return;
+    set({
+      plan: patchSection(plan, weekNumber, sessionId, sectionId, (sec) => {
+        const exercises = [...sec.exercises];
+        const [moved] = exercises.splice(fromIndex, 1);
+        exercises.splice(toIndex, 0, moved);
+        return { ...sec, exercises: exercises.map((e, i) => ({ ...e, order: i + 1 })) };
+      }),
+      isDirty: true,
+    });
+  },
+
+  reorderExercisesInSectionByIds: (weekNumber, sessionId, sectionId, orderedIds) => {
+    const { plan } = get();
+    if (!plan) return;
+    set({
+      plan: patchSection(plan, weekNumber, sessionId, sectionId, (sec) => {
+        const byId = new Map(sec.exercises.map((e, i) => [`${e.exerciseExternalId}-${i}`, e]));
+        const reordered = orderedIds.map((id) => byId.get(id)).filter((e): e is SessionExercise => e !== undefined);
+        return { ...sec, exercises: reordered.map((e, i) => ({ ...e, order: i + 1 })) };
+      }),
+      isDirty: true,
+    });
+  },
+
+  // Legacy flat-exercise mutations — delegate to first section for DnD compatibility.
+  addExercise: (weekNumber, sessionId, exercise) => {
+    const { plan } = get();
+    if (!plan) return;
+    const session = plan.weeks.find((w) => w.weekNumber === weekNumber)?.sessions.find((s) => s.sessionId === sessionId);
+    const firstSectionId = session?.sections[0]?.sectionId;
+    if (!firstSectionId) return;
+    get().addExerciseToSection(weekNumber, sessionId, firstSectionId, exercise);
   },
 
   removeExercise: (weekNumber, sessionId, exerciseIndex) => {
     const { plan } = get();
     if (!plan) return;
-    set({
-      plan: updateSession(plan, weekNumber, sessionId, (s) => ({
-        ...s,
-        exercises: s.exercises.filter((_, i) => i !== exerciseIndex).map((e, i) => ({ ...e, order: i + 1 })),
-      })),
-      isDirty: true,
-    });
+    // exerciseIndex is a flat index across all sections; find the owning section.
+    const session = plan.weeks.find((w) => w.weekNumber === weekNumber)?.sessions.find((s) => s.sessionId === sessionId);
+    if (!session) return;
+    let remaining = exerciseIndex;
+    for (const sec of session.sections) {
+      if (remaining < sec.exercises.length) {
+        get().removeExerciseFromSection(weekNumber, sessionId, sec.sectionId, remaining);
+        return;
+      }
+      remaining -= sec.exercises.length;
+    }
   },
 
   duplicateExercise: (weekNumber, sessionId, exerciseIndex) => {
     const { plan } = get();
     if (!plan) return;
-    set({
-      plan: updateSession(plan, weekNumber, sessionId, (s) => {
-        const original = s.exercises[exerciseIndex];
-        if (!original) return s;
-        const copy = structuredClone(original);
-        const exercises = [...s.exercises];
-        exercises.splice(exerciseIndex + 1, 0, copy);
-        return { ...s, exercises: exercises.map((e, i) => ({ ...e, order: i + 1 })) };
-      }),
-      isDirty: true,
-    });
+    const session = plan.weeks.find((w) => w.weekNumber === weekNumber)?.sessions.find((s) => s.sessionId === sessionId);
+    if (!session) return;
+    let remaining = exerciseIndex;
+    for (const sec of session.sections) {
+      if (remaining < sec.exercises.length) {
+        get().duplicateExerciseInSection(weekNumber, sessionId, sec.sectionId, remaining);
+        return;
+      }
+      remaining -= sec.exercises.length;
+    }
   },
 
   reorderExercises: (weekNumber, sessionId, fromIndex, toIndex) => {
+    // Legacy: assumes single-section (operates on flat index of first section only).
     const { plan } = get();
     if (!plan) return;
-    set({
-      plan: updateSession(plan, weekNumber, sessionId, (s) => {
-        const exercises = [...s.exercises];
-        const [moved] = exercises.splice(fromIndex, 1);
-        exercises.splice(toIndex, 0, moved);
-        return { ...s, exercises: exercises.map((e, i) => ({ ...e, order: i + 1 })) };
-      }),
-      isDirty: true,
-    });
+    const session = plan.weeks.find((w) => w.weekNumber === weekNumber)?.sessions.find((s) => s.sessionId === sessionId);
+    const firstSectionId = session?.sections[0]?.sectionId;
+    if (!firstSectionId) return;
+    get().reorderExercisesInSection(weekNumber, sessionId, firstSectionId, fromIndex, toIndex);
   },
 
   reorderExercisesByIds: (weekNumber, sessionId, orderedIds) => {
     const { plan } = get();
     if (!plan) return;
-    set({
-      plan: updateSession(plan, weekNumber, sessionId, (s) => {
-        const byId = new Map(s.exercises.map((e, i) => [`${e.exerciseExternalId}-${i}`, e]));
-        const reordered = orderedIds.map((id) => byId.get(id)).filter(Boolean) as typeof s.exercises;
-        return { ...s, exercises: reordered.map((e, i) => ({ ...e, order: i + 1 })) };
-      }),
-      isDirty: true,
-    });
+    const session = plan.weeks.find((w) => w.weekNumber === weekNumber)?.sessions.find((s) => s.sessionId === sessionId);
+    const firstSectionId = session?.sections[0]?.sectionId;
+    if (!firstSectionId) return;
+    get().reorderExercisesInSectionByIds(weekNumber, sessionId, firstSectionId, orderedIds);
   },
 
   moveExerciseToSession: (weekNumber, fromSessionId, toSessionId, fromIndex, toIndex) => {
@@ -293,6 +698,7 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
     if (!week) return;
     const fromSession = week.sessions.find((s) => s.sessionId === fromSessionId);
     if (!fromSession) return;
+    // fromIndex is a flat index across the session's exercises view.
     const exercise = fromSession.exercises[fromIndex];
     if (!exercise) return;
 
@@ -305,13 +711,30 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
                 ...w,
                 sessions: w.sessions.map((s) => {
                   if (s.sessionId === fromSessionId) {
-                    const exercises = s.exercises.filter((_, i) => i !== fromIndex);
-                    return { ...s, exercises: exercises.map((e, i) => ({ ...e, order: i + 1 })) };
+                    // Remove from the owning section (find by flat index).
+                    let remaining = fromIndex;
+                    const sections = s.sections.map((sec) => {
+                      if (remaining < sec.exercises.length) {
+                        const exercises = sec.exercises.filter((_, i) => i !== remaining);
+                        remaining = -1; // mark as found
+                        return { ...sec, exercises: exercises.map((e, i) => ({ ...e, order: i + 1 })) };
+                      }
+                      if (remaining >= 0) remaining -= sec.exercises.length;
+                      return sec;
+                    });
+                    return { ...s, sections, exercises: sections.flatMap((sec) => sec.exercises) };
                   }
                   if (s.sessionId === toSessionId) {
-                    const exercises = [...s.exercises];
-                    exercises.splice(toIndex, 0, { ...exercise });
-                    return { ...s, exercises: exercises.map((e, i) => ({ ...e, order: i + 1 })) };
+                    // Append to first section of target session.
+                    const firstSection = s.sections[0];
+                    if (!firstSection) return s;
+                    const sections = s.sections.map((sec) => {
+                      if (sec.sectionId !== firstSection.sectionId) return sec;
+                      const exercises = [...sec.exercises];
+                      exercises.splice(toIndex, 0, { ...exercise });
+                      return { ...sec, exercises: exercises.map((e, i) => ({ ...e, order: i + 1 })) };
+                    });
+                    return { ...s, sections, exercises: sections.flatMap((sec) => sec.exercises) };
                   }
                   return s;
                 }),
@@ -323,16 +746,15 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
     });
   },
 
-  addSet: (weekNumber, sessionId, exerciseIndex) => {
+  addSet: (weekNumber, sessionId, sectionId, exerciseIndex) => {
     const { plan } = get();
     if (!plan) return;
     set({
-      plan: updateSession(plan, weekNumber, sessionId, (s) => ({
-        ...s,
-        exercises: s.exercises.map((e, i) => {
+      plan: patchSection(plan, weekNumber, sessionId, sectionId, (sec) => ({
+        ...sec,
+        exercises: sec.exercises.map((e, i) => {
           if (i !== exerciseIndex) return e;
-          // Carry over non-null values from the last set as defaults so the
-          // trainer doesn't have to re-enter weights/reps for every new set.
+          // Carry over non-null values from the last set as defaults.
           const lastSet = e.sets[e.sets.length - 1];
           const newSet: ExerciseSet = {
             setNumber: e.sets.length + 1,
@@ -351,13 +773,13 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
     });
   },
 
-  removeSet: (weekNumber, sessionId, exerciseIndex, setIndex) => {
+  removeSet: (weekNumber, sessionId, sectionId, exerciseIndex, setIndex) => {
     const { plan } = get();
     if (!plan) return;
     set({
-      plan: updateSession(plan, weekNumber, sessionId, (s) => ({
-        ...s,
-        exercises: s.exercises.map((e, i) =>
+      plan: patchSection(plan, weekNumber, sessionId, sectionId, (sec) => ({
+        ...sec,
+        exercises: sec.exercises.map((e, i) =>
           i === exerciseIndex
             ? { ...e, sets: e.sets.filter((_, si) => si !== setIndex).map((st, si) => ({ ...st, setNumber: si + 1 })) }
             : e,
@@ -367,13 +789,33 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
     });
   },
 
-  updateSet: (weekNumber, sessionId, exerciseIndex, setIndex, updates) => {
+  duplicateSet: (weekNumber, sessionId, sectionId, exerciseIndex, setIndex) => {
     const { plan } = get();
     if (!plan) return;
     set({
-      plan: updateSession(plan, weekNumber, sessionId, (s) => ({
-        ...s,
-        exercises: s.exercises.map((e, i) =>
+      plan: patchSection(plan, weekNumber, sessionId, sectionId, (sec) => ({
+        ...sec,
+        exercises: sec.exercises.map((e, i) => {
+          if (i !== exerciseIndex) return e;
+          const source = e.sets[setIndex];
+          if (!source) return e;
+          const clone: ExerciseSet = { ...source };
+          const next = [...e.sets.slice(0, setIndex + 1), clone, ...e.sets.slice(setIndex + 1)]
+            .map((st, si) => ({ ...st, setNumber: si + 1 }));
+          return { ...e, sets: next };
+        }),
+      })),
+      isDirty: true,
+    });
+  },
+
+  updateSet: (weekNumber, sessionId, sectionId, exerciseIndex, setIndex, updates) => {
+    const { plan } = get();
+    if (!plan) return;
+    set({
+      plan: patchSection(plan, weekNumber, sessionId, sectionId, (sec) => ({
+        ...sec,
+        exercises: sec.exercises.map((e, i) =>
           i === exerciseIndex
             ? { ...e, sets: e.sets.map((st, si) => (si === setIndex ? { ...st, ...updates } : st)) }
             : e,
@@ -383,53 +825,37 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
     });
   },
 
-  updateExerciseNotes: (weekNumber, sessionId, exerciseIndex, notes) => {
+  updateExerciseNotes: (weekNumber, sessionId, sectionId, exerciseIndex, notes) => {
     const { plan } = get();
     if (!plan) return;
     set({
-      plan: updateSession(plan, weekNumber, sessionId, (s) => ({
-        ...s,
-        exercises: s.exercises.map((e, i) => (i === exerciseIndex ? { ...e, notes: notes || null } : e)),
+      plan: patchSection(plan, weekNumber, sessionId, sectionId, (sec) => ({
+        ...sec,
+        exercises: sec.exercises.map((e, i) => (i === exerciseIndex ? { ...e, notes: notes || null } : e)),
       })),
       isDirty: true,
     });
   },
 
-  updateExerciseRestSeconds: (weekNumber, sessionId, exerciseIndex, restSeconds) => {
+  updateExerciseRestSeconds: (weekNumber, sessionId, sectionId, exerciseIndex, restSeconds) => {
     const { plan } = get();
     if (!plan) return;
     set({
-      plan: updateSession(plan, weekNumber, sessionId, (s) => ({
-        ...s,
-        exercises: s.exercises.map((e, i) => (i === exerciseIndex ? { ...e, restSeconds } : e)),
+      plan: patchSection(plan, weekNumber, sessionId, sectionId, (sec) => ({
+        ...sec,
+        exercises: sec.exercises.map((e, i) => (i === exerciseIndex ? { ...e, restSeconds } : e)),
       })),
       isDirty: true,
     });
   },
 
-  updateExerciseMovementType: (weekNumber, sessionId, exerciseIndex, movementType) => {
+  updateExerciseMovementType: (weekNumber, sessionId, sectionId, exerciseIndex, movementType) => {
     const { plan } = get();
     if (!plan) return;
     set({
-      plan: updateSession(plan, weekNumber, sessionId, (s) => ({
-        ...s,
-        exercises: s.exercises.map((e, i) => (i === exerciseIndex ? { ...e, movementType } : e)),
-      })),
-      isDirty: true,
-    });
-  },
-
-  updateExerciseFormat: (weekNumber, sessionId, exerciseIndex, format, formatConfig) => {
-    const { plan } = get();
-    if (!plan) return;
-    set({
-      plan: updateSession(plan, weekNumber, sessionId, (s) => ({
-        ...s,
-        exercises: s.exercises.map((e, i) =>
-          i === exerciseIndex
-            ? { ...e, format: format ?? null, formatConfig: formatConfig ?? null }
-            : e,
-        ),
+      plan: patchSection(plan, weekNumber, sessionId, sectionId, (sec) => ({
+        ...sec,
+        exercises: sec.exercises.map((e, i) => (i === exerciseIndex ? { ...e, movementType } : e)),
       })),
       isDirty: true,
     });
@@ -523,23 +949,36 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
           if (w.weekNumber === fromWeek) {
             return {
               ...w,
-              sessions: w.sessions.map((s) =>
-                s.sessionId === fromSessionId
-                  ? { ...s, exercises: s.exercises.filter((_, i) => i !== fromIndex).map((e, i) => ({ ...e, order: i + 1 })) }
-                  : s,
-              ),
+              sessions: w.sessions.map((s) => {
+                if (s.sessionId !== fromSessionId) return s;
+                let remaining = fromIndex;
+                const sections = s.sections.map((sec) => {
+                  if (remaining >= 0 && remaining < sec.exercises.length) {
+                    const exercises = sec.exercises.filter((_, i) => i !== remaining);
+                    remaining = -1;
+                    return { ...sec, exercises: exercises.map((e, i) => ({ ...e, order: i + 1 })) };
+                  }
+                  if (remaining >= 0) remaining -= sec.exercises.length;
+                  return sec;
+                });
+                return { ...s, sections, exercises: sections.flatMap((sec) => sec.exercises) };
+              }),
             };
           }
           if (w.weekNumber === toWeek) {
             return {
               ...w,
               sessions: w.sessions.map((s) => {
-                if (s.sessionId === toSessionId) {
-                  const exercises = [...s.exercises];
+                if (s.sessionId !== toSessionId) return s;
+                const firstSection = s.sections[0];
+                if (!firstSection) return s;
+                const sections = s.sections.map((sec) => {
+                  if (sec.sectionId !== firstSection.sectionId) return sec;
+                  const exercises = [...sec.exercises];
                   exercises.splice(toIndex, 0, { ...exercise });
-                  return { ...s, exercises: exercises.map((e, i) => ({ ...e, order: i + 1 })) };
-                }
-                return s;
+                  return { ...sec, exercises: exercises.map((e, i) => ({ ...e, order: i + 1 })) };
+                });
+                return { ...s, sections, exercises: sections.flatMap((sec) => sec.exercises) };
               }),
             };
           }
@@ -717,7 +1156,115 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
     const { plan } = get();
     if (!plan) return;
 
-    set({ isSaving: true });
+    // Pre-save validation — surface field-level issues with toast lines and
+    // mark the offending IDs so cards can highlight themselves.
+    const issues: string[] = [];
+    const invalidIds = new Set<string>();
+    for (const w of plan.weeks) {
+      for (const s of w.sessions) {
+        if (!s.name?.trim()) {
+          invalidIds.add(s.sessionId);
+          issues.push(
+            i18n.t('training.validation.sessionMissingName', { week: w.weekNumber }),
+          );
+        }
+        for (const sec of s.sections) {
+          if (!sec.name?.trim()) {
+            invalidIds.add(sec.sectionId);
+            issues.push(
+              i18n.t('training.validation.workoutMissingName', {
+                session: s.name?.trim() || i18n.t('training.untitledSession'),
+              }),
+            );
+          }
+          // ForTime sections legitimately have no exercises (the workout IS the time cap).
+          if (sec.format !== 'ForTime' && sec.exercises.length === 0) {
+            invalidIds.add(sec.sectionId);
+            issues.push(
+              i18n.t('training.validation.workoutNoExercises', {
+                workout: sec.name?.trim() || i18n.t('training.untitledWorkout'),
+              }),
+            );
+          }
+
+          // Per-exercise/set requirements per format:
+          //   Standard          → every set needs reps + rest (weight stays optional)
+          //   EMOM / AMRAP / ForTime → first set needs reps
+          //   Tabata            → no required fields
+          for (const ex of sec.exercises) {
+            const workoutLabel = sec.name?.trim() || i18n.t('training.untitledWorkout');
+            const exerciseLabel = ex.exerciseName || i18n.t('training.unnamedExercise');
+            if (ex.sets.length === 0) {
+              invalidIds.add(sec.sectionId);
+              issues.push(
+                i18n.t('training.validation.exerciseNoSets', {
+                  workout: workoutLabel,
+                  exercise: exerciseLabel,
+                }),
+              );
+              continue;
+            }
+            if (sec.format === 'Standard') {
+              const allFilled = ex.sets.every(
+                (st) => st.reps != null && st.restSeconds != null,
+              );
+              if (!allFilled) {
+                invalidIds.add(sec.sectionId);
+                issues.push(
+                  i18n.t('training.validation.exerciseSetMissing', {
+                    workout: workoutLabel,
+                    exercise: exerciseLabel,
+                  }),
+                );
+              }
+            } else if (sec.format !== 'Tabata') {
+              // EMOM / AMRAP / ForTime — first set's prescription field
+              // required, and which field that is depends on the
+              // exercise's movement type:
+              //   Reps / RepsForTime / undefined → reps
+              //   Time                           → durationSeconds
+              //   Distance                       → distanceMeters
+              // Weight is always optional regardless of movement type.
+              const firstSet = ex.sets[0];
+              const mt = ex.movementType;
+              let missing = false;
+              let missingKey = 'training.validation.exerciseRepsMissing';
+              if (mt === 'Time') {
+                missing = firstSet.durationSeconds == null;
+                missingKey = 'training.validation.exerciseDurationMissing';
+              } else if (mt === 'Distance') {
+                missing = firstSet.distanceMeters == null;
+                missingKey = 'training.validation.exerciseDistanceMissing';
+              } else {
+                // Reps / RepsForTime / null / undefined
+                missing = firstSet.reps == null;
+              }
+              if (missing) {
+                invalidIds.add(sec.sectionId);
+                issues.push(
+                  i18n.t(missingKey, {
+                    workout: workoutLabel,
+                    exercise: exerciseLabel,
+                  }),
+                );
+              }
+            }
+          }
+        }
+      }
+    }
+    if (issues.length > 0) {
+      set({ invalidIds });
+      const headline = i18n.t('training.validation.headline');
+      // Show up to 5 distinct lines so the toast doesn't grow indefinitely.
+      const lines = Array.from(new Set(issues)).slice(0, 5);
+      const more = issues.length > lines.length
+        ? '\n' + i18n.t('training.validation.andMore', { count: issues.length - lines.length })
+        : '';
+      useToastStore.getState().addToast(`${headline}\n${lines.join('\n')}${more}`, 'error');
+      return;
+    }
+    set({ invalidIds: new Set(), isSaving: true });
     try {
       const request: UpdateTrainingPlanRequest = {
         name: plan.name,
@@ -735,24 +1282,34 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
             notes: s.notes,
             format: s.format,
             formatConfig: s.formatConfig,
-            exercises: s.exercises.map((e) => ({
-              exerciseExternalId: e.exerciseExternalId,
-              exerciseName: e.exerciseName,
-              order: e.order,
-              notes: e.notes,
-              restSeconds: e.restSeconds,
-              movementType: e.movementType,
-              format: e.format,
-              formatConfig: e.formatConfig,
-              sets: e.sets.map((st) => ({
-                setNumber: st.setNumber,
-                type: st.type,
-                reps: st.reps,
-                weightKg: st.weightKg,
-                durationSeconds: st.durationSeconds,
-                rpe: st.rpe,
-                distanceMeters: st.distanceMeters,
-                restSeconds: st.restSeconds,
+            // Emit real sections — each with its stable sectionId.
+            sections: s.sections.map((sec): UpdateSectionRequest => ({
+              sectionId: sec.sectionId,
+              order: sec.order,
+              name: sec.name,
+              format: sec.format,
+              formatConfig: sec.formatConfig,
+              notes: sec.notes,
+              exercises: sec.exercises.map((e) => ({
+                exerciseExternalId: e.exerciseExternalId,
+                exerciseName: e.exerciseName,
+                order: e.order,
+                notes: e.notes,
+                restSeconds: e.restSeconds,
+                movementType: e.movementType,
+                // Per-exercise format override is removed from the editor; always null on save.
+                format: null,
+                formatConfig: null,
+                sets: e.sets.map((st) => ({
+                  setNumber: st.setNumber,
+                  type: st.type,
+                  reps: st.reps,
+                  weightKg: st.weightKg,
+                  durationSeconds: st.durationSeconds,
+                  rpe: st.rpe,
+                  distanceMeters: st.distanceMeters,
+                  restSeconds: st.restSeconds,
+                })),
               })),
             })),
           })),
@@ -760,7 +1317,8 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
       };
 
       const updated = await updateTrainingPlan(plan.planId, request);
-      set({ plan: updated, originalPlan: structuredClone(updated), isDirty: false });
+      // Re-run setPlan so sections are normalized (same as initial load).
+      get().setPlan(updated);
       showSuccess('training.saved');
     } catch (err) {
       showApiError(err, 'training.saveError');
@@ -782,12 +1340,32 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
     set({ isSaving: true });
     try {
       const updated = await publishTrainingWeek(plan.planId, weekNumber, plan.version);
-      set({ plan: updated, originalPlan: structuredClone(updated), isDirty: false });
+      get().setPlan(updated);
       showSuccess('training.weekPublished');
     } catch (err) {
       showApiError(err, 'training.publishError');
     } finally {
       set({ isSaving: false });
+    }
+  },
+
+  refreshCompletions: async () => {
+    const { plan } = get();
+    if (!plan) return;
+    try {
+      const fresh = await getTrainingPlan(plan.planId);
+      const completions = fresh.completions ?? [];
+      set((state) => ({
+        plan: state.plan ? { ...state.plan, completions } : state.plan,
+        // originalPlan tracks server-state too, so it must move with the
+        // freshly fetched completions — otherwise revert() would surface
+        // stale completion data.
+        originalPlan: state.originalPlan
+          ? { ...state.originalPlan, completions }
+          : state.originalPlan,
+      }));
+    } catch {
+      // Non-critical — UI will catch up on the next manual save / load.
     }
   },
 }));

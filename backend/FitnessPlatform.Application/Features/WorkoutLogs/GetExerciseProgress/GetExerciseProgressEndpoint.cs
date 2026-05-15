@@ -65,6 +65,7 @@ public class GetExerciseProgressEndpoint(IMongoContext mongo, ProfessionalAuthHe
 
         foreach (var log in logs)
         {
+            log.WithBackfilledSections();
             var exercise = log.Exercises
                 .FirstOrDefault(e => e.ExerciseExternalId == req.ExerciseId);
 

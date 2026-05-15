@@ -312,10 +312,13 @@ export default function NutritionPlanPage() {
   const weekTabs: WeekTabData[] = useMemo(() => {
     if (!plan) return [];
     return plan.weeks.map((w) => {
+      // Nutrition plans don't (yet) gate edits on the week-end date — preserve
+      // the existing "published → green check" behavior by mapping straight to
+      // `isFinished`.
       return {
         index: w.weekNumber,
         label: t('nutrition.weekLabel', { number: w.weekNumber }),
-        isTemplate: w.status === 'Published',
+        isFinished: w.status === 'Published',
       };
     });
   }, [plan, t]);

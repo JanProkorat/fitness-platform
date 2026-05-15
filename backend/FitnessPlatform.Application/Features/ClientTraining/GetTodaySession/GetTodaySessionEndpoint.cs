@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Features.ClientTraining;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
@@ -119,11 +120,31 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
 
         int currentWeekNumber = resolvedWeek.Value;
 
+        // Past the last published week → the trainer hasn't queued anything
+        // for today. Don't clamp to `publishedWeeks.Last()`: clamping would
+        // keep the last published week's day-of-week sessions visible
+        // indefinitely after the published portion ends (e.g. yesterday was
+        // the last day of the last published week → today must show nothing).
+        if (currentWeekNumber > publishedWeeks[^1].WeekNumber)
+        {
+            await Send.OkAsync(response, ct);
+            return;
+        }
+
         var currentWeek = plan.Weeks.FirstOrDefault(w => w.WeekNumber == currentWeekNumber);
         if (currentWeek is null || currentWeek.Status != WeekStatus.Published)
         {
-            // The calculated week isn't published yet — find the nearest published week
-            currentWeek = publishedWeeks.Last();
+            // Gap-skip: the calculated week isn't published but earlier
+            // weeks are (e.g. trainer published 1, 2, 4 and today resolves
+            // to week 3). Fall back to the latest published week that's
+            // not after the calculated one — this preserves the "ahead of
+            // trainer is hidden, behind catches up" intent.
+            currentWeek = publishedWeeks.LastOrDefault(w => w.WeekNumber <= currentWeekNumber);
+            if (currentWeek is null)
+            {
+                await Send.OkAsync(response, ct);
+                return;
+            }
         }
 
         // Find today's sessions (1 = Monday, 7 = Sunday)
@@ -186,6 +207,9 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
                 cancellationToken: ct);
             var completionDocs = await completionCursor.ToListAsync(ct);
 
+            // Build a lookup for sessions by sessionId so backfill can resolve section membership.
+            var sessionLookup = todaySessions.ToDictionary(s => s.SessionId);
+
             foreach (var doc in completionDocs)
             {
                 if (!completedBySession.TryGetValue(doc.SessionId, out var set))
@@ -194,6 +218,17 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
                     set.Add(exId);
 
                 response.VersionBySession[doc.SessionId] = doc.Version;
+                response.CompletedSectionIdsBySession[doc.SessionId] =
+                    (doc.CompletedSectionIds ?? new List<Guid>()).ToList();
+
+                // Populate section-aware field using read-time backfill.
+                if (sessionLookup.TryGetValue(doc.SessionId, out var completionSession))
+                {
+                    var effective = TrainingCompletionBackfill.GetEffectiveCompletedExerciseIdsBySection(
+                        doc, completionSession);
+                    response.CompletedExerciseIdsBySectionAndSession[doc.SessionId] =
+                        effective.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToList());
+                }
             }
 
             // 2. WorkoutLog — live-training logs for today. An exercise counts as

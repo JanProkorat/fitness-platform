@@ -2,39 +2,84 @@ import api from './client';
 import {
   SetType,
   MuscleGroup,
+  WorkoutFormat,
+  MovementType,
 } from './generated';
 import type {
   ExerciseSet,
   SessionExercise,
+  TrainingSection as GeneratedTrainingSection,
   TrainingSession,
   GetTodaySessionResponse,
-  GetFullTrainingPlanResponse,
-  WeekDto,
-  SessionDto,
+  GetFullTrainingPlanResponse as GeneratedFullTrainingPlanResponse,
+  WeekDto as GeneratedWeekDto,
+  SessionDto as GeneratedSessionDto,
+  SectionDto as GeneratedSectionDto,
   ExerciseDto,
   SetDto,
+  WodConfig,
 } from './generated';
 
 // Re-export generated types and enums so consumer imports (`from '@/api/training'`) still work.
-export { SetType, MuscleGroup };
+export { SetType, MuscleGroup, WorkoutFormat, MovementType };
 export type {
   ExerciseSet,
   SessionExercise,
   TrainingSession,
   GetTodaySessionResponse,
-  GetFullTrainingPlanResponse,
-  WeekDto,
-  SessionDto,
   ExerciseDto,
   SetDto,
+  WodConfig,
 };
 
-// Re-export WOD types introduced in #205.
-// These are hand-declared until regen-api is run against the updated backend.
+/**
+ * Augmented SectionDto — adds `formatConfig` + `notes` that the backend now
+ * emits but NSwag hasn't been re-run for. Drop the augmentation when the
+ * generated client is regenerated.
+ */
+export type SectionDto = Omit<GeneratedSectionDto, 'exercises'> & {
+  formatConfig?: WodConfig | null;
+  notes?: string | null;
+  exercises?: GeneratedSectionDto['exercises'];
+};
+
+/**
+ * Augmented SessionDto — propagates SectionDto augmentation so
+ * `response.weeks[i].sessions[j].sections[k].formatConfig` is typed correctly
+ * without per-call casts.
+ */
+export type SessionDto = Omit<GeneratedSessionDto, 'sections'> & {
+  sections?: SectionDto[];
+};
+
+/**
+ * Augmented WeekDto — propagates SessionDto augmentation up the chain.
+ */
+export type WeekDto = Omit<GeneratedWeekDto, 'sessions'> & {
+  sessions?: SessionDto[];
+};
+
+/**
+ * Augmented GetFullTrainingPlanResponse — propagates WeekDto augmentation up the chain.
+ */
+export type GetFullTrainingPlanResponse = Omit<GeneratedFullTrainingPlanResponse, 'weeks'> & {
+  weeks?: WeekDto[];
+};
+
+/**
+ * Augmented TrainingSection — widens the generated `notes` field to accept
+ * `null` (the backend serialises null when no note is set; NSwag emits
+ * `string | undefined` which rejects null at compile time).
+ * Uses Omit to re-declare `notes` rather than `extends` so TypeScript does
+ * not reject the `null` widening with TS2430.
+ */
+export type TrainingSection = Omit<GeneratedTrainingSection, 'notes'> & {
+  /** Optional coach notes for this workout/section. */
+  notes?: string | null;
+}
+
+// Re-export WodResult from wod-types (hand-declared until fully superseded by generated).
 export type {
-  WorkoutFormat,
-  MovementType,
-  WodConfig,
   WodResult,
   WodSessionExercise,
 } from './wod-types';

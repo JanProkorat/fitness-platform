@@ -14,16 +14,29 @@ public static class TrainingCompletionTestHelpers
 {
     /// <summary>
     /// Creates an active <see cref="TrainingPlan"/> with one published week containing
-    /// sessions for every day of the week. Each session has the given exercises.
+    /// sessions for every day of the week. Each session has the given exercises in a single section.
     /// </summary>
+    /// <param name="clientId">Client identifier.</param>
+    /// <param name="sessionId">Session identifier (defaults to a new Guid).</param>
+    /// <param name="exerciseIds">Exercise external IDs (defaults to two new Guids).</param>
+    /// <param name="startDate">Plan start date (defaults to Monday of the current week).</param>
+    /// <param name="trainerId">Trainer identifier (defaults to a new Guid).</param>
+    /// <param name="sectionId">
+    ///   Optional section ID to use for the single "Hlavní" section in every session.
+    ///   When supplied, both the target session and all other sessions use the same sectionId
+    ///   (sufficient for single-section tests). Defaults to a shared new Guid.
+    /// </param>
+    /// <returns>The created plan.</returns>
     public static TrainingPlan CreateActivePlan(
         Guid clientId,
         Guid? sessionId = null,
         IReadOnlyList<Guid>? exerciseIds = null,
         DateTime? startDate = null,
-        Guid? trainerId = null)
+        Guid? trainerId = null,
+        Guid? sectionId = null)
     {
         var sid = sessionId ?? Guid.NewGuid();
+        var secId = sectionId ?? Guid.NewGuid();
         var exIds = exerciseIds ?? [Guid.NewGuid(), Guid.NewGuid()];
         var start = startDate ?? DateTime.UtcNow.Date.AddDays(-(int)DateTime.UtcNow.DayOfWeek + 1); // Monday of current week
 
@@ -48,19 +61,112 @@ public static class TrainingCompletionTestHelpers
                         DayOfWeek = d,
                         Name = $"Day {d} Session",
                         Order = 1,
-                        Exercises = exIds.Select((id, i) => new SessionExercise
-                        {
-                            ExerciseExternalId = id,
-                            ExerciseName = $"Exercise {i + 1}",
-                            Order = i + 1,
-                            Sets = []
-                        }).ToList()
+                        Sections =
+                        [
+                            new TrainingSection
+                            {
+                                SectionId = secId,
+                                Order = 0,
+                                Name = "Hlavní",
+                                Exercises = exIds.Select((id, i) => new SessionExercise
+                                {
+                                    ExerciseExternalId = id,
+                                    ExerciseName = $"Exercise {i + 1}",
+                                    Order = i + 1,
+                                    Sets = []
+                                }).ToList()
+                            }
+                        ]
                     }).ToList()
                 }
             ],
             Version = 1,
             DateCreated = start
         };
+    }
+
+    /// <summary>
+    /// Creates an active <see cref="TrainingPlan"/> where the target session has two sections,
+    /// each containing the same catalog exercise. This is the canonical "same exercise in two sections"
+    /// scenario that caused the original cross-section checkbox bug.
+    /// </summary>
+    /// <returns>
+    ///   The plan plus the two section IDs. The <paramref name="exerciseId"/> appears in both sections.
+    /// </returns>
+    public static (TrainingPlan Plan, Guid Section1Id, Guid Section2Id)
+        CreateActivePlanWithDuplicateExerciseAcrossSections(
+            Guid clientId,
+            Guid sessionId,
+            Guid exerciseId)
+    {
+        var section1Id = Guid.NewGuid();
+        var section2Id = Guid.NewGuid();
+        var start = DateTime.UtcNow.Date.AddDays(-(int)DateTime.UtcNow.DayOfWeek + 1);
+
+        var plan = new TrainingPlan
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = clientId,
+            TrainerId = Guid.NewGuid(),
+            Name = "Duplicate Exercise Plan",
+            Status = TrainingPlanStatus.Active,
+            StartDate = start,
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = start,
+                    Sessions = Enumerable.Range(1, 7).Select(d => new TrainingSession
+                    {
+                        SessionId = d == (int)DateTime.UtcNow.DayOfWeek || d == 1 ? sessionId : Guid.NewGuid(),
+                        DayOfWeek = d,
+                        Name = $"Day {d} Session",
+                        Order = 1,
+                        Sections =
+                        [
+                            new TrainingSection
+                            {
+                                SectionId = section1Id,
+                                Order = 0,
+                                Name = "Section A",
+                                Exercises =
+                                [
+                                    new SessionExercise
+                                    {
+                                        ExerciseExternalId = exerciseId,
+                                        ExerciseName = "Shared Exercise",
+                                        Order = 1,
+                                        Sets = []
+                                    }
+                                ]
+                            },
+                            new TrainingSection
+                            {
+                                SectionId = section2Id,
+                                Order = 1,
+                                Name = "Section B",
+                                Exercises =
+                                [
+                                    new SessionExercise
+                                    {
+                                        ExerciseExternalId = exerciseId,
+                                        ExerciseName = "Shared Exercise",
+                                        Order = 1,
+                                        Sets = []
+                                    }
+                                ]
+                            }
+                        ]
+                    }).ToList()
+                }
+            ],
+            Version = 1,
+            DateCreated = start
+        };
+
+        return (plan, section1Id, section2Id);
     }
 
     /// <summary>
@@ -71,7 +177,9 @@ public static class TrainingCompletionTestHelpers
         Guid sessionId,
         DateTime date,
         IReadOnlyList<Guid>? completedExerciseIds = null,
-        int version = 1)
+        IReadOnlyList<Guid>? completedSectionIds = null,
+        int version = 1,
+        Dictionary<string, List<Guid>>? completedExerciseIdsBySection = null)
     {
         return new TrainingCompletion
         {
@@ -80,9 +188,81 @@ public static class TrainingCompletionTestHelpers
             Date = date.Date,
             SessionId = sessionId,
             CompletedExerciseIds = completedExerciseIds?.ToList() ?? [],
+            CompletedSectionIds = completedSectionIds?.ToList(),
+            CompletedExerciseIdsBySection = completedExerciseIdsBySection,
             DateCreated = DateTime.UtcNow,
             Version = version
         };
+    }
+
+    /// <summary>
+    /// Creates an active <see cref="TrainingPlan"/> where the session has one exercise-free section
+    /// (e.g. a ForTime section with no exercises) alongside an optional standard section with exercises.
+    /// Useful for testing section-level compliance.
+    /// </summary>
+    public static (TrainingPlan Plan, Guid ForTimeSectionId, Guid StandardSectionId, Guid[] ExerciseIds)
+        CreateActivePlanWithMixedSections(
+            Guid clientId,
+            Guid sessionId,
+            Guid[]? exerciseIds = null)
+    {
+        var forTimeSectionId = Guid.NewGuid();
+        var standardSectionId = Guid.NewGuid();
+        var exIds = exerciseIds ?? [Guid.NewGuid(), Guid.NewGuid()];
+        var start = DateTime.UtcNow.Date.AddDays(-(int)DateTime.UtcNow.DayOfWeek + 1);
+
+        var plan = new TrainingPlan
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = clientId,
+            TrainerId = Guid.NewGuid(),
+            Name = "Mixed Sections Plan",
+            Status = TrainingPlanStatus.Active,
+            StartDate = start,
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = start,
+                    Sessions = Enumerable.Range(1, 7).Select(d => new TrainingSession
+                    {
+                        SessionId = d == (int)DateTime.UtcNow.DayOfWeek || d == 1 ? sessionId : Guid.NewGuid(),
+                        DayOfWeek = d,
+                        Name = $"Day {d} Session",
+                        Order = 1,
+                        Sections =
+                        [
+                            new TrainingSection
+                            {
+                                SectionId = forTimeSectionId,
+                                Order = 0,
+                                Name = "ForTime",
+                                Exercises = [] // exercise-free section
+                            },
+                            new TrainingSection
+                            {
+                                SectionId = standardSectionId,
+                                Order = 1,
+                                Name = "Hlavní",
+                                Exercises = exIds.Select((id, i) => new SessionExercise
+                                {
+                                    ExerciseExternalId = id,
+                                    ExerciseName = $"Exercise {i + 1}",
+                                    Order = i + 1,
+                                    Sets = []
+                                }).ToList()
+                            }
+                        ]
+                    }).ToList()
+                }
+            ],
+            Version = 1,
+            DateCreated = start
+        };
+
+        return (plan, forTimeSectionId, standardSectionId, exIds);
     }
 
     /// <summary>

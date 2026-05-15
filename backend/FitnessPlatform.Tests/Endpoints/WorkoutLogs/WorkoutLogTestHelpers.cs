@@ -32,7 +32,7 @@ public static class WorkoutLogTestHelpers
             SessionId = sessionId,
             StartedAt = startedAt ?? DateTime.UtcNow,
             IsCompleted = isCompleted,
-            Exercises = [],
+            Sections = [],
             DateCreated = DateTime.UtcNow
         };
     }

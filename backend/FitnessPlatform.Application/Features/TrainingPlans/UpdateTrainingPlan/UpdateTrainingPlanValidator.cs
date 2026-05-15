@@ -1,11 +1,12 @@
 using FastEndpoints;
 using FluentValidation;
+using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 
 namespace FitnessPlatform.Application.Features.TrainingPlans.UpdateTrainingPlan;
 
 /// <summary>
-/// Validates <see cref="UpdateTrainingPlanRequest"/> including all nested weeks, sessions, exercises, and sets.
+/// Validates <see cref="UpdateTrainingPlanRequest"/> including all nested weeks, sessions, sections, exercises, and sets.
 /// </summary>
 public class UpdateTrainingPlanValidator : Validator<UpdateTrainingPlanRequest>
 {
@@ -58,128 +59,138 @@ public class UpdateTrainingPlanValidator : Validator<UpdateTrainingPlanRequest>
                 session.RuleFor(s => s.Order)
                     .GreaterThanOrEqualTo(1).WithMessage("Session Order must be >= 1.");
 
-                session.RuleFor(s => s.Exercises)
-                    .Must(exercises => exercises.Count <= 30).WithMessage("A session may not have more than 30 exercises.");
+                // Session must have at least one section
+                session.RuleFor(s => s.Sections)
+                    .NotEmpty().WithMessage("A session must have at least one section.");
 
-                // Session-level format config invariants
+                // No duplicate Order values within a session's sections
+                session.RuleFor(s => s.Sections)
+                    .Must(sections => sections.Select(sec => sec.Order).Distinct().Count() == sections.Count)
+                    .WithMessage("Duplicate Order values are not allowed within a session's sections.");
+
+                // Session-level format config invariants (optional, nullable)
                 session.RuleFor(s => s.FormatConfig)
                     .Null()
                     .When(s => s.Format == WorkoutFormat.Standard)
-                    .WithMessage("FormatConfig must be null for Standard format.");
+                    .WithMessage("Session FormatConfig must be null for Standard format.");
 
                 session.RuleFor(s => s.FormatConfig)
                     .NotNull()
-                    .When(s => s.Format != WorkoutFormat.Standard)
-                    .WithMessage("FormatConfig is required for non-Standard formats.");
+                    .When(s => s.Format.HasValue && s.Format != WorkoutFormat.Standard)
+                    .WithMessage("Session FormatConfig is required for non-Standard formats.");
 
-                session.RuleFor(s => s.FormatConfig!.IntervalSeconds)
-                    .NotNull().GreaterThan(0)
-                    .When(s => s.Format == WorkoutFormat.EMOM && s.FormatConfig != null)
-                    .WithMessage("EMOM requires IntervalSeconds > 0.");
+                ApplyFormatConfigRules(session, s => s.Format, s => s.FormatConfig, "Session");
 
-                session.RuleFor(s => s.FormatConfig!.TotalRounds)
-                    .NotNull().GreaterThan(0)
-                    .When(s => s.Format == WorkoutFormat.EMOM && s.FormatConfig != null)
-                    .WithMessage("EMOM requires TotalRounds > 0.");
-
-                session.RuleFor(s => s.FormatConfig!.TimeCapSeconds)
-                    .NotNull().GreaterThan(0)
-                    .When(s => (s.Format == WorkoutFormat.AMRAP || s.Format == WorkoutFormat.ForTime) && s.FormatConfig != null)
-                    .WithMessage("AMRAP and ForTime require TimeCapSeconds > 0.");
-
-                session.RuleFor(s => s.FormatConfig!.WorkSeconds)
-                    .NotNull().GreaterThan(0)
-                    .When(s => s.Format == WorkoutFormat.Tabata && s.FormatConfig != null)
-                    .WithMessage("Tabata requires WorkSeconds > 0.");
-
-                session.RuleFor(s => s.FormatConfig!.RestSeconds)
-                    .NotNull().GreaterThan(0)
-                    .When(s => s.Format == WorkoutFormat.Tabata && s.FormatConfig != null)
-                    .WithMessage("Tabata requires RestSeconds > 0.");
-
-                session.RuleFor(s => s.FormatConfig!.TotalRounds)
-                    .NotNull().GreaterThan(0)
-                    .When(s => s.Format == WorkoutFormat.Tabata && s.FormatConfig != null)
-                    .WithMessage("Tabata requires TotalRounds > 0.");
-
-                session.RuleForEach(s => s.Exercises).ChildRules(exercise =>
+                session.RuleForEach(s => s.Sections).ChildRules(section =>
                 {
-                    exercise.RuleFor(e => e.ExerciseExternalId)
-                        .NotEmpty().WithMessage("ExerciseExternalId must not be empty.");
+                    section.RuleFor(sec => sec.Name)
+                        .NotEmpty().WithMessage("Section Name must not be empty.")
+                        .MaximumLength(200);
 
-                    exercise.RuleFor(e => e.ExerciseName)
-                        .NotEmpty().WithMessage("ExerciseName must not be empty.");
+                    section.RuleFor(sec => sec.Exercises)
+                        .Must(exercises => exercises.Count <= 30).WithMessage("A section may not have more than 30 exercises.");
 
-                    exercise.RuleFor(e => e.Order)
-                        .GreaterThanOrEqualTo(1).WithMessage("Exercise Order must be >= 1.");
-
-                    exercise.RuleFor(e => e.RestSeconds)
-                        .InclusiveBetween(0, 600).When(e => e.RestSeconds.HasValue)
-                        .WithMessage("RestSeconds must be between 0 and 600.");
-
-                    // Per-exercise format config invariants (same rules as session level)
-                    exercise.RuleFor(e => e.FormatConfig)
+                    // Section-level format config invariants
+                    section.RuleFor(sec => sec.FormatConfig)
                         .Null()
-                        .When(e => e.Format == WorkoutFormat.Standard)
-                        .WithMessage("Exercise FormatConfig must be null for Standard format.");
+                        .When(sec => sec.Format == WorkoutFormat.Standard)
+                        .WithMessage("Section FormatConfig must be null for Standard format.");
 
-                    exercise.RuleFor(e => e.FormatConfig)
+                    section.RuleFor(sec => sec.FormatConfig)
                         .NotNull()
-                        .When(e => e.Format.HasValue && e.Format != WorkoutFormat.Standard)
-                        .WithMessage("Exercise FormatConfig is required for non-Standard formats.");
+                        .When(sec => sec.Format.HasValue && sec.Format != WorkoutFormat.Standard)
+                        .WithMessage("Section FormatConfig is required for non-Standard formats.");
 
-                    exercise.RuleFor(e => e.FormatConfig!.IntervalSeconds)
-                        .NotNull().GreaterThan(0)
-                        .When(e => e.Format == WorkoutFormat.EMOM && e.FormatConfig != null)
-                        .WithMessage("EMOM exercise requires IntervalSeconds > 0.");
+                    ApplyFormatConfigRules(section, sec => sec.Format, sec => sec.FormatConfig, "Section");
 
-                    exercise.RuleFor(e => e.FormatConfig!.TotalRounds)
-                        .NotNull().GreaterThan(0)
-                        .When(e => e.Format == WorkoutFormat.EMOM && e.FormatConfig != null)
-                        .WithMessage("EMOM exercise requires TotalRounds > 0.");
-
-                    exercise.RuleFor(e => e.FormatConfig!.TimeCapSeconds)
-                        .NotNull().GreaterThan(0)
-                        .When(e => (e.Format == WorkoutFormat.AMRAP || e.Format == WorkoutFormat.ForTime) && e.FormatConfig != null)
-                        .WithMessage("AMRAP/ForTime exercise requires TimeCapSeconds > 0.");
-
-                    exercise.RuleFor(e => e.FormatConfig!.WorkSeconds)
-                        .NotNull().GreaterThan(0)
-                        .When(e => e.Format == WorkoutFormat.Tabata && e.FormatConfig != null)
-                        .WithMessage("Tabata exercise requires WorkSeconds > 0.");
-
-                    exercise.RuleFor(e => e.FormatConfig!.RestSeconds)
-                        .NotNull().GreaterThan(0)
-                        .When(e => e.Format == WorkoutFormat.Tabata && e.FormatConfig != null)
-                        .WithMessage("Tabata exercise requires RestSeconds > 0.");
-
-                    exercise.RuleFor(e => e.FormatConfig!.TotalRounds)
-                        .NotNull().GreaterThan(0)
-                        .When(e => e.Format == WorkoutFormat.Tabata && e.FormatConfig != null)
-                        .WithMessage("Tabata exercise requires TotalRounds > 0.");
-
-                    exercise.RuleFor(e => e.Sets)
-                        .Must(sets => sets.Count <= 20).WithMessage("An exercise may not have more than 20 sets.");
-
-                    exercise.RuleForEach(e => e.Sets).ChildRules(set =>
+                    section.RuleForEach(sec => sec.Exercises).ChildRules(exercise =>
                     {
-                        set.RuleFor(s => s.SetNumber)
-                            .GreaterThanOrEqualTo(1).WithMessage("SetNumber must be >= 1.");
+                        exercise.RuleFor(e => e.ExerciseExternalId)
+                            .NotEmpty().WithMessage("ExerciseExternalId must not be empty.");
 
-                        set.RuleFor(s => s.Reps)
-                            .InclusiveBetween(1, 1000).When(s => s.Reps.HasValue)
-                            .WithMessage("Reps must be between 1 and 1000.");
+                        exercise.RuleFor(e => e.ExerciseName)
+                            .NotEmpty().WithMessage("ExerciseName must not be empty.");
 
-                        set.RuleFor(s => s.WeightKg)
-                            .GreaterThanOrEqualTo(0).When(s => s.WeightKg.HasValue)
-                            .WithMessage("WeightKg must be >= 0.");
+                        exercise.RuleFor(e => e.Order)
+                            .GreaterThanOrEqualTo(1).WithMessage("Exercise Order must be >= 1.");
 
-                        set.RuleFor(s => s.Rpe)
-                            .InclusiveBetween(1, 10).When(s => s.Rpe.HasValue)
-                            .WithMessage("RPE must be between 1 and 10.");
+                        exercise.RuleFor(e => e.RestSeconds)
+                            .InclusiveBetween(0, 600).When(e => e.RestSeconds.HasValue)
+                            .WithMessage("RestSeconds must be between 0 and 600.");
+
+                        // Per-exercise format config invariants
+                        exercise.RuleFor(e => e.FormatConfig)
+                            .Null()
+                            .When(e => e.Format == WorkoutFormat.Standard)
+                            .WithMessage("Exercise FormatConfig must be null for Standard format.");
+
+                        exercise.RuleFor(e => e.FormatConfig)
+                            .NotNull()
+                            .When(e => e.Format.HasValue && e.Format != WorkoutFormat.Standard)
+                            .WithMessage("Exercise FormatConfig is required for non-Standard formats.");
+
+                        ApplyFormatConfigRules(exercise, e => e.Format, e => e.FormatConfig, "Exercise");
+
+                        exercise.RuleFor(e => e.Sets)
+                            .Must(sets => sets.Count <= 20).WithMessage("An exercise may not have more than 20 sets.");
+
+                        exercise.RuleForEach(e => e.Sets).ChildRules(set =>
+                        {
+                            set.RuleFor(s => s.SetNumber)
+                                .GreaterThanOrEqualTo(1).WithMessage("SetNumber must be >= 1.");
+
+                            set.RuleFor(s => s.Reps)
+                                .InclusiveBetween(1, 1000).When(s => s.Reps.HasValue)
+                                .WithMessage("Reps must be between 1 and 1000.");
+
+                            set.RuleFor(s => s.WeightKg)
+                                .GreaterThanOrEqualTo(0).When(s => s.WeightKg.HasValue)
+                                .WithMessage("WeightKg must be >= 0.");
+
+                            set.RuleFor(s => s.Rpe)
+                                .InclusiveBetween(1, 10).When(s => s.Rpe.HasValue)
+                                .WithMessage("RPE must be between 1 and 10.");
+                        });
                     });
                 });
             });
         });
+    }
+
+    private static void ApplyFormatConfigRules<T>(
+        AbstractValidator<T> validator,
+        Func<T, WorkoutFormat?> formatSelector,
+        Func<T, WodConfig?> configSelector,
+        string prefix)
+    {
+        validator.RuleFor(x => configSelector(x)!.IntervalSeconds)
+            .NotNull().GreaterThan(0)
+            .When(x => formatSelector(x) == WorkoutFormat.EMOM && configSelector(x) != null)
+            .WithMessage($"{prefix} EMOM requires IntervalSeconds > 0.");
+
+        validator.RuleFor(x => configSelector(x)!.TotalRounds)
+            .NotNull().GreaterThan(0)
+            .When(x => formatSelector(x) == WorkoutFormat.EMOM && configSelector(x) != null)
+            .WithMessage($"{prefix} EMOM requires TotalRounds > 0.");
+
+        validator.RuleFor(x => configSelector(x)!.TimeCapSeconds)
+            .NotNull().GreaterThan(0)
+            .When(x => (formatSelector(x) == WorkoutFormat.AMRAP || formatSelector(x) == WorkoutFormat.ForTime) && configSelector(x) != null)
+            .WithMessage($"{prefix} AMRAP and ForTime require TimeCapSeconds > 0.");
+
+        validator.RuleFor(x => configSelector(x)!.WorkSeconds)
+            .NotNull().GreaterThan(0)
+            .When(x => formatSelector(x) == WorkoutFormat.Tabata && configSelector(x) != null)
+            .WithMessage($"{prefix} Tabata requires WorkSeconds > 0.");
+
+        validator.RuleFor(x => configSelector(x)!.RestSeconds)
+            .NotNull().GreaterThan(0)
+            .When(x => formatSelector(x) == WorkoutFormat.Tabata && configSelector(x) != null)
+            .WithMessage($"{prefix} Tabata requires RestSeconds > 0.");
+
+        validator.RuleFor(x => configSelector(x)!.TotalRounds)
+            .NotNull().GreaterThan(0)
+            .When(x => formatSelector(x) == WorkoutFormat.Tabata && configSelector(x) != null)
+            .WithMessage($"{prefix} Tabata requires TotalRounds > 0.");
     }
 }

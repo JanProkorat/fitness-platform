@@ -3,6 +3,10 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getTrainingPlan, completeTrainingPlan } from '@/api/training-plans';
+import { listSectionTemplates, createSectionTemplate } from '@/api/sectionTemplates';
+import type { SectionTemplateResponse } from '@/api/sectionTemplates';
+import type { WorkoutFormat, MovementType, SetType } from '@/api/training-plan-types';
+import type { WorkoutFormat as GenWorkoutFormat, MovementType as GenMovementType, SetType as GenSetType, WodConfig as GenWodConfig } from '@/api/generated';
 import { PlanQuestionnairePanel } from '@/components/questionnaire/PlanQuestionnairePanel';
 import { getExercise } from '@/api/exercises';
 import type { MuscleGroup } from '@/api/exercise-types';
@@ -12,23 +16,22 @@ import { PageHeader } from '@/components/layout';
 import { showApiError, showSuccess } from '@/lib/api-errors';
 import { Button, Dialog } from '@/components/ui';
 import { MondayDatePicker } from '@/components/ui/MondayDatePicker';
-import { ExerciseSearch } from '@/components/training/ExerciseSearch';
 import { WeekDayTabs } from '@/components/nutrition';
 import type { WeekTabData } from '@/components/nutrition/WeekDayTabs';
 import { TrainingSidebar } from '@/components/training/TrainingSidebar';
+import { SectionTemplateSearch } from '@/components/training/SectionTemplateSearch';
 import { cn } from '@/lib/cn';
+import { isDayInPast, isWeekFinished, todayWeekdayInPlan, weekStartDate } from '@/lib/training-plan-dates';
+import { estimatedSectionDurationSeconds, formatDurationCompact } from '@/lib/training-plan-format';
+import { computePlanLocks, exerciseLockKey } from '@/lib/training-plan-locks';
 import { DayNoteInput } from '@/components/common/DayNoteInput';
 import { CheckInBanner } from '@/components/weekly-checkin/CheckInBanner';
 import { PlanPhotosTab } from '@/components/photos/PlanPhotosTab';
-import { DAY_KEYS, MUSCLE_ICONS, MUSCLE_COLORS } from '@/constants/training';
+import { DAY_KEYS } from '@/constants/training';
 import { SessionDragWrapper } from '@/components/training/SessionDragWrapper';
-import { ExerciseDropZone } from '@/components/training/ExerciseDropZone';
+import { SectionDragWrapper } from '@/components/training/SectionDragWrapper';
 import { WeekOverviewGrid } from '@/components/training/WeekOverviewGrid';
-import { ExerciseCardHeader } from '@/components/training/ExerciseCardHeader';
-import { SetRow } from '@/components/training/SetRow';
-import { MovementTypePill } from '@/components/training/MovementTypePill';
-import { SessionFormatBar } from '@/components/training/SessionFormatBar';
-import { ExerciseFormatBar } from '@/components/training/ExerciseFormatBar';
+import { SectionCard } from '@/components/training/SectionCard';
 
 export default function TrainingPlanPage() {
   const { planId } = useParams<{ planId: string }>();
@@ -49,40 +52,58 @@ export default function TrainingPlanPage() {
   const removeWeek = useTrainingPlanStore((s) => s.removeWeek);
   const addSession = useTrainingPlanStore((s) => s.addSession);
   const removeSession = useTrainingPlanStore((s) => s.removeSession);
-  const addExercise = useTrainingPlanStore((s) => s.addExercise);
-  const removeExercise = useTrainingPlanStore((s) => s.removeExercise);
-  const duplicateExercise = useTrainingPlanStore((s) => s.duplicateExercise);
+  const addSection = useTrainingPlanStore((s) => s.addSection);
+  const removeSection = useTrainingPlanStore((s) => s.removeSection);
+  const duplicateSection = useTrainingPlanStore((s) => s.duplicateSection);
+  const updateSection = useTrainingPlanStore((s) => s.updateSection);
+  const reorderSections = useTrainingPlanStore((s) => s.reorderSections);
+  const moveSectionToSession = useTrainingPlanStore((s) => s.moveSectionToSession);
+  const invalidIds = useTrainingPlanStore((s) => s.invalidIds);
+  const addSectionFromTemplate = useTrainingPlanStore((s) => s.addSectionFromTemplate);
+  const addExerciseToSection = useTrainingPlanStore((s) => s.addExerciseToSection);
+  const removeExerciseFromSection = useTrainingPlanStore((s) => s.removeExerciseFromSection);
+  const duplicateExerciseInSection = useTrainingPlanStore((s) => s.duplicateExerciseInSection);
   const addSet = useTrainingPlanStore((s) => s.addSet);
   const removeSet = useTrainingPlanStore((s) => s.removeSet);
+  const duplicateSet = useTrainingPlanStore((s) => s.duplicateSet);
   const updateSet = useTrainingPlanStore((s) => s.updateSet);
   const updateSessionName = useTrainingPlanStore((s) => s.updateSessionName);
   const updateSessionNotes = useTrainingPlanStore((s) => s.updateSessionNotes);
   const updateExerciseNotes = useTrainingPlanStore((s) => s.updateExerciseNotes);
   const updateExerciseMovementType = useTrainingPlanStore((s) => s.updateExerciseMovementType);
-  const updateExerciseFormat = useTrainingPlanStore((s) => s.updateExerciseFormat);
-  const updateSessionFormat = useTrainingPlanStore((s) => s.updateSessionFormat);
   // updateExerciseRestSeconds and revert available via useTrainingPlanStore when needed
   const updateDayNote = useTrainingPlanStore((s) => s.updateDayNote);
   const setStartDate = useTrainingPlanStore((s) => s.setStartDate);
   const moveSessionToDay = useTrainingPlanStore((s) => s.moveSessionToDay);
   const moveSessionToWeek = useTrainingPlanStore((s) => s.moveSessionToWeek);
-  const moveExerciseToSession = useTrainingPlanStore((s) => s.moveExerciseToSession);
-  const moveExerciseToWeek = useTrainingPlanStore((s) => s.moveExerciseToWeek);
-  const reorderExercises = useTrainingPlanStore((s) => s.reorderExercises);
 
   // ── Local UI state ──
   const [pageTab, setPageTab] = useState<'sessions' | 'photos'>('sessions');
   const [selectedDay, setSelectedDay] = useState(1);
   const [collapsedSessions, setCollapsedSessions] = useState<Set<string>>(new Set());
-  const [collapsedExercises, setCollapsedExercises] = useState<Set<string>>(new Set());
-  const [addingSessionDay, setAddingSessionDay] = useState<number | null>(null);
-  const [newSessionName, setNewSessionName] = useState('');
+  // Section collapse state lives at the page level so it survives moving a
+  // section between sessions (a SectionCard instance otherwise unmounts and
+  // its local state resets when the parent session changes).
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const [templateConfirmTarget, setTemplateConfirmTarget] = useState<{
+    sessionId: string;
+    template: SectionTemplateResponse;
+  } | null>(null);
+  const [saveAsTemplateTarget, setSaveAsTemplateTarget] = useState<{
+    sessionId: string;
+    sectionId: string;
+    sectionName: string;
+  } | null>(null);
+  const [isSavingTemplate, setIsSavingTemplate] = useState(false);
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
   const [pendingNav, setPendingNav] = useState<string | null>(null);
   const [dragOverDay, setDragOverDay] = useState<number | null>(null);
   const dayHoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Set during `confirmLeave` so the popstate trap and pushState interceptor
+  // don't re-trigger as we're intentionally tearing down the trap to leave.
+  const skipDirtyTrapRef = useRef(false);
   const [weekViewExpanded, setWeekViewExpanded] = useState(false);
 
   // ── Resolve client name ──
@@ -137,6 +158,14 @@ export default function TrainingPlanPage() {
   const exerciseDetailsMap = exerciseDetailsData?.muscleMap;
   const exerciseFullMap = exerciseDetailsData?.fullMap;
 
+  // ── Load section templates for the apply-template affordance ──
+  const { data: templatesData } = useQuery({
+    queryKey: ['section-templates'],
+    queryFn: () => listSectionTemplates(),
+    staleTime: 60_000,
+  });
+  const sectionTemplates = templatesData ?? [];
+
   // ── Load plan on mount ──
   useEffect(() => {
     if (!planId) return;
@@ -164,6 +193,9 @@ export default function TrainingPlanPage() {
   useEffect(() => {
     if (!isDirty) return;
     const handler = () => {
+      // skipDirtyTrapRef is set by confirmLeave so we don't re-trap
+      // the popstate fired by our own history.go() call.
+      if (skipDirtyTrapRef.current) return;
       window.history.pushState(null, '', location.pathname + location.search);
       setPendingNav('__back__');
     };
@@ -177,6 +209,8 @@ export default function TrainingPlanPage() {
     const origPush = window.history.pushState.bind(window.history);
     const currentPath = location.pathname + location.search;
     window.history.pushState = function (...args: Parameters<typeof origPush>) {
+      // Same skip flag — let confirmLeave's navigate() through.
+      if (skipDirtyTrapRef.current) return origPush(...args);
       const url = typeof args[2] === 'string' ? args[2] : '';
       if (url && url !== currentPath && !url.startsWith(currentPath + '#')) {
         setPendingNav(url);
@@ -190,29 +224,35 @@ export default function TrainingPlanPage() {
   const confirmLeave = () => {
     const target = pendingNav;
     setPendingNav(null);
+    skipDirtyTrapRef.current = true;
     useTrainingPlanStore.setState({ isDirty: false });
     if (target === '__back__') {
-      window.history.back();
+      // We pushed two sentinels (one on mount, one inside the popstate
+      // handler when the user clicked browser-back). Go back two entries
+      // in a single call so we land on the real previous page.
+      window.history.go(-2);
     } else if (target) {
       navigate(target);
     }
+    // Reset after the current task — by then React has re-rendered with
+    // isDirty=false and the effect cleanups have detached the listeners.
+    setTimeout(() => { skipDirtyTrapRef.current = false; }, 0);
   };
 
   // ── Toggle helpers ──
-  const toggleExercise = useCallback((key: string) => {
-    setCollapsedExercises((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  }, []);
-
   const toggleSession = useCallback((sessionId: string) => {
     setCollapsedSessions((prev) => {
       const next = new Set(prev);
       if (next.has(sessionId)) next.delete(sessionId);
       else next.add(sessionId);
+      return next;
+    });
+  }, []);
+  const toggleSection = useCallback((sectionId: string) => {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(sectionId)) next.delete(sectionId);
+      else next.add(sectionId);
       return next;
     });
   }, []);
@@ -253,17 +293,134 @@ export default function TrainingPlanPage() {
     }
   };
 
-  const handleAddSession = (dow: number) => {
-    if (!newSessionName.trim()) return;
-    addSession(selectedWeek, dow, newSessionName.trim());
-    setNewSessionName('');
-    setAddingSessionDay(null);
+  // Apply-template client-side splice: replaces exercises + format of the target session.
+  const applyTemplateToSession = (sessionId: string, template: SectionTemplateResponse) => {
+    const store = useTrainingPlanStore.getState();
+    if (!store.plan) return;
+    useTrainingPlanStore.setState({
+      plan: {
+        ...store.plan,
+        weeks: store.plan.weeks.map((w) =>
+          w.weekNumber !== selectedWeek
+            ? w
+            : {
+                ...w,
+                sessions: w.sessions.map((s) =>
+                  s.sessionId !== sessionId
+                    ? s
+                    : {
+                        ...s,
+                        // Generated SectionTemplateResponse.defaultFormat is string | undefined; safe cast
+                        // because the backend only emits WorkoutFormat enum values.
+                        format: (template.defaultFormat ?? 'Standard') as WorkoutFormat,
+                        formatConfig: template.defaultFormatConfig ?? null,
+                        // Map generated SessionExercise (all fields optional per NSwag) to the local
+                        // SessionExercise shape (required fields). Backend guarantees well-formed data
+                        // for stored template exercises, so fallbacks here are defensive only.
+                        exercises: (template.defaultExercises ?? []).map((ex) => ({
+                          exerciseExternalId: ex.exerciseExternalId ?? '',
+                          exerciseName: ex.exerciseName ?? '',
+                          order: ex.order ?? 1,
+                          notes: ex.notes ?? null,
+                          restSeconds: ex.restSeconds ?? null,
+                          movementType: (ex.movementType ?? 'Reps') as MovementType,
+                          format: (ex.format ?? null) as WorkoutFormat | null,
+                          formatConfig: ex.formatConfig ?? null,
+                          sets: (ex.sets ?? []).map((s) => ({
+                            setNumber: s.setNumber ?? 1,
+                            type: (s.type ?? 'Normal') as SetType,
+                            reps: s.reps ?? null,
+                            weightKg: s.weightKg ?? null,
+                            durationSeconds: s.durationSeconds ?? null,
+                            rpe: s.rpe ?? null,
+                            distanceMeters: s.distanceMeters ?? null,
+                            restSeconds: s.restSeconds ?? null,
+                          })),
+                        })),
+                      },
+                ),
+              },
+        ),
+      },
+      isDirty: true,
+    });
+    setTemplateConfirmTarget(null);
+  };
+
+  const handleConfirmSaveAsTemplate = async () => {
+    if (!saveAsTemplateTarget || !plan) return;
+    const session = plan.weeks
+      .find((w) => w.weekNumber === selectedWeek)
+      ?.sessions.find((s) => s.sessionId === saveAsTemplateTarget.sessionId);
+    const section = session?.sections.find((sec) => sec.sectionId === saveAsTemplateTarget.sectionId);
+    if (!section) return;
+    setIsSavingTemplate(true);
+    try {
+      // The local training-plan-types use null for absent values; the generated
+      // CreateSectionTemplateRequest uses undefined. Bridge the gap with null-to-undefined coercion.
+      const toGenWodConfig = (cfg: { timeCapSeconds?: number | null; intervalSeconds?: number | null; totalRounds?: number | null; workSeconds?: number | null; restSeconds?: number | null } | null | undefined): GenWodConfig | undefined => {
+        if (!cfg) return undefined;
+        return {
+          timeCapSeconds: cfg.timeCapSeconds ?? undefined,
+          intervalSeconds: cfg.intervalSeconds ?? undefined,
+          totalRounds: cfg.totalRounds ?? undefined,
+          workSeconds: cfg.workSeconds ?? undefined,
+          restSeconds: cfg.restSeconds ?? undefined,
+        };
+      };
+      await createSectionTemplate({
+        name: section.name || t('training.section.defaultName'),
+        defaultFormat: (section.format === 'Standard' ? undefined : section.format) as GenWorkoutFormat | undefined,
+        defaultFormatConfig: toGenWodConfig(section.formatConfig),
+        defaultExercises: section.exercises.map((ex) => ({
+          exerciseExternalId: ex.exerciseExternalId,
+          exerciseName: ex.exerciseName,
+          order: ex.order,
+          notes: ex.notes ?? undefined,
+          restSeconds: ex.restSeconds ?? undefined,
+          movementType: ex.movementType as GenMovementType,
+          format: (ex.format ?? undefined) as GenWorkoutFormat | undefined,
+          formatConfig: toGenWodConfig(ex.formatConfig),
+          sets: ex.sets.map((s) => ({
+            setNumber: s.setNumber,
+            type: s.type as GenSetType,
+            reps: s.reps ?? undefined,
+            weightKg: s.weightKg ?? undefined,
+            durationSeconds: s.durationSeconds ?? undefined,
+            rpe: s.rpe ?? undefined,
+            distanceMeters: s.distanceMeters ?? undefined,
+            restSeconds: s.restSeconds ?? undefined,
+          })),
+        })),
+      });
+      showSuccess(t('training.section.savedAsTemplate'));
+      setSaveAsTemplateTarget(null);
+    } catch (err) {
+      showApiError(err, 'common.error');
+    } finally {
+      setIsSavingTemplate(false);
+    }
   };
 
 
   // ── Derived data ──
   const currentWeek = plan?.weeks.find((w) => w.weekNumber === selectedWeek) ?? plan?.weeks[0];
   const isWeekPublished = currentWeek?.status === 'Published';
+  // Week is "finished" — read-only historical record — when it's published AND
+  // the current date is on or after the start of the next week.
+  const isCurrentWeekFinished =
+    !!plan && !!currentWeek && isWeekFinished(plan, currentWeek.weekNumber, currentWeek.status);
+
+  // Derived locks reflecting client-side completions — exercises/sections/sessions
+  // the client has already marked finished must not be edited.
+  const planLocks = useMemo(() => computePlanLocks(plan), [plan]);
+
+  // The currently-selected (week, dayOfWeek) is strictly before today — used
+  // to hide affordances that only make sense in the future (e.g. "add
+  // training session", which would attach a brand-new session to a day that
+  // has already happened).
+  const isSelectedDayInPast =
+    !!plan && isDayInPast(plan, selectedWeek, selectedDay);
 
   const daySessions = useMemo(
     () =>
@@ -276,34 +433,78 @@ export default function TrainingPlanPage() {
   // Week tab data
   const weekTabs: WeekTabData[] = useMemo(() => {
     if (!plan) return [];
-    return plan.weeks.map((w) => ({
-      index: w.weekNumber,
-      label: t('nutrition.weekLabel', { number: w.weekNumber }),
-      isTemplate: w.status === 'Published',
-    }));
+    return plan.weeks.map((w) => {
+      const finished = isWeekFinished(plan, w.weekNumber, w.status);
+      // Calendar date range (Mon–Sun) for the second row, derived from the
+      // plan's startDate. `null` when the plan has no startDate — the tab
+      // falls back to single-line label rendering.
+      const wkStart = weekStartDate(plan, w.weekNumber);
+      let dateLabel: string | null = null;
+      if (wkStart) {
+        const wkEnd = new Date(wkStart);
+        wkEnd.setDate(wkStart.getDate() + 6);
+        const fmt = (d: Date) => `${d.getDate()}.${d.getMonth() + 1}.`;
+        dateLabel = `${fmt(wkStart)} – ${fmt(wkEnd)}`;
+      }
+      return {
+        index: w.weekNumber,
+        label: t('nutrition.weekLabel', { number: w.weekNumber }),
+        isPublished: w.status === 'Published' && !finished,
+        isFinished: finished,
+        dateLabel,
+      };
+    });
   }, [plan, t]);
 
-  // Day tab data
+  // Day tab data. Each tab carries an optional `dateLabel` like "13.5." derived
+  // from the plan's startDate; it shows under the day name. When the plan has
+  // no startDate (or the math otherwise can't resolve), the field is null and
+  // nothing extra renders.
   const dayTabs = useMemo(() => {
     if (!currentWeek) return [];
+    const wkStart = plan ? weekStartDate(plan, currentWeek.weekNumber) : null;
     return DAY_KEYS.map((key, idx) => {
       const dayOfWeek = idx + 1;
       const sessions = (currentWeek.sessions ?? []).filter((s) => s.dayOfWeek === dayOfWeek);
-      const exerciseCount = sessions.reduce((sum, s) => sum + s.exercises.length, 0);
+      // Sum workouts (sections) across every session on this day. A
+      // "workout" in this app's vocabulary is a section — one EMOM /
+      // Tabata / Standard block. The earlier exercise count was too
+      // granular and didn't match the "N workouts" header the user sees
+      // elsewhere (e.g. "6 workoutů · 68 min").
+      const workoutCount = sessions.reduce((sum, s) => sum + (s.sections?.length ?? 0), 0);
+      let dateLabel: string | null = null;
+      if (wkStart) {
+        const d = new Date(wkStart);
+        d.setDate(wkStart.getDate() + (dayOfWeek - 1));
+        dateLabel = `${d.getDate()}.${d.getMonth() + 1}.`;
+      }
       return {
         index: dayOfWeek,
         key,
         label: t(`nutrition.${key}`),
-        badge: sessions.length > 0 ? `${sessions.length}t · ${exerciseCount}cv` : '—',
+        badge: sessions.length > 0 ? `${sessions.length}t · ${workoutCount}w` : '—',
+        dateLabel,
       };
     });
-  }, [currentWeek, t]);
+  }, [currentWeek, plan, t]);
 
   // Open all sessions but collapse all exercises on day/week change or initial load
   const [planLoaded, setPlanLoaded] = useState(false);
   useEffect(() => {
     if (plan && !planLoaded) setPlanLoaded(true);
   }, [plan, planLoaded]);
+
+  // One-shot: when the plan first loads, if today falls inside the currently
+  // selected week, default `selectedDay` to today's weekday. Subsequent plan
+  // refreshes (saves, navigation back) don't re-fire — the trainer's own day
+  // selection is preserved.
+  const didApplyTodayDay = useRef(false);
+  useEffect(() => {
+    if (!plan || didApplyTodayDay.current) return;
+    didApplyTodayDay.current = true;
+    const wd = todayWeekdayInPlan(plan, selectedWeek);
+    if (wd != null) setSelectedDay(wd);
+  }, [plan, selectedWeek]);
 
   useEffect(() => {
     if (!plan) return;
@@ -316,13 +517,7 @@ export default function TrainingPlanPage() {
       }
       return next;
     });
-    const exKeys = new Set<string>();
-    for (const s of sessions) {
-      for (let i = 0; i < s.exercises.length; i++) {
-        exKeys.add(`${s.sessionId}-${i}`);
-      }
-    }
-    setCollapsedExercises(exKeys);
+    // Exercise collapse state is managed inside SectionCard — no page-level action needed.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedWeek, selectedDay, planLoaded]);
 
@@ -522,17 +717,47 @@ export default function TrainingPlanPage() {
                 background: dragOverDay === day.index ? 'var(--accent-bg)' : 'none',
               }}
             >
-              {day.label}
-              {day.badge && (
-                <span
-                  className={cn(
-                    'text-[10px] rounded-full px-[5px] ml-1',
-                    'bg-accent-bg text-accent',
+              <span className="inline-flex flex-col items-center leading-tight">
+                {/* Row 1 — gold workload badge as a small eyebrow. The
+                    `px-2 py-[2px]` padding gives the label breathing room
+                    inside the pill — the previous `px-[5px]` alone read as
+                    cramped because there was no vertical padding. */}
+                {day.badge && (
+                  <span
+                    className={cn(
+                      'text-[10px] rounded-full px-2 py-[2px]',
+                      'bg-accent-bg text-accent',
+                    )}
+                  >
+                    {day.badge}
+                  </span>
+                )}
+                {/* Row 2 — day name + calendar date inline. Dot separator
+                    + date only when the plan has a startDate. The date
+                    adopts the button's stronger color when this tab is
+                    selected so the fontWeight bump (400→500 inherited from
+                    the parent button style) actually reads — leaving the
+                    permanent `text-text3` override hid the weight change
+                    under the lighter color. */}
+                <span className={day.badge ? 'mt-0.5' : undefined}>
+                  {day.label}
+                  {day.dateLabel && (
+                    <>
+                      <span className="text-text4"> · </span>
+                      <span
+                        className={cn(
+                          'tabular-nums',
+                          !weekViewExpanded && day.index === selectedDay
+                            ? 'font-medium'
+                            : 'text-text3',
+                        )}
+                      >
+                        {day.dateLabel}
+                      </span>
+                    </>
                   )}
-                >
-                  {day.badge}
                 </span>
-              )}
+              </span>
             </button>
           ))}
         </div>
@@ -561,11 +786,13 @@ export default function TrainingPlanPage() {
             className="tab-content-transition flex-1 overflow-y-auto"
             style={{ padding: '12px 20px' }}
             onDragOver={(e) => {
+              if (isCurrentWeekFinished || isSelectedDayInPast) return;
               if (e.dataTransfer.types.includes('application/session-json')) {
                 e.preventDefault();
               }
             }}
             onDrop={(e) => {
+              if (isCurrentWeekFinished || isSelectedDayInPast) return;
               if (!e.dataTransfer.types.includes('application/session-json')) return;
               e.preventDefault();
               try {
@@ -593,12 +820,31 @@ export default function TrainingPlanPage() {
               } catch { /* ignore */ }
             }}
           >
-            {/* Day note */}
+            {/*
+              Inner wrapper carries the read-only styling for finished weeks.
+              `opacity-70` + `select-none` provide the visual cue, but we do
+              NOT block pointer events at the wrapper level — that would also
+              kill the harmless expand/collapse toggles on sessions, workouts,
+              and exercises. The actual edit handlers (drag-drop guards plus
+              the section/exercise edit callbacks elsewhere on this page)
+              short-circuit on `isCurrentWeekFinished`, so data stays
+              read-only while navigation continues to work.
+            */}
+            <div
+              className={cn(
+                isCurrentWeekFinished && 'opacity-70 select-none',
+              )}
+              aria-disabled={isCurrentWeekFinished || undefined}
+            >
+            {/* Day note — read-only when the selected day has already
+                passed (existing text stays visible, "Add note" affordance
+                is hidden). */}
             <DayNoteInput
               note={currentWeek?.dayNotes?.[selectedDay]}
               onChange={(n) => updateDayNote(selectedWeek, selectedDay, n)}
               addLabel={t('training.addDayNote')}
               placeholder={t('training.dayNotePlaceholder')}
+              disabled={isSelectedDayInPast}
             />
 
             {daySessions.length === 0 && (
@@ -609,6 +855,12 @@ export default function TrainingPlanPage() {
 
             {daySessions.map((session) => {
               const isSessionOpen = !collapsedSessions.has(session.sessionId);
+              const isSessionLocked = planLocks.sessionIds.has(session.sessionId);
+              // Combined read-only flag for the session-header action buttons
+              // and the session-notes input — locked sessions (every section
+              // finished by the client) AND any session on a day that has
+              // already passed should reject edits + show the disabled cue.
+              const isSessionReadOnly = isSessionLocked || isSelectedDayInPast;
 
               return (
                 <SessionDragWrapper
@@ -616,16 +868,32 @@ export default function TrainingPlanPage() {
                   sessionId={session.sessionId}
                   selectedDay={selectedDay}
                   selectedWeek={selectedWeek}
+                  // Drag-out + drop-over rejected when this session is
+                  // read-only (finished session OR past day) — reordering
+                  // a historical session has no clinical value.
+                  disabled={isSessionReadOnly}
                 >
-                  <div className="rounded-md border border-border bg-bg transition-all duration-100 hover:border-border-md">
-                  {/* Session header */}
+                  <div
+                    className="rounded-md border border-border bg-bg transition-all duration-100 hover:border-border-md overflow-hidden"
+                    style={{ borderLeft: '4px solid var(--accent)' }}
+                  >
+                  {/* Session header — tinted background (lighter version of the accent bar) */}
                   <div
                     className={cn(
-                      'group flex items-center gap-1.5 px-3 py-2 cursor-grab active:cursor-grabbing select-none transition-colors hover:bg-bg3',
+                      'group flex items-center gap-1.5 px-3 py-2 cursor-grab active:cursor-grabbing select-none transition-colors',
                       isSessionOpen && 'border-b border-border',
                     )}
+                    style={{ background: 'var(--accent-bg)' }}
                     onClick={() => toggleSession(session.sessionId)}
                   >
+                    {/* Drag handle indicator — visual hint that the session is draggable */}
+                    <span
+                      className="text-text4 select-none"
+                      style={{ fontSize: 14 }}
+                      aria-hidden="true"
+                    >
+                      ⠿
+                    </span>
                     <span
                       className={cn(
                         'text-[10px] text-text3 transition-transform duration-150 w-3 inline-flex items-center justify-center',
@@ -645,12 +913,31 @@ export default function TrainingPlanPage() {
                         type="text"
                         value={session.name}
                         onChange={(e) => updateSessionName(selectedWeek, session.sessionId, e.target.value)}
-                        className="w-full bg-transparent text-[13px] font-semibold text-text outline-none"
+                        placeholder={t('training.sessionNamePlaceholder')}
+                        readOnly={isSessionReadOnly}
+                        className={cn(
+                          'w-full bg-transparent text-[13px] font-semibold text-text outline-none placeholder:text-text3 rounded-sm',
+                          invalidIds.has(session.sessionId) && 'ring-1 ring-red',
+                          isSessionReadOnly && 'cursor-default',
+                        )}
                         style={{ fontFamily: 'inherit' }}
                       />
                     </span>
                     <span className="text-xs text-text3 tabular-nums">
-                      {t('training.exerciseSummary', { exercises: session.exercises.length, sets: session.exercises.reduce((s, e) => s + e.sets.length, 0) })}
+                      {(() => {
+                        const total = session.sections.length;
+                        const durations = session.sections.map((sec) =>
+                          estimatedSectionDurationSeconds(sec.format, sec.formatConfig),
+                        );
+                        const timedSeconds = durations.reduce<number>((sum, d) => sum + (d ?? 0), 0);
+                        const untimedCount = durations.filter((d) => d == null || d === 0).length;
+                        const parts: string[] = [t('training.workoutCount', { count: total })];
+                        if (timedSeconds > 0) parts.push(formatDurationCompact(timedSeconds));
+                        if (timedSeconds > 0 && untimedCount > 0) {
+                          parts.push(t('training.workoutUntimedCount', { count: untimedCount }));
+                        }
+                        return parts.join(' · ');
+                      })()}
                     </span>
                     <button
                       type="button"
@@ -677,12 +964,15 @@ export default function TrainingPlanPage() {
                           isDirty: true,
                         });
                       }}
+                      disabled={isSessionReadOnly}
                       style={{
-                        background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px',
+                        background: 'none', border: 'none',
+                        cursor: isSessionReadOnly ? 'not-allowed' : 'pointer', padding: '2px 4px',
                         fontSize: 11, color: 'var(--text4)', borderRadius: 'var(--radius)',
                         transition: 'color 0.1s',
+                        opacity: isSessionReadOnly ? 0.4 : 1,
                       }}
-                      onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text2)'; }}
+                      onMouseEnter={(e) => { if (!isSessionReadOnly) e.currentTarget.style.color = 'var(--text2)'; }}
                       onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text4)'; }}
                       title={t('training.duplicateSession')}
                     >
@@ -691,12 +981,15 @@ export default function TrainingPlanPage() {
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); removeSession(selectedWeek, session.sessionId); }}
+                      disabled={isSessionReadOnly}
                       style={{
-                        background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px',
+                        background: 'none', border: 'none',
+                        cursor: isSessionReadOnly ? 'not-allowed' : 'pointer', padding: '2px 4px',
                         fontSize: 11, color: 'var(--text4)', borderRadius: 'var(--radius)',
                         transition: 'color 0.1s',
+                        opacity: isSessionReadOnly ? 0.4 : 1,
                       }}
-                      onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--red)'; }}
+                      onMouseEnter={(e) => { if (!isSessionReadOnly) e.currentTarget.style.color = 'var(--red)'; }}
                       onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text4)'; }}
                       title={t('training.removeSession')}
                     >
@@ -707,210 +1000,200 @@ export default function TrainingPlanPage() {
                   {/* Session body — animated collapse */}
                   <div className="collapse-grid" data-open={isSessionOpen}>
                     <div className="collapse-content">
-                      {/* Session format bar */}
-                      <SessionFormatBar
-                        format={session.format}
-                        formatConfig={session.formatConfig}
-                        onFormatChange={(fmt, cfg) =>
-                          updateSessionFormat(selectedWeek, session.sessionId, fmt, cfg)
-                        }
-                      />
-
-                      {/* Session note */}
+                      {/* Session note — disabled when the session is locked
+                          (every section finished by the client) or the
+                          selected day has already passed. Visible but read-
+                          only so the trainer can still see the historical
+                          note text. */}
                       <div style={{ padding: '4px 8px 6px' }}>
                         <input
                           type="text"
                           value={session.notes ?? ''}
                           onChange={(e) => updateSessionNotes(selectedWeek, session.sessionId, e.target.value)}
                           placeholder={t('training.sessionNotesPlaceholder')}
+                          disabled={isSessionReadOnly}
                           style={{
                             width: '100%', border: 'none', outline: 'none', background: 'transparent',
                             fontSize: 11, color: 'var(--text3)', fontFamily: 'inherit', fontStyle: 'italic',
                             padding: '2px 4px', borderRadius: 'var(--radius)', transition: 'background 0.1s',
+                            cursor: isSessionReadOnly ? 'not-allowed' : 'text',
                           }}
-                          onFocus={(e) => { e.target.style.background = 'var(--bg-hover)'; }}
+                          onFocus={(e) => { if (!isSessionReadOnly) e.target.style.background = 'var(--bg-hover)'; }}
                           onBlur={(e) => { e.target.style.background = 'transparent'; }}
                         />
                       </div>
 
-                      {/* Exercise cards — collapsible list */}
-                      <div className="px-2 pt-1.5">
-                      <ExerciseDropZone
-                        sessionId={session.sessionId}
-                        selectedWeek={selectedWeek}
-                        onReorder={(fromIdx, toIdx) => reorderExercises(selectedWeek, session.sessionId, fromIdx, toIdx)}
-                        onCrossSessionMove={(fromSessionId, fromIdx, toIdx, fromWeek) => {
-                          if (fromWeek !== selectedWeek) {
-                            moveExerciseToWeek(fromWeek, selectedWeek, fromSessionId, session.sessionId, fromIdx, toIdx);
-                          } else {
-                            moveExerciseToSession(selectedWeek, fromSessionId, session.sessionId, fromIdx, toIdx);
-                          }
+                      {/* Section cards — drag-and-drop reorder within this session */}
+                      <div
+                        className="px-2 pt-1"
+                        onDragOver={(e) => {
+                          if (isCurrentWeekFinished || isSessionReadOnly) return;
+                          if (!e.dataTransfer.types.includes('application/section-json')) return;
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = 'move';
+                        }}
+                        onDrop={(e) => {
+                          if (isCurrentWeekFinished || isSessionReadOnly) return;
+                          if (!e.dataTransfer.types.includes('application/section-json')) return;
+                          e.preventDefault();
+                          try {
+                            const data = JSON.parse(e.dataTransfer.getData('application/section-json'));
+                            if (data.type !== 'section' || !data.sectionId) return;
+
+                            // Compute target index from mouse Y over section children.
+                            const sectionEls = Array.from(
+                              e.currentTarget.querySelectorAll('[data-section-id]'),
+                            );
+                            let targetIndex = sectionEls.length;
+                            for (let i = 0; i < sectionEls.length; i++) {
+                              const rect = sectionEls[i].getBoundingClientRect();
+                              if (e.clientY < rect.top + rect.height / 2) {
+                                targetIndex = i;
+                                break;
+                              }
+                            }
+
+                            if (data.sessionId === session.sessionId) {
+                              // Same-session reorder
+                              const fromIdx = session.sections.findIndex((s) => s.sectionId === data.sectionId);
+                              if (fromIdx < 0) return;
+                              const toIdx = targetIndex > fromIdx ? targetIndex - 1 : targetIndex;
+                              if (toIdx === fromIdx) return;
+                              reorderSections(selectedWeek, session.sessionId, fromIdx, toIdx);
+                            } else {
+                              // Cross-session move within the same week
+                              moveSectionToSession(
+                                selectedWeek,
+                                data.sessionId,
+                                session.sessionId,
+                                data.sectionId,
+                                targetIndex,
+                              );
+                            }
+                          } catch { /* ignore malformed payloads */ }
                         }}
                       >
-                      {session.exercises.map((ex, exIdx) => {
-                        const exKey = `${session.sessionId}-${exIdx}`;
-                        const isExOpen = !collapsedExercises.has(exKey);
-                        const setsCount = ex.sets.length;
-                        const repsValues = ex.sets.map((s) => s.reps).filter((r): r is number => r != null);
-                        const weightValues = ex.sets.map((s) => s.weightKg).filter((w): w is number => w != null);
-                        const repsMin = repsValues.length > 0 ? Math.min(...repsValues) : null;
-                        const repsMax = repsValues.length > 0 ? Math.max(...repsValues) : null;
-                        const weightMin = weightValues.length > 0 ? Math.min(...weightValues) : null;
-                        const weightMax = weightValues.length > 0 ? Math.max(...weightValues) : null;
-                        const repsStr = repsMin == null ? '–' : repsMin === repsMax ? `${repsMin}` : `${repsMin}-${repsMax}`;
-                        const weightStr = weightMin == null ? '–' : weightMin === weightMax ? `${weightMin}` : `${weightMin}-${weightMax}`;
-                        const totalVolume = ex.sets.reduce((sum, s) => sum + ((s.reps ?? 0) * (s.weightKg ?? 0)), 0);
-
-                        const muscleGroups = exerciseDetailsMap?.get(ex.exerciseExternalId) ?? [];
-                        const primaryMuscle = muscleGroups[0] as string | undefined;
-                        const muscleColor = primaryMuscle ? MUSCLE_COLORS[primaryMuscle] ?? 'var(--accent)' : 'var(--accent)';
-                        const muscleIcon = primaryMuscle ? MUSCLE_ICONS[primaryMuscle] ?? '🏋️' : '🏋️';
-                        const difficulty = exerciseFullMap?.get(ex.exerciseExternalId)?.difficulty;
-
-                        return (
-                          <div
-                            key={exKey}
-                            draggable
-                            onDragStart={(e) => {
-                              e.stopPropagation();
-                              e.dataTransfer.setData('application/exercise-json', JSON.stringify({
-                                type: 'exercise', sessionId: session.sessionId, exerciseIndex: exIdx,
-                                fromWeek: selectedWeek,
-                              }));
-                              e.dataTransfer.effectAllowed = 'move';
-                            }}
-                            data-item-id={String(exIdx)}
-                            className="rounded-md border border-border bg-bg mb-1.5 overflow-hidden transition-all duration-100 hover:border-border-md cursor-grab active:cursor-grabbing"
+                        {session.sections.map((section) => (
+                          <SectionDragWrapper
+                            key={section.sectionId}
+                            sessionId={session.sessionId}
+                            sectionId={section.sectionId}
+                            // Drag-out + drop-over are both rejected when
+                            // the host session is read-only (finished
+                            // session OR past day) — reordering historical
+                            // workouts has no clinical value.
+                            disabled={isSessionReadOnly}
                           >
-                            {/* Exercise card header */}
-                            <ExerciseCardHeader
-                              exercise={ex}
-                              muscleGroups={muscleGroups}
-                              repsStr={repsStr}
-                              weightStr={weightStr}
-                              setsCount={setsCount}
-                              totalVolume={totalVolume}
-                              isOpen={isExOpen}
-                              onToggle={() => toggleExercise(exKey)}
-                              onDuplicate={() => duplicateExercise(selectedWeek, session.sessionId, exIdx)}
-                              onRemove={() => removeExercise(selectedWeek, session.sessionId, exIdx)}
-                              difficulty={difficulty}
-                              muscleColor={muscleColor}
-                              muscleIcon={muscleIcon}
-                            />
-
-                            {/* Exercise card body — sets table */}
-                            <div className="collapse-grid" data-open={isExOpen}>
-                              <div className="collapse-content">
-                                {/* Per-exercise format override */}
-                                <ExerciseFormatBar
-                                  format={ex.format}
-                                  formatConfig={ex.formatConfig}
-                                  sessionFormat={session.format}
-                                  onFormatChange={(fmt, cfg) =>
-                                    updateExerciseFormat(selectedWeek, session.sessionId, exIdx, fmt, cfg)
-                                  }
-                                />
-
-                                <div className="px-3 py-2">
-                                  {/* MovementType picker + sets table header */}
-                                  <div className="flex items-center justify-between mb-1">
-                                    <MovementTypePill
-                                      value={ex.movementType}
-                                      onChange={(mt) =>
-                                        updateExerciseMovementType(selectedWeek, session.sessionId, exIdx, mt)
-                                      }
-                                    />
-                                    {/* Column header labels — adapt to movementType */}
-                                    <div className="flex items-center gap-2 text-[10px] font-medium text-text3 uppercase">
-                                      {ex.movementType === 'Reps' && (
-                                        <>
-                                          <span className="w-[68px] text-right">{t('training.weightLabel')}</span>
-                                          <span className="w-[68px] text-right">{t('training.repsLabel')}</span>
-                                          <span className="w-[90px] text-right">{t('training.restSecondsLabel')}</span>
-                                        </>
-                                      )}
-                                      {ex.movementType === 'Time' && (
-                                        <>
-                                          <span className="w-[80px] text-right">{t('training.wod.durationLabel')}</span>
-                                          <span className="w-[90px] text-right">{t('training.restSecondsLabel')}</span>
-                                        </>
-                                      )}
-                                      {ex.movementType === 'Distance' && (
-                                        <>
-                                          <span className="w-[80px] text-right">{t('training.wod.distanceLabel')}</span>
-                                          <span className="w-[80px] text-right">{t('training.wod.durationLabel')}</span>
-                                          <span className="w-[90px] text-right">{t('training.restSecondsLabel')}</span>
-                                        </>
-                                      )}
-                                      {ex.movementType === 'RepsForTime' && (
-                                        <>
-                                          <span className="w-[68px] text-right">{t('training.repsLabel')}</span>
-                                          <span className="w-[90px] text-right">{t('training.restSecondsLabel')}</span>
-                                        </>
-                                      )}
-                                      <span className="w-5" />
-                                    </div>
-                                  </div>
-
-                                  {/* Set rows — extracted to SetRow component */}
-                                  {ex.sets.map((s, sIdx) => (
-                                    <SetRow
-                                      key={sIdx}
-                                      set={s}
-                                      movementType={ex.movementType}
-                                      onUpdate={(updates) =>
-                                        updateSet(selectedWeek, session.sessionId, exIdx, sIdx, updates)
-                                      }
-                                      onRemove={() =>
-                                        removeSet(selectedWeek, session.sessionId, exIdx, sIdx)
-                                      }
-                                    />
-                                  ))}
-
-                                  {/* Add set */}
-                                  <button
-                                    type="button"
-                                    onClick={() => addSet(selectedWeek, session.sessionId, exIdx)}
-                                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', fontSize: 11, color: 'var(--text4)', fontFamily: 'inherit', transition: 'color 0.1s' }}
-                                    onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text3)'; }}
-                                    onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text4)'; }}
-                                  >
-                                    + {t('training.addSet')}
-                                  </button>
-
-                                  {/* Exercise note */}
-                                  <div style={{ marginTop: 6, borderTop: '1px solid var(--border)', paddingTop: 6 }}>
-                                    <input
-                                      type="text"
-                                      value={ex.notes ?? ''}
-                                      onChange={(e) => updateExerciseNotes(selectedWeek, session.sessionId, exIdx, e.target.value)}
-                                      placeholder={t('training.notePlaceholder')}
-                                      style={{
-                                        width: '100%', border: 'none', outline: 'none', background: 'transparent',
-                                        fontSize: 11, color: 'var(--text3)', fontFamily: 'inherit', fontStyle: 'italic',
-                                        padding: '2px 4px', borderRadius: 'var(--radius)', transition: 'background 0.1s',
-                                      }}
-                                      onFocus={(e) => { e.target.style.background = 'var(--bg-hover)'; }}
-                                      onBlur={(e) => { e.target.style.background = 'transparent'; }}
-                                    />
-                                  </div>
-
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                      </ExerciseDropZone>
+                          <SectionCard
+                            section={section}
+                            isExpanded={!collapsedSections.has(section.sectionId)}
+                            onToggleExpanded={() => toggleSection(section.sectionId)}
+                            hasError={invalidIds.has(section.sectionId)}
+                            isSectionLocked={
+                              // A section's inputs are read-only when any of:
+                              //   - the section itself is finished by the client
+                              //   - the whole session is finished (every section
+                              //     locked) — adding/editing on a wrapped-up
+                              //     session has no clinical value
+                              //   - the selected day has already passed
+                              planLocks.sectionIds.has(section.sectionId) ||
+                              planLocks.sessionIds.has(session.sessionId) ||
+                              isSelectedDayInPast
+                            }
+                            lockedExerciseIds={new Set(
+                              section.exercises
+                                .filter((ex) =>
+                                  planLocks.exerciseKeys.has(
+                                    exerciseLockKey(
+                                      session.sessionId,
+                                      section.sectionId,
+                                      ex.exerciseExternalId,
+                                    ),
+                                  ),
+                                )
+                                .map((ex) => ex.exerciseExternalId),
+                            )}
+                            exerciseDetailsMap={exerciseDetailsMap}
+                            exerciseFullMap={exerciseFullMap}
+                            onUpdate={(patch) =>
+                              updateSection(selectedWeek, session.sessionId, section.sectionId, patch)
+                            }
+                            onRemove={() =>
+                              removeSection(selectedWeek, session.sessionId, section.sectionId)
+                            }
+                            onDuplicate={() =>
+                              duplicateSection(selectedWeek, session.sessionId, section.sectionId)
+                            }
+                            onAddExercise={(exercise) =>
+                              addExerciseToSection(selectedWeek, session.sessionId, section.sectionId, exercise)
+                            }
+                            onRemoveExercise={(exIdx) =>
+                              removeExerciseFromSection(selectedWeek, session.sessionId, section.sectionId, exIdx)
+                            }
+                            onDuplicateExercise={(exIdx) =>
+                              duplicateExerciseInSection(selectedWeek, session.sessionId, section.sectionId, exIdx)
+                            }
+                            onAddSet={(exIdx) =>
+                              addSet(selectedWeek, session.sessionId, section.sectionId, exIdx)
+                            }
+                            onDuplicateSet={(exIdx, sIdx) =>
+                              duplicateSet(selectedWeek, session.sessionId, section.sectionId, exIdx, sIdx)
+                            }
+                            onRemoveSet={(exIdx, sIdx) =>
+                              removeSet(selectedWeek, session.sessionId, section.sectionId, exIdx, sIdx)
+                            }
+                            onUpdateSet={(exIdx, sIdx, updates) =>
+                              updateSet(selectedWeek, session.sessionId, section.sectionId, exIdx, sIdx, updates)
+                            }
+                            onUpdateExerciseNotes={(exIdx, notes) =>
+                              updateExerciseNotes(selectedWeek, session.sessionId, section.sectionId, exIdx, notes)
+                            }
+                            onUpdateExerciseMovementType={(exIdx, mt) =>
+                              updateExerciseMovementType(selectedWeek, session.sessionId, section.sectionId, exIdx, mt)
+                            }
+                            onSaveAsTemplate={() =>
+                              setSaveAsTemplateTarget({
+                                sessionId: session.sessionId,
+                                sectionId: section.sectionId,
+                                sectionName: section.name || t('training.section.defaultName'),
+                              })
+                            }
+                          />
+                          </SectionDragWrapper>
+                        ))}
                       </div>
 
-                      {/* Add exercise — inline dropdown search */}
-                      <ExerciseSearch
-                        onSelect={(exercise) => {
-                          addExercise(selectedWeek, session.sessionId, exercise);
-                        }}
-                      />
+                      {/* Add section affordances — hidden entirely when the
+                          session is locked (every section in it is finished
+                          by the client) OR the day already passed. Adding
+                          new workouts to a completed session — or to any
+                          historical day — has no clinical value. */}
+                      {!isSessionReadOnly && (
+                        <div className="flex items-center gap-3 px-3 py-2 border-t border-border">
+                          <button
+                            type="button"
+                            onClick={() => addSection(selectedWeek, session.sessionId, 'Standard')}
+                            className="flex items-center gap-1 text-[11px] text-text3 transition-colors hover:text-text whitespace-nowrap"
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+                          >
+                            <span>+</span>
+                            <span>{t('training.section.create')}</span>
+                          </button>
+                          {sectionTemplates.length > 0 && (
+                            <>
+                              <span className="text-text4 text-[10px]">·</span>
+                              <div className="flex-1 min-w-[180px]">
+                                <SectionTemplateSearch
+                                  templates={sectionTemplates}
+                                  onSelect={(tpl) =>
+                                    addSectionFromTemplate(selectedWeek, session.sessionId, tpl)
+                                  }
+                                />
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                   </div>
@@ -918,38 +1201,20 @@ export default function TrainingPlanPage() {
               );
             })}
 
-            {/* Add session */}
-            {addingSessionDay === selectedDay ? (
-              <div className="flex gap-2 mt-2">
-                <input
-                  autoFocus
-                  value={newSessionName}
-                  onChange={(e) => setNewSessionName(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddSession(selectedDay)}
-                  placeholder={t('training.sessionNamePlaceholder')}
-                  className="flex-1 rounded-md border border-border-md bg-bg px-3 py-2 text-[13px] text-text outline-none transition-colors duration-150 placeholder:text-text3 focus:border-border-hv"
-                  style={{ fontFamily: 'inherit' }}
-                />
-                <Button size="sm" variant="primary" onClick={() => handleAddSession(selectedDay)}>
-                  {t('training.addButton')}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => { setAddingSessionDay(null); setNewSessionName(''); }}
-                >
-                  {t('training.cancelButton')}
-                </Button>
-              </div>
-            ) : (
+            {/* Add session — creates an unnamed session immediately; user
+                can rename it inline via the session-header input. Hidden when
+                the selected day is in the past so trainers can't attach a
+                brand-new session to a date that has already happened. */}
+            {!isSelectedDayInPast && (
               <div
                 className="flex items-center gap-1.5 px-3 py-2 mt-2 border border-dashed border-border rounded-md cursor-pointer text-text3 text-[13px] transition-colors hover:bg-bg-hover hover:text-text"
-                onClick={() => setAddingSessionDay(selectedDay)}
+                onClick={() => addSession(selectedWeek, selectedDay, '')}
               >
                 <span>+</span>
                 <span>{t('training.addSessionButton')}</span>
               </div>
             )}
+            </div>
           </div>
         </div>
 
@@ -1044,6 +1309,64 @@ export default function TrainingPlanPage() {
       >
         <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
           {t('training.discardMessage')}
+        </p>
+      </Dialog>
+
+      {/* ── Apply Template Confirm Dialog ── */}
+      <Dialog
+        open={!!templateConfirmTarget}
+        onClose={() => setTemplateConfirmTarget(null)}
+        title={t('training.section.applyTemplate')}
+        maxWidth={400}
+        footer={
+          <>
+            <Button onClick={() => setTemplateConfirmTarget(null)}>{t('training.cancel')}</Button>
+            <Button
+              variant="primary"
+              onClick={() => {
+                if (templateConfirmTarget) {
+                  applyTemplateToSession(
+                    templateConfirmTarget.sessionId,
+                    templateConfirmTarget.template,
+                  );
+                }
+              }}
+            >
+              {t('training.template.applyConfirm')}
+            </Button>
+          </>
+        }
+      >
+        <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
+          {t('training.template.applyConfirmMessage', {
+            name: templateConfirmTarget?.template.name ?? '',
+          })}
+        </p>
+      </Dialog>
+
+      {/* ── Save Section as Template Confirm Dialog ── */}
+      <Dialog
+        open={!!saveAsTemplateTarget}
+        onClose={() => setSaveAsTemplateTarget(null)}
+        title={t('training.section.saveAsTemplate')}
+        maxWidth={400}
+        footer={
+          <>
+            <Button onClick={() => setSaveAsTemplateTarget(null)}>{t('training.cancel')}</Button>
+            <Button
+              variant="primary"
+              disabled={isSavingTemplate}
+              onClick={handleConfirmSaveAsTemplate}
+            >
+              {isSavingTemplate ? t('common.saving') : t('training.section.saveAsTemplate')}
+            </Button>
+          </>
+        }
+      >
+        <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
+          {t('training.section.saveAsTemplateConfirm', {
+            name: saveAsTemplateTarget?.sectionName ?? '',
+          })}
         </p>
       </Dialog>
 

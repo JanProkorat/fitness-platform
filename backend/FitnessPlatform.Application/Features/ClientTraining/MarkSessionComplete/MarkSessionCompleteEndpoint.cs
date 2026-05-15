@@ -89,7 +89,19 @@ public class MarkSessionCompleteEndpoint(
             return;
         }
 
+        session.WithBackfilledSections();
         var allExerciseIds = session.Exercises.Select(e => e.ExerciseExternalId).ToList();
+        var allSectionIds = session.Sections.Select(s => s.SectionId).ToList();
+        // Per-section attribution map: each section explicitly carries the
+        // exercise ids that belong to IT. Required because the read-time
+        // backfill in `TrainingCompletionBackfill` falls back to "first
+        // section that contains this id" — when the same exercise id is
+        // referenced from multiple sections (e.g. two AMRAPs sharing
+        // "Bench"), the duplicate would get attributed to only the first
+        // section and the second one would read as not-done after refresh.
+        var completedBySection = session.Sections.ToDictionary(
+            s => s.SectionId.ToString(),
+            s => s.Exercises.Select(e => e.ExerciseExternalId).ToList());
 
         // Load or create the completion document
         var completionFilter = Builders<TrainingCompletion>.Filter.Eq(c => c.ClientId, clientId)
@@ -101,8 +113,14 @@ public class MarkSessionCompleteEndpoint(
 
         if (existing is not null)
         {
-            // Idempotency: all already complete
-            if (allExerciseIds.All(id => existing.CompletedExerciseIds.Contains(id)))
+            // Idempotency: the session is already complete when every section is "done":
+            //   - sections with exercises: every exercise is in CompletedExerciseIds
+            //   - exercise-free sections: the SectionId is in CompletedSectionIds
+            var alreadyComplete = session.Sections.All(sec =>
+                sec.Exercises.Count > 0
+                    ? sec.Exercises.All(e => existing.CompletedExerciseIds.Contains(e.ExerciseExternalId))
+                    : (existing.CompletedSectionIds ?? []).Contains(sec.SectionId));
+            if (alreadyComplete)
             {
                 await Send.OkAsync(BuildResponse(req.SessionId, targetDate, existing, allExerciseIds.Count), ct);
                 return;
@@ -122,6 +140,8 @@ public class MarkSessionCompleteEndpoint(
 
             var update = Builders<TrainingCompletion>.Update
                 .Set(c => c.CompletedExerciseIds, allExerciseIds)
+                .Set(c => c.CompletedExerciseIdsBySection, completedBySection)
+                .Set(c => c.CompletedSectionIds, allSectionIds)
                 .Set(c => c.DateUpdated, DateTime.UtcNow)
                 .Set(c => c.Version, newVersion);
 
@@ -135,6 +155,7 @@ public class MarkSessionCompleteEndpoint(
             }
 
             existing.CompletedExerciseIds = allExerciseIds;
+            existing.CompletedSectionIds = allSectionIds;
             existing.Version = newVersion;
 
             await TrainingProgressBroadcaster.BroadcastSessionAsync(
@@ -154,6 +175,8 @@ public class MarkSessionCompleteEndpoint(
                 Date = targetDate,
                 SessionId = req.SessionId,
                 CompletedExerciseIds = allExerciseIds,
+                CompletedExerciseIdsBySection = completedBySection,
+                CompletedSectionIds = allSectionIds,
                 DateCreated = DateTime.UtcNow,
                 Version = 1
             };
@@ -175,7 +198,11 @@ public class MarkSessionCompleteEndpoint(
                     throw;
                 }
 
-                if (allExerciseIds.All(id => existing.CompletedExerciseIds.Contains(id)))
+                var retryAlreadyComplete = session.Sections.All(sec =>
+                    sec.Exercises.Count > 0
+                        ? sec.Exercises.All(e => existing.CompletedExerciseIds.Contains(e.ExerciseExternalId))
+                        : (existing.CompletedSectionIds ?? []).Contains(sec.SectionId));
+                if (retryAlreadyComplete)
                 {
                     await Send.OkAsync(BuildResponse(req.SessionId, targetDate, existing, allExerciseIds.Count), ct);
                     return;
@@ -186,6 +213,8 @@ public class MarkSessionCompleteEndpoint(
                     & Builders<TrainingCompletion>.Filter.Eq(c => c.Version, existing.Version);
                 var retryUpdate = Builders<TrainingCompletion>.Update
                     .Set(c => c.CompletedExerciseIds, allExerciseIds)
+                    .Set(c => c.CompletedExerciseIdsBySection, completedBySection)
+                    .Set(c => c.CompletedSectionIds, allSectionIds)
                     .Set(c => c.DateUpdated, DateTime.UtcNow)
                     .Set(c => c.Version, retryVersion);
                 var retryResult = await mongo.TrainingCompletions.UpdateOneAsync(retryVersionedFilter, retryUpdate, cancellationToken: ct);
@@ -198,6 +227,7 @@ public class MarkSessionCompleteEndpoint(
                 }
 
                 existing.CompletedExerciseIds = allExerciseIds;
+                existing.CompletedSectionIds = allSectionIds;
                 existing.Version = retryVersion;
                 await Send.OkAsync(BuildResponse(req.SessionId, targetDate, existing, allExerciseIds.Count), ct);
                 return;

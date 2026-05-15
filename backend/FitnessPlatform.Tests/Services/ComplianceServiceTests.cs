@@ -525,7 +525,7 @@ public class ComplianceServiceTests
                             DayOfWeek = yesterdayDow,
                             Name = "Session A",
                             Order = 1,
-                            Exercises = [new SessionExercise { ExerciseExternalId = ex1, ExerciseName = "Ex1", Order = 1, Sets = [] }]
+                            Sections = [new TrainingSection { SectionId = Guid.NewGuid(), Order = 0, Name = "Hlavní", Exercises = [new SessionExercise { ExerciseExternalId = ex1, ExerciseName = "Ex1", Order = 1, Sets = [] }] }]
                         },
                         new TrainingSession
                         {
@@ -533,7 +533,7 @@ public class ComplianceServiceTests
                             DayOfWeek = yesterdayDow,
                             Name = "Session B",
                             Order = 2,
-                            Exercises = [new SessionExercise { ExerciseExternalId = ex1, ExerciseName = "Ex1", Order = 1, Sets = [] }]
+                            Sections = [new TrainingSection { SectionId = Guid.NewGuid(), Order = 0, Name = "Hlavní", Exercises = [new SessionExercise { ExerciseExternalId = ex1, ExerciseName = "Ex1", Order = 1, Sets = [] }] }]
                         }
                     ]
                 }
@@ -828,5 +828,102 @@ public class ComplianceServiceTests
 
         // Assert — nutritionDone=true, trainingDone=false → OR → day counts → streak ≥ 1
         streak.Should().BeGreaterThanOrEqualTo(1);
+    }
+
+    // ── Section-level compliance tests ─────────────────────────────────
+
+    /// <summary>
+    /// A session with one ForTime exercise-free section plus one Standard section with exercises.
+    /// The session is only complete when:
+    ///   - the ForTime section is in CompletedSectionIds, AND
+    ///   - every exercise of the Standard section is in CompletedExerciseIds.
+    /// </summary>
+    [Fact]
+    public async Task IsSessionComplete_MixedSections_RequiresBothSectionAndExerciseCompletion()
+    {
+        var sessionId = Guid.NewGuid();
+        var ex1 = Guid.NewGuid();
+        var ex2 = Guid.NewGuid();
+        var today = DateTime.UtcNow.Date;
+        var weekStart = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
+
+        var (trainingPlan, forTimeSectionId, _, _) =
+            TrainingCompletionTestHelpers.CreateActivePlanWithMixedSections(
+                clientId: _clientId,
+                sessionId: sessionId,
+                exerciseIds: [ex1, ex2]);
+
+        // Override the start date so the plan covers today
+        trainingPlan.StartDate = weekStart;
+        trainingPlan.Weeks[0].DatePublished = weekStart;
+
+        // Completion: exercises done, ForTime section NOT in CompletedSectionIds
+        var incompleteSectionCompletion = TrainingCompletionTestHelpers.CreateCompletion(
+            clientId: _clientId,
+            sessionId: sessionId,
+            date: today,
+            completedExerciseIds: [ex1, ex2],
+            completedSectionIds: []); // ForTime section not marked
+
+        var mongo = CreateMongo(trainingPlan: trainingPlan, completions: [incompleteSectionCompletion]);
+        var sut = new ComplianceService(mongo);
+
+        // Act — exercises done but ForTime section not done → NOT complete
+        var result1 = await sut.CalculateComplianceAsync(
+            _clientId, today, today, TestContext.Current.CancellationToken);
+
+        result1.TrainingsCompleted.Should().Be(0, "ForTime section is not in CompletedSectionIds yet");
+
+        // Now mark the ForTime section too — full completion
+        var fullCompletion = TrainingCompletionTestHelpers.CreateCompletion(
+            clientId: _clientId,
+            sessionId: sessionId,
+            date: today,
+            completedExerciseIds: [ex1, ex2],
+            completedSectionIds: [forTimeSectionId]);
+
+        var mongo2 = CreateMongo(trainingPlan: trainingPlan, completions: [fullCompletion]);
+        var sut2 = new ComplianceService(mongo2);
+
+        // Act — both sections complete → session complete
+        var result2 = await sut2.CalculateComplianceAsync(
+            _clientId, today, today, TestContext.Current.CancellationToken);
+
+        result2.TrainingsCompleted.Should().Be(1, "both sections are now complete");
+        result2.TrainingCompliancePercent.Should().Be(100m);
+    }
+
+    [Fact]
+    public async Task IsSessionComplete_MixedSections_ExerciseSectionOnly_ReturnsFalse()
+    {
+        // Only the Standard section exercises are done; the ForTime section is missing from CompletedSectionIds.
+        var sessionId = Guid.NewGuid();
+        var ex1 = Guid.NewGuid();
+        var today = DateTime.UtcNow.Date;
+        var weekStart = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
+
+        var (trainingPlan, _, _, _) =
+            TrainingCompletionTestHelpers.CreateActivePlanWithMixedSections(
+                clientId: _clientId,
+                sessionId: sessionId,
+                exerciseIds: [ex1]);
+
+        trainingPlan.StartDate = weekStart;
+        trainingPlan.Weeks[0].DatePublished = weekStart;
+
+        var completion = TrainingCompletionTestHelpers.CreateCompletion(
+            clientId: _clientId,
+            sessionId: sessionId,
+            date: today,
+            completedExerciseIds: [ex1],
+            completedSectionIds: null); // no CompletedSectionIds (legacy / missing)
+
+        var mongo = CreateMongo(trainingPlan: trainingPlan, completions: [completion]);
+        var sut = new ComplianceService(mongo);
+
+        var result = await sut.CalculateComplianceAsync(
+            _clientId, today, today, TestContext.Current.CancellationToken);
+
+        result.TrainingsCompleted.Should().Be(0, "ForTime section was never marked complete");
     }
 }

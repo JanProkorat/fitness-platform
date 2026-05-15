@@ -8,10 +8,25 @@ import type { TrainingSession } from '@/api/training'
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
+/**
+ * Build a session with a single section containing the given exercises.
+ * Mirrors WithBackfilledSections output (one default section per session).
+ */
 function makeSession(id: string, exerciseIds: string[]): TrainingSession {
   return {
     sessionId: id,
     name: `Session ${id}`,
+    sections: [
+      {
+        sectionId: `${id}-sec`,
+        name: 'Hlavní',
+        exercises: exerciseIds.map((exId, i) => ({
+          exerciseExternalId: exId,
+          exerciseName: `Exercise ${i + 1}`,
+          sets: [{ setNumber: 1, reps: 10 }],
+        })),
+      },
+    ],
     exercises: exerciseIds.map((exId, i) => ({
       exerciseExternalId: exId,
       exerciseName: `Exercise ${i + 1}`,
@@ -19,6 +34,17 @@ function makeSession(id: string, exerciseIds: string[]): TrainingSession {
     })),
   }
 }
+
+/** Wrap a section-level completed-ids set into the per-section map shape. */
+function makeSectionMap(
+  sectionId: string,
+  ids: ReadonlySet<string>,
+): ReadonlyMap<string, ReadonlySet<string>> {
+  return new Map([[sectionId, ids]])
+}
+
+const EMPTY_MAP = new Map<string, ReadonlySet<string>>()
+const EMPTY_SET = new Set<string>()
 
 // ─── Multi-session aggregation ────────────────────────────────────────────────
 
@@ -49,21 +75,19 @@ describe('multi-session completion aggregation', () => {
   })
 
   it('deriveSessionCtaState handles each session independently', () => {
-    const completedBySession: Record<string, ReadonlySet<string>> = {
-      s1: new Set<string>(),
-      s2: new Set(['ex-3', 'ex-4', 'ex-5']),
-    }
+    const s1Map = makeSectionMap('s1-sec', new Set<string>())
+    const s2Map = makeSectionMap('s2-sec', new Set(['ex-3', 'ex-4', 'ex-5']))
 
-    const s1State = deriveSessionCtaState(sessions[0]!, completedBySession['s1']!)
-    const s2State = deriveSessionCtaState(sessions[1]!, completedBySession['s2']!)
+    const s1State = deriveSessionCtaState(sessions[0]!, s1Map, EMPTY_SET)
+    const s2State = deriveSessionCtaState(sessions[1]!, s2Map, EMPTY_SET)
 
     expect(s1State).toBe('not-started')
     expect(s2State).toBe('finished')
   })
 
-  it('returns not-started when completedIdsBySession is empty', () => {
+  it('returns not-started when completedIdsBySectionAndSession is empty', () => {
     for (const session of sessions) {
-      const state = deriveSessionCtaState(session, new Set<string>())
+      const state = deriveSessionCtaState(session, EMPTY_MAP, EMPTY_SET)
       expect(state).toBe('not-started')
     }
   })

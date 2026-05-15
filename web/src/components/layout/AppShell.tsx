@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Sidebar } from './Sidebar';
 import { useSignalR } from '@/hooks/useSignalR';
 import { useToastStore } from '@/stores/toast';
+import { useTrainingPlanStore } from '@/stores/trainingPlan';
 import { isTrainingProgressUpdatedEvent } from '@/api/trainingProgressEvent';
 import { isPersonalRecordAchievedEvent } from '@/api/personalRecordEvent';
 import { weeklyCheckInKeys } from '@/hooks/useWeeklyCheckIns';
@@ -159,6 +160,14 @@ export function AppShell() {
       if (clientId) {
         queryClient.invalidateQueries({ queryKey: ['client-dashboard', clientId] });
         queryClient.invalidateQueries({ queryKey: ['client-timeline', clientId] });
+      }
+
+      // If the trainer also has THIS client's plan open in the editor,
+      // pull the latest completions so locked fields update in real time.
+      // Only `completions` is replaced — unsaved trainer edits stay intact.
+      const tp = useTrainingPlanStore.getState();
+      if (tp.plan && tp.plan.clientId === clientId) {
+        void tp.refreshCompletions();
       }
     },
     personalrecordachieved: (payload: unknown) => {

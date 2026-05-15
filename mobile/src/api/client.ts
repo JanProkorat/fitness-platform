@@ -5,11 +5,13 @@ import { useAuthStore } from '../stores/auth';
 // `EXPO_PUBLIC_API_BASE_URL` lets QA dev builds point at the compose-exposed
 // API (https://localhost:5001) without rebuilding. Inlined at bundle time by
 // Expo, so the override is baked into the .app produced by qa-build-dev-client.sh.
+// iOS NSURLSession strips the Authorization header on HTTP→HTTPS redirects, so
+// dev MUST hit the HTTPS port directly. Trust the .NET dev cert in the simulator.
 const API_BASE_URL =
   process.env.EXPO_PUBLIC_API_BASE_URL ??
   (__DEV__
-    ? 'http://localhost:5000'  // iOS simulator – use HTTP port (5001 is HTTPS)
-    : 'https://api.gfplatform.com'); // production
+    ? 'https://localhost:5001'
+    : 'https://api.gfplatform.com');
 
 const api = axios.create({
   baseURL: API_BASE_URL,

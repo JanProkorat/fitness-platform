@@ -263,16 +263,25 @@ public class MarkSessionIncompleteEndpointTests
             SessionId = _sessionId,
             StartedAt = now.Date.AddHours(9),
             IsCompleted = true,
-            Exercises =
+            Sections =
             [
-                new Application.Domain.Documents.WorkoutExercise
+                new Application.Domain.Documents.WorkoutSection
                 {
-                    ExerciseExternalId = _exercise1,
-                    ExerciseName = "Bench Press",
-                    Sets =
+                    SectionId = Guid.NewGuid(),
+                    Order = 0,
+                    Name = "Hlavní",
+                    Exercises =
                     [
-                        new Application.Domain.Documents.WorkoutSet { SetNumber = 1, Reps = 10, WeightKg = 80m, CompletedAt = now },
-                        new Application.Domain.Documents.WorkoutSet { SetNumber = 2, Reps = 8,  WeightKg = 80m, CompletedAt = now }
+                        new Application.Domain.Documents.WorkoutExercise
+                        {
+                            ExerciseExternalId = _exercise1,
+                            ExerciseName = "Bench Press",
+                            Sets =
+                            [
+                                new Application.Domain.Documents.WorkoutSet { SetNumber = 1, Reps = 10, WeightKg = 80m, CompletedAt = now },
+                                new Application.Domain.Documents.WorkoutSet { SetNumber = 2, Reps = 8,  WeightKg = 80m, CompletedAt = now }
+                            ]
+                        }
                     ]
                 }
             ]

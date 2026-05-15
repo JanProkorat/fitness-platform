@@ -88,7 +88,9 @@ public class MarkWholeDayCompleteEndpoint(
 
         foreach (var session in sessionsForDay)
         {
+            session.WithBackfilledSections();
             var allExerciseIds = session.Exercises.Select(e => e.ExerciseExternalId).ToList();
+            var allSectionIds = session.Sections.Select(s => s.SectionId).ToList();
 
             var completionFilter = Builders<TrainingCompletion>.Filter.Eq(c => c.ClientId, clientId)
                                    & Builders<TrainingCompletion>.Filter.Eq(c => c.Date, targetDate)
@@ -101,8 +103,12 @@ public class MarkWholeDayCompleteEndpoint(
 
             if (existing is not null)
             {
-                // Already fully complete — idempotent
-                if (allExerciseIds.All(id => existing.CompletedExerciseIds.Contains(id)))
+                // Already fully complete — idempotent (per-section rule mirrors ComplianceService)
+                var alreadyComplete = session.Sections.All(sec =>
+                    sec.Exercises.Count > 0
+                        ? sec.Exercises.All(e => existing.CompletedExerciseIds.Contains(e.ExerciseExternalId))
+                        : (existing.CompletedSectionIds ?? []).Contains(sec.SectionId));
+                if (alreadyComplete)
                 {
                     summaries.Add(new SessionCompletionSummary
                     {
@@ -120,6 +126,7 @@ public class MarkWholeDayCompleteEndpoint(
 
                 var update = Builders<TrainingCompletion>.Update
                     .Set(c => c.CompletedExerciseIds, allExerciseIds)
+                    .Set(c => c.CompletedSectionIds, allSectionIds)
                     .Set(c => c.DateUpdated, DateTime.UtcNow)
                     .Set(c => c.Version, newVersion);
 
@@ -137,6 +144,7 @@ public class MarkWholeDayCompleteEndpoint(
                     Date = targetDate,
                     SessionId = session.SessionId,
                     CompletedExerciseIds = allExerciseIds,
+                    CompletedSectionIds = allSectionIds,
                     DateCreated = DateTime.UtcNow,
                     Version = 1
                 };
@@ -157,7 +165,11 @@ public class MarkWholeDayCompleteEndpoint(
                         throw;
                     }
 
-                    if (allExerciseIds.All(id => existing.CompletedExerciseIds.Contains(id)))
+                    var retryAlreadyComplete = session.Sections.All(sec =>
+                        sec.Exercises.Count > 0
+                            ? sec.Exercises.All(e => existing.CompletedExerciseIds.Contains(e.ExerciseExternalId))
+                            : (existing.CompletedSectionIds ?? []).Contains(sec.SectionId));
+                    if (retryAlreadyComplete)
                     {
                         version = existing.Version;
                     }
@@ -168,6 +180,7 @@ public class MarkWholeDayCompleteEndpoint(
                             & Builders<TrainingCompletion>.Filter.Eq(c => c.Version, existing.Version);
                         var retryUpdate = Builders<TrainingCompletion>.Update
                             .Set(c => c.CompletedExerciseIds, allExerciseIds)
+                            .Set(c => c.CompletedSectionIds, allSectionIds)
                             .Set(c => c.DateUpdated, DateTime.UtcNow)
                             .Set(c => c.Version, retryVersion);
                         var retryResult = await mongo.TrainingCompletions.UpdateOneAsync(retryVersionedFilter, retryUpdate, cancellationToken: ct);
@@ -235,10 +248,18 @@ public class MarkWholeDayCompleteEndpoint(
         if (resolvedWeek is null)
             return [];
 
+        // Past the last published week → no sessions for this date.
+        // See GetTodaySessionEndpoint for the full rationale.
+        if (resolvedWeek.Value > publishedWeeks[^1].WeekNumber)
+            return [];
+
         var currentWeek = plan.Weeks.FirstOrDefault(w => w.WeekNumber == resolvedWeek.Value);
         if (currentWeek is null || currentWeek.Status != WeekStatus.Published)
         {
-            currentWeek = publishedWeeks.Last();
+            // Gap-skip: use the latest published week that's not after the
+            // calculated one. Returns no sessions if no such week exists.
+            currentWeek = publishedWeeks.LastOrDefault(w => w.WeekNumber <= resolvedWeek.Value);
+            if (currentWeek is null) return [];
         }
 
         // Map DateOnly DayOfWeek (0=Sunday) to ISO 1=Monday…7=Sunday

@@ -11,6 +11,13 @@ x86/
 [Oo]ut/
 [Ll]og/
 [Ll]ogs/
+# Stray .NET build outputs with a literal backslash in the directory name
+# (cross-platform leakage when path separators landed as part of the name
+# instead of as a separator). The `[Bb]in/` glob above doesn't catch
+# these because they're sibling directories at the package root rather
+# than children of `bin/`.
+**/bin\\Debug/
+**/bin\\Release/
 
 ## NuGet
 *.nupkg
@@ -117,3 +124,4 @@ Thumbs.db
 .remember/
 .qa-artifacts/
 mobile/.qa-cache/
+.playwright-mcp/

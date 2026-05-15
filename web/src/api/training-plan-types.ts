@@ -65,6 +65,28 @@ export interface SessionExercise {
   sets: ExerciseSet[];
 }
 
+/**
+ * An ordered section within a training session (e.g. "Warm-up", "Hlavní").
+ * The editor always works with sections — legacy plans without sections are
+ * wrapped in a single synthetic "Hlavní" section on load.
+ */
+export interface TrainingSection {
+  /** Stable client-side identifier; reused across saves. New sections get crypto.randomUUID(). */
+  sectionId: string;
+  /** Display order within the session (0-based). */
+  order: number;
+  /** Display name (e.g. "Hlavní", "Rozcvička"). */
+  name: string;
+  /** Section-level workout format. Defaults to Standard. */
+  format: WorkoutFormat;
+  /** Format config. Null when format is Standard. */
+  formatConfig?: WodConfig | null;
+  /** Optional coach notes for this section. */
+  notes?: string | null;
+  /** Exercises in this section. */
+  exercises: SessionExercise[];
+}
+
 /** A training session within a week. */
 export interface TrainingSession {
   sessionId: string;
@@ -72,10 +94,20 @@ export interface TrainingSession {
   name: string;
   order: number;
   notes?: string | null;
-  /** Workout format for this session. Defaults to Standard. */
+  /** Session-level workout format (kept as inheritable default). */
   format: WorkoutFormat;
-  /** Format config for non-Standard sessions. Null when format is Standard. */
+  /** Session-level format config. */
   formatConfig?: WodConfig | null;
+  /**
+   * Sections in this session. The editor always works with sections.
+   * Legacy plans (flat exercises, no sections) are wrapped on load.
+   */
+  sections: TrainingSection[];
+  /**
+   * Flat view of exercises across all sections — present on API response
+   * objects only (computed, not stored). The store does not use this field;
+   * it reads from sections instead.
+   */
   exercises: SessionExercise[];
 }
 
@@ -88,6 +120,35 @@ export interface TrainingWeek {
   dayNotes?: Record<number, string> | null;
 }
 
+/**
+ * One completion record produced by the mobile client when the user marks
+ * exercises complete. Surfaces (date, session, completed-exerciseIds) tuples
+ * so the trainer editor can lock fields the client has already finished.
+ */
+export interface TrainingPlanCompletion {
+  /** Calendar date the completion applies to (ISO yyyy-mm-dd). */
+  date: string;
+  sessionId: string;
+  /**
+   * @deprecated Use `completedExerciseIdsBySection` instead. Kept for one
+   * release while the backend emits both fields. When `completedExerciseIdsBySection`
+   * is present, this flat list is ignored by lock derivation.
+   */
+  completedExerciseIds: string[];
+  /**
+   * Per-section completion map: key = sectionId, value = exerciseExternalIds
+   * completed within that section. Prefer this over the deprecated flat
+   * `completedExerciseIds` field.
+   */
+  completedExerciseIdsBySection?: Record<string, string[]>;
+  /**
+   * Section IDs the client has marked done at the section level (used for
+   * sections without exercises, e.g. ForTime "Running" workouts).
+   */
+  completedSectionIds: string[];
+  version: number;
+}
+
 /** Full training plan detail. */
 export interface TrainingPlanDetail {
   planId: string;
@@ -97,6 +158,8 @@ export interface TrainingPlanDetail {
   description?: string | null;
   status: 'Draft' | 'Active' | 'Completed' | 'Archived';
   weeks: TrainingWeek[];
+  /** Per-(date,session) completion records — one entry per (date, sessionId). */
+  completions?: TrainingPlanCompletion[];
   version: number;
   dateCreated: string;
   dateUpdated?: string | null;
@@ -155,6 +218,24 @@ export interface UpdateTrainingWeekRequest {
   dayNotes?: Record<number, string> | null;
 }
 
+/** Section data within a session update. */
+export interface UpdateSectionRequest {
+  /** Stable section identifier. Pass the existing ID to preserve identity across saves. */
+  sectionId?: string | null;
+  /** Display order within the session (0-based). */
+  order: number;
+  /** Display name of the section (e.g. "Hlavní", "Warm-up"). */
+  name: string;
+  /** Workout format for this section. Null means inherit the session-level format. */
+  format?: WorkoutFormat | null;
+  /** Format configuration. Null when format is null or Standard. */
+  formatConfig?: WodConfig | null;
+  /** Optional coach note for this workout/section. */
+  notes?: string | null;
+  /** Exercises belonging to this section. */
+  exercises: UpdateSessionExerciseRequest[];
+}
+
 /** Session data within a full-state plan update. */
 export interface UpdateSessionRequest {
   sessionId?: string | null;
@@ -164,7 +245,8 @@ export interface UpdateSessionRequest {
   notes?: string | null;
   format: WorkoutFormat;
   formatConfig?: WodConfig | null;
-  exercises: UpdateSessionExerciseRequest[];
+  /** Ordered sections in this session. Must be non-empty. */
+  sections: UpdateSectionRequest[];
 }
 
 /** Exercise data within a session update. */

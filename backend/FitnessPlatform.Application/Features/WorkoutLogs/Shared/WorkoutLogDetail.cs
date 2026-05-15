@@ -60,7 +60,7 @@ public class WorkoutLogDetail
         Mood = log.Mood,
         Notes = log.Notes,
         IsCompleted = log.IsCompleted,
-        Exercises = log.Exercises,
+        Exercises = log.Exercises.ToList(),
         HasPR = log.Exercises.Any(e => e.Sets.Any(s => s.IsPR))
     };
 }

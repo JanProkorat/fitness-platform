@@ -203,9 +203,17 @@ internal static class TrainingProgressBroadcaster
         if (resolved is null)
             return [];
 
+        // Past the last published week → no sessions for this date.
+        // See GetTodaySessionEndpoint for the full rationale.
+        if (resolved.Value > publishedWeeks[^1].WeekNumber)
+            return [];
+
         var week = plan.Weeks.FirstOrDefault(w => w.WeekNumber == resolved.Value);
         if (week is null || week.Status != WeekStatus.Published)
-            week = publishedWeeks.Last();
+        {
+            week = publishedWeeks.LastOrDefault(w => w.WeekNumber <= resolved.Value);
+            if (week is null) return [];
+        }
 
         var dow = (int)date.DayOfWeek;
         dow = dow == 0 ? 7 : dow;
@@ -243,6 +251,7 @@ internal static class TrainingProgressBroadcaster
         var count = 0;
         foreach (var session in plannedSessions)
         {
+            session.WithBackfilledSections();
             if (session.Exercises.Count == 0)
                 continue;
 

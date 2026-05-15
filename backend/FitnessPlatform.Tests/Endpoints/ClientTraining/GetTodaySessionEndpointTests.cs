@@ -211,7 +211,7 @@ public class GetTodaySessionEndpointTests
                             DayOfWeek = todayDow,
                             Name = "Morning Session",
                             Order = 1,
-                            Exercises = []
+                            Sections = []
                         },
                         new TrainingSession
                         {
@@ -219,7 +219,7 @@ public class GetTodaySessionEndpointTests
                             DayOfWeek = todayDow,
                             Name = "Evening Session",
                             Order = 2,
-                            Exercises = []
+                            Sections = []
                         }
                     ]
                 }
@@ -285,7 +285,7 @@ public class GetTodaySessionEndpointTests
                             DayOfWeek = todayDow,
                             Name = "Second Session",
                             Order = 2,
-                            Exercises = []
+                            Sections = []
                         },
                         new TrainingSession
                         {
@@ -293,7 +293,7 @@ public class GetTodaySessionEndpointTests
                             DayOfWeek = todayDow,
                             Name = "First Session",
                             Order = 1,
-                            Exercises = []
+                            Sections = []
                         }
                     ]
                 }
@@ -354,7 +354,7 @@ public class GetTodaySessionEndpointTests
                             DayOfWeek = todayDow,
                             Name = "Only Session",
                             Order = 1,
-                            Exercises = []
+                            Sections = []
                         }
                     ]
                 }
@@ -417,7 +417,7 @@ public class GetTodaySessionEndpointTests
                             DayOfWeek = otherDow,
                             Name = "Not Today",
                             Order = 1,
-                            Exercises = []
+                            Sections = []
                         }
                     ]
                 }
@@ -586,16 +586,25 @@ public class GetTodaySessionEndpointTests
                             DayOfWeek = todayDow,
                             Name = "Pull Day",
                             Order = 1,
-                            Exercises =
+                            Sections =
                             [
-                                new SessionExercise
+                                new TrainingSection
                                 {
-                                    ExerciseExternalId = exerciseId,
-                                    ExerciseName = "Pull-up",
-                                    Order = 1,
-                                    Sets =
+                                    SectionId = Guid.NewGuid(),
+                                    Order = 0,
+                                    Name = "Hlavní",
+                                    Exercises =
                                     [
-                                        new ExerciseSet { SetNumber = 1 }
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = exerciseId,
+                                            ExerciseName = "Pull-up",
+                                            Order = 1,
+                                            Sets =
+                                            [
+                                                new ExerciseSet { SetNumber = 1 }
+                                            ]
+                                        }
                                     ]
                                 }
                             ]
@@ -616,15 +625,24 @@ public class GetTodaySessionEndpointTests
             SessionId = sessionId,
             PlanId = plan.ExternalId,
             StartedAt = DateTime.UtcNow,
-            Exercises =
+            Sections =
             [
-                new WorkoutExercise
+                new WorkoutSection
                 {
-                    ExerciseExternalId = exerciseId,
-                    ExerciseName = "Pull-up",
-                    Sets =
+                    SectionId = Guid.NewGuid(),
+                    Order = 0,
+                    Name = "Hlavní",
+                    Exercises =
                     [
-                        new WorkoutSet { SetNumber = 1, CompletedAt = DateTime.UtcNow }
+                        new WorkoutExercise
+                        {
+                            ExerciseExternalId = exerciseId,
+                            ExerciseName = "Pull-up",
+                            Sets =
+                            [
+                                new WorkoutSet { SetNumber = 1, CompletedAt = DateTime.UtcNow }
+                            ]
+                        }
                     ]
                 }
             ]
@@ -696,18 +714,27 @@ public class GetTodaySessionEndpointTests
                             DayOfWeek = todayDow,
                             Name = "Push Day",
                             Order = 1,
-                            Exercises =
+                            Sections =
                             [
-                                new SessionExercise
+                                new TrainingSection
                                 {
-                                    ExerciseExternalId = exerciseId,
-                                    ExerciseName = "Bench Press",
-                                    Order = 1,
-                                    Sets =
+                                    SectionId = Guid.NewGuid(),
+                                    Order = 0,
+                                    Name = "Hlavní",
+                                    Exercises =
                                     [
-                                        new ExerciseSet { SetNumber = 1 },
-                                        new ExerciseSet { SetNumber = 2 },
-                                        new ExerciseSet { SetNumber = 3 }
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = exerciseId,
+                                            ExerciseName = "Bench Press",
+                                            Order = 1,
+                                            Sets =
+                                            [
+                                                new ExerciseSet { SetNumber = 1 },
+                                                new ExerciseSet { SetNumber = 2 },
+                                                new ExerciseSet { SetNumber = 3 }
+                                            ]
+                                        }
                                     ]
                                 }
                             ]
@@ -729,17 +756,26 @@ public class GetTodaySessionEndpointTests
             PlanId = plan.ExternalId,
             StartedAt = DateTime.UtcNow,
             IsCompleted = false,
-            Exercises =
+            Sections =
             [
-                new WorkoutExercise
+                new WorkoutSection
                 {
-                    ExerciseExternalId = exerciseId,
-                    ExerciseName = "Bench Press",
-                    Sets =
+                    SectionId = Guid.NewGuid(),
+                    Order = 0,
+                    Name = "Hlavní",
+                    Exercises =
                     [
-                        new WorkoutSet { SetNumber = 1, CompletedAt = DateTime.UtcNow },
-                        new WorkoutSet { SetNumber = 2, CompletedAt = null },
-                        new WorkoutSet { SetNumber = 3, CompletedAt = null }
+                        new WorkoutExercise
+                        {
+                            ExerciseExternalId = exerciseId,
+                            ExerciseName = "Bench Press",
+                            Sets =
+                            [
+                                new WorkoutSet { SetNumber = 1, CompletedAt = DateTime.UtcNow },
+                                new WorkoutSet { SetNumber = 2, CompletedAt = null },
+                                new WorkoutSet { SetNumber = 3, CompletedAt = null }
+                            ]
+                        }
                     ]
                 }
             ]
@@ -806,17 +842,26 @@ public class GetTodaySessionEndpointTests
                             DayOfWeek = todayDow,
                             Name = "Pull Day",
                             Order = 1,
-                            Exercises =
+                            Sections =
                             [
-                                new SessionExercise
+                                new TrainingSection
                                 {
-                                    ExerciseExternalId = exerciseId,
-                                    ExerciseName = "Pull-up",
-                                    Order = 1,
-                                    Sets =
+                                    SectionId = Guid.NewGuid(),
+                                    Order = 0,
+                                    Name = "Hlavní",
+                                    Exercises =
                                     [
-                                        new ExerciseSet { SetNumber = 1 },
-                                        new ExerciseSet { SetNumber = 2 }
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = exerciseId,
+                                            ExerciseName = "Pull-up",
+                                            Order = 1,
+                                            Sets =
+                                            [
+                                                new ExerciseSet { SetNumber = 1 },
+                                                new ExerciseSet { SetNumber = 2 }
+                                            ]
+                                        }
                                     ]
                                 }
                             ]
@@ -841,16 +886,25 @@ public class GetTodaySessionEndpointTests
             StartedAt = olderStartedAt,
             IsCompleted = true,
             CompletedAt = olderStartedAt.AddHours(1),
-            Exercises =
+            Sections =
             [
-                new WorkoutExercise
+                new WorkoutSection
                 {
-                    ExerciseExternalId = exerciseId,
-                    ExerciseName = "Pull-up",
-                    Sets =
+                    SectionId = Guid.NewGuid(),
+                    Order = 0,
+                    Name = "Hlavní",
+                    Exercises =
                     [
-                        new WorkoutSet { SetNumber = 1, CompletedAt = olderStartedAt.AddMinutes(10) },
-                        new WorkoutSet { SetNumber = 2, CompletedAt = olderStartedAt.AddMinutes(20) }
+                        new WorkoutExercise
+                        {
+                            ExerciseExternalId = exerciseId,
+                            ExerciseName = "Pull-up",
+                            Sets =
+                            [
+                                new WorkoutSet { SetNumber = 1, CompletedAt = olderStartedAt.AddMinutes(10) },
+                                new WorkoutSet { SetNumber = 2, CompletedAt = olderStartedAt.AddMinutes(20) }
+                            ]
+                        }
                     ]
                 }
             ]
@@ -865,16 +919,25 @@ public class GetTodaySessionEndpointTests
             PlanId = plan.ExternalId,
             StartedAt = DateTime.UtcNow.AddMinutes(-5),
             IsCompleted = false,
-            Exercises =
+            Sections =
             [
-                new WorkoutExercise
+                new WorkoutSection
                 {
-                    ExerciseExternalId = exerciseId,
-                    ExerciseName = "Pull-up",
-                    Sets =
+                    SectionId = Guid.NewGuid(),
+                    Order = 0,
+                    Name = "Hlavní",
+                    Exercises =
                     [
-                        new WorkoutSet { SetNumber = 1, CompletedAt = DateTime.UtcNow.AddMinutes(-2) },
-                        new WorkoutSet { SetNumber = 2, CompletedAt = null }
+                        new WorkoutExercise
+                        {
+                            ExerciseExternalId = exerciseId,
+                            ExerciseName = "Pull-up",
+                            Sets =
+                            [
+                                new WorkoutSet { SetNumber = 1, CompletedAt = DateTime.UtcNow.AddMinutes(-2) },
+                                new WorkoutSet { SetNumber = 2, CompletedAt = null }
+                            ]
+                        }
                     ]
                 }
             ]
@@ -946,18 +1009,27 @@ public class GetTodaySessionEndpointTests
                             DayOfWeek = todayDow,
                             Name = "Push Day",
                             Order = 1,
-                            Exercises =
+                            Sections =
                             [
-                                new SessionExercise
+                                new TrainingSection
                                 {
-                                    ExerciseExternalId = exerciseId,
-                                    ExerciseName = "Bench Press",
-                                    Order = 1,
-                                    Sets =
+                                    SectionId = Guid.NewGuid(),
+                                    Order = 0,
+                                    Name = "Hlavní",
+                                    Exercises =
                                     [
-                                        new ExerciseSet { SetNumber = 1 },
-                                        new ExerciseSet { SetNumber = 2 },
-                                        new ExerciseSet { SetNumber = 3 }
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = exerciseId,
+                                            ExerciseName = "Bench Press",
+                                            Order = 1,
+                                            Sets =
+                                            [
+                                                new ExerciseSet { SetNumber = 1 },
+                                                new ExerciseSet { SetNumber = 2 },
+                                                new ExerciseSet { SetNumber = 3 }
+                                            ]
+                                        }
                                     ]
                                 }
                             ]
@@ -978,17 +1050,26 @@ public class GetTodaySessionEndpointTests
             PlanId = plan.ExternalId,
             StartedAt = DateTime.UtcNow,
             IsCompleted = false,
-            Exercises =
+            Sections =
             [
-                new WorkoutExercise
+                new WorkoutSection
                 {
-                    ExerciseExternalId = exerciseId,
-                    ExerciseName = "Bench Press",
-                    Sets =
+                    SectionId = Guid.NewGuid(),
+                    Order = 0,
+                    Name = "Hlavní",
+                    Exercises =
                     [
-                        new WorkoutSet { SetNumber = 1, CompletedAt = DateTime.UtcNow },
-                        new WorkoutSet { SetNumber = 2, CompletedAt = null },
-                        new WorkoutSet { SetNumber = 3, CompletedAt = null }
+                        new WorkoutExercise
+                        {
+                            ExerciseExternalId = exerciseId,
+                            ExerciseName = "Bench Press",
+                            Sets =
+                            [
+                                new WorkoutSet { SetNumber = 1, CompletedAt = DateTime.UtcNow },
+                                new WorkoutSet { SetNumber = 2, CompletedAt = null },
+                                new WorkoutSet { SetNumber = 3, CompletedAt = null }
+                            ]
+                        }
                     ]
                 }
             ]
@@ -1058,18 +1139,27 @@ public class GetTodaySessionEndpointTests
                             DayOfWeek = todayDow,
                             Name = "Pull Day",
                             Order = 1,
-                            Exercises =
+                            Sections =
                             [
-                                new SessionExercise
+                                new TrainingSection
                                 {
-                                    ExerciseExternalId = exerciseId,
-                                    ExerciseName = "Pull-up",
-                                    Order = 1,
-                                    Sets =
+                                    SectionId = Guid.NewGuid(),
+                                    Order = 0,
+                                    Name = "Hlavní",
+                                    Exercises =
                                     [
-                                        new ExerciseSet { SetNumber = 1 },
-                                        new ExerciseSet { SetNumber = 2 },
-                                        new ExerciseSet { SetNumber = 3 }
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = exerciseId,
+                                            ExerciseName = "Pull-up",
+                                            Order = 1,
+                                            Sets =
+                                            [
+                                                new ExerciseSet { SetNumber = 1 },
+                                                new ExerciseSet { SetNumber = 2 },
+                                                new ExerciseSet { SetNumber = 3 }
+                                            ]
+                                        }
                                     ]
                                 }
                             ]
@@ -1093,17 +1183,26 @@ public class GetTodaySessionEndpointTests
             StartedAt = olderStartedAt,
             IsCompleted = true,
             CompletedAt = olderStartedAt.AddHours(1),
-            Exercises =
+            Sections =
             [
-                new WorkoutExercise
+                new WorkoutSection
                 {
-                    ExerciseExternalId = exerciseId,
-                    ExerciseName = "Pull-up",
-                    Sets =
+                    SectionId = Guid.NewGuid(),
+                    Order = 0,
+                    Name = "Hlavní",
+                    Exercises =
                     [
-                        new WorkoutSet { SetNumber = 1, CompletedAt = olderStartedAt.AddMinutes(10) },
-                        new WorkoutSet { SetNumber = 2, CompletedAt = olderStartedAt.AddMinutes(20) },
-                        new WorkoutSet { SetNumber = 3, CompletedAt = olderStartedAt.AddMinutes(30) }
+                        new WorkoutExercise
+                        {
+                            ExerciseExternalId = exerciseId,
+                            ExerciseName = "Pull-up",
+                            Sets =
+                            [
+                                new WorkoutSet { SetNumber = 1, CompletedAt = olderStartedAt.AddMinutes(10) },
+                                new WorkoutSet { SetNumber = 2, CompletedAt = olderStartedAt.AddMinutes(20) },
+                                new WorkoutSet { SetNumber = 3, CompletedAt = olderStartedAt.AddMinutes(30) }
+                            ]
+                        }
                     ]
                 }
             ]
@@ -1118,17 +1217,26 @@ public class GetTodaySessionEndpointTests
             PlanId = plan.ExternalId,
             StartedAt = DateTime.UtcNow.AddMinutes(-5),
             IsCompleted = false,
-            Exercises =
+            Sections =
             [
-                new WorkoutExercise
+                new WorkoutSection
                 {
-                    ExerciseExternalId = exerciseId,
-                    ExerciseName = "Pull-up",
-                    Sets =
+                    SectionId = Guid.NewGuid(),
+                    Order = 0,
+                    Name = "Hlavní",
+                    Exercises =
                     [
-                        new WorkoutSet { SetNumber = 1, CompletedAt = DateTime.UtcNow.AddMinutes(-2) },
-                        new WorkoutSet { SetNumber = 2, CompletedAt = null },
-                        new WorkoutSet { SetNumber = 3, CompletedAt = null }
+                        new WorkoutExercise
+                        {
+                            ExerciseExternalId = exerciseId,
+                            ExerciseName = "Pull-up",
+                            Sets =
+                            [
+                                new WorkoutSet { SetNumber = 1, CompletedAt = DateTime.UtcNow.AddMinutes(-2) },
+                                new WorkoutSet { SetNumber = 2, CompletedAt = null },
+                                new WorkoutSet { SetNumber = 3, CompletedAt = null }
+                            ]
+                        }
                     ]
                 }
             ]
@@ -1199,18 +1307,27 @@ public class GetTodaySessionEndpointTests
                             DayOfWeek = todayDow,
                             Name = "Push Day",
                             Order = 1,
-                            Exercises =
+                            Sections =
                             [
-                                new SessionExercise
+                                new TrainingSection
                                 {
-                                    ExerciseExternalId = exerciseId,
-                                    ExerciseName = "Bench Press",
-                                    Order = 1,
-                                    Sets =
+                                    SectionId = Guid.NewGuid(),
+                                    Order = 0,
+                                    Name = "Hlavní",
+                                    Exercises =
                                     [
-                                        new ExerciseSet { SetNumber = 1 },
-                                        new ExerciseSet { SetNumber = 2 },
-                                        new ExerciseSet { SetNumber = 3 }
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = exerciseId,
+                                            ExerciseName = "Bench Press",
+                                            Order = 1,
+                                            Sets =
+                                            [
+                                                new ExerciseSet { SetNumber = 1 },
+                                                new ExerciseSet { SetNumber = 2 },
+                                                new ExerciseSet { SetNumber = 3 }
+                                            ]
+                                        }
                                     ]
                                 }
                             ]
@@ -1300,18 +1417,27 @@ public class GetTodaySessionEndpointTests
                             DayOfWeek = todayDow,
                             Name = "Pull Day",
                             Order = 1,
-                            Exercises =
+                            Sections =
                             [
-                                new SessionExercise
+                                new TrainingSection
                                 {
-                                    ExerciseExternalId = exerciseId,
-                                    ExerciseName = "Pull-up",
-                                    Order = 1,
-                                    Sets =
+                                    SectionId = Guid.NewGuid(),
+                                    Order = 0,
+                                    Name = "Hlavní",
+                                    Exercises =
                                     [
-                                        new ExerciseSet { SetNumber = 1 },
-                                        new ExerciseSet { SetNumber = 2 },
-                                        new ExerciseSet { SetNumber = 3 }
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = exerciseId,
+                                            ExerciseName = "Pull-up",
+                                            Order = 1,
+                                            Sets =
+                                            [
+                                                new ExerciseSet { SetNumber = 1 },
+                                                new ExerciseSet { SetNumber = 2 },
+                                                new ExerciseSet { SetNumber = 3 }
+                                            ]
+                                        }
                                     ]
                                 }
                             ]
@@ -1332,17 +1458,26 @@ public class GetTodaySessionEndpointTests
             PlanId = plan.ExternalId,
             StartedAt = DateTime.UtcNow,
             IsCompleted = false,
-            Exercises =
+            Sections =
             [
-                new WorkoutExercise
+                new WorkoutSection
                 {
-                    ExerciseExternalId = exerciseId,
-                    ExerciseName = "Pull-up",
-                    Sets =
+                    SectionId = Guid.NewGuid(),
+                    Order = 0,
+                    Name = "Hlavní",
+                    Exercises =
                     [
-                        new WorkoutSet { SetNumber = 1, CompletedAt = DateTime.UtcNow },
-                        new WorkoutSet { SetNumber = 2, CompletedAt = null },
-                        new WorkoutSet { SetNumber = 3, CompletedAt = null }
+                        new WorkoutExercise
+                        {
+                            ExerciseExternalId = exerciseId,
+                            ExerciseName = "Pull-up",
+                            Sets =
+                            [
+                                new WorkoutSet { SetNumber = 1, CompletedAt = DateTime.UtcNow },
+                                new WorkoutSet { SetNumber = 2, CompletedAt = null },
+                                new WorkoutSet { SetNumber = 3, CompletedAt = null }
+                            ]
+                        }
                     ]
                 }
             ]
@@ -1434,21 +1569,30 @@ public class GetTodaySessionEndpointTests
                             DayOfWeek = todayDow,
                             Name = "Push Day",
                             Order = 1,
-                            Exercises =
+                            Sections =
                             [
-                                new SessionExercise
+                                new TrainingSection
                                 {
-                                    ExerciseExternalId = exerciseA,
-                                    ExerciseName = "Exercise A",
-                                    Order = 1,
-                                    Sets = [new ExerciseSet { SetNumber = 1 }]
-                                },
-                                new SessionExercise
-                                {
-                                    ExerciseExternalId = exerciseB,
-                                    ExerciseName = "Exercise B",
-                                    Order = 2,
-                                    Sets = [new ExerciseSet { SetNumber = 1 }]
+                                    SectionId = Guid.NewGuid(),
+                                    Order = 0,
+                                    Name = "Hlavní",
+                                    Exercises =
+                                    [
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = exerciseA,
+                                            ExerciseName = "Exercise A",
+                                            Order = 1,
+                                            Sets = [new ExerciseSet { SetNumber = 1 }]
+                                        },
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = exerciseB,
+                                            ExerciseName = "Exercise B",
+                                            Order = 2,
+                                            Sets = [new ExerciseSet { SetNumber = 1 }]
+                                        }
+                                    ]
                                 }
                             ]
                         }
@@ -1469,13 +1613,22 @@ public class GetTodaySessionEndpointTests
             StartedAt = sharedStartedAt,
             IsCompleted = false,
             DateCreated = sharedStartedAt,                        // earlier insert
-            Exercises =
+            Sections =
             [
-                new WorkoutExercise
+                new WorkoutSection
                 {
-                    ExerciseExternalId = exerciseA,
-                    ExerciseName = "Exercise A",
-                    Sets = [new WorkoutSet { SetNumber = 1, CompletedAt = DateTime.UtcNow }]
+                    SectionId = Guid.NewGuid(),
+                    Order = 0,
+                    Name = "Hlavní",
+                    Exercises =
+                    [
+                        new WorkoutExercise
+                        {
+                            ExerciseExternalId = exerciseA,
+                            ExerciseName = "Exercise A",
+                            Sets = [new WorkoutSet { SetNumber = 1, CompletedAt = DateTime.UtcNow }]
+                        }
+                    ]
                 }
             ]
         };
@@ -1490,13 +1643,22 @@ public class GetTodaySessionEndpointTests
             StartedAt = sharedStartedAt,                         // identical StartedAt
             IsCompleted = false,
             DateCreated = sharedStartedAt.AddSeconds(2),         // later insert — wins tie-break
-            Exercises =
+            Sections =
             [
-                new WorkoutExercise
+                new WorkoutSection
                 {
-                    ExerciseExternalId = exerciseB,
-                    ExerciseName = "Exercise B",
-                    Sets = [new WorkoutSet { SetNumber = 1, CompletedAt = DateTime.UtcNow }]
+                    SectionId = Guid.NewGuid(),
+                    Order = 0,
+                    Name = "Hlavní",
+                    Exercises =
+                    [
+                        new WorkoutExercise
+                        {
+                            ExerciseExternalId = exerciseB,
+                            ExerciseName = "Exercise B",
+                            Sets = [new WorkoutSet { SetNumber = 1, CompletedAt = DateTime.UtcNow }]
+                        }
+                    ]
                 }
             ]
         };
@@ -1555,21 +1717,30 @@ public class GetTodaySessionEndpointTests
                             DayOfWeek = todayDow,
                             Name = "Legs",
                             Order = 1,
-                            Exercises =
+                            Sections =
                             [
-                                new SessionExercise
+                                new TrainingSection
                                 {
-                                    ExerciseExternalId = exerciseId1,
-                                    ExerciseName = "Squat",
-                                    Order = 1,
-                                    Sets = []
-                                },
-                                new SessionExercise
-                                {
-                                    ExerciseExternalId = exerciseId2,
-                                    ExerciseName = "Lunge",
-                                    Order = 2,
-                                    Sets = []
+                                    SectionId = Guid.NewGuid(),
+                                    Order = 0,
+                                    Name = "Hlavní",
+                                    Exercises =
+                                    [
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = exerciseId1,
+                                            ExerciseName = "Squat",
+                                            Order = 1,
+                                            Sets = []
+                                        },
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = exerciseId2,
+                                            ExerciseName = "Lunge",
+                                            Order = 2,
+                                            Sets = []
+                                        }
+                                    ]
                                 }
                             ]
                         }
@@ -1650,21 +1821,30 @@ public class GetTodaySessionEndpointTests
                             DayOfWeek = todayDow,
                             Name = "Push Day",
                             Order = 1,
-                            Exercises =
+                            Sections =
                             [
-                                new SessionExercise
+                                new TrainingSection
                                 {
-                                    ExerciseExternalId = exercise1Id,
-                                    ExerciseName = "Bench Press",
-                                    Order = 1,
-                                    Sets = []
-                                },
-                                new SessionExercise
-                                {
-                                    ExerciseExternalId = exercise2Id,
-                                    ExerciseName = "Overhead Press",
-                                    Order = 2,
-                                    Sets = []
+                                    SectionId = Guid.NewGuid(),
+                                    Order = 0,
+                                    Name = "Hlavní",
+                                    Exercises =
+                                    [
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = exercise1Id,
+                                            ExerciseName = "Bench Press",
+                                            Order = 1,
+                                            Sets = []
+                                        },
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = exercise2Id,
+                                            ExerciseName = "Overhead Press",
+                                            Order = 2,
+                                            Sets = []
+                                        }
+                                    ]
                                 }
                             ]
                         }
@@ -1732,7 +1912,7 @@ public class GetTodaySessionEndpointTests
                             DayOfWeek = todayDow,
                             Name = "Legs",
                             Order = 1,
-                            Exercises = []
+                            Sections = []
                         }
                     ]
                 }
@@ -1787,21 +1967,30 @@ public class GetTodaySessionEndpointTests
                             DayOfWeek = todayDow,
                             Name = "Push",
                             Order = 1,
-                            Exercises =
+                            Sections =
                             [
-                                new SessionExercise
+                                new TrainingSection
                                 {
-                                    ExerciseExternalId = knownExerciseId,
-                                    ExerciseName = "Bench Press",
-                                    Order = 1,
-                                    Sets = []
-                                },
-                                new SessionExercise
-                                {
-                                    ExerciseExternalId = unknownExerciseId,
-                                    ExerciseName = "Deleted Exercise",
-                                    Order = 2,
-                                    Sets = []
+                                    SectionId = Guid.NewGuid(),
+                                    Order = 0,
+                                    Name = "Hlavní",
+                                    Exercises =
+                                    [
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = knownExerciseId,
+                                            ExerciseName = "Bench Press",
+                                            Order = 1,
+                                            Sets = []
+                                        },
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = unknownExerciseId,
+                                            ExerciseName = "Deleted Exercise",
+                                            Order = 2,
+                                            Sets = []
+                                        }
+                                    ]
                                 }
                             ]
                         }

@@ -55,23 +55,65 @@ public class UpdateSessionRequest
     public string? Notes { get; set; }
 
     /// <summary>
-    /// Workout format for this session. Defaults to Standard.
+    /// Session-level workout format. Null means no format override at session level.
+    /// Sections inherit this when their own Format is null.
     /// </summary>
-    public WorkoutFormat Format { get; set; } = WorkoutFormat.Standard;
+    public WorkoutFormat? Format { get; set; }
 
     /// <summary>
-    /// Format configuration. Required for non-Standard formats; must be null for Standard.
+    /// Session-level format configuration. Null when Format is null or Standard.
     /// </summary>
     public WodConfig? FormatConfig { get; set; }
 
     /// <summary>
-    /// Exercises in this session.
+    /// Ordered sections in this session. Each section contains its own exercises.
+    /// </summary>
+    public List<UpdateSectionRequest> Sections { get; set; } = [];
+}
+
+/// <summary>
+/// Represents a training section submitted in a full-state session update.
+/// </summary>
+public class UpdateSectionRequest
+{
+    /// <summary>
+    /// Optional existing section identifier. New GUID generated if null.
+    /// </summary>
+    public Guid? SectionId { get; set; }
+
+    /// <summary>
+    /// Display order within the session (0-based).
+    /// </summary>
+    public int Order { get; set; }
+
+    /// <summary>
+    /// Display name of the section (e.g. "Hlavní", "Warm-up").
+    /// </summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Workout format for this section. Null means section inherits the session-level format.
+    /// </summary>
+    public WorkoutFormat? Format { get; set; }
+
+    /// <summary>
+    /// Format configuration. Required for non-Standard, non-null section formats; must be null for Standard.
+    /// </summary>
+    public WodConfig? FormatConfig { get; set; }
+
+    /// <summary>
+    /// Optional coach note for this workout/section.
+    /// </summary>
+    public string? Notes { get; set; }
+
+    /// <summary>
+    /// Exercises in this section.
     /// </summary>
     public List<UpdateSessionExerciseRequest> Exercises { get; set; } = [];
 }
 
 /// <summary>
-/// Represents an exercise entry in a training session update.
+/// Represents an exercise entry in a training section update.
 /// </summary>
 public class UpdateSessionExerciseRequest
 {
@@ -86,7 +128,7 @@ public class UpdateSessionExerciseRequest
     public string ExerciseName { get; set; } = string.Empty;
 
     /// <summary>
-    /// Display order within the session (1-based).
+    /// Display order within the section (1-based).
     /// </summary>
     public int Order { get; set; }
 
@@ -106,7 +148,7 @@ public class UpdateSessionExerciseRequest
     public MovementType MovementType { get; set; } = MovementType.Reps;
 
     /// <summary>
-    /// Per-exercise format override. Null means the exercise inherits the session's format.
+    /// Per-exercise format override. Null means the exercise inherits the section's format.
     /// </summary>
     public WorkoutFormat? Format { get; set; }
 

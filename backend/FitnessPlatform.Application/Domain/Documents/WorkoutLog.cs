@@ -83,10 +83,20 @@ public class WorkoutLog
     public WodResult? WodResult { get; set; }
 
     /// <summary>
-    /// Exercises performed in this workout.
+    /// Sections in this workout. Each section contains completed exercises.
+    /// Schema-on-read: if a stored document has only flat <c>exercises</c> and no <c>sections</c>,
+    /// a single default section named "Hlavní" is synthesized via <see cref="WithBackfilledSections"/>.
+    /// </summary>
+    [BsonElement("sections")]
+    public List<WorkoutSection> Sections { get; set; } = [];
+
+    /// <summary>
+    /// Legacy flat exercises list. Only present in documents written before the sections migration.
+    /// Not written on new saves. Used by <see cref="WithBackfilledSections"/> for schema-on-read.
     /// </summary>
     [BsonElement("exercises")]
-    public List<WorkoutExercise> Exercises { get; set; } = [];
+    [BsonIgnoreIfNull]
+    public List<WorkoutExercise>? LegacyExercises { get; set; }
 
     /// <summary>
     /// When this document was created.
@@ -100,4 +110,37 @@ public class WorkoutLog
     [BsonElement("dateUpdated")]
     [BsonIgnoreIfNull]
     public DateTime? DateUpdated { get; set; }
+
+    /// <summary>
+    /// Returns a view of this log with legacy flat-exercise documents backfilled into a default section.
+    /// If <see cref="Sections"/> is already populated this is a no-op.
+    /// </summary>
+    public WorkoutLog WithBackfilledSections()
+    {
+        if (Sections.Count > 0 || LegacyExercises is null || LegacyExercises.Count == 0)
+            return this;
+
+        Sections =
+        [
+            new WorkoutSection
+            {
+                SectionId = Guid.NewGuid(),
+                Order = 0,
+                Name = "Hlavní",
+                Format = null,
+                WodResult = WodResult,
+                Exercises = LegacyExercises
+            }
+        ];
+        LegacyExercises = null;
+        return this;
+    }
+
+    /// <summary>
+    /// Flat view of all exercises across all sections. Read-only convenience accessor.
+    /// Not stored in MongoDB — computed from <see cref="Sections"/>.
+    /// </summary>
+    [BsonIgnore]
+    public IReadOnlyList<WorkoutExercise> Exercises =>
+        Sections.SelectMany(s => s.Exercises).ToList();
 }

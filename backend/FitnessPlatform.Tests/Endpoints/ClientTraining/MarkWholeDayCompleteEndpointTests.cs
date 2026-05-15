@@ -69,9 +69,18 @@ public class MarkWholeDayCompleteEndpointTests
                             DayOfWeek = todayDow,
                             Name = "Session 1",
                             Order = 1,
-                            Exercises =
+                            Sections =
                             [
-                                new SessionExercise { ExerciseExternalId = _exercise1, ExerciseName = "Ex1", Order = 1, Sets = [] }
+                                new TrainingSection
+                                {
+                                    SectionId = Guid.NewGuid(),
+                                    Order = 0,
+                                    Name = "Hlavní",
+                                    Exercises =
+                                    [
+                                        new SessionExercise { ExerciseExternalId = _exercise1, ExerciseName = "Ex1", Order = 1, Sets = [] }
+                                    ]
+                                }
                             ]
                         },
                         new TrainingSession
@@ -80,9 +89,18 @@ public class MarkWholeDayCompleteEndpointTests
                             DayOfWeek = todayDow,
                             Name = "Session 2",
                             Order = 2,
-                            Exercises =
+                            Sections =
                             [
-                                new SessionExercise { ExerciseExternalId = _exercise2, ExerciseName = "Ex2", Order = 1, Sets = [] }
+                                new TrainingSection
+                                {
+                                    SectionId = Guid.NewGuid(),
+                                    Order = 0,
+                                    Name = "Hlavní",
+                                    Exercises =
+                                    [
+                                        new SessionExercise { ExerciseExternalId = _exercise2, ExerciseName = "Ex2", Order = 1, Sets = [] }
+                                    ]
+                                }
                             ]
                         }
                     ]

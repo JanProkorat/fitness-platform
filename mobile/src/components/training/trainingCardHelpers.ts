@@ -31,47 +31,101 @@ export type SessionCtaState = 'not-started' | 'in-progress' | 'finished'
 /**
  * Derives the CTA state for a single training session.
  *
- * @param session               The `TrainingSession` from the API response.
- * @param completedExerciseIds  The set of exerciseExternalIds that have been
- *                              marked complete in the optimistic cache.
- * @param hasActiveLiveSession  When true, the user has an in-flight live session
- *                              for this session that has not yet been finished.
- *                              A `not-started` state is bumped to `in-progress`
- *                              so the CTA reads "Continue training" as soon as
- *                              the user starts the session (even before any full
- *                              exercise is marked complete via the checkbox).
- *                              `finished` is never overridden by this flag.
+ * Section-aware: exercises are counted per-section so that the same catalog
+ * exercise appearing in multiple sections (e.g. in W1 and W3) is only treated
+ * as complete in a given section when that section's own completion set
+ * contains the id. Marking it done in W1 no longer satisfies W3's instance.
+ *
+ * @param session                  The `TrainingSession` from the API response.
+ * @param completedIdsBySection    Per-section completion map for this session:
+ *                                 sectionId → Set<exerciseExternalId>.
+ *                                 Exercises are counted against the set for
+ *                                 the section they belong to.
+ * @param completedSectionIds      The set of sectionIds that have been marked
+ *                                 complete as a whole (used for sections that
+ *                                 have no trackable exercises, e.g. a ForTime
+ *                                 "Running" section).
+ * @param hasActiveLiveSession     When true, the user has an in-flight live
+ *                                 session for this session that has not yet
+ *                                 been finished. A `not-started` state is
+ *                                 bumped to `in-progress` so the CTA reads
+ *                                 "Continue training" as soon as the user
+ *                                 starts the session (even before any full
+ *                                 exercise is marked complete via the
+ *                                 checkbox). `finished` is never overridden
+ *                                 by this flag.
  *
  * @returns `SessionCtaState`
  *
  * Edge cases:
- * - A session with no exercises is treated as `finished` (nothing left to do).
+ * - A session with no sections AND no exercises is treated as `finished`.
  * - An exercise without an `exerciseExternalId` cannot be tracked; it is
  *   excluded from both the total and completed counts so it doesn't block the
- *   `finished` state (the user can still see and log all exercises that do
- *   have IDs).
+ *   `finished` state.
+ * - A section with zero trackable exercises is counted as 1 unit. It
+ *   contributes 1 to `total` and 1 to `done` only if its `sectionId` is
+ *   present in `completedSectionIds`. This handles ForTime/AMRAP sections
+ *   that consist entirely of a time-cap task with no individual exercises.
  */
 export function deriveSessionCtaState(
   session: TrainingSession,
-  completedExerciseIds: ReadonlySet<string>,
+  completedIdsBySection: ReadonlyMap<string, ReadonlySet<string>>,
+  completedSectionIds: ReadonlySet<string>,
   hasActiveLiveSession = false,
 ): SessionCtaState {
   const exercises = session.exercises ?? []
+  const sections = session.sections ?? []
 
-  // Only count exercises that have a trackable external ID.
-  const trackable = exercises.filter(
-    (ex): ex is typeof ex & { exerciseExternalId: string } =>
-      ex.exerciseExternalId != null && ex.exerciseExternalId.length > 0,
-  )
-
-  if (trackable.length === 0) {
-    // No trackable exercises — treat as finished so no start/continue CTA
-    // is shown for an empty or un-trackable session.
+  // Truly empty session (no sections AND no exercises) — nothing to start.
+  if (sections.length === 0 && exercises.length === 0) {
     return 'finished'
   }
 
-  const done = trackable.filter((ex) => completedExerciseIds.has(ex.exerciseExternalId)).length
-  const total = trackable.length
+  let done = 0
+  let total = 0
+
+  for (const section of sections) {
+    const trackable = (section.exercises ?? []).filter(
+      (ex): ex is typeof ex & { exerciseExternalId: string } =>
+        ex.exerciseExternalId != null && ex.exerciseExternalId.length > 0,
+    )
+
+    if (trackable.length === 0) {
+      // Section has no trackable exercises (e.g. a ForTime "Running" section).
+      // Count it as a single unit — complete only if the section itself is marked done.
+      total += 1
+      if (section.sectionId != null && completedSectionIds.has(section.sectionId)) {
+        done += 1
+      }
+    } else {
+      const sectionCompletedIds =
+        section.sectionId != null
+          ? (completedIdsBySection.get(section.sectionId) ?? new Set<string>())
+          : new Set<string>()
+
+      total += trackable.length
+      done += trackable.filter((ex) => sectionCompletedIds.has(ex.exerciseExternalId)).length
+    }
+  }
+
+  // Fallback for sessions that have a flat exercises array but no sections
+  // (legacy documents not yet back-filled by WithBackfilledSections).
+  if (sections.length === 0 && exercises.length > 0) {
+    const trackable = exercises.filter(
+      (ex): ex is typeof ex & { exerciseExternalId: string } =>
+        ex.exerciseExternalId != null && ex.exerciseExternalId.length > 0,
+    )
+    // No trackable flat exercises: treat as not-started (live session can bump it).
+    if (trackable.length === 0) {
+      return hasActiveLiveSession ? 'in-progress' : 'not-started'
+    }
+    // For the legacy flat path, take the union across all sections (the only
+    // map key available is 'default' from the transitional fallback in
+    // useCompletionState).
+    const flatCompleted = completedIdsBySection.get('default') ?? new Set<string>()
+    total = trackable.length
+    done = trackable.filter((ex) => flatCompleted.has(ex.exerciseExternalId)).length
+  }
 
   if (done >= total) return 'finished'
   if (done > 0) return 'in-progress'

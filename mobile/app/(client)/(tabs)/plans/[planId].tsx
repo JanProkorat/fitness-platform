@@ -38,7 +38,9 @@ import {
 } from '@/api/nutrition'
 import {
   getFullTrainingPlan,
-  type FullTrainingPlanResponse,
+  type GetFullTrainingPlanResponse,
+  type SectionDto,
+  type WorkoutFormat,
   type MuscleGroup,
 } from '@/api/training'
 import {
@@ -51,10 +53,17 @@ import {
   formatWeekRange,
   getDayDate,
 } from '@/lib/nutrition-plan-helpers'
+import {
+  estimatedSectionDurationSeconds,
+  formatDurationCompact,
+  formatExerciseSummary,
+} from '@/lib/training-plan-format'
 import { hrefParams } from '@/lib/navigation'
 import { DaySummaryHero, type BodyPartEntry } from '@/components/training/DaySummaryHero'
 import { ExpandableSessionCard } from '@/components/training/ExpandableSessionCard'
 import { ExpandableExerciseCard } from '@/components/training/ExpandableExerciseCard'
+import { SectionHeader } from '@/components/training/SectionHeader'
+import { AnimatedCollapse } from '@/components/training/AnimatedCollapse'
 import { getMuscleGroupColor } from '@/constants/muscleGroups'
 import { SetGrid } from '@/components/training/SetGrid'
 
@@ -807,7 +816,7 @@ function todayDayOfWeek(): number {
   return d === 0 ? 7 : d
 }
 
-function TrainingPlanDetail({ plan }: { plan: FullTrainingPlanResponse }) {
+function TrainingPlanDetail({ plan }: { plan: GetFullTrainingPlanResponse }) {
   const colors = useTheme()
   const { t } = useTranslation()
   const scrollRef = useRef<ScrollView>(null)
@@ -830,9 +839,10 @@ function TrainingPlanDetail({ plan }: { plan: FullTrainingPlanResponse }) {
   const [expandedSessionsMap, setExpandedSessionsMap] = useState<
     Record<string, Set<string>>
   >({})
-  // expandedExercisesMap: "${week}-${day}-${sessionId}" → Set of exerciseExternalIds (undefined = all expanded)
-  const [expandedExercisesMap, setExpandedExercisesMap] = useState<
-    Record<string, Set<string>>
+  // Per-session per-section expand state: sessionId → { sectionId → boolean }
+  // All sections default collapsed (false); toggled via SectionHeader chevron.
+  const [sectionExpandedMap, setSectionExpandedMap] = useState<
+    Record<string, Record<string, boolean>>
   >({})
 
   const effectiveWeek = selectedWeek ?? plan.currentWeek ?? firstPublishedWeek
@@ -882,7 +892,11 @@ function TrainingPlanDetail({ plan }: { plan: FullTrainingPlanResponse }) {
   const dayBodyParts = useMemo((): BodyPartEntry[] => {
     const map = new Map<MuscleGroup, { done: number; total: number }>()
     for (const session of currentDaySessions) {
-      for (const ex of (session.exercises ?? [])) {
+      // Prefer section-grouped exercises; fall back to flat list for legacy data.
+      const allExercises = (session.sections ?? []).length > 0
+        ? (session.sections ?? []).flatMap((sec) => sec.exercises ?? [])
+        : (session.exercises ?? [])
+      for (const ex of allExercises) {
         for (const mg of (ex.muscleGroups ?? [])) {
           const prev = map.get(mg) ?? { done: 0, total: 0 }
           map.set(mg, {
@@ -1247,86 +1261,222 @@ function TrainingPlanDetail({ plan }: { plan: FullTrainingPlanResponse }) {
                     expandedSessionsMap[sessionKey] ?? allSessionIds
                   const isSessionExpanded = expandedSessions.has(session.sessionId ?? '')
 
+                  // Resolve ordered sections. Fall back to a synthetic single section
+                  // from flat exercises for any legacy data that slips through.
+                  const sections: SectionDto[] =
+                    (session.sections ?? []).length > 0
+                      ? [...(session.sections ?? [])].sort(
+                          (a, b) => (a.order ?? 0) - (b.order ?? 0),
+                        )
+                      : (session.exercises ?? []).length > 0
+                        ? [{
+                            sectionId: session.sessionId ?? '',
+                            order: 0,
+                            name: t('training.section.defaultName'),
+                            format: undefined,
+                            exercises: [...(session.exercises ?? [])].sort(
+                              (a, b) => (a.order ?? 0) - (b.order ?? 0),
+                            ),
+                          }]
+                        : []
+
+                  // Session summary: workout count + total timed duration + untimed count.
+                  // Mirrors TrainingCard.tsx lines ~340-358 (Today screen pattern).
+                  const sectionDurations = sections.map((sec) =>
+                    estimatedSectionDurationSeconds(sec.format as WorkoutFormat | undefined, sec.formatConfig),
+                  )
+                  const timedSeconds = sectionDurations.reduce<number>(
+                    (sum, d) => sum + (d ?? 0),
+                    0,
+                  )
+                  const untimedCount = sectionDurations.filter(
+                    (d) => d == null || d === 0,
+                  ).length
                   const summaryParts: string[] = [
-                    t('training.exercisesCount', { count: session.totalExerciseCount ?? 0 }),
+                    t('training.workoutCount', { count: sections.length }),
                   ]
-                  if (session.estimatedDurationMinutes != null) {
-                    summaryParts.push(t('training.duration', { minutes: session.estimatedDurationMinutes }))
+                  if (timedSeconds > 0) summaryParts.push(formatDurationCompact(timedSeconds))
+                  if (timedSeconds > 0 && untimedCount > 0) {
+                    summaryParts.push(t('training.workoutUntimedCount', { count: untimedCount }))
                   }
-                  if ((session.exercises ?? [])[0]?.restSeconds != null) {
-                    summaryParts.push(t('training.restLabel', { seconds: (session.exercises ?? [])[0]!.restSeconds }))
-                  }
+
+                  // Session pill: count workouts (sections), not exercises.
+                  // A section counts as complete when every trackable exercise in
+                  // it has isCompleted === true; sections with no trackable
+                  // exercises are skipped from the "done" tally (plan-detail is
+                  // read-only — no separate sectionComplete flag).
+                  const totalWorkouts = sections.length
+                  const completedWorkouts = sections.filter((sec) => {
+                    const trackable = (sec.exercises ?? []).filter(
+                      (e) => e.exerciseExternalId != null,
+                    )
+                    if (trackable.length === 0) return false
+                    return trackable.every((e) => e.isCompleted === true)
+                  }).length
+
+                  // Read-only session completion indicator for headerRight.
+                  // A session is complete when every trackable exercise in every
+                  // section has isCompleted === true.
+                  const allSessionExercises = sections.flatMap(
+                    (sec) => sec.exercises ?? [],
+                  )
+                  const trackableSessionExercises = allSessionExercises.filter(
+                    (e) => e.exerciseExternalId != null,
+                  )
+                  const isSessionComplete =
+                    trackableSessionExercises.length > 0 &&
+                    trackableSessionExercises.every((e) => e.isCompleted === true)
+
+                  const sessionCheckIndicator = (
+                    <View
+                      style={[
+                        styles.sessionCheckIndicator,
+                        isSessionComplete
+                          ? { backgroundColor: colors.green, borderColor: colors.green }
+                          : { backgroundColor: 'transparent', borderColor: colors.sep },
+                      ]}
+                    >
+                      {isSessionComplete && (
+                        <Ionicons name="checkmark" size={14} color={colors.onAccent} />
+                      )}
+                    </View>
+                  )
+
+                  // Per-section expand state for this session
+                  const sessionSectionExpanded =
+                    sectionExpandedMap[session.sessionId ?? ''] ?? {}
 
                   return (
                     <ExpandableSessionCard
                       key={session.sessionId ?? index}
-                      order={index + 1}
                       name={session.name ?? ''}
                       summaryText={summaryParts.join(' · ')}
-                      completedCount={session.completedExerciseCount ?? 0}
-                      totalCount={session.totalExerciseCount ?? 0}
+                      completedCount={completedWorkouts}
+                      totalCount={totalWorkouts}
                       defaultExpanded={isSessionExpanded}
+                      standalone
+                      headerRight={sessionCheckIndicator}
                     >
-                      {/* Exercise cards */}
-                      {(session.exercises ?? [])
-                        .slice()
-                        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-                        .map((exercise) => {
-                          const exerciseKey = `${effectiveWeek}-${effectiveDay}-${session.sessionId ?? ''}`
-                          const allExIds = new Set(
-                            (session.exercises ?? []).map((ex) => ex.exerciseExternalId ?? ''),
-                          )
-                          const expandedExercises =
-                            expandedExercisesMap[exerciseKey] ?? allExIds
-                          const isExExpanded = expandedExercises.has(exercise.exerciseExternalId ?? '')
+                      {/* Section-grouped exercise cards (read-only) */}
+                      {sections.map((section, sectionIdx) => {
+                        const sectionKey = section.sectionId ?? `section-${sectionIdx}`
+                        const sectionExercises = (section.exercises ?? [])
+                          .slice()
+                          .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+                        const hasExercises = sectionExercises.length > 0
+                        const isWodFormat =
+                          section.format != null && section.format !== 'Standard'
+                        // Plan-detail context: workouts open by default so the
+                        // user sees the prescription at a glance. Today is the
+                        // opposite (starts collapsed).
+                        const isExpanded =
+                          hasExercises && (sessionSectionExpanded[sectionKey] ?? true)
+                        // Read-only completion indicator for the section header.
+                        // A section is "done" when every trackable exercise in it
+                        // is `isCompleted`. WOD-format sections without trackable
+                        // exercises don't show the indicator (left undefined).
+                        const trackableExercises = sectionExercises.filter(
+                          (e) => e.exerciseExternalId != null,
+                        )
+                        const isSectionComplete = trackableExercises.length > 0
+                          ? trackableExercises.every((e) => e.isCompleted === true)
+                          : undefined
 
-                          // Exercise summary
-                          const setCount = (exercise.sets ?? []).length
-                          const firstReps = exercise.sets?.[0]?.reps
-                          const firstWeight = exercise.sets?.[0]?.weightKg
-                          const exSummaryParts: string[] = [
-                            `${setCount} ${t('training.set').toLowerCase()}`,
-                          ]
-                          if (firstReps != null) {
-                            exSummaryParts.push(`${firstReps} ${t('training.reps').toLowerCase()}`)
-                          }
-                          if (firstWeight != null) {
-                            exSummaryParts.push(`${firstWeight} kg`)
-                          }
+                        const isLastSection = sectionIdx === sections.length - 1
 
-                          const exerciseBadges = (exercise.muscleGroups ?? []).map((mg) => ({
-                            label: t(`muscleGroup.${mg}`),
-                            color: getMuscleGroupColor(mg, colors),
-                          }))
+                        return (
+                          <View
+                            key={sectionKey}
+                            style={[
+                              styles.sectionWrap,
+                              isLastSection ? { borderBottomWidth: 0 } : { borderBottomColor: colors.sep2 },
+                            ]}
+                          >
+                            <SectionHeader
+                              name={section.name ?? t('training.section.defaultName')}
+                              format={section.format as WorkoutFormat | undefined}
+                              formatConfig={section.formatConfig}
+                              notes={section.notes}
+                              durationSeconds={undefined}
+                              exerciseCount={sectionExercises.length}
+                              isExpanded={isExpanded}
+                              onToggleExpanded={() => {
+                                const sid = session.sessionId ?? ''
+                                setSectionExpandedMap((prev) => ({
+                                  ...prev,
+                                  [sid]: {
+                                    ...(prev[sid] ?? {}),
+                                    [sectionKey]: !(prev[sid]?.[sectionKey] ?? false),
+                                  },
+                                }))
+                              }}
+                              nonExpandable={!hasExercises}
+                              suppressBottomDivider={!isExpanded}
+                              isSectionComplete={isSectionComplete}
+                            />
 
-                          return (
-                            <ExpandableExerciseCard
-                              key={exercise.exerciseExternalId ?? ''}
-                              name={exercise.exerciseName ?? ''}
-                              summaryText={exSummaryParts.join(' · ')}
-                              bodyParts={exerciseBadges}
-                              isCompleted={exercise.isCompleted ?? false}
-                              defaultExpanded={isExExpanded}
-                            >
-                              <SetGrid sets={exercise.sets ?? []} />
-                              {exercise.notes && (
-                                <View
-                                  style={[
-                                    styles.exerciseNote,
-                                    { backgroundColor: 'rgba(201,168,76,0.04)', borderTopColor: colors.sep2 },
-                                  ]}
-                                >
-                                  <Text style={[Type.caption1, { color: colors.label2, lineHeight: 18 }]}>
-                                    <Text style={{ fontWeight: '600', color: colors.gold }}>
-                                      {t('nutrition.tip')}{' '}
-                                    </Text>
-                                    {exercise.notes}
-                                  </Text>
-                                </View>
-                              )}
-                            </ExpandableExerciseCard>
-                          )
-                        })}
+                            {/* Exercises animate in/out when section is toggled */}
+                            <AnimatedCollapse expanded={isExpanded}>
+                              {sectionExercises.map((exercise, exIdx) => {
+                                const exId = exercise.exerciseExternalId ?? null
+
+                                const sets = exercise.sets ?? []
+                                // Single source of truth — same helper used
+                                // by the Today card and the trainer portal.
+                                // Handles Reps / Time / Distance /
+                                // RepsForTime + "BW" fallback for unset
+                                // weight + duration formatting (`900 s` →
+                                // `15 min`).
+                                // `GetFullTrainingPlan` serialises
+                                // `movementType` as the enum's string
+                                // name (NSwag emits it as a plain
+                                // `string`, not the typed enum). The
+                                // values match `MovementType` exactly,
+                                // so a `as` cast is sound.
+                                const exSummary = formatExerciseSummary(
+                                  sets,
+                                  exercise.movementType as
+                                    | import('@/api/training').MovementType
+                                    | null
+                                    | undefined,
+                                  isWodFormat,
+                                )
+
+                                // Dot color: first muscle group, fall back to gold
+                                const primaryMg = (exercise.muscleGroups ?? [])[0]
+                                const dotColor =
+                                  primaryMg != null
+                                    ? getMuscleGroupColor(primaryMg, colors)
+                                    : colors.gold
+
+                                return (
+                                  <ExpandableExerciseCard
+                                    key={exId ?? exIdx}
+                                    name={exercise.exerciseName ?? ''}
+                                    summaryText={exSummary}
+                                    dotColor={dotColor}
+                                    isCompleted={exercise.isCompleted ?? false}
+                                    defaultExpanded={true}
+                                    nested
+                                    nestedFirst={exIdx === 0}
+                                    nonExpandable={isWodFormat}
+                                    hideCompletionIndicator={isWodFormat}
+                                    notes={exercise.notes}
+                                  >
+                                    <SetGrid
+                                      sets={sets}
+                                      completedSetNumbers={sets
+                                        .filter((s) => s.completedAt != null)
+                                        .map((s) => s.setNumber ?? 0)
+                                        .filter((n) => n > 0)}
+                                    />
+                                  </ExpandableExerciseCard>
+                                )
+                              })}
+                            </AnimatedCollapse>
+                          </View>
+                        )
+                      })}
                     </ExpandableSessionCard>
                   )
                 })}
@@ -1633,15 +1783,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  // Training plan detail
+  // Training plan detail — no horizontal padding; standalone ExpandableSessionCard
+  // carries its own marginHorizontal: 16 in standalone mode.
   sessionsWrap: {
-    paddingHorizontal: 20,
+    paddingTop: 4,
     paddingBottom: 8,
   },
-  exerciseNote: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderTopWidth: StyleSheet.hairlineWidth,
+  // Section divider wrap — mirrors TrainingCard's sectionWrap
+  sectionWrap: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  // Read-only session checkbox — static View matching TrainingCard's sessionCheck style.
+  sessionCheckIndicator: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 10,
   },
 
   // Linked questionnaire

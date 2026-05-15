@@ -24,7 +24,7 @@ export function Toaster() {
             key={toast.id}
             role="alert"
             onClick={() => removeToast(toast.id)}
-            className="bg-text text-bg px-4 py-2.5 rounded-md text-[13px] font-medium shadow-lg mb-2 cursor-pointer"
+            className="bg-text text-bg px-4 py-2.5 rounded-md text-[13px] font-medium shadow-lg mb-2 cursor-pointer whitespace-pre-line max-w-[420px]"
             style={fadeInStyle}
           >
             {toast.message}

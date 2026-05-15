@@ -1,5 +1,6 @@
 import React from 'react'
 import { View, Text, StyleSheet } from 'react-native'
+import { useTheme } from '@/hooks/useTheme'
 
 interface BodyPartProgressBarProps {
   label: string
@@ -9,21 +10,23 @@ interface BodyPartProgressBarProps {
 }
 
 /**
- * A single body-part progress bar rendered on the blue gradient hero.
- * Colors are semi-transparent whites as defined by the prototype's grad-push scene.
+ * A single body-part progress bar rendered inside the DaySummaryHero card
+ * (white background). Label + count read in theme tokens; the fill colour
+ * comes from the muscle-group palette via the `color` prop.
  */
 export function BodyPartProgressBar({ label, color, done, total }: BodyPartProgressBarProps) {
+  const colors = useTheme()
   const ratio = total > 0 ? Math.min(done / total, 1) : 0
 
   return (
     <View style={styles.row}>
-      <Text style={styles.label} numberOfLines={1}>
+      <Text style={[styles.label, { color: colors.label2 }]} numberOfLines={1}>
         {label}
       </Text>
-      <View style={styles.track}>
+      <View style={[styles.track, { backgroundColor: colors.fill2 }]}>
         <View style={[styles.fill, { width: `${ratio * 100}%` as `${number}%`, backgroundColor: color }]} />
       </View>
-      <Text style={styles.count}>
+      <Text style={[styles.count, { color: colors.label2 }]}>
         {done}/{total}
       </Text>
     </View>
@@ -39,14 +42,12 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: '600',
-    color: 'rgba(255,255,255,0.88)',
     minWidth: 80,
   },
   track: {
     flex: 1,
     height: 5,
     borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.15)',
     overflow: 'hidden',
   },
   fill: {
@@ -56,7 +57,6 @@ const styles = StyleSheet.create({
   count: {
     fontSize: 12,
     fontWeight: '600',
-    color: 'rgba(255,255,255,0.75)',
     flexShrink: 0,
     minWidth: 28,
     textAlign: 'right',

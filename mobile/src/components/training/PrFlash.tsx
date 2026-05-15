@@ -24,6 +24,15 @@ export function PrFlash({ visible, onDismiss }: PrFlashProps) {
   const scale = useRef(new Animated.Value(0.5)).current
   const opacity = useRef(new Animated.Value(0)).current
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Hold the latest onDismiss in a ref so the show-effect can be keyed on
+  // `visible` alone. Without this the effect re-runs on every parent render
+  // (any inline onDismiss arrow → new fn ref → effect restarts → animations
+  // reset and the dismiss timeout is rescheduled forever, producing a
+  // visible flicker).
+  const onDismissRef = useRef(onDismiss)
+  useEffect(() => {
+    onDismissRef.current = onDismiss
+  }, [onDismiss])
 
   useEffect(() => {
     if (visible) {
@@ -38,7 +47,7 @@ export function PrFlash({ visible, onDismiss }: PrFlashProps) {
       if (timeoutRef.current) clearTimeout(timeoutRef.current)
       timeoutRef.current = setTimeout(() => {
         Animated.timing(opacity, { toValue: 0, duration: 220, useNativeDriver: true }).start(
-          () => onDismiss(),
+          () => onDismissRef.current(),
         )
       }, DISMISS_AFTER_MS)
     } else {
@@ -48,7 +57,8 @@ export function PrFlash({ visible, onDismiss }: PrFlashProps) {
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current)
     }
-  }, [visible, onDismiss, scale, opacity])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible])
 
   if (!visible) return null
 

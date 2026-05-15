@@ -61,8 +61,32 @@ public class GetTodaySessionResponse
     /// Per-session completed exercise IDs, keyed by SessionId. Sourced from
     /// TrainingCompletion documents for today. Empty dictionary when no session
     /// has any completed exercise for today (or when no active plan exists).
+    /// <para>
+    /// <b>Deprecated.</b> Use <see cref="CompletedExerciseIdsBySectionAndSession"/> for
+    /// section-aware completion tracking. This field is retained for backward compatibility
+    /// with mobile and web clients that have not yet migrated to the new field.
+    /// </para>
     /// </summary>
     public Dictionary<Guid, List<Guid>> CompletedExerciseIdsBySession { get; set; } = new();
+
+    /// <summary>
+    /// Section-aware completed exercise IDs for today.
+    /// Outer key = SessionId, inner key = SectionId, value = list of completed ExerciseExternalIds
+    /// within that section.
+    /// Sourced from TrainingCompletion documents with read-time backfill for legacy data.
+    /// Empty dictionary when no exercises have been completed for today.
+    /// </summary>
+    public Dictionary<Guid, Dictionary<Guid, List<Guid>>> CompletedExerciseIdsBySectionAndSession { get; set; } = new();
+
+    /// <summary>
+    /// Per-session completed section IDs, keyed by SessionId. Sourced from
+    /// TrainingCompletion documents for today. Empty dictionary when no
+    /// section has been section-completed for today (or no active plan exists).
+    /// Sections appear here when the client tapped a section-level checkbox
+    /// (e.g. on a ForTime "Running" workout that has no exercises) or when
+    /// MarkSessionComplete fanned out section IDs.
+    /// </summary>
+    public Dictionary<Guid, List<Guid>> CompletedSectionIdsBySession { get; set; } = new();
 
     /// <summary>
     /// Per-session optimistic-concurrency version numbers for today, keyed by SessionId.

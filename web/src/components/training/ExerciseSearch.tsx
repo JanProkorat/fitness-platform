@@ -153,13 +153,11 @@ export function ExerciseSearch({ onSelect, placeholder }: ExerciseSearchProps) {
   return (
     <div ref={containerRef} style={{ position: 'relative' }}>
       <div
-        style={{
-          display: 'flex', alignItems: 'center', gap: 6, padding: '5px 8px',
-          cursor: 'text', transition: 'background 0.1s',
-        }}
+        className="flex items-center gap-1 text-[11px] text-text3 transition-colors hover:text-text"
+        style={{ cursor: 'text' }}
         onClick={() => inputRef.current?.focus()}
       >
-        <span style={{ color: 'var(--text4)', fontSize: 13 }}>+</span>
+        <span>+</span>
         <input
           ref={inputRef}
           type="text"
@@ -167,10 +165,8 @@ export function ExerciseSearch({ onSelect, placeholder }: ExerciseSearchProps) {
           onChange={(e) => setQuery(e.target.value)}
           onFocus={handleFocus}
           placeholder={effectivePlaceholder}
-          style={{
-            flex: 1, border: 'none', outline: 'none', background: 'transparent',
-            fontSize: 13, color: 'var(--text)', fontFamily: 'inherit',
-          }}
+          className="flex-1 bg-transparent border-none outline-none text-[11px] text-text3 placeholder:text-text3 focus:text-text"
+          style={{ fontFamily: 'inherit' }}
         />
       </div>
 

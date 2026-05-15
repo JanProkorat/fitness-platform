@@ -321,12 +321,16 @@ public class ComplianceService : IComplianceService
     }
 
     /// <summary>
-    /// Checks whether all exercises in a session have a completion record for the given date.
+    /// Checks whether all sections in a session are complete for the given date.
+    /// A section is "done" when:
+    ///   - it has exercises AND every exercise is in <c>CompletedExerciseIds</c>, OR
+    ///   - it has no exercises AND its <c>SectionId</c> is in <c>CompletedSectionIds</c>.
     /// </summary>
     private async Task<bool> IsSessionCompleteForDateAsync(
         Guid clientId, TrainingSession session, DateTime date, CancellationToken ct)
     {
-        if (session.Exercises.Count == 0)
+        session.WithBackfilledSections();
+        if (session.Sections.Count == 0)
             return false;
 
         var dateUtc = date.Date == date ? date : date.Date;
@@ -341,8 +345,24 @@ public class ComplianceService : IComplianceService
         if (completion is null)
             return false;
 
-        // All exercises must be present in the completion record
-        return session.Exercises.All(e => completion.CompletedExerciseIds.Contains(e.ExerciseExternalId));
+        // Use the section-aware view (with read-time backfill for legacy documents).
+        var effectiveBySection = TrainingCompletionBackfill.GetEffectiveCompletedExerciseIdsBySection(
+            completion, session);
+        var completedSectionIds = (completion.CompletedSectionIds ?? new List<Guid>()).ToHashSet();
+
+        // Every section must be "done":
+        //   - has exercises AND every exercise is in effectiveBySection[sectionId], OR
+        //   - has no exercises AND its SectionId is in completedSectionIds
+        return session.Sections.All(sec =>
+        {
+            if (sec.Exercises.Count > 0)
+            {
+                effectiveBySection.TryGetValue(sec.SectionId, out var completedInSection);
+                var set = completedInSection ?? [];
+                return sec.Exercises.All(ex => set.Contains(ex.ExerciseExternalId));
+            }
+            return completedSectionIds.Contains(sec.SectionId);
+        });
     }
 
     /// <summary>

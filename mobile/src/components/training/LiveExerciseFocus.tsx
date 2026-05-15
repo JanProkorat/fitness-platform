@@ -244,7 +244,7 @@ export function LiveExerciseFocus({
           <Text style={[styles.dot, { color: colors.label3 }]}>·</Text>
           <Pressable onPress={onSkipExercise} style={styles.secondaryBtn}>
             <Text style={[styles.secondaryBtnText, { color: colors.label3 }]}>
-              {t('training.live.skipExercise')}
+              {t('training.wod.skipWorkout')}
             </Text>
           </Pressable>
         </View>
@@ -256,7 +256,7 @@ export function LiveExerciseFocus({
 const styles = StyleSheet.create({
   heroCard: {
     marginHorizontal: 16,
-    marginTop: 14,
+    marginTop: 6,
     borderRadius: Radius.md,
     padding: 18,
     borderWidth: StyleSheet.hairlineWidth,
@@ -330,7 +330,8 @@ const styles = StyleSheet.create({
     marginTop: 12,
     borderRadius: Radius.md,
     borderWidth: StyleSheet.hairlineWidth,
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
   steppersRow: {
     flexDirection: 'row',

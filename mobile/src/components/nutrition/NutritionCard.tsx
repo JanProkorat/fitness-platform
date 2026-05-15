@@ -208,6 +208,7 @@ export function NutritionCard({
             title={t('today.markAllEaten')}
             onPress={onMarkAllEaten}
             loading={isMarkAllLoading}
+            icon="checkmark"
           />
         </View>
       ) : null}

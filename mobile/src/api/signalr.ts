@@ -2,7 +2,7 @@ import { HubConnectionBuilder, HubConnection, LogLevel, HubConnectionState } fro
 import { useAuthStore } from '../stores/auth';
 
 const API_BASE_URL = __DEV__
-  ? 'http://localhost:5000'
+  ? 'https://localhost:5001'
   : 'https://api.gfplatform.com';
 
 let connection: HubConnection | null = null;

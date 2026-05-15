@@ -380,10 +380,16 @@ export function Sidebar({ onToggleDark }: SidebarProps) {
             )}
 
             {isTrainer && (
-              <NavLink to="/exercises" className={cn('sb-item', isActive('/exercises') && 'active')}>
-                <span className="sbi-icon">💪</span>
-                <span className="sbi-lbl">{t('sidebar.exercises')}</span>
-              </NavLink>
+              <>
+                <NavLink to="/exercises" className={cn('sb-item', isActive('/exercises') && 'active')}>
+                  <span className="sbi-icon">💪</span>
+                  <span className="sbi-lbl">{t('sidebar.exercises')}</span>
+                </NavLink>
+                <NavLink to="/section-templates" className={cn('sb-item', isActive('/section-templates') && 'active')}>
+                  <span className="sbi-icon">📋</span>
+                  <span className="sbi-lbl">{t('sidebar.sectionTemplates')}</span>
+                </NavLink>
+              </>
             )}
           </div>
         )}

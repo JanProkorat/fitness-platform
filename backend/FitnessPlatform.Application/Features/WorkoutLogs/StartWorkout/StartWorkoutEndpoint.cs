@@ -45,7 +45,7 @@ public class StartWorkoutEndpoint(IMongoContext mongo) : Endpoint<StartWorkoutRe
             SessionId = req.SessionId,
             StartedAt = now,
             IsCompleted = false,
-            Exercises = [],
+            Sections = [],
             DateCreated = now
         };
 

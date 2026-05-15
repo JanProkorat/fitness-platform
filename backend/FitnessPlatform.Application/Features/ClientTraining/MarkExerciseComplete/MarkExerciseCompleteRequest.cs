@@ -22,6 +22,14 @@ public class MarkExerciseCompleteRequest
     public DateOnly? CompletedOn { get; set; }
 
     /// <summary>
+    /// The section ID within the session that contains this exercise.
+    /// Required so that the same catalog exercise in different sections is tracked
+    /// independently (section-aware completion).
+    /// Bound from the request body.
+    /// </summary>
+    public Guid SectionId { get; set; }
+
+    /// <summary>
     /// Client-supplied version of the existing completion document, used for optimistic
     /// concurrency. Required when a completion document already exists for this
     /// (clientId, date, sessionId) tuple; ignored for new documents.

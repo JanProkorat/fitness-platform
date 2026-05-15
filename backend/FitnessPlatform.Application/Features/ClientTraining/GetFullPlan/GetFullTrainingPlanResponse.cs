@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 
 namespace FitnessPlatform.Application.Features.ClientTraining.GetFullPlan;
@@ -104,7 +105,54 @@ public class SessionDto
     /// </summary>
     public int? EstimatedDurationMinutes { get; set; }
 
-    /// <summary>Exercises in this session.</summary>
+    /// <summary>
+    /// Sections in this session, ordered by their Order field.
+    /// Schema-on-read: legacy documents with only flat exercises are backfilled into a single
+    /// "Hlavní" section before this response is built.
+    /// </summary>
+    public List<SectionDto> Sections { get; set; } = [];
+
+    /// <summary>
+    /// Flat list of all exercises across all sections, in section order.
+    /// Kept for backward-compatibility with callers that don't yet read Sections.
+    /// </summary>
+    public List<ExerciseDto> Exercises { get; set; } = [];
+}
+
+/// <summary>
+/// An ordered section within a session (e.g. "Hlavní", "Warm-up", "Cool-down").
+/// </summary>
+public class SectionDto
+{
+    /// <summary>Stable identifier for this section.</summary>
+    public Guid SectionId { get; set; }
+
+    /// <summary>Display order within the session (0-based).</summary>
+    public int Order { get; set; }
+
+    /// <summary>Display name (e.g. "Hlavní", "Warm-up").</summary>
+    public string Name { get; set; } = "";
+
+    /// <summary>
+    /// Workout format for this section (e.g. "Emom", "Amrap", "Tabata", "ForTime").
+    /// Null means the section uses the default Standard format.
+    /// </summary>
+    public string? Format { get; set; }
+
+    /// <summary>
+    /// Full format-configuration object for the section (rounds, intervals, work/rest timings).
+    /// Null when Format is null or Standard.
+    /// Mirrors <see cref="FitnessPlatform.Application.Domain.Documents.WodConfig"/> on TrainingSection.
+    /// </summary>
+    public WodConfig? FormatConfig { get; set; }
+
+    /// <summary>
+    /// Optional coach note for this section.
+    /// Mirrors the Notes property on TrainingSection.
+    /// </summary>
+    public string? Notes { get; set; }
+
+    /// <summary>Exercises within this section.</summary>
     public List<ExerciseDto> Exercises { get; set; } = [];
 }
 
@@ -127,6 +175,17 @@ public class ExerciseDto
 
     /// <summary>Rest time between sets in seconds.</summary>
     public int? RestSeconds { get; set; }
+
+    /// <summary>
+    /// Movement type — drives which set field the prescription uses
+    /// (reps / duration / distance / reps-for-time). Required for the
+    /// client to render the correct summary string. Serialised as the
+    /// enum's string name (e.g. "Reps", "Time", "Distance",
+    /// "RepsForTime"); the client casts to its `MovementType` enum.
+    /// Defaults to "Reps" when the underlying exercise carries no
+    /// explicit value.
+    /// </summary>
+    public string MovementType { get; set; } = "Reps";
 
     /// <summary>
     /// Target muscle groups fetched from the Exercise document.
@@ -160,6 +219,9 @@ public class SetDto
 
     /// <summary>Target duration in seconds (for timed exercises).</summary>
     public int? DurationSeconds { get; set; }
+
+    /// <summary>Target distance in meters (for distance-based exercises).</summary>
+    public decimal? DistanceMeters { get; set; }
 
     /// <summary>Rest time after this set in seconds.</summary>
     public int? RestSeconds { get; set; }

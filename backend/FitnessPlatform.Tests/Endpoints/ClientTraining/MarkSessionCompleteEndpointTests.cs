@@ -68,20 +68,61 @@ public class MarkSessionCompleteEndpointTests
     }
 
     [Fact]
+    public async Task HandleAsync_NewSession_AlsoWritesCompletedSectionIds()
+    {
+        // The plan has one section (synthesized "Hlavní" via CreateActivePlan) containing both exercises.
+        var plan = TrainingCompletionTestHelpers.CreateActivePlan(
+            clientId: _clientId,
+            sessionId: _sessionId,
+            exerciseIds: [_exercise1, _exercise2]);
+
+        // Capture the section ID the plan was built with
+        var sessionInPlan = plan.Weeks.SelectMany(w => w.Sessions).First(s => s.SessionId == _sessionId);
+        var expectedSectionId = sessionInPlan.Sections[0].SectionId;
+
+        var (mongo, completionCollection) = TrainingCompletionTestHelpers.CreateMockMongo(plan: plan);
+        var db = CreateMockDb();
+
+        var ep = Factory.Create<MarkSessionCompleteEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
+            mongo, db, _notifier, _compliance, _logger);
+
+        await ep.HandleAsync(
+            new MarkSessionCompleteRequest { SessionId = _sessionId },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        await completionCollection.Received(1).InsertOneAsync(
+            Arg.Is<TrainingCompletion>(c =>
+                c.CompletedSectionIds != null &&
+                c.CompletedSectionIds.Contains(expectedSectionId) &&
+                c.CompletedSectionIds.Count == 1),
+            Arg.Any<InsertOneOptions>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task HandleAsync_AlreadyComplete_IsIdempotent()
     {
-        // Create a completion that already has all exercises
+        var plan = TrainingCompletionTestHelpers.CreateActivePlan(
+            clientId: _clientId,
+            sessionId: _sessionId,
+            exerciseIds: [_exercise1, _exercise2]);
+
+        // Extract the section ID so we can include it in CompletedSectionIds
+        var sessionInPlan = plan.Weeks.SelectMany(w => w.Sessions).First(s => s.SessionId == _sessionId);
+        var sectionId = sessionInPlan.Sections[0].SectionId;
+
+        // Create a completion that already has all exercises AND all sections
         var existingCompletion = TrainingCompletionTestHelpers.CreateCompletion(
             clientId: _clientId,
             sessionId: _sessionId,
             date: DateTime.UtcNow.Date,
             completedExerciseIds: [_exercise1, _exercise2],
+            completedSectionIds: [sectionId],
             version: 1);
-
-        var plan = TrainingCompletionTestHelpers.CreateActivePlan(
-            clientId: _clientId,
-            sessionId: _sessionId,
-            exerciseIds: [_exercise1, _exercise2]);
 
         var (mongo, completionCollection) = TrainingCompletionTestHelpers.CreateMockMongo(
             plan: plan,

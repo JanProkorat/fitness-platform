@@ -3524,6 +3524,353 @@ export class ApiClient {
     }
 
     /**
+     * Update section template
+     * @param templateId The template's public identifier (route parameter).
+     * @return Success
+     */
+    updateSectionTemplateEndpoint(templateId: string, updateSectionTemplateRequest: UpdateSectionTemplateRequest, signal?: AbortSignal): Promise<SectionTemplateResponse> {
+        let url_ = this.baseUrl + "/training/section-templates/{templateId}";
+        if (templateId === undefined || templateId === null)
+            throw new globalThis.Error("The parameter 'templateId' must be defined.");
+        url_ = url_.replace("{templateId}", encodeURIComponent("" + templateId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(updateSectionTemplateRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateSectionTemplateEndpoint(_response);
+        });
+    }
+
+    protected processUpdateSectionTemplateEndpoint(response: AxiosResponse): Promise<SectionTemplateResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<SectionTemplateResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SectionTemplateResponse>(null as any);
+    }
+
+    /**
+     * Get section template
+     * @param templateId The template's public identifier (route parameter).
+     * @return Success
+     */
+    getSectionTemplateEndpoint(templateId: string, signal?: AbortSignal): Promise<SectionTemplateResponse> {
+        let url_ = this.baseUrl + "/training/section-templates/{templateId}";
+        if (templateId === undefined || templateId === null)
+            throw new globalThis.Error("The parameter 'templateId' must be defined.");
+        url_ = url_.replace("{templateId}", encodeURIComponent("" + templateId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetSectionTemplateEndpoint(_response);
+        });
+    }
+
+    protected processGetSectionTemplateEndpoint(response: AxiosResponse): Promise<SectionTemplateResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<SectionTemplateResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SectionTemplateResponse>(null as any);
+    }
+
+    /**
+     * Delete section template
+     * @param templateId The template's public identifier (route parameter).
+     * @return No Content
+     */
+    deleteSectionTemplateEndpoint(templateId: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/training/section-templates/{templateId}";
+        if (templateId === undefined || templateId === null)
+            throw new globalThis.Error("The parameter 'templateId' must be defined.");
+        url_ = url_.replace("{templateId}", encodeURIComponent("" + templateId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDeleteSectionTemplateEndpoint(_response);
+        });
+    }
+
+    protected processDeleteSectionTemplateEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * List section templates
+     * @param page Page number (1-based). Defaults to 1.
+     * @param pageSize Page size. Defaults to 50.
+     * @return Success
+     */
+    listSectionTemplatesEndpoint(page: number, pageSize: number, signal?: AbortSignal): Promise<SectionTemplateResponse[]> {
+        let url_ = this.baseUrl + "/training/section-templates?";
+        if (page === undefined || page === null)
+            throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
+        else
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === undefined || pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' must be defined and cannot be null.");
+        else
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processListSectionTemplatesEndpoint(_response);
+        });
+    }
+
+    protected processListSectionTemplatesEndpoint(response: AxiosResponse): Promise<SectionTemplateResponse[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<SectionTemplateResponse[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SectionTemplateResponse[]>(null as any);
+    }
+
+    /**
+     * Create section template
+     * @return Success
+     */
+    createSectionTemplateEndpoint(createSectionTemplateRequest: CreateSectionTemplateRequest, signal?: AbortSignal): Promise<SectionTemplateResponse> {
+        let url_ = this.baseUrl + "/training/section-templates";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(createSectionTemplateRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreateSectionTemplateEndpoint(_response);
+        });
+    }
+
+    protected processCreateSectionTemplateEndpoint(response: AxiosResponse): Promise<SectionTemplateResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<SectionTemplateResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SectionTemplateResponse>(null as any);
+    }
+
+    /**
      * Generate recipe image upload URL
      * @param recipeId The recipe's public identifier (from route).
      * @param slot Image slot: main (overwrites) or gallery (appends, max 6).
@@ -8259,6 +8606,164 @@ export class ApiClient {
     }
 
     /**
+     * Un-mark a section as complete
+     * @param sessionId The session ID (from the training plan). Bound from the route.
+     * @param sectionId The section ID within the session. Bound from the route.
+     * @return Success
+     */
+    markSectionIncompleteEndpoint(sessionId: string, sectionId: string, markSectionIncompleteRequest: MarkSectionIncompleteRequest, signal?: AbortSignal): Promise<MarkSectionIncompleteResponse> {
+        let url_ = this.baseUrl + "/client/training/sessions/{sessionId}/sections/{sectionId}/complete";
+        if (sessionId === undefined || sessionId === null)
+            throw new globalThis.Error("The parameter 'sessionId' must be defined.");
+        url_ = url_.replace("{sessionId}", encodeURIComponent("" + sessionId));
+        if (sectionId === undefined || sectionId === null)
+            throw new globalThis.Error("The parameter 'sectionId' must be defined.");
+        url_ = url_.replace("{sectionId}", encodeURIComponent("" + sectionId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(markSectionIncompleteRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "DELETE",
+            url: url_,
+            headers: {
+                "Content-Type": "*/*",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processMarkSectionIncompleteEndpoint(_response);
+        });
+    }
+
+    protected processMarkSectionIncompleteEndpoint(response: AxiosResponse): Promise<MarkSectionIncompleteResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<MarkSectionIncompleteResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<MarkSectionIncompleteResponse>(null as any);
+    }
+
+    /**
+     * Mark a section complete
+     * @param sessionId The session ID (from the training plan). Bound from the route.
+     * @param sectionId The section ID within the session. Bound from the route.
+     * @return Success
+     */
+    markSectionCompleteEndpoint(sessionId: string, sectionId: string, markSectionCompleteRequest: MarkSectionCompleteRequest, signal?: AbortSignal): Promise<MarkSectionCompleteResponse> {
+        let url_ = this.baseUrl + "/client/training/sessions/{sessionId}/sections/{sectionId}/complete";
+        if (sessionId === undefined || sessionId === null)
+            throw new globalThis.Error("The parameter 'sessionId' must be defined.");
+        url_ = url_.replace("{sessionId}", encodeURIComponent("" + sessionId));
+        if (sectionId === undefined || sectionId === null)
+            throw new globalThis.Error("The parameter 'sectionId' must be defined.");
+        url_ = url_.replace("{sectionId}", encodeURIComponent("" + sectionId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(markSectionCompleteRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processMarkSectionCompleteEndpoint(_response);
+        });
+    }
+
+    protected processMarkSectionCompleteEndpoint(response: AxiosResponse): Promise<MarkSectionCompleteResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<MarkSectionCompleteResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<MarkSectionCompleteResponse>(null as any);
+    }
+
+    /**
      * Un-mark an exercise as complete
      * @param sessionId The session ID (from the training plan). Bound from the route.
      * @param exerciseExternalId The exercise external ID within the session. Bound from the route.
@@ -11550,7 +12055,7 @@ export class ApiClient {
 
     /**
      * Register a new user
-     * @return Success
+     * @return Registration successful
      */
     registerEndpoint(registerRequest: RegisterRequest, signal?: AbortSignal): Promise<RegisterResponse> {
         let url_ = this.baseUrl + "/auth/register";
@@ -11590,12 +12095,12 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 200) {
+        if (status === 201) {
             const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<RegisterResponse>(result200);
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<RegisterResponse>(result201);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -11899,8 +12404,25 @@ export interface WorkoutExercise {
     exerciseExternalId?: string;
     /** Snapshot of the exercise name. */
     exerciseName?: string;
+    /** WOD format result for this individual exercise.
+Null for Standard exercises or when not yet recorded. */
+    wodResult?: WodResult | undefined;
     /** Actual sets performed. */
     sets?: WorkoutSet[];
+}
+
+/** Records the outcome of a WOD (Workout Of the Day) format session or exercise. Which fields are meaningful depends on the WorkoutFormat. All fields are nullable — only those relevant to the actual result need to be set. */
+export interface WodResult {
+    /** Number of complete rounds completed (AMRAP, Tabata). */
+    roundsCompleted?: number | undefined;
+    /** Extra reps accumulated after the last complete round (AMRAP). */
+    extraReps?: number | undefined;
+    /** Total time taken to complete the workout in seconds (ForTime). */
+    totalTimeSeconds?: number | undefined;
+    /** List of round numbers that were not completed (Tabata, EMOM). */
+    failedRounds?: number[] | undefined;
+    /** Reps completed per round, indexed 1-based (Tabata, EMOM, AMRAP). */
+    repsByRound?: number[] | undefined;
 }
 
 /** A single set actually performed during a workout with recorded values. */
@@ -11929,6 +12451,9 @@ export interface UpdateWorkoutRequest {
     mood?: number | undefined;
     /** Optional client notes. */
     notes?: string | undefined;
+    /** WOD format result for the whole session (ForTime, AMRAP, etc.).
+Null for Standard workouts or when not yet recorded. */
+    wodResult?: WodResult | undefined;
     /** Current state of exercises performed. */
     exercises?: UpdateWorkoutExerciseRequest[];
 }
@@ -11939,6 +12464,9 @@ export interface UpdateWorkoutExerciseRequest {
     exerciseExternalId?: string;
     /** Snapshot of the exercise name. */
     exerciseName?: string;
+    /** WOD format result for this individual exercise.
+Null for Standard exercises or when not yet recorded. */
+    wodResult?: WodResult | undefined;
     /** Sets performed for this exercise. */
     sets?: UpdateWorkoutSetRequest[];
 }
@@ -12431,7 +12959,7 @@ Always starts with avatars/. */
 
 /** Request model for generating a pre-signed avatar upload URL. */
 export interface GenerateAvatarUploadUrlRequest {
-    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp"). */
+    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif") */
     contentType: string;
     /** Declared file size in bytes. Must not exceed 5 MiB. */
     sizeBytes?: number;
@@ -12484,6 +13012,10 @@ export interface GetTrainingPlanResponse {
     /** Linked questionnaire response (cross-DB reference to PostgreSQL QuestionnaireResponse.PublicId).
 Null if no questionnaire is linked to this plan. */
     questionnaireResponseId?: string | undefined;
+    /** All completion records for the plan's client, sorted by (Date asc, SessionId asc).
+Populated by the endpoint after loading the plan; the client side should filter
+to dates that fall within the plan's active weeks. */
+    completions?: TrainingPlanCompletionDto[];
 }
 
 /** A single week within a training plan. */
@@ -12518,7 +13050,61 @@ export interface TrainingSession {
     order?: number;
     /** Optional coach notes for this session. */
     notes?: string | undefined;
-    /** Exercises in this session. */
+    /** Session-level workout format. Kept nullable for one release as an inheritable default —
+sections inherit when their own Format is null. Null means Standard. */
+    format?: WorkoutFormat | undefined;
+    /** Session-level format configuration. Null when Format is null or Standard. */
+    formatConfig?: WodConfig | undefined;
+    /** Sections in this session. Each section contains its own exercises.
+Schema-on-read: if a stored document has only flat exercises and no sections,
+a single default section named "Hlavní" is synthesized via WithBackfilledSections. */
+    sections?: TrainingSection[];
+    /** Legacy flat exercises list. Only present in documents written before the sections migration.
+Not written on new saves. Used by WithBackfilledSections for schema-on-read. */
+    legacyExercises?: SessionExercise[] | undefined;
+    /** Flat view of all exercises across all sections. Read-only convenience accessor.
+Not stored in MongoDB — computed from Sections. */
+    exercises?: SessionExercise[];
+}
+
+/** Defines the workout format / scoring methodology for a training session or exercise. */
+export enum WorkoutFormat {
+    Standard = "Standard",
+    ForTime = "ForTime",
+    AMRAP = "AMRAP",
+    EMOM = "EMOM",
+    Tabata = "Tabata",
+}
+
+/** Configuration parameters for a WOD (Workout Of the Day) format. Which fields are meaningful depends on the WorkoutFormat. All fields are nullable — only those relevant to the chosen format are expected to be set. */
+export interface WodConfig {
+    /** Maximum allowed time in seconds (used by ForTime and AMRAP). */
+    timeCapSeconds?: number | undefined;
+    /** Duration of each interval in seconds (used by EMOM). */
+    intervalSeconds?: number | undefined;
+    /** Total number of rounds (used by EMOM and Tabata). */
+    totalRounds?: number | undefined;
+    /** Work interval duration in seconds (used by Tabata). */
+    workSeconds?: number | undefined;
+    /** Rest interval duration in seconds (used by Tabata). */
+    restSeconds?: number | undefined;
+}
+
+/** An ordered section within a training session (e.g. "Warm-up", "Hlavní", "Cool-down"). Embedded sub-document inside Sections. */
+export interface TrainingSection {
+    /** Client-side stable identifier for this section. */
+    sectionId?: string;
+    /** Display order within the session (0-based). */
+    order?: number;
+    /** Display name of the section (e.g. "Hlavní", "Warm-up"). */
+    name?: string;
+    /** Workout format for this section. Null means the section inherits the session-level format. */
+    format?: WorkoutFormat | undefined;
+    /** Format configuration for this section. Null when Format is null or Standard. */
+    formatConfig?: WodConfig | undefined;
+    /** Optional coach note for this workout/section. */
+    notes?: string | undefined;
+    /** Exercises in this section. */
     exercises?: SessionExercise[];
 }
 
@@ -12534,8 +13120,22 @@ export interface SessionExercise {
     notes?: string | undefined;
     /** Rest time between sets in seconds. */
     restSeconds?: number | undefined;
+    /** How performance for this exercise is measured. Defaults to Reps. */
+    movementType?: MovementType;
+    /** Per-exercise format override. Null means the exercise inherits the session's format. */
+    format?: WorkoutFormat | undefined;
+    /** Per-exercise format configuration. Null when Format is null or Standard. */
+    formatConfig?: WodConfig | undefined;
     /** Planned sets for this exercise. */
     sets?: ExerciseSet[];
+}
+
+/** Defines how performance in an exercise is measured. */
+export enum MovementType {
+    Reps = "Reps",
+    Time = "Time",
+    Distance = "Distance",
+    RepsForTime = "RepsForTime",
 }
 
 /** A single set within an exercise — represents planned (prescription) values. */
@@ -12564,6 +13164,22 @@ export enum SetType {
     Warmup = "Warmup",
     Dropset = "Dropset",
     Superset = "Superset",
+}
+
+/** Per-(date, sessionId) completion record for the plan's client. One entry per (clientId, date, sessionId) tuple. Surfaces which exercises have already been marked complete so the trainer editor can lock the corresponding fields. */
+export interface TrainingPlanCompletionDto {
+    date?: string;
+    sessionId?: string;
+    /** Flat list of completed exercise external IDs for this session on this date.
+Deprecated. Use CompletedExerciseIdsBySection for section-aware tracking.
+Retained for backward compatibility. */
+    completedExerciseIds?: string[];
+    /** Section-aware completed exercise IDs. Key = SectionId, value = list of completed
+ExerciseExternalIds within that section. Populated via read-time backfill so legacy
+completion documents are transparently migrated. */
+    completedExerciseIdsBySection?: { [key: string]: string[]; };
+    completedSectionIds?: string[];
+    version?: number;
 }
 
 /** Request for a full-state update of a training plan. */
@@ -12602,22 +13218,51 @@ export interface UpdateSessionRequest {
     order?: number;
     /** Optional coach notes. */
     notes?: string | undefined;
-    /** Exercises in this session. */
+    /** Session-level workout format. Null means no format override at session level.
+Sections inherit this when their own Format is null. */
+    format?: WorkoutFormat | undefined;
+    /** Session-level format configuration. Null when Format is null or Standard. */
+    formatConfig?: WodConfig | undefined;
+    /** Ordered sections in this session. Each section contains its own exercises. */
+    sections?: UpdateSectionRequest[];
+}
+
+/** Represents a training section submitted in a full-state session update. */
+export interface UpdateSectionRequest {
+    /** Optional existing section identifier. New GUID generated if null. */
+    sectionId?: string | undefined;
+    /** Display order within the session (0-based). */
+    order?: number;
+    /** Display name of the section (e.g. "Hlavní", "Warm-up"). */
+    name?: string;
+    /** Workout format for this section. Null means section inherits the session-level format. */
+    format?: WorkoutFormat | undefined;
+    /** Format configuration. Required for non-Standard, non-null section formats; must be null for Standard. */
+    formatConfig?: WodConfig | undefined;
+    /** Optional coach note for this workout/section. */
+    notes?: string | undefined;
+    /** Exercises in this section. */
     exercises?: UpdateSessionExerciseRequest[];
 }
 
-/** Represents an exercise entry in a training session update. */
+/** Represents an exercise entry in a training section update. */
 export interface UpdateSessionExerciseRequest {
     /** External (public) identifier of the exercise. */
     exerciseExternalId?: string;
     /** Display name of the exercise (snapshot at time of planning). */
     exerciseName?: string;
-    /** Display order within the session (1-based). */
+    /** Display order within the section (1-based). */
     order?: number;
     /** Optional coach notes for this exercise. */
     notes?: string | undefined;
     /** Rest time between sets in seconds. */
     restSeconds?: number | undefined;
+    /** How performance for this exercise is measured. Defaults to Reps. */
+    movementType?: MovementType;
+    /** Per-exercise format override. Null means the exercise inherits the section's format. */
+    format?: WorkoutFormat | undefined;
+    /** Per-exercise format configuration. Null when Format is null or Standard. */
+    formatConfig?: WodConfig | undefined;
     /** Planned sets for this exercise. */
     sets?: UpdateExerciseSetRequest[];
 }
@@ -12819,6 +13464,9 @@ export interface GetPendingInvitesResponse {
 
 /** DTO representing a single pending invitation. */
 export interface PendingInviteDto {
+    /** Internal integer primary key of the PendingInvite row.
+Used to populate pendingInviteId on the photo-diary-request create form. */
+    id?: number;
     /** Public identifier of the pending invite. */
     publicId?: string;
     /** First name of the invited client. */
@@ -12845,6 +13493,9 @@ export interface DeletePendingInviteRequest {
 
 /** Response model returned after creating a pending invitation. */
 export interface CreatePendingInviteResponse {
+    /** Internal integer primary key of the PendingInvite row.
+Used to populate pendingInviteId on the photo-diary-request create form. */
+    id?: number;
     /** Public identifier of the created pending invite. */
     publicId?: string;
     /** First name of the invited client. */
@@ -13027,6 +13678,9 @@ export interface GetClientsResponse {
 
 /** Summary of a client in the trainer's client list. */
 export interface ClientSummary {
+    /** Internal integer primary key of the ClientProfessionalLink row.
+Used to populate linkId on the photo-diary-request create form. */
+    linkId?: number;
     /** Client profile's public ID. */
     publicId?: string;
     /** Client's email address. */
@@ -13083,6 +13737,9 @@ export interface GetClientProgressRequest {
 
 /** Response model containing a client's dashboard summary for a trainer. */
 export interface GetClientDashboardResponse {
+    /** Internal integer primary key of the ClientProfessionalLink row.
+Used to populate linkId on the photo-diary-request create form. */
+    linkId?: number;
     /** The client profile's public ID. */
     clientPublicId?: string;
     /** The client's email address. */
@@ -13251,6 +13908,112 @@ export interface AssignQuestionnaireRequest {
     questionnairePublicId?: string;
 }
 
+/** Response DTO for a single section template. */
+export interface SectionTemplateResponse {
+    /** Template's public identifier. */
+    templateId?: string;
+    /** Display name of the template. */
+    name?: string;
+    /** Optional coach notes describing the workout as a whole. */
+    notes?: string | undefined;
+    /** Default workout format. Null means no format override. */
+    defaultFormat?: string | undefined;
+    /** Default format configuration. */
+    defaultFormatConfig?: WodConfig | undefined;
+    /** Default exercises pre-populated when applying this template. */
+    defaultExercises?: SessionExercise[];
+    /** Optimistic concurrency version. */
+    version?: number;
+    /** When this template was created. */
+    createdAt?: string;
+    /** When this template was last updated. */
+    updatedAt?: string;
+}
+
+/** Request for updating an existing section template. */
+export interface UpdateSectionTemplateRequest {
+    /** Updated display name of the template. */
+    name: string;
+    /** Updated optional coach notes describing the workout as a whole. */
+    notes?: string | undefined;
+    /** Updated default workout format. Null means no format override. */
+    defaultFormat?: WorkoutFormat | undefined;
+    /** Updated default format configuration. */
+    defaultFormatConfig?: WodConfig | undefined;
+    /** Updated default exercises. */
+    defaultExercises?: CreateSectionTemplateExerciseRequest[];
+    /** Expected version for optimistic concurrency control. */
+    version?: number;
+}
+
+/** An exercise entry in a section template. */
+export interface CreateSectionTemplateExerciseRequest {
+    /** External (public) identifier of the exercise. */
+    exerciseExternalId?: string;
+    /** Display name of the exercise (snapshot). */
+    exerciseName?: string;
+    /** Display order within the section (1-based). */
+    order?: number;
+    /** Optional coach notes for this exercise. */
+    notes?: string | undefined;
+    /** Rest time between sets in seconds. */
+    restSeconds?: number | undefined;
+    /** How performance for this exercise is measured. Defaults to Reps. */
+    movementType?: MovementType;
+    /** Per-exercise format override. Null means inherits the section's format. */
+    format?: WorkoutFormat | undefined;
+    /** Per-exercise format configuration. Null when Format is null or Standard. */
+    formatConfig?: WodConfig | undefined;
+    /** Planned sets for this exercise. */
+    sets?: CreateSectionTemplateSetRequest[];
+}
+
+/** A planned set in a section template exercise. */
+export interface CreateSectionTemplateSetRequest {
+    /** Set number within the exercise (1-based). */
+    setNumber?: number;
+    /** Type of set. */
+    type?: SetType;
+    /** Target number of repetitions. */
+    reps?: number | undefined;
+    /** Target weight in kilograms. */
+    weightKg?: number | undefined;
+    /** Target duration in seconds. */
+    durationSeconds?: number | undefined;
+    /** Target RPE (1-10). */
+    rpe?: number | undefined;
+    /** Target distance in meters. */
+    distanceMeters?: number | undefined;
+    /** Rest time after this set in seconds. */
+    restSeconds?: number | undefined;
+}
+
+/** Request for listing the calling trainer's section templates. */
+export interface ListSectionTemplatesRequest {
+}
+
+/** Request for retrieving a single section template by its public identifier. */
+export interface GetSectionTemplateRequest {
+}
+
+/** Request for deleting a section template. */
+export interface DeleteSectionTemplateRequest {
+}
+
+/** Request for creating a new section template. */
+export interface CreateSectionTemplateRequest {
+    /** Display name of the template. */
+    name: string;
+    /** Optional coach notes describing the workout as a whole. */
+    notes?: string | undefined;
+    /** Default workout format. Null means no format override (Standard / inherits from session). */
+    defaultFormat?: WorkoutFormat | undefined;
+    /** Default format configuration. Null when DefaultFormat is null or Standard. */
+    defaultFormatConfig?: WodConfig | undefined;
+    /** Default exercises to pre-populate when applying this template. */
+    defaultExercises?: CreateSectionTemplateExerciseRequest[];
+}
+
 /** Response model containing the pre-signed upload URL and the permanent blob URL. */
 export interface UploadRecipeImageUrlResponse {
     /** Time-limited pre-signed URL the client should PUT the image file to. */
@@ -13263,7 +14026,7 @@ Gallery slot: recipes/{recipeId}/gallery-{n}.{ext}. */
 
 /** Request model for generating a pre-signed upload URL for a recipe image. */
 export interface UploadRecipeImageUrlRequest {
-    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp"). */
+    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif") */
     contentType: string;
     /** Declared file size in bytes. Must not exceed 5 MiB. */
     sizeBytes?: number;
@@ -13734,7 +14497,7 @@ Always starts with avatars/. */
 
 /** Request model for generating a pre-signed professional avatar upload URL. */
 export interface GenerateProfessionalAvatarUploadUrlRequest {
-    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp"). */
+    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif") */
     contentType: string;
     /** Declared file size in bytes. Must not exceed 5 MiB. */
     sizeBytes?: number;
@@ -14308,7 +15071,7 @@ Always starts with foods/. */
 
 /** Request model for generating a pre-signed upload URL for a food image. */
 export interface UploadFoodImageUrlRequest {
-    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp"). */
+    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif") */
     contentType: string;
     /** Declared file size in bytes. Must not exceed 5 MiB. */
     sizeBytes?: number;
@@ -14782,6 +15545,58 @@ Defaults to today UTC when not provided. */
     version?: number | undefined;
 }
 
+/** Response for un-marking a section as complete. */
+export interface MarkSectionIncompleteResponse {
+    /** The session ID that was updated. */
+    sessionId?: string;
+    /** The section ID that was un-marked. */
+    sectionId?: string;
+    /** The date for which the completion was removed. */
+    date?: string;
+    /** How many exercises in this session are now marked complete. */
+    completedExerciseCount?: number;
+    /** Total number of exercises in this session (from the plan). */
+    totalExerciseCount?: number;
+    /** Current version of the underlying completion document (for subsequent writes). */
+    version?: number;
+}
+
+/** Request model for un-marking a section as complete. */
+export interface MarkSectionIncompleteRequest {
+    /** The date for which the completion should be removed (UTC date only).
+Defaults to today UTC when not provided. */
+    completedOn?: string | undefined;
+    /** Client-supplied version of the completion document for optimistic concurrency. */
+    version?: number | undefined;
+}
+
+/** Response for marking a section complete. Returns a lightweight progress summary so the mobile client can update section progress indicators without an extra round-trip. */
+export interface MarkSectionCompleteResponse {
+    /** The session ID that was updated. */
+    sessionId?: string;
+    /** The section ID that was marked complete. */
+    sectionId?: string;
+    /** The date for which the completion was recorded. */
+    date?: string;
+    /** How many exercises in this session are now marked complete. */
+    completedExerciseCount?: number;
+    /** Total number of exercises in this session (from the plan). */
+    totalExerciseCount?: number;
+    /** Current version of the underlying completion document (for subsequent writes). */
+    version?: number;
+}
+
+/** Request model for marking a section complete within a session. Used for sections that have no exercises (e.g. a ForTime "Running" section). */
+export interface MarkSectionCompleteRequest {
+    /** The date on which the section was completed (UTC date only).
+Defaults to today UTC when not provided. */
+    completedOn?: string | undefined;
+    /** Client-supplied version of the existing completion document, used for optimistic
+concurrency. Required when a completion document already exists for this
+(clientId, date, sessionId) tuple; ignored for new documents. */
+    version?: number | undefined;
+}
+
 /** Response for un-marking an exercise as complete. */
 export interface MarkExerciseIncompleteResponse {
     /** The session ID that was updated. */
@@ -14803,6 +15618,11 @@ export interface MarkExerciseIncompleteRequest {
     /** The date for which the completion should be removed (UTC date only).
 Defaults to today UTC when not provided. */
     completedOn?: string | undefined;
+    /** The section ID within the session that contains this exercise.
+Required so that un-marking only removes the exercise from the specified section,
+leaving other sections' completion state for the same catalog exercise untouched.
+Bound from the request body. */
+    sectionId: string;
     /** Client-supplied version of the completion document for optimistic concurrency. */
     version?: number | undefined;
 }
@@ -14828,6 +15648,11 @@ export interface MarkExerciseCompleteRequest {
     /** The date on which the exercise was completed (UTC date only).
 Defaults to today UTC when not provided. */
     completedOn?: string | undefined;
+    /** The section ID within the session that contains this exercise.
+Required so that the same catalog exercise in different sections is tracked
+independently (section-aware completion).
+Bound from the request body. */
+    sectionId: string;
     /** Client-supplied version of the existing completion document, used for optimistic
 concurrency. Required when a completion document already exists for this
 (clientId, date, sessionId) tuple; ignored for new documents. */
@@ -14867,8 +15692,24 @@ sessions. */
     exerciseMuscleGroups?: { [key: string]: MuscleGroup[]; };
     /** Per-session completed exercise IDs, keyed by SessionId. Sourced from
 TrainingCompletion documents for today. Empty dictionary when no session
-has any completed exercise for today (or when no active plan exists). */
+has any completed exercise for today (or when no active plan exists).
+Deprecated. Use CompletedExerciseIdsBySectionAndSession for
+section-aware completion tracking. This field is retained for backward compatibility
+with mobile and web clients that have not yet migrated to the new field. */
     completedExerciseIdsBySession?: { [key: string]: string[]; };
+    /** Section-aware completed exercise IDs for today.
+Outer key = SessionId, inner key = SectionId, value = list of completed ExerciseExternalIds
+within that section.
+Sourced from TrainingCompletion documents with read-time backfill for legacy data.
+Empty dictionary when no exercises have been completed for today. */
+    completedExerciseIdsBySectionAndSession?: { [key: string]: { [key: string]: string[]; }; };
+    /** Per-session completed section IDs, keyed by SessionId. Sourced from
+TrainingCompletion documents for today. Empty dictionary when no
+section has been section-completed for today (or no active plan exists).
+Sections appear here when the client tapped a section-level checkbox
+(e.g. on a ForTime "Running" workout that has no exercises) or when
+MarkSessionComplete fanned out section IDs. */
+    completedSectionIdsBySession?: { [key: string]: string[]; };
     /** Per-session optimistic-concurrency version numbers for today, keyed by SessionId.
 Matches the Version on the TrainingCompletion document. Used by the client to
 send the If-Match-style version header on subsequent mark/unmark requests.
@@ -14947,7 +15788,34 @@ export interface SessionDto {
 Currently null — a reliable heuristic requires product-defined set-duration
 assumptions that haven't been finalised. Will be added as an additive change. */
     estimatedDurationMinutes?: number | undefined;
-    /** Exercises in this session. */
+    /** Sections in this session, ordered by their Order field.
+Schema-on-read: legacy documents with only flat exercises are backfilled into a single
+"Hlavní" section before this response is built. */
+    sections?: SectionDto[];
+    /** Flat list of all exercises across all sections, in section order.
+Kept for backward-compatibility with callers that don't yet read Sections. */
+    exercises?: ExerciseDto[];
+}
+
+/** An ordered section within a session (e.g. "Hlavní", "Warm-up", "Cool-down"). */
+export interface SectionDto {
+    /** Stable identifier for this section. */
+    sectionId?: string;
+    /** Display order within the session (0-based). */
+    order?: number;
+    /** Display name (e.g. "Hlavní", "Warm-up"). */
+    name?: string;
+    /** Workout format for this section (e.g. "Emom", "Amrap", "Tabata", "ForTime").
+Null means the section uses the default Standard format. */
+    format?: string | undefined;
+    /** Full format-configuration object for the section (rounds, intervals, work/rest timings).
+Null when Format is null or Standard.
+Mirrors WodConfig on TrainingSection. */
+    formatConfig?: WodConfig | undefined;
+    /** Optional coach note for this section.
+Mirrors the Notes property on TrainingSection. */
+    notes?: string | undefined;
+    /** Exercises within this section. */
     exercises?: ExerciseDto[];
 }
 
@@ -14963,6 +15831,11 @@ export interface ExerciseDto {
     notes?: string | undefined;
     /** Rest time between sets in seconds. */
     restSeconds?: number | undefined;
+    /** Movement type — drives which set field the prescription uses
+(reps / duration / distance / reps-for-time). Required for the
+client to render the correct summary string. Defaults to "Reps"
+when the underlying exercise carries no explicit value. */
+    movementType?: string;
     /** Target muscle groups fetched from the Exercise document.
 Empty list when the exercise no longer exists in the database. */
     muscleGroups?: MuscleGroup[];
@@ -14984,6 +15857,8 @@ export interface SetDto {
     weightKg?: number | undefined;
     /** Target duration in seconds (for timed exercises). */
     durationSeconds?: number | undefined;
+    /** Target distance in meters (for distance-based exercises). */
+    distanceMeters?: number | undefined;
     /** Rest time after this set in seconds. */
     restSeconds?: number | undefined;
     /** When this set was completed, or null if not yet done. */
@@ -15084,7 +15959,7 @@ Pass this to POST /client/plans/{planId}/photos to finalize the record. */
 
 /** Request model for generating a pre-signed plan photo upload URL. */
 export interface GeneratePlanPhotoUploadUrlRequest {
-    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp"). */
+    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif") */
     contentType: string;
     /** Declared file size in bytes. Must not exceed 5 MiB. */
     sizeBytes?: number;
@@ -15147,6 +16022,8 @@ Null when PlanId is null. */
     uploadedByUserId?: string;
     /** When the record was created (upload timestamp), in UTC. */
     uploadedAt?: string;
+    /** The diary request this photo is associated with, or null if none. */
+    diaryRequestId?: string | undefined;
 }
 
 /** Represents a calendar-month bucket of plan photos returned when groupByMonth=true is passed to the aggregation endpoints. */
@@ -15419,7 +16296,7 @@ Always starts with diary/{mealId}/. */
 
 /** Request model for generating a pre-signed meal diary photo upload URL. */
 export interface GenerateMealPhotoUploadUrlRequest {
-    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp", "image/heic"). */
+    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"). */
     contentType: string;
     /** Declared file size in bytes. Must not exceed 10 MiB. */
     sizeBytes?: number;
@@ -15436,7 +16313,7 @@ Always follows the plan-photos/{planId}/{guid}.{ext} convention. */
 
 /** Request model for generating a pre-signed day-level plan photo upload URL. */
 export interface GenerateDayPhotoUploadUrlRequest {
-    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp", "image/heic"). */
+    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"). */
     contentType: string;
     /** Declared file size in bytes. Must not exceed 10 MiB. */
     sizeBytes?: number;
@@ -15795,8 +16672,8 @@ export interface RegisterRequest {
     firstName: string;
     /** User's last name. */
     lastName: string;
-    /** The role the user is registering as. */
-    role: string;
+    /** The roles the user is registering as. Must contain at least one of: Trainer, Nutritionist, Client. */
+    roles: string[];
     /** Explicit GDPR consent for processing health data. */
     gdprConsent?: boolean;
 }

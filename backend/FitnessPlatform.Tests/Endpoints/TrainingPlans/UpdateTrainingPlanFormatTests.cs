@@ -15,7 +15,7 @@ namespace FitnessPlatform.Tests.Endpoints.TrainingPlans;
 
 /// <summary>
 /// Tests for WorkoutFormat, MovementType, and WodConfig round-trips through
-/// <see cref="UpdateTrainingPlanEndpoint"/> at both session and per-exercise level,
+/// <see cref="UpdateTrainingPlanEndpoint"/> at both session and per-section/exercise level,
 /// plus validator rejection of invalid format configurations.
 /// </summary>
 public class UpdateTrainingPlanFormatTests
@@ -28,6 +28,10 @@ public class UpdateTrainingPlanFormatTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo);
+
+    /// <summary>Builds a minimal single-section request for a given session.</summary>
+    private static UpdateSectionRequest DefaultSection(List<UpdateSessionExerciseRequest>? exercises = null) =>
+        new() { Name = "Hlavní", Order = 0, Exercises = exercises ?? [] };
 
     // ── Session-level format round-trip tests ────────────────────────────────
 
@@ -58,7 +62,7 @@ public class UpdateTrainingPlanFormatTests
                             Order = 1,
                             Format = WorkoutFormat.EMOM,
                             FormatConfig = new WodConfig { IntervalSeconds = 60, TotalRounds = 10 },
-                            Exercises = []
+                            Sections = [DefaultSection()]
                         }
                     ]
                 }
@@ -106,7 +110,7 @@ public class UpdateTrainingPlanFormatTests
                             Order = 1,
                             Format = WorkoutFormat.AMRAP,
                             FormatConfig = new WodConfig { TimeCapSeconds = 1200 },
-                            Exercises = []
+                            Sections = [DefaultSection()]
                         }
                     ]
                 }
@@ -153,7 +157,7 @@ public class UpdateTrainingPlanFormatTests
                             Order = 1,
                             Format = WorkoutFormat.ForTime,
                             FormatConfig = new WodConfig { TimeCapSeconds = 600 },
-                            Exercises = []
+                            Sections = [DefaultSection()]
                         }
                     ]
                 }
@@ -200,7 +204,7 @@ public class UpdateTrainingPlanFormatTests
                             Order = 1,
                             Format = WorkoutFormat.Tabata,
                             FormatConfig = new WodConfig { WorkSeconds = 20, RestSeconds = 10, TotalRounds = 8 },
-                            Exercises = []
+                            Sections = [DefaultSection()]
                         }
                     ]
                 }
@@ -249,7 +253,7 @@ public class UpdateTrainingPlanFormatTests
                             Order = 1,
                             Format = WorkoutFormat.Standard,
                             FormatConfig = null,
-                            Exercises = []
+                            Sections = [DefaultSection()]
                         }
                     ]
                 }
@@ -297,16 +301,19 @@ public class UpdateTrainingPlanFormatTests
                             Name = "Session",
                             Order = 1,
                             Format = WorkoutFormat.Standard,
-                            Exercises =
+                            Sections =
                             [
-                                new UpdateSessionExerciseRequest
-                                {
-                                    ExerciseExternalId = Guid.NewGuid(),
-                                    ExerciseName = "Plank",
-                                    Order = 1,
-                                    MovementType = MovementType.Time,
-                                    Sets = []
-                                }
+                                DefaultSection(
+                                [
+                                    new UpdateSessionExerciseRequest
+                                    {
+                                        ExerciseExternalId = Guid.NewGuid(),
+                                        ExerciseName = "Plank",
+                                        Order = 1,
+                                        MovementType = MovementType.Time,
+                                        Sets = []
+                                    }
+                                ])
                             ]
                         }
                     ]
@@ -352,18 +359,21 @@ public class UpdateTrainingPlanFormatTests
                             Name = "Session",
                             Order = 1,
                             Format = WorkoutFormat.Standard,
-                            Exercises =
+                            Sections =
                             [
-                                new UpdateSessionExerciseRequest
-                                {
-                                    ExerciseExternalId = Guid.NewGuid(),
-                                    ExerciseName = "Burpees",
-                                    Order = 1,
-                                    MovementType = MovementType.Reps,
-                                    Format = WorkoutFormat.AMRAP,
-                                    FormatConfig = new WodConfig { TimeCapSeconds = 300 },
-                                    Sets = []
-                                }
+                                DefaultSection(
+                                [
+                                    new UpdateSessionExerciseRequest
+                                    {
+                                        ExerciseExternalId = Guid.NewGuid(),
+                                        ExerciseName = "Burpees",
+                                        Order = 1,
+                                        MovementType = MovementType.Reps,
+                                        Format = WorkoutFormat.AMRAP,
+                                        FormatConfig = new WodConfig { TimeCapSeconds = 300 },
+                                        Sets = []
+                                    }
+                                ])
                             ]
                         }
                     ]
@@ -411,18 +421,21 @@ public class UpdateTrainingPlanFormatTests
                             Order = 1,
                             Format = WorkoutFormat.EMOM,
                             FormatConfig = new WodConfig { IntervalSeconds = 60, TotalRounds = 10 },
-                            Exercises =
+                            Sections =
                             [
-                                new UpdateSessionExerciseRequest
-                                {
-                                    ExerciseExternalId = Guid.NewGuid(),
-                                    ExerciseName = "Pull-ups",
-                                    Order = 1,
-                                    MovementType = MovementType.Reps,
-                                    Format = null, // inherits from session
-                                    FormatConfig = null,
-                                    Sets = []
-                                }
+                                DefaultSection(
+                                [
+                                    new UpdateSessionExerciseRequest
+                                    {
+                                        ExerciseExternalId = Guid.NewGuid(),
+                                        ExerciseName = "Pull-ups",
+                                        Order = 1,
+                                        MovementType = MovementType.Reps,
+                                        Format = null, // inherits from session
+                                        FormatConfig = null,
+                                        Sets = []
+                                    }
+                                ])
                             ]
                         }
                     ]
@@ -453,22 +466,31 @@ public class UpdateTrainingPlanFormatTests
         var planId = Guid.NewGuid();
         var plan = TrainingPlanTestHelpers.CreatePlan(externalId: planId, trainerId: _trainerId);
 
-        // Add a session with an exercise — Format and MovementType will be at their C# defaults.
+        // Add a session with a section containing an exercise — Format and MovementType at C# defaults.
         plan.Weeks[0].Sessions.Add(new TrainingSession
         {
             SessionId = Guid.NewGuid(),
             DayOfWeek = 1,
             Name = "Legacy Session",
             Order = 1,
-            // Format defaults to Standard, FormatConfig defaults to null
-            Exercises =
+            // Format defaults to null, FormatConfig defaults to null
+            Sections =
             [
-                new SessionExercise
+                new TrainingSection
                 {
-                    ExerciseExternalId = Guid.NewGuid(),
-                    ExerciseName = "Squat",
-                    Order = 1
-                    // MovementType defaults to Reps, Format defaults to null, FormatConfig defaults to null
+                    SectionId = Guid.NewGuid(),
+                    Order = 0,
+                    Name = "Hlavní",
+                    Exercises =
+                    [
+                        new SessionExercise
+                        {
+                            ExerciseExternalId = Guid.NewGuid(),
+                            ExerciseName = "Squat",
+                            Order = 1
+                            // MovementType defaults to Reps, Format defaults to null
+                        }
+                    ]
                 }
             ]
         });
@@ -519,7 +541,7 @@ public class UpdateTrainingPlanFormatTests
                             Order = 1,
                             Format = WorkoutFormat.EMOM,
                             FormatConfig = new WodConfig { TotalRounds = 10 /* IntervalSeconds missing */ },
-                            Exercises = []
+                            Sections = [DefaultSection()]
                         }
                     ]
                 }
@@ -555,7 +577,7 @@ public class UpdateTrainingPlanFormatTests
                             Order = 1,
                             Format = WorkoutFormat.AMRAP,
                             FormatConfig = new WodConfig { /* TimeCapSeconds missing */ },
-                            Exercises = []
+                            Sections = [DefaultSection()]
                         }
                     ]
                 }
@@ -591,7 +613,7 @@ public class UpdateTrainingPlanFormatTests
                             Order = 1,
                             Format = WorkoutFormat.Tabata,
                             FormatConfig = new WodConfig { RestSeconds = 10, TotalRounds = 8 /* WorkSeconds missing */ },
-                            Exercises = []
+                            Sections = [DefaultSection()]
                         }
                     ]
                 }
@@ -627,7 +649,7 @@ public class UpdateTrainingPlanFormatTests
                             Order = 1,
                             Format = WorkoutFormat.Standard,
                             FormatConfig = new WodConfig { TimeCapSeconds = 600 }, // must be null for Standard
-                            Exercises = []
+                            Sections = [DefaultSection()]
                         }
                     ]
                 }
@@ -664,7 +686,7 @@ public class UpdateTrainingPlanFormatTests
                             Order = 1,
                             Format = WorkoutFormat.ForTime,
                             FormatConfig = new WodConfig { /* TimeCapSeconds missing */ },
-                            Exercises = []
+                            Sections = [DefaultSection()]
                         }
                     ]
                 }
