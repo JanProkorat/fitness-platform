@@ -177,6 +177,14 @@ public class ExerciseDto
     public int? RestSeconds { get; set; }
 
     /// <summary>
+    /// Movement type — drives which set field the prescription uses
+    /// (reps / duration / distance / reps-for-time). Required for the
+    /// client to render the correct summary string. Defaults to "Reps"
+    /// when the underlying exercise carries no explicit value.
+    /// </summary>
+    public string MovementType { get; set; } = "Reps";
+
+    /// <summary>
     /// Target muscle groups fetched from the Exercise document.
     /// Empty list when the exercise no longer exists in the database.
     /// </summary>
@@ -208,6 +216,9 @@ public class SetDto
 
     /// <summary>Target duration in seconds (for timed exercises).</summary>
     public int? DurationSeconds { get; set; }
+
+    /// <summary>Target distance in meters (for distance-based exercises).</summary>
+    public decimal? DistanceMeters { get; set; }
 
     /// <summary>Rest time after this set in seconds.</summary>
     public int? RestSeconds { get; set; }

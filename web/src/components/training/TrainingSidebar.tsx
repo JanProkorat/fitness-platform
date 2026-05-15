@@ -5,6 +5,10 @@ import { getExercise } from '@/api/exercises';
 import type { MuscleGroup } from '@/api/exercise-types';
 import type { TrainingSession } from '@/api/training-plan-types';
 import { cn } from '@/lib/cn';
+import {
+  estimatedSectionDurationSeconds,
+  formatDurationCompact,
+} from '@/lib/training-plan-format';
 
 export interface TrainingSidebarProps {
   sessions: TrainingSession[];
@@ -49,13 +53,24 @@ const MUSCLE_GROUP_KEYS: Record<MuscleGroup, string> = {
 export function TrainingSidebar({ sessions }: TrainingSidebarProps) {
   const { t, i18n } = useTranslation();
 
-  // Collect all exercises from sessions
-  const allExercises = useMemo(
-    () => sessions.flatMap((s) => s.exercises),
+  // Collect all sections (workouts) and exercises across every session on
+  // the day so we can summarise the day rather than just one session.
+  const allSections = useMemo(
+    () => sessions.flatMap((s) => s.sections ?? []),
     [sessions],
   );
+  const allExercises = useMemo(
+    () =>
+      allSections.length > 0
+        ? allSections.flatMap((sec) => sec.exercises ?? [])
+        : sessions.flatMap((s) => s.exercises),
+    [allSections, sessions],
+  );
 
-  // Volume stats
+  // Day-level stats — sessions / workouts / exercises / sets / volume /
+  // estimated timed duration. Volume only counts loaded sets (reps × kg);
+  // estimated duration only counts non-Standard workouts whose format
+  // config carries a meaningful time prescription.
   const stats = useMemo(() => {
     let totalSets = 0;
     let totalVolume = 0;
@@ -67,12 +82,20 @@ export function TrainingSidebar({ sessions }: TrainingSidebarProps) {
         }
       }
     }
+    let totalDurationSeconds = 0;
+    for (const sec of allSections) {
+      const d = estimatedSectionDurationSeconds(sec.format, sec.formatConfig);
+      if (d != null) totalDurationSeconds += d;
+    }
     return {
+      sessionCount: sessions.length,
+      workoutCount: allSections.length,
       exerciseCount: allExercises.length,
       totalSets,
       totalVolume,
+      totalDurationSeconds,
     };
-  }, [allExercises]);
+  }, [sessions, allSections, allExercises]);
 
   // Fetch muscle groups for unique exercise IDs
   const uniqueExerciseIds = useMemo(
@@ -121,28 +144,49 @@ export function TrainingSidebar({ sessions }: TrainingSidebarProps) {
 
   return (
     <div>
-      {/* Volume stats */}
+      {/* Day overview — aggregated sessions / workouts / exercises / sets
+          and (when defined) loaded volume + timed duration. Replaces the
+          old single-session "training volume" card that didn't account for
+          the new session+workout hierarchy. */}
       <div className="p-3 border-b border-border">
         <div className="text-[11px] font-semibold text-text3 uppercase tracking-[0.04em] mb-2">
-          {t('training.sidebarVolume')}
+          {t('training.sidebarDayOverview')}
         </div>
         <div className="text-[22px] font-bold text-text tracking-tight leading-none mb-1">
-          {stats.totalSets}
+          {stats.sessionCount}
         </div>
         <div className="text-xs text-text3 mb-2.5">
-          {t('training.sidebarTotalSets')}
+          {t('training.sidebarSessionsTotal')}
         </div>
         <div className="flex flex-col gap-1.5">
+          <div className="flex justify-between text-xs">
+            <span className="text-text3">{t('training.sidebarWorkoutsLabel')}</span>
+            <span className="text-text tabular-nums font-medium">{stats.workoutCount}</span>
+          </div>
           <div className="flex justify-between text-xs">
             <span className="text-text3">{t('training.sidebarExercises')}</span>
             <span className="text-text tabular-nums font-medium">{stats.exerciseCount}</span>
           </div>
           <div className="flex justify-between text-xs">
-            <span className="text-text3">{t('training.sidebarVolumeStat')}</span>
-            <span className="text-text tabular-nums font-medium">
-              {stats.totalVolume > 0 ? `${stats.totalVolume.toLocaleString(i18n.language)} kg` : '—'}
-            </span>
+            <span className="text-text3">{t('training.sidebarSetsLabel')}</span>
+            <span className="text-text tabular-nums font-medium">{stats.totalSets}</span>
           </div>
+          {stats.totalVolume > 0 && (
+            <div className="flex justify-between text-xs">
+              <span className="text-text3">{t('training.sidebarVolumeStat')}</span>
+              <span className="text-text tabular-nums font-medium">
+                {stats.totalVolume.toLocaleString(i18n.language)} kg
+              </span>
+            </div>
+          )}
+          {stats.totalDurationSeconds > 0 && (
+            <div className="flex justify-between text-xs">
+              <span className="text-text3">{t('training.sidebarEstDuration')}</span>
+              <span className="text-text tabular-nums font-medium">
+                {formatDurationCompact(stats.totalDurationSeconds)}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 

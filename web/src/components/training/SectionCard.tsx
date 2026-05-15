@@ -10,6 +10,7 @@ import { MovementTypePill } from '@/components/training/MovementTypePill';
 import { SectionFormatPill } from '@/components/training/SectionFormatPill';
 import { SectionFormatConfigRow } from '@/components/training/SectionFormatConfigRow';
 import { cn } from '@/lib/cn';
+import { formatExerciseSummary } from '@/lib/training-plan-format';
 import type { ExerciseSet } from '@/api/training-plan-types';
 
 /**
@@ -103,7 +104,19 @@ export function SectionCard({
         'border-l-[3px]',
         FORMAT_BAR_CLASSES[section.format],
         hasError && 'ring-1 ring-red',
-        isSectionLocked && 'opacity-70 pointer-events-none select-none',
+        // `opacity-70 select-none` keep the locked visual cue. We do NOT
+        // add a blanket `pointer-events-none` — that would kill the chevron
+        // collapse toggles in the section header AND on every exercise row.
+        // Instead, arbitrary-variant selectors disable every text input /
+        // dropdown / textarea descendant (section notes, exercise notes,
+        // set-row inputs, WOD-row inputs, format-config inputs, ExerciseSearch
+        // typeahead). Buttons stay clickable so chevrons keep working —
+        // mutation-only buttons in the header are guarded individually.
+        isSectionLocked &&
+          'opacity-70 select-none ' +
+          '[&_input]:pointer-events-none [&_input]:cursor-not-allowed ' +
+          '[&_select]:pointer-events-none [&_select]:cursor-not-allowed ' +
+          '[&_textarea]:pointer-events-none [&_textarea]:cursor-not-allowed',
       )}
     >
       {/* ── Section header row — neutral grey background, matches the format-config row below ── */}
@@ -153,28 +166,35 @@ export function SectionCard({
             value={section.name}
             placeholder={t('training.section.placeholderName')}
             onChange={(e) => onUpdate({ name: e.target.value })}
-            className="w-full bg-transparent text-[13px] font-semibold text-text outline-none cursor-text"
+            disabled={isSectionLocked}
+            className="w-full bg-transparent text-[13px] font-semibold text-text outline-none cursor-text disabled:cursor-not-allowed"
             style={{ fontFamily: 'inherit', minWidth: 0 }}
           />
         </div>
 
-        {/* Format pill — inline in header row */}
+        {/* Format pill — inline in header row. Disabled for locked sections so
+            the dropdown doesn't open and the format can't be swapped on a
+            workout the client has already finished. */}
         <SectionFormatPill
           format={section.format}
           onFormatChange={(fmt, cfg) => onUpdate({ format: fmt, formatConfig: cfg })}
+          disabled={isSectionLocked}
         />
 
         {/* Save as template — icon button, label appears as native tooltip on hover */}
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onSaveAsTemplate(); }}
+          disabled={isSectionLocked}
           style={{
-            background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px',
+            background: 'none', border: 'none',
+            cursor: isSectionLocked ? 'not-allowed' : 'pointer', padding: '2px 4px',
             fontSize: 11, color: 'var(--text4)', borderRadius: 'var(--radius)',
             transition: 'color 0.1s',
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            opacity: isSectionLocked ? 0.4 : 1,
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text2)'; }}
+          onMouseEnter={(e) => { if (!isSectionLocked) e.currentTarget.style.color = 'var(--text2)'; }}
           onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text4)'; }}
           title={t('training.section.saveAsTemplate')}
           aria-label={t('training.section.saveAsTemplate')}
@@ -201,12 +221,15 @@ export function SectionCard({
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onDuplicate(); }}
+          disabled={isSectionLocked}
           style={{
-            background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px',
+            background: 'none', border: 'none',
+            cursor: isSectionLocked ? 'not-allowed' : 'pointer', padding: '2px 4px',
             fontSize: 11, color: 'var(--text4)', borderRadius: 'var(--radius)',
             transition: 'color 0.1s',
+            opacity: isSectionLocked ? 0.4 : 1,
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text2)'; }}
+          onMouseEnter={(e) => { if (!isSectionLocked) e.currentTarget.style.color = 'var(--text2)'; }}
           onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text4)'; }}
           title={t('training.section.duplicate')}
           aria-label={t('training.section.duplicate')}
@@ -218,12 +241,15 @@ export function SectionCard({
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onRemove(); }}
+          disabled={isSectionLocked}
           style={{
-            background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px',
+            background: 'none', border: 'none',
+            cursor: isSectionLocked ? 'not-allowed' : 'pointer', padding: '2px 4px',
             fontSize: 11, color: 'var(--text4)', borderRadius: 'var(--radius)',
             transition: 'color 0.1s',
+            opacity: isSectionLocked ? 0.4 : 1,
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--red)'; }}
+          onMouseEnter={(e) => { if (!isSectionLocked) e.currentTarget.style.color = 'var(--red)'; }}
           onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text4)'; }}
           title={t('training.section.delete')}
           aria-label={t('training.section.delete')}
@@ -271,15 +297,8 @@ export function SectionCard({
               // Editor branches on the section format. There is no per-exercise
               // format override — every exercise inherits its section's format.
               const isWodFormat = section.format !== 'Standard';
-              const setsCount = ex.sets.length;
-              const repsValues = ex.sets.map((s) => s.reps).filter((r): r is number => r != null);
-              const weightValues = ex.sets.map((s) => s.weightKg).filter((w): w is number => w != null);
-              const repsMin = repsValues.length > 0 ? Math.min(...repsValues) : null;
-              const repsMax = repsValues.length > 0 ? Math.max(...repsValues) : null;
-              const weightMin = weightValues.length > 0 ? Math.min(...weightValues) : null;
-              const weightMax = weightValues.length > 0 ? Math.max(...weightValues) : null;
-              const repsStr = repsMin == null ? '–' : repsMin === repsMax ? `${repsMin}` : `${repsMin}-${repsMax}`;
-              const weightStr = weightMin == null ? '–' : weightMin === weightMax ? `${weightMin}` : `${weightMin}-${weightMax}`;
+              // Summary formatting (reps/weight range, time, distance) lives
+              // in `formatExerciseSummary` — see the prop pass below.
               const totalVolume = ex.sets.reduce((sum, s) => sum + ((s.reps ?? 0) * (s.weightKg ?? 0)), 0);
 
               const muscleGroups = exerciseDetailsMap?.get(ex.exerciseExternalId) ?? [];
@@ -295,15 +314,30 @@ export function SectionCard({
                   aria-disabled={isExerciseLocked || undefined}
                   className={cn(
                     'bg-bg border-b border-border last:border-b-0 transition-colors hover:bg-bg-hover',
-                    isExerciseLocked && 'opacity-70 pointer-events-none select-none',
+                    // Same surgery as the section-level lock: keep the
+                    // dimmed visual cue + drop blanket `pointer-events-none`
+                    // (which used to block the exercise chevron), and
+                    // disable just the inputs / selects / textareas via
+                    // arbitrary-variant selectors.
+                    isExerciseLocked &&
+                      'opacity-70 select-none ' +
+                      '[&_input]:pointer-events-none [&_input]:cursor-not-allowed ' +
+                      '[&_select]:pointer-events-none [&_select]:cursor-not-allowed ' +
+                      '[&_textarea]:pointer-events-none [&_textarea]:cursor-not-allowed',
                   )}
                 >
                   <ExerciseCardHeader
                     exercise={ex}
                     muscleGroups={muscleGroups}
-                    repsStr={repsStr}
-                    weightStr={weightStr}
-                    setsCount={setsCount}
+                    // Movement-type-aware summary string built by the
+                    // shared `formatExerciseSummary` helper — handles
+                    // Reps / Time / Distance / RepsForTime and dropps the
+                    // setCount prefix for WOD sections.
+                    summaryText={formatExerciseSummary(
+                      ex.sets,
+                      ex.movementType,
+                      isWodFormat,
+                    )}
                     totalVolume={totalVolume}
                     isWod={isWodFormat}
                     isOpen={isExOpen}
@@ -311,6 +345,11 @@ export function SectionCard({
                     onDuplicate={() => onDuplicateExercise(exIdx)}
                     onRemove={() => onRemoveExercise(exIdx)}
                     difficulty={difficulty}
+                    // Disable duplicate / remove when this row's section is
+                    // locked (covers session-finished + day-in-past via the
+                    // page-level prop) OR when this specific exercise is
+                    // finished by the client. Chevron stays clickable.
+                    disabled={isSectionLocked || isExerciseLocked}
                   />
 
                   <div className="collapse-grid" data-open={isExOpen}>
@@ -341,6 +380,7 @@ export function SectionCard({
                               <MovementTypePill
                                 value={ex.movementType}
                                 onChange={(mt) => onUpdateExerciseMovementType(exIdx, mt)}
+                                sectionFormat={section.format}
                               />
                               <WodExerciseRow
                                 set={ex.sets[0]}
@@ -388,16 +428,23 @@ export function SectionCard({
                               />
                             ))}
 
-                            {/* Add set */}
-                            <button
-                              type="button"
-                              onClick={() => onAddSet(exIdx)}
-                              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', fontSize: 11, color: 'var(--text4)', fontFamily: 'inherit', transition: 'color 0.1s' }}
-                              onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text3)'; }}
-                              onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text4)'; }}
-                            >
-                              + {t('training.addSet')}
-                            </button>
+                            {/* Add set — hidden when the section is locked
+                                (also covers session-locked + day-in-past per
+                                the `isSectionLocked` prop) or the specific
+                                exercise is finished by the client. Adding
+                                fresh sets to a historical or completed
+                                workout has no clinical value. */}
+                            {!isSectionLocked && !isExerciseLocked && (
+                              <button
+                                type="button"
+                                onClick={() => onAddSet(exIdx)}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', fontSize: 11, color: 'var(--text4)', fontFamily: 'inherit', transition: 'color 0.1s' }}
+                                onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text3)'; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text4)'; }}
+                              >
+                                + {t('training.addSet')}
+                              </button>
+                            )}
                           </div>
                         )}
 
@@ -409,16 +456,22 @@ export function SectionCard({
             })}
           </div>
 
-          {/* ── Add exercise ── */}
-          <div
-            className="px-2 pb-2 pt-2"
-            style={{ borderTop: '1px solid var(--border)' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <ExerciseSearch
-              onSelect={(exercise) => onAddExercise(exercise)}
-            />
-          </div>
+          {/* ── Add exercise — hidden when the section is locked (covers
+              section-finished, session-finished, and day-in-past via the
+              broadened `isSectionLocked` prop on the page). Adding fresh
+              exercises to a historical or completed workout has no
+              clinical value. */}
+          {!isSectionLocked && (
+            <div
+              className="px-2 pb-2 pt-2"
+              style={{ borderTop: '1px solid var(--border)' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <ExerciseSearch
+                onSelect={(exercise) => onAddExercise(exercise)}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

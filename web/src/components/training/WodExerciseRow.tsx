@@ -84,6 +84,16 @@ export function WodExerciseRow({ set, movementType, sectionFormat, onUpdate }: W
     </span>
   );
 
+  // Weight is rendered alongside time / distance / reps-for-time so the
+  // trainer can prescribe weighted timed work (e.g. weighted plank,
+  // kettlebell carry, weighted carries-for-time). It's always optional —
+  // the validator never requires it.
+  const weightField = fieldGroup(
+    t('training.weightLabel'),
+    numInput(set.weightKg, (v) => onUpdate({ weightKg: v })),
+    'kg',
+  );
+
   switch (movementType) {
     case 'Time':
       return (
@@ -93,6 +103,7 @@ export function WodExerciseRow({ set, movementType, sectionFormat, onUpdate }: W
             numInput(set.durationSeconds, (v) => onUpdate({ durationSeconds: v })),
             's',
           )}
+          {weightField}
         </div>
       );
     case 'Distance':
@@ -108,6 +119,7 @@ export function WodExerciseRow({ set, movementType, sectionFormat, onUpdate }: W
             numInput(set.durationSeconds, (v) => onUpdate({ durationSeconds: v })),
             's',
           )}
+          {weightField}
         </div>
       );
     case 'RepsForTime':
@@ -115,17 +127,14 @@ export function WodExerciseRow({ set, movementType, sectionFormat, onUpdate }: W
         <div className="flex items-center gap-3 flex-wrap">
           {!hideReps &&
             fieldGroup(t('training.repsLabel'), numInput(set.reps, (v) => onUpdate({ reps: v })))}
+          {weightField}
         </div>
       );
     // Reps (default)
     default:
       return (
         <div className="flex items-center gap-3 flex-wrap">
-          {fieldGroup(
-            t('training.weightLabel'),
-            numInput(set.weightKg, (v) => onUpdate({ weightKg: v })),
-            'kg',
-          )}
+          {weightField}
           {!hideReps &&
             fieldGroup(t('training.repsLabel'), numInput(set.reps, (v) => onUpdate({ reps: v })))}
         </div>

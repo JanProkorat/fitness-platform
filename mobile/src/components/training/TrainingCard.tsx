@@ -10,7 +10,11 @@ import { ProgressRing } from '@/components/ui/ProgressRing'
 import { GoldButton } from '@/components/ui/GoldButton'
 import { ExpandableSessionCard } from '@/components/training/ExpandableSessionCard'
 import { ExpandableExerciseCard } from '@/components/training/ExpandableExerciseCard'
-import { estimatedSectionDurationSeconds, formatDurationCompact } from '@/lib/training-plan-format'
+import {
+  estimatedSectionDurationSeconds,
+  formatDurationCompact,
+  formatExerciseSummary,
+} from '@/lib/training-plan-format'
 import { SectionHeader } from '@/components/training/SectionHeader'
 import { SetGrid } from '@/components/training/SetGrid'
 import { getMuscleGroupColor } from '@/constants/muscleGroups'
@@ -711,19 +715,18 @@ function SessionSectionList({
                               ? (completedSetsBySessionExercise[exId] ?? [])
                               : []
 
-                          // Exercise summary:
-                          //   Standard → "N série · M opak · K kg"
-                          //   WOD      → "M opak · K kg" (no series count — the
-                          //              single stored row is the round prescription)
-                          const setCount = sets.length
-                          const firstReps = sets[0]?.reps
-                          const firstWeight = sets[0]?.weightKg
-                          const exSummaryParts: string[] = []
-                          if (!isWodFormat) {
-                            exSummaryParts.push(`${setCount} ${t('training.set').toLowerCase()}`)
-                          }
-                          if (firstReps != null) exSummaryParts.push(`${firstReps} ${t('training.reps').toLowerCase()}`)
-                          if (firstWeight != null) exSummaryParts.push(`${firstWeight} kg`)
+                          // Exercise summary — single source of truth via
+                          // `formatExerciseSummary`. Handles every movement
+                          // type (Reps / Time / Distance / RepsForTime)
+                          // with min–max ranges across sets, identical to
+                          // the web `SectionCard` header.
+                          const exSummary = formatExerciseSummary(
+                            sets,
+                            // SessionExercise carries `movementType` only on
+                            // newer plans; older payloads default to Reps.
+                            (exercise as unknown as { movementType?: import('@/api/training').MovementType }).movementType,
+                            isWodFormat,
+                          )
 
                           // Dot color: first muscle group for this exercise, or neutral grey fallback.
                           const exMuscleGroups = exId != null ? (exerciseMuscleGroups[exId] ?? []) : []
@@ -739,7 +742,7 @@ function SessionSectionList({
                             <ExpandableExerciseCard
                               key={exId ?? exIdx}
                               name={exercise.exerciseName ?? ''}
-                              summaryText={exSummaryParts.join(' · ')}
+                              summaryText={exSummary}
                               dotColor={dotColor}
                               isCompleted={isDone}
                               defaultExpanded={false}

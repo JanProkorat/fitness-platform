@@ -21,7 +21,7 @@ import type { WeekTabData } from '@/components/nutrition/WeekDayTabs';
 import { TrainingSidebar } from '@/components/training/TrainingSidebar';
 import { SectionTemplateSearch } from '@/components/training/SectionTemplateSearch';
 import { cn } from '@/lib/cn';
-import { isWeekFinished, todayWeekdayInPlan } from '@/lib/training-plan-dates';
+import { isDayInPast, isWeekFinished, todayWeekdayInPlan, weekStartDate } from '@/lib/training-plan-dates';
 import { estimatedSectionDurationSeconds, formatDurationCompact } from '@/lib/training-plan-format';
 import { computePlanLocks, exerciseLockKey } from '@/lib/training-plan-locks';
 import { DayNoteInput } from '@/components/common/DayNoteInput';
@@ -415,6 +415,13 @@ export default function TrainingPlanPage() {
   // the client has already marked finished must not be edited.
   const planLocks = useMemo(() => computePlanLocks(plan), [plan]);
 
+  // The currently-selected (week, dayOfWeek) is strictly before today — used
+  // to hide affordances that only make sense in the future (e.g. "add
+  // training session", which would attach a brand-new session to a day that
+  // has already happened).
+  const isSelectedDayInPast =
+    !!plan && isDayInPast(plan, selectedWeek, selectedDay);
+
   const daySessions = useMemo(
     () =>
       (currentWeek?.sessions ?? [])
@@ -428,30 +435,58 @@ export default function TrainingPlanPage() {
     if (!plan) return [];
     return plan.weeks.map((w) => {
       const finished = isWeekFinished(plan, w.weekNumber, w.status);
+      // Calendar date range (Mon–Sun) for the second row, derived from the
+      // plan's startDate. `null` when the plan has no startDate — the tab
+      // falls back to single-line label rendering.
+      const wkStart = weekStartDate(plan, w.weekNumber);
+      let dateLabel: string | null = null;
+      if (wkStart) {
+        const wkEnd = new Date(wkStart);
+        wkEnd.setDate(wkStart.getDate() + 6);
+        const fmt = (d: Date) => `${d.getDate()}.${d.getMonth() + 1}.`;
+        dateLabel = `${fmt(wkStart)} – ${fmt(wkEnd)}`;
+      }
       return {
         index: w.weekNumber,
         label: t('nutrition.weekLabel', { number: w.weekNumber }),
         isPublished: w.status === 'Published' && !finished,
         isFinished: finished,
+        dateLabel,
       };
     });
   }, [plan, t]);
 
-  // Day tab data
+  // Day tab data. Each tab carries an optional `dateLabel` like "13.5." derived
+  // from the plan's startDate; it shows under the day name. When the plan has
+  // no startDate (or the math otherwise can't resolve), the field is null and
+  // nothing extra renders.
   const dayTabs = useMemo(() => {
     if (!currentWeek) return [];
+    const wkStart = plan ? weekStartDate(plan, currentWeek.weekNumber) : null;
     return DAY_KEYS.map((key, idx) => {
       const dayOfWeek = idx + 1;
       const sessions = (currentWeek.sessions ?? []).filter((s) => s.dayOfWeek === dayOfWeek);
-      const exerciseCount = sessions.reduce((sum, s) => sum + s.exercises.length, 0);
+      // Sum workouts (sections) across every session on this day. A
+      // "workout" in this app's vocabulary is a section — one EMOM /
+      // Tabata / Standard block. The earlier exercise count was too
+      // granular and didn't match the "N workouts" header the user sees
+      // elsewhere (e.g. "6 workoutů · 68 min").
+      const workoutCount = sessions.reduce((sum, s) => sum + (s.sections?.length ?? 0), 0);
+      let dateLabel: string | null = null;
+      if (wkStart) {
+        const d = new Date(wkStart);
+        d.setDate(wkStart.getDate() + (dayOfWeek - 1));
+        dateLabel = `${d.getDate()}.${d.getMonth() + 1}.`;
+      }
       return {
         index: dayOfWeek,
         key,
         label: t(`nutrition.${key}`),
-        badge: sessions.length > 0 ? `${sessions.length}t · ${exerciseCount}cv` : '—',
+        badge: sessions.length > 0 ? `${sessions.length}t · ${workoutCount}w` : '—',
+        dateLabel,
       };
     });
-  }, [currentWeek, t]);
+  }, [currentWeek, plan, t]);
 
   // Open all sessions but collapse all exercises on day/week change or initial load
   const [planLoaded, setPlanLoaded] = useState(false);
@@ -682,17 +717,47 @@ export default function TrainingPlanPage() {
                 background: dragOverDay === day.index ? 'var(--accent-bg)' : 'none',
               }}
             >
-              {day.label}
-              {day.badge && (
-                <span
-                  className={cn(
-                    'text-[10px] rounded-full px-[5px] ml-1',
-                    'bg-accent-bg text-accent',
+              <span className="inline-flex flex-col items-center leading-tight">
+                {/* Row 1 — gold workload badge as a small eyebrow. The
+                    `px-2 py-[2px]` padding gives the label breathing room
+                    inside the pill — the previous `px-[5px]` alone read as
+                    cramped because there was no vertical padding. */}
+                {day.badge && (
+                  <span
+                    className={cn(
+                      'text-[10px] rounded-full px-2 py-[2px]',
+                      'bg-accent-bg text-accent',
+                    )}
+                  >
+                    {day.badge}
+                  </span>
+                )}
+                {/* Row 2 — day name + calendar date inline. Dot separator
+                    + date only when the plan has a startDate. The date
+                    adopts the button's stronger color when this tab is
+                    selected so the fontWeight bump (400→500 inherited from
+                    the parent button style) actually reads — leaving the
+                    permanent `text-text3` override hid the weight change
+                    under the lighter color. */}
+                <span className={day.badge ? 'mt-0.5' : undefined}>
+                  {day.label}
+                  {day.dateLabel && (
+                    <>
+                      <span className="text-text4"> · </span>
+                      <span
+                        className={cn(
+                          'tabular-nums',
+                          !weekViewExpanded && day.index === selectedDay
+                            ? 'font-medium'
+                            : 'text-text3',
+                        )}
+                      >
+                        {day.dateLabel}
+                      </span>
+                    </>
                   )}
-                >
-                  {day.badge}
                 </span>
-              )}
+              </span>
             </button>
           ))}
         </div>
@@ -721,13 +786,13 @@ export default function TrainingPlanPage() {
             className="tab-content-transition flex-1 overflow-y-auto"
             style={{ padding: '12px 20px' }}
             onDragOver={(e) => {
-              if (isCurrentWeekFinished) return;
+              if (isCurrentWeekFinished || isSelectedDayInPast) return;
               if (e.dataTransfer.types.includes('application/session-json')) {
                 e.preventDefault();
               }
             }}
             onDrop={(e) => {
-              if (isCurrentWeekFinished) return;
+              if (isCurrentWeekFinished || isSelectedDayInPast) return;
               if (!e.dataTransfer.types.includes('application/session-json')) return;
               e.preventDefault();
               try {
@@ -757,23 +822,29 @@ export default function TrainingPlanPage() {
           >
             {/*
               Inner wrapper carries the read-only styling for finished weeks.
-              `pointer-events-none` is intentionally NOT on the outer scroll
-              container — that would block wheel/touch scrolling. With it on
-              the inner content the scroll container stays interactive while
-              every input/button/click below is dead.
+              `opacity-70` + `select-none` provide the visual cue, but we do
+              NOT block pointer events at the wrapper level — that would also
+              kill the harmless expand/collapse toggles on sessions, workouts,
+              and exercises. The actual edit handlers (drag-drop guards plus
+              the section/exercise edit callbacks elsewhere on this page)
+              short-circuit on `isCurrentWeekFinished`, so data stays
+              read-only while navigation continues to work.
             */}
             <div
               className={cn(
-                isCurrentWeekFinished && 'pointer-events-none opacity-70 select-none',
+                isCurrentWeekFinished && 'opacity-70 select-none',
               )}
               aria-disabled={isCurrentWeekFinished || undefined}
             >
-            {/* Day note */}
+            {/* Day note — read-only when the selected day has already
+                passed (existing text stays visible, "Add note" affordance
+                is hidden). */}
             <DayNoteInput
               note={currentWeek?.dayNotes?.[selectedDay]}
               onChange={(n) => updateDayNote(selectedWeek, selectedDay, n)}
               addLabel={t('training.addDayNote')}
               placeholder={t('training.dayNotePlaceholder')}
+              disabled={isSelectedDayInPast}
             />
 
             {daySessions.length === 0 && (
@@ -785,6 +856,11 @@ export default function TrainingPlanPage() {
             {daySessions.map((session) => {
               const isSessionOpen = !collapsedSessions.has(session.sessionId);
               const isSessionLocked = planLocks.sessionIds.has(session.sessionId);
+              // Combined read-only flag for the session-header action buttons
+              // and the session-notes input — locked sessions (every section
+              // finished by the client) AND any session on a day that has
+              // already passed should reject edits + show the disabled cue.
+              const isSessionReadOnly = isSessionLocked || isSelectedDayInPast;
 
               return (
                 <SessionDragWrapper
@@ -792,6 +868,10 @@ export default function TrainingPlanPage() {
                   sessionId={session.sessionId}
                   selectedDay={selectedDay}
                   selectedWeek={selectedWeek}
+                  // Drag-out + drop-over rejected when this session is
+                  // read-only (finished session OR past day) — reordering
+                  // a historical session has no clinical value.
+                  disabled={isSessionReadOnly}
                 >
                   <div
                     className="rounded-md border border-border bg-bg transition-all duration-100 hover:border-border-md overflow-hidden"
@@ -834,11 +914,11 @@ export default function TrainingPlanPage() {
                         value={session.name}
                         onChange={(e) => updateSessionName(selectedWeek, session.sessionId, e.target.value)}
                         placeholder={t('training.sessionNamePlaceholder')}
-                        readOnly={isSessionLocked}
+                        readOnly={isSessionReadOnly}
                         className={cn(
                           'w-full bg-transparent text-[13px] font-semibold text-text outline-none placeholder:text-text3 rounded-sm',
                           invalidIds.has(session.sessionId) && 'ring-1 ring-red',
-                          isSessionLocked && 'cursor-default',
+                          isSessionReadOnly && 'cursor-default',
                         )}
                         style={{ fontFamily: 'inherit' }}
                       />
@@ -884,12 +964,15 @@ export default function TrainingPlanPage() {
                           isDirty: true,
                         });
                       }}
+                      disabled={isSessionReadOnly}
                       style={{
-                        background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px',
+                        background: 'none', border: 'none',
+                        cursor: isSessionReadOnly ? 'not-allowed' : 'pointer', padding: '2px 4px',
                         fontSize: 11, color: 'var(--text4)', borderRadius: 'var(--radius)',
                         transition: 'color 0.1s',
+                        opacity: isSessionReadOnly ? 0.4 : 1,
                       }}
-                      onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text2)'; }}
+                      onMouseEnter={(e) => { if (!isSessionReadOnly) e.currentTarget.style.color = 'var(--text2)'; }}
                       onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text4)'; }}
                       title={t('training.duplicateSession')}
                     >
@@ -898,12 +981,15 @@ export default function TrainingPlanPage() {
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); removeSession(selectedWeek, session.sessionId); }}
+                      disabled={isSessionReadOnly}
                       style={{
-                        background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px',
+                        background: 'none', border: 'none',
+                        cursor: isSessionReadOnly ? 'not-allowed' : 'pointer', padding: '2px 4px',
                         fontSize: 11, color: 'var(--text4)', borderRadius: 'var(--radius)',
                         transition: 'color 0.1s',
+                        opacity: isSessionReadOnly ? 0.4 : 1,
                       }}
-                      onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--red)'; }}
+                      onMouseEnter={(e) => { if (!isSessionReadOnly) e.currentTarget.style.color = 'var(--red)'; }}
                       onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text4)'; }}
                       title={t('training.removeSession')}
                     >
@@ -914,19 +1000,25 @@ export default function TrainingPlanPage() {
                   {/* Session body — animated collapse */}
                   <div className="collapse-grid" data-open={isSessionOpen}>
                     <div className="collapse-content">
-                      {/* Session note */}
+                      {/* Session note — disabled when the session is locked
+                          (every section finished by the client) or the
+                          selected day has already passed. Visible but read-
+                          only so the trainer can still see the historical
+                          note text. */}
                       <div style={{ padding: '4px 8px 6px' }}>
                         <input
                           type="text"
                           value={session.notes ?? ''}
                           onChange={(e) => updateSessionNotes(selectedWeek, session.sessionId, e.target.value)}
                           placeholder={t('training.sessionNotesPlaceholder')}
+                          disabled={isSessionReadOnly}
                           style={{
                             width: '100%', border: 'none', outline: 'none', background: 'transparent',
                             fontSize: 11, color: 'var(--text3)', fontFamily: 'inherit', fontStyle: 'italic',
                             padding: '2px 4px', borderRadius: 'var(--radius)', transition: 'background 0.1s',
+                            cursor: isSessionReadOnly ? 'not-allowed' : 'text',
                           }}
-                          onFocus={(e) => { e.target.style.background = 'var(--bg-hover)'; }}
+                          onFocus={(e) => { if (!isSessionReadOnly) e.target.style.background = 'var(--bg-hover)'; }}
                           onBlur={(e) => { e.target.style.background = 'transparent'; }}
                         />
                       </div>
@@ -935,13 +1027,13 @@ export default function TrainingPlanPage() {
                       <div
                         className="px-2 pt-1"
                         onDragOver={(e) => {
-                          if (isCurrentWeekFinished) return;
+                          if (isCurrentWeekFinished || isSessionReadOnly) return;
                           if (!e.dataTransfer.types.includes('application/section-json')) return;
                           e.preventDefault();
                           e.dataTransfer.dropEffect = 'move';
                         }}
                         onDrop={(e) => {
-                          if (isCurrentWeekFinished) return;
+                          if (isCurrentWeekFinished || isSessionReadOnly) return;
                           if (!e.dataTransfer.types.includes('application/section-json')) return;
                           e.preventDefault();
                           try {
@@ -986,13 +1078,28 @@ export default function TrainingPlanPage() {
                             key={section.sectionId}
                             sessionId={session.sessionId}
                             sectionId={section.sectionId}
+                            // Drag-out + drop-over are both rejected when
+                            // the host session is read-only (finished
+                            // session OR past day) — reordering historical
+                            // workouts has no clinical value.
+                            disabled={isSessionReadOnly}
                           >
                           <SectionCard
                             section={section}
                             isExpanded={!collapsedSections.has(section.sectionId)}
                             onToggleExpanded={() => toggleSection(section.sectionId)}
                             hasError={invalidIds.has(section.sectionId)}
-                            isSectionLocked={planLocks.sectionIds.has(section.sectionId)}
+                            isSectionLocked={
+                              // A section's inputs are read-only when any of:
+                              //   - the section itself is finished by the client
+                              //   - the whole session is finished (every section
+                              //     locked) — adding/editing on a wrapped-up
+                              //     session has no clinical value
+                              //   - the selected day has already passed
+                              planLocks.sectionIds.has(section.sectionId) ||
+                              planLocks.sessionIds.has(session.sessionId) ||
+                              isSelectedDayInPast
+                            }
                             lockedExerciseIds={new Set(
                               section.exercises
                                 .filter((ex) =>
@@ -1056,33 +1163,37 @@ export default function TrainingPlanPage() {
                         ))}
                       </div>
 
-                      {/* Add section affordances:
-                          • Plain "Vytvořit novou sekci" button (always visible)
-                          • Typeahead search to load from a saved SectionTemplate (only when at least one exists) */}
-                      <div className="flex items-center gap-3 px-3 py-2 border-t border-border">
-                        <button
-                          type="button"
-                          onClick={() => addSection(selectedWeek, session.sessionId, 'Standard')}
-                          className="flex items-center gap-1 text-[11px] text-text3 transition-colors hover:text-text whitespace-nowrap"
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
-                        >
-                          <span>+</span>
-                          <span>{t('training.section.create')}</span>
-                        </button>
-                        {sectionTemplates.length > 0 && (
-                          <>
-                            <span className="text-text4 text-[10px]">·</span>
-                            <div className="flex-1 min-w-[180px]">
-                              <SectionTemplateSearch
-                                templates={sectionTemplates}
-                                onSelect={(tpl) =>
-                                  addSectionFromTemplate(selectedWeek, session.sessionId, tpl)
-                                }
-                              />
-                            </div>
-                          </>
-                        )}
-                      </div>
+                      {/* Add section affordances — hidden entirely when the
+                          session is locked (every section in it is finished
+                          by the client) OR the day already passed. Adding
+                          new workouts to a completed session — or to any
+                          historical day — has no clinical value. */}
+                      {!isSessionReadOnly && (
+                        <div className="flex items-center gap-3 px-3 py-2 border-t border-border">
+                          <button
+                            type="button"
+                            onClick={() => addSection(selectedWeek, session.sessionId, 'Standard')}
+                            className="flex items-center gap-1 text-[11px] text-text3 transition-colors hover:text-text whitespace-nowrap"
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+                          >
+                            <span>+</span>
+                            <span>{t('training.section.create')}</span>
+                          </button>
+                          {sectionTemplates.length > 0 && (
+                            <>
+                              <span className="text-text4 text-[10px]">·</span>
+                              <div className="flex-1 min-w-[180px]">
+                                <SectionTemplateSearch
+                                  templates={sectionTemplates}
+                                  onSelect={(tpl) =>
+                                    addSectionFromTemplate(selectedWeek, session.sessionId, tpl)
+                                  }
+                                />
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                   </div>
@@ -1090,15 +1201,19 @@ export default function TrainingPlanPage() {
               );
             })}
 
-            {/* Add session — creates an unnamed session immediately;
-                user can rename it inline via the session-header input. */}
-            <div
-              className="flex items-center gap-1.5 px-3 py-2 mt-2 border border-dashed border-border rounded-md cursor-pointer text-text3 text-[13px] transition-colors hover:bg-bg-hover hover:text-text"
-              onClick={() => addSession(selectedWeek, selectedDay, '')}
-            >
-              <span>+</span>
-              <span>{t('training.addSessionButton')}</span>
-            </div>
+            {/* Add session — creates an unnamed session immediately; user
+                can rename it inline via the session-header input. Hidden when
+                the selected day is in the past so trainers can't attach a
+                brand-new session to a date that has already happened. */}
+            {!isSelectedDayInPast && (
+              <div
+                className="flex items-center gap-1.5 px-3 py-2 mt-2 border border-dashed border-border rounded-md cursor-pointer text-text3 text-[13px] transition-colors hover:bg-bg-hover hover:text-text"
+                onClick={() => addSession(selectedWeek, selectedDay, '')}
+              >
+                <span>+</span>
+                <span>{t('training.addSessionButton')}</span>
+              </div>
+            )}
             </div>
           </div>
         </div>

@@ -61,7 +61,11 @@ import { SectionHeader } from '@/components/training/SectionHeader'
 import { ExpandableExerciseCard } from '@/components/training/ExpandableExerciseCard'
 import { SetGrid } from '@/components/training/SetGrid'
 import { AnimatedCollapse } from '@/components/training/AnimatedCollapse'
-import { estimatedSectionDurationSeconds, formatDurationCompact } from '@/lib/training-plan-format'
+import {
+  estimatedSectionDurationSeconds,
+  formatDurationCompact,
+  formatExerciseSummary,
+} from '@/lib/training-plan-format'
 import { getMuscleGroupColor } from '@/constants/muscleGroups'
 
 import { useLiveSessionStore } from '@/stores/liveSessionStore'
@@ -745,7 +749,6 @@ function RoundsList({ sectionExercises, totalRounds, currentRound }: RoundsListP
         // Exercise rotates through the section exercises list each round.
         const exercise = sectionExercises[(i) % sectionExercises.length]
         const firstSet = exercise?.sets?.[0]
-        const isBodyweight = (firstSet?.weightKg ?? 0) === 0
 
         const isDone = currentRound > roundNumber
         const isActive = currentRound === roundNumber
@@ -803,12 +806,20 @@ function RoundsList({ sectionExercises, totalRounds, currentRound }: RoundsListP
               </Text>
             </View>
 
-            {/* Right: reps × weight prescription */}
+            {/* Right: prescription summary — uses the shared formatter so
+                Time, Distance, RepsForTime all render correctly (the
+                older `${reps} × ${weight} kg` template silently dropped
+                duration/distance fields). `isWod=true` so the helper
+                drops the `{setCount}×` prefix (a WOD exercise stores a
+                single row that holds the round prescription). */}
             <View style={setsListStyles.rightWrap}>
-              {firstSet != null ? (
+              {firstSet != null && exercise != null ? (
                 <Text style={[setsListStyles.plannedText, { color: colors.label2 }]}>
-                  {firstSet.reps} ×{' '}
-                  {isBodyweight ? t('training.live.bw') : `${firstSet.weightKg ?? 0} kg`}
+                  {formatExerciseSummary(
+                    exercise.sets ?? [],
+                    (exercise as unknown as { movementType?: import('@/api/training').MovementType }).movementType,
+                    true,
+                  )}
                 </Text>
               ) : null}
             </View>
@@ -843,6 +854,17 @@ interface RoadmapPillsProps {
   amrapElapsedSeconds?: number
   /** Total time cap in seconds for the AMRAP timer. */
   amrapTimeCapSeconds?: number
+  /** ForTime mode (with per-exercise `durationSeconds`): each pill
+   *  represents one exercise's time slot. Progress bar tracks
+   *  cumulative elapsed / total prescribed duration. */
+  forTimeMode?: boolean
+  /** 0-based active exercise idx; equals `exercises.length` once every
+   *  slot has elapsed (all done). */
+  forTimeActiveIdx?: number
+  /** Sum of every exercise's prescribed `durationSeconds`. */
+  forTimeTotalDuration?: number
+  /** Cumulative elapsed seconds since the workout started (excludes prep). */
+  forTimeElapsedSeconds?: number
 }
 
 function RoadmapPills({
@@ -856,6 +878,10 @@ function RoadmapPills({
   amrapMode,
   amrapElapsedSeconds,
   amrapTimeCapSeconds,
+  forTimeMode,
+  forTimeActiveIdx,
+  forTimeTotalDuration,
+  forTimeElapsedSeconds,
 }: RoadmapPillsProps) {
   const colors = useTheme()
 
@@ -879,15 +905,18 @@ function RoadmapPills({
     return exercises.reduce((sum, ex) => sum + (ex.sets?.length ?? 0), 0)
   }, [wodMode, wodTotal, exercises])
 
-  // AMRAP progress bar tracks elapsed-time / time-cap; WOD + standard fall
-  // back to the round / set ratio.
+  // AMRAP progress bar tracks elapsed-time / time-cap; ForTime (with
+  // per-exercise durations) tracks cumulative-elapsed / total-prescribed-
+  // duration; WOD + standard fall back to the round / set ratio.
   const pct = amrapMode
     ? amrapTimeCapSeconds && amrapTimeCapSeconds > 0
       ? Math.min(1, (amrapElapsedSeconds ?? 0) / amrapTimeCapSeconds)
       : 0
-    : totalSets > 0
-      ? totalDone / totalSets
-      : 0
+    : forTimeMode && forTimeTotalDuration && forTimeTotalDuration > 0
+      ? Math.min(1, (forTimeElapsedSeconds ?? 0) / forTimeTotalDuration)
+      : totalSets > 0
+        ? totalDone / totalSets
+        : 0
 
   // Round → exercise index mapping (round r belongs to exercise (r-1) % numEx).
   // No "active" pill once every round is done (wodCurrent > wodTotal). The
@@ -933,6 +962,12 @@ function RoadmapPills({
               i < completedRounds
                 ? Math.floor((completedRounds - 1 - i) / numEx) + 1
                 : 0
+          } else if (forTimeMode) {
+            // ForTime time-based mode: each pill is a single time slot
+            // (one "unit"); slots strictly before the active one are
+            // marked done.
+            total = 1
+            done = (forTimeActiveIdx ?? 0) > i ? 1 : 0
           } else {
             done = completedSets[exId]?.length ?? 0
             total = ex.sets?.length ?? 0
@@ -944,7 +979,9 @@ function RoadmapPills({
             ? false
             : wodMode
               ? i === wodActiveIdx
-              : i === currentExerciseIdx
+              : forTimeMode
+                ? i === forTimeActiveIdx
+                : i === currentExerciseIdx
           const isFull = !amrapMode && done === total && total > 0
           const amrapReps = amrapMode ? (ex.sets?.[0]?.reps ?? 0) : 0
 
@@ -1214,17 +1251,14 @@ function PreStart({ sessionName, sections, exerciseMuscleGroups, onStart }: PreS
                   const exId = exercise.exerciseExternalId ?? null
                   const sets = exercise.sets ?? []
 
-                  // Summary text: Standard → "N série · M opak · K kg"
-                  //               WOD     → "M opak · K kg" (no series count)
-                  const setCount = sets.length
-                  const firstReps = sets[0]?.reps
-                  const firstWeight = sets[0]?.weightKg
-                  const exSummaryParts: string[] = []
-                  if (!sectionIsWod) {
-                    exSummaryParts.push(`${setCount} ${t('training.set').toLowerCase()}`)
-                  }
-                  if (firstReps != null) exSummaryParts.push(`${firstReps} ${t('training.reps').toLowerCase()}`)
-                  if (firstWeight != null) exSummaryParts.push(`${firstWeight} kg`)
+                  // Movement-type-aware summary via the shared helper —
+                  // same string the Today card, plan-detail, and trainer
+                  // portal render.
+                  const exSummary = formatExerciseSummary(
+                    sets,
+                    (exercise as unknown as { movementType?: import('@/api/training').MovementType }).movementType,
+                    sectionIsWod,
+                  )
 
                   // Dot color: first muscle group, fall back to brand gold.
                   const exMuscleGroups = exId != null ? (exerciseMuscleGroups[exId] ?? []) : []
@@ -1237,7 +1271,7 @@ function PreStart({ sessionName, sections, exerciseMuscleGroups, onStart }: PreS
                     <ExpandableExerciseCard
                       key={exId ?? exIdx}
                       name={exercise.exerciseName ?? ''}
-                      summaryText={exSummaryParts.join(' · ')}
+                      summaryText={exSummary}
                       dotColor={dotColor}
                       // Pre-start: nothing is completed yet.
                       isCompleted={false}
@@ -2076,6 +2110,43 @@ export default function WorkoutLogScreen() {
    */
   const [amrapRounds, setAmrapRounds] = useState(0)
 
+  /**
+   * ForTime-with-timed-exercises progression: when the active section is
+   * ForTime AND every exercise carries a `durationSeconds`, derive which
+   * exercise the cumulative elapsed time has reached. Drives the
+   * RoadmapPills active/done state AND the in-card ForTime exercise list
+   * highlighting so the user sees auto-advance as the timer ticks past
+   * each exercise's slot.
+   *
+   * `activeIdx` semantics:
+   *   - 0..N-1 → that exercise is currently in its time slot
+   *   - N       → every exercise has elapsed (workout complete by time)
+   *
+   * Returns `null` when the section isn't ForTime, has no exercises, or
+   * none of them carry a duration (classic "race to finish" ForTime
+   * keeps its original behaviour — no auto-advance).
+   */
+  const forTimeProgress = useMemo(() => {
+    const activeSec = sections[currentSectionIdx ?? 0]
+    const fmt = activeSec?.format ?? null
+    if (fmt !== 'ForTime') return null
+    const exs = activeSec?.exercises ?? []
+    if (exs.length === 0) return null
+    const durations = exs.map((ex) => ex.sets?.[0]?.durationSeconds ?? 0)
+    const totalDuration = durations.reduce((a, b) => a + b, 0)
+    if (totalDuration === 0) return null
+    let cum = 0
+    let activeIdx = exs.length // default = all done
+    for (let i = 0; i < durations.length; i++) {
+      cum += durations[i]
+      if (amrapElapsed < cum) {
+        activeIdx = i
+        break
+      }
+    }
+    return { activeIdx, totalDuration, elapsed: amrapElapsed }
+  }, [sections, currentSectionIdx, amrapElapsed])
+
   // ── Local form state (reps / weight steppers) ──
   const [formReps, setFormReps] = useState(0)
   const [formWeight, setFormWeight] = useState(0)
@@ -2892,6 +2963,10 @@ export default function WorkoutLogScreen() {
             amrapMode={isAmrap && amrapTimeCap > 0}
             amrapElapsedSeconds={amrapElapsed}
             amrapTimeCapSeconds={amrapTimeCap}
+            forTimeMode={sectionFormat === 'ForTime' && forTimeProgress != null}
+            forTimeActiveIdx={forTimeProgress?.activeIdx}
+            forTimeTotalDuration={forTimeProgress?.totalDuration}
+            forTimeElapsedSeconds={amrapElapsed}
           />
         )
       })()}
@@ -3244,12 +3319,15 @@ export default function WorkoutLogScreen() {
                               )}
                             </View>
                             <View style={setsListStyles.rightWrap}>
-                              {reps > 0 ? (
+                              {firstSet != null ? (
                                 <Text
                                   style={[setsListStyles.plannedText, { color: colors.label2 }]}
                                 >
-                                  {reps} ×{' '}
-                                  {isBodyweight ? t('training.live.bw') : `${weightKg} kg`}
+                                  {formatExerciseSummary(
+                                    ex.sets ?? [],
+                                    (ex as unknown as { movementType?: import('@/api/training').MovementType }).movementType,
+                                    true,
+                                  )}
                                 </Text>
                               ) : null}
                             </View>
@@ -3281,9 +3359,16 @@ export default function WorkoutLogScreen() {
                     >
                       {forTimeExercises.map((ex, i) => {
                         const firstSet = ex.sets?.[0]
-                        const reps = firstSet?.reps ?? 0
-                        const weightKg = firstSet?.weightKg ?? 0
-                        const isBodyweight = weightKg === 0
+                        // Auto-progression based on cumulative elapsed
+                        // time when every exercise carries a
+                        // `durationSeconds` (computed at component
+                        // level into `forTimeProgress`). Rows before
+                        // the active idx are marked done (green badge
+                        // + ✓), the active row gets the gold accent,
+                        // pending rows stay neutral.
+                        const ftActiveIdx = forTimeProgress?.activeIdx ?? -1
+                        const isFtDone = ftActiveIdx > i
+                        const isFtActive = ftActiveIdx === i
                         return (
                           <View
                             key={ex.exerciseExternalId ?? `ex-${i}`}
@@ -3293,35 +3378,58 @@ export default function WorkoutLogScreen() {
                                 borderBottomWidth: StyleSheet.hairlineWidth,
                                 borderBottomColor: colors.sep2,
                               },
+                              { opacity: isFtDone || isFtActive ? 1 : 0.72 },
                             ]}
                           >
                             <View
                               style={[
                                 setsListStyles.badge,
-                                { backgroundColor: colors.fill, borderColor: colors.sep },
+                                isFtDone
+                                  ? { backgroundColor: colors.green + '14', borderColor: colors.green }
+                                  : isFtActive
+                                    ? { backgroundColor: colors.fill, borderColor: colors.gold }
+                                    : { backgroundColor: colors.fill, borderColor: colors.sep },
                               ]}
                             >
                               <Text
-                                style={[setsListStyles.badgeText, { color: colors.label2 }]}
+                                style={[
+                                  setsListStyles.badgeText,
+                                  {
+                                    color: isFtDone
+                                      ? colors.green
+                                      : isFtActive
+                                        ? colors.gold
+                                        : colors.label2,
+                                  },
+                                ]}
                               >
-                                {String(i + 1)}
+                                {isFtDone ? '✓' : String(i + 1)}
                               </Text>
                             </View>
                             <View style={setsListStyles.labelWrap}>
                               <Text
-                                style={[setsListStyles.setLabel, { color: colors.label }]}
+                                style={[
+                                  setsListStyles.setLabel,
+                                  {
+                                    color: colors.label,
+                                    fontWeight: isFtActive ? '600' : '400',
+                                  },
+                                ]}
                                 numberOfLines={1}
                               >
                                 {ex.exerciseName ?? `#${i + 1}`}
                               </Text>
                             </View>
                             <View style={setsListStyles.rightWrap}>
-                              {reps > 0 ? (
+                              {firstSet != null ? (
                                 <Text
                                   style={[setsListStyles.plannedText, { color: colors.label2 }]}
                                 >
-                                  {reps} ×{' '}
-                                  {isBodyweight ? t('training.live.bw') : `${weightKg} kg`}
+                                  {formatExerciseSummary(
+                                    ex.sets ?? [],
+                                    (ex as unknown as { movementType?: import('@/api/training').MovementType }).movementType,
+                                    true,
+                                  )}
                                 </Text>
                               ) : null}
                             </View>

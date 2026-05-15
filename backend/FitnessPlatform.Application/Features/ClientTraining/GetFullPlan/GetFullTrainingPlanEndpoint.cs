@@ -280,6 +280,7 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
                                 Reps = set.Reps,
                                 WeightKg = set.WeightKg,
                                 DurationSeconds = set.DurationSeconds,
+                                DistanceMeters = set.DistanceMeters,
                                 RestSeconds = set.RestSeconds,
                                 CompletedAt = completedAt == default ? null : completedAt
                             };
@@ -295,6 +296,10 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
                             Order = ex.Order,
                             Notes = ex.Notes,
                             RestSeconds = ex.RestSeconds,
+                            // Surface the movement type so the client can
+                            // pick the right summary template (reps /
+                            // duration / distance / reps-for-time).
+                            MovementType = ex.MovementType.ToString(),
                             MuscleGroups = muscleGroups,
                             IsCompleted = isCompleted,
                             Sets = setDtos

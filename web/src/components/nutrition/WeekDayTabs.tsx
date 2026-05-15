@@ -15,6 +15,12 @@ export interface WeekTabData {
    * Renders the green check icon. Takes precedence over `isPublished`.
    */
   isFinished?: boolean;
+  /**
+   * Optional date range for this week (e.g. "11.5. – 17.5."). Rendered as
+   * a quiet second line under the label. Pass `null` / leave undefined to
+   * skip the second row entirely (e.g. plans without a startDate).
+   */
+  dateLabel?: string | null;
 }
 
 export interface DayTabData {
@@ -127,29 +133,65 @@ export function WeekDayTabs({
                 <button
                   type="button"
                   onClick={() => onWeekChange(week.index)}
-                  style={{ justifyContent: 'center', width: '100%' }}
+                  style={{
+                    justifyContent: 'center',
+                    width: '100%',
+                    // Inline fontWeight at 600 (semibold) on active. 500
+                    // was not producing a visible weight change at 12 px
+                    // for the label "Týden N" — bumped to 600 so the
+                    // selected week visibly stands out, matching the
+                    // bolding the user sees on the day tab.
+                    fontWeight: active ? 600 : 400,
+                  }}
                   className={cn(
-                    'py-[7px] text-xs text-text3 cursor-pointer border-b-2 border-transparent -mb-px whitespace-nowrap transition-colors flex items-center gap-[5px] hover:text-text',
-                    active && 'text-text border-b-text font-medium',
+                    // Color is now mutually exclusive (`text-text` for
+                    // active, `text-text3` otherwise) instead of layered.
+                    // Tailwind generates `text-text3` AFTER `text-text` in
+                    // the CSS bundle (alphabetical order), so the previous
+                    // `text-text3` + `active && 'text-text'` pattern lost
+                    // the specificity battle and the active week never
+                    // darkened — only `hover:text-text` worked because
+                    // pseudo-classes beat plain class selectors.
+                    'py-[7px] text-xs cursor-pointer border-b-2 border-transparent -mb-px whitespace-nowrap transition-colors flex flex-col items-center leading-tight hover:text-text',
+                    active ? 'text-text border-b-text' : 'text-text3',
                   )}
                 >
-                  <span className="text-[11px]">📅</span>
-                  {week.label}
-                  {week.isFinished ? (
+                  {/* Row 1 — calendar icon + week label + status badge.
+                      Wrapper inherits fontWeight from the button. Status
+                      badges carry explicit `font-normal` so the cascading
+                      weight doesn't bold their tiny icons. */}
+                  <span className="flex items-center gap-[5px]">
+                    <span className="text-[11px] font-normal">📅</span>
+                    {week.label}
+                    {week.isFinished ? (
+                      <span
+                        className="text-[10px] rounded-full px-[5px] bg-green-bg text-green font-normal"
+                        title="Týden byl ukončen"
+                      >
+                        ✓
+                      </span>
+                    ) : week.isPublished ? (
+                      <span
+                        className="text-[10px] rounded-full px-[5px] bg-orange-bg text-orange font-normal"
+                        title="Týden je publikován a stále upravitelný"
+                      >
+                        ⏳
+                      </span>
+                    ) : null}
+                  </span>
+                  {/* Row 2 — date range (Mon–Sun), only when the plan
+                      provides a `dateLabel`. Inherits the button's
+                      fontWeight so it bolds with the rest when active. */}
+                  {week.dateLabel && (
                     <span
-                      className="text-[10px] rounded-full px-[5px] bg-green-bg text-green"
-                      title="Týden byl ukončen"
+                      className={cn(
+                        'text-[10px] tabular-nums mt-0.5',
+                        !active && 'text-text4',
+                      )}
                     >
-                      ✓
+                      {week.dateLabel}
                     </span>
-                  ) : week.isPublished ? (
-                    <span
-                      className="text-[10px] rounded-full px-[5px] bg-orange-bg text-orange"
-                      title="Týden je publikován a stále upravitelný"
-                    >
-                      ⏳
-                    </span>
-                  ) : null}
+                  )}
                 </button>
                 {onRemoveWeek && weeks.length > 1 && !week.isPublished && !week.isFinished && (
                   <button
@@ -204,8 +246,10 @@ export function WeekDayTabs({
               type="button"
               onClick={() => onDayChange(day.index)}
               className={cn(
-                'px-2.5 py-[7px] text-xs text-text3 cursor-pointer border-b-2 border-transparent -mb-px whitespace-nowrap text-center hover:text-text',
-                active && 'text-text border-b-text font-medium',
+                // Same fix as the week tab above — make color mutually
+                // exclusive so the active class actually overrides.
+                'px-2.5 py-[7px] text-xs cursor-pointer border-b-2 border-transparent -mb-px whitespace-nowrap text-center hover:text-text',
+                active ? 'text-text border-b-text font-medium' : 'text-text3',
               )}
             >
               {day.label}

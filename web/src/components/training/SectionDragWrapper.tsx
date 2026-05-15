@@ -4,6 +4,10 @@ interface SectionDragWrapperProps {
   sessionId: string;
   sectionId: string;
   children: React.ReactNode;
+  /** When true, drag-out and drop-over are both rejected — the section
+   *  can't be reordered out of, and another section can't be dropped in
+   *  front of it. Use for read-only views (finished session, past day). */
+  disabled?: boolean;
 }
 
 /**
@@ -17,14 +21,14 @@ interface SectionDragWrapperProps {
  * shows a top-border indicator when another section is being dragged over it.
  */
 export function SectionDragWrapper({
-  sessionId, sectionId, children,
+  sessionId, sectionId, children, disabled,
 }: SectionDragWrapperProps) {
   const [over, setOver] = useState(false);
 
   return (
     <div
-      draggable
-      onDragStart={(e) => {
+      draggable={!disabled}
+      onDragStart={disabled ? undefined : (e) => {
         e.dataTransfer.setData(
           'application/section-json',
           JSON.stringify({ type: 'section', sessionId, sectionId }),
@@ -49,6 +53,7 @@ export function SectionDragWrapper({
         }
       }}
       onDragOver={(e) => {
+        if (disabled) return;
         if (!e.dataTransfer.types.includes('application/section-json')) return;
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';

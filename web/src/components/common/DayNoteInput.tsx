@@ -5,9 +5,13 @@ interface DayNoteInputProps {
   onChange: (note: string) => void;
   addLabel: string;
   placeholder: string;
+  /** When true, the "Add note" affordance is hidden (no value to display)
+   *  and the editing input — when a note already exists — becomes read-only
+   *  with a not-allowed cursor. Use for past-day / locked views. */
+  disabled?: boolean;
 }
 
-export function DayNoteInput({ note, onChange, addLabel, placeholder }: DayNoteInputProps) {
+export function DayNoteInput({ note, onChange, addLabel, placeholder, disabled }: DayNoteInputProps) {
   const [value, setValue] = useState(note ?? '');
   const [open, setOpen] = useState(!!note);
   const [trackedNote, setTrackedNote] = useState(note);
@@ -19,6 +23,10 @@ export function DayNoteInput({ note, onChange, addLabel, placeholder }: DayNoteI
   }
 
   if (!open) {
+    // Hide the "Add note" button entirely on disabled days — there's no
+    // existing text to display and the user shouldn't be able to attach a
+    // new note to a past / locked day.
+    if (disabled) return null;
     return (
       <button
         type="button"
@@ -43,13 +51,15 @@ export function DayNoteInput({ note, onChange, addLabel, placeholder }: DayNoteI
         onChange={(e) => setValue(e.target.value)}
         onBlur={() => onChange(value)}
         placeholder={placeholder}
+        disabled={disabled}
         style={{
           width: '100%', border: '1px dashed var(--border-md)', outline: 'none',
           background: 'transparent', fontSize: 12, color: 'var(--text2)',
           fontFamily: 'inherit', fontStyle: 'italic', padding: '5px 8px',
           borderRadius: 'var(--radius-md)', transition: 'border-color 0.15s',
+          cursor: disabled ? 'not-allowed' : 'text',
         }}
-        onFocus={(e) => { e.target.style.borderColor = 'var(--accent-br)'; }}
+        onFocus={(e) => { if (!disabled) e.target.style.borderColor = 'var(--accent-br)'; }}
         onBlurCapture={(e) => { e.target.style.borderColor = 'var(--border-md)'; }}
       />
     </div>

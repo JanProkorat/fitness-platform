@@ -56,6 +56,7 @@ import {
 import {
   estimatedSectionDurationSeconds,
   formatDurationCompact,
+  formatExerciseSummary,
 } from '@/lib/training-plan-format'
 import { hrefParams } from '@/lib/navigation'
 import { DaySummaryHero, type BodyPartEntry } from '@/components/training/DaySummaryHero'
@@ -1420,19 +1421,17 @@ function TrainingPlanDetail({ plan }: { plan: GetFullTrainingPlanResponse }) {
                                 const exId = exercise.exerciseExternalId ?? null
 
                                 const sets = exercise.sets ?? []
-                                const setCount = sets.length
-                                const firstReps = sets[0]?.reps
-                                const firstWeight = sets[0]?.weightKg
-                                const exSummaryParts: string[] = []
-                                if (!isWodFormat) {
-                                  exSummaryParts.push(`${setCount} ${t('training.set').toLowerCase()}`)
-                                }
-                                if (firstReps != null) {
-                                  exSummaryParts.push(`${firstReps} ${t('training.reps').toLowerCase()}`)
-                                }
-                                if (firstWeight != null) {
-                                  exSummaryParts.push(`${firstWeight} kg`)
-                                }
+                                // Single source of truth — same helper used
+                                // by the Today card and the trainer portal.
+                                // Handles Reps / Time / Distance /
+                                // RepsForTime + "BW" fallback for unset
+                                // weight + duration formatting (`900 s` →
+                                // `15 min`).
+                                const exSummary = formatExerciseSummary(
+                                  sets,
+                                  (exercise as unknown as { movementType?: import('@/api/training').MovementType }).movementType,
+                                  isWodFormat,
+                                )
 
                                 // Dot color: first muscle group, fall back to gold
                                 const primaryMg = (exercise.muscleGroups ?? [])[0]
@@ -1445,7 +1444,7 @@ function TrainingPlanDetail({ plan }: { plan: GetFullTrainingPlanResponse }) {
                                   <ExpandableExerciseCard
                                     key={exId ?? exIdx}
                                     name={exercise.exerciseName ?? ''}
-                                    summaryText={exSummaryParts.join(' · ')}
+                                    summaryText={exSummary}
                                     dotColor={dotColor}
                                     isCompleted={exercise.isCompleted ?? false}
                                     defaultExpanded={true}

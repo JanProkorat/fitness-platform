@@ -1218,11 +1218,31 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
                 );
               }
             } else if (sec.format !== 'Tabata') {
-              // EMOM / AMRAP / ForTime — first set's reps required.
-              if (ex.sets[0].reps == null) {
+              // EMOM / AMRAP / ForTime — first set's prescription field
+              // required, and which field that is depends on the
+              // exercise's movement type:
+              //   Reps / RepsForTime / undefined → reps
+              //   Time                           → durationSeconds
+              //   Distance                       → distanceMeters
+              // Weight is always optional regardless of movement type.
+              const firstSet = ex.sets[0];
+              const mt = ex.movementType;
+              let missing = false;
+              let missingKey = 'training.validation.exerciseRepsMissing';
+              if (mt === 'Time') {
+                missing = firstSet.durationSeconds == null;
+                missingKey = 'training.validation.exerciseDurationMissing';
+              } else if (mt === 'Distance') {
+                missing = firstSet.distanceMeters == null;
+                missingKey = 'training.validation.exerciseDistanceMissing';
+              } else {
+                // Reps / RepsForTime / null / undefined
+                missing = firstSet.reps == null;
+              }
+              if (missing) {
                 invalidIds.add(sec.sectionId);
                 issues.push(
-                  i18n.t('training.validation.exerciseRepsMissing', {
+                  i18n.t(missingKey, {
                     workout: workoutLabel,
                     exercise: exerciseLabel,
                   }),

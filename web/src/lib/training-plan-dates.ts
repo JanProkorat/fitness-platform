@@ -45,6 +45,31 @@ export function isWeekFinished(
 }
 
 /**
+ * Returns `true` when the calendar date that corresponds to (`weekNumber`,
+ * `dayOfWeek`) inside this plan is strictly before today (start-of-day
+ * boundary). Plans without a `startDate` always return `false` — no date
+ * math is possible.
+ *
+ * Uses `dayOfWeek` in the app's `1=Mon..7=Sun` convention so the math
+ * matches `weekStartDate` (Monday = day 1).
+ */
+export function isDayInPast(
+  plan: TrainingPlanDetail,
+  weekNumber: number,
+  dayOfWeek: number,
+  now: Date = new Date(),
+): boolean {
+  const weekStart = weekStartDate(plan, weekNumber);
+  if (!weekStart) return false;
+  const dayStart = new Date(weekStart);
+  dayStart.setDate(weekStart.getDate() + (dayOfWeek - 1));
+  dayStart.setHours(0, 0, 0, 0);
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
+  return todayStart.getTime() > dayStart.getTime();
+}
+
+/**
  * Returns today's day-of-week in the app's `1=Mon..7=Sun` convention IF today
  * falls inside the given week of the plan, else `null`. Plans without a
  * `startDate` always return `null`.

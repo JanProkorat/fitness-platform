@@ -30,7 +30,13 @@ export function WeekOverviewGrid({
 
   return (
     <div
-      className="absolute left-0 right-0 top-full z-50 border-b border-border bg-bg"
+      // `max-h-[calc(100vh-200px)]` + `overflow-y-auto` so a tall week
+      // (lots of sessions per day) is internally scrollable instead of
+      // spilling below the viewport with no way to reach the bottom.
+      // The 200px subtracts the top app chrome (header + plan tabs +
+      // week tabs row) so the dropdown is bounded by the visible
+      // browser height it actually has access to.
+      className="absolute left-0 right-0 top-full z-50 border-b border-border bg-bg max-h-[calc(100vh-200px)] overflow-y-auto"
       style={{ boxShadow: '0 8px 24px rgba(0,0,0,0.1)' }}
     >
       <div className="grid grid-cols-7 gap-0">
