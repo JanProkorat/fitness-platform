@@ -83,7 +83,24 @@ for (const { role, email, storageStatePath, expectedUrl } of ROLES) {
     // Confirm we are NOT on the login page (belt-and-suspenders)
     await expect(page).not.toHaveURL('**/login');
 
-    // Persist the authenticated browser context (localStorage + cookies)
+    // Warm up the auth-store: App.tsx calls restoreSession() in a useEffect on
+    // every mount. Because restorePromise is null after a login (the pre-login
+    // no-op call already resolved), restoreSession re-runs on the post-login
+    // page and calls POST /auth/refresh. Waiting for networkidle ensures this
+    // round-trip completes and the updated refreshToken is written to
+    // localStorage BEFORE we snapshot the storageState.
+    //
+    // Without this wait the storageState sometimes captures the original
+    // refreshToken (from the /auth/login response) before the /auth/refresh
+    // response has rotated it. The spec contexts then start with a stale token
+    // and the first restoreSession call in the spec may fail if the original
+    // token was already consumed.
+    await page.waitForLoadState('networkidle', { timeout: 30_000 });
+
+    // Persist the authenticated browser context (localStorage + cookies).
+    // At this point localStorage contains the refreshToken written by the
+    // /auth/refresh response (the most recent rotation), which the spec
+    // contexts will use to bootstrap their own restoreSession calls.
     await page.context().storageState({ path: storageStatePath });
     console.log(`[auth-setup] Saved ${role} storage state to ${storageStatePath}`);
   });

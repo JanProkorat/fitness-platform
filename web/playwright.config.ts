@@ -66,9 +66,17 @@ export default defineConfig({
     },
 
     // ─── Trainer-scoped specs ─────────────────────────────────────────────────
+    // Picks up only tests/e2e/trainer/**. Add new trainer-role specs there so
+    // they are never duplicated by the client or nutritionist projects.
+    // Each spec should call page.waitForLoadState('networkidle') after
+    // page.goto('/dashboard') to let the auth-store's restoreSession()
+    // (POST /auth/refresh on mount) complete before asserting page content.
+    // The globalSetup calls POST /test/reset before this project runs, so
+    // the DB is at the deterministic QA seed baseline.
     {
       name: 'trainer',
       dependencies: ['setup'],
+      testMatch: /trainer\/.+\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
         storageState: '.auth/trainer.json',
@@ -76,9 +84,11 @@ export default defineConfig({
     },
 
     // ─── Client-scoped specs ──────────────────────────────────────────────────
+    // Picks up only tests/e2e/client/**. Add new client-role specs there.
     {
       name: 'client',
       dependencies: ['setup'],
+      testMatch: /client\/.+\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
         storageState: '.auth/client.json',
@@ -86,9 +96,11 @@ export default defineConfig({
     },
 
     // ─── Nutritionist-scoped specs ────────────────────────────────────────────
+    // Picks up only tests/e2e/nutritionist/**. Add new nutritionist-role specs there.
     {
       name: 'nutritionist',
       dependencies: ['setup'],
+      testMatch: /nutritionist\/.+\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
         storageState: '.auth/nutritionist.json',

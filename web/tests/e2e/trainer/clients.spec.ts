@@ -1,7 +1,15 @@
 /**
  * Durable spec — trainer clients list (issue #268).
  *
- * Uses storageState=.auth/trainer.json so the login form is bypassed.
+ * This file lives under tests/e2e/trainer/ and is picked up ONLY by the
+ * `trainer` project in playwright.config.ts (via testMatch). The project
+ * already sets storageState: '.auth/trainer.json', so there is no need for
+ * an in-file test.use({ storageState: ... }) override — that would cause the
+ * spec to run once per project (trainer + client + nutritionist = 3×), which
+ * is wasteful and incorrect.
+ *
+ * Uses the pre-authenticated trainer storage state (set by the `trainer`
+ * project in playwright.config.ts) so the login form is bypassed.
  * Hits the REAL compose harness at E2E_API_URL (default: https://localhost:5101).
  * No page.route() mocks — all requests go to the live seeded backend.
  *
@@ -9,6 +17,11 @@
  * this suite runs, so the DB starts from the deterministic QA fixture:
  *   qa.trainer@fitnessplatform.test — is the logged-in user
  *   qa.client@fitnessplatform.test  — is the one seeded client linked to the trainer
+ *
+ * Auth warm-up: after storageState is restored, the app calls restoreSession()
+ * (POST /auth/refresh) on mount. Each test navigates to /dashboard and waits
+ * for networkidle before making assertions, ensuring the auth-store is fully
+ * hydrated (isInitialized=true, isAuthenticated=true) before any expect runs.
  *
  * AC assertions:
  *   1. Dashboard page loads without errors after storageState auth.
@@ -19,12 +32,15 @@
 
 import { test, expect } from '@playwright/test';
 
-// Use the pre-authenticated trainer storage state for every test in this file.
-test.use({ storageState: '.auth/trainer.json' });
-
 test.describe('Trainer clients list — compose harness (#268)', () => {
   test('dashboard loads and QA client is visible', async ({ page }) => {
     await page.goto('/dashboard');
+
+    // Wait for networkidle so the auth-store's restoreSession() round-trip
+    // (POST /auth/refresh on mount) completes before asserting page content.
+    // Without this, the page may briefly be in the uninitialized state
+    // (isInitialized=false → App renders null) and the assertion times out.
+    await page.waitForLoadState('networkidle');
 
     // Wait for the clients table / list to be visible.
     // The dashboard fetches /trainer/clients and renders a table or list view.
@@ -36,7 +52,8 @@ test.describe('Trainer clients list — compose harness (#268)', () => {
   test('client row count stat is at least 1', async ({ page }) => {
     await page.goto('/dashboard');
 
-    // Wait for the page to be loaded (client data available)
+    // Wait for networkidle to ensure restoreSession() and all initial fetches
+    // have completed before asserting dashboard content.
     await page.waitForLoadState('networkidle');
 
     // The stats grid shows "Aktivní klienti" with a count value.
@@ -51,6 +68,9 @@ test.describe('Trainer clients list — compose harness (#268)', () => {
 
   test('clicking a client row navigates to their detail page', async ({ page }) => {
     await page.goto('/dashboard');
+
+    // Wait for networkidle so auth and initial data fetches are complete.
+    await page.waitForLoadState('networkidle');
 
     // Wait for the QA client to render
     const clientName = page.getByText('QA Client', { exact: false });
