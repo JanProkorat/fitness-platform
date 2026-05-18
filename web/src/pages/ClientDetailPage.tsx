@@ -4,12 +4,11 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getClientDashboard } from '@/api/nutrition-goals';
 import { getClientTimeline } from '@/api/timeline';
-import { formatWeight } from '@/lib/personalRecordFormatters';
 
 import { PageHeader } from '@/components/layout';
 import { Button, Tag, Dialog, Input, EditableAvatar } from '@/components/ui';
 import { PropertyList, StatsGrid } from '@/components/data';
-import { ActivityTimeline } from '@/components/domain';
+import { RecentActivitySection } from '@/components/domain';
 import { QuestionnaireAnswersSection } from '@/components/questionnaire';
 import { WeeklyCheckInSection } from '@/components/weekly-checkin/WeeklyCheckInSection';
 
@@ -21,6 +20,8 @@ export default function ClientDetailPage() {
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
+  // Timeline pagination limit — starts at 30, bumps by 30 up to 100
+  const [timelineLimit, setTimelineLimit] = useState(30);
 
   const { data: client, isLoading } = useQuery({
     queryKey: ['client-dashboard', id],
@@ -29,10 +30,14 @@ export default function ClientDetailPage() {
   });
 
   const { data: timeline } = useQuery({
-    queryKey: ['client-timeline', id],
-    queryFn: () => getClientTimeline(id!, 30),
+    queryKey: ['client-timeline', id, timelineLimit],
+    queryFn: () => getClientTimeline(id!, timelineLimit),
     enabled: !!id,
   });
+
+  const handleTimelineLoadMore = useCallback(() => {
+    setTimelineLimit((prev) => Math.min(prev + 30, 100));
+  }, []);
 
   const clientName = client
     ? `${client.firstName} ${client.lastName}`
@@ -238,37 +243,8 @@ export default function ClientDetailPage() {
     return 'cs';
   }, [i18n.language]);
 
-  // Activity timeline — composed server-side, newest first.
-  const activityItems = useMemo(() => {
-    if (!timeline?.items) return [];
-    return timeline.items.map((it) => {
-      // Personal-record items: compose i18n title from structured payload when
-      // available, otherwise fall back to the server-rendered title/description.
-      if (it.type === 'personal_record' && it.personalRecord) {
-        const pr = it.personalRecord;
-        return {
-          id: it.id,
-          date: new Date(it.occurredAt).toLocaleDateString('cs-CZ'),
-          icon: it.icon ?? '🏆',
-          title: t('clients.personalRecord.title', {
-            exerciseName: pr.exerciseName,
-            weight: formatWeight(pr.weightKg, activeLocale),
-          }),
-          description: t('clients.personalRecord.description', {
-            reps: pr.reps,
-          }),
-        };
-      }
-
-      return {
-        id: it.id,
-        date: new Date(it.occurredAt).toLocaleDateString('cs-CZ'),
-        title: it.title,
-        description: it.description ?? undefined,
-        icon: it.icon ?? undefined,
-      };
-    });
-  }, [timeline, t, activeLocale]);
+  // Raw timeline items — passed directly to RecentActivitySection for grouping.
+  // The old flat-list activityItems memo is superseded by the new section component.
 
   // Subtitle for PageHeader
   const subtitleNode = useMemo(() => {
@@ -424,17 +400,13 @@ export default function ClientDetailPage() {
           {/* Divider */}
           <div className="h-px bg-border my-3.5" />
 
-          {/* Section heading: Recent Activity */}
-          <h2 className="text-[22px] font-semibold tracking-tight text-text mb-2">
-            Nedávná aktivita
-          </h2>
-
-          {/* Activity Timeline */}
-          {activityItems.length > 0 ? (
-            <ActivityTimeline items={activityItems} />
-          ) : (
-            <p className="text-[13px] text-text3">Žádná nedávná aktivita</p>
-          )}
+          {/* Recent Activity — day-grouped timeline + summary sidebar */}
+          <RecentActivitySection
+            items={timeline?.items ?? []}
+            limit={timelineLimit}
+            onLoadMore={handleTimelineLoadMore}
+            locale={activeLocale}
+          />
         </div>
       </div>
 
