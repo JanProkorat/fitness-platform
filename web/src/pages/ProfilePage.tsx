@@ -12,7 +12,7 @@ import { Dialog, Button, EditableAvatar } from '@/components/ui';
 import { QuestionnaireList, QuestionnaireEditor, type QuestionnaireEditorHandle } from '@/components/questionnaire';
 import { RolesSection } from '@/components/RolesSection';
 import { TrainerProfileFields } from '@/components/TrainerProfileFields';
-import { WeeklyCheckInTab } from '@/components/profile/WeeklyCheckInTab';
+import { WeeklyCheckInTab, type WeeklyCheckInTabHandle } from '@/components/profile/WeeklyCheckInTab';
 import {
   requestUserAvatarUploadUrl,
   confirmUserAvatar,
@@ -42,6 +42,10 @@ export default function ProfilePage() {
   const [questionnaireDirty, setQuestionnaireDirty] = useState(false);
   const [questionnaireSaving, setQuestionnaireSaving] = useState(false);
   const [selectedQuestionnaireId, setSelectedQuestionnaireId] = useState<string | null>(null);
+
+  // Weekly check-ins ref + state
+  const weeklyCheckInRef = useRef<WeeklyCheckInTabHandle>(null);
+  const [checkInSaving, setCheckInSaving] = useState(false);
 
   // Personal fields (API-backed)
   const [saving, setSaving] = useState(false);
@@ -191,6 +195,8 @@ export default function ProfilePage() {
   const isDirty = loaded && getCurrentSnapshot() !== initialState.current;
 
   // Combined dirty state for navigation guard
+  // Note: weekly check-ins tab state is owned inside WeeklyCheckInTab (per-profession RHF forms);
+  // we do not track its dirty state centrally — only its saving state to disable the button.
   const anyDirty = isDirty || questionnaireDirty;
 
   // ── Warn before browser refresh/close ──
@@ -303,28 +309,30 @@ export default function ProfilePage() {
                 {t('profile.unsavedChanges')}
               </span>
             )}
-            {activeTab !== 'weekly-checkins' && (
-              <button
-                type="button"
-                onClick={() => {
-                  if (activeTab === 'personal') {
-                    handleSubmit(onSave)();
-                  } else {
-                    questionnaireEditorRef.current?.save();
-                  }
-                }}
-                disabled={
-                  activeTab === 'personal'
-                    ? saving
-                    : questionnaireSaving || !questionnaireDirty
+            <button
+              type="button"
+              onClick={() => {
+                if (activeTab === 'personal') {
+                  handleSubmit(onSave)();
+                } else if (activeTab === 'weekly-checkins') {
+                  weeklyCheckInRef.current?.save();
+                } else {
+                  questionnaireEditorRef.current?.save();
                 }
-                className="rounded-md bg-text px-5 py-2 text-[13px] font-medium text-bg transition-opacity hover:opacity-90 disabled:opacity-50"
-              >
-                {(activeTab === 'personal' ? saving : questionnaireSaving)
-                  ? t('common.saving')
-                  : t('common.save')}
-              </button>
-            )}
+              }}
+              disabled={
+                activeTab === 'personal'
+                  ? saving
+                  : activeTab === 'weekly-checkins'
+                    ? checkInSaving
+                    : questionnaireSaving || !questionnaireDirty
+              }
+              className="rounded-md bg-text px-5 py-2 text-[13px] font-medium text-bg transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              {(activeTab === 'personal' ? saving : activeTab === 'weekly-checkins' ? checkInSaving : questionnaireSaving)
+                ? t('common.saving')
+                : t('common.save')}
+            </button>
           </div>
         }
       />
@@ -467,7 +475,11 @@ export default function ProfilePage() {
           )}
         </div>
         ) : (
-          <WeeklyCheckInTab roles={user?.roles ?? []} />
+          <WeeklyCheckInTab
+            ref={weeklyCheckInRef}
+            roles={user?.roles ?? []}
+            onSavingChange={setCheckInSaving}
+          />
         )}
       </div>
 
