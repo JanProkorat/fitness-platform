@@ -264,7 +264,8 @@
       "mealCount_one": "🥗 {{count}} meal plan",
       "mealCount_other": "🥗 {{count}} meal plans",
       "repsLabel_one": "{{count}}× rep",
-      "repsLabel_other": "{{count}}× reps"
+      "repsLabel_other": "{{count}}× reps",
+      "monthPickerPrefix": "📅 Month:"
     },
     "values": {
       "Male": "Male",

@@ -18,6 +18,21 @@ interface FilterChipDef {
   label: string;
 }
 
+/** Returns a YYYY-MM string for the current calendar month. */
+function currentMonthKey(): string {
+  const now = new Date();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  return `${now.getFullYear()}-${m}`;
+}
+
+/** Format a YYYY-MM key into a localised "Month Year" string using Intl. */
+function formatMonthLabel(monthKey: string, locale: string): string {
+  const [year, month] = monthKey.split('-').map(Number);
+  // Day=1 is fine — we only use month+year from the formatter
+  const date = new Date(year, month - 1, 1);
+  return new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(date);
+}
+
 interface RecentActivitySectionProps {
   items: ClientTimelineItem[];
   /**
@@ -38,6 +53,7 @@ export function RecentActivitySection({
 }: RecentActivitySectionProps) {
   const { t } = useTranslation();
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  const [selectedMonthKey, setSelectedMonthKey] = useState<string>(currentMonthKey);
 
   const aggregates = useRecentActivityAggregates(items);
 
@@ -49,9 +65,32 @@ export function RecentActivitySection({
     { id: 'meal', label: t('clients.recentActivity.filterMeal') },
   ];
 
+  /**
+   * Unique YYYY-MM values present in the loaded items, sorted newest-first.
+   * Used to populate the month picker <select>.
+   */
+  const availableMonths = useMemo<string[]>(() => {
+    const monthSet = new Set<string>();
+    for (const item of items) {
+      monthSet.add(item.occurredAt.substring(0, 7)); // "YYYY-MM"
+    }
+    // Also always include current month so the picker has a default even when
+    // no items have loaded for this month yet.
+    monthSet.add(currentMonthKey());
+    return Array.from(monthSet).sort((a, b) => b.localeCompare(a));
+  }, [items]);
+
+  // Ensure selectedMonthKey stays valid when items change (e.g. after load more)
+  const effectiveMonthKey = availableMonths.includes(selectedMonthKey)
+    ? selectedMonthKey
+    : (availableMonths[0] ?? currentMonthKey());
+
   const filteredGroups = useMemo(
-    () => aggregates.dayGroups.filter((g) => dayGroupMatchesFilter(g, activeFilter)),
-    [aggregates.dayGroups, activeFilter],
+    () =>
+      aggregates.dayGroups
+        .filter((g) => dayGroupMatchesFilter(g, activeFilter))
+        .filter((g) => g.dateKey.startsWith(effectiveMonthKey)),
+    [aggregates.dayGroups, activeFilter, effectiveMonthKey],
   );
 
   // "Zobrazit více" is disabled when we're at the cap or there's nothing more to load
@@ -91,13 +130,12 @@ export function RecentActivitySection({
       ) : (
         /*
          * Two-column layout: timeline takes remaining space, sidebar is fixed ~280 px.
-         * Below 900 px (Tailwind `xl` is 1280 px; using a custom approach):
-         * We use flex-col below the breakpoint via a container query fallback.
-         * Since Tailwind's `xl` breakpoint is 1280 px and we need 900 px,
-         * we use the `lg` breakpoint (1024 px) which is close enough for this layout
-         * given the page has a sidebar nav. Below `lg`, the sidebar stacks below.
+         * The AC requires exactly 900 px as the stacking breakpoint.
+         * Tailwind 4 supports arbitrary breakpoints via min-[900px]: / max-[899px]:.
+         * Below 900 px the sidebar stacks below the timeline.
          */
-        <div className="flex flex-col lg:grid lg:gap-5 gap-4"
+        <div
+          className="flex flex-col min-[900px]:grid min-[900px]:gap-5 gap-4"
           style={{ gridTemplateColumns: '1fr 280px' }}
         >
           {/* LEFT: day-grouped timeline */}
@@ -117,8 +155,8 @@ export function RecentActivitySection({
               ))
             )}
 
-            {/* Footer: Zobrazit více */}
-            <div className="flex items-center mt-3">
+            {/* Footer: Zobrazit více + month picker */}
+            <div className="flex items-center gap-3 mt-3 flex-wrap">
               <button
                 type="button"
                 disabled={!canLoadMore}
@@ -132,6 +170,34 @@ export function RecentActivitySection({
               >
                 {t('clients.recentActivity.loadMore')}
               </button>
+
+              {/* Month picker chip — client-side filter */}
+              <div className="flex items-center gap-1 relative">
+                <span className="text-[13px] text-text2">
+                  {t('clients.recentActivity.monthPickerPrefix')}
+                </span>
+                <div className="relative inline-flex items-center">
+                  <select
+                    value={effectiveMonthKey}
+                    onChange={(e) => setSelectedMonthKey(e.target.value)}
+                    className={cn(
+                      'appearance-none pl-2 pr-6 py-1 text-[13px] rounded-md',
+                      'border border-border-md bg-accent-bg text-accent font-medium',
+                      'cursor-pointer focus:outline-none focus:ring-1 focus:ring-accent',
+                    )}
+                  >
+                    {availableMonths.map((mk) => (
+                      <option key={mk} value={mk}>
+                        {formatMonthLabel(mk, locale)}
+                      </option>
+                    ))}
+                  </select>
+                  {/* Caret overlay — purely decorative */}
+                  <span className="pointer-events-none absolute right-1.5 text-accent text-[10px]">
+                    ▾
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
 

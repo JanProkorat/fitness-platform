@@ -274,7 +274,8 @@
       "repsLabel_one": "{{count}}× opakování",
       "repsLabel_few": "{{count}}× opakování",
       "repsLabel_many": "{{count}}× opakování",
-      "repsLabel_other": "{{count}}× opakování"
+      "repsLabel_other": "{{count}}× opakování",
+      "monthPickerPrefix": "📅 Měsíc:"
     },
     "values": {
       "Male": "Muž",

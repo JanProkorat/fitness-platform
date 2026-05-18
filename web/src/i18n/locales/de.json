@@ -264,7 +264,8 @@
       "mealCount_one": "🥗 {{count}} Ernährungsplan",
       "mealCount_other": "🥗 {{count}} Ernährungspläne",
       "repsLabel_one": "{{count}}× Wiederholung",
-      "repsLabel_other": "{{count}}× Wiederholungen"
+      "repsLabel_other": "{{count}}× Wiederholungen",
+      "monthPickerPrefix": "📅 Monat:"
     },
     "values": {
       "Male": "Männlich",
