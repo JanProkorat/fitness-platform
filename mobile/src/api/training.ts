@@ -33,13 +33,19 @@ export type {
 };
 
 /**
- * Augmented SectionDto — adds `formatConfig` + `notes` that the backend now
- * emits but NSwag hasn't been re-run for. Drop the augmentation when the
- * generated client is regenerated.
+ * Augmented SectionDto — adds `formatConfig`, `notes`, and `isCompleted` that
+ * the backend now emits but NSwag hasn't been re-run for yet.
+ * Drop the augmentation fields once the generated client is regenerated
+ * and the fields appear on GeneratedSectionDto directly.
  */
 export type SectionDto = Omit<GeneratedSectionDto, 'exercises'> & {
   formatConfig?: WodConfig | null;
   notes?: string | null;
+  /** True when the backend considers this section fully complete.
+   * For sections with exercises: every exercise has IsCompleted=true.
+   * For sections without exercises: the section id is in
+   * TrainingCompletion.CompletedSectionIds (#260 fix). */
+  isCompleted?: boolean;
   exercises?: GeneratedSectionDto['exercises'];
 };
 
