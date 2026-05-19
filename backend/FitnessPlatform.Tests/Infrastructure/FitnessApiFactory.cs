@@ -1,10 +1,12 @@
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using MongoDB.Driver;
 using Testcontainers.MongoDb;
 using Testcontainers.PostgreSql;
@@ -109,6 +111,21 @@ public class FitnessApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
             services.AddSingleton<FakePushNotificationService>();
             services.AddSingleton<IPushNotificationService>(
                 sp => sp.GetRequiredService<FakePushNotificationService>());
+
+            // Candidate A — test isolation: remove the IHostedService registration for
+            // PhotoDiaryReminderScheduler so it does not run autonomously during tests and
+            // cannot race with real-time clock at the :00 boundary on Linux CI.
+            //
+            // Targeted removal (implementation-type match) — preserves any other
+            // IHostedService registrations that are test-relevant.  The scheduler is still
+            // registered as a singleton DI service (via AddSingleton<PhotoDiaryReminderScheduler>)
+            // so existing tests that drive TickAsync directly can still resolve it with
+            //   factory.Services.GetRequiredService<PhotoDiaryReminderScheduler>()
+            var schedulerHostedServiceDescriptor = services.SingleOrDefault(
+                d => d.ServiceType == typeof(IHostedService)
+                     && d.ImplementationType == typeof(PhotoDiaryReminderScheduler));
+            if (schedulerHostedServiceDescriptor is not null)
+                services.Remove(schedulerHostedServiceDescriptor);
         });
 
         builder.UseEnvironment("Development");
