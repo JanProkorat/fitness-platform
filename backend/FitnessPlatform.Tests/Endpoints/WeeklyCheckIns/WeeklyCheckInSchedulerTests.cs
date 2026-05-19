@@ -207,6 +207,97 @@ public class WeeklyCheckInSchedulerTests(FitnessApiFactory factory)
         notification.Should().NotBeNull("the scheduler must create a WeeklyCheckInRequested notification");
     }
 
+    /// <summary>
+    /// Regression test for the EF-tracker cascade bug: if candidate A's insert hits a
+    /// 23505 unique-violation, the per-candidate scope is disposed (EF tracker reset),
+    /// and candidate B must still receive its check-in row and notification.
+    ///
+    /// This test is RED against the pre-fix scheduler (which shared a single DbContext
+    /// and called db.WeeklyCheckIns.Remove() on a never-persisted entity, leaving the
+    /// tracker corrupted) and GREEN against the fixed per-candidate-scope scheduler.
+    /// </summary>
+    [Fact]
+    public async Task Tick_DuplicateCheckIn_DoesNotCascadeToNextCandidate()
+    {
+        // ── Arrange: two trainer+client pairs with overlapping fire times ─────────
+        var (trainerAId, clientAId) = await SetupTrainerAndClientWithSettingAsync(
+            DayOfWeek.Friday,
+            TimeSpan.FromHours(14),
+            "UTC");
+
+        var (trainerBId, clientBId) = await SetupTrainerAndClientWithSettingAsync(
+            DayOfWeek.Friday,
+            TimeSpan.FromHours(14),
+            "UTC");
+
+        // Friday 14:00 UTC. Find the last Friday.
+        var utcNow = DateTime.UtcNow;
+        var daysToLastFriday = ((int)utcNow.DayOfWeek - (int)DayOfWeek.Friday + 7) % 7;
+        var lastFriday = utcNow.Date.AddDays(-daysToLastFriday).AddHours(14);
+        if (lastFriday >= utcNow) lastFriday = lastFriday.AddDays(-7);
+
+        var weekStartDate = WeeklyCheckInScheduler.NextIsoMonday(lastFriday);
+
+        // Pre-seed a WeeklyCheckIn row for candidate A so its insert will hit the unique
+        // constraint (23505) when the scheduler tries to insert the same tuple.
+        using (var seedScope = factory.Services.CreateScope())
+        {
+            var seedDb = seedScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            seedDb.WeeklyCheckIns.Add(new WeeklyCheckIn
+            {
+                ClientUserId = clientAId,
+                ProfessionalUserId = trainerAId,
+                Profession = Profession.Training,
+                WeekStartDate = weekStartDate,
+                SentAt = lastFriday.AddHours(-1), // earlier timestamp — same unique key
+                DateCreated = lastFriday.AddHours(-1),
+                DateModified = lastFriday.AddHours(-1)
+            });
+            await seedDb.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        var scheduler = factory.Services.GetRequiredService<WeeklyCheckInScheduler>();
+        scheduler.ResetCursor();
+
+        // Seed cursor to just before fire time so the window covers the fire moment.
+        scheduler.OverrideNow = lastFriday.AddMinutes(-60);
+        await scheduler.TickAsync(scheduler.OverrideNow.Value, TestContext.Current.CancellationToken);
+
+        // ── Act: tick past the fire time — candidate A collides, candidate B should succeed
+        scheduler.OverrideNow = lastFriday.AddMinutes(1);
+        await scheduler.TickAsync(scheduler.OverrideNow.Value, TestContext.Current.CancellationToken);
+
+        // ── Assert ────────────────────────────────────────────────────────────────
+        using var assertScope = factory.Services.CreateScope();
+        var assertDb = assertScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        // Candidate A: still exactly one row (the pre-seeded one; scheduler skipped the duplicate).
+        var checkInsA = await assertDb.WeeklyCheckIns
+            .Where(c => c.ClientUserId == clientAId && c.ProfessionalUserId == trainerAId)
+            .ToListAsync(TestContext.Current.CancellationToken);
+
+        checkInsA.Should().HaveCount(1,
+            "candidate A already had a row; the scheduler must skip the duplicate without crashing");
+
+        // Candidate B: must have exactly one newly created row.
+        var checkInsB = await assertDb.WeeklyCheckIns
+            .Where(c => c.ClientUserId == clientBId && c.ProfessionalUserId == trainerBId)
+            .ToListAsync(TestContext.Current.CancellationToken);
+
+        checkInsB.Should().HaveCount(1,
+            "candidate B must not be affected by candidate A's unique-violation");
+
+        // Candidate B must also have a Notification row.
+        var notificationB = await assertDb.Notifications
+            .Where(n =>
+                n.RecipientUserId == clientBId &&
+                n.Type == NotificationType.WeeklyCheckInRequested)
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
+
+        notificationB.Should().NotBeNull(
+            "candidate B's notification must persist even when candidate A's insert collided");
+    }
+
     [Fact]
     public async Task Tick_BroadcastsViaSignalR()
     {

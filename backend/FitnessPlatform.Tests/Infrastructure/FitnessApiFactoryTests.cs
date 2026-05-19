@@ -50,4 +50,41 @@ public class FitnessApiFactoryTests(FitnessApiFactory factory)
         scheduler.Should().NotBeNull(
             "the singleton must remain resolvable so tests can drive TickAsync directly");
     }
+
+    /// <summary>
+    /// Verifies that the <see cref="WeeklyCheckInScheduler"/> is NOT exposed as
+    /// an <see cref="IHostedService"/> in the test host.
+    ///
+    /// Regression guard for the factory-registered descriptor shape:
+    ///   AddHostedService(sp => sp.GetRequiredService&lt;WeeklyCheckInScheduler&gt;())
+    /// produces a ServiceDescriptor with ImplementationType == null (ImplementationFactory != null),
+    /// so a predicate that only checks ImplementationType is a no-op and the scheduler
+    /// continues to run autonomously, racing the clock on the :00 boundary in CI.
+    /// </summary>
+    [Fact]
+    public void WeeklyCheckInScheduler_IsNotRegisteredAsHostedService()
+    {
+        var hostedServices = factory.Services.GetServices<IHostedService>();
+
+        hostedServices
+            .Should().NotContain(
+                s => s is WeeklyCheckInScheduler,
+                "the scheduler must be removed from IHostedService registrations " +
+                "so it cannot race the real clock during integration tests");
+    }
+
+    /// <summary>
+    /// Verifies that the <see cref="WeeklyCheckInScheduler"/> singleton is still
+    /// resolvable from DI after the IHostedService descriptor is removed.
+    /// Tests that drive the scheduler directly via TickAsync must be able to call
+    /// factory.Services.GetRequiredService&lt;WeeklyCheckInScheduler&gt;().
+    /// </summary>
+    [Fact]
+    public void WeeklyCheckInScheduler_IsStillResolvableAsSingleton()
+    {
+        var scheduler = factory.Services.GetRequiredService<WeeklyCheckInScheduler>();
+
+        scheduler.Should().NotBeNull(
+            "the singleton must remain resolvable so tests can drive TickAsync directly");
+    }
 }

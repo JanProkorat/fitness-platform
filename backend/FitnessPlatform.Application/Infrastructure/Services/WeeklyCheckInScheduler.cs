@@ -32,6 +32,16 @@ public class WeeklyCheckInScheduler(
     private bool _cursorInitialized;
 
     /// <summary>
+    /// Resets the scheduler's cursor state so the next <see cref="TickAsync"/> call
+    /// re-seeds from the DB. Use between tests that share the same singleton instance.
+    /// </summary>
+    internal void ResetCursor()
+    {
+        _cursorInitialized = false;
+        _lastTickAt = default;
+    }
+
+    /// <summary>
     /// Entry point used by tests: execute one scheduler cycle treating <paramref name="now"/>
     /// as the current UTC time.  The internal cursor is seeded on first call.
     /// </summary>
@@ -144,6 +154,7 @@ public class WeeklyCheckInScheduler(
     {
         // Load all enabled settings with their associated professional users
         // and optional per-client overrides.
+        // Use AsNoTracking — the candidate list is read-only; writes happen in per-candidate scopes.
         var settings = await db.WeeklyCheckInSettings
             .AsNoTracking()
             .Where(s => s.Enabled)
@@ -211,6 +222,17 @@ public class WeeklyCheckInScheduler(
                 // WeekStartDate = Monday of the ISO week AFTER the fire moment.
                 var weekStartDate = NextIsoMonday(nextFireAt);
 
+                // ── Per-candidate scope ───────────────────────────────────────────
+                // Each candidate gets its own IApplicationDbContext so that a 23505
+                // unique-violation (or any other DbUpdateException) on one candidate's
+                // SaveChanges cannot corrupt the EF change tracker and cascade to the
+                // next candidate's inserts.  Disposing the scope is the only safe
+                // recovery after a failed SaveChanges — the tracker is in an undefined
+                // state at that point; attempting Remove() on the failed entity and
+                // reusing the same context is not safe.
+                using var candidateScope = scopeFactory.CreateScope();
+                var candidateDb = candidateScope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
+
                 var checkIn = new WeeklyCheckIn
                 {
                     ClientUserId = clientUserId,
@@ -222,23 +244,23 @@ public class WeeklyCheckInScheduler(
                     DateModified = now
                 };
 
-                db.WeeklyCheckIns.Add(checkIn);
+                candidateDb.WeeklyCheckIns.Add(checkIn);
 
                 try
                 {
-                    await db.SaveChangesAsync(ct);
+                    await candidateDb.SaveChangesAsync(ct);
                 }
                 catch (DbUpdateException ex)
                     when (IsUniqueViolation(ex))
                 {
+                    // Duplicate — check-in already exists for this
+                    // (ClientUserId, ProfessionalUserId, Profession, WeekStartDate).
+                    // The candidateScope is disposed at end-of-block; no tracker cleanup needed.
                     logger.LogWarning(
                         "WeeklyCheckInScheduler: duplicate check-in skipped for " +
                         "client={ClientUserId} professional={ProfessionalUserId} " +
                         "profession={Profession} week={WeekStartDate}.",
                         clientUserId, setting.UserId, setting.Profession, weekStartDate);
-
-                    // Remove the tracked entity so the context remains usable.
-                    db.WeeklyCheckIns.Remove(checkIn);
                     continue;
                 }
 
@@ -262,8 +284,18 @@ public class WeeklyCheckInScheduler(
                     Data = notificationData
                 };
 
-                db.Notifications.Add(notification);
-                await db.SaveChangesAsync(ct);
+                // ── Persist in-app notification (best-effort) ────────────────────
+                try
+                {
+                    candidateDb.Notifications.Add(notification);
+                    await candidateDb.SaveChangesAsync(ct);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex,
+                        "WeeklyCheckInScheduler: failed to persist notification for client {ClientUserId}.", clientUserId);
+                    continue;
+                }
 
                 // Send push notification.
                 try
