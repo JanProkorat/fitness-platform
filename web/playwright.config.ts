@@ -21,9 +21,33 @@
  * `ignoreHTTPSErrors: true` on the browser context so fetch/XHR calls inside
  * the SPA succeed. The global-setup Node https request already uses
  * rejectUnauthorized:false for the same reason.
+ *
+ * Env loading:
+ *   .env.test (gitignored) in the repo root supplies QA_SEED_PASSWORD and
+ *   JWT_SECRET to auth.setup.ts and global-setup.ts. dotenv.config does NOT
+ *   override existing shell exports, so local devs and CI can still inject
+ *   values via their own environment. Copy .env.test.example → .env.test and
+ *   fill it in for local runs — do NOT source it manually first.
+ *
+ *   New spec authors: the globalSetup resets the database via POST /test/reset
+ *   before any spec project runs. Add new specs to tests/e2e/<role>/ and rely
+ *   on this reset rather than setting up data manually to avoid inter-run
+ *   data contamination.
  */
 
 import { defineConfig, devices } from '@playwright/test';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import dotenv from 'dotenv';
+
+// ESM-safe __dirname substitute (package.json has "type":"module").
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Load QA_SEED_PASSWORD (and any other test-only vars) from .env.test in the
+// repo root. dotenv silently no-ops when the file is absent (CI sets the vars
+// via shell env before this runs). Does NOT override already-set env vars, so
+// shell exports and GitHub Actions secrets always win.
+dotenv.config({ path: path.resolve(__dirname, '..', '.env.test') });
 
 const E2E_API_URL = process.env['E2E_API_URL'] ?? 'https://localhost:5101';
 

@@ -98,6 +98,12 @@ jobs:
         env:
           E2E_API_URL: https://localhost:5101
           CI: 'true'
+          # Pass secrets explicitly so auth.setup.ts receives them even before
+          # dotenv.config has a chance to read .env.test (which docker-compose
+          # already consumed in the previous step). dotenv does not override
+          # existing env vars, so these shell-level values always win.
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          QA_SEED_PASSWORD: ${{ secrets.QA_SEED_PASSWORD }}
 
       - name: Upload Playwright HTML report on failure
         if: failure()
