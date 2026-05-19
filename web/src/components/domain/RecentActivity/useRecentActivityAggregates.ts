@@ -33,7 +33,7 @@ export interface ThisMonthAggregates {
   /** unique meal_day dates in current calendar month */
   completedDays: number;
   /** total days elapsed in current calendar month (up to today) */
-  totalDaysInMonth: number;
+  daysElapsedThisMonth: number;
 }
 
 export interface TopPrRecord {
@@ -146,7 +146,7 @@ export function useRecentActivityAggregates(
     }
 
     // How many days have elapsed so far this month (1 → today's day number)
-    const totalDaysInMonth = now.getDate();
+    const daysElapsedThisMonth = now.getDate();
 
     // --- Top PR (this month, highest weightKg) ---
     let topPr: TopPrRecord | null = null;
@@ -200,7 +200,7 @@ export function useRecentActivityAggregates(
         workoutTotal: monthWorkout,
         measurementTotal: monthMeasurement,
         completedDays: monthMealDays.size,
-        totalDaysInMonth,
+        daysElapsedThisMonth,
       },
       topPr,
       thisWeek: {

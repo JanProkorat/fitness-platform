@@ -29,7 +29,7 @@ export function ThisMonthCard({ data }: ThisMonthCardProps) {
         <div className="flex justify-between items-baseline">
           <span className="text-text2">🥗 {t('clients.recentActivity.completedDays')}</span>
           <span className="font-bold text-[15px] text-text">
-            {data.completedDays} / {data.totalDaysInMonth}
+            {data.completedDays} / {data.daysElapsedThisMonth}
           </span>
         </div>
       </div>
