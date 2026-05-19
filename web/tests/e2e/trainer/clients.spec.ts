@@ -18,79 +18,54 @@
  *   qa.trainer@fitnessplatform.test — is the logged-in user
  *   qa.client@fitnessplatform.test  — is the one seeded client linked to the trainer
  *
- * Auth warm-up: after storageState is restored, the app calls restoreSession()
- * (POST /auth/refresh) on mount. Each test navigates to /dashboard and waits
- * for networkidle before making assertions, ensuring the auth-store is fully
- * hydrated (isInitialized=true, isAuthenticated=true) before any expect runs.
+ * WHY THIS IS ONE CONSOLIDATED TEST:
+ * storageState restores a refresh token from disk. On the first page.goto(),
+ * the app calls restoreSession() (POST /auth/refresh), which rotates the
+ * refresh token — the on-disk token is now stale. If the assertions were split
+ * into multiple test() blocks, each would restore the same stale on-disk
+ * token, and their /auth/refresh calls would 401, causing RequireAuth to
+ * redirect to /login and every assertion to fail. One test = one rotation.
  *
- * AC assertions:
+ * Future durable specs should follow the same pattern: one spec file, one
+ * consolidated test covering the full user journey for that file's feature.
+ * See playwright.config.ts for the per-feature testMatch pattern.
+ *
+ * AC assertions (all in one journey):
  *   1. Dashboard page loads without errors after storageState auth.
  *   2. The seeded QA client (first name "QA", last name "Client") appears in the list.
- *   3. The total client count stat reflects at least 1 client.
+ *   3. The total client count stat ("Aktivní klienti") is visible (≥ 1 client).
  *   4. Navigating to the client's detail page works (no 404 / error state).
  */
 
 import { test, expect } from '@playwright/test';
 
-test.describe('Trainer clients list — compose harness (#268)', () => {
-  test('dashboard loads and QA client is visible', async ({ page }) => {
-    await page.goto('/dashboard');
+test('trainer clients list — dashboard loads, QA client visible, count ≥1, detail nav works', async ({ page }) => {
+  await page.goto('/dashboard');
 
-    // Wait for networkidle so the auth-store's restoreSession() round-trip
-    // (POST /auth/refresh on mount) completes before asserting page content.
-    // Without this, the page may briefly be in the uninitialized state
-    // (isInitialized=false → App renders null) and the assertion times out.
-    await page.waitForLoadState('networkidle');
+  // Wait for networkidle so the auth-store's restoreSession() round-trip
+  // (POST /auth/refresh on mount) completes before asserting page content.
+  // Without this, the page may briefly be in the uninitialized state
+  // (isInitialized=false → App renders null) and the assertion times out.
+  await page.waitForLoadState('networkidle');
 
-    // Wait for the clients table / list to be visible.
-    // The dashboard fetches /trainer/clients and renders a table or list view.
-    // We wait for the client's name to appear which confirms the API call succeeded.
-    // Scoped to getByRole('table') to avoid a strict-mode collision: "QA Client"
-    // also renders in the trainer topbar/sidebar (logged-in user display).
-    const clientName = page.getByRole('table').getByText('QA Client', { exact: false });
-    await expect(clientName).toBeVisible({ timeout: 30_000 });
-  });
+  // Assertion 1: QA client appears in the clients table.
+  // Scoped to getByRole('table') to avoid a strict-mode collision: "QA Client"
+  // also renders in the trainer topbar/sidebar (logged-in user display).
+  const clientName = page.getByRole('table').getByText('QA Client', { exact: false });
+  await expect(clientName.first()).toBeVisible({ timeout: 30_000 });
 
-  test('client row count stat is at least 1', async ({ page }) => {
-    await page.goto('/dashboard');
+  // Assertion 2: stats grid shows "Aktivní klienti" card — confirms at least
+  // one client is counted and the stats section rendered without errors.
+  const statsCard = page.getByText('Aktivní klienti');
+  await expect(statsCard).toBeVisible({ timeout: 15_000 });
 
-    // Wait for networkidle to ensure restoreSession() and all initial fetches
-    // have completed before asserting dashboard content.
-    await page.waitForLoadState('networkidle');
+  // Assertion 3: clicking the QA client row navigates to the detail page.
+  // Re-use the already-visible clientName locator — no extra navigation needed.
+  await clientName.first().click();
+  await page.waitForURL(/\/clients\/.+/, { timeout: 15_000 });
+  await expect(page).toHaveURL(/\/clients\/[0-9a-f-]+/);
 
-    // The stats grid shows "Aktivní klienti" with a count value.
-    // We assert at least one client is shown — seeded fixture has exactly 1.
-    // Scoped to getByRole('table') to avoid a strict-mode collision: "QA Client"
-    // also renders in the trainer topbar/sidebar (logged-in user display).
-    const clientName = page.getByRole('table').getByText('QA Client', { exact: false });
-    await expect(clientName).toBeVisible({ timeout: 30_000 });
-
-    // The stats grid: verify the "Aktivní klienti" card exists
-    const statsCard = page.getByText('Aktivní klienti');
-    await expect(statsCard).toBeVisible({ timeout: 15_000 });
-  });
-
-  test('clicking a client row navigates to their detail page', async ({ page }) => {
-    await page.goto('/dashboard');
-
-    // Wait for networkidle so auth and initial data fetches are complete.
-    await page.waitForLoadState('networkidle');
-
-    // Wait for the QA client to render.
-    // Scoped to getByRole('table') to avoid a strict-mode collision: "QA Client"
-    // also renders in the trainer topbar/sidebar (logged-in user display).
-    const clientName = page.getByRole('table').getByText('QA Client', { exact: false });
-    await expect(clientName.first()).toBeVisible({ timeout: 30_000 });
-
-    // Click the first element containing the client name to navigate to detail
-    await clientName.first().click();
-
-    // After click we should navigate to /clients/<id> — confirm URL changed
-    await page.waitForURL('**/clients/**', { timeout: 15_000 });
-
-    // Confirm the detail page loaded (not an error/empty state)
-    // The client detail page renders the client's name in a heading or breadcrumb
-    const detailClientName = page.getByText('QA Client', { exact: false });
-    await expect(detailClientName.first()).toBeVisible({ timeout: 15_000 });
-  });
+  // Confirm the detail page rendered the client's name (not an error state).
+  const detailClientName = page.getByText('QA Client', { exact: false });
+  await expect(detailClientName.first()).toBeVisible({ timeout: 15_000 });
 });
