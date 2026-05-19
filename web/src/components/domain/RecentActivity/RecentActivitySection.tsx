@@ -80,7 +80,33 @@ export function RecentActivitySection({
     return Array.from(monthSet).sort((a, b) => b.localeCompare(a));
   }, [items]);
 
-  // Ensure selectedMonthKey stays valid when items change (e.g. after load more)
+  // Durable state normalisation — "adjust state during render" idiom (React docs).
+  // When availableMonths changes and selectedMonthKey is no longer present, we
+  // call setSelectedMonthKey synchronously in the render body. React detects the
+  // setState call, discards the in-progress render, and immediately re-renders
+  // with the corrected state — no intermediate commit, no visual flash.
+  //
+  // WHY NOT useEffect: ESLint's react-hooks/set-state-in-effect rule rejects
+  // useEffect(() => setState(...)) as the "you might not need an effect"
+  // anti-pattern, and correctly so — the reset is a pure derivation of prop
+  // changes, not a side effect.
+  //
+  // Sibling state tracks the previous availableMonths reference so we can
+  // detect when the prop identity changes between renders.
+  const [prevAvailableMonths, setPrevAvailableMonths] = useState(availableMonths);
+  if (availableMonths !== prevAvailableMonths) {
+    setPrevAvailableMonths(availableMonths);
+    if (!availableMonths.includes(selectedMonthKey)) {
+      setSelectedMonthKey(availableMonths[0] ?? currentMonthKey());
+    }
+  }
+
+  // Synchronous render-path safety net: even on the very first render after
+  // availableMonths changes (before the adjust-during-render setState above has
+  // been processed), this ternary ensures <select value={...}> never holds a
+  // value that is absent from its <option> children. Do NOT remove this — it
+  // prevents a React controlled-component value mismatch warning on that
+  // first render pass.
   const effectiveMonthKey = availableMonths.includes(selectedMonthKey)
     ? selectedMonthKey
     : (availableMonths[0] ?? currentMonthKey());
