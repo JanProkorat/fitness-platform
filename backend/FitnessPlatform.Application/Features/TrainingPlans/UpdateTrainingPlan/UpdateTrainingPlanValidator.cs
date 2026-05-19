@@ -163,34 +163,48 @@ public class UpdateTrainingPlanValidator : Validator<UpdateTrainingPlanRequest>
         Func<T, WodConfig?> configSelector,
         string prefix)
     {
-        validator.RuleFor(x => configSelector(x)!.IntervalSeconds)
-            .NotNull().GreaterThan(0)
+        // Use Must() on the root object so FluentValidation does not need to resolve
+        // PropertyName from a delegate-chained expression such as
+        // `x => configSelector(x)!.IntervalSeconds`. Expression-visitor-based name
+        // resolution of that pattern is JIT-dependent and produces an empty string
+        // on Linux/x64 while resolving correctly on macOS/ARM64 (issue #276).
+        // WithName() pins the property name explicitly and WithMessage() ensures
+        // the field name appears in the error message on every platform.
+
+        validator.RuleFor(x => x)
+            .Must(x => configSelector(x)?.IntervalSeconds is > 0)
             .When(x => formatSelector(x) == WorkoutFormat.EMOM && configSelector(x) != null)
+            .WithName("IntervalSeconds")
             .WithMessage($"{prefix} EMOM requires IntervalSeconds > 0.");
 
-        validator.RuleFor(x => configSelector(x)!.TotalRounds)
-            .NotNull().GreaterThan(0)
+        validator.RuleFor(x => x)
+            .Must(x => configSelector(x)?.TotalRounds is > 0)
             .When(x => formatSelector(x) == WorkoutFormat.EMOM && configSelector(x) != null)
+            .WithName("TotalRounds")
             .WithMessage($"{prefix} EMOM requires TotalRounds > 0.");
 
-        validator.RuleFor(x => configSelector(x)!.TimeCapSeconds)
-            .NotNull().GreaterThan(0)
+        validator.RuleFor(x => x)
+            .Must(x => configSelector(x)?.TimeCapSeconds is > 0)
             .When(x => (formatSelector(x) == WorkoutFormat.AMRAP || formatSelector(x) == WorkoutFormat.ForTime) && configSelector(x) != null)
+            .WithName("TimeCapSeconds")
             .WithMessage($"{prefix} AMRAP and ForTime require TimeCapSeconds > 0.");
 
-        validator.RuleFor(x => configSelector(x)!.WorkSeconds)
-            .NotNull().GreaterThan(0)
+        validator.RuleFor(x => x)
+            .Must(x => configSelector(x)?.WorkSeconds is > 0)
             .When(x => formatSelector(x) == WorkoutFormat.Tabata && configSelector(x) != null)
+            .WithName("WorkSeconds")
             .WithMessage($"{prefix} Tabata requires WorkSeconds > 0.");
 
-        validator.RuleFor(x => configSelector(x)!.RestSeconds)
-            .NotNull().GreaterThan(0)
+        validator.RuleFor(x => x)
+            .Must(x => configSelector(x)?.RestSeconds is > 0)
             .When(x => formatSelector(x) == WorkoutFormat.Tabata && configSelector(x) != null)
+            .WithName("RestSeconds")
             .WithMessage($"{prefix} Tabata requires RestSeconds > 0.");
 
-        validator.RuleFor(x => configSelector(x)!.TotalRounds)
-            .NotNull().GreaterThan(0)
+        validator.RuleFor(x => x)
+            .Must(x => configSelector(x)?.TotalRounds is > 0)
             .When(x => formatSelector(x) == WorkoutFormat.Tabata && configSelector(x) != null)
+            .WithName("TotalRounds")
             .WithMessage($"{prefix} Tabata requires TotalRounds > 0.");
     }
 }
