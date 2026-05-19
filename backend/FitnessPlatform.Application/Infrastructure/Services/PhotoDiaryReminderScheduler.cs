@@ -172,6 +172,7 @@ public class PhotoDiaryReminderScheduler(
     {
         // Load all active workflow-mode diary requests in the acceptance/in-progress window,
         // joined with the client user so we can read their time zone.
+        // Use AsNoTracking — the candidate list is read-only; writes happen in per-candidate scopes.
         var candidates = await db.PhotoDiaryRequests
             .AsNoTracking()
             .Where(r => r.Mode == PhotoDiaryMode.Workflow
@@ -202,7 +203,10 @@ public class PhotoDiaryReminderScheduler(
             if (request.AcceptedAt.HasValue
                 && now > request.AcceptedAt.Value.UtcDateTime.AddDays(request.DurationDays + 1))
             {
-                await AutoFinalizeAsync(db, services, request, clientUserId, now, ct);
+                // Candidate B: auto-finalize in its own scope so failures don't affect siblings.
+                using var finalizeScope = scopeFactory.CreateScope();
+                var finalizeDb = finalizeScope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
+                await AutoFinalizeAsync(finalizeDb, services, request, clientUserId, now, ct);
                 continue;  // request is now Completed — no reminder needed
             }
 
@@ -255,8 +259,17 @@ public class PhotoDiaryReminderScheduler(
 
             var clientLocalDate = DateOnly.FromDateTime(localNow.Date);
 
+            // ── Candidate B: per-candidate scope ─────────────────────────────
+            // Each candidate gets its own IApplicationDbContext scope so that a 23505
+            // unique-violation (or any other DbUpdateException) on one candidate's
+            // SaveChanges cannot corrupt the change tracker and cascade to the next
+            // candidate's inserts.  This is the architecturally correct fix: after
+            // a failed SaveChanges the EF change tracker is in an undefined state;
+            // disposing the scope is the only safe recovery.
+            using var candidateScope = scopeFactory.CreateScope();
+            var candidateDb = candidateScope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
+
             // ── Idempotency: insert log row ────────────────────────────────────
-            // NB: we need a tracking context for this insert so re-query with tracking.
             var logEntry = new PhotoDiaryReminderLog
             {
                 DiaryRequestId = request.Id,
@@ -264,20 +277,20 @@ public class PhotoDiaryReminderScheduler(
                 SentAt = now
             };
 
-            db.PhotoDiaryReminderLogs.Add(logEntry);
+            candidateDb.PhotoDiaryReminderLogs.Add(logEntry);
 
             try
             {
-                await db.SaveChangesAsync(ct);
+                await candidateDb.SaveChangesAsync(ct);
             }
             catch (DbUpdateException ex) when (IsUniqueViolation(ex))
             {
+                // Duplicate — reminder already fired for this (DiaryRequestId, date).
+                // The candidateScope is disposed at end-of-block; no tracker cleanup needed.
                 logger.LogWarning(
                     "PhotoDiaryReminderScheduler: duplicate reminder skipped for " +
                     "request={RequestId} date={Date}.",
                     request.Id, clientLocalDate);
-
-                db.PhotoDiaryReminderLogs.Remove(logEntry);
                 continue;
             }
 
@@ -304,8 +317,8 @@ public class PhotoDiaryReminderScheduler(
             // ── Persist in-app notification (best-effort) ────────────────────
             try
             {
-                db.Notifications.Add(notification);
-                await db.SaveChangesAsync(ct);
+                candidateDb.Notifications.Add(notification);
+                await candidateDb.SaveChangesAsync(ct);
             }
             catch (Exception ex)
             {

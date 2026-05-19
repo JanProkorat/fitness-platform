@@ -587,4 +587,119 @@ public class PhotoDiaryReminderSchedulerTests(FitnessApiFactory factory)
 
         notification.Should().NotBeNull("in-app notification must still be persisted despite push failure");
     }
+
+    /// <summary>
+    /// Regression test for the EF Core change-tracker cascade (issue #278).
+    ///
+    /// When two candidates are processed in the same tick and the FIRST candidate's
+    /// reminder-log insert violates the unique constraint (ix_photo_diary_reminder_logs_request_date,
+    /// Postgres 23505), the SECOND candidate must still receive its reminder log,
+    /// in-app notification, and push notification.
+    ///
+    /// Before the fix: the catch block called db.Remove(logEntry) on a never-persisted entity,
+    /// leaving the shared DbContext's change tracker in a corrupted state.  The second candidate's
+    /// SaveChanges would then fail with a cascade exception.
+    ///
+    /// After the fix: each candidate runs inside its own IServiceScope / IApplicationDbContext,
+    /// so a failed SaveChanges disposes that scope and the next candidate starts clean.
+    ///
+    /// This test exercises the error_path from the design handoff:
+    ///   "Scheduler tick: first candidate's reminder-log insert violates the unique constraint.
+    ///    After the catch, the same DbContext is used for the second candidate — its SaveChanges
+    ///    must succeed cleanly (no cascade from the first failure)."
+    /// </summary>
+    [Fact]
+    public async Task Tick_UniqueViolationOnFirstCandidate_DoesNotCascadeToSecondCandidate()
+    {
+        // Arrange: two active diary requests, both in UTC so noon = 12:00 UTC.
+        var utcNow = DateTime.UtcNow;
+        var noonUtc = utcNow.Date.AddHours(12);
+        var acceptedAt = new DateTimeOffset(utcNow.AddDays(-1));
+
+        var (_, clientAId, requestAId, _) = await SetupWorkflowRequestAsync(
+            acceptedAt: acceptedAt,
+            clientTimeZone: "UTC");
+
+        var (_, clientBId, requestBId, _) = await SetupWorkflowRequestAsync(
+            acceptedAt: acceptedAt,
+            clientTimeZone: "UTC");
+
+        // Pre-seed a PhotoDiaryReminderLog row for candidate A's (DiaryRequestId, ClientLocalDate)
+        // so its insert will hit the 23505 unique violation.
+        var clientLocalDate = DateOnly.FromDateTime(utcNow.Date);
+        using (var seedScope = factory.Services.CreateScope())
+        {
+            var seedDb = seedScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            seedDb.PhotoDiaryReminderLogs.Add(new PhotoDiaryReminderLog
+            {
+                DiaryRequestId = requestAId,
+                ClientLocalDate = clientLocalDate,
+                SentAt = noonUtc.AddHours(-1)   // pre-existing log for today
+            });
+            await seedDb.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        var push = factory.Services.GetRequiredService<FakePushNotificationService>();
+        push.Reset();
+
+        var notifier = factory.Services.GetRequiredService<FakeRealtimeNotifier>();
+        notifier.Reset();
+
+        var scheduler = factory.Services.GetRequiredService<PhotoDiaryReminderScheduler>();
+        scheduler.ResetCursor();
+
+        // Seed cursor to one hour before noon so noon (12:00 UTC) is in the tick window.
+        scheduler.SetLastTickAt(noonUtc.AddHours(-1));
+        scheduler.OverrideNow = noonUtc.AddMinutes(30);
+
+        // Act — one tick processes both candidates (A hits 23505, B must succeed).
+        await scheduler.TickAsync(scheduler.OverrideNow.Value, TestContext.Current.CancellationToken);
+
+        // Assert
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        // Candidate A: no new log row (the pre-seeded one remains, duplicate was rejected).
+        var logsForA = await db.PhotoDiaryReminderLogs
+            .Where(l => l.DiaryRequestId == requestAId && l.ClientLocalDate == clientLocalDate)
+            .ToListAsync(TestContext.Current.CancellationToken);
+        logsForA.Should().HaveCount(1,
+            "candidate A had a pre-existing log row — the unique violation must be swallowed, " +
+            "not crash the scheduler, and the existing row must not be deleted");
+
+        // Candidate B: reminder log must be inserted (no cascade from A's failure).
+        var logsForB = await db.PhotoDiaryReminderLogs
+            .Where(l => l.DiaryRequestId == requestBId && l.ClientLocalDate == clientLocalDate)
+            .ToListAsync(TestContext.Current.CancellationToken);
+        logsForB.Should().HaveCount(1,
+            "candidate B's reminder-log insert must succeed despite A's 23505 violation");
+
+        // Candidate B: in-app notification must be created.
+        var notificationForB = await db.Notifications
+            .Where(n => n.RecipientUserId == clientBId && n.Type == NotificationType.PhotoDiaryReminder)
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
+        notificationForB.Should().NotBeNull(
+            "candidate B's in-app notification must be persisted — it must not be affected by A's failure");
+
+        // Candidate A: no in-app notification (reminder was skipped as duplicate).
+        var notificationForA = await db.Notifications
+            .Where(n => n.RecipientUserId == clientAId && n.Type == NotificationType.PhotoDiaryReminder)
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
+        notificationForA.Should().BeNull(
+            "candidate A's notification must NOT be created — the reminder was a duplicate and was skipped");
+
+        // Push must be invoked exactly once (for candidate B only).
+        push.Calls.Should().HaveCount(1,
+            "push must be sent for candidate B only — candidate A's reminder was a duplicate");
+        push.Calls[0].UserId.Should().Be(clientBId,
+            "the push must target candidate B's client");
+
+        // SignalR broadcast must fire exactly once (for candidate B's newnotification).
+        var newNotificationCalls = notifier.Calls
+            .Where(c => c.EventType == "newnotification")
+            .ToList();
+        newNotificationCalls.Should().HaveCount(1,
+            "newnotification must be broadcast once (for candidate B) — candidate A was skipped");
+        newNotificationCalls[0].UserId.Should().Be(clientBId);
+    }
 }
