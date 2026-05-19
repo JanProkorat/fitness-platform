@@ -1,0 +1,136 @@
+name: E2E
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'web/**'
+      - 'mobile/**'
+      - 'backend/**'
+      - 'docker-compose.test.yml'
+      - 'package.json'
+      - '.env.test.example'
+      - '.github/workflows/e2e.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  playwright:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Verify required secrets exist
+        run: |
+          if [ -z "${{ secrets.JWT_SECRET }}" ]; then
+            echo "::error::Missing required secret JWT_SECRET. Configure it at Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          if [ -z "${{ secrets.QA_SEED_PASSWORD }}" ]; then
+            echo "::error::Missing required secret QA_SEED_PASSWORD. Configure it at Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+
+      - name: Write .env.test from secrets
+        run: |
+          umask 077
+          {
+            printf 'JWT_SECRET=%s\n' "${JWT_SECRET}"
+            printf 'QA_SEED_PASSWORD=%s\n' "${QA_SEED_PASSWORD}"
+          } > .env.test
+        env:
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          QA_SEED_PASSWORD: ${{ secrets.QA_SEED_PASSWORD }}
+
+      - name: Install web dependencies
+        run: npm ci
+        working-directory: web
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('web/package-lock.json') }}
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+        working-directory: web
+
+      - name: Install Playwright system deps when cache hits
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+        working-directory: web
+
+      - name: Boot compose harness
+        run: npm run e2e:up
+
+      - name: Wait for harness health on :5101
+        run: |
+          for i in $(seq 1 30); do
+            if curl -ksSf https://localhost:5101/swagger/v1/swagger.json | grep -q '/auth/login'; then
+              echo "Harness healthy after $i attempts"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::Harness failed to come up within 60s. Dumping logs:"
+          docker ps -a
+          docker compose -f docker-compose.test.yml logs --tail=200
+          exit 1
+
+      - name: Run Playwright tests
+        run: npx playwright test
+        working-directory: web
+        env:
+          E2E_API_URL: https://localhost:5101
+          CI: 'true'
+          # Pass secrets explicitly so auth.setup.ts receives them even before
+          # dotenv.config has a chance to read .env.test (which docker-compose
+          # already consumed in the previous step). dotenv does not override
+          # existing env vars, so these shell-level values always win.
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          QA_SEED_PASSWORD: ${{ secrets.QA_SEED_PASSWORD }}
+
+      - name: Upload Playwright HTML report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ github.run_number }}
+          path: web/playwright-report/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Upload Playwright test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results-${{ github.run_number }}
+          path: web/test-results/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Dump harness logs on failure
+        if: failure()
+        run: docker compose -f docker-compose.test.yml logs --tail=500
+
+      - name: Tear down compose harness
+        if: always()
+        run: npm run e2e:down
+
+      - name: Remove .env.test
+        if: always()
+        run: rm -f .env.test

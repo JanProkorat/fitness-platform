@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Playwright auth state (contains session tokens — never commit)
+/.auth/
+
+# Playwright test artefacts
+/test-results/
+/playwright-report/
+/playwright/.cache/

@@ -91,7 +91,9 @@ minio_data/
 # =========================
 # Docs (local design specs)
 # =========================
-docs/
+docs/*
+# …except the testing reference docs that the e2e harness consumers cite.
+!docs/testing/
 
 # =========================
 # OS Files

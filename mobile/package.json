@@ -9,7 +9,9 @@
     "web": "expo start --web",
     "test": "jest",
     "typecheck": "tsc --noEmit",
-    "generate-api": "cd ../backend && curl -sk https://localhost:5001/swagger/v1/swagger.json -o swagger.json && dotnet nswag run nswag.mobile.json && sed -i '' 's|/\\* eslint-disable \\*/|/* eslint-disable */\\n// @ts-nocheck|' ../mobile/src/api/generated.ts"
+    "generate-api": "cd ../backend && curl -sk https://localhost:5001/swagger/v1/swagger.json -o swagger.json && dotnet nswag run nswag.mobile.json && sed -i '' 's|/\\* eslint-disable \\*/|/* eslint-disable */\\n// @ts-nocheck|' ../mobile/src/api/generated.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "jest": {
     "preset": "jest-expo",
@@ -63,6 +65,7 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@types/jest": "^30.0.0",
     "@types/react": "~19.2.2",
     "jest": "^29.7.0",

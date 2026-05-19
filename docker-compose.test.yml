@@ -102,6 +102,11 @@ services:
       Cors__AllowedOrigins__0: "http://localhost:5173"
       Cors__AllowedOrigins__1: "http://localhost:8081"
       RateLimiting__Disabled: "true"
+      # Enables POST /test/reset for Playwright global-setup. The endpoint
+      # remains double-gated: this flag is one half; the other is that
+      # ASPNETCORE_ENVIRONMENT=Development (above). Both must be true for
+      # the endpoint to respond — in production the env gate alone keeps it 404.
+      Testing__Enabled: "true"
     healthcheck:
       # Self-signed dev cert — `-k` is intentional inside the container.
       test: ["CMD-SHELL", "curl -ksSf https://localhost:8080/swagger/v1/swagger.json | grep -q '/auth/login'"]
