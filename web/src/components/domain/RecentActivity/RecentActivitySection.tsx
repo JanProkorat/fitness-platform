@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/cn';
 import type { ClientTimelineItem } from '@/api/timeline';
@@ -80,20 +80,33 @@ export function RecentActivitySection({
     return Array.from(monthSet).sort((a, b) => b.localeCompare(a));
   }, [items]);
 
-  // Durable state normalisation: when availableMonths changes and no longer
-  // contains the current selectedMonthKey, reset state to the first valid month.
-  // Dep array is [availableMonths] only — do NOT add selectedMonthKey (closure
-  // loop risk; the includes() check below handles staleness correctly).
-  useEffect(() => {
+  // Durable state normalisation — "adjust state during render" idiom (React docs).
+  // When availableMonths changes and selectedMonthKey is no longer present, we
+  // call setSelectedMonthKey synchronously in the render body. React detects the
+  // setState call, discards the in-progress render, and immediately re-renders
+  // with the corrected state — no intermediate commit, no visual flash.
+  //
+  // WHY NOT useEffect: ESLint's react-hooks/set-state-in-effect rule rejects
+  // useEffect(() => setState(...)) as the "you might not need an effect"
+  // anti-pattern, and correctly so — the reset is a pure derivation of prop
+  // changes, not a side effect.
+  //
+  // Sibling state tracks the previous availableMonths reference so we can
+  // detect when the prop identity changes between renders.
+  const [prevAvailableMonths, setPrevAvailableMonths] = useState(availableMonths);
+  if (availableMonths !== prevAvailableMonths) {
+    setPrevAvailableMonths(availableMonths);
     if (!availableMonths.includes(selectedMonthKey)) {
       setSelectedMonthKey(availableMonths[0] ?? currentMonthKey());
     }
-  }, [availableMonths]); // eslint-disable-line react-hooks/exhaustive-deps
+  }
 
-  // Synchronous render-path safety net: covers the one-render gap between an
-  // availableMonths change and the effect flushing (state is normalised by the
-  // effect above; this ternary prevents a controlled-component value mismatch
-  // warning while the effect is still pending).
+  // Synchronous render-path safety net: even on the very first render after
+  // availableMonths changes (before the adjust-during-render setState above has
+  // been processed), this ternary ensures <select value={...}> never holds a
+  // value that is absent from its <option> children. Do NOT remove this — it
+  // prevents a React controlled-component value mismatch warning on that
+  // first render pass.
   const effectiveMonthKey = availableMonths.includes(selectedMonthKey)
     ? selectedMonthKey
     : (availableMonths[0] ?? currentMonthKey());
