@@ -45,7 +45,9 @@ test.describe('Trainer clients list — compose harness (#268)', () => {
     // Wait for the clients table / list to be visible.
     // The dashboard fetches /trainer/clients and renders a table or list view.
     // We wait for the client's name to appear which confirms the API call succeeded.
-    const clientName = page.getByText('QA Client', { exact: false });
+    // Scoped to getByRole('table') to avoid a strict-mode collision: "QA Client"
+    // also renders in the trainer topbar/sidebar (logged-in user display).
+    const clientName = page.getByRole('table').getByText('QA Client', { exact: false });
     await expect(clientName).toBeVisible({ timeout: 30_000 });
   });
 
@@ -58,7 +60,9 @@ test.describe('Trainer clients list — compose harness (#268)', () => {
 
     // The stats grid shows "Aktivní klienti" with a count value.
     // We assert at least one client is shown — seeded fixture has exactly 1.
-    const clientName = page.getByText('QA Client', { exact: false });
+    // Scoped to getByRole('table') to avoid a strict-mode collision: "QA Client"
+    // also renders in the trainer topbar/sidebar (logged-in user display).
+    const clientName = page.getByRole('table').getByText('QA Client', { exact: false });
     await expect(clientName).toBeVisible({ timeout: 30_000 });
 
     // The stats grid: verify the "Aktivní klienti" card exists
@@ -72,9 +76,11 @@ test.describe('Trainer clients list — compose harness (#268)', () => {
     // Wait for networkidle so auth and initial data fetches are complete.
     await page.waitForLoadState('networkidle');
 
-    // Wait for the QA client to render
-    const clientName = page.getByText('QA Client', { exact: false });
-    await expect(clientName).toBeVisible({ timeout: 30_000 });
+    // Wait for the QA client to render.
+    // Scoped to getByRole('table') to avoid a strict-mode collision: "QA Client"
+    // also renders in the trainer topbar/sidebar (logged-in user display).
+    const clientName = page.getByRole('table').getByText('QA Client', { exact: false });
+    await expect(clientName.first()).toBeVisible({ timeout: 30_000 });
 
     // Click the first element containing the client name to navigate to detail
     await clientName.first().click();
