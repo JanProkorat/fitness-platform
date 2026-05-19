@@ -89,7 +89,7 @@ jobs:
           done
           echo "::error::Harness failed to come up within 60s. Dumping logs:"
           docker ps -a
-          docker-compose -f docker-compose.test.yml logs --tail=200
+          docker compose -f docker-compose.test.yml logs --tail=200
           exit 1
 
       - name: Run Playwright tests
@@ -125,7 +125,7 @@ jobs:
 
       - name: Dump harness logs on failure
         if: failure()
-        run: docker-compose -f docker-compose.test.yml logs --tail=500
+        run: docker compose -f docker-compose.test.yml logs --tail=500
 
       - name: Tear down compose harness
         if: always()
