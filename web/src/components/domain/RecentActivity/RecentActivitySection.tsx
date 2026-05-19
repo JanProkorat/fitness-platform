@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/cn';
 import type { ClientTimelineItem } from '@/api/timeline';
@@ -80,7 +80,20 @@ export function RecentActivitySection({
     return Array.from(monthSet).sort((a, b) => b.localeCompare(a));
   }, [items]);
 
-  // Ensure selectedMonthKey stays valid when items change (e.g. after load more)
+  // Durable state normalisation: when availableMonths changes and no longer
+  // contains the current selectedMonthKey, reset state to the first valid month.
+  // Dep array is [availableMonths] only — do NOT add selectedMonthKey (closure
+  // loop risk; the includes() check below handles staleness correctly).
+  useEffect(() => {
+    if (!availableMonths.includes(selectedMonthKey)) {
+      setSelectedMonthKey(availableMonths[0] ?? currentMonthKey());
+    }
+  }, [availableMonths]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Synchronous render-path safety net: covers the one-render gap between an
+  // availableMonths change and the effect flushing (state is normalised by the
+  // effect above; this ternary prevents a controlled-component value mismatch
+  // warning while the effect is still pending).
   const effectiveMonthKey = availableMonths.includes(selectedMonthKey)
     ? selectedMonthKey
     : (availableMonths[0] ?? currentMonthKey());
