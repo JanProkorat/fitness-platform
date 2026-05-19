@@ -112,57 +112,43 @@ public class FitnessApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
             services.AddSingleton<IPushNotificationService>(
                 sp => sp.GetRequiredService<FakePushNotificationService>());
 
-            // Test isolation: remove all IHostedService registrations for schedulers that
-            // tick autonomously so they cannot race the real-time clock at the :00 boundary
-            // on Linux CI.
+            // Candidate A — test isolation: remove all IHostedService registrations for
+            // PhotoDiaryReminderScheduler so it does not run autonomously during tests and
+            // cannot race with the real-time clock at the :00 boundary on Linux CI.
             //
             // Three descriptor shapes are matched defensively because the production
-            // registration in Program.cs uses the factory overload, e.g.:
+            // registration in Program.cs uses the factory overload:
             //
-            //   builder.Services.AddSingleton<PhotoDiaryReminderScheduler>();
-            //   builder.Services.AddHostedService(sp =>
+            //   builder.Services.AddSingleton<PhotoDiaryReminderScheduler>();          // line 199
+            //   builder.Services.AddHostedService(sp =>                                // line 200
             //       sp.GetRequiredService<PhotoDiaryReminderScheduler>());
             //
             // The second call produces a ServiceDescriptor whose ImplementationType is null
             // (factory-registered) and whose ImplementationFactory is a Func<IServiceProvider, object>
-            // whose MethodInfo.ReturnType is the scheduler type (covariant delegate conversion).
-            // Matching only ImplementationType == typeof(...) is a no-op against this shape.
+            // whose MethodInfo.ReturnType is PhotoDiaryReminderScheduler (covariant delegate
+            // conversion).  Matching only ImplementationType == typeof(...) is a no-op against
+            // this shape — the ImplementationType check is always false for factory descriptors.
             //
             // All three variants are checked so the removal is robust against future
             // registration-style changes without requiring another test-isolation fixup.
             //
-            // Each scheduler remains resolvable as a singleton via
-            //   factory.Services.GetRequiredService<TScheduler>()
-            // so tests that drive TickAsync directly are unaffected.
-            RemoveHostedService<PhotoDiaryReminderScheduler>(services);
-            RemoveHostedService<WeeklyCheckInScheduler>(services);
+            // The scheduler remains resolvable as a singleton via
+            //   factory.Services.GetRequiredService<PhotoDiaryReminderScheduler>()
+            // so existing tests that drive TickAsync directly are unaffected.
+            var toRemove = services
+                .Where(d => d.ServiceType == typeof(IHostedService))
+                .Where(d =>
+                    d.ImplementationType == typeof(PhotoDiaryReminderScheduler) ||
+                    d.ImplementationInstance is PhotoDiaryReminderScheduler ||
+                    (d.ImplementationFactory is not null &&
+                     d.ImplementationFactory.Method.ReturnType == typeof(PhotoDiaryReminderScheduler)))
+                .ToList();
+
+            foreach (var d in toRemove)
+                services.Remove(d);
         });
 
         builder.UseEnvironment("Development");
-    }
-
-    /// <summary>
-    /// Removes all <see cref="IHostedService"/> descriptors that resolve to
-    /// <typeparamref name="TScheduler"/>, regardless of how the descriptor was registered
-    /// (ImplementationType, ImplementationInstance, or ImplementationFactory shape).
-    /// The singleton registration for <typeparamref name="TScheduler"/> itself is left
-    /// intact so tests can still resolve and drive the scheduler via
-    /// <c>factory.Services.GetRequiredService&lt;TScheduler&gt;()</c>.
-    /// </summary>
-    private static void RemoveHostedService<TScheduler>(IServiceCollection services)
-        where TScheduler : class
-    {
-        var toRemove = services
-            .Where(d => d.ServiceType == typeof(IHostedService))
-            .Where(d =>
-                d.ImplementationType == typeof(TScheduler) ||
-                d.ImplementationInstance is TScheduler ||
-                (d.ImplementationFactory is not null &&
-                 d.ImplementationFactory.Method.ReturnType == typeof(TScheduler)))
-            .ToList();
-
-        foreach (var d in toRemove)
-            services.Remove(d);
     }
 
     public async ValueTask InitializeAsync()
