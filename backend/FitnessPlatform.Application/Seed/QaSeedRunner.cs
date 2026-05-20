@@ -1,10 +1,13 @@
+using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Seed;
 
@@ -19,6 +22,11 @@ namespace FitnessPlatform.Application.Seed;
 /// - A ClientProfessionalLink ties the two with IsActive=true so the trainer
 ///   dashboard shows "QA Client" without any further setup.
 /// - QA Nutri (33333333-...) has a ProfessionalProfile (no client link seeded).
+/// - A TrainingPlan (dddddddd-...) is seeded for the QA client with a Published week
+///   containing one session with three sections:
+///   Section 1 — ForTime + 0 exercises (the #258 bug shape).
+///   Section 2 — AMRAP + 2 synthetic exercises (non-regression).
+///   Section 3 — Standard (null format) + 2 synthetic exercises (non-regression).
 /// </summary>
 public static class QaSeedRunner
 {
@@ -34,6 +42,24 @@ public static class QaSeedRunner
     public static readonly Guid ClientProfilePublicId  = new("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
     public static readonly Guid TrainerProfilePublicId = new("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
     public static readonly Guid NutriProfilePublicId   = new("cccccccc-cccc-cccc-cccc-cccccccccccc");
+
+    // Stable ExternalId for the seeded training plan (ForTime + 0-exercise fixture).
+    // ClientId on the plan = ClientProfilePublicId (NOT ClientUserId) per GetClientPlansEndpoint filter.
+    public static readonly Guid QaTrainingPlanExternalId = new("dddddddd-dddd-dddd-dddd-dddddddddddd");
+
+    // Stable SectionIds — deterministic for test assertions.
+    public static readonly Guid ForTimeSectionId   = new("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee");
+    public static readonly Guid AmrapSectionId     = new("ffffffff-ffff-ffff-ffff-ffffffffffff");
+    public static readonly Guid StandardSectionId  = new("00000000-0000-0000-aaaa-000000000001");
+
+    // Stable SessionId.
+    public static readonly Guid QaSessionId = new("00000000-0000-0000-bbbb-000000000001");
+
+    // Stable ExternalIds for the synthetic exercises in AMRAP + Standard sections.
+    public static readonly Guid AmrapExercise1Id   = new("00000000-0000-0000-cccc-000000000001");
+    public static readonly Guid AmrapExercise2Id   = new("00000000-0000-0000-cccc-000000000002");
+    public static readonly Guid StandardExercise1Id = new("00000000-0000-0000-dddd-000000000001");
+    public static readonly Guid StandardExercise2Id = new("00000000-0000-0000-dddd-000000000002");
 
     public const string ClientEmail   = "qa.client@fitnessplatform.test";
     public const string TrainerEmail  = "qa.trainer@fitnessplatform.test";
@@ -54,6 +80,7 @@ public static class QaSeedRunner
         var logger = sp.GetRequiredService<ILoggerFactory>().CreateLogger("QaSeed");
         var userManager = sp.GetRequiredService<UserManager<ApplicationUser>>();
         var db = sp.GetRequiredService<ApplicationDbContext>();
+        var mongo = sp.GetRequiredService<IMongoContext>();
 
         await db.Database.MigrateAsync();
 
@@ -72,6 +99,9 @@ public static class QaSeedRunner
         // Trainer↔client link — without this the trainer dashboard returns an
         // empty client list and Playwright's getByText('QA Client') never resolves.
         await EnsureTrainerClientLinkAsync(db, trainerProfile, clientProfile, logger);
+
+        // Training plan — ForTime + 0-exercise fixture for #258 non-regression.
+        await EnsureTrainingPlanAsync(mongo, clientProfile.PublicId, trainerProfile.PublicId, logger);
 
         logger.LogInformation("QA seed complete — client={Client} trainer={Trainer} nutri={Nutri}",
             ClientEmail, TrainerEmail, NutriEmail);
@@ -218,5 +248,143 @@ public static class QaSeedRunner
         logger.LogInformation(
             "QA trainer↔client link created: trainerId={TrainerId} clientId={ClientId}",
             trainerProfile.Id, clientProfile.Id);
+    }
+
+    /// <summary>
+    /// Seeds a deterministic training plan for the QA client.
+    ///
+    /// The plan contains one Published week with one session with three sections:
+    ///   1. ForTime, TimeCapSeconds=1800, Exercises=[] — the #258 bug shape.
+    ///   2. AMRAP, TimeCapSeconds=600, two synthetic exercises — non-regression.
+    ///   3. Standard (null format), two synthetic exercises — non-regression.
+    ///
+    /// ClientId = clientProfilePublicId (NOT ClientUserId) — GetClientPlansEndpoint
+    /// filters by ClientProfile.PublicId. Using the user id would make the plan
+    /// invisible to GET /client/plans.
+    ///
+    /// The week Status must be WeekStatus.Published — GetClientPlansEndpoint line 142
+    /// applies ElemMatch(w => w.Status == WeekStatus.Published). A Draft week silently
+    /// excludes the plan.
+    /// </summary>
+    private static async Task EnsureTrainingPlanAsync(
+        IMongoContext mongo,
+        Guid clientProfilePublicId,
+        Guid trainerProfilePublicId,
+        ILogger logger)
+    {
+        var existing = await mongo.TrainingPlans
+            .Find(p => p.ExternalId == QaTrainingPlanExternalId)
+            .FirstOrDefaultAsync();
+
+        if (existing is not null)
+        {
+            logger.LogInformation(
+                "QA TrainingPlan already present: externalId={ExternalId}", QaTrainingPlanExternalId);
+            return;
+        }
+
+        var now = DateTime.UtcNow;
+
+        var plan = new TrainingPlan
+        {
+            ExternalId      = QaTrainingPlanExternalId,
+            ClientId        = clientProfilePublicId,
+            TrainerId       = trainerProfilePublicId,
+            Name            = "QA Test Plan — ForTime fixture",
+            Status          = TrainingPlanStatus.Active,
+            DateCreated     = now,
+            DatePublished   = now,
+            Version         = 1,
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber    = 1,
+                    Status        = WeekStatus.Published,
+                    DatePublished = now,
+                    Sessions =
+                    [
+                        new TrainingSession
+                        {
+                            SessionId  = QaSessionId,
+                            DayOfWeek  = 1, // Monday
+                            Name       = "QA Session",
+                            Order      = 1,
+                            Sections =
+                            [
+                                // Section 1 — ForTime + 0 exercises (#258 bug shape)
+                                new TrainingSection
+                                {
+                                    SectionId    = ForTimeSectionId,
+                                    Order        = 0,
+                                    Name         = "ForTime 30min",
+                                    Format       = WorkoutFormat.ForTime,
+                                    FormatConfig = new WodConfig { TimeCapSeconds = 1800 },
+                                    Exercises    = [],
+                                },
+                                // Section 2 — AMRAP + 2 synthetic exercises (non-regression)
+                                new TrainingSection
+                                {
+                                    SectionId    = AmrapSectionId,
+                                    Order        = 1,
+                                    Name         = "AMRAP test",
+                                    Format       = WorkoutFormat.AMRAP,
+                                    FormatConfig = new WodConfig { TimeCapSeconds = 600 },
+                                    Exercises =
+                                    [
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = AmrapExercise1Id,
+                                            ExerciseName       = "QA Pull-up",
+                                            Order              = 1,
+                                            MovementType       = MovementType.Reps,
+                                        },
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = AmrapExercise2Id,
+                                            ExerciseName       = "QA Box Jump",
+                                            Order              = 2,
+                                            MovementType       = MovementType.Reps,
+                                        },
+                                    ],
+                                },
+                                // Section 3 — Standard (null format) + 2 synthetic exercises (non-regression)
+                                new TrainingSection
+                                {
+                                    SectionId    = StandardSectionId,
+                                    Order        = 2,
+                                    Name         = "Standard test",
+                                    Format       = null,
+                                    FormatConfig = null,
+                                    Exercises =
+                                    [
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = StandardExercise1Id,
+                                            ExerciseName       = "QA Squat",
+                                            Order              = 1,
+                                            MovementType       = MovementType.Reps,
+                                        },
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = StandardExercise2Id,
+                                            ExerciseName       = "QA Deadlift",
+                                            Order              = 2,
+                                            MovementType       = MovementType.Reps,
+                                        },
+                                    ],
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        };
+
+        await mongo.TrainingPlans.InsertOneAsync(plan);
+
+        logger.LogInformation(
+            "QA TrainingPlan created: externalId={ExternalId} clientId={ClientId}",
+            QaTrainingPlanExternalId, clientProfilePublicId);
     }
 }
