@@ -31,4 +31,9 @@
     <ProjectReference Include="..\FitnessPlatform.Application\FitnessPlatform.Application.csproj" />
   </ItemGroup>
 
+  <!-- Copy xunit.runner.json to output so it is read when running dotnet test via VSTest adapter -->
+  <ItemGroup>
+    <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

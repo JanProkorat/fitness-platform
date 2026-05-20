@@ -163,9 +163,18 @@ public class FitnessApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
     public new async ValueTask DisposeAsync()
     {
+        // Dispose the Testcontainers but intentionally skip base.DisposeAsync().
+        //
+        // base.DisposeAsync() disposes the root IServiceProvider, which clears
+        // FastEndpoints' process-global ServiceResolver.Provider. Any Factory.Create<T>()
+        // call running concurrently (standalone unit tests without a [Collection] attribute)
+        // would then throw ObjectDisposedException. Skipping base.DisposeAsync() keeps the
+        // provider alive until the process exits — safe for test code where the process is
+        // short-lived. Containers are the only external resource that needs explicit cleanup.
+        //
+        // See also: ResetEndpointFactoryBase (same pattern, #296).
         await Task.WhenAll(
             _postgres.DisposeAsync().AsTask(),
             _mongo.DisposeAsync().AsTask());
-        await base.DisposeAsync();
     }
 }

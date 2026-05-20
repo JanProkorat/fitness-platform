@@ -1,6 +1,7 @@
 using System.Net;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Seed;
@@ -140,10 +141,19 @@ public abstract class ResetEndpointFactoryBase : WebApplicationFactory<Program>,
 
     public new async ValueTask DisposeAsync()
     {
+        // Dispose the Testcontainers but intentionally skip base.DisposeAsync().
+        //
+        // base.DisposeAsync() disposes the root IServiceProvider, which clears
+        // FastEndpoints' process-global ServiceResolver.Provider. Any Factory.Create<T>()
+        // call running concurrently (standalone unit tests without a [Collection] attribute)
+        // would then throw ObjectDisposedException. Skipping base.DisposeAsync() keeps the
+        // provider alive until the process exits — safe for test code where the process is
+        // short-lived. Containers are the only external resource that needs explicit cleanup.
+        //
+        // See also: FitnessApiFactory (same pattern, #296).
         await Task.WhenAll(
             _postgres.DisposeAsync().AsTask(),
             _mongo.DisposeAsync().AsTask());
-        await base.DisposeAsync();
     }
 }
 
@@ -274,6 +284,109 @@ public class ResetTestStateEndpointTests : IAsyncLifetime
         qaClient.Should().NotBeNull();
         qaClient!.Id.Should().Be(QaSeedRunner.ClientUserId,
             because: "stable GUID must be preserved after re-seed");
+    }
+
+    // ── Training plan seed assertions ───────────────────────────────────────
+
+    /// <summary>
+    /// POST /test/reset seeds a TrainingPlan with ExternalId = QaTrainingPlanExternalId.
+    /// The plan must be keyed on ClientProfilePublicId (not ClientUserId) and
+    /// have exactly one Published week with one session containing three sections
+    /// in the expected order and format.
+    /// </summary>
+    [Fact]
+    public async Task Reset_SeedsTrainingPlan_WithForTimeSectionAndNonRegressionSections()
+    {
+        var httpClient = _enabledFactory.CreateClient();
+        var ct = TestContext.Current.CancellationToken;
+
+        var response = await httpClient.PostAsync("/test/reset", null, ct);
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        using var scope = _enabledFactory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var plan = await mongo.TrainingPlans
+            .Find(p => p.ExternalId == QaSeedRunner.QaTrainingPlanExternalId)
+            .FirstOrDefaultAsync(ct);
+
+        plan.Should().NotBeNull(because: "QaSeedRunner must create the QA training plan");
+
+        // ClientId must be ClientProfilePublicId — GetClientPlansEndpoint filters by
+        // ClientProfile.PublicId (not by the user id) so using the wrong value makes
+        // the plan invisible to GET /client/plans.
+        plan!.ClientId.Should().Be(QaSeedRunner.ClientProfilePublicId,
+            because: "TrainingPlan.ClientId must equal ClientProfile.PublicId for the plan to be visible via GET /client/plans");
+
+        // Plan must be Active (not Draft) with at least one Published week.
+        plan.Status.Should().Be(TrainingPlanStatus.Active);
+
+        plan.Weeks.Should().HaveCount(1, because: "one week is seeded");
+
+        var week = plan.Weeks[0];
+
+        // GetClientPlansEndpoint:142 applies ElemMatch(w => w.Status == WeekStatus.Published).
+        // A Draft week silently excludes the plan from the client response.
+        week.Status.Should().Be(WeekStatus.Published,
+            because: "week must be Published for GET /client/plans to return the plan");
+        week.DatePublished.Should().NotBeNull(because: "published week must have a DatePublished timestamp");
+
+        week.Sessions.Should().HaveCount(1);
+        var session = week.Sessions[0];
+
+        session.Sections.Should().HaveCount(3, because: "one ForTime section + one AMRAP section + one Standard section");
+
+        // Section 1 — ForTime + 0 exercises (the #258 bug shape).
+        var section1 = session.Sections[0];
+        section1.Format.Should().Be(WorkoutFormat.ForTime,
+            because: "Section 1 must be ForTime format");
+        section1.FormatConfig.Should().NotBeNull();
+        section1.FormatConfig!.TimeCapSeconds.Should().Be(1800,
+            because: "ForTime section must have a 30-minute (1800s) time cap");
+        section1.Exercises.Should().BeEmpty(
+            because: "ForTime section intentionally has 0 exercises to exercise the #258 empty-exercise bug shape");
+
+        // Section 2 — AMRAP + exercises (non-regression: format-with-exercises path).
+        var section2 = session.Sections[1];
+        section2.Format.Should().Be(WorkoutFormat.AMRAP,
+            because: "Section 2 must be AMRAP format");
+        section2.Exercises.Should().HaveCountGreaterThanOrEqualTo(1,
+            because: "AMRAP section must have at least one exercise for non-regression");
+
+        // Section 3 — Standard (null format) + exercises (non-regression: no-format path).
+        var section3 = session.Sections[2];
+        section3.Format.Should().BeNull(
+            because: "Section 3 must be Standard (null format)");
+        section3.Exercises.Should().HaveCountGreaterThanOrEqualTo(1,
+            because: "Standard section must have at least one exercise for non-regression");
+    }
+
+    /// <summary>
+    /// Idempotency for the training plan: two consecutive POSTs to /test/reset must
+    /// not duplicate the TrainingPlan document. Count by ExternalId must stay exactly 1.
+    /// </summary>
+    [Fact]
+    public async Task Reset_CalledTwice_TrainingPlanNotDuplicated()
+    {
+        var httpClient = _enabledFactory.CreateClient();
+        var ct = TestContext.Current.CancellationToken;
+
+        var first = await httpClient.PostAsync("/test/reset", null, ct);
+        first.StatusCode.Should().Be(HttpStatusCode.NoContent, because: "first reset must succeed");
+
+        var second = await httpClient.PostAsync("/test/reset", null, ct);
+        second.StatusCode.Should().Be(HttpStatusCode.NoContent, because: "second reset must be idempotent");
+
+        using var scope = _enabledFactory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var count = await mongo.TrainingPlans
+            .CountDocumentsAsync(
+                Builders<FitnessPlatform.Application.Domain.Documents.TrainingPlan>.Filter
+                    .Eq(p => p.ExternalId, QaSeedRunner.QaTrainingPlanExternalId),
+                cancellationToken: ct);
+
+        count.Should().Be(1, because: "EnsureTrainingPlanAsync must be idempotent — no duplicate plan documents");
     }
 
     // ── Gate: Testing:Enabled=false ─────────────────────────────────────────
