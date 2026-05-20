@@ -75,8 +75,12 @@ case "$AGENT_TYPE" in
     qa-tester)
         # Read-only at the source-tree level — but qa-tester runs builds, tests, dev servers.
         # Allow everything dev/web/mobile agents allow EXCEPT git write ops and gh write ops.
-        ALLOW_REGEX="^(dotnet (test|build|run))|^(npm (run|ci|ls)|npx (--no-install|expo|tsc|playwright))|^(node )|^(xcrun |osascript)|${GIT_READ}|${FS_READ}|${GH_READ}|^pkill( -| $)|^docker (compose|ps|logs)|^bash |^python3 |^curl |^open |^brew "
-        DENY_HINT="qa-tester is read-only at source level. Allowed: dotnet test/build/run, npm/npx, expo, xcrun, git read-only, gh read-only. Forbidden: git commit/push, gh pr create/merge, code edits."
+        # `npm`/`npx` accept the `--prefix <path>` form so qa-tester can target a
+        # worktree without `cd` (the deny hook splits on first-token, so a literal
+        # `cd ... && ...` is two separate commands anyway). `cd` itself is allowed
+        # so the workflow patterns documented in qa-tester.md just work.
+        ALLOW_REGEX="^(dotnet (test|build|run))|^(npm( --prefix \\S+)?( |$))|^(npx( --prefix \\S+| --no-install)*( |$))|^(node )|^(xcrun |osascript)|^cd( |$)|${GIT_READ}|${FS_READ}|${GH_READ}|^pkill( -| $)|^docker (compose|ps|logs)|^bash |^python3 |^curl |^open |^brew "
+        DENY_HINT="qa-tester is read-only at source level. Allowed: dotnet test/build/run, npm/npx (incl. --prefix), node, expo, xcrun, osascript, cd, git read-only (incl. -C <path>), gh read-only, find/grep/cat/etc., pkill, docker compose, curl, open, brew. Forbidden: git commit/push (write ops), gh pr create/merge, code edits."
         ;;
     pr-reviewer)
         ALLOW_REGEX="^(gh pr |gh issue |gh api|gh run|gh label)|${GIT_READ}|${FS_READ}|^bash |^python3 "

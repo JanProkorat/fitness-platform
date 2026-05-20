@@ -13,7 +13,10 @@
   "properties": {
     "$schema":     { "const": ".claude/schemas/qa-tester-result.v1.json" },
     "issue_number":{ "type": "integer", "minimum": 1 },
-    "verdict":     { "enum": ["PASS", "PARTIAL", "FAIL"] },
+    "verdict":     {
+      "enum": ["PASS", "PARTIAL", "INTERACTIVE-REQUIRED", "FAIL"],
+      "description": "PASS — all ACs verified, no regressions. PARTIAL — some ACs unverified due to missing fixture / data (not tooling); orchestrator may still proceed at its discretion. INTERACTIVE-REQUIRED — static + bash-smoke ACs pass, but one or more ACs require MCP-driven interactive verification (Playwright web / XcodeBuildMCP iOS) that the sub-agent's tool surface cannot perform. The orchestrator picks up the interactive checks on the main thread before the code-review gate. FAIL — at least one AC actively broken, or a regression detected."
+    },
     "acceptance_criteria_results": {
       "type": "array",
       "minItems": 1,
