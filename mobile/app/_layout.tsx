@@ -62,6 +62,7 @@ function AuthGate() {
       if (!token) return;
       console.log('[e2e-auth] login bypass invoked');
       storage.set('refreshToken', token);
+      useAuthStore.setState({ refreshToken: token });
       useAuthStore.getState().restoreSession();
     };
 
