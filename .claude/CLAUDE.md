@@ -94,12 +94,68 @@ artifacts are generated — always read the per-scene source):
    a. Dev sub-agent(s) finish their slice and report back via the dev-handoff
       JSON (see [`schemas/dev-handoff.v1.json`](schemas/dev-handoff.v1.json)).
    b. Orchestrator dispatches `qa-tester` with the issue number.
-   c. ❌ FAIL or ⚠️ PARTIAL → route the fix list to the owning dev sub-agent,
-      then re-run `qa-tester`. Iterate until PASS.
+   c. ❌ FAIL → route the fix list to the owning dev sub-agent, then re-run
+      `qa-tester`. Iterate until at least the static + bash-smoke surface
+      passes (PASS / PARTIAL / INTERACTIVE-REQUIRED).
+   c2. ⚠️ INTERACTIVE-REQUIRED → orchestrator runs the interactive QA
+      playbook on the main thread (see rule 6.5), consolidates evidence
+      into the per-AC results, and produces a final verdict. If interactive
+      drive surfaces a defect, route the fix back to dev and restart the
+      gate from (b). If interactive drive passes all flagged ACs, proceed
+      to the code-review gate (rule 7).
+   c3. ⚠️ PARTIAL (missing fixture / data, not tooling) → either fix the
+      gap (e.g. extend `QaSeedRunner` via `backend-dotnet`) or accept the
+      gap with a follow-up issue; user decides. PARTIAL with a documented
+      gap may proceed to code-review on user authorization.
    d. PASS → orchestrator tells the user the task is done and (if applicable)
       suggests closing via `github-issues` with `Fixes #<N>`.
    Skip only if the task did not originate from a GitHub issue. Never skip to
    save a round trip — the AC is the contract.
+
+6.5. **Orchestrator-driven interactive QA playbook.** Triggered when
+   `qa-tester` returns ⚠️ INTERACTIVE-REQUIRED. The orchestrator's main
+   thread has the MCP tool surface the sub-agent lacks (`mcp__xcodebuildmcp__*`
+   ui-automation, `mcp__plugin_playwright_playwright__*`,
+   `mcp__a11y-accessibility__*`). For each AC the qa-tester flagged with
+   `met: false` and an interactive-evidence note:
+
+   - **iOS native flows** — load the schemas:
+     `ToolSearch select:mcp__xcodebuildmcp__list_sims,boot_sim,install_app_sim,launch_app_sim,stop_app_sim,screenshot,snapshot_ui,tap,type_text,swipe,gesture,button,long_press`.
+     Resolve the simulator via `list_sims` (precedence: booted → config-
+     name → newest installed). Use the dev-client `.app` from
+     `mobile/.qa-cache/<sha>.app` (built fresh by qa-tester in step C of
+     its iOS path). Drive via `snapshot_ui` → `tap` by accessibility id
+     → `type_text` / `swipe` as the AC requires. Capture evidence to
+     `.qa-artifacts/<issue>/orchestrator-<scene>.png`. If the iOS
+     "Open in App?" prompt appears after `xcrun simctl openurl`, snapshot
+     and tap the "Otevřít" / "Open" button before proceeding.
+
+   - **Web spec drive** — load the schemas:
+     `ToolSearch select:mcp__plugin_playwright_playwright__browser_navigate,browser_click,browser_fill_form,browser_snapshot,browser_take_screenshot,browser_wait_for,browser_evaluate`.
+     Point at `:5173` (which proxies to compose harness `:5101`). Pull
+     auth from `.auth/<role>.json` (produced by `web/tests/e2e/auth.setup.ts`)
+     or call `mobile/scripts/qa-fetch-refresh-token.sh <role>` and inject
+     into localStorage. Capture accessibility-tree snapshots + screenshots
+     under `.qa-artifacts/<issue>/orchestrator-web-<scene>.png`.
+
+   - **a11y audits** — load the schemas:
+     `ToolSearch select:mcp__a11y-accessibility__test_accessibility,test_html_string,check_aria_attributes,check_color_contrast`.
+     Run after the interactive drive lands on the target screen.
+
+   - **Consolidation** — write the orchestrator's findings as a final
+     section in `state/handoff-qa-<issue>.json` (extend the existing file
+     in place, do not rewrite the qa-tester sub-agent's portion). Update
+     `verdict` from `INTERACTIVE-REQUIRED` to `PASS` if all flagged ACs
+     are now verified, `FAIL` if any interactive check shows a defect, or
+     keep `PARTIAL` if some ACs remain blocked on fixture gaps.
+
+   - **Teardown** — same rule as qa-tester step 8: leave a pre-booted
+     user-owned simulator running, only shut down sims the orchestrator
+     itself booted. Uninstall the dev-client `.app` either way.
+
+   This playbook is also the path for ad-hoc smoke tests the user asks for
+   directly ("run the deep-link bypass against the booted sim"), without
+   going through a full qa-tester dispatch.
 7. **Code-review gate.** Once `qa-tester` returns ✅ PASS, the task is not
    "ready for merge" until `pr-reviewer` returns ✅ READY FOR MERGE. Sequence:
    a. Orchestrator dispatches `pr-reviewer` with the issue number, the
