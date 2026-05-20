@@ -5,6 +5,7 @@ import { Slot, useRouter, useSegments } from 'expo-router';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { href } from '@/lib/navigation';
 import * as SplashScreen from 'expo-splash-screen';
+import * as Linking from 'expo-linking';
 import {
   useFonts,
   Inter_400Regular,
@@ -12,7 +13,7 @@ import {
   Inter_600SemiBold,
   Inter_700Bold,
 } from '@expo-google-fonts/inter';
-import { useAuthStore } from '@/stores/auth';
+import { useAuthStore, storage } from '@/stores/auth';
 import { useOfflineMutations } from '@/hooks/useOfflineMutations';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { ToastProvider } from '@/components/ui/Toast';
@@ -42,6 +43,34 @@ function AuthGate() {
   });
 
   useOfflineMutations();
+
+  // __DEV__-only: QA auto-login bypass via deep link.
+  // Fires on every inbound deep link; silently ignores anything that is not
+  // fitnessplatform://e2e-auth?token=<refreshToken>.  Never runs in production
+  // builds (__DEV__ is tree-shaken to false by Metro for release builds).
+  useEffect(() => {
+    if (!__DEV__) return;
+
+    const handleUrl = (url: string | null) => {
+      if (!url) return;
+      const parsed = Linking.parse(url);
+      if (parsed.hostname !== 'e2e-auth') return;
+      const token =
+        typeof parsed.queryParams?.token === 'string'
+          ? parsed.queryParams.token
+          : null;
+      if (!token) return;
+      console.log('[e2e-auth] login bypass invoked');
+      storage.set('refreshToken', token);
+      useAuthStore.getState().restoreSession();
+    };
+
+    // Cold-start: app was not running when the deep link was tapped.
+    Linking.getInitialURL().then(handleUrl);
+    // Warm: app was already running when the deep link arrived.
+    const sub = Linking.addEventListener('url', ({ url }) => handleUrl(url));
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     restoreSession();

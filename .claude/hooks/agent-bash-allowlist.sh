@@ -49,8 +49,13 @@ deny() {
 }
 
 # Reusable allowlist regexes.
-GIT_READ='^(git status|git diff|git log|git show|git branch|git rev-parse|git ls-files|git fetch|git remote)( |$)'
-GIT_WRITE='^(git add|git commit|git checkout|git switch|git stash|git restore|git reset(?! --hard)|git rm|git mv|git push|git pull|git rebase|git merge|git worktree|git fetch)( |$)'
+# GIT_READ / GIT_WRITE match both the bare form (`git status`) and the
+# worktree-targeted form (`git -C <path> status`, `git --git-dir=<path> status`,
+# `git --work-tree=<path> status`) so that sub-agents can inspect and modify
+# state inside `.worktrees/<issue>/` without needing `cd` (which is itself
+# blocked by the FS_READ regex below).
+GIT_READ='^git( -C \S+| --git-dir=\S+| --work-tree=\S+)? (status|diff|log|show|branch|rev-parse|ls-files|fetch|remote)( |$)'
+GIT_WRITE='^git( -C \S+| --git-dir=\S+| --work-tree=\S+)? (add|commit|checkout|switch|stash|restore|reset(?! --hard)|rm|mv|push|pull|rebase|merge|worktree|fetch)( |$)'
 FS_READ='^(find|grep|cat|head|tail|less|more|ls|wc|awk|sed( -n)?|jq|xargs|sort|uniq|cut|tr|tee|file|stat|du|tree|which|type|env)( |$)'
 GH_READ='^gh (issue view|issue list|pr view|pr list|pr checks|pr diff|api( |$)|run view|run list|workflow view|label list|repo view)( |$)'
 
