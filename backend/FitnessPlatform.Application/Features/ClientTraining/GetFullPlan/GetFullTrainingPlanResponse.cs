@@ -152,6 +152,12 @@ public class SectionDto
     /// </summary>
     public string? Notes { get; set; }
 
+    /// <summary>True when this section is considered complete:
+    /// for sections with exercises → every exercise has IsCompleted=true;
+    /// for sections without exercises → the section's id is in the
+    /// TrainingCompletion.CompletedSectionIds set for the owning session.</summary>
+    public bool IsCompleted { get; set; }
+
     /// <summary>Exercises within this section.</summary>
     public List<ExerciseDto> Exercises { get; set; } = [];
 }

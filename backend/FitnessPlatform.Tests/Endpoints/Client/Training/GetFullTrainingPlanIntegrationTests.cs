@@ -687,6 +687,570 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
         session.Exercises[0].MuscleGroups.Should().Contain(MuscleGroup.Quadriceps);
     }
 
+    // ── SectionDto.IsCompleted tests ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Empty-exercise section where MarkWholeDayComplete wrote a CompletedSectionIds entry
+    /// must return IsCompleted = true.
+    /// </summary>
+    [Fact]
+    public async Task Returns_IsCompleted_True_For_Empty_Section_With_Completion_Row()
+    {
+        var httpClient = factory.CreateClient();
+
+        var clientEmail = UniqueEmail();
+        await TestHelpers.RegisterAsync(httpClient, clientEmail, "TestPass1!", "Empty", "Section", "Client");
+        var (accessToken, _) = await TestHelpers.LoginAsync(httpClient, clientEmail, "TestPass1!");
+
+        Guid clientPublicId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var user = await db.Users.FirstAsync(
+                u => u.Email == clientEmail,
+                TestContext.Current.CancellationToken);
+            var profile = await db.ClientProfiles.FirstAsync(
+                cp => cp.UserId == user.Id,
+                TestContext.Current.CancellationToken);
+            clientPublicId = profile.PublicId;
+        }
+
+        var planId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var emptySectionId = Guid.NewGuid();
+
+        var plan = new TrainingPlan
+        {
+            ExternalId = planId,
+            ClientId = clientPublicId,
+            TrainerId = Guid.NewGuid(),
+            Name = "Empty Section Plan",
+            Status = TrainingPlanStatus.Active,
+            Version = 1,
+            DateCreated = DateTime.UtcNow.AddDays(-3),
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = DateTime.UtcNow.AddDays(-2),
+                    Sessions =
+                    [
+                        new TrainingSession
+                        {
+                            SessionId = sessionId,
+                            DayOfWeek = 1,
+                            Name = "Running",
+                            Order = 1,
+                            Sections =
+                            [
+                                new TrainingSection
+                                {
+                                    SectionId = emptySectionId,
+                                    Order = 0,
+                                    Name = "Running",
+                                    Exercises = []
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        };
+
+        var completion = new TrainingCompletion
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = clientPublicId,
+            Date = DateTime.UtcNow.Date,
+            SessionId = sessionId,
+            CompletedExerciseIds = [],
+            CompletedSectionIds = [emptySectionId],
+            DateCreated = DateTime.UtcNow,
+            Version = 1
+        };
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+            await mongo.TrainingPlans.InsertOneAsync(plan, cancellationToken: TestContext.Current.CancellationToken);
+            await mongo.TrainingCompletions.InsertOneAsync(completion, cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        TestHelpers.SetBearerToken(httpClient, accessToken);
+        var response = await httpClient.GetAsync(
+            $"/client/training/plans/{planId}",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
+
+        var jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            Converters = { new JsonStringEnumConverter() }
+        };
+        var body = await response.Content.ReadFromJsonAsync<FullPlanResponse>(
+            jsonOptions,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        body.Should().NotBeNull();
+        var section = body!.Weeks[0].Sessions[0].Sections[0];
+        section.SectionId.Should().Be(emptySectionId);
+        section.Exercises.Should().BeEmpty();
+        section.IsCompleted.Should().BeTrue(
+            "empty section was added to CompletedSectionIds by MarkWholeDayComplete");
+    }
+
+    /// <summary>
+    /// Non-empty section where all exercises are completed via TrainingCompletion
+    /// must return IsCompleted = true.
+    /// </summary>
+    [Fact]
+    public async Task Returns_IsCompleted_True_For_NonEmpty_Section_With_All_Exercises_Done()
+    {
+        var httpClient = factory.CreateClient();
+
+        var clientEmail = UniqueEmail();
+        await TestHelpers.RegisterAsync(httpClient, clientEmail, "TestPass1!", "Nonempty", "Done", "Client");
+        var (accessToken, _) = await TestHelpers.LoginAsync(httpClient, clientEmail, "TestPass1!");
+
+        Guid clientPublicId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var user = await db.Users.FirstAsync(
+                u => u.Email == clientEmail,
+                TestContext.Current.CancellationToken);
+            var profile = await db.ClientProfiles.FirstAsync(
+                cp => cp.UserId == user.Id,
+                TestContext.Current.CancellationToken);
+            clientPublicId = profile.PublicId;
+        }
+
+        var planId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var sectionId = Guid.NewGuid();
+        var ex1Id = Guid.NewGuid();
+        var ex2Id = Guid.NewGuid();
+
+        var ex1 = new Exercise
+        {
+            ExternalId = ex1Id,
+            Name = "Squat",
+            MuscleGroups = [MuscleGroup.Quadriceps],
+            Equipment = ExerciseEquipment.Barbell,
+            Category = ExerciseCategory.Strength,
+            Difficulty = ExerciseDifficulty.Intermediate,
+            IsActive = true,
+            Source = "system",
+            DateCreated = DateTime.UtcNow
+        };
+
+        var ex2 = new Exercise
+        {
+            ExternalId = ex2Id,
+            Name = "Deadlift",
+            MuscleGroups = [MuscleGroup.Hamstrings],
+            Equipment = ExerciseEquipment.Barbell,
+            Category = ExerciseCategory.Strength,
+            Difficulty = ExerciseDifficulty.Intermediate,
+            IsActive = true,
+            Source = "system",
+            DateCreated = DateTime.UtcNow
+        };
+
+        var plan = new TrainingPlan
+        {
+            ExternalId = planId,
+            ClientId = clientPublicId,
+            TrainerId = Guid.NewGuid(),
+            Name = "All Done Plan",
+            Status = TrainingPlanStatus.Active,
+            Version = 1,
+            DateCreated = DateTime.UtcNow.AddDays(-3),
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = DateTime.UtcNow.AddDays(-2),
+                    Sessions =
+                    [
+                        new TrainingSession
+                        {
+                            SessionId = sessionId,
+                            DayOfWeek = 1,
+                            Name = "Leg Day",
+                            Order = 1,
+                            Sections =
+                            [
+                                new TrainingSection
+                                {
+                                    SectionId = sectionId,
+                                    Order = 0,
+                                    Name = "Hlavní",
+                                    Exercises =
+                                    [
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = ex1Id,
+                                            ExerciseName = "Squat",
+                                            Order = 1,
+                                            Sets = [new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 5, WeightKg = 100 }]
+                                        },
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = ex2Id,
+                                            ExerciseName = "Deadlift",
+                                            Order = 2,
+                                            Sets = [new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 5, WeightKg = 120 }]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        };
+
+        // Mark both exercises complete via TrainingCompletion
+        var completion = new TrainingCompletion
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = clientPublicId,
+            Date = DateTime.UtcNow.Date,
+            SessionId = sessionId,
+            CompletedExerciseIds = [ex1Id, ex2Id],
+            DateCreated = DateTime.UtcNow,
+            Version = 1
+        };
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+            await mongo.Exercises.InsertOneAsync(ex1, cancellationToken: TestContext.Current.CancellationToken);
+            await mongo.Exercises.InsertOneAsync(ex2, cancellationToken: TestContext.Current.CancellationToken);
+            await mongo.TrainingPlans.InsertOneAsync(plan, cancellationToken: TestContext.Current.CancellationToken);
+            await mongo.TrainingCompletions.InsertOneAsync(completion, cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        TestHelpers.SetBearerToken(httpClient, accessToken);
+        var response = await httpClient.GetAsync(
+            $"/client/training/plans/{planId}",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
+
+        var jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            Converters = { new JsonStringEnumConverter() }
+        };
+        var body = await response.Content.ReadFromJsonAsync<FullPlanResponse>(
+            jsonOptions,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        body.Should().NotBeNull();
+        var section = body!.Weeks[0].Sessions[0].Sections[0];
+        section.Exercises.Should().HaveCount(2);
+        section.IsCompleted.Should().BeTrue("both exercises are marked complete via TrainingCompletion");
+    }
+
+    /// <summary>
+    /// Non-empty section where only one of two exercises is done must return IsCompleted = false.
+    /// </summary>
+    [Fact]
+    public async Task Returns_IsCompleted_False_For_Partially_Completed_NonEmpty_Section()
+    {
+        var httpClient = factory.CreateClient();
+
+        var clientEmail = UniqueEmail();
+        await TestHelpers.RegisterAsync(httpClient, clientEmail, "TestPass1!", "Partial", "Section", "Client");
+        var (accessToken, _) = await TestHelpers.LoginAsync(httpClient, clientEmail, "TestPass1!");
+
+        Guid clientPublicId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var user = await db.Users.FirstAsync(
+                u => u.Email == clientEmail,
+                TestContext.Current.CancellationToken);
+            var profile = await db.ClientProfiles.FirstAsync(
+                cp => cp.UserId == user.Id,
+                TestContext.Current.CancellationToken);
+            clientPublicId = profile.PublicId;
+        }
+
+        var planId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var sectionId = Guid.NewGuid();
+        var ex1Id = Guid.NewGuid();
+        var ex2Id = Guid.NewGuid();
+
+        var ex1 = new Exercise
+        {
+            ExternalId = ex1Id,
+            Name = "Pull-up",
+            MuscleGroups = [MuscleGroup.Back],
+            Equipment = ExerciseEquipment.Bodyweight,
+            Category = ExerciseCategory.Strength,
+            Difficulty = ExerciseDifficulty.Intermediate,
+            IsActive = true,
+            Source = "system",
+            DateCreated = DateTime.UtcNow
+        };
+
+        var ex2 = new Exercise
+        {
+            ExternalId = ex2Id,
+            Name = "Row",
+            MuscleGroups = [MuscleGroup.Back],
+            Equipment = ExerciseEquipment.Barbell,
+            Category = ExerciseCategory.Strength,
+            Difficulty = ExerciseDifficulty.Intermediate,
+            IsActive = true,
+            Source = "system",
+            DateCreated = DateTime.UtcNow
+        };
+
+        var plan = new TrainingPlan
+        {
+            ExternalId = planId,
+            ClientId = clientPublicId,
+            TrainerId = Guid.NewGuid(),
+            Name = "Partial Section Plan",
+            Status = TrainingPlanStatus.Active,
+            Version = 1,
+            DateCreated = DateTime.UtcNow.AddDays(-3),
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = DateTime.UtcNow.AddDays(-2),
+                    Sessions =
+                    [
+                        new TrainingSession
+                        {
+                            SessionId = sessionId,
+                            DayOfWeek = 2,
+                            Name = "Pull Day",
+                            Order = 1,
+                            Sections =
+                            [
+                                new TrainingSection
+                                {
+                                    SectionId = sectionId,
+                                    Order = 0,
+                                    Name = "Hlavní",
+                                    Exercises =
+                                    [
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = ex1Id,
+                                            ExerciseName = "Pull-up",
+                                            Order = 1,
+                                            Sets = [new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 8 }]
+                                        },
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = ex2Id,
+                                            ExerciseName = "Row",
+                                            Order = 2,
+                                            Sets = [new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 10 }]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        };
+
+        // Only ex1 is marked complete (not ex2)
+        var completion = new TrainingCompletion
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = clientPublicId,
+            Date = DateTime.UtcNow.Date,
+            SessionId = sessionId,
+            CompletedExerciseIds = [ex1Id],
+            DateCreated = DateTime.UtcNow,
+            Version = 1
+        };
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+            await mongo.Exercises.InsertOneAsync(ex1, cancellationToken: TestContext.Current.CancellationToken);
+            await mongo.Exercises.InsertOneAsync(ex2, cancellationToken: TestContext.Current.CancellationToken);
+            await mongo.TrainingPlans.InsertOneAsync(plan, cancellationToken: TestContext.Current.CancellationToken);
+            await mongo.TrainingCompletions.InsertOneAsync(completion, cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        TestHelpers.SetBearerToken(httpClient, accessToken);
+        var response = await httpClient.GetAsync(
+            $"/client/training/plans/{planId}",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
+
+        var jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            Converters = { new JsonStringEnumConverter() }
+        };
+        var body = await response.Content.ReadFromJsonAsync<FullPlanResponse>(
+            jsonOptions,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        body.Should().NotBeNull();
+        var section = body!.Weeks[0].Sessions[0].Sections[0];
+        section.Exercises.Should().HaveCount(2);
+        section.IsCompleted.Should().BeFalse("only one of two exercises is done — partial completion");
+    }
+
+    /// <summary>
+    /// When no TrainingCompletion row exists at all, IsCompleted must be false
+    /// for both empty and non-empty sections.
+    /// </summary>
+    [Fact]
+    public async Task Returns_IsCompleted_False_When_No_TrainingCompletion_Exists()
+    {
+        var httpClient = factory.CreateClient();
+
+        var clientEmail = UniqueEmail();
+        await TestHelpers.RegisterAsync(httpClient, clientEmail, "TestPass1!", "No", "Completion", "Client");
+        var (accessToken, _) = await TestHelpers.LoginAsync(httpClient, clientEmail, "TestPass1!");
+
+        Guid clientPublicId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var user = await db.Users.FirstAsync(
+                u => u.Email == clientEmail,
+                TestContext.Current.CancellationToken);
+            var profile = await db.ClientProfiles.FirstAsync(
+                cp => cp.UserId == user.Id,
+                TestContext.Current.CancellationToken);
+            clientPublicId = profile.PublicId;
+        }
+
+        var planId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var emptySectionId = Guid.NewGuid();
+        var nonEmptySectionId = Guid.NewGuid();
+        var exId = Guid.NewGuid();
+
+        var exercise = new Exercise
+        {
+            ExternalId = exId,
+            Name = "Lunge",
+            MuscleGroups = [MuscleGroup.Quadriceps],
+            Equipment = ExerciseEquipment.Bodyweight,
+            Category = ExerciseCategory.Strength,
+            Difficulty = ExerciseDifficulty.Beginner,
+            IsActive = true,
+            Source = "system",
+            DateCreated = DateTime.UtcNow
+        };
+
+        var plan = new TrainingPlan
+        {
+            ExternalId = planId,
+            ClientId = clientPublicId,
+            TrainerId = Guid.NewGuid(),
+            Name = "No Completion Plan",
+            Status = TrainingPlanStatus.Active,
+            Version = 1,
+            DateCreated = DateTime.UtcNow.AddDays(-3),
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = DateTime.UtcNow.AddDays(-2),
+                    Sessions =
+                    [
+                        new TrainingSession
+                        {
+                            SessionId = sessionId,
+                            DayOfWeek = 3,
+                            Name = "Mixed Day",
+                            Order = 1,
+                            Sections =
+                            [
+                                new TrainingSection
+                                {
+                                    SectionId = emptySectionId,
+                                    Order = 0,
+                                    Name = "Running",
+                                    Exercises = []
+                                },
+                                new TrainingSection
+                                {
+                                    SectionId = nonEmptySectionId,
+                                    Order = 1,
+                                    Name = "Strength",
+                                    Exercises =
+                                    [
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = exId,
+                                            ExerciseName = "Lunge",
+                                            Order = 1,
+                                            Sets = [new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 12 }]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        };
+
+        // No TrainingCompletion inserted at all
+        using (var scope = factory.Services.CreateScope())
+        {
+            var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+            await mongo.Exercises.InsertOneAsync(exercise, cancellationToken: TestContext.Current.CancellationToken);
+            await mongo.TrainingPlans.InsertOneAsync(plan, cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        TestHelpers.SetBearerToken(httpClient, accessToken);
+        var response = await httpClient.GetAsync(
+            $"/client/training/plans/{planId}",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
+
+        var jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            Converters = { new JsonStringEnumConverter() }
+        };
+        var body = await response.Content.ReadFromJsonAsync<FullPlanResponse>(
+            jsonOptions,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        body.Should().NotBeNull();
+        var sections = body!.Weeks[0].Sessions[0].Sections;
+        sections.Should().HaveCount(2);
+
+        var emptySection = sections.First(s => s.SectionId == emptySectionId);
+        emptySection.IsCompleted.Should().BeFalse("no TrainingCompletion exists — empty section must be false");
+
+        var nonEmptySection = sections.First(s => s.SectionId == nonEmptySectionId);
+        nonEmptySection.IsCompleted.Should().BeFalse("no TrainingCompletion exists — non-empty section must be false");
+    }
+
     // ── Local response DTOs (per slice rules — not shared across features) ────────
 
     private record FullPlanResponse(
@@ -729,6 +1293,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
         string? Format,
         WodConfigResponse? FormatConfig,
         string? Notes,
+        bool IsCompleted,
         List<ExerciseResponse> Exercises);
 
     private record WodConfigResponse(

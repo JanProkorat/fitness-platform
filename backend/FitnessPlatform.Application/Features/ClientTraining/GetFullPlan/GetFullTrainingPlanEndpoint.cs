@@ -174,6 +174,8 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
                     .GroupBy(e => e.ExerciseExternalId)
                     .ToDictionary(g => g.Key, g => g.First()));
 
+        var completedSectionIdsBySession = new Dictionary<Guid, HashSet<Guid>>();
+
         if (planSessionIds.Count > 0)
         {
             var completionFilter = Builders<TrainingCompletion>.Filter.And(
@@ -183,6 +185,12 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
             var trainingCompletions = await mongo.TrainingCompletions
                 .Find(completionFilter)
                 .ToListAsync(ct);
+
+            completedSectionIdsBySession = trainingCompletions
+                .GroupBy(tc => tc.SessionId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.SelectMany(tc => tc.CompletedSectionIds ?? new List<Guid>()).ToHashSet());
 
             foreach (var tc in trainingCompletions)
             {
@@ -306,6 +314,11 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
                         };
                     }).ToList();
 
+                    var sectionIsCompleted = sectionExerciseDtos.Count > 0
+                        ? sectionExerciseDtos.All(e => e.IsCompleted)
+                        : completedSectionIdsBySession.TryGetValue(session.SessionId, out var completedSecs)
+                            && completedSecs.Contains(sec.SectionId);
+
                     return new SectionDto
                     {
                         SectionId = sec.SectionId,
@@ -314,6 +327,7 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
                         Format = sec.Format?.ToString(),
                         FormatConfig = sec.FormatConfig,
                         Notes = sec.Notes,
+                        IsCompleted = sectionIsCompleted,
                         Exercises = sectionExerciseDtos
                     };
                 }).ToList();

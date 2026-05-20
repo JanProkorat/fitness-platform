@@ -1048,6 +1048,10 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
           ...(previous.completedSetsBySessionExercise ?? {}),
         }
 
+        const nextCompletedSectionIdsBySession: Record<string, string[]> = {
+          ...(previous.completedSectionIdsBySession ?? {}),
+        }
+
         for (const session of previous.sessions ?? []) {
           const sessionId = session.sessionId
           if (!sessionId) continue
@@ -1056,6 +1060,12 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
 
           const nextSessionSections: Record<string, string[]> = {}
           const plannedSetsByEx: Record<string, number[]> = {}
+
+          // Collect all section IDs for this session so empty-exercise sections
+          // immediately reflect as complete in the optimistic cache (#259 fix).
+          const allSectionIds: string[] = (session.sections ?? [])
+            .map((sec) => sec.sectionId)
+            .filter((id): id is string => id != null)
 
           for (const sec of session.sections ?? []) {
             if (!sec.sectionId) continue
@@ -1078,12 +1088,14 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
 
           nextBySectionAndSession[sessionId] = nextSessionSections
           nextSetsBySessionExercise[sessionId] = plannedSetsByEx
+          nextCompletedSectionIdsBySession[sessionId] = allSectionIds
         }
 
         queryClient.setQueryData<TodayTrainingResponse>(['today-training'], {
           ...previous,
           completedExerciseIdsBySectionAndSession: nextBySectionAndSession,
           completedSetsBySessionExercise: nextSetsBySessionExercise,
+          completedSectionIdsBySession: nextCompletedSectionIdsBySession,
         })
       }
       return { previous }

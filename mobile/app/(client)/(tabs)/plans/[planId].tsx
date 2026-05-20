@@ -1301,31 +1301,22 @@ function TrainingPlanDetail({ plan }: { plan: GetFullTrainingPlanResponse }) {
                   }
 
                   // Session pill: count workouts (sections), not exercises.
-                  // A section counts as complete when every trackable exercise in
-                  // it has isCompleted === true; sections with no trackable
-                  // exercises are skipped from the "done" tally (plan-detail is
-                  // read-only — no separate sectionComplete flag).
+                  // Uses section.isCompleted from the backend (#260 fix) so
+                  // empty-exercise sections are counted correctly via
+                  // TrainingCompletion.CompletedSectionIds.
                   const totalWorkouts = sections.length
-                  const completedWorkouts = sections.filter((sec) => {
-                    const trackable = (sec.exercises ?? []).filter(
-                      (e) => e.exerciseExternalId != null,
-                    )
-                    if (trackable.length === 0) return false
-                    return trackable.every((e) => e.isCompleted === true)
-                  }).length
+                  const completedWorkouts = sections.filter(
+                    (sec) => sec.isCompleted === true,
+                  ).length
 
                   // Read-only session completion indicator for headerRight.
-                  // A session is complete when every trackable exercise in every
-                  // section has isCompleted === true.
-                  const allSessionExercises = sections.flatMap(
-                    (sec) => sec.exercises ?? [],
-                  )
-                  const trackableSessionExercises = allSessionExercises.filter(
-                    (e) => e.exerciseExternalId != null,
-                  )
+                  // A session is complete IFF every section (workout) within it
+                  // is complete. Empty-exercise sections are flagged complete by
+                  // the backend via TrainingCompletion.CompletedSectionIds
+                  // (#260 fix).
                   const isSessionComplete =
-                    trackableSessionExercises.length > 0 &&
-                    trackableSessionExercises.every((e) => e.isCompleted === true)
+                    sections.length > 0 &&
+                    sections.every((sec) => sec.isCompleted === true)
 
                   const sessionCheckIndicator = (
                     <View
@@ -1372,15 +1363,15 @@ function TrainingPlanDetail({ plan }: { plan: GetFullTrainingPlanResponse }) {
                         const isExpanded =
                           hasExercises && (sessionSectionExpanded[sectionKey] ?? true)
                         // Read-only completion indicator for the section header.
-                        // A section is "done" when every trackable exercise in it
-                        // is `isCompleted`. WOD-format sections without trackable
-                        // exercises don't show the indicator (left undefined).
-                        const trackableExercises = sectionExercises.filter(
-                          (e) => e.exerciseExternalId != null,
-                        )
-                        const isSectionComplete = trackableExercises.length > 0
-                          ? trackableExercises.every((e) => e.isCompleted === true)
-                          : undefined
+                        // Uses section.isCompleted from the backend (#260 fix)
+                        // so empty-exercise sections show the correct indicator.
+                        // undefined = no indicator (section never attempted).
+                        const isSectionComplete: boolean | undefined =
+                          section.isCompleted === true
+                            ? true
+                            : sectionExercises.some((e) => e.isCompleted === true)
+                              ? false
+                              : undefined
 
                         const isLastSection = sectionIdx === sections.length - 1
 
