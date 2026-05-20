@@ -3860,6 +3860,10 @@ export default function WorkoutLogScreen() {
           ? resolveSection(activeSection, sessionFormat, sessionFormatConfig)
           : null
         if (!resolved || !isWodFormat(resolved.format) || !resolved.formatConfig) return null
+        // When the section has no exercises, site #2 (the inline exercise-free
+        // WOD render at line ~3506) already owns the timer. Returning null here
+        // prevents a duplicate WodTimerHero overlay (fix for #258).
+        if ((activeSection?.exercises?.length ?? 0) === 0) return null
         const sectionId = activeSection?.sectionId ?? `section-${activeSectionIdx}`
         const sectionLabel = activeSection?.name ?? sessionDisplayName
         return (
