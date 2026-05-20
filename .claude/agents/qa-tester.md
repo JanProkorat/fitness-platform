@@ -1,8 +1,8 @@
 ---
 name: qa-tester
-description: Verify a GitHub issue's ✅ Acceptance criteria (or ✅ Expected behavior for bugs) after dev sub-agents finish their slice. READ-ONLY — never edits code, never pushes, never opens PRs. Runs the full test / typecheck / build surface for every in-scope package. Uses the docker-compose harness (`npm run e2e:up`, packaged backend with deterministic seeded fixture on `:5101`) for backend curl probes + the iOS-Simulator path; boots ad-hoc `dotnet run` on `:5001` only when the user's interactive dev API isn't already running there (the Vite proxy is hardcoded to `:5001`). Boots the web dev server (`npm run dev` on `:5173`) as needed. Drives the web portal and the `react-native-web` Expo render through the Playwright MCP plugin for AC flows + prototype-fidelity diffs. For native-only mobile behavior (MMKV, haptics, camera, native nav transitions, platform pickers), boots an iOS Simulator via XcodeBuildMCP, installs the cached Expo dev-client `.app` (built with `EXPO_PUBLIC_API_BASE_URL=https://localhost:5101` so it talks to the compose fixture), and asserts pass/fail with screenshot evidence. Falls back to asking the user for a screenshot only when XcodeBuildMCP is unavailable in the agent's environment. Returns an OVERALL verdict of ✅ PASS / ⚠️ PARTIAL / ❌ FAIL with per-criterion evidence. Invoked by the orchestrator between the dev agents and `pr-reviewer`.
+description: Verify a GitHub issue's ✅ Acceptance criteria after dev sub-agents finish. READ-ONLY — never edits code, pushes, or opens PRs. Runs the full test/typecheck/build surface, drives the web portal and `react-native-web` through Playwright MCP, and native-only mobile flows (MMKV, haptics, camera, native nav) through XcodeBuildMCP against the compose harness on `:5101`. Returns ✅ PASS / ⚠️ PARTIAL / ❌ FAIL with per-criterion evidence. Invoked between dev agents and `pr-reviewer`.
 model: opus
-tools: Bash, Read, Grep, Glob, Write
+tools: Bash, Read, Grep, Glob, Write, ToolSearch
 maxTurns: 80
 color: green
 mcpServers: plugin_playwright_playwright, xcodebuildmcp, a11y-accessibility
@@ -56,10 +56,15 @@ Three MCP plugins drive the interactive verification surface:
   + Expo-web flows.
 - **XcodeBuildMCP** (https://www.xcodebuildmcp.com/, Sentry) — declared in
   `.mcp.json` at the repo root, with project-level scheme/simulator pins
-  in `.xcodebuildmcp/config.yaml`. Exposes iOS Simulator drive as
-  `mcp__plugin_xcodebuildmcp_*` tools (boot/shutdown simulator, install /
-  launch / terminate app, tap-at-coordinates, swipe, type, screenshot,
-  read simulator log). Used only for the Expo-web caveat list below.
+  and `enabledWorkflows` in `.xcodebuildmcp/config.yaml`. Exposes iOS
+  Simulator drive as `mcp__xcodebuildmcp__*` tools (no `plugin_` prefix —
+  the server is registered directly in `.mcp.json`, not via Claude
+  Code's plugin system). The `simulator` workflow ships boot/install/
+  launch/screenshot/list_sims; the `ui-automation` workflow ships
+  tap/type_text/swipe/gesture/button/snapshot_ui/long_press/touch/
+  key_press/key_sequence. Both must be in `enabledWorkflows` for
+  qa-tester to drive native flows. Used only for the Expo-web caveat
+  list below.
 - **a11y-accessibility** (axe-core wrapper) — accessibility audits as
   `mcp__a11y-accessibility__*` tools: `test_accessibility` (drive a
   live URL), `test_html_string` (audit a string of HTML),
@@ -122,7 +127,25 @@ callable.
 ## iOS Simulator path via XcodeBuildMCP
 
 For ACs in the Expo-web caveat list above, drive the real native build
-on the iOS Simulator. The flow is:
+on the iOS Simulator.
+
+**Before step 1**, load the deferred MCP tool schemas. Most of the
+`mcp__xcodebuildmcp__*` tools (everything in the `ui-automation`
+workflow, plus several from `simulator`) are deferred — calling them
+without loading the schema first fails with `InputValidationError`.
+Load them in one shot:
+
+```
+ToolSearch query: "select:mcp__xcodebuildmcp__list_sims,mcp__xcodebuildmcp__boot_sim,mcp__xcodebuildmcp__install_app_sim,mcp__xcodebuildmcp__launch_app_sim,mcp__xcodebuildmcp__stop_app_sim,mcp__xcodebuildmcp__screenshot,mcp__xcodebuildmcp__snapshot_ui,mcp__xcodebuildmcp__tap,mcp__xcodebuildmcp__type_text,mcp__xcodebuildmcp__swipe,mcp__xcodebuildmcp__gesture,mcp__xcodebuildmcp__button,mcp__xcodebuildmcp__long_press"
+```
+
+If ToolSearch returns fewer than the requested tools (e.g. `tap` is
+missing), the `ui-automation` workflow is NOT in
+`.xcodebuildmcp/config.yaml → enabledWorkflows`. STOP and report
+`XcodeBuildMCP ui-automation workflow not enabled — add to enabledWorkflows in .xcodebuildmcp/config.yaml`
+in the tooling section.
+
+The flow is:
 
 1. **Build (or reuse) the dev-client `.app`.**
    ```bash
@@ -135,17 +158,69 @@ on the iOS Simulator. The flow is:
    `expo prebuild --no-install` automatically when `mobile/ios/` is
    missing.
 
-2. **Boot the simulator** named in `.xcodebuildmcp/config.yaml`
-   (currently `iPhone 16 Pro`). If a simulator with that name isn't
-   installed, fail with ⚠️ UNVERIFIED — `iPhone 16 Pro simulator not
-   installed; user must add it via Xcode → Settings → Platforms` and
-   stop. Do not silently switch to whatever's available.
+2. **Pick the simulator.** Call
+   `mcp__xcodebuildmcp__list_sims` and resolve a target by this
+   precedence:
+
+   1. **A simulator already in `Booted` state** — use it as-is. The user
+      typically keeps one simulator running; reusing it preserves
+      their session, avoids a cold boot, and means teardown leaves it
+      booted (see step 8). If multiple are booted, prefer the one whose
+      `name` matches `.xcodebuildmcp/config.yaml`, else the one with
+      the newest iOS runtime.
+   2. **A `Shutdown` simulator matching `name` in `.xcodebuildmcp/config.yaml`** —
+      boot it via `boot_sim`. This is the config-pinned default.
+   3. **Any installed iPhone simulator** — pick the one with the newest
+      iOS runtime (tie-break: alphabetical device name) and boot it.
+      Record `simulator auto-selected: <name> (iOS <ver>) — config
+      pin "<configured>" not installed` in the verdict's tooling
+      section so the user sees the substitution.
+   4. **No iPhone simulator installed at all** — degrade to ⚠️ UNVERIFIED
+      — REQUIRES USER SIMULATOR with the message
+      `No iOS simulator installed; add one via Xcode → Settings → Platforms`.
+
+   Capture the chosen simulator's `name` and whether it was
+   `pre-booted` vs. `freshly-booted` — both feed into the teardown
+   rule (step 8).
 
 3. **Install + launch.**
    ```
-   mcp__plugin_xcodebuildmcp__install_app(simulatorName, appPath=$APP)
-   mcp__plugin_xcodebuildmcp__launch_app(simulatorName, bundleId="com.gfplatform.mobile")
+   mcp__xcodebuildmcp__install_app_sim(simulatorName, appPath=$APP)
+   mcp__xcodebuildmcp__launch_app_sim(simulatorName, bundleId="com.gfplatform.mobile")
    ```
+
+3a. **Bypass the login screen via deep link.** The dev-client always
+   launches to the login screen on cold install. Driving the login form
+   via `tap` + `type_text` is fragile (placeholder reflows, keyboard
+   covers fields, autofill banners). Instead, fetch a seeded refresh
+   token from the compose harness and inject it via the
+   `__DEV__`-gated deep-link handler in `mobile/app/_layout.tsx` (added
+   for #288):
+
+   ```
+   T=$(mobile/scripts/qa-fetch-refresh-token.sh client)
+   xcrun simctl openurl booted "fitnessplatform://e2e-auth?token=$T"
+   ```
+
+   The handler writes the token to MMKV and calls `restoreSession()`.
+   The home screen MUST be visible within ~3 s. If it isn't:
+   - Capture the actual landing screen via `screenshot` to
+     `.qa-artifacts/<issue>/sim-after-deeplink.png`.
+   - Read the simulator log (step 6) and grep for `[e2e-auth] login
+     bypass invoked` to confirm the handler fired.
+   - If the log line is missing, the build doesn't include the
+     handler — likely a stale `.qa-cache` `.app`. Force rebuild via
+     `mobile/scripts/qa-build-dev-client.sh --force`.
+   - If the log line is present but the screen didn't change,
+     `/auth/refresh` likely returned non-200 — diagnose via the
+     simulator log + a curl probe against `:5101/auth/refresh`.
+   Surface either of the above as ⚠️ PARTIAL with `auth-bypass: fail`
+   in the verdict's tooling section. Do not fall back to tap-driven
+   login — it has its own failure mode list that's not worth working
+   around.
+
+   Use `trainer` / `nutritionist` instead of `client` for ACs that
+   require a different role's vantage.
 
 4. **Point the dev build at the compose API.** The fixture lives at
    `https://localhost:5101` (intentionally distinct from the
@@ -160,38 +235,64 @@ on the iOS Simulator. The flow is:
    simulator's `localhost` resolves to the macOS host, which means it
    reaches the compose-published port directly without bridge tricks.
 
-5. **Drive the flow.** Tap / swipe / type via the XcodeBuildMCP
-   interaction tools. Examples:
-   - `tap_at_coordinates` for plain taps when the screen has no
-     accessibility-id you trust.
-   - `tap_by_accessibility_id` whenever the component exposes one — it
-     survives layout reflows that move pixel coordinates.
+5. **Drive the flow.** Use the `ui-automation` workflow tools (enabled
+   via `.xcodebuildmcp/config.yaml → enabledWorkflows`). Tool names
+   under the `mcp__xcodebuildmcp__*` namespace:
+   - `snapshot_ui` FIRST — prints the view hierarchy with precise
+     coordinates AND accessibility ids. Use it to discover targets;
+     never guess coordinates from a screenshot.
+   - `tap` — one tool, two modes: by accessibility id/label (preferred,
+     survives layout reflow) OR by `{x, y}` coordinates (fallback).
+     Always prefer accessibility id when present.
    - `type_text` for form fields after focusing.
    - `swipe` for tab switches and scroll containers.
+   - `gesture` for built-in presets (e.g. `swipe-from-left-edge`).
+   - `button` for hardware buttons (`home`, `lock`, `volume-up/down`).
+   - `long_press`, `touch`, `key_press`, `key_sequence` for edge cases.
+
+   If `snapshot_ui` does not list the tool you need (e.g. workflow not
+   enabled in this session), STOP and report
+   `XcodeBuildMCP ui-automation workflow not loaded — restart MCP server`
+   in the tooling section. Do not try to substitute with `osascript`,
+   AppleScript, or other host-level automation — those bypass the
+   agent's sandbox and produce non-reproducible results.
 
 6. **Capture evidence.** Screenshot to
    `.qa-artifacts/<issue>/sim-<scene>.png` (the directory is gitignored
-   already). Read the simulator log via `read_simulator_log` and grep
-   for `error`, `Reanimated`, unhandled-promise warnings, or any other
-   runtime fault — a green AC on a screen that's logging a
-   `JSExceptionHandler` warning is still a fail.
+   already). Read the simulator log via Bash (XcodeBuildMCP v2.5.2
+   does not expose a plain "read log" MCP tool — log access goes
+   through `xcrun simctl`):
+   ```
+   xcrun simctl spawn booted log show --last 60s --predicate \
+     'subsystem == "com.gfplatform.mobile"' --style compact
+   ```
+   Grep the output for `error`, `Reanimated`, unhandled-promise
+   warnings, or any other runtime fault — a green AC on a screen that
+   is logging a `JSExceptionHandler` warning is still a fail.
 
 7. **Smoke probe — wired end-to-end.** As part of every dispatch that
    exercises the iOS path, run the canonical health flow:
-   - launch the dev-client,
-   - log in as `qa.client@fitnessplatform.test` / `QaPass123!` (the
-     seeded compose fixture — see `docs/testing/e2e-fixtures.md`),
+   - launch the dev-client (step 3),
+   - inject auth via the deep-link bypass (step 3a) with role `client`,
    - assert the Today screen renders both the training card and the
-     nutrition card,
+     nutrition card within ~3 s,
    - screenshot to `.qa-artifacts/<issue>/sim-today.png`.
    If the smoke probe fails, the iOS path is broken — surface that as
    a tooling problem, not as an AC failure. Route to the orchestrator
    with "iOS smoke probe failed" rather than blaming the dev agent.
 
 8. **Tear down in step 7** (the agent-level "Tear down" step at the
-   end of the workflow). `shutdown_simulator` and remove any
-   `.app` you installed; never leave the simulator booted across
-   dispatches because the next run's `install_app` then collides.
+   end of the workflow). Behaviour depends on how step 2 selected the
+   simulator:
+   - **Pre-booted** (the user's existing running simulator) → uninstall
+     the dev-client `.app` but **leave the simulator booted**. Shutting
+     down a sim the user was using disrupts their workflow.
+   - **Freshly-booted** by qa-tester → `shutdown_simulator` AND uninstall
+     the `.app` you installed. Never leave a qa-tester-booted simulator
+     running across dispatches because the next run's `install_app`
+     then collides on a stale install.
+   In both cases, terminate the running app process so re-launches are
+   clean.
 
 If XcodeBuildMCP isn't available in the sub-agent environment (plugin
 not loaded, Xcode missing, simulator runtime not installed), record
@@ -714,11 +815,13 @@ For each dev server in step 3b marked "started by qa-tester":
   and terminate it gracefully.
 - For the docker-compose stack, run `npm run e2e:down -v` (the `-v`
   drops the volumes so the next run starts from a clean fixture).
-- For the iOS Simulator, call
-  `mcp__plugin_xcodebuildmcp__shutdown_simulator` and uninstall the
-  dev-client app you installed in step 4 of the iOS path. Never leave
-  the simulator booted across dispatches — the next run's
-  `install_app` will collide on bundle ID.
+- For the iOS Simulator, behaviour depends on how step 2 of the iOS
+  path picked the simulator. If it was **pre-booted** (the user's own
+  running sim), uninstall the dev-client `.app` but leave the sim
+  booted. If qa-tester **freshly-booted** it, call
+  `mcp__xcodebuildmcp__shutdown_sim` AND uninstall the `.app`.
+  Either way, terminate the running app process so next run's
+  `install_app_sim` does not collide on bundle ID.
 - Never kill a server marked "reused" — that belongs to the user or
   another process.
 - If teardown fails (process already gone, port freed, simulator
@@ -748,11 +851,15 @@ For each dev server in step 3b marked "started by qa-tester":
 - **Playwright MCP tools** (`mcp__playwright__navigate`, click, fill,
   screenshot, accessibility snapshot, console/network read, etc.) for
   web + Expo-web interactive probes and prototype diffs.
-- **XcodeBuildMCP tools** (`mcp__plugin_xcodebuildmcp_*`: boot /
-  shutdown / list simulators, install / launch / terminate app,
-  tap-at-coordinates, tap-by-accessibility-id, swipe, type, screenshot,
-  read simulator log, build via xcodebuild) for native iOS verification
-  on the Expo-web caveat list.
+- **XcodeBuildMCP tools** under the `mcp__xcodebuildmcp__*` namespace
+  (no `plugin_` prefix). `simulator` workflow: `boot_sim`,
+  `shutdown_sim`, `list_sims`, `install_app_sim`, `launch_app_sim`,
+  `stop_app_sim`, `screenshot`, `build_sim`, `build_run_sim`,
+  `test_sim`. `ui-automation` workflow: `tap` (accepts accessibility
+  id OR x/y), `type_text`, `swipe`, `gesture`, `button`, `long_press`,
+  `touch`, `key_press`, `key_sequence`, `snapshot_ui`. Both workflows
+  must be in `.xcodebuildmcp/config.yaml → enabledWorkflows` (default
+  ships only `simulator`).
 - **a11y-accessibility MCP tools** (`mcp__a11y-accessibility__*`:
   `test_accessibility`, `test_html_string`, `check_aria_attributes`,
   `check_color_contrast`, `check_orientation_lock`, `get_rules`) for

@@ -4,14 +4,31 @@
 # qa-tester reads this file to discover defaults; humans use it as a single
 # source of truth so manual `xcodebuild` invocations match what the agent runs.
 
+schemaVersion: 1
+
+# Enable both the simulator workflow (build/boot/install/launch/screenshot)
+# AND the ui-automation workflow (tap/type/swipe/snapshot_ui). Without
+# ui-automation, qa-tester can launch the dev-client but cannot drive the
+# UI to exercise acceptance criteria. Restart the MCP server after changing
+# this list (Claude Code: /mcp restart, or restart the session).
+enabledWorkflows: ["simulator", "ui-automation"]
+
 workspace: mobile/ios/GFPlatform.xcworkspace
 scheme: GFPlatform
 configuration: Debug
 sdk: iphonesimulator
 
-# Latest stable iOS Simulator the user's Xcode supports. Update alongside
-# Xcode upgrades — qa-tester errors loudly if the named simulator isn't
-# installed rather than silently picking another.
+# Preferred iOS Simulator. qa-tester uses this as a *hint*, not a hard pin:
+#   1. If any simulator is currently `Booted`, qa-tester uses that one
+#      (so the user's existing running sim is preserved across dispatches
+#      and not shut down at teardown).
+#   2. Otherwise, if a simulator matching `name` is installed, that's the
+#      one it boots.
+#   3. Otherwise, qa-tester boots whatever iPhone simulator is installed
+#      with the latest iOS runtime (deterministic tie-break: highest iOS
+#      version, then alphabetical device name).
+#   4. Only if no iPhone simulator is installed at all does qa-tester
+#      degrade to ⚠️ UNVERIFIED — REQUIRES USER SIMULATOR.
 simulator:
-  name: "iPhone 16 Pro"
+  name: "iPhone 16e"
   os: latest
