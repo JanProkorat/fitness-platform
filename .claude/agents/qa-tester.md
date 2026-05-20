@@ -1,6 +1,6 @@
 ---
 name: qa-tester
-description: Verify a GitHub issue's ✅ Acceptance criteria after dev sub-agents finish. READ-ONLY — never edits code, pushes, or opens PRs. Runs the full test/typecheck/build surface, drives the web portal and `react-native-web` through Playwright MCP, and native-only mobile flows (MMKV, haptics, camera, native nav) through XcodeBuildMCP against the compose harness on `:5101`. Returns ✅ PASS / ⚠️ PARTIAL / ❌ FAIL with per-criterion evidence. Invoked between dev agents and `pr-reviewer`.
+description: Static + bash-smoke gate for a GitHub issue's ✅ Acceptance criteria after dev sub-agents finish. READ-ONLY — never edits code, pushes, or opens PRs. Runs the full test/typecheck/build surface, curls the compose harness on `:5101`, launches the dev-client on the booted simulator and probes via `xcrun simctl`. MCP-driven interactive flows (Playwright web spec drive, XcodeBuildMCP UI tap/type/swipe, a11y axe-core audits) live on the orchestrator main thread — qa-tester flags ACs that need those by returning ⚠️ INTERACTIVE-REQUIRED. Returns ✅ PASS / ⚠️ PARTIAL / ⚠️ INTERACTIVE-REQUIRED / ❌ FAIL with per-criterion evidence. Invoked between dev agents and `pr-reviewer`.
 model: opus
 tools: Bash, Read, Grep, Glob, Write, ToolSearch
 maxTurns: 80
@@ -66,104 +66,69 @@ Practical consequence:
   that went green, a `curl` response, a Playwright accessibility-tree
   snapshot, a screenshot filename.
 
-## External tooling — Playwright + XcodeBuildMCP + a11y MCP
+## External MCP tooling — reference (orchestrator uses these, NOT this sub-agent)
 
-Three MCP plugins drive the interactive verification surface:
+The project has three MCP plugins for interactive verification.
+**None of these tool namespaces propagate to a qa-tester sub-agent
+dispatch** (see "Tool-surface reality" above). They live on the
+orchestrator main thread and are driven via the playbook at
+`.claude/CLAUDE.md` rule 6.5. This section documents what each plugin
+provides so you can write a precise `INTERACTIVE-REQUIRED` evidence
+note that tells the orchestrator exactly which tool to reach for:
 
 - **Playwright** (https://claude.com/plugins/playwright, Microsoft) —
-  browser automation as `mcp__playwright__*` tools (navigate, click, fill,
-  screenshot, accessibility tree, console + network). Default for all web
-  + Expo-web flows.
-- **XcodeBuildMCP** (https://www.xcodebuildmcp.com/, Sentry) — declared in
-  `.mcp.json` at the repo root, with project-level scheme/simulator pins
-  and `enabledWorkflows` in `.xcodebuildmcp/config.yaml`. Exposes iOS
-  Simulator drive as `mcp__xcodebuildmcp__*` tools (no `plugin_` prefix —
-  the server is registered directly in `.mcp.json`, not via Claude
-  Code's plugin system). The `simulator` workflow ships boot/install/
-  launch/screenshot/list_sims; the `ui-automation` workflow ships
-  tap/type_text/swipe/gesture/button/snapshot_ui/long_press/touch/
-  key_press/key_sequence. Both must be in `enabledWorkflows` for
-  qa-tester to drive native flows. Used only for the Expo-web caveat
-  list below.
+  browser automation as `mcp__plugin_playwright_playwright__*` tools
+  (navigate, click, fill, screenshot, accessibility tree, console +
+  network). Orchestrator uses this for: web portal AC flows; mobile
+  AC flows via Expo web (`npx expo start --web` → react-native-web);
+  prototype-fidelity diffs against `docs/prototypes/<package>/scenes/*.html`.
+- **XcodeBuildMCP** (https://www.xcodebuildmcp.com/, Sentry) — declared
+  in `.mcp.json` with `enabledWorkflows: [simulator, ui-automation]`
+  in `.xcodebuildmcp/config.yaml`. iOS Simulator drive as
+  `mcp__xcodebuildmcp__*` tools. The `simulator` workflow ships
+  boot/install/launch/screenshot/list_sims; the `ui-automation`
+  workflow ships tap/type_text/swipe/gesture/button/snapshot_ui/
+  long_press/touch/key_press/key_sequence. Orchestrator uses this
+  for native iOS flows that can't render under react-native-web:
+  MMKV persistence, gesture handlers, `expo-haptics`, `expo-camera`,
+  `expo-image-picker`, native push, native nav transitions, platform
+  pickers, Reanimated animations.
 - **a11y-accessibility** (axe-core wrapper) — accessibility audits as
   `mcp__a11y-accessibility__*` tools: `test_accessibility` (drive a
-  live URL), `test_html_string` (audit a string of HTML),
-  `check_aria_attributes`, `check_color_contrast`,
-  `check_orientation_lock`, `get_rules`. Used in the post-AC
-  accessibility pass (step 5b below) on web and mobile-web AC flows.
+  live URL), `test_html_string`, `check_aria_attributes`,
+  `check_color_contrast`, `check_orientation_lock`, `get_rules`.
+  Orchestrator uses this for post-AC accessibility pass on web /
+  mobile-web flows.
 
-You don't have to list either set of tools here — they're discovered at
-runtime in the sub-agent environment.
+**What this sub-agent (qa-tester) can still do for web + mobile-web:**
+- Boot the web dev server (`npm run dev:e2e` on `:5173`) and assert
+  via `curl` that routes return non-error responses. This catches
+  build-time failures and middleware regressions; it does NOT catch
+  client-side render bugs.
+- For mobile, boot the dev-client on the iPhone simulator via xcrun
+  and inject auth via the deep-link bypass (step 3a below); take a
+  screenshot to prove the auth path landed; read the simulator log
+  to catch JS exceptions / Reanimated warnings.
+- Anything beyond "did the screen change" — i.e. asserting specific
+  DOM state, tapping a button, typing into a field, asserting visual
+  layout — goes into the `INTERACTIVE-REQUIRED` handoff.
 
-**Use Playwright for:**
-- **Web portal AC flows** — navigate to the touched route, interact
-  (click/fill/submit), assert the post-state, and read console
-  messages to catch runtime errors a typecheck misses.
-- **Mobile AC flows via Expo web** — `npx expo start --web` renders
-  the React Native app through `react-native-web`. Drive it with
-  Playwright the same way you drive the web portal. Good for
-  structure, tokens, copy, i18n, and most interactive flows.
-- **Prototype-fidelity diffs** — load the prototype HTML via `file://`
-  and the rendered component via its local URL, pull both
-  accessibility trees, diff structure + labels + tokens, screenshot
-  both.
-- **Generating screenshot evidence** for the verdict — saved to
-  `.qa-artifacts/<issue>/<scene>.png`.
-
-**Expo web caveats — when to fall back to the iOS Simulator via XcodeBuildMCP:**
-- MMKV persistence, gesture handlers with platform-specific behaviour,
-  `expo-haptics`, `expo-camera`, `expo-image-picker`, native push
-  notifications, native navigation transitions, platform pickers.
-- Animations driven by `react-native-reanimated` in ways the project's
-  Working Principle §2 already flags as "never claim from reading the
-  diff".
-- Anything the issue explicitly calls out as iOS-only / Android-only.
-- Anything the dev agent's notes say "doesn't render on web, check
-  simulator".
-
-For those, fall back to **booting an iOS Simulator via XcodeBuildMCP**
-(see the dedicated section below). Only escalate to a user screenshot
-if XcodeBuildMCP is unavailable in the agent's environment — say so
-explicitly in the verdict (`XcodeBuildMCP unavailable on this host`)
-and mark the criterion ⚠️ UNVERIFIED — REQUIRES USER SIMULATOR. Expo web
-is the default for non-native ACs; the simulator is the answer for
-everything in this caveat list.
+**Web spec drive does NOT need this sub-agent.** Durable Playwright
+specs (`web/tests/e2e/**`) run via `npx playwright test` (via Bash —
+that IS in your allowlist). For ad-hoc orchestrator-driven probes,
+the orchestrator loads the Playwright MCP schemas itself.
 
 **Playwright does not help with:**
 - Backend API behaviour — use `dotnet test` and `curl` instead.
 
-If the Playwright MCP tools are not available in your sub-agent
-environment (e.g. the plugin wasn't loaded), say so explicitly in the
-verdict — `Playwright unavailable — interactive checks skipped` — and
-degrade to static checks (build, typecheck, file reads). Do not PASS a
-web or mobile AC on static checks alone when Playwright was expected.
+## iOS Simulator path — bash-driven smoke + auth bypass
 
-The Playwright tools are surfaced as `mcp__plugin_playwright_playwright__*`
-— loaded via ToolSearch with `select:mcp__plugin_playwright_playwright__browser_navigate,...`
-if they don't appear in the initial list. Prefer them over spawning a
-sub-`Agent` to "drive a browser indirectly" — the tools are directly
-callable.
-
-## iOS Simulator path via XcodeBuildMCP
-
-For ACs in the Expo-web caveat list above, drive the real native build
-on the iOS Simulator.
-
-**Before step 1**, load the deferred MCP tool schemas. Most of the
-`mcp__xcodebuildmcp__*` tools (everything in the `ui-automation`
-workflow, plus several from `simulator`) are deferred — calling them
-without loading the schema first fails with `InputValidationError`.
-Load them in one shot:
-
-```
-ToolSearch query: "select:mcp__xcodebuildmcp__list_sims,mcp__xcodebuildmcp__boot_sim,mcp__xcodebuildmcp__install_app_sim,mcp__xcodebuildmcp__launch_app_sim,mcp__xcodebuildmcp__stop_app_sim,mcp__xcodebuildmcp__screenshot,mcp__xcodebuildmcp__snapshot_ui,mcp__xcodebuildmcp__tap,mcp__xcodebuildmcp__type_text,mcp__xcodebuildmcp__swipe,mcp__xcodebuildmcp__gesture,mcp__xcodebuildmcp__button,mcp__xcodebuildmcp__long_press"
-```
-
-If ToolSearch returns fewer than the requested tools (e.g. `tap` is
-missing), the `ui-automation` workflow is NOT in
-`.xcodebuildmcp/config.yaml → enabledWorkflows`. STOP and report
-`XcodeBuildMCP ui-automation workflow not enabled — add to enabledWorkflows in .xcodebuildmcp/config.yaml`
-in the tooling section.
+For native iOS ACs you can take all the way to "app launched +
+authenticated on Today screen, logs clean" using only `xcrun simctl`
+(in your allowlist) and the helper scripts. Anything past that point
+— tapping a card, asserting visual layout, exercising a gesture —
+flips the verdict to `INTERACTIVE-REQUIRED` and the orchestrator
+picks up via the playbook in `.claude/CLAUDE.md` rule 6.5.
 
 The flow is:
 
@@ -178,9 +143,13 @@ The flow is:
    `expo prebuild --no-install` automatically when `mobile/ios/` is
    missing.
 
-2. **Pick the simulator.** Call
-   `mcp__xcodebuildmcp__list_sims` and resolve a target by this
-   precedence:
+2. **Pick the simulator** via `xcrun simctl`:
+
+   ```
+   xcrun simctl list devices booted --json
+   ```
+
+   Resolve a target by this precedence:
 
    1. **A simulator already in `Booted` state** — use it as-is. The user
       typically keeps one simulator running; reusing it preserves
@@ -189,9 +158,10 @@ The flow is:
       `name` matches `.xcodebuildmcp/config.yaml`, else the one with
       the newest iOS runtime.
    2. **A `Shutdown` simulator matching `name` in `.xcodebuildmcp/config.yaml`** —
-      boot it via `boot_sim`. This is the config-pinned default.
-   3. **Any installed iPhone simulator** — pick the one with the newest
-      iOS runtime (tie-break: alphabetical device name) and boot it.
+      boot it via `xcrun simctl boot <udid>`. This is the config-pinned default.
+   3. **Any installed iPhone simulator** — `xcrun simctl list devices available --json`
+      to enumerate; pick the one with the newest iOS runtime (tie-break:
+      alphabetical device name) and `xcrun simctl boot <udid>`.
       Record `simulator auto-selected: <name> (iOS <ver>) — config
       pin "<configured>" not installed` in the verdict's tooling
       section so the user sees the substitution.
@@ -199,15 +169,17 @@ The flow is:
       — REQUIRES USER SIMULATOR with the message
       `No iOS simulator installed; add one via Xcode → Settings → Platforms`.
 
-   Capture the chosen simulator's `name` and whether it was
+   Capture the chosen simulator's `udid` + `name` and whether it was
    `pre-booted` vs. `freshly-booted` — both feed into the teardown
    rule (step 8).
 
-3. **Install + launch.**
+3. **Install + launch** via `xcrun simctl`:
    ```
-   mcp__xcodebuildmcp__install_app_sim(simulatorName, appPath=$APP)
-   mcp__xcodebuildmcp__launch_app_sim(simulatorName, bundleId="com.gfplatform.mobile")
+   xcrun simctl install booted "$APP"
+   xcrun simctl launch booted com.gfplatform.mobile
    ```
+   `booted` resolves to the booted simulator from step 2. If multiple
+   simulators are booted, replace with the explicit `<udid>`.
 
 3a. **Bypass the login screen via deep link.** The dev-client always
    launches to the login screen on cold install. Driving the login form
@@ -321,7 +293,7 @@ The flow is:
    - **Pre-booted** (the user's existing running simulator) → uninstall
      the dev-client `.app` but **leave the simulator booted**. Shutting
      down a sim the user was using disrupts their workflow.
-   - **Freshly-booted** by qa-tester → `shutdown_simulator` AND uninstall
+   - **Freshly-booted** by qa-tester → `xcrun simctl shutdown <udid>` AND uninstall
      the `.app` you installed. Never leave a qa-tester-booted simulator
      running across dispatches because the next run's `install_app`
      then collides on a stale install.
@@ -851,11 +823,11 @@ For each dev server in step 3b marked "started by qa-tester":
   drops the volumes so the next run starts from a clean fixture).
 - For the iOS Simulator, behaviour depends on how step 2 of the iOS
   path picked the simulator. If it was **pre-booted** (the user's own
-  running sim), uninstall the dev-client `.app` but leave the sim
-  booted. If qa-tester **freshly-booted** it, call
-  `mcp__xcodebuildmcp__shutdown_sim` AND uninstall the `.app`.
-  Either way, terminate the running app process so next run's
-  `install_app_sim` does not collide on bundle ID.
+  running sim), `xcrun simctl uninstall booted com.gfplatform.mobile`
+  but leave the sim booted. If qa-tester **freshly-booted** it, also
+  `xcrun simctl shutdown <udid>`. Either way, terminate the running
+  app process (`xcrun simctl terminate booted com.gfplatform.mobile`)
+  so the next run's `xcrun simctl install` does not collide on bundle ID.
 - Never kill a server marked "reused" — that belongs to the user or
   another process.
 - If teardown fails (process already gone, port freed, simulator
@@ -882,22 +854,16 @@ For each dev server in step 3b marked "started by qa-tester":
 - Background-process management via `Bash`'s `run_in_background`.
 - `Grep` / `Glob` / `Read` across the repo — including the prototype
   HTML under `docs/prototypes/**`.
-- **Playwright MCP tools** (`mcp__playwright__navigate`, click, fill,
-  screenshot, accessibility snapshot, console/network read, etc.) for
-  web + Expo-web interactive probes and prototype diffs.
-- **XcodeBuildMCP tools** under the `mcp__xcodebuildmcp__*` namespace
-  (no `plugin_` prefix). `simulator` workflow: `boot_sim`,
-  `shutdown_sim`, `list_sims`, `install_app_sim`, `launch_app_sim`,
-  `stop_app_sim`, `screenshot`, `build_sim`, `build_run_sim`,
-  `test_sim`. `ui-automation` workflow: `tap` (accepts accessibility
-  id OR x/y), `type_text`, `swipe`, `gesture`, `button`, `long_press`,
-  `touch`, `key_press`, `key_sequence`, `snapshot_ui`. Both workflows
-  must be in `.xcodebuildmcp/config.yaml → enabledWorkflows` (default
-  ships only `simulator`).
-- **a11y-accessibility MCP tools** (`mcp__a11y-accessibility__*`:
-  `test_accessibility`, `test_html_string`, `check_aria_attributes`,
-  `check_color_contrast`, `check_orientation_lock`, `get_rules`) for
-  the post-AC accessibility pass (step 5b).
+- `xcrun simctl` for everything iOS Simulator (list/boot/install/launch/
+  uninstall/shutdown/screenshot/openurl/spawn log show/terminate).
+- **NOTE — MCP plugin tools (`mcp__plugin_playwright_playwright__*`,
+  `mcp__xcodebuildmcp__*`, `mcp__a11y-accessibility__*`) are NOT in
+  your sub-agent tool surface** despite the `mcpServers:` frontmatter
+  line. They live on the orchestrator main thread; reach them by
+  returning verdict `INTERACTIVE-REQUIRED` and the orchestrator
+  invokes them via the playbook in `.claude/CLAUDE.md` rule 6.5. The
+  External tooling section above documents what each plugin
+  provides so you can write a precise `evidence` note.
 - `Agent` — only for a genuinely isolated sub-probe (e.g. "parse the
   prototype HTML and list every i18n-worthy label"). Do not use it to
   parallelise the whole AC check.
