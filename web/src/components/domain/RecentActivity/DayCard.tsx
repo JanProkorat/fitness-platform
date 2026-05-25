@@ -79,6 +79,7 @@ export function DayCard({ group, filter, defaultExpanded = false }: DayCardProps
           expanded && 'bg-bg-hover border-b border-border',
         )}
         aria-expanded={expanded}
+        aria-controls={`day-card-events-${group.dateKey}`}
       >
         <span className="text-[13px] font-semibold min-w-[96px] text-text">
           {group.dateLabel}
@@ -92,44 +93,46 @@ export function DayCard({ group, filter, defaultExpanded = false }: DayCardProps
         </span>
       </button>
 
-      {/* Expanded event list */}
-      {expanded && (
-        <div className="px-3.5 pb-2.5 pt-1">
-          {visibleEvents.map((ev, idx) => (
-            <div
-              key={ev.id}
+      {/* Expanded event list — always rendered; hidden attribute removes from layout and AT when collapsed */}
+      <div
+        id={`day-card-events-${group.dateKey}`}
+        className="px-3.5 pb-2.5 pt-1"
+        hidden={!expanded}
+      >
+        {visibleEvents.map((ev, idx) => (
+          <div
+            key={ev.id}
+            className={cn(
+              'flex items-center gap-2.5 py-1.5 text-[13px]',
+              idx < visibleEvents.length - 1 && 'border-b border-border',
+            )}
+          >
+            {/* type dot */}
+            <span
               className={cn(
-                'flex items-center gap-2.5 py-1.5 text-[13px]',
-                idx < visibleEvents.length - 1 && 'border-b border-border',
+                'w-1.5 h-1.5 rounded-full flex-shrink-0',
+                eventDotColor(ev.type),
               )}
-            >
-              {/* type dot */}
-              <span
-                className={cn(
-                  'w-1.5 h-1.5 rounded-full flex-shrink-0',
-                  eventDotColor(ev.type),
-                )}
-              />
-              {/* title */}
-              <span className="flex-1 text-text">
-                {ev.icon && <span className="mr-1">{ev.icon}</span>}
-                {ev.title}
+            />
+            {/* title */}
+            <span className="flex-1 text-text">
+              {ev.icon && <span className="mr-1">{ev.icon}</span>}
+              {ev.title}
+            </span>
+            {/* description (reps / count) shown right-aligned */}
+            {ev.description && (
+              <span className="text-text3 text-xs ml-auto whitespace-nowrap">
+                {ev.description}
               </span>
-              {/* description (reps / count) shown right-aligned */}
-              {ev.description && (
-                <span className="text-text3 text-xs ml-auto whitespace-nowrap">
-                  {ev.description}
-                </span>
-              )}
-            </div>
-          ))}
-          {visibleEvents.length === 0 && (
-            <div className="py-2 text-[13px] text-text3">
-              {t('clients.recentActivity.noEventsForFilter')}
-            </div>
-          )}
-        </div>
-      )}
+            )}
+          </div>
+        ))}
+        {visibleEvents.length === 0 && (
+          <div className="py-2 text-[13px] text-text3">
+            {t('clients.recentActivity.noEventsForFilter')}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
