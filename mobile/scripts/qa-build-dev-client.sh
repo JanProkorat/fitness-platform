@@ -25,6 +25,28 @@
 #    stub bundle (only Expo.plist + Frameworks/__preview.dylib, no main
 #    executable, no Info.plist). The validation gate catches this before
 #    caching garbage to disk and installs downstream tooling (simctl install).
+#
+# 5. Two-pass build to break the cold-cache modulemap race (#295): even after
+#    pod install, xcodebuild's default parallel target scheduling can start the
+#    main target's Swift compilation (AppDelegate.swift) before CocoaPods
+#    dependency targets (Expo, Nitro, SwiftUIIntrospect, etc.) have emitted
+#    their modulemaps, producing 30+ "module map file not found" errors. The
+#    fix is a pre-pass that builds only the Pods-<AppName> aggregate scheme
+#    (which compiles every CocoaPods dependency and emits all their modulemaps
+#    into derivedDataPath) BEFORE the main scheme build begins. Both passes
+#    share the same -derivedDataPath so the second pass picks up the already-
+#    emitted modulemaps from the cache and skips recompiling them.
+#    NOTE: -parallelizeTargets is a boolean switch (enables parallelism; no
+#    argument accepted); there is no CLI flag to disable it — confirmed via
+#    xcrun xcodebuild --help. The two-pass approach is the correct solution.
+#    The workspace lookup uses -maxdepth 1 so find returns the CocoaPods-
+#    augmented GFPlatform.xcworkspace (depth 1) and never the Xcode-generated
+#    project.xcworkspace nested inside GFPlatform.xcodeproj/ (depth 2).
+#
+# 6. Scheme-existence assertion: after deriving pods_scheme from the workspace
+#    basename, the script verifies that scheme is actually listed in the
+#    workspace before launching the pre-pass. This converts a wrong-scheme
+#    silent exit-65 into a loud FATAL with the available scheme names.
 
 set -euo pipefail
 
@@ -63,16 +85,18 @@ if [[ ! -f "$pods_manifest" ]] || ! diff -q "$pods_manifest" "$podfile_lock" > /
   (cd "$mobile_dir/ios" && pod install) >&2
 fi
 
-workspace="$(find "$mobile_dir/ios" -maxdepth 2 -name "*.xcworkspace" -print -quit)"
+workspace="$(find "$mobile_dir/ios" -maxdepth 1 -name "*.xcworkspace" -print -quit)"
 if [[ -z "$workspace" ]]; then
   echo "[qa-build] FATAL: no .xcworkspace under mobile/ios/" >&2
   exit 1
 fi
 
-# Read the iOS scheme from the project. Expo prebuild names it after
-# expo.name -> sanitized; this picks the first scheme in the workspace.
-scheme="$(xcodebuild -workspace "$workspace" -list -json 2>/dev/null \
-  | python3 -c 'import json,sys;d=json.load(sys.stdin);print(d["workspace"]["schemes"][0])')"
+# Derive the app scheme name from the workspace file name. Expo prebuild names
+# the workspace (and app scheme) after expo.name -> sanitized (e.g.
+# "GFPlatform.xcworkspace" → scheme "GFPlatform"). Using the workspace basename
+# is more reliable than picking schemes[0] from -list, which returns schemes in
+# alphabetical order (CocoaPods schemes like EXApplication sort before the app).
+scheme="$(basename "$workspace" .xcworkspace)"
 
 if [[ -z "$scheme" ]]; then
   echo "[qa-build] FATAL: could not determine xcodebuild scheme" >&2
@@ -80,8 +104,40 @@ if [[ -z "$scheme" ]]; then
 fi
 
 derived="$cache_dir/.derived-$sha"
-echo "[qa-build] Building scheme=$scheme workspace=$workspace (sha=$sha)" >&2
-xcodebuild \
+
+# Pre-pass: build Pods-<AppName> aggregate scheme first so every CocoaPods
+# dependency target emits its modulemaps into $derived before the main scheme
+# Swift compilation starts. This is the two-pass fix for the cold-cache
+# modulemap race (#295): parallel target scheduling in xcodebuild can otherwise
+# start AppDelegate.swift before Expo/Nitro/SwiftUIIntrospect modulemaps land.
+# Both passes share -derivedDataPath so the second pass picks up the
+# already-compiled Pods and skips recompiling them.
+pods_scheme="Pods-${scheme}"
+
+# Assert that pods_scheme exists in the workspace before attempting the pre-pass.
+# A wrong scheme causes xcodebuild to exit 65 with a cryptic "does not contain a
+# scheme" error. This guard catches it early and prints the schemes that ARE present.
+if ! xcrun xcodebuild -workspace "$workspace" -list -json 2>/dev/null \
+     | python3 -c "import json,sys; d=json.load(sys.stdin); sys.exit(0 if '$pods_scheme' in d['workspace']['schemes'] else 1)"; then
+  echo "[qa-build] FATAL: expected scheme '$pods_scheme' not found in workspace. Schemes present:" >&2
+  xcrun xcodebuild -workspace "$workspace" -list -json 2>/dev/null \
+    | python3 -c "import json,sys; print('\n'.join(json.load(sys.stdin)['workspace']['schemes']))" >&2
+  exit 1
+fi
+
+echo "[qa-build] Pre-emitting Pods modulemaps to break cold-cache race (scheme=$pods_scheme)" >&2
+xcrun xcodebuild \
+  -workspace "$workspace" \
+  -scheme "$pods_scheme" \
+  -configuration Debug \
+  -sdk iphonesimulator \
+  -destination 'generic/platform=iOS Simulator' \
+  -derivedDataPath "$derived" \
+  -onlyUsePackageVersionsFromResolvedFile \
+  build >&2
+
+echo "[qa-build] Building main scheme=$scheme workspace=$workspace (sha=$sha)" >&2
+xcrun xcodebuild \
   -workspace "$workspace" \
   -scheme "$scheme" \
   -configuration Debug \
