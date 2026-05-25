@@ -23,4 +23,8 @@
 // xunit.runner.json covers dotnet-test / VSTest adapter runs.
 //
 // See also: FitnessApiFactory.cs (PhotoDiaryReminderScheduler suppression, #278 precedent).
+//
+// Issue #282 Finding 2 (ObjectDisposedException on FastEndpoints.ServiceResolver under parallel test load)
+// empirically addressed by this configuration + #296 (skip base.DisposeAsync to preserve
+// ServiceResolver.Provider lifetime). Verified 2026-05-25.
 [assembly: Xunit.CollectionBehavior(DisableTestParallelization = true)]
