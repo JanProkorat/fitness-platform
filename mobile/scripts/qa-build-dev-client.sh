@@ -39,6 +39,14 @@
 #    NOTE: -parallelizeTargets is a boolean switch (enables parallelism; no
 #    argument accepted); there is no CLI flag to disable it — confirmed via
 #    xcrun xcodebuild --help. The two-pass approach is the correct solution.
+#    The workspace lookup uses -maxdepth 1 so find returns the CocoaPods-
+#    augmented GFPlatform.xcworkspace (depth 1) and never the Xcode-generated
+#    project.xcworkspace nested inside GFPlatform.xcodeproj/ (depth 2).
+#
+# 6. Scheme-existence assertion: after deriving pods_scheme from the workspace
+#    basename, the script verifies that scheme is actually listed in the
+#    workspace before launching the pre-pass. This converts a wrong-scheme
+#    silent exit-65 into a loud FATAL with the available scheme names.
 
 set -euo pipefail
 
@@ -77,7 +85,7 @@ if [[ ! -f "$pods_manifest" ]] || ! diff -q "$pods_manifest" "$podfile_lock" > /
   (cd "$mobile_dir/ios" && pod install) >&2
 fi
 
-workspace="$(find "$mobile_dir/ios" -maxdepth 2 -name "*.xcworkspace" -print -quit)"
+workspace="$(find "$mobile_dir/ios" -maxdepth 1 -name "*.xcworkspace" -print -quit)"
 if [[ -z "$workspace" ]]; then
   echo "[qa-build] FATAL: no .xcworkspace under mobile/ios/" >&2
   exit 1
@@ -105,6 +113,18 @@ derived="$cache_dir/.derived-$sha"
 # Both passes share -derivedDataPath so the second pass picks up the
 # already-compiled Pods and skips recompiling them.
 pods_scheme="Pods-${scheme}"
+
+# Assert that pods_scheme exists in the workspace before attempting the pre-pass.
+# A wrong scheme causes xcodebuild to exit 65 with a cryptic "does not contain a
+# scheme" error. This guard catches it early and prints the schemes that ARE present.
+if ! xcrun xcodebuild -workspace "$workspace" -list -json 2>/dev/null \
+     | python3 -c "import json,sys; d=json.load(sys.stdin); sys.exit(0 if '$pods_scheme' in d['workspace']['schemes'] else 1)"; then
+  echo "[qa-build] FATAL: expected scheme '$pods_scheme' not found in workspace. Schemes present:" >&2
+  xcrun xcodebuild -workspace "$workspace" -list -json 2>/dev/null \
+    | python3 -c "import json,sys; print('\n'.join(json.load(sys.stdin)['workspace']['schemes']))" >&2
+  exit 1
+fi
+
 echo "[qa-build] Pre-emitting Pods modulemaps to break cold-cache race (scheme=$pods_scheme)" >&2
 xcrun xcodebuild \
   -workspace "$workspace" \
