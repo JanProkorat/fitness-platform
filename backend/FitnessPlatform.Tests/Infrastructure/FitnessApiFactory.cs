@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using MongoDB.Driver;
 using Testcontainers.MongoDb;
 using Testcontainers.PostgreSql;
@@ -112,40 +111,12 @@ public class FitnessApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
             services.AddSingleton<IPushNotificationService>(
                 sp => sp.GetRequiredService<FakePushNotificationService>());
 
-            // Candidate A — test isolation: remove all IHostedService registrations for
-            // PhotoDiaryReminderScheduler so it does not run autonomously during tests and
-            // cannot race with the real-time clock at the :00 boundary on Linux CI.
-            //
-            // Three descriptor shapes are matched defensively because the production
-            // registration in Program.cs uses the factory overload:
-            //
-            //   builder.Services.AddSingleton<PhotoDiaryReminderScheduler>();          // line 199
-            //   builder.Services.AddHostedService(sp =>                                // line 200
-            //       sp.GetRequiredService<PhotoDiaryReminderScheduler>());
-            //
-            // The second call produces a ServiceDescriptor whose ImplementationType is null
-            // (factory-registered) and whose ImplementationFactory is a Func<IServiceProvider, object>
-            // whose MethodInfo.ReturnType is PhotoDiaryReminderScheduler (covariant delegate
-            // conversion).  Matching only ImplementationType == typeof(...) is a no-op against
-            // this shape — the ImplementationType check is always false for factory descriptors.
-            //
-            // All three variants are checked so the removal is robust against future
-            // registration-style changes without requiring another test-isolation fixup.
-            //
-            // The scheduler remains resolvable as a singleton via
-            //   factory.Services.GetRequiredService<PhotoDiaryReminderScheduler>()
-            // so existing tests that drive TickAsync directly are unaffected.
-            var toRemove = services
-                .Where(d => d.ServiceType == typeof(IHostedService))
-                .Where(d =>
-                    d.ImplementationType == typeof(PhotoDiaryReminderScheduler) ||
-                    d.ImplementationInstance is PhotoDiaryReminderScheduler ||
-                    (d.ImplementationFactory is not null &&
-                     d.ImplementationFactory.Method.ReturnType == typeof(PhotoDiaryReminderScheduler)))
-                .ToList();
-
-            foreach (var d in toRemove)
-                services.Remove(d);
+            // Issue #282: the IHostedService-removal predicate for PhotoDiaryReminderScheduler
+            // (added in #279) was a CI runtime no-op — both schedulers still fired ExecuteAsync
+            // on every Backend CI run (verified on run 26187846524, sha ee01787: 8 PhotoDiary
+            // first-tick log lines, 9 WeeklyCheckIn first-tick log lines). Cascade prevention
+            // is carried by the per-candidate IServiceScope inside each scheduler's ExecuteAsync
+            // (introduced in #278/#279/#280/#281) and remains intact.
         });
 
         builder.UseEnvironment("Development");
