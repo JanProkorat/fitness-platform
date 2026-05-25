@@ -26,15 +26,19 @@
 #    executable, no Info.plist). The validation gate catches this before
 #    caching garbage to disk and installs downstream tooling (simctl install).
 #
-# 5. -parallelizeTargets NO: eliminates the remaining cold-cache modulemap race
-#    (#295). Even after pod install, xcodebuild's default parallel target
-#    scheduling can start the main target's Swift compilation (AppDelegate.swift)
-#    before CocoaPods dependency targets (Expo, Nitro, SwiftUIIntrospect, etc.)
-#    have emitted their modulemaps, producing 30+ "module map file not found"
-#    errors. Disabling target parallelism forces dependency targets to complete —
-#    and emit their modulemaps — before the main target's Swift compilation
-#    begins. Build time increases by ~10–20s on cold runs; cache hits are
-#    unaffected.
+# 5. Two-pass build to break the cold-cache modulemap race (#295): even after
+#    pod install, xcodebuild's default parallel target scheduling can start the
+#    main target's Swift compilation (AppDelegate.swift) before CocoaPods
+#    dependency targets (Expo, Nitro, SwiftUIIntrospect, etc.) have emitted
+#    their modulemaps, producing 30+ "module map file not found" errors. The
+#    fix is a pre-pass that builds only the Pods-<AppName> aggregate scheme
+#    (which compiles every CocoaPods dependency and emits all their modulemaps
+#    into derivedDataPath) BEFORE the main scheme build begins. Both passes
+#    share the same -derivedDataPath so the second pass picks up the already-
+#    emitted modulemaps from the cache and skips recompiling them.
+#    NOTE: -parallelizeTargets is a boolean switch (enables parallelism; no
+#    argument accepted); there is no CLI flag to disable it — confirmed via
+#    xcrun xcodebuild --help. The two-pass approach is the correct solution.
 
 set -euo pipefail
 
@@ -79,10 +83,12 @@ if [[ -z "$workspace" ]]; then
   exit 1
 fi
 
-# Read the iOS scheme from the project. Expo prebuild names it after
-# expo.name -> sanitized; this picks the first scheme in the workspace.
-scheme="$(xcodebuild -workspace "$workspace" -list -json 2>/dev/null \
-  | python3 -c 'import json,sys;d=json.load(sys.stdin);print(d["workspace"]["schemes"][0])')"
+# Derive the app scheme name from the workspace file name. Expo prebuild names
+# the workspace (and app scheme) after expo.name -> sanitized (e.g.
+# "GFPlatform.xcworkspace" → scheme "GFPlatform"). Using the workspace basename
+# is more reliable than picking schemes[0] from -list, which returns schemes in
+# alphabetical order (CocoaPods schemes like EXApplication sort before the app).
+scheme="$(basename "$workspace" .xcworkspace)"
 
 if [[ -z "$scheme" ]]; then
   echo "[qa-build] FATAL: could not determine xcodebuild scheme" >&2
@@ -90,14 +96,28 @@ if [[ -z "$scheme" ]]; then
 fi
 
 derived="$cache_dir/.derived-$sha"
-echo "[qa-build] Building scheme=$scheme workspace=$workspace (sha=$sha)" >&2
-# -parallelizeTargets NO: prevents the cold-cache modulemap race (#295) where
-# xcodebuild starts the main target's Swift compilation before CocoaPods
-# dependency targets (Expo / Nitro / SwiftUIIntrospect) have emitted their
-# modulemaps, producing 30+ "module map file not found" errors. With serial
-# target execution, dependency targets fully complete before the main target's
-# Swift phase begins.
-xcodebuild \
+
+# Pre-pass: build Pods-<AppName> aggregate scheme first so every CocoaPods
+# dependency target emits its modulemaps into $derived before the main scheme
+# Swift compilation starts. This is the two-pass fix for the cold-cache
+# modulemap race (#295): parallel target scheduling in xcodebuild can otherwise
+# start AppDelegate.swift before Expo/Nitro/SwiftUIIntrospect modulemaps land.
+# Both passes share -derivedDataPath so the second pass picks up the
+# already-compiled Pods and skips recompiling them.
+pods_scheme="Pods-${scheme}"
+echo "[qa-build] Pre-emitting Pods modulemaps to break cold-cache race (scheme=$pods_scheme)" >&2
+xcrun xcodebuild \
+  -workspace "$workspace" \
+  -scheme "$pods_scheme" \
+  -configuration Debug \
+  -sdk iphonesimulator \
+  -destination 'generic/platform=iOS Simulator' \
+  -derivedDataPath "$derived" \
+  -onlyUsePackageVersionsFromResolvedFile \
+  build >&2
+
+echo "[qa-build] Building main scheme=$scheme workspace=$workspace (sha=$sha)" >&2
+xcrun xcodebuild \
   -workspace "$workspace" \
   -scheme "$scheme" \
   -configuration Debug \
@@ -105,7 +125,6 @@ xcodebuild \
   -destination 'generic/platform=iOS Simulator' \
   -derivedDataPath "$derived" \
   -onlyUsePackageVersionsFromResolvedFile \
-  -parallelizeTargets NO \
   build >&2
 
 built_app="$(find "$derived/Build/Products/Debug-iphonesimulator" -maxdepth 2 -name "*.app" -print -quit)"
