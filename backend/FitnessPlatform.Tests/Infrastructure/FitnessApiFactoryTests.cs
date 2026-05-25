@@ -24,4 +24,19 @@ public class FitnessApiFactoryTests(FitnessApiFactory factory)
         scheduler.Should().NotBeNull(
             "the singleton must remain resolvable so tests can drive TickAsync directly");
     }
+
+    /// <summary>
+    /// Verifies that the <see cref="WeeklyCheckInScheduler"/> singleton is still
+    /// resolvable from DI in the test host after the per-candidate-scope refactor (#280).
+    /// Tests that drive the scheduler directly via TickAsync must be able to call
+    /// factory.Services.GetRequiredService&lt;WeeklyCheckInScheduler&gt;().
+    /// </summary>
+    [Fact]
+    public void WeeklyCheckInScheduler_IsStillResolvableAsSingleton()
+    {
+        var scheduler = factory.Services.GetRequiredService<WeeklyCheckInScheduler>();
+
+        scheduler.Should().NotBeNull(
+            "the singleton must remain resolvable so tests can drive TickAsync directly");
+    }
 }

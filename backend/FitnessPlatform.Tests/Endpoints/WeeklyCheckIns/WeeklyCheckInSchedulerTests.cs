@@ -238,4 +238,205 @@ public class WeeklyCheckInSchedulerTests(FitnessApiFactory factory)
         newNotificationCalls.Should().HaveCount(1,
             "scheduler must broadcast exactly one newnotification to the client");
     }
+
+    /// <summary>
+    /// Regression test for the EF Core change-tracker cascade (issue #280).
+    ///
+    /// When two candidates (clients A and B linked to the same trainer) are processed
+    /// in the same tick and the FIRST candidate's WeeklyCheckIn insert violates the
+    /// unique constraint (Postgres 23505), the SECOND candidate must still receive its
+    /// check-in row, in-app notification, and push notification.
+    ///
+    /// Before the fix: the catch block called db.WeeklyCheckIns.Remove(checkIn) on a
+    /// never-persisted entity, leaving the shared DbContext's change tracker in a
+    /// corrupted state.  The second candidate's SaveChanges would then fail with a
+    /// cascade exception.
+    ///
+    /// After the fix: each candidate runs inside its own IServiceScope / IApplicationDbContext,
+    /// so a failed SaveChanges disposes that scope and the next candidate starts clean.
+    /// </summary>
+    [Fact]
+    public async Task Tick_UniqueViolationOnFirstCandidate_DoesNotCascadeToSecondCandidate()
+    {
+        // Arrange: one trainer with two clients, both fire at the same UTC time (Friday 14:00 UTC).
+        var utcNow = DateTime.UtcNow;
+        var daysToLastFriday = ((int)utcNow.DayOfWeek - (int)DayOfWeek.Friday + 7) % 7;
+        var lastFriday = utcNow.Date.AddDays(-daysToLastFriday).AddHours(14);
+        if (lastFriday >= utcNow) lastFriday = lastFriday.AddDays(-7);
+
+        var weekStartDate = WeeklyCheckInScheduler.NextIsoMonday(lastFriday);
+
+        // Register trainer
+        var trainerEmail = UniqueEmail("cascade-trainer");
+        var trainerHttp = factory.CreateClient();
+        await TestHelpers.RegisterAsync(trainerHttp, trainerEmail, "TestPass1!", "Cascade", "Trainer", "Trainer");
+
+        // Register client A
+        var clientAEmail = UniqueEmail("cascade-clientA");
+        var clientAHttp = factory.CreateClient();
+        await TestHelpers.RegisterAsync(clientAHttp, clientAEmail, "TestPass1!", "Cascade", "ClientA", "Client");
+
+        // Register client B
+        var clientBEmail = UniqueEmail("cascade-clientB");
+        var clientBHttp = factory.CreateClient();
+        await TestHelpers.RegisterAsync(clientBHttp, clientBEmail, "TestPass1!", "Cascade", "ClientB", "Client");
+
+        Guid trainerUserId, clientAId, clientBId;
+
+        using (var setupScope = factory.Services.CreateScope())
+        {
+            var setupDb = setupScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+            var trainerUser = await setupDb.Users.FirstAsync(
+                u => u.Email == trainerEmail, TestContext.Current.CancellationToken);
+            var clientAUser = await setupDb.Users.FirstAsync(
+                u => u.Email == clientAEmail, TestContext.Current.CancellationToken);
+            var clientBUser = await setupDb.Users.FirstAsync(
+                u => u.Email == clientBEmail, TestContext.Current.CancellationToken);
+
+            trainerUserId = trainerUser.Id;
+            clientAId = clientAUser.Id;
+            clientBId = clientBUser.Id;
+
+            // Set timezone to UTC so fire time = 14:00 UTC directly.
+            trainerUser.TimeZone = "UTC";
+
+            var profProfile = await setupDb.ProfessionalProfiles.FirstAsync(
+                p => p.UserId == trainerUserId, TestContext.Current.CancellationToken);
+
+            var clientAProfile = await setupDb.ClientProfiles.FirstAsync(
+                cp => cp.UserId == clientAId, TestContext.Current.CancellationToken);
+            var clientBProfile = await setupDb.ClientProfiles.FirstAsync(
+                cp => cp.UserId == clientBId, TestContext.Current.CancellationToken);
+
+            // Link both clients to trainer.
+            setupDb.ClientProfessionalLinks.Add(new ClientProfessionalLink
+            {
+                PublicId = Guid.NewGuid(),
+                ProfessionalProfileId = profProfile.Id,
+                ClientProfileId = clientAProfile.Id,
+                ProfessionalRole = UserRole.Trainer,
+                IsActive = true,
+                CanViewTrainingPlans = true,
+                CanViewNutritionPlans = false,
+                DateCreated = DateTime.UtcNow
+            });
+            setupDb.ClientProfessionalLinks.Add(new ClientProfessionalLink
+            {
+                PublicId = Guid.NewGuid(),
+                ProfessionalProfileId = profProfile.Id,
+                ClientProfileId = clientBProfile.Id,
+                ProfessionalRole = UserRole.Trainer,
+                IsActive = true,
+                CanViewTrainingPlans = true,
+                CanViewNutritionPlans = false,
+                DateCreated = DateTime.UtcNow
+            });
+
+            // One setting fires every Friday at 14:00 UTC.
+            setupDb.WeeklyCheckInSettings.Add(new WeeklyCheckInSetting
+            {
+                UserId = trainerUserId,
+                Profession = Profession.Training,
+                DayOfWeek = DayOfWeek.Friday,
+                TimeOfDay = TimeSpan.FromHours(14),
+                Enabled = true,
+                DateCreated = DateTime.UtcNow,
+                DateModified = DateTime.UtcNow
+            });
+
+            await setupDb.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        // Pre-seed a WeeklyCheckIn row for client A's (ClientUserId, ProfessionalUserId, Profession,
+        // WeekStartDate) so that A's insert will hit the 23505 unique violation.
+        using (var seedScope = factory.Services.CreateScope())
+        {
+            var seedDb = seedScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            seedDb.WeeklyCheckIns.Add(new WeeklyCheckIn
+            {
+                ClientUserId = clientAId,
+                ProfessionalUserId = trainerUserId,
+                Profession = Profession.Training,
+                WeekStartDate = weekStartDate,
+                SentAt = lastFriday.AddHours(-1),   // pre-existing row for this week
+                DateCreated = lastFriday.AddHours(-1),
+                DateModified = lastFriday.AddHours(-1)
+            });
+            await seedDb.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        var push = factory.Services.GetRequiredService<FakePushNotificationService>();
+        push.Reset();
+
+        var notifier = factory.Services.GetRequiredService<FakeRealtimeNotifier>();
+        notifier.Reset();
+
+        var scheduler = factory.Services.GetRequiredService<WeeklyCheckInScheduler>();
+        scheduler.ResetCursor();
+
+        // Position cursor one hour before fire time so Friday 14:00 UTC is in the window.
+        scheduler.SetLastTickAt(lastFriday.AddHours(-1));
+        scheduler.OverrideNow = lastFriday.AddMinutes(30);
+
+        // Act — one tick processes both candidates (A hits 23505, B must succeed).
+        await scheduler.TickAsync(scheduler.OverrideNow.Value, TestContext.Current.CancellationToken);
+
+        // Assert
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        // Candidate A: only the pre-seeded row remains — duplicate was rejected cleanly.
+        var checkInsForA = await db.WeeklyCheckIns
+            .Where(c => c.ClientUserId == clientAId
+                        && c.ProfessionalUserId == trainerUserId
+                        && c.WeekStartDate == weekStartDate)
+            .ToListAsync(TestContext.Current.CancellationToken);
+        checkInsForA.Should().HaveCount(1,
+            "candidate A had a pre-existing row — the unique violation must be swallowed, " +
+            "not crash the scheduler, and the existing row must not be deleted");
+
+        // Candidate B: check-in row must be inserted (no cascade from A's failure).
+        var checkInsForB = await db.WeeklyCheckIns
+            .Where(c => c.ClientUserId == clientBId
+                        && c.ProfessionalUserId == trainerUserId
+                        && c.WeekStartDate == weekStartDate)
+            .ToListAsync(TestContext.Current.CancellationToken);
+        checkInsForB.Should().HaveCount(1,
+            "candidate B's check-in insert must succeed despite A's 23505 violation");
+
+        // Candidate B: in-app notification must be created.
+        var notificationForB = await db.Notifications
+            .Where(n => n.RecipientUserId == clientBId
+                        && n.Type == NotificationType.WeeklyCheckInRequested)
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
+        notificationForB.Should().NotBeNull(
+            "candidate B's in-app notification must be persisted — it must not be affected by A's failure");
+
+        // Candidate A: no new in-app notification (check-in was skipped as duplicate).
+        var notificationForA = await db.Notifications
+            .Where(n => n.RecipientUserId == clientAId
+                        && n.Type == NotificationType.WeeklyCheckInRequested)
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
+        notificationForA.Should().BeNull(
+            "candidate A's notification must NOT be created — the check-in was a duplicate and was skipped");
+
+        // Push must be invoked exactly once (for candidate B only).
+        var cascadePushCalls = push.Calls
+            .Where(c => c.UserId == clientAId || c.UserId == clientBId)
+            .ToList();
+        cascadePushCalls.Should().HaveCount(1,
+            "push must be sent for candidate B only — candidate A's check-in was a duplicate");
+        cascadePushCalls[0].UserId.Should().Be(clientBId,
+            "the push must target candidate B's client");
+
+        // SignalR broadcast must fire exactly once (for candidate B's newnotification).
+        var newNotificationCalls = notifier.Calls
+            .Where(c => (c.UserId == clientAId || c.UserId == clientBId)
+                        && c.EventType == "newnotification")
+            .ToList();
+        newNotificationCalls.Should().HaveCount(1,
+            "newnotification must be broadcast once (for candidate B) — candidate A was skipped");
+        newNotificationCalls[0].UserId.Should().Be(clientBId);
+    }
 }
