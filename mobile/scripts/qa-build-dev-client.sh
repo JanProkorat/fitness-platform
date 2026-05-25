@@ -25,6 +25,16 @@
 #    stub bundle (only Expo.plist + Frameworks/__preview.dylib, no main
 #    executable, no Info.plist). The validation gate catches this before
 #    caching garbage to disk and installs downstream tooling (simctl install).
+#
+# 5. -parallelizeTargets NO: eliminates the remaining cold-cache modulemap race
+#    (#295). Even after pod install, xcodebuild's default parallel target
+#    scheduling can start the main target's Swift compilation (AppDelegate.swift)
+#    before CocoaPods dependency targets (Expo, Nitro, SwiftUIIntrospect, etc.)
+#    have emitted their modulemaps, producing 30+ "module map file not found"
+#    errors. Disabling target parallelism forces dependency targets to complete —
+#    and emit their modulemaps — before the main target's Swift compilation
+#    begins. Build time increases by ~10–20s on cold runs; cache hits are
+#    unaffected.
 
 set -euo pipefail
 
@@ -81,6 +91,12 @@ fi
 
 derived="$cache_dir/.derived-$sha"
 echo "[qa-build] Building scheme=$scheme workspace=$workspace (sha=$sha)" >&2
+# -parallelizeTargets NO: prevents the cold-cache modulemap race (#295) where
+# xcodebuild starts the main target's Swift compilation before CocoaPods
+# dependency targets (Expo / Nitro / SwiftUIIntrospect) have emitted their
+# modulemaps, producing 30+ "module map file not found" errors. With serial
+# target execution, dependency targets fully complete before the main target's
+# Swift phase begins.
 xcodebuild \
   -workspace "$workspace" \
   -scheme "$scheme" \
@@ -89,6 +105,7 @@ xcodebuild \
   -destination 'generic/platform=iOS Simulator' \
   -derivedDataPath "$derived" \
   -onlyUsePackageVersionsFromResolvedFile \
+  -parallelizeTargets NO \
   build >&2
 
 built_app="$(find "$derived/Build/Products/Debug-iphonesimulator" -maxdepth 2 -name "*.app" -print -quit)"
