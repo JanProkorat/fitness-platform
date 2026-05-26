@@ -1,4 +1,4 @@
-import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -107,6 +107,7 @@ function resolveEffective(
 
 interface ProfessionBlockHandle {
   submit: () => Promise<void>;
+  resetDirty: () => void;
 }
 
 /* ─────────────────────── Per-profession block ─────────────────────── */
@@ -114,10 +115,11 @@ interface ProfessionBlockHandle {
 interface ProfessionBlockProps {
   profession: Profession;
   setting: CheckInSettingDto | undefined;
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 const ProfessionBlock = forwardRef<ProfessionBlockHandle, ProfessionBlockProps>(
-  function ProfessionBlock({ profession, setting }, ref) {
+  function ProfessionBlock({ profession, setting, onDirtyChange }, ref) {
     const { t } = useTranslation();
     const queryClient = useQueryClient();
     const addToast = useToastStore((s) => s.addToast);
@@ -134,7 +136,8 @@ const ProfessionBlock = forwardRef<ProfessionBlockHandle, ProfessionBlockProps>(
       handleSubmit,
       control,
       watch,
-      formState: { errors },
+      reset,
+      formState: { errors, isDirty },
     } = useForm<SettingForm>({
       resolver: zodResolver(settingSchema),
       defaultValues,
@@ -142,6 +145,11 @@ const ProfessionBlock = forwardRef<ProfessionBlockHandle, ProfessionBlockProps>(
 
     const enabled = watch('enabled');
     const addendum = watch('defaultAddendum') ?? '';
+
+    // Propagate dirty state to parent
+    useEffect(() => {
+      onDirtyChange?.(isDirty);
+    }, [isDirty, onDirtyChange]);
 
     const onSubmit = async (data: SettingForm) => {
       try {
@@ -152,6 +160,10 @@ const ProfessionBlock = forwardRef<ProfessionBlockHandle, ProfessionBlockProps>(
           enabled: data.enabled,
           defaultAddendum: data.defaultAddendum || null,
         });
+        // Reset RHF defaults to submitted values so isDirty flips false.
+        // Do NOT reset on the error branch — the form stays dirty so the user
+        // knows they still have unsaved edits.
+        reset(data);
         void queryClient.invalidateQueries({ queryKey: ['weekly-checkin-settings'] });
         addToast(t('weeklyCheckIn.config.saved'), 'success');
       } catch {
@@ -161,7 +173,19 @@ const ProfessionBlock = forwardRef<ProfessionBlockHandle, ProfessionBlockProps>(
 
     useImperativeHandle(ref, () => ({
       submit: () => handleSubmit(onSubmit)(),
-    }), [handleSubmit]);
+      // Clears isDirty without altering displayed values. Used by the
+      // leave-without-saving flow in ProfilePage so the dirty useEffect
+      // doesn't re-fire after the parent has set checkInDirty=false.
+      resetDirty: () => {
+        const currentValues = {
+          enabled: watch('enabled'),
+          dayOfWeek: watch('dayOfWeek'),
+          timeOfDay: watch('timeOfDay'),
+          defaultAddendum: watch('defaultAddendum'),
+        };
+        reset(currentValues, { keepValues: true });
+      },
+    }), [handleSubmit, reset, watch]);
 
     const professionLabel =
       profession === 'Training'
@@ -378,6 +402,7 @@ function OverrideRow({ override, onClick, settings }: OverrideRowProps) {
 
 export interface WeeklyCheckInTabHandle {
   save: () => Promise<void>;
+  resetDirty: () => void;
 }
 
 /* ─────────────────────── Main tab ─────────────────────── */
@@ -386,10 +411,11 @@ interface WeeklyCheckInTabProps {
   /** The trainer's role array from the auth store */
   roles: string[];
   onSavingChange?: (saving: boolean) => void;
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 export const WeeklyCheckInTab = forwardRef<WeeklyCheckInTabHandle, WeeklyCheckInTabProps>(
-  function WeeklyCheckInTab({ roles, onSavingChange }, ref) {
+  function WeeklyCheckInTab({ roles, onSavingChange, onDirtyChange }, ref) {
     const { t } = useTranslation();
     const [selectedOverride, setSelectedOverride] = useState<CheckInOverrideDto | null>(null);
 
@@ -398,6 +424,16 @@ export const WeeklyCheckInTab = forwardRef<WeeklyCheckInTabHandle, WeeklyCheckIn
 
     const isTrainer = roles.includes('Trainer');
     const isNutritionist = roles.includes('Nutritionist');
+
+    // Per-block dirty tracking. Mirror the conditional render guards so an
+    // unmounted block contributes false to the aggregate.
+    const [trainingDirty, setTrainingDirty] = useState(false);
+    const [nutritionDirty, setNutritionDirty] = useState(false);
+    const anyDirty = (isTrainer && trainingDirty) || (isNutritionist && nutritionDirty);
+
+    useEffect(() => {
+      onDirtyChange?.(anyDirty);
+    }, [anyDirty, onDirtyChange]);
 
     const { data: settingsResponse, isLoading: settingsLoading } = useQuery({
       queryKey: ['weekly-checkin-settings'],
@@ -420,6 +456,12 @@ export const WeeklyCheckInTab = forwardRef<WeeklyCheckInTabHandle, WeeklyCheckIn
         } finally {
           onSavingChange?.(false);
         }
+      },
+      // Clears RHF isDirty on each visible block so the parent's onDirtyChange
+      // useEffect doesn't re-fire true after confirmLeave sets checkInDirty=false.
+      resetDirty: () => {
+        if (isTrainer) trainingRef.current?.resetDirty();
+        if (isNutritionist) nutritionRef.current?.resetDirty();
       },
     }), [isTrainer, isNutritionist, onSavingChange]);
 
@@ -461,6 +503,7 @@ export const WeeklyCheckInTab = forwardRef<WeeklyCheckInTabHandle, WeeklyCheckIn
             ref={trainingRef}
             profession="Training"
             setting={trainingSetting}
+            onDirtyChange={setTrainingDirty}
           />
         )}
         {isNutritionist && (
@@ -468,6 +511,7 @@ export const WeeklyCheckInTab = forwardRef<WeeklyCheckInTabHandle, WeeklyCheckIn
             ref={nutritionRef}
             profession="Nutrition"
             setting={nutritionSetting}
+            onDirtyChange={setNutritionDirty}
           />
         )}
 

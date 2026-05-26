@@ -46,6 +46,7 @@ export default function ProfilePage() {
   // Weekly check-ins ref + state
   const weeklyCheckInRef = useRef<WeeklyCheckInTabHandle>(null);
   const [checkInSaving, setCheckInSaving] = useState(false);
+  const [checkInDirty, setCheckInDirty] = useState(false);
 
   // Personal fields (API-backed)
   const [saving, setSaving] = useState(false);
@@ -195,9 +196,7 @@ export default function ProfilePage() {
   const isDirty = loaded && getCurrentSnapshot() !== initialState.current;
 
   // Combined dirty state for navigation guard
-  // Note: weekly check-ins tab state is owned inside WeeklyCheckInTab (per-profession RHF forms);
-  // we do not track its dirty state centrally — only its saving state to disable the button.
-  const anyDirty = isDirty || questionnaireDirty;
+  const anyDirty = isDirty || questionnaireDirty || checkInDirty;
 
   // ── Warn before browser refresh/close ──
   useEffect(() => {
@@ -244,6 +243,10 @@ export default function ProfilePage() {
     // Reset dirty states to allow navigation
     initialState.current = getCurrentSnapshot();
     setQuestionnaireDirty(false);
+    // resetDirty on the handle is required (not just setCheckInDirty(false)):
+    // without it, ProfessionBlock's isDirty useEffect re-fires onDirtyChange(true)
+    // on the next render because RHF still considers the form dirty.
+    weeklyCheckInRef.current?.resetDirty();
     if (target === '__back__') {
       window.history.back();
     } else if (target) {
@@ -303,7 +306,9 @@ export default function ProfilePage() {
         subtitle={t('profile.subtitle')}
         actions={
           <div className="flex items-center gap-2">
-            {((activeTab === 'personal' && isDirty) || (activeTab === 'questionnaires' && questionnaireDirty)) && (
+            {((activeTab === 'personal' && isDirty)
+              || (activeTab === 'questionnaires' && questionnaireDirty)
+              || (activeTab === 'weekly-checkins' && checkInDirty)) && (
               <span style={{ fontSize: 11, color: 'var(--orange)', display: 'flex', alignItems: 'center', gap: 4 }}>
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--orange)' }} />
                 {t('profile.unsavedChanges')}
@@ -324,7 +329,7 @@ export default function ProfilePage() {
                 activeTab === 'personal'
                   ? saving
                   : activeTab === 'weekly-checkins'
-                    ? checkInSaving
+                    ? checkInSaving || !checkInDirty
                     : questionnaireSaving || !questionnaireDirty
               }
               className="rounded-md bg-text px-5 py-2 text-[13px] font-medium text-bg transition-opacity hover:opacity-90 disabled:opacity-50"
@@ -479,6 +484,7 @@ export default function ProfilePage() {
             ref={weeklyCheckInRef}
             roles={user?.roles ?? []}
             onSavingChange={setCheckInSaving}
+            onDirtyChange={setCheckInDirty}
           />
         )}
       </div>
