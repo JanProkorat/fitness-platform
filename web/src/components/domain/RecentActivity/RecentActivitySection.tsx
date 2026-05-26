@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/cn';
 import type { ClientTimelineItem } from '@/api/timeline';
@@ -52,6 +52,7 @@ export function RecentActivitySection({
   locale,
 }: RecentActivitySectionProps) {
   const { t } = useTranslation();
+  const monthSelectId = useId();
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [selectedMonthKey, setSelectedMonthKey] = useState<string>(currentMonthKey);
 
@@ -199,11 +200,12 @@ export function RecentActivitySection({
 
               {/* Month picker chip — client-side filter */}
               <div className="flex items-center gap-1 relative">
-                <span className="text-[13px] text-text2">
+                <label htmlFor={monthSelectId} className="text-[13px] text-text2">
                   {t('clients.recentActivity.monthPickerPrefix')}
-                </span>
+                </label>
                 <div className="relative inline-flex items-center">
                   <select
+                    id={monthSelectId}
                     value={effectiveMonthKey}
                     onChange={(e) => setSelectedMonthKey(e.target.value)}
                     className={cn(
