@@ -219,7 +219,7 @@ export function RecentActivitySection({
                     ))}
                   </select>
                   {/* Caret overlay — purely decorative */}
-                  <span className="pointer-events-none absolute right-1.5 text-accent text-[10px]">
+                  <span aria-hidden="true" className="pointer-events-none absolute right-1.5 text-accent text-[10px]">
                     ▾
                   </span>
                 </div>
