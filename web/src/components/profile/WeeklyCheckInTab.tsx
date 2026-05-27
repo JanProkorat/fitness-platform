@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -151,7 +151,7 @@ const ProfessionBlock = forwardRef<ProfessionBlockHandle, ProfessionBlockProps>(
       onDirtyChange?.(isDirty);
     }, [isDirty, onDirtyChange]);
 
-    const onSubmit = async (data: SettingForm) => {
+    const onSubmit = useCallback(async (data: SettingForm) => {
       try {
         await upsertCheckInSetting({
           profession,
@@ -169,7 +169,7 @@ const ProfessionBlock = forwardRef<ProfessionBlockHandle, ProfessionBlockProps>(
       } catch {
         addToast(t('weeklyCheckIn.config.saveError'), 'error');
       }
-    };
+    }, [profession, reset, queryClient, addToast, t]);
 
     useImperativeHandle(ref, () => ({
       submit: () => handleSubmit(onSubmit)(),
@@ -185,7 +185,7 @@ const ProfessionBlock = forwardRef<ProfessionBlockHandle, ProfessionBlockProps>(
         };
         reset(currentValues, { keepValues: true });
       },
-    }), [handleSubmit, reset, watch]);
+    }), [handleSubmit, onSubmit, reset, watch]);
 
     const professionLabel =
       profession === 'Training'
