@@ -19,6 +19,7 @@ import { OfflineBanner } from '@/components/OfflineBanner';
 import { ToastProvider } from '@/components/ui/Toast';
 import { useTheme } from '@/hooks/useTheme';
 import { queryClient } from '@/lib/queryClient';
+import { markTokenConsumed, wasTokenConsumed } from '@/lib/e2eAuthBypass';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -60,10 +61,19 @@ function AuthGate() {
           ? parsed.queryParams.token
           : null;
       if (!token) return;
+      // Idempotency guard: Metro Fast Refresh can deliver the same URL via
+      // both getInitialURL() and the url event in quick succession.
+      // Consuming the same refresh token twice hits POST /auth/refresh with
+      // an already-rotated token → 400 → logout catch block fires.
+      if (wasTokenConsumed(token)) {
+        console.log('[e2e-auth] duplicate deep-link suppressed (same token already consumed)');
+        return;
+      }
       console.log('[e2e-auth] login bypass invoked');
       storage.set('refreshToken', token);
       useAuthStore.setState({ refreshToken: token });
       useAuthStore.getState().restoreSession();
+      markTokenConsumed(token);
     };
 
     // Cold-start: app was not running when the deep link was tapped.
