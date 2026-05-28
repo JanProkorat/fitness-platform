@@ -263,6 +263,86 @@ public class QaSeedRunnerTests : IAsyncLifetime
     }
 
     /// <summary>
+    /// QA_SEED_KIND=minimal must seed users + profiles + trainer↔client link only.
+    /// All "rich" fixtures (training plan, foods, recipes, nutrition plan, blobs)
+    /// must be absent.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_MinimalKind_SkipsRichFixtures()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        // Arrange — switch to minimal mode for this seed run.
+        Environment.SetEnvironmentVariable("QA_SEED_KIND", "minimal");
+        try
+        {
+            await QaSeedRunner.SeedAsync(_factory.Services);
+        }
+        finally
+        {
+            // Clear so other tests run with the default (rich).
+            Environment.SetEnvironmentVariable("QA_SEED_KIND", null);
+        }
+
+        using var scope = _factory.Services.CreateScope();
+        var sp    = scope.ServiceProvider;
+        var db    = sp.GetRequiredService<ApplicationDbContext>();
+        var mongo = sp.GetRequiredService<IMongoContext>();
+
+        // Users + profiles + link must all exist.
+        (await db.Users.CountAsync(u => u.Email == QaSeedRunner.ClientEmail, ct))
+            .Should().Be(1);
+        (await db.Users.CountAsync(u => u.Email == QaSeedRunner.TrainerEmail, ct))
+            .Should().Be(1);
+        (await db.Users.CountAsync(u => u.Email == QaSeedRunner.NutriEmail, ct))
+            .Should().Be(1);
+        (await db.ClientProfessionalLinks.CountAsync(ct))
+            .Should().Be(1, "trainer↔client link is part of the minimal fixture");
+
+        // Rich fixtures must be absent.
+        (await mongo.TrainingPlans.CountDocumentsAsync(
+            Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, QaSeedRunner.QaTrainingPlanExternalId),
+            cancellationToken: ct))
+            .Should().Be(0, "minimal seed skips the training plan");
+        (await mongo.Foods.CountDocumentsAsync(
+            Builders<Food>.Filter.Empty,
+            cancellationToken: ct))
+            .Should().Be(0, "minimal seed skips all foods");
+        (await mongo.Recipes.CountDocumentsAsync(
+            Builders<Recipe>.Filter.Empty,
+            cancellationToken: ct))
+            .Should().Be(0, "minimal seed skips all recipes");
+        (await mongo.NutritionPlans.CountDocumentsAsync(
+            Builders<NutritionPlan>.Filter.Empty,
+            cancellationToken: ct))
+            .Should().Be(0, "minimal seed skips the nutrition plan");
+
+        // No blob uploads in minimal mode.
+        _factory.BlobStorage.UploadCalls.Should().BeEmpty("minimal seed skips both image blobs");
+    }
+
+    /// <summary>
+    /// QA_SEED_KIND with a value other than "minimal" or "rich" must throw at
+    /// resolve-time, so a typo like `--kind=ritch` fails fast instead of silently
+    /// falling through to rich.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_UnknownKind_ThrowsInvalidOperation()
+    {
+        Environment.SetEnvironmentVariable("QA_SEED_KIND", "ritch");
+        try
+        {
+            var act = async () => await QaSeedRunner.SeedAsync(_factory.Services);
+            await act.Should().ThrowAsync<InvalidOperationException>()
+                .Where(ex => ex.Message.Contains("QA_SEED_KIND"));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("QA_SEED_KIND", null);
+        }
+    }
+
+    /// <summary>
     /// The nutrition plan seeded by <see cref="QaSeedRunner"/> must have Status=Active
     /// and exactly one Published week with three meals (Breakfast, Lunch, Dinner).
     /// </summary>

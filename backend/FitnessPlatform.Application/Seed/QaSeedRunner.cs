@@ -93,6 +93,39 @@ public static class QaSeedRunner
             ?? throw new InvalidOperationException(
                 "QA_SEED_PASSWORD is not set. Copy .env.test.example to .env.test and fill it in.");
 
+    /// <summary>
+    /// Selects how much of the fixture to seed.
+    /// <list type="bullet">
+    ///   <item><term>Rich</term><description>(default when QA_SEED_KIND is unset or "rich") — full fixture: users + profiles + link + training plan + foods + recipes + nutrition plan + image blobs.</description></item>
+    ///   <item><term>Minimal</term><description>(QA_SEED_KIND=minimal) — users + profiles + trainer↔client link only. No plans, no foods, no blobs. Useful when a test only needs auth/profile and the additional rows just add noise.</description></item>
+    /// </list>
+    /// Switched via the QA_SEED_KIND env var so callers (compose `seed` service,
+    /// `scripts/test-env seed --kind=…`) can opt in to a leaner reset without
+    /// recompiling.
+    /// </summary>
+    public enum SeedKind { Minimal, Rich }
+
+    /// <summary>
+    /// Resolves <see cref="SeedKind"/> from the QA_SEED_KIND env var. Unset or
+    /// empty → <see cref="SeedKind.Rich"/> (backwards-compatible default —
+    /// the prior behaviour was always-rich). Unknown values fail fast so a
+    /// typo in `--kind=ritch` doesn't silently fall through to rich.
+    /// </summary>
+    public static SeedKind ResolveKind()
+    {
+        var raw = Environment.GetEnvironmentVariable("QA_SEED_KIND");
+        if (string.IsNullOrWhiteSpace(raw))
+            return SeedKind.Rich;
+
+        return raw.Trim().ToLowerInvariant() switch
+        {
+            "minimal" => SeedKind.Minimal,
+            "rich"    => SeedKind.Rich,
+            _ => throw new InvalidOperationException(
+                $"QA_SEED_KIND='{raw}' is not a valid value. Expected 'minimal' or 'rich' (unset = rich).")
+        };
+    }
+
     public static async Task SeedAsync(IServiceProvider serviceProvider)
     {
         using var scope = serviceProvider.CreateScope();
@@ -120,20 +153,30 @@ public static class QaSeedRunner
         // empty client list and Playwright's getByText('QA Client') never resolves.
         await EnsureTrainerClientLinkAsync(db, trainerProfile, clientProfile, logger);
 
-        // Training plan — ForTime + 0-exercise fixture for #258 non-regression.
-        await EnsureTrainingPlanAsync(mongo, clientProfile.PublicId, trainerProfile.PublicId, logger);
+        // Resolve seed kind once so the log line below reports it consistently.
+        var kind = ResolveKind();
 
-        // Foods + Recipes + NutritionPlan (Phase 3 additions).
-        await EnsureFoodsAsync(mongo, nutriProfile.PublicId, logger);
-        await EnsureRecipesAsync(mongo, nutriProfile.PublicId, logger);
-        await EnsureNutritionPlanAsync(mongo, clientProfile.PublicId, nutriProfile.PublicId, logger);
+        if (kind == SeedKind.Rich)
+        {
+            // Training plan — ForTime + 0-exercise fixture for #258 non-regression.
+            await EnsureTrainingPlanAsync(mongo, clientProfile.PublicId, trainerProfile.PublicId, logger);
 
-        // Image blobs in MinIO — idempotent, bucket created if absent.
-        await EnsureAvatarAsync(sp, logger);
-        await EnsureFoodImageAsync(sp, logger);
+            // Foods + Recipes + NutritionPlan.
+            await EnsureFoodsAsync(mongo, nutriProfile.PublicId, logger);
+            await EnsureRecipesAsync(mongo, nutriProfile.PublicId, logger);
+            await EnsureNutritionPlanAsync(mongo, clientProfile.PublicId, nutriProfile.PublicId, logger);
 
-        logger.LogInformation("QA seed complete — client={Client} trainer={Trainer} nutri={Nutri}",
-            ClientEmail, TrainerEmail, NutriEmail);
+            // Image blobs in MinIO — idempotent, bucket created if absent.
+            await EnsureAvatarAsync(sp, logger);
+            await EnsureFoodImageAsync(sp, logger);
+        }
+        else
+        {
+            logger.LogInformation("QA seed kind=minimal — skipping training plan, foods, recipes, nutrition plan, and blobs.");
+        }
+
+        logger.LogInformation("QA seed complete (kind={Kind}) — client={Client} trainer={Trainer} nutri={Nutri}",
+            kind, ClientEmail, TrainerEmail, NutriEmail);
     }
 
     private static async Task EnsureUserAsync(
