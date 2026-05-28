@@ -1,4 +1,5 @@
 import { useFormContext, type SubmitHandler, type FieldValues } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/cn';
 
 interface RegisterStep3Props {
@@ -6,6 +7,7 @@ interface RegisterStep3Props {
   loading: boolean;
   termsConsent: boolean;
   healthConsent: boolean;
+  requireHealthConsent: boolean;
   onTermsConsentChange: (value: boolean) => void;
   onHealthConsentChange: (value: boolean) => void;
   onBack: () => void;
@@ -17,13 +19,15 @@ export function RegisterStep3({
   loading,
   termsConsent,
   healthConsent,
+  requireHealthConsent,
   onTermsConsentChange,
   onHealthConsentChange,
   onBack,
   onSubmit,
 }: RegisterStep3Props) {
   const { handleSubmit } = useFormContext();
-  const canSubmit = termsConsent && healthConsent && !loading;
+  const { t } = useTranslation();
+  const canSubmit = termsConsent && (!requireHealthConsent || healthConsent) && !loading;
 
   return (
     <>
@@ -40,7 +44,7 @@ export function RegisterStep3({
         </div>
       )}
 
-      {/* Checkbox: Terms */}
+      {/* Checkbox: Classic GDPR personal-data consent (all roles) */}
       <label
         className="auth-checkbox-wrap"
         style={{ marginBottom: 8 }}
@@ -53,29 +57,28 @@ export function RegisterStep3({
           {termsConsent && '✓'}
         </div>
         <span className="auth-checkbox-text">
-          Souhlasím s{' '}
-          <span style={{ fontWeight: 500, color: 'var(--accent)' }}>obchodními podmínkami</span> a{' '}
-          <span style={{ fontWeight: 500, color: 'var(--accent)' }}>zásadami ochrany soukromí</span>
+          {t('auth.register.gdprConsent')}
         </span>
       </label>
 
-      {/* Checkbox: Health data */}
-      <label
-        className="auth-checkbox-wrap"
-        style={{ marginBottom: 8 }}
-        onClick={(e) => {
-          e.preventDefault();
-          onHealthConsentChange(!healthConsent);
-        }}
-      >
-        <div className={cn('auth-checkbox', healthConsent && 'checked')}>
-          {healthConsent && '✓'}
-        </div>
-        <span className="auth-checkbox-text">
-          Souhlasím se zpracováním zdravotních dat dle GDPR čl. 9
-          (tělesné míry, výkonnostní záznamy, fotky pokroku)
-        </span>
-      </label>
+      {/* Checkbox: Art. 9 health-data consent (client invite path only) */}
+      {requireHealthConsent && (
+        <label
+          className="auth-checkbox-wrap"
+          style={{ marginBottom: 8 }}
+          onClick={(e) => {
+            e.preventDefault();
+            onHealthConsentChange(!healthConsent);
+          }}
+        >
+          <div className={cn('auth-checkbox', healthConsent && 'checked')}>
+            {healthConsent && '✓'}
+          </div>
+          <span className="auth-checkbox-text">
+            {t('auth.register.healthDataConsent')}
+          </span>
+        </label>
+      )}
 
       {/* Buttons */}
       <div style={{ display: 'flex', gap: 8 }}>
@@ -94,7 +97,7 @@ export function RegisterStep3({
           className="btn-auth-primary"
           style={{ flex: 1 }}
         >
-          {loading ? 'Vytvářím účet…' : 'Vytvořit účet'}
+          {loading ? t('auth.register.registerLoading') : t('auth.register.registerSubmit')}
         </button>
       </div>
     </>

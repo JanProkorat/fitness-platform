@@ -96,7 +96,8 @@ export default function RegisterPage() {
 
   const onSubmit: SubmitHandler<FieldValues> = async (raw) => {
     const data = raw as Step2Form;
-    if (!termsConsent || !healthConsent) return;
+    if (!termsConsent) return;
+    if (fromInvite && !healthConsent) return;
     setError(null);
     setLoading(true);
     try {
@@ -111,6 +112,8 @@ export default function RegisterPage() {
         confirmPassword: data.confirmPassword,
         roles,
         gdprConsent: true,
+        // Art. 9 health-data consent: required for Client (fromInvite path), must be null for coach roles
+        healthDataConsent: fromInvite ? true : undefined,
       });
       setRegisteredEmail(data.email);
       setStep(4);
@@ -181,6 +184,7 @@ export default function RegisterPage() {
                 loading={loading}
                 termsConsent={termsConsent}
                 healthConsent={healthConsent}
+                requireHealthConsent={fromInvite}
                 onTermsConsentChange={setTermsConsent}
                 onHealthConsentChange={setHealthConsent}
                 onBack={handleBack}
