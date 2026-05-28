@@ -1,6 +1,7 @@
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.AspNetCore.Identity;
@@ -61,6 +62,25 @@ public static class QaSeedRunner
     public static readonly Guid StandardExercise1Id = new("00000000-0000-0000-dddd-000000000001");
     public static readonly Guid StandardExercise2Id = new("00000000-0000-0000-dddd-000000000002");
 
+    // Foods — owned by Nutri (NutritionistId = NutriProfilePublicId).
+    public static readonly Guid QaFood1ExternalId = new("00000000-0000-0000-eeee-000000000001"); // Chicken Breast 100g
+    public static readonly Guid QaFood2ExternalId = new("00000000-0000-0000-eeee-000000000002"); // White Rice 100g cooked
+    public static readonly Guid QaFood3ExternalId = new("00000000-0000-0000-eeee-000000000003"); // Broccoli 100g
+    public static readonly Guid QaFood4ExternalId = new("00000000-0000-0000-eeee-000000000004"); // Banana medium
+    public static readonly Guid QaFood5ExternalId = new("00000000-0000-0000-eeee-000000000005"); // Rolled Oats 50g
+
+    // Recipes — owned by Nutri.
+    public static readonly Guid QaRecipe1ExternalId = new("00000000-0000-0000-ffff-000000000001"); // Chicken + Rice + Broccoli bowl
+    public static readonly Guid QaRecipe2ExternalId = new("00000000-0000-0000-ffff-000000000002"); // Oats + Banana breakfast
+    public static readonly Guid QaRecipe3ExternalId = new("00000000-0000-0000-ffff-000000000003"); // Chicken + Broccoli stir-fry
+
+    // Nutrition plan — Author = Nutri, Client = QA Client.
+    public static readonly Guid QaNutritionPlanExternalId = new("dddddddd-eeee-ffff-0000-111111111111");
+
+    // MinIO blob keys (deterministic per QA fixture).
+    public const string QaAvatarBlobKey    = "avatars/qa-client-11111111.png";
+    public const string QaFoodImageBlobKey = "foods/qa-food-1.png";
+
     public const string ClientEmail   = "qa.client@fitnessplatform.test";
     public const string TrainerEmail  = "qa.trainer@fitnessplatform.test";
     public const string NutriEmail    = "qa.nutri@fitnessplatform.test";
@@ -94,7 +114,7 @@ public static class QaSeedRunner
         // the users having gone through the normal registration flow.
         var clientProfile  = await EnsureClientProfileAsync(db, ClientUserId,  ClientProfilePublicId,  logger);
         var trainerProfile = await EnsureProfessionalProfileAsync(db, TrainerUserId, TrainerProfilePublicId, logger);
-        await EnsureProfessionalProfileAsync(db, NutriUserId, NutriProfilePublicId, logger);
+        var nutriProfile   = await EnsureProfessionalProfileAsync(db, NutriUserId,   NutriProfilePublicId,   logger);
 
         // Trainer↔client link — without this the trainer dashboard returns an
         // empty client list and Playwright's getByText('QA Client') never resolves.
@@ -102,6 +122,15 @@ public static class QaSeedRunner
 
         // Training plan — ForTime + 0-exercise fixture for #258 non-regression.
         await EnsureTrainingPlanAsync(mongo, clientProfile.PublicId, trainerProfile.PublicId, logger);
+
+        // Foods + Recipes + NutritionPlan (Phase 3 additions).
+        await EnsureFoodsAsync(mongo, nutriProfile.PublicId, logger);
+        await EnsureRecipesAsync(mongo, nutriProfile.PublicId, logger);
+        await EnsureNutritionPlanAsync(mongo, clientProfile.PublicId, nutriProfile.PublicId, logger);
+
+        // Image blobs in MinIO — idempotent, bucket created if absent.
+        await EnsureAvatarAsync(sp, logger);
+        await EnsureFoodImageAsync(sp, logger);
 
         logger.LogInformation("QA seed complete — client={Client} trainer={Trainer} nutri={Nutri}",
             ClientEmail, TrainerEmail, NutriEmail);
@@ -386,5 +415,320 @@ public static class QaSeedRunner
         logger.LogInformation(
             "QA TrainingPlan created: externalId={ExternalId} clientId={ClientId}",
             QaTrainingPlanExternalId, clientProfilePublicId);
+    }
+
+    private static async Task EnsureFoodsAsync(
+        IMongoContext mongo,
+        Guid nutriProfilePublicId,
+        ILogger logger)
+    {
+        var foodIds = new[]
+        {
+            QaFood1ExternalId, QaFood2ExternalId, QaFood3ExternalId,
+            QaFood4ExternalId, QaFood5ExternalId,
+        };
+
+        var existingCount = await mongo.Foods
+            .CountDocumentsAsync(Builders<Food>.Filter.In(f => f.ExternalId, foodIds));
+
+        if (existingCount == foodIds.Length)
+        {
+            logger.LogInformation("QA Foods already present ({Count}), skipping.", existingCount);
+            return;
+        }
+
+        var now = DateTime.UtcNow;
+
+        var foods = new List<Food>
+        {
+            new()
+            {
+                ExternalId    = QaFood1ExternalId,
+                Name          = "Chicken Breast",
+                NutritionistId = nutriProfilePublicId,
+                Visibility    = FoodVisibility.Public,
+                Category      = FoodCategory.Meat,
+                DateCreated   = now,
+                NutrientValue = new NutrientValue { Kcal = 165m, Protein = 31m, Fat = 3.6m, Carbs = 0m },
+            },
+            new()
+            {
+                ExternalId    = QaFood2ExternalId,
+                Name          = "White Rice (cooked)",
+                NutritionistId = nutriProfilePublicId,
+                Visibility    = FoodVisibility.Public,
+                Category      = FoodCategory.GrainsAndCereals,
+                DateCreated   = now,
+                NutrientValue = new NutrientValue { Kcal = 130m, Protein = 2.7m, Fat = 0.3m, Carbs = 28m },
+            },
+            new()
+            {
+                ExternalId    = QaFood3ExternalId,
+                Name          = "Broccoli",
+                NutritionistId = nutriProfilePublicId,
+                Visibility    = FoodVisibility.Public,
+                Category      = FoodCategory.Vegetables,
+                DateCreated   = now,
+                NutrientValue = new NutrientValue { Kcal = 34m, Protein = 2.8m, Fat = 0.4m, Carbs = 7m },
+            },
+            new()
+            {
+                ExternalId    = QaFood4ExternalId,
+                Name          = "Banana (medium)",
+                NutritionistId = nutriProfilePublicId,
+                Visibility    = FoodVisibility.Public,
+                Category      = FoodCategory.Fruit,
+                DateCreated   = now,
+                NutrientValue = new NutrientValue { Kcal = 89m, Protein = 1.1m, Fat = 0.3m, Carbs = 23m },
+            },
+            new()
+            {
+                ExternalId    = QaFood5ExternalId,
+                Name          = "Rolled Oats",
+                NutritionistId = nutriProfilePublicId,
+                Visibility    = FoodVisibility.Public,
+                Category      = FoodCategory.GrainsAndCereals,
+                DateCreated   = now,
+                NutrientValue = new NutrientValue { Kcal = 389m, Protein = 13.2m, Fat = 6.5m, Carbs = 68m },
+            },
+        };
+
+        // Insert only those that are missing (partial re-run after partial seed).
+        var existingIds = (await mongo.Foods
+            .Find(Builders<Food>.Filter.In(f => f.ExternalId, foodIds))
+            .Project(f => f.ExternalId)
+            .ToListAsync())
+            .ToHashSet();
+
+        var toInsert = foods.Where(f => !existingIds.Contains(f.ExternalId)).ToList();
+        if (toInsert.Count > 0)
+        {
+            await mongo.Foods.InsertManyAsync(toInsert);
+        }
+
+        logger.LogInformation("QA Foods created: {Count} inserted.", toInsert.Count);
+    }
+
+    private static async Task EnsureRecipesAsync(
+        IMongoContext mongo,
+        Guid nutriProfilePublicId,
+        ILogger logger)
+    {
+        var recipeIds = new[] { QaRecipe1ExternalId, QaRecipe2ExternalId, QaRecipe3ExternalId };
+
+        var existingCount = await mongo.Recipes
+            .CountDocumentsAsync(Builders<Recipe>.Filter.In(r => r.ExternalId, recipeIds));
+
+        if (existingCount == recipeIds.Length)
+        {
+            logger.LogInformation("QA Recipes already present ({Count}), skipping.", existingCount);
+            return;
+        }
+
+        var now = DateTime.UtcNow;
+
+        var recipes = new List<Recipe>
+        {
+            new()
+            {
+                ExternalId      = QaRecipe1ExternalId,
+                NutritionistId  = nutriProfilePublicId,
+                Name            = "Chicken, Rice & Broccoli Bowl",
+                Description     = "Classic high-protein post-workout meal.",
+                PrepTimeMinutes = 20,
+                Visibility      = RecipeVisibility.Public,
+                DateCreated     = now,
+                Foods =
+                [
+                    new MealFood { FoodExternalId = QaFood1ExternalId, FoodName = "Chicken Breast", AmountGrams = 150m,
+                        NutrientValuePer100Grams = new NutrientValue { Kcal = 165m, Protein = 31m, Fat = 3.6m, Carbs = 0m } },
+                    new MealFood { FoodExternalId = QaFood2ExternalId, FoodName = "White Rice (cooked)", AmountGrams = 200m,
+                        NutrientValuePer100Grams = new NutrientValue { Kcal = 130m, Protein = 2.7m, Fat = 0.3m, Carbs = 28m } },
+                    new MealFood { FoodExternalId = QaFood3ExternalId, FoodName = "Broccoli", AmountGrams = 100m,
+                        NutrientValuePer100Grams = new NutrientValue { Kcal = 34m, Protein = 2.8m, Fat = 0.4m, Carbs = 7m } },
+                ],
+            },
+            new()
+            {
+                ExternalId      = QaRecipe2ExternalId,
+                NutritionistId  = nutriProfilePublicId,
+                Name            = "Oats & Banana Breakfast",
+                Description     = "Simple overnight oats with banana.",
+                PrepTimeMinutes = 5,
+                Visibility      = RecipeVisibility.Public,
+                DateCreated     = now,
+                Foods =
+                [
+                    new MealFood { FoodExternalId = QaFood5ExternalId, FoodName = "Rolled Oats", AmountGrams = 50m,
+                        NutrientValuePer100Grams = new NutrientValue { Kcal = 389m, Protein = 13.2m, Fat = 6.5m, Carbs = 68m } },
+                    new MealFood { FoodExternalId = QaFood4ExternalId, FoodName = "Banana (medium)", AmountGrams = 120m,
+                        NutrientValuePer100Grams = new NutrientValue { Kcal = 89m, Protein = 1.1m, Fat = 0.3m, Carbs = 23m } },
+                ],
+            },
+            new()
+            {
+                ExternalId      = QaRecipe3ExternalId,
+                NutritionistId  = nutriProfilePublicId,
+                Name            = "Chicken & Broccoli Stir-fry",
+                Description     = "Quick lean stir-fry, no rice.",
+                PrepTimeMinutes = 15,
+                Visibility      = RecipeVisibility.Public,
+                DateCreated     = now,
+                Foods =
+                [
+                    new MealFood { FoodExternalId = QaFood1ExternalId, FoodName = "Chicken Breast", AmountGrams = 180m,
+                        NutrientValuePer100Grams = new NutrientValue { Kcal = 165m, Protein = 31m, Fat = 3.6m, Carbs = 0m } },
+                    new MealFood { FoodExternalId = QaFood3ExternalId, FoodName = "Broccoli", AmountGrams = 150m,
+                        NutrientValuePer100Grams = new NutrientValue { Kcal = 34m, Protein = 2.8m, Fat = 0.4m, Carbs = 7m } },
+                ],
+            },
+        };
+
+        // Insert only those that are missing.
+        var existingIds = (await mongo.Recipes
+            .Find(Builders<Recipe>.Filter.In(r => r.ExternalId, recipeIds))
+            .Project(r => r.ExternalId)
+            .ToListAsync())
+            .ToHashSet();
+
+        var toInsert = recipes.Where(r => !existingIds.Contains(r.ExternalId)).ToList();
+        if (toInsert.Count > 0)
+        {
+            await mongo.Recipes.InsertManyAsync(toInsert);
+        }
+
+        logger.LogInformation("QA Recipes created: {Count} inserted.", toInsert.Count);
+    }
+
+    /// <summary>
+    /// Seeds one published NutritionPlan assigned to the QA client by the QA nutri.
+    /// The plan has 1 week (Status=Published) with 1 day (Monday) containing
+    /// Breakfast, Lunch, and Dinner meals.
+    /// </summary>
+    private static async Task EnsureNutritionPlanAsync(
+        IMongoContext mongo,
+        Guid clientProfilePublicId,
+        Guid nutriProfilePublicId,
+        ILogger logger)
+    {
+        var existing = await mongo.NutritionPlans
+            .Find(p => p.ExternalId == QaNutritionPlanExternalId)
+            .FirstOrDefaultAsync();
+
+        if (existing is not null)
+        {
+            logger.LogInformation(
+                "QA NutritionPlan already present: externalId={ExternalId}", QaNutritionPlanExternalId);
+            return;
+        }
+
+        var now = DateTime.UtcNow;
+
+        var plan = new NutritionPlan
+        {
+            ExternalId     = QaNutritionPlanExternalId,
+            ClientId       = clientProfilePublicId,
+            NutritionistId = nutriProfilePublicId,
+            Name           = "QA Test Nutrition Plan",
+            Status         = NutritionPlanStatus.Active,
+            DateCreated    = now,
+            DatePublished  = now,
+            Version        = 1,
+            Weeks =
+            [
+                new PlanWeek
+                {
+                    WeekNumber    = 1,
+                    Status        = WeekStatus.Published,
+                    DatePublished = now,
+                    Days =
+                    [
+                        new PlanDay
+                        {
+                            DayOfWeek = 1, // Monday
+                            Meals =
+                            [
+                                new PlanMeal
+                                {
+                                    MealId = new Guid("00000000-0000-0000-1111-000000000001"),
+                                    Kind   = MealKind.Breakfast,
+                                    Order  = 1,
+                                    Time   = "08:00",
+                                    Foods  = [],
+                                },
+                                new PlanMeal
+                                {
+                                    MealId = new Guid("00000000-0000-0000-1111-000000000002"),
+                                    Kind   = MealKind.Lunch,
+                                    Order  = 2,
+                                    Time   = "12:00",
+                                    Foods  = [],
+                                },
+                                new PlanMeal
+                                {
+                                    MealId = new Guid("00000000-0000-0000-1111-000000000003"),
+                                    Kind   = MealKind.Dinner,
+                                    Order  = 3,
+                                    Time   = "18:00",
+                                    Foods  = [],
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        };
+
+        await mongo.NutritionPlans.InsertOneAsync(plan);
+
+        logger.LogInformation(
+            "QA NutritionPlan created: externalId={ExternalId} clientId={ClientId}",
+            QaNutritionPlanExternalId, clientProfilePublicId);
+    }
+
+    private static async Task EnsureAvatarAsync(IServiceProvider sp, ILogger logger)
+    {
+        var blobStorage = sp.GetRequiredService<IBlobStorageService>();
+
+        if (await blobStorage.ObjectExistsAsync(QaAvatarBlobKey, CancellationToken.None))
+        {
+            logger.LogInformation("QA avatar blob already present at {Key}, skipping.", QaAvatarBlobKey);
+            return;
+        }
+
+        var bytes = LoadEmbeddedAsset("qa-avatar.png");
+        await blobStorage.UploadAsync(QaAvatarBlobKey, bytes, "image/png", CancellationToken.None);
+        logger.LogInformation("QA avatar blob uploaded to {Key} ({Bytes} bytes).", QaAvatarBlobKey, bytes.Length);
+    }
+
+    private static async Task EnsureFoodImageAsync(IServiceProvider sp, ILogger logger)
+    {
+        var blobStorage = sp.GetRequiredService<IBlobStorageService>();
+
+        if (await blobStorage.ObjectExistsAsync(QaFoodImageBlobKey, CancellationToken.None))
+        {
+            logger.LogInformation("QA food image blob already present at {Key}, skipping.", QaFoodImageBlobKey);
+            return;
+        }
+
+        var bytes = LoadEmbeddedAsset("qa-food.png");
+        await blobStorage.UploadAsync(QaFoodImageBlobKey, bytes, "image/png", CancellationToken.None);
+        logger.LogInformation("QA food image blob uploaded to {Key} ({Bytes} bytes).", QaFoodImageBlobKey, bytes.Length);
+    }
+
+    private static byte[] LoadEmbeddedAsset(string fileName)
+    {
+        var asm = typeof(QaSeedRunner).Assembly;
+        var resourceName = asm.GetManifestResourceNames()
+            .FirstOrDefault(n => n.EndsWith(fileName, StringComparison.Ordinal));
+        if (resourceName is null)
+            throw new InvalidOperationException(
+                $"Embedded asset {fileName} not found. Did the .csproj <EmbeddedResource> entry land?");
+        using var stream = asm.GetManifestResourceStream(resourceName)
+            ?? throw new InvalidOperationException(
+                $"Could not open embedded asset stream for {fileName}.");
+        using var ms = new MemoryStream();
+        stream.CopyTo(ms);
+        return ms.ToArray();
     }
 }

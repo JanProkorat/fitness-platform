@@ -36,6 +36,8 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Infrastructure/EmailTemplates/*.html" WithCulture="false" />
+    <EmbeddedResource Include="Seed/Assets/qa-avatar.png" />
+    <EmbeddedResource Include="Seed/Assets/qa-food.png" />
   </ItemGroup>
 
 </Project>

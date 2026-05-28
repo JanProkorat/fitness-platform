@@ -126,6 +126,62 @@ Replace `<QA_SEED_PASSWORD>` with the value from your `.env.test` file. The plan
 appears in the response because the week `Status = Published` — a Draft week would
 be silently excluded by the `ElemMatch` filter in `GetClientPlansEndpoint`.
 
+## Seeded foods, recipes, nutrition plan, blobs
+
+Five foods, three recipes, and one nutrition plan are seeded by `QaSeedRunner` alongside the training plan. All constants are in `QaSeedRunner.cs`.
+
+### Foods
+
+| Constant              | External ID                              | Name                    | Category          |
+| --------------------- | ---------------------------------------- | ----------------------- | ----------------- |
+| `QaFood1ExternalId`   | `00000000-0000-0000-eeee-000000000001`   | Chicken Breast          | Meat              |
+| `QaFood2ExternalId`   | `00000000-0000-0000-eeee-000000000002`   | White Rice (cooked)     | GrainsAndCereals  |
+| `QaFood3ExternalId`   | `00000000-0000-0000-eeee-000000000003`   | Broccoli                | Vegetables        |
+| `QaFood4ExternalId`   | `00000000-0000-0000-eeee-000000000004`   | Banana (medium)         | Fruit             |
+| `QaFood5ExternalId`   | `00000000-0000-0000-eeee-000000000005`   | Rolled Oats             | GrainsAndCereals  |
+
+All five foods are owned by the QA Nutri (`NutritionistId = NutriProfilePublicId = cccccccc-...`), visibility `Public`.
+
+### Recipes
+
+| Constant               | External ID                              | Name                           | Foods included            |
+| ---------------------- | ---------------------------------------- | ------------------------------ | ------------------------- |
+| `QaRecipe1ExternalId`  | `00000000-0000-0000-ffff-000000000001`   | Chicken, Rice & Broccoli Bowl  | Food 1 + Food 2 + Food 3  |
+| `QaRecipe2ExternalId`  | `00000000-0000-0000-ffff-000000000002`   | Oats & Banana Breakfast        | Food 5 + Food 4           |
+| `QaRecipe3ExternalId`  | `00000000-0000-0000-ffff-000000000003`   | Chicken & Broccoli Stir-fry    | Food 1 + Food 3           |
+
+All three recipes are owned by the QA Nutri, visibility `Public`.
+
+### Nutrition plan
+
+| Constant                     | Value                                  | What it maps to                                    |
+| ---------------------------- | -------------------------------------- | -------------------------------------------------- |
+| `QaNutritionPlanExternalId`  | `dddddddd-eeee-ffff-0000-111111111111` | The plan's `ExternalId`                            |
+| `ClientProfilePublicId`      | `aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa` | `NutritionPlan.ClientId` (profile public id)       |
+| `NutriProfilePublicId`       | `cccccccc-cccc-cccc-cccc-cccccccccccc` | `NutritionPlan.NutritionistId`                     |
+
+Plan shape:
+
+```
+NutritionPlan (ExternalId = dddddddd-eeee-ffff-0000-111111111111)
+  Status: Active
+  Weeks:
+    Week 1 (Status = Published, DatePublished set)
+      Day 1 (Monday)
+        Meal 1 — Breakfast  (08:00, no foods pre-loaded)
+        Meal 2 — Lunch      (12:00, no foods pre-loaded)
+        Meal 3 — Dinner     (18:00, no foods pre-loaded)
+```
+
+### Blob assets
+
+| Constant              | MinIO key                            | Content          |
+| --------------------- | ------------------------------------ | ---------------- |
+| `QaAvatarBlobKey`     | `avatars/qa-client-11111111.png`     | 1×1 pixel PNG    |
+| `QaFoodImageBlobKey`  | `foods/qa-food-1.png`                | 1×1 pixel PNG    |
+
+Both blobs are loaded from embedded resources (`Seed/Assets/qa-avatar.png` and `qa-food.png`) and uploaded to MinIO via `IBlobStorageService.UploadAsync` during seed. Upload is idempotent: `ObjectExistsAsync` is checked first; existing blobs are left in place.
+
 ## CI
 
 The `e2e.yml` GitHub Actions workflow sources `JWT_SECRET` and `QA_SEED_PASSWORD` from repository-level secrets (`secrets.JWT_SECRET`, `secrets.QA_SEED_PASSWORD`) and writes them into `.env.test` before `npm run e2e:up`. Configure these secrets at `Settings → Secrets and variables → Actions` before the first CI run, or the workflow will fail at the env-file write step with a clear error message.

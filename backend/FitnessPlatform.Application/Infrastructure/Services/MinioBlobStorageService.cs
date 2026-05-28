@@ -94,6 +94,42 @@ public class MinioBlobStorageService : IBlobStorageService
     }
 
     /// <inheritdoc />
+    public async Task UploadAsync(string containerPath, byte[] data, string contentType, CancellationToken ct)
+    {
+        await EnsureBucketWithPublicReadAsync(ct);
+
+        using var ms = new MemoryStream(data);
+        await _client.PutObjectAsync(
+            new PutObjectArgs()
+                .WithBucket(_bucketName)
+                .WithObject(containerPath)
+                .WithStreamData(ms)
+                .WithObjectSize(data.Length)
+                .WithContentType(contentType),
+            ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> ObjectExistsAsync(string containerPath, CancellationToken ct)
+    {
+        await EnsureBucketWithPublicReadAsync(ct);
+
+        try
+        {
+            await _client.StatObjectAsync(
+                new StatObjectArgs()
+                    .WithBucket(_bucketName)
+                    .WithObject(containerPath),
+                ct);
+            return true;
+        }
+        catch (Minio.Exceptions.ObjectNotFoundException)
+        {
+            return false;
+        }
+    }
+
+    /// <inheritdoc />
     public async Task DeleteAsync(string containerPath, CancellationToken ct)
     {
         await EnsureBucketWithPublicReadAsync(ct);
