@@ -336,7 +336,8 @@
       "start": "Start training",
       "continue": "Continue training",
       "finished": "Completed",
-      "startError": "Could not start training. Please try again."
+      "startError": "Could not start training. Please try again.",
+      "sessionInProgress": "Session already in progress"
     },
     "noNutritionPlanForToday": "No nutrition plan for today",
     "noTrainingForToday": "No training planned for today"
