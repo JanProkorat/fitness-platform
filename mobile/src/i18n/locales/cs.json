@@ -1088,7 +1088,8 @@
       "roleTrainerDesc": "Sestavuji tréninkové plány klientům",
       "roleNutritionist": "Výživový poradce",
       "roleNutritionistDesc": "Sestavuji jídelníčky klientům",
-      "gdprConsent": "Souhlasím se zpracováním zdravotních údajů\n(GDPR čl. 9)",
+      "gdprConsent": "Souhlasím se zpracováním osobních údajů dle GDPR za účelem poskytování služeb fitness platformy.",
+      "healthDataConsent": "Souhlasím se zpracováním zdravotních dat dle GDPR čl. 9 (tělesné míry, výkonnostní záznamy, fotky pokroku).",
       "create": "Vytvořit účet",
       "creating": "Vytváření účtu…",
       "haveAccount": "Už máte účet?",
@@ -1100,7 +1101,8 @@
       "weakPasswordTitle": "Slabé heslo",
       "weakPasswordMessage": "Heslo musí mít alespoň 8 znaků.",
       "consentRequiredTitle": "Potřebujeme souhlas",
-      "consentRequiredMessage": "Pro registraci je nutný souhlas se zpracováním zdravotních údajů.",
+      "consentRequiredMessage": "Pro registraci je nutný souhlas se zpracováním osobních údajů.",
+      "healthDataConsentRequiredMessage": "Pro registraci jako klient je nutný souhlas se zpracováním zdravotních dat dle GDPR čl. 9.",
       "failedTitle": "Registrace selhala",
       "failedMessage": "Registrace selhala. Zkuste to prosím znovu."
     }
