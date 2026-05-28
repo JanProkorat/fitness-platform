@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { createMMKV } from 'react-native-mmkv';
+import { resetConsumedTokens } from '../lib/e2eAuthBypass';
 
 export const storage = createMMKV({ id: 'mmkv.default' });
 
@@ -143,6 +144,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: () => {
     // Clear all persisted and in-memory caches to prevent data leaking between users
     storage.clearAll();
+    // Reset the __DEV__ deep-link bypass token slot so a subsequent bypass with
+    // a fresh token (post-logout QA flow) can reach restoreSession() correctly.
+    resetConsumedTokens();
     import('../stores/todayStore').then(({ useTodayStore }) => {
       useTodayStore.getState().reset();
     });
