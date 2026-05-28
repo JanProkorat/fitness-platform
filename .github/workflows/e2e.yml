@@ -14,6 +14,7 @@ on:
       - '.env.test.example'
       - '.github/workflows/e2e.yml'
       - 'scripts/test-env'
+      - 'qa-playwright/**'
 
 permissions:
   contents: read
@@ -98,7 +99,7 @@ jobs:
           fi
           echo "E2E_API_URL=$api_url" >> "$GITHUB_ENV"
 
-      - name: Run Playwright tests
+      - name: Run Playwright tests (host suite — regression smoke)
         run: npx playwright test
         working-directory: web
         env:
@@ -111,7 +112,33 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           QA_SEED_PASSWORD: ${{ secrets.QA_SEED_PASSWORD }}
 
-      - name: Upload Playwright HTML report on failure
+      # ── Containerised named-flow runs ────────────────────────────────────
+      # Each invocation execs the qa-playwright container's runner; output
+      # streams to the workflow log. Artifacts land in .qa-artifacts/ via the
+      # compose bind-mount and are uploaded as a single artifact below.
+      - name: Run named flow — user-avatar-upload
+        run: ./scripts/test-env run user-avatar-upload
+
+      - name: Run named flow — food-admin-upload
+        run: ./scripts/test-env run food-admin-upload
+
+      - name: Run named flow — recipe-gallery-upload
+        run: ./scripts/test-env run recipe-gallery-upload
+
+      # ── Artifact uploads ──────────────────────────────────────────────────
+      # .qa-artifacts/ holds the container playwright's traces + screenshots
+      # via the docker-compose bind-mount; upload always (success and failure)
+      # so the JSON pass/fail evidence is durable per the AC.
+      - name: Upload .qa-artifacts (container playwright)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-artifacts-${{ github.run_number }}
+          path: .qa-artifacts/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Upload Playwright HTML report on failure (host suite)
         if: failure()
         uses: actions/upload-artifact@v4
         with:
@@ -120,7 +147,7 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
-      - name: Upload Playwright test results on failure
+      - name: Upload Playwright test results on failure (host suite)
         if: failure()
         uses: actions/upload-artifact@v4
         with:
