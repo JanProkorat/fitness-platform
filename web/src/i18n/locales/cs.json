@@ -64,7 +64,7 @@
     "roleTrainer": "Trenér",
     "roleNutritionist": "Výživový poradce",
     "roleClient": "Klient",
-    "gdprConsent": "Souhlasím se zpracováním osobních údajů dle <1>GDPR</1> za účelem poskytování služeb fitness platformy.",
+    "gdprConsent": "Souhlasím se zpracováním osobních údajů dle GDPR za účelem poskytování služeb fitness platformy.",
     "healthDataConsent": "Souhlasím se zpracováním zdravotních dat dle GDPR čl. 9 (tělesné míry, výkonnostní záznamy, fotky pokroku).",
     "passwordPlaceholder": "Min. 9 znaků",
     "confirmPasswordPlaceholder": "Zopakujte heslo",

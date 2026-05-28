@@ -64,7 +64,7 @@
     "roleTrainer": "Trainer",
     "roleNutritionist": "Nutritionist",
     "roleClient": "Client",
-    "gdprConsent": "I agree to the processing of personal data under <1>GDPR</1> for the purpose of providing fitness platform services.",
+    "gdprConsent": "I agree to the processing of personal data under GDPR for the purpose of providing fitness platform services.",
     "healthDataConsent": "I agree to the processing of health data under GDPR Art. 9 (body measurements, performance records, progress photos).",
     "passwordPlaceholder": "Min. 9 characters",
     "confirmPasswordPlaceholder": "Repeat password",

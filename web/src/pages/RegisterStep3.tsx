@@ -57,7 +57,7 @@ export function RegisterStep3({
           {termsConsent && '✓'}
         </div>
         <span className="auth-checkbox-text">
-          {t('auth.register.gdprConsent')}
+          {t('auth.gdprConsent')}
         </span>
       </label>
 
@@ -75,7 +75,7 @@ export function RegisterStep3({
             {healthConsent && '✓'}
           </div>
           <span className="auth-checkbox-text">
-            {t('auth.register.healthDataConsent')}
+            {t('auth.healthDataConsent')}
           </span>
         </label>
       )}
@@ -97,7 +97,7 @@ export function RegisterStep3({
           className="btn-auth-primary"
           style={{ flex: 1 }}
         >
-          {loading ? t('auth.register.registerLoading') : t('auth.register.registerSubmit')}
+          {loading ? t('auth.registerLoading') : t('auth.registerSubmit')}
         </button>
       </div>
     </>
