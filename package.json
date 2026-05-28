@@ -1,10 +1,13 @@
 {
   "scripts": {
     "e2e:setup": "[ -f .env.test ] && echo '.env.test already exists' || cp .env.test.example .env.test && echo 'Created .env.test from template — edit it and set JWT_SECRET + QA_SEED_PASSWORD before npm run e2e:up'",
-    "e2e:up": "[ -f .env.test ] || (echo 'Missing .env.test — run: npm run e2e:setup' && exit 1) && docker compose -f docker-compose.test.yml up -d --build",
-    "e2e:down": "docker compose -f docker-compose.test.yml down -v",
-    "e2e:logs": "docker compose -f docker-compose.test.yml logs -f api",
-    "e2e:health": "curl -ksS https://localhost:5101/swagger/v1/swagger.json | head -c 200"
+    "e2e:up": "./scripts/test-env up",
+    "e2e:down": "./scripts/test-env down",
+    "e2e:logs": "./scripts/test-env logs api",
+    "e2e:health": "./scripts/test-env health",
+    "e2e:ports": "./scripts/test-env ports",
+    "e2e:seed": "./scripts/test-env seed",
+    "e2e:run": "./scripts/test-env run"
   },
   "dependencies": {
     "@playwright/test": "^1.59.1"

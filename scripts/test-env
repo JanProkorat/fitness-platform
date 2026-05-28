@@ -1,0 +1,324 @@
+#!/usr/bin/env bash
+#
+# scripts/test-env — branch-scoped CLI for the dockerised QA harness.
+#
+# Subcommands:
+#   up [<branch>]              Bring up an isolated compose stack named after the branch.
+#   seed [--kind=minimal|rich] Re-run the seed container against the current branch's stack.
+#   run <flow>                 Execute a named Playwright flow inside the harness.
+#   down [<branch>]            Tear down the branch's stack and clean up volumes + state file.
+#   logs <service> [<branch>]  Follow a service's logs (api/web/mobile-web/playwright/postgres-test/...).
+#   logs-tail <service> [<branch>] [<lines>]
+#                              One-shot dump of the last <lines> log lines (default 500) and exit.
+#                              Used by CI's failure-dump step; do not use for interactive tailing.
+#   health [<branch>]          curl the resolved api host port; print HTTP status.
+#   ports [<branch>]           Print the active stack's project name + resolved api host port.
+#
+# Project naming:
+#   sanitized-branch + sha1(branch || hostname)[:6] → COMPOSE_PROJECT_NAME
+#   Stable per (branch, host) — so two `up`s with the same branch on the same host
+#   collide on purpose. Different branches (CI matrix, two PRs) coexist cleanly on
+#   ephemeral host ports.
+#
+# State file:
+#   .test-env.<project>.env at the repo root persists COMPOSE_PROJECT_NAME,
+#   BRANCH, and the resolved API host port. gitignored. Removed on `down`.
+#
+# Network:
+#   docker compose declares a project-scoped network (qa-net). web/mobile-web/playwright
+#   communicate over internal DNS — only api publishes a host port (ephemeral, picked
+#   by docker on `up`, surfaced via this CLI).
+
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO_ROOT"
+
+COMPOSE_FILE="docker-compose.test.yml"
+
+# ── helpers ──────────────────────────────────────────────────────────────────
+
+err() { printf '%s\n' "$*" >&2; }
+
+die() { err "$*"; exit 1; }
+
+require_compose() {
+  command -v docker >/dev/null 2>&1 || die "docker not found on PATH"
+  docker compose version >/dev/null 2>&1 || die "docker compose plugin not available (is Docker running?)"
+}
+
+sha1_hex() {
+  if command -v shasum >/dev/null 2>&1; then
+    shasum -a 1 | cut -c1-40
+  else
+    sha1sum | cut -c1-40
+  fi
+}
+
+current_branch() {
+  git rev-parse --abbrev-ref HEAD 2>/dev/null || echo unknown
+}
+
+derive_project_name() {
+  local branch="${1:-$(current_branch)}"
+  local sanitized
+  sanitized="$(printf '%s' "$branch" \
+    | tr 'A-Z' 'a-z' \
+    | sed -E 's|[^a-z0-9]+|-|g' \
+    | sed -E 's|^-+||; s|-+$||' \
+    | cut -c1-40)"
+  local suffix
+  suffix="$(printf '%s|%s' "$branch" "$(hostname)" | sha1_hex | cut -c1-6)"
+  printf 'fp-%s-%s' "$sanitized" "$suffix"
+}
+
+env_file_for() {
+  printf '%s/.test-env.%s.env' "$REPO_ROOT" "$1"
+}
+
+# Resolve project for a subcommand. If $1 is provided, use it as branch; else use current branch.
+resolve_project() {
+  local branch="${1:-$(current_branch)}"
+  derive_project_name "$branch"
+}
+
+# Read the persisted env file for a project. Returns 1 if the file is absent (project not up).
+load_project_env() {
+  local project="$1"
+  local file
+  file="$(env_file_for "$project")"
+  [[ -f "$file" ]] || return 1
+  # shellcheck disable=SC1090
+  set -a; source "$file"; set +a
+}
+
+compose() {
+  COMPOSE_PROJECT_NAME="$1" docker compose -f "$COMPOSE_FILE" "${@:2}"
+}
+
+# Wait for a service's healthcheck to report 'healthy'. Times out after <seconds> seconds.
+# Returns 0 on healthy, 1 on timeout/exit.
+wait_for_healthy() {
+  local project="$1"
+  local service="$2"
+  local timeout="${3:-90}"
+  local elapsed=0
+  local container_id
+  while (( elapsed < timeout )); do
+    container_id="$(compose "$project" ps -q "$service" 2>/dev/null || true)"
+    if [[ -n "$container_id" ]]; then
+      local status
+      status="$(docker inspect --format='{{.State.Health.Status}}' "$container_id" 2>/dev/null || echo 'starting')"
+      if [[ "$status" == "healthy" ]]; then
+        return 0
+      fi
+      if [[ "$status" == "exited" ]] || [[ "$status" == "dead" ]]; then
+        return 1
+      fi
+    fi
+    sleep 2
+    elapsed=$((elapsed + 2))
+  done
+  return 1
+}
+
+# Resolve the host port docker mapped for <project> <service> <container-port>.
+# Returns empty string if no host mapping exists (internal-only services).
+resolve_host_port() {
+  local project="$1"
+  local service="$2"
+  local container_port="$3"
+  local raw
+  raw="$(compose "$project" port "$service" "$container_port" 2>/dev/null || true)"
+  [[ -n "$raw" ]] || { printf ''; return; }
+  printf '%s' "${raw##*:}"
+}
+
+ensure_env_test() {
+  if [[ ! -f "$REPO_ROOT/.env.test" ]]; then
+    die "Missing .env.test — run: npm run e2e:setup"
+  fi
+}
+
+# ── subcommands ──────────────────────────────────────────────────────────────
+
+cmd_up() {
+  local branch="${1:-$(current_branch)}"
+  require_compose
+  ensure_env_test
+  local project
+  project="$(derive_project_name "$branch")"
+  local env_file
+  env_file="$(env_file_for "$project")"
+
+  if [[ -f "$env_file" ]]; then
+    die "Project '$project' already up — run 'scripts/test-env down $branch' first, or use a different branch suffix."
+  fi
+
+  err "Booting compose project '$project' (branch '$branch')…"
+  compose "$project" up -d --build
+
+  if ! wait_for_healthy "$project" api 90; then
+    err "api failed to become healthy within 90s — dumping last 100 log lines:"
+    compose "$project" logs --tail=100 api >&2 || true
+    compose "$project" down -v --remove-orphans >/dev/null 2>&1 || true
+    die "Aborted."
+  fi
+
+  local api_port
+  api_port="$(resolve_host_port "$project" api 8080)"
+  [[ -n "$api_port" ]] || die "Could not resolve host port for api service — no 'ports' mapping?"
+
+  cat > "$env_file" <<EOF
+# scripts/test-env state for project '$project'. Auto-generated; gitignored. Removed by 'down'.
+COMPOSE_PROJECT_NAME=$project
+BRANCH=$branch
+API_HOST_PORT=$api_port
+API_URL=https://localhost:$api_port
+EOF
+
+  printf '{"project":"%s","branch":"%s","api_url":"https://localhost:%s"}\n' "$project" "$branch" "$api_port"
+}
+
+cmd_down() {
+  local branch="${1:-$(current_branch)}"
+  require_compose
+  local project
+  project="$(derive_project_name "$branch")"
+  local env_file
+  env_file="$(env_file_for "$project")"
+
+  err "Tearing down compose project '$project' (branch '$branch')…"
+  compose "$project" down -v --remove-orphans || true
+  rm -f "$env_file"
+  printf '{"project":"%s","branch":"%s","status":"down"}\n' "$project" "$branch"
+}
+
+cmd_seed() {
+  require_compose
+  local kind="minimal"
+  while (( $# > 0 )); do
+    case "$1" in
+      --kind=*) kind="${1#--kind=}";;
+      --kind)   shift; kind="${1:-minimal}";;
+      *)        die "unknown seed option: $1";;
+    esac
+    shift
+  done
+  case "$kind" in
+    minimal|rich) ;;
+    *) die "--kind must be 'minimal' or 'rich' (got '$kind')";;
+  esac
+
+  local project
+  project="$(resolve_project)"
+  local env_file
+  env_file="$(env_file_for "$project")"
+  [[ -f "$env_file" ]] || die "No compose project found for current branch — run 'scripts/test-env up' first."
+
+  err "Re-running seed (kind=$kind) against project '$project'…"
+  # The seed container is one-shot. Re-running requires recreating it.
+  # `--kind` is passed through as a command-arg suffix when Phase 3 lands;
+  # for now it's accepted but ignored by QaSeedRunner (still seeds the
+  # full deterministic fixture).
+  compose "$project" run --rm -e QA_SEED_KIND="$kind" seed --qa-seed
+  printf '{"project":"%s","kind":"%s","status":"seeded"}\n' "$project" "$kind"
+}
+
+cmd_run() {
+  require_compose
+  local flow="${1:-}"
+  [[ -n "$flow" ]] || die "usage: scripts/test-env run <flow-name>"
+
+  local project
+  project="$(resolve_project)"
+  local env_file
+  env_file="$(env_file_for "$project")"
+  [[ -f "$env_file" ]] || die "No compose project found for current branch — run 'scripts/test-env up' first."
+
+  # Phase 2 wires the playwright service; Phase 4 wires qa-playwright/flows.json
+  # and the named-flow runner. For now this subcommand is a stub that surfaces
+  # the correct error path until Phase 4 lands.
+  if ! compose "$project" ps --services 2>/dev/null | grep -q '^playwright$'; then
+    err "playwright service not yet present in $COMPOSE_FILE (lands in Phase 2)."
+    printf '{"ok":false,"reason":"playwright service not deployed","flow":"%s"}\n' "$flow"
+    exit 1
+  fi
+
+  # Wait for api + web healthchecks before running.
+  if ! wait_for_healthy "$project" api 90; then
+    local logs
+    logs="$(compose "$project" logs --tail=50 api 2>&1 | tail -c 4096)"
+    printf '{"ok":false,"reason":"api not healthy","logs":%s}\n' "$(printf '%s' "$logs" | jq -Rs . 2>/dev/null || printf '"%s"' "$logs")"
+    exit 1
+  fi
+
+  compose "$project" exec -T playwright /work/named-flow-runner.sh "$flow"
+}
+
+cmd_logs() {
+  require_compose
+  local service="${1:-api}"
+  local branch="${2:-$(current_branch)}"
+  local project
+  project="$(derive_project_name "$branch")"
+  compose "$project" logs -f "$service"
+}
+
+cmd_logs_tail() {
+  require_compose
+  local service="${1:-api}"
+  local branch="${2:-$(current_branch)}"
+  local lines="${3:-500}"
+  local project
+  project="$(derive_project_name "$branch")"
+  compose "$project" logs --tail="$lines" "$service" || true
+}
+
+cmd_health() {
+  require_compose
+  local branch="${1:-$(current_branch)}"
+  local project
+  project="$(derive_project_name "$branch")"
+  local env_file
+  env_file="$(env_file_for "$project")"
+  [[ -f "$env_file" ]] || die "No compose project found for branch '$branch' — run 'scripts/test-env up' first."
+  load_project_env "$project"
+  curl -ksS -o /dev/null -w '%{http_code}\n' "$API_URL/swagger/v1/swagger.json" || true
+}
+
+cmd_ports() {
+  local branch="${1:-$(current_branch)}"
+  local project
+  project="$(derive_project_name "$branch")"
+  local env_file
+  env_file="$(env_file_for "$project")"
+  [[ -f "$env_file" ]] || die "No compose project found for branch '$branch' — run 'scripts/test-env up' first."
+  load_project_env "$project"
+  printf '{"project":"%s","branch":"%s","api_host_port":%s,"api_url":"%s"}\n' "$project" "$BRANCH" "$API_HOST_PORT" "$API_URL"
+}
+
+cmd_help() {
+  sed -n '2,/^set -euo pipefail/p' "${BASH_SOURCE[0]}" | sed -E 's|^# ?||; /^set -euo pipefail/d'
+}
+
+# ── dispatch ─────────────────────────────────────────────────────────────────
+
+main() {
+  local sub="${1:-help}"
+  shift || true
+  case "$sub" in
+    up)        cmd_up        "$@" ;;
+    down)      cmd_down      "$@" ;;
+    seed)      cmd_seed      "$@" ;;
+    run)       cmd_run       "$@" ;;
+    logs)      cmd_logs      "$@" ;;
+    logs-tail) cmd_logs_tail "$@" ;;
+    health)    cmd_health    "$@" ;;
+    ports)     cmd_ports     "$@" ;;
+    help|-h|--help) cmd_help ;;
+    *)      err "unknown subcommand: $sub"; cmd_help; exit 1 ;;
+  esac
+}
+
+main "$@"

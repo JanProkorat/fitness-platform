@@ -1,8 +1,49 @@
 # E2E fixture credentials
 
-The compose harness (`docker-compose.test.yml`, brought up via `npm run e2e:up`) seeds a deterministic set of QA users via `backend/FitnessPlatform.Application/Seed/QaSeedRunner.cs` before the API service starts.
+The compose harness (`docker-compose.test.yml`) seeds a deterministic set of QA users via `backend/FitnessPlatform.Application/Seed/QaSeedRunner.cs` before the API service starts.
 
-The harness API listens on `https://localhost:5101` with a self-signed dev cert — pass `-k` to curl, or `rejectUnauthorized: false` to Node `https`. The interactive dev API at `:5001` is a **separate** stack with a separate database; never point Playwright at it.
+The harness API listens on `https://localhost:<ephemeral-port>` with a self-signed dev cert — pass `-k` to curl, or `rejectUnauthorized: false` to Node `https`. The interactive dev API at `:5001` is a **separate** stack with a separate database; never point Playwright at it.
+
+## scripts/test-env — branch-scoped CLI
+
+`scripts/test-env` is the recommended entry point for the harness. It derives a per-branch `COMPOSE_PROJECT_NAME` so parallel CI runs (or two local checkouts) coexist on ephemeral host ports without colliding. Every call emits a JSON envelope to stdout so the orchestrator, `qa-tester`, and CI workflow can read the resolved API URL programmatically.
+
+| Subcommand                          | What it does                                                                                |
+| ----------------------------------- | ------------------------------------------------------------------------------------------- |
+| `scripts/test-env up [<branch>]`    | Bring up an isolated stack; prints `{"project","branch","api_url"}`.                        |
+| `scripts/test-env down [<branch>]`  | Tear down + remove all volumes/networks for that branch's stack.                            |
+| `scripts/test-env seed [--kind=K]`  | Re-run the seed container against the current branch's stack. `K`=`minimal`\|`rich`.        |
+| `scripts/test-env run <flow>`       | Execute a named Playwright flow inside the harness (Phase 2+ — playwright container).      |
+| `scripts/test-env logs <service>`   | Tail a service's logs (api/postgres-test/mongo-test/minio-test/seed/...).                   |
+| `scripts/test-env health`           | curl the resolved api host port; print HTTP status.                                          |
+| `scripts/test-env ports`            | Print the active stack's project name + resolved api host port.                              |
+
+The CLI persists state to `.test-env.<project>.env` at the repo root (gitignored, removed on `down`). The host port for `api` is **ephemeral** — read it from the JSON envelope or via `npm run e2e:ports`. Do NOT assume `:5101`; that was the previous fixed mapping.
+
+`npm run e2e:up` / `e2e:down` / `e2e:logs` / `e2e:health` are thin wrappers that call into the CLI — both interfaces work, but new automation should call `scripts/test-env` directly so the JSON envelope is parseable.
+
+### Project-name derivation
+
+Project names follow `fp-<sanitized-branch>-<sha1[:6]>`, where the sha1 is computed from `<branch>|<hostname>`. Same branch on the same host → same project name (deterministic, so re-running `up` on a half-up stack fails fast with a clear message instead of silently piling on). Different branches → different project names → coexist on different ephemeral ports.
+
+### Two parallel runs (smoke)
+
+```bash
+# In one shell
+scripts/test-env up feature/aaa
+# {"project":"fp-feature-aaa-1f4d2b","branch":"feature/aaa","api_url":"https://localhost:53241"}
+
+# In another shell
+scripts/test-env up feature/bbb
+# {"project":"fp-feature-bbb-9c7e0a","branch":"feature/bbb","api_url":"https://localhost:53248"}
+
+docker ps --format '{{.Names}}'
+# fp-feature-aaa-1f4d2b-api-1
+# fp-feature-aaa-1f4d2b-postgres-test-1
+# fp-feature-bbb-9c7e0a-api-1
+# fp-feature-bbb-9c7e0a-postgres-test-1
+# (etc.)
+```
 
 ## Seeded users
 
@@ -18,7 +59,7 @@ The GUIDs above are referenced by spec assertions and trainer↔client link fixt
 
 ## Reset between specs
 
-`POST https://localhost:5101/test/reset` (no auth) drops and recreates the Postgres schema and Mongo collections, then re-runs `QaSeedRunner`. Playwright's `globalSetup` (`web/tests/e2e/global-setup.ts`, `mobile/tests/e2e/global-setup.ts`) calls it once per `playwright test` run so specs start from a known baseline.
+`POST https://localhost:<ephemeral-port>/test/reset` (no auth) drops and recreates the Postgres schema and Mongo collections, then re-runs `QaSeedRunner`. Playwright's `globalSetup` (`web/tests/e2e/global-setup.ts`, `mobile/tests/e2e/global-setup.ts`) calls it once per `playwright test` run so specs start from a known baseline. Resolve the host port with `scripts/test-env ports` or read it from the `up` JSON envelope; the previous fixed `:5101` mapping is gone.
 
 The endpoint is **double-gated**: it only responds when `Testing__Enabled=true` AND `ASPNETCORE_ENVIRONMENT=Development`. The compose stack hard-codes both — the dev API at `:5001` does not, so calling `/test/reset` against the dev API correctly returns 404. It is also hidden from `/swagger/v1/swagger.json` via `ExcludeFromDescription()`, so a prod scanner cannot enumerate it via the OpenAPI document.
 
@@ -67,15 +108,18 @@ TrainingPlan (ExternalId = dddddddd-...)
 ### Curl recipe — fetch as the QA client
 
 ```bash
+# 0. Resolve the api URL for the current branch's stack
+API_URL=$(scripts/test-env ports | jq -r '.api_url')
+
 # 1. Log in as the QA client and capture the access token
-ACCESS=$(curl -sk -X POST https://localhost:5101/auth/login \
+ACCESS=$(curl -sk -X POST "$API_URL/auth/login" \
   -H "Content-Type: application/json" \
   -d '{"email":"qa.client@fitnessplatform.test","password":"<QA_SEED_PASSWORD>"}' \
   | jq -r '.accessToken')
 
 # 2. Fetch the client's training plans (should include the seeded plan)
 curl -sk -H "Authorization: Bearer $ACCESS" \
-  https://localhost:5101/client/plans | jq '.items[] | select(.type=="training")'
+  "$API_URL/client/plans" | jq '.items[] | select(.type=="training")'
 ```
 
 Replace `<QA_SEED_PASSWORD>` with the value from your `.env.test` file. The plan
