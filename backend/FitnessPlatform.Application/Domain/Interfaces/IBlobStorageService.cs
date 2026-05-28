@@ -16,6 +16,25 @@ public interface IBlobStorageService
     Task<BlobUploadUrl> GenerateUploadUrlAsync(string containerPath, string contentType, TimeSpan expiresIn, CancellationToken ct);
 
     /// <summary>
+    /// Uploads raw bytes directly to blob storage (server-side upload).
+    /// Used by seed runners and background jobs that have the bytes in memory
+    /// and do not need a client-facing pre-signed URL.
+    /// Idempotent: re-uploading the same key replaces the existing object.
+    /// </summary>
+    /// <param name="containerPath">The container/bucket path including the object key.</param>
+    /// <param name="data">Raw bytes to store.</param>
+    /// <param name="contentType">MIME type of the object (e.g. "image/png").</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task UploadAsync(string containerPath, byte[] data, string contentType, CancellationToken ct);
+
+    /// <summary>
+    /// Returns true if an object exists at the given container path, false otherwise.
+    /// </summary>
+    /// <param name="containerPath">The container/bucket path including the object key.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task<bool> ObjectExistsAsync(string containerPath, CancellationToken ct);
+
+    /// <summary>
     /// Deletes a blob from storage by its full container path (e.g. "plan-photos/{planId}/{guid}.jpg").
     /// No-ops silently if the object does not exist.
     /// </summary>

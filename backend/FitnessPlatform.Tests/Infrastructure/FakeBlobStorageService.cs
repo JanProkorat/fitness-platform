@@ -24,12 +24,33 @@ public class FakeBlobStorageService : IBlobStorageService
     }
 
     /// <inheritdoc />
+    public Task UploadAsync(string containerPath, byte[] data, string contentType, CancellationToken ct)
+    {
+        // Record the upload so tests can assert it was called.
+        UploadedPaths.Add(containerPath);
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public Task<bool> ObjectExistsAsync(string containerPath, CancellationToken ct)
+    {
+        // An object "exists" in the fake if it was previously uploaded via UploadAsync.
+        return Task.FromResult(UploadedPaths.Contains(containerPath));
+    }
+
+    /// <inheritdoc />
     public Task DeleteAsync(string containerPath, CancellationToken ct)
     {
         // No-op in tests — deletion is silent.
         DeletedPaths.Add(containerPath);
         return Task.CompletedTask;
     }
+
+    /// <summary>
+    /// Paths passed to <see cref="UploadAsync"/> during the test run.
+    /// Tests can assert against this list to verify blob upload was requested.
+    /// </summary>
+    public List<string> UploadedPaths { get; } = [];
 
     /// <summary>
     /// Paths passed to <see cref="DeleteAsync"/> during the test run.
