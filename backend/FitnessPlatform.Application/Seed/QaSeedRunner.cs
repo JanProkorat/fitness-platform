@@ -128,6 +128,12 @@ public static class QaSeedRunner
 
     public static async Task SeedAsync(IServiceProvider serviceProvider)
     {
+        // Resolve the seed kind BEFORE touching the database. A typo in
+        // QA_SEED_KIND throws here, so no users / profiles get created on
+        // a bad invocation — preserves the "fail-fast on unknown" contract
+        // documented on ResolveKind.
+        var kind = ResolveKind();
+
         using var scope = serviceProvider.CreateScope();
         var sp = scope.ServiceProvider;
         var logger = sp.GetRequiredService<ILoggerFactory>().CreateLogger("QaSeed");
@@ -152,9 +158,6 @@ public static class QaSeedRunner
         // Trainer↔client link — without this the trainer dashboard returns an
         // empty client list and Playwright's getByText('QA Client') never resolves.
         await EnsureTrainerClientLinkAsync(db, trainerProfile, clientProfile, logger);
-
-        // Resolve seed kind once so the log line below reports it consistently.
-        var kind = ResolveKind();
 
         if (kind == SeedKind.Rich)
         {

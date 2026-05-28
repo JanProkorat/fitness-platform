@@ -323,12 +323,14 @@ public class QaSeedRunnerTests : IAsyncLifetime
 
     /// <summary>
     /// QA_SEED_KIND with a value other than "minimal" or "rich" must throw at
-    /// resolve-time, so a typo like `--kind=ritch` fails fast instead of silently
-    /// falling through to rich.
+    /// resolve-time — before any database row gets created — so a typo like
+    /// `--kind=ritch` doesn't leave behind a half-seeded fixture.
     /// </summary>
     [Fact]
     public async Task SeedAsync_UnknownKind_ThrowsInvalidOperation()
     {
+        var ct = TestContext.Current.CancellationToken;
+
         Environment.SetEnvironmentVariable("QA_SEED_KIND", "ritch");
         try
         {
@@ -340,6 +342,18 @@ public class QaSeedRunnerTests : IAsyncLifetime
         {
             Environment.SetEnvironmentVariable("QA_SEED_KIND", null);
         }
+
+        // No users should have been created — ResolveKind runs at the very top of
+        // SeedAsync, before MigrateAsync + EnsureUserAsync. The typo's blast
+        // radius is zero. (Asserts the contract documented on ResolveKind.)
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var userCount = await db.Users.CountAsync(
+            u => u.Email == QaSeedRunner.ClientEmail
+                 || u.Email == QaSeedRunner.TrainerEmail
+                 || u.Email == QaSeedRunner.NutriEmail,
+            ct);
+        userCount.Should().Be(0, "ResolveKind must run before any database write");
     }
 
     /// <summary>
