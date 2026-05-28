@@ -38,6 +38,9 @@ public class RegisterEndpoint(UserManager<ApplicationUser> userManager, IApplica
     /// <inheritdoc />
     public override async Task HandleAsync(RegisterRequest req, CancellationToken ct)
     {
+        var nowUtc = DateTime.UtcNow;
+        var isClient = req.Roles.Any(r => string.Equals(r, "Client", StringComparison.OrdinalIgnoreCase));
+
         var user = new ApplicationUser
         {
             UserName = req.Email,
@@ -45,7 +48,10 @@ public class RegisterEndpoint(UserManager<ApplicationUser> userManager, IApplica
             FirstName = req.FirstName,
             LastName = req.LastName,
             GdprConsent = req.GdprConsent,
-            GdprConsentDate = DateTime.UtcNow
+            GdprConsentDate = nowUtc,
+            // Art. 9 health-data consent: set for clients only; coaches stay null.
+            HealthDataConsent = isClient ? req.HealthDataConsent : null,
+            HealthDataConsentDate = isClient && req.HealthDataConsent == true ? nowUtc : null
         };
 
         var result = await userManager.CreateAsync(user, req.Password);
@@ -101,14 +107,17 @@ public class RegisterEndpoint(UserManager<ApplicationUser> userManager, IApplica
                 user.Email, user.Id);
         }
 
-        // Audit: GDPR consent recorded at registration
+        // Audit: GDPR consent recorded at registration (includes Art. 9 health-data consent for clients)
+        var healthDataConsentValue = user.HealthDataConsent.HasValue
+            ? (user.HealthDataConsent.Value ? "true" : "false")
+            : "null";
         await audit.LogAsync(
             user.Id,
             "Register",
             nameof(ApplicationUser),
             user.Id,
             HttpContext.Connection.RemoteIpAddress?.ToString(),
-            newValues: $"{{\"gdprConsent\":true,\"roles\":[{string.Join(",", roles.Select(r => $"\"{r}\""))}]}}",
+            newValues: $"{{\"gdprConsent\":true,\"healthDataConsent\":{healthDataConsentValue},\"roles\":[{string.Join(",", roles.Select(r => $"\"{r}\""))}]}}",
             ct: ct);
 
         await Send.ResponseAsync(new RegisterResponse

@@ -16,7 +16,20 @@ public class RegisterValidatorTests
         FirstName = "John",
         LastName = "Doe",
         Roles = new List<string> { "Client" },
-        GdprConsent = true
+        GdprConsent = true,
+        HealthDataConsent = true
+    };
+
+    private static RegisterRequest ValidTrainerRequest() => new()
+    {
+        Email = "trainer@example.com",
+        Password = "TestPass1!",
+        ConfirmPassword = "TestPass1!",
+        FirstName = "Jane",
+        LastName = "Trainer",
+        Roles = new List<string> { "Trainer" },
+        GdprConsent = true,
+        HealthDataConsent = null
     };
 
     [Fact]
@@ -193,6 +206,94 @@ public class RegisterValidatorTests
     public void GdprConsent_False_Fails()
     {
         var req = ValidRequest();
+        req.GdprConsent = false;
+        var result = _validator.TestValidate(req);
+        result.ShouldHaveValidationErrorFor(x => x.GdprConsent)
+            .WithErrorMessage("GDPR consent is required to register.");
+    }
+
+    // --- Art. 9 health-data consent (HealthDataConsent) validation ---
+
+    [Fact]
+    public void HealthDataConsent_ClientWithTrue_Passes()
+    {
+        var req = ValidRequest(); // Client role, HealthDataConsent = true
+        var result = _validator.TestValidate(req);
+        result.ShouldNotHaveValidationErrorFor(x => x.HealthDataConsent);
+    }
+
+    [Fact]
+    public void HealthDataConsent_ClientWithNull_Fails()
+    {
+        var req = ValidRequest();
+        req.HealthDataConsent = null;
+        var result = _validator.TestValidate(req);
+        result.ShouldHaveValidationErrorFor(x => x.HealthDataConsent)
+            .WithErrorMessage("HealthDataConsent must be true for the Client role (GDPR Art. 9).");
+    }
+
+    [Fact]
+    public void HealthDataConsent_ClientWithFalse_Fails()
+    {
+        var req = ValidRequest();
+        req.HealthDataConsent = false;
+        var result = _validator.TestValidate(req);
+        result.ShouldHaveValidationErrorFor(x => x.HealthDataConsent)
+            .WithErrorMessage("HealthDataConsent must be true for the Client role (GDPR Art. 9).");
+    }
+
+    [Fact]
+    public void HealthDataConsent_TrainerWithNull_Passes()
+    {
+        var req = ValidTrainerRequest(); // Trainer role, HealthDataConsent = null
+        var result = _validator.TestValidate(req);
+        result.ShouldNotHaveValidationErrorFor(x => x.HealthDataConsent);
+    }
+
+    [Fact]
+    public void HealthDataConsent_TrainerWithTrue_Fails()
+    {
+        var req = ValidTrainerRequest();
+        req.HealthDataConsent = true;
+        var result = _validator.TestValidate(req);
+        result.ShouldHaveValidationErrorFor(x => x.HealthDataConsent)
+            .WithErrorMessage("HealthDataConsent must be null for Trainer and Nutritionist roles (Art. 9 consent is not applicable to coach registration).");
+    }
+
+    [Fact]
+    public void HealthDataConsent_TrainerWithFalse_Fails()
+    {
+        var req = ValidTrainerRequest();
+        req.HealthDataConsent = false;
+        var result = _validator.TestValidate(req);
+        result.ShouldHaveValidationErrorFor(x => x.HealthDataConsent)
+            .WithErrorMessage("HealthDataConsent must be null for Trainer and Nutritionist roles (Art. 9 consent is not applicable to coach registration).");
+    }
+
+    [Fact]
+    public void HealthDataConsent_NutritionistWithNull_Passes()
+    {
+        var req = ValidTrainerRequest();
+        req.Roles = new List<string> { "Nutritionist" };
+        var result = _validator.TestValidate(req);
+        result.ShouldNotHaveValidationErrorFor(x => x.HealthDataConsent);
+    }
+
+    [Fact]
+    public void HealthDataConsent_NutritionistWithTrue_Fails()
+    {
+        var req = ValidTrainerRequest();
+        req.Roles = new List<string> { "Nutritionist" };
+        req.HealthDataConsent = true;
+        var result = _validator.TestValidate(req);
+        result.ShouldHaveValidationErrorFor(x => x.HealthDataConsent)
+            .WithErrorMessage("HealthDataConsent must be null for Trainer and Nutritionist roles (Art. 9 consent is not applicable to coach registration).");
+    }
+
+    [Fact]
+    public void GdprConsent_False_Fails_ForTrainer()
+    {
+        var req = ValidTrainerRequest();
         req.GdprConsent = false;
         var result = _validator.TestValidate(req);
         result.ShouldHaveValidationErrorFor(x => x.GdprConsent)

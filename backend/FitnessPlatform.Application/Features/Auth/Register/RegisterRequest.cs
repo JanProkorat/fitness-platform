@@ -36,7 +36,13 @@ public class RegisterRequest
     public List<string> Roles { get; set; } = new();
 
     /// <summary>
-    /// Explicit GDPR consent for processing health data.
+    /// Explicit GDPR consent for personal data processing (Art. 6 GDPR). Required for all roles.
     /// </summary>
     public bool GdprConsent { get; set; }
+
+    /// <summary>
+    /// Explicit consent for processing health data under GDPR Art. 9.
+    /// Must be true for the Client role; must be null for Trainer and Nutritionist roles.
+    /// </summary>
+    public bool? HealthDataConsent { get; set; }
 }

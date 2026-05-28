@@ -1,7 +1,10 @@
 using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
+using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Tests.Infrastructure;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace FitnessPlatform.Tests.Auth;
 
@@ -241,6 +244,80 @@ public class AuthFlowTests(FitnessApiFactory factory)
         }, cancellationToken: TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    // --- Art. 9 health-data consent integration tests ---
+
+    [Fact]
+    public async Task Register_CoachHappyPath_Returns201_AndHealthDataConsentIsNull()
+    {
+        var client = factory.CreateClient();
+        var email = UniqueEmail();
+
+        var response = await TestHelpers.RegisterAsync(
+            client, email, "TestPass1!", "Jane", "Trainer",
+            new[] { "Trainer" }, gdprConsent: true, healthDataConsent: null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        // Verify DB: HealthDataConsent and HealthDataConsentDate must be null
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Email == email, TestContext.Current.CancellationToken);
+        user.Should().NotBeNull();
+        user!.HealthDataConsent.Should().BeNull();
+        user.HealthDataConsentDate.Should().BeNull();
+        user.GdprConsentDate.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task Register_ClientHappyPath_Returns201_AndBothConsentFieldsPersisted()
+    {
+        var client = factory.CreateClient();
+        var email = UniqueEmail();
+        var before = DateTime.UtcNow;
+
+        var response = await TestHelpers.RegisterAsync(
+            client, email, "TestPass1!", "John", "Client",
+            new[] { "Client" }, gdprConsent: true, healthDataConsent: true);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var after = DateTime.UtcNow;
+
+        // Verify DB: both consent flags true, both timestamps set within the request window
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Email == email, TestContext.Current.CancellationToken);
+        user.Should().NotBeNull();
+        user!.HealthDataConsent.Should().BeTrue();
+        user.HealthDataConsentDate.Should().NotBeNull();
+        user.HealthDataConsentDate!.Value.Should().BeOnOrAfter(before).And.BeOnOrBefore(after.AddSeconds(5));
+        user.GdprConsentDate.Should().NotBeNull();
+        user.GdprConsentDate!.Value.Should().BeOnOrAfter(before).And.BeOnOrBefore(after.AddSeconds(5));
+    }
+
+    [Fact]
+    public async Task Register_CoachWithHealthDataConsent_Returns400()
+    {
+        var client = factory.CreateClient();
+
+        var response = await TestHelpers.RegisterAsync(
+            client, UniqueEmail(), "TestPass1!", "Jane", "Trainer",
+            new[] { "Trainer" }, gdprConsent: true, healthDataConsent: true);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Register_ClientWithoutHealthDataConsent_Returns400()
+    {
+        var client = factory.CreateClient();
+
+        var response = await TestHelpers.RegisterAsync(
+            client, UniqueEmail(), "TestPass1!", "John", "Client",
+            new[] { "Client" }, gdprConsent: true, healthDataConsent: null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     private record RegisterResult(Guid UserId, string Email, string Message);

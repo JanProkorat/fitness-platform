@@ -64,5 +64,22 @@ public class RegisterValidator : Validator<RegisterRequest>
         RuleFor(x => x.GdprConsent)
             .Equal(true)
             .WithMessage("GDPR consent is required to register.");
+
+        // Art. 9 health-data consent (HealthDataConsent) is role-conditional:
+        //   - Client role: must be true (explicit, affirmative consent required).
+        //   - Coach roles (Trainer, Nutritionist): must be null (Art. 9 consent is
+        //     not applicable and must not be recorded for coach registrations).
+
+        RuleFor(x => x.HealthDataConsent)
+            .Must(v => v == true)
+            .When(x => x.Roles.Any(r => string.Equals(r, nameof(UserRole.Client), StringComparison.OrdinalIgnoreCase)))
+            .WithMessage("HealthDataConsent must be true for the Client role (GDPR Art. 9).");
+
+        RuleFor(x => x.HealthDataConsent)
+            .Must(v => v == null)
+            .When(x => x.Roles.Any(r =>
+                string.Equals(r, nameof(UserRole.Trainer), StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(r, nameof(UserRole.Nutritionist), StringComparison.OrdinalIgnoreCase)))
+            .WithMessage("HealthDataConsent must be null for Trainer and Nutritionist roles (Art. 9 consent is not applicable to coach registration).");
     }
 }

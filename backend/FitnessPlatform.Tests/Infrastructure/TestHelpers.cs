@@ -10,9 +10,22 @@ public static class TestHelpers
 {
     /// <summary>
     /// Registers a user and returns the HTTP response.
+    /// HealthDataConsent defaults to true for the Client role and null for coach roles.
     /// </summary>
     public static Task<HttpResponseMessage> RegisterAsync(
         HttpClient client, string email, string password, string firstName, string lastName, string role)
+    {
+        var isClient = string.Equals(role, "Client", StringComparison.OrdinalIgnoreCase);
+        return RegisterAsync(client, email, password, firstName, lastName, new[] { role },
+            gdprConsent: true, healthDataConsent: isClient ? true : null);
+    }
+
+    /// <summary>
+    /// Registers a user with explicit consent values and returns the HTTP response.
+    /// </summary>
+    public static Task<HttpResponseMessage> RegisterAsync(
+        HttpClient client, string email, string password, string firstName, string lastName,
+        string[] roles, bool gdprConsent = true, bool? healthDataConsent = null)
     {
         return client.PostAsJsonAsync("/auth/register", new
         {
@@ -21,8 +34,9 @@ public static class TestHelpers
             ConfirmPassword = password,
             FirstName = firstName,
             LastName = lastName,
-            Roles = new[] { role },
-            GdprConsent = true
+            Roles = roles,
+            GdprConsent = gdprConsent,
+            HealthDataConsent = healthDataConsent
         });
     }
 
