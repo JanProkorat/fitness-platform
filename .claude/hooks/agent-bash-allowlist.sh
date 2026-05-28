@@ -80,8 +80,8 @@ case "$AGENT_TYPE" in
         # `npm install <pkg>`, no `npm publish`, etc.) — defence-in-depth preserved.
         # `cd` itself is allowed so the workflow patterns documented in qa-tester.md
         # just work.
-        ALLOW_REGEX="^(dotnet (test|build|run))|^npm( --prefix \\S+)? (run|ci|ls)( |$)|^npx( --prefix \\S+)? (--no-install|expo|tsc|playwright)( |$)|^(node )|^(xcrun |osascript)|^cd( |$)|${GIT_READ}|${FS_READ}|${GH_READ}|^pkill( -| $)|^docker (compose|ps|logs)|^bash |^python3 |^curl |^open |^brew "
-        DENY_HINT="qa-tester is read-only at source level. Allowed: dotnet test/build/run, npm (run/ci/ls) and npx (--no-install/expo/tsc/playwright) — both accept --prefix <path>, node, expo, xcrun, osascript, cd, git read-only (incl. -C <path>), gh read-only, find/grep/cat/etc., pkill, docker compose, curl, open, brew. Forbidden: npm install / npm publish, git commit/push (write ops), gh pr create/merge, code edits."
+        ALLOW_REGEX="^(dotnet (test|build|run))|^npm( --prefix \\S+)? (run|ci|ls)( |$)|^npx( --prefix \\S+)? (--no-install|expo|tsc|playwright)( |$)|^(node )|^(xcrun |osascript)|^cd( |$)|${GIT_READ}|${FS_READ}|${GH_READ}|^pkill( -| $)|^docker (compose|ps|logs)|^bash |^python3 |^curl |^open |^brew |^\\.?/?scripts/test-env( |$)"
+        DENY_HINT="qa-tester is read-only at source level. Allowed: dotnet test/build/run, npm (run/ci/ls) and npx (--no-install/expo/tsc/playwright) — both accept --prefix <path>, node, expo, xcrun, osascript, cd, git read-only (incl. -C <path>), gh read-only, find/grep/cat/etc., pkill, docker compose, curl, open, brew, scripts/test-env (the QA harness CLI). Forbidden: npm install / npm publish, git commit/push (write ops), gh pr create/merge, code edits."
         ;;
     pr-reviewer)
         ALLOW_REGEX="^(gh pr |gh issue |gh api|gh run|gh label)|${GIT_READ}|${FS_READ}|^bash |^python3 "
