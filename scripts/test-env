@@ -156,7 +156,12 @@ cmd_up() {
   fi
 
   err "Booting compose project '$project' (branch '$branch')…"
-  compose "$project" up -d --build
+  # Redirect docker compose's stdout to stderr so the build progress doesn't
+  # contaminate the JSON envelope this function emits on its final printf.
+  # In CI (non-TTY) buildkit's progress is written to stdout by default; if
+  # we let it through, callers that do `$(scripts/test-env up)` would get
+  # build chatter prefixed onto the JSON line and jq would choke.
+  compose "$project" up -d --build >&2
 
   if ! wait_for_healthy "$project" api 90; then
     err "api failed to become healthy within 90s — dumping last 100 log lines:"
@@ -189,7 +194,9 @@ cmd_down() {
   env_file="$(env_file_for "$project")"
 
   err "Tearing down compose project '$project' (branch '$branch')…"
-  compose "$project" down -v --remove-orphans || true
+  # Same stdout-isolation rule as cmd_up: anything `docker compose down` writes
+  # gets pushed to stderr so the JSON envelope below is the only thing on stdout.
+  compose "$project" down -v --remove-orphans >&2 || true
   rm -f "$env_file"
   printf '{"project":"%s","branch":"%s","status":"down"}\n' "$project" "$branch"
 }
@@ -218,10 +225,10 @@ cmd_seed() {
 
   err "Re-running seed (kind=$kind) against project '$project'…"
   # The seed container is one-shot. Re-running requires recreating it.
-  # `--kind` is passed through as a command-arg suffix when Phase 3 lands;
-  # for now it's accepted but ignored by QaSeedRunner (still seeds the
-  # full deterministic fixture).
-  compose "$project" run --rm -e QA_SEED_KIND="$kind" seed --qa-seed
+  # `--kind` is currently accepted but ignored by QaSeedRunner — left in place
+  # so callers can opt in once the seed runner honours QA_SEED_KIND.
+  # stdout → stderr so the final JSON envelope is the only thing on stdout.
+  compose "$project" run --rm -e QA_SEED_KIND="$kind" seed --qa-seed >&2
   printf '{"project":"%s","kind":"%s","status":"seeded"}\n' "$project" "$kind"
 }
 
