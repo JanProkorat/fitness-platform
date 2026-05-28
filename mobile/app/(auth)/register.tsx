@@ -35,7 +35,8 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState<string>('Client');
-  const [gdprConsent, setGdprConsent] = useState(false);
+  const [personalDataConsent, setPersonalDataConsent] = useState(false);
+  const [healthDataConsent, setHealthDataConsent] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleRegister = async () => {
@@ -51,8 +52,12 @@ export default function RegisterScreen() {
       Alert.alert(t('auth.register.weakPasswordTitle'), t('auth.register.weakPasswordMessage'));
       return;
     }
-    if (!gdprConsent) {
+    if (!personalDataConsent) {
       Alert.alert(t('auth.register.consentRequiredTitle'), t('auth.register.consentRequiredMessage'));
+      return;
+    }
+    if (role === 'Client' && !healthDataConsent) {
+      Alert.alert(t('auth.register.consentRequiredTitle'), t('auth.register.healthDataConsentRequiredMessage'));
       return;
     }
 
@@ -65,7 +70,8 @@ export default function RegisterScreen() {
         firstName,
         lastName,
         role,
-        gdprConsent,
+        gdprConsent: true,
+        healthDataConsent: role === 'Client' ? true : undefined,
       });
 
       // Auto-login after registration
@@ -199,16 +205,31 @@ export default function RegisterScreen() {
 
         <TouchableOpacity
           style={styles.consentRow}
-          onPress={() => setGdprConsent(!gdprConsent)}
+          onPress={() => setPersonalDataConsent(!personalDataConsent)}
           activeOpacity={0.8}
         >
-          <View style={[styles.checkbox, { borderColor: colors.sep, backgroundColor: colors.bg2 }, gdprConsent && [styles.checkboxChecked, { backgroundColor: colors.gold, borderColor: colors.gold }]]}>
-            {gdprConsent && <Text style={styles.checkmark}>✓</Text>}
+          <View style={[styles.checkbox, { borderColor: colors.sep, backgroundColor: colors.bg2 }, personalDataConsent && [styles.checkboxChecked, { backgroundColor: colors.gold, borderColor: colors.gold }]]}>
+            {personalDataConsent && <Text style={styles.checkmark}>✓</Text>}
           </View>
           <Text style={[styles.consentText, { color: colors.label2 }]}>
             {t('auth.register.gdprConsent')}
           </Text>
         </TouchableOpacity>
+
+        {role === 'Client' && (
+          <TouchableOpacity
+            style={styles.consentRow}
+            onPress={() => setHealthDataConsent(!healthDataConsent)}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.checkbox, { borderColor: colors.sep, backgroundColor: colors.bg2 }, healthDataConsent && [styles.checkboxChecked, { backgroundColor: colors.gold, borderColor: colors.gold }]]}>
+              {healthDataConsent && <Text style={styles.checkmark}>✓</Text>}
+            </View>
+            <Text style={[styles.consentText, { color: colors.label2 }]}>
+              {t('auth.register.healthDataConsent')}
+            </Text>
+          </TouchableOpacity>
+        )}
 
         <TouchableOpacity
           style={[styles.button, { backgroundColor: colors.gold }, loading && styles.buttonDisabled]}

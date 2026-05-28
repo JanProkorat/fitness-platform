@@ -1068,7 +1068,8 @@
       "roleTrainerDesc": "Ich erstelle Trainingspläne für Klienten",
       "roleNutritionist": "Ernährungsberater",
       "roleNutritionistDesc": "Ich erstelle Ernährungspläne für Klienten",
-      "gdprConsent": "Ich willige in die Verarbeitung meiner Gesundheitsdaten ein\n(DSGVO Art. 9)",
+      "gdprConsent": "Ich stimme der Verarbeitung personenbezogener Daten gemäß DSGVO zum Zweck der Bereitstellung von Fitness-Plattform-Diensten zu.",
+      "healthDataConsent": "Ich stimme der Verarbeitung von Gesundheitsdaten gemäß DSGVO Art. 9 zu (Körpermaße, Leistungsaufzeichnungen, Fortschrittsfotos).",
       "create": "Konto erstellen",
       "creating": "Konto wird erstellt…",
       "haveAccount": "Konto bereits vorhanden?",
@@ -1080,7 +1081,8 @@
       "weakPasswordTitle": "Schwaches Passwort",
       "weakPasswordMessage": "Das Passwort muss mindestens 8 Zeichen lang sein.",
       "consentRequiredTitle": "Einwilligung erforderlich",
-      "consentRequiredMessage": "Zur Registrierung ist die Einwilligung in die Verarbeitung von Gesundheitsdaten erforderlich.",
+      "consentRequiredMessage": "Zur Registrierung ist die Einwilligung in die Verarbeitung personenbezogener Daten erforderlich.",
+      "healthDataConsentRequiredMessage": "Die Registrierung als Klient erfordert die Einwilligung in die Verarbeitung von Gesundheitsdaten gemäß DSGVO Art. 9.",
       "failedTitle": "Registrierung fehlgeschlagen",
       "failedMessage": "Registrierung fehlgeschlagen. Bitte erneut versuchen."
     }

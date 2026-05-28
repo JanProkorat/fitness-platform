@@ -1069,7 +1069,8 @@
       "roleTrainerDesc": "I build training plans for clients",
       "roleNutritionist": "Nutritionist",
       "roleNutritionistDesc": "I design nutrition plans for clients",
-      "gdprConsent": "I consent to the processing of my health data\n(GDPR Art. 9)",
+      "gdprConsent": "I agree to the processing of personal data under GDPR for the purpose of providing fitness platform services.",
+      "healthDataConsent": "I agree to the processing of health data under GDPR Art. 9 (body measurements, performance records, progress photos).",
       "create": "Create account",
       "creating": "Creating account...",
       "haveAccount": "Already have an account?",
@@ -1081,7 +1082,8 @@
       "weakPasswordTitle": "Weak Password",
       "weakPasswordMessage": "Password must be at least 8 characters.",
       "consentRequiredTitle": "Consent Required",
-      "consentRequiredMessage": "You must consent to health data processing to register.",
+      "consentRequiredMessage": "You must consent to personal data processing to register.",
+      "healthDataConsentRequiredMessage": "Client registration requires consent to health data processing under GDPR Art. 9.",
       "failedTitle": "Registration Failed",
       "failedMessage": "Registration failed. Please try again."
     }

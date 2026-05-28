@@ -36,14 +36,26 @@ public class ApplicationUser : IdentityUser<Guid>
     public bool IsActive { get; set; } = true;
 
     /// <summary>
-    /// Indicates whether the user has given GDPR consent for health data processing.
+    /// Indicates whether the user has given GDPR consent for personal data processing (Art. 6 GDPR).
+    /// Required for all roles.
     /// </summary>
     public bool GdprConsent { get; set; }
 
     /// <summary>
-    /// Date and time when the user gave GDPR consent.
+    /// Date and time when the user gave GDPR personal-data consent.
     /// </summary>
     public DateTime? GdprConsentDate { get; set; }
+
+    /// <summary>
+    /// Indicates whether the user has given explicit consent for processing health data under GDPR Art. 9.
+    /// Null for coach roles (not applicable); true for clients who have consented.
+    /// </summary>
+    public bool? HealthDataConsent { get; set; }
+
+    /// <summary>
+    /// Date and time when the user gave Art. 9 health-data consent. Set only when HealthDataConsent is true.
+    /// </summary>
+    public DateTime? HealthDataConsentDate { get; set; }
 
     /// <summary>
     /// Navigation property to the user's professional profile (if the user is a trainer or nutritionist).

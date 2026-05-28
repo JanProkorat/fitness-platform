@@ -15815,6 +15815,11 @@ Mirrors WodConfig on TrainingSection. */
     /** Optional coach note for this section.
 Mirrors the Notes property on TrainingSection. */
     notes?: string | undefined;
+    /** True when this section is considered complete:
+            for sections with exercises → every exercise has IsCompleted=true;
+            for sections without exercises → the section's id is in the
+            TrainingCompletion.CompletedSectionIds set for the owning session. */
+    isCompleted?: boolean;
     /** Exercises within this section. */
     exercises?: ExerciseDto[];
 }
@@ -15833,8 +15838,11 @@ export interface ExerciseDto {
     restSeconds?: number | undefined;
     /** Movement type — drives which set field the prescription uses
 (reps / duration / distance / reps-for-time). Required for the
-client to render the correct summary string. Defaults to "Reps"
-when the underlying exercise carries no explicit value. */
+client to render the correct summary string. Serialised as the
+enum's string name (e.g. "Reps", "Time", "Distance",
+"RepsForTime"); the client casts to its `MovementType` enum.
+Defaults to "Reps" when the underlying exercise carries no
+explicit value. */
     movementType?: string;
     /** Target muscle groups fetched from the Exercise document.
 Empty list when the exercise no longer exists in the database. */
@@ -16674,8 +16682,11 @@ export interface RegisterRequest {
     lastName: string;
     /** The roles the user is registering as. Must contain at least one of: Trainer, Nutritionist, Client. */
     roles: string[];
-    /** Explicit GDPR consent for processing health data. */
+    /** Explicit GDPR consent for personal data processing (Art. 6 GDPR). Required for all roles. */
     gdprConsent?: boolean;
+    /** Explicit consent for processing health data under GDPR Art. 9.
+Must be true for the Client role; must be null for Trainer and Nutritionist roles. */
+    healthDataConsent?: boolean | undefined;
 }
 
 /** Response model returned after successful token refresh. */
