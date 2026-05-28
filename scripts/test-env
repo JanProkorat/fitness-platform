@@ -225,8 +225,11 @@ cmd_seed() {
 
   err "Re-running seed (kind=$kind) against project '$project'…"
   # The seed container is one-shot. Re-running requires recreating it.
-  # `--kind` is currently accepted but ignored by QaSeedRunner — left in place
-  # so callers can opt in once the seed runner honours QA_SEED_KIND.
+  # QA_SEED_KIND is honoured by QaSeedRunner.ResolveKind:
+  #   unset / 'rich'  → full fixture (users + profiles + link + training plan
+  #                     + foods + recipes + nutrition plan + image blobs).
+  #   'minimal'       → users + profiles + trainer↔client link only.
+  #   anything else   → InvalidOperationException at resolve-time (fail-fast on typos).
   # stdout → stderr so the final JSON envelope is the only thing on stdout.
   compose "$project" run --rm -e QA_SEED_KIND="$kind" seed --qa-seed >&2
   printf '{"project":"%s","kind":"%s","status":"seeded"}\n' "$project" "$kind"
