@@ -92,8 +92,10 @@ minio_data/
 # Docs (local design specs)
 # =========================
 docs/*
-# …except the testing reference docs that the e2e harness consumers cite.
+# …except the testing reference docs that the e2e harness consumers cite,
+# and the daily-researcher ecosystem-survey artifacts archived under docs/research/.
 !docs/testing/
+!docs/research/
 
 # =========================
 # OS Files
