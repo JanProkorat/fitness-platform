@@ -63,10 +63,13 @@ test('food-admin-upload — nutritionist uploads food image and it renders in di
   // Wait for the dialog to open. FoodDialog renders inside a `role="dialog"`
   // shadcn container; target that explicitly so we don't accidentally match a
   // random aria-hidden element on the page (e.g. a modal backdrop, a hidden
-  // tooltip). Fall back to the localised image-section heading if the dialog
-  // role isn't wired on this page version.
+  // tooltip). The image-section heading is included as a secondary check
+  // because it lives inside the dialog body — the .or() resolves to whichever
+  // is found first, but in practice both co-occur so the second clause is a
+  // safety net for shadcn version drift, NOT a fallback for "dialog wasn't
+  // wired" (the heading-outside-dialog case is not supported by this spec).
   const dialog = page.getByRole('dialog').or(
-    page.getByText(/Hlavní foto|Main image|Hauptbild/i),
+    page.getByText(/Hlavní fotka|Main image|Hauptbild/i),
   );
   await expect(dialog.first()).toBeVisible({ timeout: 15_000 });
 
