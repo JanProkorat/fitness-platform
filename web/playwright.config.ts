@@ -13,9 +13,18 @@
  *     the login page at runtime.
  *
  * Compose harness:
- *   Boot with `npm run e2e:up` (docker-compose.test.yml) before running specs.
- *   The harness API lives at E2E_API_URL (default https://localhost:5101).
+ *   Boot with `scripts/test-env up` (or `npm run e2e:up`) before running specs.
+ *   The harness API lives at E2E_API_URL (default https://localhost:5101 for
+ *   host runs; the qa-playwright container overrides to https://api:8080).
  *   The Vite dev server (dev:e2e) proxies all API paths to that URL.
+ *
+ * baseURL:
+ *   Host runs default to http://localhost:5173 (Vite dev server). The
+ *   dockerised qa-playwright container overrides baseURL to http://web:5173
+ *   via PLAYWRIGHT_BASE_URL — the `web` service is on the same qa-net
+ *   network so DNS resolution works inside the browser context.
+ *   Specs that target mobile-web (e.g. user-avatar-upload) override the
+ *   per-test baseURL via test.use({ baseURL: 'http://mobile-web:8081' }).
  *
  * TLS note: the compose harness uses a self-signed dev cert. Set
  * `ignoreHTTPSErrors: true` on the browser context so fetch/XHR calls inside
@@ -51,6 +60,17 @@ dotenv.config({ path: path.resolve(__dirname, '..', '.env.test') });
 
 const E2E_API_URL = process.env['E2E_API_URL'] ?? 'https://localhost:5101';
 
+// Base URL for `page.goto('/...')`. Host runs use the Vite dev server on
+// localhost:5173; the dockerised playwright container overrides this to the
+// internal `http://web:5173` (qa-net DNS) via the PLAYWRIGHT_BASE_URL env.
+const PLAYWRIGHT_BASE_URL =
+  process.env['PLAYWRIGHT_BASE_URL'] ?? 'http://localhost:5173';
+
+// Flip to skip the auto-spawned webServer when running inside the qa-playwright
+// container — the dockerised `web` service IS the SPA host, so spawning a
+// second `npm run dev:e2e` inside the playwright container would clash.
+const IN_CONTAINER = process.env['PLAYWRIGHT_IN_CONTAINER'] === 'true';
+
 export default defineConfig({
   testDir: './tests/e2e',
 
@@ -67,8 +87,8 @@ export default defineConfig({
     : [['list']],
 
   use: {
-    /* All page navigations use the Vite dev server as base */
-    baseURL: 'http://localhost:5173',
+    /* All page navigations use the configured base URL */
+    baseURL: PLAYWRIGHT_BASE_URL,
 
     /* The app talks to the compose harness through the Vite proxy; the
        harness uses a self-signed dev cert, so ignore TLS errors inside
@@ -132,19 +152,23 @@ export default defineConfig({
     },
   ],
 
-  /* Web server: spawn `npm run dev:e2e` automatically.
+  /* Web server: spawn `npm run dev:e2e` automatically — UNLESS we're running
+     inside the qa-playwright container, where the `web` service already
+     serves the SPA on http://web:5173 over the internal docker network.
      - reuseExistingServer lets local devs keep the server running (faster iteration).
-     - In CI the server is always spawned fresh for isolation.
+     - In CI (host runner) the server is always spawned fresh for isolation.
      The server must be healthy on :5173 before specs start.
   */
-  webServer: {
-    command: 'npm run dev:e2e',
-    url: 'http://localhost:5173',
-    reuseExistingServer: !process.env['CI'],
-    timeout: 60_000,
-    // Forward the E2E_API_URL so the Vite proxy knows where to point
-    env: {
-      E2E_API_URL,
-    },
-  },
+  webServer: IN_CONTAINER
+    ? undefined
+    : {
+        command: 'npm run dev:e2e',
+        url: 'http://localhost:5173',
+        reuseExistingServer: !process.env['CI'],
+        timeout: 60_000,
+        // Forward the E2E_API_URL so the Vite proxy knows where to point
+        env: {
+          E2E_API_URL,
+        },
+      },
 });

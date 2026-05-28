@@ -143,6 +143,101 @@ services:
       retries: 20
       start_period: 5s
 
+  # ── Web SPA (trainer/nutritionist portal) ─────────────────────────────────
+  # Internal-only (no host port). Vite e2e dev server with the API proxy
+  # pointed at the internal `api` service. Playwright reaches us via
+  # http://web:5173 over qa-net.
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      E2E_API_URL: "https://api:8080"
+    expose:
+      - "5173"
+    networks:
+      - qa-net
+    healthcheck:
+      # Node's built-in http client — no curl/wget needed in the slim image.
+      test:
+        - "CMD"
+        - "node"
+        - "-e"
+        - "require('http').get('http://localhost:5173/',r=>process.exit(r.statusCode<400?0:1)).on('error',()=>process.exit(1))"
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+
+  # ── mobile-web (client app as RN-Web bundle) ──────────────────────────────
+  # Internal-only (no host port). Static bundle from `expo export --platform web`
+  # served with `serve`. SPA was built with EXPO_PUBLIC_API_BASE_URL=https://api:8080
+  # baked in, so XHR is cross-origin to `api` — CORS is allow-listed above.
+  mobile-web:
+    build:
+      context: ./mobile
+      dockerfile: Dockerfile.web
+    depends_on:
+      api:
+        condition: service_healthy
+    expose:
+      - "8081"
+    networks:
+      - qa-net
+    healthcheck:
+      test:
+        - "CMD"
+        - "node"
+        - "-e"
+        - "require('http').get('http://localhost:8081/',r=>process.exit(r.statusCode<400?0:1)).on('error',()=>process.exit(1))"
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+
+  # ── Playwright runner ─────────────────────────────────────────────────────
+  # Idle long-lived container. `scripts/test-env run <flow>` invokes
+  # `docker compose exec playwright /work/named-flow-runner.sh <flow>`
+  # which runs the corresponding spec. Test artifacts (HTML report, trace,
+  # screenshots) land in /work/web/playwright-report + /work/web/test-results,
+  # which the bind-mount surfaces at .qa-artifacts/<project>/ on the host.
+  playwright:
+    build:
+      context: .
+      dockerfile: qa-playwright/Dockerfile
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+      mobile-web:
+        condition: service_healthy
+    environment:
+      # Mirror the build-time env so npm scripts inside the container can
+      # read the same values when invoked via `exec`.
+      PLAYWRIGHT_BASE_URL: "http://web:5173"
+      PLAYWRIGHT_IN_CONTAINER: "true"
+      E2E_API_URL: "https://api:8080"
+      CI: "true"
+    env_file:
+      - .env.test
+    volumes:
+      # Surface playwright report + test-results to the host. `:rw` lets the
+      # container write screenshots/traces; the host then uploads them as CI
+      # artifacts in Phase 5.
+      - ./.qa-artifacts:/work/web/playwright-report:rw
+      - ./.qa-artifacts/test-results:/work/web/test-results:rw
+    networks:
+      - qa-net
+    healthcheck:
+      test: ["CMD", "test", "-f", "/work/named-flow-runner.sh"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
 networks:
   qa-net:
     driver: bridge

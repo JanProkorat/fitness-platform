@@ -1,0 +1,14 @@
+{
+  "user-avatar-upload": {
+    "spec": "tests/e2e/client/user-avatar-upload.spec.ts",
+    "description": "Client uploads an avatar; assert it persists across a reload (mobile-web baseURL override)."
+  },
+  "food-admin-upload": {
+    "spec": "tests/e2e/nutritionist/food-admin-upload.spec.ts",
+    "description": "Nutritionist uploads a food image; assert the new image renders."
+  },
+  "recipe-gallery-upload": {
+    "spec": "tests/e2e/nutritionist/recipe-gallery-upload.spec.ts",
+    "description": "Nutritionist uploads a recipe gallery image; assert it appears in the gallery."
+  }
+}

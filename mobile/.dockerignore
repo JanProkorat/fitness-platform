@@ -1,0 +1,11 @@
+node_modules
+dist
+build
+ios
+android
+.expo
+.expo-shared
+.qa-cache
+.qa-artifacts
+.git
+*.log

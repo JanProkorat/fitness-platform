@@ -1,0 +1,37 @@
+# mobile-web container for the dockerised QA harness.
+#
+# Builds the React Native + Expo bundle for web (`expo export --platform web`)
+# and serves the static dist/ on :8081 INSIDE the qa-net docker network.
+# Does NOT publish to the host — the playwright container reaches us via
+# the internal `mobile-web:8081` DNS name.
+#
+# The SPA bundle is built with EXPO_PUBLIC_API_BASE_URL=https://api:8080 baked
+# in, so XHR calls go directly to the api service (CORS allow-listed in
+# docker-compose.test.yml). The api service uses a self-signed cert; the
+# Playwright browser context sets ignoreHTTPSErrors: true to accept it.
+
+FROM node:20-bookworm-slim AS builder
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY . .
+
+ENV EXPO_PUBLIC_API_BASE_URL=https://api:8080
+
+# Expo CLI runs the metro bundler; output lands in dist/ by default.
+RUN npx expo export --platform web --output-dir dist
+
+FROM node:20-bookworm-slim
+
+WORKDIR /app
+
+# serve is a tiny static HTTP server — no proxying, just plays back the bundle.
+RUN npm install --global serve@14
+
+COPY --from=builder /app/dist ./dist
+
+EXPOSE 8081
+CMD ["serve", "-s", "dist", "-l", "8081"]
