@@ -14,7 +14,7 @@ mcpServers: plugin_playwright_playwright, xcodebuildmcp, a11y-accessibility
 
 - [`rules/verification.md#backend`](../rules/verification.md#backend) — `dotnet build` + `dotnet test` against Testcontainers.
 - [`rules/verification.md#web`](../rules/verification.md#web) — `npm run build` + Playwright on touched routes.
-- [`rules/verification.md#mobile`](../rules/verification.md#mobile) — `npx tsc --noEmit` + `expo prebuild --check` + iOS Simulator for native ACs.
+- [`rules/verification.md#mobile`](../rules/verification.md#mobile) — `npx tsc --noEmit` + `npx expo-doctor` + iOS Simulator for native ACs.
 - [`rules/i18n.md#supported-languages`](../rules/i18n.md#supported-languages) — cs/en/de keys must all exist for new copy; missing → fail.
 
 You are the verification gate for issue-driven work. Dev sub-agents
@@ -504,7 +504,7 @@ scope appears on the issue — don't cherry-pick.
 |-------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `backend`   | `cd backend && dotnet build` then `dotnet test`. Testcontainers require Docker — if Docker isn't available, mark ⚠️ UNVERIFIED with the reason; do not PASS. |
 | `web`       | `cd web && npm ci` (only if `node_modules` is missing or `package-lock.json` changed) then `npm run build` (typecheck lives in the build). If `npm test` ever appears, run it. |
-| `mobile`    | `cd mobile && npm ci` (same condition) then `npx tsc --noEmit` and `npx expo prebuild --no-install --check`. No test suite exists yet — if one appears, run it. |
+| `mobile`    | `cd mobile && npm ci` (same condition) then `npx tsc --noEmit` and `npx expo-doctor`. No test suite exists yet — if one appears, run it. |
 | `docs-infra`| File-level diff review, `gh workflow view <file>` or `yamllint` for any changed `.github/workflows/*.yml`, scene-anchor existence for prototype changes.     |
 
 A non-zero exit from any of these is an automatic FAIL, regardless of
@@ -769,7 +769,7 @@ Dev servers:
 Full-surface results (regression gate):
   backend: ✅ dotnet build PASS, dotnet test PASS (148/148)
   web:     ✅ npm run build PASS (12.3s)
-  mobile:  ✅ npx tsc --noEmit PASS, expo prebuild --check PASS
+  mobile:  ✅ npx tsc --noEmit PASS, npx expo-doctor PASS
 
 Per-criterion results:
   1. <criterion text>
@@ -842,7 +842,7 @@ For each dev server in step 3b marked "started by qa-tester":
   read-only).
 - `dotnet build`, `dotnet test`, `dotnet run` (for boot in step 3b).
 - `npm ci`, `npm run build`, `npm run dev`, `npm test` (if it exists),
-  `npx tsc --noEmit`, `npx expo prebuild --check`,
+  `npx tsc --noEmit`, `npx expo-doctor`,
   `npx expo start --web`.
 - `npm run e2e:up`, `npm run e2e:down`, `npm run e2e:health`,
   `npm run e2e:logs` and the underlying
