@@ -48,8 +48,9 @@ worth keeping.
 
 - `npm ci` when the lockfile changed.
 - `npx tsc --noEmit` — typecheck.
-- `npx expo prebuild --no-install --check` — verifies the Expo config
-  + plugin chain don't drift.
+- `npx expo-doctor` — verifies SDK compatibility, project config
+  drift, plugin chain health, and package version mismatches against
+  the SDK's expected pins.
 
 For interactive AC checks `qa-tester` boots `npx expo start --web` and
 drives the `react-native-web` render through Playwright. **Same rule
@@ -72,7 +73,9 @@ JSON's `verification` field — see
 shape is constrained:
 
 - `tool` — one of `dotnet-build`, `dotnet-test`, `web-build`,
-  `web-typecheck`, `mobile-typecheck`, `mobile-prebuild-check`.
+  `web-typecheck`, `mobile-typecheck`, `mobile-prebuild-check` (now
+  maps to `npx expo-doctor` after #314; schema enum value kept stable
+  so archived handoffs still validate).
 - `filter` — optional, regex-validated FQN fragment for `dotnet-test`
   (no quotes/whitespace/shell metacharacters).
 - `passed` — boolean.

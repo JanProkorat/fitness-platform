@@ -40,7 +40,7 @@ it to run design-review first (Rule 5.5).
 - [`rules/code-quality.md#no-any-in-typescript`](../rules/code-quality.md#no-any-in-typescript) — strict-mode TS.
 - [`rules/code-quality.md#generated-files-are-write-locked`](../rules/code-quality.md#generated-files-are-write-locked) — `mobile/src/api/generated.ts` is write-locked; use `regen-api`.
 - [`rules/i18n.md#supported-languages`](../rules/i18n.md#supported-languages) — cs/en/de in same PR.
-- [`rules/verification.md#mobile`](../rules/verification.md#mobile) — `npx tsc --noEmit` + `expo prebuild --check`.
+- [`rules/verification.md#mobile`](../rules/verification.md#mobile) — `npx tsc --noEmit` + `npx expo-doctor`.
 
 ## Stack
 - React Native 0.83, Expo SDK 55, Expo Router (file-based, grouped routes)
@@ -157,7 +157,9 @@ Before returning control to the orchestrator, write
 ```
 
 Use `verification.tool: "mobile-typecheck"` for `npx tsc --noEmit` or
-`"mobile-prebuild-check"` for `npx expo prebuild --no-install --check`.
+`"mobile-prebuild-check"` for `npx expo-doctor` (the schema enum value
+is kept stable post-#314 so archived handoffs still validate; the
+literal command it represents is now `expo-doctor`).
 The `gate-check.sh` SubagentStop hook validates before control returns;
 a malformed handoff exits non-zero so you can self-correct.
 
