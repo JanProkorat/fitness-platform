@@ -13,6 +13,7 @@ on:
       - 'package.json'
       - '.env.test.example'
       - '.github/workflows/e2e.yml'
+      - 'scripts/test-env'
 
 permissions:
   contents: read
@@ -20,6 +21,12 @@ permissions:
 jobs:
   playwright:
     runs-on: ubuntu-latest
+    env:
+      # Pass the branch name through to scripts/test-env so the per-branch
+      # COMPOSE_PROJECT_NAME is stable across this job's steps (each step
+      # spawns a fresh shell, so we cannot rely on the CLI's `current_branch`
+      # fallback — actions/checkout produces a detached HEAD).
+      TEST_ENV_BRANCH: ${{ github.head_ref || github.ref_name }}
 
     steps:
       - name: Checkout code
@@ -76,27 +83,26 @@ jobs:
         working-directory: web
 
       - name: Boot compose harness
-        run: npm run e2e:up
-
-      - name: Wait for harness health on :5101
+        # scripts/test-env up waits for the api healthcheck before returning;
+        # if it exits 0 the stack is ready. The JSON envelope is captured to
+        # the GITHUB_ENV so later steps can read api_url without re-shelling
+        # into the CLI.
         run: |
-          for i in $(seq 1 30); do
-            if curl -ksSf https://localhost:5101/swagger/v1/swagger.json | grep -q '/auth/login'; then
-              echo "Harness healthy after $i attempts"
-              exit 0
-            fi
-            sleep 2
-          done
-          echo "::error::Harness failed to come up within 60s. Dumping logs:"
-          docker ps -a
-          docker compose -f docker-compose.test.yml logs --tail=200
-          exit 1
+          set -euo pipefail
+          envelope=$(./scripts/test-env up "$TEST_ENV_BRANCH")
+          echo "$envelope"
+          api_url=$(printf '%s' "$envelope" | jq -r '.api_url')
+          if [ -z "$api_url" ] || [ "$api_url" = "null" ]; then
+            echo "::error::scripts/test-env up returned no api_url"
+            exit 1
+          fi
+          echo "E2E_API_URL=$api_url" >> "$GITHUB_ENV"
 
       - name: Run Playwright tests
         run: npx playwright test
         working-directory: web
         env:
-          E2E_API_URL: https://localhost:5101
+          E2E_API_URL: ${{ env.E2E_API_URL }}
           CI: 'true'
           # Pass secrets explicitly so auth.setup.ts receives them even before
           # dotenv.config has a chance to read .env.test (which docker-compose
@@ -125,11 +131,11 @@ jobs:
 
       - name: Dump harness logs on failure
         if: failure()
-        run: docker compose -f docker-compose.test.yml logs --tail=500
+        run: ./scripts/test-env logs-tail api "$TEST_ENV_BRANCH" 500
 
       - name: Tear down compose harness
         if: always()
-        run: npm run e2e:down
+        run: ./scripts/test-env down "$TEST_ENV_BRANCH" || true
 
       - name: Remove .env.test
         if: always()

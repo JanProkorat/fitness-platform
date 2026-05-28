@@ -1,15 +1,31 @@
 # End-to-end test harness — packaged backend + datastores + deterministic seed.
-# Boot with `npm run e2e:up`, tear down with `npm run e2e:down`.
-# qa-tester prefers this stack over ad-hoc `dotnet run` when it needs known fixture state.
+#
+# Boot via `scripts/test-env up [<branch>]` (or `npm run e2e:up`, which now
+# wraps the CLI). The CLI derives a per-branch `COMPOSE_PROJECT_NAME` so that
+# parallel runs on different branches coexist on ephemeral host ports.
+#
+# Networking:
+#   All services join the project-scoped `qa-net` network. Only `api`
+#   publishes to a host port (assigned dynamically by docker). web,
+#   mobile-web, and playwright (added in Phase 2) talk to api via internal
+#   DNS — they MUST NOT publish host ports of their own, or parallel runs
+#   collide on host :5173/:8081.
+#
+# Container names:
+#   No `container_name:` entries — compose names containers as
+#   <COMPOSE_PROJECT_NAME>-<service>-1 so two stacks for different branches
+#   can sit side by side. Reference containers via `docker compose ... ps`
+#   rather than hard-coded names.
 
 services:
   postgres-test:
     image: postgres:16
-    container_name: fitness-postgres-test
     environment:
       POSTGRES_USER: fitness_admin
       POSTGRES_PASSWORD: fitness_test_password
       POSTGRES_DB: fitness_test
+    networks:
+      - qa-net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U fitness_admin -d fitness_test"]
       interval: 2s
@@ -18,10 +34,11 @@ services:
 
   mongo-test:
     image: mongo:7
-    container_name: fitness-mongo-test
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: mongo_test_password
+    networks:
+      - qa-net
     healthcheck:
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
       interval: 2s
@@ -30,11 +47,12 @@ services:
 
   minio-test:
     image: minio/minio
-    container_name: fitness-minio-test
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minio_test_password
     command: server /data --console-address :9001
+    networks:
+      - qa-net
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]
       interval: 2s
@@ -44,7 +62,6 @@ services:
   seed:
     build:
       context: ./backend
-    container_name: fitness-seed-test
     depends_on:
       postgres-test:
         condition: service_healthy
@@ -68,20 +85,24 @@ services:
       MinIO__Endpoint: "minio-test:9000"
       MinIO__BucketName: "fitness-platform-test"
       RateLimiting__Disabled: "true"
+    networks:
+      - qa-net
     command: ["--qa-seed"]
     restart: "no"
 
   api:
     build:
       context: ./backend
-    container_name: fitness-api-test
     depends_on:
       seed:
         condition: service_completed_successfully
     ports:
-      # Host :5101 — distinct from the dev API on :5001 so the compose stack
-      # and an interactive `dotnet run` can coexist on the same host.
-      - "5101:8080"
+      # Ephemeral host port — docker assigns at `up` time, scripts/test-env
+      # surfaces the assigned port via `docker compose port api 8080` and
+      # writes it to .test-env.<project>.env. The interactive dev API stays
+      # on :5001 (separate stack); they cannot collide because we no longer
+      # bind to a fixed host port here.
+      - "8080"
     # JWT_SECRET comes from .env.test (gitignored).
     env_file:
       - .env.test
@@ -99,14 +120,21 @@ services:
       MongoDB__DatabaseName: fitness_test
       MinIO__Endpoint: "minio-test:9000"
       MinIO__BucketName: "fitness-platform-test"
+      # localhost entries cover host-Playwright + the existing dev workflow.
+      # Phase 2 adds CORS entries for the internal `web` and `mobile-web`
+      # service DNS names so the containerised Playwright can hit the API.
       Cors__AllowedOrigins__0: "http://localhost:5173"
       Cors__AllowedOrigins__1: "http://localhost:8081"
+      Cors__AllowedOrigins__2: "http://web:5173"
+      Cors__AllowedOrigins__3: "http://mobile-web:8081"
       RateLimiting__Disabled: "true"
       # Enables POST /test/reset for Playwright global-setup. The endpoint
       # remains double-gated: this flag is one half; the other is that
       # ASPNETCORE_ENVIRONMENT=Development (above). Both must be true for
       # the endpoint to respond — in production the env gate alone keeps it 404.
       Testing__Enabled: "true"
+    networks:
+      - qa-net
     healthcheck:
       # Self-signed dev cert — `-k` is intentional inside the container.
       test: ["CMD-SHELL", "curl -ksSf https://localhost:8080/swagger/v1/swagger.json | grep -q '/auth/login'"]
@@ -114,3 +142,7 @@ services:
       timeout: 5s
       retries: 20
       start_period: 5s
+
+networks:
+  qa-net:
+    driver: bridge

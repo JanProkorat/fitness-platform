@@ -87,6 +87,8 @@ appsettings.Production.json
 postgres_data/
 mongo_data/
 minio_data/
+# Per-branch state files emitted by scripts/test-env up.
+.test-env.*.env
 
 # =========================
 # Docs (local design specs)
