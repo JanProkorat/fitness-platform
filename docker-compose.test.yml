@@ -219,6 +219,7 @@ services:
       # Mirror the build-time env so npm scripts inside the container can
       # read the same values when invoked via `exec`.
       PLAYWRIGHT_BASE_URL: "http://web:5173"
+      MOBILE_WEB_BASE_URL: "http://mobile-web:8081"
       PLAYWRIGHT_IN_CONTAINER: "true"
       E2E_API_URL: "https://api:8080"
       CI: "true"

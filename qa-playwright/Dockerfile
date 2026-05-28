@@ -42,6 +42,8 @@ RUN chmod +x /work/named-flow-runner.sh
 # Default baseURL for the test browser context. Specs may override via
 # test.use({ baseURL: '...' }) for mobile-web flows.
 ENV PLAYWRIGHT_BASE_URL=http://web:5173
+# Mobile-web baseURL — read by user-avatar-upload.spec.ts via test.use().
+ENV MOBILE_WEB_BASE_URL=http://mobile-web:8081
 ENV PLAYWRIGHT_IN_CONTAINER=true
 ENV E2E_API_URL=https://api:8080
 ENV CI=true
