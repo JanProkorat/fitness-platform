@@ -46,6 +46,17 @@ public class AddRoleEndpoint(
             return;
         }
 
+        // Defense-in-depth: handler-level guard mirrors AddRoleValidator so that
+        // a validator bypass (wiring change, validator replacement) cannot re-open
+        // the Admin self-promotion path. Both this guard and the validator must be
+        // widened simultaneously — that's the invariant. See SelfAssignableRoles
+        // for the rationale and issue #308.
+        if (!SelfAssignableRoles.Contains(req.Role))
+        {
+            ThrowError(r => r.Role, "Role is not self-assignable.", 400);
+            return;
+        }
+
         var user = await userManager.FindByIdAsync(userId.ToString());
         if (user is null)
         {

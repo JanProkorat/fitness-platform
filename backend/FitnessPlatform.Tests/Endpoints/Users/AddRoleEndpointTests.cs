@@ -127,6 +127,47 @@ public class AddRoleEndpointTests
         result.IsValid.Should().BeFalse();
     }
 
+    // ── Handler-level guard tests (validator bypassed) ───────────────────────
+    // These tests prove the defense-in-depth guard in HandleAsync fires even
+    // when the validator is not wired up (e.g. FastEndpoints wiring change).
+    // See issue #308 and SelfAssignableRoles for the rationale.
+
+    [Fact]
+    public async Task HandleAsync_WithAdminRole_ThrowsValidationError()
+    {
+        var userId = Guid.NewGuid();
+        var db = new MockDbBuilder().Build();
+
+        var ep = Factory.Create<AddRoleEndpoint>(
+            _userManager, db, CreateFakeConfig(), _audit);
+        ep.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
+            new System.Security.Claims.ClaimsIdentity(
+                EndpointTestHelpers.FakeUserClaims(userId, AppRoles.Trainer)));
+
+        // Invoke HandleAsync directly — validator is bypassed.
+        var act = () => ep.HandleAsync(new AddRoleRequest { Role = AppRoles.Admin }, CancellationToken.None);
+
+        await act.Should().ThrowAsync<ValidationFailureException>();
+    }
+
+    [Fact]
+    public async Task HandleAsync_WithClientRole_ThrowsValidationError()
+    {
+        var userId = Guid.NewGuid();
+        var db = new MockDbBuilder().Build();
+
+        var ep = Factory.Create<AddRoleEndpoint>(
+            _userManager, db, CreateFakeConfig(), _audit);
+        ep.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
+            new System.Security.Claims.ClaimsIdentity(
+                EndpointTestHelpers.FakeUserClaims(userId, AppRoles.Trainer)));
+
+        // Invoke HandleAsync directly — validator is bypassed.
+        var act = () => ep.HandleAsync(new AddRoleRequest { Role = AppRoles.Client }, CancellationToken.None);
+
+        await act.Should().ThrowAsync<ValidationFailureException>();
+    }
+
     [Fact]
     public async Task HandleAsync_WritesAuditLog()
     {
