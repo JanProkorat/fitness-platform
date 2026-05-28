@@ -216,6 +216,8 @@ const ProfessionBlock = forwardRef<ProfessionBlockHandle, ProfessionBlockProps>(
                   type="button"
                   className={`toggle${field.value ? ' on' : ''}`}
                   onClick={() => field.onChange(!field.value)}
+                  aria-pressed={field.value}
+                  aria-label={t('weeklyCheckIn.config.enabled')}
                 >
                   <span className="toggle-thumb" />
                 </button>
