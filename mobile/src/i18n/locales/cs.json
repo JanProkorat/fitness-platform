@@ -341,7 +341,8 @@
       "start": "Začít trénink",
       "continue": "Pokračovat v tréninku",
       "finished": "Dokončeno",
-      "startError": "Trénink se nepodařilo spustit. Zkus to znovu."
+      "startError": "Trénink se nepodařilo spustit. Zkus to znovu.",
+      "sessionInProgress": "Jiný trénink už běží"
     },
     "noNutritionPlanForToday": "Na dnes nemáte naplánovaný jídelníček",
     "noTrainingForToday": "Na dnes nemáte naplánovaný trénink"

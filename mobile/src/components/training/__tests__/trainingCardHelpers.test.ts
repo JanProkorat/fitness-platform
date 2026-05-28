@@ -2,7 +2,7 @@
  * Unit tests for trainingCardHelpers — pure functions, no RN dependencies.
  */
 
-import { deriveSessionCtaState } from '../trainingCardHelpers'
+import { deriveSessionCtaState, computeLockedSessionIds } from '../trainingCardHelpers'
 import type { TrainingSession } from '@/api/training'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -306,5 +306,71 @@ describe('deriveSessionCtaState', () => {
       )
       expect(result).toBe('in-progress')
     })
+  })
+})
+
+// ─── computeLockedSessionIds ──────────────────────────────────────────────────
+
+describe('computeLockedSessionIds', () => {
+  function makeSessionWithId(id: string): TrainingSession {
+    return {
+      sessionId: id,
+      name: `Session ${id}`,
+      sections: [],
+      exercises: [],
+    }
+  }
+
+  const sessions = [
+    makeSessionWithId('s1'),
+    makeSessionWithId('s2'),
+    makeSessionWithId('s3'),
+  ]
+
+  it('returns empty set when hasActiveSession is false', () => {
+    const result = computeLockedSessionIds(sessions, false, 's1')
+    expect(result.size).toBe(0)
+  })
+
+  it('returns empty set when activeSessionId is null', () => {
+    const result = computeLockedSessionIds(sessions, true, null)
+    expect(result.size).toBe(0)
+  })
+
+  it('returns empty set when hasActiveSession is false and activeSessionId is null', () => {
+    const result = computeLockedSessionIds(sessions, false, null)
+    expect(result.size).toBe(0)
+  })
+
+  it('returns the other session IDs excluding the active one', () => {
+    const result = computeLockedSessionIds(sessions, true, 's1')
+    expect(result.size).toBe(2)
+    expect(result.has('s2')).toBe(true)
+    expect(result.has('s3')).toBe(true)
+    expect(result.has('s1')).toBe(false)
+  })
+
+  it('returns correct locked set when the middle session is active', () => {
+    const result = computeLockedSessionIds(sessions, true, 's2')
+    expect(result.has('s1')).toBe(true)
+    expect(result.has('s3')).toBe(true)
+    expect(result.has('s2')).toBe(false)
+  })
+
+  it('filters out sessions with null sessionId cleanly', () => {
+    const sessionsWithNull: TrainingSession[] = [
+      makeSessionWithId('s1'),
+      { sessionId: undefined, name: 'No-id session', sections: [], exercises: [] },
+      makeSessionWithId('s3'),
+    ]
+    const result = computeLockedSessionIds(sessionsWithNull, true, 's1')
+    expect(result.has('s3')).toBe(true)
+    // The undefined-id session must not appear in the locked set
+    expect(result.size).toBe(1)
+  })
+
+  it('returns empty set when sessions array is empty', () => {
+    const result = computeLockedSessionIds([], true, 's1')
+    expect(result.size).toBe(0)
   })
 })

@@ -336,7 +336,8 @@
       "start": "Training starten",
       "continue": "Training fortsetzen",
       "finished": "Abgeschlossen",
-      "startError": "Training konnte nicht gestartet werden. Bitte versuche es erneut."
+      "startError": "Training konnte nicht gestartet werden. Bitte versuche es erneut.",
+      "sessionInProgress": "Trainingseinheit läuft bereits"
     },
     "noNutritionPlanForToday": "Heute ist kein Ernährungsplan geplant",
     "noTrainingForToday": "Heute ist kein Training geplant"

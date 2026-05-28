@@ -136,3 +136,38 @@ export function deriveSessionCtaState(
 
   return 'not-started'
 }
+
+// ─── computeLockedSessionIds ──────────────────────────────────────────────────
+
+/**
+ * Returns a set of sessionIds that should show a locked CTA because another
+ * session in the same day is currently live (active).
+ *
+ * - If `hasActiveSession` is false or `activeSessionId` is null, returns an
+ *   empty set (nothing to lock).
+ * - Otherwise returns the sessionIds of all sessions whose `sessionId` is
+ *   non-null AND is not the currently active session.
+ *
+ * This is a pure helper — no React, no store imports. It mirrors the same
+ * style as `deriveSessionCtaState` so it can be unit-tested without React Native.
+ *
+ * @param sessions         Today's training sessions.
+ * @param hasActiveSession Whether a live session is currently in-flight.
+ * @param activeSessionId  The sessionId of the live session (from liveSessionStore).
+ */
+export function computeLockedSessionIds(
+  sessions: readonly TrainingSession[],
+  hasActiveSession: boolean,
+  activeSessionId: string | null,
+): ReadonlySet<string> {
+  if (!hasActiveSession || activeSessionId == null) {
+    return new Set<string>()
+  }
+  const locked = new Set<string>()
+  for (const session of sessions) {
+    if (session.sessionId != null && session.sessionId !== activeSessionId) {
+      locked.add(session.sessionId)
+    }
+  }
+  return locked
+}

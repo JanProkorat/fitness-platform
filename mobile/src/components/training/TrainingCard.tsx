@@ -109,6 +109,12 @@ interface TrainingCardProps {
   /** Returns true when the startWorkout mutation for the given sessionId is pending. */
   isSessionCtaPending?: (sessionId: string) => boolean
   /**
+   * Set of sessionIds whose Start CTA should be locked because another session
+   * is currently live. Computed by `computeLockedSessionIds` in HasTrainerState.
+   * Defaults to an empty set when omitted — no sessions are locked.
+   */
+  lockedSessionIds?: ReadonlySet<string>
+  /**
    * Map from exerciseExternalId to its muscle groups, sourced from the backend's
    * `GetTodaySessionResponse.exerciseMuscleGroups` field. Used to render colored
    * muscle-group chips in the hero and a per-exercise dot in each exercise row.
@@ -153,33 +159,51 @@ interface SessionCtaFooterProps {
   state: SessionCtaState
   isPending: boolean
   onPress: (session: TrainingSession, state: SessionCtaState) => void
+  /**
+   * When true, another session is currently live. The CTA is rendered
+   * disabled with a "Session already in progress" label. The not-locked
+   * code path is not affected.
+   */
+  locked?: boolean
 }
 
-function SessionCtaFooter({ session, state, isPending, onPress }: SessionCtaFooterProps) {
+function SessionCtaFooter({ session, state, isPending, onPress, locked = false }: SessionCtaFooterProps) {
   const colors = useTheme()
   const { t } = useTranslation()
+
+  const isDisabled = isPending || locked
 
   return (
     <View style={[ctaStyles.footerButton, { borderTopColor: colors.sep2 }]}>
       <Pressable
         onPress={() => {
-          if (!isPending) onPress(session, state)
+          if (!isDisabled) onPress(session, state)
         }}
-        disabled={isPending}
+        disabled={isDisabled}
         accessibilityRole="button"
-        accessibilityState={{ disabled: isPending }}
+        accessibilityState={{ disabled: isDisabled }}
+        accessibilityLabel={locked ? t('today.trainingCta.sessionInProgress') : undefined}
         style={({ pressed }) => [
           ctaStyles.primaryButton,
-          { backgroundColor: colors.gold, opacity: pressed ? 0.8 : 1 },
+          locked
+            ? { backgroundColor: colors.bg3, opacity: 0.7 }
+            : { backgroundColor: colors.gold, opacity: pressed ? 0.8 : 1 },
         ]}
       >
-        {isPending ? (
+        {isPending && !locked ? (
           <ActivityIndicator size="small" color={colors.onAccent} />
         ) : (
-          <Text style={[ctaStyles.primaryLabel, { color: colors.onAccent }]}>
-            {state === 'in-progress'
-              ? t('today.trainingCta.continue')
-              : t('today.trainingCta.start')}
+          <Text
+            style={[
+              ctaStyles.primaryLabel,
+              locked ? { color: colors.label3 } : { color: colors.onAccent },
+            ]}
+          >
+            {locked
+              ? t('today.trainingCta.sessionInProgress')
+              : state === 'in-progress'
+                ? t('today.trainingCta.continue')
+                : t('today.trainingCta.start')}
           </Text>
         )}
       </Pressable>
@@ -227,6 +251,7 @@ export function TrainingCard({
   sessionCtaStateBySession,
   onSessionCta,
   isSessionCtaPending,
+  lockedSessionIds = new Set<string>(),
   exerciseMuscleGroups = {},
   completedSetsBySessionExercise = {},
   onMarkAllTrainingDone,
@@ -367,6 +392,8 @@ export function TrainingCard({
           const showCta =
             ctaState != null && ctaState !== 'finished' && onSessionCta != null
           const ctaPending = isSessionCtaPending?.(sessionId) ?? false
+          // When another session is live, lock this session's CTA.
+          const ctaLocked = session.sessionId != null && lockedSessionIds.has(session.sessionId)
 
           // Session-level checkbox injected into the session card header.
           // Uses the View+inner-icon pattern from MealRow's CheckButton so the
@@ -414,6 +441,7 @@ export function TrainingCard({
               showCta={showCta}
               ctaState={ctaState}
               ctaPending={ctaPending}
+              ctaLocked={ctaLocked}
               session={session}
               exerciseMuscleGroups={exerciseMuscleGroups}
               completedSetsBySessionExercise={completedSetsBySessionExercise[sessionId] ?? {}}
@@ -480,6 +508,8 @@ interface SessionSectionListProps {
   showCta: boolean
   ctaState: SessionCtaState | undefined
   ctaPending: boolean
+  /** When true, another session is live — this session's CTA is locked. */
+  ctaLocked: boolean
   session: TrainingSession
   exerciseMuscleGroups: Record<string, MuscleGroup[]>
   completedSetsBySessionExercise: Record<string, number[]>
@@ -506,6 +536,7 @@ function SessionSectionList({
   showCta,
   ctaState,
   ctaPending,
+  ctaLocked,
   session,
   exerciseMuscleGroups,
   completedSetsBySessionExercise,
@@ -775,6 +806,7 @@ function SessionSectionList({
                   session={session}
                   state={ctaState}
                   isPending={ctaPending}
+                  locked={ctaLocked}
                   onPress={onSessionCta}
                 />
               )}

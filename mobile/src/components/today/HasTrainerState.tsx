@@ -55,7 +55,7 @@ import { useTodayStore } from '@/stores/todayStore'
 import { PlanBanner } from '@/components/today/PlanBanner'
 import { ResumeTrainingBanner } from '@/components/training/ResumeTrainingBanner'
 import { useLiveSessionStore } from '@/stores/liveSessionStore'
-import { deriveSessionCtaState, type SessionCtaState } from '@/components/training/trainingCardHelpers'
+import { deriveSessionCtaState, computeLockedSessionIds, type SessionCtaState } from '@/components/training/trainingCardHelpers'
 
 // ─── NoDayNutritionCard ───────────────────────────────────────────────────────
 // Shown when the user has an active nutrition plan but today is not covered by
@@ -707,6 +707,14 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
     return result
   }, [todaySessions, completedIdsBySectionAndSession, completedSectionIdsFor, hasActiveSession, liveSessionId])
 
+  // ── Locked sibling session IDs ────────────────────────────────────────────
+  // When a live session is running, every OTHER session for today shows a
+  // locked CTA ("Session already in progress") to prevent accidental parallel starts.
+  const lockedSessionIds = useMemo(
+    () => computeLockedSessionIds(todaySessions, hasActiveSession, liveSessionId),
+    [todaySessions, hasActiveSession, liveSessionId],
+  )
+
   const handleToggleExercise = useCallback(
     (sessionId: string, sectionId: string, exerciseExternalId: string) => {
       const ids = completedIdsForSection(sessionId, sectionId)
@@ -1260,6 +1268,7 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
               onToggleSession={handleToggleSession}
               sessionCtaStateBySession={sessionCtaStateBySession}
               onSessionCta={handleSessionCta}
+              lockedSessionIds={lockedSessionIds}
               exerciseMuscleGroups={training?.exerciseMuscleGroups ?? {}}
               completedSetsBySessionExercise={trainingQuery.data?.completedSetsBySessionExercise ?? {}}
               onMarkAllTrainingDone={handleMarkAllTrainingDone}
