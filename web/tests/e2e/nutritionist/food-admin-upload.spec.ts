@@ -60,14 +60,15 @@ test('food-admin-upload — nutritionist uploads food image and it renders in di
   // (only wired when isNutritionist is true, which it is for qa.nutri).
   await chickenRow.first().click();
 
-  // Wait for the dialog to open. FoodDialog renders in a modal overlay; wait
-  // for the dialog role or the image section heading to appear.
-  // The FoodImageSection renders a heading "foods.image.mainHeading" — the
-  // Czech translation. Use a loose locator that matches the visible label text.
-  const imageSection = page.locator('[aria-hidden="true"]').or(
+  // Wait for the dialog to open. FoodDialog renders inside a `role="dialog"`
+  // shadcn container; target that explicitly so we don't accidentally match a
+  // random aria-hidden element on the page (e.g. a modal backdrop, a hidden
+  // tooltip). Fall back to the localised image-section heading if the dialog
+  // role isn't wired on this page version.
+  const dialog = page.getByRole('dialog').or(
     page.getByText(/Hlavní foto|Main image|Hauptbild/i),
   );
-  await expect(imageSection.first()).toBeVisible({ timeout: 15_000 });
+  await expect(dialog.first()).toBeVisible({ timeout: 15_000 });
 
   // ── 4. Locate the SlotPicker input and set the file ──────────────────────────
   // FoodImageSection / SlotPicker renders:

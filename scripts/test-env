@@ -243,16 +243,22 @@ cmd_run() {
   env_file="$(env_file_for "$project")"
   [[ -f "$env_file" ]] || die "No compose project found for current branch — run 'scripts/test-env up' first."
 
-  # Phase 2 wires the playwright service; Phase 4 wires qa-playwright/flows.json
-  # and the named-flow runner. For now this subcommand is a stub that surfaces
-  # the correct error path until Phase 4 lands.
+  # Defensive guard: the playwright service must exist in the compose file
+  # for `run` to be meaningful. If a future contributor strips the service
+  # without updating this CLI, fail with a clear envelope instead of `exec`-ing
+  # into nothing.
   if ! compose "$project" ps --services 2>/dev/null | grep -q '^playwright$'; then
-    err "playwright service not yet present in $COMPOSE_FILE (lands in Phase 2)."
+    err "playwright service not present in $COMPOSE_FILE — `run` requires the qa-playwright runner."
     printf '{"ok":false,"reason":"playwright service not deployed","flow":"%s"}\n' "$flow"
     exit 1
   fi
 
-  # Wait for api + web healthchecks before running.
+  # Gate on the api healthcheck. web + mobile-web don't need an explicit wait
+  # here because the playwright service `depends_on` them with
+  # `condition: service_healthy` in docker-compose.test.yml — compose won't
+  # start the runner until they're up. api is the only service we still need
+  # to gate on directly because the playwright container can be exec'd into
+  # at any point (compose's depends_on only blocks initial start).
   if ! wait_for_healthy "$project" api 90; then
     local logs
     logs="$(compose "$project" logs --tail=50 api 2>&1 | tail -c 4096)"

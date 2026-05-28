@@ -22,7 +22,7 @@ list_flows() {
     jq -r 'to_entries[] | "  \(.key)  —  \(.value.description // "")"' "$FLOWS_JSON" 2>/dev/null \
       || echo "  (flows.json present but unreadable)"
   else
-    echo "  (flows.json not yet populated — lands in Phase 4)"
+    echo "  (flows.json not present — qa-playwright image may need a rebuild)"
   fi
 }
 
