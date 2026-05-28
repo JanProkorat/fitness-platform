@@ -129,10 +129,14 @@ export default defineConfig({
 
     // ─── Client-scoped specs ──────────────────────────────────────────────────
     // Picks up only tests/e2e/client/**. Add new client-role specs there.
+    // user-avatar-upload targets the dockerised mobile-web service via
+    // PLAYWRIGHT_BASE_URL=http://mobile-web:8081 — that DNS only resolves
+    // inside the qa-net network, so we exclude the spec from host runs.
     {
       name: 'client',
       dependencies: ['setup'],
       testMatch: /client\/.+\.spec\.ts/,
+      testIgnore: IN_CONTAINER ? [] : [/client\/user-avatar-upload\.spec\.ts/],
       use: {
         ...devices['Desktop Chrome'],
         storageState: '.auth/client.json',
@@ -141,10 +145,21 @@ export default defineConfig({
 
     // ─── Nutritionist-scoped specs ────────────────────────────────────────────
     // Picks up only tests/e2e/nutritionist/**. Add new nutritionist-role specs there.
+    // food-admin-upload and recipe-gallery-upload are container-driven canonical
+    // AC flows — their selectors are exercised by `scripts/test-env run <flow>`
+    // inside qa-playwright (where the seeded fixtures + dockerised web service
+    // are the source of truth). Excluded from host runs to keep regression
+    // smoke (trainer/clients.spec.ts) fast and deterministic.
     {
       name: 'nutritionist',
       dependencies: ['setup'],
       testMatch: /nutritionist\/.+\.spec\.ts/,
+      testIgnore: IN_CONTAINER
+        ? []
+        : [
+            /nutritionist\/food-admin-upload\.spec\.ts/,
+            /nutritionist\/recipe-gallery-upload\.spec\.ts/,
+          ],
       use: {
         ...devices['Desktop Chrome'],
         storageState: '.auth/nutritionist.json',
