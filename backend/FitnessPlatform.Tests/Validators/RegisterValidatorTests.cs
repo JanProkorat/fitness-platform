@@ -130,12 +130,35 @@ public class RegisterValidatorTests
     [InlineData("Client")]
     [InlineData("Trainer")]
     [InlineData("Nutritionist")]
-    [InlineData("Admin")]
     public void Roles_SingleValidRole_Passes(string role)
     {
         var req = ValidRequest();
         req.Roles = new List<string> { role };
         _validator.TestValidate(req).ShouldNotHaveValidationErrorFor(x => x.Roles);
+    }
+
+    [Theory]
+    [InlineData("Admin")]
+    [InlineData("admin")]
+    public void Roles_ContainsAdmin_Fails_SingleRole(string adminRole)
+    {
+        var req = ValidRequest();
+        req.Roles = new List<string> { adminRole };
+        var result = _validator.TestValidate(req);
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.ErrorMessage == "Role must be one of: Trainer, Nutritionist, Client.");
+    }
+
+    [Theory]
+    [InlineData("Trainer", "Admin")]
+    [InlineData("Admin", "Client")]
+    public void Roles_ContainsAdmin_Fails_MixedWithValidRole(string role1, string role2)
+    {
+        var req = ValidRequest();
+        req.Roles = new List<string> { role1, role2 };
+        var result = _validator.TestValidate(req);
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.ErrorMessage == "Role must be one of: Trainer, Nutritionist, Client.");
     }
 
     [Fact]

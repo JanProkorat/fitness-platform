@@ -10,6 +10,18 @@ namespace FitnessPlatform.Application.Features.Auth.Register;
 public class RegisterValidator : Validator<RegisterRequest>
 {
     /// <summary>
+    /// Roles that may be self-assigned via the public registration endpoint.
+    /// <see cref="UserRole.Admin"/> is intentionally excluded — it can only be
+    /// granted out-of-band by a platform administrator.
+    /// </summary>
+    private static readonly HashSet<string> PubliclyRegistrableRoles = new(StringComparer.OrdinalIgnoreCase)
+    {
+        nameof(UserRole.Trainer),
+        nameof(UserRole.Nutritionist),
+        nameof(UserRole.Client),
+    };
+
+    /// <summary>
     /// Initializes validation rules for user registration.
     /// </summary>
     public RegisterValidator()
@@ -46,8 +58,8 @@ public class RegisterValidator : Validator<RegisterRequest>
             .WithMessage("Cannot combine Client role with Trainer or Nutritionist.");
 
         RuleForEach(x => x.Roles)
-            .Must(r => Enum.TryParse<UserRole>(r, ignoreCase: true, out _))
-            .WithMessage("Role must be one of: Admin, Trainer, Nutritionist, Client.");
+            .Must(r => PubliclyRegistrableRoles.Contains(r))
+            .WithMessage("Role must be one of: Trainer, Nutritionist, Client.");
 
         RuleFor(x => x.GdprConsent)
             .Equal(true)
