@@ -26,9 +26,13 @@ mobile/.qa-cache/
 # Test project (not needed in the runtime image)
 backend/FitnessPlatform.Tests/
 
-# Web and mobile packages (only backend is built)
-web/
-mobile/
+# Web and mobile packages — historically excluded because only backend
+# was built from the root context. The qa-playwright image (context=.,
+# dockerfile=qa-playwright/Dockerfile) needs to COPY from web/, so we
+# can no longer broad-exclude these directories. The broad
+# **/node_modules/, **/dist/, **/build/, **/.expo/ rules above keep the
+# heavy artefacts out of every build's context regardless of source root.
+# Backend builds use context=./backend and are unaffected.
 
 # Docker compose files
 docker-compose*.yml
