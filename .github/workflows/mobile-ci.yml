@@ -38,6 +38,6 @@ jobs:
         run: npx tsc --noEmit
         working-directory: mobile
 
-      - name: Expo prebuild check
-        run: npx expo prebuild --no-install --check
+      - name: Expo project doctor
+        run: npx expo-doctor
         working-directory: mobile
