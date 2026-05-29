@@ -1159,6 +1159,14 @@
       "deleteConfirmTitle": "Smazat workout",
       "deleteConfirmMessage": "Opravdu chcete smazat workout «{{name}}»? Tuto akci nelze vrátit.",
       "versionConflict": "Workout byl změněn jinde, načítám znovu."
+    },
+    "completionState": {
+      "setCompleted": "Dokončeno",
+      "setSkipped": "Vynecháno",
+      "exerciseCompleted": "{{done}}/{{total}} dokončeno",
+      "exerciseSkippedSuffix": "{{count}} vynecháno",
+      "sessionAllComplete": "Vše dokončeno",
+      "sessionMixed": "{{completed}} dokončeno · {{skipped}} vynecháno"
     }
   },
   "exercises": {

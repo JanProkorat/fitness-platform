@@ -1144,6 +1144,14 @@
       "deleteConfirmTitle": "Delete Workout",
       "deleteConfirmMessage": "Are you sure you want to delete the workout «{{name}}»? This cannot be undone.",
       "versionConflict": "Workout was changed elsewhere, reloading."
+    },
+    "completionState": {
+      "setCompleted": "Completed",
+      "setSkipped": "Skipped",
+      "exerciseCompleted": "{{done}}/{{total}} completed",
+      "exerciseSkippedSuffix": "{{count}} skipped",
+      "sessionAllComplete": "All complete",
+      "sessionMixed": "{{completed}} completed · {{skipped}} skipped"
     }
   },
   "exercises": {
