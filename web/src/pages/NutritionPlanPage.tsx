@@ -13,6 +13,7 @@ import { PageHeader } from '@/components/layout';
 import { Button, Dialog } from '@/components/ui';
 import { MondayDatePicker } from '@/components/ui/MondayDatePicker';
 import { MacroSidebar, WeekDayTabs } from '@/components/nutrition';
+import { SupplementsSection } from '@/components/nutrition/SupplementsSection';
 import type { WeekTabData, DayTabData } from '@/components/nutrition/WeekDayTabs';
 import type { PlanMeal, MealFood, NutrientTotals } from '@/api/plan-types';
 import { SortableMealItem } from '@/components/nutrition/SortableMealItem';
@@ -65,6 +66,7 @@ export default function NutritionPlanPage() {
   const updateMealTime = useNutritionPlanStore((s) => s.updateMealTime);
   const reorderWeeks = useNutritionPlanStore((s) => s.reorderWeeks);
   const moveMealToDay = useNutritionPlanStore((s) => s.moveMealToDay);
+  const setSupplements = useNutritionPlanStore((s) => s.setSupplements);
 
   // ── Local UI state ──
   const [pageTab, setPageTab] = useState<'meals' | 'photos'>('meals');
@@ -840,6 +842,14 @@ export default function NutritionPlanPage() {
                 {t('diary.request.ctaButton')}
               </Button>
             </div>
+          </div>
+
+          {/* Plan-level supplement recommendations */}
+          <div className="p-3 border-t border-border">
+            <SupplementsSection
+              supplements={plan.supplements ?? []}
+              onChange={setSupplements}
+            />
           </div>
 
           <PlanQuestionnairePanel

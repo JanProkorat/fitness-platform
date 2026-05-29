@@ -738,6 +738,33 @@
       "badgeFood": "Jídlo",
       "badgeBody": "Postup",
       "badgeFreeForm": "Volné"
+    },
+    "supplements": {
+      "sectionTitle": "Doporučené suplementy",
+      "addButton": "+ Přidat suplement",
+      "editButton": "Upravit",
+      "removeButton": "Odstranit",
+      "emptyState": "Žádné doporučené suplementy",
+      "form": {
+        "name": {
+          "label": "Název",
+          "placeholder": "např. Vitamin D3",
+          "required": "Název je povinný",
+          "tooLong": "Název může mít nejvýše 100 znaků"
+        },
+        "dose": {
+          "label": "Dávkování (volitelné)",
+          "placeholder": "např. 1 kapsle s jídlem",
+          "tooLong": "Dávkování může mít nejvýše 200 znaků"
+        },
+        "notes": {
+          "label": "Poznámky (volitelné)",
+          "placeholder": "Doplňující informace pro klienta...",
+          "tooLong": "Poznámky mohou mít nejvýše 500 znaků"
+        },
+        "cancel": "Zrušit",
+        "save": "Uložit"
+      }
     }
   },
   "apiErrors": {
