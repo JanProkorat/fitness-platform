@@ -9,13 +9,21 @@ interface SetGridProps {
   sets: FullPlanSet[]
   /** 1-based set numbers that have been completed via live-training logging. */
   completedSetNumbers?: number[]
+  /**
+   * 1-based set numbers that were skipped during live-training.
+   * Rendered with the '↷' glyph (matching the in-session SetsList badge)
+   * so skipped sets are visually distinct from both completed ('✓') and
+   * pending ('—') sets. Parallel to completedSetNumbers — a set number
+   * should not appear in both arrays.
+   */
+  skippedSetNumbers?: number[]
 }
 
 /**
  * 5-column grid: Set / Reps / Weight / Rest / Status
  * Matches the tp-ex-set-grid layout in the prototype.
  */
-export function SetGrid({ sets, completedSetNumbers = [] }: SetGridProps) {
+export function SetGrid({ sets, completedSetNumbers = [], skippedSetNumbers = [] }: SetGridProps) {
   const colors = useTheme()
   const { t } = useTranslation()
 
@@ -34,6 +42,9 @@ export function SetGrid({ sets, completedSetNumbers = [] }: SetGridProps) {
       {/* Data rows — every row gets a bottom hairline so the table reads as
           a clean grid (matches prototype .tp-set-cell { border-bottom }). */}
       {sets.map((s) => {
+        const setNum = s.setNumber ?? -1
+        const isCompleted = completedSetNumbers.includes(setNum)
+        const isSkipped = !isCompleted && skippedSetNumbers.includes(setNum)
         const cellBorder = { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.sep2 }
         return (
           <View key={s.setNumber} style={[styles.grid, cellBorder]}>
@@ -50,12 +61,14 @@ export function SetGrid({ sets, completedSetNumbers = [] }: SetGridProps) {
             <Text
               style={[
                 styles.cellStatus,
-                completedSetNumbers.includes(s.setNumber ?? -1)
+                isCompleted
                   ? { color: colors.green, fontFamily: interFamily('600'), fontWeight: '600' }
-                  : { color: colors.label3 },
+                  : isSkipped
+                    ? { color: colors.label3, fontFamily: interFamily('600'), fontWeight: '600' }
+                    : { color: colors.label3 },
               ]}
             >
-              {completedSetNumbers.includes(s.setNumber ?? -1) ? '✓' : '—'}
+              {isCompleted ? '✓' : isSkipped ? '↷' : '—'}
             </Text>
           </View>
         )
