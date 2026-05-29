@@ -135,6 +135,12 @@ export async function scheduleDailyReminder(
     return { scheduled: false, reason: 'permission-denied' };
   }
 
+  const trigger: Notifications.DailyTriggerInput = {
+    type: Notifications.SchedulableTriggerInputTypes.DAILY,
+    hour: opts.time.hour,
+    minute: opts.time.minute,
+  };
+
   const notificationId = await Notifications.scheduleNotificationAsync({
     content: {
       title: opts.title,
@@ -142,15 +148,7 @@ export async function scheduleDailyReminder(
       data: opts.data ?? {},
       sound: true,
     },
-    trigger: {
-      type: 'daily',
-      hour: opts.time.hour,
-      minute: opts.time.minute,
-      repeats: true,
-    // expo-notifications DailyTriggerInput shape; using a cast because the
-    // TypeScript overload for `type: 'daily'` may not be picked up by all
-    // versions of the @types package pinned by Expo SDK 55.
-    } as Notifications.NotificationTriggerInput,
+    trigger,
   });
 
   writeStored(opts.key, {

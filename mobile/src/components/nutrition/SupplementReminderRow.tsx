@@ -65,18 +65,23 @@ export function SupplementReminderRow({
 
   const handleToggle = useCallback(
     async (value: boolean) => {
-      setReminderEnabled(value);
       if (value) {
-        await scheduleDailyReminder({
+        const result = await scheduleDailyReminder({
           key: reminderKey,
           time: reminderTime,
           title: t('nutrition.reminders.title'),
           body: t('nutrition.reminders.body', { name: supplement.name }),
           data: { supplementExternalId: supplement.externalId },
         });
+        if (!result.scheduled) {
+          // Permission denied or web-unsupported — leave toggle off.
+          setReminderEnabled(false);
+          return;
+        }
       } else {
         await cancelReminder(reminderKey);
       }
+      setReminderEnabled(value);
     },
     [reminderKey, reminderTime, supplement.name, supplement.externalId, t],
   );

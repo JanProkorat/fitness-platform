@@ -109,7 +109,7 @@ export function ReminderTimePicker({
       statusBarTranslucent={Platform.OS === 'android'}
     >
       <TouchableOpacity
-        style={styles.overlay}
+        style={[styles.overlay, { backgroundColor: colors.overlay }]}
         activeOpacity={1}
         onPress={onDismiss}
         accessible={false}
@@ -260,7 +260,6 @@ function makeStyles(colors: Colors) {
   return StyleSheet.create({
     overlay: {
       flex: 1,
-      backgroundColor: 'rgba(0,0,0,0.4)',
       justifyContent: 'flex-end',
     },
     sheet: {
