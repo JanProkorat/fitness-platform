@@ -24,9 +24,15 @@ export interface FoodRowProps {
   onRemove: () => void;
   onNoteChange?: (note: string) => void;
   accentColor?: string;
+  /**
+   * When true the amount input is read-only and the remove button is hidden.
+   * Preserves text legibility — does NOT apply disabled styling.
+   * Used when the parent meal has been confirmed as eaten by the client.
+   */
+  readOnly?: boolean;
 }
 
-export function FoodRow({ food, mealId, dayOfWeek, weekNumber, onAmountChange, onRemove, onNoteChange, accentColor: _accentColor }: FoodRowProps) {
+export function FoodRow({ food, mealId, dayOfWeek, weekNumber, onAmountChange, onRemove, onNoteChange, accentColor: _accentColor, readOnly = false }: FoodRowProps) {
   const { t } = useTranslation();
   const accentColor = CATEGORY_COLORS[food.category ?? ''] ?? _accentColor;
   const [localAmount, setLocalAmount] = useState(String(food.amount));
@@ -111,19 +117,22 @@ export function FoodRow({ food, mealId, dayOfWeek, weekNumber, onAmountChange, o
             type="text"
             inputMode="decimal"
             value={localAmount}
-            onChange={(e) => setLocalAmount(e.target.value)}
-            onBlur={handleBlur}
-            onKeyDown={(e) => { if (e.key === 'Enter') inputRef.current?.blur(); }}
+            readOnly={readOnly}
+            onChange={readOnly ? undefined : (e) => setLocalAmount(e.target.value)}
+            onBlur={readOnly ? undefined : handleBlur}
+            onKeyDown={readOnly ? undefined : (e) => { if (e.key === 'Enter') inputRef.current?.blur(); }}
             className="w-12 bg-transparent text-xs text-text3 rounded-sm px-[3px] py-[1px] outline-none text-right transition-colors hover:bg-bg-hover focus:bg-bg-active focus:ring-1 focus:ring-border-md"
           />
           <span className="text-[11px] text-text4">{food.unit ?? 'g'}</span>
-          <button
-            type="button"
-            onClick={onRemove}
-            className="text-[11px] text-text4 cursor-pointer transition-all hover:text-red shrink-0 ml-1"
-          >
-            ✕
-          </button>
+          {!readOnly && (
+            <button
+              type="button"
+              onClick={onRemove}
+              className="text-[11px] text-text4 cursor-pointer transition-all hover:text-red shrink-0 ml-1"
+            >
+              ✕
+            </button>
+          )}
         </div>
       </div>
     </div>

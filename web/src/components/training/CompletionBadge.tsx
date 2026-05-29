@@ -5,6 +5,9 @@ import type {
   SessionCompletionState,
   ExerciseCounts,
   SessionCounts,
+  MealCompletionState,
+  DayCompletionState,
+  DayCompletionCounts,
 } from '@/lib/completionState';
 
 // ── Inline SVG icon atoms ────────────────────────────────────────────────────
@@ -122,7 +125,34 @@ type SessionBadgeProps = {
   counts?: SessionCounts;
 };
 
-export type CompletionBadgeProps = SetBadgeProps | ExerciseBadgeProps | SessionBadgeProps;
+/**
+ * Nutrition: single-meal eaten indicator.
+ * 'not-touched' → nothing rendered (returns null).
+ * 'eaten'       → accent pill with CheckCircle2.
+ */
+type MealBadgeProps = {
+  kind: 'meal';
+  state: MealCompletionState;
+  counts?: undefined;
+};
+
+/**
+ * Nutrition: day-level aggregate eaten indicator.
+ * 'not-touched' → nothing rendered (returns null).
+ * 'all-eaten'   → accent pill with CheckCircle2 + interpolated count string.
+ */
+type DayBadgeProps = {
+  kind: 'day';
+  state: DayCompletionState;
+  counts?: DayCompletionCounts;
+};
+
+export type CompletionBadgeProps =
+  | SetBadgeProps
+  | ExerciseBadgeProps
+  | SessionBadgeProps
+  | MealBadgeProps
+  | DayBadgeProps;
 
 // ── Component ────────────────────────────────────────────────────────────────
 
@@ -148,6 +178,12 @@ export function CompletionBadge(props: CompletionBadgeProps) {
   }
   if (props.kind === 'exercise') {
     return <ExerciseBadge state={props.state} counts={props.counts} t={t} />;
+  }
+  if (props.kind === 'meal') {
+    return <MealBadge state={props.state} t={t} />;
+  }
+  if (props.kind === 'day') {
+    return <DayBadge state={props.state} counts={props.counts} t={t} />;
   }
   return <SessionBadge state={props.state} counts={props.counts} t={t} />;
 }
@@ -233,6 +269,60 @@ function ExerciseBadge({
         <IconAlertCircle size={12} />
         {counts.skipped}
       </span>
+    </span>
+  );
+}
+
+// ── Meal badge (nutrition) ───────────────────────────────────────────────────
+
+function MealBadge({
+  state,
+  t,
+}: {
+  state: MealCompletionState;
+  t: ReturnType<typeof useTranslation>['t'];
+}) {
+  if (state === 'not-touched') return null;
+
+  // 'eaten'
+  const label = t('nutrition.completionState.mealEaten');
+  return (
+    <span
+      className={accentPill}
+      aria-label={label}
+      title={label}
+    >
+      <IconCheckCircle2 size={12} />
+      {label}
+    </span>
+  );
+}
+
+// ── Day badge (nutrition) ────────────────────────────────────────────────────
+
+function DayBadge({
+  state,
+  counts,
+  t,
+}: {
+  state: DayCompletionState;
+  counts?: DayCompletionCounts;
+  t: ReturnType<typeof useTranslation>['t'];
+}) {
+  if (state === 'not-touched') return null;
+
+  // 'all-eaten'
+  const label = counts
+    ? t('nutrition.completionState.dayAllEaten', { eaten: counts.eaten, total: counts.total })
+    : t('nutrition.completionState.mealEaten');
+  return (
+    <span
+      className={accentPill}
+      aria-label={label}
+      title={label}
+    >
+      <IconCheckCircle2 size={12} />
+      {label}
     </span>
   );
 }

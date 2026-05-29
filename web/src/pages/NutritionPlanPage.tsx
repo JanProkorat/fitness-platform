@@ -4,6 +4,9 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useNutritionPlanStore } from '@/stores/nutritionPlan';
 import { getPlan, completePlan } from '@/api/plans';
+import { computeNutritionPlanLocks } from '@/lib/nutrition-plan-locks';
+import { deriveDayCompletionState } from '@/lib/completionState';
+import { CompletionBadge } from '@/components/training/CompletionBadge';
 import { PlanQuestionnairePanel } from '@/components/questionnaire/PlanQuestionnairePanel';
 import { getClientDashboard } from '@/api/nutrition-goals';
 import { PageHeader } from '@/components/layout';
@@ -128,6 +131,14 @@ export default function NutritionPlanPage() {
       fiber: gs?.fiberGrams ?? ob?.fiberGrams ?? 25,
     };
   }, [plan?.globalSettings, clientDashboard]);
+
+  // ── Nutrition plan locks (eaten meals) ──
+  const mealLogs = plan?.mealLogs ?? [];
+  const planLocks = useMemo(
+    () => computeNutritionPlanLocks(plan ?? null, mealLogs),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [plan, mealLogs],
+  );
 
   // ── Warn before unload ──
   useEffect(() => {
@@ -547,6 +558,17 @@ export default function NutritionPlanPage() {
                     {day.badge}
                   </span>
                 )}
+                {(() => {
+                  const dayData = currentWeek?.days.find((d) => d.dayOfWeek === day.index);
+                  const dayMealIds = (dayData?.meals ?? []).map((m) => m.mealId);
+                  const { state: dayState, counts: dayCounts } = deriveDayCompletionState(mealLogs, dayMealIds);
+                  if (dayState === 'not-touched') return null;
+                  return (
+                    <span className="ml-1 inline-flex">
+                      <CompletionBadge kind="day" state={dayState} counts={dayCounts} />
+                    </span>
+                  );
+                })()}
               </button>
             ))}
             {/* Expand week overview toggle */}
@@ -751,6 +773,7 @@ export default function NutritionPlanPage() {
                 removeMealMessage={t('nutrition.removeMealMessage', { name: t(`mealKind.${meal.kind}`) })}
                 cancelLabel={t('common.cancel')}
                 removeLabel={t('nutrition.remove')}
+                locked={planLocks.mealIds.has(meal.mealId)}
               />
             ))}
             </div>

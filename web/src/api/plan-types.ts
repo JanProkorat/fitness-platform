@@ -82,6 +82,25 @@ export interface PlanWeek {
   days: PlanDay[];
 }
 
+/**
+ * Per-meal eaten state derived from a MealLog document.
+ * One entry per (mealId, logDate) pair that has a log record.
+ * Meals without a log entry are absent — equivalent to not-touched.
+ */
+export interface MealLogDto {
+  /** The PlanMeal.mealId this log belongs to. */
+  mealId: string;
+  /** Calendar date this log belongs to (ISO date string, e.g. "2025-05-29"). */
+  logDate: string;
+  /**
+   * Whether the meal has been confirmed as eaten.
+   * false means photo-only / note-only stub — NOT considered eaten.
+   */
+  isEaten: boolean;
+  /** When the meal was eaten; null for stubs. ISO datetime string. */
+  eatenAt: string | null;
+}
+
 /** Full nutrition plan detail returned by the API. */
 export interface NutritionPlanDetail {
   planId: string;
@@ -97,6 +116,11 @@ export interface NutritionPlanDetail {
   startDate?: string | null;
   dateCompleted?: string | null;
   questionnaireResponseId?: string | null;
+  /**
+   * Per-meal eaten state for all MealLog documents associated with this plan.
+   * Empty array when no logs exist (all meals are not-touched).
+   */
+  mealLogs: MealLogDto[];
 }
 
 /** Plan summary for list views. */

@@ -1,17 +1,26 @@
 /**
- * Completion-state derivation helpers for training plan set/exercise/session display.
+ * Completion-state derivation helpers for training plan set/exercise/session display,
+ * and nutrition plan meal/day eaten-state display.
  *
- * The backend never stores completion state flags — it surfaces the raw execution
- * data (CompletedSetsByExercise + IsSessionFinished) from WorkoutLog documents.
- * This module derives the visual states from those primitives.
+ * Training plan:
+ *   The backend never stores completion state flags — it surfaces the raw execution
+ *   data (CompletedSetsByExercise + IsSessionFinished) from WorkoutLog documents.
+ *   This module derives the visual states from those primitives.
  *
- * Disambiguation rules (per backend SessionExecutionDto docstring):
- *   completed      → set's 1-based index is in completedSetsByExercise[exerciseId]
- *   skipped        → isSessionFinished=true AND index NOT in the list
- *   not-yet-reached → isSessionFinished=false (or no execution row for the session)
+ *   Disambiguation rules (per backend SessionExecutionDto docstring):
+ *     completed      → set's 1-based index is in completedSetsByExercise[exerciseId]
+ *     skipped        → isSessionFinished=true AND index NOT in the list
+ *     not-yet-reached → isSessionFinished=false (or no execution row for the session)
+ *
+ * Nutrition plan:
+ *   Eaten state is derived from MealLogDto[] returned by GET /nutrition/plans/{planId}.
+ *   A meal is 'eaten' iff its log entry has isEaten=true.
+ *   A day is 'all-eaten' iff every planned mealId in the day resolves to 'eaten'.
+ *   Meals/days with no log entry are 'not-touched'.
  */
 
 import type { SessionExecutionDto } from '@/api/training-plan-types';
+import type { MealLogDto } from '@/api/plan-types';
 
 // ── Per-set state ────────────────────────────────────────────────────────────
 
@@ -139,4 +148,66 @@ export function deriveSessionCompletionState(
   }
 
   return { state: 'in-progress', counts };
+}
+
+// ── Nutrition plan: per-meal eaten state ─────────────────────────────────────
+
+export type MealCompletionState = 'eaten' | 'not-touched';
+
+/**
+ * Derive the eaten state for a single planned meal.
+ *
+ * A meal is 'eaten' iff at least one MealLogDto exists for the given mealId
+ * with isEaten === true. The logDate is not used for matching — any log entry
+ * with isEaten for this mealId counts. Photo-only stubs (isEaten=false) are
+ * treated the same as no log entry.
+ *
+ * @param mealLogs  Full list from NutritionPlanDetail.mealLogs (may be empty)
+ * @param mealId    The PlanMeal.mealId to check
+ */
+export function deriveMealCompletionState(
+  mealLogs: MealLogDto[] | undefined,
+  mealId: string,
+): MealCompletionState {
+  if (!mealLogs || mealLogs.length === 0) return 'not-touched';
+  const hasEaten = mealLogs.some((log) => log.mealId === mealId && log.isEaten);
+  return hasEaten ? 'eaten' : 'not-touched';
+}
+
+// ── Nutrition plan: per-day eaten state ─────────────────────────────────────
+
+export type DayCompletionState = 'all-eaten' | 'not-touched';
+
+export interface DayCompletionCounts {
+  eaten: number;
+  total: number;
+}
+
+/**
+ * Derive the day-level eaten state from the list of meal ids in a day.
+ *
+ * 'all-eaten' iff every mealId in mealIdsInDay resolves to 'eaten'.
+ * Returns 'not-touched' if the day has no meals or none are eaten.
+ *
+ * @param mealLogs      Full list from NutritionPlanDetail.mealLogs
+ * @param mealIdsInDay  All PlanMeal.mealId values present in the day
+ */
+export function deriveDayCompletionState(
+  mealLogs: MealLogDto[] | undefined,
+  mealIdsInDay: string[],
+): { state: DayCompletionState; counts: DayCompletionCounts } {
+  const total = mealIdsInDay.length;
+  if (total === 0) {
+    return { state: 'not-touched', counts: { eaten: 0, total: 0 } };
+  }
+
+  let eaten = 0;
+  for (const mealId of mealIdsInDay) {
+    if (deriveMealCompletionState(mealLogs, mealId) === 'eaten') {
+      eaten++;
+    }
+  }
+
+  const state: DayCompletionState = eaten === total ? 'all-eaten' : 'not-touched';
+  return { state, counts: { eaten, total } };
 }

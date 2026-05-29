@@ -879,7 +879,12 @@
     "activity_hiit": "HIIT",
     "activity_yoga": "Yoga",
     "activity_cycling": "Cycling",
-    "activity_martial_arts": "Martial arts"
+    "activity_martial_arts": "Martial arts",
+    "completionState": {
+      "mealEaten": "Eaten",
+      "dayAllEaten": "{{eaten}}/{{total}} meals eaten",
+      "mealLockedTooltip": "This meal has been confirmed as eaten by the client and cannot be edited."
+    }
   },
   "training": {
     "title": "Training Plans",
