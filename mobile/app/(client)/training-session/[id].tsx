@@ -2086,8 +2086,8 @@ export default function WorkoutLogScreen() {
   // ── WOD session-level format info ──
   const [sessionFormat, setSessionFormat] = useState<WorkoutFormat | null>(null)
   const [sessionFormatConfig, setSessionFormatConfig] = useState<WodConfig | null>(null)
-  /** When true, the WOD hero is shown for the current section's WOD format. */
-  const [showWodHero, setShowWodHero] = useState(false)
+  // showWodHero removed (#338) — the overlay render site that consumed this
+  // state was a duplicate of the inline Sites #1 and #2. Dead state cleaned up.
   // showSectionRunner was removed — inter-section state now uses phase === 'sectionFinished'
 
   /**
@@ -2225,10 +2225,7 @@ export default function WorkoutLogScreen() {
         // Load sections (falls back to single default section for flat plans)
         const effectiveSections = getEffectiveSections(session, t)
         setSections(effectiveSections)
-        // If the session has a non-Standard format, show WOD hero immediately
-        if (isWodFormat(fmt)) {
-          setShowWodHero(true)
-        }
+        // (showWodHero removed in #338 — overlay was a duplicate of inline render sites)
 
         // Restore the section-finished interstitial if the user backgrounded
         // the screen while sitting on it. The phase state isn't persisted —
@@ -2494,15 +2491,10 @@ export default function WorkoutLogScreen() {
       // Update the active exercise list to the first section's exercises
       setExercises(firstSectionExercises)
       prefillForm(0, 0, firstSectionExercises)
-      // If first section has a WOD format, show the hero overlay
-      if (isWodFormat(resolved.format)) {
-        setShowWodHero(true)
-      }
+      // (showWodHero removed in #338)
     } else {
       prefillForm(0, 0, exercises)
-      if (isWodFormat(sessionFormat)) {
-        setShowWodHero(true)
-      }
+      // (showWodHero removed in #338)
     }
   }, [storeStart, storeAdvanceSection, loadedLogId, activeLogId, exercises, sections, sessionId, planId, prefillForm, sessionFormat, sessionFormatConfig])
 
@@ -2713,7 +2705,6 @@ export default function WorkoutLogScreen() {
   const handleWodFinish = useCallback(
     (sectionId: string, result: WodResult) => {
       storeFinalizeWod(sectionId, result)
-      setShowWodHero(false)
       // After WOD hero, check if there are more sections
       const nextSectionIdx = (currentSectionIdx ?? 0) + 1
       if (nextSectionIdx < sections.length) {
@@ -2738,7 +2729,8 @@ export default function WorkoutLogScreen() {
   )
 
   const handleWodCancel = useCallback(() => {
-    setShowWodHero(false)
+    // showWodHero removed (#338) — nothing to clear for the overlay any more.
+    // Sites #1 and #2 handle their own unmount via phase transitions.
   }, [])
 
   // ── Derived: total sets done (kept for internal logic) ──
@@ -3780,10 +3772,8 @@ export default function WorkoutLogScreen() {
                 setExercises(resolved.exercises)
                 storeAdvance(0, 0)
                 prefillForm(0, 0, resolved.exercises)
-                // No setShowWodHero(true) here — the section-finished CTA
-                // already serves as the "ready?" gate, and the running
-                // phase renders the inline WodTimerHero based on section
-                // format. Showing the overlay here would be redundant.
+                // showWodHero removed (#338) — inline Sites #1 and #2
+                // render WodTimerHero based on phase + section format directly.
                 setFinishedSectionInfo(null)
                 setPhase('running')
               }}
@@ -3852,38 +3842,12 @@ export default function WorkoutLogScreen() {
           since that screen itself is reviewable and reversible (the user can
           back out before tapping "Start next workout"). */}
 
-      {/* Section-level WOD hero overlay — shown when the active section has a WOD format */}
-      {showWodHero && (() => {
-        const activeSectionIdx = currentSectionIdx ?? 0
-        const activeSection = sections[activeSectionIdx]
-        const resolved = activeSection
-          ? resolveSection(activeSection, sessionFormat, sessionFormatConfig)
-          : null
-        if (!resolved || !isWodFormat(resolved.format) || !resolved.formatConfig) return null
-        // When the section has no exercises, site #2 (the inline exercise-free
-        // WOD render at line ~3506) already owns the timer. Returning null here
-        // prevents a duplicate WodTimerHero overlay (fix for #258).
-        if ((activeSection?.exercises?.length ?? 0) === 0) return null
-        const sectionId = activeSection?.sectionId ?? `section-${activeSectionIdx}`
-        const sectionLabel = activeSection?.name ?? sessionDisplayName
-        return (
-          <Animated.View
-            key={`wod-overlay-${sectionId}`}
-            entering={SlideInDown.duration(280)}
-            exiting={SlideOutDown.duration(220)}
-            style={StyleSheet.absoluteFill}
-          >
-            <WodTimerHero
-              label={sectionLabel}
-              format={resolved.format}
-              config={resolved.formatConfig}
-              onFinish={(result) => handleWodFinish(sectionId, result)}
-              onCancel={handleWodCancel}
-              onRoundChange={setCurrentWodRound}
-            />
-          </Animated.View>
-        )
-      })()}
+      {/* Site #3 (overlay, fix/#338) removed — duplicate of the inline render sites.
+          Sites #1 (with-exercise, ~line 3060) and #2 (exercise-free, ~line 3522) each
+          carry their own Animated.View SlideInRight wrapper and thread all three
+          callbacks (onElapsedChange, onRoundsChange, onRoundChange). The overlay
+          was the incomplete duplicate: it omitted onElapsedChange + onRoundsChange,
+          breaking RoadmapPills time-fill and the AMRAP rounds counter. */}
     </SafeAreaView>
   )
 }
