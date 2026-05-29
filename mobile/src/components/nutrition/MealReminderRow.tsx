@@ -46,6 +46,7 @@ export function MealReminderRow({
   const colors = useTheme();
 
   const reminderKey = `meal-${meal.mealId ?? ''}`;
+  const localizedKind = meal.kind ? t(`nutrition.mealKind.${meal.kind}`) : '';
 
   // Initialise state from MMKV on mount.
   const [reminderEnabled, setReminderEnabled] = useState<boolean>(() => {
@@ -74,7 +75,7 @@ export function MealReminderRow({
           time: reminderTime,
           title: t('nutrition.meals.reminder.notificationTitle'),
           body: t('nutrition.meals.reminder.notificationBody', {
-            mealKind: meal.kind ?? '',
+            mealKind: localizedKind,
             dayPart,
           }),
           data: { mealId: meal.mealId ?? '' },
@@ -90,7 +91,7 @@ export function MealReminderRow({
         setReminderEnabled(false);
       }
     },
-    [reminderKey, reminderTime, meal.kind, meal.mealId, dayLabel, t],
+    [reminderKey, reminderTime, localizedKind, meal.mealId, dayLabel, t],
   );
 
   const handleTimeConfirm = useCallback(
@@ -105,14 +106,14 @@ export function MealReminderRow({
           time,
           title: t('nutrition.meals.reminder.notificationTitle'),
           body: t('nutrition.meals.reminder.notificationBody', {
-            mealKind: meal.kind ?? '',
+            mealKind: localizedKind,
             dayPart,
           }),
           data: { mealId: meal.mealId ?? '' },
         });
       }
     },
-    [reminderEnabled, reminderKey, meal.kind, meal.mealId, dayLabel, t],
+    [reminderEnabled, reminderKey, localizedKind, meal.mealId, dayLabel, t],
   );
 
   const styles = makeStyles(colors);
