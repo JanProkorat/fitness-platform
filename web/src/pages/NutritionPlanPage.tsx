@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useNutritionPlanStore } from '@/stores/nutritionPlan';
 import { getPlan, completePlan } from '@/api/plans';
 import { computeNutritionPlanLocks } from '@/lib/nutrition-plan-locks';
-import { deriveDayCompletionState } from '@/lib/completionState';
+import { deriveDayCompletionState, deriveMealCompletionState } from '@/lib/completionState';
 import { CompletionBadge } from '@/components/training/CompletionBadge';
 import { PlanQuestionnairePanel } from '@/components/questionnaire/PlanQuestionnairePanel';
 import { getClientDashboard } from '@/api/nutrition-goals';
@@ -774,6 +774,7 @@ export default function NutritionPlanPage() {
                 cancelLabel={t('common.cancel')}
                 removeLabel={t('nutrition.remove')}
                 locked={planLocks.mealIds.has(meal.mealId)}
+                completionState={deriveMealCompletionState(mealLogs, meal.mealId)}
               />
             ))}
             </div>

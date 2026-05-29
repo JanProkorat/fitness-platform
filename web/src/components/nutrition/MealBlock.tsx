@@ -6,6 +6,8 @@ import { FoodSearch } from './FoodSearch';
 import { RecipeRow } from './RecipeRow';
 import { RecipeSearch } from './RecipeSearch';
 import { MEAL_KIND_CONFIG, type MealKind } from './meal-kind';
+import { CompletionBadge } from '@/components/training/CompletionBadge';
+import type { MealCompletionState } from '@/lib/completionState';
 
 function MealDropZone({ mealId, itemIds, onItemDrop, onReorder, children }: {
   mealId?: string;
@@ -149,6 +151,16 @@ export interface MealBlockProps {
   onTimeChange?: (time: string) => void;
   onDuplicate?: () => void;
   onRemove?: () => void;
+  /**
+   * When true the meal has been confirmed eaten by the client.
+   * Hides remove/add affordances and makes all food/recipe rows read-only.
+   */
+  locked?: boolean;
+  /**
+   * The client-side completion state of this meal. When 'eaten', an inline
+   * badge is rendered next to the meal title in the header row.
+   */
+  completionState?: MealCompletionState;
 }
 
 export function MealBlock({
@@ -176,6 +188,8 @@ export function MealBlock({
   onDuplicate,
   onRemove,
   note,
+  locked = false,
+  completionState,
 }: MealBlockProps) {
   const { t } = useTranslation();
   const accentColor = MEAL_KIND_CONFIG[kind as MealKind]?.color;
@@ -214,7 +228,12 @@ export function MealBlock({
         >
           ▶
         </span>
-        <span className="flex-1 min-w-0 text-[13px] font-semibold truncate">{t(`mealKind.${kind}`)}</span>
+        <span className="flex-1 min-w-0 flex items-center gap-1.5 overflow-hidden">
+          <span className="text-[13px] font-semibold truncate">{t(`mealKind.${kind}`)}</span>
+          {completionState === 'eaten' && (
+            <CompletionBadge kind="meal" state="eaten" />
+          )}
+        </span>
         {onTimeChange && (
           <input
             type="time"
@@ -258,7 +277,7 @@ export function MealBlock({
             ⧉
           </button>
         )}
-        {onRemove && (
+        {onRemove && !locked && (
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onRemove(); }}
@@ -303,6 +322,7 @@ export function MealBlock({
                 onRemove={() => onFoodRemove(food.id)}
                 onNoteChange={onFoodNoteChange ? (n) => onFoodNoteChange(food.id, n) : undefined}
                 accentColor={accentColor}
+                readOnly={locked}
               />
             ))}
 
@@ -318,6 +338,7 @@ export function MealBlock({
                 onRemove={() => onRecipeRemove?.(recipe.recipeId)}
                 onNoteChange={onRecipeNoteChange ? (n) => onRecipeNoteChange(recipe.recipeId, n) : undefined}
                 accentColor={accentColor}
+                readOnly={locked}
               />
             ))}
           </MealDropZone>

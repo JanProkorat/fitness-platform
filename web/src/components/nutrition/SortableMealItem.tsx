@@ -4,7 +4,7 @@ import { MealBlock } from '@/components/nutrition';
 import type { MealBlockFood } from '@/components/nutrition';
 import type { PlanMeal } from '@/api/plan-types';
 import { resolveLocalizedName } from '@/lib/nutrition-helpers';
-import { CompletionBadge } from '@/components/training/CompletionBadge';
+import type { MealCompletionState } from '@/lib/completionState';
 
 interface SortableMealItemProps {
   meal: PlanMeal;
@@ -39,6 +39,10 @@ interface SortableMealItemProps {
    * undefined to MealBlock so it omits them conditionally.
    */
   locked?: boolean;
+  /**
+   * Client-side completion state forwarded to MealBlock for inline badge rendering.
+   */
+  completionState?: MealCompletionState;
 }
 
 /** Sortable wrapper for a meal in the day list */
@@ -68,6 +72,7 @@ export function SortableMealItem({
   cancelLabel,
   removeLabel,
   locked = false,
+  completionState,
 }: SortableMealItemProps) {
 
   const mealFoods: MealBlockFood[] = meal.foods.map((f) => {
@@ -130,11 +135,6 @@ export function SortableMealItem({
         position: 'relative',
       }}
     >
-      {locked && (
-        <div className="absolute right-8 top-2 z-10 pointer-events-none">
-          <CompletionBadge kind="meal" state="eaten" />
-        </div>
-      )}
       <MealBlock
         mealId={meal.mealId}
         dayOfWeek={dayOfWeek}
@@ -161,6 +161,8 @@ export function SortableMealItem({
         onTimeChange={locked ? undefined : onTimeChange}
         onDuplicate={locked ? undefined : onDuplicate}
         onRemove={locked ? undefined : () => setConfirmRemove(true)}
+        locked={locked}
+        completionState={completionState}
       />
       <Dialog
         open={confirmRemove}

@@ -4,20 +4,15 @@ import { useNutritionPlanStore } from '@/stores/nutritionPlan';
 import type { PlanMeal, MealFood } from '@/api/plan-types';
 import AddItemsDrawer from './AddItemsDrawer';
 import { MealKindBadge } from './MealKindBadge';
-import { CompletionBadge } from '@/components/training/CompletionBadge';
 
 interface MealCardProps {
   meal: PlanMeal;
   weekNumber: number;
   dayOfWeek: number;
   targetKcal?: number | null;
-  /** When true: hide remove-meal, hide add-items, make food amounts read-only. */
-  locked?: boolean;
-  /** 'eaten' renders the completion badge; omit or 'not-touched' renders nothing. */
-  completionState?: 'eaten' | 'not-touched';
 }
 
-export default function MealCard({ meal, weekNumber, dayOfWeek, targetKcal, locked = false, completionState = 'not-touched' }: MealCardProps) {
+export default function MealCard({ meal, weekNumber, dayOfWeek, targetKcal }: MealCardProps) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -53,9 +48,6 @@ export default function MealCard({ meal, weekNumber, dayOfWeek, targetKcal, lock
           {targetKcal != null && (
             <span className="text-[9px] text-text3 shrink-0">target {Math.round(targetKcal)}</span>
           )}
-          {completionState === 'eaten' && (
-            <CompletionBadge kind="meal" state="eaten" />
-          )}
         </div>
 
         {meal.time && <span className="text-[11px] text-text3 shrink-0">{meal.time}</span>}
@@ -69,15 +61,13 @@ export default function MealCard({ meal, weekNumber, dayOfWeek, targetKcal, lock
           <span className="text-xs font-medium text-green-400 shrink-0">{totalKcal} kcal</span>
         )}
 
-        {!locked && (
-          <button
-            onClick={() => removeMeal(weekNumber, dayOfWeek, meal.mealId)}
-            className="ml-1 text-xs text-text3 transition-colors hover:text-red-400"
-            title={t('nutrition.remove')}
-          >
-            &times;
-          </button>
-        )}
+        <button
+          onClick={() => removeMeal(weekNumber, dayOfWeek, meal.mealId)}
+          className="ml-1 text-xs text-text3 transition-colors hover:text-red-400"
+          title={t('nutrition.remove')}
+        >
+          &times;
+        </button>
       </div>
 
       {/* Body */}
@@ -108,8 +98,7 @@ export default function MealCard({ meal, weekNumber, dayOfWeek, targetKcal, lock
                           type="number"
                           min={0}
                           value={food.amountGrams}
-                          readOnly={locked}
-                          onChange={locked ? undefined : (e) =>
+                          onChange={(e) =>
                             updateFoodAmount(
                               weekNumber,
                               dayOfWeek,
@@ -137,16 +126,14 @@ export default function MealCard({ meal, weekNumber, dayOfWeek, targetKcal, lock
                         {Math.round((food.nutrientValuePer100Grams.fiber ?? 0) * scale)}
                       </td>
                       <td className="py-1.5 text-right">
-                        {!locked && (
-                          <button
-                            onClick={() =>
-                              removeFood(weekNumber, dayOfWeek, meal.mealId, food.foodExternalId)
-                            }
-                            className="text-text3 transition-colors hover:text-red-400"
-                          >
-                            &times;
-                          </button>
-                        )}
+                        <button
+                          onClick={() =>
+                            removeFood(weekNumber, dayOfWeek, meal.mealId, food.foodExternalId)
+                          }
+                          className="text-text3 transition-colors hover:text-red-400"
+                        >
+                          &times;
+                        </button>
                       </td>
                     </tr>
                   );
@@ -161,23 +148,18 @@ export default function MealCard({ meal, weekNumber, dayOfWeek, targetKcal, lock
       {/* Spacer to push button to bottom */}
       <div className="flex-1" />
 
-      {/* Add items button — hidden when meal is locked (already eaten) */}
-      {!locked && (
-        <>
-          <button
-            onClick={() => setDrawerOpen(true)}
-            className="shrink-0 w-full border-t border-border bg-bg3 py-1.5 text-[9px] font-semibold uppercase text-text3 transition-colors hover:text-accent"
-          >
-            + {t('nutrition.addItems', 'Add Items')}
-          </button>
+      <button
+        onClick={() => setDrawerOpen(true)}
+        className="shrink-0 w-full border-t border-border bg-bg3 py-1.5 text-[9px] font-semibold uppercase text-text3 transition-colors hover:text-accent"
+      >
+        + {t('nutrition.addItems', 'Add Items')}
+      </button>
 
-          <AddItemsDrawer
-            open={drawerOpen}
-            onClose={() => setDrawerOpen(false)}
-            onAdd={handleAddItems}
-          />
-        </>
-      )}
+      <AddItemsDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        onAdd={handleAddItems}
+      />
     </div>
   );
 }

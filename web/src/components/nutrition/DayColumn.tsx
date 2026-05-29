@@ -9,7 +9,7 @@ import AddItemsDrawer from './AddItemsDrawer';
 import DraggableDayHeader from '@/components/training/DraggableDayHeader';
 import { MEAL_KINDS, type MealKind } from './meal-kind';
 import { CompletionBadge } from '@/components/training/CompletionBadge';
-import { deriveMealCompletionState, deriveDayCompletionState } from '@/lib/completionState';
+import { deriveDayCompletionState } from '@/lib/completionState';
 
 interface DayColumnProps {
   day: PlanDay;
@@ -30,16 +30,12 @@ function SortableMealCard({
   dayOfWeek,
   index,
   targetKcal,
-  locked,
-  completionState,
 }: {
   meal: PlanMeal;
   weekNumber: number;
   dayOfWeek: number;
   index: number;
   targetKcal?: number | null;
-  locked?: boolean;
-  completionState?: 'eaten' | 'not-touched';
 }) {
   const { ref, isDragging } = useSortable({
     id: meal.mealId,
@@ -60,8 +56,6 @@ function SortableMealCard({
         weekNumber={weekNumber}
         dayOfWeek={dayOfWeek}
         targetKcal={targetKcal}
-        locked={locked}
-        completionState={completionState}
       />
     </div>
   );
@@ -276,7 +270,6 @@ export default function DayColumn({
 
               if (existingMeal) {
                 const idx = sortedMeals.indexOf(existingMeal);
-                const mealState = deriveMealCompletionState(mealLogs, existingMeal.mealId);
                 return (
                   <SortableMealCard
                     key={existingMeal.mealId}
@@ -285,8 +278,6 @@ export default function DayColumn({
                     dayOfWeek={day.dayOfWeek}
                     index={idx}
                     targetKcal={target}
-                    locked={mealState === 'eaten'}
-                    completionState={mealState}
                   />
                 );
               }
@@ -317,21 +308,16 @@ export default function DayColumn({
                 </div>
               );
             })
-          : sortedMeals.map((meal, idx) => {
-              const mealState = deriveMealCompletionState(mealLogs, meal.mealId);
-              return (
-                <SortableMealCard
-                  key={meal.mealId}
-                  meal={meal}
-                  weekNumber={weekNumber}
-                  dayOfWeek={day.dayOfWeek}
-                  index={idx}
-                  targetKcal={getMealTargetKcal(meal.kind)}
-                  locked={mealState === 'eaten'}
-                  completionState={mealState}
-                />
-              );
-            })
+          : sortedMeals.map((meal, idx) => (
+              <SortableMealCard
+                key={meal.mealId}
+                meal={meal}
+                weekNumber={weekNumber}
+                dayOfWeek={day.dayOfWeek}
+                index={idx}
+                targetKcal={getMealTargetKcal(meal.kind)}
+              />
+            ))
         }
 
         {/* Also render any meals that don't match distribution names (manually added) */}
@@ -341,21 +327,16 @@ export default function DayColumn({
               const k = m.kind.toLowerCase();
               return k === key.toLowerCase() || k === getMealLabel(key).toLowerCase();
             }))
-            .map((meal) => {
-              const mealState = deriveMealCompletionState(mealLogs, meal.mealId);
-              return (
-                <SortableMealCard
-                  key={meal.mealId}
-                  meal={meal}
-                  weekNumber={weekNumber}
-                  dayOfWeek={day.dayOfWeek}
-                  index={sortedMeals.indexOf(meal)}
-                  targetKcal={null}
-                  locked={mealState === 'eaten'}
-                  completionState={mealState}
-                />
-              );
-            })
+            .map((meal) => (
+              <SortableMealCard
+                key={meal.mealId}
+                meal={meal}
+                weekNumber={weekNumber}
+                dayOfWeek={day.dayOfWeek}
+                index={sortedMeals.indexOf(meal)}
+                targetKcal={null}
+              />
+            ))
         }
 
         {/* Add meal */}
