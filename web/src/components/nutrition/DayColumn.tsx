@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSortable } from '@dnd-kit/react/sortable';
 import { useNutritionPlanStore } from '@/stores/nutritionPlan';
-import type { PlanDay, PlanMeal, MealFood, GlobalNutritionSettings } from '@/api/plan-types';
+import type { PlanDay, PlanMeal, MealFood, GlobalNutritionSettings, MealLogDto } from '@/api/plan-types';
 import MacroProgressBar from './MacroProgressBar';
 import MealCard from './MealCard';
 import AddItemsDrawer from './AddItemsDrawer';
 import DraggableDayHeader from '@/components/training/DraggableDayHeader';
 import { MEAL_KINDS, type MealKind } from './meal-kind';
+import { CompletionBadge } from '@/components/training/CompletionBadge';
+import { deriveDayCompletionState } from '@/lib/completionState';
 
 interface DayColumnProps {
   day: PlanDay;
@@ -18,6 +20,8 @@ interface DayColumnProps {
   dailyKcal?: number | null;
   /// When true, the day header becomes a draggable handle for day reorder/copy.
   draggable?: boolean;
+  /** Meal log data from the plan response — used to derive eaten state. */
+  mealLogs?: MealLogDto[];
 }
 
 function SortableMealCard({
@@ -65,6 +69,7 @@ export default function DayColumn({
   mealDistribution,
   dailyKcal,
   draggable: isDraggable,
+  mealLogs,
 }: DayColumnProps) {
   const { t } = useTranslation();
   const addMeal = useNutritionPlanStore((s) => s.addMeal);
@@ -145,6 +150,10 @@ export default function DayColumn({
 
   const sortedMeals = day.meals.slice().sort((a, b) => a.order - b.order);
 
+  // Derive day-level and per-meal eaten states from MealLog data
+  const mealIdList = sortedMeals.map((m) => m.mealId);
+  const { state: dayState, counts: dayCounts } = deriveDayCompletionState(mealLogs, mealIdList);
+
   return (
     <div className="flex w-[336px] shrink-0 flex-1 flex-col rounded-sm border border-border bg-bg2 transition-colors">
       {/* Day header — optionally a drag handle */}
@@ -154,9 +163,12 @@ export default function DayColumn({
           <span className="text-xs font-bold uppercase tracking-wide">
             {dayLabel}
           </span>
-          <span className={`text-xs font-medium ${isOverTarget ? 'text-red-400' : 'text-green-400'}`}>
-            {dayKcal} kcal
-          </span>
+          <div className="flex items-center gap-1.5">
+            <CompletionBadge kind="day" state={dayState} counts={dayCounts} />
+            <span className={`text-xs font-medium ${isOverTarget ? 'text-red-400' : 'text-green-400'}`}>
+              {dayKcal} kcal
+            </span>
+          </div>
         </div>
       </DraggableDayHeader>
       ) : (
@@ -165,9 +177,12 @@ export default function DayColumn({
           <span className="text-xs font-bold uppercase tracking-wide">
             {dayLabel}
           </span>
-          <span className={`text-xs font-medium ${isOverTarget ? 'text-red-400' : 'text-green-400'}`}>
-            {dayKcal} kcal
-          </span>
+          <div className="flex items-center gap-1.5">
+            <CompletionBadge kind="day" state={dayState} counts={dayCounts} />
+            <span className={`text-xs font-medium ${isOverTarget ? 'text-red-400' : 'text-green-400'}`}>
+              {dayKcal} kcal
+            </span>
+          </div>
         </div>
       </div>
       )}

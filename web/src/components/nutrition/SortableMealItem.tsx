@@ -4,6 +4,7 @@ import { MealBlock } from '@/components/nutrition';
 import type { MealBlockFood } from '@/components/nutrition';
 import type { PlanMeal } from '@/api/plan-types';
 import { resolveLocalizedName } from '@/lib/nutrition-helpers';
+import type { MealCompletionState } from '@/lib/completionState';
 
 interface SortableMealItemProps {
   meal: PlanMeal;
@@ -31,6 +32,17 @@ interface SortableMealItemProps {
   removeMealMessage: string;
   cancelLabel: string;
   removeLabel: string;
+  /**
+   * When true the meal has been confirmed eaten by the client.
+   * Hides the remove-meal button, the food/recipe search inputs, and
+   * shows the eaten CompletionBadge. The remove/add affordances pass
+   * undefined to MealBlock so it omits them conditionally.
+   */
+  locked?: boolean;
+  /**
+   * Client-side completion state forwarded to MealBlock for inline badge rendering.
+   */
+  completionState?: MealCompletionState;
 }
 
 /** Sortable wrapper for a meal in the day list */
@@ -59,6 +71,8 @@ export function SortableMealItem({
   removeMealMessage,
   cancelLabel,
   removeLabel,
+  locked = false,
+  completionState,
 }: SortableMealItemProps) {
 
   const mealFoods: MealBlockFood[] = meal.foods.map((f) => {
@@ -118,6 +132,7 @@ export function SortableMealItem({
       style={{
         borderTop: mealOver ? '2px solid var(--accent)' : '2px solid transparent',
         transition: 'border-color 0.1s',
+        position: 'relative',
       }}
     >
       <MealBlock
@@ -134,18 +149,20 @@ export function SortableMealItem({
         onFoodAmountChange={onFoodAmountChange}
         onFoodRemove={onFoodRemove}
         onFoodNoteChange={onFoodNoteChange}
-        onFoodSelect={onFoodSelect}
-        onRecipeSelect={onRecipeSelect}
-        onRecipeServingsChange={onRecipeServingsChange}
-        onRecipeRemove={onRecipeRemove}
+        onFoodSelect={locked ? undefined : onFoodSelect}
+        onRecipeSelect={locked ? undefined : onRecipeSelect}
+        onRecipeServingsChange={locked ? undefined : onRecipeServingsChange}
+        onRecipeRemove={locked ? undefined : onRecipeRemove}
         onRecipeNoteChange={onRecipeNoteChange}
         mealTotalKcal={meal.mealTotals?.kcal ?? 0}
         onNoteChange={onNoteChange}
-        onItemDrop={onItemDrop}
-        onReorder={onReorder}
-        onTimeChange={onTimeChange}
-        onDuplicate={onDuplicate}
-        onRemove={() => setConfirmRemove(true)}
+        onItemDrop={locked ? undefined : onItemDrop}
+        onReorder={locked ? undefined : onReorder}
+        onTimeChange={locked ? undefined : onTimeChange}
+        onDuplicate={locked ? undefined : onDuplicate}
+        onRemove={locked ? undefined : () => setConfirmRemove(true)}
+        locked={locked}
+        completionState={completionState}
       />
       <Dialog
         open={confirmRemove}

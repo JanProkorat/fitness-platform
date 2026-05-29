@@ -888,7 +888,12 @@
     "activity_hiit": "HIIT",
     "activity_yoga": "Jóga",
     "activity_cycling": "Cyklistika",
-    "activity_martial_arts": "Bojové sporty"
+    "activity_martial_arts": "Bojové sporty",
+    "completionState": {
+      "mealEaten": "Snědeno",
+      "dayAllEaten": "{{eaten}}/{{total}} jídel snědeno",
+      "mealLockedTooltip": "Toto jídlo bylo klientem označeno jako snědené a nelze jej upravovat."
+    }
   },
   "training": {
     "title": "Tréninkové plány",

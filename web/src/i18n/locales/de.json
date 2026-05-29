@@ -878,7 +878,12 @@
     "activity_hiit": "HIIT",
     "activity_yoga": "Yoga",
     "activity_cycling": "Radfahren",
-    "activity_martial_arts": "Kampfsport"
+    "activity_martial_arts": "Kampfsport",
+    "completionState": {
+      "mealEaten": "Gegessen",
+      "dayAllEaten": "{{eaten}}/{{total}} Mahlzeiten gegessen",
+      "mealLockedTooltip": "Diese Mahlzeit wurde vom Klienten als gegessen bestätigt und kann nicht bearbeitet werden."
+    }
   },
   "training": {
     "title": "Trainingspläne",
