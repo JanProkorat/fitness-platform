@@ -155,8 +155,10 @@ exact fixture base class name and helpers used.
 2. If you added a new error code, add it to
    `Domain/Constants/ErrorCodes.cs`.
 3. Build: `cd backend && dotnet build`.
-4. Test: `cd backend && dotnet test --filter "FullName~<Action>"` (Docker must
-   be running for Testcontainers).
+4. Test: `cd backend && dotnet test -- --filter-class FitnessPlatform.Tests.Endpoints.<Folder>.<Action>EndpointTests`
+   (Docker must be running for Testcontainers). The leading `--` forwards the
+   option to Microsoft.Testing.Platform; the legacy VSTest
+   `--filter "FullName~..."` syntax is silently ignored under MTP 1.9.x.
 5. If the request/response shape or route changed existing contracts, tell
    the orchestrator to run the `regen-api` skill for `/web` and `/mobile`
    before either client is updated.
@@ -185,10 +187,12 @@ A passing test against a stub doesn't prove anything.
    `ITestUser`/`AuthenticatedHttpClient` helpers. Reference exactly
    ONE existing endpoint test as exemplar (see Read-ONE-exemplar
    in §read-one-exemplar — the patterns are consistent).
-3. **Run the test**: `dotnet test --filter "FullName~<Action>"` — it
-   MUST fail. Confirm the failure mode is what you expect (404 on
-   missing endpoint, not a compilation error). If the test passes
-   against an empty endpoint, the test is wrong — broaden it.
+3. **Run the test**: `dotnet test -- --filter-class FitnessPlatform.Tests.Endpoints.<Folder>.<Action>EndpointTests`
+   — it MUST fail. Confirm the failure mode is what you expect (404
+   on missing endpoint, not a compilation error). If the test passes
+   against an empty endpoint, the test is wrong — broaden it. (The
+   legacy VSTest `--filter "FullName~..."` syntax is silently ignored
+   under MTP 1.9.x — see `rules/verification.md`.)
 4. **Scaffold the Request / Response / Validator / Endpoint** (the
    non-TDD steps above) with **minimal logic** to make the test
    pass. Don't gold-plate. No extra error paths, no extra fields.
