@@ -1,5 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import type { ExerciseSet, MovementType } from '@/api/training-plan-types';
+import type { SetCompletionState } from '@/lib/completionState';
+import { CompletionBadge } from '@/components/training/CompletionBadge';
 
 interface SetRowProps {
   set: ExerciseSet;
@@ -7,6 +9,8 @@ interface SetRowProps {
   onUpdate: (updates: Partial<ExerciseSet>) => void;
   onDuplicate?: () => void;
   onRemove: () => void;
+  /** Completion state for this set (additive display-only; omit to render nothing). */
+  completionState?: SetCompletionState;
 }
 
 /**
@@ -17,7 +21,7 @@ interface SetRowProps {
  *   Distance    → distance + duration + rest
  *   RepsForTime → reps + rest
  */
-export function SetRow({ set, movementType, onUpdate, onDuplicate, onRemove }: SetRowProps) {
+export function SetRow({ set, movementType, onUpdate, onDuplicate, onRemove, completionState }: SetRowProps) {
   const { t } = useTranslation();
 
   // Shared input styling. Values are centered in their columns so that the
@@ -117,7 +121,9 @@ export function SetRow({ set, movementType, onUpdate, onDuplicate, onRemove }: S
         : movementType === 'Time'
           ? '90px 90px'
           : '68px 90px'; // RepsForTime
-  const gridCols = `28px 1fr ${valueCols} 56px`;
+  // The completion-badge column is always present in the grid (24 px) so the
+  // action-button column stays aligned regardless of whether a badge renders.
+  const gridCols = `28px 1fr ${valueCols} 24px 56px`;
 
   return (
     <div
@@ -134,6 +140,13 @@ export function SetRow({ set, movementType, onUpdate, onDuplicate, onRemove }: S
       <span />
 
       {renderColumns()}
+
+      {/* Completion badge — set-level indicator (Check / SkipForward / nothing). */}
+      <div className="flex items-center justify-center">
+        {completionState !== undefined && (
+          <CompletionBadge kind="set" state={completionState} />
+        )}
+      </div>
 
       {/* Trailing actions: duplicate (⧉) + remove (✕). Both always visible —
           the small icons sit at low contrast (text4) and only intensify on

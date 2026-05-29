@@ -24,6 +24,8 @@ import { cn } from '@/lib/cn';
 import { isDayInPast, isWeekFinished, todayWeekdayInPlan, weekStartDate } from '@/lib/training-plan-dates';
 import { estimatedSectionDurationSeconds, formatDurationCompact } from '@/lib/training-plan-format';
 import { computePlanLocks, exerciseLockKey } from '@/lib/training-plan-locks';
+import { deriveSessionCompletionState } from '@/lib/completionState';
+import { CompletionBadge } from '@/components/training/CompletionBadge';
 import { DayNoteInput } from '@/components/common/DayNoteInput';
 import { CheckInBanner } from '@/components/weekly-checkin/CheckInBanner';
 import { PlanPhotosTab } from '@/components/photos/PlanPhotosTab';
@@ -923,7 +925,7 @@ export default function TrainingPlanPage() {
                         style={{ fontFamily: 'inherit' }}
                       />
                     </span>
-                    <span className="text-xs text-text3 tabular-nums">
+                    <span className="text-xs text-text3 tabular-nums inline-flex items-center gap-1.5 flex-wrap">
                       {(() => {
                         const total = session.sections.length;
                         const durations = session.sections.map((sec) =>
@@ -937,6 +939,26 @@ export default function TrainingPlanPage() {
                           parts.push(t('training.workoutUntimedCount', { count: untimedCount }));
                         }
                         return parts.join(' · ');
+                      })()}
+                      {(() => {
+                        // Session-level completion badge — derive from execution data.
+                        const allExercises = session.sections.flatMap((sec) => sec.exercises);
+                        const sessionExec = plan?.sessionExecutions?.find(
+                          (e) => e.sessionId === session.sessionId,
+                        );
+                        const { state, counts } = deriveSessionCompletionState(
+                          sessionExec ? [sessionExec] : undefined,
+                          session.sessionId,
+                          allExercises,
+                        );
+                        if (state === 'none' || state === 'in-progress') return null;
+                        return (
+                          <CompletionBadge
+                            kind="session"
+                            state={state}
+                            counts={counts}
+                          />
+                        );
                       })()}
                     </span>
                     <button
@@ -1115,6 +1137,11 @@ export default function TrainingPlanPage() {
                             )}
                             exerciseDetailsMap={exerciseDetailsMap}
                             exerciseFullMap={exerciseFullMap}
+                            sessionExecution={
+                              plan?.sessionExecutions?.find(
+                                (e) => e.sessionId === session.sessionId,
+                              )
+                            }
                             onUpdate={(patch) =>
                               updateSection(selectedWeek, session.sessionId, section.sectionId, patch)
                             }

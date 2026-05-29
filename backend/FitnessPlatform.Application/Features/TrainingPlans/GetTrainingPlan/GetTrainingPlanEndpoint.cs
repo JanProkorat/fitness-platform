@@ -10,6 +10,8 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
 
 /// <summary>
 /// Retrieves a single training plan with full detail (weeks, sessions, exercises, sets).
+/// Also returns per-session WorkoutLog execution data so the web layer can render
+/// completed / skipped / not-yet-reached indicators on each set.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 public class GetTrainingPlanEndpoint(IMongoContext mongo) : Endpoint<GetTrainingPlanRequest, GetTrainingPlanResponse>
@@ -22,7 +24,8 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo) : Endpoint<GetTraining
         Summary(s =>
         {
             s.Summary = "Get a training plan";
-            s.Description = "Returns the full training plan with all weeks, sessions, exercises, and sets.";
+            s.Description = "Returns the full training plan with all weeks, sessions, exercises, sets, " +
+                             "and per-session workout-log execution data (completed/skipped set indicators).";
         });
     }
 
@@ -43,6 +46,7 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo) : Endpoint<GetTraining
         var cursor = await mongo.TrainingPlans.FindAsync(filter, cancellationToken: ct);
         var plan = await cursor.FirstOrDefaultAsync(ct);
 
+        // Ownership gate: treat "not mine" as "not found" to avoid existence leak.
         if (plan is null || plan.TrainerId != trainerId)
         {
             await Send.NotFoundAsync(ct);
@@ -51,6 +55,7 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo) : Endpoint<GetTraining
 
         var response = GetTrainingPlanResponse.FromDocument(plan);
 
+        // ── 1. TrainingCompletion fold-in (existing behaviour, unchanged) ─────────
         var completionFilter = Builders<TrainingCompletion>.Filter.Eq(c => c.ClientId, plan.ClientId);
         var completionSort = Builders<TrainingCompletion>.Sort
             .Ascending(c => c.Date)
@@ -96,6 +101,70 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo) : Endpoint<GetTraining
                 };
             })
             .ToList();
+
+        // ── 2. WorkoutLog fold-in — builds SessionExecutions ─────────────────────
+        // Query WorkoutLogs by PlanId only. Ownership is already validated above
+        // (plan.TrainerId == trainerId), so there is no IDOR risk here.
+        //
+        // WorkoutLog.ClientId stores ApplicationUser.Id (not ClientProfile.PublicId),
+        // but since we filter by PlanId the data cannot belong to a different client.
+        var logFilter = Builders<WorkoutLog>.Filter.Eq(l => l.PlanId, req.PlanId);
+        var logCursor = await mongo.WorkoutLogs.FindAsync(logFilter, cancellationToken: ct);
+        var workoutLogs = await logCursor.ToListAsync(ct);
+
+        if (workoutLogs.Count > 0)
+        {
+            // Deduplicate per sessionId:
+            //   - Prefer the most-recently-updated FINALISED log (IsCompleted=true).
+            //   - Fall back to the most recent in-progress log.
+            //   This mirrors the precedence rule in the client GetFullPlan endpoint.
+            var bestLogBySession = workoutLogs
+                .Where(l => l.SessionId.HasValue)
+                .GroupBy(l => l.SessionId!.Value)
+                .Select(g =>
+                {
+                    var finalised = g
+                        .Where(l => l.IsCompleted)
+                        .OrderByDescending(l => l.DateUpdated ?? l.DateCreated)
+                        .FirstOrDefault();
+
+                    return finalised ?? g
+                        .OrderByDescending(l => l.DateUpdated ?? l.DateCreated)
+                        .First();
+                })
+                .ToList();
+
+            response.SessionExecutions = bestLogBySession
+                .Select(log =>
+                {
+                    // Apply schema-on-read backfill for legacy flat-exercise documents.
+                    log.WithBackfilledSections();
+
+                    // Build the per-exercise map of completed set numbers.
+                    // A set is "completed" iff its WorkoutSet.CompletedAt is non-null.
+                    var completedSetsByExercise = new Dictionary<Guid, List<int>>();
+
+                    foreach (var ex in log.Exercises)
+                    {
+                        var completedSetNumbers = ex.Sets
+                            .Where(s => s.CompletedAt.HasValue)
+                            .Select(s => s.SetNumber)
+                            .OrderBy(n => n)
+                            .ToList();
+
+                        if (completedSetNumbers.Count > 0)
+                            completedSetsByExercise[ex.ExerciseExternalId] = completedSetNumbers;
+                    }
+
+                    return new SessionExecutionDto
+                    {
+                        SessionId = log.SessionId!.Value,
+                        IsSessionFinished = log.IsCompleted,
+                        CompletedSetsByExercise = completedSetsByExercise
+                    };
+                })
+                .ToList();
+        }
 
         await Send.OkAsync(response, ct);
     }

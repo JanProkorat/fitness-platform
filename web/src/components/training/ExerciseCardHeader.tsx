@@ -3,6 +3,8 @@ import type { MuscleGroup } from '@/api/exercise-types';
 import { cn } from '@/lib/cn';
 import { MUSCLE_COLORS, MUSCLE_BG_COLORS, MUSCLE_ICONS } from '@/constants/training';
 import type { SessionExercise } from '@/api/training-plan-types';
+import type { ExerciseCompletionState, ExerciseCounts } from '@/lib/completionState';
+import { CompletionBadge } from '@/components/training/CompletionBadge';
 
 interface ExerciseCardHeaderProps {
   exercise: SessionExercise;
@@ -31,6 +33,10 @@ interface ExerciseCardHeaderProps {
    *  row to inspect read-only content (finished exercise, past-day,
    *  finished session). */
   disabled?: boolean;
+  /** Aggregate completion state for this exercise (additive, display-only). */
+  exerciseCompletionState?: ExerciseCompletionState;
+  /** Counts for the aggregate badge (required when exerciseCompletionState is set). */
+  exerciseCounts?: ExerciseCounts;
 }
 
 export function ExerciseCardHeader({
@@ -48,6 +54,8 @@ export function ExerciseCardHeader({
   difficulty,
   isWod,
   disabled,
+  exerciseCompletionState,
+  exerciseCounts,
 }: ExerciseCardHeaderProps) {
   const { t } = useTranslation();
 
@@ -101,6 +109,13 @@ export function ExerciseCardHeader({
                 ? `${repsStr ?? '–'} · ${weightStr ?? '–'} kg`
                 : `${setsCount ?? 0}×${repsStr ?? '–'} · ${weightStr ?? '–'} kg`)}
           </span>
+          {exerciseCompletionState !== undefined && exerciseCounts !== undefined && (
+            <CompletionBadge
+              kind="exercise"
+              state={exerciseCompletionState}
+              counts={exerciseCounts}
+            />
+          )}
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { TrainingSection, WorkoutFormat, MovementType } from '@/api/training-plan-types';
+import type { TrainingSection, WorkoutFormat, MovementType, SessionExecutionDto } from '@/api/training-plan-types';
 import type { MuscleGroup } from '@/api/exercise-types';
 import { ExerciseSearch } from '@/components/training/ExerciseSearch';
 import { ExerciseCardHeader } from '@/components/training/ExerciseCardHeader';
@@ -12,6 +12,10 @@ import { SectionFormatConfigRow } from '@/components/training/SectionFormatConfi
 import { cn } from '@/lib/cn';
 import { formatExerciseSummary } from '@/lib/training-plan-format';
 import type { ExerciseSet } from '@/api/training-plan-types';
+import {
+  deriveSetCompletionState,
+  deriveExerciseCompletionState,
+} from '@/lib/completionState';
 
 /**
  * Left accent bar — Tailwind border-l color classes per format.
@@ -58,6 +62,12 @@ interface SectionCardProps extends SectionCardCallbacks {
   isSectionLocked?: boolean;
   /** Exercise IDs that the client has marked complete; their inputs are locked. */
   lockedExerciseIds?: Set<string>;
+  /**
+   * Execution data for the parent session, used to derive per-set / per-exercise
+   * completion state. Pass undefined (or omit) when the plan has no execution data
+   * — all badges will be hidden in that case.
+   */
+  sessionExecution?: SessionExecutionDto;
 }
 
 export function SectionCard({
@@ -82,6 +92,7 @@ export function SectionCard({
   onSaveAsTemplate,
   exerciseDetailsMap,
   exerciseFullMap,
+  sessionExecution,
 }: SectionCardProps) {
   const { t } = useTranslation();
   const [collapsedExercises, setCollapsedExercises] = useState<Set<number>>(new Set());
@@ -307,6 +318,16 @@ export function SectionCard({
               const isExerciseLocked =
                 lockedExerciseIds?.has(ex.exerciseExternalId) ?? false;
 
+              // Derive completion state for this exercise (additive, display-only).
+              // sessionExecution is pre-filtered to this session by the parent.
+              const { state: exCompletionState, counts: exCounts } =
+                deriveExerciseCompletionState(
+                  sessionExecution ? [sessionExecution] : undefined,
+                  sessionExecution?.sessionId ?? '',
+                  ex.exerciseExternalId,
+                  ex.sets.length,
+                );
+
               return (
                 <div
                   key={exKey}
@@ -350,6 +371,9 @@ export function SectionCard({
                     // page-level prop) OR when this specific exercise is
                     // finished by the client. Chevron stays clickable.
                     disabled={isSectionLocked || isExerciseLocked}
+                    // Completion state (additive, display-only).
+                    exerciseCompletionState={exCompletionState}
+                    exerciseCounts={exCounts}
                   />
 
                   <div className="collapse-grid" data-open={isExOpen}>
@@ -400,19 +424,20 @@ export function SectionCard({
                                 so each label sits exactly above its column. */}
                             <div
                               className="grid gap-2 mb-1 items-center text-[10px] font-medium text-text3 uppercase"
-                              style={{ gridTemplateColumns: '28px 1fr 68px 68px 90px 56px' }}
+                              style={{ gridTemplateColumns: '28px 1fr 68px 68px 90px 24px 56px' }}
                             >
-                              {/* Match SetRow's 6-column grid AND its child
+                              {/* Match SetRow's 7-column grid AND its child
                                   order: setNumber (col 1), 1fr spacer (col 2),
-                                  weight / reps / rest (cols 3-5), remove
-                                  button (col 6). `whitespace-nowrap` keeps
-                                  longer labels like "ODPOČINEK (S)" on one
-                                  line. */}
+                                  weight / reps / rest (cols 3-5), completion
+                                  badge (col 6), remove button (col 7).
+                                  `whitespace-nowrap` keeps longer labels like
+                                  "ODPOČINEK (S)" on one line. */}
                               <span className="text-center whitespace-nowrap">{t('training.setsLabel')}</span>
                               <span />
                               <span className="text-center whitespace-nowrap">{t('training.weightLabel')}</span>
                               <span className="text-center whitespace-nowrap">{t('training.repsLabel')}</span>
                               <span className="text-center whitespace-nowrap">{t('training.restSecondsLabel')}</span>
+                              <span />
                               <span />
                             </div>
 
@@ -425,6 +450,16 @@ export function SectionCard({
                                 onUpdate={(updates) => onUpdateSet(exIdx, sIdx, updates)}
                                 onDuplicate={() => onDuplicateSet(exIdx, sIdx)}
                                 onRemove={() => onRemoveSet(exIdx, sIdx)}
+                                completionState={
+                                  sessionExecution
+                                    ? deriveSetCompletionState(
+                                        [sessionExecution],
+                                        sessionExecution.sessionId,
+                                        ex.exerciseExternalId,
+                                        s.setNumber,
+                                      )
+                                    : undefined
+                                }
                               />
                             ))}
 

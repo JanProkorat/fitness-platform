@@ -149,6 +149,28 @@ export interface TrainingPlanCompletion {
   version: number;
 }
 
+/**
+ * Per-session workout-log execution data returned by the trainer endpoint.
+ * Used to derive completed / skipped / not-yet-reached states per set.
+ *
+ * Disambiguation rule (derived, never stored):
+ * - completed     → set's 1-based index is in completedSetsByExercise[exerciseId]
+ * - skipped       → isSessionFinished=true AND the index is NOT in the list
+ * - not-yet-reached → isSessionFinished=false (or no row for this session)
+ */
+export interface SessionExecutionDto {
+  /** Matches TrainingSession.sessionId */
+  sessionId: string;
+  /** True when the client finalised the workout log (WorkoutLog.IsCompleted). */
+  isSessionFinished: boolean;
+  /**
+   * Key = exerciseExternalId (matches SessionExercise.exerciseExternalId).
+   * Value = sorted list of 1-based set numbers that were stamped as complete.
+   * An absent key means no sets for that exercise were logged.
+   */
+  completedSetsByExercise: Record<string, number[]>;
+}
+
 /** Full training plan detail. */
 export interface TrainingPlanDetail {
   planId: string;
@@ -160,6 +182,12 @@ export interface TrainingPlanDetail {
   weeks: TrainingWeek[];
   /** Per-(date,session) completion records — one entry per (date, sessionId). */
   completions?: TrainingPlanCompletion[];
+  /**
+   * Per-session workout-log execution data for the plan's client.
+   * One entry per session that has at least one WorkoutLog record.
+   * Sessions with no entry are treated as fully not-yet-reached.
+   */
+  sessionExecutions?: SessionExecutionDto[];
   version: number;
   dateCreated: string;
   dateUpdated?: string | null;

@@ -1143,6 +1143,14 @@
       "deleteConfirmTitle": "Workout löschen",
       "deleteConfirmMessage": "Möchten Sie das Workout «{{name}}» wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
       "versionConflict": "Workout wurde anderswo geändert, wird neu geladen."
+    },
+    "completionState": {
+      "setCompleted": "Abgeschlossen",
+      "setSkipped": "Übersprungen",
+      "exerciseCompleted": "{{done}}/{{total}} abgeschlossen",
+      "exerciseSkippedSuffix": "{{count}} übersprungen",
+      "sessionAllComplete": "Alles erledigt",
+      "sessionMixed": "{{completed}} abgeschlossen · {{skipped}} übersprungen"
     }
   },
   "exercises": {
