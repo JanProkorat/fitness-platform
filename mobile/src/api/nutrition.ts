@@ -24,6 +24,7 @@ import type {
   DayPhotoDto,
   GetTodayDayLogResponse,
 } from './generated';
+import type { SupplementDto, FullPlanResponseWithSupplements } from './plan-types';
 
 // Re-export generated types and enums so consumer imports (`from '@/api/nutrition'`) still work.
 export { MealKind, DayPhotoCategory };
@@ -51,6 +52,11 @@ export type {
   DayPhotoDto,
   GetTodayDayLogResponse,
 };
+
+// Re-export hand-maintained supplement types (issue #332).
+// Once regen-api runs against the updated backend, these will be superseded
+// by the generated types and this export can be removed.
+export type { SupplementDto, FullPlanResponseWithSupplements } from './plan-types';
 
 /**
  * @deprecated Use `GetTodayPlanResponse` from generated. Kept as alias for backward compatibility.
@@ -83,9 +89,14 @@ export type WeekPlanResponse = GetWeekPlanResponse;
 export type ShoppingListResponse = GetShoppingListResponse;
 
 /**
- * @deprecated Use `GetFullPlanResponse` from generated. Kept as alias for backward compatibility.
+ * GetFullPlanResponse extended with the supplements field added in #332.
+ * The supplements field is present in the backend response but not yet in
+ * generated.ts (pending regen-api). This intersection type bridges the gap
+ * until regen runs, at which point it becomes a simple alias.
+ *
+ * Replaces the previous deprecated `FullPlanResponse = GetFullPlanResponse` alias.
  */
-export type FullPlanResponse = GetFullPlanResponse;
+export type FullPlanResponse = GetFullPlanResponse & FullPlanResponseWithSupplements;
 
 /**
  * @deprecated Use `GetClientPlansResponse` from generated. Kept as alias for backward compatibility.
@@ -212,8 +223,8 @@ export async function getClientPlans(status?: PlanStatus): Promise<GetClientPlan
   return data;
 }
 
-export async function getFullPlan(): Promise<GetFullPlanResponse> {
-  const { data } = await api.get<GetFullPlanResponse>('/client/nutrition/plan/full');
+export async function getFullPlan(): Promise<FullPlanResponse> {
+  const { data } = await api.get<FullPlanResponse>('/client/nutrition/plan/full');
   return data;
 }
 

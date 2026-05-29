@@ -721,7 +721,23 @@
       "PreWorkout": "Před tréninkem",
       "PostWorkout": "Po tréninku"
     },
-    "photoCta": "Foto"
+    "photoCta": "Foto",
+    "supplements": {
+      "sectionTitle": "Doporučené suplementy",
+      "reminderToggle": {
+        "label": "Připomenutí"
+      },
+      "reminderTime": {
+        "label": "Čas připomenutí",
+        "picker": {
+          "title": "Vybrat čas připomenutí"
+        }
+      }
+    },
+    "reminders": {
+      "title": "Připomenutí",
+      "body": "Nezapomeň si vzít {{name}}"
+    }
   },
   "mealLogPhoto": {
     "photoSectionLabel": "Přidej fotky (volitelné)",

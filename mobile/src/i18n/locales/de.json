@@ -742,7 +742,23 @@
       "PreWorkout": "Vor dem Training",
       "PostWorkout": "Nach dem Training"
     },
-    "photoCta": "Foto"
+    "photoCta": "Foto",
+    "supplements": {
+      "sectionTitle": "Empfohlene Nahrungsergänzungsmittel",
+      "reminderToggle": {
+        "label": "Erinnerung"
+      },
+      "reminderTime": {
+        "label": "Erinnerungszeit",
+        "picker": {
+          "title": "Erinnerungszeit auswählen"
+        }
+      }
+    },
+    "reminders": {
+      "title": "Erinnerung",
+      "body": "Vergiss nicht, {{name}} zu nehmen"
+    }
   },
   "training": {
     "title": "Training",

@@ -966,7 +966,23 @@
       "PreWorkout": "Pre-workout",
       "PostWorkout": "Post-workout"
     },
-    "photoCta": "Photo"
+    "photoCta": "Photo",
+    "supplements": {
+      "sectionTitle": "Recommended supplements",
+      "reminderToggle": {
+        "label": "Reminder"
+      },
+      "reminderTime": {
+        "label": "Reminder time",
+        "picker": {
+          "title": "Select reminder time"
+        }
+      }
+    },
+    "reminders": {
+      "title": "Reminder",
+      "body": "Don't forget to take {{name}}"
+    }
   },
   "mealLogPhoto": {
     "photoSectionLabel": "Add photos (optional)",
