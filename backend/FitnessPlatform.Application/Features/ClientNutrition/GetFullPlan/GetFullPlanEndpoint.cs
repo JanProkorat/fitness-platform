@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Features.NutritionPlans.GetPlan;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
@@ -182,6 +183,13 @@ public class GetFullPlanEndpoint(IMongoContext mongo, IApplicationDbContext db) 
             QuestionnaireResponseId = plan.QuestionnaireResponseId,
             DateCompleted = plan.DateCompleted,
             EatenMealIds = [..eatenMealIds],
+            Supplements = plan.Supplements.Select(s => new SupplementDto
+            {
+                ExternalId = s.ExternalId,
+                Name = s.Name,
+                Dose = s.Dose,
+                Notes = s.Notes
+            }).ToList(),
         }, ct);
     }
 }

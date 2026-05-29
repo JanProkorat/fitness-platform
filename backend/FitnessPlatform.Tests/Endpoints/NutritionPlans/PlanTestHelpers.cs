@@ -243,7 +243,7 @@ public static class PlanTestHelpers
     }
 
     /// <summary>
-    /// Creates a mock <see cref="IMongoCollection{MealLog}"/> supporting FindAsync.
+    /// Creates a mock <see cref="IMongoCollection{MealLog}"/> supporting FindAsync (with and without projection).
     /// </summary>
     private static IMongoCollection<MealLog> CreateMockMealLogCollection(List<MealLog> mealLogs)
     {
@@ -254,6 +254,30 @@ public static class PlanTestHelpers
                 Arg.Any<FindOptions<MealLog, MealLog>>(),
                 Arg.Any<CancellationToken>())
             .Returns(_ => CreateMealLogCursor(mealLogs));
+
+        // Also mock the projected FindAsync used by Find().Project(m => m.MealId).ToListAsync()
+        // which dispatches FindAsync<MealLog, Guid> internally.
+        var mealIds = mealLogs.Select(m => m.MealId).ToList();
+        var guidCursor = Substitute.For<IAsyncCursor<Guid>>();
+        var guidMoved = false;
+        guidCursor.Current.Returns(mealIds);
+        guidCursor.MoveNext(Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            if (guidMoved) return false;
+            guidMoved = true;
+            return mealIds.Count > 0;
+        });
+        guidCursor.MoveNextAsync(Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            if (guidMoved) return false;
+            guidMoved = true;
+            return mealIds.Count > 0;
+        });
+        collection.FindAsync(
+                Arg.Any<FilterDefinition<MealLog>>(),
+                Arg.Any<FindOptions<MealLog, Guid>>(),
+                Arg.Any<CancellationToken>())
+            .Returns(guidCursor);
 
         return collection;
     }

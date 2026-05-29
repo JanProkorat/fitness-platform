@@ -3,6 +3,24 @@ using FitnessPlatform.Application.Domain.Documents;
 namespace FitnessPlatform.Application.Features.NutritionPlans.GetPlan;
 
 /// <summary>
+/// A supplement entry in a nutrition plan response DTO.
+/// </summary>
+public class SupplementDto
+{
+    /// <summary>Stable public identifier for the supplement.</summary>
+    public Guid ExternalId { get; set; }
+
+    /// <summary>Name of the supplement.</summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>Optional dosage instruction.</summary>
+    public string? Dose { get; set; }
+
+    /// <summary>Optional additional notes.</summary>
+    public string? Notes { get; set; }
+}
+
+/// <summary>
 /// Per-meal eaten state derived from a <see cref="MealLog"/> document.
 /// Lets the web layer render eaten/not-touched indicators and lock editing
 /// affordances on meals the client has already confirmed as eaten.
@@ -130,6 +148,11 @@ public class GetPlanResponse
     public List<MealLogDto> MealLogs { get; set; } = [];
 
     /// <summary>
+    /// Supplement recommendations attached to this plan.
+    /// </summary>
+    public List<SupplementDto> Supplements { get; set; } = [];
+
+    /// <summary>
     /// Maps a <see cref="NutritionPlan"/> document to a detailed response DTO.
     /// </summary>
     /// <param name="plan">The nutrition plan document.</param>
@@ -148,6 +171,13 @@ public class GetPlanResponse
         DateUpdated = plan.DateUpdated,
         StartDate = plan.StartDate,
         DateCompleted = plan.DateCompleted,
-        QuestionnaireResponseId = plan.QuestionnaireResponseId
+        QuestionnaireResponseId = plan.QuestionnaireResponseId,
+        Supplements = plan.Supplements.Select(s => new SupplementDto
+        {
+            ExternalId = s.ExternalId,
+            Name = s.Name,
+            Dose = s.Dose,
+            Notes = s.Notes
+        }).ToList()
     };
 }

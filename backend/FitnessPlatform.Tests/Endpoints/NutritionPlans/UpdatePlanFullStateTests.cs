@@ -308,4 +308,233 @@ public class UpdatePlanFullStateTests
             Arg.Any<ReplaceOptions>(),
             Arg.Any<CancellationToken>());
     }
+
+    // ── Supplement tests ──────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task HandleAsync_AddSupplements_PersistsAndReturnsInOrder()
+    {
+        // Arrange
+        var planId = Guid.NewGuid();
+        var plan = PlanTestHelpers.CreatePlan(
+            externalId: planId,
+            nutritionistId: _nutritionistId,
+            weekCount: 1,
+            version: 1);
+
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+        var macroCalc = Substitute.For<IMacroCalculatorService>();
+        var ep = CreateEndpoint(mongo, macroCalc);
+
+        var suppAId = Guid.NewGuid();
+        var suppBId = Guid.NewGuid();
+
+        var req = new UpdatePlanRequest
+        {
+            PlanId = planId,
+            Name = "Plan With Supplements",
+            Version = 1,
+            Weeks = [BuildWeekRequest(weekNumber: 1)],
+            Supplements =
+            [
+                new UpdateSupplementRequest { ExternalId = suppAId, Name = "Vitamin D3", Dose = "1 capsule" },
+                new UpdateSupplementRequest { ExternalId = suppBId, Name = "Omega-3", Notes = "Take with fatty meal" }
+            ]
+        };
+
+        // Act
+        await ep.HandleAsync(req, TestContext.Current.CancellationToken);
+
+        // Assert — both supplements persisted in order with correct fields
+        await mongo.NutritionPlans.Received(1).ReplaceOneAsync(
+            Arg.Any<FilterDefinition<NutritionPlan>>(),
+            Arg.Is<NutritionPlan>(p =>
+                p.Supplements.Count == 2 &&
+                p.Supplements[0].ExternalId == suppAId &&
+                p.Supplements[0].Name == "Vitamin D3" &&
+                p.Supplements[0].Dose == "1 capsule" &&
+                p.Supplements[1].ExternalId == suppBId &&
+                p.Supplements[1].Name == "Omega-3" &&
+                p.Supplements[1].Notes == "Take with fatty meal"),
+            Arg.Any<ReplaceOptions>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleAsync_UpdateSupplementName_VersionIncrementsAndNewNamePersisted()
+    {
+        // Arrange — plan already has a supplement
+        var planId = Guid.NewGuid();
+        var suppId = Guid.NewGuid();
+        var plan = PlanTestHelpers.CreatePlan(
+            externalId: planId,
+            nutritionistId: _nutritionistId,
+            weekCount: 1,
+            version: 3);
+        plan.Supplements =
+        [
+            new Supplement { ExternalId = suppId, Name = "Old Name", Dose = "2 capsules" }
+        ];
+
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+        var macroCalc = Substitute.For<IMacroCalculatorService>();
+        var ep = CreateEndpoint(mongo, macroCalc);
+
+        var req = new UpdatePlanRequest
+        {
+            PlanId = planId,
+            Name = plan.Name,
+            Version = 3,
+            Weeks = [BuildWeekRequest(weekNumber: 1)],
+            Supplements =
+            [
+                new UpdateSupplementRequest { ExternalId = suppId, Name = "New Name", Dose = "2 capsules" }
+            ]
+        };
+
+        // Act
+        await ep.HandleAsync(req, TestContext.Current.CancellationToken);
+
+        // Assert — name updated, version bumped to 4
+        await mongo.NutritionPlans.Received(1).ReplaceOneAsync(
+            Arg.Any<FilterDefinition<NutritionPlan>>(),
+            Arg.Is<NutritionPlan>(p =>
+                p.Version == 4 &&
+                p.Supplements.Count == 1 &&
+                p.Supplements[0].ExternalId == suppId &&
+                p.Supplements[0].Name == "New Name"),
+            Arg.Any<ReplaceOptions>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleAsync_DeleteSupplementByOmission_PersistedPlanHasNoSupplements()
+    {
+        // Arrange — plan has one supplement; PUT omits it (full-state replace removes it)
+        var planId = Guid.NewGuid();
+        var suppId = Guid.NewGuid();
+        var plan = PlanTestHelpers.CreatePlan(
+            externalId: planId,
+            nutritionistId: _nutritionistId,
+            weekCount: 1,
+            version: 1);
+        plan.Supplements =
+        [
+            new Supplement { ExternalId = suppId, Name = "Vitamin C" }
+        ];
+
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+        var macroCalc = Substitute.For<IMacroCalculatorService>();
+        var ep = CreateEndpoint(mongo, macroCalc);
+
+        var req = new UpdatePlanRequest
+        {
+            PlanId = planId,
+            Name = plan.Name,
+            Version = 1,
+            Weeks = [BuildWeekRequest(weekNumber: 1)],
+            Supplements = []   // deliberately empty — removes the supplement
+        };
+
+        // Act
+        await ep.HandleAsync(req, TestContext.Current.CancellationToken);
+
+        // Assert — no supplements in persisted document
+        await mongo.NutritionPlans.Received(1).ReplaceOneAsync(
+            Arg.Any<FilterDefinition<NutritionPlan>>(),
+            Arg.Is<NutritionPlan>(p => p.Supplements.Count == 0),
+            Arg.Any<ReplaceOptions>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleAsync_SupplementWithEmptyName_ThrowsValidationError()
+    {
+        // This test validates via the validator, not the endpoint handler directly.
+        // Use the FastEndpoints Validator.CreateInstance pattern consistent with existing validator tests.
+        var validator = new UpdatePlanValidator();
+
+        var req = new UpdatePlanRequest
+        {
+            Name = "Valid Plan Name",
+            Version = 1,
+            Weeks = [BuildWeekRequest(weekNumber: 1)],
+            Supplements =
+            [
+                new UpdateSupplementRequest { ExternalId = Guid.NewGuid(), Name = "" }  // empty name
+            ]
+        };
+
+        var result = await validator.ValidateAsync(req);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName.Contains("Supplements") && e.PropertyName.Contains("Name"));
+    }
+
+    [Fact]
+    public async Task HandleAsync_SupplementNameExceedsMaxLength_ThrowsValidationError()
+    {
+        var validator = new UpdatePlanValidator();
+
+        var req = new UpdatePlanRequest
+        {
+            Name = "Valid Plan Name",
+            Version = 1,
+            Weeks = [BuildWeekRequest(weekNumber: 1)],
+            Supplements =
+            [
+                new UpdateSupplementRequest
+                {
+                    ExternalId = Guid.NewGuid(),
+                    Name = new string('A', 101),   // 101 chars > max 100
+                    Dose = "1 tablet"
+                }
+            ]
+        };
+
+        var result = await validator.ValidateAsync(req);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName.Contains("Name") && e.ErrorMessage.Contains("100"));
+    }
+
+    [Fact]
+    public async Task HandleAsync_Supplements_NewExternalIdGeneratedWhenNotProvided()
+    {
+        // Arrange — client sends supplement without ExternalId (null) — server generates one
+        var planId = Guid.NewGuid();
+        var plan = PlanTestHelpers.CreatePlan(
+            externalId: planId,
+            nutritionistId: _nutritionistId,
+            weekCount: 1,
+            version: 1);
+
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+        var macroCalc = Substitute.For<IMacroCalculatorService>();
+        var ep = CreateEndpoint(mongo, macroCalc);
+
+        var req = new UpdatePlanRequest
+        {
+            PlanId = planId,
+            Name = plan.Name,
+            Version = 1,
+            Weeks = [BuildWeekRequest(weekNumber: 1)],
+            Supplements =
+            [
+                new UpdateSupplementRequest { ExternalId = null, Name = "Zinc" }
+            ]
+        };
+
+        // Act
+        await ep.HandleAsync(req, TestContext.Current.CancellationToken);
+
+        // Assert — persisted document has a non-empty ExternalId even though client sent null
+        await mongo.NutritionPlans.Received(1).ReplaceOneAsync(
+            Arg.Any<FilterDefinition<NutritionPlan>>(),
+            Arg.Is<NutritionPlan>(p =>
+                p.Supplements.Count == 1 &&
+                p.Supplements[0].ExternalId != Guid.Empty),
+            Arg.Any<ReplaceOptions>(),
+            Arg.Any<CancellationToken>());
+    }
 }

@@ -174,6 +174,15 @@ public class UpdatePlanEndpoint(IMongoContext mongo, IMacroCalculatorService mac
             };
         }).ToList();
 
+        // Map supplements (full-state replace)
+        plan.Supplements = req.Supplements.Select(rs => new Supplement
+        {
+            ExternalId = rs.ExternalId ?? Guid.NewGuid(),
+            Name = rs.Name,
+            Dose = rs.Dose,
+            Notes = rs.Notes
+        }).ToList();
+
         // Recalculate totals
         macroCalculator.RecalculateTotals(plan);
 
