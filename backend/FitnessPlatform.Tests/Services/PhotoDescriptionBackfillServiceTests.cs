@@ -23,6 +23,18 @@ namespace FitnessPlatform.Tests.Services;
 /// </summary>
 public class PhotoDescriptionBackfillServiceTests : IAsyncLifetime
 {
+    // Bumped from the Testcontainers default of 60s to 180s because this test's
+    // PostgreSQL + MongoDB containers regularly contend with a developer- (or
+    // qa-tester-) started compose harness on the same host. The harness's
+    // `postgres-test` / `mongo-test` services and these test containers share
+    // the docker socket, the image-pull bandwidth, and the kernel-level network
+    // stack, so a parallel boot can push the test container's readiness probe
+    // past the 60s default and surface as
+    // `DockerContainer.ThrowIfContainerNotRunningAsync` during InitializeAsync.
+    // 180s gives headroom without making genuine container-boot failures hang
+    // too long. See #336.
+    private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(180);
+
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:16").Build();
     private readonly MongoDbContainer   _mongo    = new MongoDbBuilder("mongo:7").Build();
 
@@ -33,7 +45,14 @@ public class PhotoDescriptionBackfillServiceTests : IAsyncLifetime
 
     public async ValueTask InitializeAsync()
     {
-        await Task.WhenAll(_postgres.StartAsync(), _mongo.StartAsync());
+        // Pass an extended-deadline cancellation token to StartAsync so the
+        // default Testcontainers wait-strategy gets up to StartupTimeout to
+        // observe the container becoming healthy. The IWaitStrategy
+        // implementation respects the CT, so this is the canonical
+        // single-call way to widen the readiness window without replacing
+        // the default strategy entirely.
+        using var cts = new CancellationTokenSource(StartupTimeout);
+        await Task.WhenAll(_postgres.StartAsync(cts.Token), _mongo.StartAsync(cts.Token));
 
         _db = BuildDbContext(_postgres.GetConnectionString());
 
