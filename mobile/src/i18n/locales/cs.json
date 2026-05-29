@@ -734,6 +734,14 @@
         }
       }
     },
+    "meals": {
+      "reminder": {
+        "toggleLabel": "Připomenutí",
+        "timeLabel": "Čas",
+        "notificationTitle": "Čas na jídlo",
+        "notificationBody": "Nezapomeň na {{mealKind}}{{dayPart}}"
+      }
+    },
     "reminders": {
       "title": "Připomenutí",
       "body": "Nezapomeň si vzít {{name}}"
@@ -974,6 +982,14 @@
       "amrapRoundsLabel": "Počet kol",
       "resetWorkout": "Resetovat",
       "amrapExerciseDone": "Hotovo {{rounds}}× · {{total}} opak."
+    },
+    "sessions": {
+      "reminder": {
+        "toggleLabel": "Připomenutí",
+        "timeLabel": "Čas",
+        "notificationTitle": "Čas na trénink",
+        "notificationBody": "Připrav se na {{sessionName}}"
+      }
     },
     "workoutCount_one": "{{count}} workout",
     "workoutCount_few": "{{count}} workouty",

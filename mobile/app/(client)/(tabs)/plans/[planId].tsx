@@ -53,6 +53,8 @@ import {
   formatWeekRange,
   getDayDate,
 } from '@/lib/nutrition-plan-helpers'
+import { cancelReminder, listReminderKeys } from '@/lib/reminderScheduler'
+import { SessionReminderRow } from '@/components/training/SessionReminderRow'
 import {
   estimatedSectionDurationSeconds,
   formatDurationCompact,
@@ -184,6 +186,7 @@ function NutritionPlanDetail({ plan }: { plan: FullPlanResponse }) {
   const scrollRef = useRef<ScrollView>(null)
   const queryClient = useQueryClient()
   const router = useRouter()
+  const planId = plan.planId ?? ''
 
   // ── State ──
   const [selectedWeek, setSelectedWeek] = useState<number | null>(null)
@@ -217,6 +220,36 @@ function NutritionPlanDetail({ plan }: { plan: FullPlanResponse }) {
     })
     return () => { offUpdated(); offPublished() }
   }, [queryClient])
+
+  // AC orphan-cleanup: after the plan loads, cancel any stored meal reminders
+  // whose mealId is no longer present in the returned plan (e.g. coach deleted
+  // a meal after the client had set a reminder for it).
+  const allMealIds = useMemo(() => {
+    const ids = new Set<string>()
+    for (const week of plan.weeks ?? []) {
+      for (const day of week.days ?? []) {
+        for (const meal of day.meals ?? []) {
+          if (meal.mealId) ids.add(meal.mealId)
+        }
+      }
+    }
+    return ids
+  }, [plan])
+
+  useEffect(() => {
+    // Scope orphan-cleanup to THIS plan's namespace so reminders set against
+    // other plans (active or archived) are not affected.
+    const prefix = `meal-${planId}-`
+    const storedKeys = listReminderKeys(prefix)
+    storedKeys.forEach((key) => {
+      const mealId = key.slice(prefix.length)
+      if (!allMealIds.has(mealId)) {
+        cancelReminder(key).catch(() => {
+          // Ignore errors — the notification may already be gone.
+        })
+      }
+    })
+  }, [allMealIds, planId])
 
   // Questionnaire data for the bottom sheet (only fetched when a linked response exists)
   const { data: coachQData } = useQuery({
@@ -718,6 +751,8 @@ function NutritionPlanDetail({ plan }: { plan: FullPlanResponse }) {
                   eaten={eatenMealIds.has(meal.mealId ?? '')}
                   photos={mealPhotosByMealId[meal.mealId ?? ''] ?? []}
                   onPhotoPress={() => handleMealPhotoPress(meal)}
+                  dayLabel={dayLabels[effectiveDay - 1] ?? ''}
+                  planId={planId}
                 />
               ))
             )}
@@ -822,6 +857,7 @@ function TrainingPlanDetail({ plan }: { plan: GetFullTrainingPlanResponse }) {
   const scrollRef = useRef<ScrollView>(null)
   const queryClient = useQueryClient()
   const router = useRouter()
+  const planId = plan.planId ?? ''
 
   // ── State ──
   const publishedWeekCount = plan.publishedWeekCount ?? 0
@@ -928,6 +964,35 @@ function TrainingPlanDetail({ plan }: { plan: GetFullTrainingPlanResponse }) {
       ).length,
     [currentDaySessions],
   )
+
+  // AC orphan-cleanup: after the plan loads, cancel any stored session reminders
+  // whose sessionId is no longer present in the returned plan (e.g. coach deleted
+  // a session after the client had set a reminder for it).
+  const allSessionIds = useMemo(() => {
+    const ids = new Set<string>()
+    for (const week of plan.weeks ?? []) {
+      for (const sess of week.sessions ?? []) {
+        if (sess.sessionId) ids.add(sess.sessionId)
+      }
+    }
+    return ids
+  }, [plan])
+
+  useEffect(() => {
+    // Scope orphan-cleanup to THIS plan's namespace so reminders set against
+    // other plans (active or archived) are not affected.
+    const prefix = `session-${planId}-`
+    const storedKeys = listReminderKeys(prefix)
+    storedKeys.forEach((key) => {
+      const sessionId = key.slice(prefix.length)
+      if (!allSessionIds.has(sessionId)) {
+        cancelReminder(key).catch(() => {
+          // Ignore errors — the notification may already be gone.
+        })
+      }
+    })
+  }, [allSessionIds, planId])
+
   // ── Callbacks ──
   const handleStepWeek = useCallback(
     (dir: -1 | 1) => {
@@ -1347,6 +1412,7 @@ function TrainingPlanDetail({ plan }: { plan: GetFullTrainingPlanResponse }) {
                       defaultExpanded={isSessionExpanded}
                       standalone
                       headerRight={sessionCheckIndicator}
+                      bodyFooter={<SessionReminderRow session={session} planId={planId} />}
                     >
                       {/* Section-grouped exercise cards (read-only) */}
                       {sections.map((section, sectionIdx) => {
