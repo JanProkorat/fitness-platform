@@ -93,6 +93,12 @@ interface ExpandableSessionCardProps {
    */
   headerRight?: React.ReactNode
   /**
+   * Optional node rendered at the bottom of the expanded body, after all
+   * children. Use this to inject a SessionReminderRow on the plan-detail
+   * screen without coupling the card to the reminder infrastructure.
+   */
+  bodyFooter?: React.ReactNode
+  /**
    * When true, renders this session as a fully-chromed standalone card
    * (rounded corners, horizontal margin, bottom gap, subtle shadow) — suitable
    * for plan-detail views where each session is visually separated.
@@ -126,6 +132,7 @@ export function ExpandableSessionCard({
   headerRight,
   standalone = false,
   children,
+  bodyFooter,
 }: ExpandableSessionCardProps) {
   const colors = useTheme()
   const [isOpen, setIsOpen] = useState(defaultExpanded)
@@ -223,6 +230,7 @@ export function ExpandableSessionCard({
         ]}
       >
         {children}
+        {bodyFooter}
       </AnimatedCollapse>
     </View>
   )

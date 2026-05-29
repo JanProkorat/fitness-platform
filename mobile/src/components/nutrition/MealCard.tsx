@@ -18,6 +18,7 @@ import { getMealKindConfig } from '@/constants/mealKinds'
 import { ImageLightbox } from '@/components/ui/ImageLightbox'
 import type { MealFood, MealRecipe, PlanMeal } from '@/api/nutrition'
 import { goldAlpha, Colors } from '@/constants/colors'
+import { MealReminderRow } from './MealReminderRow'
 import i18n from '@/i18n'
 import {
   computeFoodKcal,
@@ -44,9 +45,15 @@ interface MealCardProps {
   /** When provided, renders a gold camera chip in the header that opens the
    *  meal-log-photo modal so the client can upload diary photos. */
   onPhotoPress?: () => void
+  /**
+   * Day label forwarded to MealReminderRow for the notification body
+   * (e.g. "Pondělí"). Pass an empty string or omit to suppress it.
+   * Only relevant on the plan-detail screen where the user can browse all days.
+   */
+  dayLabel?: string
 }
 
-function MealCard({ meal, expanded, onToggle, eaten, photos = [], onPhotoPress }: MealCardProps) {
+function MealCard({ meal, expanded, onToggle, eaten, photos = [], onPhotoPress, dayLabel = '' }: MealCardProps) {
   const { t } = useTranslation()
   const colors = useTheme()
   const kcal = meal.mealTotals?.kcal ?? 0
@@ -279,6 +286,11 @@ function MealCard({ meal, expanded, onToggle, eaten, photos = [], onPhotoPress }
               </ScrollView>
             </View>
           )}
+
+          {/* Meal reminder toggle — plan-detail only; mounts at the bottom of
+              the expanded body so it's discoverable without disrupting the
+              food-list rhythm. */}
+          <MealReminderRow meal={meal} dayLabel={dayLabel} />
 
         </View>
       </Animated.View>

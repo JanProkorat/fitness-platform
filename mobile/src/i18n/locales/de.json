@@ -755,6 +755,14 @@
         }
       }
     },
+    "meals": {
+      "reminder": {
+        "toggleLabel": "Erinnerung",
+        "timeLabel": "Zeit",
+        "notificationTitle": "Zeit zu essen",
+        "notificationBody": "Vergiss nicht {{mealKind}}{{dayPart}}"
+      }
+    },
     "reminders": {
       "title": "Erinnerung",
       "body": "Vergiss nicht, {{name}} zu nehmen"
@@ -942,6 +950,14 @@
       "amrapRoundsLabel": "Anzahl der Runden",
       "resetWorkout": "Zurücksetzen",
       "amrapExerciseDone": "{{rounds}}× erledigt · {{total}} Wdh."
+    },
+    "sessions": {
+      "reminder": {
+        "toggleLabel": "Erinnerung",
+        "timeLabel": "Zeit",
+        "notificationTitle": "Zeit fürs Training",
+        "notificationBody": "Mach dich bereit für {{sessionName}}"
+      }
     },
     "workoutCount_one": "{{count}} Workout",
     "workoutCount_other": "{{count}} Workouts",
