@@ -729,6 +729,33 @@
       "badgeFood": "Food",
       "badgeBody": "Body",
       "badgeFreeForm": "Free"
+    },
+    "supplements": {
+      "sectionTitle": "Recommended supplements",
+      "addButton": "+ Add supplement",
+      "editButton": "Edit",
+      "removeButton": "Remove",
+      "emptyState": "No recommended supplements",
+      "form": {
+        "name": {
+          "label": "Name",
+          "placeholder": "e.g. Vitamin D3",
+          "required": "Name is required",
+          "tooLong": "Name must be 100 characters or fewer"
+        },
+        "dose": {
+          "label": "Dosage (optional)",
+          "placeholder": "e.g. 1 capsule with food",
+          "tooLong": "Dosage must be 200 characters or fewer"
+        },
+        "notes": {
+          "label": "Notes (optional)",
+          "placeholder": "Additional information for the client...",
+          "tooLong": "Notes must be 500 characters or fewer"
+        },
+        "cancel": "Cancel",
+        "save": "Save"
+      }
     }
   },
   "apiErrors": {

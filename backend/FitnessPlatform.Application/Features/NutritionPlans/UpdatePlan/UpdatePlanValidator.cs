@@ -4,7 +4,7 @@ using FluentValidation;
 namespace FitnessPlatform.Application.Features.NutritionPlans.UpdatePlan;
 
 /// <summary>
-/// Validates <see cref="UpdatePlanRequest"/> including all nested weeks, days, meals, and foods.
+/// Validates <see cref="UpdatePlanRequest"/> including all nested weeks, days, meals, foods, and supplements.
 /// </summary>
 public class UpdatePlanValidator : Validator<UpdatePlanRequest>
 {
@@ -19,6 +19,21 @@ public class UpdatePlanValidator : Validator<UpdatePlanRequest>
 
         RuleFor(x => x.Version)
             .GreaterThanOrEqualTo(1);
+
+        RuleForEach(x => x.Supplements).ChildRules(supplement =>
+        {
+            supplement.RuleFor(s => s.Name)
+                .NotEmpty().WithMessage("Supplement Name must not be empty.")
+                .MaximumLength(100).WithMessage("Supplement Name must not exceed 100 characters.");
+
+            supplement.RuleFor(s => s.Dose)
+                .MaximumLength(200).WithMessage("Supplement Dose must not exceed 200 characters.")
+                .When(s => s.Dose is not null);
+
+            supplement.RuleFor(s => s.Notes)
+                .MaximumLength(500).WithMessage("Supplement Notes must not exceed 500 characters.")
+                .When(s => s.Notes is not null);
+        });
 
         RuleFor(x => x.Weeks)
             .NotEmpty().WithMessage("At least one week is required.")

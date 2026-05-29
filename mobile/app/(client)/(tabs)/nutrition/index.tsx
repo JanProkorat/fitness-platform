@@ -26,7 +26,10 @@ import {
   type PlanDay,
   type PlanMeal,
   type NutrientTotals,
+  type SupplementDto,
 } from '@/api/nutrition';
+import { SupplementsSection } from '@/components/nutrition/SupplementsSection';
+import { cancelReminder, listReminderKeys } from '@/lib/reminderScheduler';
 
 /** Map JS Date.getDay() (0=Sun) to our format (1=Mon … 7=Sun). */
 function getCurrentDayOfWeek(): number {
@@ -148,6 +151,31 @@ export default function NutritionScreen() {
   }, [refetch]);
 
   const allDays = useMemo(() => (data ? buildDayList(data) : []), [data]);
+
+  // AC #10 — orphan-reminder cleanup.
+  // After the plan loads, cancel any stored reminders whose supplement
+  // externalId is no longer present in the returned supplements list.
+  // This handles the case where the coach deletes a supplement after the
+  // client had set a reminder for it.
+  const supplements: SupplementDto[] = useMemo(
+    () => data?.supplements ?? [],
+    [data?.supplements],
+  );
+
+  useEffect(() => {
+    if (!data) return;
+    const returnedIds = new Set(supplements.map((s) => s.externalId));
+    const storedKeys = listReminderKeys('supplement-');
+    storedKeys.forEach((key) => {
+      const externalId = key.replace(/^supplement-/, '');
+      if (!returnedIds.has(externalId)) {
+        // Fire-and-forget: cancelReminder is async but we don't need to await it here.
+        cancelReminder(key).catch(() => {
+          // Ignore errors — the notification may already be gone.
+        });
+      }
+    });
+  }, [supplements, data]);
 
   const initialPage = useMemo(
     () =>
@@ -350,6 +378,7 @@ export default function NutritionScreen() {
               <DayPage
                 dayInfo={dayInfo}
                 data={data}
+                supplements={supplements}
                 isActive={index === currentPageIndex}
                 isRefreshing={isManualRefresh}
                 onRefresh={handleManualRefresh}
@@ -387,13 +416,14 @@ function Header({ title, onShoppingPress }: HeaderProps) {
 interface DayPageProps {
   dayInfo: DayInfo;
   data: FullPlanResponse;
+  supplements: SupplementDto[];
   isActive: boolean;
   isRefreshing: boolean;
   onRefresh: () => void;
   t: (key: string, opts?: Record<string, unknown>) => string;
 }
 
-function DayPage({ dayInfo, data, isActive, isRefreshing, onRefresh, t }: DayPageProps) {
+function DayPage({ dayInfo, data, supplements, isActive, isRefreshing, onRefresh, t }: DayPageProps) {
   const colors = useTheme();
   const { week, day } = dayInfo;
 
@@ -467,6 +497,9 @@ function DayPage({ dayInfo, data, isActive, isRefreshing, onRefresh, t }: DayPag
           />
         ))
       )}
+
+      {/* Supplement reminders — plan-level, shown on every day page */}
+      <SupplementsSection supplements={supplements} />
       </Animated.View>
     </ScrollView>
   );

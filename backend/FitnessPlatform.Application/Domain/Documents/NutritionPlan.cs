@@ -60,6 +60,13 @@ public class NutritionPlan
     public List<PlanWeek> Weeks { get; set; } = [];
 
     /// <summary>
+    /// Supplement recommendations for this plan.
+    /// Coaches manage the list; clients see it read-only and may schedule local reminders.
+    /// </summary>
+    [BsonElement("supplements")]
+    public List<Supplement> Supplements { get; set; } = [];
+
+    /// <summary>
     /// Optimistic concurrency version. Incremented on each update.
     /// </summary>
     [BsonElement("version")]

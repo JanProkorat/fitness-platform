@@ -728,6 +728,33 @@
       "badgeFood": "Essen",
       "badgeBody": "Fortschritt",
       "badgeFreeForm": "Frei"
+    },
+    "supplements": {
+      "sectionTitle": "Empfohlene Supplemente",
+      "addButton": "+ Supplement hinzufügen",
+      "editButton": "Bearbeiten",
+      "removeButton": "Entfernen",
+      "emptyState": "Keine empfohlenen Supplemente",
+      "form": {
+        "name": {
+          "label": "Name",
+          "placeholder": "z.B. Vitamin D3",
+          "required": "Name ist erforderlich",
+          "tooLong": "Name darf maximal 100 Zeichen lang sein"
+        },
+        "dose": {
+          "label": "Dosierung (optional)",
+          "placeholder": "z.B. 1 Kapsel zum Essen",
+          "tooLong": "Dosierung darf maximal 200 Zeichen lang sein"
+        },
+        "notes": {
+          "label": "Notizen (optional)",
+          "placeholder": "Weitere Informationen für den Klienten...",
+          "tooLong": "Notizen dürfen maximal 500 Zeichen lang sein"
+        },
+        "cancel": "Abbrechen",
+        "save": "Speichern"
+      }
     }
   },
   "apiErrors": {

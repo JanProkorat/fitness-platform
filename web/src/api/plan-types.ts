@@ -121,6 +121,11 @@ export interface NutritionPlanDetail {
    * Empty array when no logs exist (all meals are not-touched).
    */
   mealLogs: MealLogDto[];
+  /**
+   * Supplement recommendations attached to this plan.
+   * Empty array when no supplements have been added.
+   */
+  supplements: SupplementDto[];
 }
 
 /** Plan summary for list views. */
@@ -156,6 +161,28 @@ export interface CreatePlanRequest {
   questionnaireResponseId?: string | null;
 }
 
+/**
+ * A supplement entry returned by the API.
+ * Mapped from backend SupplementDto in GetPlanResponse / GetFullPlanResponse.
+ */
+export interface SupplementDto {
+  externalId: string;
+  name: string;
+  dose?: string | null;
+  notes?: string | null;
+}
+
+/**
+ * A supplement entry submitted in a full-state plan update.
+ * externalId is optional on create (backend generates one); send it back on update.
+ */
+export interface UpdateSupplementRequest {
+  externalId?: string | null;
+  name: string;
+  dose?: string | null;
+  notes?: string | null;
+}
+
 /** Request to update an existing plan with full state (includes version for optimistic locking). */
 export interface UpdatePlanRequest {
   name: string;
@@ -163,6 +190,7 @@ export interface UpdatePlanRequest {
   weeks: UpdateWeekRequest[];
   version: number;
   startDate?: string | null;
+  supplements: UpdateSupplementRequest[];
 }
 
 /** Week data within a full-state plan update. */

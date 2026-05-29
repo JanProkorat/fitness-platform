@@ -1,4 +1,5 @@
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Features.NutritionPlans.GetPlan;
 
 namespace FitnessPlatform.Application.Features.ClientNutrition.GetFullPlan;
 
@@ -48,6 +49,12 @@ public class GetFullPlanResponse
     /// Meal IDs are unique across the plan, so a flat set covers all days.
     /// </summary>
     public HashSet<Guid> EatenMealIds { get; set; } = [];
+
+    /// <summary>
+    /// Supplement recommendations for this plan. Clients use this list to configure
+    /// local reminder notifications; the list is read-only on the client side.
+    /// </summary>
+    public List<SupplementDto> Supplements { get; set; } = [];
 }
 
 /// <summary>

@@ -6,6 +6,7 @@ import type {
   MealRecipe,
   NutrientTotals,
   UpdatePlanRequest,
+  SupplementDto,
 } from '@/api/plan-types';
 import { updatePlan as apiUpdatePlan, publishWeek as apiPublishWeek, getPlan } from '@/api/plans';
 
@@ -63,6 +64,7 @@ interface NutritionPlanState {
   reorderWeeks: (weekNumbers: number[]) => void;
   removeWeek: (weekNum: number) => void;
   setStartDate: (date: string | null) => void;
+  setSupplements: (supplements: SupplementDto[]) => void;
   save: () => Promise<void>;
   publishWeek: (weekNumber: number) => Promise<void>;
 }
@@ -162,7 +164,9 @@ export const useNutritionPlanStore = create<NutritionPlanState>((set, get) => ({
   selectedWeek: 1,
 
   setPlan: (plan) => {
-    set({ plan: recalculateTotals(plan), isDirty: false, selectedWeek: 1 });
+    // Ensure supplements field is always present (API may omit it on older responses)
+    const normalized = { ...plan, supplements: plan.supplements ?? [] };
+    set({ plan: recalculateTotals(normalized), isDirty: false, selectedWeek: 1 });
   },
 
   setSelectedWeek: (week) => {
@@ -749,6 +753,12 @@ export const useNutritionPlanStore = create<NutritionPlanState>((set, get) => ({
         globalSettings: plan.globalSettings,
         version: plan.version,
         startDate: plan.startDate,
+        supplements: (plan.supplements ?? []).map((s) => ({
+          externalId: s.externalId,
+          name: s.name,
+          dose: s.dose,
+          notes: s.notes,
+        })),
         weeks: plan.weeks.map((week, wi) => ({
           weekNumber: wi + 1,
           days: week.days.map((day) => ({
@@ -805,6 +815,12 @@ export const useNutritionPlanStore = create<NutritionPlanState>((set, get) => ({
     const { plan } = get();
     if (!plan) return;
     set({ plan: { ...plan, startDate: date }, isDirty: true });
+  },
+
+  setSupplements: (supplements) => {
+    const { plan } = get();
+    if (!plan) return;
+    set({ plan: { ...plan, supplements }, isDirty: true });
   },
 
   publishWeek: async (weekNumber) => {
