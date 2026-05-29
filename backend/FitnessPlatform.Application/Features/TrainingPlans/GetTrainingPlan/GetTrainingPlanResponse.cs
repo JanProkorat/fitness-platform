@@ -3,6 +3,49 @@ using FitnessPlatform.Application.Domain.Documents;
 namespace FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
 
 /// <summary>
+/// Per-set execution data returned by the trainer endpoint.
+/// Lets the web layer derive completed / skipped / not-yet-reached states
+/// without storing those as flags on the document.
+/// </summary>
+/// <remarks>
+/// Disambiguation rule (derived, never stored):
+/// <list type="bullet">
+///   <item><description>
+///     <b>completed</b> — set number is present in <see cref="CompletedSetsByExercise"/> (meaning
+///     the corresponding <see cref="WorkoutSet.CompletedAt"/> was non-null in the <see cref="WorkoutLog"/>).
+///   </description></item>
+///   <item><description>
+///     <b>skipped</b> — set number is absent <em>and</em> <see cref="IsSessionFinished"/> is <c>true</c>.
+///   </description></item>
+///   <item><description>
+///     <b>not-yet-reached</b> — set number is absent <em>and</em> <see cref="IsSessionFinished"/> is <c>false</c>
+///     (or there is no <see cref="SessionExecutionDto"/> row for this session at all).
+///   </description></item>
+/// </list>
+/// </remarks>
+public class SessionExecutionDto
+{
+    /// <summary>
+    /// The <see cref="TrainingSession.SessionId"/> this execution belongs to.
+    /// </summary>
+    public Guid SessionId { get; set; }
+
+    /// <summary>
+    /// Whether the workout was finalised by the client (<see cref="WorkoutLog.IsCompleted"/> was true).
+    /// </summary>
+    public bool IsSessionFinished { get; set; }
+
+    /// <summary>
+    /// Per-exercise map of which set numbers were completed (i.e. had a non-null
+    /// <see cref="WorkoutSet.CompletedAt"/>). Key = ExerciseExternalId; value = sorted list
+    /// of 1-based set numbers that were stamped as complete in the <see cref="WorkoutLog"/>.
+    /// An absent key means no sets for that exercise were logged.
+    /// An empty list should not occur but is treated identically to an absent key.
+    /// </summary>
+    public Dictionary<Guid, List<int>> CompletedSetsByExercise { get; set; } = new();
+}
+
+/// <summary>
 /// Per-(date, sessionId) completion record for the plan's client.
 /// One entry per (clientId, date, sessionId) tuple. Surfaces which
 /// exercises have already been marked complete so the trainer editor
@@ -110,6 +153,15 @@ public class GetTrainingPlanResponse
     /// to dates that fall within the plan's active weeks.
     /// </summary>
     public List<TrainingPlanCompletionDto> Completions { get; set; } = [];
+
+    /// <summary>
+    /// Per-session workout-log execution data for the plan's client.
+    /// One entry per session that has at least one <see cref="WorkoutLog"/> record.
+    /// Sessions with no log entry are absent (equivalent to all sets being not-yet-reached).
+    /// The web layer uses this together with <see cref="Completions"/> to render per-set,
+    /// per-exercise, and per-session completed/skipped/unreached state indicators.
+    /// </summary>
+    public List<SessionExecutionDto> SessionExecutions { get; set; } = [];
 
     /// <summary>
     /// Maps a <see cref="TrainingPlan"/> document to a detailed response DTO.

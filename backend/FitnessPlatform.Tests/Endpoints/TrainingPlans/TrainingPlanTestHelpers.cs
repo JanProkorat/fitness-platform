@@ -47,11 +47,65 @@ public static class TrainingPlanTestHelpers
     /// Creates a mocked <see cref="IMongoContext"/> with training plans collection.
     /// </summary>
     public static IMongoContext CreateMockMongo(params TrainingPlan[] plans)
+        => CreateMockMongoWithLogs(plans: plans, workoutLogs: []);
+
+    /// <summary>
+    /// Creates a mocked <see cref="IMongoContext"/> with training plans + workout logs.
+    /// </summary>
+    public static IMongoContext CreateMockMongoWithLogs(
+        TrainingPlan[] plans,
+        WorkoutLog[] workoutLogs)
     {
         var mongo = Substitute.For<IMongoContext>();
-        var collection = CreateMockCollection(plans.ToList());
-        mongo.TrainingPlans.Returns(collection);
+
+        // Pre-create collections BEFORE calling .Returns() to avoid NSubstitute
+        // "last call" confusion (CouldNotSetReturnDueToNoLastCallException).
+        var plansCollection = CreateMockCollection(plans.ToList());
+        var logsCollection = CreateMockWorkoutLogCollection(workoutLogs.ToList());
+
+        mongo.TrainingPlans.Returns(plansCollection);
+        mongo.WorkoutLogs.Returns(logsCollection);
         return mongo;
+    }
+
+    /// <summary>
+    /// Creates a mock <see cref="IMongoCollection{WorkoutLog}"/> that returns the given logs from FindAsync().
+    /// </summary>
+    public static IMongoCollection<WorkoutLog> CreateMockWorkoutLogCollection(List<WorkoutLog> logs)
+    {
+        var collection = Substitute.For<IMongoCollection<WorkoutLog>>();
+        var cursor = CreateWorkoutLogCursor(logs);
+        // Pre-wrap in a completed Task BEFORE calling .Returns() to avoid NSubstitute
+        // "last call" confusion (CouldNotSetReturnDueToNoLastCallException).
+        var cursorTask = Task.FromResult(cursor);
+
+        collection.FindAsync(
+                Arg.Any<FilterDefinition<WorkoutLog>>(),
+                Arg.Any<FindOptions<WorkoutLog, WorkoutLog>>(),
+                Arg.Any<CancellationToken>())
+            .Returns(cursorTask);
+
+        return collection;
+    }
+
+    private static IAsyncCursor<WorkoutLog> CreateWorkoutLogCursor(List<WorkoutLog> logs)
+    {
+        var cursor = Substitute.For<IAsyncCursor<WorkoutLog>>();
+        var moved = false;
+        cursor.Current.Returns(logs);
+        cursor.MoveNext(Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            if (moved) return false;
+            moved = true;
+            return logs.Count > 0;
+        });
+        cursor.MoveNextAsync(Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            if (moved) return Task.FromResult(false);
+            moved = true;
+            return Task.FromResult(logs.Count > 0);
+        });
+        return cursor;
     }
 
     /// <summary>
