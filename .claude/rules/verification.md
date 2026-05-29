@@ -76,8 +76,19 @@ shape is constrained:
   `web-typecheck`, `mobile-typecheck`, `mobile-prebuild-check` (now
   maps to `npx expo-doctor` after #314; schema enum value kept stable
   so archived handoffs still validate).
-- `filter` — optional, regex-validated FQN fragment for `dotnet-test`
-  (no quotes/whitespace/shell metacharacters).
+- `filter` — optional, regex-validated **fully-qualified class name**
+  for `dotnet-test` (no quotes/whitespace/shell metacharacters). Used
+  with xUnit v3 + Microsoft.Testing.Platform's `--filter-class`
+  option, which requires the FQN (`FitnessPlatform.Tests.Services.PhotoDescriptionBackfillServiceTests`
+  — NOT the short form `PhotoDescriptionBackfillServiceTests`, which
+  silently matches zero tests). Substituted into the canonical
+  invocation `dotnet test -- --filter-class <filter>`; the leading
+  `--` separator is required by `dotnet test` to forward the option
+  to MTP rather than swallowing it. The legacy `--filter
+  "FullyQualifiedName~..."` VSTest syntax is silently ignored under
+  MTP 1.9.1 (the project's runner) — `warning MTP0001` surfaces only
+  for VSTest-specific MSBuild properties, not for the CLI filter
+  argument, so callers used to assume the old syntax worked.
 - `passed` — boolean.
 
 `qa-tester` substitutes these into a fixed template — never builds raw
