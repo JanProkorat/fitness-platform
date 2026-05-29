@@ -5,12 +5,36 @@ import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
 import { useTranslation } from 'react-i18next'
 import type { WorkoutFormat } from '@/api/wod-types'
+import type { FullPlanSet } from '@/api/training'
+import { SetGrid } from '@/components/training/SetGrid'
+
+/**
+ * Per-exercise set data for the finished-summary view.
+ * Carries the planned sets alongside the 1-based set numbers that were
+ * completed or skipped so SetGrid can render '✓' / '↷' / '—' per cell.
+ */
+export interface FinishedExerciseSetData {
+  exerciseName: string
+  sets: FullPlanSet[]
+  /** 1-based set numbers that the user actually completed. */
+  completedSetNumbers: number[]
+  /** 1-based set numbers that the user skipped (↷). */
+  skippedSetNumbers: number[]
+}
 
 export interface FinishedWorkoutCardData {
   name: string
   format: WorkoutFormat | null
   durationFormatted: string | null
   metaText: string | null
+  /**
+   * Per-exercise set detail for Standard-format workouts.
+   * When present, each exercise's sets are rendered in a SetGrid below the
+   * workout card header so skipped sets show '↷' rather than blending into
+   * the completed '✓' column.
+   * WOD-format workouts leave this null (they don't have per-set grids).
+   */
+  exerciseSets: FinishedExerciseSetData[] | null
 }
 
 interface LiveFinishedSummaryProps {
@@ -132,6 +156,38 @@ export function LiveFinishedSummary({
                 )}
               </View>
             )}
+            {/* Per-exercise set grids — only for Standard-format workouts
+                that carry exerciseSets data. Each exercise gets its own
+                SetGrid so the user can see '✓' / '↷' / '—' per set.
+                The exercise name appears as a small eyebrow above the grid. */}
+            {w.exerciseSets != null && w.exerciseSets.length > 0 && (
+              <View style={[styles.exerciseSetsWrap, { borderTopColor: colors.sep2 }]}>
+                {w.exerciseSets.map((ex, exIdx) => (
+                  <View
+                    key={`${ex.exerciseName}-${exIdx}`}
+                    style={[
+                      styles.exerciseBlock,
+                      exIdx < w.exerciseSets!.length - 1 && {
+                        borderBottomWidth: StyleSheet.hairlineWidth,
+                        borderBottomColor: colors.sep2,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[styles.exerciseName, { color: colors.label2 }]}
+                      numberOfLines={1}
+                    >
+                      {ex.exerciseName}
+                    </Text>
+                    <SetGrid
+                      sets={ex.sets}
+                      completedSetNumbers={ex.completedSetNumbers}
+                      skippedSetNumbers={ex.skippedSetNumbers}
+                    />
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
         ))}
       </ScrollView>
@@ -246,6 +302,27 @@ const styles = StyleSheet.create({
   workoutMetaDot: {
     fontSize: 13,
     marginHorizontal: 6,
+  },
+  /** Wrapper for the per-exercise set grids — separated from the card header
+   *  by a hairline divider. Top padding gives breathing room below the meta
+   *  row / chip row. */
+  exerciseSetsWrap: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    marginTop: 8,
+    paddingTop: 4,
+  },
+  exerciseBlock: {
+    paddingVertical: 4,
+  },
+  /** Exercise-name eyebrow above the SetGrid — small, dim, matches the
+   *  section-label style used in the pre-start and plan-detail views. */
+  exerciseName: {
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.08 * 11,
+    paddingHorizontal: 8,
+    paddingBottom: 2,
   },
 })
 

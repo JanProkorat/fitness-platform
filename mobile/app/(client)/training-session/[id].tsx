@@ -78,7 +78,7 @@ import { WodTimerHero } from '@/components/training/WodTimerHero'
 import { RestTimerHero } from '@/components/training/RestTimerHero'
 import { PrFlash } from '@/components/training/PrFlash'
 import { LiveFinishedSummary } from '@/components/training/LiveFinishedSummary'
-import type { FinishedWorkoutCardData } from '@/components/training/LiveFinishedSummary'
+import type { FinishedWorkoutCardData, FinishedExerciseSetData } from '@/components/training/LiveFinishedSummary'
 
 import {
   isPR,
@@ -2396,8 +2396,12 @@ export default function WorkoutLogScreen() {
           durationSeconds: isDone ? (override?.durationSeconds ?? null) : undefined,
           // Distance-movement actuals: distanceMeters replaces the weightKg slot.
           distanceMeters: isDone ? (override?.distanceMeters ?? null) : undefined,
-          completedAt:
-            isDone || isSkipped ? new Date().toISOString() : undefined,
+          // Only truly completed sets carry completedAt. Skipped sets must NOT
+          // receive a completedAt timestamp — the backend (GetTodaySession)
+          // uses CompletedAt != null to populate completedSetsBySessionExercise,
+          // so sending completedAt for skipped sets caused them to show as '✓'
+          // on the Today-screen TrainingCard SetGrid (bug #322).
+          completedAt: isDone ? new Date().toISOString() : undefined,
         }
       })
       // Per-exercise WOD result (only present when the exercise has a format override).
@@ -2807,7 +2811,8 @@ export default function WorkoutLogScreen() {
   // ── Derived: per-workout cards for the session-summary screen ──
   // One card per section: WOD sections pull duration + rounds from the
   // stored WodResult; standard sections derive "N/M sérií · X opak." from
-  // completedSets + per-set overrides.
+  // completedSets + per-set overrides and include per-exercise SetGrid data
+  // so skipped sets render as '↷' instead of blending into '✓' (fix #322).
   const finishedWorkoutCards = useMemo<FinishedWorkoutCardData[]>(() => {
     if (phase !== 'finished') return []
     return sections.map((sec) => {
@@ -2823,26 +2828,51 @@ export default function WorkoutLogScreen() {
           fmt === 'AMRAP' && rounds != null
             ? t('training.live.roundsCount', { count: rounds })
             : null
+        // WOD-format workouts don't have per-set grids.
         return {
           name: sec.name ?? '',
           format: fmt,
           durationFormatted: dur,
           metaText: meta,
+          exerciseSets: null,
         }
       }
       // Standard section — count completed vs planned sets across exercises.
       let setsDone = 0
       let setsPlanned = 0
       let totalReps = 0
+      const exerciseSets: FinishedExerciseSetData[] = []
       for (const ex of sec.exercises ?? []) {
         const exId = ex.exerciseExternalId ?? ''
-        const done = completedSets[exId] ?? []
+        const doneIndices = completedSets[exId] ?? []
+        const skippedIndices = skippedExercises.includes(exId)
+          // When the whole exercise was skipped, treat every set as skipped.
+          ? (ex.sets ?? []).map((_, si) => si)
+          : (skippedSets[exId] ?? [])
         setsPlanned += ex.sets?.length ?? 0
-        for (const setIdx of done) {
+        for (const setIdx of doneIndices) {
           setsDone += 1
           const override = formOverrides[exId]?.[setIdx]
           const planned = ex.sets?.[setIdx]
           totalReps += override?.reps ?? planned?.reps ?? 0
+        }
+        // Build 1-based set-number arrays for SetGrid, deriving the set
+        // number from the planned set's own setNumber field (1-based in the
+        // plan) so the grid stays aligned even when setNumber !== si + 1.
+        const plannedSets = ex.sets ?? []
+        const completedSetNums = doneIndices.map(
+          (si) => plannedSets[si]?.setNumber ?? si + 1,
+        )
+        const skippedSetNums = skippedIndices.map(
+          (si) => plannedSets[si]?.setNumber ?? si + 1,
+        )
+        if (plannedSets.length > 0) {
+          exerciseSets.push({
+            exerciseName: ex.exerciseName ?? '',
+            sets: plannedSets,
+            completedSetNumbers: completedSetNums,
+            skippedSetNumbers: skippedSetNums,
+          })
         }
       }
       const meta =
@@ -2854,9 +2884,10 @@ export default function WorkoutLogScreen() {
         format: fmt,
         durationFormatted: null,
         metaText: meta,
+        exerciseSets: exerciseSets.length > 0 ? exerciseSets : null,
       }
     })
-  }, [phase, sections, wodResults, completedSets, formOverrides, t])
+  }, [phase, sections, wodResults, completedSets, skippedSets, skippedExercises, formOverrides, t])
 
   // ── Next preview: usually the next exercise; on the LAST set of the LAST
   //    exercise of the current workout, switch to the next workout (section).
