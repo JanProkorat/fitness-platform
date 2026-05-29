@@ -49,11 +49,17 @@ interface MealCardProps {
    * Day label forwarded to MealReminderRow for the notification body
    * (e.g. "Pondělí"). Pass an empty string or omit to suppress it.
    * Only relevant on the plan-detail screen where the user can browse all days.
+   * The reminder row only renders when this is non-empty (plan-detail only).
    */
   dayLabel?: string
+  /**
+   * Plan id used to namespace the MMKV reminder key. Required alongside `dayLabel`
+   * to mount the reminder row; omitted on the today screen so no reminder UI shows.
+   */
+  planId?: string
 }
 
-function MealCard({ meal, expanded, onToggle, eaten, photos = [], onPhotoPress, dayLabel = '' }: MealCardProps) {
+function MealCard({ meal, expanded, onToggle, eaten, photos = [], onPhotoPress, dayLabel = '', planId }: MealCardProps) {
   const { t } = useTranslation()
   const colors = useTheme()
   const kcal = meal.mealTotals?.kcal ?? 0
@@ -289,8 +295,11 @@ function MealCard({ meal, expanded, onToggle, eaten, photos = [], onPhotoPress, 
 
           {/* Meal reminder toggle — plan-detail only; mounts at the bottom of
               the expanded body so it's discoverable without disrupting the
-              food-list rhythm. */}
-          <MealReminderRow meal={meal} dayLabel={dayLabel} />
+              food-list rhythm. Today screen does not pass dayLabel + planId,
+              so the row is suppressed there. */}
+          {dayLabel && planId ? (
+            <MealReminderRow meal={meal} dayLabel={dayLabel} planId={planId} />
+          ) : null}
 
         </View>
       </Animated.View>

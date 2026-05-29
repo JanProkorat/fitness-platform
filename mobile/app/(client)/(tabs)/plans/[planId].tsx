@@ -186,6 +186,7 @@ function NutritionPlanDetail({ plan }: { plan: FullPlanResponse }) {
   const scrollRef = useRef<ScrollView>(null)
   const queryClient = useQueryClient()
   const router = useRouter()
+  const planId = plan.planId ?? ''
 
   // ── State ──
   const [selectedWeek, setSelectedWeek] = useState<number | null>(null)
@@ -236,16 +237,19 @@ function NutritionPlanDetail({ plan }: { plan: FullPlanResponse }) {
   }, [plan])
 
   useEffect(() => {
-    const storedKeys = listReminderKeys('meal-')
+    // Scope orphan-cleanup to THIS plan's namespace so reminders set against
+    // other plans (active or archived) are not affected.
+    const prefix = `meal-${planId}-`
+    const storedKeys = listReminderKeys(prefix)
     storedKeys.forEach((key) => {
-      const mealId = key.replace(/^meal-/, '')
+      const mealId = key.slice(prefix.length)
       if (!allMealIds.has(mealId)) {
         cancelReminder(key).catch(() => {
           // Ignore errors — the notification may already be gone.
         })
       }
     })
-  }, [allMealIds])
+  }, [allMealIds, planId])
 
   // Questionnaire data for the bottom sheet (only fetched when a linked response exists)
   const { data: coachQData } = useQuery({
@@ -748,6 +752,7 @@ function NutritionPlanDetail({ plan }: { plan: FullPlanResponse }) {
                   photos={mealPhotosByMealId[meal.mealId ?? ''] ?? []}
                   onPhotoPress={() => handleMealPhotoPress(meal)}
                   dayLabel={dayLabels[effectiveDay - 1] ?? ''}
+                  planId={planId}
                 />
               ))
             )}
@@ -852,6 +857,7 @@ function TrainingPlanDetail({ plan }: { plan: GetFullTrainingPlanResponse }) {
   const scrollRef = useRef<ScrollView>(null)
   const queryClient = useQueryClient()
   const router = useRouter()
+  const planId = plan.planId ?? ''
 
   // ── State ──
   const publishedWeekCount = plan.publishedWeekCount ?? 0
@@ -973,16 +979,19 @@ function TrainingPlanDetail({ plan }: { plan: GetFullTrainingPlanResponse }) {
   }, [plan])
 
   useEffect(() => {
-    const storedKeys = listReminderKeys('session-')
+    // Scope orphan-cleanup to THIS plan's namespace so reminders set against
+    // other plans (active or archived) are not affected.
+    const prefix = `session-${planId}-`
+    const storedKeys = listReminderKeys(prefix)
     storedKeys.forEach((key) => {
-      const sessionId = key.replace(/^session-/, '')
+      const sessionId = key.slice(prefix.length)
       if (!allSessionIds.has(sessionId)) {
         cancelReminder(key).catch(() => {
           // Ignore errors — the notification may already be gone.
         })
       }
     })
-  }, [allSessionIds])
+  }, [allSessionIds, planId])
 
   // ── Callbacks ──
   const handleStepWeek = useCallback(
@@ -1403,7 +1412,7 @@ function TrainingPlanDetail({ plan }: { plan: GetFullTrainingPlanResponse }) {
                       defaultExpanded={isSessionExpanded}
                       standalone
                       headerRight={sessionCheckIndicator}
-                      bodyFooter={<SessionReminderRow session={session} />}
+                      bodyFooter={<SessionReminderRow session={session} planId={planId} />}
                     >
                       {/* Section-grouped exercise cards (read-only) */}
                       {sections.map((section, sectionIdx) => {

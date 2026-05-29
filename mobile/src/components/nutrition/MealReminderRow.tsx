@@ -25,6 +25,8 @@ const DEFAULT_REMINDER_TIME: ReminderTime = { hour: 8, minute: 0 };
 
 export interface MealReminderRowProps {
   meal: PlanMeal;
+  /** Plan id used to namespace the MMKV key — prevents cross-plan orphan-cleanup. */
+  planId: string;
   /** Day label shown in the notification body (e.g. "Pondělí"). Pass empty string to omit. */
   dayLabel?: string;
 }
@@ -36,16 +38,19 @@ export interface MealReminderRowProps {
  * pattern (ON state only set when scheduleDailyReminder returns { scheduled: true }),
  * same time-picker UX, same MMKV backing via reminderScheduler.
  *
- * Key format: meal-<mealId>
+ * Key format: meal-<planId>-<mealId>
+ * Namespaced by planId so orphan-cleanup only touches keys belonging to the
+ * current plan — not reminders set against other plans (active or archived).
  */
 export function MealReminderRow({
   meal,
+  planId,
   dayLabel = '',
 }: MealReminderRowProps): React.ReactElement {
   const { t } = useTranslation();
   const colors = useTheme();
 
-  const reminderKey = `meal-${meal.mealId ?? ''}`;
+  const reminderKey = `meal-${planId}-${meal.mealId ?? ''}`;
   const localizedKind = meal.kind ? t(`nutrition.mealKind.${meal.kind}`) : '';
 
   // Initialise state from MMKV on mount.

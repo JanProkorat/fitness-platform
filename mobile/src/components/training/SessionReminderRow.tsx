@@ -25,6 +25,8 @@ const DEFAULT_REMINDER_TIME: ReminderTime = { hour: 8, minute: 0 };
 
 export interface SessionReminderRowProps {
   session: SessionDto;
+  /** Plan id used to namespace the MMKV key — prevents cross-plan orphan-cleanup. */
+  planId: string;
 }
 
 /**
@@ -34,15 +36,18 @@ export interface SessionReminderRowProps {
  * pattern (ON state only set when scheduleDailyReminder returns { scheduled: true }),
  * same time-picker UX, same MMKV backing via reminderScheduler.
  *
- * Key format: session-<sessionId>
+ * Key format: session-<planId>-<sessionId>
+ * Namespaced by planId so orphan-cleanup only touches keys belonging to the
+ * current plan — not reminders set against other plans (active or archived).
  */
 export function SessionReminderRow({
   session,
+  planId,
 }: SessionReminderRowProps): React.ReactElement {
   const { t } = useTranslation();
   const colors = useTheme();
 
-  const reminderKey = `session-${session.sessionId ?? ''}`;
+  const reminderKey = `session-${planId}-${session.sessionId ?? ''}`;
 
   // Initialise state from MMKV on mount.
   const [reminderEnabled, setReminderEnabled] = useState<boolean>(() => {
