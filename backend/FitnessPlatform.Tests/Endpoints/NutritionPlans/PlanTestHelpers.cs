@@ -95,11 +95,12 @@ public static class PlanTestHelpers
     }
 
     /// <summary>
-    /// Creates a mocked <see cref="IMongoContext"/> with plans (and optional foods) collections.
+    /// Creates a mocked <see cref="IMongoContext"/> with plans (and optional foods / meal logs) collections.
     /// </summary>
     public static IMongoContext CreateMockMongo(
         NutritionPlan[]? plans = null,
-        Food[]? foods = null)
+        Food[]? foods = null,
+        MealLog[]? mealLogs = null)
     {
         var mongo = Substitute.For<IMongoContext>();
 
@@ -109,7 +110,30 @@ public static class PlanTestHelpers
         var foodCollection = CreateMockFoodCollection(foods?.ToList() ?? []);
         mongo.Foods.Returns(foodCollection);
 
+        var mealLogCollection = CreateMockMealLogCollection(mealLogs?.ToList() ?? []);
+        mongo.MealLogs.Returns(mealLogCollection);
+
         return mongo;
+    }
+
+    /// <summary>
+    /// Creates a <see cref="MealLog"/> for test purposes.
+    /// </summary>
+    public static MealLog CreateMealLog(
+        Guid planId,
+        Guid mealId,
+        DateTime logDate,
+        DateTime? eatenAt = null,
+        Guid? clientId = null)
+    {
+        return new MealLog
+        {
+            ClientId = clientId ?? Guid.NewGuid(),
+            PlanId = planId,
+            MealId = mealId,
+            LogDate = logDate,
+            EatenAt = eatenAt
+        };
     }
 
     /// <summary>
@@ -214,6 +238,42 @@ public static class PlanTestHelpers
             if (moved) return false;
             moved = true;
             return foods.Count > 0;
+        });
+        return cursor;
+    }
+
+    /// <summary>
+    /// Creates a mock <see cref="IMongoCollection{MealLog}"/> supporting FindAsync.
+    /// </summary>
+    private static IMongoCollection<MealLog> CreateMockMealLogCollection(List<MealLog> mealLogs)
+    {
+        var collection = Substitute.For<IMongoCollection<MealLog>>();
+
+        collection.FindAsync(
+                Arg.Any<FilterDefinition<MealLog>>(),
+                Arg.Any<FindOptions<MealLog, MealLog>>(),
+                Arg.Any<CancellationToken>())
+            .Returns(_ => CreateMealLogCursor(mealLogs));
+
+        return collection;
+    }
+
+    private static IAsyncCursor<MealLog> CreateMealLogCursor(List<MealLog> mealLogs)
+    {
+        var cursor = Substitute.For<IAsyncCursor<MealLog>>();
+        var moved = false;
+        cursor.Current.Returns(mealLogs);
+        cursor.MoveNext(Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            if (moved) return false;
+            moved = true;
+            return mealLogs.Count > 0;
+        });
+        cursor.MoveNextAsync(Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            if (moved) return false;
+            moved = true;
+            return mealLogs.Count > 0;
         });
         return cursor;
     }

@@ -48,6 +48,29 @@ public class GetPlanEndpoint(IMongoContext mongo) : Endpoint<GetPlanRequest, Get
             return;
         }
 
-        await Send.OkAsync(GetPlanResponse.FromDocument(plan), ct);
+        var response = GetPlanResponse.FromDocument(plan);
+
+        // ── MealLog fold-in ──────────────────────────────────────────────────────
+        // Query MealLogs by PlanId only. Ownership is already validated above
+        // (plan.NutritionistId == nutritionistId), so there is no IDOR risk here.
+        //
+        // A meal is considered eaten iff MealLog.EatenAt != null.
+        // MealLog.EatenAt == null means the log is a photo-only or note-only stub
+        // and is NOT treated as eaten (disambiguation rule per issue #329).
+        var logFilter = Builders<MealLog>.Filter.Eq(l => l.PlanId, req.PlanId);
+        var logCursor = await mongo.MealLogs.FindAsync(logFilter, cancellationToken: ct);
+        var mealLogs = await logCursor.ToListAsync(ct);
+
+        response.MealLogs = mealLogs
+            .Select(l => new MealLogDto
+            {
+                MealId = l.MealId,
+                LogDate = DateOnly.FromDateTime(l.LogDate),
+                IsEaten = l.EatenAt.HasValue,
+                EatenAt = l.EatenAt
+            })
+            .ToList();
+
+        await Send.OkAsync(response, ct);
     }
 }
