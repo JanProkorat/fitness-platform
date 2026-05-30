@@ -166,4 +166,55 @@ public class MarkCheckInReviewedEndpointTests(FitnessApiFactory factory)
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
+
+    // ── Design decision (#357): expired rows ARE reviewable ────────────────────
+
+    [Fact]
+    public async Task MarkReviewed_OnExpiredCheckIn_Returns200_PreservesExpiredAt()
+    {
+        // Per #357, trainers can mark Expired check-ins as Reviewed
+        // (audit-friendly cleanup workflow). ExpiredAt MUST survive the
+        // transition so the historical timeline ("expired at T1, then
+        // reviewed by trainer at T2") is preserved on the row.
+
+        var (http, trainerId) = await SetupTrainerAsync();
+        var clientId = await SetupClientUserIdAsync();
+        var checkInId = await InsertCheckInAsync(clientId, trainerId);
+
+        var expiredAtTimestamp = DateTime.UtcNow.AddHours(-3);
+
+        // Manually transition the row to Expired so we can verify MarkReviewed
+        // accepts the input (rather than 409-ing like Respond/Dismiss do).
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var row = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
+                .FirstAsync(db.WeeklyCheckIns, c => c.Id == checkInId, TestContext.Current.CancellationToken);
+            row.RespondedAt = null;
+            row.Status = WeeklyCheckInStatus.Expired;
+            row.ExpiredAt = expiredAtTimestamp;
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        var response = await http.PostAsJsonAsync(
+            $"/trainer/weekly-check-ins/{checkInId}/mark-reviewed",
+            new { },
+            TestContext.Current.CancellationToken);
+
+        // Allow (NOT 409) — see endpoint <remarks> for design rationale.
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var verifyScope = factory.Services.CreateScope();
+        var verifyDb = verifyScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var persisted = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
+            .FirstAsync(verifyDb.WeeklyCheckIns, c => c.Id == checkInId, TestContext.Current.CancellationToken);
+
+        // Status flipped to Reviewed, ReviewedByTrainerAt stamped.
+        persisted.Status.Should().Be(WeeklyCheckInStatus.Reviewed);
+        persisted.ReviewedByTrainerAt.Should().NotBeNull();
+
+        // Audit preservation — ExpiredAt MUST survive the transition.
+        persisted.ExpiredAt.Should().NotBeNull();
+        persisted.ExpiredAt.Should().BeCloseTo(expiredAtTimestamp, TimeSpan.FromSeconds(1));
+    }
 }
