@@ -2,6 +2,7 @@ using FitnessPlatform.Application.Domain.Enums;
 
 namespace FitnessPlatform.Application.Features.WeeklyCheckIns.GetTrainerCheckIns;
 
+
 /// <summary>
 /// Response for GET /trainer/weekly-check-ins.
 /// </summary>
@@ -46,4 +47,10 @@ public class TrainerCheckInDto
 
     /// <summary>When the trainer marked this reviewed. Null if not reviewed.</summary>
     public DateTime? ReviewedByTrainerAt { get; set; }
+
+    /// <summary>Lifecycle status of the check-in.</summary>
+    public string Status { get; set; } = WeeklyCheckInStatus.Pending.ToString();
+
+    /// <summary>UTC deadline by which the client must respond. Null for rows created before v1 deadline feature.</summary>
+    public DateTime? DueAt { get; set; }
 }

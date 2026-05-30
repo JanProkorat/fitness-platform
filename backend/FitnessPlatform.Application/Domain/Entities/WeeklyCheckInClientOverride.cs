@@ -51,6 +51,13 @@ public class WeeklyCheckInClientOverride
     [MaxLength(200)]
     public string? Addendum { get; set; }
 
+    /// <summary>
+    /// Override deadline offset in hours. Null = inherit from
+    /// <see cref="WeeklyCheckInSetting.DeadlineOffsetHours"/>.
+    /// When set, replaces the professional's default for this specific client.
+    /// </summary>
+    public int? DeadlineOffsetHours { get; set; }
+
     /// <summary>UTC timestamp of row creation.</summary>
     public DateTime DateCreated { get; set; }
 

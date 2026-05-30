@@ -67,7 +67,9 @@ public class GetCheckInDetailEndpoint(IApplicationDbContext db)
             SentAt = checkIn.SentAt,
             RespondedAt = checkIn.RespondedAt,
             DismissedByClientAt = checkIn.DismissedByClientAt,
-            ReviewedByTrainerAt = checkIn.ReviewedByTrainerAt
+            ReviewedByTrainerAt = checkIn.ReviewedByTrainerAt,
+            Status = checkIn.Status.ToString(),
+            DueAt = checkIn.DueAt
         }, ct);
     }
 }

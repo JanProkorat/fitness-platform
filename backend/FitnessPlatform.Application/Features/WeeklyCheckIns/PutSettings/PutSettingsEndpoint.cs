@@ -76,6 +76,7 @@ public class PutSettingsEndpoint(IApplicationDbContext db)
                 TimeOfDay = req.TimeOfDay,
                 Enabled = req.Enabled,
                 DefaultAddendum = req.DefaultAddendum,
+                DeadlineOffsetHours = req.DeadlineOffsetHours,
                 DateCreated = DateTime.UtcNow,
                 DateModified = DateTime.UtcNow
             };
@@ -92,7 +93,8 @@ public class PutSettingsEndpoint(IApplicationDbContext db)
                     DayOfWeek = (int)setting.DayOfWeek,
                     TimeOfDay = setting.TimeOfDay,
                     Enabled = setting.Enabled,
-                    DefaultAddendum = setting.DefaultAddendum
+                    DefaultAddendum = setting.DefaultAddendum,
+                    DeadlineOffsetHours = setting.DeadlineOffsetHours
                 }, generateAbsoluteUrl: false, cancellation: ct);
         }
         else
@@ -101,6 +103,7 @@ public class PutSettingsEndpoint(IApplicationDbContext db)
             existing.TimeOfDay = req.TimeOfDay;
             existing.Enabled = req.Enabled;
             existing.DefaultAddendum = req.DefaultAddendum;
+            existing.DeadlineOffsetHours = req.DeadlineOffsetHours;
             existing.DateModified = DateTime.UtcNow;
 
             await db.SaveChangesAsync(ct);
@@ -112,7 +115,8 @@ public class PutSettingsEndpoint(IApplicationDbContext db)
                 DayOfWeek = (int)existing.DayOfWeek,
                 TimeOfDay = existing.TimeOfDay,
                 Enabled = existing.Enabled,
-                DefaultAddendum = existing.DefaultAddendum
+                DefaultAddendum = existing.DefaultAddendum,
+                DeadlineOffsetHours = existing.DeadlineOffsetHours
             }, ct);
         }
     }

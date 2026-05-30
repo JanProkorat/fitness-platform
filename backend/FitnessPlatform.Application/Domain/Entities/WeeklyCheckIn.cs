@@ -10,6 +10,31 @@ namespace FitnessPlatform.Application.Domain.Entities;
 /// </summary>
 public class WeeklyCheckIn
 {
+    /// <summary>
+    /// The lifecycle status of this check-in.
+    /// <para>
+    /// <see cref="WeeklyCheckInStatus.Pending"/> is the default for newly created rows.
+    /// Audit timestamp columns (<see cref="RespondedAt"/>, <see cref="DismissedByClientAt"/>,
+    /// <see cref="ReviewedByTrainerAt"/>, <see cref="ExpiredAt"/>) remain the source of truth
+    /// for the "when". <see cref="Status"/> is the queryable single-column filter.
+    /// </para>
+    /// </summary>
+    public WeeklyCheckInStatus Status { get; set; } = WeeklyCheckInStatus.Pending;
+
+    /// <summary>
+    /// UTC deadline by which the client must respond before the row transitions to
+    /// <see cref="WeeklyCheckInStatus.Expired"/>.
+    /// Set by the scheduler at check-in creation time as <c>SentAt + effectiveOffset</c>.
+    /// Null for rows created before this feature was added (sweeper will leave them as-is
+    /// until their DueAt is backfilled).
+    /// </summary>
+    public DateTime? DueAt { get; set; }
+
+    /// <summary>
+    /// UTC timestamp when the sweeper transitioned this check-in to
+    /// <see cref="WeeklyCheckInStatus.Expired"/>. Null until expired.
+    /// </summary>
+    public DateTime? ExpiredAt { get; set; }
     /// <summary>Primary key.</summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 

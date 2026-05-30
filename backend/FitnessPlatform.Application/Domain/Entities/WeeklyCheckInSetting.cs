@@ -45,6 +45,14 @@ public class WeeklyCheckInSetting
     [MaxLength(200)]
     public string? DefaultAddendum { get; set; }
 
+    /// <summary>
+    /// Number of hours after <see cref="WeeklyCheckIn.SentAt"/> before the check-in expires.
+    /// The scheduler stamps <see cref="WeeklyCheckIn.DueAt"/> = SentAt + this offset at creation time.
+    /// Default is 72 hours (3 days).
+    /// Per-client overrides can be set via <see cref="WeeklyCheckInClientOverride.DeadlineOffsetHours"/>.
+    /// </summary>
+    public int DeadlineOffsetHours { get; set; } = 72;
+
     /// <summary>UTC timestamp of row creation.</summary>
     public DateTime DateCreated { get; set; }
 

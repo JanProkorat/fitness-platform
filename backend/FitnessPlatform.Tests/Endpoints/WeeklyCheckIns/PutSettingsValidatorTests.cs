@@ -19,7 +19,8 @@ public class PutSettingsValidatorTests
         DayOfWeek = 1,                  // Monday
         TimeOfDay = TimeSpan.FromHours(18),
         Enabled = true,
-        DefaultAddendum = null
+        DefaultAddendum = null,
+        DeadlineOffsetHours = 72        // default
     };
 
     [Fact]
@@ -139,5 +140,38 @@ public class PutSettingsValidatorTests
         req.DefaultAddendum = null;
         var result = _validator.TestValidate(req);
         result.ShouldNotHaveValidationErrorFor(x => x.DefaultAddendum);
+    }
+
+    // ── DeadlineOffsetHours ───────────────────────────────────────────────────
+
+    [Theory]
+    [InlineData(24)]
+    [InlineData(48)]
+    [InlineData(72)]
+    [InlineData(120)]
+    [InlineData(168)]
+    public void DeadlineOffsetHours_AllowedValues_Pass(int hours)
+    {
+        var req = ValidRequest();
+        req.DeadlineOffsetHours = hours;
+        var result = _validator.TestValidate(req);
+        result.ShouldNotHaveValidationErrorFor(x => x.DeadlineOffsetHours);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(25)]
+    [InlineData(49)]
+    [InlineData(73)]
+    [InlineData(721)]
+    [InlineData(-1)]
+    public void DeadlineOffsetHours_InvalidValues_Fail_WithOutOfRangeCode(int hours)
+    {
+        var req = ValidRequest();
+        req.DeadlineOffsetHours = hours;
+        var result = _validator.TestValidate(req);
+        result.ShouldHaveValidationErrorFor(x => x.DeadlineOffsetHours)
+              .WithErrorCode(ErrorCodes.OutOfRange);
     }
 }

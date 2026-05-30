@@ -48,7 +48,8 @@ public class GetSettingsEndpoint(IApplicationDbContext db)
                 DayOfWeek = (int)s.DayOfWeek,
                 TimeOfDay = s.TimeOfDay,
                 Enabled = s.Enabled,
-                DefaultAddendum = s.DefaultAddendum
+                DefaultAddendum = s.DefaultAddendum,
+                DeadlineOffsetHours = s.DeadlineOffsetHours
             })
             .ToListAsync(ct);
 

@@ -22,4 +22,7 @@ public class PutSettingsResponse
 
     /// <summary>Optional addendum.</summary>
     public string? DefaultAddendum { get; set; }
+
+    /// <summary>Hours after dispatch before the check-in expires.</summary>
+    public int DeadlineOffsetHours { get; set; }
 }

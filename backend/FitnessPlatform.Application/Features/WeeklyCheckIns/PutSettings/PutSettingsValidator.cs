@@ -31,5 +31,10 @@ public class PutSettingsValidator : Validator<PutSettingsRequest>
         RuleFor(x => x.DefaultAddendum)
             .MaximumLength(200)
             .When(x => x.DefaultAddendum is not null);
+
+        RuleFor(x => x.DeadlineOffsetHours)
+            .Must(h => h == 24 || h == 48 || h == 72 || h == 120 || h == 168)
+            .WithErrorCode(ErrorCodes.OutOfRange)
+            .WithMessage("DeadlineOffsetHours must be one of: 24, 48, 72, 120, 168.");
     }
 }

@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -61,6 +62,7 @@ public class MarkCheckInReviewedEndpoint(
 
         var now = DateTime.UtcNow;
         checkIn.ReviewedByTrainerAt = now;
+        checkIn.Status = WeeklyCheckInStatus.Reviewed;
         checkIn.DateModified = now;
 
         await db.SaveChangesAsync(ct);

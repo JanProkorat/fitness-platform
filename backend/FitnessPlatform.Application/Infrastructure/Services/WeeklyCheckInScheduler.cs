@@ -20,11 +20,18 @@ namespace FitnessPlatform.Application.Infrastructure.Services;
 /// it checks whether the configured fire time fell within the last tick window and, if so,
 /// inserts a <see cref="WeeklyCheckIn"/> row, creates a push notification, and broadcasts
 /// via SignalR.
+/// Also runs <see cref="SweepExpiredAsync"/> on every tick to transition past-due Pending
+/// check-ins to <see cref="WeeklyCheckInStatus.Expired"/>.
 /// </summary>
 public class WeeklyCheckInScheduler(
     IServiceScopeFactory scopeFactory,
     ILogger<WeeklyCheckInScheduler> logger) : BackgroundService
 {
+    /// <summary>
+    /// Default deadline offset in hours. Applied when neither a per-client override nor
+    /// the professional's <see cref="WeeklyCheckInSetting.DeadlineOffsetHours"/> is set.
+    /// </summary>
+    internal const int DefaultDeadlineOffsetHours = 72;
     // Exposed for unit/integration tests — drive the scheduler with a virtual clock.
     internal DateTime? OverrideNow { get; set; }
 
@@ -163,6 +170,10 @@ public class WeeklyCheckInScheduler(
         DateTime now,
         CancellationToken ct)
     {
+        // Run the expiry sweeper first so that any past-due Pending rows are marked Expired
+        // before we evaluate new check-in candidates.
+        await SweepExpiredAsync(now, ct);
+
         // Load all enabled settings with their associated professional users
         // and optional per-client overrides.
         // Use AsNoTracking — the candidate list is read-only; writes happen in per-candidate scopes.
@@ -243,6 +254,12 @@ public class WeeklyCheckInScheduler(
                 using var candidateScope = scopeFactory.CreateScope();
                 var candidateDb = candidateScope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
 
+                // Resolve the effective deadline offset:
+                // client override → professional setting → default constant (72h).
+                var effectiveDeadlineOffsetHours =
+                    clientOverride?.DeadlineOffsetHours
+                    ?? setting.DeadlineOffsetHours;
+
                 var checkIn = new WeeklyCheckIn
                 {
                     ClientUserId = clientUserId,
@@ -250,6 +267,8 @@ public class WeeklyCheckInScheduler(
                     Profession = setting.Profession,
                     WeekStartDate = weekStartDate,
                     SentAt = now,
+                    DueAt = now.AddHours(effectiveDeadlineOffsetHours),
+                    Status = WeeklyCheckInStatus.Pending,
                     DateCreated = now,
                     DateModified = now
                 };
@@ -349,6 +368,46 @@ public class WeeklyCheckInScheduler(
                     "WeeklyCheckInScheduler: fired check-in {CheckInId} client={ClientUserId} professional={ProfessionalUserId} profession={Profession} week={WeekStartDate}.",
                     checkIn.Id, clientUserId, setting.UserId, setting.Profession, weekStartDate);
             }
+        }
+    }
+
+    // ── Expiry sweeper ────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Transitions all <see cref="WeeklyCheckInStatus.Pending"/> check-ins whose
+    /// <see cref="WeeklyCheckIn.DueAt"/> is in the past to
+    /// <see cref="WeeklyCheckInStatus.Expired"/>.
+    /// <para>
+    /// Uses a fresh <see cref="IApplicationDbContext"/> scope per invocation so that
+    /// a save failure does not corrupt the change tracker for the caller's scope.
+    /// </para>
+    /// <para>
+    /// Idempotent: the filter explicitly targets only <c>Status == Pending</c> rows,
+    /// so running the sweep twice will not re-stamp <c>ExpiredAt</c> on already-expired rows.
+    /// </para>
+    /// </summary>
+    internal async Task SweepExpiredAsync(DateTime now, CancellationToken ct)
+    {
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
+
+        // Use EF Core 9 ExecuteUpdateAsync for a single bulk UPDATE — avoids materializing
+        // the rows into memory.
+        var affected = await db.WeeklyCheckIns
+            .Where(c => c.Status == WeeklyCheckInStatus.Pending
+                        && c.DueAt != null
+                        && c.DueAt <= now)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(c => c.Status, WeeklyCheckInStatus.Expired)
+                .SetProperty(c => c.ExpiredAt, now)
+                .SetProperty(c => c.DateModified, now),
+                ct);
+
+        if (affected > 0)
+        {
+            logger.LogInformation(
+                "WeeklyCheckInScheduler: swept {Count} expired check-in(s) at {Now:u}.",
+                affected, now);
         }
     }
 
