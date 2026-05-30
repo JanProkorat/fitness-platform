@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
@@ -53,8 +54,19 @@ public class DismissCheckInEndpoint(
             return;
         }
 
+        if (checkIn.Status == WeeklyCheckInStatus.Expired)
+        {
+            await this.SendProblemAsync(
+                statusCode: 409,
+                errorCode: ErrorCodes.CheckInExpired,
+                detail: "This check-in has expired and can no longer be dismissed.",
+                ct);
+            return;
+        }
+
         var now = DateTime.UtcNow;
         checkIn.DismissedByClientAt = now;
+        checkIn.Status = WeeklyCheckInStatus.Dismissed;
         checkIn.DateModified = now;
 
         await db.SaveChangesAsync(ct);

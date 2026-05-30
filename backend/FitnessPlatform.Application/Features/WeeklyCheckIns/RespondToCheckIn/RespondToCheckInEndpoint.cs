@@ -55,6 +55,16 @@ public class RespondToCheckInEndpoint(
             return;
         }
 
+        if (checkIn.Status == WeeklyCheckInStatus.Expired)
+        {
+            await this.SendProblemAsync(
+                statusCode: 409,
+                errorCode: ErrorCodes.CheckInExpired,
+                detail: "This check-in has expired and can no longer be responded to.",
+                ct);
+            return;
+        }
+
         if (checkIn.ReviewedByTrainerAt.HasValue)
         {
             await this.SendProblemAsync(
@@ -69,6 +79,7 @@ public class RespondToCheckInEndpoint(
         checkIn.Flags = req.Flags;
         checkIn.Note = req.Note;
         checkIn.RespondedAt = now;
+        checkIn.Status = WeeklyCheckInStatus.Responded;
         checkIn.DateModified = now;
 
         // Create in-app notification for the professional (no push — in-app only).

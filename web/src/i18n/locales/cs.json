@@ -1475,6 +1475,20 @@
       "overrideSaved": "Individuální nastavení uloženo",
       "overrideDeleted": "Individuální nastavení zrušeno — používá se výchozí"
     },
+    "settings": {
+      "deadlineLabel": "Lhůta pro odpověď",
+      "deadlineHint": "Po vypršení se kontrolní vstup automaticky uzavře.",
+      "deadlineOption": {
+        "h24": "1 den (24 h)",
+        "h48": "2 dny (48 h)",
+        "h72": "3 dny (72 h)",
+        "h120": "5 dní (120 h)",
+        "h168": "1 týden (168 h)"
+      }
+    },
+    "status": {
+      "expired": "Vypršelo"
+    },
     "defaultPrompt": {
       "training": "Váš trenér brzy plánuje příští týden. Máte něco speciálního v plánu?",
       "nutrition": "Váš výživový poradce brzy plánuje příští týden. Máte něco speciálního v plánu?"
@@ -1508,7 +1522,8 @@
       "noResponseCount_one": "{{count}} klient ještě neodpověděl",
       "noResponseCount_other": "{{count}} klientů ještě neodpovědělo",
       "openPlan": "Otevřít plán",
-      "noRespondedYet": "Žádné odpovědi za tento týden"
+      "noRespondedYet": "Žádné odpovědi za tento týden",
+      "expiredDueAt": "Lhůta: {{date}}"
     },
     "plan": {
       "bannerResponded": "Check-in klienta · {{submittedAt}}",

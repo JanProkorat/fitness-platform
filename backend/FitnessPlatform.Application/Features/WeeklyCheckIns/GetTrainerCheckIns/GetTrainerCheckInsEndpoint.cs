@@ -60,7 +60,9 @@ public class GetTrainerCheckInsEndpoint(IApplicationDbContext db)
                 SentAt = c.SentAt,
                 RespondedAt = c.RespondedAt,
                 DismissedByClientAt = c.DismissedByClientAt,
-                ReviewedByTrainerAt = c.ReviewedByTrainerAt
+                ReviewedByTrainerAt = c.ReviewedByTrainerAt,
+                Status = c.Status.ToString(),
+                DueAt = c.DueAt
             })
             .ToListAsync(ct);
 

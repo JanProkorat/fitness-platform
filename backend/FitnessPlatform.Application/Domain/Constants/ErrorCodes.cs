@@ -164,6 +164,9 @@ public static class ErrorCodes
     /// <summary>The weekly check-in belongs to another professional.</summary>
     public const string CheckInNotOwned = "CHECK_IN_NOT_OWNED";
 
+    /// <summary>The weekly check-in has expired; the client can no longer respond or dismiss it.</summary>
+    public const string CheckInExpired = "CHECK_IN_EXPIRED";
+
     // ── Plan Photos ───────────────────────────────────────────────────
     /// <summary>Only the uploader can delete their own plan photo.</summary>
     public const string PlanPhotoNotOwned = "PLAN_PHOTO_NOT_OWNED";

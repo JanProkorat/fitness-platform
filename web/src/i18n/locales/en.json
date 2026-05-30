@@ -1460,6 +1460,20 @@
       "overrideSaved": "Override saved",
       "overrideDeleted": "Override removed — using defaults"
     },
+    "settings": {
+      "deadlineLabel": "Response deadline",
+      "deadlineHint": "Check-in auto-closes after the deadline.",
+      "deadlineOption": {
+        "h24": "1 day (24 h)",
+        "h48": "2 days (48 h)",
+        "h72": "3 days (72 h)",
+        "h120": "5 days (120 h)",
+        "h168": "1 week (168 h)"
+      }
+    },
+    "status": {
+      "expired": "Expired"
+    },
     "defaultPrompt": {
       "training": "Your trainer is planning next week soon. Anything special coming up?",
       "nutrition": "Your nutritionist is planning next week soon. Anything special coming up?"
@@ -1493,7 +1507,8 @@
       "noResponseCount_one": "{{count}} client hasn't responded",
       "noResponseCount_other": "{{count}} clients haven't responded",
       "openPlan": "Open plan",
-      "noRespondedYet": "No responses yet this week"
+      "noRespondedYet": "No responses yet this week",
+      "expiredDueAt": "Due by: {{date}}"
     },
     "plan": {
       "bannerResponded": "Client check-in · {{submittedAt}}",

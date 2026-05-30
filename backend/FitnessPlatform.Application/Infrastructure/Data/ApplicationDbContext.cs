@@ -178,6 +178,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         {
             e.HasKey(s => s.Id);
             e.Property(s => s.Profession).HasConversion<string>();
+            e.Property(s => s.DeadlineOffsetHours).HasDefaultValue(72);
             e.HasIndex(s => new { s.UserId, s.Profession }).IsUnique();
             e.HasOne(s => s.User)
                 .WithMany()
@@ -204,6 +205,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         {
             e.HasKey(c => c.Id);
             e.Property(c => c.Profession).HasConversion<string>();
+            e.Property(c => c.Status).HasConversion<string>().HasDefaultValue(WeeklyCheckInStatus.Pending);
             e.Property(c => c.WeekStartDate).HasColumnType("date");
 
             // Flags stored as a jsonb array of flag name strings

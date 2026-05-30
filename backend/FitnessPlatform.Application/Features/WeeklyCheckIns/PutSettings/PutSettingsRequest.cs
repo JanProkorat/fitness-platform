@@ -30,4 +30,11 @@ public class PutSettingsRequest
     /// Optional addendum appended to the default reminder message. ≤ 200 characters.
     /// </summary>
     public string? DefaultAddendum { get; set; }
+
+    /// <summary>
+    /// Number of hours after the check-in is sent before it expires.
+    /// Must be one of: 24, 48, 72, 120, 168.
+    /// Defaults to 72 (3 days) when not specified.
+    /// </summary>
+    public int DeadlineOffsetHours { get; set; } = 72;
 }

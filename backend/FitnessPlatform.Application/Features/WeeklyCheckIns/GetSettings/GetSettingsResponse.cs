@@ -31,4 +31,7 @@ public class CheckInSettingDto
 
     /// <summary>Optional addendum appended to the default reminder message.</summary>
     public string? DefaultAddendum { get; set; }
+
+    /// <summary>Hours after dispatch before the check-in expires.</summary>
+    public int DeadlineOffsetHours { get; set; }
 }

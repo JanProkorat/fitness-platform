@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui';
+import { Tag } from '@/components/ui/Tag';
 import { CheckInFlagChips } from './CheckInFlagChips';
 import { useTrainerWeeklyCheckIns } from '@/hooks/useWeeklyCheckIns';
 import type { TrainerCheckInDto } from '@/api/weekly-checkins';
@@ -56,12 +57,22 @@ function CheckInRow({ checkIn, language }: CheckInRowProps) {
       ? t('weeklyCheckIn.professionTraining')
       : t('weeklyCheckIn.professionNutrition');
 
+  const isExpired = checkIn.status === 'Expired';
+
   const submittedLabel = checkIn.respondedAt
     ? new Date(checkIn.respondedAt).toLocaleDateString(language, {
         day: 'numeric',
         month: 'short',
       })
     : null;
+
+  const dueAtLabel =
+    isExpired && checkIn.dueAt
+      ? new Date(checkIn.dueAt).toLocaleDateString(language, {
+          day: 'numeric',
+          month: 'short',
+        })
+      : null;
 
   return (
     <div className="flex items-start gap-3 py-3 border-b border-border last:border-b-0">
@@ -72,16 +83,28 @@ function CheckInRow({ checkIn, language }: CheckInRowProps) {
 
       {/* Main content */}
       <div className="flex-1 min-w-0">
-        {/* Name + profession pill */}
-        <div className="flex items-center gap-2 mb-1">
+        {/* Name + profession pill + expired badge */}
+        <div className="flex items-center gap-2 mb-1 flex-wrap">
           <span className="text-[13px] font-medium text-text truncate">{checkIn.clientName}</span>
           <span className="inline-flex items-center px-1.5 py-[1px] rounded-full text-[10px] font-medium bg-accent-bg text-accent border border-accent-br shrink-0">
             {professionLabel}
           </span>
-          {submittedLabel && (
+          {isExpired && (
+            <Tag variant="gray" className="shrink-0">
+              {t('weeklyCheckIn.status.expired')}
+            </Tag>
+          )}
+          {submittedLabel && !isExpired && (
             <span className="text-[11px] text-text3 shrink-0">{submittedLabel}</span>
           )}
         </div>
+
+        {/* Due-at hint when expired */}
+        {dueAtLabel && (
+          <p className="text-[11px] text-text3 mb-1">
+            {t('weeklyCheckIn.today.expiredDueAt', { date: dueAtLabel })}
+          </p>
+        )}
 
         {/* Flag chips — compact summary */}
         {checkIn.flags.length > 0 && <CheckInFlagChips flags={checkIn.flags} />}
@@ -116,10 +139,13 @@ export function WeeklyCheckInCard() {
   const weekStartDate = currentISOWeekMonday();
   const { data: checkIns, isLoading } = useTrainerWeeklyCheckIns(weekStartDate);
 
-  // Only show responded check-ins in the card (pending/dismissed are counted in footer)
-  const responded = checkIns.filter((c) => c.respondedAt !== null);
+  // Show responded + expired check-ins in the card body; pending/dismissed go to footer count.
+  // Expired check-ins are a terminal state the coach should see (no response was ever received).
+  const responded = checkIns.filter(
+    (c) => c.respondedAt !== null || c.status === 'Expired',
+  );
   const noResponseCount = checkIns.filter(
-    (c) => c.respondedAt === null && c.dismissedByClientAt === null,
+    (c) => c.respondedAt === null && c.dismissedByClientAt === null && c.status === 'Pending',
   ).length;
 
   if (isLoading) return null;

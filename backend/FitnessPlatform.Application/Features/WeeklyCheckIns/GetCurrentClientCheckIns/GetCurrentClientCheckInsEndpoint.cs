@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -50,7 +51,8 @@ public class GetCurrentClientCheckInsEndpoint(IApplicationDbContext db)
                 c.ClientUserId == clientUserId &&
                 c.WeekStartDate == weekMonday &&
                 c.RespondedAt == null &&
-                c.DismissedByClientAt == null)
+                c.DismissedByClientAt == null &&
+                c.Status != WeeklyCheckInStatus.Expired)
             .Include(c => c.ProfessionalUser)
             .OrderBy(c => c.Profession)
             .Select(c => new CheckInSummary

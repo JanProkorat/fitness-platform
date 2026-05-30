@@ -1459,6 +1459,20 @@
       "overrideSaved": "Individuelle Einstellung gespeichert",
       "overrideDeleted": "Individuelle Einstellung entfernt — Standardeinstellungen werden verwendet"
     },
+    "settings": {
+      "deadlineLabel": "Antwortfrist",
+      "deadlineHint": "Der Check-in wird nach der Frist automatisch geschlossen.",
+      "deadlineOption": {
+        "h24": "1 Tag (24 Std.)",
+        "h48": "2 Tage (48 Std.)",
+        "h72": "3 Tage (72 Std.)",
+        "h120": "5 Tage (120 Std.)",
+        "h168": "1 Woche (168 Std.)"
+      }
+    },
+    "status": {
+      "expired": "Abgelaufen"
+    },
     "defaultPrompt": {
       "training": "Ihr Trainer plant bald die nächste Woche. Gibt es etwas Besonderes?",
       "nutrition": "Ihr Ernährungsberater plant bald die nächste Woche. Gibt es etwas Besonderes?"
@@ -1492,7 +1506,8 @@
       "noResponseCount_one": "{{count}} Klient hat noch nicht geantwortet",
       "noResponseCount_other": "{{count}} Klienten haben noch nicht geantwortet",
       "openPlan": "Plan öffnen",
-      "noRespondedYet": "Noch keine Antworten diese Woche"
+      "noRespondedYet": "Noch keine Antworten diese Woche",
+      "expiredDueAt": "Frist: {{date}}"
     },
     "plan": {
       "bannerResponded": "Kunden-Check-in · {{submittedAt}}",
