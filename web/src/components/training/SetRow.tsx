@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import type { ExerciseSet, MovementType } from '@/api/training-plan-types';
 import type { SetCompletionState } from '@/lib/completionState';
-import { CompletionBadge } from '@/components/training/CompletionBadge';
+import { CompletionBadge } from '@/components/common/CompletionBadge';
 
 interface SetRowProps {
   set: ExerciseSet;
