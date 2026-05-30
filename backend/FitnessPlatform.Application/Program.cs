@@ -163,6 +163,7 @@ builder.Services.AddScoped<NutritionAuthHelper>();
 builder.Services.AddScoped<ProfessionalAuthHelper>();
 builder.Services.AddScoped<IPrDetectionService, PrDetectionService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IWorkoutCompletionService, WorkoutCompletionService>();
 // Registers IHttpClientFactory — consumed by ExpoPushNotificationService below
 // and by the ResendClient typed client when Email:Provider = Resend.
 builder.Services.AddHttpClient();

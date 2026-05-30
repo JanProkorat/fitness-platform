@@ -69,7 +69,8 @@ public static class TrainingPlanTestHelpers
     }
 
     /// <summary>
-    /// Creates a mock <see cref="IMongoCollection{WorkoutLog}"/> that returns the given logs from FindAsync().
+    /// Creates a mock <see cref="IMongoCollection{WorkoutLog}"/> that returns the given logs from FindAsync(),
+    /// and stubs InsertOneAsync and ReplaceOneAsync so they succeed without mutating state.
     /// </summary>
     public static IMongoCollection<WorkoutLog> CreateMockWorkoutLogCollection(List<WorkoutLog> logs)
     {
@@ -84,6 +85,23 @@ public static class TrainingPlanTestHelpers
                 Arg.Any<FindOptions<WorkoutLog, WorkoutLog>>(),
                 Arg.Any<CancellationToken>())
             .Returns(cursorTask);
+
+        // InsertOneAsync — no-op stub so the endpoint can materialize new logs.
+        collection.InsertOneAsync(
+                Arg.Any<WorkoutLog>(),
+                Arg.Any<InsertOneOptions>(),
+                Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+
+        // ReplaceOneAsync stub
+        var replaceResult = Substitute.For<ReplaceOneResult>();
+        replaceResult.ModifiedCount.Returns(1L);
+        collection.ReplaceOneAsync(
+                Arg.Any<FilterDefinition<WorkoutLog>>(),
+                Arg.Any<WorkoutLog>(),
+                Arg.Any<ReplaceOptions>(),
+                Arg.Any<CancellationToken>())
+            .Returns(replaceResult);
 
         return collection;
     }
