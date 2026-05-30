@@ -5,16 +5,19 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Button, Toggle, Select, Dialog } from '@/components/ui';
 import { useToastStore } from '@/stores/toast';
+import { getApiErrorMessage } from '@/lib/api-errors';
 import {
   upsertCheckInOverride,
   deleteCheckInOverride,
   DAY_OF_WEEK_KEYS,
   ORDERED_DAYS,
+  DEADLINE_OFFSET_OPTIONS,
   formatTimeDisplay,
   toTimeSpanString,
 } from '@/api/weekly-checkins';
 import type {
   DayOfWeekInt,
+  DeadlineOffsetHours,
   CheckInSettingDto,
   CheckInOverrideDto,
 } from '@/api/weekly-checkins';
@@ -37,6 +40,10 @@ const dayOfWeekSchema = z.union([
   z.literal(4), z.literal(5), z.literal(6),
 ]);
 
+const deadlineOffsetSchema = z.union([
+  z.literal(24), z.literal(48), z.literal(72), z.literal(120), z.literal(168),
+]);
+
 const overrideSchema = z.object({
   useDefaultDay: z.boolean(),
   dayOfWeek: dayOfWeekSchema.nullable(),
@@ -46,6 +53,8 @@ const overrideSchema = z.object({
   enabled: z.boolean().nullable(),
   useDefaultAddendum: z.boolean(),
   addendum: z.string().max(200, 'Max 200 characters').nullable(),
+  useDefaultDeadline: z.boolean(),
+  deadlineOffsetHours: deadlineOffsetSchema.nullable(),
 });
 type OverrideForm = z.infer<typeof overrideSchema>;
 
@@ -105,6 +114,8 @@ export function OverrideDialog({ override, settings, onClose }: OverrideDialogPr
     enabled: override.enabled,
     useDefaultAddendum: override.addendum === null,
     addendum: override.addendum ?? null,
+    useDefaultDeadline: override.deadlineOffsetHours === null,
+    deadlineOffsetHours: override.deadlineOffsetHours ?? 72,
   };
 
   const {
@@ -122,6 +133,7 @@ export function OverrideDialog({ override, settings, onClose }: OverrideDialogPr
   const useDefaultTime = watch('useDefaultTime');
   const useDefaultEnabled = watch('useDefaultEnabled');
   const useDefaultAddendum = watch('useDefaultAddendum');
+  const useDefaultDeadline = watch('useDefaultDeadline');
   const addendum = watch('addendum') ?? '';
 
   const deleteMutation = useMutation({
@@ -138,7 +150,11 @@ export function OverrideDialog({ override, settings, onClose }: OverrideDialogPr
 
   const onSubmit = async (data: OverrideForm) => {
     const allDefault =
-      data.useDefaultDay && data.useDefaultTime && data.useDefaultEnabled && data.useDefaultAddendum;
+      data.useDefaultDay &&
+      data.useDefaultTime &&
+      data.useDefaultEnabled &&
+      data.useDefaultAddendum &&
+      data.useDefaultDeadline;
 
     if (allDefault) {
       deleteMutation.mutate();
@@ -153,12 +169,13 @@ export function OverrideDialog({ override, settings, onClose }: OverrideDialogPr
           : (data.timeOfDay ? toTimeSpanString(data.timeOfDay) : null),
         enabled: data.useDefaultEnabled ? null : (data.enabled ?? null),
         addendum: data.useDefaultAddendum ? null : (data.addendum || null),
+        deadlineOffsetHours: data.useDefaultDeadline ? null : (data.deadlineOffsetHours ?? null),
       });
       void queryClient.invalidateQueries({ queryKey: ['weekly-checkin-overrides'] });
       addToast(t('weeklyCheckIn.config.overrideSaved'), 'success');
       onClose();
-    } catch {
-      addToast(t('weeklyCheckIn.config.saveError'), 'error');
+    } catch (err) {
+      addToast(getApiErrorMessage(err, 'weeklyCheckIn.config.saveError'), 'error');
     }
   };
 
@@ -315,7 +332,7 @@ export function OverrideDialog({ override, settings, onClose }: OverrideDialogPr
         </div>
 
         {/* Addendum */}
-        <div className="mb-2">
+        <div className="mb-4">
           <div className="flex items-center justify-between mb-1.5">
             <label className="text-xs font-medium text-text2">
               {t('weeklyCheckIn.config.addendum')}
@@ -352,6 +369,56 @@ export function OverrideDialog({ override, settings, onClose }: OverrideDialogPr
           )}
           {!useDefaultAddendum && errors.addendum && (
             <p className="text-[11px] text-red mt-1">{errors.addendum.message}</p>
+          )}
+        </div>
+
+        {/* Deadline offset */}
+        <div className="mb-2">
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="text-xs font-medium text-text2">
+              {t('weeklyCheckIn.overrides.deadlineLabel')}
+            </label>
+            <Controller
+              name="useDefaultDeadline"
+              control={control}
+              render={({ field }) => (
+                <label className="flex items-center gap-1.5 text-[12px] text-text2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={field.value}
+                    onChange={(e) => field.onChange(e.target.checked)}
+                    className="cursor-pointer"
+                  />
+                  {t('weeklyCheckIn.config.useDefault')}
+                </label>
+              )}
+            />
+          </div>
+          {!useDefaultDeadline && (
+            <Controller
+              name="deadlineOffsetHours"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  value={field.value !== null ? String(field.value) : ''}
+                  onChange={(e) => field.onChange(Number(e.target.value) as DeadlineOffsetHours)}
+                >
+                  {DEADLINE_OFFSET_OPTIONS.map((h) => (
+                    <option key={h} value={String(h)}>
+                      {t(`weeklyCheckIn.settings.deadlineOption.h${h}`)}
+                    </option>
+                  ))}
+                </Select>
+              )}
+            />
+          )}
+          {!useDefaultDeadline && (
+            <p className="text-[11px] text-text3 mt-1">
+              {t('weeklyCheckIn.overrides.deadlineHint')}
+            </p>
+          )}
+          {!useDefaultDeadline && errors.deadlineOffsetHours && (
+            <p className="text-[11px] text-red mt-1">{errors.deadlineOffsetHours.message}</p>
           )}
         </div>
       </form>

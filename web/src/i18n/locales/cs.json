@@ -800,7 +800,8 @@
     "PROFESSIONAL_NOT_ACCEPTING": "Tento profesionál nepřijímá nové klienty.",
     "CLIENT_REQUEST_NOT_FOUND": "Žádost klienta nebyla nalezena.",
     "REQUIRED": "Toto pole je povinné.",
-    "OUT_OF_RANGE": "Hodnota je mimo povolený rozsah."
+    "OUT_OF_RANGE": "Hodnota je mimo povolený rozsah.",
+    "INVALID_DEADLINE_OFFSET_HOURS": "Neplatná lhůta. Povolené hodnoty: 24, 48, 72, 120 nebo 168 hodin."
   },
   "nutritionGoals": {
     "title": "Cíle & makra",
@@ -1485,6 +1486,11 @@
         "h120": "5 dní (120 h)",
         "h168": "1 týden (168 h)"
       }
+    },
+    "overrides": {
+      "deadlineLabel": "Lhůta pro odpověď (přepis)",
+      "deadlineHint": "Přepíše standardní lhůtu pro tohoto klienta.",
+      "deadlineDefault": "Použít výchozí"
     },
     "status": {
       "expired": "Vypršelo"
