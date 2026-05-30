@@ -1160,6 +1160,17 @@ function TrainingPlanDetail({ plan }: { plan: GetFullTrainingPlanResponse }) {
             <Ionicons name="clipboard-outline" size={20} color={colors.label} />
           </Pressable>
         )}
+
+        {planId ? (
+          <Pressable
+            onPress={() => router.push(hrefParams('/(client)/plan-photos', { planId }))}
+            hitSlop={12}
+            style={[styles.nutritionMenuBtn, { backgroundColor: colors.fill }]}
+            accessibilityLabel={t('planPhotos.openA11y')}
+          >
+            <Ionicons name="images-outline" size={20} color={colors.label} />
+          </Pressable>
+        ) : null}
       </View>
 
       {/* ── Week grid overlay ── */}
