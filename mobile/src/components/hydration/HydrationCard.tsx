@@ -27,7 +27,7 @@ export function HydrationCard(): React.ReactElement {
   const todayTotal = selectTodayTotalMl(log)
 
   const handleCardPress = useCallback(() => {
-    router.push('/(client)/(tabs)/hydration' as never)
+    router.push('/(client)/(tabs)/hydration')
   }, [router])
 
   const handleQuickAdd = useCallback(() => {
