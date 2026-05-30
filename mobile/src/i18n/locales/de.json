@@ -951,6 +951,7 @@
       "resetWorkout": "Zurücksetzen",
       "amrapExerciseDone": "{{rounds}}× erledigt · {{total}} Wdh."
     },
+    "photoCta": "Foto",
     "sessions": {
       "reminder": {
         "toggleLabel": "Erinnerung",

@@ -729,6 +729,7 @@
       "resetWorkout": "Reset",
       "amrapExerciseDone": "Done {{rounds}}× · {{total}} reps"
     },
+    "photoCta": "Photo",
     "sessions": {
       "reminder": {
         "toggleLabel": "Reminder",

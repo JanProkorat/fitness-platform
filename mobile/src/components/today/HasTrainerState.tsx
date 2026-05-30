@@ -1135,6 +1135,12 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
     router.push(hrefParams('/(client)/plan-photos', { planId: plan.planId }))
   }, [router, plan?.planId])
 
+  /** Navigate to the training plan-photos gallery screen. */
+  const handleTrainingPhotoGridPress = useCallback(() => {
+    if (!training?.planId) return
+    router.push(hrefParams('/(client)/plan-photos', { planId: training.planId }))
+  }, [router, training?.planId])
+
   /** Navigate to the meal-log-photo modal screen for the tapped meal. */
   const handlePhotoPress = useCallback(
     (mealId: string) => {
@@ -1242,18 +1248,47 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
           <View style={[styles.section, { marginBottom: -8 }]} key="training">
             <SectionHeader
               title={t('today.todaysTraining')}
-              actionLabel={training?.planId ? t('today.sectionActionDetail') : undefined}
-              onActionPress={
-                training?.planId
-                  ? () => {
-                      router.push(
-                        hrefParams('/(client)/(tabs)/plans/[planId]', {
-                          planId: training.planId!,
-                          type: 'training',
-                        }),
-                      )
-                    }
-                  : undefined
+              action={
+                <View style={styles.trainingHeaderActions}>
+                  {training?.planId ? (
+                    <Pressable
+                      onPress={handleTrainingPhotoGridPress}
+                      hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('training.photoCta')}
+                      style={styles.photoCtaBtn}
+                    >
+                      <View
+                        style={[
+                          styles.photoCtaIconChip,
+                          { backgroundColor: goldAlpha['12'], borderColor: goldAlpha['35'] },
+                        ]}
+                      >
+                        <Ionicons name="camera" size={13} color={colors.onGoldChip} />
+                      </View>
+                      <Text style={[styles.photoCtaLabel, { color: colors.gold }]}>
+                        {t('training.photoCta')}
+                      </Text>
+                    </Pressable>
+                  ) : null}
+                  {training?.planId ? (
+                    <Pressable
+                      onPress={() => {
+                        router.push(
+                          hrefParams('/(client)/(tabs)/plans/[planId]', {
+                            planId: training.planId!,
+                            type: 'training',
+                          }),
+                        )
+                      }}
+                      hitSlop={8}
+                    >
+                      <Text style={[styles.trainingDetailAction, { color: colors.gold }]}>
+                        {t('today.sectionActionDetail')}
+                      </Text>
+                    </Pressable>
+                  ) : null}
+                </View>
               }
             />
             <TrainingCard
@@ -1372,6 +1407,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+  },
+  trainingHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  trainingDetailAction: {
+    ...Type.subheadline,
   },
   mealsProgress: {
     ...Type.footnote,

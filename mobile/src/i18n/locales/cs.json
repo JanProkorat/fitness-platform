@@ -983,6 +983,7 @@
       "resetWorkout": "Resetovat",
       "amrapExerciseDone": "Hotovo {{rounds}}× · {{total}} opak."
     },
+    "photoCta": "Foto",
     "sessions": {
       "reminder": {
         "toggleLabel": "Připomenutí",
