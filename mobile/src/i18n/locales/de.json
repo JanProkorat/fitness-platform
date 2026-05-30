@@ -1212,5 +1212,59 @@
       "headline": "Upload fortsetzen",
       "subtitle": "Lade die Fotos zu Ende hoch und sende sie an deinen Coach."
     }
+  },
+  "hydration": {
+    "card": {
+      "title": "Trinkmodus",
+      "todayProgress": "{{current}} von {{target}} ml",
+      "quickAdd": "+250 ml"
+    },
+    "screen": {
+      "title": "Trinkmodus"
+    },
+    "settings": {
+      "targetLabel": "Tagesziel",
+      "targetSuffix": "ml",
+      "remindersLabel": "Erinnerungen",
+      "addSlot": "Zeit hinzufügen",
+      "removeSlot": "Entfernen",
+      "reminderSlot": "Erinnerung {{n}}",
+      "reminderTimeLabel": "Zeit"
+    },
+    "quickLog": {
+      "customLabel": "Benutzerdefinierte Menge",
+      "customPlaceholder": "ml eingeben",
+      "confirm": "Erfassen",
+      "cancel": "Abbrechen",
+      "customSheetTitle": "Benutzerdefinierte Menge",
+      "presetLabel": "+{{amount}} ml",
+      "errorInvalid": "Gültige Menge eingeben (1–5000 ml)",
+      "errorTooLarge": "Maximale Menge ist {{max}} ml"
+    },
+    "log": {
+      "empty": "Heute noch nichts erfasst",
+      "removeDrink": "Diesen Eintrag entfernen",
+      "amountMl": "{{amount}} ml"
+    },
+    "history": {
+      "daily": "{{ml}} ml / {{target}} ml",
+      "dayLabels": {
+        "0": "So",
+        "1": "Mo",
+        "2": "Di",
+        "3": "Mi",
+        "4": "Do",
+        "5": "Fr",
+        "6": "Sa"
+      }
+    },
+    "reminders": {
+      "toggleLabel": "Erinnerung",
+      "timeLabel": "Zeit",
+      "notificationTitle": "Trinkmodus",
+      "notificationBody": "Zeit, Wasser zu trinken!",
+      "permissionDeniedToast": "Aktiviere Benachrichtigungen in den Einstellungen, um Erinnerungen zu erhalten",
+      "webUnsupported": "Erinnerungen sind nur in der mobilen App verfügbar"
+    }
   }
 }

@@ -1213,5 +1213,59 @@
       "headline": "Resume your upload",
       "subtitle": "Finish uploading photos and submit them to your coach."
     }
+  },
+  "hydration": {
+    "card": {
+      "title": "Hydration",
+      "todayProgress": "{{current}} of {{target}} ml",
+      "quickAdd": "+250 ml"
+    },
+    "screen": {
+      "title": "Hydration"
+    },
+    "settings": {
+      "targetLabel": "Daily goal",
+      "targetSuffix": "ml",
+      "remindersLabel": "Reminders",
+      "addSlot": "Add time",
+      "removeSlot": "Remove",
+      "reminderSlot": "Reminder {{n}}",
+      "reminderTimeLabel": "Time"
+    },
+    "quickLog": {
+      "customLabel": "Custom amount",
+      "customPlaceholder": "Enter ml",
+      "confirm": "Log",
+      "cancel": "Cancel",
+      "customSheetTitle": "Custom amount",
+      "presetLabel": "+{{amount}} ml",
+      "errorInvalid": "Enter a valid amount (1–5000 ml)",
+      "errorTooLarge": "Maximum amount is {{max}} ml"
+    },
+    "log": {
+      "empty": "Nothing logged today yet",
+      "removeDrink": "Remove this entry",
+      "amountMl": "{{amount}} ml"
+    },
+    "history": {
+      "daily": "{{ml}} ml / {{target}} ml",
+      "dayLabels": {
+        "0": "Sun",
+        "1": "Mon",
+        "2": "Tue",
+        "3": "Wed",
+        "4": "Thu",
+        "5": "Fri",
+        "6": "Sat"
+      }
+    },
+    "reminders": {
+      "toggleLabel": "Reminder",
+      "timeLabel": "Time",
+      "notificationTitle": "Hydration reminder",
+      "notificationBody": "Time to drink some water!",
+      "permissionDeniedToast": "Enable notifications in Settings to receive reminders",
+      "webUnsupported": "Reminders are available in the mobile app only"
+    }
   }
 }

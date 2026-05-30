@@ -294,7 +294,8 @@ export default function ClientTabLayout() {
     pathname.match(/\/plans\/[^/]+$/) && !pathname.endsWith('/plans') ||
     pathname.endsWith('/pending-questionnaires') ||
     pathname.includes('/nutrition/') && !pathname.endsWith('/nutrition/index') ||
-    pathname.includes('/training/')
+    pathname.includes('/training/') ||
+    pathname.includes('/hydration/')
 
   return (
     <Tabs
@@ -348,6 +349,7 @@ export default function ClientTabLayout() {
       <Tabs.Screen name="training" options={{ href: null }} />
       <Tabs.Screen name="nutrition" options={{ href: null }} />
       <Tabs.Screen name="measurements" options={{ href: null }} />
+      <Tabs.Screen name="hydration" options={{ href: null }} />
       <Tabs.Screen name="pending-questionnaires" options={{ href: null }} />
     </Tabs>
   );

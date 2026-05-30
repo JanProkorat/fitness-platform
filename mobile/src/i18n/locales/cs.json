@@ -1241,5 +1241,59 @@
       "headline": "Pokračuj v nahrávání",
       "subtitle": "Dokončete nahrávání fotek a odešlete je svému kouči."
     }
+  },
+  "hydration": {
+    "card": {
+      "title": "Pitný režim",
+      "todayProgress": "{{current}} z {{target}} ml",
+      "quickAdd": "+250 ml"
+    },
+    "screen": {
+      "title": "Pitný režim"
+    },
+    "settings": {
+      "targetLabel": "Denní cíl",
+      "targetSuffix": "ml",
+      "remindersLabel": "Připomínky",
+      "addSlot": "Přidat čas",
+      "removeSlot": "Odebrat",
+      "reminderSlot": "Připomenutí {{n}}",
+      "reminderTimeLabel": "Čas"
+    },
+    "quickLog": {
+      "customLabel": "Vlastní množství",
+      "customPlaceholder": "Zadejte ml",
+      "confirm": "Zaznamenat",
+      "cancel": "Zrušit",
+      "customSheetTitle": "Vlastní množství",
+      "presetLabel": "+{{amount}} ml",
+      "errorInvalid": "Zadejte platné množství (1–5000 ml)",
+      "errorTooLarge": "Maximální množství je {{max}} ml"
+    },
+    "log": {
+      "empty": "Dnes jste si zatím nic nezaznamenali",
+      "removeDrink": "Odebrat tento záznam",
+      "amountMl": "{{amount}} ml"
+    },
+    "history": {
+      "daily": "{{ml}} ml / {{target}} ml",
+      "dayLabels": {
+        "0": "Ne",
+        "1": "Po",
+        "2": "Út",
+        "3": "St",
+        "4": "Čt",
+        "5": "Pá",
+        "6": "So"
+      }
+    },
+    "reminders": {
+      "toggleLabel": "Připomenutí",
+      "timeLabel": "Čas",
+      "notificationTitle": "Pitný režim",
+      "notificationBody": "Čas se napít vody!",
+      "permissionDeniedToast": "Povolte notifikace v Nastavení, abyste dostávali připomínky",
+      "webUnsupported": "Připomínky jsou k dispozici pouze v mobilní aplikaci"
+    }
   }
 }
