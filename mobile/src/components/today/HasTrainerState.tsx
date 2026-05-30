@@ -17,6 +17,7 @@ import { SectionHeader } from '@/components/ui/SectionHeader'
 import { TrainingCard } from '@/components/training/TrainingCard'
 import { NutritionCard } from '@/components/nutrition/NutritionCard'
 import { WaitingForPlanCard } from '@/components/today/WaitingForPlanCard'
+import { HydrationCard } from '@/components/hydration/HydrationCard'
 import { ShoppingPrepBanner } from '@/components/today/ShoppingPrepBanner'
 import {
   getTodayPlan,
@@ -1345,6 +1346,11 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
           />
         </View>
       )}
+
+      {/* Hydration card — always visible, MMKV-local, no trainer dependency */}
+      <View style={styles.section}>
+        <HydrationCard />
+      </View>
 
     </>
   )
