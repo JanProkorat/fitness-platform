@@ -1474,8 +1474,7 @@
     },
     "overrides": {
       "deadlineLabel": "Response deadline (override)",
-      "deadlineHint": "Overrides the default for this client only.",
-      "deadlineDefault": "Use schedule default"
+      "deadlineHint": "Overrides the default for this client only."
     },
     "status": {
       "expired": "Expired"

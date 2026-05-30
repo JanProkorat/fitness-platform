@@ -1489,8 +1489,7 @@
     },
     "overrides": {
       "deadlineLabel": "Lhůta pro odpověď (přepis)",
-      "deadlineHint": "Přepíše standardní lhůtu pro tohoto klienta.",
-      "deadlineDefault": "Použít výchozí"
+      "deadlineHint": "Přepíše standardní lhůtu pro tohoto klienta."
     },
     "status": {
       "expired": "Vypršelo"

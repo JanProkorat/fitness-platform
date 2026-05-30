@@ -1473,8 +1473,7 @@
     },
     "overrides": {
       "deadlineLabel": "Antwortfrist (Überschreibung)",
-      "deadlineHint": "Überschreibt die Standardfrist nur für diesen Klienten.",
-      "deadlineDefault": "Standard verwenden"
+      "deadlineHint": "Überschreibt die Standardfrist nur für diesen Klienten."
     },
     "status": {
       "expired": "Abgelaufen"
