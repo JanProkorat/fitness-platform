@@ -129,6 +129,12 @@ export interface CheckInOverrideDto {
   enabled: boolean | null;
   /** Null = inherit addendum from setting */
   addendum: string | null;
+  /**
+   * Null = inherit deadline from trainer's default setting.
+   * When set, overrides the deadline for this client only.
+   * Allowed values: 24 | 48 | 72 | 120 | 168. Added in #358.
+   */
+  deadlineOffsetHours: DeadlineOffsetHours | null;
 }
 
 /** Response wrapper for GET /trainer/weekly-check-ins/overrides. */
@@ -154,6 +160,11 @@ export interface PutOverrideRequest {
   enabled: boolean | null;
   /** Null = inherit */
   addendum: string | null;
+  /**
+   * Null = clear the override and inherit deadline from the trainer's default setting.
+   * Allowed values: 24 | 48 | 72 | 120 | 168. Added in #358.
+   */
+  deadlineOffsetHours: DeadlineOffsetHours | null;
 }
 
 /** Response for PUT /trainer/weekly-check-ins/overrides (mirrors PutOverrideResponse). */
@@ -165,6 +176,8 @@ export interface PutOverrideResponse {
   timeOfDay: TimeSpanString | null;
   enabled: boolean | null;
   addendum: string | null;
+  /** Added in #358. Null = inherits from trainer's default setting. */
+  deadlineOffsetHours: DeadlineOffsetHours | null;
 }
 
 /** PUT /trainer/weekly-check-ins/overrides/{clientUserId}/{profession} */

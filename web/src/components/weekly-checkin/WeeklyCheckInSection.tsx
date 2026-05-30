@@ -80,6 +80,7 @@ export function WeeklyCheckInSection({ clientUserId }: WeeklyCheckInSectionProps
       timeOfDay: null,
       enabled: null,
       addendum: null,
+      deadlineOffsetHours: null,
     };
   }
 

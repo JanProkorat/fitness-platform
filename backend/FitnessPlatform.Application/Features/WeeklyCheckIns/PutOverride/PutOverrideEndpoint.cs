@@ -98,6 +98,7 @@ public class PutOverrideEndpoint(IApplicationDbContext db)
                 TimeOfDay = req.TimeOfDay,
                 Enabled = req.Enabled,
                 Addendum = req.Addendum,
+                DeadlineOffsetHours = req.DeadlineOffsetHours,
                 DateCreated = DateTime.UtcNow,
                 DateModified = DateTime.UtcNow
             };
@@ -115,7 +116,8 @@ public class PutOverrideEndpoint(IApplicationDbContext db)
                     DayOfWeek = newOverride.DayOfWeek.HasValue ? (int?)newOverride.DayOfWeek.Value : null,
                     TimeOfDay = newOverride.TimeOfDay,
                     Enabled = newOverride.Enabled,
-                    Addendum = newOverride.Addendum
+                    Addendum = newOverride.Addendum,
+                    DeadlineOffsetHours = newOverride.DeadlineOffsetHours
                 }, generateAbsoluteUrl: false, cancellation: ct);
         }
         else
@@ -124,6 +126,7 @@ public class PutOverrideEndpoint(IApplicationDbContext db)
             existing.TimeOfDay = req.TimeOfDay;
             existing.Enabled = req.Enabled;
             existing.Addendum = req.Addendum;
+            existing.DeadlineOffsetHours = req.DeadlineOffsetHours;
             existing.DateModified = DateTime.UtcNow;
 
             await db.SaveChangesAsync(ct);
@@ -136,7 +139,8 @@ public class PutOverrideEndpoint(IApplicationDbContext db)
                 DayOfWeek = existing.DayOfWeek.HasValue ? (int?)existing.DayOfWeek.Value : null,
                 TimeOfDay = existing.TimeOfDay,
                 Enabled = existing.Enabled,
-                Addendum = existing.Addendum
+                Addendum = existing.Addendum,
+                DeadlineOffsetHours = existing.DeadlineOffsetHours
             }, ct);
         }
     }

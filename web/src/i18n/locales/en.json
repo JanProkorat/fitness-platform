@@ -791,7 +791,8 @@
     "PROFESSIONAL_NOT_ACCEPTING": "This professional is not accepting new clients.",
     "CLIENT_REQUEST_NOT_FOUND": "Client request not found.",
     "REQUIRED": "This field is required.",
-    "OUT_OF_RANGE": "Value is out of the allowed range."
+    "OUT_OF_RANGE": "Value is out of the allowed range.",
+    "INVALID_DEADLINE_OFFSET_HOURS": "Invalid deadline. Allowed values: 24, 48, 72, 120 or 168 hours."
   },
   "nutritionGoals": {
     "title": "Goals & Macros",
@@ -1470,6 +1471,10 @@
         "h120": "5 days (120 h)",
         "h168": "1 week (168 h)"
       }
+    },
+    "overrides": {
+      "deadlineLabel": "Response deadline (override)",
+      "deadlineHint": "Overrides the default for this client only."
     },
     "status": {
       "expired": "Expired"

@@ -790,7 +790,8 @@
     "PROFESSIONAL_NOT_ACCEPTING": "Dieser Fachmann nimmt keine neuen Klienten an.",
     "CLIENT_REQUEST_NOT_FOUND": "Klientenanfrage nicht gefunden.",
     "REQUIRED": "Dieses Feld ist erforderlich.",
-    "OUT_OF_RANGE": "Der Wert liegt außerhalb des zulässigen Bereichs."
+    "OUT_OF_RANGE": "Der Wert liegt außerhalb des zulässigen Bereichs.",
+    "INVALID_DEADLINE_OFFSET_HOURS": "Ungültige Frist. Erlaubte Werte: 24, 48, 72, 120 oder 168 Stunden."
   },
   "nutritionGoals": {
     "title": "Ziele & Makros",
@@ -1469,6 +1470,10 @@
         "h120": "5 Tage (120 Std.)",
         "h168": "1 Woche (168 Std.)"
       }
+    },
+    "overrides": {
+      "deadlineLabel": "Antwortfrist (Überschreibung)",
+      "deadlineHint": "Überschreibt die Standardfrist nur für diesen Klienten."
     },
     "status": {
       "expired": "Abgelaufen"

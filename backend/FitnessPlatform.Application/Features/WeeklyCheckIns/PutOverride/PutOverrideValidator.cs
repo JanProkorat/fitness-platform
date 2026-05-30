@@ -36,5 +36,11 @@ public class PutOverrideValidator : Validator<PutOverrideRequest>
         RuleFor(x => x.Addendum)
             .MaximumLength(200)
             .When(x => x.Addendum is not null);
+
+        RuleFor(x => x.DeadlineOffsetHours)
+            .Must(h => h == 24 || h == 48 || h == 72 || h == 120 || h == 168)
+            .When(x => x.DeadlineOffsetHours.HasValue)
+            .WithErrorCode(ErrorCodes.InvalidDeadlineOffsetHours)
+            .WithMessage("DeadlineOffsetHours must be one of: 24, 48, 72, 120, 168.");
     }
 }

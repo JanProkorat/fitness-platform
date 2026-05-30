@@ -255,9 +255,90 @@ public class PutOverrideEndpointTests(FitnessApiFactory factory)
         trainingOverrides[0].Addendum.Should().Be("Updated note");
     }
 
+    // ── DeadlineOffsetHours ──────────────────────────────────────────────────
+
+    [Fact]
+    public async Task PutOverride_WithDeadlineOffset_PersistsAndReturnsField()
+    {
+        var (http, _, trainerProfileId) = await SetupTrainerAsync();
+        var (clientUserId, clientProfileId) = await SetupClientAsync();
+        await LinkTrainerToClientAsync(trainerProfileId, clientProfileId);
+
+        var response = await http.PutAsJsonAsync(
+            $"/trainer/weekly-check-ins/overrides/{clientUserId}/Training",
+            new { DayOfWeek = (int?)null, TimeOfDay = (string?)null, Enabled = (bool?)null, Addendum = (string?)null, DeadlineOffsetHours = 48 },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var body = await response.Content.ReadFromJsonAsync<OverrideResponseWithDeadline>(
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        body.Should().NotBeNull();
+        body!.DeadlineOffsetHours.Should().Be(48);
+
+        // Confirm persisted in DB.
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var stored = await db.WeeklyCheckInClientOverrides
+            .FirstAsync(o => o.ClientUserId == clientUserId, TestContext.Current.CancellationToken);
+        stored.DeadlineOffsetHours.Should().Be(48);
+    }
+
+    [Fact]
+    public async Task PutOverride_WithNullDeadlineOffset_ClearsOverride()
+    {
+        var (http, _, trainerProfileId) = await SetupTrainerAsync();
+        var (clientUserId, clientProfileId) = await SetupClientAsync();
+        await LinkTrainerToClientAsync(trainerProfileId, clientProfileId);
+
+        // First PUT: set a deadline offset.
+        await http.PutAsJsonAsync(
+            $"/trainer/weekly-check-ins/overrides/{clientUserId}/Training",
+            new { DayOfWeek = (int?)null, TimeOfDay = (string?)null, Enabled = (bool?)null, Addendum = (string?)null, DeadlineOffsetHours = 120 },
+            TestContext.Current.CancellationToken);
+
+        // Second PUT: clear it (null = inherit from setting).
+        var secondResponse = await http.PutAsJsonAsync(
+            $"/trainer/weekly-check-ins/overrides/{clientUserId}/Training",
+            new { DayOfWeek = (int?)null, TimeOfDay = (string?)null, Enabled = (bool?)null, Addendum = (string?)null, DeadlineOffsetHours = (int?)null },
+            TestContext.Current.CancellationToken);
+
+        secondResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await secondResponse.Content.ReadFromJsonAsync<OverrideResponseWithDeadline>(
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        body.Should().NotBeNull();
+        body!.DeadlineOffsetHours.Should().BeNull();
+
+        // Confirm cleared in DB.
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var stored = await db.WeeklyCheckInClientOverrides
+            .FirstAsync(o => o.ClientUserId == clientUserId, TestContext.Current.CancellationToken);
+        stored.DeadlineOffsetHours.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task PutOverride_InvalidDeadlineOffset_Returns400WithInvalidDeadlineOffsetHoursCode()
+    {
+        var (http, _, trainerProfileId) = await SetupTrainerAsync();
+        var (clientUserId, clientProfileId) = await SetupClientAsync();
+        await LinkTrainerToClientAsync(trainerProfileId, clientProfileId);
+
+        var response = await http.PutAsJsonAsync(
+            $"/trainer/weekly-check-ins/overrides/{clientUserId}/Training",
+            new { DayOfWeek = (int?)null, TimeOfDay = (string?)null, Enabled = (bool?)null, Addendum = (string?)null, DeadlineOffsetHours = 60 },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var raw = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        raw.Should().Contain("INVALID_DEADLINE_OFFSET_HOURS");
+    }
+
     // ── Local DTOs ───────────────────────────────────────────────────────────
 
     private record OverrideResponse(Guid Id, Guid ClientUserId, string Profession, int? DayOfWeek, bool? Enabled, string? Addendum);
+    private record OverrideResponseWithDeadline(Guid Id, Guid ClientUserId, string Profession, int? DayOfWeek, bool? Enabled, string? Addendum, int? DeadlineOffsetHours);
     private record OverridesListResponse(List<OverrideItemDto> Overrides);
     private record OverrideItemDto(Guid ClientUserId, string Profession, int? DayOfWeek, string? Addendum);
 }

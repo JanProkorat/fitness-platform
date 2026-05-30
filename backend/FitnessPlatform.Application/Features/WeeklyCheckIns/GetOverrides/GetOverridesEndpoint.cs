@@ -54,7 +54,8 @@ public class GetOverridesEndpoint(IApplicationDbContext db)
                 DayOfWeek = o.DayOfWeek.HasValue ? (int?)o.DayOfWeek.Value : null,
                 TimeOfDay = o.TimeOfDay,
                 Enabled = o.Enabled,
-                Addendum = o.Addendum
+                Addendum = o.Addendum,
+                DeadlineOffsetHours = o.DeadlineOffsetHours
             })
             .ToListAsync(ct);
 
