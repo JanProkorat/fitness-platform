@@ -82,6 +82,38 @@ export async function publishTrainingWeek(
   return data;
 }
 
+/** Response from the retroactive session-finish endpoint. */
+export interface FinishSessionResponse {
+  workoutLogId: string;
+  planId: string;
+  sessionId: string;
+  completedAt: string;
+}
+
+/**
+ * Retroactively mark a past unfinished session as completed on behalf of the
+ * client. Only applicable to sessions the client skipped or never started.
+ * The caller must supply `completedAt` as the session's scheduled calendar
+ * date in UTC ISO-8601 so history attributes to the correct historical day.
+ *
+ * Errors:
+ *   404 — plan not found / not owned, or session not in plan
+ *   409 — SESSION_ALREADY_COMPLETED
+ *   400 — COMPLETED_AT_IN_FUTURE
+ *   422 — COMPLETED_AT_BEFORE_PLAN_START
+ */
+export async function finishSession(
+  planId: string,
+  sessionId: string,
+  completedAt: string,
+): Promise<FinishSessionResponse> {
+  const { data } = await api.post<FinishSessionResponse>(
+    `/trainer/training/plans/${planId}/sessions/${sessionId}/finish`,
+    { completedAt },
+  );
+  return data;
+}
+
 /** Get exercise progress for a client. */
 export async function getExerciseProgress(
   clientId: string,

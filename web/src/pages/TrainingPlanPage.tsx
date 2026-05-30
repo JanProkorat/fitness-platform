@@ -1,8 +1,8 @@
 import { useEffect, useCallback, useState, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { getTrainingPlan, completeTrainingPlan } from '@/api/training-plans';
+import { getTrainingPlan, completeTrainingPlan, finishSession } from '@/api/training-plans';
 import { listSectionTemplates, createSectionTemplate } from '@/api/sectionTemplates';
 import type { SectionTemplateResponse } from '@/api/sectionTemplates';
 import type { WorkoutFormat, MovementType, SetType } from '@/api/training-plan-types';
@@ -13,7 +13,7 @@ import type { MuscleGroup } from '@/api/exercise-types';
 import { apiClient } from '@/api/client';
 import { useTrainingPlanStore } from '@/stores/trainingPlan';
 import { PageHeader } from '@/components/layout';
-import { showApiError, showSuccess } from '@/lib/api-errors';
+import { showApiError, showSuccess, showError } from '@/lib/api-errors';
 import { Button, Dialog } from '@/components/ui';
 import { MondayDatePicker } from '@/components/ui/MondayDatePicker';
 import { WeekDayTabs } from '@/components/nutrition';
@@ -21,7 +21,7 @@ import type { WeekTabData } from '@/components/nutrition/WeekDayTabs';
 import { TrainingSidebar } from '@/components/training/TrainingSidebar';
 import { SectionTemplateSearch } from '@/components/training/SectionTemplateSearch';
 import { cn } from '@/lib/cn';
-import { isDayInPast, isWeekFinished, todayWeekdayInPlan, weekStartDate } from '@/lib/training-plan-dates';
+import { isDayInPast, isWeekFinished, todayWeekdayInPlan, weekStartDate, sessionScheduledDateUtc } from '@/lib/training-plan-dates';
 import { estimatedSectionDurationSeconds, formatDurationCompact } from '@/lib/training-plan-format';
 import { computePlanLocks, exerciseLockKey } from '@/lib/training-plan-locks';
 import { deriveSessionCompletionState } from '@/lib/completionState';
@@ -100,7 +100,14 @@ export default function TrainingPlanPage() {
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
+  const queryClient = useQueryClient();
   const [pendingNav, setPendingNav] = useState<string | null>(null);
+  // State for the retroactive "mark session finished" confirmation dialog.
+  const [markFinishedTarget, setMarkFinishedTarget] = useState<{
+    sessionId: string;
+    sessionName: string;
+    completedAt: string;
+  } | null>(null);
   const [dragOverDay, setDragOverDay] = useState<number | null>(null);
   const dayHoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Set during `confirmLeave` so the popstate trap and pushState interceptor
@@ -293,6 +300,39 @@ export default function TrainingPlanPage() {
     } finally {
       setIsCompleting(false);
     }
+  };
+
+  // ── Retroactive finish mutation ──
+  const finishSessionMutation = useMutation({
+    mutationFn: ({ sessionId, completedAt }: { sessionId: string; completedAt: string }) => {
+      if (!planId) return Promise.reject(new Error('planId missing'));
+      return finishSession(planId, sessionId, completedAt);
+    },
+    onSuccess: async () => {
+      setMarkFinishedTarget(null);
+      showSuccess('training.retroactiveFinish.success');
+      // Reload plan so sessionExecutions update (lock state + completion badges recompute).
+      if (planId) {
+        try {
+          const data = await getTrainingPlan(planId);
+          setPlan(data);
+        } catch {
+          // Non-fatal — reload on next navigation
+        }
+      }
+      queryClient.invalidateQueries({ queryKey: ['training-plan', planId] });
+    },
+    onError: (err: unknown) => {
+      showApiError(err, 'common.error');
+    },
+  });
+
+  const handleConfirmMarkFinished = () => {
+    if (!markFinishedTarget) return;
+    finishSessionMutation.mutate({
+      sessionId: markFinishedTarget.sessionId,
+      completedAt: markFinishedTarget.completedAt,
+    });
   };
 
   // Apply-template client-side splice: replaces exercises + format of the target session.
@@ -857,12 +897,27 @@ export default function TrainingPlanPage() {
 
             {daySessions.map((session) => {
               const isSessionOpen = !collapsedSessions.has(session.sessionId);
-              const isSessionLocked = planLocks.sessionIds.has(session.sessionId);
-              // Combined read-only flag for the session-header action buttons
-              // and the session-notes input — locked sessions (every section
-              // finished by the client) AND any session on a day that has
-              // already passed should reject edits + show the disabled cue.
-              const isSessionReadOnly = isSessionLocked || isSelectedDayInPast;
+              // A session is "client-locked" when the client has completed every
+              // section in it (planLocks.sessionIds, derived from completions).
+              const isClientLockedSession = planLocks.sessionIds.has(session.sessionId);
+              // Execution record for this session — present when the client has
+              // interacted with it (at least one set logged or session finished).
+              const sessionExec = plan?.sessionExecutions?.find(
+                (e) => e.sessionId === session.sessionId,
+              );
+              // A past session is "completed" (read-only) when the client
+              // formally finished the workout log (isSessionFinished=true).
+              // Skipped or untouched past sessions remain editable per AC.
+              const isPastCompletedSession =
+                isSelectedDayInPast && (sessionExec?.isSessionFinished ?? false);
+              // Read-only when client-locked OR the client actually finished
+              // this specific session. Sessions the client never touched or
+              // skipped stay editable even when in the past.
+              const isSessionReadOnly = isClientLockedSession || isPastCompletedSession;
+              // True when the session is in the past AND not completed — these
+              // sessions show the "Mark finished" retroactive affordance.
+              const isPastUnfinishedSession =
+                isSelectedDayInPast && !isPastCompletedSession && !isClientLockedSession;
 
               return (
                 <SessionDragWrapper
@@ -942,10 +997,8 @@ export default function TrainingPlanPage() {
                       })()}
                       {(() => {
                         // Session-level completion badge — derive from execution data.
+                        // sessionExec is already resolved above in the outer scope.
                         const allExercises = session.sections.flatMap((sec) => sec.exercises);
-                        const sessionExec = plan?.sessionExecutions?.find(
-                          (e) => e.sessionId === session.sessionId,
-                        );
                         const { state, counts } = deriveSessionCompletionState(
                           sessionExec ? [sessionExec] : undefined,
                           session.sessionId,
@@ -961,6 +1014,40 @@ export default function TrainingPlanPage() {
                         );
                       })()}
                     </span>
+                    {/* "Mark finished" retroactive affordance — only shown on
+                        past sessions the client did not complete. The button is
+                        visually distinct (tinted outline style) to separate it
+                        clearly from the client's live-finish flow. */}
+                    {isPastUnfinishedSession && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const completedAt = sessionScheduledDateUtc(plan, selectedWeek, selectedDay);
+                          if (!completedAt) {
+                            showError('training.retroactiveFinish.noStartDate');
+                            return;
+                          }
+                          setMarkFinishedTarget({
+                            sessionId: session.sessionId,
+                            sessionName: session.name || t('training.untitledSession'),
+                            completedAt,
+                          });
+                        }}
+                        disabled={finishSessionMutation.isPending}
+                        className={cn(
+                          'shrink-0 rounded-sm border px-2 py-[2px] text-[10px] font-medium transition-colors',
+                          'border-amber-500/50 text-amber-600 bg-amber-50/80',
+                          'hover:bg-amber-100 hover:border-amber-500',
+                          'disabled:opacity-40 disabled:cursor-not-allowed',
+                          'dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-500/40',
+                        )}
+                        title={t('training.retroactiveFinish.buttonTooltip')}
+                        aria-label={t('training.retroactiveFinish.buttonLabel')}
+                      >
+                        {t('training.retroactiveFinish.buttonLabel')}
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={(e) => {
@@ -1114,13 +1201,15 @@ export default function TrainingPlanPage() {
                             isSectionLocked={
                               // A section's inputs are read-only when any of:
                               //   - the section itself is finished by the client
-                              //   - the whole session is finished (every section
-                              //     locked) — adding/editing on a wrapped-up
-                              //     session has no clinical value
-                              //   - the selected day has already passed
+                              //   - the whole session is client-locked (every
+                              //     section finished by the client)
+                              //   - the session is a past completed session
+                              //     (client formally finished the workout log)
+                              // NOTE: isSelectedDayInPast alone no longer locks —
+                              // past skipped / untouched sessions are editable.
                               planLocks.sectionIds.has(section.sectionId) ||
-                              planLocks.sessionIds.has(session.sessionId) ||
-                              isSelectedDayInPast
+                              isClientLockedSession ||
+                              isPastCompletedSession
                             }
                             lockedExerciseIds={new Set(
                               section.exercises
@@ -1137,11 +1226,7 @@ export default function TrainingPlanPage() {
                             )}
                             exerciseDetailsMap={exerciseDetailsMap}
                             exerciseFullMap={exerciseFullMap}
-                            sessionExecution={
-                              plan?.sessionExecutions?.find(
-                                (e) => e.sessionId === session.sessionId,
-                              )
-                            }
+                            sessionExecution={sessionExec}
                             onUpdate={(patch) =>
                               updateSection(selectedWeek, session.sessionId, section.sectionId, patch)
                             }
@@ -1367,6 +1452,36 @@ export default function TrainingPlanPage() {
         <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
           {t('training.template.applyConfirmMessage', {
             name: templateConfirmTarget?.template.name ?? '',
+          })}
+        </p>
+      </Dialog>
+
+      {/* ── Mark Session Finished (Retroactive) Dialog ── */}
+      <Dialog
+        open={!!markFinishedTarget}
+        onClose={() => setMarkFinishedTarget(null)}
+        title={t('training.retroactiveFinish.dialogTitle')}
+        maxWidth={420}
+        footer={
+          <>
+            <Button onClick={() => setMarkFinishedTarget(null)} disabled={finishSessionMutation.isPending}>
+              {t('common.cancel')}
+            </Button>
+            <Button
+              variant="brand"
+              onClick={handleConfirmMarkFinished}
+              disabled={finishSessionMutation.isPending}
+            >
+              {finishSessionMutation.isPending
+                ? t('common.saving')
+                : t('training.retroactiveFinish.dialogConfirm')}
+            </Button>
+          </>
+        }
+      >
+        <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
+          {t('training.retroactiveFinish.dialogBody', {
+            name: markFinishedTarget?.sessionName ?? '',
           })}
         </p>
       </Dialog>

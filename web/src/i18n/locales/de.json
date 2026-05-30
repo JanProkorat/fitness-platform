@@ -791,7 +791,10 @@
     "CLIENT_REQUEST_NOT_FOUND": "Klientenanfrage nicht gefunden.",
     "REQUIRED": "Dieses Feld ist erforderlich.",
     "OUT_OF_RANGE": "Der Wert liegt außerhalb des zulässigen Bereichs.",
-    "INVALID_DEADLINE_OFFSET_HOURS": "Ungültige Frist. Erlaubte Werte: 24, 48, 72, 120 oder 168 Stunden."
+    "INVALID_DEADLINE_OFFSET_HOURS": "Ungültige Frist. Erlaubte Werte: 24, 48, 72, 120 oder 168 Stunden.",
+    "SESSION_ALREADY_COMPLETED": "Diese Einheit wurde bereits abgeschlossen.",
+    "COMPLETED_AT_IN_FUTURE": "Das Abschlussdatum darf nicht in der Zukunft liegen.",
+    "COMPLETED_AT_BEFORE_PLAN_START": "Das Abschlussdatum darf nicht vor dem Startdatum des Plans liegen."
   },
   "nutritionGoals": {
     "title": "Ziele & Makros",
@@ -1182,6 +1185,15 @@
       "exerciseSkippedSuffix": "{{count}} übersprungen",
       "sessionAllComplete": "Alles erledigt",
       "sessionMixed": "{{completed}} abgeschlossen · {{skipped}} übersprungen"
+    },
+    "retroactiveFinish": {
+      "buttonLabel": "Als abgeschlossen markieren",
+      "buttonTooltip": "Diese vergangene Einheit nachträglich als abgeschlossen markieren",
+      "dialogTitle": "Einheit als abgeschlossen markieren",
+      "dialogBody": "«{{name}}» als abgeschlossen markieren? Die Einheit wird als erledigt am geplanten Datum gespeichert. Diese Aktion kann nicht rückgängig gemacht werden.",
+      "dialogConfirm": "Als abgeschlossen markieren",
+      "success": "Einheit als abgeschlossen markiert.",
+      "noStartDate": "Einheit kann nicht markiert werden: Dieser Plan hat kein Startdatum."
     }
   },
   "exercises": {

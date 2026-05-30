@@ -801,7 +801,10 @@
     "CLIENT_REQUEST_NOT_FOUND": "Žádost klienta nebyla nalezena.",
     "REQUIRED": "Toto pole je povinné.",
     "OUT_OF_RANGE": "Hodnota je mimo povolený rozsah.",
-    "INVALID_DEADLINE_OFFSET_HOURS": "Neplatná lhůta. Povolené hodnoty: 24, 48, 72, 120 nebo 168 hodin."
+    "INVALID_DEADLINE_OFFSET_HOURS": "Neplatná lhůta. Povolené hodnoty: 24, 48, 72, 120 nebo 168 hodin.",
+    "SESSION_ALREADY_COMPLETED": "Tento trénink byl již dokončen.",
+    "COMPLETED_AT_IN_FUTURE": "Datum dokončení nesmí být v budoucnosti.",
+    "COMPLETED_AT_BEFORE_PLAN_START": "Datum dokončení nesmí být před začátkem plánu."
   },
   "nutritionGoals": {
     "title": "Cíle & makra",
@@ -1198,6 +1201,15 @@
       "exerciseSkippedSuffix": "{{count}} vynecháno",
       "sessionAllComplete": "Vše dokončeno",
       "sessionMixed": "{{completed}} dokončeno · {{skipped}} vynecháno"
+    },
+    "retroactiveFinish": {
+      "buttonLabel": "Označit jako dokončeno",
+      "buttonTooltip": "Zpětně označit tento trénink jako dokončený za klienta",
+      "dialogTitle": "Označit trénink jako dokončený",
+      "dialogBody": "Označit «{{name}}» jako dokončený? Trénink bude zaznamenán jako splněný k naplánovanému datu. Tuto akci nelze vrátit.",
+      "dialogConfirm": "Označit jako dokončeno",
+      "success": "Trénink označen jako dokončený.",
+      "noStartDate": "Trénink nelze označit: plán nemá nastavené datum začátku."
     }
   },
   "exercises": {

@@ -90,6 +90,38 @@ export function todayWeekdayInPlan(
 }
 
 /**
+ * Returns the UTC ISO-8601 string for the scheduled calendar date of a
+ * specific session within a plan — i.e. the Monday of the given week offset by
+ * `(dayOfWeek - 1)` days, at 00:00:00 UTC.
+ *
+ * This is the value to send as `completedAt` when a trainer retroactively
+ * finishes a past session on behalf of the client. Attributing to 00:00 UTC on
+ * the session's scheduled day ensures the backend's TrainingCompletion date key
+ * resolves to that calendar day regardless of the server's local timezone.
+ *
+ * Returns `null` when the plan has no `startDate` — the caller should NOT send
+ * the request in that case (completedAt would be unresolvable).
+ */
+export function sessionScheduledDateUtc(
+  plan: { startDate?: string | null },
+  weekNumber: number,
+  dayOfWeek: number,
+): string | null {
+  if (!plan.startDate) return null;
+  const start = new Date(plan.startDate);
+  if (Number.isNaN(start.getTime())) return null;
+  // Advance to the Monday of the target week (week 1 = startDate itself).
+  const dayOffset = (weekNumber - 1) * 7 + (dayOfWeek - 1);
+  const utc = Date.UTC(
+    start.getUTCFullYear(),
+    start.getUTCMonth(),
+    start.getUTCDate() + dayOffset,
+    0, 0, 0, 0,
+  );
+  return new Date(utc).toISOString();
+}
+
+/**
  * Returns the `weekNumber` of the week that contains `now` based on the plan's
  * `startDate`. Falls back to the first week's number when:
  *   - the plan has no `startDate` (no date math possible),
