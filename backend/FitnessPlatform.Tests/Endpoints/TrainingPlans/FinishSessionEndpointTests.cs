@@ -461,4 +461,112 @@ public class FinishSessionEndpointTests
         // ThrowErrorWithCode maps to 422 Unprocessable Entity in FastEndpoints.
         ep.HttpContext.Response.StatusCode.Should().Be(422);
     }
+
+    // ── MINOR-1: null StartDate floor falls back to DateCreated ──────────────────
+
+    [Fact]
+    public async Task HandleAsync_NullStartDate_CompletedAtBeforeDateCreated_Returns422()
+    {
+        // Arrange: plan has no StartDate (not yet started). completedAt is before DateCreated —
+        // the plan didn't exist yet, so the write would fabricate impossible history.
+        var sessionId = Guid.NewGuid();
+        var dateCreated = DateTime.UtcNow.AddDays(-14);
+
+        // Pass startDate: null explicitly by using the overload that leaves StartDate as its default.
+        var planWithNullStart = new TrainingPlan
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = Guid.NewGuid(),
+            TrainerId = _trainerId,
+            Name = "Plan Without Start",
+            Status = TrainingPlanStatus.Active,
+            StartDate = null, // explicitly no start date
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    Sessions =
+                    [
+                        new TrainingSession
+                        {
+                            SessionId = sessionId,
+                            DayOfWeek = 1,
+                            Name = "Push Day",
+                            Order = 1,
+                            Sections = []
+                        }
+                    ]
+                }
+            ],
+            Version = 1,
+            DateCreated = dateCreated
+        };
+
+        var (mongo, _) = CreateMockMongoWithInsert(planWithNullStart, []);
+
+        var ep = Factory.Create<FinishSessionEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            mongo, StubCompletionService());
+
+        // completedAt is one day before the plan was created — must be rejected
+        var tooEarly = dateCreated.AddDays(-1);
+
+        await ep.HandleAsync(
+            new FinishSessionRequest
+            {
+                PlanId = planWithNullStart.ExternalId,
+                SessionId = sessionId,
+                CompletedAt = tooEarly
+            },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(422);
+    }
+
+    // ── MINOR-2: non-UTC completedAt is normalized before validation ──────────────
+
+    [Fact]
+    public async Task HandleAsync_UnspecifiedKindCompletedAt_NormalizedToUtc_Returns200()
+    {
+        // Arrange: completedAt arrives with DateTimeKind.Unspecified (as JSON binders produce).
+        // The endpoint must normalize via ToUniversalTime() so the completion lands on the
+        // correct calendar day. This test verifies that a value within a valid range still
+        // succeeds — the normalization must not corrupt the value.
+        var sessionId = Guid.NewGuid();
+        var plan = CreatePlanWithSession(_trainerId, sessionId);
+
+        var (mongo, _) = CreateMockMongoWithInsert(plan, []);
+        var completionService = StubCompletionService();
+
+        var ep = Factory.Create<FinishSessionEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            mongo, completionService);
+
+        // Simulate JSON-bound DateTime with Unspecified kind (equivalent to a UTC instant one week ago)
+        var rawFromJson = DateTime.SpecifyKind(DateTime.UtcNow.AddDays(-5), DateTimeKind.Unspecified);
+
+        await ep.HandleAsync(
+            new FinishSessionRequest
+            {
+                PlanId = plan.ExternalId,
+                SessionId = sessionId,
+                CompletedAt = rawFromJson
+            },
+            TestContext.Current.CancellationToken);
+
+        // Should succeed — value is valid once normalized
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        // The service must receive a UTC-kind DateTime
+        await completionService.Received(1).CompleteAsync(
+            Arg.Any<WorkoutLog>(),
+            Arg.Is<DateTime>(d => d.Kind == DateTimeKind.Utc),
+            Arg.Any<CancellationToken>());
+    }
 }

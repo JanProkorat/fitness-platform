@@ -72,14 +72,24 @@ public class FinishSessionEndpoint(
             return;
         }
 
-        // 3. Resolve the effective completion instant.
-        var completedAt = req.CompletedAt ?? DateTime.UtcNow;
+        // 3. Resolve the effective completion instant, normalizing to UTC so that
+        //    DateOnly.FromDateTime(completedAt) always lands on the correct calendar day
+        //    regardless of the DateTime.Kind the JSON binder assigned to the incoming value.
+        var completedAt = (req.CompletedAt ?? DateTime.UtcNow).ToUniversalTime();
 
         // 3a. Guard: completedAt must not be before the plan's start date.
-        if (plan.StartDate.HasValue && completedAt < plan.StartDate.Value)
+        //    When StartDate is null (plan created but not yet started), fall back to
+        //    plan.DateCreated as the floor — a session cannot have been completed before
+        //    the plan existed, and leaving this unchecked allows arbitrary backdating
+        //    (e.g. year 1900), which fabricates historical compliance records.
+        var completionFloor = plan.StartDate.HasValue
+            ? plan.StartDate.Value
+            : plan.DateCreated;
+
+        if (completedAt < completionFloor)
         {
             await this.SendProblemAsync(422, ErrorCodes.CompletedAtBeforePlanStart,
-                "completedAt must not be before the plan's start date.", ct);
+                "completedAt must not be before the plan's start date (or creation date when no start date is set).", ct);
             return;
         }
 
