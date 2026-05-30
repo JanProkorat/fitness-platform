@@ -19,6 +19,43 @@ only update them through this regeneration flow.
    Verify: `curl -sk https://localhost:5001/swagger/v1/swagger.json | head`
 2. NSwag tool available via `dotnet tool`. If missing:
    `dotnet tool restore` in `/backend`.
+3. `node_modules/` already populated — do NOT run `npm install` (see ⚠️ below).
+
+## ⚠️ Lockfile safety — never run `npm install` during regen
+
+**`npm run generate-api` does NOT use npm packages.** The script is pure
+shell: `curl` (fetch Swagger) → `dotnet nswag` (codegen) → `sed`
+(post-process). Zero npm involvement.
+
+**Do NOT run `npm install` "to be safe" before or after regen.** Running
+`npm install` against an existing `package.json` re-resolves the dependency
+tree and rewrites `package-lock.json`, sometimes stripping transitive peer
+deps that npm decides are redundant but `npm ci` still needs.
+
+**Real incident (#329 / #348):** during the #329 web slice, an extraneous
+`npm install` stripped `@floating-ui/dom@1.7.6` from the lockfile. CI then
+broke with `EUSAGE: Missing @floating-ui/dom@1.7.6 from lock file`.
+Recovery in commit `d2e617f` required restoring `web/package-lock.json`
+from `develop`.
+
+**Safe rules of thumb:**
+
+- The `generate-api` script needs nothing from `node_modules` — do not
+  `npm install` ahead of it.
+- If you need a fresh `node_modules` (e.g. for `tsc --noEmit` after regen),
+  use **`npm ci`** — it's strictly lockfile-preserving and never modifies
+  `package-lock.json`. Never use `npm install` mid-regen.
+- After regen, **verify the lockfile didn't drift**:
+  ```bash
+  git status web/package-lock.json mobile/package-lock.json
+  ```
+  Both should show no entry. If one shows up, restore it before committing:
+  ```bash
+  git checkout origin/develop -- web/package-lock.json
+  git checkout origin/develop -- mobile/package-lock.json
+  ```
+- `package.json` must NEVER appear in a regen commit. Treat the regen as
+  "client-types only" — `generated.ts` is the entire authoritative diff.
 
 ## Web (`/web`) — supported out of the box
 
@@ -33,6 +70,8 @@ Under the hood this:
 1. Fetches `https://localhost:5001/swagger/v1/swagger.json` into `/backend/swagger.json`
 2. Runs `dotnet nswag run nswag.json` (config in `/backend/nswag.json`)
 3. Post-processes `web/src/api/generated.ts` to prepend `// @ts-nocheck`
+
+**Zero npm involvement — `package-lock.json` MUST stay untouched.**
 
 ## Mobile (`/mobile`) — manual today
 
@@ -57,13 +96,19 @@ share one `nswag.json` or each has its own output path.
 
 1. **Do NOT hand-edit `generated.ts`.** The PreToolUse hook
    `block-generated-edits` will reject any attempt.
-2. Type-check the consumer:
+2. **Lockfile sanity check** (before any other step):
+   ```bash
+   git status web/package-lock.json mobile/package-lock.json
+   ```
+   Both must be untouched. If either drifted, restore from `develop` before
+   proceeding (see "Lockfile safety" warning above).
+3. Type-check the consumer:
    - web: `cd web && npx tsc --noEmit`
    - mobile: `cd mobile && npx tsc --noEmit`
-3. Fix breakage in wrapper modules (`src/api/*.ts`) — rename imports,
+4. Fix breakage in wrapper modules (`src/api/*.ts`) — rename imports,
    update mapping functions, adjust Zod schemas.
-4. Search for call sites: `grep -rn "<old name>" src/`.
-5. If the regen produced no diff, the contract change did not actually change
+5. Search for call sites: `grep -rn "<old name>" src/`.
+6. If the regen produced no diff, the contract change did not actually change
    the Swagger output — double-check the backend work.
 
 ## Who runs this
@@ -88,8 +133,11 @@ share one `nswag.json` or each has its own output path.
 ## Checklist
 
 - [ ] Backend running on :5001 with fresh build
+- [ ] `node_modules/` populated (use `npm ci` if not — never `npm install`)
 - [ ] `npm run generate-api` succeeds in `/web`
 - [ ] Mobile regeneration performed (if the change affects mobile)
+- [ ] **`git status` shows zero diff on `web/package-lock.json` + `mobile/package-lock.json`**
 - [ ] `tsc --noEmit` clean in both clients
 - [ ] Wrapper modules updated where needed
 - [ ] No hand-edits in `generated.ts` (hook will block these anyway)
+- [ ] `package.json` not in the regen commit (treat regen as client-types only)
