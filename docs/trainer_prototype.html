@@ -320,6 +320,7 @@ body.dark-proto .phone{background:#000}
   <div class="ps"></div>
   <div class="pg">Fotky</div>
   <button class="pb" onclick="nav('nutrition-plan-detail')">Výživový plán · detail</button>
+  <button class="pb" onclick="nav('training-plan-detail')">Tréninkový plán · detail</button>
   <button class="pb" onclick="nav('diary-request-dialog')">Požádat o deník</button>
   <button class="pb" onclick="nav('client-photos')">Timeline fotek</button>
   <button class="pb" onclick="nav('foods-admin')">Admin potraviny</button>
@@ -1836,6 +1837,147 @@ body.dark-proto .phone{background:#000}
 </div>
 </div>
 <div class="phone-wrap">
+<div class="phone-label">Detail tréninkového plánu</div>
+<div class="phone" id="ph-training-plan-detail" style="display:none">
+  <div class="di"></div>
+  <div class="status-bar"><span class="sb-time">9:41</span><div class="sb-icons"><svg width="17" height="12" viewBox="0 0 17 12" fill="#000"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0" width="3" height="12" rx="1"/><rect x="13.5" y="1" width="3" height="11" rx="1"/></svg><svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0" y="1" width="21" height="10" rx="3.5" stroke="#000" stroke-width="1"/><rect x="22" y="4" width="2.5" height="4" rx="1" fill="#000" opacity=".4"/><rect x="1.5" y="2.5" width="15" height="7" rx="2" fill="#000"/></svg></div></div>
+
+  <!-- Fixed header zone: back + hero + tabs -->
+  <div style="position:absolute;top:59px;left:0;right:0;z-index:10;background:var(--ios-bg)">
+    <div class="detail-back" onclick="nav('klienti')">
+      <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M8.5 1.5L2 8l6.5 6.5" stroke="#007aff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="detail-back-lbl">Klienti</span>
+    </div>
+    <div class="detail-hero" style="align-items:flex-start">
+      <div class="detail-av" style="width:54px;height:54px;border-radius:16px;background:linear-gradient(135deg,#c9a84c,#a8842f);color:#fff">LP</div>
+      <div style="flex:1;min-width:0">
+        <div class="detail-name" style="font-size:19px">Lucie Poradce · Trénink</div>
+        <div class="detail-sub">Plán: Duben / Květen 2026 · Týden 4/12</div>
+      </div>
+      <div onclick="nav('diary-request-dialog')" style="flex-shrink:0;padding:10px 18px;border-radius:10px;background:var(--ios-gold);color:#fff;font-size:13px;font-weight:600;cursor:pointer">📸 Požádat o foto-deník</div>
+    </div>
+    <div class="pill-tabs" id="train-pill-tabs" style="padding-bottom:6px;border-bottom:.5px solid var(--ios-sep2)">
+      <div class="pill-tab active" id="ttab-btn-prehled" onclick="switchTrainPlanTab('prehled')">Přehled</div>
+      <div class="pill-tab" id="ttab-btn-cviky" onclick="switchTrainPlanTab('cviky')">Cviky</div>
+      <div class="pill-tab" id="ttab-btn-fotky" onclick="switchTrainPlanTab('fotky')">Fotky</div>
+    </div>
+  </div>
+
+  <!-- Scrollable content -->
+  <div style="position:absolute;left:0;right:0;top:225px;bottom:84px;overflow-y:auto;overflow-x:hidden">
+
+    <!-- TAB: PŘEHLED -->
+    <div id="ttab-content-prehled">
+      <div class="stat-strip" style="padding-top:12px">
+        <div class="stat-pill"><div class="stat-pill-val">4 / 12</div><div class="stat-pill-lbl">Týden</div></div>
+        <div class="stat-pill"><div class="stat-pill-val">4×</div><div class="stat-pill-lbl">Jednotky / týden</div></div>
+        <div class="stat-pill"><div class="stat-pill-val" style="color:var(--ios-gold)">28</div><div class="stat-pill-lbl">Cviků</div></div>
+      </div>
+
+      <div style="margin:0 20px 14px;padding:10px 14px;background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.2);border-radius:var(--ios-r)">
+        <div style="font-size:12px;font-weight:600;color:var(--ios-gold);margin-bottom:2px">Pouze náhled</div>
+        <div style="font-size:12px;color:var(--ios-label2)">Editace plánů probíhá ve webovém portálu.</div>
+      </div>
+
+      <div class="ios-section-hdr"><div class="ios-section-title">Foto-deník</div><span class="ios-section-action" onclick="nav('diary-request-dialog')">Požádat</span></div>
+      <div class="ios-card" style="border:1px solid rgba(201,168,76,.22);background:rgba(201,168,76,.06)">
+        <div style="padding:14px 16px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+            <div style="font-size:20px">✅</div>
+            <div style="flex:1">
+              <div style="font-size:14px;font-weight:600;color:var(--ios-gold)">Foto-deník dokončen</div>
+              <div style="font-size:12px;color:var(--ios-label2);margin-top:1px">10 fotek · 4/4 jednotek</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;margin-bottom:10px">
+            <div style="width:48px;height:48px;border-radius:10px;background:rgba(201,168,76,.15);display:flex;align-items:center;justify-content:center;font-size:22px">🏋️</div>
+            <div style="width:48px;height:48px;border-radius:10px;background:rgba(0,122,255,.15);display:flex;align-items:center;justify-content:center;font-size:22px">💪</div>
+            <div style="width:48px;height:48px;border-radius:10px;background:rgba(52,199,89,.15);display:flex;align-items:center;justify-content:center;font-size:22px">🤸</div>
+            <div style="width:48px;height:48px;border-radius:10px;background:rgba(175,82,222,.15);display:flex;align-items:center;justify-content:center;font-size:22px">🏃</div>
+            <div style="width:48px;height:48px;border-radius:10px;background:var(--ios-fill);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--ios-label2)">+6</div>
+          </div>
+          <div onclick="alert('Zobrazit fotky v plánu')" style="padding:9px;border-radius:10px;background:var(--ios-gold);color:#fff;text-align:center;font-size:13px;font-weight:600;cursor:pointer">Zobrazit fotky</div>
+        </div>
+      </div>
+
+      <div class="ios-section-hdr"><div class="ios-section-title">Fotky plánu</div><span class="ios-section-action" onclick="switchTrainPlanTab('fotky')">Vše (10)</span></div>
+      <div class="ios-card">
+        <div style="padding:12px 16px;display:grid;grid-template-columns:repeat(3,1fr);gap:4px">
+          <div style="aspect-ratio:1;border-radius:var(--ios-r);background:rgba(201,168,76,.15);display:flex;align-items:center;justify-content:center;font-size:24px">🏋️</div>
+          <div style="aspect-ratio:1;border-radius:var(--ios-r);background:rgba(0,122,255,.15);display:flex;align-items:center;justify-content:center;font-size:24px">💪</div>
+          <div style="aspect-ratio:1;border-radius:var(--ios-r);background:rgba(52,199,89,.15);display:flex;align-items:center;justify-content:center;font-size:24px">🤸</div>
+          <div style="aspect-ratio:1;border-radius:var(--ios-r);background:rgba(175,82,222,.15);display:flex;align-items:center;justify-content:center;font-size:24px">🏃</div>
+          <div style="aspect-ratio:1;border-radius:var(--ios-r);background:rgba(255,149,0,.15);display:flex;align-items:center;justify-content:center;font-size:24px">🤼</div>
+          <div style="aspect-ratio:1;border-radius:var(--ios-r);background:rgba(201,168,76,.15);display:flex;align-items:center;justify-content:center;font-size:24px">🏋️</div>
+        </div>
+      </div>
+      <div style="height:16px"></div>
+    </div>
+
+    <!-- TAB: CVIKY -->
+    <div id="ttab-content-cviky" style="display:none">
+      <div style="padding:40px 20px;text-align:center">
+        <div style="font-size:14px;color:var(--ios-label2);line-height:1.5">Detail tréninkových jednotek se zobrazí zde (dnes se edituje na webu).</div>
+      </div>
+    </div>
+
+    <!-- TAB: FOTKY -->
+    <div id="ttab-content-fotky" style="display:none">
+      <div class="pill-tabs" style="margin:12px 20px 10px;padding:0">
+        <div class="pill-tab active">Postup (6)</div>
+        <div class="pill-tab">Volné (4)</div>
+      </div>
+
+      <div style="margin:0 20px 14px;padding:10px 12px;background:rgba(201,168,76,.07);border:1px solid rgba(201,168,76,.2);border-radius:var(--ios-r)">
+        <div style="font-size:12px;font-weight:600;color:var(--ios-gold);margin-bottom:6px">Zobrazit podle dne</div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap">
+          <span style="font-size:11px;font-weight:500;padding:3px 9px;border-radius:99px;background:rgba(201,168,76,.15);color:var(--ios-gold)">Po</span>
+          <span style="font-size:11px;font-weight:500;padding:3px 9px;border-radius:99px;background:rgba(201,168,76,.15);color:var(--ios-gold)">St</span>
+          <span style="font-size:11px;font-weight:500;padding:3px 9px;border-radius:99px;background:rgba(201,168,76,.15);color:var(--ios-gold)">Pá</span>
+          <span style="font-size:11px;font-weight:500;padding:3px 9px;border-radius:99px;background:rgba(201,168,76,.15);color:var(--ios-gold)">So</span>
+        </div>
+      </div>
+
+      <div class="ios-card">
+        <div style="padding:10px 14px;font-size:12px;font-weight:600;color:var(--ios-label2);text-transform:uppercase;letter-spacing:.04em">Pondělí · 3 fotky</div>
+        <div style="padding:0 14px 10px;display:grid;grid-template-columns:repeat(3,72px);gap:6px">
+          <div style="width:72px;height:72px;border-radius:var(--ios-r);background:rgba(201,168,76,.15);display:flex;align-items:center;justify-content:center;font-size:26px">🏋️</div>
+          <div style="width:72px;height:72px;border-radius:var(--ios-r);background:rgba(0,122,255,.15);display:flex;align-items:center;justify-content:center;font-size:26px">💪</div>
+          <div style="width:72px;height:72px;border-radius:var(--ios-r);background:rgba(52,199,89,.15);display:flex;align-items:center;justify-content:center;font-size:26px">🤸</div>
+        </div>
+        <div style="border-top:.5px solid var(--ios-sep2);padding:10px 14px;font-size:12px;font-weight:600;color:var(--ios-label2);text-transform:uppercase;letter-spacing:.04em">Středa · 3 fotky</div>
+        <div style="padding:0 14px 10px;display:grid;grid-template-columns:repeat(3,72px);gap:6px">
+          <div style="width:72px;height:72px;border-radius:var(--ios-r);background:rgba(175,82,222,.15);display:flex;align-items:center;justify-content:center;font-size:26px">🏃</div>
+          <div style="width:72px;height:72px;border-radius:var(--ios-r);background:rgba(255,149,0,.15);display:flex;align-items:center;justify-content:center;font-size:26px">🤼</div>
+          <div style="width:72px;height:72px;border-radius:var(--ios-r);background:rgba(201,168,76,.15);display:flex;align-items:center;justify-content:center;font-size:26px">🏋️</div>
+        </div>
+        <div style="border-top:.5px solid var(--ios-sep2);padding:10px 14px;font-size:12px;font-weight:600;color:var(--ios-label2);text-transform:uppercase;letter-spacing:.04em">Pátek · 2 fotky</div>
+        <div style="padding:0 14px 10px;display:grid;grid-template-columns:repeat(3,72px);gap:6px">
+          <div style="width:72px;height:72px;border-radius:var(--ios-r);background:rgba(0,122,255,.15);display:flex;align-items:center;justify-content:center;font-size:26px">💪</div>
+          <div style="width:72px;height:72px;border-radius:var(--ios-r);background:rgba(52,199,89,.15);display:flex;align-items:center;justify-content:center;font-size:26px">🤸</div>
+        </div>
+        <div style="border-top:.5px solid var(--ios-sep2);padding:10px 14px;font-size:12px;font-weight:600;color:var(--ios-label2);text-transform:uppercase;letter-spacing:.04em">Sobota · 2 fotky</div>
+        <div style="padding:0 14px 14px;display:grid;grid-template-columns:repeat(3,72px);gap:6px">
+          <div style="width:72px;height:72px;border-radius:var(--ios-r);background:rgba(255,149,0,.15);display:flex;align-items:center;justify-content:center;font-size:26px">🤼</div>
+          <div style="width:72px;height:72px;border-radius:var(--ios-r);background:rgba(201,168,76,.15);display:flex;align-items:center;justify-content:center;font-size:26px">🏃</div>
+        </div>
+      </div>
+      <div style="height:16px"></div>
+    </div>
+
+  </div>
+
+  <!-- Tab bar -->
+  <div class="tab-bar">
+    <div class="tab" onclick="nav('dnes')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="#8e8e93" stroke-width="2"/><path d="M9 22V12h6v10" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Dnes</div></div>
+    <div class="tab active" onclick="nav('klienti')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="9" cy="7" r="4" stroke="#c9a84c" stroke-width="2"/><path d="M2 21c0-4 3-7 7-7h.5" stroke="#c9a84c" stroke-width="2" stroke-linecap="round"/><circle cx="17" cy="15" r="4" stroke="#c9a84c" stroke-width="2"/></svg></div><div class="tab-lbl" style="color:#c9a84c">Klienti</div></div>
+    <div class="tab" onclick="nav('ziadosti')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="#8e8e93" stroke-width="2"/></svg></div><div class="tab-lbl">Žádosti</div></div>
+    <div class="tab" onclick="nav('zpravy')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="#8e8e93" stroke-width="2" stroke-linejoin="round"/></svg></div><div class="tab-lbl">Zprávy</div></div>
+    <div class="tab" onclick="nav('profil')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="#8e8e93" stroke-width="2"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Profil</div></div>
+  </div>
+</div>
+</div>
+<div class="phone-wrap">
 <div class="phone-label">Požádat o foto-deník</div>
 <div class="phone" id="ph-diary-request-dialog" style="display:none">
   <div class="di"></div>
@@ -2386,6 +2528,7 @@ var SCREENS = {
   'zpravy':      'ph-trainer-zpravy',
   'chat':        'ph-trainer-chat',
   'nutrition-plan-detail':'ph-nutrition-plan-detail',
+  'training-plan-detail':'ph-training-plan-detail',
   'diary-request-dialog':'ph-diary-request-dialog',
   'client-photos':'ph-client-photos',
   'invite-new':'ph-invite-new',
@@ -2397,6 +2540,7 @@ var NAV_LABELS = {
   'dnes':'Dnes','klienti':'Klienti','detail':'Detail klienta','plan-trenink':'Náhled plánu',
   'ziadosti':'Hledat klienty','profil':'Profil','zpravy':'Zprávy','chat':'Chat detail',
   'nutrition-plan-detail':'Výživový plán · detail',
+  'training-plan-detail':'Tréninkový plán · detail',
   'diary-request-dialog':'Požádat o deník',
   'client-photos':'Timeline fotek',
   'invite-new':'Nová pozvánka',
@@ -2507,6 +2651,15 @@ function switchNutrPlanTab(tab){
     var el = document.getElementById('ntab-content-'+t);
     if(el) el.style.display = t===tab ? '' : 'none';
     var btn = document.getElementById('ntab-btn-'+t);
+    if(btn) btn.classList.toggle('active', t===tab);
+  });
+}
+
+function switchTrainPlanTab(tab){
+  ['prehled','cviky','fotky'].forEach(function(t){
+    var el = document.getElementById('ttab-content-'+t);
+    if(el) el.style.display = t===tab ? '' : 'none';
+    var btn = document.getElementById('ttab-btn-'+t);
     if(btn) btn.classList.toggle('active', t===tab);
   });
 }
