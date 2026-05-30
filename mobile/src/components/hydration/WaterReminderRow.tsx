@@ -6,7 +6,7 @@
  *  - Permission-denied: toast + leave toggle off.
  *  - Web-unsupported: disables toggle + shows "Reminders are mobile-only" note.
  *
- * Key format:  water-slot-<index>
+ * Key format:  water-slot-<slot.id>  (UUID-stable, never shifts on remove)
  */
 
 import React, { useState, useCallback, useEffect } from 'react'
@@ -28,51 +28,53 @@ import {
 import type { ReminderTime } from '@/lib/reminderScheduler'
 import { ReminderTimePicker } from '@/components/nutrition/ReminderTimePicker'
 import { useHydrationStore } from '@/stores/hydrationStore'
+import type { ReminderSlot } from '@/stores/hydrationStore'
 import { Toast } from '@/lib/toast'
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export interface WaterReminderRowProps {
-  /** Slot index within the hydration settings (0-based). */
-  index: number
-  onRemove: (index: number) => void
+  /** The full slot record — identity is the stable UUID slot.id. */
+  slot: ReminderSlot
+  /** Display number shown to the user (1-based position in the list). */
+  displayIndex: number
+  onRemove: (slotId: string) => void
 }
 
 /**
  * Manages one water reminder slot. On toggle ON, calls scheduleDailyReminder
- * with key `water-slot-<index>` and only sets enabled=true if result.scheduled.
+ * with key `water-slot-<slot.id>` and only sets enabled=true if result.scheduled.
  * On toggle OFF, cancels the reminder and marks the slot disabled in the store.
  */
-export function WaterReminderRow({ index, onRemove }: WaterReminderRowProps): React.ReactElement {
+export function WaterReminderRow({ slot, displayIndex, onRemove }: WaterReminderRowProps): React.ReactElement {
   const { t } = useTranslation()
   const colors = useTheme()
 
-  const slot = useHydrationStore((s) => s.slots[index])
-  const slotEnabled = useHydrationStore((s) => s.slotsEnabled[index])
   const setSlotTime = useHydrationStore((s) => s.setSlotTime)
   const setSlotEnabled = useHydrationStore((s) => s.setSlotEnabled)
 
-  const reminderKey = `water-slot-${index}`
+  // Reminder key is UUID-stable — never shifts when slots above are removed.
+  const reminderKey = `water-slot-${slot.id}`
 
   // Local state initialised from MMKV via reminderScheduler.
   const [localEnabled, setLocalEnabled] = useState<boolean>(() => {
     const stored = getReminder(reminderKey)
-    return stored?.enabled ?? slotEnabled ?? false
+    return stored?.enabled ?? slot.enabled ?? false
   })
 
   const [localTime, setLocalTime] = useState<ReminderTime>(() => {
     const stored = getReminder(reminderKey)
-    return stored?.time ?? slot ?? { hour: 8, minute: 0 }
+    return stored?.time ?? { hour: slot.hour, minute: slot.minute }
   })
 
   const [pickerVisible, setPickerVisible] = useState(false)
 
-  // Keep in sync if index changes (list rebuild).
+  // Re-sync local state if the slot record reference changes (e.g. store reload).
   useEffect(() => {
     const stored = getReminder(reminderKey)
-    setLocalEnabled(stored?.enabled ?? slotEnabled ?? false)
-    setLocalTime(stored?.time ?? slot ?? { hour: 8, minute: 0 })
-  }, [reminderKey, slot, slotEnabled])
+    setLocalEnabled(stored?.enabled ?? slot.enabled ?? false)
+    setLocalTime(stored?.time ?? { hour: slot.hour, minute: slot.minute })
+  }, [reminderKey, slot.id, slot.hour, slot.minute, slot.enabled])
 
   const isWebPlatform = Platform.OS === 'web'
 
@@ -84,33 +86,33 @@ export function WaterReminderRow({ index, onRemove }: WaterReminderRowProps): Re
           time: localTime,
           title: t('hydration.reminders.notificationTitle'),
           body: t('hydration.reminders.notificationBody'),
-          data: { slotIndex: index },
+          data: { slotId: slot.id },
         })
         if (!result.scheduled) {
           // Permission denied — leave toggle off, show non-blocking toast.
           setLocalEnabled(false)
-          setSlotEnabled(index, false)
+          setSlotEnabled(slot.id, false)
           if (result.reason === 'permission-denied') {
             Toast.show(t('hydration.reminders.permissionDeniedToast'))
           }
           return
         }
         setLocalEnabled(true)
-        setSlotEnabled(index, true)
+        setSlotEnabled(slot.id, true)
       } else {
         await cancelReminder(reminderKey)
         setLocalEnabled(false)
-        setSlotEnabled(index, false)
+        setSlotEnabled(slot.id, false)
       }
     },
-    [reminderKey, localTime, index, setSlotEnabled, t],
+    [reminderKey, localTime, slot.id, setSlotEnabled, t],
   )
 
   const handleTimeConfirm = useCallback(
     async (time: ReminderTime) => {
       setPickerVisible(false)
       setLocalTime(time)
-      setSlotTime(index, time)
+      setSlotTime(slot.id, time)
       if (localEnabled) {
         // Reschedule with the new time.
         await scheduleDailyReminder({
@@ -118,16 +120,16 @@ export function WaterReminderRow({ index, onRemove }: WaterReminderRowProps): Re
           time,
           title: t('hydration.reminders.notificationTitle'),
           body: t('hydration.reminders.notificationBody'),
-          data: { slotIndex: index },
+          data: { slotId: slot.id },
         })
       }
     },
-    [localEnabled, reminderKey, index, setSlotTime, t],
+    [localEnabled, reminderKey, slot.id, setSlotTime, t],
   )
 
   const handleRemove = useCallback(() => {
-    onRemove(index)
-  }, [onRemove, index])
+    onRemove(slot.id)
+  }, [onRemove, slot.id])
 
   const styles = makeStyles(colors)
 
@@ -139,7 +141,7 @@ export function WaterReminderRow({ index, onRemove }: WaterReminderRowProps): Re
       {/* Toggle row */}
       <View style={styles.topRow}>
         <Text style={[styles.label, { color: colors.label2 }]}>
-          {t('hydration.settings.reminderSlot', { n: index + 1 })}
+          {t('hydration.settings.reminderSlot', { n: displayIndex })}
         </Text>
         <View style={styles.rightSide}>
           {isWebPlatform ? (
@@ -152,7 +154,7 @@ export function WaterReminderRow({ index, onRemove }: WaterReminderRowProps): Re
               onValueChange={handleToggle}
               trackColor={{ false: colors.sep, true: colors.gold }}
               thumbColor={colors.bg}
-              accessibilityLabel={t('hydration.settings.reminderSlot', { n: index + 1 })}
+              accessibilityLabel={t('hydration.settings.reminderSlot', { n: displayIndex })}
               accessibilityRole="switch"
             />
           )}

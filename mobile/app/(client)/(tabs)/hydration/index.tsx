@@ -9,8 +9,15 @@
  *  5. 7-day history strip.
  *  6. Settings: daily target input + reminder slots list + "Add slot" button.
  *
- * Orphan-reminder cleanup: on mount, any reminder key whose slot index is ≥
- * the current slot count is cancelled.
+ * Orphan-reminder cleanup: on mount, any `water-slot-*` MMKV reminder key
+ * whose suffix is not in the current slots.map(s => s.id) set is cancelled.
+ * This covers both middle-slot removals (old index-based orphans from before
+ * the UUID migration) and the v1→v2 migration path.
+ *
+ * Migration: if pendingMigrationV1Count > 0 the store was just migrated from
+ * the old index-based shape.  Cancel the old `water-slot-0…N` keys, then
+ * re-schedule any newly-migrated slots that are marked enabled, and finally
+ * call clearMigrationFlag() so the effect doesn't re-run.
  */
 
 import React, { useState, useCallback, useEffect, useRef } from 'react'
@@ -33,7 +40,7 @@ import {
   selectTodayDrinks,
   selectTodayTotalMl,
 } from '@/stores/hydrationStore'
-import { listReminderKeys, cancelReminder } from '@/lib/reminderScheduler'
+import { listReminderKeys, cancelReminder, scheduleDailyReminder } from '@/lib/reminderScheduler'
 import { HydrationProgressBar } from '@/components/hydration/HydrationProgressBar'
 import { QuickLogChips } from '@/components/hydration/QuickLogChips'
 import { CustomAmountSheet } from '@/components/hydration/CustomAmountSheet'
@@ -52,11 +59,13 @@ export default function HydrationScreen() {
   const log = useHydrationStore((s) => s.log)
   const targetMl = useHydrationStore((s) => s.targetMl)
   const slots = useHydrationStore((s) => s.slots)
+  const pendingMigrationV1Count = useHydrationStore((s) => s.pendingMigrationV1Count)
   const addDrink = useHydrationStore((s) => s.addDrink)
   const removeDrink = useHydrationStore((s) => s.removeDrink)
   const setTarget = useHydrationStore((s) => s.setTarget)
   const addSlot = useHydrationStore((s) => s.addSlot)
   const removeSlot = useHydrationStore((s) => s.removeSlot)
+  const clearMigrationFlag = useHydrationStore((s) => s.clearMigrationFlag)
 
   // ── Derived ─────────────────────────────────────────────────────────────
   const todayDrinks = selectTodayDrinks(log)
@@ -103,26 +112,54 @@ export default function HydrationScreen() {
     [addDrink],
   )
 
-  // ── Orphan-reminder cleanup ───────────────────────────────────────────
-  // Cancel any reminder whose slot index is ≥ the current slot count.
-  // This handles cases where slots were removed while the app was backgrounded
-  // and the previous session's reminders were not cleaned up.
+  // ── v1→v2 migration: cancel old index-keyed reminders, re-schedule enabled slots ──
   useEffect(() => {
+    if (pendingMigrationV1Count === 0) return
+    // Cancel old `water-slot-0` … `water-slot-(N-1)` reminder keys.
+    const runMigration = async () => {
+      for (let i = 0; i < pendingMigrationV1Count; i++) {
+        await cancelReminder(`water-slot-${i}`).catch(() => {
+          // Best-effort.
+        })
+      }
+      // Re-schedule any newly migrated slots that are enabled.
+      for (const s of slots) {
+        if (s.enabled) {
+          await scheduleDailyReminder({
+            key: `water-slot-${s.id}`,
+            time: { hour: s.hour, minute: s.minute },
+            title: t('hydration.reminders.notificationTitle'),
+            body: t('hydration.reminders.notificationBody'),
+            data: { slotId: s.id },
+          }).catch(() => {
+            // Best-effort.
+          })
+        }
+      }
+      clearMigrationFlag()
+    }
+    runMigration()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingMigrationV1Count])
+
+  // ── Orphan-reminder cleanup (UUID-based) ─────────────────────────────────
+  // Cancel any `water-slot-*` reminder key whose suffix is not in the current
+  // slot UUID set.  This covers middle-slot removals and any leftover index-
+  // based keys that survived the migration (e.g. app killed mid-migration).
+  useEffect(() => {
+    const knownIds = new Set(slots.map((s) => s.id))
     const keys = listReminderKeys('water-slot-')
-    const slotCount = slots.length
     for (const key of keys) {
-      // Key format: water-slot-<N>
-      const parts = key.split('-')
-      const idx = parseInt(parts[parts.length - 1], 10)
-      if (!isNaN(idx) && idx >= slotCount) {
+      // key format: water-slot-<id>  (UUID or legacy index N)
+      const suffix = key.slice('water-slot-'.length)
+      if (!knownIds.has(suffix)) {
         cancelReminder(key).catch(() => {
           // Best-effort; ignore failures.
         })
       }
     }
-    // Run only when slot count changes (not on every render).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slots.length])
+  }, [slots])
 
   const styles = makeStyles(colors)
 
@@ -218,8 +255,13 @@ export default function HydrationScreen() {
           <SectionHeader title={t('hydration.settings.remindersLabel')} />
 
           <View style={[styles.card, { backgroundColor: colors.bg2 }]}>
-            {slots.map((_, idx) => (
-              <WaterReminderRow key={idx} index={idx} onRemove={removeSlot} />
+            {slots.map((slot, idx) => (
+              <WaterReminderRow
+                key={slot.id}
+                slot={slot}
+                displayIndex={idx + 1}
+                onRemove={removeSlot}
+              />
             ))}
 
             {/* Add slot button — disabled when cap reached */}
