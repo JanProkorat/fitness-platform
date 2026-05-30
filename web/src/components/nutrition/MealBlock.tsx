@@ -6,7 +6,7 @@ import { FoodSearch } from './FoodSearch';
 import { RecipeRow } from './RecipeRow';
 import { RecipeSearch } from './RecipeSearch';
 import { MEAL_KIND_CONFIG, type MealKind } from './meal-kind';
-import { CompletionBadge } from '@/components/training/CompletionBadge';
+import { CompletionBadge } from '@/components/common/CompletionBadge';
 import type { MealCompletionState } from '@/lib/completionState';
 
 function MealDropZone({ mealId, itemIds, onItemDrop, onReorder, children }: {

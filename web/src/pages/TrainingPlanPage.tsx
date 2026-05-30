@@ -25,7 +25,7 @@ import { isDayInPast, isWeekFinished, todayWeekdayInPlan, weekStartDate } from '
 import { estimatedSectionDurationSeconds, formatDurationCompact } from '@/lib/training-plan-format';
 import { computePlanLocks, exerciseLockKey } from '@/lib/training-plan-locks';
 import { deriveSessionCompletionState } from '@/lib/completionState';
-import { CompletionBadge } from '@/components/training/CompletionBadge';
+import { CompletionBadge } from '@/components/common/CompletionBadge';
 import { DayNoteInput } from '@/components/common/DayNoteInput';
 import { CheckInBanner } from '@/components/weekly-checkin/CheckInBanner';
 import { PlanPhotosTab } from '@/components/photos/PlanPhotosTab';

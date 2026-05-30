@@ -4,7 +4,7 @@ import { cn } from '@/lib/cn';
 import { MUSCLE_COLORS, MUSCLE_BG_COLORS, MUSCLE_ICONS } from '@/constants/training';
 import type { SessionExercise } from '@/api/training-plan-types';
 import type { ExerciseCompletionState, ExerciseCounts } from '@/lib/completionState';
-import { CompletionBadge } from '@/components/training/CompletionBadge';
+import { CompletionBadge } from '@/components/common/CompletionBadge';
 
 interface ExerciseCardHeaderProps {
   exercise: SessionExercise;

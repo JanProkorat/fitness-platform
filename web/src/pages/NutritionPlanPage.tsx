@@ -6,7 +6,7 @@ import { useNutritionPlanStore } from '@/stores/nutritionPlan';
 import { getPlan, completePlan } from '@/api/plans';
 import { computeNutritionPlanLocks } from '@/lib/nutrition-plan-locks';
 import { deriveDayCompletionState, deriveMealCompletionState } from '@/lib/completionState';
-import { CompletionBadge } from '@/components/training/CompletionBadge';
+import { CompletionBadge } from '@/components/common/CompletionBadge';
 import { PlanQuestionnairePanel } from '@/components/questionnaire/PlanQuestionnairePanel';
 import { getClientDashboard } from '@/api/nutrition-goals';
 import { PageHeader } from '@/components/layout';
