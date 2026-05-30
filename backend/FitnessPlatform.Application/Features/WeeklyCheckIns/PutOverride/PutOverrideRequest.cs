@@ -23,4 +23,10 @@ public class PutOverrideRequest
 
     /// <summary>Override addendum (≤ 200 chars). Null = inherit.</summary>
     public string? Addendum { get; set; }
+
+    /// <summary>
+    /// Override deadline offset in hours. Null = inherit from the professional's setting.
+    /// When set, must be one of 24, 48, 72, 120, or 168.
+    /// </summary>
+    public int? DeadlineOffsetHours { get; set; }
 }

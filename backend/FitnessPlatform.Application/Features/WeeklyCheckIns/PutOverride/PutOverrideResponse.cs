@@ -25,4 +25,7 @@ public class PutOverrideResponse
 
     /// <summary>Override addendum. Null = inherit.</summary>
     public string? Addendum { get; set; }
+
+    /// <summary>Override deadline offset in hours. Null = inherit.</summary>
+    public int? DeadlineOffsetHours { get; set; }
 }

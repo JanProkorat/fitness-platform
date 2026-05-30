@@ -145,8 +145,65 @@ public class GetOverridesEndpointTests(FitnessApiFactory factory)
             o.ClientUserId == clientUserId && o.Profession == "Training");
     }
 
+    [Fact]
+    public async Task GetOverrides_ReturnsDeadlineOffsetHoursField()
+    {
+        var (http, _, trainerProfileId) = await SetupTrainerAsync();
+        var (clientUserId, clientProfileId) = await SetupClientAsync();
+        await LinkTrainerToClientAsync(trainerProfileId, clientProfileId);
+
+        // Create override with a specific deadline offset.
+        await http.PutAsJsonAsync(
+            $"/trainer/weekly-check-ins/overrides/{clientUserId}/Training",
+            new { DayOfWeek = (int?)null, TimeOfDay = (string?)null, Enabled = (bool?)null, Addendum = (string?)null, DeadlineOffsetHours = 72 },
+            TestContext.Current.CancellationToken);
+
+        var response = await http.GetAsync(
+            "/trainer/weekly-check-ins/overrides",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<OverridesResponseFull>(
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        body.Should().NotBeNull();
+        var match = body!.Overrides.Should().ContainSingle(o =>
+            o.ClientUserId == clientUserId && o.Profession == "Training").Which;
+        match.DeadlineOffsetHours.Should().Be(72);
+    }
+
+    [Fact]
+    public async Task GetOverrides_NullDeadlineOffset_ReturnsNullInField()
+    {
+        var (http, _, trainerProfileId) = await SetupTrainerAsync();
+        var (clientUserId, clientProfileId) = await SetupClientAsync();
+        await LinkTrainerToClientAsync(trainerProfileId, clientProfileId);
+
+        // Create override without specifying deadline offset (will be null).
+        await http.PutAsJsonAsync(
+            $"/trainer/weekly-check-ins/overrides/{clientUserId}/Training",
+            new { DayOfWeek = (int?)null, TimeOfDay = (string?)null, Enabled = (bool?)null, Addendum = (string?)null, DeadlineOffsetHours = (int?)null },
+            TestContext.Current.CancellationToken);
+
+        var response = await http.GetAsync(
+            "/trainer/weekly-check-ins/overrides",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<OverridesResponseFull>(
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        body.Should().NotBeNull();
+        var match = body!.Overrides.Should().ContainSingle(o =>
+            o.ClientUserId == clientUserId && o.Profession == "Training").Which;
+        match.DeadlineOffsetHours.Should().BeNull();
+    }
+
     // ── Local DTOs ───────────────────────────────────────────────────────────
 
     private record OverridesResponse(List<OverrideDto> Overrides);
     private record OverrideDto(Guid Id, Guid ClientUserId, string Profession, int? DayOfWeek, bool? Enabled, string? Addendum);
+
+    private record OverridesResponseFull(List<OverrideDtoFull> Overrides);
+    private record OverrideDtoFull(Guid Id, Guid ClientUserId, string Profession, int? DayOfWeek, bool? Enabled, string? Addendum, int? DeadlineOffsetHours);
 }

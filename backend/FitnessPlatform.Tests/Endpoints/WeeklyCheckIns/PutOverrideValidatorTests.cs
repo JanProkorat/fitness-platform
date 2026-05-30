@@ -17,10 +17,11 @@ public class PutOverrideValidatorTests
     {
         ClientUserId = Guid.NewGuid(),
         Profession = "Training",
-        DayOfWeek = null,       // inherit
-        TimeOfDay = null,       // inherit
-        Enabled = null,         // inherit
-        Addendum = null         // inherit
+        DayOfWeek = null,            // inherit
+        TimeOfDay = null,            // inherit
+        Enabled = null,              // inherit
+        Addendum = null,             // inherit
+        DeadlineOffsetHours = null   // inherit
     };
 
     [Fact]
@@ -135,5 +136,46 @@ public class PutOverrideValidatorTests
         req.Addendum = new string('a', 200);
         var result = _validator.TestValidate(req);
         result.ShouldNotHaveValidationErrorFor(x => x.Addendum);
+    }
+
+    // ── DeadlineOffsetHours validation ────────────────────────────────────────
+
+    [Fact]
+    public void DeadlineOffsetHours_Null_PassesValidation()
+    {
+        var req = ValidRequest();
+        req.DeadlineOffsetHours = null;
+        var result = _validator.TestValidate(req);
+        result.ShouldNotHaveValidationErrorFor(x => x.DeadlineOffsetHours);
+    }
+
+    [Theory]
+    [InlineData(24)]
+    [InlineData(48)]
+    [InlineData(72)]
+    [InlineData(120)]
+    [InlineData(168)]
+    public void DeadlineOffsetHours_AllowedValues_Pass(int hours)
+    {
+        var req = ValidRequest();
+        req.DeadlineOffsetHours = hours;
+        var result = _validator.TestValidate(req);
+        result.ShouldNotHaveValidationErrorFor(x => x.DeadlineOffsetHours);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(12)]
+    [InlineData(36)]
+    [InlineData(60)]
+    [InlineData(96)]
+    [InlineData(200)]
+    public void DeadlineOffsetHours_DisallowedValues_Fail_WithInvalidDeadlineOffsetHoursCode(int hours)
+    {
+        var req = ValidRequest();
+        req.DeadlineOffsetHours = hours;
+        var result = _validator.TestValidate(req);
+        result.ShouldHaveValidationErrorFor(x => x.DeadlineOffsetHours)
+              .WithErrorCode(ErrorCodes.InvalidDeadlineOffsetHours);
     }
 }
