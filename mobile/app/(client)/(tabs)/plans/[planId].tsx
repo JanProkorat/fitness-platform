@@ -1166,6 +1166,7 @@ function TrainingPlanDetail({ plan }: { plan: GetFullTrainingPlanResponse }) {
             onPress={() => router.push(hrefParams('/(client)/plan-photos', { planId }))}
             hitSlop={12}
             style={[styles.nutritionMenuBtn, { backgroundColor: colors.fill }]}
+            accessibilityRole="button"
             accessibilityLabel={t('planPhotos.openA11y')}
           >
             <Ionicons name="images-outline" size={20} color={colors.label} />
