@@ -19,6 +19,26 @@ export type DayOfWeekInt = 0 | 1 | 2 | 3 | 4 | 5 | 6;
  */
 export type TimeSpanString = string; // e.g. "18:00:00"
 
+/* ─────────────────────── WeeklyCheckInStatus ────────────────────────────────────── */
+
+/**
+ * Mirrors the C# WeeklyCheckInStatus enum (added in #331).
+ * Values are serialized as strings by the backend (JsonStringEnumConverter).
+ */
+export type WeeklyCheckInStatus =
+  | 'Pending'
+  | 'Responded'
+  | 'Dismissed'
+  | 'Reviewed'
+  | 'Expired';
+
+/**
+ * Allowed values for the deadlineOffsetHours setting field.
+ * Validated server-side (FluentValidation) and client-side (Zod) with this set.
+ */
+export const DEADLINE_OFFSET_OPTIONS = [24, 48, 72, 120, 168] as const;
+export type DeadlineOffsetHours = (typeof DEADLINE_OFFSET_OPTIONS)[number];
+
 /* ─────────────────────── GET /trainer/weekly-check-ins/settings ─────────────────── */
 
 /** DTO for a single weekly check-in setting (mirrors CheckInSettingDto in backend). */
@@ -31,6 +51,12 @@ export interface CheckInSettingDto {
   timeOfDay: TimeSpanString;
   enabled: boolean;
   defaultAddendum: string | null;
+  /**
+   * How many hours after sending the check-in expires.
+   * Allowed values: 24, 48, 72, 120, 168. Default: 72 (3 days).
+   * Added in #331.
+   */
+  deadlineOffsetHours: DeadlineOffsetHours;
 }
 
 /** Response wrapper for GET /trainer/weekly-check-ins/settings. */
@@ -55,6 +81,8 @@ export interface PutSettingsRequest {
   timeOfDay: TimeSpanString;
   enabled: boolean;
   defaultAddendum: string | null;
+  /** Allowed: 24 | 48 | 72 | 120 | 168. Added in #331. */
+  deadlineOffsetHours: DeadlineOffsetHours;
 }
 
 /** Response for PUT /trainer/weekly-check-ins/settings (mirrors PutSettingsResponse). */
@@ -65,6 +93,8 @@ export interface PutSettingsResponse {
   timeOfDay: TimeSpanString;
   enabled: boolean;
   defaultAddendum: string | null;
+  /** Added in #331. */
+  deadlineOffsetHours: DeadlineOffsetHours;
 }
 
 /** PUT /trainer/weekly-check-ins/settings */
@@ -194,6 +224,10 @@ export interface TrainerCheckInDto {
   respondedAt: string | null;
   dismissedByClientAt: string | null;
   reviewedByTrainerAt: string | null;
+  /** Added in #331 — lifecycle status derived from the Status column. */
+  status: WeeklyCheckInStatus;
+  /** Added in #331 — UTC datetime at which the check-in expires. Null when no deadline configured. */
+  dueAt: string | null;
 }
 
 /** Response wrapper for GET /trainer/weekly-check-ins. */
@@ -230,6 +264,10 @@ export interface CheckInDetailDto {
   respondedAt: string | null;
   dismissedByClientAt: string | null;
   reviewedByTrainerAt: string | null;
+  /** Added in #331 — lifecycle status. */
+  status: WeeklyCheckInStatus;
+  /** Added in #331 — deadline UTC datetime; null if no deadline. */
+  dueAt: string | null;
 }
 
 /** GET /trainer/weekly-check-ins/{id} */

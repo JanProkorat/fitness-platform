@@ -13,12 +13,14 @@ import {
   upsertCheckInSetting,
   DAY_OF_WEEK_KEYS,
   ORDERED_DAYS,
+  DEADLINE_OFFSET_OPTIONS,
   formatTimeDisplay,
   toTimeSpanString,
 } from '@/api/weekly-checkins';
 import type {
   Profession,
   DayOfWeekInt,
+  DeadlineOffsetHours,
   CheckInSettingDto,
   CheckInOverrideDto,
 } from '@/api/weekly-checkins';
@@ -61,6 +63,10 @@ const dayOfWeekSchema = z.union([
   z.literal(4), z.literal(5), z.literal(6),
 ]);
 
+const deadlineOffsetSchema = z.union([
+  z.literal(24), z.literal(48), z.literal(72), z.literal(120), z.literal(168),
+]);
+
 const settingSchema = z.object({
   enabled: z.boolean(),
   /** DayOfWeek as int (0=Sunday…6=Saturday) */
@@ -68,6 +74,8 @@ const settingSchema = z.object({
   /** "HH:mm" — converted to "HH:mm:ss" before sending */
   timeOfDay: z.string().regex(/^\d{2}:00$/, 'Invalid time'),
   defaultAddendum: z.string().max(200, 'Max 200 characters').nullable(),
+  /** Hours until check-in expires; must be one of DEADLINE_OFFSET_OPTIONS. */
+  deadlineOffsetHours: deadlineOffsetSchema,
 });
 type SettingForm = z.infer<typeof settingSchema>;
 
@@ -129,6 +137,7 @@ const ProfessionBlock = forwardRef<ProfessionBlockHandle, ProfessionBlockProps>(
       dayOfWeek: setting?.dayOfWeek ?? DEFAULT_DAY,
       timeOfDay: setting ? formatTimeDisplay(setting.timeOfDay) : DEFAULT_HOUR,
       defaultAddendum: setting?.defaultAddendum ?? null,
+      deadlineOffsetHours: setting?.deadlineOffsetHours ?? 72,
     };
 
     const {
@@ -159,6 +168,7 @@ const ProfessionBlock = forwardRef<ProfessionBlockHandle, ProfessionBlockProps>(
           timeOfDay: toTimeSpanString(data.timeOfDay),
           enabled: data.enabled,
           defaultAddendum: data.defaultAddendum || null,
+          deadlineOffsetHours: data.deadlineOffsetHours,
         });
         // Reset RHF defaults to submitted values so isDirty flips false.
         // Do NOT reset on the error branch — the form stays dirty so the user
@@ -182,6 +192,7 @@ const ProfessionBlock = forwardRef<ProfessionBlockHandle, ProfessionBlockProps>(
           dayOfWeek: watch('dayOfWeek'),
           timeOfDay: watch('timeOfDay'),
           defaultAddendum: watch('defaultAddendum'),
+          deadlineOffsetHours: watch('deadlineOffsetHours'),
         };
         reset(currentValues, { keepValues: true });
       },
@@ -273,6 +284,38 @@ const ProfessionBlock = forwardRef<ProfessionBlockHandle, ProfessionBlockProps>(
                 <p className="text-[11px] text-red mt-1">{errors.timeOfDay.message}</p>
               )}
             </div>
+          </div>
+
+          {/* Deadline offset — how many hours until the check-in auto-expires */}
+          <div
+            className="form-group"
+            style={{ marginBottom: 14, opacity: enabled ? 1 : 0.4, pointerEvents: enabled ? 'auto' : 'none' }}
+          >
+            <label className="form-label">
+              {t('weeklyCheckIn.settings.deadlineLabel')}
+            </label>
+            <Controller
+              name="deadlineOffsetHours"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  value={String(field.value)}
+                  onChange={(e) => field.onChange(Number(e.target.value) as DeadlineOffsetHours)}
+                >
+                  {DEADLINE_OFFSET_OPTIONS.map((h) => (
+                    <option key={h} value={String(h)}>
+                      {t(`weeklyCheckIn.settings.deadlineOption.h${h}`)}
+                    </option>
+                  ))}
+                </Select>
+              )}
+            />
+            <p style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>
+              {t('weeklyCheckIn.settings.deadlineHint')}
+            </p>
+            {errors.deadlineOffsetHours && (
+              <p className="text-[11px] text-red mt-1">{errors.deadlineOffsetHours.message}</p>
+            )}
           </div>
 
           {/* Addendum textarea — matches Bio pattern: label + counter aligned right */}
