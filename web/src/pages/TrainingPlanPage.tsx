@@ -876,7 +876,6 @@ export default function TrainingPlanPage() {
               className={cn(
                 isCurrentWeekFinished && 'opacity-70 select-none',
               )}
-              aria-disabled={isCurrentWeekFinished || undefined}
             >
             {/* Day note — read-only when the selected day has already
                 passed (existing text stays visible, "Add note" affordance
