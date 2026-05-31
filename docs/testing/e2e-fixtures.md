@@ -126,6 +126,69 @@ Replace `<QA_SEED_PASSWORD>` with the value from your `.env.test` file. The plan
 appears in the response because the week `Status = Published` — a Draft week would
 be silently excluded by the `ElemMatch` filter in `GetClientPlansEndpoint`.
 
+## Seeded past-dated training plan (#326)
+
+A second training plan is seeded for the QA client alongside the ForTime fixture. Its `StartDate` is anchored to the Monday that is exactly 28 days before the seed instant, ensuring all Week 1 + Week 2 sessions resolve to past calendar dates regardless of when the harness boots.
+
+### Purpose
+
+The plan exercises the three past-session states the web portal classifies in `completionState.ts`:
+
+| State | Definition | Fixture session |
+|-------|------------|-----------------|
+| **completed** (read-only) | `WorkoutLog` exists with `IsCompleted = true` | `QaPastSessionCompletedId` (Week 1, Mon) |
+| **skipped** (editable + Mark-finished) | `WorkoutLog` exists with `IsCompleted = false` | `QaPastSessionSkippedId` (Week 1, Wed) |
+| **untouched** (editable + Mark-finished) | No `WorkoutLog` at all | `QaPastSessionUntouchedId` (Week 2, Mon) |
+
+### Stable GUIDs
+
+| Constant | Value | What it maps to |
+|---|---|---|
+| `QaPastTrainingPlanExternalId` | `11111111-1111-1111-2222-000000000001` | Plan `ExternalId` |
+| `QaPastSessionCompletedId` | `11111111-1111-1111-2222-000000000002` | Session in Week 1, DayOfWeek=1 (Monday) |
+| `QaPastSessionSkippedId` | `11111111-1111-1111-2222-000000000003` | Session in Week 1, DayOfWeek=3 (Wednesday) |
+| `QaPastSessionUntouchedId` | `11111111-1111-1111-2222-000000000004` | Session in Week 2, DayOfWeek=1 (Monday) |
+| `QaPastCompletedWorkoutLogId` | `11111111-1111-1111-2222-000000000005` | WorkoutLog for the completed session |
+| `QaPastSkippedWorkoutLogId` | `11111111-1111-1111-2222-000000000006` | WorkoutLog for the skipped session |
+
+### Plan ownership
+
+- `TrainingPlan.ClientId` = `ClientProfilePublicId` (`aaaaaaaa-...`) — same client as the ForTime plan.
+- `TrainingPlan.TrainerId` = `TrainerProfilePublicId` (`bbbbbbbb-...`) — same trainer as the ForTime plan.
+- Login as `qa.trainer@fitnessplatform.test` to access via `GET /training/plans/{planId}`.
+
+### Plan shape
+
+```
+TrainingPlan (ExternalId = 11111111-1111-1111-2222-000000000001)
+  Status: Active
+  StartDate: <Monday ~28 days before seed time>
+  Weeks:
+    Week 1 (Status = Published)
+      Session "QA Past Session — Completed" (DayOfWeek = 1 = Monday)
+        Section "Hlavní" (Standard, PastCompletedSectionId = 11111111-1111-1111-3333-000000000001)
+          [QA Bench Press, QA Overhead Press]
+        → WorkoutLog (ExternalId = 11111111-1111-1111-2222-000000000005, IsCompleted=true)
+      Session "QA Past Session — Skipped" (DayOfWeek = 3 = Wednesday)
+        Section "Hlavní" (Standard, PastSkippedSectionId = 11111111-1111-1111-3333-000000000002)
+          [QA Back Squat, QA Romanian Deadlift]
+        → WorkoutLog (ExternalId = 11111111-1111-1111-2222-000000000006, IsCompleted=false, 1 partial set)
+    Week 2 (Status = Published)
+      Session "QA Past Session — Untouched" (DayOfWeek = 1 = Monday)
+        Section "Hlavní" (Standard, PastUntouchedSectionId = 11111111-1111-1111-3333-000000000003)
+          [QA Pull-down, QA Seated Row]
+        → NO WorkoutLog
+```
+
+### Playwright targeting
+
+When driving the trainer portal to the plan detail page, navigate to
+`/training/plans/11111111-1111-1111-2222-000000000001` (use the plan `ExternalId` from the API response, or derive it via `GET /training/plans?clientId=<ClientProfilePublicId>`).
+
+Use the session IDs above as stable selectors in spec assertions (`data-session-id` attributes or API probe keys).
+
+---
+
 ## Seeded foods, recipes, nutrition plan, blobs
 
 Five foods, three recipes, and one nutrition plan are seeded by `QaSeedRunner` alongside the training plan. All constants are in `QaSeedRunner.cs`.
