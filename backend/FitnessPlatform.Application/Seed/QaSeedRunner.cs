@@ -406,7 +406,12 @@ public static class QaSeedRunner
         {
             ExternalId      = QaTrainingPlanExternalId,
             ClientId        = clientProfilePublicId,
-            TrainerId       = trainerProfilePublicId,
+            // TrainerId is keyed on ApplicationUser.Id (NOT ProfessionalProfile.PublicId) —
+            // GetTrainingPlansEndpoint and GetTrainingPlanEndpoint scope by
+            // Guid.Parse(User.FindFirstValue(AppClaims.UserId)) which is ApplicationUser.Id.
+            // Using trainerProfilePublicId (bbbb...) makes this plan invisible to
+            // GET /training/plans and GET /training/plans/{planId} for the trainer.
+            TrainerId       = TrainerUserId,
             Name            = "QA Test Plan — ForTime fixture",
             Status          = TrainingPlanStatus.Active,
             DateCreated     = now,

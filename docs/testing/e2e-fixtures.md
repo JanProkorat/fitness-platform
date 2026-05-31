@@ -73,7 +73,7 @@ A deterministic training plan is seeded for the QA client on every `/test/reset`
 | --------------------------------- | -------------------------------------- | -------------------------------------------------- |
 | `QaTrainingPlanExternalId`        | `dddddddd-dddd-dddd-dddd-dddddddddddd` | The plan's `ExternalId` (used in API responses)    |
 | `ClientProfilePublicId`           | `aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa` | `TrainingPlan.ClientId` (NOT the user id — see note) |
-| `TrainerProfilePublicId`          | `bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb` | `TrainingPlan.TrainerId`                           |
+| `TrainerUserId`                   | `22222222-2222-2222-2222-222222222222` | `TrainingPlan.TrainerId` (ApplicationUser.Id — see note) |
 | `ForTimeSectionId`                | `eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee` | `TrainingSection.SectionId` for Section 1          |
 | `AmrapSectionId`                  | `ffffffff-ffff-ffff-ffff-ffffffffffff` | `TrainingSection.SectionId` for Section 2          |
 | `StandardSectionId`               | `00000000-0000-0000-aaaa-000000000001` | `TrainingSection.SectionId` for Section 3          |
@@ -83,6 +83,12 @@ A deterministic training plan is seeded for the QA client on every `/test/reset`
 > (the profile's public identifier, `aaaaaaaa-...`), **not** on `ApplicationUser.Id`
 > (`11111111-...`). `GET /client/plans` filters by `ClientProfile.PublicId`. Using the
 > user id directly would make the plan invisible to that endpoint.
+>
+> **Note on TrainerId.** `TrainingPlan.TrainerId` is keyed on `ApplicationUser.Id`
+> (`22222222-...`), **not** on `ProfessionalProfile.PublicId` (`bbbbbbbb-...`).
+> `GET /training/plans` and `GET /training/plans/{planId}` scope by
+> `Guid.Parse(AppClaims.UserId)` which is `ApplicationUser.Id`. Using the profile
+> `PublicId` would make the plan invisible to those trainer endpoints.
 
 ### Seeded plan shape
 

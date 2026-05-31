@@ -454,6 +454,38 @@ public class QaSeedRunnerTests : IAsyncLifetime
     }
 
     /// <summary>
+    /// The ForTime fixture plan (<see cref="QaSeedRunner.QaTrainingPlanExternalId"/>) must have
+    /// TrainerId = TrainerUserId (ApplicationUser.Id = 22222222-...) so that trainer-scoped
+    /// endpoints which filter by Guid.Parse(AppClaims.UserId) can see the plan.
+    /// Using TrainerProfilePublicId (bbbbbbbb-...) makes the plan invisible to
+    /// GET /training/plans and GET /training/plans/{planId}.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_ForTimePlan_TrainerIdIsApplicationUserId()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var plan = await mongo.TrainingPlans
+            .Find(p => p.ExternalId == QaSeedRunner.QaTrainingPlanExternalId)
+            .FirstOrDefaultAsync(ct);
+
+        plan.Should().NotBeNull("the ForTime fixture plan must be seeded");
+        plan!.TrainerId.Should().Be(QaSeedRunner.TrainerUserId,
+            "TrainingPlan.TrainerId must be ApplicationUser.Id (22222222-...) — " +
+            "GetTrainingPlansEndpoint and GetTrainingPlanEndpoint scope by " +
+            "Guid.Parse(AppClaims.UserId) which is ApplicationUser.Id, not ProfessionalProfile.PublicId (bbbbbbbb-...)");
+        plan.ClientId.Should().Be(QaSeedRunner.ClientProfilePublicId,
+            "TrainingPlan.ClientId must remain ClientProfile.PublicId (aaaaaaaa-...) — " +
+            "GetClientPlansEndpoint filters by ClientProfile.PublicId and " +
+            "TrainingCompletion.ClientId is also keyed on ClientProfile.PublicId");
+    }
+
+    /// <summary>
     /// Seeding twice must not create duplicate past-plan or workout-log documents.
     /// </summary>
     [Fact]
