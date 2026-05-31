@@ -734,9 +734,10 @@ public static class QaSeedRunner
                 StartedAt     = completedAt.AddMinutes(-45),
                 CompletedAt   = completedAt,
                 // CompletedDate is the calendar-day key required by the partial unique index
-                // idx_workoutlog_planId_sessionId_completedDate_unique. Must derive from
-                // CompletedAt via the same midnight-UTC expression used in WorkoutCompletionService.
-                CompletedDate = DateOnly.FromDateTime(completedAt).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
+                // idx_workoutlog_planId_sessionId_completedDate_unique. Derived via the shared
+                // WorkoutLog.ToCompletionDateUtc helper so the key always agrees with
+                // WorkoutCompletionService and MongoIndexInitializer.
+                CompletedDate = WorkoutLog.ToCompletionDateUtc(completedAt),
                 IsCompleted   = true,
                 DateCreated   = completedAt.AddMinutes(-45),
                 DateUpdated   = completedAt,

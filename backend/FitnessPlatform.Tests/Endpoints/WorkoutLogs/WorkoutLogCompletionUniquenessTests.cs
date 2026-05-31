@@ -182,7 +182,7 @@ public class WorkoutLogCompletionUniquenessTests : IAsyncLifetime
     }
 
     private static DateTime Midnight(DateTime instant) =>
-        DateOnly.FromDateTime(instant).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        WorkoutLog.ToCompletionDateUtc(instant);
 
     // ── (3) Index exists after startup init ───────────────────────────────────
 
@@ -359,9 +359,9 @@ public class WorkoutLogCompletionUniquenessTests : IAsyncLifetime
         updated.Should().NotBeNull();
         updated!.CompletedDate.Should().NotBeNull("backfill must set CompletedDate from CompletedAt");
 
-        var expectedDate = DateOnly.FromDateTime(completedAt).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        var expectedDate = WorkoutLog.ToCompletionDateUtc(completedAt);
         updated.CompletedDate.Should().Be(expectedDate,
-            "backfill must derive CompletedDate via DateOnly.FromDateTime(CompletedAt) midnight UTC");
+            "backfill must derive CompletedDate via WorkoutLog.ToCompletionDateUtc(CompletedAt)");
     }
 
     // ── (5) Dedup collapses same-day dupes; index creates on clean data ────────

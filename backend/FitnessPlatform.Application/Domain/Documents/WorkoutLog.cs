@@ -155,4 +155,20 @@ public class WorkoutLog
     [BsonIgnore]
     public IReadOnlyList<WorkoutExercise> Exercises =>
         Sections.SelectMany(s => s.Exercises).ToList();
+
+    /// <summary>
+    /// Converts a UTC completion instant to the midnight-UTC value used as
+    /// <see cref="CompletedDate"/> and as the <c>TrainingCompletion.Date</c> key.
+    ///
+    /// Single authoritative expression so that the partial unique index key
+    /// <c>(PlanId, SessionId, CompletedDate)</c> and the TrainingCompletion date key
+    /// always agree on the calendar day for backdated finishes.
+    ///
+    /// All production write sites (WorkoutCompletionService, MongoIndexInitializer
+    /// backfill) and the QA seed must call this method — never inline the expression.
+    /// </summary>
+    /// <param name="completedAtUtc">The UTC instant at which the workout was completed.</param>
+    /// <returns>The corresponding midnight UTC <see cref="DateTime"/>.</returns>
+    public static DateTime ToCompletionDateUtc(DateTime completedAtUtc) =>
+        DateOnly.FromDateTime(completedAtUtc).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
 }

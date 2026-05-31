@@ -37,10 +37,10 @@ public class WorkoutCompletionService(
 
         // 2. Mark the log as completed at the supplied instant.
         //    CompletedDate is set to midnight UTC on the same calendar day as completedAtUtc,
-        //    derived via the same expression used for TrainingCompletion.Date (line ~154) so
-        //    that both fields always agree on the calendar day for backdated finishes.
+        //    using WorkoutLog.ToCompletionDateUtc so that both CompletedDate and the
+        //    TrainingCompletion.Date key always agree on the calendar day for backdated finishes.
         log.CompletedAt = completedAtUtc;
-        log.CompletedDate = DateOnly.FromDateTime(completedAtUtc).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        log.CompletedDate = WorkoutLog.ToCompletionDateUtc(completedAtUtc);
         log.IsCompleted = true;
         log.DateUpdated = DateTime.UtcNow;
 
@@ -166,10 +166,9 @@ public class WorkoutCompletionService(
         var clientId = clientProfile.PublicId;
 
         // Date key: the calendar day of the supplied completion instant (NOT DateTime.UtcNow).
-        // This is the critical fix: for backdated finishes the date key must reflect the
-        // backdated day, not the current clock, so that compliance/streak attribution
-        // lands on the correct calendar day.
-        var date = DateOnly.FromDateTime(completedAtUtc).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        // Uses WorkoutLog.ToCompletionDateUtc — the same helper used for WorkoutLog.CompletedDate —
+        // so that both values always agree on the calendar day for backdated finishes.
+        var date = WorkoutLog.ToCompletionDateUtc(completedAtUtc);
 
         var completionFilter = Builders<TrainingCompletion>.Filter.Eq(c => c.ClientId, clientId)
                                & Builders<TrainingCompletion>.Filter.Eq(c => c.Date, date)
