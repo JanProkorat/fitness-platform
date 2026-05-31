@@ -7,7 +7,7 @@ namespace FitnessPlatform.Application.Domain.Interfaces;
 /// <see cref="TrainingCompletion"/> document for compliance/streak, and creates a
 /// trainer notification when personal records are detected.
 ///
-/// The <paramref name="completedAtUtc"/> parameter drives BOTH <see cref="WorkoutLog.CompletedAt"/>
+/// The completion instant drives BOTH <see cref="WorkoutLog.CompletedAt"/>
 /// AND the <see cref="TrainingCompletion"/> date key, so that backdated finishes are
 /// attributed to the correct calendar day.
 /// </summary>

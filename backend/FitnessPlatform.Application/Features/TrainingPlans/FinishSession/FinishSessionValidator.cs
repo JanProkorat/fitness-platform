@@ -1,4 +1,5 @@
 using FastEndpoints;
+using FitnessPlatform.Application.Domain.Constants;
 using FluentValidation;
 
 namespace FitnessPlatform.Application.Features.TrainingPlans.FinishSession;
@@ -20,7 +21,7 @@ public class FinishSessionValidator : Validator<FinishSessionRequest>
         // The "before plan start" check requires plan data and is done in HandleAsync.
         RuleFor(x => x.CompletedAt)
             .Must(d => d == null || d.Value <= DateTime.UtcNow)
-            .WithErrorCode("COMPLETED_AT_IN_FUTURE")
+            .WithErrorCode(ErrorCodes.CompletedAtInFuture)
             .WithMessage("completedAt must not be in the future")
             .When(x => x.CompletedAt.HasValue);
     }
