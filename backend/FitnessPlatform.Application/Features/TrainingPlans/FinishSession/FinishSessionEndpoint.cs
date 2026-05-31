@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using FastEndpoints;
+using FitnessPlatform.Application.Domain.Common;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Extensions;
@@ -123,7 +124,19 @@ public class FinishSessionEndpoint(
         // 6. Delegate the full completion pipeline to the shared service.
         //    The completedAt instant drives BOTH log.CompletedAt and the TrainingCompletion date key,
         //    so that backdated finishes are attributed to the correct calendar day.
-        await completionService.CompleteAsync(log, completedAt, ct);
+        try
+        {
+            await completionService.CompleteAsync(log, completedAt, ct);
+        }
+        catch (WorkoutAlreadyCompletedException)
+        {
+            // TOCTOU backstop: the in-process guard above (step 4a) is the fast path.
+            // This catch handles the rare case where two concurrent requests both passed
+            // the in-process check and the partial unique index rejected the loser's write.
+            await this.SendProblemAsync(409, ErrorCodes.SessionAlreadyCompleted,
+                "This session was already completed on that day by a concurrent request.", ct);
+            return;
+        }
 
         await Send.OkAsync(new FinishSessionResponse
         {

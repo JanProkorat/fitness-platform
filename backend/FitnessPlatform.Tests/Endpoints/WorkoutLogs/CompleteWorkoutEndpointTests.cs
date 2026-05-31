@@ -1,11 +1,13 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FluentAssertions;
+using FitnessPlatform.Application.Domain.Common;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.WorkoutLogs.CompleteWorkout;
 using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 
 namespace FitnessPlatform.Tests.Endpoints.WorkoutLogs;
 
@@ -112,5 +114,31 @@ public class CompleteWorkoutEndpointTests
             Arg.Any<WorkoutLog>(),
             Arg.Is<DateTime>(d => d >= before && d <= after),
             Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleAsync_WorkoutAlreadyCompleted_Returns409()
+    {
+        // When WorkoutCompletionService throws WorkoutAlreadyCompletedException (TOCTOU duplicate-key),
+        // the endpoint must return 409 — not 500.
+        var logId = Guid.NewGuid();
+        var log = WorkoutLogTestHelpers.CreateLog(externalId: logId, clientId: _clientId);
+        var mongo = WorkoutLogTestHelpers.CreateMockMongo(logs: [log]);
+
+        var completionService = Substitute.For<IWorkoutCompletionService>();
+        completionService
+            .CompleteAsync(Arg.Any<WorkoutLog>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+            .Throws(new WorkoutAlreadyCompletedException());
+
+        var ep = Factory.Create<CompleteWorkoutEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
+            mongo, completionService);
+
+        await ep.HandleAsync(new CompleteWorkoutRequest { LogId = logId }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(409,
+            "WorkoutAlreadyCompletedException must be surfaced as 409, not 500");
     }
 }

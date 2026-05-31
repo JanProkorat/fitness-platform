@@ -213,6 +213,149 @@ public class MongoIndexInitializer : IHostedService
             new CreateIndexOptions { Name = "idx_workoutlog_clientId_sessionId", Sparse = true });
 
         await indexes.CreateManyAsync([externalIdIndex, clientDateIndex, clientSessionIndex], ct);
+
+        // ── Backfill + dedup, BEFORE creating the partial unique index ──────────────
+        //
+        // Both operations are idempotent: safe on every boot.
+        // They MUST run before the unique index creation or E11000 will fire on
+        // existing duplicate / missing-CompletedDate documents.
+
+        // (a) Backfill: for completed logs that have PlanId + SessionId but no
+        //     CompletedDate, derive CompletedDate from CompletedAt (fall back to
+        //     DateCreated when CompletedAt is null — shouldn't happen, but defensive).
+        var missingDateFilter =
+            Builders<WorkoutLog>.Filter.Eq(w => w.IsCompleted, true)
+            & Builders<WorkoutLog>.Filter.Exists(w => w.PlanId)
+            & Builders<WorkoutLog>.Filter.Exists(w => w.SessionId)
+            & Builders<WorkoutLog>.Filter.Exists(w => w.CompletedDate, exists: false);
+
+        using var backfillCursor = await _mongo.WorkoutLogs.FindAsync(
+            missingDateFilter, cancellationToken: ct);
+
+        var backfillBatch = await backfillCursor.ToListAsync(ct);
+        var backfillCount = 0;
+
+        foreach (var log in backfillBatch)
+        {
+            var sourceInstant = log.CompletedAt ?? log.DateCreated;
+            var completedDate = WorkoutLog.ToCompletionDateUtc(sourceInstant);
+
+            await _mongo.WorkoutLogs.UpdateOneAsync(
+                Builders<WorkoutLog>.Filter.Eq(w => w.ExternalId, log.ExternalId),
+                Builders<WorkoutLog>.Update.Set(w => w.CompletedDate, completedDate),
+                cancellationToken: ct);
+
+            backfillCount++;
+        }
+
+        if (backfillCount > 0)
+        {
+            _logger.LogInformation(
+                "WorkoutLog backfill: set CompletedDate on {Count} completed log(s)",
+                backfillCount);
+        }
+
+        // (b) Dedup: for completed logs with duplicate (PlanId, SessionId, CompletedDate)
+        //     triplets keep the most-recent by CompletedAt (tiebreak DateUpdated ?? DateCreated)
+        //     and delete the rest.
+        //
+        //     Pre-check: run a server-side $group aggregation to find duplicate triplets
+        //     before pulling any documents into memory. This avoids a full collection scan
+        //     on every boot when — as is almost always the case — there are no duplicates.
+        var completedWithKeyFilter =
+            Builders<WorkoutLog>.Filter.Eq(w => w.IsCompleted, true)
+            & Builders<WorkoutLog>.Filter.Exists(w => w.PlanId)
+            & Builders<WorkoutLog>.Filter.Exists(w => w.SessionId)
+            & Builders<WorkoutLog>.Filter.Exists(w => w.CompletedDate);
+
+        // Server-side aggregation: $match → $group by triplet with count → $match count > 1.
+        // Stops after the first duplicate found ($limit 1) so the pre-check is cheap even on
+        // large collections.  Result type is BsonDocument — we only need to know the count.
+        var dupCheckResult = await _mongo.WorkoutLogs
+            .Aggregate()
+            .Match(completedWithKeyFilter)
+            .Group(new BsonDocument
+            {
+                { "_id", new BsonDocument
+                    {
+                        { "planId",        "$planId" },
+                        { "sessionId",     "$sessionId" },
+                        { "completedDate", "$completedDate" }
+                    }
+                },
+                { "count", new BsonDocument("$sum", 1) }
+            })
+            .Match(new BsonDocument("count", new BsonDocument("$gt", 1)))
+            .Limit(1)
+            .ToListAsync(ct);
+
+        var hasDuplicates = dupCheckResult.Count > 0;
+
+        var deleteCount = 0;
+
+        if (hasDuplicates)
+        {
+            // At least one duplicate triplet exists — load only the affected documents.
+            using var dedupCursor = await _mongo.WorkoutLogs.FindAsync(
+                completedWithKeyFilter, cancellationToken: ct);
+
+            var allCompleted = await dedupCursor.ToListAsync(ct);
+
+            var groups = allCompleted
+                .GroupBy(l => (l.PlanId, l.SessionId, l.CompletedDate))
+                .Where(g => g.Count() > 1);
+
+            foreach (var group in groups)
+            {
+                var logsInGroup = group
+                    .OrderByDescending(l => l.CompletedAt ?? DateTime.MinValue)
+                    .ThenByDescending(l => l.DateUpdated ?? l.DateCreated)
+                    .ToList();
+
+                // Keep the first (most recent); delete the rest.
+                var toDelete = logsInGroup.Skip(1).Select(l => l.ExternalId).ToList();
+
+                await _mongo.WorkoutLogs.DeleteManyAsync(
+                    Builders<WorkoutLog>.Filter.In(w => w.ExternalId, toDelete),
+                    cancellationToken: ct);
+
+                deleteCount += toDelete.Count;
+            }
+        }
+
+        if (deleteCount > 0)
+        {
+            _logger.LogWarning(
+                "WorkoutLog dedup: deleted {Count} duplicate completed log(s) before creating partial unique index",
+                deleteCount);
+        }
+
+        // ── Partial unique index: one completed log per (planId, sessionId, completedDate) ─
+        //
+        // Partial filter: isCompleted==true AND all three key fields exist.
+        // The Exists guards exclude in-progress logs (IsCompleted=false) and legacy logs
+        // with null PlanId/SessionId/CompletedDate from the uniqueness constraint.
+        // Registered as a SEPARATE CreateOneAsync after the batch above (design-review
+        // finding: adding it to the existing CreateManyAsync batch would throw on dirty data).
+        var partialFilter =
+            Builders<WorkoutLog>.Filter.Eq(w => w.IsCompleted, true)
+            & Builders<WorkoutLog>.Filter.Exists(w => w.PlanId)
+            & Builders<WorkoutLog>.Filter.Exists(w => w.SessionId)
+            & Builders<WorkoutLog>.Filter.Exists(w => w.CompletedDate);
+
+        var uniqueCompletionIndex = new CreateIndexModel<WorkoutLog>(
+            Builders<WorkoutLog>.IndexKeys
+                .Ascending(w => w.PlanId)
+                .Ascending(w => w.SessionId)
+                .Ascending(w => w.CompletedDate),
+            new CreateIndexOptions<WorkoutLog>
+            {
+                Name = "idx_workoutlog_planId_sessionId_completedDate_unique",
+                Unique = true,
+                PartialFilterExpression = partialFilter
+            });
+
+        await indexes.CreateOneAsync(uniqueCompletionIndex, cancellationToken: ct);
     }
 
     private async Task CreateTrainingCompletionIndexes(CancellationToken ct)

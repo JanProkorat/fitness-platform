@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FluentAssertions;
+using FitnessPlatform.Application.Domain.Common;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
@@ -9,6 +10,7 @@ using FitnessPlatform.Application.Features.TrainingPlans.FinishSession;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Driver;
 using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 
 namespace FitnessPlatform.Tests.Endpoints.TrainingPlans;
 
@@ -525,6 +527,38 @@ public class FinishSessionEndpointTests
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(422);
+    }
+
+    // ── TOCTOU backstop: WorkoutAlreadyCompletedException → 409 ─────────────────
+
+    [Fact]
+    public async Task HandleAsync_WorkoutAlreadyCompleted_Returns409()
+    {
+        // When the in-process guard passed (no existing completed log) but the index
+        // rejected the write (TOCTOU race — two concurrent requests), the endpoint must
+        // map WorkoutAlreadyCompletedException to 409, not 500.
+        var sessionId = Guid.NewGuid();
+        var plan = CreatePlanWithSession(_trainerId, sessionId);
+
+        var (mongo, _) = CreateMockMongoWithInsert(plan, []);
+
+        var completionService = Substitute.For<IWorkoutCompletionService>();
+        completionService
+            .CompleteAsync(Arg.Any<WorkoutLog>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+            .Throws(new WorkoutAlreadyCompletedException());
+
+        var ep = Factory.Create<FinishSessionEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            mongo, completionService);
+
+        await ep.HandleAsync(
+            new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(409,
+            "WorkoutAlreadyCompletedException from the TOCTOU backstop must be surfaced as 409, not 500");
     }
 
     // ── MINOR-2: non-UTC completedAt is normalized before validation ──────────────
