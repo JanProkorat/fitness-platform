@@ -1,6 +1,6 @@
 import { useEffect, useCallback, useState, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getTrainingPlan, completeTrainingPlan, finishSession } from '@/api/training-plans';
 import { listSectionTemplates, createSectionTemplate } from '@/api/sectionTemplates';
@@ -100,7 +100,6 @@ export default function TrainingPlanPage() {
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
-  const queryClient = useQueryClient();
   const [pendingNav, setPendingNav] = useState<string | null>(null);
   // State for the retroactive "mark session finished" confirmation dialog.
   const [markFinishedTarget, setMarkFinishedTarget] = useState<{
@@ -312,6 +311,9 @@ export default function TrainingPlanPage() {
       setMarkFinishedTarget(null);
       showSuccess('training.retroactiveFinish.success');
       // Reload plan so sessionExecutions update (lock state + completion badges recompute).
+      // This page holds plan state locally via the Zustand store (setPlan), so the
+      // imperative refetch + setPlan is the canonical refresh mechanism — consistent
+      // with handleReset and other mutation handlers on this page.
       if (planId) {
         try {
           const data = await getTrainingPlan(planId);
@@ -320,7 +322,6 @@ export default function TrainingPlanPage() {
           // Non-fatal — reload on next navigation
         }
       }
-      queryClient.invalidateQueries({ queryKey: ['training-plan', planId] });
     },
     onError: (err: unknown) => {
       showApiError(err, 'common.error');

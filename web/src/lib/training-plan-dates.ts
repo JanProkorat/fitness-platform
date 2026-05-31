@@ -112,6 +112,12 @@ export function sessionScheduledDateUtc(
   if (Number.isNaN(start.getTime())) return null;
   // Advance to the Monday of the target week (week 1 = startDate itself).
   const dayOffset = (weekNumber - 1) * 7 + (dayOfWeek - 1);
+  // UTC anchoring is intentional here: `completedAt` must represent the
+  // session's scheduled calendar day in UTC so the backend's date key resolves
+  // to the correct historical day regardless of the trainer's local timezone.
+  // `weekStartDate` uses local-time anchoring (for display/comparison against
+  // the trainer's clock), but `completedAt` is an instant sent to the server —
+  // it must be timezone-stable, hence UTC throughout.
   const utc = Date.UTC(
     start.getUTCFullYear(),
     start.getUTCMonth(),
