@@ -394,6 +394,21 @@ public class QaSeedRunnerTests : IAsyncLifetime
         plan.Weeks.Should().HaveCount(2, "plan has weeks 1 and 2");
         plan.Weeks.Should().AllSatisfy(w =>
             w.Status.Should().Be(FitnessPlatform.Application.Domain.Enums.WeekStatus.Published));
+        // TrainerId must be ApplicationUser.Id (not ProfessionalProfile.PublicId) so that
+        // GetTrainingPlansEndpoint can scope to the trainer:
+        //   filter = filterBuilder.Eq(p => p.TrainerId, Guid.Parse(User.FindFirstValue(AppClaims.UserId)))
+        // UserId from AppClaims.UserId is ApplicationUser.Id = TrainerUserId (22222222-...).
+        // Using TrainerProfilePublicId (bbbb...) would make this plan invisible to GET /training/plans.
+        plan.TrainerId.Should().Be(QaSeedRunner.TrainerUserId,
+            "TrainingPlan.TrainerId must be ApplicationUser.Id — GetTrainingPlansEndpoint scopes by " +
+            "Guid.Parse(AppClaims.UserId) which is ApplicationUser.Id, not ProfessionalProfile.PublicId");
+        // ClientId must stay as ClientProfile.PublicId so that TrainingCompletion.ClientId
+        // (written by WorkoutCompletionService as clientProfile.PublicId) matches
+        // plan.ClientId used in GetTrainingPlanEndpoint's completions fold-in filter.
+        plan.ClientId.Should().Be(QaSeedRunner.ClientProfilePublicId,
+            "TrainingPlan.ClientId must be ClientProfile.PublicId — GetTrainingPlanEndpoint queries " +
+            "TrainingCompletion by plan.ClientId and WorkoutCompletionService writes " +
+            "TrainingCompletion.ClientId = clientProfile.PublicId");
 
         // COMPLETED session — WorkoutLog with IsCompleted=true.
         var completedLog = await mongo.WorkoutLogs
@@ -404,6 +419,13 @@ public class QaSeedRunnerTests : IAsyncLifetime
         completedLog!.IsCompleted.Should().BeTrue("PAST-COMPLETED log must have IsCompleted=true");
         completedLog.SessionId.Should().Be(QaSeedRunner.QaPastSessionCompletedId);
         completedLog.PlanId.Should().Be(QaSeedRunner.QaPastTrainingPlanExternalId);
+        // WorkoutLog.ClientId must be ApplicationUser.Id (not ClientProfile.PublicId) so that
+        // CompleteWorkoutEndpoint can filter by it and WorkoutCompletionService can resolve
+        // the ClientProfile via cp.UserId == log.ClientId for the TrainingCompletion fan-out.
+        completedLog.ClientId.Should().Be(QaSeedRunner.ClientUserId,
+            "WorkoutLog.ClientId must be ApplicationUser.Id — CompleteWorkoutEndpoint filters by " +
+            "Guid.Parse(AppClaims.UserId) which is ApplicationUser.Id, and WorkoutCompletionService " +
+            "resolves the ClientProfile via cp.UserId == log.ClientId");
         completedLog.Sections.Should().HaveCount(1, "log mirrors the single section in the session");
         completedLog.Sections[0].Exercises.Should().HaveCount(2);
         completedLog.Sections[0].Exercises.Should().AllSatisfy(e =>
@@ -418,6 +440,9 @@ public class QaSeedRunnerTests : IAsyncLifetime
         skippedLog!.IsCompleted.Should().BeFalse("PAST-SKIPPED log must have IsCompleted=false");
         skippedLog.SessionId.Should().Be(QaSeedRunner.QaPastSessionSkippedId);
         skippedLog.PlanId.Should().Be(QaSeedRunner.QaPastTrainingPlanExternalId);
+        // Same id-space requirement as the completed log above.
+        skippedLog.ClientId.Should().Be(QaSeedRunner.ClientUserId,
+            "WorkoutLog.ClientId must be ApplicationUser.Id for the same reason as the completed log");
 
         // UNTOUCHED session — must have NO WorkoutLog.
         var untouchedLogCount = await mongo.WorkoutLogs.CountDocumentsAsync(

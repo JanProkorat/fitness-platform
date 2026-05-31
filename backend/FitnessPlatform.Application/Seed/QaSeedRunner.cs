@@ -549,8 +549,18 @@ public static class QaSeedRunner
             var plan = new TrainingPlan
             {
                 ExternalId    = QaPastTrainingPlanExternalId,
+                // ClientId is keyed on ClientProfile.PublicId (NOT ApplicationUser.Id) —
+                // GetTrainingPlansEndpoint filters by ClientId = ClientProfile.PublicId when
+                // the caller passes a clientId query param, and TrainingCompletion.ClientId
+                // (written by WorkoutCompletionService) is also keyed on ClientProfile.PublicId.
+                // plan.ClientId and TrainingCompletion.ClientId must match for the completions
+                // fold-in in GetTrainingPlanEndpoint (line 59 filters by plan.ClientId).
                 ClientId      = clientProfilePublicId,
-                TrainerId     = trainerProfilePublicId,
+                // TrainerId is keyed on ApplicationUser.Id (NOT ProfessionalProfile.PublicId) —
+                // GetTrainingPlansEndpoint and GetTrainingPlanEndpoint scope by
+                // Guid.Parse(User.FindFirstValue(AppClaims.UserId)) which is ApplicationUser.Id.
+                // Using the profile PublicId (bbbb...) makes this plan invisible to GET /training/plans.
+                TrainerId     = TrainerUserId,
                 Name          = "QA Past Plan — #326 completion states",
                 Status        = TrainingPlanStatus.Active,
                 StartDate     = startDate,
@@ -712,7 +722,13 @@ public static class QaSeedRunner
             var completedLog = new WorkoutLog
             {
                 ExternalId  = QaPastCompletedWorkoutLogId,
-                ClientId    = clientProfilePublicId,
+                // ClientId is keyed on ApplicationUser.Id (NOT ClientProfile.PublicId) —
+                // CompleteWorkoutEndpoint (live client finish) filters WorkoutLogs by
+                // ClientId == Guid.Parse(AppClaims.UserId), which is ApplicationUser.Id.
+                // WorkoutCompletionService resolves the ClientProfile by cp.UserId == log.ClientId,
+                // then uses clientProfile.PublicId for the TrainingCompletion — so the fan-out
+                // correctly produces a TrainingCompletion.ClientId = ClientProfile.PublicId.
+                ClientId    = ClientUserId,
                 PlanId      = QaPastTrainingPlanExternalId,
                 SessionId   = QaPastSessionCompletedId,
                 StartedAt   = completedAt.AddMinutes(-45),
@@ -781,7 +797,8 @@ public static class QaSeedRunner
             var skippedLog = new WorkoutLog
             {
                 ExternalId  = QaPastSkippedWorkoutLogId,
-                ClientId    = clientProfilePublicId,
+                // ClientId = ApplicationUser.Id — same reasoning as the completed log above.
+                ClientId    = ClientUserId,
                 PlanId      = QaPastTrainingPlanExternalId,
                 SessionId   = QaPastSessionSkippedId,
                 StartedAt   = skippedStartedAt,

@@ -153,8 +153,9 @@ The plan exercises the three past-session states the web portal classifies in `c
 
 ### Plan ownership
 
-- `TrainingPlan.ClientId` = `ClientProfilePublicId` (`aaaaaaaa-...`) — same client as the ForTime plan.
-- `TrainingPlan.TrainerId` = `TrainerProfilePublicId` (`bbbbbbbb-...`) — same trainer as the ForTime plan.
+- `TrainingPlan.ClientId` = `ClientProfilePublicId` (`aaaaaaaa-...`) — keyed on `ClientProfile.PublicId`, same as all other training plans. `GetTrainingPlanEndpoint` queries `TrainingCompletion` by `plan.ClientId` and `WorkoutCompletionService` writes `TrainingCompletion.ClientId = clientProfile.PublicId`, so these must match.
+- `TrainingPlan.TrainerId` = `TrainerUserId` (`22222222-...`) — keyed on **`ApplicationUser.Id`**, NOT `ProfessionalProfile.PublicId`. `GetTrainingPlansEndpoint` and `GetTrainingPlanEndpoint` scope by `Guid.Parse(AppClaims.UserId)` which is `ApplicationUser.Id`. Using the profile `PublicId` (`bbbbbbbb-...`) would make the plan invisible to `GET /training/plans`.
+- `WorkoutLog.ClientId` = `ClientUserId` (`11111111-...`) — keyed on **`ApplicationUser.Id`**, NOT `ClientProfile.PublicId`. `CompleteWorkoutEndpoint` filters WorkoutLogs by `ClientId == Guid.Parse(AppClaims.UserId)` = `ApplicationUser.Id`. `WorkoutCompletionService` then resolves the ClientProfile via `cp.UserId == log.ClientId` and writes `TrainingCompletion.ClientId = clientProfile.PublicId`.
 - Login as `qa.trainer@fitnessplatform.test` to access via `GET /training/plans/{planId}`.
 
 ### Plan shape
