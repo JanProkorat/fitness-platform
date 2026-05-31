@@ -988,8 +988,21 @@ function TabataTimer({ label, workSeconds, restSeconds, totalRounds, onFinish, o
   // EmomTimer's `showPrepUI` for the same rationale.
   const showPrepUI = preparing && running
 
+  // Phase-tinted background for the Tabata hero region — green on work,
+  // red on rest, neutral (no tint) during the pre-roll countdown. Uses the
+  // same hex-alpha suffix pattern as phaseChip (`colors.gold + '22'`), so
+  // the tint reads clearly without overpowering card text. Both `isWork`
+  // and `showPrepUI` derive from the same `phase` / `preparing` state, so
+  // the background flips in the same React render as the phase chip label
+  // with zero stale-color flash at the work ↔ rest boundary.
+  const phaseBg = showPrepUI
+    ? undefined
+    : isWork
+      ? colors.green + '20'
+      : colors.red + '20'
+
   return (
-    <View style={styles.heroWrap}>
+    <View style={[styles.heroWrap, { backgroundColor: phaseBg }]}>
       <Text style={[styles.formatLabel, { color: colors.label3 }]}>
         {label}
       </Text>
