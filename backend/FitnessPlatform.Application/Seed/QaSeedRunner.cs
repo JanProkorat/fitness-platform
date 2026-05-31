@@ -728,14 +728,18 @@ public static class QaSeedRunner
                 // WorkoutCompletionService resolves the ClientProfile by cp.UserId == log.ClientId,
                 // then uses clientProfile.PublicId for the TrainingCompletion — so the fan-out
                 // correctly produces a TrainingCompletion.ClientId = ClientProfile.PublicId.
-                ClientId    = ClientUserId,
-                PlanId      = QaPastTrainingPlanExternalId,
-                SessionId   = QaPastSessionCompletedId,
-                StartedAt   = completedAt.AddMinutes(-45),
-                CompletedAt = completedAt,
-                IsCompleted = true,
-                DateCreated = completedAt.AddMinutes(-45),
-                DateUpdated = completedAt,
+                ClientId      = ClientUserId,
+                PlanId        = QaPastTrainingPlanExternalId,
+                SessionId     = QaPastSessionCompletedId,
+                StartedAt     = completedAt.AddMinutes(-45),
+                CompletedAt   = completedAt,
+                // CompletedDate is the calendar-day key required by the partial unique index
+                // idx_workoutlog_planId_sessionId_completedDate_unique. Must derive from
+                // CompletedAt via the same midnight-UTC expression used in WorkoutCompletionService.
+                CompletedDate = DateOnly.FromDateTime(completedAt).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
+                IsCompleted   = true,
+                DateCreated   = completedAt.AddMinutes(-45),
+                DateUpdated   = completedAt,
                 Sections    =
                 [
                     new WorkoutSection

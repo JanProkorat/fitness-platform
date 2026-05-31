@@ -75,6 +75,18 @@ public class WorkoutLog
     public bool IsCompleted { get; set; }
 
     /// <summary>
+    /// The calendar day (midnight UTC) on which the workout was completed.
+    /// Derived from <see cref="CompletedAt"/> via
+    /// <c>DateOnly.FromDateTime(completedAt).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc)</c>.
+    /// Null for in-progress or legacy logs that pre-date this field.
+    /// Together with <see cref="PlanId"/> and <see cref="SessionId"/> it forms the key
+    /// of the date-scoped partial unique index that prevents same-day duplicate completions.
+    /// </summary>
+    [BsonElement("completedDate")]
+    [BsonIgnoreIfNull]
+    public DateTime? CompletedDate { get; set; }
+
+    /// <summary>
     /// WOD format result for the whole session (e.g. ForTime total, AMRAP round count).
     /// Null for Standard workouts or when not yet recorded.
     /// </summary>

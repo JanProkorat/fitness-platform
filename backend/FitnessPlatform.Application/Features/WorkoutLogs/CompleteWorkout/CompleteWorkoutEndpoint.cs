@@ -1,7 +1,9 @@
 using System.Security.Claims;
 using FastEndpoints;
+using FitnessPlatform.Application.Domain.Common;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.WorkoutLogs.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -61,7 +63,19 @@ public class CompleteWorkoutEndpoint(
         // Delegate the full completion pipeline (PR detection, log update,
         // TrainingCompletion fan-out, notification) to the shared service.
         // Live client completions use DateTime.UtcNow as the completion instant.
-        await completionService.CompleteAsync(log, DateTime.UtcNow, ct);
+        try
+        {
+            await completionService.CompleteAsync(log, DateTime.UtcNow, ct);
+        }
+        catch (WorkoutAlreadyCompletedException)
+        {
+            // TOCTOU: two concurrent completions of the same session on the same day.
+            // The partial unique index {planId, sessionId, completedDate | isCompleted==true}
+            // rejected this duplicate; surface as 409 so the loser gets a clear error.
+            await this.SendProblemAsync(409, ErrorCodes.SessionAlreadyCompleted,
+                "This session was already completed today by a concurrent request.", ct);
+            return;
+        }
 
         await Send.OkAsync(WorkoutLogDetail.FromDocument(log), ct);
     }

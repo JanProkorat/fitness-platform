@@ -1,4 +1,5 @@
 using System.Text.Json;
+using FitnessPlatform.Application.Domain.Common;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
@@ -35,14 +36,31 @@ public class WorkoutCompletionService(
         var prDescriptions = await prDetection.DetectAndMarkPRsAsync(log, ct);
 
         // 2. Mark the log as completed at the supplied instant.
+        //    CompletedDate is set to midnight UTC on the same calendar day as completedAtUtc,
+        //    derived via the same expression used for TrainingCompletion.Date (line ~154) so
+        //    that both fields always agree on the calendar day for backdated finishes.
         log.CompletedAt = completedAtUtc;
+        log.CompletedDate = DateOnly.FromDateTime(completedAtUtc).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
         log.IsCompleted = true;
         log.DateUpdated = DateTime.UtcNow;
 
-        await mongo.WorkoutLogs.ReplaceOneAsync(
-            w => w.ExternalId == log.ExternalId,
-            log,
-            cancellationToken: ct);
+        try
+        {
+            await mongo.WorkoutLogs.ReplaceOneAsync(
+                w => w.ExternalId == log.ExternalId,
+                log,
+                cancellationToken: ct);
+        }
+        catch (MongoWriteException ex)
+            when (ex.WriteError?.Category == ServerErrorCategory.DuplicateKey)
+        {
+            throw new WorkoutAlreadyCompletedException(ex);
+        }
+        catch (MongoCommandException ex)
+            when (ex.Code == 11000 /* E11000 */ || ex.CodeName == "DuplicateKey")
+        {
+            throw new WorkoutAlreadyCompletedException(ex);
+        }
 
         // 3. Fan out a TrainingCompletion doc so compliance/streak picks up this workout.
         // Best-effort: a failure must NOT affect the primary contract (log.IsCompleted=true).
