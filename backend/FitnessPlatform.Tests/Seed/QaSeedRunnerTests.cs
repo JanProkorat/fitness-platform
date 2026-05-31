@@ -304,6 +304,14 @@ public class QaSeedRunnerTests : IAsyncLifetime
             Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, QaSeedRunner.QaTrainingPlanExternalId),
             cancellationToken: ct))
             .Should().Be(0, "minimal seed skips the training plan");
+        (await mongo.TrainingPlans.CountDocumentsAsync(
+            Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, QaSeedRunner.QaPastTrainingPlanExternalId),
+            cancellationToken: ct))
+            .Should().Be(0, "minimal seed skips the past training plan (#326)");
+        (await mongo.WorkoutLogs.CountDocumentsAsync(
+            Builders<WorkoutLog>.Filter.Empty,
+            cancellationToken: ct))
+            .Should().Be(0, "minimal seed skips all workout logs");
         (await mongo.Foods.CountDocumentsAsync(
             Builders<Food>.Filter.Empty,
             cancellationToken: ct))
@@ -354,6 +362,125 @@ public class QaSeedRunnerTests : IAsyncLifetime
                  || u.Email == QaSeedRunner.NutriEmail,
             ct);
         userCount.Should().Be(0, "ResolveKind must run before any database write");
+    }
+
+    /// <summary>
+    /// The past training plan (#326 fixture) must have:
+    ///  - A WorkoutLog for the COMPLETED session with IsCompleted=true.
+    ///  - A WorkoutLog for the SKIPPED session with IsCompleted=false.
+    ///  - No WorkoutLog for the UNTOUCHED session.
+    /// This is the minimal assertion the Playwright spec depends on to distinguish
+    /// the three past-session states.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_PastTrainingPlan_HasThreeDistinctSessionStates()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        // Plan must exist with StartDate in the past.
+        var plan = await mongo.TrainingPlans
+            .Find(p => p.ExternalId == QaSeedRunner.QaPastTrainingPlanExternalId)
+            .FirstOrDefaultAsync(ct);
+
+        plan.Should().NotBeNull("the past training plan must be seeded");
+        plan!.StartDate.Should().NotBeNull("past plan must have a StartDate");
+        plan.StartDate!.Value.Should().BeBefore(DateTime.UtcNow.AddDays(-7),
+            "StartDate must be at least one week in the past");
+        plan.Weeks.Should().HaveCount(2, "plan has weeks 1 and 2");
+        plan.Weeks.Should().AllSatisfy(w =>
+            w.Status.Should().Be(FitnessPlatform.Application.Domain.Enums.WeekStatus.Published));
+        // TrainerId must be ApplicationUser.Id (not ProfessionalProfile.PublicId) so that
+        // GetTrainingPlansEndpoint can scope to the trainer:
+        //   filter = filterBuilder.Eq(p => p.TrainerId, Guid.Parse(User.FindFirstValue(AppClaims.UserId)))
+        // UserId from AppClaims.UserId is ApplicationUser.Id = TrainerUserId (22222222-...).
+        // Using TrainerProfilePublicId (bbbb...) would make this plan invisible to GET /training/plans.
+        plan.TrainerId.Should().Be(QaSeedRunner.TrainerUserId,
+            "TrainingPlan.TrainerId must be ApplicationUser.Id — GetTrainingPlansEndpoint scopes by " +
+            "Guid.Parse(AppClaims.UserId) which is ApplicationUser.Id, not ProfessionalProfile.PublicId");
+        // ClientId must stay as ClientProfile.PublicId so that TrainingCompletion.ClientId
+        // (written by WorkoutCompletionService as clientProfile.PublicId) matches
+        // plan.ClientId used in GetTrainingPlanEndpoint's completions fold-in filter.
+        plan.ClientId.Should().Be(QaSeedRunner.ClientProfilePublicId,
+            "TrainingPlan.ClientId must be ClientProfile.PublicId — GetTrainingPlanEndpoint queries " +
+            "TrainingCompletion by plan.ClientId and WorkoutCompletionService writes " +
+            "TrainingCompletion.ClientId = clientProfile.PublicId");
+
+        // COMPLETED session — WorkoutLog with IsCompleted=true.
+        var completedLog = await mongo.WorkoutLogs
+            .Find(l => l.ExternalId == QaSeedRunner.QaPastCompletedWorkoutLogId)
+            .FirstOrDefaultAsync(ct);
+
+        completedLog.Should().NotBeNull("completed WorkoutLog must be seeded");
+        completedLog!.IsCompleted.Should().BeTrue("PAST-COMPLETED log must have IsCompleted=true");
+        completedLog.SessionId.Should().Be(QaSeedRunner.QaPastSessionCompletedId);
+        completedLog.PlanId.Should().Be(QaSeedRunner.QaPastTrainingPlanExternalId);
+        // WorkoutLog.ClientId must be ApplicationUser.Id (not ClientProfile.PublicId) so that
+        // CompleteWorkoutEndpoint can filter by it and WorkoutCompletionService can resolve
+        // the ClientProfile via cp.UserId == log.ClientId for the TrainingCompletion fan-out.
+        completedLog.ClientId.Should().Be(QaSeedRunner.ClientUserId,
+            "WorkoutLog.ClientId must be ApplicationUser.Id — CompleteWorkoutEndpoint filters by " +
+            "Guid.Parse(AppClaims.UserId) which is ApplicationUser.Id, and WorkoutCompletionService " +
+            "resolves the ClientProfile via cp.UserId == log.ClientId");
+        completedLog.Sections.Should().HaveCount(1, "log mirrors the single section in the session");
+        completedLog.Sections[0].Exercises.Should().HaveCount(2);
+        completedLog.Sections[0].Exercises.Should().AllSatisfy(e =>
+            e.Sets.Should().NotBeEmpty("completed log has sets on every exercise"));
+
+        // SKIPPED session — WorkoutLog with IsCompleted=false.
+        var skippedLog = await mongo.WorkoutLogs
+            .Find(l => l.ExternalId == QaSeedRunner.QaPastSkippedWorkoutLogId)
+            .FirstOrDefaultAsync(ct);
+
+        skippedLog.Should().NotBeNull("skipped WorkoutLog must be seeded");
+        skippedLog!.IsCompleted.Should().BeFalse("PAST-SKIPPED log must have IsCompleted=false");
+        skippedLog.SessionId.Should().Be(QaSeedRunner.QaPastSessionSkippedId);
+        skippedLog.PlanId.Should().Be(QaSeedRunner.QaPastTrainingPlanExternalId);
+        // Same id-space requirement as the completed log above.
+        skippedLog.ClientId.Should().Be(QaSeedRunner.ClientUserId,
+            "WorkoutLog.ClientId must be ApplicationUser.Id for the same reason as the completed log");
+
+        // UNTOUCHED session — must have NO WorkoutLog.
+        var untouchedLogCount = await mongo.WorkoutLogs.CountDocumentsAsync(
+            Builders<WorkoutLog>.Filter.Eq(l => l.SessionId, QaSeedRunner.QaPastSessionUntouchedId),
+            cancellationToken: ct);
+
+        untouchedLogCount.Should().Be(0,
+            "PAST-UNTOUCHED session must have no WorkoutLog so the web classifies it as untouched");
+    }
+
+    /// <summary>
+    /// Seeding twice must not create duplicate past-plan or workout-log documents.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_PastTrainingPlan_IsIdempotent()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var planCount = await mongo.TrainingPlans.CountDocumentsAsync(
+            Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, QaSeedRunner.QaPastTrainingPlanExternalId),
+            cancellationToken: ct);
+        planCount.Should().Be(1, "past training plan must not be duplicated on re-seed");
+
+        var completedLogCount = await mongo.WorkoutLogs.CountDocumentsAsync(
+            Builders<WorkoutLog>.Filter.Eq(l => l.ExternalId, QaSeedRunner.QaPastCompletedWorkoutLogId),
+            cancellationToken: ct);
+        completedLogCount.Should().Be(1, "completed WorkoutLog must not be duplicated on re-seed");
+
+        var skippedLogCount = await mongo.WorkoutLogs.CountDocumentsAsync(
+            Builders<WorkoutLog>.Filter.Eq(l => l.ExternalId, QaSeedRunner.QaPastSkippedWorkoutLogId),
+            cancellationToken: ct);
+        skippedLogCount.Should().Be(1, "skipped WorkoutLog must not be duplicated on re-seed");
     }
 
     /// <summary>

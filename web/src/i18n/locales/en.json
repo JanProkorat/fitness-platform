@@ -792,7 +792,10 @@
     "CLIENT_REQUEST_NOT_FOUND": "Client request not found.",
     "REQUIRED": "This field is required.",
     "OUT_OF_RANGE": "Value is out of the allowed range.",
-    "INVALID_DEADLINE_OFFSET_HOURS": "Invalid deadline. Allowed values: 24, 48, 72, 120 or 168 hours."
+    "INVALID_DEADLINE_OFFSET_HOURS": "Invalid deadline. Allowed values: 24, 48, 72, 120 or 168 hours.",
+    "SESSION_ALREADY_COMPLETED": "This session has already been completed.",
+    "COMPLETED_AT_IN_FUTURE": "Completion date cannot be in the future.",
+    "COMPLETED_AT_BEFORE_PLAN_START": "Completion date cannot be before the plan's start date."
   },
   "nutritionGoals": {
     "title": "Goals & Macros",
@@ -1183,6 +1186,15 @@
       "exerciseSkippedSuffix": "{{count}} skipped",
       "sessionAllComplete": "All complete",
       "sessionMixed": "{{completed}} completed · {{skipped}} skipped"
+    },
+    "retroactiveFinish": {
+      "buttonLabel": "Mark finished",
+      "buttonTooltip": "Mark this past session as finished on behalf of the client",
+      "dialogTitle": "Mark session as finished",
+      "dialogBody": "Mark \"{{name}}\" as finished? This will record the session as completed on the scheduled date. This action cannot be undone.",
+      "dialogConfirm": "Mark as finished",
+      "success": "Session marked as finished.",
+      "noStartDate": "Cannot mark as finished: this plan has no start date set."
     }
   },
   "exercises": {

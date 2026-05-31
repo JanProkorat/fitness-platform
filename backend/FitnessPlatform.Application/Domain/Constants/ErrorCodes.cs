@@ -232,6 +232,16 @@ public static class ErrorCodes
     /// <summary>Duplicate Order values across sections in the same session.</summary>
     public const string SectionOrderDuplicate = "SECTION_ORDER_DUPLICATE";
 
+    // ── Trainer Finish Session ───────────────────────────────────────
+    /// <summary>The session already has a completed workout log; cannot finish again.</summary>
+    public const string SessionAlreadyCompleted = "SESSION_ALREADY_COMPLETED";
+
+    /// <summary>completedAt is in the future; backdating to the future is not allowed.</summary>
+    public const string CompletedAtInFuture = "COMPLETED_AT_IN_FUTURE";
+
+    /// <summary>completedAt is before the plan's start date; history cannot be written before the plan began.</summary>
+    public const string CompletedAtBeforePlanStart = "COMPLETED_AT_BEFORE_PLAN_START";
+
     // ── Validation (generic) ─────────────────────────────────────────
     /// <summary>Required field is missing.</summary>
     public const string Required = "REQUIRED";
