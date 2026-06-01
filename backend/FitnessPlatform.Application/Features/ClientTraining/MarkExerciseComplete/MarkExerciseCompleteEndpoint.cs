@@ -53,12 +53,6 @@ public class MarkExerciseCompleteEndpoint(
     /// <inheritdoc />
     public override async Task HandleAsync(MarkExerciseCompleteRequest req, CancellationToken ct)
     {
-        // Slide the Live lock TTL forward — keep-alive for active workout sessions.
-        // Safe no-op when no Live lock exists (returns false).
-        // Fire-and-forget style: lock refresh failure must not block the completion.
-        await lockService.RefreshAsync(req.SessionId, LockType.Live,
-            TimeSpan.FromHours(lockOptions.Value.LiveTtlHours), ct);
-
         var userId = User.FindFirstValue(AppClaims.UserId);
         if (userId is null)
         {
@@ -101,6 +95,14 @@ public class MarkExerciseCompleteEndpoint(
             await this.SendProblemAsync(404, ErrorCodes.TrainingSessionNotFound, "The session was not found in the active training plan.", ct);
             return;
         }
+
+        // Slide the Live lock TTL forward — keep-alive for active workout sessions.
+        // Called after ownership is confirmed so a caller cannot slide a TTL on a session
+        // that does not belong to them.
+        // Safe no-op when no Live lock exists (returns false).
+        // Fire-and-forget style: lock refresh failure must not block the completion.
+        await lockService.RefreshAsync(req.SessionId, LockType.Live,
+            TimeSpan.FromHours(lockOptions.Value.LiveTtlHours), ct);
 
         session.WithBackfilledSections();
 

@@ -91,7 +91,7 @@ public class StartWorkoutEndpoint(
             if (acquireResult is AcquireResult.LockConflict)
             {
                 await this.SendProblemAsync(409, ErrorCodes.SessionLocked,
-                    "The session is currently being edited by the trainer. Try again later.", ct);
+                    "This session is locked and cannot be started right now.", ct);
                 return;
             }
         }
