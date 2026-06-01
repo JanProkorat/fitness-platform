@@ -47,6 +47,12 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    // The qa-playwright container reaches this dev server by its compose
+    // service DNS name (http://web:5173), so Vite 7's host check must allow
+    // "web" — otherwise it returns a "Blocked request" page with no SPA and
+    // auth.setup can't find the login form. Safe here: this config is only
+    // ever served on the isolated qa-net test network.
+    allowedHosts: ['web', 'localhost'],
     proxy: {
       '/auth': e2eProxy(),
       '/users': e2eProxy(),
