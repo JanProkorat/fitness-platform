@@ -74,19 +74,11 @@ test('food-admin-upload — nutritionist uploads food image and it renders in di
   await expect(dialog.first()).toBeVisible({ timeout: 15_000 });
 
   // ── 4. Locate the SlotPicker input and set the file ──────────────────────────
-  // FoodImageSection / SlotPicker renders:
-  //   <input type="file" class="sr-only" accept="image/jpeg,..." />
-  //   <button type="button" ...>  (the dashed-border placeholder)
-  //
-  // When isOwner=true and imageUrl is absent, the main slot picker is shown.
-  // The hidden input is sr-only (visually hidden but accessible). Playwright
-  // can set files on it directly even though it's visually hidden. The button
-  // click triggers inputRef.current?.click(), but we can target the input
-  // directly via setInputFiles by locating the file input within the dialog area.
-  //
-  // Strategy: use page.setInputFiles on the first sr-only file input that
-  // accepts images. We wait for it to be attached (even if hidden).
-  const fileInput = page.locator('input[type="file"][accept*="image"]').first();
+  // FoodImageSection / SlotPicker renders a hidden <input type="file"> with
+  // data-testid="food-main-image-input" when no main image exists yet (isOwner=true).
+  // Playwright can set files on sr-only inputs directly even though they are
+  // visually hidden.
+  const fileInput = page.locator('[data-testid="food-main-image-input"]');
   await fileInput.waitFor({ state: 'attached', timeout: 10_000 });
   await fileInput.setInputFiles({
     name: 'food.png',
@@ -108,11 +100,7 @@ test('food-admin-upload — nutritionist uploads food image and it renders in di
   // ── 6. Assert the uploaded image renders in the dialog ───────────────────────
   // After a successful confirmFoodImage(), the FoodDialog calls onUploaded()
   // which sets committedImageUrl via setCommittedImageUrl. The FoodImageSection
-  // then renders the <img src={imageUrl}> for the main slot.
-  // The new URL is a MinIO blob URL; just assert an <img> with a non-empty src
-  // has appeared inside the dialog area.
-  const uploadedImg = page.locator('dialog img, [role="dialog"] img').or(
-    page.locator('img[src*="foods/"]'),
-  );
-  await expect(uploadedImg.first()).toBeVisible({ timeout: 15_000 });
+  // then renders the <img data-testid="food-main-image"> for the main slot.
+  const uploadedImg = page.locator('[data-testid="food-main-image"]');
+  await expect(uploadedImg).toBeVisible({ timeout: 15_000 });
 });

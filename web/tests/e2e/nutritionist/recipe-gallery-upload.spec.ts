@@ -74,27 +74,12 @@ test('recipe-gallery-upload — nutritionist uploads recipe gallery image and it
   await expect(dialogOpened.first()).toBeVisible({ timeout: 15_000 });
 
   // ── 4. Locate the gallery SlotPicker input and set the file ──────────────────
-  // RecipeImageSection renders the gallery slot as:
-  //   <input type="file" class="sr-only" accept="image/jpeg,..." />
-  //   <button type="button" ...>  (the 72×72 dashed-border slot)
+  // RecipeImageSection renders the gallery slot picker as:
+  //   <input type="file" data-testid="recipe-gallery-image-input" class="sr-only" />
   //
-  // When isOwner=true, the gallery slot picker is always visible (even when
-  // galleryFull is false — up to 6 images). We set files directly on the
-  // hidden input attached to the gallery slot.
-  //
-  // The gallery slot input is the second sr-only file input (main image slot
-  // renders the first one). If the recipe already has a main image the slot
-  // layout changes — but since the seeded recipe has no image yet, both main
-  // and gallery inputs are present in the DOM.
-  //
-  // Use a file input locator that targets the gallery area. The gallery slot
-  // picker button has a title attribute set to t('recipes.image.addPhoto')
-  // when gallery is not full — but we target the input directly for robustness.
-  const fileInputs = page.locator('input[type="file"][accept*="image"]');
-  // The gallery slot is the second file input when both main and gallery are visible,
-  // or the first if only the gallery is shown (main image already exists via seed blob key).
-  // Target the last available input to prefer the gallery slot.
-  const galleryInput = fileInputs.last();
+  // The data-testid targets the gallery slot directly, regardless of whether the
+  // main image slot is also visible, making the locator position-independent.
+  const galleryInput = page.locator('[data-testid="recipe-gallery-image-input"]');
   await galleryInput.waitFor({ state: 'attached', timeout: 10_000 });
   await galleryInput.setInputFiles({
     name: 'recipe-gallery.png',
@@ -117,12 +102,8 @@ test('recipe-gallery-upload — nutritionist uploads recipe gallery image and it
   // After confirmRecipeImage(), RecipeImageSection calls onUploaded('gallery')
   // which triggers the parent RecipeDialog to reload the recipe via getRecipe().
   // The updated detail.galleryImageUrls array now contains the new blob URL.
-  // RecipeImageSection renders each gallery URL as a <Thumbnail> with an <img>.
-  //
-  // Wait for an img element inside the dialog area whose src includes the
-  // MinIO blob path (or any img that wasn't there before upload).
-  const galleryThumbnail = page.locator('img[src*="recipes/"]').or(
-    page.locator('img[alt*="Gallery photo"]'),
-  );
-  await expect(galleryThumbnail.first()).toBeVisible({ timeout: 15_000 });
+  // RecipeImageSection renders each gallery URL as a <Thumbnail> with an <img
+  //   data-testid="recipe-gallery-thumbnail-0">.
+  const galleryThumbnail = page.locator('[data-testid="recipe-gallery-thumbnail-0"]');
+  await expect(galleryThumbnail).toBeVisible({ timeout: 15_000 });
 });
