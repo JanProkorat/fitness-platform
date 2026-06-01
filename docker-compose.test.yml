@@ -93,6 +93,16 @@ services:
       MongoDB__DatabaseName: fitness_test
       MinIO__Endpoint: "minio-test:9000"
       MinIO__BucketName: "fitness-platform-test"
+      # Local MinIO overrides — appsettings.Development.json is configured for
+      # Cloudflare R2 (Secure=true, https PublicEndpoint, ManageBucket=false).
+      # The harness MinIO serves plain HTTP and needs path-style public URLs +
+      # bucket management, so override the R2-specific settings here.
+      MinIO__Secure: "false"
+      MinIO__PublicEndpoint: "http://minio-test:9000"
+      MinIO__ManageBucket: "true"
+      MinIO__PublicUrlIncludesBucket: "true"
+      MinIO__AccessKey: "minioadmin"
+      MinIO__SecretKey: "minio_test_password"
       RateLimiting__Disabled: "true"
     networks:
       - qa-net
@@ -129,6 +139,16 @@ services:
       MongoDB__DatabaseName: fitness_test
       MinIO__Endpoint: "minio-test:9000"
       MinIO__BucketName: "fitness-platform-test"
+      # Local MinIO overrides — appsettings.Development.json is configured for
+      # Cloudflare R2 (Secure=true, https PublicEndpoint, ManageBucket=false).
+      # The harness MinIO serves plain HTTP and needs path-style public URLs +
+      # bucket management, so override the R2-specific settings here.
+      MinIO__Secure: "false"
+      MinIO__PublicEndpoint: "http://minio-test:9000"
+      MinIO__ManageBucket: "true"
+      MinIO__PublicUrlIncludesBucket: "true"
+      MinIO__AccessKey: "minioadmin"
+      MinIO__SecretKey: "minio_test_password"
       # localhost entries cover host-Playwright + the existing dev workflow.
       # Phase 2 adds CORS entries for the internal `web` and `mobile-web`
       # service DNS names so the containerised Playwright can hit the API.
