@@ -51,6 +51,10 @@ const KNOWN_EVENTS = [
   'photodiaryaccepted',
   'photodiarydismissed',
   'photodiaryphotouploaded',
+  // Session edit-lock state change: fires when a training session lock is
+  // acquired or released (Stable→Editing→Live and back to Stable).
+  // Payload: { planId: string, sessionId: string, state: 'Stable'|'Editing'|'Live', holder: 'Coach'|'Client' }
+  'sessioneditlockchanged',
 ]
 
 function createConnection(): HubConnection {
