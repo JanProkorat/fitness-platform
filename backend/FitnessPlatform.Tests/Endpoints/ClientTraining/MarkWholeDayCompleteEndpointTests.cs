@@ -8,8 +8,10 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.ClientTraining.MarkWholeDayComplete;
 using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Builders;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using NSubstitute;
 
@@ -28,6 +30,18 @@ public class MarkWholeDayCompleteEndpointTests
     private readonly IRealtimeNotifier _notifier = TrainingCompletionTestHelpers.CreateStubNotifier();
     private readonly IComplianceService _compliance = TrainingCompletionTestHelpers.CreateStubComplianceService();
     private readonly ILogger<MarkWholeDayCompleteEndpoint> _logger = Substitute.For<ILogger<MarkWholeDayCompleteEndpoint>>();
+    private readonly ISessionLockService _lockService = CreateStubLockService();
+    private static readonly IOptions<TrainingLockOptions> LockOptions = Options.Create(new TrainingLockOptions { LiveTtlHours = 6 });
+
+    private static ISessionLockService CreateStubLockService()
+    {
+        var svc = Substitute.For<ISessionLockService>();
+        svc.GetStateAsync(Arg.Any<IEnumerable<Guid>>(), Arg.Any<CancellationToken>())
+            .Returns(new List<SessionLock>() as IReadOnlyList<SessionLock>);
+        svc.RefreshAsync(Arg.Any<Guid>(), Arg.Any<LockType>(), Arg.Any<TimeSpan>(), Arg.Any<CancellationToken>())
+            .Returns(false);
+        return svc;
+    }
 
     private IApplicationDbContext CreateMockDb() =>
         new MockDbBuilder()
@@ -130,7 +144,7 @@ public class MarkWholeDayCompleteEndpointTests
         var ep = Factory.Create<MarkWholeDayCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
 
         await ep.HandleAsync(
             new MarkWholeDayCompleteRequest { Date = DateOnly.FromDateTime(DateTime.UtcNow) },
@@ -174,7 +188,7 @@ public class MarkWholeDayCompleteEndpointTests
         var ep = Factory.Create<MarkWholeDayCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
 
         await ep.HandleAsync(
             new MarkWholeDayCompleteRequest { Date = DateOnly.FromDateTime(today) },
@@ -198,7 +212,7 @@ public class MarkWholeDayCompleteEndpointTests
         var ep = Factory.Create<MarkWholeDayCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
 
         await ep.HandleAsync(
             new MarkWholeDayCompleteRequest(),
@@ -215,7 +229,7 @@ public class MarkWholeDayCompleteEndpointTests
 
         var ep = Factory.Create<MarkWholeDayCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity()),
-            mongo, db, _notifier, _compliance, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
 
         await ep.HandleAsync(
             new MarkWholeDayCompleteRequest(),

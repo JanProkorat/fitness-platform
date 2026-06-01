@@ -4,11 +4,14 @@ using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.ClientTraining.MarkSectionComplete;
 using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Builders;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using NSubstitute;
 
@@ -24,7 +27,18 @@ public class MarkSectionCompleteEndpointTests
     private readonly Guid _sectionId = Guid.NewGuid();
     private readonly IRealtimeNotifier _notifier = TrainingCompletionTestHelpers.CreateStubNotifier();
     private readonly IComplianceService _compliance = TrainingCompletionTestHelpers.CreateStubComplianceService();
+    private readonly ISessionLockService _lockService = CreateStubLockService();
+    private static readonly IOptions<TrainingLockOptions> LockOptions =
+        Options.Create(new TrainingLockOptions { LiveTtlHours = 6 });
     private readonly ILogger<MarkSectionCompleteEndpoint> _logger = Substitute.For<ILogger<MarkSectionCompleteEndpoint>>();
+
+    private static ISessionLockService CreateStubLockService()
+    {
+        var svc = Substitute.For<ISessionLockService>();
+        svc.RefreshAsync(Arg.Any<Guid>(), Arg.Any<LockType>(), Arg.Any<TimeSpan>(),
+            Arg.Any<CancellationToken>()).Returns(false);
+        return svc;
+    }
 
     private IApplicationDbContext CreateMockDb() =>
         new MockDbBuilder()
@@ -88,7 +102,7 @@ public class MarkSectionCompleteEndpointTests
         var ep = Factory.Create<MarkSectionCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
 
         await ep.HandleAsync(
             new MarkSectionCompleteRequest { SessionId = _sessionId, SectionId = _sectionId },
@@ -127,7 +141,7 @@ public class MarkSectionCompleteEndpointTests
         var ep = Factory.Create<MarkSectionCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
 
         // Mark section complete again — idempotent
         await ep.HandleAsync(
@@ -160,7 +174,7 @@ public class MarkSectionCompleteEndpointTests
         var ep = Factory.Create<MarkSectionCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(Guid.NewGuid(), AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
 
         await ep.HandleAsync(
             new MarkSectionCompleteRequest { SessionId = _sessionId, SectionId = _sectionId },
@@ -179,7 +193,7 @@ public class MarkSectionCompleteEndpointTests
         var ep = Factory.Create<MarkSectionCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
 
         await ep.HandleAsync(
             new MarkSectionCompleteRequest { SessionId = _sessionId, SectionId = Guid.NewGuid() },
@@ -213,7 +227,7 @@ public class MarkSectionCompleteEndpointTests
         var ep = Factory.Create<MarkSectionCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
 
         await ep.HandleAsync(
             new MarkSectionCompleteRequest
@@ -235,7 +249,7 @@ public class MarkSectionCompleteEndpointTests
 
         var ep = Factory.Create<MarkSectionCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity()),
-            mongo, db, _notifier, _compliance, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
 
         await ep.HandleAsync(
             new MarkSectionCompleteRequest { SessionId = _sessionId, SectionId = _sectionId },

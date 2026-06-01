@@ -4,6 +4,7 @@ using FluentAssertions;
 using FitnessPlatform.Application.Domain.Common;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.WorkoutLogs.CompleteWorkout;
 using NSubstitute;
@@ -30,6 +31,14 @@ public class CompleteWorkoutEndpointTests
         return svc;
     }
 
+    private static ISessionLockService StubLockService()
+    {
+        var svc = Substitute.For<ISessionLockService>();
+        svc.ReleaseAsync(Arg.Any<Guid>(), Arg.Any<LockHolder>(), Arg.Any<LockType>(),
+            Arg.Any<CancellationToken>()).Returns(true);
+        return svc;
+    }
+
     [Fact]
     public async Task HandleAsync_ValidRequest_CompletesWorkout()
     {
@@ -42,7 +51,7 @@ public class CompleteWorkoutEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, completionService);
+            mongo, completionService, StubLockService());
 
         await ep.HandleAsync(new CompleteWorkoutRequest { LogId = logId }, TestContext.Current.CancellationToken);
 
@@ -63,7 +72,7 @@ public class CompleteWorkoutEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, StubCompletionService());
+            mongo, StubCompletionService(), StubLockService());
 
         await ep.HandleAsync(new CompleteWorkoutRequest { LogId = Guid.NewGuid() }, TestContext.Current.CancellationToken);
 
@@ -74,15 +83,13 @@ public class CompleteWorkoutEndpointTests
     public async Task HandleAsync_OtherClientsLog_Returns404()
     {
         // A log belonging to a different client must not be accessible.
-        // The real MongoDB filter (ClientId == callerClientId) would return empty results.
-        // We model this by returning an empty log collection so the endpoint responds 404.
-        var mongo = WorkoutLogTestHelpers.CreateMockMongo(logs: []); // no match — filtered by MongoDB
+        var mongo = WorkoutLogTestHelpers.CreateMockMongo(logs: []);
 
         var ep = Factory.Create<CompleteWorkoutEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, StubCompletionService());
+            mongo, StubCompletionService(), StubLockService());
 
         await ep.HandleAsync(new CompleteWorkoutRequest { LogId = Guid.NewGuid() }, TestContext.Current.CancellationToken);
 
@@ -92,7 +99,6 @@ public class CompleteWorkoutEndpointTests
     [Fact]
     public async Task HandleAsync_PassesUtcNowAsCompletionInstant()
     {
-        // Verify the endpoint always passes DateTime.UtcNow (not backdated) for live completions.
         var logId = Guid.NewGuid();
         var log = WorkoutLogTestHelpers.CreateLog(externalId: logId, clientId: _clientId);
         var mongo = WorkoutLogTestHelpers.CreateMockMongo(logs: [log]);
@@ -104,7 +110,7 @@ public class CompleteWorkoutEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, completionService);
+            mongo, completionService, StubLockService());
 
         await ep.HandleAsync(new CompleteWorkoutRequest { LogId = logId }, TestContext.Current.CancellationToken);
 
@@ -119,8 +125,6 @@ public class CompleteWorkoutEndpointTests
     [Fact]
     public async Task HandleAsync_WorkoutAlreadyCompleted_Returns409()
     {
-        // When WorkoutCompletionService throws WorkoutAlreadyCompletedException (TOCTOU duplicate-key),
-        // the endpoint must return 409 — not 500.
         var logId = Guid.NewGuid();
         var log = WorkoutLogTestHelpers.CreateLog(externalId: logId, clientId: _clientId);
         var mongo = WorkoutLogTestHelpers.CreateMockMongo(logs: [log]);
@@ -134,7 +138,7 @@ public class CompleteWorkoutEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, completionService);
+            mongo, completionService, StubLockService());
 
         await ep.HandleAsync(new CompleteWorkoutRequest { LogId = logId }, TestContext.Current.CancellationToken);
 
