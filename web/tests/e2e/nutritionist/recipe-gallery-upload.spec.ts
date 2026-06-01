@@ -64,14 +64,28 @@ test('recipe-gallery-upload — nutritionist uploads recipe gallery image and it
   await recipeRow.first().click();
 
   // Wait for the RecipeDialog to open and the detail to load.
-  // RecipeDialog fetches the full recipe (GET /recipes/:id) after open.
-  // Wait for network to settle so the dialog is fully populated.
-  await page.waitForLoadState('networkidle', { timeout: 20_000 });
+  // RecipeDialog fetches the full recipe (GET /recipes/:id) after open and
+  // opens in VIEW mode (setMode('view') in the useEffect for existing recipes).
+  // In view mode the footer renders an "Edit Recipe" button
+  // (t('recipes.editRecipe') = "Edit Recipe" / "Upravit recept" / "Rezept bearbeiten").
+  // Waiting for that button confirms the dialog is fully mounted AND the detail
+  // request has completed (the footer is only rendered when !loading).
+  const editRecipeButton = page.getByRole('button', {
+    name: /Edit Recipe|Upravit recept|Rezept bearbeiten/i,
+  });
+  await expect(editRecipeButton).toBeVisible({ timeout: 20_000 });
 
-  // The RecipeImageSection renders a gallery section with a heading.
-  // Wait for any image section heading text to confirm the dialog rendered.
-  const dialogOpened = page.getByText(/Galerie|Gallery|Galerie der Bilder/i);
-  await expect(dialogOpened.first()).toBeVisible({ timeout: 15_000 });
+  // ── 3b. Switch to edit mode ───────────────────────────────────────────────────
+  // RecipeImageSection is only mounted inside the `{mode === 'edit' && …}` block
+  // of RecipeDialog. Clicking the Edit Recipe button calls switchMode('edit'),
+  // which applies a 150ms CSS transition before setting mode state. After the
+  // click we wait for the image section gallery heading as an edit-mode sentinel.
+  await editRecipeButton.click();
+  // switchMode has a 150ms delay + 20ms debounce — wait for the gallery heading
+  // (t('recipes.image.galleryHeading')) which is rendered by RecipeImageSection.
+  await expect(
+    page.getByText(/Galerie|Gallery|Galerie der Bilder/i),
+  ).toBeVisible({ timeout: 5_000 });
 
   // ── 4. Locate the gallery SlotPicker input and set the file ──────────────────
   // RecipeImageSection renders the gallery slot picker as:

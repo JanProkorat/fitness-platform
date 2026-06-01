@@ -60,18 +60,27 @@ test('food-admin-upload — nutritionist uploads food image and it renders in di
   // (only wired when isNutritionist is true, which it is for qa.nutri).
   await chickenRow.first().click();
 
-  // Wait for the dialog to open. FoodDialog renders inside a `role="dialog"`
-  // shadcn container; target that explicitly so we don't accidentally match a
-  // random aria-hidden element on the page (e.g. a modal backdrop, a hidden
-  // tooltip). The image-section heading is included as a secondary check
-  // because it lives inside the dialog body — the .or() resolves to whichever
-  // is found first, but in practice both co-occur so the second clause is a
-  // safety net for shadcn version drift, NOT a fallback for "dialog wasn't
-  // wired" (the heading-outside-dialog case is not supported by this spec).
-  const dialog = page.getByRole('dialog').or(
+  // Wait for the dialog to open in VIEW mode. FoodDialog sets mode='view' in
+  // the useEffect that fires when open=true and the food prop is not null.
+  // In view mode the footer renders an "Edit food" button
+  // (t('foods.editFoodTitle') = "Edit food" / "Upravit potravinu" / "Lebensmittel bearbeiten").
+  // Waiting for that button confirms the dialog is fully mounted.
+  const editFoodButton = page.getByRole('button', {
+    name: /Edit food|Upravit potravinu|Lebensmittel bearbeiten/i,
+  });
+  await expect(editFoodButton).toBeVisible({ timeout: 15_000 });
+
+  // ── 3b. Switch to edit mode ───────────────────────────────────────────────────
+  // FoodImageSection is only mounted inside the `{mode === 'edit' && …}` branch
+  // of FoodDialog. Clicking the Edit button calls switchMode('edit'), which
+  // applies a 150ms CSS transition before setting mode state. After the click
+  // we wait for the section heading to confirm the edit panel is in the DOM.
+  await editFoodButton.click();
+  // switchMode has a 150ms delay + 20ms debounce before re-rendering — wait for
+  // the image section heading as a reliable edit-mode sentinel.
+  await expect(
     page.getByText(/Hlavní fotka|Main image|Hauptbild/i),
-  );
-  await expect(dialog.first()).toBeVisible({ timeout: 15_000 });
+  ).toBeVisible({ timeout: 5_000 });
 
   // ── 4. Locate the SlotPicker input and set the file ──────────────────────────
   // FoodImageSection / SlotPicker renders a hidden <input type="file"> with
