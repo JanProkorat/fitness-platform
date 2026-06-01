@@ -170,6 +170,18 @@ export function useImagePicker(
 
   function selectSource(): Promise<'camera' | 'library' | 'cancel'> {
     return new Promise((resolve) => {
+      // Web: React-Native-Web does not implement Alert.alert with actionable
+      // buttons — the Promise would never resolve, hanging pick() indefinitely.
+      // On web the browser file picker is opened directly via
+      // launchImageLibraryAsync, so we resolve 'library' immediately.
+      // Note: source:'camera' is not currently used by any caller on web;
+      // launchCameraAsync is not reliably supported in the browser environment.
+      // That gap is documented here rather than handled with dead branching.
+      if (Platform.OS === 'web') {
+        resolve('library');
+        return;
+      }
+
       const cameraLabel = t('imagePicker.sourceCamera');
       const libraryLabel = t('imagePicker.sourceLibrary');
       const cancelLabel = t('common.cancel');

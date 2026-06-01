@@ -84,6 +84,50 @@ describe('getMimeType', () => {
 });
 
 // ---------------------------------------------------------------------------
+// selectSource web path — pure-logic simulation
+//
+// selectSource is a non-exported closure inside the hook, so we test its
+// branching logic in isolation using the same pattern as getMimeType above:
+// copy the decision logic and assert against it.
+//
+// On web (Platform.OS === 'web'), the function resolves 'library' immediately
+// without showing any native sheet. This prevents the Promise from hanging
+// because React-Native-Web does not implement Alert.alert with action buttons.
+// ---------------------------------------------------------------------------
+
+type SourceResolution = 'camera' | 'library' | 'cancel';
+
+/**
+ * Distilled source-resolution logic from selectSource().
+ * On web: always resolves 'library'.
+ * On iOS/Android: would show a native sheet (not exercised here — native
+ * dialogs cannot be driven from Jest without a simulator).
+ */
+function resolveSourceForPlatform(
+  platform: 'ios' | 'android' | 'web',
+): SourceResolution | 'native-sheet' {
+  if (platform === 'web') {
+    return 'library';
+  }
+  // iOS / Android open a native sheet — not testable without a simulator.
+  return 'native-sheet';
+}
+
+describe('selectSource — web path', () => {
+  it("resolves 'library' on web without showing a native sheet", () => {
+    expect(resolveSourceForPlatform('web')).toBe('library');
+  });
+
+  it("does NOT immediately resolve on iOS (uses native ActionSheetIOS)", () => {
+    expect(resolveSourceForPlatform('ios')).toBe('native-sheet');
+  });
+
+  it("does NOT immediately resolve on Android (uses Alert.alert)", () => {
+    expect(resolveSourceForPlatform('android')).toBe('native-sheet');
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Size guard logic — pure arithmetic, no fetch needed
 // ---------------------------------------------------------------------------
 
