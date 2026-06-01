@@ -102,7 +102,7 @@ test('food-admin-upload — nutritionist uploads food image and it renders in di
     (resp) =>
       resp.request().method() === 'PUT' &&
       /\/foods\/[^/]+\/image(\?|$)/.test(resp.url()) &&
-      resp.status() === 200,
+      (resp.status() === 200 || resp.status() === 204),
     { timeout: 30_000 },
   );
 

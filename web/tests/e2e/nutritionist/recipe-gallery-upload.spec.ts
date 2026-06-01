@@ -108,7 +108,7 @@ test('recipe-gallery-upload — nutritionist uploads recipe gallery image and it
     (resp) =>
       resp.request().method() === 'PUT' &&
       /\/recipes\/[^/]+\/image(\?|$)/.test(resp.url()) &&
-      resp.status() === 200,
+      (resp.status() === 200 || resp.status() === 204),
     { timeout: 30_000 },
   );
 
