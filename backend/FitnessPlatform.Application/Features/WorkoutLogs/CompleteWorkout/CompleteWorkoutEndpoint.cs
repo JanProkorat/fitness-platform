@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Common;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.WorkoutLogs.Shared;
@@ -15,12 +16,16 @@ namespace FitnessPlatform.Application.Features.WorkoutLogs.CompleteWorkout;
 /// Completes a workout session: runs PR detection, creates notifications, marks as done,
 /// and fans out a <see cref="TrainingCompletion"/> document so that compliance and streak
 /// calculations pick up the live workout alongside plan-driven completions.
+/// Also releases the <c>Live</c> session lock when the log is plan-bound
+/// (i.e. when the log carries a non-null <c>SessionId</c>).
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="completionService">Shared workout completion pipeline (PR detection, fan-out, notification).</param>
+/// <param name="lockService">Session lock service — used to release the Live lock on finish.</param>
 public class CompleteWorkoutEndpoint(
     IMongoContext mongo,
-    IWorkoutCompletionService completionService) : Endpoint<CompleteWorkoutRequest, WorkoutLogDetail>
+    IWorkoutCompletionService completionService,
+    ISessionLockService lockService) : Endpoint<CompleteWorkoutRequest, WorkoutLogDetail>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -30,7 +35,8 @@ public class CompleteWorkoutEndpoint(
         Summary(s =>
         {
             s.Summary = "Complete a workout";
-            s.Description = "Marks the workout as completed, runs PR detection, and creates trainer notifications.";
+            s.Description = "Marks the workout as completed, runs PR detection, creates trainer notifications, " +
+                            "and releases the Live session lock (for plan-bound workouts).";
         });
     }
 
@@ -75,6 +81,15 @@ public class CompleteWorkoutEndpoint(
             await this.SendProblemAsync(409, ErrorCodes.SessionAlreadyCompleted,
                 "This session was already completed today by a concurrent request.", ct);
             return;
+        }
+
+        // ── Release the Live lock (plan-bound workouts only) ──────────────────────
+        // Ad-hoc workouts have no session, so no lock was acquired — skip silently.
+        // ReleaseAsync is idempotent: returns false when the lock is already gone
+        // (expired or already released), which is not an error.
+        if (log.SessionId.HasValue)
+        {
+            await lockService.ReleaseAsync(log.SessionId.Value, LockHolder.Client, LockType.Live, ct);
         }
 
         await Send.OkAsync(WorkoutLogDetail.FromDocument(log), ct);

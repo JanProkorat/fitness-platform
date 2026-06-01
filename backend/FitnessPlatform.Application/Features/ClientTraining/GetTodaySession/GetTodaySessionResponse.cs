@@ -106,4 +106,20 @@ public class GetTodaySessionResponse
     /// represents prescription, not actuals.
     /// </summary>
     public Dictionary<Guid, Dictionary<Guid, List<int>>> CompletedSetsBySessionExercise { get; set; } = new();
+
+    /// <summary>
+    /// Per-session lock state, keyed by SessionId.
+    /// Possible values: "Stable" (no active lock), "Editing" (trainer holds an editing lock),
+    /// "Live" (client has an in-progress workout lock).
+    /// Missing entries are treated as "Stable".
+    /// Populated via a single batch <c>GetStateAsync</c> call on the session lock service.
+    /// </summary>
+    public Dictionary<Guid, string> LockStateBySession { get; set; } = new();
+
+    /// <summary>
+    /// Per-session lock holder, keyed by SessionId.
+    /// Possible values: "Coach" (trainer/nutritionist holds the lock) or "Client".
+    /// Null / missing when the session is in the Stable state.
+    /// </summary>
+    public Dictionary<Guid, string?> LockHolderBySession { get; set; } = new();
 }

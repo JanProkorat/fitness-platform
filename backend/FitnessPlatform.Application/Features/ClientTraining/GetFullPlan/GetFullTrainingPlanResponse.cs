@@ -117,6 +117,20 @@ public class SessionDto
     /// Kept for backward-compatibility with callers that don't yet read Sections.
     /// </summary>
     public List<ExerciseDto> Exercises { get; set; } = [];
+
+    /// <summary>
+    /// Current lock state of this session.
+    /// Possible values: "Stable" (no active lock), "Editing" (trainer holds an editing lock),
+    /// "Live" (client has an in-progress workout lock).
+    /// Populated via a batch <c>GetStateAsync</c> call on the session lock service.
+    /// </summary>
+    public string LockState { get; set; } = "Stable";
+
+    /// <summary>
+    /// Who currently holds the lock, if any.
+    /// Possible values: "Coach", "Client", or null when the session is Stable.
+    /// </summary>
+    public string? LockHolder { get; set; }
 }
 
 /// <summary>

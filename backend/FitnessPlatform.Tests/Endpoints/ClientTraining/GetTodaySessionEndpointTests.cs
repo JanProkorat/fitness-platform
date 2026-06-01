@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.ClientTraining.GetTodaySession;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -170,11 +171,19 @@ public class GetTodaySessionEndpointTests
         return mongo;
     }
 
+    private static ISessionLockService CreateStubLockService()
+    {
+        var svc = Substitute.For<ISessionLockService>();
+        svc.GetStateAsync(Arg.Any<IEnumerable<Guid>>(), Arg.Any<CancellationToken>())
+            .Returns(new List<SessionLock>() as IReadOnlyList<SessionLock>);
+        return svc;
+    }
+
     private GetTodaySessionEndpoint CreateEndpoint(IMongoContext mongo, IApplicationDbContext db) =>
         Factory.Create<GetTodaySessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, CreateStubLockService());
 
     // -------------------------------------------------------------------------
     // Multi-session tests
@@ -510,7 +519,7 @@ public class GetTodaySessionEndpointTests
 
         var ep = Factory.Create<GetTodaySessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity()),
-            mongo, db);
+            mongo, db, CreateStubLockService());
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -527,7 +536,7 @@ public class GetTodaySessionEndpointTests
         var ep = Factory.Create<GetTodaySessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, CreateStubLockService());
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -652,7 +661,7 @@ public class GetTodaySessionEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             CreateMongoWithPlan(plan, workoutLogs: [log]),
-            db);
+            db, CreateStubLockService());
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -785,7 +794,7 @@ public class GetTodaySessionEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             CreateMongoWithPlan(plan, workoutLogs: [partialLog]),
-            db);
+            db, CreateStubLockService());
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -948,7 +957,7 @@ public class GetTodaySessionEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             CreateMongoWithPlan(plan, workoutLogs: [completedLog, newerPartialLog]),
-            db);
+            db, CreateStubLockService());
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -1079,7 +1088,7 @@ public class GetTodaySessionEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             CreateMongoWithPlan(plan, workoutLogs: [partialLog]),
-            db);
+            db, CreateStubLockService());
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -1246,7 +1255,7 @@ public class GetTodaySessionEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             CreateMongoWithPlan(plan, workoutLogs: [completedLog, newerPartialLog]),
-            db);
+            db, CreateStubLockService());
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -1355,7 +1364,7 @@ public class GetTodaySessionEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             CreateMongoWithPlan(plan, completions: [completionDoc]),
-            db);
+            db, CreateStubLockService());
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -1499,7 +1508,7 @@ public class GetTodaySessionEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             CreateMongoWithPlan(plan, completions: [completionDoc], workoutLogs: [partialLog]),
-            db);
+            db, CreateStubLockService());
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -1667,7 +1676,7 @@ public class GetTodaySessionEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             CreateMongoWithPlan(plan, workoutLogs: [olderLog, newerLog]),
-            db);
+            db, CreateStubLockService());
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 

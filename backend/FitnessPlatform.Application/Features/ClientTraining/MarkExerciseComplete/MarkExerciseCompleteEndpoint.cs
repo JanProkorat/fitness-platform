@@ -7,8 +7,10 @@ using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.ClientTraining.MarkExerciseComplete;
@@ -17,17 +19,22 @@ namespace FitnessPlatform.Application.Features.ClientTraining.MarkExerciseComple
 /// Marks a single exercise within a session as complete for the client on the specified date.
 /// Idempotent: re-completing an already-complete exercise returns success without side effects.
 /// Uses optimistic concurrency on the <see cref="TrainingCompletion"/> document.
+/// Slides the Live lock TTL forward (keep-alive) when a Live lock exists for this session.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
 /// <param name="notifier">Realtime notifier for pushing the <c>trainingprogressupdated</c> event.</param>
 /// <param name="compliance">Compliance service for computing today's metrics.</param>
+/// <param name="lockService">Session lock service — used to refresh the Live TTL on activity.</param>
+/// <param name="lockOptions">Training lock TTL configuration.</param>
 /// <param name="logger">Logger.</param>
 public class MarkExerciseCompleteEndpoint(
     IMongoContext mongo,
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
     IComplianceService compliance,
+    ISessionLockService lockService,
+    IOptions<TrainingLockOptions> lockOptions,
     ILogger<MarkExerciseCompleteEndpoint> logger)
     : Endpoint<MarkExerciseCompleteRequest, MarkExerciseCompleteResponse>
 {
@@ -46,6 +53,12 @@ public class MarkExerciseCompleteEndpoint(
     /// <inheritdoc />
     public override async Task HandleAsync(MarkExerciseCompleteRequest req, CancellationToken ct)
     {
+        // Slide the Live lock TTL forward — keep-alive for active workout sessions.
+        // Safe no-op when no Live lock exists (returns false).
+        // Fire-and-forget style: lock refresh failure must not block the completion.
+        await lockService.RefreshAsync(req.SessionId, LockType.Live,
+            TimeSpan.FromHours(lockOptions.Value.LiveTtlHours), ct);
+
         var userId = User.FindFirstValue(AppClaims.UserId);
         if (userId is null)
         {

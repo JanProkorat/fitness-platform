@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
@@ -16,10 +17,13 @@ namespace FitnessPlatform.Application.Features.ClientTraining.GetFullPlan;
 /// and per-set completion state (derived from <see cref="WorkoutLog"/> documents AND
 /// <see cref="TrainingCompletion"/> documents — the former is populated by the live-workout
 /// assistant, the latter by the lightweight mark-complete toggles on the Today card).
+/// Also enriches each session DTO with its current lock state (Stable/Editing/Live)
+/// and holder (Coach/Client/null) via a single batch <c>GetStateAsync</c> call.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
-public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbContext db)
+/// <param name="lockService">Session lock service — used to batch-fetch lock state.</param>
+public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbContext db, ISessionLockService lockService)
     : EndpointWithoutRequest<GetFullTrainingPlanResponse>
 {
     /// <inheritdoc />
@@ -232,6 +236,15 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
             }
         }
 
+        // ── 4c. Batch-fetch lock state for all plan sessions ─────────────────────
+        // Single Mongo round-trip — not one per session.
+        Dictionary<Guid, SessionLock> lockLookup = new();
+        if (planSessionIds.Count > 0)
+        {
+            var lockDocs = await lockService.GetStateAsync(planSessionIds, ct);
+            lockLookup = lockDocs.ToDictionary(l => l.SessionId);
+        }
+
         // ── 5. Resolve current week ───────────────────────────────────────────────
         var publishedWeeks = plan.Weeks
             .Where(w => w.Status == WeekStatus.Published)
@@ -338,6 +351,15 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
 
                 var completedExerciseCount = exerciseDtos.Count(e => e.IsCompleted);
 
+                // Resolve lock state for this session (Stable if no active lock doc).
+                var sessionLockState = "Stable";
+                string? sessionLockHolder = null;
+                if (lockLookup.TryGetValue(session.SessionId, out var sessionLock))
+                {
+                    sessionLockState = sessionLock.Type.ToString();
+                    sessionLockHolder = sessionLock.Holder.ToString();
+                }
+
                 return new SessionDto
                 {
                     SessionId = session.SessionId,
@@ -349,7 +371,9 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
                     TotalExerciseCount = exerciseDtos.Count,
                     EstimatedDurationMinutes = null, // deferred — requires product-defined set-duration heuristic
                     Sections = sectionDtos,
-                    Exercises = exerciseDtos
+                    Exercises = exerciseDtos,
+                    LockState = sessionLockState,
+                    LockHolder = sessionLockHolder
                 };
             }).ToList();
 
