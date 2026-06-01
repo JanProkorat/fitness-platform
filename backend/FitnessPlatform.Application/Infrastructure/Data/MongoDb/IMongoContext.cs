@@ -63,4 +63,10 @@ public interface IMongoContext
     /// Section template documents (per-trainer reusable training section templates).
     /// </summary>
     IMongoCollection<SectionTemplate> SectionTemplates { get; }
+
+    /// <summary>
+    /// Active session lock documents.
+    /// A document present = Editing or Live; absent = Stable.
+    /// </summary>
+    IMongoCollection<SessionLock> SessionLocks { get; }
 }

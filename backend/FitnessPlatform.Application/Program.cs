@@ -200,6 +200,9 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<WeeklyCheckInSched
 builder.Services.AddSingleton<PhotoDiaryReminderScheduler>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<PhotoDiaryReminderScheduler>());
 
+// Session lock service — mutual exclusion for trainer-edit vs client-live sessions
+builder.Services.AddScoped<ISessionLockService, SessionLockService>();
+
 // Compliance
 builder.Services.AddScoped<IComplianceService, ComplianceService>();
 
