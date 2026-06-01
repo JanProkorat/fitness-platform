@@ -106,7 +106,11 @@ public static class QaSeedRunner
     public static readonly Guid TabataSectionId    = new("00000000-0000-0000-aaaa-000000000002");
     public static readonly Guid TabataExercise1Id  = new("00000000-0000-0000-eeee-000000000006");
 
-    // Foods — owned by Nutri (NutritionistId = NutriProfilePublicId).
+    // Foods — owned by Nutri (NutritionistId = NutriUserId, the ApplicationUser.Id).
+    // CreateFoodEndpoint sets NutritionistId = Guid.Parse(AppClaims.UserId) (the user id, NOT the
+    // ProfessionalProfile.PublicId), and the ownership guard in UploadFoodImageUrlEndpoint compares
+    // food.NutritionistId against the same user-id claim. Using NutriProfilePublicId here would
+    // make the seeded foods fail the ownership check with FOOD_NOT_OWNED (HTTP 400).
     public static readonly Guid QaFood1ExternalId = new("00000000-0000-0000-eeee-000000000001"); // Chicken Breast 100g
     public static readonly Guid QaFood2ExternalId = new("00000000-0000-0000-eeee-000000000002"); // White Rice 100g cooked
     public static readonly Guid QaFood3ExternalId = new("00000000-0000-0000-eeee-000000000003"); // Broccoli 100g
@@ -212,8 +216,12 @@ public static class QaSeedRunner
             await EnsurePastTrainingPlanAsync(mongo, clientProfile.PublicId, trainerProfile.PublicId, logger);
 
             // Foods + Recipes + NutritionPlan.
-            await EnsureFoodsAsync(mongo, nutriProfile.PublicId, logger);
-            await EnsureRecipesAsync(mongo, nutriProfile.PublicId, logger);
+            // NutriUserId (not nutriProfile.PublicId) — ownership guards in UploadFoodImageUrlEndpoint
+            // and UploadRecipeImageUrlEndpoint compare NutritionistId against AppClaims.UserId,
+            // which is ApplicationUser.Id. Using the profile PublicId would cause FOOD_NOT_OWNED /
+            // RECIPE_NOT_OWNED (HTTP 400) when the e2e flow calls the upload-url endpoint.
+            await EnsureFoodsAsync(mongo, NutriUserId, logger);
+            await EnsureRecipesAsync(mongo, NutriUserId, logger);
             await EnsureNutritionPlanAsync(mongo, clientProfile.PublicId, nutriProfile.PublicId, logger);
 
             // Image blobs in MinIO — idempotent, bucket created if absent.
@@ -898,7 +906,7 @@ public static class QaSeedRunner
 
     private static async Task EnsureFoodsAsync(
         IMongoContext mongo,
-        Guid nutriProfilePublicId,
+        Guid nutriUserId,
         ILogger logger)
     {
         var foodIds = new[]
@@ -924,7 +932,7 @@ public static class QaSeedRunner
             {
                 ExternalId    = QaFood1ExternalId,
                 Name          = "Chicken Breast",
-                NutritionistId = nutriProfilePublicId,
+                NutritionistId = nutriUserId,
                 Visibility    = FoodVisibility.Public,
                 Category      = FoodCategory.Meat,
                 DateCreated   = now,
@@ -934,7 +942,7 @@ public static class QaSeedRunner
             {
                 ExternalId    = QaFood2ExternalId,
                 Name          = "White Rice (cooked)",
-                NutritionistId = nutriProfilePublicId,
+                NutritionistId = nutriUserId,
                 Visibility    = FoodVisibility.Public,
                 Category      = FoodCategory.GrainsAndCereals,
                 DateCreated   = now,
@@ -944,7 +952,7 @@ public static class QaSeedRunner
             {
                 ExternalId    = QaFood3ExternalId,
                 Name          = "Broccoli",
-                NutritionistId = nutriProfilePublicId,
+                NutritionistId = nutriUserId,
                 Visibility    = FoodVisibility.Public,
                 Category      = FoodCategory.Vegetables,
                 DateCreated   = now,
@@ -954,7 +962,7 @@ public static class QaSeedRunner
             {
                 ExternalId    = QaFood4ExternalId,
                 Name          = "Banana (medium)",
-                NutritionistId = nutriProfilePublicId,
+                NutritionistId = nutriUserId,
                 Visibility    = FoodVisibility.Public,
                 Category      = FoodCategory.Fruit,
                 DateCreated   = now,
@@ -964,7 +972,7 @@ public static class QaSeedRunner
             {
                 ExternalId    = QaFood5ExternalId,
                 Name          = "Rolled Oats",
-                NutritionistId = nutriProfilePublicId,
+                NutritionistId = nutriUserId,
                 Visibility    = FoodVisibility.Public,
                 Category      = FoodCategory.GrainsAndCereals,
                 DateCreated   = now,
@@ -990,7 +998,7 @@ public static class QaSeedRunner
 
     private static async Task EnsureRecipesAsync(
         IMongoContext mongo,
-        Guid nutriProfilePublicId,
+        Guid nutriUserId,
         ILogger logger)
     {
         var recipeIds = new[] { QaRecipe1ExternalId, QaRecipe2ExternalId, QaRecipe3ExternalId };
@@ -1011,7 +1019,7 @@ public static class QaSeedRunner
             new()
             {
                 ExternalId      = QaRecipe1ExternalId,
-                NutritionistId  = nutriProfilePublicId,
+                NutritionistId  = nutriUserId,
                 Name            = "Chicken, Rice & Broccoli Bowl",
                 Description     = "Classic high-protein post-workout meal.",
                 PrepTimeMinutes = 20,
@@ -1030,7 +1038,7 @@ public static class QaSeedRunner
             new()
             {
                 ExternalId      = QaRecipe2ExternalId,
-                NutritionistId  = nutriProfilePublicId,
+                NutritionistId  = nutriUserId,
                 Name            = "Oats & Banana Breakfast",
                 Description     = "Simple overnight oats with banana.",
                 PrepTimeMinutes = 5,
@@ -1047,7 +1055,7 @@ public static class QaSeedRunner
             new()
             {
                 ExternalId      = QaRecipe3ExternalId,
-                NutritionistId  = nutriProfilePublicId,
+                NutritionistId  = nutriUserId,
                 Name            = "Chicken & Broccoli Stir-fry",
                 Description     = "Quick lean stir-fry, no rice.",
                 PrepTimeMinutes = 15,
