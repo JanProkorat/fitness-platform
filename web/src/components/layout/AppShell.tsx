@@ -8,6 +8,7 @@ import { useToastStore } from '@/stores/toast';
 import { useTrainingPlanStore } from '@/stores/trainingPlan';
 import { isTrainingProgressUpdatedEvent } from '@/api/trainingProgressEvent';
 import { isPersonalRecordAchievedEvent } from '@/api/personalRecordEvent';
+import { isSessionEditLockChangedEvent } from '@/api/sessionEditLockEvent';
 import { weeklyCheckInKeys } from '@/hooks/useWeeklyCheckIns';
 
 const DARK_MODE_KEY = 'gf-dark-mode';
@@ -269,6 +270,38 @@ export function AppShell() {
       const data = payload as { id?: string } | undefined;
       void data; // payload available for future fine-grained invalidation
       queryClient.invalidateQueries({ queryKey: weeklyCheckInKeys.all });
+    },
+    sessioneditlockchanged: (payload: unknown) => {
+      if (import.meta.env.DEV) {
+        console.debug('sessioneditlockchanged', payload);
+      }
+      if (!isSessionEditLockChangedEvent(payload)) {
+        if (import.meta.env.DEV) {
+          console.warn('sessioneditlockchanged: invalid payload shape', payload);
+        }
+        return;
+      }
+
+      // The trainer's main dashboard table shows per-client training activity.
+      // A lock change (session started, completed, or trainer unlock/relock) is
+      // a training-state transition that may affect compliance, activity rows,
+      // and session status indicators.
+      // Key shape verified: DashboardPage.tsx line 105 uses ['dashboard-summary'].
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
+
+      // If the trainer currently has this plan open in the editor, reload the
+      // plan from the server so lock state will be picked up once #384 adds the
+      // per-session lock fields to the plan response.  The existing
+      // `refreshCompletions()` path re-fetches the whole plan and merges the
+      // fresh data without clobbering unsaved trainer edits.
+      // We also invalidate ['client-dashboard', clientId] here because the plan
+      // is open and we have the clientId in scope.
+      const tp = useTrainingPlanStore.getState();
+      if (tp.plan && tp.plan.planId === payload.planId) {
+        void tp.refreshCompletions();
+        // Key shape verified: ClientDetailPage.tsx line 27 uses ['client-dashboard', id].
+        queryClient.invalidateQueries({ queryKey: ['client-dashboard', tp.plan.clientId] });
+      }
     },
     typing: (payload: unknown) => {
       const data = payload as { conversationId?: string; senderId?: string } | undefined;
