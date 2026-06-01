@@ -95,22 +95,34 @@ test('recipe-gallery-upload — nutritionist uploads recipe gallery image and it
   // main image slot is also visible, making the locator position-independent.
   const galleryInput = page.locator('[data-testid="recipe-gallery-image-input"]');
   await galleryInput.waitFor({ state: 'attached', timeout: 10_000 });
+
+  // ── 5. Register the confirm-response waiter BEFORE triggering the upload ──────
+  // The upload chain runs synchronously inside setInputFiles' round-trip: the
+  // upload-url request fires, then the MinIO PUT, then the confirm PUT, all before
+  // setInputFiles resolves. Registering waitForResponse after setInputFiles would
+  // race and miss the response.
+  //
+  // The confirm call is: PUT /recipes/:id/image  (no "/confirm" segment)
+  // See web/src/api/recipes.ts → confirmRecipeImage: api.put(`/recipes/${recipeId}/image`, …)
+  const confirmResponsePromise = page.waitForResponse(
+    (resp) =>
+      resp.request().method() === 'PUT' &&
+      /\/recipes\/[^/]+\/image(\?|$)/.test(resp.url()) &&
+      resp.status() === 200,
+    { timeout: 30_000 },
+  );
+
+  // RecipeImageSection → uploadImage():
+  //   1. POST /recipes/:id/image/upload-url  (handleGalleryFile)
+  //   2. PUT  <signed URL>                   (direct PUT to MinIO)
+  //   3. PUT  /recipes/:id/image             (confirm — persists the blob URL)
   await galleryInput.setInputFiles({
     name: 'recipe-gallery.png',
     mimeType: 'image/png',
     buffer: TINY_PNG,
   });
 
-  // ── 5. Wait for the upload flow to complete ───────────────────────────────────
-  // RecipeImageSection → uploadImage():
-  //   1. POST /recipes/:id/image/upload-url  (handleGalleryFile)
-  //   2. PUT  <signed URL>                   (direct PUT to MinIO)
-  //   3. POST /recipes/:id/image/confirm
-  // Wait for the confirm endpoint to return 200.
-  await page.waitForResponse(
-    (resp) => resp.url().includes('/image/confirm') && resp.status() === 200,
-    { timeout: 30_000 },
-  );
+  await confirmResponsePromise;
 
   // ── 6. Assert the new gallery thumbnail renders ───────────────────────────────
   // After confirmRecipeImage(), RecipeImageSection calls onUploaded('gallery')

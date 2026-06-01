@@ -89,22 +89,34 @@ test('food-admin-upload — nutritionist uploads food image and it renders in di
   // visually hidden.
   const fileInput = page.locator('[data-testid="food-main-image-input"]');
   await fileInput.waitFor({ state: 'attached', timeout: 10_000 });
+
+  // ── 5. Register the confirm-response waiter BEFORE triggering the upload ──────
+  // The upload chain runs synchronously inside setInputFiles' round-trip: the
+  // upload-url request fires, then the MinIO PUT, then the confirm PUT, all before
+  // setInputFiles resolves. Registering waitForResponse after setInputFiles would
+  // race and miss the response.
+  //
+  // The confirm call is: PUT /foods/:id/image  (no "/confirm" segment)
+  // See web/src/api/foods.ts → confirmFoodImage: api.put(`/foods/${foodId}/image`, …)
+  const confirmResponsePromise = page.waitForResponse(
+    (resp) =>
+      resp.request().method() === 'PUT' &&
+      /\/foods\/[^/]+\/image(\?|$)/.test(resp.url()) &&
+      resp.status() === 200,
+    { timeout: 30_000 },
+  );
+
+  // FoodImageSection → uploadImage():
+  //   1. POST /foods/:id/image/upload-url  (SlotPicker triggers handleMainFile)
+  //   2. PUT  <signed URL>                 (direct PUT to MinIO)
+  //   3. PUT  /foods/:id/image             (confirm — persists the blob URL)
   await fileInput.setInputFiles({
     name: 'food.png',
     mimeType: 'image/png',
     buffer: TINY_PNG,
   });
 
-  // ── 5. Wait for the upload flow to complete ───────────────────────────────────
-  // FoodImageSection → uploadImage():
-  //   1. POST /foods/:id/image/upload-url  (SlotPicker triggers handleMainFile)
-  //   2. PUT  <signed URL>                 (direct PUT to MinIO)
-  //   3. POST /foods/:id/image/confirm
-  // Wait for the confirm endpoint to return a 200.
-  await page.waitForResponse(
-    (resp) => resp.url().includes('/image/confirm') && resp.status() === 200,
-    { timeout: 30_000 },
-  );
+  await confirmResponsePromise;
 
   // ── 6. Assert the uploaded image renders in the dialog ───────────────────────
   // After a successful confirmFoodImage(), the FoodDialog calls onUploaded()

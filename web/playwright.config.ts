@@ -71,6 +71,25 @@ const PLAYWRIGHT_BASE_URL =
 // second `npm run dev:e2e` inside the playwright container would clash.
 const IN_CONTAINER = process.env['PLAYWRIGHT_IN_CONTAINER'] === 'true';
 
+// When Playwright runs inside the qa-playwright container, the SPA is served
+// over http://web:5173 and http://mobile-web:8081 — plain HTTP, not localhost.
+// Chromium treats non-localhost HTTP origins as insecure contexts, which makes
+// window.crypto.randomUUID (and other secure-context APIs) undefined. Adding
+// these launch args tells Chromium to treat those specific origins as secure so
+// the app behaves identically to a localhost host run.
+// These args MUST NOT be applied to host/localhost runs (they're a no-op there
+// but would widen the attack surface unnecessarily).
+const containerLaunchOptions = IN_CONTAINER
+  ? {
+      launchOptions: {
+        args: [
+          '--unsafely-treat-insecure-origin-as-secure=http://web:5173,http://mobile-web:8081',
+          '--disable-features=IsolateOrigins,site-per-process',
+        ],
+      },
+    }
+  : {};
+
 export default defineConfig({
   testDir: './tests/e2e',
 
@@ -106,6 +125,7 @@ export default defineConfig({
       testMatch: /auth\.setup\.ts/,
       use: {
         ...devices['Desktop Chrome'],
+        ...containerLaunchOptions,
       },
     },
 
@@ -124,6 +144,7 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         storageState: '.auth/trainer.json',
+        ...containerLaunchOptions,
       },
     },
 
@@ -140,6 +161,7 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         storageState: '.auth/client.json',
+        ...containerLaunchOptions,
       },
     },
 
@@ -163,6 +185,7 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         storageState: '.auth/nutritionist.json',
+        ...containerLaunchOptions,
       },
     },
   ],
