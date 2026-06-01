@@ -14,8 +14,10 @@
  *   6. Assert the newly uploaded image <img> renders inside the dialog.
  *
  * Food ownership: QaFood1ExternalId (Chicken Breast) is seeded with
- * AuthorId = NutriProfilePublicId (cccccccc-...), so the logged-in nutritionist
- * (qa.nutri@fitnessplatform.test) passes the isOwner check in FoodImageSection.
+ * NutritionistId = NutriUserId (33333333-...). UploadFoodImageUrlEndpoint
+ * compares food.NutritionistId against AppClaims.UserId (the ApplicationUser.Id,
+ * what CreateFoodEndpoint writes) — NOT the profile PublicId — so the logged-in
+ * nutritionist (qa.nutri@fitnessplatform.test) passes the ownership check.
  *
  * WHY ONE CONSOLIDATED TEST:
  * storageState restores a refresh token from disk. Multiple test() blocks would
