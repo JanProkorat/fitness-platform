@@ -24,10 +24,11 @@ namespace FitnessPlatform.Application.Seed;
 ///   dashboard shows "QA Client" without any further setup.
 /// - QA Nutri (33333333-...) has a ProfessionalProfile (no client link seeded).
 /// - A TrainingPlan (dddddddd-...) is seeded for the QA client with a Published week
-///   containing one session with three sections:
+///   containing one session with four sections:
 ///   Section 1 — ForTime + 0 exercises (the #258 bug shape).
 ///   Section 2 — AMRAP + 2 synthetic exercises (non-regression).
 ///   Section 3 — Standard (null format) + 2 synthetic exercises (non-regression).
+///   Section 4 — Tabata (20s/10s × 8) + 1 synthetic exercise (#327 iOS QA fixture).
 /// </summary>
 public static class QaSeedRunner
 {
@@ -95,11 +96,15 @@ public static class QaSeedRunner
     // Stable SessionId.
     public static readonly Guid QaSessionId = new("00000000-0000-0000-bbbb-000000000001");
 
-    // Stable ExternalIds for the synthetic exercises in AMRAP + Standard sections.
+    // Stable ExternalIds for the synthetic exercises in AMRAP + Standard + Tabata sections.
     public static readonly Guid AmrapExercise1Id   = new("00000000-0000-0000-cccc-000000000001");
     public static readonly Guid AmrapExercise2Id   = new("00000000-0000-0000-cccc-000000000002");
     public static readonly Guid StandardExercise1Id = new("00000000-0000-0000-dddd-000000000001");
     public static readonly Guid StandardExercise2Id = new("00000000-0000-0000-dddd-000000000002");
+
+    // Stable SectionId + exercise for the Tabata section (Order=3, #327 iOS QA fixture).
+    public static readonly Guid TabataSectionId    = new("00000000-0000-0000-aaaa-000000000002");
+    public static readonly Guid TabataExercise1Id  = new("00000000-0000-0000-eeee-000000000006");
 
     // Foods — owned by Nutri (NutritionistId = NutriProfilePublicId).
     public static readonly Guid QaFood1ExternalId = new("00000000-0000-0000-eeee-000000000001"); // Chicken Breast 100g
@@ -370,10 +375,11 @@ public static class QaSeedRunner
     /// <summary>
     /// Seeds a deterministic training plan for the QA client.
     ///
-    /// The plan contains one Published week with one session with three sections:
+    /// The plan contains one Published week with one session with four sections:
     ///   1. ForTime, TimeCapSeconds=1800, Exercises=[] — the #258 bug shape.
     ///   2. AMRAP, TimeCapSeconds=600, two synthetic exercises — non-regression.
     ///   3. Standard (null format), two synthetic exercises — non-regression.
+    ///   4. Tabata, WorkSeconds=20, RestSeconds=10, TotalRounds=8, one exercise — #327 iOS QA fixture.
     ///
     /// ClientId = clientProfilePublicId (NOT ClientUserId) — GetClientPlansEndpoint
     /// filters by ClientProfile.PublicId. Using the user id would make the plan
@@ -492,6 +498,30 @@ public static class QaSeedRunner
                                             ExerciseExternalId = StandardExercise2Id,
                                             ExerciseName       = "QA Deadlift",
                                             Order              = 2,
+                                            MovementType       = MovementType.Reps,
+                                        },
+                                    ],
+                                },
+                                // Section 4 — Tabata 20s/10s × 8 + 1 exercise (#327 iOS QA fixture)
+                                new TrainingSection
+                                {
+                                    SectionId    = TabataSectionId,
+                                    Order        = 3,
+                                    Name         = "Tabata test",
+                                    Format       = WorkoutFormat.Tabata,
+                                    FormatConfig = new WodConfig
+                                    {
+                                        WorkSeconds  = 20,
+                                        RestSeconds  = 10,
+                                        TotalRounds  = 8,
+                                    },
+                                    Exercises =
+                                    [
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = TabataExercise1Id,
+                                            ExerciseName       = "QA Burpee",
+                                            Order              = 1,
                                             MovementType       = MovementType.Reps,
                                         },
                                     ],

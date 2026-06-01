@@ -334,7 +334,7 @@ public class ResetTestStateEndpointTests : IAsyncLifetime
         week.Sessions.Should().HaveCount(1);
         var session = week.Sessions[0];
 
-        session.Sections.Should().HaveCount(3, because: "one ForTime section + one AMRAP section + one Standard section");
+        session.Sections.Should().HaveCount(4, because: "one ForTime section + one AMRAP section + one Standard section + one Tabata section");
 
         // Section 1 — ForTime + 0 exercises (the #258 bug shape).
         var section1 = session.Sections[0];
@@ -359,6 +359,24 @@ public class ResetTestStateEndpointTests : IAsyncLifetime
             because: "Section 3 must be Standard (null format)");
         section3.Exercises.Should().HaveCountGreaterThanOrEqualTo(1,
             because: "Standard section must have at least one exercise for non-regression");
+
+        // Section 4 — Tabata 20s/10s × 8 + 1 exercise (#327 iOS QA fixture).
+        var section4 = session.Sections[3];
+        section4.Format.Should().Be(WorkoutFormat.Tabata,
+            because: "Section 4 must be Tabata format");
+        section4.Order.Should().Be(3,
+            because: "Tabata section must be Order=3");
+        section4.Name.Should().Be("Tabata test",
+            because: "Tabata section must have the seeded name");
+        section4.FormatConfig.Should().NotBeNull();
+        section4.FormatConfig!.WorkSeconds.Should().Be(20,
+            because: "Tabata FormatConfig must have WorkSeconds=20");
+        section4.FormatConfig.RestSeconds.Should().Be(10,
+            because: "Tabata FormatConfig must have RestSeconds=10");
+        section4.FormatConfig.TotalRounds.Should().Be(8,
+            because: "Tabata FormatConfig must have TotalRounds=8");
+        section4.Exercises.Should().HaveCount(1,
+            because: "Tabata section must have exactly one seeded exercise");
     }
 
     /// <summary>
