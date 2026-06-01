@@ -67,8 +67,13 @@ test('user-avatar-upload — client uploads avatar and it persists across reload
   // ── 2. Find the camera badge on the Avatar component ─────────────────────────
   // Avatar renders with accessibilityLabel={t('avatar.editBadgeLabel')} on the
   // camera Pressable. On react-native-web, Pressable compiles to a div/button.
-  // We locate it by its accessible label.
-  const cameraBadge = page.getByRole('button', { name: /edit|camera|foto|upravit/i });
+  // We locate it by its accessible label — the i18n values are:
+  //   cs: "Změnit profilovou fotku"
+  //   en: "Change profile photo"
+  //   de: "Profilbild ändern"
+  const cameraBadge = page.getByRole('button', {
+    name: /Změnit profilovou fotku|Change profile photo|Profilbild ändern/i,
+  });
   await expect(cameraBadge).toBeVisible({ timeout: 15_000 });
 
   // ── 3. Intercept the file chooser and supply the tiny PNG ─────────────────────

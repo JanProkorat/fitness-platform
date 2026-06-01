@@ -36,9 +36,11 @@ interface SlotPickerProps {
   maxBytes: number;
   disabled: boolean;
   onFile: (file: File) => void;
+  /** data-testid forwarded to the hidden file input for E2E targeting. */
+  testId?: string;
 }
 
-function SlotPicker({ accept, maxBytes, disabled, onFile }: SlotPickerProps) {
+function SlotPicker({ accept, maxBytes, disabled, onFile, testId }: SlotPickerProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -60,6 +62,7 @@ function SlotPicker({ accept, maxBytes, disabled, onFile }: SlotPickerProps) {
         disabled={disabled}
         tabIndex={-1}
         aria-hidden="true"
+        data-testid={testId}
       />
       <button
         type="button"
@@ -95,6 +98,7 @@ function Thumbnail({ src, index }: ThumbnailProps) {
         src={src}
         alt={`Gallery photo ${index + 1}`}
         className="h-full w-full object-cover"
+        data-testid={`recipe-gallery-thumbnail-${index}`}
       />
     </div>
   );
@@ -196,6 +200,7 @@ export function RecipeImageSection({
               src={imageUrl}
               alt={t('recipes.image.mainHeading')}
               className="h-full w-full object-cover"
+              data-testid="recipe-main-image"
             />
             {isOwner && (
               <div className="absolute bottom-2 right-2">
@@ -218,6 +223,7 @@ export function RecipeImageSection({
               maxBytes={MAX_BYTES}
               disabled={uploadingMain}
               onFile={handleMainFile}
+              testId="recipe-main-image-input"
             />
             {uploadingMain && <UploadOverlay />}
           </div>
@@ -259,6 +265,7 @@ export function RecipeImageSection({
                 maxBytes={MAX_BYTES}
                 disabled={galleryFull || uploadingGallery}
                 onFile={handleGalleryFile}
+                testId="recipe-gallery-image-input"
               />
               {uploadingGallery && <UploadOverlay small />}
             </div>
