@@ -100,15 +100,15 @@ describe('getMimeType', () => {
 
 describe('resolveWebSource', () => {
   it("returns 'library' on web (skips the native sheet)", () => {
-    expect(resolveWebSource('web', 'both')).toBe('library');
+    expect(resolveWebSource('web')).toBe('library');
   });
 
   it('returns null on iOS (caller should show native ActionSheetIOS)', () => {
-    expect(resolveWebSource('ios', 'both')).toBeNull();
+    expect(resolveWebSource('ios')).toBeNull();
   });
 
   it('returns null on Android (caller should show Alert.alert sheet)', () => {
-    expect(resolveWebSource('android', 'both')).toBeNull();
+    expect(resolveWebSource('android')).toBeNull();
   });
 });
 

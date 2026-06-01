@@ -122,7 +122,6 @@ function getFilename(uri: string): string {
  */
 export function resolveWebSource(
   platform: typeof Platform.OS,
-  _source: 'camera' | 'library' | 'both',
 ): 'library' | null {
   if (platform === 'web') return 'library';
   return null;
@@ -198,7 +197,7 @@ export function useImagePicker(
       // buttons — the Promise would never resolve, hanging pick() indefinitely.
       // On web the browser file picker is opened directly via
       // launchImageLibraryAsync, so we resolve 'library' immediately.
-      const webResolution = resolveWebSource(Platform.OS, source);
+      const webResolution = resolveWebSource(Platform.OS);
       if (webResolution !== null) {
         resolve(webResolution);
         return;
