@@ -19,6 +19,13 @@ FROM mcr.microsoft.com/playwright:v1.60.0-jammy
 
 WORKDIR /work/web
 
+# named-flow-runner.sh parses flows.json with jq, which the playwright base
+# image doesn't ship. Install it early (own layer) so spec edits don't bust
+# this cache layer.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends jq \
+  && rm -rf /var/lib/apt/lists/*
+
 # Layer the web dependency closure first so spec edits don't bust the deps cache.
 COPY web/package.json web/package-lock.json ./
 RUN npm ci --no-audit --no-fund
