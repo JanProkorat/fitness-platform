@@ -146,19 +146,49 @@ public class UpdateTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService
             .Select(s => s.WithBackfilledSections())
             .ToDictionary(s => s.SessionId);
 
+        // Pre-flight: every session in a published week must carry a non-null SessionId.
+        // A null SessionId in a published week would create a new session while silently
+        // dropping the stored published session — bypassing the diff-gate entirely (M1).
+        var publishedWeekNumbersSet = existingWeeks
+            .Where(kv => kv.Value.Status == WeekStatus.Published)
+            .Select(kv => kv.Key)
+            .ToHashSet();
+
+        var publishedWeekSessionsMissingId = req.Weeks
+            .Where(rw => publishedWeekNumbersSet.Contains(rw.WeekNumber))
+            .SelectMany(rw => rw.Sessions)
+            .Any(rs => !rs.SessionId.HasValue);
+
+        if (publishedWeekSessionsMissingId)
+        {
+            ThrowError(
+                "Every session in a published week must include a SessionId. " +
+                "Omitting or nulling a SessionId in a published week is not allowed.");
+            return;
+        }
+
         // Build a map of incoming sessions for published weeks keyed by SessionId.
+        // The pre-flight above guarantees all sessions in published weeks have a non-null
+        // SessionId, so the .Where(HasValue) filter here is now a defensive no-op.
         var incomingPublishedSessions = req.Weeks
-            .Where(rw => existingWeeks.TryGetValue(rw.WeekNumber, out var ew) && ew.Status == WeekStatus.Published)
+            .Where(rw => publishedWeekNumbersSet.Contains(rw.WeekNumber))
             .SelectMany(rw => rw.Sessions)
             .Where(rs => rs.SessionId.HasValue)
             .ToDictionary(rs => rs.SessionId!.Value);
 
-        // Identify which stored published sessions have content changes.
+        // Identify which stored published sessions have content changes OR have been removed/replaced.
+        // A stored published session that is absent from the incoming map is treated the same as a
+        // changed session — removing or replacing a published session requires an Editing lock (M1).
         var changedSessionIds = new List<Guid>();
         foreach (var (sessionId, storedSession) in storedPublishedSessions)
         {
             if (!incomingPublishedSessions.TryGetValue(sessionId, out var incomingSession))
-                continue; // session removed — handled elsewhere or not a content change
+            {
+                // Session removed or replaced — gate it; removing a published session is a
+                // structural change that requires an Editing lock.
+                changedSessionIds.Add(sessionId);
+                continue;
+            }
 
             if (HasContentChanged(storedSession, incomingSession))
                 changedSessionIds.Add(sessionId);

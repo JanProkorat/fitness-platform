@@ -30,7 +30,21 @@ public class UpdateTrainingPlanValidator : Validator<UpdateTrainingPlanRequest>
             .NotEmpty().WithMessage("At least one week is required.")
             .Must(weeks => weeks.Count <= 52).WithMessage("A plan may not exceed 52 weeks.")
             .Must(weeks => weeks.Select(w => w.WeekNumber).Distinct().Count() == weeks.Count)
-                .WithMessage("Duplicate WeekNumber values are not allowed.");
+                .WithMessage("Duplicate WeekNumber values are not allowed.")
+            .Must(weeks =>
+            {
+                // Duplicate SessionId values across ALL sessions in ALL weeks are forbidden.
+                // A duplicate SessionId on published-week sessions causes an unhandled
+                // ToDictionary crash (M2 fix). We validate globally (not just per-week) to
+                // catch cross-week duplicates too.
+                var allSessionIds = weeks
+                    .SelectMany(w => w.Sessions)
+                    .Where(s => s.SessionId.HasValue)
+                    .Select(s => s.SessionId!.Value)
+                    .ToList();
+                return allSessionIds.Distinct().Count() == allSessionIds.Count;
+            })
+                .WithMessage("Duplicate SessionId values are not allowed across sessions.");
 
         RuleForEach(x => x.Weeks).ChildRules(week =>
         {
