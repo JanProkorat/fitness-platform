@@ -59,25 +59,38 @@ public interface ISessionLockService
     /// <summary>
     /// Releases an active lock on the given session.
     /// Idempotent: if the lock does not exist (already released or expired) this is a no-op success.
+    /// The delete filter intentionally keys on <c>sessionId AND holder AND type</c> as an
+    /// ownership guard — a caller cannot release a lock held by a different party.
     /// </summary>
     /// <param name="sessionId">The session whose lock should be removed.</param>
-    /// <param name="holder">The holder expected on the lock (used as a guard filter).</param>
-    /// <param name="type">The type expected on the lock (used as a guard filter).</param>
+    /// <param name="holder">The holder expected on the lock (ownership guard).</param>
+    /// <param name="type">The type expected on the lock (ownership guard).</param>
     /// <param name="ct">Cancellation token.</param>
-    Task ReleaseAsync(
+    /// <returns>
+    /// <c>true</c> if a matching lock document was deleted;
+    /// <c>false</c> if no document matched (already released, expired, or wrong ownership).
+    /// Returning <c>false</c> is NOT an error — it is observability for the caller.
+    /// Never throws.
+    /// </returns>
+    Task<bool> ReleaseAsync(
         Guid sessionId,
         LockHolder holder,
         LockType type,
         CancellationToken ct = default);
 
     /// <summary>
-    /// Slides the <c>ExpiresAt</c> field forward on an existing lock (keep-alive for live sessions).
+    /// Slides the <c>ExpiresAt</c> field forward on an existing, still-live lock (keep-alive for live sessions).
+    /// A lock whose <c>ExpiresAt &lt;= UtcNow</c> is treated as logically expired and will NOT be refreshed.
     /// </summary>
     /// <param name="sessionId">The session whose lock should be refreshed.</param>
     /// <param name="type">The lock type (used as a filter guard).</param>
     /// <param name="ttl">The new TTL duration, measured from <c>DateTime.UtcNow</c>.</param>
     /// <param name="ct">Cancellation token.</param>
-    Task RefreshAsync(
+    /// <returns>
+    /// <c>true</c> if a live lock was found and its <c>ExpiresAt</c> was slid forward;
+    /// <c>false</c> if no matching live lock existed (lock lost, expired, or wrong type).
+    /// </returns>
+    Task<bool> RefreshAsync(
         Guid sessionId,
         LockType type,
         TimeSpan ttl,

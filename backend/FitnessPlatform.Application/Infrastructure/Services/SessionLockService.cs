@@ -55,34 +55,43 @@ public class SessionLockService(IMongoContext mongo, ILogger<SessionLockService>
     }
 
     /// <inheritdoc />
-    public async Task ReleaseAsync(
+    public async Task<bool> ReleaseAsync(
         Guid sessionId,
         LockHolder holder,
         LockType type,
         CancellationToken ct = default)
     {
+        // Intentional ownership guard: filter keys on sessionId AND holder AND type
+        // so a caller cannot release a lock held by a different party.
+        // DeleteOneAsync with zero matches is a successful no-op (idempotent).
         var filter = Builders<SessionLock>.Filter.Eq(l => l.SessionId, sessionId)
             & Builders<SessionLock>.Filter.Eq(l => l.Holder, holder)
             & Builders<SessionLock>.Filter.Eq(l => l.Type, type);
 
-        // DeleteOneAsync with zero matches is a successful no-op (idempotent).
-        await mongo.SessionLocks.DeleteOneAsync(filter, ct);
+        var result = await mongo.SessionLocks.DeleteOneAsync(filter, ct);
+        return result.DeletedCount > 0;
     }
 
     /// <inheritdoc />
-    public async Task RefreshAsync(
+    public async Task<bool> RefreshAsync(
         Guid sessionId,
         LockType type,
         TimeSpan ttl,
         CancellationToken ct = default)
     {
+        var now = DateTime.UtcNow;
+
+        // Expiry guard: only refresh locks that are still live (expiresAt > now).
+        // A lock whose expiresAt <= now is logically expired and must not be revived.
         var filter = Builders<SessionLock>.Filter.Eq(l => l.SessionId, sessionId)
-            & Builders<SessionLock>.Filter.Eq(l => l.Type, type);
+            & Builders<SessionLock>.Filter.Eq(l => l.Type, type)
+            & Builders<SessionLock>.Filter.Gt(l => l.ExpiresAt, now);
 
         var update = Builders<SessionLock>.Update
-            .Set(l => l.ExpiresAt, DateTime.UtcNow.Add(ttl));
+            .Set(l => l.ExpiresAt, now.Add(ttl));
 
-        await mongo.SessionLocks.UpdateOneAsync(filter, update, cancellationToken: ct);
+        var result = await mongo.SessionLocks.UpdateOneAsync(filter, update, cancellationToken: ct);
+        return result.MatchedCount > 0;
     }
 
     /// <inheritdoc />
