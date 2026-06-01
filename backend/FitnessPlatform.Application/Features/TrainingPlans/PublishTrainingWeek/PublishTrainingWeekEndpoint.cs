@@ -15,12 +15,14 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.PublishTrainingWeek
 /// <summary>
 /// Publishes a single week of a training plan, making it visible to the client.
 /// Archives other active training plans for the same client when the first week is published.
+/// Defensively clears any stale Editing lock docs for the week's sessions on publish.
 /// </summary>
 public class PublishTrainingWeekEndpoint(
     IMongoContext mongo,
     IApplicationDbContext db,
     INotificationService notificationService,
-    IRealtimeNotifier notifier) : Endpoint<PublishTrainingWeekRequest, GetTrainingPlanResponse>
+    IRealtimeNotifier notifier,
+    ISessionLockService lockService) : Endpoint<PublishTrainingWeekRequest, GetTrainingPlanResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -30,7 +32,8 @@ public class PublishTrainingWeekEndpoint(
         Summary(s =>
         {
             s.Summary = "Publish a week of a training plan";
-            s.Description = "Sets the week's status to Published. Archives other active training plans for the same client.";
+            s.Description = "Sets the week's status to Published. Archives other active training plans for the same client. " +
+                            "Clears any stale Editing lock docs for the week's sessions.";
         });
     }
 
@@ -129,6 +132,15 @@ public class PublishTrainingWeekEndpoint(
             await HttpContext.Response.SendAsync(
                 new { Error = "Version conflict." }, 409, cancellation: ct);
             return;
+        }
+
+        // Defensive cleanup: clear any stale Editing lock docs for the week's sessions.
+        // This handles the edge case where a trainer had a session unlocked just before publish.
+        // ReleaseAsync is idempotent — safe to call even if no lock exists.
+        var weekSessionIds = week.Sessions.Select(s => s.SessionId).ToList();
+        foreach (var sessionId in weekSessionIds)
+        {
+            await lockService.ReleaseAsync(sessionId, LockHolder.Coach, LockType.Editing, ct);
         }
 
         // Notify the client about the published week
