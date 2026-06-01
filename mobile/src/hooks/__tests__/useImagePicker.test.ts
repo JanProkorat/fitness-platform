@@ -5,9 +5,10 @@
  * of which require the jest-expo preset that IS wired in this package's
  * package.json ("jest": { "preset": "jest-expo" }).
  *
- * These tests cover the two pure-logic functions extracted from the module:
- *   - getMimeType  (MIME detection from URI extension)
- *   - resolveFileSize fallback path (mocked fetch)
+ * These tests cover the pure-logic functions extracted from the module:
+ *   - getMimeType        (MIME detection from URI extension)
+ *   - resolveWebSource   (web-path source resolution — real exported helper)
+ *   - size guard arithmetic
  *
  * The full hook integration (pick → permission → picker → upload) is verified
  * manually via the Expo simulator; Jest cannot drive native permission dialogs.
@@ -15,6 +16,8 @@
  * To run:
  *   cd mobile && npx jest src/hooks/__tests__/useImagePicker.test.ts
  */
+
+import { resolveWebSource } from '../useImagePicker';
 
 // ---------------------------------------------------------------------------
 // getMimeType — extracted and tested as a pure function
@@ -84,46 +87,28 @@ describe('getMimeType', () => {
 });
 
 // ---------------------------------------------------------------------------
-// selectSource web path — pure-logic simulation
+// resolveWebSource — real exported helper (guards the actual changed line)
 //
-// selectSource is a non-exported closure inside the hook, so we test its
-// branching logic in isolation using the same pattern as getMimeType above:
-// copy the decision logic and assert against it.
+// selectSource() delegates the web-path decision to resolveWebSource(), which
+// is exported so tests can import and assert against the live logic. If the
+// Platform.OS === 'web' branch in useImagePicker.ts is altered, these tests
+// will catch it — unlike the previous local stub which only documented intent.
 //
-// On web (Platform.OS === 'web'), the function resolves 'library' immediately
-// without showing any native sheet. This prevents the Promise from hanging
-// because React-Native-Web does not implement Alert.alert with action buttons.
+// On web:          returns 'library' (resolve immediately; no native sheet).
+// On iOS/Android:  returns null (show the native ActionSheetIOS / Alert sheet).
 // ---------------------------------------------------------------------------
 
-type SourceResolution = 'camera' | 'library' | 'cancel';
-
-/**
- * Distilled source-resolution logic from selectSource().
- * On web: always resolves 'library'.
- * On iOS/Android: would show a native sheet (not exercised here — native
- * dialogs cannot be driven from Jest without a simulator).
- */
-function resolveSourceForPlatform(
-  platform: 'ios' | 'android' | 'web',
-): SourceResolution | 'native-sheet' {
-  if (platform === 'web') {
-    return 'library';
-  }
-  // iOS / Android open a native sheet — not testable without a simulator.
-  return 'native-sheet';
-}
-
-describe('selectSource — web path', () => {
-  it("resolves 'library' on web without showing a native sheet", () => {
-    expect(resolveSourceForPlatform('web')).toBe('library');
+describe('resolveWebSource', () => {
+  it("returns 'library' on web (skips the native sheet)", () => {
+    expect(resolveWebSource('web', 'both')).toBe('library');
   });
 
-  it("does NOT immediately resolve on iOS (uses native ActionSheetIOS)", () => {
-    expect(resolveSourceForPlatform('ios')).toBe('native-sheet');
+  it('returns null on iOS (caller should show native ActionSheetIOS)', () => {
+    expect(resolveWebSource('ios', 'both')).toBeNull();
   });
 
-  it("does NOT immediately resolve on Android (uses Alert.alert)", () => {
-    expect(resolveSourceForPlatform('android')).toBe('native-sheet');
+  it('returns null on Android (caller should show Alert.alert sheet)', () => {
+    expect(resolveWebSource('android', 'both')).toBeNull();
   });
 });
 
