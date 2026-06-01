@@ -46,7 +46,7 @@ public class StartWorkoutEndpointTests
         return Factory.Create<StartWorkoutEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, lockService, LockOptions);
+            mongo, lockService, LockOptions, Substitute.For<IRealtimeNotifier>());
     }
 
     [Fact]
@@ -72,7 +72,7 @@ public class StartWorkoutEndpointTests
     {
         var mongo = WorkoutLogTestHelpers.CreateMockMongo();
         var ep = Factory.Create<StartWorkoutEndpoint>(
-            mongo, CreateNoOpLockService(), LockOptions);
+            mongo, CreateNoOpLockService(), LockOptions, Substitute.For<IRealtimeNotifier>());
 
         await ep.HandleAsync(new StartWorkoutRequest(), TestContext.Current.CancellationToken);
 

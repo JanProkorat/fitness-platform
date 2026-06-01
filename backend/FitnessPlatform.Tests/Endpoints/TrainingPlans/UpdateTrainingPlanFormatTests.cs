@@ -39,7 +39,8 @@ public class UpdateTrainingPlanFormatTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo,
-            CreateNoOpLockService());
+            CreateNoOpLockService(),
+            Substitute.For<IRealtimeNotifier>());
 
     /// <summary>Builds a minimal single-section request for a given session.</summary>
     private static UpdateSectionRequest DefaultSection(List<UpdateSessionExerciseRequest>? exercises = null) =>

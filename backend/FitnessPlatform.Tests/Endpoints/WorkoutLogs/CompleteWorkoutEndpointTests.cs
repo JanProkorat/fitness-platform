@@ -51,7 +51,7 @@ public class CompleteWorkoutEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, completionService, StubLockService());
+            mongo, completionService, StubLockService(), Substitute.For<IRealtimeNotifier>());
 
         await ep.HandleAsync(new CompleteWorkoutRequest { LogId = logId }, TestContext.Current.CancellationToken);
 
@@ -72,7 +72,7 @@ public class CompleteWorkoutEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, StubCompletionService(), StubLockService());
+            mongo, StubCompletionService(), StubLockService(), Substitute.For<IRealtimeNotifier>());
 
         await ep.HandleAsync(new CompleteWorkoutRequest { LogId = Guid.NewGuid() }, TestContext.Current.CancellationToken);
 
@@ -89,7 +89,7 @@ public class CompleteWorkoutEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, StubCompletionService(), StubLockService());
+            mongo, StubCompletionService(), StubLockService(), Substitute.For<IRealtimeNotifier>());
 
         await ep.HandleAsync(new CompleteWorkoutRequest { LogId = Guid.NewGuid() }, TestContext.Current.CancellationToken);
 
@@ -110,7 +110,7 @@ public class CompleteWorkoutEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, completionService, StubLockService());
+            mongo, completionService, StubLockService(), Substitute.For<IRealtimeNotifier>());
 
         await ep.HandleAsync(new CompleteWorkoutRequest { LogId = logId }, TestContext.Current.CancellationToken);
 
@@ -138,7 +138,7 @@ public class CompleteWorkoutEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, completionService, StubLockService());
+            mongo, completionService, StubLockService(), Substitute.For<IRealtimeNotifier>());
 
         await ep.HandleAsync(new CompleteWorkoutRequest { LogId = logId }, TestContext.Current.CancellationToken);
 

@@ -4,6 +4,8 @@ using FastEndpoints.Testing;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.TrainingPlans.UpdateTrainingPlan;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Tests.Endpoints;
@@ -37,12 +39,22 @@ public class UpdateTrainingPlanEndpointTests
         return today.AddDays(-daysBack);
     }
 
+    private static ISessionLockService StubLockService()
+    {
+        var svc = Substitute.For<ISessionLockService>();
+        svc.GetStateAsync(Arg.Any<IEnumerable<Guid>>(), Arg.Any<CancellationToken>())
+            .Returns(Array.Empty<SessionLock>());
+        svc.ReleaseAsync(Arg.Any<Guid>(), Arg.Any<LockHolder>(), Arg.Any<LockType>(),
+            Arg.Any<CancellationToken>()).Returns(false);
+        return svc;
+    }
+
     private UpdateTrainingPlanEndpoint CreateEndpoint(IMongoContext mongo) =>
         Factory.Create<UpdateTrainingPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo);
+            mongo, StubLockService(), Substitute.For<IRealtimeNotifier>());
 
     [Fact]
     public async Task HandleAsync_ValidUpdate_Returns200()
@@ -56,7 +68,7 @@ public class UpdateTrainingPlanEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo);
+            mongo, StubLockService(), Substitute.For<IRealtimeNotifier>());
 
         var request = new UpdateTrainingPlanRequest
         {
@@ -87,7 +99,7 @@ public class UpdateTrainingPlanEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo);
+            mongo, StubLockService(), Substitute.For<IRealtimeNotifier>());
 
         var request = new UpdateTrainingPlanRequest
         {

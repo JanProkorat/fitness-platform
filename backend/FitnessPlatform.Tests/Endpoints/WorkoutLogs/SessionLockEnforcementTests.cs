@@ -86,7 +86,7 @@ public class SessionLockEnforcementTests
         return Factory.Create<StartWorkoutEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, lockService, DefaultLockOptions());
+            mongo, lockService, DefaultLockOptions(), Substitute.For<IRealtimeNotifier>());
     }
 
     // ── StartWorkout tests ────────────────────────────────────────────────────
@@ -209,7 +209,7 @@ public class SessionLockEnforcementTests
         return Factory.Create<CompleteWorkoutEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, completionService, lockService);
+            mongo, completionService, lockService, Substitute.For<IRealtimeNotifier>());
     }
 
     [Fact]

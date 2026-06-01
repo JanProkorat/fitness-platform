@@ -18,14 +18,17 @@ namespace FitnessPlatform.Application.Features.WorkoutLogs.StartWorkout;
 /// acquires a <c>Live</c> lock on the session before creating the log.
 /// Returns 409 <c>session_locked</c> when the session is in <c>Editing</c> state.
 /// Ad-hoc workouts (null PlanId or null SessionId) skip the lock entirely.
+/// Emits <c>sessioneditlockchanged</c> (state=Live) to both client and trainer on successful acquire.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="lockService">Session lock service.</param>
 /// <param name="lockOptions">Training lock TTL configuration.</param>
+/// <param name="notifier">Realtime notifier for SignalR fan-out.</param>
 public class StartWorkoutEndpoint(
     IMongoContext mongo,
     ISessionLockService lockService,
-    IOptions<TrainingLockOptions> lockOptions) : Endpoint<StartWorkoutRequest, StartWorkoutResponse>
+    IOptions<TrainingLockOptions> lockOptions,
+    IRealtimeNotifier notifier) : Endpoint<StartWorkoutRequest, StartWorkoutResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -90,9 +93,25 @@ public class StartWorkoutEndpoint(
 
             if (acquireResult is AcquireResult.LockConflict)
             {
+                // 409 conflict path — emit nothing; no state transition occurred.
                 await this.SendProblemAsync(409, ErrorCodes.SessionLocked,
                     "This session is locked and cannot be started right now.", ct);
                 return;
+            }
+
+            // Emit sessioneditlockchanged (state=Live) to both parties on successful acquire.
+            // Broadcast after the lock is held but before the log is persisted so clients
+            // see the state update as soon as the lock is confirmed.
+            if (acquireResult is AcquireResult.Acquired)
+            {
+                var payload = new SessionLockChangedPayload(
+                    req.PlanId!.Value,
+                    req.SessionId!.Value,
+                    "Live",
+                    "Client");
+
+                await notifier.NotifyAsync(clientId, "sessioneditlockchanged", payload, ct);
+                await notifier.NotifyAsync(plan.TrainerId, "sessioneditlockchanged", payload, ct);
             }
         }
 
