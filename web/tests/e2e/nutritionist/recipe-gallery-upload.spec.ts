@@ -14,9 +14,10 @@
  *   6. Assert the newly uploaded gallery thumbnail renders inside the dialog.
  *
  * Recipe ownership: QaRecipe1ExternalId ("Chicken + Rice + Broccoli bowl") is
- * seeded with AuthorId = NutriProfilePublicId (cccccccc-...), so the logged-in
- * nutritionist (qa.nutri@fitnessplatform.test) passes the isOwner check in
- * RecipeImageSection.
+ * seeded with NutritionistId = NutriUserId (33333333-...). UploadRecipeImageUrlEndpoint
+ * compares recipe.NutritionistId against AppClaims.UserId (the ApplicationUser.Id,
+ * what CreateRecipeEndpoint writes) — NOT the profile PublicId — so the logged-in
+ * nutritionist (qa.nutri@fitnessplatform.test) passes the ownership check.
  *
  * WHY ONE CONSOLIDATED TEST:
  * storageState restores a refresh token from disk. Multiple test() blocks would
