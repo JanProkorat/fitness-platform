@@ -104,7 +104,7 @@ public static class QaSeedRunner
 
     // Stable SectionId + exercise for the Tabata section (Order=3, #327 iOS QA fixture).
     public static readonly Guid TabataSectionId    = new("00000000-0000-0000-aaaa-000000000002");
-    public static readonly Guid TabataExercise1Id  = new("00000000-0000-0000-eeee-100000000001");
+    public static readonly Guid TabataExercise1Id  = new("00000000-0000-0000-eeee-000000000006");
 
     // Foods — owned by Nutri (NutritionistId = NutriProfilePublicId).
     public static readonly Guid QaFood1ExternalId = new("00000000-0000-0000-eeee-000000000001"); // Chicken Breast 100g
