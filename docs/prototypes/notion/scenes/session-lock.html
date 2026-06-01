@@ -1,0 +1,504 @@
+<div id="s-session-lock" class="screen">
+<div class="shell">
+<div class="sb" id="sb-training"></div>
+<div class="main" style="display:flex;flex-direction:column;overflow:hidden;padding:0">
+
+  <!-- ── Topbar: same as training-session-builder ── -->
+  <div style="height:44px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:8px;padding:0 16px;background:var(--bg);flex-shrink:0">
+    <div style="display:flex;align-items:center;gap:8px;min-width:0">
+      <span style="font-size:15px">🏋️</span>
+      <div style="min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--t);line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Silový A/B – Petra Horáková</div>
+        <div style="font-size:11px;color:var(--t3);display:flex;align-items:center;gap:4px">
+          <a style="cursor:pointer;color:var(--t3)" onclick="showScreen('s-dashboard')">Dashboard</a>
+          <span style="color:var(--t4)">/</span>
+          <a style="cursor:pointer;color:var(--t3)" onclick="showScreen('s-client')">Petra Horáková</a>
+          <span style="color:var(--t4)">/</span>
+          <span style="color:var(--t2)">Tréninkový plán</span>
+        </div>
+      </div>
+    </div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:6px">
+      <button class="btn" onclick="showToast('Změny zahozeny')">Zahodit</button>
+      <button class="btn" onclick="showToast('Uloženo')">Uložit</button>
+      <button class="btn" style="color:var(--acc);border-color:var(--acc-br)" onclick="showToast('Plán dokončen')">✓ Dokončit plán</button>
+      <button class="btn primary" onclick="showToast('Týden publikován')">Publikovat</button>
+    </div>
+  </div>
+
+  <!-- ── Plan / Fotky tab bar ── -->
+  <div style="height:38px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:6px;padding:0 12px;background:var(--bg);flex-shrink:0">
+    <div class="tb-view active" style="font-size:12px;padding:4px 12px">Tréninkový plán</div>
+    <div class="tb-view" style="font-size:12px;padding:4px 12px" onclick="showToast('Fotky')">Fotky</div>
+    <div style="flex:1"></div>
+    <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--t3)">
+      <span>Začátek:</span>
+      <input type="date" value="2026-05-04" style="padding:3px 7px;border:1px solid var(--br);border-radius:var(--rm);font-size:12px;color:var(--t);background:var(--bg2);outline:none">
+    </div>
+    <button class="btn" style="font-size:12px;padding:4px 10px;margin-left:4px" onclick="showToast('Týden přidán')">+ Přidat týden</button>
+  </div>
+
+  <!-- ── Week tabs (Týden 1 ✓ = published) ── -->
+  <div style="height:34px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:4px;padding:0 12px;background:var(--bg);flex-shrink:0;overflow-x:auto">
+    <div style="font-size:12px;font-weight:600;padding:4px 12px;border-radius:99px;background:var(--acc-bg);color:var(--acc);border:1px solid var(--acc-br);cursor:pointer;white-space:nowrap">
+      Týden 1 ✓
+    </div>
+    <div style="font-size:12px;padding:4px 12px;border-radius:99px;border:1px solid var(--br);color:var(--t2);cursor:pointer;white-space:nowrap" onclick="showToast('Týden 2')">Týden 2</div>
+    <div style="font-size:12px;padding:4px 12px;border-radius:99px;border:1px solid var(--br);color:var(--t2);cursor:pointer;white-space:nowrap" onclick="showToast('Týden 3')">Týden 3</div>
+  </div>
+
+  <!-- ── Day tabs row (Po active) ── -->
+  <div style="display:flex;align-items:stretch;border-bottom:1px solid var(--br);background:var(--bg);flex-shrink:0">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 4px;cursor:pointer;border-bottom:2px solid var(--acc);background:var(--bg)">
+      <div style="font-size:13px;font-weight:700;color:var(--t)">Po</div>
+      <div style="font-size:10px;color:var(--t3);margin-top:1px">1tr · 7cv</div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 4px;cursor:pointer;border-bottom:2px solid transparent" onclick="showToast('Út')">
+      <div style="font-size:13px;font-weight:500;color:var(--t2)">Út</div>
+      <div style="font-size:10px;color:var(--t3);margin-top:1px">1tr · 4cv</div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 4px;cursor:pointer;border-bottom:2px solid transparent" onclick="showToast('St')">
+      <div style="font-size:13px;font-weight:500;color:var(--t2)">St</div>
+      <div style="font-size:10px;color:var(--t4);margin-top:1px">volno</div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 4px;cursor:pointer;border-bottom:2px solid transparent" onclick="showToast('Čt')">
+      <div style="font-size:13px;font-weight:500;color:var(--t2)">Čt</div>
+      <div style="font-size:10px;color:var(--t3);margin-top:1px">1tr · 5cv</div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 4px;cursor:pointer;border-bottom:2px solid transparent" onclick="showToast('Pá')">
+      <div style="font-size:13px;font-weight:500;color:var(--t2)">Pá</div>
+      <div style="font-size:10px;color:var(--t3);margin-top:1px">1tr · 5cv</div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 4px;cursor:pointer;border-bottom:2px solid transparent" onclick="showToast('So')">
+      <div style="font-size:13px;font-weight:500;color:var(--t2)">So</div>
+      <div style="font-size:10px;color:var(--t4);margin-top:1px">volno</div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 4px;cursor:pointer;border-bottom:2px solid transparent" onclick="showToast('Ne')">
+      <div style="font-size:13px;font-weight:500;color:var(--t2)">Ne</div>
+      <div style="font-size:10px;color:var(--t4);margin-top:1px">volno</div>
+    </div>
+    <button type="button" onclick="showToast('Přehled týdne')" style="flex-shrink:0;padding:0 10px;border:none;background:none;cursor:pointer;color:var(--t3);font-family:inherit;font-size:14px;align-self:stretch;border-bottom:2px solid transparent">⊞</button>
+  </div>
+
+  <!-- ── Body: main column + right sidebar ── -->
+  <div style="display:grid;grid-template-columns:1fr 256px;flex:1;overflow:hidden;min-height:0">
+
+    <!-- ──────────────────── MAIN COLUMN ──────────────────── -->
+    <div style="overflow-y:auto;padding:16px 20px;border-right:1px solid var(--br)">
+
+      <!-- ── Gated-save warning callout ── -->
+      <div class="callout callout-warn" style="margin-bottom:20px">
+        <div class="callout-icon">⚠️</div>
+        <div class="callout-body">
+          <div class="callout-title">Tuto sekci nelze uložit</div>
+          <div class="callout-text">Tuto sekci nelze uložit — není odemčená k úpravě. Nejdřív klikni na <strong>Odemknout k úpravě</strong>.</div>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════════════════════
+           STATE DIVIDER A — LOCKED (published, stable)
+      ════════════════════════════════════════════════════════ -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <div style="height:1px;flex:1;background:var(--br)"></div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--t3);white-space:nowrap;padding:0 4px">Stav A — Publikováno · uzamčeno</div>
+        <div style="height:1px;flex:1;background:var(--br)"></div>
+      </div>
+
+      <!-- ── Session card — LOCKED (published, stable) ── -->
+      <div style="background:var(--bg2);border:1px solid var(--br);border-radius:12px;padding:0;overflow:hidden;margin-bottom:28px">
+
+        <!-- Session header -->
+        <div style="padding:14px 16px 10px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:10px">
+          <!-- drag handle: inert / dimmed -->
+          <span style="color:var(--t4);font-size:14px;flex-shrink:0;opacity:.35;cursor:not-allowed">⋮⋮</span>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
+              <div style="font-size:15px;font-weight:600;color:var(--t)">Push A</div>
+              <span style="font-size:12px;color:var(--t3)">🔒</span>
+              <!-- published badge -->
+              <span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:99px;background:var(--green-bg);color:var(--green);border:1px solid var(--green-br)">✓ Publikováno — uzamčeno</span>
+            </div>
+            <div style="font-size:12px;color:var(--t3);margin-top:2px">7 cviků · ~55 min</div>
+          </div>
+          <!-- Odemknout k úpravě -->
+          <button class="btn" style="font-size:12px;flex-shrink:0" onclick="showToast('Sekce odemčena k úpravě')">🔓 Odemknout k úpravě</button>
+          <span style="color:var(--t3);cursor:pointer;font-size:16px;padding:0 4px" onclick="showToast('Menu')">⋮</span>
+        </div>
+
+        <!-- SECTION 1: Rozcvička · Strength (LOCKED) -->
+        <div style="margin:12px 12px 0;border:1px solid rgba(0,122,255,.2);border-left:3px solid #007aff;border-radius:8px;background:var(--bg);overflow:hidden;opacity:.8">
+          <!-- Section header row -->
+          <div style="padding:10px 12px 8px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:8px">
+            <!-- drag handle inert -->
+            <span style="color:var(--t4);font-size:12px;flex-shrink:0;opacity:.35;cursor:not-allowed">⋮⋮</span>
+            <!-- read-only name -->
+            <input type="text" value="Rozcvička" disabled style="flex:1;border:none;outline:none;background:transparent;font-size:13px;font-weight:600;color:var(--t);min-width:0;opacity:.7;cursor:not-allowed">
+            <span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:99px;background:rgba(0,122,255,.1);color:#007aff;border:1px solid rgba(0,122,255,.2);white-space:nowrap;flex-shrink:0">Strength</span>
+            <!-- Uložit jako šablonu stays enabled -->
+            <button class="btn" style="font-size:11px;padding:2px 8px;flex-shrink:0;color:var(--t3)" onclick="showToast('Uloženo jako šablona')">Uložit jako šablonu</button>
+            <!-- section menu dimmed -->
+            <span style="color:var(--t4);font-size:14px;padding:0 2px;flex-shrink:0;opacity:.35;cursor:not-allowed">⋮</span>
+          </div>
+          <!-- Description row locked -->
+          <div style="padding:6px 12px 8px;border-bottom:1px solid var(--br)">
+            <input type="text" value="Aktivace ramen + zápěstí, 5 min" disabled style="width:100%;border:none;outline:none;background:transparent;font-size:12px;font-style:italic;color:var(--t2);opacity:.6;cursor:not-allowed">
+          </div>
+          <!-- Exercise row (locked) -->
+          <div style="border-bottom:1px solid var(--br)">
+            <div style="padding:8px 12px;display:flex;align-items:center;gap:8px">
+              <span style="color:var(--t4);font-size:12px;flex-shrink:0;opacity:.35;cursor:not-allowed">⋮⋮</span>
+              <div style="width:4px;height:26px;border-radius:2px;background:#007aff;flex-shrink:0;margin-right:2px"></div>
+              <span style="font-size:13px;color:var(--t3);flex-shrink:0;opacity:.5">▶</span>
+              <span style="font-size:13px;font-weight:600;color:var(--t);flex:1;min-width:0">Kruhy ramen</span>
+              <span style="font-size:11px;font-weight:500;padding:2px 7px;border-radius:99px;background:var(--bg2);border:1px solid var(--br);color:var(--t3);flex-shrink:0">Ramena</span>
+              <span style="font-size:12px;color:var(--t2);flex-shrink:0">1 × 30 s</span>
+              <!-- duplicate icon dimmed -->
+              <span style="color:var(--t4);font-size:13px;flex-shrink:0;opacity:.35;cursor:not-allowed">⧉</span>
+            </div>
+          </div>
+          <div style="border-bottom:1px solid var(--br)">
+            <div style="padding:8px 12px;display:flex;align-items:center;gap:8px">
+              <span style="color:var(--t4);font-size:12px;flex-shrink:0;opacity:.35;cursor:not-allowed">⋮⋮</span>
+              <div style="width:4px;height:26px;border-radius:2px;background:#007aff;flex-shrink:0;margin-right:2px"></div>
+              <span style="font-size:13px;color:var(--t3);flex-shrink:0;opacity:.5">▶</span>
+              <span style="font-size:13px;font-weight:600;color:var(--t);flex:1;min-width:0">Mobility zápěstí</span>
+              <span style="font-size:11px;font-weight:500;padding:2px 7px;border-radius:99px;background:var(--bg2);border:1px solid var(--br);color:var(--t3);flex-shrink:0">Zápěstí</span>
+              <span style="font-size:12px;color:var(--t2);flex-shrink:0">1 × 30 s</span>
+              <span style="color:var(--t4);font-size:13px;flex-shrink:0;opacity:.35;cursor:not-allowed">⧉</span>
+            </div>
+          </div>
+          <!-- + Přidat cvik dimmed -->
+          <div style="padding:8px 12px">
+            <button class="btn" disabled style="font-size:12px;color:var(--t3);opacity:.4;cursor:not-allowed" onclick="showToast('Sekci nejdřív odemkni')">+ Přidat cvik</button>
+          </div>
+        </div>
+        <!-- /Section 1 -->
+
+        <!-- SECTION 2: Hlavní WOD · AMRAP (LOCKED) -->
+        <div style="margin:10px 12px 0;border:1px solid rgba(201,168,76,.3);border-left:3px solid var(--acc);border-radius:8px;background:var(--bg);overflow:hidden;opacity:.8">
+          <div style="padding:10px 12px 8px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:8px">
+            <span style="color:var(--t4);font-size:12px;flex-shrink:0;opacity:.35;cursor:not-allowed">⋮⋮</span>
+            <input type="text" value="Hlavní WOD" disabled style="flex:1;border:none;outline:none;background:transparent;font-size:13px;font-weight:600;color:var(--t);min-width:0;opacity:.7;cursor:not-allowed">
+            <span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:99px;background:var(--acc-bg);color:var(--acc);border:1px solid var(--acc-br);white-space:nowrap;flex-shrink:0">AMRAP</span>
+            <button class="btn" style="font-size:11px;padding:2px 8px;flex-shrink:0;color:var(--t3)" onclick="showToast('Uloženo jako šablona')">Uložit jako šablonu</button>
+            <span style="color:var(--t4);font-size:14px;padding:0 2px;flex-shrink:0;opacity:.35;cursor:not-allowed">⋮</span>
+          </div>
+          <div style="padding:6px 12px 8px;border-bottom:1px solid var(--br)">
+            <input type="text" value="Cardio + síla. Drž tempo, neztrácej formu." disabled style="width:100%;border:none;outline:none;background:transparent;font-size:12px;font-style:italic;color:var(--t2);opacity:.6;cursor:not-allowed">
+          </div>
+          <!-- Format config row locked -->
+          <div style="padding:8px 12px;border-bottom:1px solid var(--br);display:flex;gap:16px;align-items:center;background:var(--bga);opacity:.6">
+            <div style="display:flex;align-items:center;gap:6px">
+              <label style="font-size:11px;color:var(--t3);font-weight:500;white-space:nowrap">Časový limit</label>
+              <input type="number" value="12" disabled style="width:52px;padding:3px 7px;border:1px solid var(--br);border-radius:var(--rm);font-size:13px;font-weight:600;color:var(--t);background:var(--bg);cursor:not-allowed">
+              <span style="font-size:11px;color:var(--t3)">min</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <label style="font-size:11px;color:var(--t3);font-weight:500;white-space:nowrap">Počet kol (0=neom.)</label>
+              <input type="number" value="0" disabled style="width:52px;padding:3px 7px;border:1px solid var(--br);border-radius:var(--rm);font-size:13px;font-weight:600;color:var(--t);background:var(--bg);cursor:not-allowed">
+            </div>
+          </div>
+          <!-- Exercises locked -->
+          <div style="border-bottom:1px solid var(--br)">
+            <div style="padding:8px 12px;display:flex;align-items:center;gap:8px">
+              <span style="color:var(--t4);font-size:12px;flex-shrink:0;opacity:.35;cursor:not-allowed">⋮⋮</span>
+              <div style="width:4px;height:26px;border-radius:2px;background:var(--acc);flex-shrink:0;margin-right:2px"></div>
+              <span style="font-size:13px;color:var(--t3);flex-shrink:0;opacity:.5">▶</span>
+              <span style="font-size:13px;font-weight:600;color:var(--t);flex:1;min-width:0">Pull-ups</span>
+              <span style="font-size:11px;font-weight:500;padding:2px 7px;border-radius:99px;background:var(--bg2);border:1px solid var(--br);color:var(--t3);flex-shrink:0">Záda</span>
+              <span style="font-size:12px;color:var(--t2);flex-shrink:0">1 × 5 opak.</span>
+              <span style="color:var(--t4);font-size:13px;flex-shrink:0;opacity:.35;cursor:not-allowed">⧉</span>
+            </div>
+          </div>
+          <div style="border-bottom:1px solid var(--br)">
+            <div style="padding:8px 12px;display:flex;align-items:center;gap:8px">
+              <span style="color:var(--t4);font-size:12px;flex-shrink:0;opacity:.35;cursor:not-allowed">⋮⋮</span>
+              <div style="width:4px;height:26px;border-radius:2px;background:var(--acc);flex-shrink:0;margin-right:2px"></div>
+              <span style="font-size:13px;color:var(--t3);flex-shrink:0;opacity:.5">▶</span>
+              <span style="font-size:13px;font-weight:600;color:var(--t);flex:1;min-width:0">Push-ups</span>
+              <span style="font-size:11px;font-weight:500;padding:2px 7px;border-radius:99px;background:var(--bg2);border:1px solid var(--br);color:var(--t3);flex-shrink:0">Hrudník</span>
+              <span style="font-size:12px;color:var(--t2);flex-shrink:0">1 × 10 opak.</span>
+              <span style="color:var(--t4);font-size:13px;flex-shrink:0;opacity:.35;cursor:not-allowed">⧉</span>
+            </div>
+          </div>
+          <div style="border-bottom:1px solid var(--br)">
+            <div style="padding:8px 12px;display:flex;align-items:center;gap:8px">
+              <span style="color:var(--t4);font-size:12px;flex-shrink:0;opacity:.35;cursor:not-allowed">⋮⋮</span>
+              <div style="width:4px;height:26px;border-radius:2px;background:var(--acc);flex-shrink:0;margin-right:2px"></div>
+              <span style="font-size:13px;color:var(--t3);flex-shrink:0;opacity:.5">▶</span>
+              <span style="font-size:13px;font-weight:600;color:var(--t);flex:1;min-width:0">Sit-ups</span>
+              <span style="font-size:11px;font-weight:500;padding:2px 7px;border-radius:99px;background:var(--bg2);border:1px solid var(--br);color:var(--t3);flex-shrink:0">Břicho</span>
+              <span style="font-size:12px;color:var(--t2);flex-shrink:0">1 × 15 opak.</span>
+              <span style="color:var(--t4);font-size:13px;flex-shrink:0;opacity:.35;cursor:not-allowed">⧉</span>
+            </div>
+          </div>
+          <div style="padding:8px 12px">
+            <button class="btn" disabled style="font-size:12px;color:var(--t3);opacity:.4;cursor:not-allowed">+ Přidat cvik</button>
+          </div>
+        </div>
+        <!-- /Section 2 -->
+
+        <!-- SECTION 3: Strečink + chůze · Conditioning (LOCKED) -->
+        <div style="margin:10px 12px 12px;border:1px solid rgba(52,199,89,.2);border-left:3px solid #34c759;border-radius:8px;background:var(--bg);overflow:hidden;opacity:.8">
+          <div style="padding:10px 12px 8px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:8px">
+            <span style="color:var(--t4);font-size:12px;flex-shrink:0;opacity:.35;cursor:not-allowed">⋮⋮</span>
+            <input type="text" value="Strečink + chůze" disabled style="flex:1;border:none;outline:none;background:transparent;font-size:13px;font-weight:600;color:var(--t);min-width:0;opacity:.7;cursor:not-allowed">
+            <span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:99px;background:rgba(52,199,89,.1);color:#34c759;border:1px solid rgba(52,199,89,.2);white-space:nowrap;flex-shrink:0">Conditioning</span>
+            <button class="btn" style="font-size:11px;padding:2px 8px;flex-shrink:0;color:var(--t3)" onclick="showToast('Uloženo jako šablona')">Uložit jako šablonu</button>
+            <span style="color:var(--t4);font-size:14px;padding:0 2px;flex-shrink:0;opacity:.35;cursor:not-allowed">⋮</span>
+          </div>
+          <div style="padding:6px 12px 8px;border-bottom:1px solid var(--br)">
+            <input type="text" value="Klidná dechová obnova" disabled style="width:100%;border:none;outline:none;background:transparent;font-size:12px;font-style:italic;color:var(--t2);opacity:.6;cursor:not-allowed">
+          </div>
+          <div style="border-bottom:1px solid var(--br)">
+            <div style="padding:8px 12px;display:flex;align-items:center;gap:8px">
+              <span style="color:var(--t4);font-size:12px;flex-shrink:0;opacity:.35;cursor:not-allowed">⋮⋮</span>
+              <div style="width:4px;height:26px;border-radius:2px;background:#34c759;flex-shrink:0;margin-right:2px"></div>
+              <span style="font-size:13px;color:var(--t3);flex-shrink:0;opacity:.5">▶</span>
+              <span style="font-size:13px;font-weight:600;color:var(--t);flex:1;min-width:0">Chůze</span>
+              <span style="font-size:11px;font-weight:500;padding:2px 7px;border-radius:99px;background:var(--bg2);border:1px solid var(--br);color:var(--t3);flex-shrink:0">Kardio</span>
+              <span style="font-size:12px;color:var(--t2);flex-shrink:0">1 × 5:00</span>
+              <span style="color:var(--t4);font-size:13px;flex-shrink:0;opacity:.35;cursor:not-allowed">⧉</span>
+            </div>
+          </div>
+          <div style="border-bottom:1px solid var(--br)">
+            <div style="padding:8px 12px;display:flex;align-items:center;gap:8px">
+              <span style="color:var(--t4);font-size:12px;flex-shrink:0;opacity:.35;cursor:not-allowed">⋮⋮</span>
+              <div style="width:4px;height:26px;border-radius:2px;background:#34c759;flex-shrink:0;margin-right:2px"></div>
+              <span style="font-size:13px;color:var(--t3);flex-shrink:0;opacity:.5">▶</span>
+              <span style="font-size:13px;font-weight:600;color:var(--t);flex:1;min-width:0">Strečink hrudníku</span>
+              <span style="font-size:11px;font-weight:500;padding:2px 7px;border-radius:99px;background:var(--bg2);border:1px solid var(--br);color:var(--t3);flex-shrink:0">Hrudník</span>
+              <span style="font-size:12px;color:var(--t2);flex-shrink:0">1 × 60 s</span>
+              <span style="color:var(--t4);font-size:13px;flex-shrink:0;opacity:.35;cursor:not-allowed">⧉</span>
+            </div>
+          </div>
+          <div style="padding:8px 12px">
+            <button class="btn" disabled style="font-size:12px;color:var(--t3);opacity:.4;cursor:not-allowed">+ Přidat cvik</button>
+          </div>
+        </div>
+        <!-- /Section 3 -->
+
+        <!-- ── Add session / section buttons — LOCKED ── -->
+        <div style="padding:0 12px 14px">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+            <button class="btn primary" disabled style="font-size:12px;padding:5px 12px;opacity:.4;cursor:not-allowed">+ Přidat sekci ze šablony</button>
+            <button class="btn" disabled style="font-size:12px;padding:5px 12px;opacity:.4;cursor:not-allowed">+ Vytvořit novou sekci</button>
+          </div>
+        </div>
+
+      </div>
+      <!-- /Session card LOCKED -->
+
+      <!-- ════════════════════════════════════════════════════════
+           STATE DIVIDER B — LIVE (client is training right now)
+      ════════════════════════════════════════════════════════ -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <div style="height:1px;flex:1;background:var(--br)"></div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--t3);white-space:nowrap;padding:0 4px">Stav B — Živý trénink · silnější zámek</div>
+        <div style="height:1px;flex:1;background:var(--br)"></div>
+      </div>
+
+      <!-- ── Session card — LIVE (client training now) ── -->
+      <div style="background:var(--bg2);border:1.5px solid var(--red-br);border-radius:12px;padding:0;overflow:hidden;margin-bottom:28px">
+
+        <!-- Session header (red tint) -->
+        <div style="padding:14px 16px 10px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:10px;background:var(--red-bg)">
+          <span style="color:var(--t4);font-size:14px;flex-shrink:0;opacity:.25;cursor:not-allowed">⋮⋮</span>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
+              <div style="font-size:15px;font-weight:600;color:var(--t)">Push A</div>
+              <!-- LIVE badge -->
+              <span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:99px;background:var(--red-bg);color:var(--red);border:1px solid var(--red-br);display:flex;align-items:center;gap:4px;white-space:nowrap">
+                <span style="width:6px;height:6px;border-radius:50%;background:var(--red);display:inline-block;flex-shrink:0"></span>
+                Probíhá živý trénink
+              </span>
+            </div>
+            <div style="font-size:12px;color:var(--t3);margin-top:2px">7 cviků · ~55 min · Klient trénuje od 09:14</div>
+          </div>
+          <!-- Odemknout DISABLED -->
+          <button class="btn" disabled style="font-size:12px;flex-shrink:0;opacity:.4;cursor:not-allowed" title="Klient právě trénuje">🔒 Odemknout k úpravě</button>
+          <span style="color:var(--t4);font-size:16px;padding:0 4px;opacity:.3;cursor:not-allowed">⋮</span>
+        </div>
+
+        <!-- Live-lock helper text -->
+        <div style="padding:10px 16px;background:var(--red-bg);border-bottom:1px solid var(--red-br);display:flex;align-items:center;gap:8px">
+          <span style="font-size:14px;flex-shrink:0">ℹ️</span>
+          <span style="font-size:12px;color:var(--red);line-height:1.45">Klient právě trénuje — uzamčeno pro úpravy. Úpravy budou dostupné po dokončení tréninku.</span>
+        </div>
+
+        <!-- SECTION 1: Rozcvička · Strength (LIVE LOCKED — stronger opacity) -->
+        <div style="margin:12px 12px 0;border:1px solid rgba(0,122,255,.2);border-left:3px solid #007aff;border-radius:8px;background:var(--bg);overflow:hidden;opacity:.55">
+          <div style="padding:10px 12px 8px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:8px">
+            <span style="color:var(--t4);font-size:12px;flex-shrink:0;cursor:not-allowed">⋮⋮</span>
+            <input type="text" value="Rozcvička" disabled style="flex:1;border:none;outline:none;background:transparent;font-size:13px;font-weight:600;color:var(--t);min-width:0;cursor:not-allowed">
+            <span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:99px;background:rgba(0,122,255,.1);color:#007aff;border:1px solid rgba(0,122,255,.2);white-space:nowrap;flex-shrink:0">Strength</span>
+            <span style="font-size:11px;color:var(--red);font-weight:500;flex-shrink:0">Uzamčeno</span>
+            <span style="color:var(--t4);font-size:14px;padding:0 2px;flex-shrink:0;cursor:not-allowed">⋮</span>
+          </div>
+          <div style="padding:8px 12px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:8px">
+            <span style="color:var(--t4);font-size:12px;flex-shrink:0;cursor:not-allowed">⋮⋮</span>
+            <div style="width:4px;height:26px;border-radius:2px;background:#007aff;flex-shrink:0;margin-right:2px"></div>
+            <span style="font-size:13px;font-weight:600;color:var(--t);flex:1;min-width:0">Kruhy ramen</span>
+            <span style="font-size:12px;color:var(--t2);flex-shrink:0">1 × 30 s</span>
+          </div>
+          <div style="padding:8px 12px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:8px">
+            <span style="color:var(--t4);font-size:12px;flex-shrink:0;cursor:not-allowed">⋮⋮</span>
+            <div style="width:4px;height:26px;border-radius:2px;background:#007aff;flex-shrink:0;margin-right:2px"></div>
+            <span style="font-size:13px;font-weight:600;color:var(--t);flex:1;min-width:0">Mobility zápěstí</span>
+            <span style="font-size:12px;color:var(--t2);flex-shrink:0">1 × 30 s</span>
+          </div>
+        </div>
+        <!-- /Section 1 live -->
+
+        <!-- SECTION 2: Hlavní WOD · AMRAP (LIVE LOCKED) -->
+        <div style="margin:10px 12px 0;border:1px solid rgba(201,168,76,.3);border-left:3px solid var(--acc);border-radius:8px;background:var(--bg);overflow:hidden;opacity:.55">
+          <div style="padding:10px 12px 8px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:8px">
+            <span style="color:var(--t4);font-size:12px;flex-shrink:0;cursor:not-allowed">⋮⋮</span>
+            <input type="text" value="Hlavní WOD" disabled style="flex:1;border:none;outline:none;background:transparent;font-size:13px;font-weight:600;color:var(--t);min-width:0;cursor:not-allowed">
+            <span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:99px;background:var(--acc-bg);color:var(--acc);border:1px solid var(--acc-br);white-space:nowrap;flex-shrink:0">AMRAP</span>
+            <span style="font-size:11px;color:var(--red);font-weight:500;flex-shrink:0">Uzamčeno</span>
+            <span style="color:var(--t4);font-size:14px;padding:0 2px;flex-shrink:0;cursor:not-allowed">⋮</span>
+          </div>
+          <div style="padding:8px 12px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:8px">
+            <span style="color:var(--t4);font-size:12px;flex-shrink:0;cursor:not-allowed">⋮⋮</span>
+            <div style="width:4px;height:26px;border-radius:2px;background:var(--acc);flex-shrink:0;margin-right:2px"></div>
+            <span style="font-size:13px;font-weight:600;color:var(--t);flex:1;min-width:0">Pull-ups</span>
+            <span style="font-size:12px;color:var(--t2);flex-shrink:0">1 × 5 opak.</span>
+          </div>
+          <div style="padding:8px 12px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:8px">
+            <span style="color:var(--t4);font-size:12px;flex-shrink:0;cursor:not-allowed">⋮⋮</span>
+            <div style="width:4px;height:26px;border-radius:2px;background:var(--acc);flex-shrink:0;margin-right:2px"></div>
+            <span style="font-size:13px;font-weight:600;color:var(--t);flex:1;min-width:0">Push-ups</span>
+            <span style="font-size:12px;color:var(--t2);flex-shrink:0">1 × 10 opak.</span>
+          </div>
+          <div style="padding:8px 12px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:8px">
+            <span style="color:var(--t4);font-size:12px;flex-shrink:0;cursor:not-allowed">⋮⋮</span>
+            <div style="width:4px;height:26px;border-radius:2px;background:var(--acc);flex-shrink:0;margin-right:2px"></div>
+            <span style="font-size:13px;font-weight:600;color:var(--t);flex:1;min-width:0">Sit-ups</span>
+            <span style="font-size:12px;color:var(--t2);flex-shrink:0">1 × 15 opak.</span>
+          </div>
+        </div>
+        <!-- /Section 2 live -->
+
+        <!-- SECTION 3: Strečink + chůze · Conditioning (LIVE LOCKED) -->
+        <div style="margin:10px 12px 12px;border:1px solid rgba(52,199,89,.2);border-left:3px solid #34c759;border-radius:8px;background:var(--bg);overflow:hidden;opacity:.55">
+          <div style="padding:10px 12px 8px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:8px">
+            <span style="color:var(--t4);font-size:12px;flex-shrink:0;cursor:not-allowed">⋮⋮</span>
+            <input type="text" value="Strečink + chůze" disabled style="flex:1;border:none;outline:none;background:transparent;font-size:13px;font-weight:600;color:var(--t);min-width:0;cursor:not-allowed">
+            <span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:99px;background:rgba(52,199,89,.1);color:#34c759;border:1px solid rgba(52,199,89,.2);white-space:nowrap;flex-shrink:0">Conditioning</span>
+            <span style="font-size:11px;color:var(--red);font-weight:500;flex-shrink:0">Uzamčeno</span>
+            <span style="color:var(--t4);font-size:14px;padding:0 2px;flex-shrink:0;cursor:not-allowed">⋮</span>
+          </div>
+          <div style="padding:8px 12px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:8px">
+            <span style="color:var(--t4);font-size:12px;flex-shrink:0;cursor:not-allowed">⋮⋮</span>
+            <div style="width:4px;height:26px;border-radius:2px;background:#34c759;flex-shrink:0;margin-right:2px"></div>
+            <span style="font-size:13px;font-weight:600;color:var(--t);flex:1;min-width:0">Chůze</span>
+            <span style="font-size:12px;color:var(--t2);flex-shrink:0">1 × 5:00</span>
+          </div>
+          <div style="padding:8px 12px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:8px">
+            <span style="color:var(--t4);font-size:12px;flex-shrink:0;cursor:not-allowed">⋮⋮</span>
+            <div style="width:4px;height:26px;border-radius:2px;background:#34c759;flex-shrink:0;margin-right:2px"></div>
+            <span style="font-size:13px;font-weight:600;color:var(--t);flex:1;min-width:0">Strečink hrudníku</span>
+            <span style="font-size:12px;color:var(--t2);flex-shrink:0">1 × 60 s</span>
+          </div>
+        </div>
+        <!-- /Section 3 live -->
+
+        <!-- Add session/section buttons — fully locked -->
+        <div style="padding:0 12px 14px">
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn primary" disabled style="font-size:12px;padding:5px 12px;opacity:.25;cursor:not-allowed">+ Přidat sekci ze šablony</button>
+            <button class="btn" disabled style="font-size:12px;padding:5px 12px;opacity:.25;cursor:not-allowed">+ Vytvořit novou sekci</button>
+          </div>
+        </div>
+
+      </div>
+      <!-- /Session card LIVE -->
+
+    </div>
+    <!-- /MAIN COLUMN -->
+
+    <!-- ──────────────────── RIGHT SIDEBAR (256px) ──────────────────── -->
+    <div style="background:var(--bg2);display:flex;flex-direction:column;overflow-y:auto">
+
+      <!-- Volume stats card -->
+      <div style="padding:14px 14px 10px;border-bottom:1px solid var(--br)">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:8px">Objem</div>
+        <div style="font-size:32px;font-weight:700;color:var(--t);line-height:1">13</div>
+        <div style="font-size:11px;color:var(--t3);margin-top:2px;margin-bottom:10px">Celkové série</div>
+        <div style="display:flex;gap:10px;font-size:12px;color:var(--t2)">
+          <span>Cviky <strong style="color:var(--t)">7</strong></span>
+          <span>·</span>
+          <span>Objem <strong style="color:var(--t)">~1,2 t</strong></span>
+        </div>
+      </div>
+
+      <!-- Muscle groups breakdown -->
+      <div style="padding:14px;border-bottom:1px solid var(--br)">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:10px">Svalové skupiny</div>
+
+        <div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+            <span style="color:var(--t)">Hrudník</span>
+            <span style="color:var(--t3)">4 série</span>
+          </div>
+          <div style="height:5px;background:var(--bg3);border-radius:99px;overflow:hidden">
+            <div style="width:80%;height:100%;border-radius:99px;background:#007aff"></div>
+          </div>
+        </div>
+
+        <div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+            <span style="color:var(--t)">Záda</span>
+            <span style="color:var(--t3)">3 série</span>
+          </div>
+          <div style="height:5px;background:var(--bg3);border-radius:99px;overflow:hidden">
+            <div style="width:60%;height:100%;border-radius:99px;background:#34c759"></div>
+          </div>
+        </div>
+
+        <div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+            <span style="color:var(--t)">Ramena</span>
+            <span style="color:var(--t3)">2 série</span>
+          </div>
+          <div style="height:5px;background:var(--bg3);border-radius:99px;overflow:hidden">
+            <div style="width:40%;height:100%;border-radius:99px;background:var(--acc)"></div>
+          </div>
+        </div>
+
+        <div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+            <span style="color:var(--t)">Triceps</span>
+            <span style="color:var(--t3)">2 série</span>
+          </div>
+          <div style="height:5px;background:var(--bg3);border-radius:99px;overflow:hidden">
+            <div style="width:40%;height:100%;border-radius:99px;background:#ff9f0a"></div>
+          </div>
+        </div>
+
+        <div style="margin-bottom:0">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+            <span style="color:var(--t)">Břicho</span>
+            <span style="color:var(--t3)">2 série</span>
+          </div>
+          <div style="height:5px;background:var(--bg3);border-radius:99px;overflow:hidden">
+            <div style="width:40%;height:100%;border-radius:99px;background:#af52de"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Publikovat týden button -->
+      <div style="padding:12px">
+        <button class="btn primary" style="width:100%;justify-content:center;font-size:13px;padding:9px 0" onclick="showToast('Týden publikován')">Publikovat týden</button>
+      </div>
+
+    </div>
+    <!-- /RIGHT SIDEBAR -->
+
+  </div>
+  <!-- /Body grid -->
+
+</div>
+</div>
+</div>
