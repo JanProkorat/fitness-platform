@@ -56,6 +56,15 @@ sha1_hex() {
 }
 
 current_branch() {
+  # Honor TEST_ENV_BRANCH when set so the per-branch COMPOSE_PROJECT_NAME stays
+  # stable across CI steps — each step is a fresh shell and actions/checkout
+  # produces a detached HEAD, so `git rev-parse --abbrev-ref HEAD` returns "HEAD"
+  # (not the branch) and `up` and `run` would derive different project names.
+  # Local dev leaves TEST_ENV_BRANCH unset and falls back to the git branch.
+  if [[ -n "${TEST_ENV_BRANCH:-}" ]]; then
+    printf '%s\n' "$TEST_ENV_BRANCH"
+    return
+  fi
   git rev-parse --abbrev-ref HEAD 2>/dev/null || echo unknown
 }
 
