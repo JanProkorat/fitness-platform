@@ -1,9 +1,15 @@
 import { HubConnectionBuilder, HubConnection, LogLevel, HubConnectionState } from '@microsoft/signalr';
 import { useAuthStore } from '../stores/auth';
 
-const API_BASE_URL = __DEV__
-  ? 'https://localhost:5001'
-  : 'https://api.gfplatform.com';
+// `EXPO_PUBLIC_API_BASE_URL` lets QA dev builds point at the compose-exposed
+// API without rebuilding — same precedence as client.ts.
+// iOS NSURLSession strips the Authorization header on HTTP→HTTPS redirects, so
+// dev MUST hit the HTTPS port directly.
+const API_BASE_URL =
+  process.env.EXPO_PUBLIC_API_BASE_URL ??
+  (__DEV__
+    ? 'https://localhost:5001'
+    : 'https://api.gfplatform.com');
 
 let connection: HubConnection | null = null;
 
