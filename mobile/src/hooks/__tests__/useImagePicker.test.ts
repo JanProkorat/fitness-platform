@@ -5,9 +5,10 @@
  * of which require the jest-expo preset that IS wired in this package's
  * package.json ("jest": { "preset": "jest-expo" }).
  *
- * These tests cover the two pure-logic functions extracted from the module:
- *   - getMimeType  (MIME detection from URI extension)
- *   - resolveFileSize fallback path (mocked fetch)
+ * These tests cover the pure-logic functions extracted from the module:
+ *   - getMimeType        (MIME detection from URI extension)
+ *   - resolveWebSource   (web-path source resolution — real exported helper)
+ *   - size guard arithmetic
  *
  * The full hook integration (pick → permission → picker → upload) is verified
  * manually via the Expo simulator; Jest cannot drive native permission dialogs.
@@ -15,6 +16,8 @@
  * To run:
  *   cd mobile && npx jest src/hooks/__tests__/useImagePicker.test.ts
  */
+
+import { resolveWebSource } from '../useImagePicker';
 
 // ---------------------------------------------------------------------------
 // getMimeType — extracted and tested as a pure function
@@ -80,6 +83,32 @@ describe('getMimeType', () => {
 
   it('returns null for URIs with no extension', () => {
     expect(getMimeType('file:///tmp/photo')).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// resolveWebSource — real exported helper (guards the actual changed line)
+//
+// selectSource() delegates the web-path decision to resolveWebSource(), which
+// is exported so tests can import and assert against the live logic. If the
+// Platform.OS === 'web' branch in useImagePicker.ts is altered, these tests
+// will catch it — unlike the previous local stub which only documented intent.
+//
+// On web:          returns 'library' (resolve immediately; no native sheet).
+// On iOS/Android:  returns null (show the native ActionSheetIOS / Alert sheet).
+// ---------------------------------------------------------------------------
+
+describe('resolveWebSource', () => {
+  it("returns 'library' on web (skips the native sheet)", () => {
+    expect(resolveWebSource('web')).toBe('library');
+  });
+
+  it('returns null on iOS (caller should show native ActionSheetIOS)', () => {
+    expect(resolveWebSource('ios')).toBeNull();
+  });
+
+  it('returns null on Android (caller should show Alert.alert sheet)', () => {
+    expect(resolveWebSource('android')).toBeNull();
   });
 });
 

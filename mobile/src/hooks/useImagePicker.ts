@@ -105,6 +105,29 @@ function getFilename(uri: string): string {
 }
 
 // ---------------------------------------------------------------------------
+// Source-resolution helper (exported for unit-testing)
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns a direct source on web (no native sheet exists); null means
+ * "show the native source sheet" (iOS ActionSheetIOS / Android Alert).
+ *
+ * Pure function — no side effects, no React deps. Exported so tests can
+ * import and assert against the real decision logic rather than a stub.
+ *
+ * Note: source:'camera' is not reliably supported in the browser environment
+ * (launchCameraAsync has no universal web implementation). The only current
+ * caller that hits the 'both' path is Avatar, which resolves to 'library' on
+ * web. That gap is documented here rather than handled with dead branching.
+ */
+export function resolveWebSource(
+  platform: typeof Platform.OS,
+): 'library' | null {
+  if (platform === 'web') return 'library';
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 // Hook
 // ---------------------------------------------------------------------------
 
@@ -170,6 +193,16 @@ export function useImagePicker(
 
   function selectSource(): Promise<'camera' | 'library' | 'cancel'> {
     return new Promise((resolve) => {
+      // Web: React-Native-Web does not implement Alert.alert with actionable
+      // buttons — the Promise would never resolve, hanging pick() indefinitely.
+      // On web the browser file picker is opened directly via
+      // launchImageLibraryAsync, so we resolve 'library' immediately.
+      const webResolution = resolveWebSource(Platform.OS);
+      if (webResolution !== null) {
+        resolve(webResolution);
+        return;
+      }
+
       const cameraLabel = t('imagePicker.sourceCamera');
       const libraryLabel = t('imagePicker.sourceLibrary');
       const cancelLabel = t('common.cancel');
