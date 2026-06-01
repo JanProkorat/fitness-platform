@@ -995,6 +995,10 @@ function TabataTimer({ label, workSeconds, restSeconds, totalRounds, onFinish, o
   // and `showPrepUI` derive from the same `phase` / `preparing` state, so
   // the background flips in the same React render as the phase chip label
   // with zero stale-color flash at the work ↔ rest boundary.
+  // During pre-roll `phaseBg` is `undefined`; RN treats `undefined` as a
+  // no-op for `backgroundColor`, so the style falls through to
+  // `styles.heroWrap`'s default surface — the neutral pre-roll look is
+  // intentional and requires no explicit color value.
   const phaseBg = showPrepUI
     ? undefined
     : isWork
