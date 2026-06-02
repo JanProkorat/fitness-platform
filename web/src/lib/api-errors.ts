@@ -10,6 +10,8 @@ interface ProblemDetailsError {
 
 interface ProblemDetails {
   errors?: ProblemDetailsError[];
+  /** RFC 7807 Extensions field used by non-FastEndpoints error paths. */
+  errorCode?: string;
 }
 
 /**
@@ -18,6 +20,10 @@ interface ProblemDetails {
  * FastEndpoints returns errors as { name, reason, code } where:
  *   - `reason` contains the error code string (e.g. "START_DATE_REQUIRED")
  *   - `code`   contains the human-readable message
+ *
+ * NOTE: Non-FastEndpoints RFC 7807 errors (e.g. 409 session_locked) put the
+ * code in `response.data.errorCode` (camelCase), not in `errors[0].reason`.
+ * Use `getRfc7807ErrorCode()` to read those.
  */
 export function getErrorCode(error: unknown): string | null {
   const axiosError = error as AxiosError<ProblemDetails>;
@@ -26,6 +32,19 @@ export function getErrorCode(error: unknown): string | null {
     return errors[0].reason ?? null;
   }
   return null;
+}
+
+/**
+ * Extracts the `errorCode` from an RFC 7807 ProblemDetails Extensions field.
+ *
+ * Used for endpoints that set `errorCode` at the top level of the problem JSON
+ * (e.g. 409 session_locked from UpdateTrainingPlan, UnlockTrainingSession).
+ * FastEndpoints validation errors use `errors[0].reason` instead — use
+ * `getErrorCode()` for those.
+ */
+export function getRfc7807ErrorCode(error: unknown): string | null {
+  const axiosError = error instanceof AxiosError ? error : null;
+  return (axiosError?.response?.data as ProblemDetails | undefined)?.errorCode ?? null;
 }
 
 /**

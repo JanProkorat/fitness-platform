@@ -3,6 +3,32 @@ using FitnessPlatform.Application.Domain.Documents;
 namespace FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
 
 /// <summary>
+/// Per-session edit-lock state projected into the trainer read model.
+/// A session with no active lock document reports <c>Stable</c> with a null holder.
+/// </summary>
+public class SessionLockStateDto
+{
+    /// <summary>
+    /// The <see cref="TrainingSession.SessionId"/> this lock state belongs to.
+    /// </summary>
+    public Guid SessionId { get; set; }
+
+    /// <summary>
+    /// Current lock state of this session.
+    /// Possible values: "Stable" (no active lock), "Editing" (trainer holds an editing lock),
+    /// "Live" (client has an in-progress workout lock).
+    /// Populated via a batch <c>GetStateAsync</c> call on the session lock service.
+    /// </summary>
+    public string LockState { get; set; } = "Stable";
+
+    /// <summary>
+    /// Who currently holds the lock, if any.
+    /// Possible values: "Coach", "Client", or null when the session is Stable.
+    /// </summary>
+    public string? LockHolder { get; set; }
+}
+
+/// <summary>
 /// Per-set execution data returned by the trainer endpoint.
 /// Lets the web layer derive completed / skipped / not-yet-reached states
 /// without storing those as flags on the document.
@@ -162,6 +188,15 @@ public class GetTrainingPlanResponse
     /// per-exercise, and per-session completed/skipped/unreached state indicators.
     /// </summary>
     public List<SessionExecutionDto> SessionExecutions { get; set; } = [];
+
+    /// <summary>
+    /// Per-session edit-lock state for all sessions in the plan.
+    /// Only sessions with an active (non-expired) lock appear here; a session absent from
+    /// this list is implicitly <c>Stable</c>.
+    /// The web editor uses this on initial load to show the Live in-progress badge and gate
+    /// the unlock affordance — SignalR events update this state while the page is open.
+    /// </summary>
+    public List<SessionLockStateDto> SessionLockStates { get; set; } = [];
 
     /// <summary>
     /// Maps a <see cref="TrainingPlan"/> document to a detailed response DTO.

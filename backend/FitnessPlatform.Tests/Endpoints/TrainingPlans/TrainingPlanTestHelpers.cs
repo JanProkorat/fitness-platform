@@ -1,5 +1,6 @@
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
@@ -171,6 +172,29 @@ public static class TrainingPlanTestHelpers
             .Returns(updateResult);
 
         return collection;
+    }
+
+    /// <summary>
+    /// Creates a no-op <see cref="ISessionLockService"/> that always returns an empty lock list.
+    /// Use in tests that don't care about lock state.
+    /// </summary>
+    public static ISessionLockService CreateNoOpLockService()
+    {
+        var svc = Substitute.For<ISessionLockService>();
+        svc.GetStateAsync(Arg.Any<IEnumerable<Guid>>(), Arg.Any<CancellationToken>())
+            .Returns(Array.Empty<SessionLock>());
+        return svc;
+    }
+
+    /// <summary>
+    /// Creates a mocked <see cref="ISessionLockService"/> that returns the given lock documents.
+    /// </summary>
+    public static ISessionLockService CreateLockServiceWith(params SessionLock[] locks)
+    {
+        var svc = Substitute.For<ISessionLockService>();
+        svc.GetStateAsync(Arg.Any<IEnumerable<Guid>>(), Arg.Any<CancellationToken>())
+            .Returns(locks.ToList());
+        return svc;
     }
 
     /// <summary>

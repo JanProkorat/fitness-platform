@@ -171,6 +171,34 @@ export interface SessionExecutionDto {
   completedSetsByExercise: Record<string, number[]>;
 }
 
+/**
+ * Edit-lock state of a single training session as reported by the backend.
+ *
+ * Mirrors the C# SessionLockStateDto in GetTrainingPlanResponse.
+ * Only sessions with an active (non-expired) lock appear in
+ * `TrainingPlanDetail.sessionLockStates`; absent sessions are implicitly "Stable".
+ *
+ * Hand-written (not from generated.ts) — the plan response is consumed via the
+ * hand-written `TrainingPlanDetail` type, not the NSwag-generated client.
+ */
+export interface SessionLockStateDto {
+  /** The session this lock state belongs to. Matches TrainingSession.sessionId. */
+  sessionId: string;
+  /**
+   * Current edit-lock state.
+   *   "Stable"  — no active lock; fully editable.
+   *   "Editing" — trainer holds an Editing lock (after calling Unlock).
+   *   "Live"    — client has an active workout; editing is blocked.
+   */
+  lockState: 'Stable' | 'Editing' | 'Live';
+  /**
+   * Who currently holds the lock. Null when lockState is "Stable".
+   *   "Coach" — trainer holds the Editing lock.
+   *   "Client" — client holds the Live lock.
+   */
+  lockHolder: 'Coach' | 'Client' | null;
+}
+
 /** Full training plan detail. */
 export interface TrainingPlanDetail {
   planId: string;
@@ -188,6 +216,13 @@ export interface TrainingPlanDetail {
    * Sessions with no entry are treated as fully not-yet-reached.
    */
   sessionExecutions?: SessionExecutionDto[];
+  /**
+   * Per-session edit-lock state at load time. Only sessions with an active
+   * (non-expired) lock appear here; absent sessions are implicitly "Stable".
+   * The store mirrors this into a Map keyed by sessionId for O(1) lookup.
+   * SignalR `sessioneditlockchanged` events patch the map while the page is open.
+   */
+  sessionLockStates?: SessionLockStateDto[];
   version: number;
   dateCreated: string;
   dateUpdated?: string | null;
