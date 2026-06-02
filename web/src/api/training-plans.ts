@@ -124,3 +124,29 @@ export async function getExerciseProgress(
   );
   return data;
 }
+
+/**
+ * Acquires an Editing lock on a published training session, allowing the trainer to edit it.
+ *
+ * Returns 204 on success.
+ * Returns 409 (errorCode: "session_locked") when the session is Live (client is
+ * training) or already locked by another party.
+ */
+export async function unlockTrainingSession(
+  planId: string,
+  sessionId: string,
+): Promise<void> {
+  await api.post(`/training/plans/${planId}/sessions/${sessionId}/unlock`);
+}
+
+/**
+ * Releases the Editing lock on a training session, returning it to Stable state.
+ *
+ * Idempotent: succeeds (204) even when the lock was already released or expired.
+ */
+export async function relockTrainingSession(
+  planId: string,
+  sessionId: string,
+): Promise<void> {
+  await api.post(`/training/plans/${planId}/sessions/${sessionId}/relock`);
+}
