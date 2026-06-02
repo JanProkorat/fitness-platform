@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { AxiosError } from 'axios';
 import type {
   TrainingPlanDetail,
   TrainingSection,
@@ -16,7 +15,7 @@ import type {
 } from '@/api/training-plan-types';
 import type { SectionTemplateResponse } from '@/api/sectionTemplates';
 import { updateTrainingPlan, publishTrainingWeek, getTrainingPlan } from '@/api/training-plans';
-import { showApiError, showSuccess } from '@/lib/api-errors';
+import { showApiError, showSuccess, getRfc7807ErrorCode } from '@/lib/api-errors';
 import { currentWeekNumber } from '@/lib/training-plan-dates';
 import { useToastStore } from '@/stores/toast';
 import i18n from '@/i18n';
@@ -1388,8 +1387,10 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
       // The 409 ProblemDetails carries the code in `extensions.errorCode`
       // (camelCase) — NOT in `errors[0].reason` (the FastEndpoints validation
       // shape). We read `response.data.errorCode` directly.
-      const axiosErr = err instanceof AxiosError ? err : null;
-      const errorCode = axiosErr?.response?.data?.errorCode as string | undefined;
+      // The 409 ProblemDetails carries the code in extensions.errorCode (camelCase),
+      // read via the typed RFC-7807 helper — NOT getErrorCode() which reads the
+      // FastEndpoints errors[].reason validation shape.
+      const errorCode = getRfc7807ErrorCode(err);
 
       if (errorCode === 'session_locked') {
         const { sessionLockMap, originalPlan } = get();
@@ -1460,14 +1461,19 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
       const completions = fresh.completions ?? [];
       // Also pick up the fresh sessionLockStates so lock state stays current
       // after a SignalR sessioneditlockchanged event that triggers this path.
-      const sessionLockMap = buildLockMap(fresh.sessionLockStates);
+      const sessionLockStates = fresh.sessionLockStates ?? [];
+      const sessionLockMap = buildLockMap(sessionLockStates);
       set((state) => ({
-        plan: state.plan ? { ...state.plan, completions } : state.plan,
+        // Keep plan.sessionLockStates in lockstep with sessionLockMap so the
+        // in-memory plan can't diverge from the authoritative live lock state.
+        plan: state.plan
+          ? { ...state.plan, completions, sessionLockStates }
+          : state.plan,
         // originalPlan tracks server-state too, so it must move with the
         // freshly fetched completions — otherwise revert() would surface
         // stale completion data.
         originalPlan: state.originalPlan
-          ? { ...state.originalPlan, completions }
+          ? { ...state.originalPlan, completions, sessionLockStates }
           : state.originalPlan,
         sessionLockMap,
       }));
