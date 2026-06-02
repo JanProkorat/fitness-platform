@@ -41,7 +41,7 @@ import { href } from '@/lib/navigation'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 
 import axios from 'axios'
-import { startWorkout, updateWorkout, completeWorkout } from '@/api/workouts'
+import { startWorkout, updateWorkout, completeWorkout, goLive, abandonWorkout } from '@/api/workouts'
 import type { UpdateWorkoutRequest } from '@/api/workouts'
 import { Toast } from '@/lib/toast'
 import type {
@@ -2515,7 +2515,25 @@ export default function WorkoutLogScreen() {
       prefillForm(0, 0, exercises)
       // (showWodHero removed in #338)
     }
-  }, [storeStart, storeAdvanceSection, loadedLogId, activeLogId, exercises, sections, sessionId, planId, prefillForm, sessionFormat, sessionFormatConfig])
+
+    // Acquire the Live lock now that the user has explicitly started.
+    // The draft log was created on mount (startNew effect) — this is the
+    // second step that broadcasts state=Live to trainers. Best-effort:
+    // a 409 (session_locked) surfaces as a toast; other errors are logged.
+    if (logId) {
+      void goLive(logId).catch((err: unknown) => {
+        if (
+          axios.isAxiosError(err) &&
+          err.response?.status === 409 &&
+          (err.response.data as { errorCode?: string } | undefined)?.errorCode === 'session_locked'
+        ) {
+          Toast.show(t('training.sessionEditing.startBlockedToast'))
+        } else {
+          console.warn('[handleStart] goLive failed', err)
+        }
+      })
+    }
+  }, [storeStart, storeAdvanceSection, loadedLogId, activeLogId, exercises, sections, sessionId, planId, prefillForm, sessionFormat, sessionFormatConfig, t])
 
   const handleSetDone = useCallback(() => {
     const ex = exercises[currentExerciseIdx]
@@ -2704,6 +2722,15 @@ export default function WorkoutLogScreen() {
         await updateMutation.mutateAsync({ logId, req })
       } catch {
         // Offline path is handled inside updateMutation.onError; proceed anyway.
+      }
+      // Release the Live lock — the session is being abandoned mid-run.
+      // completeWorkout would have released it on normal completion; since
+      // the user is leaving early we do it explicitly here. Best-effort:
+      // the server-side TTL (6h) cleans up if this call fails.
+      try {
+        await abandonWorkout(logId)
+      } catch (err) {
+        console.warn('[handleClose] abandonWorkout failed', err)
       }
     }
     storeClose()
