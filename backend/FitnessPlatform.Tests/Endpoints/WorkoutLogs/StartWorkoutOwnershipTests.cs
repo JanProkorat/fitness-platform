@@ -5,41 +5,33 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
-using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.WorkoutLogs.StartWorkout;
 using FitnessPlatform.Application.Infrastructure.Data;
-using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints;
-using Microsoft.Extensions.Options;
 using NSubstitute;
 
 namespace FitnessPlatform.Tests.Endpoints.WorkoutLogs;
 
 /// <summary>
-/// Regression tests for the StartWorkout ownership identity bug (issue #382/PR-#390 regression).
+/// Regression tests for the StartWorkout ownership identity pattern (issue #382).
 ///
-/// Root cause: the endpoint previously compared <c>plan.ClientId != Guid.Parse(userId)</c>
-/// where <c>userId</c> is the <c>ApplicationUser.Id</c>. But <c>TrainingPlan.ClientId</c> stores
-/// the <c>ClientProfile.PublicId</c>, which is a different GUID. The comparison never matched,
-/// so every plan-bound StartWorkout returned 403 and the Live lock was never acquired.
+/// StartWorkout (POST /client/training/logs) now only creates a draft log — lock acquisition
+/// and the Live broadcast have moved to the separate GoLive endpoint (issue #401).
 ///
-/// The fix resolves <c>ClientProfile.PublicId</c> via EF for the ownership comparison while
-/// keeping <c>ApplicationUser.Id</c> (the JWT user id) as the lock's <c>clientId</c> — because
-/// <c>NotificationHub</c> groups SignalR connections by <c>ApplicationUser.Id</c>, so realtime
-/// events must target the user id.
+/// Root-cause note (preserved for history): the endpoint previously compared
+/// plan.ClientId against ApplicationUser.Id but TrainingPlan.ClientId stores
+/// ClientProfile.PublicId. This file verifies the ownership resolution still uses the
+/// profile public id for the plan check while storing the user id on WorkoutLog.ClientId.
 /// </summary>
 public class StartWorkoutOwnershipTests
 {
     // Two distinct GUIDs to prove neither side of the identity split is collapsed.
-    private readonly Guid _clientUserId = Guid.NewGuid();   // ApplicationUser.Id (from JWT)
+    private readonly Guid _clientUserId = Guid.NewGuid();          // ApplicationUser.Id (from JWT)
     private readonly Guid _clientProfilePublicId = Guid.NewGuid(); // ClientProfile.PublicId
     private readonly Guid _trainerId = Guid.NewGuid();
     private readonly Guid _planId = Guid.NewGuid();
     private readonly Guid _sessionId = Guid.NewGuid();
-
-    private static readonly IOptions<TrainingLockOptions> LockOptions =
-        Options.Create(new TrainingLockOptions { LiveTtlHours = 6 });
 
     // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -68,51 +60,24 @@ public class StartWorkoutOwnershipTests
             .With(new ClientProfile { Id = 1, UserId = _clientUserId, PublicId = _clientProfilePublicId })
             .Build();
 
-    private static ISessionLockService AcquiredLockService(
-        Guid expectedClientId,
-        Guid expectedTrainerId,
-        Guid expectedSessionId,
-        Guid expectedPlanId)
-    {
-        var svc = Substitute.For<ISessionLockService>();
-        svc.AcquireAsync(
-                Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<Guid>(),
-                Arg.Any<LockHolder>(), Arg.Any<LockType>(), Arg.Any<TimeSpan>(),
-                Arg.Any<CancellationToken>())
-            .Returns(new AcquireResult.Acquired(new SessionLock
-            {
-                SessionId = expectedSessionId,
-                PlanId = expectedPlanId,
-                ClientId = expectedClientId,
-                TrainerId = expectedTrainerId,
-                Holder = LockHolder.Client,
-                Type = LockType.Live,
-                AcquiredAt = DateTime.UtcNow,
-                ExpiresAt = DateTime.UtcNow.AddHours(6)
-            }));
-        return svc;
-    }
-
     // ── Tests ────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// The owning client (JWT user id → ClientProfile.PublicId == plan.ClientId) starts a
-    /// plan-bound workout.
-    /// Expected: 201, Live lock acquired with clientId = ApplicationUser.Id (not the profile id),
-    /// WorkoutLog.ClientId = ApplicationUser.Id.
+    /// The owning client (JWT user id → ClientProfile.PublicId == plan.ClientId) creates a
+    /// plan-bound draft log.
+    /// Expected: 201, WorkoutLog.ClientId = ApplicationUser.Id (not profile id).
+    /// No lock acquisition here — that happens in GoLive.
     /// </summary>
     [Fact]
-    public async Task StartWorkout_OwningClient_Returns201_LockClientIdIsUserId()
+    public async Task StartWorkout_OwningClient_Returns201_LogClientIdIsUserId()
     {
         // Arrange
         var mongo = WorkoutLogTestHelpers.CreateMockMongo(plans: [MakePlan()]);
-        var lockService = AcquiredLockService(_clientUserId, _trainerId, _sessionId, _planId);
-        var notifier = Substitute.For<IRealtimeNotifier>();
 
         var ep = Factory.Create<StartWorkoutEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientUserId, AppRoles.Client))),
-            mongo, MakeDbWithOwnerProfile(), lockService, LockOptions, notifier);
+            mongo, MakeDbWithOwnerProfile());
 
         // Act
         await ep.HandleAsync(
@@ -122,19 +87,7 @@ public class StartWorkoutOwnershipTests
         // Assert — 201 created
         ep.HttpContext.Response.StatusCode.Should().Be(201);
 
-        // Lock must be acquired with the LOCK clientId = ApplicationUser.Id (not profile id).
-        // This is critical — NotificationHub routes events by ApplicationUser.Id.
-        await lockService.Received(1).AcquireAsync(
-            _sessionId,
-            _planId,
-            _clientUserId,    // must be user id — NOT _clientProfilePublicId
-            _trainerId,
-            LockHolder.Client,
-            LockType.Live,
-            TimeSpan.FromHours(6),
-            Arg.Any<CancellationToken>());
-
-        // WorkoutLog.ClientId must also be the ApplicationUser.Id
+        // WorkoutLog.ClientId must be the ApplicationUser.Id (not profile id).
         await mongo.WorkoutLogs.Received(1).InsertOneAsync(
             Arg.Is<WorkoutLog>(w =>
                 w.ClientId == _clientUserId &&   // user id, not profile id
@@ -142,29 +95,12 @@ public class StartWorkoutOwnershipTests
                 w.SessionId == _sessionId),
             Arg.Any<MongoDB.Driver.InsertOneOptions>(),
             Arg.Any<CancellationToken>());
-
-        // SignalR events must be sent to the user id (not profile id)
-        await notifier.Received(1).NotifyAsync(
-            _clientUserId,   // ApplicationUser.Id — what NotificationHub groups on
-            "sessioneditlockchanged",
-            Arg.Is<SessionLockChangedPayload>(p =>
-                p.PlanId == _planId &&
-                p.SessionId == _sessionId &&
-                p.State == "Live" &&
-                p.Holder == "Client"),
-            Arg.Any<CancellationToken>());
-
-        await notifier.Received(1).NotifyAsync(
-            _trainerId,
-            "sessioneditlockchanged",
-            Arg.Any<object>(),
-            Arg.Any<CancellationToken>());
     }
 
     /// <summary>
-    /// A different client (JWT user id → a profile whose PublicId != plan.ClientId) tries to start
-    /// a plan that belongs to another client.
-    /// Expected: 403, no lock acquired, no log created.
+    /// A different client (JWT user id → a profile whose PublicId != plan.ClientId) tries to create
+    /// a log for a plan that belongs to another client.
+    /// Expected: 403, no log created.
     /// </summary>
     [Fact]
     public async Task StartWorkout_NonOwningClient_Returns403()
@@ -178,36 +114,23 @@ public class StartWorkoutOwnershipTests
             .Build();
 
         var mongo = WorkoutLogTestHelpers.CreateMockMongo(plans: [MakePlan()]);
-        var lockService = Substitute.For<ISessionLockService>();
-        var notifier = Substitute.For<IRealtimeNotifier>();
 
         var ep = Factory.Create<StartWorkoutEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(attackerUserId, AppRoles.Client))),
-            mongo, attackerDb, lockService, LockOptions, notifier);
+            mongo, attackerDb);
 
         // Act
         await ep.HandleAsync(
             new StartWorkoutRequest { PlanId = _planId, SessionId = _sessionId },
             TestContext.Current.CancellationToken);
 
-        // Assert — 403, nothing acquired, nothing created
+        // Assert — 403, nothing created
         ep.HttpContext.Response.StatusCode.Should().Be(403);
-
-        await lockService.DidNotReceive().AcquireAsync(
-            Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<Guid>(),
-            Arg.Any<LockHolder>(), Arg.Any<LockType>(), Arg.Any<TimeSpan>(),
-            Arg.Any<CancellationToken>());
 
         await mongo.WorkoutLogs.DidNotReceive().InsertOneAsync(
             Arg.Any<WorkoutLog>(),
             Arg.Any<MongoDB.Driver.InsertOneOptions>(),
-            Arg.Any<CancellationToken>());
-
-        await notifier.DidNotReceive().NotifyAsync(
-            Arg.Any<Guid>(),
-            Arg.Any<string>(),
-            Arg.Any<object>(),
             Arg.Any<CancellationToken>());
     }
 }

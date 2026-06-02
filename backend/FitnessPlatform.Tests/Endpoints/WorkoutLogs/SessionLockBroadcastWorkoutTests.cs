@@ -7,6 +7,7 @@ using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.WorkoutLogs.CompleteWorkout;
+using FitnessPlatform.Application.Features.WorkoutLogs.GoLive;
 using FitnessPlatform.Application.Features.WorkoutLogs.StartWorkout;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Services;
@@ -19,11 +20,12 @@ namespace FitnessPlatform.Tests.Endpoints.WorkoutLogs;
 
 /// <summary>
 /// Tests that verify the <c>sessioneditlockchanged</c> SignalR broadcast behaviour
-/// for the workout-log endpoints (issue #383).
+/// for the workout-log endpoints (issues #383, #401).
 /// Covers:
-///   - StartWorkout: acquire Live lock → emits state=Live to BOTH clientId and trainerId
-///   - StartWorkout: 409 conflict (session in Editing) → emits NOTHING
-///   - StartWorkout: ad-hoc (no SessionId) → emits NOTHING
+///   - StartWorkout: creates draft log WITHOUT any broadcast (issue #401 fix)
+///   - GoLive: acquire Live lock → emits state=Live to BOTH clientId and trainerId
+///   - GoLive: 409 conflict (session in Editing) → emits NOTHING
+///   - GoLive: ad-hoc log (no SessionId on log) → 200, emits NOTHING
 ///   - CompleteWorkout: plan-bound log, ReleaseAsync=true → emits state=Stable to BOTH parties
 ///   - CompleteWorkout: plan-bound log, ReleaseAsync=false (already gone) → emits NOTHING
 ///   - CompleteWorkout: ad-hoc log (no SessionId) → emits NOTHING
@@ -103,28 +105,51 @@ public class SessionLockBroadcastWorkoutTests
         return svc;
     }
 
-    // ── StartWorkout: Live lock acquired → emits state=Live to BOTH parties ─────
+    // ── StartWorkout: creates draft log WITHOUT any broadcast (issue #401) ───────
 
     [Fact]
-    public async Task StartWorkout_LiveLockAcquired_EmitsLiveToBothClientAndTrainer()
+    public async Task StartWorkout_PlanBound_EmitsNothing_LiveLockMovedToGoLive()
     {
-        // Arrange — plan exists, lock acquisition succeeds (Acquired)
+        // StartWorkout must NOT emit sessioneditlockchanged — that is GoLive's job (issue #401).
         var mongo = WorkoutLogTestHelpers.CreateMockMongo(plans: [MakePlan()]);
-        var lockService = AcquiredLiveService();
-        var notifier = Substitute.For<IRealtimeNotifier>();
 
         var ep = Factory.Create<StartWorkoutEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, CreateDbWithProfile(), lockService, LockOptions, notifier);
+            mongo, CreateDbWithProfile());
 
-        // Act
         await ep.HandleAsync(
             new StartWorkoutRequest { PlanId = _planId, SessionId = _sessionId },
             TestContext.Current.CancellationToken);
 
-        // Assert — 201 created
+        // 201 created — but zero notifications (no lock acquired yet)
         ep.HttpContext.Response.StatusCode.Should().Be(201);
+    }
+
+    // ── GoLive: Live lock acquired → emits state=Live to BOTH parties ────────────
+
+    [Fact]
+    public async Task GoLive_LiveLockAcquired_EmitsLiveToBothClientAndTrainer()
+    {
+        // Arrange — draft log exists, lock acquisition succeeds
+        var logId = Guid.NewGuid();
+        var log = WorkoutLogTestHelpers.CreateLog(
+            externalId: logId, clientId: _clientId, planId: _planId, sessionId: _sessionId);
+
+        var mongo = WorkoutLogTestHelpers.CreateMockMongo(logs: [log], plans: [MakePlan()]);
+        var lockService = AcquiredLiveService();
+        var notifier = Substitute.For<IRealtimeNotifier>();
+
+        var ep = Factory.Create<GoLiveEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
+            mongo, lockService, LockOptions, notifier);
+
+        // Act
+        await ep.HandleAsync(new GoLiveRequest { LogId = logId }, TestContext.Current.CancellationToken);
+
+        // Assert — 200 OK
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
 
         // Must emit to the CLIENT's user id
         await notifier.Received(1).NotifyAsync(
@@ -156,27 +181,26 @@ public class SessionLockBroadcastWorkoutTests
             Arg.Any<CancellationToken>());
     }
 
-    // ── StartWorkout: 409 conflict → emits NOTHING ──────────────────────────────
+    // ── GoLive: 409 conflict (Editing lock held) → emits NOTHING ─────────────────
 
     [Fact]
-    public async Task StartWorkout_LockConflict_Returns409_EmitsNothing()
+    public async Task GoLive_LockConflict_Returns409_EmitsNothing()
     {
-        // Arrange — session is currently in Editing; acquire fails with LockConflict
-        var mongo = WorkoutLogTestHelpers.CreateMockMongo(plans: [MakePlan()]);
+        var logId = Guid.NewGuid();
+        var log = WorkoutLogTestHelpers.CreateLog(
+            externalId: logId, clientId: _clientId, planId: _planId, sessionId: _sessionId);
+
+        var mongo = WorkoutLogTestHelpers.CreateMockMongo(logs: [log], plans: [MakePlan()]);
         var lockService = ConflictLockService();
         var notifier = Substitute.For<IRealtimeNotifier>();
 
-        var ep = Factory.Create<StartWorkoutEndpoint>(
+        var ep = Factory.Create<GoLiveEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, CreateDbWithProfile(), lockService, LockOptions, notifier);
+            mongo, lockService, LockOptions, notifier);
 
-        // Act
-        await ep.HandleAsync(
-            new StartWorkoutRequest { PlanId = _planId, SessionId = _sessionId },
-            TestContext.Current.CancellationToken);
+        await ep.HandleAsync(new GoLiveRequest { LogId = logId }, TestContext.Current.CancellationToken);
 
-        // Assert — 409 and zero notifications
         ep.HttpContext.Response.StatusCode.Should().Be(409);
 
         await notifier.DidNotReceive().NotifyAsync(
@@ -186,26 +210,33 @@ public class SessionLockBroadcastWorkoutTests
             Arg.Any<CancellationToken>());
     }
 
-    // ── StartWorkout: ad-hoc workout (no SessionId) → emits NOTHING ─────────────
+    // ── GoLive: ad-hoc log (no SessionId) → 200, emits NOTHING ──────────────────
 
     [Fact]
-    public async Task StartWorkout_AdHoc_NoSessionId_EmitsNothing()
+    public async Task GoLive_AdHocLog_NoSessionId_Returns200_EmitsNothing()
     {
-        // Arrange — no SessionId in request; lock path is bypassed entirely
-        var mongo = WorkoutLogTestHelpers.CreateMockMongo();
+        var logId = Guid.NewGuid();
+        // Ad-hoc log — no PlanId or SessionId on the log
+        var log = WorkoutLogTestHelpers.CreateLog(externalId: logId, clientId: _clientId);
+
+        var mongo = WorkoutLogTestHelpers.CreateMockMongo(logs: [log]);
         var lockService = Substitute.For<ISessionLockService>();
         var notifier = Substitute.For<IRealtimeNotifier>();
 
-        var ep = Factory.Create<StartWorkoutEndpoint>(
+        var ep = Factory.Create<GoLiveEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, Substitute.For<IApplicationDbContext>(), lockService, LockOptions, notifier);
+            mongo, lockService, LockOptions, notifier);
 
-        // Act — ad-hoc workout (no PlanId, no SessionId) — db is never queried on ad-hoc path
-        await ep.HandleAsync(new StartWorkoutRequest(), TestContext.Current.CancellationToken);
+        await ep.HandleAsync(new GoLiveRequest { LogId = logId }, TestContext.Current.CancellationToken);
 
-        // Assert — 201 and no lock-change notifications
-        ep.HttpContext.Response.StatusCode.Should().Be(201);
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        // No lock acquired and no broadcast for ad-hoc workouts
+        await lockService.DidNotReceive().AcquireAsync(
+            Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<Guid>(),
+            Arg.Any<LockHolder>(), Arg.Any<LockType>(), Arg.Any<TimeSpan>(),
+            Arg.Any<CancellationToken>());
 
         await notifier.DidNotReceive().NotifyAsync(
             Arg.Any<Guid>(),
