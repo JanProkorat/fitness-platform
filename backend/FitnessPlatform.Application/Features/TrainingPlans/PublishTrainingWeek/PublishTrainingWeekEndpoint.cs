@@ -137,10 +137,24 @@ public class PublishTrainingWeekEndpoint(
         // Defensive cleanup: clear any stale Editing lock docs for the week's sessions.
         // This handles the edge case where a trainer had a session unlocked just before publish.
         // ReleaseAsync is idempotent — safe to call even if no lock exists.
+        // Only emit sessioneditlockchanged when ReleaseAsync returns true — emitting Stable
+        // for a session that had no lock would be spurious fan-out.
         var weekSessionIds = week.Sessions.Select(s => s.SessionId).ToList();
         foreach (var sessionId in weekSessionIds)
         {
-            await lockService.ReleaseAsync(sessionId, LockHolder.Coach, LockType.Editing, ct);
+            var released = await lockService.ReleaseAsync(sessionId, LockHolder.Coach, LockType.Editing, ct);
+
+            if (released)
+            {
+                var lockPayload = new SessionLockChangedPayload(
+                    plan.ExternalId,
+                    sessionId,
+                    "Stable",
+                    "Coach");
+
+                await notifier.NotifyAsync(plan.ClientId, "sessioneditlockchanged", lockPayload, ct);
+                await notifier.NotifyAsync(trainerId, "sessioneditlockchanged", lockPayload, ct);
+            }
         }
 
         // Notify the client about the published week

@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.TrainingPlans.PublishTrainingWeek;
 using FitnessPlatform.Tests.Builders;
@@ -16,6 +17,14 @@ namespace FitnessPlatform.Tests.Endpoints.TrainingPlans;
 public class PublishTrainingWeekEndpointTests
 {
     private readonly Guid _trainerId = Guid.NewGuid();
+
+    private static ISessionLockService StubLockService()
+    {
+        var svc = Substitute.For<ISessionLockService>();
+        svc.ReleaseAsync(Arg.Any<Guid>(), Arg.Any<LockHolder>(), Arg.Any<LockType>(),
+            Arg.Any<CancellationToken>()).Returns(false);
+        return svc;
+    }
 
     [Fact]
     public async Task HandleAsync_ValidPublish_Returns200()
@@ -33,7 +42,8 @@ public class PublishTrainingWeekEndpointTests
             mongo,
             new MockDbBuilder().Build(),
             Substitute.For<INotificationService>(),
-            Substitute.For<IRealtimeNotifier>());
+            Substitute.For<IRealtimeNotifier>(),
+            StubLockService());
 
         await ep.HandleAsync(new PublishTrainingWeekRequest
         {
@@ -60,7 +70,8 @@ public class PublishTrainingWeekEndpointTests
             mongo,
             new MockDbBuilder().Build(),
             Substitute.For<INotificationService>(),
-            Substitute.For<IRealtimeNotifier>());
+            Substitute.For<IRealtimeNotifier>(),
+            StubLockService());
 
         await ep.HandleAsync(new PublishTrainingWeekRequest
         {

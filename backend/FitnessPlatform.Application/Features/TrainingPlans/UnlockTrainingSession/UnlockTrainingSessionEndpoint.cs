@@ -16,11 +16,13 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.UnlockTrainingSessi
 /// Acquires an Editing lock on a published training session, allowing the trainer to edit it.
 /// Returns 409 if the session is currently in Live state (client is training).
 /// The ownership guard ensures only the plan's owning trainer may unlock.
+/// Emits <c>sessioneditlockchanged</c> (state=Editing) to both client and trainer on successful acquire.
 /// </summary>
 public class UnlockTrainingSessionEndpoint(
     IMongoContext mongo,
     ISessionLockService lockService,
-    IOptions<TrainingLockOptions> lockOptions)
+    IOptions<TrainingLockOptions> lockOptions,
+    IRealtimeNotifier notifier)
     : Endpoint<UnlockTrainingSessionRequest>
 {
     /// <inheritdoc />
@@ -87,10 +89,21 @@ public class UnlockTrainingSessionEndpoint(
         switch (result)
         {
             case AcquireResult.Acquired:
+                // Emit sessioneditlockchanged (state=Editing) to both parties on successful acquire.
+                var payload = new SessionLockChangedPayload(
+                    plan.ExternalId,
+                    req.SessionId,
+                    "Editing",
+                    "Coach");
+
+                await notifier.NotifyAsync(plan.ClientId, "sessioneditlockchanged", payload, ct);
+                await notifier.NotifyAsync(trainerId, "sessioneditlockchanged", payload, ct);
+
                 await Send.NoContentAsync(ct);
                 break;
 
             case AcquireResult.LockConflict:
+                // 409 conflict path — emit nothing; no state transition occurred.
                 // The session is currently locked — either Live (client training) or
                 // already in Editing by someone else. Both cases are 409 session_locked.
                 await this.SendProblemAsync(

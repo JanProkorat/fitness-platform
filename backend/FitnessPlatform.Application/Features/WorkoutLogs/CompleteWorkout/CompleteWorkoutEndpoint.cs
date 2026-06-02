@@ -18,14 +18,17 @@ namespace FitnessPlatform.Application.Features.WorkoutLogs.CompleteWorkout;
 /// calculations pick up the live workout alongside plan-driven completions.
 /// Also releases the <c>Live</c> session lock when the log is plan-bound
 /// (i.e. when the log carries a non-null <c>SessionId</c>).
+/// Emits <c>sessioneditlockchanged</c> (state=Stable) to both client and trainer when a lock is released.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="completionService">Shared workout completion pipeline (PR detection, fan-out, notification).</param>
 /// <param name="lockService">Session lock service — used to release the Live lock on finish.</param>
+/// <param name="notifier">Realtime notifier for SignalR fan-out.</param>
 public class CompleteWorkoutEndpoint(
     IMongoContext mongo,
     IWorkoutCompletionService completionService,
-    ISessionLockService lockService) : Endpoint<CompleteWorkoutRequest, WorkoutLogDetail>
+    ISessionLockService lockService,
+    IRealtimeNotifier notifier) : Endpoint<CompleteWorkoutRequest, WorkoutLogDetail>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -87,9 +90,31 @@ public class CompleteWorkoutEndpoint(
         // Ad-hoc workouts have no session, so no lock was acquired — skip silently.
         // ReleaseAsync is idempotent: returns false when the lock is already gone
         // (expired or already released), which is not an error.
+        // Only emit sessioneditlockchanged when ReleaseAsync returns true — emitting Stable
+        // for a session that had no lock would be spurious fan-out.
         if (log.SessionId.HasValue)
         {
-            await lockService.ReleaseAsync(log.SessionId.Value, LockHolder.Client, LockType.Live, ct);
+            var released = await lockService.ReleaseAsync(log.SessionId.Value, LockHolder.Client, LockType.Live, ct);
+
+            if (released && log.PlanId.HasValue)
+            {
+                // Resolve the trainer to fan out to. Load the plan by ExternalId.
+                var planFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, log.PlanId.Value);
+                using var planCursor = await mongo.TrainingPlans.FindAsync(planFilter, cancellationToken: ct);
+                var plan = await planCursor.FirstOrDefaultAsync(ct);
+
+                if (plan is not null)
+                {
+                    var payload = new SessionLockChangedPayload(
+                        log.PlanId.Value,
+                        log.SessionId.Value,
+                        "Stable",
+                        "Client");
+
+                    await notifier.NotifyAsync(clientId, "sessioneditlockchanged", payload, ct);
+                    await notifier.NotifyAsync(plan.TrainerId, "sessioneditlockchanged", payload, ct);
+                }
+            }
         }
 
         await Send.OkAsync(WorkoutLogDetail.FromDocument(log), ct);

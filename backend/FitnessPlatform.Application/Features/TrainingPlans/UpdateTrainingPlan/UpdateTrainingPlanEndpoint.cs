@@ -16,10 +16,13 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.UpdateTrainingPlan;
 /// Preserves per-week Status and DatePublished. Uses optimistic concurrency.
 /// For published sessions with content changes, an active Editing lock held by this trainer is required.
 /// Draft-week sessions are always editable without a lock.
+/// Emits <c>sessioneditlockchanged</c> (state=Stable) to both client and trainer for each diff-gated
+/// session whose Editing lock is auto-released after a successful save.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="lockService">Session lock service for diff-gate enforcement.</param>
-public class UpdateTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lockService)
+/// <param name="notifier">Realtime notifier for SignalR fan-out.</param>
+public class UpdateTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lockService, IRealtimeNotifier notifier)
     : Endpoint<UpdateTrainingPlanRequest, GetTrainingPlanResponse>
 {
     /// <inheritdoc />
@@ -306,9 +309,24 @@ public class UpdateTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService
 
         // Auto-release Editing locks for the changed sessions — ONLY after a successful save
         // (ModifiedCount > 0). A version-conflict loss must NOT release the lock.
+        // Only emit sessioneditlockchanged when ReleaseAsync returns true — emitting Stable
+        // for a session that had no lock would be spurious fan-out (the session may have been
+        // unlocked, saved, and already auto-released by a previous request).
         foreach (var sessionId in changedSessionIds)
         {
-            await lockService.ReleaseAsync(sessionId, LockHolder.Coach, LockType.Editing, ct);
+            var released = await lockService.ReleaseAsync(sessionId, LockHolder.Coach, LockType.Editing, ct);
+
+            if (released)
+            {
+                var payload = new SessionLockChangedPayload(
+                    plan.ExternalId,
+                    sessionId,
+                    "Stable",
+                    "Coach");
+
+                await notifier.NotifyAsync(plan.ClientId, "sessioneditlockchanged", payload, ct);
+                await notifier.NotifyAsync(trainerId, "sessioneditlockchanged", payload, ct);
+            }
         }
 
         await Send.OkAsync(GetTrainingPlanResponse.FromDocument(plan), ct);

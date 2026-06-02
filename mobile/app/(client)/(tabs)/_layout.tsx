@@ -250,6 +250,23 @@ export default function ClientTabLayout() {
         queryClient.invalidateQueries({ queryKey: ['personal-records-latest'] });
         queryClient.invalidateQueries({ queryKey: ['personal-records-all'] });
       }),
+      onEvent('sessioneditlockchanged', (raw: unknown) => {
+        const payload = raw as {
+          planId: string;
+          sessionId: string;
+          state: 'Stable' | 'Editing' | 'Live';
+          holder: 'Coach' | 'Client';
+        };
+        // Refresh the today training card so lock-state reads are current.
+        queryClient.invalidateQueries({ queryKey: ['today-training'] });
+        // Refresh the full training plan detail for the specific plan (same
+        // predicate pattern as trainingPlanPublished above).
+        queryClient.invalidateQueries({
+          predicate: (q) =>
+            q.queryKey[0] === 'training-full-plan' &&
+            q.queryKey[1] === payload.planId,
+        });
+      }),
     ];
 
     return () => {

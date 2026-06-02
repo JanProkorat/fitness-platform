@@ -13,10 +13,13 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.RelockTrainingSessi
 /// Releases the Editing lock on a training session, returning it to Stable state.
 /// Idempotent: if the lock is already gone (released, expired) this is a no-op success.
 /// Ownership guard: only the plan's owning trainer may relock.
+/// Emits <c>sessioneditlockchanged</c> (state=Stable) to both client and trainer when a lock is actually released.
+/// Only emits on a real state transition (ReleaseAsync returns true).
 /// </summary>
 public class RelockTrainingSessionEndpoint(
     IMongoContext mongo,
-    ISessionLockService lockService)
+    ISessionLockService lockService,
+    IRealtimeNotifier notifier)
     : Endpoint<RelockTrainingSessionRequest>
 {
     /// <inheritdoc />
@@ -70,11 +73,25 @@ public class RelockTrainingSessionEndpoint(
 
         // Release idempotently: ReleaseAsync returns false when no doc matched
         // (already released/expired), but that is still a success per the spec.
-        await lockService.ReleaseAsync(
+        // Only emit sessioneditlockchanged when ReleaseAsync returns true — emitting Stable
+        // for a session that had no lock would be spurious fan-out.
+        var released = await lockService.ReleaseAsync(
             sessionId: req.SessionId,
             holder: LockHolder.Coach,
             type: LockType.Editing,
             ct: ct);
+
+        if (released)
+        {
+            var payload = new SessionLockChangedPayload(
+                plan.ExternalId,
+                req.SessionId,
+                "Stable",
+                "Coach");
+
+            await notifier.NotifyAsync(plan.ClientId, "sessioneditlockchanged", payload, ct);
+            await notifier.NotifyAsync(trainerId, "sessioneditlockchanged", payload, ct);
+        }
 
         await Send.NoContentAsync(ct);
     }
