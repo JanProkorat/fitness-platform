@@ -250,8 +250,14 @@ export function AppShell() {
       // grid; here we also refresh the diary request status (InProgress count).
       const data = payload as { planId?: string } | undefined;
       if (data?.planId) {
+        // ['diary-requests', planId] — correct 2-element key; unchanged.
         queryClient.invalidateQueries({ queryKey: ['diary-requests', data.planId] });
-        queryClient.invalidateQueries({ queryKey: ['planPhotos', data.planId] });
+        // Key shape: ['planPhotos', clientId, planId] — planId lives at index 2.
+        // Use a predicate so we match regardless of clientId (not in the payload).
+        queryClient.invalidateQueries({
+          predicate: (q) =>
+            q.queryKey[0] === 'planPhotos' && q.queryKey[2] === data.planId,
+        });
       } else {
         queryClient.invalidateQueries({ queryKey: ['diary-requests'] });
         queryClient.invalidateQueries({ queryKey: ['planPhotos'] });
