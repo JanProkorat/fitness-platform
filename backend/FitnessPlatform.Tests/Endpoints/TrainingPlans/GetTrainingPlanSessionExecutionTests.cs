@@ -141,7 +141,8 @@ public class GetTrainingPlanSessionExecutionTests
         var ep = Factory.Create<GetTrainingPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo);
+            mongo,
+            TrainingPlanTestHelpers.CreateNoOpLockService());
 
         await ep.HandleAsync(
             new GetTrainingPlanRequest { PlanId = _planId },
@@ -320,7 +321,8 @@ public class GetTrainingPlanSessionExecutionTests
         var ep = Factory.Create<GetTrainingPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(otherTrainerId, AppRoles.Trainer))),
-            mongo);
+            mongo,
+            TrainingPlanTestHelpers.CreateNoOpLockService());
 
         await ep.HandleAsync(
             new GetTrainingPlanRequest { PlanId = _planId },
