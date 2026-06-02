@@ -21,24 +21,6 @@ public class UpdateTrainingPlanEndpointTests
 {
     private readonly Guid _trainerId = Guid.NewGuid();
 
-    /// <summary>
-    /// Computes the most recent past Monday relative to today (UTC).
-    /// If today is Monday it returns the Monday one week ago so the date is strictly in the past.
-    /// Handles Sunday correctly (DayOfWeek.Sunday = 0, which would otherwise produce a negative offset).
-    /// </summary>
-    private static DateTime LastMonday()
-    {
-        var today = DateTime.UtcNow.Date;
-        int dayNum = (int)today.DayOfWeek; // Sunday=0, Monday=1, ..., Saturday=6
-        int daysBack = dayNum switch
-        {
-            0 => 6, // Sunday: last Monday was 6 days ago
-            1 => 7, // Monday: last Monday was 7 days ago (not today)
-            _ => dayNum - 1  // Tue–Sat: subtract to reach Monday
-        };
-        return today.AddDays(-daysBack);
-    }
-
     private static ISessionLockService StubLockService()
     {
         var svc = Substitute.For<ISessionLockService>();
@@ -119,7 +101,7 @@ public class UpdateTrainingPlanEndpointTests
     {
         // Arrange: plan already saved with a start date that is now in the past.
         var planId = Guid.NewGuid();
-        var pastMonday = LastMonday();
+        var pastMonday = TrainingPlanTestHelpers.LastMonday();
         var plan = TrainingPlanTestHelpers.CreatePlan(
             externalId: planId, trainerId: _trainerId, weekCount: 1);
         plan.StartDate = DateTime.SpecifyKind(pastMonday, DateTimeKind.Utc);
@@ -165,7 +147,7 @@ public class UpdateTrainingPlanEndpointTests
             PlanId = planId,
             Name = "Plan",
             Version = 1,
-            StartDate = LastMonday(),
+            StartDate = TrainingPlanTestHelpers.LastMonday(),
             Weeks = [new UpdateTrainingWeekRequest { WeekNumber = 1, Sessions = [] }]
         };
 

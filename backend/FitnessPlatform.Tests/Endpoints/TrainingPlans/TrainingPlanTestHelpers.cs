@@ -175,6 +175,26 @@ public static class TrainingPlanTestHelpers
     }
 
     /// <summary>
+    /// Computes the most recent past Monday (UTC, date only).
+    /// If today is Monday it returns the Monday one week ago so the date is strictly in the past.
+    /// Handles Sunday correctly (DayOfWeek.Sunday = 0, which would otherwise produce a negative offset).
+    /// Use this whenever a test plan needs a Monday StartDate — avoids date-flaky test failures on
+    /// non-Monday CI runs where <c>DateTime.UtcNow.AddDays(-7)</c> may land on a non-Monday.
+    /// </summary>
+    public static DateTime LastMonday()
+    {
+        var today = DateTime.UtcNow.Date;
+        int dayNum = (int)today.DayOfWeek; // Sunday=0, Monday=1, ..., Saturday=6
+        int daysBack = dayNum switch
+        {
+            0 => 6, // Sunday: last Monday was 6 days ago
+            1 => 7, // Monday: use the Monday one week ago (not today)
+            _ => dayNum - 1  // Tue–Sat: subtract to reach Monday
+        };
+        return DateTime.SpecifyKind(today.AddDays(-daysBack), DateTimeKind.Utc);
+    }
+
+    /// <summary>
     /// Creates a no-op <see cref="ISessionLockService"/> that always returns an empty lock list.
     /// Use in tests that don't care about lock state.
     /// </summary>

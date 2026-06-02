@@ -93,7 +93,7 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
             TrainerId = trainerUserId,
             Name = "Legacy Diff-Gate Plan",
             Status = TrainingPlanStatus.Active,
-            StartDate = DateTime.UtcNow.AddDays(-7),
+            StartDate = TrainingPlanTestHelpers.LastMonday(),
             Version = 1,
             DateCreated = DateTime.UtcNow.AddDays(-14),
             Weeks =
@@ -165,7 +165,7 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
             TrainerId = trainerUserId,
             Name = "Section Diff-Gate Plan",
             Status = TrainingPlanStatus.Active,
-            StartDate = DateTime.UtcNow.AddDays(-7),
+            StartDate = TrainingPlanTestHelpers.LastMonday(),
             Version = 1,
             DateCreated = DateTime.UtcNow.AddDays(-14),
             Weeks =

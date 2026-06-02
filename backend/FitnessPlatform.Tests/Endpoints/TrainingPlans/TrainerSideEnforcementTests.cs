@@ -55,7 +55,7 @@ public class TrainerSideEnforcementTests
             TrainerId = tid,
             Name = "Test Plan",
             Status = TrainingPlanStatus.Active,
-            StartDate = DateTime.UtcNow.AddDays(-7),
+            StartDate = TrainingPlanTestHelpers.LastMonday(),
             Weeks =
             [
                 new TrainingWeek
