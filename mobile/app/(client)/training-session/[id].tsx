@@ -40,8 +40,10 @@ import { Radius } from '@/constants/radius'
 import { href } from '@/lib/navigation'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 
+import axios from 'axios'
 import { startWorkout, updateWorkout, completeWorkout } from '@/api/workouts'
 import type { UpdateWorkoutRequest } from '@/api/workouts'
+import { Toast } from '@/lib/toast'
 import type {
   SessionExercise,
   ExerciseSet,
@@ -2301,7 +2303,18 @@ export default function WorkoutLogScreen() {
         })
         const newLogId = resp.logId ?? null
         if (newLogId) setLoadedLogId(newLogId)
-      } catch {
+      } catch (err) {
+        // AC (b): 409 with error_code "session_locked" → toast, not generic alert.
+        // The banner (SessionEditingBanner) is a cosmetic warning; the 409 is the
+        // authoritative gate — a trainer finished editing between banner render and tap.
+        if (
+          axios.isAxiosError(err) &&
+          err.response?.status === 409 &&
+          (err.response.data as { error_code?: string } | undefined)?.error_code === 'session_locked'
+        ) {
+          Toast.show(t('training.sessionEditing.startBlockedToast'))
+          return
+        }
         Alert.alert(t('common.error'), t('training.startError'))
       }
     }
