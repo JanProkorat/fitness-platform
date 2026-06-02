@@ -35,6 +35,14 @@ interface PlanPhotosTabProps {
    * Sourced from the client-list or client-dashboard API response.
    */
   linkId?: number | null;
+  /**
+   * When false, the Food category chip is hidden from the filter row.
+   * Use for training plans where food photos are not relevant.
+   * Defaults to true (Food chip shown) so NutritionPlanPage needs no change.
+   * Note: the "All" chip is always shown and continues to include any
+   * Food-categorised photos already on the plan (orphan-photo safety).
+   */
+  allowFoodCategory?: boolean;
 }
 
 // Sentinel for the dedicated diaries tab — sits in the same chip row as the
@@ -53,7 +61,7 @@ const CATEGORIES: Array<{ key: PlanPhotoCategory | null; labelKey: string }> = [
 
 const PAGE_SIZE = 60;
 
-export function PlanPhotosTab({ planId, clientId, clientName, linkId }: PlanPhotosTabProps) {
+export function PlanPhotosTab({ planId, clientId, clientName, linkId, allowFoodCategory = true }: PlanPhotosTabProps) {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<ActiveTab>(null);
   const isDiariesTab = activeTab === 'Diaries';
@@ -61,6 +69,13 @@ export function PlanPhotosTab({ planId, clientId, clientName, linkId }: PlanPhot
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [diaryDialogOpen, setDiaryDialogOpen] = useState(false);
+
+  // Filter out the Food chip when the caller explicitly disallows it
+  // (training plans). The "All" entry (key: null) is always kept so orphan
+  // Food-categorised photos remain reachable under All.
+  const visibleCategories = allowFoodCategory
+    ? CATEGORIES
+    : CATEGORIES.filter((c) => c.key !== PlanPhotoCategory.Food);
 
   const resolvedClientName = clientName ?? '';
   const clientInitials = resolvedClientName
@@ -136,7 +151,7 @@ export function PlanPhotosTab({ planId, clientId, clientName, linkId }: PlanPhot
           when the CTA toggles in / out — `h-12` is enough headroom for any
           chip-button height regardless of glyph metrics. */}
       <div className="shrink-0 flex items-center gap-1 px-4 h-12 border-b border-border">
-        {CATEGORIES.map(({ key, labelKey }) => {
+        {visibleCategories.map(({ key, labelKey }) => {
           const isActive = !isDiariesTab && activeCategory === key;
           const count = counts[key === null ? 'All' : key] ?? 0;
           return (

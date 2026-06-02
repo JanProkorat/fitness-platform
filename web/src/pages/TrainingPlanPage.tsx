@@ -731,6 +731,7 @@ export default function TrainingPlanPage() {
             clientId={plan.clientId}
             clientName={clientName ?? undefined}
             linkId={clientEntry?.linkId}
+            allowFoodCategory={false}
           />
         </div>
       )}
