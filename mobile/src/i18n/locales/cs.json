@@ -984,6 +984,7 @@
       "amrapExerciseDone": "Hotovo {{rounds}}× · {{total}} opak."
     },
     "photoCta": "Foto",
+    "sessionPhotoA11y": "Přidat fotku tréninku",
     "sessions": {
       "reminder": {
         "toggleLabel": "Připomenutí",

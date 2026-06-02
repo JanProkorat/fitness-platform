@@ -143,6 +143,14 @@ interface TrainingCardProps {
    * Sourced from GetTodaySessionResponse.lockStateBySession (#382).
    */
   lockStateBySession?: Record<string, string>
+  /**
+   * Called when the user taps the camera icon on a session card header.
+   * Passed down through SessionSectionList to ExpandableSessionCard.
+   * When absent, no camera button is rendered on the session card.
+   * HasTrainerState supplies this to navigate to plan-photos-upload for the
+   * training plan (plan-level, v1 — session-level linkage is a future enhancement).
+   */
+  onSessionPhotoPress?: () => void
 }
 
 // ─── formatSets ───────────────────────────────────────────────────────────────
@@ -265,6 +273,7 @@ export function TrainingCard({
   onMarkAllTrainingDone,
   isMarkAllTrainingLoading,
   lockStateBySession = {},
+  onSessionPhotoPress,
 }: TrainingCardProps) {
   const colors = useTheme()
   const { t } = useTranslation()
@@ -459,6 +468,7 @@ export function TrainingCard({
               onToggleExercises={onToggleExercises}
               onToggleSection={onToggleSection}
               onSessionCta={onSessionCta}
+              onSessionPhotoPress={onSessionPhotoPress}
               t={t}
             />
           )
@@ -534,6 +544,12 @@ interface SessionSectionListProps {
   onToggleExercises?: (sessionId: string, sectionId: string, exerciseIds: string[], complete: boolean) => void
   onToggleSection?: (sessionId: string, sectionId: string) => void
   onSessionCta?: (session: TrainingSession, state: SessionCtaState) => void
+  /**
+   * When provided, a camera button is rendered in the session card header.
+   * Passed through to ExpandableSessionCard's `onPhotoPress` prop.
+   * HasTrainerState supplies this to navigate to plan-photos-upload (training plan).
+   */
+  onSessionPhotoPress?: () => void
   t: (key: string, opts?: Record<string, unknown>) => string
 }
 
@@ -561,6 +577,7 @@ function SessionSectionList({
   onToggleExercises,
   onToggleSection,
   onSessionCta,
+  onSessionPhotoPress,
   t,
 }: SessionSectionListProps) {
   const colors = useTheme()
@@ -578,23 +595,6 @@ function SessionSectionList({
     setExpandedSections((prev) => ({ ...prev, [sectionKey]: !prev[sectionKey] }))
   }, [])
 
-  // Session-header progress is by workouts (sections), not exercises.
-  // A workout counts as finished when:
-  //   - it has trackable exercises AND every one is in that section's per-section
-  //     completed set (uses `sectionCompletionMap` to avoid cross-section bleed), OR
-  //   - it has no trackable exercises (e.g. ForTime "Running") AND its
-  //     sectionId is in `completedSectionIds`.
-  const totalWorkouts = sections.length
-  const completedWorkouts = sections.filter((sec) => {
-    const trackable = (sec.exercises ?? []).filter((e) => e.exerciseExternalId != null)
-    if (trackable.length > 0) {
-      const sectionCompletedIds =
-        sec.sectionId != null ? (sectionCompletionMap.get(sec.sectionId) ?? new Set<string>()) : new Set<string>()
-      return trackable.every((e) => sectionCompletedIds.has(e.exerciseExternalId!))
-    }
-    return sec.sectionId != null && completedSectionIds.has(sec.sectionId)
-  }).length
-
   return (
             <ExpandableSessionCard
               key={sessionId}
@@ -602,9 +602,8 @@ function SessionSectionList({
               isFirst={isFirst}
               name={name}
               summaryText={summaryText}
-              completedCount={completedWorkouts}
-              totalCount={totalWorkouts}
               headerRight={sessionCheckbox}
+              onPhotoPress={onSessionPhotoPress}
             >
               {/* Section-grouped exercise cards */}
               {sections.map((section, sectionIdx) => {

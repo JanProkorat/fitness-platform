@@ -6,8 +6,10 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
 } from 'react-native-reanimated'
+import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
 import { type ColorScheme } from '@/constants/colors'
+import { goldAlpha } from '@/constants/colors'
 import { Type, interFamily } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
 import {
@@ -63,8 +65,6 @@ interface ExpandableSessionCardProps {
   name: string
   /** Short descriptor e.g. "4 cviky · 45 min" */
   summaryText: string
-  completedCount: number
-  totalCount: number
   /**
    * Hour component (0–23) of the session's scheduled start time.
    * Used to pick a time-of-day accent color for the left bar and expanded
@@ -87,7 +87,7 @@ interface ExpandableSessionCardProps {
   isFirst?: boolean
   /**
    * Optional node injected at the right side of the header row, between the
-   * progress pill and the chevron. Use this to render a session-level checkbox.
+   * camera button and the chevron. Use this to render a session-level checkbox.
    * Tapping the injected element should call `event.stopPropagation()` so it
    * does NOT collapse/expand the card.
    */
@@ -107,6 +107,16 @@ interface ExpandableSessionCardProps {
    * screen (no chrome, hairline top divider between siblings).
    */
   standalone?: boolean
+  /**
+   * When provided, renders a camera icon button in the header slot where the
+   * progress pill previously appeared. The button fires `onPhotoPress` without
+   * collapsing/expanding the card (uses `e.stopPropagation()`).
+   *
+   * When absent (e.g. plan-detail screen renders `ExpandableSessionCard`
+   * directly with no photo handler), no camera button is rendered — keeping
+   * the plan-detail path unchanged.
+   */
+  onPhotoPress?: () => void
   children: React.ReactNode
 }
 
@@ -123,8 +133,6 @@ interface ExpandableSessionCardProps {
 export function ExpandableSessionCard({
   name,
   summaryText,
-  completedCount,
-  totalCount,
   startHour,
   index = 0,
   defaultExpanded = false,
@@ -133,8 +141,10 @@ export function ExpandableSessionCard({
   standalone = false,
   children,
   bodyFooter,
+  onPhotoPress,
 }: ExpandableSessionCardProps) {
   const colors = useTheme()
+  const { t } = useTranslation()
   const [isOpen, setIsOpen] = useState(defaultExpanded)
   const chevronProgress = useSharedValue(defaultExpanded ? 1 : 0)
 
@@ -152,10 +162,6 @@ export function ExpandableSessionCard({
       return next
     })
   }, [chevronProgress])
-
-  const allDone = totalCount > 0 && completedCount === totalCount
-  const pillColor = allDone ? colors.green : colors.label2
-  const pillBg = allDone ? colors.green + '1E' : colors.fill
 
   // Left-bar accent color — derived from session start hour, matches prototype kind palette.
   const kindColor = sessionKindColor(startHour, colors, index)
@@ -200,12 +206,30 @@ export function ExpandableSessionCard({
           </Text>
         </View>
 
-        {/* Done/total pill */}
-        <View style={[styles.progressPill, { backgroundColor: pillBg }]}>
-          <Text style={[Type.caption1, { color: pillColor, fontFamily: interFamily('600'), fontWeight: '600' }]}>
-            {completedCount}/{totalCount}
-          </Text>
-        </View>
+        {/* Camera button — only rendered when onPhotoPress is provided.
+            Mirrors MealRow's CameraButton: goldAlpha circle, Ionicons camera,
+            stopPropagation so it doesn't toggle the card expand/collapse.
+            Absent on plan-detail screen (no prop passed) — that path unchanged. */}
+        {onPhotoPress != null && (
+          <Pressable
+            onPress={(e) => {
+              e.stopPropagation?.()
+              onPhotoPress()
+            }}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={t('training.sessionPhotoA11y')}
+            style={[
+              styles.cameraBtn,
+              {
+                backgroundColor: goldAlpha['12'],
+                borderColor: goldAlpha['35'],
+              },
+            ]}
+          >
+            <Ionicons name="camera" size={15} color={colors.onGoldChip} />
+          </Pressable>
+        )}
 
         {/* Optional header-right slot (e.g. session-level checkbox).
             Rendered directly — all three levels now use the same 24×24 checkbox
@@ -283,10 +307,17 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
-  progressPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 99,
+  /**
+   * Gold-tinted circular camera button — mirrors MealRow's cameraBtn style.
+   * 28×28 to match the prototype spec exactly.
+   */
+  cameraBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
     flexShrink: 0,
   },
   chevron: {

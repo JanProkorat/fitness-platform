@@ -952,6 +952,7 @@
       "amrapExerciseDone": "{{rounds}}× erledigt · {{total}} Wdh."
     },
     "photoCta": "Foto",
+    "sessionPhotoA11y": "Trainingsfoto hinzufügen",
     "sessions": {
       "reminder": {
         "toggleLabel": "Erinnerung",
