@@ -830,7 +830,7 @@ function NutritionPlanDetail({ plan }: { plan: FullPlanResponse }) {
             style={styles.menuRow}
             onPress={() =>
               selectMenuItem(() =>
-                router.push(hrefParams('/(client)/plan-photos', { planId: plan.planId ?? '' })),
+                router.push(hrefParams('/(client)/plan-photos', { planId: plan.planId ?? '', planType: 'nutrition' })),
               )
             }
           >
@@ -1163,7 +1163,7 @@ function TrainingPlanDetail({ plan }: { plan: GetFullTrainingPlanResponse }) {
 
         {planId ? (
           <Pressable
-            onPress={() => router.push(hrefParams('/(client)/plan-photos', { planId }))}
+            onPress={() => router.push(hrefParams('/(client)/plan-photos', { planId, planType: 'training' }))}
             hitSlop={12}
             style={[styles.nutritionMenuBtn, { backgroundColor: colors.fill }]}
             accessibilityRole="button"

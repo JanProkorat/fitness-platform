@@ -1130,16 +1130,16 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
     markAllTrainingDoneMutation.mutate()
   }, [todaySessions, sessionCompleteMap, markAllTrainingDoneMutation])
 
-  /** Navigate to the plan-photos gallery screen. */
+  /** Navigate to the plan-photos gallery screen (nutrition plan). */
   const handlePhotoGridPress = useCallback(() => {
     if (!plan?.planId) return
-    router.push(hrefParams('/(client)/plan-photos', { planId: plan.planId }))
+    router.push(hrefParams('/(client)/plan-photos', { planId: plan.planId, planType: 'nutrition' }))
   }, [router, plan?.planId])
 
-  /** Navigate to the training plan-photos gallery screen. */
+  /** Navigate to the training plan-photos gallery screen (training plan). */
   const handleTrainingPhotoGridPress = useCallback(() => {
     if (!training?.planId) return
-    router.push(hrefParams('/(client)/plan-photos', { planId: training.planId }))
+    router.push(hrefParams('/(client)/plan-photos', { planId: training.planId, planType: 'training' }))
   }, [router, training?.planId])
 
   /** Navigate to the meal-log-photo modal screen for the tapped meal. */
