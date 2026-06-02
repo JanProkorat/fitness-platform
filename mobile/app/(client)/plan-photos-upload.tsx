@@ -131,7 +131,9 @@ export default function PlanPhotosUploadScreen() {
   const queryClient = useQueryClient()
   const { width } = useWindowDimensions()
 
-  const { planId } = useLocalSearchParams<{ planId: string }>()
+  const { planId, planType } = useLocalSearchParams<{ planId: string; planType?: string }>()
+  // On training plans, Food is not a valid upload category. Default stays Free.
+  const isTrainingPlan = planType === 'training'
 
   const [photos, dispatch] = useReducer(photosReducer, [])
   const [picking, setPicking] = useState(false)
@@ -348,8 +350,10 @@ export default function PlanPhotosUploadScreen() {
   const GAP = 10
   const tileWidth = (width - MARGIN * 2 - GAP) / 2
 
+  // On training plans, Food is omitted from the selector — it is a nutrition-only
+  // category. The default category 'Free' is always available on both plan types.
   const categoryChips: { key: UiCategory; label: string }[] = [
-    { key: 'Food', label: t('planPhotos.categoryFood') },
+    ...(!isTrainingPlan ? [{ key: 'Food' as UiCategory, label: t('planPhotos.categoryFood') }] : []),
     { key: 'Progress', label: t('planPhotos.categoryProgress') },
     { key: 'Free', label: t('planPhotos.categoryFree') },
   ]

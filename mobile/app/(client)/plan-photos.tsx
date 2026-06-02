@@ -86,7 +86,11 @@ export default function PlanPhotosScreen() {
   const { width } = useWindowDimensions()
 
   // planId is required — passed by plans/[planId].tsx via hrefParams.
-  const { planId } = useLocalSearchParams<{ planId: string }>()
+  // planType determines which category chips are shown:
+  //   'training' → Food chip omitted (Food is irrelevant for training plans).
+  //   'nutrition' (or absent) → all four chips shown (backward-safe default).
+  const { planId, planType } = useLocalSearchParams<{ planId: string; planType?: string }>()
+  const isTrainingPlan = planType === 'training'
 
   // ── Active category filter ('All' shows everything) ──
   const [activeFilter, setActiveFilter] = useState<FilterCategory>('All')
@@ -157,8 +161,10 @@ export default function PlanPhotosScreen() {
   // listens for via the SignalR hook above plus its own staleTime.
   const handleFabPress = useCallback(() => {
     if (!planId) return
-    router.push(hrefParams('/(client)/plan-photos-upload', { planId }))
-  }, [planId, router])
+    const params: Record<string, string> = { planId }
+    if (planType) params.planType = planType
+    router.push(hrefParams('/(client)/plan-photos-upload', params))
+  }, [planId, planType, router])
 
   const handleTilePress = useCallback((index: number) => {
     setLightboxIndex(index)
@@ -247,11 +253,14 @@ export default function PlanPhotosScreen() {
       </View>
 
       {/* ── Category filter chips ── */}
+      {/* On training plans the Food chip is omitted — Food is a nutrition-only
+          category. The 'All' tab still includes any pre-existing Food-categorised
+          photos (orphan-photo safety; the All count is unchanged). */}
       <View style={styles.chipsRow}>
         {(
           [
             { key: 'All', label: t('planPhotos.categoryAll'), count: allPhotos.length },
-            { key: 'Food', label: t('planPhotos.categoryFood'), count: foodCount },
+            ...(!isTrainingPlan ? [{ key: 'Food' as FilterCategory, label: t('planPhotos.categoryFood'), count: foodCount }] : []),
             { key: 'Progress', label: t('planPhotos.categoryProgress'), count: progressCount },
             { key: 'Free', label: t('planPhotos.categoryFree'), count: freeCount },
           ] as { key: FilterCategory; label: string; count: number }[]
