@@ -30,6 +30,7 @@ import {
   type FullPlanResponse,
 } from '@/api/nutrition'
 import { getTodaySession, type TodayTrainingResponse, type TrainingSession } from '@/api/training'
+// NOTE: TodayTrainingResponse is augmented in training.ts to include lockStateBySession.
 import {
   markExerciseComplete,
   markExerciseIncomplete,
@@ -1307,6 +1308,7 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
               lockedSessionIds={lockedSessionIds}
               exerciseMuscleGroups={training?.exerciseMuscleGroups ?? {}}
               completedSetsBySessionExercise={trainingQuery.data?.completedSetsBySessionExercise ?? {}}
+              lockStateBySession={trainingQuery.data?.lockStateBySession ?? {}}
               onMarkAllTrainingDone={handleMarkAllTrainingDone}
               isMarkAllTrainingLoading={markAllTrainingDoneMutation.isPending}
             />

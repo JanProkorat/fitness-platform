@@ -1020,6 +1020,10 @@
       "sectionOf": "Sekce {{current}} ze {{total}}",
       "sectionActionDetail": "Detail",
       "completeA11y": "Označit celou sekci jako hotovou"
+    },
+    "sessionEditing": {
+      "bannerMessage": "Trenér právě upravuje tento trénink — potvrďte, než začnete.",
+      "startBlockedToast": "Trenér ještě nedokončil úpravy. Chvíli počkejte a zkuste to znovu."
     }
   },
   "muscleGroup": {

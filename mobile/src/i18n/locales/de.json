@@ -981,6 +981,10 @@
       "sectionOf": "Abschnitt {{current}} von {{total}}",
       "sectionActionDetail": "Detail",
       "completeA11y": "Gesamten Abschnitt als erledigt markieren"
+    },
+    "sessionEditing": {
+      "bannerMessage": "Dein Trainer aktualisiert gerade diese Einheit — bitte bestätige vor dem Start.",
+      "startBlockedToast": "Dein Trainer hat die Bearbeitung noch nicht abgeschlossen. Bitte warte einen Moment und versuche es erneut."
     }
   },
   "muscleGroup": {

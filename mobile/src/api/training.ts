@@ -53,9 +53,19 @@ export type SectionDto = Omit<GeneratedSectionDto, 'exercises'> & {
  * Augmented SessionDto — propagates SectionDto augmentation so
  * `response.weeks[i].sessions[j].sections[k].formatConfig` is typed correctly
  * without per-call casts.
+ * Also adds `lockState` which the backend (#382) now includes in GetFullTrainingPlan
+ * responses. Drop once regen produces this field natively.
  */
 export type SessionDto = Omit<GeneratedSessionDto, 'sections'> & {
   sections?: SectionDto[];
+  /**
+   * Session edit-lock state from the backend.
+   * "Stable"  — no active lock; normal operation.
+   * "Editing" — a trainer currently holds the edit lock; banner should be shown.
+   * "Live"    — the client's own live session is in progress; no banner.
+   * Defaults to "Stable" when the field is absent (pre-#382 response shape).
+   */
+  lockState?: string;
 };
 
 /**
@@ -91,9 +101,15 @@ export type {
 } from './wod-types';
 
 /**
- * @deprecated Use `GetTodaySessionResponse` from generated. Kept as alias for backward compatibility.
+ * Augmented GetTodaySessionResponse — adds `lockStateBySession` which the
+ * backend (#382) now includes. Drop once regen produces this field natively.
+ *
+ * Key: sessionId (string UUID). Value: lock state string ("Stable", "Editing", "Live").
+ * Missing key → treat as "Stable".
  */
-export type TodayTrainingResponse = GetTodaySessionResponse;
+export type TodayTrainingResponse = GetTodaySessionResponse & {
+  lockStateBySession?: Record<string, string>;
+};
 
 /**
  * @deprecated Use `GetFullTrainingPlanResponse` from generated. Kept as alias for backward compatibility.
