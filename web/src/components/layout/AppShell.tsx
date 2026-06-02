@@ -207,9 +207,14 @@ export function AppShell() {
       const data = payload as { planId?: string } | undefined;
       const planId = data?.planId;
       if (planId) {
-        queryClient.invalidateQueries({ queryKey: ['planPhotos', planId] });
+        // Key shape: ['planPhotos', clientId, planId] — planId lives at index 2.
+        // Use a predicate so we match regardless of clientId (not in the payload).
+        queryClient.invalidateQueries({
+          predicate: (q) =>
+            q.queryKey[0] === 'planPhotos' && q.queryKey[2] === planId,
+        });
       } else {
-        // Broad invalidation if planId is missing
+        // Broad invalidation if planId is missing from the payload
         queryClient.invalidateQueries({ queryKey: ['planPhotos'] });
       }
     },
