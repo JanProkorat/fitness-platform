@@ -23,6 +23,9 @@
  */
 export type SessionLockState = 'Stable' | 'Editing' | 'Live';
 
+/** Role of the party holding (or that released) the lock. */
+export type LockHolderRole = 'Coach' | 'Client';
+
 export interface SessionEditLockChangedEvent {
   /** Training plan public identifier (MongoDB planId). */
   planId: string;
@@ -34,10 +37,12 @@ export interface SessionEditLockChangedEvent {
   state: SessionLockState;
 
   /**
-   * Public identifier of the user who holds the lock.
-   * null when state = "Stable" (no holder).
+   * Role of the party that triggered the transition — "Coach" when a trainer
+   * acquired/released the lock, "Client" when a client started/finished a
+   * workout. Always non-null (the backend `string Holder` is never omitted),
+   * including on Stable/release events where it names who released.
    */
-  holder: string | null;
+  holder: LockHolderRole;
 }
 
 /**
@@ -55,6 +60,6 @@ export function isSessionEditLockChangedEvent(
     typeof p.planId === 'string' &&
     typeof p.sessionId === 'string' &&
     (p.state === 'Stable' || p.state === 'Editing' || p.state === 'Live') &&
-    (p.holder === null || typeof p.holder === 'string')
+    (p.holder === 'Coach' || p.holder === 'Client')
   );
 }
