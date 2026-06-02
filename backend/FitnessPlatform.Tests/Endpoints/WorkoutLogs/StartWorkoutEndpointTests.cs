@@ -3,11 +3,14 @@ using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.WorkoutLogs.StartWorkout;
+using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
@@ -41,12 +44,25 @@ public class StartWorkoutEndpointTests
         return svc;
     }
 
-    private StartWorkoutEndpoint CreateEndpointWithUser(IMongoContext mongo, ISessionLockService lockService)
+    /// <summary>
+    /// Builds a mock IApplicationDbContext containing a ClientProfile for _clientId
+    /// with PublicId = _clientId (test shortcut — makes plan.ClientId = _clientId still match).
+    /// </summary>
+    private IApplicationDbContext CreateDbWithProfile() =>
+        new MockDbBuilder()
+            .With(new ClientProfile { Id = 1, UserId = _clientId, PublicId = _clientId })
+            .Build();
+
+    private StartWorkoutEndpoint CreateEndpointWithUser(
+        IMongoContext mongo,
+        ISessionLockService lockService,
+        IApplicationDbContext? db = null)
     {
+        var dbContext = db ?? CreateDbWithProfile();
         return Factory.Create<StartWorkoutEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, lockService, LockOptions, Substitute.For<IRealtimeNotifier>());
+            mongo, dbContext, lockService, LockOptions, Substitute.For<IRealtimeNotifier>());
     }
 
     [Fact]
@@ -71,8 +87,10 @@ public class StartWorkoutEndpointTests
     public async Task HandleAsync_NoClaims_Returns401()
     {
         var mongo = WorkoutLogTestHelpers.CreateMockMongo();
+        // No user claims — endpoint returns 401 before any db/lock lookup.
         var ep = Factory.Create<StartWorkoutEndpoint>(
-            mongo, CreateNoOpLockService(), LockOptions, Substitute.For<IRealtimeNotifier>());
+            mongo, Substitute.For<IApplicationDbContext>(), CreateNoOpLockService(),
+            LockOptions, Substitute.For<IRealtimeNotifier>());
 
         await ep.HandleAsync(new StartWorkoutRequest(), TestContext.Current.CancellationToken);
 
@@ -109,15 +127,15 @@ public class StartWorkoutEndpointTests
     [Fact]
     public async Task HandleAsync_PlanBelongsToAnotherClient_Returns403()
     {
-        // Plan exists but its ClientId does not match the authenticated user → 403, no log created.
+        // Plan exists but its ClientId does not match the authenticated client's ProfilePublicId → 403.
         var planId = Guid.NewGuid();
         var sessionId = Guid.NewGuid();
-        var differentClientId = Guid.NewGuid(); // plan belongs to someone else
+        var differentProfileId = Guid.NewGuid(); // plan belongs to someone else's profile
 
         var plan = new TrainingPlan
         {
             ExternalId = planId,
-            ClientId = differentClientId, // NOT _clientId
+            ClientId = differentProfileId, // NOT the caller's ProfilePublicId (_clientId)
             TrainerId = Guid.NewGuid(),
             Name = "Other Client Plan",
             Status = TrainingPlanStatus.Active,

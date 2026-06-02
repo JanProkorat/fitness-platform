@@ -3,11 +3,14 @@ using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.WorkoutLogs.CompleteWorkout;
 using FitnessPlatform.Application.Features.WorkoutLogs.StartWorkout;
+using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Services;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints;
 using Microsoft.Extensions.Options;
 using NSubstitute;
@@ -49,6 +52,15 @@ public class SessionLockBroadcastWorkoutTests
             Version = 1,
             DateCreated = DateTime.UtcNow
         };
+
+    /// <summary>
+    /// Builds a mock IApplicationDbContext with a ClientProfile for _clientId.
+    /// PublicId = _clientId (test shortcut — plan.ClientId uses _clientId so it still matches).
+    /// </summary>
+    private IApplicationDbContext CreateDbWithProfile() =>
+        new MockDbBuilder()
+            .With(new ClientProfile { Id = 1, UserId = _clientId, PublicId = _clientId })
+            .Build();
 
     private ISessionLockService AcquiredLiveService()
     {
@@ -104,7 +116,7 @@ public class SessionLockBroadcastWorkoutTests
         var ep = Factory.Create<StartWorkoutEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, lockService, LockOptions, notifier);
+            mongo, CreateDbWithProfile(), lockService, LockOptions, notifier);
 
         // Act
         await ep.HandleAsync(
@@ -157,7 +169,7 @@ public class SessionLockBroadcastWorkoutTests
         var ep = Factory.Create<StartWorkoutEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, lockService, LockOptions, notifier);
+            mongo, CreateDbWithProfile(), lockService, LockOptions, notifier);
 
         // Act
         await ep.HandleAsync(
@@ -187,9 +199,9 @@ public class SessionLockBroadcastWorkoutTests
         var ep = Factory.Create<StartWorkoutEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, lockService, LockOptions, notifier);
+            mongo, Substitute.For<IApplicationDbContext>(), lockService, LockOptions, notifier);
 
-        // Act — ad-hoc workout (no PlanId, no SessionId)
+        // Act — ad-hoc workout (no PlanId, no SessionId) — db is never queried on ad-hoc path
         await ep.HandleAsync(new StartWorkoutRequest(), TestContext.Current.CancellationToken);
 
         // Assert — 201 and no lock-change notifications
