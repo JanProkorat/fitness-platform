@@ -730,6 +730,7 @@
       "amrapExerciseDone": "Done {{rounds}}× · {{total}} reps"
     },
     "photoCta": "Photo",
+    "sessionPhotoA11y": "Add training photo",
     "sessions": {
       "reminder": {
         "toggleLabel": "Reminder",

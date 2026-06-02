@@ -1142,6 +1142,12 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
     router.push(hrefParams('/(client)/plan-photos', { planId: training.planId, planType: 'training' }))
   }, [router, training?.planId])
 
+  /** Navigate to the training plan-photos upload screen from the session card camera button. */
+  const handleSessionPhotoPress = useCallback(() => {
+    if (!training?.planId) return
+    router.push(hrefParams('/(client)/plan-photos-upload', { planId: training.planId, planType: 'training' }))
+  }, [router, training?.planId])
+
   /** Navigate to the meal-log-photo modal screen for the tapped meal. */
   const handlePhotoPress = useCallback(
     (mealId: string) => {
@@ -1311,6 +1317,7 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
               lockStateBySession={trainingQuery.data?.lockStateBySession ?? {}}
               onMarkAllTrainingDone={handleMarkAllTrainingDone}
               isMarkAllTrainingLoading={markAllTrainingDoneMutation.isPending}
+              onSessionPhotoPress={handleSessionPhotoPress}
             />
           </View>
         ) : hasActivePlanButNoTrainingToday ? (

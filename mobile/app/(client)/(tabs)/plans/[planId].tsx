@@ -1377,15 +1377,6 @@ function TrainingPlanDetail({ plan }: { plan: GetFullTrainingPlanResponse }) {
                     summaryParts.push(t('training.workoutUntimedCount', { count: untimedCount }))
                   }
 
-                  // Session pill: count workouts (sections), not exercises.
-                  // Uses section.isCompleted from the backend (#260 fix) so
-                  // empty-exercise sections are counted correctly via
-                  // TrainingCompletion.CompletedSectionIds.
-                  const totalWorkouts = sections.length
-                  const completedWorkouts = sections.filter(
-                    (sec) => sec.isCompleted === true,
-                  ).length
-
                   // Read-only session completion indicator for headerRight.
                   // A session is complete IFF every section (workout) within it
                   // is complete. Empty-exercise sections are flagged complete by
@@ -1419,8 +1410,6 @@ function TrainingPlanDetail({ plan }: { plan: GetFullTrainingPlanResponse }) {
                       key={session.sessionId ?? index}
                       name={session.name ?? ''}
                       summaryText={summaryParts.join(' · ')}
-                      completedCount={completedWorkouts}
-                      totalCount={totalWorkouts}
                       defaultExpanded={isSessionExpanded}
                       standalone
                       headerRight={sessionCheckIndicator}
