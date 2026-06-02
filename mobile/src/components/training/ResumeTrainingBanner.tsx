@@ -5,6 +5,7 @@ import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
 import { useTranslation } from 'react-i18next'
 import { useLiveSessionStore } from '@/stores/liveSessionStore'
+import { abandonWorkout } from '@/api/workouts'
 
 interface ResumeTrainingBannerProps {
   /** Exercise name at the current position in the session */
@@ -27,6 +28,7 @@ export function ResumeTrainingBanner({
   const colors = useTheme()
   const { t } = useTranslation()
   const discard = useLiveSessionStore((s) => s.discard)
+  const activeLogId = useLiveSessionStore((s) => s.activeLogId)
 
   const handleDiscard = useCallback(() => {
     Alert.alert(
@@ -37,11 +39,21 @@ export function ResumeTrainingBanner({
         {
           text: t('training.live.discardConfirm'),
           style: 'destructive',
-          onPress: () => discard(),
+          onPress: () => {
+            // Release the Live lock on the backend before clearing local state.
+            // Best-effort: if the call fails we still discard locally so the user
+            // is never trapped. The server-side TTL (6h) cleans up orphaned locks.
+            if (activeLogId) {
+              void abandonWorkout(activeLogId).catch((err: unknown) => {
+                console.warn('[ResumeTrainingBanner] abandonWorkout failed', err)
+              })
+            }
+            discard()
+          },
         },
       ],
     )
-  }, [t, discard])
+  }, [t, discard, activeLogId])
 
   return (
     <View

@@ -164,7 +164,7 @@ export class ApiClient {
     }
 
     /**
-     * Start a workout
+     * Start a workout (create draft log)
      * @return Success
      */
     startWorkoutEndpoint(startWorkoutRequest: StartWorkoutRequest, signal?: AbortSignal): Promise<StartWorkoutResponse> {
@@ -298,6 +298,78 @@ export class ApiClient {
     }
 
     /**
+     * Go live with a workout
+     * @param logId The external ID of the workout log to go live with.
+    Bound from the route segment {logId}.
+     * @return Success
+     */
+    goLiveEndpoint(logId: string, signal?: AbortSignal): Promise<GoLiveResponse> {
+        let url_ = this.baseUrl + "/client/training/logs/{logId}/go-live";
+        if (logId === undefined || logId === null)
+            throw new globalThis.Error("The parameter 'logId' must be defined.");
+        url_ = url_.replace("{logId}", encodeURIComponent("" + logId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGoLiveEndpoint(_response);
+        });
+    }
+
+    protected processGoLiveEndpoint(response: AxiosResponse): Promise<GoLiveResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GoLiveResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GoLiveResponse>(null as any);
+    }
+
+    /**
      * Get exercise progress
      * @param clientId Client's public user identifier.
      * @param exerciseId Exercise's public identifier.
@@ -427,6 +499,78 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<WorkoutLogDetail>(null as any);
+    }
+
+    /**
+     * Abandon a workout
+     * @param logId The external ID of the workout log to abandon.
+    Bound from the route segment {logId}.
+     * @return Success
+     */
+    abandonWorkoutEndpoint(logId: string, signal?: AbortSignal): Promise<AbandonWorkoutResponse> {
+        let url_ = this.baseUrl + "/client/training/logs/{logId}/abandon";
+        if (logId === undefined || logId === null)
+            throw new globalThis.Error("The parameter 'logId' must be defined.");
+        url_ = url_.replace("{logId}", encodeURIComponent("" + logId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processAbandonWorkoutEndpoint(_response);
+        });
+    }
+
+    protected processAbandonWorkoutEndpoint(response: AxiosResponse): Promise<AbandonWorkoutResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<AbandonWorkoutResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<AbandonWorkoutResponse>(null as any);
     }
 
     /**
@@ -1910,6 +2054,148 @@ export class ApiClient {
     }
 
     /**
+     * Unlock a training session for editing
+     * @param planId Training plan identifier.
+     * @param sessionId Session identifier to unlock for editing.
+     * @return No Content
+     */
+    unlockTrainingSessionEndpoint(planId: string, sessionId: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/training/plans/{planId}/sessions/{sessionId}/unlock";
+        if (planId === undefined || planId === null)
+            throw new globalThis.Error("The parameter 'planId' must be defined.");
+        url_ = url_.replace("{planId}", encodeURIComponent("" + planId));
+        if (sessionId === undefined || sessionId === null)
+            throw new globalThis.Error("The parameter 'sessionId' must be defined.");
+        url_ = url_.replace("{sessionId}", encodeURIComponent("" + sessionId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUnlockTrainingSessionEndpoint(_response);
+        });
+    }
+
+    protected processUnlockTrainingSessionEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Relock a training session (release the Editing lock)
+     * @param planId Training plan identifier.
+     * @param sessionId Session identifier to relock.
+     * @return No Content
+     */
+    relockTrainingSessionEndpoint(planId: string, sessionId: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/training/plans/{planId}/sessions/{sessionId}/relock";
+        if (planId === undefined || planId === null)
+            throw new globalThis.Error("The parameter 'planId' must be defined.");
+        url_ = url_.replace("{planId}", encodeURIComponent("" + planId));
+        if (sessionId === undefined || sessionId === null)
+            throw new globalThis.Error("The parameter 'sessionId' must be defined.");
+        url_ = url_.replace("{sessionId}", encodeURIComponent("" + sessionId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processRelockTrainingSessionEndpoint(_response);
+        });
+    }
+
+    protected processRelockTrainingSessionEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Publish a week of a training plan
      * @param planId Plan identifier.
      * @param weekNumber Week number to publish.
@@ -2201,6 +2487,85 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<TrainingPlanSummaryDto>(null as any);
+    }
+
+    /**
+     * Finish a session on behalf of a client
+     * @param planId The training plan ExternalId (route parameter).
+     * @param sessionId The session identifier within the plan's weeks (route parameter).
+     * @return Success
+     */
+    finishSessionEndpoint(planId: string, sessionId: string, finishSessionRequest: FinishSessionRequest, signal?: AbortSignal): Promise<FinishSessionResponse> {
+        let url_ = this.baseUrl + "/trainer/training/plans/{planId}/sessions/{sessionId}/finish";
+        if (planId === undefined || planId === null)
+            throw new globalThis.Error("The parameter 'planId' must be defined.");
+        url_ = url_.replace("{planId}", encodeURIComponent("" + planId));
+        if (sessionId === undefined || sessionId === null)
+            throw new globalThis.Error("The parameter 'sessionId' must be defined.");
+        url_ = url_.replace("{sessionId}", encodeURIComponent("" + sessionId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(finishSessionRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processFinishSessionEndpoint(_response);
+        });
+    }
+
+    protected processFinishSessionEndpoint(response: AxiosResponse): Promise<FinishSessionResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<FinishSessionResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<FinishSessionResponse>(null as any);
     }
 
     /**
@@ -12529,6 +12894,18 @@ export interface StartWorkoutRequest {
     sessionId?: string | undefined;
 }
 
+/** Response returned when a workout log transitions to Live state. */
+export interface GoLiveResponse {
+    /** The external ID of the workout log now in Live state. */
+    logId?: string;
+    /** UTC timestamp when the Live lock was acquired. */
+    liveAt?: string;
+}
+
+/** Request to transition an existing draft workout log to Live state. */
+export interface GoLiveRequest {
+}
+
 /** Paginated response with workout log summaries. */
 export interface GetWorkoutLogsResponse {
     /** List of workout log summaries. */
@@ -12601,6 +12978,16 @@ export interface GetExerciseProgressRequest {
 export interface CompleteWorkoutRequest {
 }
 
+/** Response returned when an abandon request is processed (including idempotent no-op case). */
+export interface AbandonWorkoutResponse {
+    /** Whether a Live lock was actually released. False when the lock was already gone (idempotent). */
+    released?: boolean;
+}
+
+/** Request to abandon (discard) a draft workout session and release the Live lock. */
+export interface AbandonWorkoutRequest {
+}
+
 /** Response for POST /client/weekly-check-ins/{id}/respond. */
 export interface RespondToCheckInResponse {
     /** Check-in identifier. */
@@ -12645,6 +13032,8 @@ export interface PutSettingsResponse {
     enabled?: boolean;
     /** Optional addendum. */
     defaultAddendum?: string | undefined;
+    /** Hours after dispatch before the check-in expires. */
+    deadlineOffsetHours?: number;
 }
 
 /** Request body for PUT /trainer/weekly-check-ins/settings. */
@@ -12660,6 +13049,10 @@ Accepted values: "Training", "Nutrition". */
     enabled?: boolean;
     /** Optional addendum appended to the default reminder message. ≤ 200 characters. */
     defaultAddendum?: string | undefined;
+    /** Number of hours after the check-in is sent before it expires.
+Must be one of: 24, 48, 72, 120, 168.
+Defaults to 72 (3 days) when not specified. */
+    deadlineOffsetHours?: number;
 }
 
 /** Response for PUT /trainer/weekly-check-ins/overrides/{clientUserId}/{profession}. */
@@ -12678,6 +13071,8 @@ export interface PutOverrideResponse {
     enabled?: boolean | undefined;
     /** Override addendum. Null = inherit. */
     addendum?: string | undefined;
+    /** Override deadline offset in hours. Null = inherit. */
+    deadlineOffsetHours?: number | undefined;
 }
 
 /** Request model for PUT /trainer/weekly-check-ins/overrides/{clientUserId}/{profession}. Route params identify the override; body provides the values (null = inherit from setting). */
@@ -12690,6 +13085,9 @@ export interface PutOverrideRequest {
     enabled?: boolean | undefined;
     /** Override addendum (≤ 200 chars). Null = inherit. */
     addendum?: string | undefined;
+    /** Override deadline offset in hours. Null = inherit from the professional's setting.
+When set, must be one of 24, 48, 72, 120, or 168. */
+    deadlineOffsetHours?: number | undefined;
 }
 
 /** Response for POST /trainer/weekly-check-ins/{id}/mark-reviewed. */
@@ -12734,6 +13132,10 @@ export interface TrainerCheckInDto {
     dismissedByClientAt?: string | undefined;
     /** When the trainer marked this reviewed. Null if not reviewed. */
     reviewedByTrainerAt?: string | undefined;
+    /** Lifecycle status of the check-in. */
+    status?: string;
+    /** UTC deadline by which the client must respond. Null for rows created before v1 deadline feature. */
+    dueAt?: string | undefined;
 }
 
 /** Query parameters for GET /trainer/weekly-check-ins. */
@@ -12760,6 +13162,8 @@ export interface CheckInSettingDto {
     enabled?: boolean;
     /** Optional addendum appended to the default reminder message. */
     defaultAddendum?: string | undefined;
+    /** Hours after dispatch before the check-in expires. */
+    deadlineOffsetHours?: number;
 }
 
 /** Response model for GET /trainer/weekly-check-ins/overrides. */
@@ -12788,6 +13192,8 @@ export interface CheckInOverrideDto {
     enabled?: boolean | undefined;
     /** Override addendum. Null = inherit. */
     addendum?: string | undefined;
+    /** Override deadline offset in hours. Null = inherit. */
+    deadlineOffsetHours?: number | undefined;
 }
 
 /** Response for GET /client/weekly-check-ins/current. Returns 0–2 active (not responded, not dismissed) check-ins for the current ISO week. */
@@ -12871,6 +13277,10 @@ export interface GetCheckInDetailResponse {
     dismissedByClientAt?: string | undefined;
     /** When the trainer marked this reviewed. Null if not reviewed. */
     reviewedByTrainerAt?: string | undefined;
+    /** Lifecycle status of the check-in. */
+    status?: string;
+    /** UTC deadline by which the client must respond. Null for rows created before v1 deadline feature. */
+    dueAt?: string | undefined;
 }
 
 /** Request for GET /trainer/weekly-check-ins/{id}. */
@@ -13016,6 +13426,18 @@ Null if no questionnaire is linked to this plan. */
 Populated by the endpoint after loading the plan; the client side should filter
 to dates that fall within the plan's active weeks. */
     completions?: TrainingPlanCompletionDto[];
+    /** Per-session workout-log execution data for the plan's client.
+One entry per session that has at least one WorkoutLog record.
+Sessions with no log entry are absent (equivalent to all sets being not-yet-reached).
+The web layer uses this together with Completions to render per-set,
+per-exercise, and per-session completed/skipped/unreached state indicators. */
+    sessionExecutions?: SessionExecutionDto[];
+    /** Per-session edit-lock state for all sessions in the plan.
+Only sessions with an active (non-expired) lock appear here; a session absent from
+this list is implicitly Stable.
+The web editor uses this on initial load to show the Live in-progress badge and gate
+the unlock affordance — SignalR events update this state while the page is open. */
+    sessionLockStates?: SessionLockStateDto[];
 }
 
 /** A single week within a training plan. */
@@ -13182,6 +13604,34 @@ completion documents are transparently migrated. */
     version?: number;
 }
 
+/** Per-set execution data returned by the trainer endpoint. Lets the web layer derive completed / skipped / not-yet-reached states without storing those as flags on the document. */
+export interface SessionExecutionDto {
+    /** The SessionId this execution belongs to. */
+    sessionId?: string;
+    /** Whether the workout was finalised by the client (IsCompleted was true). */
+    isSessionFinished?: boolean;
+    /** Per-exercise map of which set numbers were completed (i.e. had a non-null
+CompletedAt). Key = ExerciseExternalId; value = sorted list
+of 1-based set numbers that were stamped as complete in the WorkoutLog.
+An absent key means no sets for that exercise were logged.
+An empty list should not occur but is treated identically to an absent key. */
+    completedSetsByExercise?: { [key: string]: number[]; };
+}
+
+/** Per-session edit-lock state projected into the trainer read model. A session with no active lock document reports Stable with a null holder. */
+export interface SessionLockStateDto {
+    /** The SessionId this lock state belongs to. */
+    sessionId?: string;
+    /** Current lock state of this session.
+Possible values: "Stable" (no active lock), "Editing" (trainer holds an editing lock),
+"Live" (client has an in-progress workout lock).
+Populated via a batch GetStateAsync call on the session lock service. */
+    lockState?: string;
+    /** Who currently holds the lock, if any.
+Possible values: "Coach", "Client", or null when the session is Stable. */
+    lockHolder?: string | undefined;
+}
+
 /** Request for a full-state update of a training plan. */
 export interface UpdateTrainingPlanRequest {
     /** Updated display name. */
@@ -13287,6 +13737,14 @@ export interface UpdateExerciseSetRequest {
     restSeconds?: number | undefined;
 }
 
+/** Request to acquire an Editing lock on a published training session. */
+export interface UnlockTrainingSessionRequest {
+}
+
+/** Request to release the Editing lock on a training session (relock it to Stable). */
+export interface RelockTrainingSessionRequest {
+}
+
 /** Request to publish a specific week of a training plan. */
 export interface PublishTrainingWeekRequest {
     /** Optimistic concurrency version. */
@@ -13355,6 +13813,26 @@ export enum TrainingPlanStatus {
 
 /** Request to retrieve a single training plan. */
 export interface GetTrainingPlanRequest {
+}
+
+/** Response after a trainer successfully finishes a session. */
+export interface FinishSessionResponse {
+    /** The workout log ExternalId that was created or completed. */
+    workoutLogId?: string;
+    /** The plan ExternalId. */
+    planId?: string;
+    /** The session identifier within the plan. */
+    sessionId?: string;
+    /** The instant the session was marked as completed (the effective completedAt value used). */
+    completedAt?: string;
+}
+
+/** Request for the trainer to retroactively finish a skipped or untouched session. */
+export interface FinishSessionRequest {
+    /** Optional backdated completion instant.
+When omitted the server uses UtcNow.
+Must be in the past (or present) and not before the plan's start date. */
+    completedAt?: string | undefined;
 }
 
 /** Request to delete a training plan. */
@@ -14674,6 +15152,14 @@ export interface GetPlanResponse {
     /** Linked questionnaire response (cross-DB reference to PostgreSQL QuestionnaireResponse.PublicId).
 Null if no questionnaire is linked to this plan. */
     questionnaireResponseId?: string | undefined;
+    /** Per-meal eaten state for all MealLog documents associated with this plan.
+One entry per (MealId, LogDate) pair that has a log record; meals without a log entry
+are absent (equivalent to not-touched / no badge).
+Populated by the endpoint after loading the plan. Ownership is guaranteed by the
+plan ownership gate above the MealLog query — filtering by PlanId is safe. */
+    mealLogs?: MealLogDto[];
+    /** Supplement recommendations attached to this plan. */
+    supplements?: SupplementDto[];
 }
 
 /** Global daily nutrition targets for a plan. */
@@ -14761,7 +15247,35 @@ export interface MealRecipe {
     foodCategories?: string[] | undefined;
 }
 
-/** Request for a full-state update of a nutrition plan: replaces name, settings, and all weeks/days/meals/foods. */
+/** Per-meal eaten state derived from a MealLog document. Lets the web layer render eaten/not-touched indicators and lock editing affordances on meals the client has already confirmed as eaten. */
+export interface MealLogDto {
+    /** The MealId this log belongs to. */
+    mealId?: string;
+    /** The calendar date (UTC) this log entry belongs to, as a date-only value.
+Matches LogDate truncated to day precision. */
+    logDate?: string;
+    /** Whether the meal has been confirmed as eaten by the client.
+true iff EatenAt was non-null in the document.
+A log with EatenAt == null is a photo-only or note-only stub —
+it is NOT considered eaten. */
+    isEaten?: boolean;
+    /** When the meal was eaten, if eaten. Null for photo-only / note-only stubs. */
+    eatenAt?: string | undefined;
+}
+
+/** A supplement entry in a nutrition plan response DTO. */
+export interface SupplementDto {
+    /** Stable public identifier for the supplement. */
+    externalId?: string;
+    /** Name of the supplement. */
+    name?: string;
+    /** Optional dosage instruction. */
+    dose?: string | undefined;
+    /** Optional additional notes. */
+    notes?: string | undefined;
+}
+
+/** Request for a full-state update of a nutrition plan: replaces name, settings, weeks/days/meals/foods, and supplements. */
 export interface UpdatePlanRequest {
     /** Updated display name. */
     name: string;
@@ -14774,6 +15288,9 @@ export interface UpdatePlanRequest {
     /** Updated start date. Must be a Monday and not in the past.
 Null clears the start date (only if it hasn't arrived and no weeks are published). */
     startDate?: string | undefined;
+    /** Full supplement list to persist. Replaces all existing supplements.
+Omitting an entry removes that supplement (full-state replace pattern). */
+    supplements?: UpdateSupplementRequest[];
 }
 
 /** Represents a single week submitted in a full-state plan update. */
@@ -14849,6 +15366,20 @@ export interface UpdateMealRecipeRequest {
     note?: string | undefined;
     /** Distinct food categories from the recipe's ingredients (snapshot). */
     foodCategories?: string[] | undefined;
+}
+
+/** Represents a single supplement entry submitted in a full-state plan update. */
+export interface UpdateSupplementRequest {
+    /** Stable public identifier for this supplement. Clients generate this on creation
+and send it back unchanged on subsequent updates so mobile reminder keys survive round-trips.
+When empty, the endpoint generates a new Guid. */
+    externalId?: string | undefined;
+    /** Name of the supplement (e.g. "Vitamin D3"). Required. */
+    name?: string;
+    /** Optional dosage instruction in free text (e.g. "1 capsule with breakfast"). */
+    dose?: string | undefined;
+    /** Optional additional notes for the client. */
+    notes?: string | undefined;
 }
 
 /** Request to publish a specific week of a nutrition plan. */
@@ -15723,6 +16254,16 @@ Empty when no live-training progress has been logged for today.
 Keeps per-set state out of the planning-document tree (Sessions) which
 represents prescription, not actuals. */
     completedSetsBySessionExercise?: { [key: string]: { [key: string]: number[]; }; };
+    /** Per-session lock state, keyed by SessionId.
+Possible values: "Stable" (no active lock), "Editing" (trainer holds an editing lock),
+"Live" (client has an in-progress workout lock).
+Missing entries are treated as "Stable".
+Populated via a single batch GetStateAsync call on the session lock service. */
+    lockStateBySession?: { [key: string]: string; };
+    /** Per-session lock holder, keyed by SessionId.
+Possible values: "Coach" (trainer/nutritionist holds the lock) or "Client".
+Null / missing when the session is in the Stable state. */
+    lockHolderBySession?: { [key: string]: string; };
 }
 
 /** Full training plan response for the client mobile view. Contains all published weeks enriched with completion state and muscle group data. */
@@ -15795,6 +16336,14 @@ Schema-on-read: legacy documents with only flat exercises are backfilled into a 
     /** Flat list of all exercises across all sections, in section order.
 Kept for backward-compatibility with callers that don't yet read Sections. */
     exercises?: ExerciseDto[];
+    /** Current lock state of this session.
+Possible values: "Stable" (no active lock), "Editing" (trainer holds an editing lock),
+"Live" (client has an in-progress workout lock).
+Populated via a batch GetStateAsync call on the session lock service. */
+    lockState?: string;
+    /** Who currently holds the lock, if any.
+Possible values: "Coach", "Client", or null when the session is Stable. */
+    lockHolder?: string | undefined;
 }
 
 /** An ordered section within a session (e.g. "Hlavní", "Warm-up", "Cool-down"). */
@@ -16166,7 +16715,7 @@ export interface GetTodayPlanResponse {
 /** Response model for the client's meal log for today. */
 export interface GetTodayLogResponse {
     /** Meals eaten today. */
-    mealsEaten?: MealLogDto[];
+    mealsEaten?: MealLogDto2[];
     /** Total nutrients consumed across all meals today. */
     totalConsumed?: NutrientTotals;
     /** Remaining nutrients to reach the daily target.
@@ -16175,7 +16724,7 @@ Null if the active plan has no global settings. */
 }
 
 /** DTO representing a single logged meal with computed nutrient totals. */
-export interface MealLogDto {
+export interface MealLogDto2 {
     /** Identifier of the meal that was eaten. */
     mealId?: string;
     /** Display name of the meal (resolved from the plan). */
@@ -16279,6 +16828,9 @@ export interface GetFullPlanResponse {
     /** Set of meal IDs that the client has logged as eaten.
 Meal IDs are unique across the plan, so a flat set covers all days. */
     eatenMealIds?: string[];
+    /** Supplement recommendations for this plan. Clients use this list to configure
+local reminder notifications; the list is read-only on the client side. */
+    supplements?: SupplementDto[];
 }
 
 /** A published week with pre-computed start/end dates. */
