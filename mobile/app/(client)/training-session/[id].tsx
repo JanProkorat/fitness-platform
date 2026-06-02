@@ -2304,13 +2304,15 @@ export default function WorkoutLogScreen() {
         const newLogId = resp.logId ?? null
         if (newLogId) setLoadedLogId(newLogId)
       } catch (err) {
-        // AC (b): 409 with error_code "session_locked" → toast, not generic alert.
-        // The banner (SessionEditingBanner) is a cosmetic warning; the 409 is the
-        // authoritative gate — a trainer finished editing between banner render and tap.
+        // AC (b): 409 with Problem Details errorCode "session_locked" → toast, not
+        // generic alert. The backend writes the code into ProblemDetails.Extensions
+        // under the verbatim key "errorCode" (camelCase). The banner is a cosmetic
+        // warning; the 409 is the authoritative gate — a trainer finished editing
+        // between banner render and tap.
         if (
           axios.isAxiosError(err) &&
           err.response?.status === 409 &&
-          (err.response.data as { error_code?: string } | undefined)?.error_code === 'session_locked'
+          (err.response.data as { errorCode?: string } | undefined)?.errorCode === 'session_locked'
         ) {
           Toast.show(t('training.sessionEditing.startBlockedToast'))
           return
