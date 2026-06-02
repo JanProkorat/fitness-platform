@@ -795,7 +795,8 @@
     "INVALID_DEADLINE_OFFSET_HOURS": "Invalid deadline. Allowed values: 24, 48, 72, 120 or 168 hours.",
     "SESSION_ALREADY_COMPLETED": "This session has already been completed.",
     "COMPLETED_AT_IN_FUTURE": "Completion date cannot be in the future.",
-    "COMPLETED_AT_BEFORE_PLAN_START": "Completion date cannot be before the plan's start date."
+    "COMPLETED_AT_BEFORE_PLAN_START": "Completion date cannot be before the plan's start date.",
+    "session_locked": "Session is currently locked — save failed."
   },
   "nutritionGoals": {
     "title": "Goals & Macros",
@@ -1042,6 +1043,18 @@
     "cancelButton": "Cancel",
     "weekFinishedTooltip": "Week is finished",
     "weekPublishedTooltip": "Week is published and still editable",
+    "lock": {
+      "unlockLabel": "Unlock to edit",
+      "relockLabel": "Relock & save",
+      "liveLabel": "In progress",
+      "liveTooltip": "Client is training — locked for edits.",
+      "unlocking": "Unlocking...",
+      "relocking": "Relocking...",
+      "unlockError": "Failed to unlock session.",
+      "relockError": "Failed to relock session.",
+      "sessionLockedError": "Save failed — these sessions are locked by the client:",
+      "unlockToSave": "Unlock or wait for the workout to finish"
+    },
     "sidebarVolume": "Training volume",
     "sidebarTotalSets": "total sets",
     "sidebarDayOverview": "Day overview",

@@ -7,8 +7,10 @@ using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.ClientTraining.MarkWholeDayComplete;
@@ -18,17 +20,22 @@ namespace FitnessPlatform.Application.Features.ClientTraining.MarkWholeDayComple
 /// Resolves which sessions apply to the date by mapping the date to a plan week/day-of-week,
 /// then upserts a <see cref="TrainingCompletion"/> document for each session.
 /// Idempotent: sessions that are already fully complete are skipped.
+/// Slides the Live lock TTL forward for each session resolved for the day (keep-alive).
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
 /// <param name="notifier">Realtime notifier for pushing the <c>trainingprogressupdated</c> event.</param>
 /// <param name="compliance">Compliance service for computing today's metrics.</param>
+/// <param name="lockService">Session lock service — used to refresh Live TTLs on activity.</param>
+/// <param name="lockOptions">Training lock TTL configuration.</param>
 /// <param name="logger">Logger.</param>
 public class MarkWholeDayCompleteEndpoint(
     IMongoContext mongo,
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
     IComplianceService compliance,
+    ISessionLockService lockService,
+    IOptions<TrainingLockOptions> lockOptions,
     ILogger<MarkWholeDayCompleteEndpoint> logger)
     : Endpoint<MarkWholeDayCompleteRequest, MarkWholeDayCompleteResponse>
 {
@@ -83,6 +90,14 @@ public class MarkWholeDayCompleteEndpoint(
 
         // Resolve which sessions are scheduled for the target date
         var sessionsForDay = ResolveSessions(plan, targetDateOnly);
+
+        // Slide Live lock TTLs forward for each resolved session (keep-alive for active workouts).
+        // Safe no-op per session when no Live lock exists. Failures are not surfaced to caller.
+        var liveTtl = TimeSpan.FromHours(lockOptions.Value.LiveTtlHours);
+        foreach (var session in sessionsForDay)
+        {
+            await lockService.RefreshAsync(session.SessionId, LockType.Live, liveTtl, ct);
+        }
 
         var summaries = new List<SessionCompletionSummary>();
 

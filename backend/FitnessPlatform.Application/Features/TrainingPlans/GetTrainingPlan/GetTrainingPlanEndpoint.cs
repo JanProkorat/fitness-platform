@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.ClientTraining;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Driver;
@@ -12,9 +13,14 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
 /// Retrieves a single training plan with full detail (weeks, sessions, exercises, sets).
 /// Also returns per-session WorkoutLog execution data so the web layer can render
 /// completed / skipped / not-yet-reached indicators on each set.
+/// Also enriches each session with its current edit-lock state (Stable/Editing/Live) and
+/// holder (Coach/Client/null) via a single batch <c>GetStateAsync</c> call on the lock service.
+/// This gives the trainer plan editor the initial lock state on page load, so the Live
+/// in-progress badge and unlock affordance are correct before any SignalR events arrive.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
-public class GetTrainingPlanEndpoint(IMongoContext mongo) : Endpoint<GetTrainingPlanRequest, GetTrainingPlanResponse>
+/// <param name="lockService">Session lock service — used to batch-fetch lock state.</param>
+public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lockService) : Endpoint<GetTrainingPlanRequest, GetTrainingPlanResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -162,6 +168,28 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo) : Endpoint<GetTraining
                         IsSessionFinished = log.IsCompleted,
                         CompletedSetsByExercise = completedSetsByExercise
                     };
+                })
+                .ToList();
+        }
+
+        // ── 3. Batch-fetch session lock state ────────────────────────────────────
+        // Single Mongo round-trip — not one per session. Mirrors the pattern used
+        // in GetFullTrainingPlanEndpoint (client read) so the shape is consistent.
+        var allSessionIds = plan.Weeks
+            .SelectMany(w => w.Sessions)
+            .Select(s => s.SessionId)
+            .ToList();
+
+        if (allSessionIds.Count > 0)
+        {
+            var lockDocs = await lockService.GetStateAsync(allSessionIds, ct);
+
+            response.SessionLockStates = lockDocs
+                .Select(l => new SessionLockStateDto
+                {
+                    SessionId = l.SessionId,
+                    LockState = l.Type.ToString(),
+                    LockHolder = l.Holder.ToString()
                 })
                 .ToList();
         }

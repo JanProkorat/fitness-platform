@@ -794,7 +794,8 @@
     "INVALID_DEADLINE_OFFSET_HOURS": "Ungültige Frist. Erlaubte Werte: 24, 48, 72, 120 oder 168 Stunden.",
     "SESSION_ALREADY_COMPLETED": "Diese Einheit wurde bereits abgeschlossen.",
     "COMPLETED_AT_IN_FUTURE": "Das Abschlussdatum darf nicht in der Zukunft liegen.",
-    "COMPLETED_AT_BEFORE_PLAN_START": "Das Abschlussdatum darf nicht vor dem Startdatum des Plans liegen."
+    "COMPLETED_AT_BEFORE_PLAN_START": "Das Abschlussdatum darf nicht vor dem Startdatum des Plans liegen.",
+    "session_locked": "Einheit ist derzeit gesperrt — Speichern fehlgeschlagen."
   },
   "nutritionGoals": {
     "title": "Ziele & Makros",
@@ -1041,6 +1042,18 @@
     "cancelButton": "Abbrechen",
     "weekFinishedTooltip": "Woche ist abgeschlossen",
     "weekPublishedTooltip": "Woche ist veröffentlicht und noch bearbeitbar",
+    "lock": {
+      "unlockLabel": "Zur Bearbeitung entsperren",
+      "relockLabel": "Sperren & speichern",
+      "liveLabel": "Training läuft",
+      "liveTooltip": "Klient trainiert gerade — Bearbeitung ist gesperrt.",
+      "unlocking": "Entsperre...",
+      "relocking": "Sperre...",
+      "unlockError": "Einheit konnte nicht entsperrt werden.",
+      "relockError": "Einheit konnte nicht gesperrt werden.",
+      "sessionLockedError": "Speichern fehlgeschlagen — diese Einheiten sind durch den Klienten gesperrt:",
+      "unlockToSave": "Entsperren oder warten, bis das Training abgeschlossen ist"
+    },
     "sidebarVolume": "Trainingsvolumen",
     "sidebarTotalSets": "Sätze gesamt",
     "sidebarDayOverview": "Tagesübersicht",

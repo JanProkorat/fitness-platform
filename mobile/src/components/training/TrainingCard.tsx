@@ -20,6 +20,7 @@ import { SetGrid } from '@/components/training/SetGrid'
 import { getMuscleGroupColor } from '@/constants/muscleGroups'
 import type { TrainingSession, TrainingSection, MuscleGroup } from '@/api/training'
 import type { SessionCtaState } from './trainingCardHelpers'
+import { SessionEditingBanner } from '@/components/today/SessionEditingBanner'
 
 // ─── Section fallback ──────────────────────────────────────────────────────────
 
@@ -135,6 +136,13 @@ interface TrainingCardProps {
   onMarkAllTrainingDone?: () => void
   /** True while the markWholeDayComplete mutation is in flight. */
   isMarkAllTrainingLoading?: boolean
+  /**
+   * Per-session edit-lock state map, keyed by sessionId.
+   * Value is "Stable" | "Editing" | "Live".
+   * Missing key → treat as "Stable" (no banner).
+   * Sourced from GetTodaySessionResponse.lockStateBySession (#382).
+   */
+  lockStateBySession?: Record<string, string>
 }
 
 // ─── formatSets ───────────────────────────────────────────────────────────────
@@ -256,6 +264,7 @@ export function TrainingCard({
   completedSetsBySessionExercise = {},
   onMarkAllTrainingDone,
   isMarkAllTrainingLoading,
+  lockStateBySession = {},
 }: TrainingCardProps) {
   const colors = useTheme()
   const { t } = useTranslation()
@@ -445,6 +454,7 @@ export function TrainingCard({
               session={session}
               exerciseMuscleGroups={exerciseMuscleGroups}
               completedSetsBySessionExercise={completedSetsBySessionExercise[sessionId] ?? {}}
+              sessionLockState={lockStateBySession[session.sessionId ?? ''] ?? 'Stable'}
               onToggleExercise={onToggleExercise}
               onToggleExercises={onToggleExercises}
               onToggleSection={onToggleSection}
@@ -513,6 +523,12 @@ interface SessionSectionListProps {
   session: TrainingSession
   exerciseMuscleGroups: Record<string, MuscleGroup[]>
   completedSetsBySessionExercise: Record<string, number[]>
+  /**
+   * Edit-lock state for this specific session.
+   * "Editing" → show the gold warning banner above the CTA.
+   * "Stable" / "Live" / anything else → no banner.
+   */
+  sessionLockState?: string
   onToggleExercise?: (sessionId: string, sectionId: string, exerciseExternalId: string) => void
   /** Batch variant — dispatches N exercise toggles sequentially to avoid version-token races. */
   onToggleExercises?: (sessionId: string, sectionId: string, exerciseIds: string[], complete: boolean) => void
@@ -540,6 +556,7 @@ function SessionSectionList({
   session,
   exerciseMuscleGroups,
   completedSetsBySessionExercise,
+  sessionLockState,
   onToggleExercise,
   onToggleExercises,
   onToggleSection,
@@ -799,6 +816,10 @@ function SessionSectionList({
                   </View>
                 )
               })}
+
+              {/* Session editing banner — shown when a trainer holds the edit lock.
+                  AC (a): cosmetic warning only; Start button remains tappable. */}
+              <SessionEditingBanner lockState={sessionLockState} />
 
               {/* Per-session CTA footer — ctaState and onSessionCta are non-null when showCta is true */}
               {showCta && ctaState != null && onSessionCta != null && (

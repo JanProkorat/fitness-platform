@@ -759,6 +759,10 @@
       "sectionOf": "Section {{current}} of {{total}}",
       "sectionActionDetail": "Detail",
       "completeA11y": "Mark whole section as done"
+    },
+    "sessionEditing": {
+      "bannerMessage": "Your coach is updating this session — confirm before you start.",
+      "startBlockedToast": "Your coach hasn't finished editing yet. Please wait a moment and try again."
     }
   },
   "muscleGroup": {

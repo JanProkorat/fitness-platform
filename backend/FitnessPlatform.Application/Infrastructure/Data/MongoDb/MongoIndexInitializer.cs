@@ -37,6 +37,7 @@ public class MongoIndexInitializer : IHostedService
         await CreateTrainingCompletionIndexes(cancellationToken);
         await CreatePersonalRecordIndexes(cancellationToken);
         await CreateSectionTemplateIndexes(cancellationToken);
+        await CreateSessionLockIndexes(cancellationToken);
 
         _logger.LogInformation("MongoDB indexes created successfully");
     }
@@ -434,5 +435,40 @@ public class MongoIndexInitializer : IHostedService
             new CreateIndexOptions { Name = "idx_sectiontemplate_ownerTrainerId" });
 
         await indexes.CreateManyAsync([externalIdIndex, ownerIndex], ct);
+    }
+
+    private async Task CreateSessionLockIndexes(CancellationToken ct)
+    {
+        var indexes = _mongo.SessionLocks.Indexes;
+
+        // Unique index on sessionId — this is the mutual-exclusion primitive.
+        // InsertOneAsync throwing E11000 on this index is the acquire-conflict signal.
+        var sessionIdIndex = new CreateIndexModel<SessionLock>(
+            Builders<SessionLock>.IndexKeys.Ascending(l => l.SessionId),
+            new CreateIndexOptions { Name = "idx_sessionlock_sessionId", Unique = true });
+
+        // TTL index on expiresAt — Mongo's reaper deletes the document automatically
+        // when expiresAt passes (expireAfterSeconds: 0 means "delete at the expiry instant").
+        // Note: this is the codebase's first TTL index. The reaper runs ~every 60s,
+        // so query-layer checks must also filter expiresAt > now (done in GetStateAsync).
+        var ttlIndex = new CreateIndexModel<SessionLock>(
+            Builders<SessionLock>.IndexKeys.Ascending(l => l.ExpiresAt),
+            new CreateIndexOptions
+            {
+                Name = "idx_sessionlock_expiresAt_ttl",
+                ExpireAfter = TimeSpan.Zero
+            });
+
+        // Index on clientId for fan-out reads (badges / notifications to the client).
+        var clientIdIndex = new CreateIndexModel<SessionLock>(
+            Builders<SessionLock>.IndexKeys.Ascending(l => l.ClientId),
+            new CreateIndexOptions { Name = "idx_sessionlock_clientId" });
+
+        // Index on planId for batch state reads per plan (GetStateAsync by plan).
+        var planIdIndex = new CreateIndexModel<SessionLock>(
+            Builders<SessionLock>.IndexKeys.Ascending(l => l.PlanId),
+            new CreateIndexOptions { Name = "idx_sessionlock_planId" });
+
+        await indexes.CreateManyAsync([sessionIdIndex, ttlIndex, clientIdIndex, planIdIndex], ct);
     }
 }

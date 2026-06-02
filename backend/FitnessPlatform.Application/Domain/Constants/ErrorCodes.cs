@@ -233,6 +233,9 @@ public static class ErrorCodes
     public const string SectionOrderDuplicate = "SECTION_ORDER_DUPLICATE";
 
     // ── Trainer Finish Session ───────────────────────────────────────
+    /// <summary>The session is currently locked by another party (live or editing lock conflict).</summary>
+    public const string SessionLocked = "session_locked";
+
     /// <summary>The session already has a completed workout log; cannot finish again.</summary>
     public const string SessionAlreadyCompleted = "SESSION_ALREADY_COMPLETED";
 

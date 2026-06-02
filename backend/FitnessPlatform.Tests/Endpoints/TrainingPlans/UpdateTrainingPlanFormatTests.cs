@@ -5,6 +5,7 @@ using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.TrainingPlans.UpdateTrainingPlan;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Tests.Endpoints;
@@ -22,12 +23,24 @@ public class UpdateTrainingPlanFormatTests
 {
     private readonly Guid _trainerId = Guid.NewGuid();
 
+    private static ISessionLockService CreateNoOpLockService()
+    {
+        var svc = Substitute.For<ISessionLockService>();
+        svc.GetStateAsync(Arg.Any<IEnumerable<Guid>>(), Arg.Any<CancellationToken>())
+            .Returns(Array.Empty<SessionLock>());
+        svc.ReleaseAsync(Arg.Any<Guid>(), Arg.Any<LockHolder>(), Arg.Any<LockType>(), Arg.Any<CancellationToken>())
+            .Returns(false);
+        return svc;
+    }
+
     private UpdateTrainingPlanEndpoint CreateEndpoint(IMongoContext mongo) =>
         Factory.Create<UpdateTrainingPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo);
+            mongo,
+            CreateNoOpLockService(),
+            Substitute.For<IRealtimeNotifier>());
 
     /// <summary>Builds a minimal single-section request for a given session.</summary>
     private static UpdateSectionRequest DefaultSection(List<UpdateSessionExerciseRequest>? exercises = null) =>

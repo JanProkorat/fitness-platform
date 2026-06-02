@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.ClientTraining;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -13,10 +14,13 @@ namespace FitnessPlatform.Application.Features.ClientTraining.GetTodaySession;
 
 /// <summary>
 /// Returns today's planned training session based on the client's active training plan.
+/// Enriches each session in the response with its current lock state (Stable/Editing/Live)
+/// and lock holder (Coach/Client/null) via a single batch <c>GetStateAsync</c> call.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
-public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext db) : EndpointWithoutRequest<GetTodaySessionResponse>
+/// <param name="lockService">Session lock service — used to batch-fetch lock state.</param>
+public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext db, ISessionLockService lockService) : EndpointWithoutRequest<GetTodaySessionResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -283,6 +287,21 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
 
             foreach (var (sessionId, set) in completedBySession)
                 response.CompletedExerciseIdsBySession[sessionId] = set.ToList();
+
+            // ── Batch-fetch lock state for today's sessions ───────────────────────
+            // Single Mongo round-trip for all sessions (not one per session).
+            var lockDocs = await lockService.GetStateAsync(todaySessionIds, ct);
+            var lockLookup = lockDocs.ToDictionary(l => l.SessionId);
+
+            foreach (var sessionId in todaySessionIds)
+            {
+                if (lockLookup.TryGetValue(sessionId, out var lockDoc))
+                {
+                    response.LockStateBySession[sessionId] = lockDoc.Type.ToString();
+                    response.LockHolderBySession[sessionId] = lockDoc.Holder.ToString();
+                }
+                // Missing entry = Stable (no active lock). No entry added to the dicts.
+            }
 
             // ── Derive per-set completion from exercise-level completion ──────────
             // When an exercise is marked complete via the Today-card checkbox

@@ -25,7 +25,8 @@ public class GetTrainingPlanEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo);
+            mongo,
+            TrainingPlanTestHelpers.CreateNoOpLockService());
 
         await ep.HandleAsync(new GetTrainingPlanRequest { PlanId = planId }, TestContext.Current.CancellationToken);
 
@@ -42,7 +43,8 @@ public class GetTrainingPlanEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo);
+            mongo,
+            TrainingPlanTestHelpers.CreateNoOpLockService());
 
         await ep.HandleAsync(new GetTrainingPlanRequest { PlanId = plan.ExternalId }, TestContext.Current.CancellationToken);
 

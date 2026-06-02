@@ -804,7 +804,8 @@
     "INVALID_DEADLINE_OFFSET_HOURS": "Neplatná lhůta. Povolené hodnoty: 24, 48, 72, 120 nebo 168 hodin.",
     "SESSION_ALREADY_COMPLETED": "Tento trénink byl již dokončen.",
     "COMPLETED_AT_IN_FUTURE": "Datum dokončení nesmí být v budoucnosti.",
-    "COMPLETED_AT_BEFORE_PLAN_START": "Datum dokončení nesmí být před začátkem plánu."
+    "COMPLETED_AT_BEFORE_PLAN_START": "Datum dokončení nesmí být před začátkem plánu.",
+    "session_locked": "Trénink je aktuálně uzamčen — uložení selhalo."
   },
   "nutritionGoals": {
     "title": "Cíle & makra",
@@ -1055,6 +1056,18 @@
     "cancelButton": "Zrušit",
     "weekFinishedTooltip": "Týden byl ukončen",
     "weekPublishedTooltip": "Týden je publikován a stále upravitelný",
+    "lock": {
+      "unlockLabel": "Odemknout pro úpravy",
+      "relockLabel": "Zamknout a uložit",
+      "liveLabel": "Probíhá trénink",
+      "liveTooltip": "Klient právě trénuje — úpravy jsou zablokované.",
+      "unlocking": "Odemykám...",
+      "relocking": "Zamykám...",
+      "unlockError": "Nepodařilo se odemknout trénink.",
+      "relockError": "Nepodařilo se zamknout trénink.",
+      "sessionLockedError": "Uložení selhalo — tyto tréninky jsou aktuálně uzamčeny klientem:",
+      "unlockToSave": "Odemkněte nebo počkejte na dokončení tréninku"
+    },
     "sidebarVolume": "Objem tréninku",
     "sidebarTotalSets": "sérií celkem",
     "sidebarDayOverview": "Přehled dne",

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GoodFellas – Mobilní aplikace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style><!-- include: styles/layout.css --><!-- include: styles/tokens.css --><!-- include: styles/components.css --></style>
+</head>
+<body>
+
+<!-- ══ PROTOTYPE NAV ════════════════════════════════════════════════════════ -->
+<div id="pnav">
+  <div class="pl">GF Mobile</div>
+  <div class="ps"></div>
+
+  <!-- Category: Hlavní -->
+  <div class="pnav-group">
+    <button class="pnav-cat" onclick="toggleNavGroup(this)">📱 Hlavní ▾</button>
+    <div class="pnav-items open">
+      <button class="pb active" onclick="showPhone('ph-today')">Dnes</button>
+      <button class="pb" onclick="showPhone('ph-plans')">Plány</button>
+      <button class="pb" onclick="showPhone('ph-profile')">Profil</button>
+      <button class="pb" onclick="showPhone('ph-profile-photos')">Timeline fotek</button>
+    </div>
+  </div>
+  <div class="ps"></div>
+
+  <!-- Category: Plány -->
+  <div class="pnav-group">
+    <button class="pnav-cat" onclick="toggleNavGroup(this)">📋 Plány & Dotazníky ▾</button>
+    <div class="pnav-items">
+      <button class="pb" onclick="showPhone('ph-plan-history')">Archiv plánů</button>
+      <button class="pb" onclick="showPhone('ph-plan-detail-complete')">Dokončený plán</button>
+      <button class="pb" onclick="showPhone('ph-nutrition-plan-detail')">Detail výživového plánu</button>
+      <button class="pb" onclick="showPhone('ph-training-plan-detail')">Detail tréninku</button>
+      <button class="pb" onclick="showPhone('ph-live-training')">Živý trénink</button>
+      <button class="pb" onclick="showPhone('ph-session-lock')">Zámek sekce</button>
+      <button class="pb" onclick="showPhone('ph-live-amrap')">Živý AMRAP</button>
+      <button class="pb" onclick="showPhone('ph-live-emom')">Živý EMOM</button>
+      <button class="pb" onclick="showPhone('ph-live-tabata')">Živá Tabata</button>
+      <button class="pb" onclick="showPhone('ph-live-fortime')">Živý ForTime</button>
+      <button class="pb" onclick="showPhone('ph-live-time-distance')">Živý Čas/Distance</button>
+      <button class="pb" onclick="showPhone('ph-live-results-summary')">Výsledky tréninku</button>
+      <button class="pb" onclick="showPhone('ph-live-session-runner')">Living session · runner</button>
+      <button class="pb" onclick="showPhone('ph-food-detail')">Detail potraviny</button>
+      <button class="pb" onclick="showPhone('ph-recipe-detail')">Detail receptu</button>
+      <button class="pb" onclick="showPhone('ph-onb-intro')">Dotazník — intro</button>
+      <button class="pb" onclick="showPhone('ph-onb-s1')">Dotazník — krok</button>
+      <button class="pb" onclick="showPhone('ph-weekly-checkin')">Check-in — vyplnit</button>
+      <button class="pb" onclick="showPhone('ph-weekly-checkin-sent')">Check-in — odesláno</button>
+      <button class="pb" onclick="showPhone('ph-plan-photos')">Fotky plánu</button>
+      <button class="pb" onclick="showPhone('ph-meal-log-photo')">Log jídla · foto</button>
+    </div>
+  </div>
+  <div class="ps"></div>
+
+  <!-- Category: Spolupráce -->
+  <div class="pnav-group">
+    <button class="pnav-cat" onclick="toggleNavGroup(this)">🤝 Spolupráce ▾</button>
+    <div class="pnav-items">
+      <button class="pb" onclick="showPhone('ph-discover')">Hledat trenéra</button>
+      <button class="pb" onclick="showPhone('ph-trainer-profile')">Profil trenéra</button>
+      <button class="pb" onclick="showPhone('ph-invite-detail')">Detail pozvánky</button>
+    </div>
+  </div>
+  <div class="ps"></div>
+
+  <!-- Category: Zprávy -->
+  <div class="pnav-group">
+    <button class="pnav-cat" onclick="toggleNavGroup(this)">💬 Zprávy ▾</button>
+    <div class="pnav-items">
+      <button class="pb" onclick="showPhone('ph-messages')">Seznam zpráv</button>
+      <button class="pb" onclick="showPhone('ph-chat')">Chat detail</button>
+      <button class="pb" onclick="showPhone('ph-archive')">Archiv zpráv</button>
+      <button class="pb" onclick="showPhone('ph-chat-former')">Bývalý trenér</button>
+    </div>
+  </div>
+  <div class="ps"></div>
+
+  <!-- Category: Foto-deník -->
+  <div class="pnav-group">
+    <button class="pnav-cat" onclick="toggleNavGroup(this)">📸 Foto-deník ▾</button>
+    <div class="pnav-items">
+      <button class="pb" onclick="showPhone('ph-diary-request')">Žádost</button>
+      <button class="pb" onclick="showPhone('ph-diary-dismiss')">Odmítnutí</button>
+      <button class="pb" onclick="showPhone('ph-diary-accept-wizard')">Výběr způsobu</button>
+      <button class="pb" onclick="showPhone('ph-diary-bulk')">Hromadné nahrání</button>
+      <button class="pb" onclick="showPhone('ph-diary-workflow')">Aktivní workflow</button>
+      <button class="pb" onclick="showPhone('ph-diary-finalize')">Dokončení</button>
+    </div>
+  </div>
+  <div class="ps"></div>
+
+  <!-- Stav toggles -->
+  <div class="pnav-group">
+    <button class="pnav-cat" onclick="toggleNavGroup(this)">⚙ Stav ▾</button>
+    <div class="pnav-items">
+      <div class="pg">Dnes</div>
+      <button class="pb active" id="btn-state-none"    onclick="setCollabState('none')">Bez trenéra</button>
+      <button class="pb"        id="btn-state-trainer" onclick="setCollabState('trainer')">Trenér</button>
+      <button class="pb"        id="btn-state-coach"   onclick="setCollabState('coach')">Poradce</button>
+      <button class="pb"        id="btn-state-both"    onclick="setCollabState('both')">Oboje</button>
+      <button class="pb"        id="btn-state-pending-t"  onclick="setPendingPlans('training')">Plán brzy: trénink</button>
+      <button class="pb"        id="btn-state-pending-n"  onclick="setPendingPlans('nutrition')">Plán brzy: výživa</button>
+      <button class="pb"        id="btn-state-pending-tn" onclick="setPendingPlans('both')">Plán brzy: oba</button>
+      <div class="pg" style="margin-top:4px">Čeká na plán</div>
+      <button class="pb"        id="btn-wait-n"   onclick="setWaitingState('nutrition')">Jen výživu</button>
+      <button class="pb"        id="btn-wait-t"   onclick="setWaitingState('training')">Jen trénink</button>
+      <button class="pb"        id="btn-wait-tn"  onclick="setWaitingState('both')">Oba plány</button>
+      <button class="pb"        id="btn-wait-ht"  onclick="setWaitingState('has-training')">Má trénink, čeká výživu</button>
+      <button class="pb"        id="btn-wait-hn"  onclick="setWaitingState('has-nutrition')">Má výživu, čeká trénink</button>
+      <div class="pg" style="margin-top:4px">Zprávy</div>
+      <button class="pb active" id="btn-arch-normal" onclick="setArchiveDemo('normal')">Normální</button>
+      <button class="pb" id="btn-arch-archived" onclick="setArchiveDemo('archived')">Archivováno</button>
+      <button class="pb" id="btn-arch-newmsg" onclick="setArchiveDemo('newmsg')">Nová zpráva</button>
+      <button class="pb" id="btn-arch-former" onclick="setArchiveDemo('former')">Bývalý trenér</button>
+      <div class="pg" style="margin-top:4px">Žádosti</div>
+      <button class="pb active" id="btn-pending-none"  onclick="setPendingDemo('none')">Žádné</button>
+      <button class="pb"        id="btn-pending-one"   onclick="setPendingDemo('one')">1 čekající</button>
+      <button class="pb"        id="btn-pending-two"   onclick="setPendingDemo('two')">2 čekající</button>
+    </div>
+  </div>
+
+  <div class="pr">
+    <button class="picon" onclick="toggleDark()" id="dark-btn" title="Tmavý režim">☾</button>
+  </div>
+</div>
+
+<!-- ══ STAGE ════════════════════════════════════════════════════════════════ -->
+<div id="stage">
+
+<!-- include: scenes/today.html --><!-- include: scenes/discover.html --><!-- include: scenes/plans.html --><!-- include: scenes/plan-history.html --><!-- include: scenes/plan-detail-complete.html --><!-- include: scenes/pending-questionnaires.html --><!-- include: scenes/weekly-checkin.html --><!-- include: scenes/weekly-checkin-sent.html --><!-- include: scenes/profile.html --><!-- include: scenes/messages.html --><!-- include: scenes/chat.html --><!-- include: scenes/trainer-profile.html --><!-- include: scenes/invite-detail.html --><!-- include: scenes/archive.html --><!-- include: scenes/chat-former.html --><!-- include: scenes/onb-intro.html --><!-- include: scenes/onb-s1.html --><!-- include: scenes/onb-s2.html --><!-- include: scenes/onb-summary.html --><!-- include: scenes/onb-success.html --><!-- include: scenes/nutrition-plan-detail.html --><!-- include: scenes/food-detail.html --><!-- include: scenes/recipe-detail.html --><!-- include: scenes/training-plan-detail.html --><!-- include: scenes/session-lock.html --><!-- include: scenes/live-training.html --><!-- include: scenes/live-amrap.html --><!-- include: scenes/live-emom.html --><!-- include: scenes/live-tabata.html --><!-- include: scenes/live-fortime.html --><!-- include: scenes/live-time-distance-exercise.html --><!-- include: scenes/live-results-summary.html --><!-- include: scenes/live-session-runner.html --><!-- include: scenes/diary-request.html --><!-- include: scenes/diary-dismiss.html --><!-- include: scenes/diary-accept-wizard.html --><!-- include: scenes/diary-bulk.html --><!-- include: scenes/diary-workflow.html --><!-- include: scenes/diary-finalize.html --><!-- include: scenes/meal-log-photo.html --><!-- include: scenes/plan-photos.html --><!-- include: scenes/profile-photos.html --></div><!-- /stage -->
+
+<script><!-- include: scripts/nav.js --><!-- include: scripts/state.js --><!-- include: scripts/detail.js --><!-- include: scripts/weight.js --><!-- include: scripts/live-training.js --><!-- include: scripts/records.js --></script>
+</body>
+</html>

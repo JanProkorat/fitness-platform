@@ -11,10 +11,11 @@ import type {
   MovementType,
   SetType,
   WodConfig,
+  SessionLockStateDto,
 } from '@/api/training-plan-types';
 import type { SectionTemplateResponse } from '@/api/sectionTemplates';
 import { updateTrainingPlan, publishTrainingWeek, getTrainingPlan } from '@/api/training-plans';
-import { showApiError, showSuccess } from '@/lib/api-errors';
+import { showApiError, showSuccess, getRfc7807ErrorCode } from '@/lib/api-errors';
 import { currentWeekNumber } from '@/lib/training-plan-dates';
 import { useToastStore } from '@/stores/toast';
 import i18n from '@/i18n';
@@ -27,6 +28,25 @@ interface TrainingPlanState {
   selectedWeek: number;
   /** IDs of session/section entities flagged by the last failed pre-save validation. */
   invalidIds: Set<string>;
+  /**
+   * Per-session edit-lock state map keyed by sessionId.
+   * Built from `plan.sessionLockStates` on load; absent entry = "Stable".
+   * Patched by the `sessioneditlockchanged` SignalR event handler (via
+   * `refreshCompletions`, which also refreshes lock state from the server).
+   *
+   * Do NOT conflate with `training-plan-locks.ts` (completion-based exercise
+   * locking — a different concept).
+   */
+  sessionLockMap: Map<string, Pick<SessionLockStateDto, 'lockState' | 'lockHolder'>>;
+  /**
+   * Patch a single session's lock state in the map.
+   * Called by the SignalR `sessioneditlockchanged` handler for live updates.
+   */
+  patchSessionLockState: (
+    sessionId: string,
+    lockState: SessionLockStateDto['lockState'],
+    lockHolder: SessionLockStateDto['lockHolder'],
+  ) => void;
 
   setPlan: (plan: TrainingPlanDetail) => void;
   setSelectedWeek: (week: number) => void;
@@ -108,8 +128,19 @@ interface TrainingPlanState {
    * `completions` on both `plan` and `originalPlan`. Used by the SignalR
    * `trainingprogressupdated` listener so the editor reacts in real time
    * to client-side completions without clobbering unsaved trainer edits.
+   * Also refreshes `sessionLockMap` from the fresh response.
    */
   refreshCompletions: () => Promise<void>;
+
+  /**
+   * Set when a save attempt returns 409 session_locked.
+   * Contains the IDs of sessions that blocked the save (derived UI-side
+   * as published sessions with changes that are NOT in Editing state).
+   * Cleared on the next successful save, plan load, or explicit dismiss.
+   */
+  sessionLockedError: string[] | null;
+  /** Clear the session-locked inline error (e.g. after the trainer unlocks). */
+  clearSessionLockedError: () => void;
 }
 
 function updateSession(
@@ -182,6 +213,17 @@ function makeNewExercise(exercise: { exerciseExternalId: string; exerciseName: s
   };
 }
 
+/** Build the sessionLockMap from the plan's sessionLockStates array. */
+function buildLockMap(
+  lockStates: SessionLockStateDto[] | undefined,
+): Map<string, Pick<SessionLockStateDto, 'lockState' | 'lockHolder'>> {
+  const map = new Map<string, Pick<SessionLockStateDto, 'lockState' | 'lockHolder'>>();
+  for (const s of lockStates ?? []) {
+    map.set(s.sessionId, { lockState: s.lockState, lockHolder: s.lockHolder });
+  }
+  return map;
+}
+
 export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
   plan: null,
   originalPlan: null,
@@ -189,6 +231,9 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
   isSaving: false,
   selectedWeek: 1,
   invalidIds: new Set(),
+  sessionLockMap: new Map(),
+  sessionLockedError: null,
+  clearSessionLockedError: () => set({ sessionLockedError: null }),
 
   setPlan: (rawPlan) => {
     // Normalize exercises helper — fills in defaults for pre-sections legacy exercises.
@@ -275,11 +320,13 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
     };
     // Default the selected week to whichever week contains today, falling back
     // to week 1 when the plan has no startDate or is wholly in the future / past.
+    // Also build the sessionLockMap from the plan's lock state for cold-load rendering.
     set({
       plan,
       originalPlan: structuredClone(plan),
       isDirty: false,
       selectedWeek: currentWeekNumber(plan),
+      sessionLockMap: buildLockMap(rawPlan.sessionLockStates),
     });
   },
   setSelectedWeek: (week) => set({ selectedWeek: week }),
@@ -287,6 +334,19 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
     const { originalPlan } = get();
     if (!originalPlan) return;
     set({ plan: structuredClone(originalPlan), isDirty: false });
+  },
+
+  patchSessionLockState: (sessionId, lockState, lockHolder) => {
+    set((state) => {
+      const next = new Map(state.sessionLockMap);
+      if (lockState === 'Stable') {
+        // Stable = no active lock; remove from the map (absent = Stable).
+        next.delete(sessionId);
+      } else {
+        next.set(sessionId, { lockState, lockHolder });
+      }
+      return { sessionLockMap: next };
+    });
   },
 
   addSession: (weekNumber, dayOfWeek, name) => {
@@ -1319,9 +1379,53 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
       const updated = await updateTrainingPlan(plan.planId, request);
       // Re-run setPlan so sections are normalized (same as initial load).
       get().setPlan(updated);
+      set({ sessionLockedError: null });
       showSuccess('training.saved');
     } catch (err) {
-      showApiError(err, 'training.saveError');
+      // 409 session_locked: derive blocked session IDs UI-side as published
+      // sessions that have changes but are NOT in Editing state.
+      // The 409 ProblemDetails carries the code in `extensions.errorCode`
+      // (camelCase) — NOT in `errors[0].reason` (the FastEndpoints validation
+      // shape). We read `response.data.errorCode` directly.
+      // The 409 ProblemDetails carries the code in extensions.errorCode (camelCase),
+      // read via the typed RFC-7807 helper — NOT getErrorCode() which reads the
+      // FastEndpoints errors[].reason validation shape.
+      const errorCode = getRfc7807ErrorCode(err);
+
+      if (errorCode === 'session_locked') {
+        const { sessionLockMap, originalPlan } = get();
+        // A session is "blocking the save" when it is published AND the trainer
+        // has changed it AND it is not currently in Editing state (i.e. the
+        // lock was not held by the trainer during the update attempt).
+        const blockedSessionIds: string[] = [];
+        if (originalPlan) {
+          for (const week of plan.weeks) {
+            const origWeek = originalPlan.weeks.find(
+              (w) => w.weekNumber === week.weekNumber,
+            );
+            if (!origWeek || origWeek.status !== 'Published') continue;
+            for (const session of week.sessions) {
+              const origSession = origWeek.sessions.find(
+                (s) => s.sessionId === session.sessionId,
+              );
+              // Session is modified when its JSON differs from the original.
+              const isModified =
+                JSON.stringify(session) !== JSON.stringify(origSession);
+              if (!isModified) continue;
+              const lockEntry = sessionLockMap.get(session.sessionId);
+              const isEditing = lockEntry?.lockState === 'Editing';
+              if (!isEditing) {
+                blockedSessionIds.push(session.sessionId);
+              }
+            }
+          }
+        }
+        set({ sessionLockedError: blockedSessionIds.length > 0 ? blockedSessionIds : ['unknown'] });
+        // Show a brief toast to draw attention; inline error has more detail.
+        useToastStore.getState().addToast(i18n.t('apiErrors.session_locked'), 'error');
+      } else {
+        showApiError(err, 'training.saveError');
+      }
     } finally {
       set({ isSaving: false });
     }
@@ -1355,14 +1459,23 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
     try {
       const fresh = await getTrainingPlan(plan.planId);
       const completions = fresh.completions ?? [];
+      // Also pick up the fresh sessionLockStates so lock state stays current
+      // after a SignalR sessioneditlockchanged event that triggers this path.
+      const sessionLockStates = fresh.sessionLockStates ?? [];
+      const sessionLockMap = buildLockMap(sessionLockStates);
       set((state) => ({
-        plan: state.plan ? { ...state.plan, completions } : state.plan,
+        // Keep plan.sessionLockStates in lockstep with sessionLockMap so the
+        // in-memory plan can't diverge from the authoritative live lock state.
+        plan: state.plan
+          ? { ...state.plan, completions, sessionLockStates }
+          : state.plan,
         // originalPlan tracks server-state too, so it must move with the
         // freshly fetched completions — otherwise revert() would surface
         // stale completion data.
         originalPlan: state.originalPlan
-          ? { ...state.originalPlan, completions }
+          ? { ...state.originalPlan, completions, sessionLockStates }
           : state.originalPlan,
+        sessionLockMap,
       }));
     } catch {
       // Non-critical — UI will catch up on the next manual save / load.

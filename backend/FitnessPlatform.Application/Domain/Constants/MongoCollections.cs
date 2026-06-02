@@ -59,4 +59,9 @@ public static class MongoCollections
     /// Section template documents (per-trainer reusable training section templates).
     /// </summary>
     public const string SectionTemplates = "sectionTemplates";
+
+    /// <summary>
+    /// Active session lock documents (Editing or Live state; absence = Stable).
+    /// </summary>
+    public const string SessionLocks = "sessionLocks";
 }

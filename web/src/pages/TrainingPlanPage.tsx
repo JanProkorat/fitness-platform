@@ -2,7 +2,7 @@ import { useEffect, useCallback, useState, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { getTrainingPlan, completeTrainingPlan, finishSession } from '@/api/training-plans';
+import { getTrainingPlan, completeTrainingPlan, finishSession, unlockTrainingSession, relockTrainingSession } from '@/api/training-plans';
 import { listSectionTemplates, createSectionTemplate } from '@/api/sectionTemplates';
 import type { SectionTemplateResponse } from '@/api/sectionTemplates';
 import type { WorkoutFormat, MovementType, SetType } from '@/api/training-plan-types';
@@ -78,11 +78,17 @@ export default function TrainingPlanPage() {
   const setStartDate = useTrainingPlanStore((s) => s.setStartDate);
   const moveSessionToDay = useTrainingPlanStore((s) => s.moveSessionToDay);
   const moveSessionToWeek = useTrainingPlanStore((s) => s.moveSessionToWeek);
+  const sessionLockMap = useTrainingPlanStore((s) => s.sessionLockMap);
+  const patchSessionLockState = useTrainingPlanStore((s) => s.patchSessionLockState);
+  const sessionLockedError = useTrainingPlanStore((s) => s.sessionLockedError);
+  const clearSessionLockedError = useTrainingPlanStore((s) => s.clearSessionLockedError);
 
   // ── Local UI state ──
   const [pageTab, setPageTab] = useState<'sessions' | 'photos'>('sessions');
   const [selectedDay, setSelectedDay] = useState(1);
   const [collapsedSessions, setCollapsedSessions] = useState<Set<string>>(new Set());
+  /** Sessions currently undergoing an unlock/relock request (prevents double-click). */
+  const [lockPendingIds, setLockPendingIds] = useState<Set<string>>(new Set());
   // Section collapse state lives at the page level so it survives moving a
   // section between sessions (a SectionCard instance otherwise unmounts and
   // its local state resets when the parent session changes).
@@ -268,7 +274,51 @@ export default function TrainingPlanPage() {
 
   // ── Handlers ──
   const handleSave = async () => {
+    clearSessionLockedError();
     await save();
+  };
+
+  /**
+   * Acquires an Editing lock on a published session so the trainer can edit it.
+   * On success, patches the lock state in the store immediately (optimistic) and
+   * the SignalR event will confirm it asynchronously.
+   */
+  const handleUnlock = async (sessionId: string) => {
+    if (!plan?.planId) return;
+    setLockPendingIds((prev) => new Set([...prev, sessionId]));
+    try {
+      await unlockTrainingSession(plan.planId, sessionId);
+      patchSessionLockState(sessionId, 'Editing', 'Coach');
+    } catch (err) {
+      showApiError(err, 'training.lock.unlockError');
+    } finally {
+      setLockPendingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(sessionId);
+        return next;
+      });
+    }
+  };
+
+  /**
+   * Releases the Editing lock on a session (returns it to Stable).
+   * Optimistically patches the store then triggers a save.
+   */
+  const handleRelock = async (sessionId: string) => {
+    if (!plan?.planId) return;
+    setLockPendingIds((prev) => new Set([...prev, sessionId]));
+    try {
+      await relockTrainingSession(plan.planId, sessionId);
+      patchSessionLockState(sessionId, 'Stable', null);
+    } catch (err) {
+      showApiError(err, 'training.lock.relockError');
+    } finally {
+      setLockPendingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(sessionId);
+        return next;
+      });
+    }
   };
 
   const handleReset = async () => {
@@ -889,6 +939,55 @@ export default function TrainingPlanPage() {
               disabled={isSelectedDayInPast}
             />
 
+            {/* Gated-save inline error — shown when a save attempt returned 409
+                session_locked. Names the blocked session(s) and offers an
+                unlock CTA. Cleared on next successful save. */}
+            {sessionLockedError && sessionLockedError.length > 0 && (
+              <div
+                className={cn(
+                  'mb-3 rounded-md border px-3 py-2',
+                  'border-red/40 bg-red/5 text-text',
+                )}
+                role="alert"
+              >
+                <p className="text-[12px] font-medium text-red mb-1">
+                  {t('training.lock.sessionLockedError')}
+                </p>
+                <ul className="mb-2 list-inside list-disc">
+                  {sessionLockedError
+                    .filter((sid) => sid !== 'unknown')
+                    .map((sid) => {
+                      const sessionName =
+                        plan?.weeks
+                          .flatMap((w) => w.sessions)
+                          .find((s) => s.sessionId === sid)?.name ||
+                        t('training.untitledSession');
+                      return (
+                        <li key={sid} className="text-[11px] text-text2">
+                          {sessionName}
+                        </li>
+                      );
+                    })}
+                  {sessionLockedError.includes('unknown') &&
+                    sessionLockedError.length === 1 && (
+                      <li className="text-[11px] text-text2">
+                        {t('training.lock.unlockToSave')}
+                      </li>
+                    )}
+                </ul>
+                <p className="text-[11px] text-text3">
+                  {t('training.lock.unlockToSave')}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => clearSessionLockedError()}
+                  className="mt-1 text-[11px] text-text4 underline hover:text-text2 transition-colors"
+                >
+                  {t('common.close')}
+                </button>
+              </div>
+            )}
+
             {daySessions.length === 0 && (
               <div className="py-12 text-center text-[13px] text-text3">
                 {t('training.restDay')}
@@ -919,6 +1018,25 @@ export default function TrainingPlanPage() {
               const isPastUnfinishedSession =
                 isSelectedDayInPast && !isPastCompletedSession && !isClientLockedSession;
 
+              // ── Edit-lock state (distinct from completion-based planLocks) ──
+              // Session edit-lock is only relevant for published sessions. For
+              // draft sessions there is no lock gate — they are always editable.
+              const isPublishedSession = currentWeek?.status === 'Published';
+              const sessionLockEntry = isPublishedSession
+                ? sessionLockMap.get(session.sessionId)
+                : undefined;
+              // Absent from map = Stable (no active lock).
+              const sessionEditLockState = sessionLockEntry?.lockState ?? 'Stable';
+              const isLive = sessionEditLockState === 'Live';
+              const isEditing = sessionEditLockState === 'Editing';
+              const isLockPending = lockPendingIds.has(session.sessionId);
+              // For published sessions, only allow content editing when in Editing state.
+              // Stable = locked (must unlock first); Live = locked by client workout.
+              const isEditLocked =
+                isPublishedSession && (isLive || sessionEditLockState === 'Stable');
+              // Combined read-only guard (completion-based OR edit-locked).
+              const isSessionEffectivelyReadOnly = isSessionReadOnly || isEditLocked;
+
               return (
                 <SessionDragWrapper
                   key={session.sessionId}
@@ -928,7 +1046,7 @@ export default function TrainingPlanPage() {
                   // Drag-out + drop-over rejected when this session is
                   // read-only (finished session OR past day) — reordering
                   // a historical session has no clinical value.
-                  disabled={isSessionReadOnly}
+                  disabled={isSessionEffectivelyReadOnly}
                 >
                   <div
                     className="rounded-md border border-border bg-bg transition-all duration-100 hover:border-border-md overflow-hidden"
@@ -971,11 +1089,11 @@ export default function TrainingPlanPage() {
                         value={session.name}
                         onChange={(e) => updateSessionName(selectedWeek, session.sessionId, e.target.value)}
                         placeholder={t('training.sessionNamePlaceholder')}
-                        readOnly={isSessionReadOnly}
+                        readOnly={isSessionEffectivelyReadOnly}
                         className={cn(
                           'w-full bg-transparent text-[13px] font-semibold text-text outline-none placeholder:text-text3 rounded-sm',
                           invalidIds.has(session.sessionId) && 'ring-1 ring-red',
-                          isSessionReadOnly && 'cursor-default',
+                          isSessionEffectivelyReadOnly && 'cursor-default',
                         )}
                         style={{ fontFamily: 'inherit' }}
                       />
@@ -1014,6 +1132,63 @@ export default function TrainingPlanPage() {
                         );
                       })()}
                     </span>
+                    {/* ── Edit-lock affordances (published sessions only) ─────────
+                        Live   → in-progress badge + disabled affordance with tooltip
+                        Stable → "Unlock to edit" button
+                        Editing → "Relock" button
+                    ──────────────────────────────────────────────────────────── */}
+                    {isPublishedSession && isLive && (
+                      <span
+                        className={cn(
+                          'shrink-0 inline-flex items-center gap-1 rounded-sm border px-2 py-[2px]',
+                          'text-[10px] font-medium',
+                          'border-orange/50 text-orange bg-orange/10',
+                        )}
+                        title={t('training.lock.liveTooltip')}
+                        aria-label={t('training.lock.liveTooltip')}
+                      >
+                        <span aria-hidden="true">●</span>
+                        {t('training.lock.liveLabel')}
+                      </span>
+                    )}
+                    {isPublishedSession && !isLive && !isEditing && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void handleUnlock(session.sessionId);
+                        }}
+                        disabled={isLockPending}
+                        className={cn(
+                          'shrink-0 rounded-sm border px-2 py-[2px] text-[10px] font-medium transition-colors',
+                          'border-accent/50 text-accent bg-accent-bg',
+                          'hover:bg-accent/10 hover:border-accent',
+                          'disabled:opacity-40 disabled:cursor-not-allowed',
+                        )}
+                        aria-label={t('training.lock.unlockLabel')}
+                      >
+                        {isLockPending ? t('training.lock.unlocking') : t('training.lock.unlockLabel')}
+                      </button>
+                    )}
+                    {isPublishedSession && isEditing && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void handleRelock(session.sessionId);
+                        }}
+                        disabled={isLockPending}
+                        className={cn(
+                          'shrink-0 rounded-sm border px-2 py-[2px] text-[10px] font-medium transition-colors',
+                          'border-border text-text3 bg-bg2',
+                          'hover:bg-bg3 hover:border-border-md',
+                          'disabled:opacity-40 disabled:cursor-not-allowed',
+                        )}
+                        aria-label={t('training.lock.relockLabel')}
+                      >
+                        {isLockPending ? t('training.lock.relocking') : t('training.lock.relockLabel')}
+                      </button>
+                    )}
                     {/* "Mark finished" retroactive affordance — only shown on
                         past sessions the client did not complete. The button is
                         visually distinct (tinted outline style) to separate it
@@ -1073,15 +1248,15 @@ export default function TrainingPlanPage() {
                           isDirty: true,
                         });
                       }}
-                      disabled={isSessionReadOnly}
+                      disabled={isSessionEffectivelyReadOnly}
                       style={{
                         background: 'none', border: 'none',
-                        cursor: isSessionReadOnly ? 'not-allowed' : 'pointer', padding: '2px 4px',
+                        cursor: isSessionEffectivelyReadOnly ? 'not-allowed' : 'pointer', padding: '2px 4px',
                         fontSize: 11, color: 'var(--text4)', borderRadius: 'var(--radius)',
                         transition: 'color 0.1s',
-                        opacity: isSessionReadOnly ? 0.4 : 1,
+                        opacity: isSessionEffectivelyReadOnly ? 0.4 : 1,
                       }}
-                      onMouseEnter={(e) => { if (!isSessionReadOnly) e.currentTarget.style.color = 'var(--text2)'; }}
+                      onMouseEnter={(e) => { if (!isSessionEffectivelyReadOnly) e.currentTarget.style.color = 'var(--text2)'; }}
                       onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text4)'; }}
                       title={t('training.duplicateSession')}
                     >
@@ -1090,15 +1265,15 @@ export default function TrainingPlanPage() {
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); removeSession(selectedWeek, session.sessionId); }}
-                      disabled={isSessionReadOnly}
+                      disabled={isSessionEffectivelyReadOnly}
                       style={{
                         background: 'none', border: 'none',
-                        cursor: isSessionReadOnly ? 'not-allowed' : 'pointer', padding: '2px 4px',
+                        cursor: isSessionEffectivelyReadOnly ? 'not-allowed' : 'pointer', padding: '2px 4px',
                         fontSize: 11, color: 'var(--text4)', borderRadius: 'var(--radius)',
                         transition: 'color 0.1s',
-                        opacity: isSessionReadOnly ? 0.4 : 1,
+                        opacity: isSessionEffectivelyReadOnly ? 0.4 : 1,
                       }}
-                      onMouseEnter={(e) => { if (!isSessionReadOnly) e.currentTarget.style.color = 'var(--red)'; }}
+                      onMouseEnter={(e) => { if (!isSessionEffectivelyReadOnly) e.currentTarget.style.color = 'var(--red)'; }}
                       onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text4)'; }}
                       title={t('training.removeSession')}
                     >
@@ -1120,14 +1295,14 @@ export default function TrainingPlanPage() {
                           value={session.notes ?? ''}
                           onChange={(e) => updateSessionNotes(selectedWeek, session.sessionId, e.target.value)}
                           placeholder={t('training.sessionNotesPlaceholder')}
-                          disabled={isSessionReadOnly}
+                          disabled={isSessionEffectivelyReadOnly}
                           style={{
                             width: '100%', border: 'none', outline: 'none', background: 'transparent',
                             fontSize: 11, color: 'var(--text3)', fontFamily: 'inherit', fontStyle: 'italic',
                             padding: '2px 4px', borderRadius: 'var(--radius)', transition: 'background 0.1s',
-                            cursor: isSessionReadOnly ? 'not-allowed' : 'text',
+                            cursor: isSessionEffectivelyReadOnly ? 'not-allowed' : 'text',
                           }}
-                          onFocus={(e) => { if (!isSessionReadOnly) e.target.style.background = 'var(--bg-hover)'; }}
+                          onFocus={(e) => { if (!isSessionEffectivelyReadOnly) e.target.style.background = 'var(--bg-hover)'; }}
                           onBlur={(e) => { e.target.style.background = 'transparent'; }}
                         />
                       </div>
@@ -1136,13 +1311,13 @@ export default function TrainingPlanPage() {
                       <div
                         className="px-2 pt-1"
                         onDragOver={(e) => {
-                          if (isCurrentWeekFinished || isSessionReadOnly) return;
+                          if (isCurrentWeekFinished || isSessionEffectivelyReadOnly) return;
                           if (!e.dataTransfer.types.includes('application/section-json')) return;
                           e.preventDefault();
                           e.dataTransfer.dropEffect = 'move';
                         }}
                         onDrop={(e) => {
-                          if (isCurrentWeekFinished || isSessionReadOnly) return;
+                          if (isCurrentWeekFinished || isSessionEffectivelyReadOnly) return;
                           if (!e.dataTransfer.types.includes('application/section-json')) return;
                           e.preventDefault();
                           try {
@@ -1191,7 +1366,7 @@ export default function TrainingPlanPage() {
                             // the host session is read-only (finished
                             // session OR past day) — reordering historical
                             // workouts has no clinical value.
-                            disabled={isSessionReadOnly}
+                            disabled={isSessionEffectivelyReadOnly}
                           >
                           <SectionCard
                             section={section}
@@ -1205,11 +1380,13 @@ export default function TrainingPlanPage() {
                               //     section finished by the client)
                               //   - the session is a past completed session
                               //     (client formally finished the workout log)
+                              //   - the session has an edit lock (Stable or Live)
                               // NOTE: isSelectedDayInPast alone no longer locks —
                               // past skipped / untouched sessions are editable.
                               planLocks.sectionIds.has(section.sectionId) ||
                               isClientLockedSession ||
-                              isPastCompletedSession
+                              isPastCompletedSession ||
+                              isEditLocked
                             }
                             lockedExerciseIds={new Set(
                               section.exercises
@@ -1280,7 +1457,7 @@ export default function TrainingPlanPage() {
                           by the client) OR the day already passed. Adding
                           new workouts to a completed session — or to any
                           historical day — has no clinical value. */}
-                      {!isSessionReadOnly && (
+                      {!isSessionEffectivelyReadOnly && (
                         <div className="flex items-center gap-3 px-3 py-2 border-t border-border">
                           <button
                             type="button"
