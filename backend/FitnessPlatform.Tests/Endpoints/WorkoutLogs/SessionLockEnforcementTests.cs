@@ -13,14 +13,21 @@ using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints;
-using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using NSubstitute;
 
 namespace FitnessPlatform.Tests.Endpoints.WorkoutLogs;
 
 /// <summary>
-/// Tests for session-lock enforcement in StartWorkout and CompleteWorkout endpoints (issue #382).
+/// Tests for session-lock enforcement around StartWorkout and CompleteWorkout endpoints (issue #382).
+///
+/// Design note (#401): StartWorkout no longer acquires the Live lock — that responsibility
+/// moved to GoLiveEndpoint (see GoLiveEndpointTests for the lock-state-machine coverage).
+/// StartWorkout now ONLY creates the draft log. Lock-enforcement tests that previously targeted
+/// StartWorkout have been relocated here to GoLive (or deleted where GoLiveEndpointTests already
+/// provides equivalent coverage). The remaining StartWorkout tests assert that:
+///   - Ad-hoc workouts (null PlanId or null SessionId) create a draft log without touching the lock service.
+///   - Plan-bound workouts create a draft log without touching the lock service (GoLive handles the lock).
 /// </summary>
 public class SessionLockEnforcementTests
 {
@@ -28,12 +35,6 @@ public class SessionLockEnforcementTests
     private readonly Guid _trainerId = Guid.NewGuid();
     private readonly Guid _planId = Guid.NewGuid();
     private readonly Guid _sessionId = Guid.NewGuid();
-
-    private IOptions<TrainingLockOptions> DefaultLockOptions()
-    {
-        var opts = new TrainingLockOptions { LiveTtlHours = 6, EditingTtlHours = 2 };
-        return Options.Create(opts);
-    }
 
     private TrainingPlan MakePlan(Guid? clientId = null)
     {
@@ -50,38 +51,6 @@ public class SessionLockEnforcementTests
         };
     }
 
-    private ISessionLockService AcquiredLockService()
-    {
-        var svc = Substitute.For<ISessionLockService>();
-        svc.AcquireAsync(
-                Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<Guid>(),
-                Arg.Any<LockHolder>(), Arg.Any<LockType>(), Arg.Any<TimeSpan>(),
-                Arg.Any<CancellationToken>())
-            .Returns(new AcquireResult.Acquired(new SessionLock
-            {
-                SessionId = _sessionId,
-                PlanId = _planId,
-                ClientId = _clientId,
-                TrainerId = _trainerId,
-                Holder = LockHolder.Client,
-                Type = LockType.Live,
-                AcquiredAt = DateTime.UtcNow,
-                ExpiresAt = DateTime.UtcNow.AddHours(6)
-            }));
-        return svc;
-    }
-
-    private ISessionLockService LockedLockService()
-    {
-        var svc = Substitute.For<ISessionLockService>();
-        svc.AcquireAsync(
-                Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<Guid>(),
-                Arg.Any<LockHolder>(), Arg.Any<LockType>(), Arg.Any<TimeSpan>(),
-                Arg.Any<CancellationToken>())
-            .Returns(new AcquireResult.LockConflict());
-        return svc;
-    }
-
     /// <summary>
     /// Builds a mock IApplicationDbContext with a ClientProfile for _clientId.
     /// PublicId = _clientId (test shortcut — plan.ClientId uses _clientId so it still matches).
@@ -91,64 +60,36 @@ public class SessionLockEnforcementTests
             .With(new ClientProfile { Id = 1, UserId = _clientId, PublicId = _clientId })
             .Build();
 
-    private StartWorkoutEndpoint CreateStartEndpoint(
-        IMongoContext mongo,
-        ISessionLockService lockService)
+    private StartWorkoutEndpoint CreateStartEndpoint(IMongoContext mongo)
     {
         return Factory.Create<StartWorkoutEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, CreateDbWithProfile(), lockService, DefaultLockOptions(), Substitute.For<IRealtimeNotifier>());
+            mongo, CreateDbWithProfile());
     }
 
     // ── StartWorkout tests ────────────────────────────────────────────────────
+    // StartWorkout creates the draft log only; it does NOT interact with ISessionLockService.
+    // Lock acquisition (Live lock) and the 409-on-Editing enforcement live in GoLiveEndpoint
+    // (see GoLiveEndpointTests.GoLive_ValidPlanBoundLog_Returns200_AcquiresLock_BroadcastsLive
+    //  and GoLiveEndpointTests.GoLive_SessionInEditingState_Returns409_EmitsNothing).
 
     [Fact]
-    public async Task StartWorkout_SessionInEditingState_Returns409SessionLocked()
+    public async Task StartWorkout_PlanBoundSession_CreatesDraftLogAndReturns201()
     {
-        // Arrange — plan exists, lock acquisition fails (session is Editing)
+        // Arrange — plan-bound workout: StartWorkout should create the draft and return 201
+        // WITHOUT acquiring any lock (GoLive owns that step).
         var mongo = WorkoutLogTestHelpers.CreateMockMongo(plans: [MakePlan()]);
-        var lockService = LockedLockService();
-        var ep = CreateStartEndpoint(mongo, lockService);
+        var ep = CreateStartEndpoint(mongo);
 
         var req = new StartWorkoutRequest { PlanId = _planId, SessionId = _sessionId };
 
         // Act
         await ep.HandleAsync(req, TestContext.Current.CancellationToken);
 
-        // Assert
-        ep.HttpContext.Response.StatusCode.Should().Be(409);
-        // No WorkoutLog must have been inserted
-        await mongo.WorkoutLogs.DidNotReceive().InsertOneAsync(
-            Arg.Any<WorkoutLog>(),
-            Arg.Any<InsertOneOptions>(),
-            Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task StartWorkout_StableSession_AcquiresLockAndReturns201()
-    {
-        // Arrange — plan exists, lock acquisition succeeds
-        var mongo = WorkoutLogTestHelpers.CreateMockMongo(plans: [MakePlan()]);
-        var lockService = AcquiredLockService();
-        var ep = CreateStartEndpoint(mongo, lockService);
-
-        var req = new StartWorkoutRequest { PlanId = _planId, SessionId = _sessionId };
-
-        // Act
-        await ep.HandleAsync(req, TestContext.Current.CancellationToken);
-
-        // Assert
+        // Assert — draft log created
         ep.HttpContext.Response.StatusCode.Should().Be(201);
 
-        // Lock must have been acquired with Client/Live
-        await lockService.Received(1).AcquireAsync(
-            _sessionId, _planId, _clientId, _trainerId,
-            LockHolder.Client, LockType.Live,
-            TimeSpan.FromHours(6),
-            Arg.Any<CancellationToken>());
-
-        // WorkoutLog must have been inserted
         await mongo.WorkoutLogs.Received(1).InsertOneAsync(
             Arg.Is<WorkoutLog>(w => w.ClientId == _clientId && w.SessionId == _sessionId),
             Arg.Any<InsertOneOptions>(),
@@ -156,12 +97,11 @@ public class SessionLockEnforcementTests
     }
 
     [Fact]
-    public async Task StartWorkout_NullPlanId_SkipsLockAndReturns201()
+    public async Task StartWorkout_NullPlanId_CreatesDraftLogAndReturns201()
     {
-        // Arrange — ad-hoc workout: no PlanId
+        // Arrange — ad-hoc workout: no PlanId, no SessionId
         var mongo = WorkoutLogTestHelpers.CreateMockMongo();
-        var lockService = Substitute.For<ISessionLockService>();
-        var ep = CreateStartEndpoint(mongo, lockService);
+        var ep = CreateStartEndpoint(mongo);
 
         // Act
         await ep.HandleAsync(new StartWorkoutRequest { PlanId = null, SessionId = null },
@@ -170,12 +110,6 @@ public class SessionLockEnforcementTests
         // Assert
         ep.HttpContext.Response.StatusCode.Should().Be(201);
 
-        // Lock must NOT have been acquired
-        await lockService.DidNotReceive().AcquireAsync(
-            Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<Guid>(),
-            Arg.Any<LockHolder>(), Arg.Any<LockType>(), Arg.Any<TimeSpan>(),
-            Arg.Any<CancellationToken>());
-
         await mongo.WorkoutLogs.Received(1).InsertOneAsync(
             Arg.Is<WorkoutLog>(w => w.ClientId == _clientId && w.PlanId == null && w.SessionId == null),
             Arg.Any<InsertOneOptions>(),
@@ -183,12 +117,11 @@ public class SessionLockEnforcementTests
     }
 
     [Fact]
-    public async Task StartWorkout_NullSessionIdOnly_SkipsLockAndReturns201()
+    public async Task StartWorkout_NullSessionIdOnly_CreatesDraftLogAndReturns201()
     {
         // Arrange — PlanId provided but SessionId is null: ad-hoc relative to a plan
         var mongo = WorkoutLogTestHelpers.CreateMockMongo();
-        var lockService = Substitute.For<ISessionLockService>();
-        var ep = CreateStartEndpoint(mongo, lockService);
+        var ep = CreateStartEndpoint(mongo);
 
         // Act
         await ep.HandleAsync(new StartWorkoutRequest { PlanId = _planId, SessionId = null },
@@ -197,9 +130,9 @@ public class SessionLockEnforcementTests
         // Assert
         ep.HttpContext.Response.StatusCode.Should().Be(201);
 
-        await lockService.DidNotReceive().AcquireAsync(
-            Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<Guid>(),
-            Arg.Any<LockHolder>(), Arg.Any<LockType>(), Arg.Any<TimeSpan>(),
+        await mongo.WorkoutLogs.Received(1).InsertOneAsync(
+            Arg.Is<WorkoutLog>(w => w.ClientId == _clientId && w.PlanId == _planId && w.SessionId == null),
+            Arg.Any<InsertOneOptions>(),
             Arg.Any<CancellationToken>());
     }
 
