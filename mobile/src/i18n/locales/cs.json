@@ -224,6 +224,7 @@
     "calories": "Kalorie",
     "weight": "Váha",
     "noMeasurements": "žádné měření",
+    "weightPeriodSub": "za posledních {{count}} dní",
     "training": "Trénink",
     "restDay": "Den odpočinku",
     "preparing": "Připravuje se",
