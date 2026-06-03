@@ -101,14 +101,35 @@ export type {
 } from './wod-types';
 
 /**
- * Augmented GetTodaySessionResponse — adds `lockStateBySession` which the
- * backend (#382) now includes. Drop once regen produces this field natively.
+ * A single training-session diary photo from the session log.
+ * Mirrors `MealPhotoDto` from nutrition (blobUrl, uploadedAt, note?).
  *
- * Key: sessionId (string UUID). Value: lock state string ("Stable", "Editing", "Live").
- * Missing key → treat as "Stable".
+ * Hand-declared until regen-api is run against the backend (#405).
+ * Drop this type once generated.ts emits `SessionPhotoDto` natively.
+ */
+export interface SessionPhotoDto {
+  blobUrl: string;
+  uploadedAt?: string;
+  note?: string | null;
+}
+
+/**
+ * Augmented GetTodaySessionResponse — adds:
+ *   - `lockStateBySession` (#382): session edit-lock state.
+ *   - `photosBySession` (#405): per-session diary photos from the session log.
+ *
+ * Both fields hand-declared until regen-api runs against the updated backend.
+ * Drop the augmentation for each field once the generated client emits it natively.
  */
 export type TodayTrainingResponse = GetTodaySessionResponse & {
   lockStateBySession?: Record<string, string>;
+  /**
+   * Per-session diary photos from today's session logs, keyed by sessionId.
+   * Mirrors how `mealsEaten[].photos` is embedded in GetTodayLogResponse for nutrition.
+   * Added in #405 (GenerateSessionPhotoUploadUrl + SaveSessionPhotos endpoints).
+   * Returns an empty object when no session has any diary photos today.
+   */
+  photosBySession?: Record<string, SessionPhotoDto[]>;
 };
 
 /**
@@ -146,4 +167,52 @@ export async function getTodaySession(): Promise<GetTodaySessionResponse> {
 export async function getFullTrainingPlan(planId: string): Promise<GetFullTrainingPlanResponse> {
   const { data } = await api.get<GetFullTrainingPlanResponse>(`/client/training/plans/${planId}`);
   return data;
+}
+
+// ─── Session photo upload API (#405) ─────────────────────────────────────────
+// Mirrors the nutrition meal-photo API pattern exactly.
+
+export interface GenerateSessionPhotoUploadUrlResponse {
+  uploadUrl: string;
+  blobUrl: string;
+}
+
+/**
+ * Request a signed upload URL for a training-session diary photo.
+ * Photos land in the session-diary/{sessionId}/ bucket namespace.
+ * Mirrors `generateMealPhotoUploadUrl` from nutrition.
+ */
+export async function generateSessionPhotoUploadUrl(
+  sessionId: string,
+  contentType: string,
+  sizeBytes: number,
+): Promise<GenerateSessionPhotoUploadUrlResponse> {
+  const { data } = await api.post<GenerateSessionPhotoUploadUrlResponse>(
+    `/client/training/log/sessions/${sessionId}/photo-upload-url`,
+    { contentType, sizeBytes },
+  );
+  return data;
+}
+
+export interface SessionPhotoInput {
+  blobUrl: string;
+  note?: string | null;
+}
+
+export interface SaveSessionPhotosOptions {
+  photos?: SessionPhotoInput[];
+  note?: string | null;
+}
+
+/**
+ * Replaces the photos list and note on a session log entry with the provided values.
+ * REPLACE semantics — the backend sets Photos to exactly the submitted list.
+ * UploadedAt is preserved for URLs that already exist in the log.
+ * Mirrors `saveMealPhotos` from nutrition.
+ */
+export async function saveSessionPhotos(
+  sessionId: string,
+  opts: SaveSessionPhotosOptions = {},
+): Promise<void> {
+  await api.post(`/client/training/log/sessions/${sessionId}/photos`, opts);
 }

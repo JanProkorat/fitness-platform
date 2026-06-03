@@ -380,6 +380,15 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
     return map
   }, [logQuery.data])
 
+  /**
+   * Per-session diary photos from today's session logs, keyed by sessionId.
+   * Sourced from `photosBySession` in TodayTrainingResponse (#405).
+   * Mirrors how `mealPhotosByMealId` is derived from `mealsEaten[].photos`.
+   */
+  const photosBySession = useMemo(() => {
+    return trainingQuery.data?.photosBySession ?? {}
+  }, [trainingQuery.data?.photosBySession])
+
   const sortedMeals = useMemo(
     () => [...(plan?.meals ?? [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
     [plan?.meals],
@@ -1142,11 +1151,24 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
     router.push(hrefParams('/(client)/plan-photos', { planId: training.planId, planType: 'training' }))
   }, [router, training?.planId])
 
-  /** Navigate to the training plan-photos upload screen from the session card camera button. */
-  const handleSessionPhotoPress = useCallback(() => {
-    if (!training?.planId) return
-    router.push(hrefParams('/(client)/plan-photos-upload', { planId: training.planId, planType: 'training' }))
-  }, [router, training?.planId])
+  /**
+   * Navigate to the session-scoped photo upload screen from the session card camera button.
+   * Receives the sessionId so the screen can call POST /client/training/log/sessions/{id}/photos.
+   * Replaces the former plan-wide plan-photos-upload navigation (#405).
+   */
+  const handleSessionPhotoPress = useCallback(
+    (sessionId: string) => {
+      const session = todaySessions.find((s) => s.sessionId === sessionId)
+      if (!sessionId) return
+      router.push(
+        hrefParams('/(client)/session-log-photo', {
+          sessionId,
+          sessionName: session?.name ?? '',
+        }),
+      )
+    },
+    [router, todaySessions],
+  )
 
   /** Navigate to the meal-log-photo modal screen for the tapped meal. */
   const handlePhotoPress = useCallback(
@@ -1318,6 +1340,7 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
               onMarkAllTrainingDone={handleMarkAllTrainingDone}
               isMarkAllTrainingLoading={markAllTrainingDoneMutation.isPending}
               onSessionPhotoPress={handleSessionPhotoPress}
+              photosBySession={photosBySession}
             />
           </View>
         ) : hasActivePlanButNoTrainingToday ? (
