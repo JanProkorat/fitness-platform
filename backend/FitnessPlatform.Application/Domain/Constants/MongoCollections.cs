@@ -64,4 +64,9 @@ public static class MongoCollections
     /// Active session lock documents (Editing or Live state; absence = Stable).
     /// </summary>
     public const string SessionLocks = "sessionLocks";
+
+    /// <summary>
+    /// Session log entries — photos and notes attached to a specific training session diary entry.
+    /// </summary>
+    public const string SessionLogs = "sessionLogs";
 }

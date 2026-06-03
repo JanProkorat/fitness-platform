@@ -731,6 +731,7 @@
     },
     "photoCta": "Photo",
     "sessionPhotoA11y": "Add training photo",
+    "todayPhotos": "Today's photos",
     "sessions": {
       "reminder": {
         "toggleLabel": "Reminder",
@@ -1020,6 +1021,24 @@
     "addMorePhotos": "Add another photo",
     "photoThumbA11y": "Photo {{index}} of {{total}}",
     "openPhotosA11y": "Open meal photos",
+    "photoCaption": {
+      "placeholder": "Caption (optional)",
+      "a11y": "Photo caption"
+    }
+  },
+  "sessionLogPhoto": {
+    "photoSectionLabel": "Add photos (optional)",
+    "photoPickerHint": "Tap: gallery · hold: camera",
+    "noteSectionLabel": "Note (optional)",
+    "notePlaceholder": "E.g. Great workout, I added more weight…",
+    "noteCounter": "{{current}} / {{max}}",
+    "infoStrip": "Photos and note will be saved to your training diary and are visible to {{coachName}}.",
+    "infoStripNoCoach": "Photos and note will be saved to your training diary.",
+    "savePhoto": "Save",
+    "successToast": "Saved",
+    "addMorePhotos": "Add another photo",
+    "openPhotosA11y": "Open training photos",
+    "removePhoto": "Remove photo",
     "photoCaption": {
       "placeholder": "Caption (optional)",
       "a11y": "Photo caption"

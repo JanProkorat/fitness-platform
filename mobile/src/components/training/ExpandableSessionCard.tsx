@@ -17,6 +17,8 @@ import {
   trainingEasing,
 } from './animations'
 import { AnimatedCollapse } from './AnimatedCollapse'
+import { ImageLightbox } from '@/components/ui/ImageLightbox'
+import type { SessionPhotoDto } from '@/api/training'
 
 const ANIM_DURATION = TRAINING_ANIM_DURATION
 const easing = trainingEasing
@@ -117,6 +119,13 @@ interface ExpandableSessionCardProps {
    * the plan-detail path unchanged.
    */
   onPhotoPress?: () => void
+  /**
+   * Diary photos for this session's log entry. When non-empty, a tappable
+   * gold photo-indicator badge is rendered in the header next to the camera
+   * button. Tapping it opens an ImageLightbox scoped to THESE session photos
+   * only — mirrors MealRow's `hasPhotos`/`photos` pattern exactly.
+   */
+  photos?: SessionPhotoDto[]
   children: React.ReactNode
 }
 
@@ -142,11 +151,28 @@ export function ExpandableSessionCard({
   children,
   bodyFooter,
   onPhotoPress,
+  photos,
 }: ExpandableSessionCardProps) {
   const colors = useTheme()
   const { t } = useTranslation()
   const [isOpen, setIsOpen] = useState(defaultExpanded)
   const chevronProgress = useSharedValue(defaultExpanded ? 1 : 0)
+
+  // Lightbox state — opened by tapping the gold photo-indicator badge in the header.
+  // Mirrors MealRow's lightbox state (lines 99–112 of MealRow.tsx).
+  const [lightboxVisible, setLightboxVisible] = useState(false)
+  const photoList = photos ?? []
+  const hasPhotos = photoList.length > 0
+  const photoUrls = photoList.map((p) => p.blobUrl).filter(Boolean)
+  const photoNotes = photoList.map((p) => p.note ?? null)
+
+  const handleBadgePress = useCallback(() => {
+    if (photoUrls.length > 0) setLightboxVisible(true)
+  }, [photoUrls.length])
+
+  const handleLightboxClose = useCallback(() => {
+    setLightboxVisible(false)
+  }, [])
 
   const chevronStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${chevronProgress.value * 180}deg` }],
@@ -206,6 +232,25 @@ export function ExpandableSessionCard({
           </Text>
         </View>
 
+        {/* Photo indicator badge — tappable, shown only when this session has
+            diary photos. Mirrors MealRow's photoIndicator (lines 250–264):
+            goldBg circle with a small camera icon that opens the per-session
+            ImageLightbox when tapped. */}
+        {hasPhotos && (
+          <Pressable
+            onPress={(e) => {
+              e.stopPropagation?.()
+              handleBadgePress()
+            }}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={t('sessionLogPhoto.openPhotosA11y')}
+            style={[styles.photoIndicator, { backgroundColor: colors.goldBg }]}
+          >
+            <Ionicons name="camera" size={11} color={colors.gold} />
+          </Pressable>
+        )}
+
         {/* Camera button — only rendered when onPhotoPress is provided.
             Mirrors MealRow's CameraButton: goldAlpha circle, Ionicons camera,
             stopPropagation so it doesn't toggle the card expand/collapse.
@@ -256,6 +301,19 @@ export function ExpandableSessionCard({
         {children}
         {bodyFooter}
       </AnimatedCollapse>
+
+      {/* Per-session photo lightbox — opened by tapping the gold badge in the
+          header. Scoped to THIS session's photos only, mirroring MealRow's
+          ImageLightbox render (lines 297–302 of MealRow.tsx). */}
+      {hasPhotos && (
+        <ImageLightbox
+          visible={lightboxVisible}
+          images={photoUrls}
+          startIndex={0}
+          onClose={handleLightboxClose}
+          imageNotes={photoNotes}
+        />
+      )}
     </View>
   )
 }
@@ -316,6 +374,18 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 14,
     borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  /**
+   * Small badge shown when this session has diary photos — mirrors
+   * MealRow's photoIndicator style exactly (18×18, radius 9, goldBg fill).
+   */
+  photoIndicator: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,

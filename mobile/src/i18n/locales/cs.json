@@ -766,6 +766,24 @@
       "a11y": "Popisek fotky"
     }
   },
+  "sessionLogPhoto": {
+    "photoSectionLabel": "Přidej fotky (volitelné)",
+    "photoPickerHint": "Tap: galerie · podržet: fotoaparát",
+    "noteSectionLabel": "Poznámka (volitelné)",
+    "notePlaceholder": "Např. Výborný trénink, přidal jsem si váhu…",
+    "noteCounter": "{{current}} / {{max}}",
+    "infoStrip": "Fotky i poznámka se uloží do tvého deníku tréninku a jsou viditelné pro {{coachName}}.",
+    "infoStripNoCoach": "Fotky i poznámka se uloží do tvého deníku tréninku.",
+    "savePhoto": "Uložit fotky",
+    "successToast": "Uloženo",
+    "addMorePhotos": "Přidat další fotku",
+    "openPhotosA11y": "Otevřít fotky tréninku",
+    "removePhoto": "Odebrat fotku",
+    "photoCaption": {
+      "placeholder": "Popisek (volitelný)",
+      "a11y": "Popisek fotky"
+    }
+  },
   "foodDetail": {
     "nutritionValues": "Nutriční hodnoty",
     "protein": "Bílkoviny",
@@ -985,6 +1003,7 @@
     },
     "photoCta": "Foto",
     "sessionPhotoA11y": "Přidat fotku tréninku",
+    "todayPhotos": "Fotky dne",
     "sessions": {
       "reminder": {
         "toggleLabel": "Připomenutí",

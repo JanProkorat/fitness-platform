@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback } from 'react'
-import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native'
+import { View, Text, StyleSheet, Pressable, ActivityIndicator, ScrollView, Image } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
@@ -8,6 +8,7 @@ import { Type, interFamily } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
 import { ProgressRing } from '@/components/ui/ProgressRing'
 import { GoldButton } from '@/components/ui/GoldButton'
+import { ImageLightbox } from '@/components/ui/ImageLightbox'
 import { ExpandableSessionCard } from '@/components/training/ExpandableSessionCard'
 import { ExpandableExerciseCard } from '@/components/training/ExpandableExerciseCard'
 import {
@@ -18,7 +19,7 @@ import {
 import { SectionHeader } from '@/components/training/SectionHeader'
 import { SetGrid } from '@/components/training/SetGrid'
 import { getMuscleGroupColor } from '@/constants/muscleGroups'
-import type { TrainingSession, TrainingSection, MuscleGroup } from '@/api/training'
+import type { TrainingSession, TrainingSection, MuscleGroup, SessionPhotoDto } from '@/api/training'
 import type { SessionCtaState } from './trainingCardHelpers'
 import { SessionEditingBanner } from '@/components/today/SessionEditingBanner'
 
@@ -145,12 +146,19 @@ interface TrainingCardProps {
   lockStateBySession?: Record<string, string>
   /**
    * Called when the user taps the camera icon on a session card header.
-   * Passed down through SessionSectionList to ExpandableSessionCard.
+   * Receives the sessionId so HasTrainerState can navigate to the
+   * session-scoped session-log-photo screen with the correct context.
    * When absent, no camera button is rendered on the session card.
-   * HasTrainerState supplies this to navigate to plan-photos-upload for the
-   * training plan (plan-level, v1 — session-level linkage is a future enhancement).
    */
-  onSessionPhotoPress?: () => void
+  onSessionPhotoPress?: (sessionId: string) => void
+  /**
+   * Per-session diary photos from today's session logs, keyed by sessionId.
+   * Used to render the "Fotky dne" horizontal strip beneath the training card
+   * and per-session photo indicators/lightbox inside each ExpandableSessionCard.
+   * Mirrors `mealPhotosByMealId` in NutritionCard.
+   * Sourced from `photosBySession` in TodayTrainingResponse (#405).
+   */
+  photosBySession?: Record<string, SessionPhotoDto[]>
 }
 
 // ─── formatSets ───────────────────────────────────────────────────────────────
@@ -274,9 +282,25 @@ export function TrainingCard({
   isMarkAllTrainingLoading,
   lockStateBySession = {},
   onSessionPhotoPress,
+  photosBySession = {},
 }: TrainingCardProps) {
   const colors = useTheme()
   const { t } = useTranslation()
+
+  // Flatten all photos from all sessions for the "Fotky dne" strip.
+  // Mirrors NutritionCard's allPhotos derivation from mealPhotosByMealId.
+  const allPhotos = useMemo<{ blobUrl: string; sessionId: string; note?: string | null }[]>(() => {
+    return Object.entries(photosBySession).flatMap(([sessionId, photos]) =>
+      photos.map((p) => ({ blobUrl: p.blobUrl, sessionId, note: p.note })),
+    )
+  }, [photosBySession])
+
+  const allPhotoUrls = useMemo(() => allPhotos.map((p) => p.blobUrl), [allPhotos])
+  const allPhotoNotes = useMemo(() => allPhotos.map((p) => p.note ?? null), [allPhotos])
+
+  const [lightbox, setLightbox] = useState<{ visible: boolean; startIndex: number }>(
+    { visible: false, startIndex: 0 },
+  )
 
   // Aggregate training-session counts for the hero ring. The ring tracks how
   // many of today's training sessions the client has fully completed (via
@@ -468,12 +492,59 @@ export function TrainingCard({
               onToggleExercises={onToggleExercises}
               onToggleSection={onToggleSection}
               onSessionCta={onSessionCta}
-              onSessionPhotoPress={onSessionPhotoPress}
+              onSessionPhotoPress={
+                onSessionPhotoPress && session.sessionId
+                  ? () => onSessionPhotoPress(session.sessionId!)
+                  : undefined
+              }
+              sessionPhotos={
+                session.sessionId != null
+                  ? (photosBySession[session.sessionId] ?? [])
+                  : []
+              }
               t={t}
             />
           )
         })}
       </View>
+
+      {/* Photo strip — "Fotky dne" — visible only when at least one session has diary photos.
+          Mirrors NutritionCard's photoStrip section exactly. */}
+      {allPhotos.length > 0 ? (
+        <View style={styles.photoStrip}>
+          <Text style={[styles.photoStripLabel, { color: colors.label3 }]}>
+            {t('training.todayPhotos')}
+          </Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.photoStripContent}
+          >
+            {allPhotos.map((photo, index) => (
+              <Pressable
+                key={`${photo.sessionId}-${index}`}
+                style={styles.photoStripTile}
+                onPress={() => setLightbox({ visible: true, startIndex: index })}
+              >
+                <Image
+                  source={{ uri: photo.blobUrl }}
+                  style={styles.photoStripImage}
+                  resizeMode="cover"
+                />
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      ) : null}
+
+      {/* Card-level lightbox for the photo strip */}
+      <ImageLightbox
+        visible={lightbox.visible}
+        images={allPhotoUrls}
+        startIndex={lightbox.startIndex}
+        onClose={() => setLightbox({ visible: false, startIndex: 0 })}
+        imageNotes={allPhotoNotes}
+      />
 
       {/* Mark whole day done — hidden when every session is already complete or no sessions */}
       {onMarkAllTrainingDone && hasIncompleteSessions && sessions.length > 0 && (
@@ -547,9 +618,14 @@ interface SessionSectionListProps {
   /**
    * When provided, a camera button is rendered in the session card header.
    * Passed through to ExpandableSessionCard's `onPhotoPress` prop.
-   * HasTrainerState supplies this to navigate to plan-photos-upload (training plan).
+   * Already pre-bound to the specific sessionId by the parent TrainingCard.
    */
   onSessionPhotoPress?: () => void
+  /**
+   * Diary photos for this specific session, already sliced from `photosBySession`.
+   * Passed to ExpandableSessionCard so the per-session badge + lightbox work.
+   */
+  sessionPhotos?: SessionPhotoDto[]
   t: (key: string, opts?: Record<string, unknown>) => string
 }
 
@@ -578,6 +654,7 @@ function SessionSectionList({
   onToggleSection,
   onSessionCta,
   onSessionPhotoPress,
+  sessionPhotos,
   t,
 }: SessionSectionListProps) {
   const colors = useTheme()
@@ -604,6 +681,7 @@ function SessionSectionList({
               summaryText={summaryText}
               headerRight={sessionCheckbox}
               onPhotoPress={onSessionPhotoPress}
+              photos={sessionPhotos}
             >
               {/* Section-grouped exercise cards */}
               {sections.map((section, sectionIdx) => {
@@ -917,6 +995,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 16,
+  },
+  // Photo strip — mirrors NutritionCard's photoStrip styles exactly.
+  photoStrip: {
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  photoStripLabel: {
+    ...Type.caption2,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    paddingHorizontal: 16,
+    marginBottom: 6,
+  },
+  photoStripContent: {
+    paddingHorizontal: 16,
+    gap: 6,
+  },
+  photoStripTile: {
+    width: 56,
+    height: 56,
+    borderRadius: Radius.sm,
+    overflow: 'hidden',
+  },
+  photoStripImage: {
+    width: '100%',
+    height: '100%',
   },
 })
 

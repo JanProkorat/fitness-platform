@@ -953,6 +953,7 @@
     },
     "photoCta": "Foto",
     "sessionPhotoA11y": "Trainingsfoto hinzufügen",
+    "todayPhotos": "Heutige Fotos",
     "sessions": {
       "reminder": {
         "toggleLabel": "Erinnerung",
@@ -1019,6 +1020,24 @@
     "addMorePhotos": "Weiteres Foto hinzufügen",
     "photoThumbA11y": "Foto {{index}} von {{total}}",
     "openPhotosA11y": "Mahlzeitfotos öffnen",
+    "photoCaption": {
+      "placeholder": "Beschriftung (optional)",
+      "a11y": "Fotobeschriftung"
+    }
+  },
+  "sessionLogPhoto": {
+    "photoSectionLabel": "Fotos hinzufügen (optional)",
+    "photoPickerHint": "Tippen: Galerie · gedrückt halten: Kamera",
+    "noteSectionLabel": "Notiz (optional)",
+    "notePlaceholder": "Z.B. Super Training, mehr Gewicht verwendet…",
+    "noteCounter": "{{current}} / {{max}}",
+    "infoStrip": "Fotos und Notiz werden in deinem Trainings-Tagebuch gespeichert und sind für {{coachName}} sichtbar.",
+    "infoStripNoCoach": "Fotos und Notiz werden in deinem Trainings-Tagebuch gespeichert.",
+    "savePhoto": "Speichern",
+    "successToast": "Gespeichert",
+    "addMorePhotos": "Weiteres Foto hinzufügen",
+    "openPhotosA11y": "Trainingsfotos öffnen",
+    "removePhoto": "Foto entfernen",
     "photoCaption": {
       "placeholder": "Beschriftung (optional)",
       "a11y": "Fotobeschriftung"
