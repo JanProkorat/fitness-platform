@@ -3184,14 +3184,6 @@ export default function WorkoutLogScreen() {
                         })
                         persistUpdate()
                         setPhase('sectionFinished')
-                        if (nextSectionIdx >= sections.length) {
-                          // Last section — mark the session finished + flush
-                          // the log so the backend matches the UI; the CTA
-                          // will hop to the session summary on tap.
-                          storeFinish()
-                          const logId = loadedLogId ?? activeLogId
-                          if (logId) void finalizeWorkout(logId)
-                        }
                         return
                       }
 
@@ -3636,14 +3628,6 @@ export default function WorkoutLogScreen() {
                   })
                   persistUpdate()
                   setPhase('sectionFinished')
-                  if (nextSectionIdx >= sections.length) {
-                    // Last section — mark the session finished + flush the
-                    // log so the backend sees the completed state. The
-                    // pinned CTA will close the session on tap.
-                    storeFinish()
-                    const logId = loadedLogId ?? activeLogId
-                    if (logId) void finalizeWorkout(logId)
-                  }
                 }}
                 onCancel={handleWodCancel}
                 onRoundChange={setCurrentWodRound}
@@ -3852,12 +3836,16 @@ export default function WorkoutLogScreen() {
             <Pressable
               style={[styles.pinnedCtaBtn, { backgroundColor: colors.gold }]}
               onPress={() => {
-                // No next workout — this was the last section. Hop to the
-                // session-summary (`'finished'`) screen; storeFinish +
-                // finalizeWorkout already ran in the onFinish that brought
-                // us here, so the backend is in sync. LiveFinishedSummary
-                // owns the "Back to today" exit from there.
+                // No next workout — this was the last section. Mark the
+                // session finished here (not in onFinish) so that the
+                // backend only receives the complete signal once the client
+                // explicitly taps through to the session-summary screen.
+                // This prevents the web portal from flipping state while
+                // the client is still on the last-section interstitial.
                 if (!nextSec) {
+                  storeFinish()
+                  const logId = loadedLogId ?? activeLogId
+                  if (logId) void finalizeWorkout(logId)
                   setFinishedSectionInfo(null)
                   setPhase('finished')
                   return
