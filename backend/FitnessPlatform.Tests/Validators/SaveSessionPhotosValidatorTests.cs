@@ -1,5 +1,5 @@
 using FluentAssertions;
-using FluentValidation;
+using FluentValidation.TestHelper;
 using FitnessPlatform.Application.Features.ClientTraining.SaveSessionPhotos;
 
 namespace FitnessPlatform.Tests.Validators;
@@ -11,110 +11,195 @@ public class SaveSessionPhotosValidatorTests
 {
     private readonly SaveSessionPhotosValidator _validator = new();
 
-    [Fact]
-    public async Task Validate_ValidRequest_IsValid()
+    private static SaveSessionPhotosRequest ValidRequest() => new()
     {
-        var req = new SaveSessionPhotosRequest
-        {
-            SessionId = Guid.NewGuid(),
-            Photos = [new SessionPhotoInput { BlobUrl = "https://minio.local/diary/sessions/s1/a.jpg" }],
-            Note = "Good session"
-        };
+        SessionId = Guid.NewGuid(),
+        Photos = []
+    };
 
-        var result = await _validator.ValidateAsync(req, TestContext.Current.CancellationToken);
+    // ──────────────────────────────────────────────────────────────────────────
+    // Happy-path
+    // ──────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void ValidRequest_EmptyPhotoList_PassesValidation()
+    {
+        var result = _validator.TestValidate(ValidRequest());
         result.IsValid.Should().BeTrue();
     }
 
     [Fact]
-    public async Task Validate_EmptyPhotoList_IsValid()
+    public void ValidRequest_WithPhotosAndNote_PassesValidation()
     {
-        var req = new SaveSessionPhotosRequest
-        {
-            SessionId = Guid.NewGuid(),
-            Photos = [],
-            Note = null
-        };
+        var req = ValidRequest();
+        req.Photos = [new SessionPhotoInput { BlobUrl = "https://minio.local/diary/sessions/s1/a.jpg" }];
+        req.Note = "Good session";
 
-        var result = await _validator.ValidateAsync(req, TestContext.Current.CancellationToken);
+        var result = _validator.TestValidate(req);
         result.IsValid.Should().BeTrue();
     }
 
     [Fact]
-    public async Task Validate_NoteTooLong_IsInvalid()
+    public void ValidRequest_WithPerPhotoNote_PassesValidation()
     {
-        var req = new SaveSessionPhotosRequest
-        {
-            SessionId = Guid.NewGuid(),
-            Photos = [],
-            Note = new string('x', 501)
-        };
+        var req = ValidRequest();
+        req.Photos = [new SessionPhotoInput { BlobUrl = "https://minio.local/diary/sessions/s1/a.jpg", Note = "Great form" }];
 
-        var result = await _validator.ValidateAsync(req, TestContext.Current.CancellationToken);
-        result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.PropertyName.Contains("Note"));
+        var result = _validator.TestValidate(req);
+        result.IsValid.Should().BeTrue();
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Session-level Note boundary tests (500 / 501 character boundary)
+    // ──────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void Note_ExactlyFiveHundredChars_PassesValidation()
+    {
+        var req = ValidRequest();
+        req.Note = new string('a', 500);
+
+        _validator.TestValidate(req).ShouldNotHaveValidationErrorFor(x => x.Note);
     }
 
     [Fact]
-    public async Task Validate_EmptyBlobUrl_IsInvalid()
+    public void Note_FiveHundredAndOneChars_FailsValidation()
     {
-        var req = new SaveSessionPhotosRequest
-        {
-            SessionId = Guid.NewGuid(),
-            Photos = [new SessionPhotoInput { BlobUrl = "" }],
-            Note = null
-        };
+        var req = ValidRequest();
+        req.Note = new string('a', 501);
 
-        var result = await _validator.ValidateAsync(req, TestContext.Current.CancellationToken);
-        result.IsValid.Should().BeFalse();
+        _validator.TestValidate(req).ShouldHaveValidationErrorFor(x => x.Note);
     }
 
     [Fact]
-    public async Task Validate_NonHttpBlobUrl_IsInvalid()
+    public void Note_Null_PassesValidation()
     {
-        var req = new SaveSessionPhotosRequest
-        {
-            SessionId = Guid.NewGuid(),
-            Photos = [new SessionPhotoInput { BlobUrl = "ftp://bad-url.com/photo.jpg" }],
-            Note = null
-        };
+        var req = ValidRequest();
+        req.Note = null;
 
-        var result = await _validator.ValidateAsync(req, TestContext.Current.CancellationToken);
-        result.IsValid.Should().BeFalse();
+        _validator.TestValidate(req).ShouldNotHaveValidationErrorFor(x => x.Note);
     }
 
-    [Fact]
-    public async Task Validate_PerPhotoNoteTooLong_IsInvalid()
-    {
-        var req = new SaveSessionPhotosRequest
-        {
-            SessionId = Guid.NewGuid(),
-            Photos = [new SessionPhotoInput
-            {
-                BlobUrl = "https://minio.local/diary/sessions/s1/a.jpg",
-                Note = new string('x', 501)
-            }],
-            Note = null
-        };
-
-        var result = await _validator.ValidateAsync(req, TestContext.Current.CancellationToken);
-        result.IsValid.Should().BeFalse();
-    }
+    // ──────────────────────────────────────────────────────────────────────────
+    // Per-photo Note boundary tests
+    // ──────────────────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task Validate_PerPhotoNoteMaxLength_IsValid()
+    public void PerPhotoNote_ExactlyFiveHundredChars_PassesValidation()
     {
-        var req = new SaveSessionPhotosRequest
-        {
-            SessionId = Guid.NewGuid(),
-            Photos = [new SessionPhotoInput
+        var req = ValidRequest();
+        req.Photos =
+        [
+            new SessionPhotoInput
             {
                 BlobUrl = "https://minio.local/diary/sessions/s1/a.jpg",
                 Note = new string('x', 500)
-            }],
-            Note = null
-        };
+            }
+        ];
 
-        var result = await _validator.ValidateAsync(req, TestContext.Current.CancellationToken);
+        var result = _validator.TestValidate(req);
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void PerPhotoNote_FiveHundredAndOneChars_FailsValidation()
+    {
+        var req = ValidRequest();
+        req.Photos =
+        [
+            new SessionPhotoInput
+            {
+                BlobUrl = "https://minio.local/diary/sessions/s1/a.jpg",
+                Note = new string('x', 501)
+            }
+        ];
+
+        var result = _validator.TestValidate(req);
+        result.IsValid.Should().BeFalse();
+    }
+
+    [Fact]
+    public void PerPhotoNote_Null_PassesValidation()
+    {
+        var req = ValidRequest();
+        req.Photos =
+        [
+            new SessionPhotoInput
+            {
+                BlobUrl = "https://minio.local/diary/sessions/s1/a.jpg",
+                Note = null
+            }
+        ];
+
+        var result = _validator.TestValidate(req);
+        result.IsValid.Should().BeTrue();
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Photos[i].BlobUrl URL format tests
+    // ──────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void Photos_EmptyBlobUrl_FailsValidation()
+    {
+        var req = ValidRequest();
+        req.Photos = [new SessionPhotoInput { BlobUrl = string.Empty }];
+
+        var result = _validator.TestValidate(req);
+        result.IsValid.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Photos_NonHttpUrl_FailsValidation()
+    {
+        var req = ValidRequest();
+        req.Photos = [new SessionPhotoInput { BlobUrl = "ftp://some-server/photo.jpg" }];
+
+        var result = _validator.TestValidate(req);
+        result.IsValid.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Photos_ValidHttpsUrl_PassesValidation()
+    {
+        var req = ValidRequest();
+        req.Photos = [new SessionPhotoInput { BlobUrl = "https://minio.local/diary/sessions/s1/a.jpg" }];
+
+        var result = _validator.TestValidate(req);
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Photos_ValidHttpUrl_PassesValidation()
+    {
+        var req = ValidRequest();
+        req.Photos = [new SessionPhotoInput { BlobUrl = "http://minio.local/diary/sessions/s1/a.jpg" }];
+
+        var result = _validator.TestValidate(req);
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Photos_EmptyList_PassesValidation()
+    {
+        var req = ValidRequest();
+        req.Photos = [];
+
+        var result = _validator.TestValidate(req);
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Photos_MultipleValidUrls_PassesValidation()
+    {
+        var req = ValidRequest();
+        req.Photos =
+        [
+            new SessionPhotoInput { BlobUrl = "https://minio.local/diary/sessions/s1/a.jpg" },
+            new SessionPhotoInput { BlobUrl = "https://minio.local/diary/sessions/s1/b.jpg" }
+        ];
+
+        var result = _validator.TestValidate(req);
         result.IsValid.Should().BeTrue();
     }
 }
