@@ -200,4 +200,78 @@ public class GetTodaySessionPhotosTests
         // Zero-photo logs don't occupy a key in PhotosBySession
         ep.Response.PhotosBySession.Should().NotContainKey(sessionId);
     }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Read-back: NotesBySession round-trip (data-loss prevention)
+    // ──────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task HandleAsync_SessionLogWithPhotosAndNote_PopulatesNotesBySession()
+    {
+        // Arrange: a session log with both photos and a session-level note.
+        // The mobile client must be able to pre-load this note so that saving photos
+        // with a blank textarea doesn't overwrite the stored value with null.
+        var sessionId = Guid.NewGuid();
+        var uploadedAt = DateTime.UtcNow.AddMinutes(-5);
+
+        var sessionLog = new SessionLog
+        {
+            Id = ObjectId.GenerateNewId(),
+            ClientId = _clientId,
+            SessionId = sessionId,
+            LogDate = DateTime.UtcNow.Date,
+            Photos =
+            [
+                new SessionPhoto { BlobUrl = "https://minio.local/diary/s1/a.jpg", UploadedAt = uploadedAt }
+            ],
+            Note = "Felt strong today"
+        };
+
+        var mongo = CreateMongoWithPlanAndSessionLog(sessionId, [sessionLog]);
+        var db = CreateMockDb();
+        var ep = CreateEndpoint(mongo, db);
+
+        await ep.HandleAsync(TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        // Photos still present
+        ep.Response.PhotosBySession.Should().ContainKey(sessionId);
+        // Note round-tripped under NotesBySession
+        ep.Response.NotesBySession.Should().ContainKey(sessionId);
+        ep.Response.NotesBySession[sessionId].Should().Be("Felt strong today");
+    }
+
+    [Fact]
+    public async Task HandleAsync_SessionLogWithPhotosAndNoNote_NotInNotesBySession()
+    {
+        // Arrange: a session log with photos but no session-level note.
+        // NotesBySession must NOT contain a key for this session — null / empty notes
+        // are excluded so the mobile client falls back to an empty textarea cleanly.
+        var sessionId = Guid.NewGuid();
+        var uploadedAt = DateTime.UtcNow.AddMinutes(-5);
+
+        var sessionLog = new SessionLog
+        {
+            Id = ObjectId.GenerateNewId(),
+            ClientId = _clientId,
+            SessionId = sessionId,
+            LogDate = DateTime.UtcNow.Date,
+            Photos =
+            [
+                new SessionPhoto { BlobUrl = "https://minio.local/diary/s1/b.jpg", UploadedAt = uploadedAt }
+            ],
+            Note = null   // no note
+        };
+
+        var mongo = CreateMongoWithPlanAndSessionLog(sessionId, [sessionLog]);
+        var db = CreateMockDb();
+        var ep = CreateEndpoint(mongo, db);
+
+        await ep.HandleAsync(TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        ep.Response.PhotosBySession.Should().ContainKey(sessionId);
+        // No entry for sessions without a note
+        ep.Response.NotesBySession.Should().NotContainKey(sessionId);
+    }
 }

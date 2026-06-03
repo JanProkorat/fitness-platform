@@ -368,6 +368,14 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
                         })
                         .ToList();
                 }
+
+                // Expose the session-level diary note so the mobile client can pre-load
+                // it into its textarea. Without this, re-saving photos always sends null
+                // for the note field, wiping whatever the user previously entered.
+                if (!string.IsNullOrEmpty(sessionLog.Note))
+                {
+                    response.NotesBySession[sessionLog.SessionId] = sessionLog.Note;
+                }
             }
         }
 

@@ -130,6 +130,15 @@ public class GetTodaySessionResponse
     /// Empty dictionary when no photos have been saved for any session today (or when no active plan exists).
     /// </summary>
     public Dictionary<Guid, List<SessionPhotoDto>> PhotosBySession { get; set; } = new();
+
+    /// <summary>
+    /// Per-session diary note for today, keyed by SessionId.
+    /// Only populated for sessions whose <c>SessionLog</c> has a non-null, non-empty <c>Note</c>.
+    /// Allows the mobile client to pre-load the existing note into its textarea so a subsequent
+    /// Save does not overwrite it with null (data-loss prevention).
+    /// Empty dictionary when no session has a note today (or when no active plan exists).
+    /// </summary>
+    public Dictionary<Guid, string> NotesBySession { get; set; } = new();
 }
 
 /// <summary>
