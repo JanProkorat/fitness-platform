@@ -41,7 +41,7 @@ import { href } from '@/lib/navigation'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 
 import axios from 'axios'
-import { startWorkout, updateWorkout, completeWorkout, goLive, abandonWorkout } from '@/api/workouts'
+import { startWorkout, updateWorkout, completeWorkout, goLive } from '@/api/workouts'
 import type { UpdateWorkoutRequest } from '@/api/workouts'
 import { Toast } from '@/lib/toast'
 import type {
@@ -2160,12 +2160,6 @@ export default function WorkoutLogScreen() {
   // ── Confirm sheet ──
 
   // ── goLive in-flight guard ──
-  // Tracks the in-flight goLive() promise so handleClose can await it before
-  // calling abandonWorkout. Without this guard, a rapid Start→Close tap sends
-  // abandonWorkout BEFORE the AcquireAsync completes, leaving the Live lock
-  // permanently held until the 6h TTL expires. (#401)
-  const goLivePromiseRef = useRef<Promise<unknown> | null>(null)
-
   // ── Elapsed timer (local interval, drives display only) ──
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const elapsedIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -2527,27 +2521,18 @@ export default function WorkoutLogScreen() {
     // The draft log was created on mount (startNew effect) — this is the
     // second step that broadcasts state=Live to trainers. Best-effort:
     // a 409 (session_locked) surfaces as a toast; other errors are logged.
-    //
-    // The promise is stored in goLivePromiseRef so handleClose can await it
-    // before calling abandonWorkout, preventing the Start→Close race where
-    // abandon reaches the server before acquire does. (#401)
     if (logId) {
-      const promise = goLive(logId)
-        .catch((err: unknown) => {
-          if (
-            axios.isAxiosError(err) &&
-            err.response?.status === 409 &&
-            (err.response.data as { errorCode?: string } | undefined)?.errorCode === 'session_locked'
-          ) {
-            Toast.show(t('training.sessionEditing.startBlockedToast'))
-          } else {
-            console.warn('[handleStart] goLive failed', err)
-          }
-        })
-        .finally(() => {
-          goLivePromiseRef.current = null
-        })
-      goLivePromiseRef.current = promise
+      goLive(logId).catch((err: unknown) => {
+        if (
+          axios.isAxiosError(err) &&
+          err.response?.status === 409 &&
+          (err.response.data as { errorCode?: string } | undefined)?.errorCode === 'session_locked'
+        ) {
+          Toast.show(t('training.sessionEditing.startBlockedToast'))
+        } else {
+          console.warn('[handleStart] goLive failed', err)
+        }
+      })
     }
   }, [storeStart, storeAdvanceSection, loadedLogId, activeLogId, exercises, sections, sessionId, planId, prefillForm, sessionFormat, sessionFormatConfig, t])
 
@@ -2738,26 +2723,6 @@ export default function WorkoutLogScreen() {
         await updateMutation.mutateAsync({ logId, req })
       } catch {
         // Offline path is handled inside updateMutation.onError; proceed anyway.
-      }
-      // Release the Live lock — the session is being abandoned mid-run.
-      // completeWorkout would have released it on normal completion; since
-      // the user is leaving early we do it explicitly here. Best-effort:
-      // the server-side TTL (6h) cleans up if this call fails.
-      //
-      // Wait for any in-flight goLive() to settle first. If the user tapped
-      // Start and then Close before the acquire completed, we must let the
-      // AcquireAsync land before we call ReleaseAsync, otherwise the release
-      // no-ops and the lock is held until the 6h TTL. (#401)
-      try {
-        await goLivePromiseRef.current
-      } catch {
-        // goLive rejection was already handled in handleStart; swallow here
-        // so we still proceed to abandon regardless.
-      }
-      try {
-        await abandonWorkout(logId)
-      } catch (err) {
-        console.warn('[handleClose] abandonWorkout failed', err)
       }
     }
     storeClose()
