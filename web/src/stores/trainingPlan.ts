@@ -1463,17 +1463,21 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
       // after a SignalR sessioneditlockchanged event that triggers this path.
       const sessionLockStates = fresh.sessionLockStates ?? [];
       const sessionLockMap = buildLockMap(sessionLockStates);
+      // Also carry fresh sessionExecutions so isSessionFinished badges update
+      // live — the API response includes them but they were previously dropped
+      // during the merge, leaving the finished badge stale until a full reload.
+      const sessionExecutions = fresh.sessionExecutions ?? [];
       set((state) => ({
         // Keep plan.sessionLockStates in lockstep with sessionLockMap so the
         // in-memory plan can't diverge from the authoritative live lock state.
         plan: state.plan
-          ? { ...state.plan, completions, sessionLockStates }
+          ? { ...state.plan, completions, sessionLockStates, sessionExecutions }
           : state.plan,
         // originalPlan tracks server-state too, so it must move with the
         // freshly fetched completions — otherwise revert() would surface
         // stale completion data.
         originalPlan: state.originalPlan
-          ? { ...state.originalPlan, completions, sessionLockStates }
+          ? { ...state.originalPlan, completions, sessionLockStates, sessionExecutions }
           : state.originalPlan,
         sessionLockMap,
       }));
