@@ -2160,14 +2160,6 @@ export default function WorkoutLogScreen() {
   // ── Confirm sheet ──
 
   // ── goLive in-flight guard ──
-  // Tracks the in-flight goLive() promise. If the user taps Start then
-  // immediately discards (via ResumeTrainingBanner), abandonWorkout must not
-  // reach the server before goLive's AcquireAsync completes — otherwise the
-  // release no-ops and the Live lock is held until the 6h TTL expires. (#401)
-  // Leaving the screen (handleClose) no longer calls abandonWorkout, so the
-  // guard is only relevant to the Discard path in ResumeTrainingBanner.
-  const goLivePromiseRef = useRef<Promise<unknown> | null>(null)
-
   // ── Elapsed timer (local interval, drives display only) ──
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const elapsedIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -2529,27 +2521,18 @@ export default function WorkoutLogScreen() {
     // The draft log was created on mount (startNew effect) — this is the
     // second step that broadcasts state=Live to trainers. Best-effort:
     // a 409 (session_locked) surfaces as a toast; other errors are logged.
-    //
-    // The promise is stored in goLivePromiseRef so that if the user discards
-    // immediately after Start (via ResumeTrainingBanner), abandonWorkout waits
-    // for AcquireAsync to settle before calling ReleaseAsync. (#401)
     if (logId) {
-      const promise = goLive(logId)
-        .catch((err: unknown) => {
-          if (
-            axios.isAxiosError(err) &&
-            err.response?.status === 409 &&
-            (err.response.data as { errorCode?: string } | undefined)?.errorCode === 'session_locked'
-          ) {
-            Toast.show(t('training.sessionEditing.startBlockedToast'))
-          } else {
-            console.warn('[handleStart] goLive failed', err)
-          }
-        })
-        .finally(() => {
-          goLivePromiseRef.current = null
-        })
-      goLivePromiseRef.current = promise
+      goLive(logId).catch((err: unknown) => {
+        if (
+          axios.isAxiosError(err) &&
+          err.response?.status === 409 &&
+          (err.response.data as { errorCode?: string } | undefined)?.errorCode === 'session_locked'
+        ) {
+          Toast.show(t('training.sessionEditing.startBlockedToast'))
+        } else {
+          console.warn('[handleStart] goLive failed', err)
+        }
+      })
     }
   }, [storeStart, storeAdvanceSection, loadedLogId, activeLogId, exercises, sections, sessionId, planId, prefillForm, sessionFormat, sessionFormatConfig, t])
 
