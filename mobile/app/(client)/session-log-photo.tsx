@@ -76,8 +76,13 @@ export default function SessionLogPhotoScreen() {
       .map((p) => ({ blobUrl: p.blobUrl, note: p.note ?? null }))
   }, [queryClient, sessionId])
 
+  const existingNote = useMemo(() => {
+    const cache = queryClient.getQueryData<TodayTrainingResponse>(['today-training'])
+    return (cache?.notesBySession ?? {})[sessionId] ?? ''
+  }, [queryClient, sessionId])
+
   // ── Local state (seeded from cache on mount) ──
-  const [note, setNote] = useState<string>(() => '')
+  const [note, setNote] = useState<string>(() => existingNote)
   const [uploadedPhotos, setUploadedPhotos] = useState<SessionPhotoInput[]>(
     () => existingPhotos,
   )

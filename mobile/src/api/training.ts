@@ -117,8 +117,9 @@ export interface SessionPhotoDto {
  * Augmented GetTodaySessionResponse — adds:
  *   - `lockStateBySession` (#382): session edit-lock state.
  *   - `photosBySession` (#405): per-session diary photos from the session log.
+ *   - `notesBySession` (#405): persisted session-level notes keyed by sessionId.
  *
- * Both fields hand-declared until regen-api runs against the updated backend.
+ * All fields hand-declared until regen-api runs against the updated backend.
  * Drop the augmentation for each field once the generated client emits it natively.
  */
 export type TodayTrainingResponse = GetTodaySessionResponse & {
@@ -130,6 +131,14 @@ export type TodayTrainingResponse = GetTodaySessionResponse & {
    * Returns an empty object when no session has any diary photos today.
    */
   photosBySession?: Record<string, SessionPhotoDto[]>;
+  /**
+   * Persisted session-level note for today's session log, keyed by sessionId.
+   * Only present for sessions that have a non-empty note — mirrors how
+   * nutrition's today read path returns each meal's note.
+   * Added in #405 review fix: seeds the note textarea so REPLACE semantics
+   * do not wipe previously saved notes on re-open.
+   */
+  notesBySession?: Record<string, string>;
 };
 
 /**

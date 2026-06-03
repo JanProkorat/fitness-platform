@@ -1159,11 +1159,11 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
   const handleSessionPhotoPress = useCallback(
     (sessionId: string) => {
       const session = todaySessions.find((s) => s.sessionId === sessionId)
-      if (!sessionId) return
+      if (!session) return
       router.push(
         hrefParams('/(client)/session-log-photo', {
           sessionId,
-          sessionName: session?.name ?? '',
+          sessionName: session.name ?? '',
         }),
       )
     },
