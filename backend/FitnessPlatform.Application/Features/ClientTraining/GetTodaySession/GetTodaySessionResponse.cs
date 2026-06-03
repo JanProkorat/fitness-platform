@@ -122,4 +122,27 @@ public class GetTodaySessionResponse
     /// Null / missing when the session is in the Stable state.
     /// </summary>
     public Dictionary<Guid, string?> LockHolderBySession { get; set; } = new();
+
+    /// <summary>
+    /// Per-session photo list for today, keyed by SessionId.
+    /// Each value is an ordered list of photos that were saved to the session log for today's date.
+    /// Sourced from the <c>SessionLog</c> MongoDB document for today.
+    /// Empty dictionary when no photos have been saved for any session today (or when no active plan exists).
+    /// </summary>
+    public Dictionary<Guid, List<SessionPhotoDto>> PhotosBySession { get; set; } = new();
+}
+
+/// <summary>
+/// A photo attached to a session diary entry, as returned in <see cref="GetTodaySessionResponse.PhotosBySession"/>.
+/// </summary>
+public class SessionPhotoDto
+{
+    /// <summary>The MinIO blob URL for this photo.</summary>
+    public string BlobUrl { get; set; } = string.Empty;
+
+    /// <summary>UTC timestamp when the photo was uploaded/persisted.</summary>
+    public DateTime UploadedAt { get; set; }
+
+    /// <summary>Optional per-photo caption (max 500 chars). Null when none was provided.</summary>
+    public string? Note { get; set; }
 }

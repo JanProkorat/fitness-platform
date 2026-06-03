@@ -168,6 +168,35 @@ public class GetTodaySessionEndpointTests
             });
         mongo.WorkoutLogs.Returns(logCollection);
 
+        // Stub the SessionLogs collection — used by the PhotosBySession enrichment path.
+        // The endpoint calls .Find().ToListAsync() which internally dispatches to FindAsync.
+        var sessionLogCollection = Substitute.For<IMongoCollection<SessionLog>>();
+        sessionLogCollection.FindAsync(
+                Arg.Any<FilterDefinition<SessionLog>>(),
+                Arg.Any<FindOptions<SessionLog, SessionLog>>(),
+                Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                var cursor = Substitute.For<IAsyncCursor<SessionLog>>();
+                var moved = false;
+                var emptyLogs = new List<SessionLog>();
+                cursor.Current.Returns(emptyLogs);
+                cursor.MoveNext(Arg.Any<CancellationToken>()).Returns(_ =>
+                {
+                    if (moved) return false;
+                    moved = true;
+                    return false; // always empty in baseline tests
+                });
+                cursor.MoveNextAsync(Arg.Any<CancellationToken>()).Returns(_ =>
+                {
+                    if (moved) return false;
+                    moved = true;
+                    return false;
+                });
+                return cursor;
+            });
+        mongo.SessionLogs.Returns(sessionLogCollection);
+
         return mongo;
     }
 

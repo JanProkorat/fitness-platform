@@ -342,6 +342,33 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
                         sessionSetsMap[plannedEx.ExerciseExternalId] = plannedSetNumbers.OrderBy(n => n).ToList();
                 }
             }
+
+            // ── Batch-fetch SessionLog docs for today (photo gallery) ─────────────
+            // One query for all of today's sessions; keyed by SessionId in the response.
+            // ClientId in SessionLog = ClientProfile.PublicId (same as clientId here).
+            var sessionLogFilter =
+                Builders<SessionLog>.Filter.Eq(l => l.ClientId, clientId)
+                & Builders<SessionLog>.Filter.In(l => l.SessionId, todaySessionIds)
+                & Builders<SessionLog>.Filter.Eq(l => l.LogDate, targetDate);
+
+            var sessionLogs = await mongo.SessionLogs
+                .Find(sessionLogFilter)
+                .ToListAsync(ct);
+
+            foreach (var sessionLog in sessionLogs)
+            {
+                if (sessionLog.Photos.Count > 0)
+                {
+                    response.PhotosBySession[sessionLog.SessionId] = sessionLog.Photos
+                        .Select(p => new SessionPhotoDto
+                        {
+                            BlobUrl = p.BlobUrl,
+                            UploadedAt = p.UploadedAt,
+                            Note = p.Note
+                        })
+                        .ToList();
+                }
+            }
         }
 
         await Send.OkAsync(response, ct);

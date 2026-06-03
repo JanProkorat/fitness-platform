@@ -14,4 +14,7 @@ public enum PlanPhotoCategory
 
     /// <summary>Uncategorised / free-form photo (Volné) — not tied to a specific meal or body check-in.</summary>
     FreeForm,
+
+    /// <summary>Training session photo — linked to a session log entry via the SessionId.</summary>
+    Training,
 }

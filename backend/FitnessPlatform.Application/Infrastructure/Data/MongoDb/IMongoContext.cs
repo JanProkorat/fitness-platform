@@ -69,4 +69,10 @@ public interface IMongoContext
     /// A document present = Editing or Live; absent = Stable.
     /// </summary>
     IMongoCollection<SessionLock> SessionLocks { get; }
+
+    /// <summary>
+    /// Session log entries — photos and notes attached to a specific training session diary entry.
+    /// Keyed by (ClientId = ClientProfile.PublicId, PlanId, SessionId, LogDate).
+    /// </summary>
+    IMongoCollection<SessionLog> SessionLogs { get; }
 }
