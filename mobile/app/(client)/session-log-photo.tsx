@@ -256,7 +256,7 @@ export default function SessionLogPhotoScreen() {
                         style={[styles.thumbRemoveBtn, { backgroundColor: colors.bg2 }]}
                         hitSlop={6}
                         accessibilityRole="button"
-                        accessibilityLabel="Remove photo"
+                        accessibilityLabel={t('sessionLogPhoto.removePhoto')}
                       >
                         <Ionicons name="close" size={12} color={colors.label2} />
                       </Pressable>

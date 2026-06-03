@@ -778,6 +778,7 @@
     "successToast": "Uloženo",
     "addMorePhotos": "Přidat další fotku",
     "openPhotosA11y": "Otevřít fotky tréninku",
+    "removePhoto": "Odebrat fotku",
     "photoCaption": {
       "placeholder": "Popisek (volitelný)",
       "a11y": "Popisek fotky"

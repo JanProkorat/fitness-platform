@@ -1038,6 +1038,7 @@
     "successToast": "Saved",
     "addMorePhotos": "Add another photo",
     "openPhotosA11y": "Open training photos",
+    "removePhoto": "Remove photo",
     "photoCaption": {
       "placeholder": "Caption (optional)",
       "a11y": "Photo caption"

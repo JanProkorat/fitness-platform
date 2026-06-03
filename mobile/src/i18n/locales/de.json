@@ -1037,6 +1037,7 @@
     "successToast": "Gespeichert",
     "addMorePhotos": "Weiteres Foto hinzufügen",
     "openPhotosA11y": "Trainingsfotos öffnen",
+    "removePhoto": "Foto entfernen",
     "photoCaption": {
       "placeholder": "Beschriftung (optional)",
       "a11y": "Fotobeschriftung"
