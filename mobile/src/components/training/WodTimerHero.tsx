@@ -262,8 +262,21 @@ function AmrapTimer({
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
   }, [showPrepUI, done])
 
+  // Phase-tinted background: green while running (work), red while paused
+  // (started but not running, not done, not in prep), no tint during the
+  // GET READY pre-roll / pre-start idle state or after the workout is done.
+  // Gate is `preparing || done` (not `showPrepUI || done`) so the idle state
+  // before the first Play tap — preparing=true, running=false — also gets no
+  // tint. `showPrepUI` only covered the actively-ticking prep countdown and
+  // left the initial idle frame falling through to red.
+  const phaseBg = preparing || done
+    ? undefined
+    : running
+      ? colors.green + '20'
+      : colors.red + '20'
+
   return (
-    <View style={styles.heroWrap}>
+    <View style={[styles.heroWrap, { backgroundColor: phaseBg }]}>
       {/* Top label — GET READY during prep, "Rounds done: N" otherwise.
           Uses the refined `amrapTopLabel` style (lighter weight + smaller
           than EMOM's "Kolo 1/10" treatment). */}
@@ -603,8 +616,20 @@ function EmomTimer({ label, intervalSeconds, totalRounds, onFinish, onRoundChang
   // hero looks idle, not like it's already counting down.
   const showPrepUI = preparing && running
 
+  // Phase-tinted background: green while running (work), red while paused
+  // (started but not running, not done, not in prep), no tint during the
+  // GET READY pre-roll / pre-start idle state or after the workout is done.
+  // Gate is `preparing || done` (not `showPrepUI || done`) — see AmrapTimer
+  // for the full rationale; idle state (preparing=true, running=false) must
+  // also receive no tint.
+  const phaseBg = preparing || done
+    ? undefined
+    : running
+      ? colors.green + '20'
+      : colors.red + '20'
+
   return (
-    <View style={styles.heroWrap}>
+    <View style={[styles.heroWrap, { backgroundColor: phaseBg }]}>
       {/* Round progress (or "GET READY" eyebrow during the pre-roll). */}
       <Animated.View key={animKey} entering={SlideInRight.duration(220)} exiting={SlideOutLeft.duration(180)}>
         <Text
@@ -988,22 +1013,26 @@ function TabataTimer({ label, workSeconds, restSeconds, totalRounds, onFinish, o
   // EmomTimer's `showPrepUI` for the same rationale.
   const showPrepUI = preparing && running
 
-  // Phase-tinted background for the Tabata hero region — green on work,
-  // red on rest, neutral (no tint) during the pre-roll countdown. Uses the
-  // same hex-alpha suffix pattern as phaseChip (`colors.gold + '22'`), so
+  // Phase-tinted background for the Tabata hero region — green on work
+  // (running), red on rest or while paused, neutral (no tint) during the
+  // pre-roll countdown, pre-start idle state, or once done. Uses the same
+  // hex-alpha suffix pattern as phaseChip (`colors.gold + '22'`), so
   // the tint reads clearly without overpowering card text. Both `isWork`
-  // and `showPrepUI` derive from the same `phase` / `preparing` state, so
+  // and `preparing` derive from the same `phase` / `preparing` state, so
   // the background flips in the same React render as the phase chip label
   // with zero stale-color flash at the work ↔ rest boundary.
-  // During pre-roll `phaseBg` is `undefined`; RN treats `undefined` as a
-  // no-op for `backgroundColor`, so the style falls through to
-  // `styles.heroWrap`'s default surface — the neutral pre-roll look is
-  // intentional and requires no explicit color value.
-  const phaseBg = showPrepUI
+  // Gate is `preparing || done` (not `showPrepUI || done`) so the initial
+  // idle state (preparing=true, running=false) also shows no tint.
+  // During prep/idle/done `phaseBg` is `undefined`; RN treats `undefined`
+  // as a no-op for `backgroundColor`, falling through to `styles.heroWrap`'s
+  // default surface — the neutral look is intentional.
+  const phaseBg = preparing || done
     ? undefined
-    : isWork
-      ? colors.green + '20'
-      : colors.red + '20'
+    : !running
+      ? colors.red + '20'
+      : isWork
+        ? colors.green + '20'
+        : colors.red + '20'
 
   return (
     <View style={[styles.heroWrap, { backgroundColor: phaseBg }]}>
@@ -1283,8 +1312,20 @@ function ForTimeTimer({
     void Haptics.selectionAsync()
   }, [running, onElapsedChange])
 
+  // Phase-tinted background: green while running (work), red while paused
+  // (started but not running, not done, not in prep), no tint during the
+  // GET READY pre-roll / pre-start idle state or after the workout is done.
+  // Gate is `preparing || done` (not `showPrepUI || done`) — see AmrapTimer
+  // for the full rationale; idle state (preparing=true, running=false) must
+  // also receive no tint.
+  const phaseBg = preparing || done
+    ? undefined
+    : running
+      ? colors.green + '20'
+      : colors.red + '20'
+
   return (
-    <View style={styles.heroWrap}>
+    <View style={[styles.heroWrap, { backgroundColor: phaseBg }]}>
       {/* Top label — GET READY during prep, "Časový limit: MM:SS" otherwise.
           Hidden when no time cap is configured (timeCapSeconds === 0). */}
       {(showPrepUI || hasCap) && (
