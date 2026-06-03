@@ -11,11 +11,18 @@ interface WeightStatCardProps {
   latestWeight: number | null
   /** Difference between the latest measurement and the one before it (positive = gain) */
   weightDelta: number | null
+  /**
+   * Number of calendar days between the two most recent measurements.
+   * Null when fewer than two measurements exist (in which case neither
+   * the delta nor the period caption is shown).
+   */
+  periodDays: number | null
 }
 
 export const WeightStatCard = React.memo(function WeightStatCard({
   latestWeight,
   weightDelta,
+  periodDays,
 }: WeightStatCardProps) {
   const colors = useTheme()
   const { t } = useTranslation()
@@ -60,6 +67,14 @@ export const WeightStatCard = React.memo(function WeightStatCard({
         )}
       </View>
 
+      {/* Period caption — shown only when two measurements exist (periodDays is non-null).
+          Positioned above the delta line so the layout reads: value → period → change. */}
+      {periodDays != null && (
+        <Text style={[styles.periodSub, { color: colors.label3 }]}>
+          {t('today.weightPeriodSub', { count: periodDays })}
+        </Text>
+      )}
+
       {/* Delta between the last two measurements */}
       {deltaText != null && (
         <Text style={[styles.delta, { color: deltaColor ?? colors.label3 }]}>
@@ -101,6 +116,10 @@ const styles = StyleSheet.create({
   },
   unit: {
     ...Type.caption1,
+  },
+  periodSub: {
+    ...Type.caption1,
+    marginTop: 1,
   },
   delta: {
     ...Type.caption2,

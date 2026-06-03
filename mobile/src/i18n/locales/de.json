@@ -224,6 +224,7 @@
     "calories": "Kalorien",
     "weight": "Gewicht",
     "noMeasurements": "keine Messungen",
+    "weightPeriodSub": "letzte {{count}} Tage",
     "training": "Training",
     "restDay": "Ruhetag",
     "preparing": "In Vorbereitung",

@@ -224,6 +224,7 @@
     "calories": "Calories",
     "weight": "Weight",
     "noMeasurements": "no measurements",
+    "weightPeriodSub": "last {{count}} days",
     "training": "Training",
     "restDay": "Rest day",
     "preparing": "Preparing",

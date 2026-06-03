@@ -266,7 +266,16 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
         ? weights[weights.length - 1].weight - weights[weights.length - 2].weight
         : null
 
-    return { latest: stats.latestWeight, change }
+    const periodDays =
+      weights.length >= 2
+        ? Math.round(
+            (new Date(weights[weights.length - 1].date).getTime() -
+              new Date(weights[weights.length - 2].date).getTime()) /
+              (1000 * 60 * 60 * 24),
+          )
+        : null
+
+    return { latest: stats.latestWeight, change, periodDays }
   }, [statsQuery.data, recentMeasurementsQuery.data])
 
   // Generated GetTodayLogResponse makes totalConsumed optional; normalise here.
@@ -1214,6 +1223,7 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
         <WeightStatCard
           latestWeight={weightTrend?.latest ?? null}
           weightDelta={weightTrend?.change ?? null}
+          periodDays={weightTrend?.periodDays ?? null}
         />
         <StatCard
           label={t('today.compliance')}
