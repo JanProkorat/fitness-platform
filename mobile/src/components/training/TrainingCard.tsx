@@ -497,6 +497,11 @@ export function TrainingCard({
                   ? () => onSessionPhotoPress(session.sessionId!)
                   : undefined
               }
+              sessionPhotos={
+                session.sessionId != null
+                  ? (photosBySession[session.sessionId] ?? [])
+                  : []
+              }
               t={t}
             />
           )
@@ -616,6 +621,11 @@ interface SessionSectionListProps {
    * Already pre-bound to the specific sessionId by the parent TrainingCard.
    */
   onSessionPhotoPress?: () => void
+  /**
+   * Diary photos for this specific session, already sliced from `photosBySession`.
+   * Passed to ExpandableSessionCard so the per-session badge + lightbox work.
+   */
+  sessionPhotos?: SessionPhotoDto[]
   t: (key: string, opts?: Record<string, unknown>) => string
 }
 
@@ -644,6 +654,7 @@ function SessionSectionList({
   onToggleSection,
   onSessionCta,
   onSessionPhotoPress,
+  sessionPhotos,
   t,
 }: SessionSectionListProps) {
   const colors = useTheme()
@@ -670,6 +681,7 @@ function SessionSectionList({
               summaryText={summaryText}
               headerRight={sessionCheckbox}
               onPhotoPress={onSessionPhotoPress}
+              photos={sessionPhotos}
             >
               {/* Section-grouped exercise cards */}
               {sections.map((section, sectionIdx) => {
