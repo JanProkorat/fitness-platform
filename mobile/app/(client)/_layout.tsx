@@ -45,6 +45,10 @@ export default function ClientLayout() {
         name="diary"
         options={{ animation: 'slide_from_right' }}
       />
+      <Stack.Screen
+        name="plan/[planId]"
+        options={{ animation: 'slide_from_right' }}
+      />
     </Stack>
   )
 }
