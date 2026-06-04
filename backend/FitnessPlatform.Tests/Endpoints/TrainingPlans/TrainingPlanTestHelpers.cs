@@ -51,11 +51,13 @@ public static class TrainingPlanTestHelpers
         => CreateMockMongoWithLogs(plans: plans, workoutLogs: []);
 
     /// <summary>
-    /// Creates a mocked <see cref="IMongoContext"/> with training plans + workout logs.
+    /// Creates a mocked <see cref="IMongoContext"/> with training plans + workout logs +
+    /// an optional list of training completions. Completions default to an empty collection.
     /// </summary>
     public static IMongoContext CreateMockMongoWithLogs(
         TrainingPlan[] plans,
-        WorkoutLog[] workoutLogs)
+        WorkoutLog[] workoutLogs,
+        TrainingCompletion[]? trainingCompletions = null)
     {
         var mongo = Substitute.For<IMongoContext>();
 
@@ -63,10 +65,52 @@ public static class TrainingPlanTestHelpers
         // "last call" confusion (CouldNotSetReturnDueToNoLastCallException).
         var plansCollection = CreateMockCollection(plans.ToList());
         var logsCollection = CreateMockWorkoutLogCollection(workoutLogs.ToList());
+        var completionsCollection = CreateMockCompletionCollection(
+            (trainingCompletions ?? []).ToList());
 
         mongo.TrainingPlans.Returns(plansCollection);
         mongo.WorkoutLogs.Returns(logsCollection);
+        mongo.TrainingCompletions.Returns(completionsCollection);
         return mongo;
+    }
+
+    /// <summary>
+    /// Creates a mock <see cref="IMongoCollection{TrainingCompletion}"/> that returns the given
+    /// completions from FindAsync.
+    /// </summary>
+    public static IMongoCollection<TrainingCompletion> CreateMockCompletionCollection(
+        List<TrainingCompletion> completions)
+    {
+        var collection = Substitute.For<IMongoCollection<TrainingCompletion>>();
+
+        collection.FindAsync(
+                Arg.Any<FilterDefinition<TrainingCompletion>>(),
+                Arg.Any<FindOptions<TrainingCompletion, TrainingCompletion>>(),
+                Arg.Any<CancellationToken>())
+            .Returns(_ => CreateCompletionCursor(completions));
+
+        return collection;
+    }
+
+    private static IAsyncCursor<TrainingCompletion> CreateCompletionCursor(
+        List<TrainingCompletion> completions)
+    {
+        var cursor = Substitute.For<IAsyncCursor<TrainingCompletion>>();
+        var moved = false;
+        cursor.Current.Returns(completions);
+        cursor.MoveNext(Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            if (moved) return false;
+            moved = true;
+            return completions.Count > 0;
+        });
+        cursor.MoveNextAsync(Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            if (moved) return Task.FromResult(false);
+            moved = true;
+            return Task.FromResult(completions.Count > 0);
+        });
+        return cursor;
     }
 
     /// <summary>

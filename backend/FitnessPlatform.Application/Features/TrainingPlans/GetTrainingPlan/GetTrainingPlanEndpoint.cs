@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.ClientTraining;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -172,7 +173,63 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
                 .ToList();
         }
 
-        // ── 3. Batch-fetch session lock state ────────────────────────────────────
+        // ── 3. TrainingCompletion-based finished state fold-in ───────────────────
+        // The mobile "mark whole day complete" checkbox writes a TrainingCompletion document
+        // but NOT a WorkoutLog. Without this step, sessions finished via that path would
+        // never appear as IsSessionFinished=true on the trainer portal (fix for issue #429).
+        //
+        // For each session that has at least one fully-complete TrainingCompletion (any date),
+        // ensure a SessionExecutionDto entry exists with IsSessionFinished=true.
+        // A TrainingCompletion is "fully complete" iff IsSessionComplete() returns true —
+        // that uses the same logic as the MarkSessionComplete idempotency check.
+        //
+        // Date-scoping: we match the most-complete TrainingCompletion per session regardless
+        // of date, mirroring the WorkoutLog dedup which also collapses across dates. The
+        // finished-state is a permanent property of the session — it does not reset between
+        // scheduled occurrences for the same session definition.
+        if (completions.Count > 0)
+        {
+            // sessionLookup sessions are already backfilled by FromDocument() — WithBackfilledSections()
+            // was called there on the same plan object. IsSessionComplete() can be called directly.
+
+            // Find sessions whose TrainingCompletion is fully done (any date — finished state is permanent).
+            var finishedByCompletion = completions
+                .Where(c => sessionLookup.TryGetValue(c.SessionId, out var s) && c.IsSessionComplete(s))
+                .Select(c => c.SessionId)
+                .ToHashSet();
+
+            if (finishedByCompletion.Count > 0)
+            {
+                // Index existing SessionExecutions by SessionId for O(1) lookup.
+                var executionsBySession = response.SessionExecutions
+                    .ToDictionary(e => e.SessionId);
+
+                foreach (var sessionId in finishedByCompletion)
+                {
+                    if (executionsBySession.TryGetValue(sessionId, out var existing))
+                    {
+                        // Session has a WorkoutLog entry — OR-in the completion-based flag
+                        // (covers the edge case where the WorkoutLog isn't finalised but the
+                        // home-checkbox completion says it's done).
+                        if (!existing.IsSessionFinished)
+                            existing.IsSessionFinished = true;
+                    }
+                    else
+                    {
+                        // No WorkoutLog for this session — emit a synthetic entry so the trainer
+                        // portal renders the session as finished and hides the unlock affordance.
+                        response.SessionExecutions.Add(new SessionExecutionDto
+                        {
+                            SessionId = sessionId,
+                            IsSessionFinished = true,
+                            CompletedSetsByExercise = new Dictionary<Guid, List<int>>()
+                        });
+                    }
+                }
+            }
+        }
+
+        // ── 4. Batch-fetch session lock state ────────────────────────────────────
         // Single Mongo round-trip — not one per session. Mirrors the pattern used
         // in GetFullTrainingPlanEndpoint (client read) so the shape is consistent.
         var allSessionIds = plan.Weeks

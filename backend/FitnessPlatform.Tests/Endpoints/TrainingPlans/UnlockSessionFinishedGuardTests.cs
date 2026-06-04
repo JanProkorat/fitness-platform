@@ -62,10 +62,13 @@ public class UnlockSessionFinishedGuardTests
         };
 
     /// <summary>
-    /// Creates an IMongoContext where WorkoutLogs.CountDocumentsAsync returns the given count.
-    /// Uses CreateMockMongoWithLogs for the training-plan side to avoid duplicate stub setup.
+    /// Creates an IMongoContext where WorkoutLogs.CountDocumentsAsync returns the given count
+    /// and TrainingCompletions.FindAsync returns the given completions (default empty).
     /// </summary>
-    private IMongoContext CreateMockMongo(TrainingPlan plan, long completedLogCount)
+    private IMongoContext CreateMockMongo(
+        TrainingPlan plan,
+        long completedLogCount,
+        List<TrainingCompletion>? completions = null)
     {
         var mongo = Substitute.For<IMongoContext>();
 
@@ -81,6 +84,11 @@ public class UnlockSessionFinishedGuardTests
                 Arg.Any<CancellationToken>())
             .Returns(completedLogCount);
         mongo.WorkoutLogs.Returns(logCollection);
+
+        // TrainingCompletions — FindAsync returns the given completions (empty by default)
+        var completionCollection = TrainingPlanTestHelpers.CreateMockCompletionCollection(
+            completions ?? []);
+        mongo.TrainingCompletions.Returns(completionCollection);
 
         return mongo;
     }
@@ -190,12 +198,7 @@ public class UnlockSessionFinishedGuardTests
 
         // CreateMockMongo with a plan belonging to a DIFFERENT trainer — query with otherTrainerId returns nothing
         var otherTrainer = Guid.NewGuid();
-        var planBelongingToOtherTrainer = CreatePlan(planId, sessionId); // uses _trainerId
-        // Use the standard CreateMockMongoWithLogs which returns the plan (our endpoint filters by TrainerId in the query)
-        // We need the plan NOT to be returned when queried by otherTrainerId.
-        // The mongo mock returns ALL plans regardless of filter — so we create a plan with a different trainer
-        // and query as if we're otherTrainer (since the plan.TrainerId != otherTrainer, the mongo filter yields empty in prod,
-        // but the mock returns all). Use a separate mongo where plan collection is empty for simplicity.
+        // Use a separate mongo where plan collection is empty for simplicity.
         var mongo = Substitute.For<IMongoContext>();
         var emptyPlanCollection = TrainingPlanTestHelpers.CreateMockCollection([]);
         mongo.TrainingPlans.Returns(emptyPlanCollection);
@@ -207,6 +210,10 @@ public class UnlockSessionFinishedGuardTests
                 Arg.Any<CancellationToken>())
             .Returns(0L);
         mongo.WorkoutLogs.Returns(logCollection);
+
+        // TrainingCompletions not reached (404 fires first) but stub to avoid null ref.
+        var emptyCompletionCollection = TrainingPlanTestHelpers.CreateMockCompletionCollection([]);
+        mongo.TrainingCompletions.Returns(emptyCompletionCollection);
 
         var ep = Factory.Create<UnlockTrainingSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
@@ -225,6 +232,145 @@ public class UnlockSessionFinishedGuardTests
         await logCollection.DidNotReceive().CountDocumentsAsync(
             Arg.Any<FilterDefinition<WorkoutLog>>(),
             Arg.Any<CountOptions>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    // ── Gap: TrainingCompletion-based finished guard (home-checkbox path) ────────
+
+    /// <summary>
+    /// Session was completed via the mobile home-checkbox (writes TrainingCompletion, no WorkoutLog).
+    /// Unlock must return 409 SESSION_ALREADY_COMPLETED.
+    /// </summary>
+    [Fact]
+    public async Task Unlock_SessionCompletedViaTrainingCompletion_NoWorkoutLog_Returns409()
+    {
+        var planId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var plan = CreatePlan(planId, sessionId);
+        // plan.Sections = [] — exercise-free session → IsSessionComplete requires SectionId in CompletedSectionIds.
+        // Use a plan with one exercise in a section to make the test realistic.
+        var sectionId = Guid.NewGuid();
+        var exerciseId = Guid.NewGuid();
+        plan.Weeks[0].Sessions[0].Sections =
+        [
+            new TrainingSection
+            {
+                SectionId = sectionId,
+                Order = 0,
+                Name = "Hlavní",
+                Exercises =
+                [
+                    new SessionExercise
+                    {
+                        ExerciseExternalId = exerciseId,
+                        ExerciseName = "Squat",
+                        Order = 0,
+                        Sets = []
+                    }
+                ]
+            }
+        ];
+
+        // Fully-complete TrainingCompletion for that session (all exercises marked done).
+        var completion = new TrainingCompletion
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = _clientId,
+            Date = DateTime.UtcNow.Date,
+            SessionId = sessionId,
+            CompletedExerciseIds = [exerciseId],
+            Version = 1,
+            DateCreated = DateTime.UtcNow
+        };
+
+        // No completed WorkoutLog.
+        var mongo = CreateMockMongo(plan, completedLogCount: 0, completions: [completion]);
+        var lockService = LockServiceAcquired(sessionId, planId);
+        var notifier = Substitute.For<IRealtimeNotifier>();
+
+        var ep = Factory.Create<UnlockTrainingSessionEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            mongo, lockService, DefaultOptions(), notifier);
+
+        // Act
+        await ep.HandleAsync(
+            new UnlockTrainingSessionRequest { PlanId = planId, SessionId = sessionId },
+            TestContext.Current.CancellationToken);
+
+        // Assert: 409 from TrainingCompletion finished-guard
+        ep.HttpContext.Response.StatusCode.Should().Be(409,
+            "home-checkbox completion must prevent unlock just like a completed WorkoutLog");
+
+        // Lock must NOT be acquired
+        await lockService.DidNotReceive().AcquireAsync(
+            Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<Guid>(),
+            Arg.Any<LockHolder>(), Arg.Any<LockType>(), Arg.Any<TimeSpan>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    /// <summary>
+    /// Only a PARTIAL TrainingCompletion exists (not all exercises done).
+    /// The finished-guard must NOT fire — unlock should proceed normally.
+    /// </summary>
+    [Fact]
+    public async Task Unlock_SessionPartiallyComplete_NoWorkoutLog_Returns204()
+    {
+        var planId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var plan = CreatePlan(planId, sessionId);
+
+        var sectionId = Guid.NewGuid();
+        var exerciseId1 = Guid.NewGuid();
+        var exerciseId2 = Guid.NewGuid();
+        plan.Weeks[0].Sessions[0].Sections =
+        [
+            new TrainingSection
+            {
+                SectionId = sectionId,
+                Order = 0,
+                Name = "Hlavní",
+                Exercises =
+                [
+                    new SessionExercise { ExerciseExternalId = exerciseId1, ExerciseName = "Squat", Order = 0, Sets = [] },
+                    new SessionExercise { ExerciseExternalId = exerciseId2, ExerciseName = "Press", Order = 1, Sets = [] }
+                ]
+            }
+        ];
+
+        // Only exerciseId1 done — partial completion.
+        var partialCompletion = new TrainingCompletion
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = _clientId,
+            Date = DateTime.UtcNow.Date,
+            SessionId = sessionId,
+            CompletedExerciseIds = [exerciseId1],  // exerciseId2 missing → NOT complete
+            Version = 1,
+            DateCreated = DateTime.UtcNow
+        };
+
+        var mongo = CreateMockMongo(plan, completedLogCount: 0, completions: [partialCompletion]);
+        var lockService = LockServiceAcquired(sessionId, planId);
+        var notifier = Substitute.For<IRealtimeNotifier>();
+
+        var ep = Factory.Create<UnlockTrainingSessionEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            mongo, lockService, DefaultOptions(), notifier);
+
+        // Act
+        await ep.HandleAsync(
+            new UnlockTrainingSessionRequest { PlanId = planId, SessionId = sessionId },
+            TestContext.Current.CancellationToken);
+
+        // Assert: 204 — partial completion does not block unlock
+        ep.HttpContext.Response.StatusCode.Should().Be(204,
+            "a partial TrainingCompletion must not trigger the finished-guard");
+
+        await lockService.Received(1).AcquireAsync(
+            sessionId, planId, _clientId, _trainerId,
+            LockHolder.Coach, LockType.Editing, Arg.Any<TimeSpan>(),
             Arg.Any<CancellationToken>());
     }
 }
