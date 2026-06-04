@@ -1386,25 +1386,57 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
             <SectionHeader
               title={t('today.todaysNutrition')}
               action={
-                <Pressable
-                  onPress={handlePhotoGridPress}
-                  hitSlop={8}
-                  accessibilityRole="button"
-                  accessibilityLabel={t('nutrition.photoCta')}
-                  style={styles.photoCtaBtn}
-                >
-                  <View
-                    style={[
-                      styles.photoCtaIconChip,
-                      { backgroundColor: goldAlpha['12'], borderColor: goldAlpha['35'] },
-                    ]}
-                  >
-                    <Ionicons name="camera" size={13} color={colors.onGoldChip} />
-                  </View>
-                  <Text style={[styles.photoCtaLabel, { color: colors.gold }]}>
-                    {t('nutrition.photoCta')}
-                  </Text>
-                </Pressable>
+                <View style={styles.nutritionHeaderActions}>
+                  {plan?.planId ? (
+                    <Pressable
+                      onPress={handlePhotoGridPress}
+                      hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('nutrition.photoCta')}
+                      style={styles.photoCtaBtn}
+                    >
+                      <View
+                        style={[
+                          styles.photoCtaIconChip,
+                          { backgroundColor: goldAlpha['12'], borderColor: goldAlpha['35'] },
+                        ]}
+                      >
+                        <Ionicons name="camera" size={13} color={colors.onGoldChip} />
+                      </View>
+                      <Text style={[styles.photoCtaLabel, { color: colors.gold }]}>
+                        {t('nutrition.photoCta')}
+                      </Text>
+                    </Pressable>
+                  ) : null}
+                  {plan?.planId ? (
+                    <Pressable
+                      onPress={() => {
+                        router.push(
+                          hrefParams('/(client)/(tabs)/plans/[planId]', {
+                            planId: plan.planId!,
+                            type: 'nutrition',
+                          }),
+                        )
+                      }}
+                      hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('today.sectionActionDetail')}
+                      style={styles.photoCtaBtn}
+                    >
+                      <View
+                        style={[
+                          styles.photoCtaIconChip,
+                          { backgroundColor: goldAlpha['12'], borderColor: goldAlpha['35'] },
+                        ]}
+                      >
+                        <Ionicons name="chevron-forward" size={13} color={colors.onGoldChip} />
+                      </View>
+                      <Text style={[styles.photoCtaLabel, { color: colors.gold }]}>
+                        {t('today.sectionActionDetail')}
+                      </Text>
+                    </Pressable>
+                  ) : null}
+                </View>
               }
             />
             <NutritionCard
