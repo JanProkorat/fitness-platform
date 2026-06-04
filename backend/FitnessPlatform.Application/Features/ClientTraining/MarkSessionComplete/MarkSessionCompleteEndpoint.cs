@@ -127,13 +127,10 @@ public class MarkSessionCompleteEndpoint(
 
         if (existing is not null)
         {
-            // Idempotency: the session is already complete when every section is "done":
-            //   - sections with exercises: every exercise is in CompletedExerciseIds
-            //   - exercise-free sections: the SectionId is in CompletedSectionIds
-            var alreadyComplete = session.Sections.All(sec =>
-                sec.Exercises.Count > 0
-                    ? sec.Exercises.All(e => existing.CompletedExerciseIds.Contains(e.ExerciseExternalId))
-                    : (existing.CompletedSectionIds ?? []).Contains(sec.SectionId));
+            // Idempotency: the session is already complete when every section is "done".
+            // Uses the shared TrainingCompletionExtensions.IsSessionComplete helper (rule-of-three:
+            // also called from GetTrainingPlan and UnlockTrainingSession).
+            var alreadyComplete = existing.IsSessionComplete(session);
             if (alreadyComplete)
             {
                 await Send.OkAsync(BuildResponse(req.SessionId, targetDate, existing, allExerciseIds.Count), ct);
@@ -212,10 +209,8 @@ public class MarkSessionCompleteEndpoint(
                     throw;
                 }
 
-                var retryAlreadyComplete = session.Sections.All(sec =>
-                    sec.Exercises.Count > 0
-                        ? sec.Exercises.All(e => existing.CompletedExerciseIds.Contains(e.ExerciseExternalId))
-                        : (existing.CompletedSectionIds ?? []).Contains(sec.SectionId));
+                // Retry path — same completeness check via shared helper.
+                var retryAlreadyComplete = existing.IsSessionComplete(session);
                 if (retryAlreadyComplete)
                 {
                     await Send.OkAsync(BuildResponse(req.SessionId, targetDate, existing, allExerciseIds.Count), ct);

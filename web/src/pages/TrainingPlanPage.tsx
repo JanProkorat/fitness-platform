@@ -1152,7 +1152,20 @@ export default function TrainingPlanPage() {
                         {t('training.lock.liveLabel')}
                       </span>
                     )}
-                    {isPublishedSession && !isLive && !isEditing && (
+                    {isPublishedSession && !isLive && !isEditing && sessionExec?.isSessionFinished && (
+                      <span
+                        className={cn(
+                          'shrink-0 inline-flex items-center gap-1 rounded-sm border px-2 py-[2px]',
+                          'text-[10px] font-medium',
+                          'border-text3/30 text-text3 bg-bg2',
+                        )}
+                        title={t('training.lock.finishedTooltip')}
+                        aria-label={t('training.lock.finishedTooltip')}
+                      >
+                        {t('training.lock.finishedLabel')}
+                      </span>
+                    )}
+                    {isPublishedSession && !isLive && !isEditing && !sessionExec?.isSessionFinished && (
                       <button
                         type="button"
                         onClick={(e) => {

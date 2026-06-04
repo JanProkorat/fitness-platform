@@ -13,6 +13,7 @@ using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NSubstitute;
 
@@ -102,6 +103,16 @@ public class SessionLockBroadcastWorkoutTests
         var svc = Substitute.For<IWorkoutCompletionService>();
         svc.CompleteAsync(Arg.Any<WorkoutLog>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
             .Returns(new List<string>());
+        return svc;
+    }
+
+    private static IComplianceService StubComplianceService()
+    {
+        var svc = Substitute.For<IComplianceService>();
+        svc.CalculateComplianceAsync(Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+            .Returns(new ComplianceResult { CompliancePercent = 100m });
+        svc.CalculateStreakAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns(1);
         return svc;
     }
 
@@ -267,7 +278,8 @@ public class SessionLockBroadcastWorkoutTests
         var ep = Factory.Create<CompleteWorkoutEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, StubCompletionService(), lockService, notifier);
+            mongo, StubCompletionService(), lockService, notifier,
+            StubComplianceService(), Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
 
         // Act
         await ep.HandleAsync(
@@ -322,7 +334,8 @@ public class SessionLockBroadcastWorkoutTests
         var ep = Factory.Create<CompleteWorkoutEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, StubCompletionService(), lockService, notifier);
+            mongo, StubCompletionService(), lockService, notifier,
+            StubComplianceService(), Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
 
         // Act
         await ep.HandleAsync(
@@ -357,7 +370,8 @@ public class SessionLockBroadcastWorkoutTests
         var ep = Factory.Create<CompleteWorkoutEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, StubCompletionService(), lockService, notifier);
+            mongo, StubCompletionService(), lockService, notifier,
+            StubComplianceService(), Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
 
         // Act
         await ep.HandleAsync(

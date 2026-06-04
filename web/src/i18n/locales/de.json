@@ -1052,7 +1052,9 @@
       "unlockError": "Einheit konnte nicht entsperrt werden.",
       "relockError": "Einheit konnte nicht gesperrt werden.",
       "sessionLockedError": "Speichern fehlgeschlagen — diese Einheiten sind durch den Klienten gesperrt:",
-      "unlockToSave": "Entsperren oder warten, bis das Training abgeschlossen ist"
+      "unlockToSave": "Entsperren oder warten, bis das Training abgeschlossen ist",
+      "finishedLabel": "Vom Klienten abgeschlossen",
+      "finishedTooltip": "Der Klient hat diese Einheit abgeschlossen — Bearbeitung ist nicht möglich."
     },
     "sidebarVolume": "Trainingsvolumen",
     "sidebarTotalSets": "Sätze gesamt",

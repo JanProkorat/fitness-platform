@@ -1053,7 +1053,9 @@
       "unlockError": "Failed to unlock session.",
       "relockError": "Failed to relock session.",
       "sessionLockedError": "Save failed — these sessions are locked by the client:",
-      "unlockToSave": "Unlock or wait for the workout to finish"
+      "unlockToSave": "Unlock or wait for the workout to finish",
+      "finishedLabel": "Completed by client",
+      "finishedTooltip": "The client has finished this session — editing is not available."
     },
     "sidebarVolume": "Training volume",
     "sidebarTotalSets": "total sets",

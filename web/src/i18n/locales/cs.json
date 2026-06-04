@@ -1066,7 +1066,9 @@
       "unlockError": "Nepodařilo se odemknout trénink.",
       "relockError": "Nepodařilo se zamknout trénink.",
       "sessionLockedError": "Uložení selhalo — tyto tréninky jsou aktuálně uzamčeny klientem:",
-      "unlockToSave": "Odemkněte nebo počkejte na dokončení tréninku"
+      "unlockToSave": "Odemkněte nebo počkejte na dokončení tréninku",
+      "finishedLabel": "Dokončeno klientem",
+      "finishedTooltip": "Klient tento trénink dokončil — úpravy nejsou možné."
     },
     "sidebarVolume": "Objem tréninku",
     "sidebarTotalSets": "sérií celkem",

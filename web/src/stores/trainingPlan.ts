@@ -124,11 +124,12 @@ interface TrainingPlanState {
   save: () => Promise<void>;
   publishWeek: (weekNumber: number) => Promise<void>;
   /**
-   * Re-fetch the current plan from the server and overwrite **only**
-   * `completions` on both `plan` and `originalPlan`. Used by the SignalR
-   * `trainingprogressupdated` listener so the editor reacts in real time
-   * to client-side completions without clobbering unsaved trainer edits.
-   * Also refreshes `sessionLockMap` from the fresh response.
+   * Re-fetch the current plan from the server and overwrite `completions`,
+   * `sessionExecutions`, and `sessionLockStates` on both `plan` and
+   * `originalPlan`. Used by the SignalR `trainingprogressupdated` listener
+   * so the editor reacts in real time to client-side completions and
+   * session-finish state without clobbering unsaved trainer edits.
+   * Also rebuilds `sessionLockMap` from the fresh response.
    */
   refreshCompletions: () => Promise<void>;
 
@@ -1464,8 +1465,8 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
       const sessionLockStates = fresh.sessionLockStates ?? [];
       const sessionLockMap = buildLockMap(sessionLockStates);
       // Also carry fresh sessionExecutions so isSessionFinished badges update
-      // live — the API response includes them but they were previously dropped
-      // during the merge, leaving the finished badge stale until a full reload.
+      // live without a full page reload. The unlock affordance gates on
+      // sessionExec.isSessionFinished, so this is required for AC1/AC4 of #429.
       const sessionExecutions = fresh.sessionExecutions ?? [];
       set((state) => ({
         // Keep plan.sessionLockStates in lockstep with sessionLockMap so the
