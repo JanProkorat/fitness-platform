@@ -1,7 +1,7 @@
 /**
  * QuickLogChips — horizontal scroll row of preset ml chips + a "Custom" chip.
  *
- * Preset amounts: 200, 250, 330, 500, 750 ml.
+ * Preset amounts: 200, 300, 500, 750, 1000 ml.
  * The "Custom" chip calls onCustomPress to open the CustomAmountSheet.
  */
 
@@ -13,7 +13,7 @@ import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
 import { goldAlpha } from '@/constants/colors'
 
-export const PRESET_AMOUNTS = [200, 250, 330, 500, 750] as const
+export const PRESET_AMOUNTS = [200, 300, 500, 750, 1000] as const
 
 interface QuickLogChipsProps {
   onLog: (amountMl: number) => void
@@ -40,22 +40,27 @@ export function QuickLogChips({ onLog, onCustomPress }: QuickLogChipsProps): Rea
       contentContainerStyle={styles.row}
       style={styles.scroll}
     >
-      {PRESET_AMOUNTS.map((amount) => (
-        <Pressable
-          key={amount}
-          onPress={() => handlePress(amount)}
-          style={({ pressed }) => [
-            styles.chip,
-            { opacity: pressed ? 0.7 : 1, backgroundColor: goldAlpha['10'], borderColor: goldAlpha['35'] },
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel={t('hydration.quickLog.presetLabel', { amount })}
-        >
-          <Text style={[styles.chipText, { color: colors.gold }]}>
-            {t('hydration.quickLog.presetLabel', { amount })}
-          </Text>
-        </Pressable>
-      ))}
+      {PRESET_AMOUNTS.map((amount) => {
+        const label = amount === 1000
+          ? t('hydration.quickLog.preset1L')
+          : t('hydration.quickLog.presetLabel', { amount })
+        return (
+          <Pressable
+            key={amount}
+            onPress={() => handlePress(amount)}
+            style={({ pressed }) => [
+              styles.chip,
+              { opacity: pressed ? 0.7 : 1, backgroundColor: goldAlpha['10'], borderColor: goldAlpha['35'] },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={label}
+          >
+            <Text style={[styles.chipText, { color: colors.gold }]}>
+              {label}
+            </Text>
+          </Pressable>
+        )
+      })}
 
       {/* Custom chip */}
       <Pressable

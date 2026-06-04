@@ -1,24 +1,26 @@
 /**
- * HydrationCard — Today-screen card for the drinking regime feature (#334).
+ * HydrationCard — compact Today-screen card for the hydration feature (#412).
  *
- * Shows current intake / target, a compact progress bar, and a primary
- * "+250 ml" button. Tapping the card body navigates to /hydration.
+ * Shows: title, current/target progress, progress bar, and a gold circular
+ * "+" button that opens HydrationQuickLogSheet.
+ *
+ * Only rendered when hydrationStore.enabled === true (caller gates this).
  */
 
-import React, { useCallback } from 'react'
+import React, { useState, useCallback } from 'react'
 import { View, Text, Pressable, StyleSheet } from 'react-native'
-import { useRouter } from 'expo-router'
+import { Ionicons } from '@expo/vector-icons'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
 import { Radius } from '@/constants/radius'
 import { Type } from '@/constants/typography'
 import { HydrationProgressBar } from './HydrationProgressBar'
+import { HydrationQuickLogSheet } from './HydrationQuickLogSheet'
 import { useHydrationStore, selectTodayTotalMl } from '@/stores/hydrationStore'
 
 export function HydrationCard(): React.ReactElement {
   const { t } = useTranslation()
   const colors = useTheme()
-  const router = useRouter()
 
   const log = useHydrationStore((s) => s.log)
   const targetMl = useHydrationStore((s) => s.targetMl)
@@ -26,58 +28,59 @@ export function HydrationCard(): React.ReactElement {
 
   const todayTotal = selectTodayTotalMl(log)
 
-  const handleCardPress = useCallback(() => {
-    router.push('/(client)/(tabs)/hydration')
-  }, [router])
+  const [sheetVisible, setSheetVisible] = useState(false)
 
-  const handleQuickAdd = useCallback(() => {
-    addDrink(250)
-  }, [addDrink])
+  const handleLog = useCallback(
+    (amountMl: number) => {
+      addDrink(amountMl)
+      setSheetVisible(false)
+    },
+    [addDrink],
+  )
 
   const styles = makeStyles(colors)
 
   return (
-    <Pressable
-      onPress={handleCardPress}
-      style={({ pressed }) => [
-        styles.card,
-        { backgroundColor: colors.bg2, opacity: pressed ? 0.92 : 1 },
-      ]}
-      accessibilityRole="button"
-      accessibilityLabel={t('hydration.card.title')}
-    >
-      {/* Header row */}
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.label }]}>
-          {t('hydration.card.title')}
-        </Text>
-        <Text style={[styles.progress, { color: colors.label2 }]}>
-          {t('hydration.card.todayProgress', { current: todayTotal, target: targetMl })}
-        </Text>
-      </View>
-
-      {/* Progress bar */}
-      <View style={styles.barWrap}>
-        <HydrationProgressBar currentMl={todayTotal} targetMl={targetMl} />
-      </View>
-
-      {/* Quick-add button */}
-      <Pressable
-        onPress={handleQuickAdd}
-        style={({ pressed }) => [
-          styles.quickAddBtn,
-          { backgroundColor: colors.gold, opacity: pressed ? 0.8 : 1 },
-        ]}
-        accessibilityRole="button"
-        accessibilityLabel={t('hydration.card.quickAdd')}
-        // Stop propagation so tapping the button doesn't also trigger the card press.
-        onStartShouldSetResponder={() => true}
+    <>
+      <View
+        style={[styles.card, { backgroundColor: colors.bg2 }]}
+        accessibilityRole="none"
       >
-        <Text style={[styles.quickAddLabel, { color: colors.onAccent }]}>
-          {t('hydration.card.quickAdd')}
-        </Text>
-      </Pressable>
-    </Pressable>
+        {/* Header row: title + current/target */}
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: colors.label }]}>
+            {t('hydration.card.title')}
+          </Text>
+          <Text style={[styles.progress, { color: colors.label2 }]}>
+            {t('hydration.card.todayProgress', { current: todayTotal, target: targetMl })}
+          </Text>
+        </View>
+
+        {/* Progress row: bar + add button */}
+        <View style={styles.progressRow}>
+          <View style={styles.barWrap}>
+            <HydrationProgressBar currentMl={todayTotal} targetMl={targetMl} barHeight={8} />
+          </View>
+          <Pressable
+            style={({ pressed }) => [
+              styles.addBtn,
+              { backgroundColor: colors.gold, opacity: pressed ? 0.8 : 1 },
+            ]}
+            onPress={() => setSheetVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel={t('hydration.card.addButtonA11y')}
+          >
+            <Ionicons name="add" size={22} color={colors.onAccent} />
+          </Pressable>
+        </View>
+      </View>
+
+      <HydrationQuickLogSheet
+        visible={sheetVisible}
+        onLog={handleLog}
+        onDismiss={() => setSheetVisible(false)}
+      />
+    </>
   )
 }
 
@@ -91,9 +94,8 @@ function makeStyles(colors: Colors) {
       marginHorizontal: 16,
       borderRadius: Radius.lg,
       paddingHorizontal: 16,
-      paddingTop: 14,
-      paddingBottom: 14,
-      gap: 10,
+      paddingVertical: 14,
+      gap: 12,
     },
     header: {
       flexDirection: 'row',
@@ -102,22 +104,26 @@ function makeStyles(colors: Colors) {
     },
     title: {
       ...Type.headline,
+      fontWeight: '700',
     },
     progress: {
       ...Type.footnote,
     },
-    barWrap: {
-      marginVertical: 2,
+    progressRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
     },
-    quickAddBtn: {
-      borderRadius: Radius.md,
-      paddingVertical: 9,
+    barWrap: {
+      flex: 1,
+    },
+    addBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
       alignItems: 'center',
       justifyContent: 'center',
-    },
-    quickAddLabel: {
-      ...Type.subheadline,
-      fontWeight: '600',
+      flexShrink: 0,
     },
   })
 }

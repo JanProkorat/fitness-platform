@@ -18,6 +18,7 @@ import { TrainingCard } from '@/components/training/TrainingCard'
 import { NutritionCard } from '@/components/nutrition/NutritionCard'
 import { WaitingForPlanCard } from '@/components/today/WaitingForPlanCard'
 import { HydrationCard } from '@/components/hydration/HydrationCard'
+import { useHydrationStore } from '@/stores/hydrationStore'
 import { ShoppingPrepBanner } from '@/components/today/ShoppingPrepBanner'
 import {
   getTodayPlan,
@@ -191,6 +192,9 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
   const router = useRouter()
   const queryClient = useQueryClient()
   const { t } = useTranslation()
+
+  // ── Hydration: read enabled flag to gate the home card ──
+  const hydrationEnabled = useHydrationStore((s) => s.enabled)
 
   // ── Pending plans (additive banners) ──
   const pendingPlans = useTodayStore((s) => s.pendingPlans)
@@ -1274,6 +1278,13 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
         </View>
       )}
 
+      {/* Hydration card — sits ABOVE the training card, gated on enabled flag */}
+      {hydrationEnabled && (
+        <View style={styles.section}>
+          <HydrationCard />
+        </View>
+      )}
+
       {/* Training + nutrition slots.
           Default order is training → nutrition. Swapped when today has a
           nutrition plan but no training session, so the "no training for
@@ -1423,11 +1434,6 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
           />
         </View>
       )}
-
-      {/* Hydration card — always visible, MMKV-local, no trainer dependency */}
-      <View style={styles.section}>
-        <HydrationCard />
-      </View>
 
     </>
   )
