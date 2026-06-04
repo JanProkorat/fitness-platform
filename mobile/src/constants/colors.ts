@@ -82,6 +82,8 @@ const light = {
   heroBg: '#1a2332',     // Dark hero section background (training card)
   nutritionHeroStart: '#0d2137', // Nutrition hero gradient start (dark blue)
   nutritionHeroEnd: '#1a3a52',   // Nutrition hero gradient end (mid blue)
+  trainingHeroStart: '#1a1a2e', // Training plan hero gradient start (dark navy)
+  trainingHeroEnd: '#16213e',   // Training plan hero gradient end (mid navy)
   systemGray: '#8e8e93', // Neutral gray (swipe actions, secondary UI)
   /** Foreground for content on the gold-tinted chip backgrounds — stays black
    *  in both light and dark themes because the chip itself is mid-luminance. */
@@ -130,6 +132,8 @@ const dark = {
   heroBg: '#1a2332',
   nutritionHeroStart: '#0d2137',
   nutritionHeroEnd: '#1a3a52',
+  trainingHeroStart: '#1a1a2e', // Training plan hero gradient start (dark navy)
+  trainingHeroEnd: '#16213e',   // Training plan hero gradient end (mid navy)
   systemGray: '#636366',
   /** Foreground for content on the gold-tinted chip backgrounds — stays black
    *  in both light and dark themes because the chip itself is mid-luminance. */
@@ -171,6 +175,8 @@ export interface ColorScheme {
   readonly heroBg: string
   readonly nutritionHeroStart: string
   readonly nutritionHeroEnd: string
+  readonly trainingHeroStart: string
+  readonly trainingHeroEnd: string
   readonly systemGray: string
   readonly onGoldChip: string
   readonly shadow: string

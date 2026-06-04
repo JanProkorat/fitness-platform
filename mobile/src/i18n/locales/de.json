@@ -185,7 +185,9 @@
     "continue": "Weiter",
     "error": "Fehler",
     "options": "Optionen",
-    "yourCoach": "dein Coach"
+    "yourCoach": "dein Coach",
+    "previous": "Zurück",
+    "next": "Weiter"
   },
   "imagePicker": {
     "sourceTitle": "Quelle auswählen",
@@ -414,7 +416,8 @@
     "trainingPlanType": "TRAININGSPLAN",
     "nutritionPlanType": "ERNÄHRUNGSPLAN",
     "statusActive": "Aktiv",
-    "weeksCount": "{{count}} Wochen",
+    "weeksCount_one": "{{count}} Woche",
+    "weeksCount_other": "{{count}} Wochen",
     "today": "heute",
     "week": "Woche",
     "total": "gesamt",
@@ -430,7 +433,26 @@
     "avgKcal": "Ø {{kcal}} kcal/Tag",
     "weekOf": "Woche {{current}} von {{total}}",
     "completedOn": "Abgeschlossen {{date}}",
-    "linkedQuestionnaire": "Verknüpfter Fragebogen"
+    "linkedQuestionnaire": "Verknüpfter Fragebogen",
+    "training": "Training",
+    "nutrition": "Ernährung",
+    "weekStepper": "Woche {{week}} von {{total}}",
+    "thisWeekLabel": "Diese Woche",
+    "weekLabel2": "Woche {{week}}",
+    "sessionsDoneHeader": "{{done}} / {{total}} erledigt",
+    "daysDoneHeader": "{{done}} / {{total}} Tage",
+    "sessionDone": "Erledigt",
+    "sessionToday": "Starten",
+    "sessionPlanned": "Geplant",
+    "dayDone": "Abgeschlossen",
+    "dayToday": "Erfassen",
+    "dayPlanned": "Geplant",
+    "fetchError": "Plan konnte nicht geladen werden.",
+    "retry": "Erneut versuchen",
+    "sessions_one": "{{count}} Übung",
+    "sessions_other": "{{count}} Übungen",
+    "meals_one": "{{count}} Mahlzeit",
+    "meals_other": "{{count}} Mahlzeiten"
   },
   "pendingQuestionnaires": {
     "title": "Ausstehende Fragebögen",
