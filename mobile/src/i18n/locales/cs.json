@@ -723,7 +723,6 @@
     "tip": "Pozn:",
     "dayNoteLabel": "Pozn k dni:",
     "mealNoteLabel": "Pozn k jídlu:",
-    "todayPhotos": "Fotky dne",
     "recipe": "Recept",
     "serving_one": "{{count}}× porce",
     "serving_other": "{{count}}× porce",
@@ -1035,7 +1034,6 @@
     },
     "photoCta": "Foto",
     "sessionPhotoA11y": "Přidat fotku tréninku",
-    "todayPhotos": "Fotky dne",
     "sessions": {
       "reminder": {
         "toggleLabel": "Připomenutí",

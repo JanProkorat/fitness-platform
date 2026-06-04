@@ -741,7 +741,6 @@
     "tip": "Tipp:",
     "dayNoteLabel": "Tagesnotiz:",
     "mealNoteLabel": "Mahlzeitennotiz:",
-    "todayPhotos": "Heutige Fotos",
     "recipe": "Rezept",
     "serving_one": "{{count}}× Portion",
     "serving_other": "{{count}}× Portionen",
@@ -982,7 +981,6 @@
     },
     "photoCta": "Foto",
     "sessionPhotoA11y": "Trainingsfoto hinzufügen",
-    "todayPhotos": "Heutige Fotos",
     "sessions": {
       "reminder": {
         "toggleLabel": "Erinnerung",
