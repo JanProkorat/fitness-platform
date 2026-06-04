@@ -185,7 +185,9 @@
     "continue": "Pokračovat",
     "error": "Chyba",
     "options": "Možnosti",
-    "yourCoach": "váš kouč"
+    "yourCoach": "váš kouč",
+    "previous": "Předchozí",
+    "next": "Další"
   },
   "imagePicker": {
     "sourceTitle": "Vyberte zdroj",
@@ -419,7 +421,9 @@
     "trainingPlanType": "TRÉNINKOVÝ PLÁN",
     "nutritionPlanType": "VÝŽIVOVÝ PLÁN",
     "statusActive": "Aktivní",
-    "weeksCount": "{{count}} týdnů",
+    "weeksCount_one": "{{count}} týden",
+    "weeksCount_few": "{{count}} týdny",
+    "weeksCount_other": "{{count}} týdnů",
     "today": "dnes",
     "week": "týden",
     "total": "celkem",

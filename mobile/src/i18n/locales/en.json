@@ -185,7 +185,9 @@
     "continue": "Continue",
     "error": "Error",
     "options": "Options",
-    "yourCoach": "your coach"
+    "yourCoach": "your coach",
+    "previous": "Previous",
+    "next": "Next"
   },
   "imagePicker": {
     "sourceTitle": "Select source",
@@ -414,7 +416,8 @@
     "trainingPlanType": "TRAINING PLAN",
     "nutritionPlanType": "NUTRITION PLAN",
     "statusActive": "Active",
-    "weeksCount": "{{count}} weeks",
+    "weeksCount_one": "{{count}} week",
+    "weeksCount_other": "{{count}} weeks",
     "today": "today",
     "week": "week",
     "total": "total",

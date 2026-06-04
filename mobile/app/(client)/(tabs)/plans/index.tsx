@@ -132,7 +132,7 @@ function PlanHero({
   const gradientColors: [string, string] =
     type === 'nutrition'
       ? [colors.nutritionHeroStart, colors.nutritionHeroEnd]
-      : ['#1a1a2e', '#16213e']
+      : [colors.trainingHeroStart, colors.trainingHeroEnd]
 
   return (
     <Pressable
@@ -281,7 +281,7 @@ function WeekStepper({
         disabled={prevDisabled}
         accessibilityRole="button"
         accessibilityState={{ disabled: prevDisabled }}
-        accessibilityLabel={t('common.previous', { defaultValue: 'Previous' })}
+        accessibilityLabel={t('common.previous')}
         style={[stepperStyles.chevron, prevDisabled && stepperStyles.disabled]}
       >
         <Ionicons
@@ -296,7 +296,7 @@ function WeekStepper({
         disabled={nextDisabled}
         accessibilityRole="button"
         accessibilityState={{ disabled: nextDisabled }}
-        accessibilityLabel={t('common.next', { defaultValue: 'Next' })}
+        accessibilityLabel={t('common.next')}
         style={[stepperStyles.chevron, nextDisabled && stepperStyles.disabled]}
       >
         <Ionicons
@@ -360,7 +360,7 @@ function TrainingSessionRow({
 
   const subParts: string[] = []
   if (status === 'today') {
-    subParts.push(t('plans.thisWeek'))
+    subParts.push(t('plans.today'))
   } else {
     subParts.push(dayLabel)
   }
@@ -470,7 +470,7 @@ function NutritionDayRow({
 
   const dayLabel = getDayLabels()[dayOfWeek - 1] ?? ''
   const sub = status === 'today'
-    ? t('plans.thisWeek')
+    ? t('plans.today')
     : t('plans.meals', { count: mealCount })
 
   const iconBg =

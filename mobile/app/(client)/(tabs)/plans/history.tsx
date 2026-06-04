@@ -47,7 +47,7 @@ function CompletedPlanCard({
 
   const isTraining = plan.type === 'training'
   const gradientColors: [string, string] = isTraining
-    ? ['#1a1a2e', '#16213e']
+    ? [colors.trainingHeroStart, colors.trainingHeroEnd]
     : [colors.nutritionHeroStart, colors.nutritionHeroEnd]
 
   return (
