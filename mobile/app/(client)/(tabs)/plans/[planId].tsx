@@ -180,7 +180,15 @@ function formatAnswer(answer: SubmittedAnswer): string {
 
 // ─── Nutrition Plan Detail ────────────────────────────────────────────
 
-function NutritionPlanDetail({ plan }: { plan: FullPlanResponse }) {
+function NutritionPlanDetail({
+  plan,
+  initialWeek,
+  initialDay,
+}: {
+  plan: FullPlanResponse
+  initialWeek?: number
+  initialDay?: number
+}) {
   const colors = useTheme()
   const { t } = useTranslation()
   const scrollRef = useRef<ScrollView>(null)
@@ -189,8 +197,12 @@ function NutritionPlanDetail({ plan }: { plan: FullPlanResponse }) {
   const planId = plan.planId ?? ''
 
   // ── State ──
-  const [selectedWeek, setSelectedWeek] = useState<number | null>(null)
-  const [selectedDay, setSelectedDay] = useState<number | null>(null)
+  // initialWeek/initialDay seed the selected position when navigating from the
+  // Plans tab week-stepper rows (AC7). Both are optional so existing call sites
+  // (Today card, hero tap) that don't pass them fall through to the plan's own
+  // currentWeek/currentDayOfWeek defaults.
+  const [selectedWeek, setSelectedWeek] = useState<number | null>(initialWeek ?? null)
+  const [selectedDay, setSelectedDay] = useState<number | null>(initialDay ?? null)
   const [expandedMap, setExpandedMap] = useState<Record<string, Set<string>>>({})
   const [weekGridVisible, setWeekGridVisible] = useState(false)
   const [sheetOpen, setSheetOpen] = useState(false)
@@ -851,7 +863,15 @@ function todayDayOfWeek(): number {
   return d === 0 ? 7 : d
 }
 
-function TrainingPlanDetail({ plan }: { plan: GetFullTrainingPlanResponse }) {
+function TrainingPlanDetail({
+  plan,
+  initialWeek,
+  initialDay,
+}: {
+  plan: GetFullTrainingPlanResponse
+  initialWeek?: number
+  initialDay?: number
+}) {
   const colors = useTheme()
   const { t } = useTranslation()
   const scrollRef = useRef<ScrollView>(null)
@@ -867,8 +887,10 @@ function TrainingPlanDetail({ plan }: { plan: GetFullTrainingPlanResponse }) {
     [plan.weeks],
   )
 
-  const [selectedWeek, setSelectedWeek] = useState<number | null>(null)
-  const [selectedDay, setSelectedDay] = useState<number | null>(null)
+  // initialWeek/initialDay seed the selected position when navigating from the
+  // Plans tab week-stepper rows (AC7). Optional — existing call sites don't pass them.
+  const [selectedWeek, setSelectedWeek] = useState<number | null>(initialWeek ?? null)
+  const [selectedDay, setSelectedDay] = useState<number | null>(initialDay ?? null)
   const [weekGridVisible, setWeekGridVisible] = useState(false)
   const [trainingSheetOpen, setTrainingSheetOpen] = useState(false)
   // expandedSessionsMap: "${week}-${day}" → Set of sessionIds (undefined = all expanded)
@@ -1586,11 +1608,23 @@ function TrainingPlanDetail({ plan }: { plan: GetFullTrainingPlanResponse }) {
 // ─── Main Screen ──────────────────────────────────────────────────────
 
 export default function PlanDetailScreen() {
-  const { planId, type } = useLocalSearchParams<{ planId: string; type?: string }>()
+  // week and day are optional search params added by AC7 — the Plans tab rows
+  // deep-link here with pre-selected week+day. Existing call sites (Today card,
+  // hero tap) don't pass them and continue to work with plan defaults.
+  const { planId, type, week, day } = useLocalSearchParams<{
+    planId: string
+    type?: string
+    week?: string
+    day?: string
+  }>()
   const colors = useTheme()
   const router = useRouter()
 
   const isNutrition = type === 'nutrition'
+
+  // Parse optional week/day route params into numbers (undefined when absent)
+  const initialWeek = week ? parseInt(week, 10) || undefined : undefined
+  const initialDay = day ? parseInt(day, 10) || undefined : undefined
 
   const nutritionQuery = useQuery({
     queryKey: ['nutrition-full-plan'],
@@ -1628,9 +1662,17 @@ export default function PlanDetailScreen() {
             <ActivityIndicator size="large" color={colors.gold} />
           </View>
         ) : isNutrition && nutritionQuery.data ? (
-          <NutritionPlanDetail plan={nutritionQuery.data} />
+          <NutritionPlanDetail
+            plan={nutritionQuery.data}
+            initialWeek={initialWeek}
+            initialDay={initialDay}
+          />
         ) : !isNutrition && trainingQuery.data ? (
-          <TrainingPlanDetail plan={trainingQuery.data} />
+          <TrainingPlanDetail
+            plan={trainingQuery.data}
+            initialWeek={initialWeek}
+            initialDay={initialDay}
+          />
         ) : (
           <View style={styles.centered}>
             <Text style={[Type.headline, { color: colors.label3 }]}>Plan not found</Text>
