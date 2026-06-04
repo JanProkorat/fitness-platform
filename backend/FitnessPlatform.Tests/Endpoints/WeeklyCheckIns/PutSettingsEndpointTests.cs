@@ -50,8 +50,9 @@ public class PutSettingsEndpointTests(FitnessApiFactory factory)
     // ── Validation ───────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task PutSettings_TimeNotHourAligned_Returns400WithInvalidTimeOfDay()
+    public async Task PutSettings_MinutePrecisionTime_Returns2xx()
     {
+        // AC: non-hour times (e.g. 18:30) must now be accepted — endpoint returns 200 or 201
         var client = factory.CreateClient();
         var email = UniqueEmail();
 
@@ -62,6 +63,28 @@ public class PutSettingsEndpointTests(FitnessApiFactory factory)
         var response = await client.PutAsJsonAsync(
             "/trainer/weekly-check-ins/settings",
             new { Profession = "Training", DayOfWeek = 1, TimeOfDay = "18:30:00", Enabled = true },
+            TestContext.Current.CancellationToken);
+
+        ((int)response.StatusCode).Should().BeInRange(200, 299,
+            "minute-precision times must now be accepted");
+    }
+
+    [Fact]
+    public async Task PutSettings_TimeOf1Day_Returns400()
+    {
+        // AC: a TimeSpan value ≥ 24h (e.g. 1.00:00:00 = 1 day) must be rejected.
+        // "24:00:00" is not a valid .NET TimeSpan string, so we use the day-format "1.00:00:00"
+        // which .NET parses to TimeSpan.FromDays(1) = 24 h, triggering the upper-bound rule.
+        var client = factory.CreateClient();
+        var email = UniqueEmail();
+
+        await TestHelpers.RegisterAsync(client, email, "TestPass1!", "Trainer", "Val2", "Trainer");
+        var (accessToken, _) = await TestHelpers.LoginAsync(client, email, "TestPass1!");
+        TestHelpers.SetBearerToken(client, accessToken);
+
+        var response = await client.PutAsJsonAsync(
+            "/trainer/weekly-check-ins/settings",
+            new { Profession = "Training", DayOfWeek = 1, TimeOfDay = "1.00:00:00", Enabled = true },
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);

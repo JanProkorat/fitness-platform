@@ -15,7 +15,7 @@ public class PutOverrideRequest
     /// <summary>Override day of week (0 = Sunday … 6 = Saturday). Null = inherit.</summary>
     public int? DayOfWeek { get; set; }
 
-    /// <summary>Override time of day (hour-aligned). Null = inherit. Minutes/Seconds/Milliseconds must be zero if set.</summary>
+    /// <summary>Override time of day. Null = inherit. Must be between 00:00:00 and 23:59:59 if set.</summary>
     public TimeSpan? TimeOfDay { get; set; }
 
     /// <summary>Override enabled flag. Null = inherit.</summary>
