@@ -373,4 +373,182 @@ public class UnlockSessionFinishedGuardTests
             LockHolder.Coach, LockType.Editing, Arg.Any<TimeSpan>(),
             Arg.Any<CancellationToken>());
     }
+
+    // ── Per-section path tests (Defect 1 regression) ────────────────────────────
+
+    /// <summary>
+    /// Regression test for Defect 1: the same exercise id appears in two different sections
+    /// (e.g. "Bench Press" scheduled in both AMRAP block A and AMRAP block B).
+    /// The client completed it in only one section — the <c>CompletedExerciseIdsBySection</c> dict
+    /// contains it only for section A.
+    ///
+    /// The old flat-list check (CompletedExerciseIds.Contains) would see the exercise id once and
+    /// treat BOTH sections as done → false-positive "session complete" → wrong 409 on unlock.
+    ///
+    /// The per-section check must see section B as NOT done and allow the unlock to proceed (204).
+    /// </summary>
+    [Fact]
+    public async Task Unlock_DuplicateExerciseAcrossSections_CompletedInOnlyOneSection_Returns204()
+    {
+        var planId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var plan = CreatePlan(planId, sessionId);
+
+        var sectionIdA = Guid.NewGuid();
+        var sectionIdB = Guid.NewGuid();
+        var sharedExerciseId = Guid.NewGuid(); // same exercise in both sections
+
+        plan.Weeks[0].Sessions[0].Sections =
+        [
+            new TrainingSection
+            {
+                SectionId = sectionIdA,
+                Order = 0,
+                Name = "AMRAP A",
+                Exercises =
+                [
+                    new SessionExercise { ExerciseExternalId = sharedExerciseId, ExerciseName = "Bench Press", Order = 0, Sets = [] }
+                ]
+            },
+            new TrainingSection
+            {
+                SectionId = sectionIdB,
+                Order = 1,
+                Name = "AMRAP B",
+                Exercises =
+                [
+                    new SessionExercise { ExerciseExternalId = sharedExerciseId, ExerciseName = "Bench Press", Order = 0, Sets = [] }
+                ]
+            }
+        ];
+
+        // Client completed section A's exercise but NOT section B's copy.
+        // CompletedExerciseIdsBySection is authoritative — only section A is populated.
+        var completion = new TrainingCompletion
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = _clientId,
+            Date = DateTime.UtcNow.Date,
+            SessionId = sessionId,
+            // Flat list includes the id once — the OLD code used this and would incorrectly
+            // consider section B complete.
+            CompletedExerciseIds = [sharedExerciseId],
+            // Per-section: only section A done.
+            CompletedExerciseIdsBySection = new Dictionary<string, List<Guid>>
+            {
+                [sectionIdA.ToString()] = [sharedExerciseId]
+                // sectionIdB intentionally absent
+            },
+            Version = 1,
+            DateCreated = DateTime.UtcNow
+        };
+
+        // No completed WorkoutLog.
+        var mongo = CreateMockMongo(plan, completedLogCount: 0, completions: [completion]);
+        var lockService = LockServiceAcquired(sessionId, planId);
+        var notifier = Substitute.For<IRealtimeNotifier>();
+
+        var ep = Factory.Create<UnlockTrainingSessionEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            mongo, lockService, DefaultOptions(), notifier);
+
+        // Act
+        await ep.HandleAsync(
+            new UnlockTrainingSessionRequest { PlanId = planId, SessionId = sessionId },
+            TestContext.Current.CancellationToken);
+
+        // Assert: session B still incomplete — unlock must proceed, no 409.
+        ep.HttpContext.Response.StatusCode.Should().Be(204,
+            "session with duplicate exercise id completed in only one section must NOT be treated as finished");
+
+        await lockService.Received(1).AcquireAsync(
+            sessionId, planId, _clientId, _trainerId,
+            LockHolder.Coach, LockType.Editing, Arg.Any<TimeSpan>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    /// <summary>
+    /// A completion populated via <c>CompletedExerciseIdsBySection</c> where every section is
+    /// fully done should be treated as complete and must block the unlock with 409.
+    /// </summary>
+    [Fact]
+    public async Task Unlock_AllSectionsCompleteViaBySection_Returns409()
+    {
+        var planId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var plan = CreatePlan(planId, sessionId);
+
+        var sectionIdA = Guid.NewGuid();
+        var sectionIdB = Guid.NewGuid();
+        var exerciseId1 = Guid.NewGuid();
+        var exerciseId2 = Guid.NewGuid();
+
+        plan.Weeks[0].Sessions[0].Sections =
+        [
+            new TrainingSection
+            {
+                SectionId = sectionIdA,
+                Order = 0,
+                Name = "Section A",
+                Exercises =
+                [
+                    new SessionExercise { ExerciseExternalId = exerciseId1, ExerciseName = "Squat", Order = 0, Sets = [] }
+                ]
+            },
+            new TrainingSection
+            {
+                SectionId = sectionIdB,
+                Order = 1,
+                Name = "Section B",
+                Exercises =
+                [
+                    new SessionExercise { ExerciseExternalId = exerciseId2, ExerciseName = "Deadlift", Order = 0, Sets = [] }
+                ]
+            }
+        ];
+
+        // Both sections fully done — populated via CompletedExerciseIdsBySection only
+        // (no flat CompletedExerciseIds — as new writes would produce).
+        var completion = new TrainingCompletion
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = _clientId,
+            Date = DateTime.UtcNow.Date,
+            SessionId = sessionId,
+            CompletedExerciseIds = [], // flat list empty — new-write shape
+            CompletedExerciseIdsBySection = new Dictionary<string, List<Guid>>
+            {
+                [sectionIdA.ToString()] = [exerciseId1],
+                [sectionIdB.ToString()] = [exerciseId2]
+            },
+            Version = 1,
+            DateCreated = DateTime.UtcNow
+        };
+
+        // No completed WorkoutLog.
+        var mongo = CreateMockMongo(plan, completedLogCount: 0, completions: [completion]);
+        var lockService = LockServiceAcquired(sessionId, planId);
+        var notifier = Substitute.For<IRealtimeNotifier>();
+
+        var ep = Factory.Create<UnlockTrainingSessionEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            mongo, lockService, DefaultOptions(), notifier);
+
+        // Act
+        await ep.HandleAsync(
+            new UnlockTrainingSessionRequest { PlanId = planId, SessionId = sessionId },
+            TestContext.Current.CancellationToken);
+
+        // Assert: all sections done via CompletedExerciseIdsBySection → 409
+        ep.HttpContext.Response.StatusCode.Should().Be(409,
+            "a fully-complete CompletedExerciseIdsBySection completion must block the unlock");
+
+        // Lock must NOT be acquired
+        await lockService.DidNotReceive().AcquireAsync(
+            Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<Guid>(),
+            Arg.Any<LockHolder>(), Arg.Any<LockType>(), Arg.Any<TimeSpan>(),
+            Arg.Any<CancellationToken>());
+    }
 }

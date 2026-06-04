@@ -294,4 +294,51 @@ public class GetTrainingPlanCompletionFinishedStateTests
         response.Should().NotBeNull();
         response!.SessionExecutions.Should().BeEmpty();
     }
+
+    /// <summary>
+    /// Regression test for Defect 2: a session with zero sections must never be treated as
+    /// vacuously complete — <c>Enumerable.All()</c> over an empty collection returns <c>true</c>,
+    /// which would cause any completion doc (even an empty one) to match.
+    ///
+    /// A zero-section session indicates an empty/corrupt session definition (after
+    /// WithBackfilledSections() a legacy flat-exercise session always gets a synthetic section).
+    /// Even with a non-empty TrainingCompletion document for that session, IsSessionFinished
+    /// must remain false.
+    /// </summary>
+    [Fact]
+    public async Task SessionExecutions_ZeroSectionSession_NonEmptyCompletion_IsSessionFinishedFalse()
+    {
+        // Build a plan where the session has NO sections (empty/corrupt definition).
+        var plan = BuildPlan();
+        plan.Weeks[0].Sessions[0].Sections = []; // zero sections
+
+        // A non-empty completion doc that would match vacuously under the old All() check.
+        var completion = new TrainingCompletion
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = _clientId,
+            Date = _now.Date,
+            SessionId = _sessionId,
+            CompletedExerciseIds = [_exerciseId], // non-empty flat list
+            CompletedExerciseIdsBySection = new Dictionary<string, List<Guid>>
+            {
+                [_sectionId.ToString()] = [_exerciseId]
+            },
+            Version = 1,
+            DateCreated = _now
+        };
+
+        var response = await ExecuteAsync(plan, logs: [], completions: [completion]);
+
+        response.Should().NotBeNull();
+
+        // No IsSessionFinished=true entry must appear for the zero-section session.
+        var finishedEntry = response!.SessionExecutions
+            .FirstOrDefault(e => e.SessionId == _sessionId);
+        if (finishedEntry is not null)
+        {
+            finishedEntry.IsSessionFinished.Should().BeFalse(
+                "a zero-section session must never be reported as finished, even with a non-empty completion");
+        }
+    }
 }
