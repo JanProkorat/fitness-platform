@@ -49,10 +49,17 @@ export function getRfc7807ErrorCode(error: unknown): string | null {
 
 /**
  * Returns a translated error message for an API error.
- * Tries error code translation first, falls back to the provided fallback key.
+ *
+ * Checks error codes in order:
+ *   1. FastEndpoints `errors[0].reason` (e.g. validation errors)
+ *   2. RFC 7807 top-level `errorCode` (e.g. 409 SESSION_ALREADY_COMPLETED
+ *      from UnlockTrainingSession, UpdateTrainingPlan)
+ *
+ * Falls back to the provided fallback key when no code is present or the
+ * code has no translation entry.
  */
 export function getApiErrorMessage(error: unknown, fallbackKey: string): string {
-  const code = getErrorCode(error);
+  const code = getErrorCode(error) ?? getRfc7807ErrorCode(error);
   if (code) {
     const translated = i18n.t(`apiErrors.${code}`, { defaultValue: '' });
     if (translated) return translated;
