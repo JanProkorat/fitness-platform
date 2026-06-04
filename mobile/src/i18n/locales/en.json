@@ -1250,7 +1250,6 @@
     "card": {
       "title": "Hydration",
       "todayProgress": "{{current}} of {{target}} ml",
-      "quickAdd": "+250 ml",
       "addButtonA11y": "Log water intake"
     },
     "screen": {

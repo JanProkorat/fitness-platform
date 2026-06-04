@@ -1,7 +1,7 @@
 /**
  * QuickLogChips — horizontal scroll row of preset ml chips + a "Custom" chip.
  *
- * Preset amounts: 200, 250, 330, 500, 750 ml.
+ * Preset amounts: 200, 300, 500, 750, 1000 ml.
  * The "Custom" chip calls onCustomPress to open the CustomAmountSheet.
  */
 

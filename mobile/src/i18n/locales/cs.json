@@ -1278,7 +1278,6 @@
     "card": {
       "title": "Pitný režim",
       "todayProgress": "{{current}} z {{target}} ml",
-      "quickAdd": "+250 ml",
       "addButtonA11y": "Zaznamenat příjem tekutin"
     },
     "screen": {

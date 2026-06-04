@@ -1249,7 +1249,6 @@
     "card": {
       "title": "Trinkmodus",
       "todayProgress": "{{current}} von {{target}} ml",
-      "quickAdd": "+250 ml",
       "addButtonA11y": "Wasseraufnahme erfassen"
     },
     "screen": {
