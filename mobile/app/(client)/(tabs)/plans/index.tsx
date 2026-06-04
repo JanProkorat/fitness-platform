@@ -280,6 +280,8 @@ function WeekStepper({
       <Pressable
         onPress={() => onStep(-1)}
         disabled={prevDisabled}
+        accessibilityRole="button"
+        accessibilityState={{ disabled: prevDisabled }}
         accessibilityLabel={t('common.previous', { defaultValue: 'Previous' })}
         style={[stepperStyles.chevron, prevDisabled && stepperStyles.disabled]}
       >
@@ -293,6 +295,8 @@ function WeekStepper({
       <Pressable
         onPress={() => onStep(1)}
         disabled={nextDisabled}
+        accessibilityRole="button"
+        accessibilityState={{ disabled: nextDisabled }}
         accessibilityLabel={t('common.next', { defaultValue: 'Next' })}
         style={[stepperStyles.chevron, nextDisabled && stepperStyles.disabled]}
       >
