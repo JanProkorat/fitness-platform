@@ -275,20 +275,31 @@ if (args.Contains("--backfill-photo-descriptions"))
     return;
 }
 
-// Auto-apply pending EF Core migrations in Development and the e2e harness.
-// The e2e compose harness also uses ASPNETCORE_ENVIRONMENT=Development, so
-// IsDevelopment() covers both surfaces. Production uses a non-Development
-// environment name and is therefore never touched by this path.
+// Auto-apply pending EF Core migrations — OPT-IN via Database:RunMigrationsOnStartup=true.
 //
-// NEVER remove or weaken the IsDevelopment() guard without explicit sign-off.
-// Auto-migration in production is a deliberate exclusion: schema changes that
-// affect live data must be applied intentionally with a reviewed migration plan.
-if (app.Environment.IsDevelopment())
+// This flag is intentionally OFF by default. It must be set explicitly in the
+// environment where auto-migration is desired:
+//
+//   • Local dev: set in Properties/launchSettings.json (gitignored; never committed)
+//         "Database__RunMigrationsOnStartup": "true"
+//   • e2e compose harness: set in docker-compose.test.yml api service env section
+//         Database__RunMigrationsOnStartup: "true"
+//
+// Render (and any other hosted environment) sets ASPNETCORE_ENVIRONMENT=Development
+// for TLS / certificate reasons — that alone does NOT enable auto-migration.
+// Because Render does not set Database__RunMigrationsOnStartup, the flag stays
+// false and migrations are NEVER auto-applied there.
+//
+// NEVER promote this flag to a default-true value without explicit sign-off.
+// Schema changes that affect live data must be applied intentionally with a
+// reviewed migration plan.
+var runMigrationsOnStartup = app.Configuration.GetValue<bool>("Database:RunMigrationsOnStartup");
+if (runMigrationsOnStartup)
 {
     using var migrationScope = app.Services.CreateScope();
     var migrationDb = migrationScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     await migrationDb.Database.MigrateAsync();
-    app.Logger.LogInformation("EF Core migrations applied (Development environment).");
+    app.Logger.LogInformation("EF Core migrations applied (Database:RunMigrationsOnStartup=true).");
 }
 
 // Middleware pipeline
