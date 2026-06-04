@@ -164,8 +164,9 @@ export function AppShell() {
       }
 
       // If the trainer also has THIS client's plan open in the editor,
-      // pull the latest completions so locked fields update in real time.
-      // Only `completions` is replaced — unsaved trainer edits stay intact.
+      // pull the latest completions, session executions, and lock states so
+      // the finished badge and unlock affordance update in real time.
+      // Only server-owned slices are replaced — unsaved trainer edits stay intact.
       const tp = useTrainingPlanStore.getState();
       if (tp.plan && tp.plan.clientId === clientId) {
         void tp.refreshCompletions();
