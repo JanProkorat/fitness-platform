@@ -275,6 +275,22 @@ if (args.Contains("--backfill-photo-descriptions"))
     return;
 }
 
+// Auto-apply pending EF Core migrations in Development and the e2e harness.
+// The e2e compose harness also uses ASPNETCORE_ENVIRONMENT=Development, so
+// IsDevelopment() covers both surfaces. Production uses a non-Development
+// environment name and is therefore never touched by this path.
+//
+// NEVER remove or weaken the IsDevelopment() guard without explicit sign-off.
+// Auto-migration in production is a deliberate exclusion: schema changes that
+// affect live data must be applied intentionally with a reviewed migration plan.
+if (app.Environment.IsDevelopment())
+{
+    using var migrationScope = app.Services.CreateScope();
+    var migrationDb = migrationScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    await migrationDb.Database.MigrateAsync();
+    app.Logger.LogInformation("EF Core migrations applied (Development environment).");
+}
+
 // Middleware pipeline
 app.UseExceptionHandler();
 
