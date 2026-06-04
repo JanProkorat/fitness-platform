@@ -25,6 +25,7 @@ import { WeightBarChart } from '@/components/ui/WeightBarChart'
 import { WeightInputSheet } from '@/components/profile/WeightInputSheet'
 import { WeightHistorySheet } from '@/components/profile/WeightHistorySheet'
 import { PersonalRecordsCard } from '@/components/profile/PersonalRecordsCard'
+import { HydrationProfileSection } from '@/components/hydration/HydrationProfileSection'
 import { useTranslation } from 'react-i18next'
 import {
   getMeasurements,
@@ -333,6 +334,11 @@ export default function ProfileScreen() {
             </Text>
             <Ionicons name="chevron-forward" size={18} color={colors.label3} />
           </Pressable>
+        </View>
+
+        {/* Hydration section — sits between Photos and Profile rows */}
+        <View style={styles.section}>
+          <HydrationProfileSection />
         </View>
 
         {/* Profile section */}

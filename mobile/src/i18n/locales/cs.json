@@ -1278,7 +1278,8 @@
     "card": {
       "title": "Pitný režim",
       "todayProgress": "{{current}} z {{target}} ml",
-      "quickAdd": "+250 ml"
+      "quickAdd": "+250 ml",
+      "addButtonA11y": "Zaznamenat příjem tekutin"
     },
     "screen": {
       "title": "Pitný režim"
@@ -1293,12 +1294,14 @@
       "reminderTimeLabel": "Čas"
     },
     "quickLog": {
+      "sheetTitle": "Zaznamenat pití",
       "customLabel": "Vlastní množství",
       "customPlaceholder": "Zadejte ml",
       "confirm": "Zaznamenat",
       "cancel": "Zrušit",
       "customSheetTitle": "Vlastní množství",
       "presetLabel": "+{{amount}} ml",
+      "preset1L": "+1 L",
       "errorInvalid": "Zadejte platné množství (1–5000 ml)",
       "errorTooLarge": "Maximální množství je {{max}} ml"
     },
@@ -1326,6 +1329,26 @@
       "notificationBody": "Čas se napít vody!",
       "permissionDeniedToast": "Povolte notifikace v Nastavení, abyste dostávali připomínky",
       "webUnsupported": "Připomínky jsou k dispozici pouze v mobilní aplikaci"
+    },
+    "setup": {
+      "title": "Pitný režim",
+      "goalSectionTitle": "Denní cíl",
+      "goalHint": "Doporučené množství je 30–35 ml na kilogram tělesné hmotnosti.",
+      "goalError": "Zadejte platný cíl (1–10 000 ml)",
+      "save": "Uložit",
+      "cancel": "Zrušit"
+    },
+    "profile": {
+      "sectionTitle": "Pitný režim",
+      "switchLabel": "Sledovat pitný režim",
+      "switchSub": "Denní cíl a připomínky pití",
+      "disabledHint": "Zapnutím začnete sledovat denní příjem tekutin a můžete si nastavit připomínky.",
+      "progressOf": "z {{target}} ml",
+      "todayLabel": "dnes",
+      "last7DaysLabel": "Posledních 7 dní",
+      "editLabel": "Upravit nastavení",
+      "editSub": "cíl, připomínky",
+      "editA11y": "Upravit nastavení pitného režimu"
     }
   }
 }

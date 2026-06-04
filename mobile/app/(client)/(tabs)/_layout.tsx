@@ -16,6 +16,8 @@ import { useUnreadCount } from '@/hooks/useUnreadCount';
 import { useMessagesStore } from '@/stores/messagesStore';
 import { Toast } from '@/lib/toast';
 import api from '@/api/client';
+import { useHydrationStore } from '@/stores/hydrationStore';
+import { listReminderKeys, cancelReminder, scheduleDailyReminder } from '@/lib/reminderScheduler';
 
 const TABS = [
   { name: 'index', i18nKey: 'tabs.today', icon: 'home' as const, iconFocused: 'home' as const },
@@ -77,6 +79,52 @@ export default function ClientTabLayout() {
   const queryClient = useQueryClient();
   const registeredRef = useRef(false);
   const unreadMessages = useUnreadCount();
+
+  // ── Hydration: v1→v3 migration effect (runs on app start) ─────────────────
+  // Formerly lived in the hydration tab screen (now deleted). Cancels old
+  // index-keyed reminder slots (water-slot-0..N-1) and re-schedules enabled
+  // slots under their new UUID keys after a v1 migration.
+  const pendingMigrationV1Count = useHydrationStore((s) => s.pendingMigrationV1Count);
+  const hydrationSlots = useHydrationStore((s) => s.slots);
+  const clearMigrationFlag = useHydrationStore((s) => s.clearMigrationFlag);
+
+  useEffect(() => {
+    if (pendingMigrationV1Count === 0) return;
+    const runMigration = async () => {
+      for (let i = 0; i < pendingMigrationV1Count; i++) {
+        await cancelReminder(`water-slot-${i}`).catch(() => { /* best-effort */ });
+      }
+      for (const s of hydrationSlots) {
+        if (s.enabled) {
+          await scheduleDailyReminder({
+            key: `water-slot-${s.id}`,
+            time: { hour: s.hour, minute: s.minute },
+            title: t('hydration.reminders.notificationTitle'),
+            body: t('hydration.reminders.notificationBody'),
+            data: { slotId: s.id },
+          }).catch(() => { /* best-effort */ });
+        }
+      }
+      clearMigrationFlag();
+    };
+    runMigration();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingMigrationV1Count]);
+
+  // ── Hydration: orphan-reminder cleanup (UUID-based, runs on app start) ────
+  // Formerly lived in the hydration tab screen (now deleted). Cancels any
+  // water-slot-* MMKV reminder key whose suffix is not in the current UUID set.
+  useEffect(() => {
+    const knownIds = new Set(hydrationSlots.map((s) => s.id));
+    const keys = listReminderKeys('water-slot-');
+    for (const key of keys) {
+      const suffix = key.slice('water-slot-'.length);
+      if (!knownIds.has(suffix)) {
+        cancelReminder(key).catch(() => { /* best-effort */ });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrationSlots]);
 
   // Register push token once
   useEffect(() => {
@@ -311,8 +359,7 @@ export default function ClientTabLayout() {
     pathname.match(/\/plans\/[^/]+$/) && !pathname.endsWith('/plans') ||
     pathname.endsWith('/pending-questionnaires') ||
     pathname.includes('/nutrition/') && !pathname.endsWith('/nutrition/index') ||
-    pathname.includes('/training/') ||
-    pathname.includes('/hydration/')
+    pathname.includes('/training/')
 
   return (
     <Tabs
@@ -366,7 +413,6 @@ export default function ClientTabLayout() {
       <Tabs.Screen name="training" options={{ href: null }} />
       <Tabs.Screen name="nutrition" options={{ href: null }} />
       <Tabs.Screen name="measurements" options={{ href: null }} />
-      <Tabs.Screen name="hydration" options={{ href: null }} />
       <Tabs.Screen name="pending-questionnaires" options={{ href: null }} />
     </Tabs>
   );

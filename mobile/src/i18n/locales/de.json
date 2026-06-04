@@ -1249,7 +1249,8 @@
     "card": {
       "title": "Trinkmodus",
       "todayProgress": "{{current}} von {{target}} ml",
-      "quickAdd": "+250 ml"
+      "quickAdd": "+250 ml",
+      "addButtonA11y": "Wasseraufnahme erfassen"
     },
     "screen": {
       "title": "Trinkmodus"
@@ -1264,12 +1265,14 @@
       "reminderTimeLabel": "Zeit"
     },
     "quickLog": {
+      "sheetTitle": "Trinken erfassen",
       "customLabel": "Benutzerdefinierte Menge",
       "customPlaceholder": "ml eingeben",
       "confirm": "Erfassen",
       "cancel": "Abbrechen",
       "customSheetTitle": "Benutzerdefinierte Menge",
       "presetLabel": "+{{amount}} ml",
+      "preset1L": "+1 L",
       "errorInvalid": "Gültige Menge eingeben (1–5000 ml)",
       "errorTooLarge": "Maximale Menge ist {{max}} ml"
     },
@@ -1297,6 +1300,26 @@
       "notificationBody": "Zeit, Wasser zu trinken!",
       "permissionDeniedToast": "Aktiviere Benachrichtigungen in den Einstellungen, um Erinnerungen zu erhalten",
       "webUnsupported": "Erinnerungen sind nur in der mobilen App verfügbar"
+    },
+    "setup": {
+      "title": "Trinkmodus",
+      "goalSectionTitle": "Tagesziel",
+      "goalHint": "Empfohlene Menge: 30–35 ml pro Kilogramm Körpergewicht.",
+      "goalError": "Gültiges Ziel eingeben (1–10 000 ml)",
+      "save": "Speichern",
+      "cancel": "Abbrechen"
+    },
+    "profile": {
+      "sectionTitle": "Trinkmodus",
+      "switchLabel": "Trinkmodus verfolgen",
+      "switchSub": "Tagesziel und Trinkerinnerungen",
+      "disabledHint": "Aktivieren, um die tägliche Flüssigkeitsaufnahme zu verfolgen und Erinnerungen einzustellen.",
+      "progressOf": "von {{target}} ml",
+      "todayLabel": "heute",
+      "last7DaysLabel": "Letzte 7 Tage",
+      "editLabel": "Einstellungen bearbeiten",
+      "editSub": "Ziel, Erinnerungen",
+      "editA11y": "Trinkmodus-Einstellungen bearbeiten"
     }
   }
 }

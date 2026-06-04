@@ -1250,7 +1250,8 @@
     "card": {
       "title": "Hydration",
       "todayProgress": "{{current}} of {{target}} ml",
-      "quickAdd": "+250 ml"
+      "quickAdd": "+250 ml",
+      "addButtonA11y": "Log water intake"
     },
     "screen": {
       "title": "Hydration"
@@ -1265,12 +1266,14 @@
       "reminderTimeLabel": "Time"
     },
     "quickLog": {
+      "sheetTitle": "Log water",
       "customLabel": "Custom amount",
       "customPlaceholder": "Enter ml",
       "confirm": "Log",
       "cancel": "Cancel",
       "customSheetTitle": "Custom amount",
       "presetLabel": "+{{amount}} ml",
+      "preset1L": "+1 L",
       "errorInvalid": "Enter a valid amount (1–5000 ml)",
       "errorTooLarge": "Maximum amount is {{max}} ml"
     },
@@ -1298,6 +1301,26 @@
       "notificationBody": "Time to drink some water!",
       "permissionDeniedToast": "Enable notifications in Settings to receive reminders",
       "webUnsupported": "Reminders are available in the mobile app only"
+    },
+    "setup": {
+      "title": "Hydration",
+      "goalSectionTitle": "Daily goal",
+      "goalHint": "Recommended intake is 30–35 ml per kilogram of body weight.",
+      "goalError": "Enter a valid goal (1–10 000 ml)",
+      "save": "Save",
+      "cancel": "Cancel"
+    },
+    "profile": {
+      "sectionTitle": "Hydration",
+      "switchLabel": "Track hydration",
+      "switchSub": "Daily goal and drink reminders",
+      "disabledHint": "Turn on to start tracking your daily fluid intake and set reminders.",
+      "progressOf": "of {{target}} ml",
+      "todayLabel": "today",
+      "last7DaysLabel": "Last 7 days",
+      "editLabel": "Edit settings",
+      "editSub": "goal, reminders",
+      "editA11y": "Edit hydration settings"
     }
   }
 }

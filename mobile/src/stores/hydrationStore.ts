@@ -4,17 +4,20 @@
  * Storage keys (all MMKV, instance 'mmkv.hydration'):
  *   hydration:v1:log       — DrinkLog[] (per-drink rows, rolling 7 days)
  *                            NOTE: v1 log key is reused — only the settings
- *                            key is versioned (v1 → v2) because the log shape
- *                            has not changed.
- *   hydration:v2:settings  — HydrationSettingsV2 (target + UUID-keyed slots)
+ *                            key is versioned (v1 → v2 → v3) because the log
+ *                            shape has not changed.
+ *   hydration:v3:settings  — HydrationSettingsV3 (target + UUID-keyed slots + enabled flag)
  *
- * Migration (v1 → v2 settings):
- *   On first load, if only the v1 settings key is present, the store reads the
- *   old shape (slots: ReminderTime[], slotsEnabled: boolean[]), assigns a UUID
- *   to each slot folding enabled into the record, writes the v2 key, and deletes
- *   the v1 key.  Old reminder MMKV keys (water-slot-0 … water-slot-N) are
- *   cancelled by the consumer after migration so they are re-scheduled under the
- *   new UUID-keyed names.
+ * Migration (v1 → v2 → v3 settings):
+ *   v1→v2: slots (ReminderTime[], slotsEnabled: boolean[]) → UUID-keyed ReminderSlot[].
+ *   v2→v3: additive `enabled` boolean.
+ *     Default: if targetMl was previously configured (≠ DEFAULT_TARGET_ML or slots
+ *     exist), derive enabled=true (user had actively used the feature).
+ *     Otherwise enabled=false (fresh install or default-only state).
+ *
+ * Old reminder MMKV keys (water-slot-0 … water-slot-N) from v1 are cancelled
+ * by the consumer (tabs _layout) after migration so they are re-scheduled under
+ * the new UUID-keyed names.
  *
  * Reminder MMKV keys are stored by reminderScheduler under 'mmkv.reminders'
  * using the scheme  reminders:v1:water-slot-<slotId>.
@@ -42,7 +45,8 @@ const mmkv = createStore()
 const LOG_KEY = 'hydration:v1:log'
 const SETTINGS_KEY_V1 = 'hydration:v1:settings'
 const SETTINGS_KEY_V2 = 'hydration:v2:settings'
-const MAX_SLOTS = 8
+const SETTINGS_KEY_V3 = 'hydration:v3:settings'
+export const MAX_SLOTS = 8
 const DAYS_RETENTION = 7
 const DEFAULT_TARGET_ML = 2500
 
@@ -72,6 +76,22 @@ export interface DrinkLog {
 export interface HydrationSettingsV2 {
   targetMl: number
   slots: ReminderSlot[]
+}
+
+/**
+ * Shape stored under hydration:v3:settings.
+ * Adds `enabled` flag to gate the feature on/off.
+ */
+export interface HydrationSettingsV3 {
+  targetMl: number
+  slots: ReminderSlot[]
+  /**
+   * Whether the user has switched on the hydration-tracking feature.
+   * Default derivation on migration from v2: true when targetMl ≠ DEFAULT_TARGET_ML
+   * or when any slot exists — meaning the user had previously configured the feature.
+   * False on a fresh install (v2 default-only state with no prior configuration).
+   */
+  enabled: boolean
 }
 
 /**
@@ -147,8 +167,8 @@ function isV1Shape(parsed: object): parsed is HydrationSettingsV1 {
 }
 
 /**
- * Detect whether a parsed settings object already has UUID-keyed slots (v2).
- * V2: slots[0] has an `id` string field.
+ * Detect whether a parsed settings object already has UUID-keyed slots (v2/v3).
+ * V2+: slots[0] has an `id` string field.
  */
 function isV2Shape(parsed: object): parsed is HydrationSettingsV2 {
   const s = parsed as HydrationSettingsV2
@@ -156,6 +176,13 @@ function isV2Shape(parsed: object): parsed is HydrationSettingsV2 {
     Array.isArray(s.slots) &&
     (s.slots.length === 0 || typeof (s.slots[0] as ReminderSlot).id === 'string')
   )
+}
+
+/**
+ * Detect whether a parsed settings object is already v3 shape (has `enabled` field).
+ */
+function isV3Shape(parsed: object): parsed is HydrationSettingsV3 {
+  return isV2Shape(parsed) && typeof (parsed as HydrationSettingsV3).enabled === 'boolean'
 }
 
 const DEFAULT_SLOTS: ReminderSlot[] = [
@@ -167,7 +194,7 @@ const DEFAULT_SLOTS: ReminderSlot[] = [
 ]
 
 /**
- * Read + migrate settings to v2 format.
+ * Read + migrate settings to v3 format.
  *
  * Returns:
  *   { settings, migratedFromV1: boolean, oldV1IndexCount: number }
@@ -178,33 +205,60 @@ const DEFAULT_SLOTS: ReminderSlot[] = [
  *   3. The v1 MMKV key has already been deleted inside this function.
  */
 function readSettings(): {
-  settings: HydrationSettingsV2
+  settings: HydrationSettingsV3
   migratedFromV1: boolean
   oldV1IndexCount: number
 } {
-  const fallback: HydrationSettingsV2 = {
+  const fallback: HydrationSettingsV3 = {
     targetMl: DEFAULT_TARGET_ML,
     slots: DEFAULT_SLOTS,
+    // Fresh install — feature is disabled by default; user must turn on in Profile.
+    enabled: false,
   }
 
   if (!mmkv) {
     return { settings: fallback, migratedFromV1: false, oldV1IndexCount: 0 }
   }
 
-  // ── Try v2 key first ──────────────────────────────────────────────────────
+  // ── Try v3 key first ──────────────────────────────────────────────────────
+  try {
+    const rawV3 = mmkv.getString(SETTINGS_KEY_V3)
+    if (rawV3) {
+      const parsed = JSON.parse(rawV3) as unknown
+      if (typeof parsed === 'object' && parsed !== null && isV3Shape(parsed)) {
+        return { settings: parsed, migratedFromV1: false, oldV1IndexCount: 0 }
+      }
+    }
+  } catch {
+    // Malformed v3 — fall through.
+  }
+
+  // ── Try v2 key (v2→v3 migration) ─────────────────────────────────────────
   try {
     const rawV2 = mmkv.getString(SETTINGS_KEY_V2)
     if (rawV2) {
       const parsed = JSON.parse(rawV2) as unknown
       if (typeof parsed === 'object' && parsed !== null && isV2Shape(parsed)) {
-        return { settings: parsed, migratedFromV1: false, oldV1IndexCount: 0 }
+        const v2 = parsed as HydrationSettingsV2
+        // Derive enabled: true if user had previously configured the feature
+        // (changed target from default OR has at least one slot).
+        // Rationale: a user who had the tab enabled had presumably used it.
+        const derivedEnabled = v2.targetMl !== DEFAULT_TARGET_ML || v2.slots.length > 0
+        const v3: HydrationSettingsV3 = {
+          targetMl: v2.targetMl,
+          slots: v2.slots,
+          enabled: derivedEnabled,
+        }
+        mmkv.set(SETTINGS_KEY_V3, JSON.stringify(v3))
+        mmkv.remove(SETTINGS_KEY_V2)
+        return { settings: v3, migratedFromV1: false, oldV1IndexCount: 0 }
       }
     }
   } catch {
     // Malformed v2 — fall through to try v1, then default.
   }
 
-  // ── Try v1 key (migration path) ───────────────────────────────────────────
+  // ── Try v1 key (v1→v3 migration) ─────────────────────────────────────────
   try {
     const rawV1 = mmkv.getString(SETTINGS_KEY_V1)
     if (rawV1) {
@@ -218,16 +272,18 @@ function readSettings(): {
           minute: s.minute,
           enabled: v1.slotsEnabled[i] ?? false,
         }))
-        const v2: HydrationSettingsV2 = {
+        const derivedEnabled = (v1.targetMl ?? DEFAULT_TARGET_ML) !== DEFAULT_TARGET_ML || oldCount > 0
+        const v3: HydrationSettingsV3 = {
           targetMl: v1.targetMl ?? DEFAULT_TARGET_ML,
           slots: migratedSlots,
+          enabled: derivedEnabled,
         }
-        // Write v2 and delete v1 atomically (best-effort — MMKV is not
+        // Write v3 and delete v1 atomically (best-effort — MMKV is not
         // transactional but the worst case is re-migrating on the next boot,
-        // which is idempotent since we write v2 first).
-        mmkv.set(SETTINGS_KEY_V2, JSON.stringify(v2))
+        // which is idempotent since we write v3 first).
+        mmkv.set(SETTINGS_KEY_V3, JSON.stringify(v3))
         mmkv.remove(SETTINGS_KEY_V1)
-        return { settings: v2, migratedFromV1: true, oldV1IndexCount: oldCount }
+        return { settings: v3, migratedFromV1: true, oldV1IndexCount: oldCount }
       }
     }
   } catch {
@@ -235,13 +291,13 @@ function readSettings(): {
   }
 
   // ── No usable state — write fresh defaults ────────────────────────────────
-  mmkv.set(SETTINGS_KEY_V2, JSON.stringify(fallback))
+  mmkv.set(SETTINGS_KEY_V3, JSON.stringify(fallback))
   return { settings: fallback, migratedFromV1: false, oldV1IndexCount: 0 }
 }
 
-function writeSettings(settings: HydrationSettingsV2): void {
+function writeSettings(settings: HydrationSettingsV3): void {
   if (!mmkv) return
-  mmkv.set(SETTINGS_KEY_V2, JSON.stringify(settings))
+  mmkv.set(SETTINGS_KEY_V3, JSON.stringify(settings))
 }
 
 // ─── Selectors (pure functions over store state) ──────────────────────────────
@@ -276,13 +332,15 @@ interface HydrationState {
   targetMl: number
   slots: ReminderSlot[]
   log: DrinkLog[]
+  /** Whether the hydration tracking feature is enabled by the user. */
+  enabled: boolean
   /**
    * Populated only on the very first store creation if the MMKV data was
-   * migrated from v1 (index-based) to v2 (UUID-based).  The caller
-   * (HydrationScreen) reads this once and cancels the old index-keyed
-   * reminders, then resets it to 0.
+   * migrated from v1 (index-based) to v2/v3 (UUID-based).  The caller
+   * (tabs _layout bootstrap effect) reads this once and cancels the old
+   * index-keyed reminders, then resets it to 0.
    *
-   * Stored as the count of old v1 slots so the screen can iterate
+   * Stored as the count of old v1 slots so the layout can iterate
    * 0..<count to cancel each old key.
    */
   pendingMigrationV1Count: number
@@ -290,6 +348,7 @@ interface HydrationState {
 
 interface HydrationActions {
   setTarget: (ml: number) => void
+  setEnabled: (on: boolean) => void
   setSlotTime: (id: string, time: Pick<ReminderSlot, 'hour' | 'minute'>) => void
   setSlotEnabled: (id: string, on: boolean) => void
   addSlot: () => void
@@ -298,7 +357,7 @@ interface HydrationActions {
   removeDrink: (id: string) => void
   /** Remove entries older than beforeIso. Called on store hydration. */
   pruneOldDrinks: (beforeIso: string) => void
-  /** Called by the screen after it has cancelled the v1 reminders. */
+  /** Called by the layout after it has cancelled the v1 reminders. */
   clearMigrationFlag: () => void
 }
 
@@ -319,6 +378,7 @@ export const useHydrationStore = create<HydrationStore>((set, get) => {
     // ── State ──────────────────────────────────────────────────────────
     targetMl: initialSettings.targetMl,
     slots: initialSettings.slots,
+    enabled: initialSettings.enabled,
     log: prunedLog,
     pendingMigrationV1Count: migratedFromV1 ? oldV1IndexCount : 0,
 
@@ -326,9 +386,17 @@ export const useHydrationStore = create<HydrationStore>((set, get) => {
 
     setTarget: (ml) => {
       set((s) => {
-        const next: HydrationSettingsV2 = { targetMl: ml, slots: s.slots }
+        const next: HydrationSettingsV3 = { targetMl: ml, slots: s.slots, enabled: s.enabled }
         writeSettings(next)
         return { targetMl: ml }
+      })
+    },
+
+    setEnabled: (on) => {
+      set((s) => {
+        const next: HydrationSettingsV3 = { targetMl: s.targetMl, slots: s.slots, enabled: on }
+        writeSettings(next)
+        return { enabled: on }
       })
     },
 
@@ -337,7 +405,7 @@ export const useHydrationStore = create<HydrationStore>((set, get) => {
         const slots = s.slots.map((slot) =>
           slot.id === id ? { ...slot, hour: time.hour, minute: time.minute } : slot,
         )
-        const next: HydrationSettingsV2 = { targetMl: s.targetMl, slots }
+        const next: HydrationSettingsV3 = { targetMl: s.targetMl, slots, enabled: s.enabled }
         writeSettings(next)
         return { slots }
       })
@@ -346,7 +414,7 @@ export const useHydrationStore = create<HydrationStore>((set, get) => {
     setSlotEnabled: (id, on) => {
       set((s) => {
         const slots = s.slots.map((slot) => (slot.id === id ? { ...slot, enabled: on } : slot))
-        const next: HydrationSettingsV2 = { targetMl: s.targetMl, slots }
+        const next: HydrationSettingsV3 = { targetMl: s.targetMl, slots, enabled: s.enabled }
         writeSettings(next)
         return { slots }
       })
@@ -356,7 +424,7 @@ export const useHydrationStore = create<HydrationStore>((set, get) => {
       set((s) => {
         if (s.slots.length >= MAX_SLOTS) return {}
         const slots: ReminderSlot[] = [...s.slots, { id: uuid(), hour: 8, minute: 0, enabled: false }]
-        const next: HydrationSettingsV2 = { targetMl: s.targetMl, slots }
+        const next: HydrationSettingsV3 = { targetMl: s.targetMl, slots, enabled: s.enabled }
         writeSettings(next)
         return { slots }
       })
@@ -365,7 +433,7 @@ export const useHydrationStore = create<HydrationStore>((set, get) => {
     removeSlot: (id) => {
       set((s) => {
         const slots = s.slots.filter((slot) => slot.id !== id)
-        const next: HydrationSettingsV2 = { targetMl: s.targetMl, slots }
+        const next: HydrationSettingsV3 = { targetMl: s.targetMl, slots, enabled: s.enabled }
         writeSettings(next)
         return { slots }
       })
