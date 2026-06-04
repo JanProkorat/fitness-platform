@@ -28,7 +28,7 @@ import {
   useHydrationStore,
   selectTodayTotalMl,
 } from '@/stores/hydrationStore'
-import { Type } from '@/constants/typography'
+import { Type, interFamily } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
 
 export function HydrationProfileSection(): React.ReactElement {
@@ -228,6 +228,7 @@ function makeStyles(colors: Colors) {
       justifyContent: 'space-between',
     },
     progressValue: {
+      fontFamily: interFamily('700'),
       fontSize: 24,
       fontWeight: '700',
       letterSpacing: -0.4,
