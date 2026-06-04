@@ -852,7 +852,13 @@
     "priceOnRequest": "Price on request",
     "revokeTitle": "Revoke request",
     "revokeMessage": "Revoke the request sent to {{name}}?",
-    "revokeConfirm": "Revoke"
+    "revokeConfirm": "Revoke",
+    "tabTrainer": "Trainer",
+    "tabCoach": "Coach",
+    "tabSearch": "Search",
+    "activeSince": "Active · since {{date}}",
+    "profileLoadError": "Failed to load profile.",
+    "retry": "Try again"
   },
   "foodDetail": {
     "nutritionValues": "Nutrition Values",

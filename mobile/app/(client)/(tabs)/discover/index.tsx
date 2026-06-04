@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   FlatList,
   ActivityIndicator,
   RefreshControl,
@@ -13,7 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { href } from '@/lib/navigation'
-import { useAuthStore, getCollabState } from '@/stores/auth'
+import { useAuthStore } from '@/stores/auth'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
 import { useCollaboration } from '@/hooks/useCollaboration'
@@ -21,32 +20,19 @@ import { useTrainers } from '@/hooks/useTrainers'
 import { DiscoverySearchBar } from '@/components/trainers/DiscoverySearchBar'
 import { DiscoveryFilters } from '@/components/trainers/DiscoveryFilters'
 import { TrainerCard, type TrainerCardData } from '@/components/trainers/TrainerCard'
-import { ActiveCollaboratorCard } from '@/components/trainers/ActiveCollaboratorCard'
+import { ProProfileView } from '@/components/trainers/ProProfileView'
+import { SegmentedControl } from '@/components/ui/SegmentedControl'
 import { SendInviteSheet, type InviteTarget } from '@/components/trainers/SendInviteSheet'
 import type { ProfessionalSummary } from '@/api/professionals'
 import type { ActiveCollaborator } from '@/stores/auth'
 
-// ─── Fixed page header ───────────────────────────────────────────────
+// ─── Tab keys ─────────────────────────────────────────────────────────
 
-function PageHeader({ titleKey, subtitleKey }: { titleKey: string; subtitleKey?: string }) {
-  const colors = useTheme()
-  const { t } = useTranslation()
-  return (
-    <View style={styles.pageHeader}>
-      <Text style={[Type.largeTitle, { color: colors.label }]}>{t(titleKey)}</Text>
-      {subtitleKey && (
-        <Text style={[Type.subheadline, { color: colors.label2, marginTop: 2 }]}>
-          {t(subtitleKey)}
-        </Text>
-      )}
-    </View>
-  )
-}
+type CollabTab = 'trainer' | 'coach' | 'search'
 
-// ─── Helpers ─────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────
 
 function toTrainerCardData(p: ProfessionalSummary): TrainerCardData {
-  // Generated ProfessionalSummaryDto has `roles?: string[]` only — no singular `role` field.
   const roles = p.roles ?? []
   const roleLabel = roles
     .map((r) => (r === 'Trainer' ? 'Osobní trenér' : r === 'Nutritionist' ? 'Výž. poradce' : r))
@@ -71,40 +57,48 @@ function toTrainerCardData(p: ProfessionalSummary): TrainerCardData {
   }
 }
 
-// ─── Discovery List ──────────────────────────────────────────────────
+// ─── Determine which tabs are enabled and the default selected tab ─────
 
-function DiscoveryList({
-  role,
-  headerComponent,
-}: {
-  role: 'all' | 'trainer' | 'coach'
-  headerComponent?: React.ReactElement
-}) {
+interface TabConfig {
+  trainerEnabled: boolean
+  coachEnabled: boolean
+  searchEnabled: boolean
+  defaultTab: CollabTab
+}
+
+function getTabConfig(hasTrainer: boolean, hasCoach: boolean): TabConfig {
+  if (hasTrainer && hasCoach) {
+    return { trainerEnabled: true, coachEnabled: true, searchEnabled: false, defaultTab: 'trainer' }
+  }
+  if (hasTrainer) {
+    return { trainerEnabled: true, coachEnabled: false, searchEnabled: true, defaultTab: 'trainer' }
+  }
+  if (hasCoach) {
+    return { trainerEnabled: false, coachEnabled: true, searchEnabled: true, defaultTab: 'coach' }
+  }
+  return { trainerEnabled: false, coachEnabled: false, searchEnabled: true, defaultTab: 'search' }
+}
+
+// ─── Hledat tab (discovery list) ──────────────────────────────────────
+
+function SearchTab() {
   const colors = useTheme()
   const router = useRouter()
   const [search, setSearch] = useState('')
-  const [roleFilter, setRoleFilter] = useState<'all' | 'trainer' | 'coach'>(role)
+  const [roleFilter, setRoleFilter] = useState<'all' | 'trainer' | 'coach'>('all')
   const [inviteTarget, setInviteTarget] = useState<InviteTarget | null>(null)
   const pendingRequests = useAuthStore((s) => s.pendingRequests)
   const { sendRequest, cancelRequest, isSendingRequest } = useCollaboration()
 
-  const effectiveRole = role !== 'all' ? role : roleFilter
-
-  const trainersQuery = useTrainers({
-    search,
-    role: effectiveRole,
-    goal: '',
-  })
+  const trainersQuery = useTrainers({ search, role: roleFilter, goal: '' })
 
   const items = useMemo(() => {
     const pages = trainersQuery.data?.pages ?? []
-    // Generated items field is optional and may contain undefined entries; filter both.
     return pages.flatMap((page) => page.items ?? []).filter((p): p is ProfessionalSummary => p != null)
   }, [trainersQuery.data])
 
   const cardData = useMemo(() => {
     const cards = items.map(toTrainerCardData)
-    // Sort pending (invited) coaches to the top
     const pIds = new Set(pendingRequests.map((r) => r.trainerId))
     return cards.sort((a, b) => {
       const aP = pIds.has(a.id) ? 0 : 1
@@ -154,13 +148,6 @@ function DiscoveryList({
     )
   }, [pendingIds, router, t, pendingRequests, cancelRequest])
 
-  const searchPlaceholder =
-    role === 'coach'
-      ? t('collab.searchCoach')
-      : role === 'trainer'
-        ? t('collab.searchTrainer')
-        : t('collab.searchPlaceholder')
-
   const handleSend = (trainerId: string, message?: string) => {
     sendRequest(trainerId, message)
     setInviteTarget(null)
@@ -184,21 +171,18 @@ function DiscoveryList({
           />
         }
         ListHeaderComponent={
-          <>
-            {headerComponent}
-            <View style={{ paddingBottom: 4 }}>
-              <DiscoverySearchBar
-                value={search}
-                onChangeText={setSearch}
-                placeholder={searchPlaceholder}
-              />
-              <DiscoveryFilters
-                roleFilter={effectiveRole}
-                onRoleChange={setRoleFilter}
-                hideRoleControl={role !== 'all'}
-              />
-            </View>
-          </>
+          <View style={{ paddingBottom: 4 }}>
+            <DiscoverySearchBar
+              value={search}
+              onChangeText={setSearch}
+              placeholder={t('collab.searchPlaceholder')}
+            />
+            <DiscoveryFilters
+              roleFilter={roleFilter}
+              onRoleChange={setRoleFilter}
+              hideRoleControl={false}
+            />
+          </View>
         }
         ListFooterComponent={
           trainersQuery.isFetchingNextPage ? (
@@ -233,173 +217,78 @@ function DiscoveryList({
   )
 }
 
-// ─── State A: none — full discovery ──────────────────────────────────
+// ─── Pro tab (inline profile) ──────────────────────────────────────────
 
-function DiscoveryView() {
-  return <DiscoveryList role="all" />
-}
-
-// ─── State B: trainer — has trainer, looking for coach ───────────────
-
-function TrainerActiveView({ trainer }: { trainer: ActiveCollaborator }) {
-  const colors = useTheme()
-  const { t } = useTranslation()
+function ProTab({ collaborator, onEnd }: { collaborator: ActiveCollaborator; onEnd: () => void }) {
   const router = useRouter()
-  const { endTrainerCollab } = useCollaboration()
 
   return (
-    <DiscoveryList
-      role="coach"
-      headerComponent={
-        <>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.label }]}>{t('collab.yourTrainer')}</Text>
-          </View>
-          <ActiveCollaboratorCard
-            collaborator={trainer}
-            onProfilePress={() => router.push(href(`/(client)/discover/${trainer.id}`))}
-            onMessagePress={() => router.push(href('/(client)/messages'))}
-            onEndCollaboration={endTrainerCollab}
-          />
-
-          <View style={[styles.infoBanner, { backgroundColor: 'rgba(201,168,76,0.07)', borderColor: 'rgba(201,168,76,0.2)' }]}>
-            <Text style={[styles.infoBannerTitle, { color: colors.label }]}>
-              {t('collab.lookingForCoach')}
-            </Text>
-            <Text style={[styles.infoBannerBody, { color: colors.label2 }]}>
-              {t('collab.lookingForCoachDesc')}
-            </Text>
-          </View>
-
-          <View style={[styles.sectionHeader, { marginTop: 8 }]}>
-            <Text style={[styles.sectionTitle, { color: colors.label }]}>{t('collab.nutritionCoaches')}</Text>
-          </View>
-        </>
-      }
+    <ProProfileView
+      professionalPublicId={collaborator.id}
+      displayName={collaborator.name}
+      activeSince={collaborator.since}
+      onMessagePress={() => router.push(href('/(client)/messages'))}
+      onEndCollabPress={onEnd}
     />
   )
 }
 
-// ─── State C: coach — has coach, looking for trainer ─────────────────
-
-function CoachActiveView({ coach }: { coach: ActiveCollaborator }) {
-  const colors = useTheme()
-  const { t } = useTranslation()
-  const router = useRouter()
-  const { endCoachCollab } = useCollaboration()
-
-  return (
-    <DiscoveryList
-      role="trainer"
-      headerComponent={
-        <>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.label }]}>{t('collab.yourCoach')}</Text>
-          </View>
-          <ActiveCollaboratorCard
-            collaborator={coach}
-            onProfilePress={() => router.push(href(`/(client)/discover/${coach.id}`))}
-            onMessagePress={() => router.push(href('/(client)/messages'))}
-            onEndCollaboration={endCoachCollab}
-          />
-
-          <View style={[styles.infoBanner, { backgroundColor: 'rgba(201,168,76,0.07)', borderColor: 'rgba(201,168,76,0.2)' }]}>
-            <Text style={[styles.infoBannerTitle, { color: colors.label }]}>
-              {t('collab.lookingForTrainer')}
-            </Text>
-            <Text style={[styles.infoBannerBody, { color: colors.label2 }]}>
-              {t('collab.lookingForTrainerDesc')}
-            </Text>
-          </View>
-
-          <View style={[styles.sectionHeader, { marginTop: 8 }]}>
-            <Text style={[styles.sectionTitle, { color: colors.label }]}>{t('collab.personalTrainers')}</Text>
-          </View>
-        </>
-      }
-    />
-  )
-}
-
-// ─── State D: both — two active cards, no discovery ──────────────────
-
-function BothActiveView({
-  trainer,
-  coach,
-}: {
-  trainer: ActiveCollaborator
-  coach: ActiveCollaborator
-}) {
-  const colors = useTheme()
-  const { t } = useTranslation()
-  const router = useRouter()
-  const { endTrainerCollab, endCoachCollab } = useCollaboration()
-
-  return (
-    <ScrollView
-      contentContainerStyle={styles.bothContent}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: colors.label }]}>{t('collab.trainer')}</Text>
-      </View>
-      <ActiveCollaboratorCard
-        collaborator={trainer}
-        stats={{ compliancePercent: 95, progressLabel: '21', planWeek: '4/12' }}
-        onProfilePress={() => router.push(href(`/(client)/discover/${trainer.id}`))}
-        onMessagePress={() => router.push(href('/(client)/messages'))}
-        onEndCollaboration={endTrainerCollab}
-      />
-
-      <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: colors.label }]}>{t('collab.nutritionCoach')}</Text>
-      </View>
-      <ActiveCollaboratorCard
-        collaborator={coach}
-        stats={{ compliancePercent: 91, progressLabel: '−2,4 kg', planWeek: '8/12' }}
-        onProfilePress={() => router.push(href(`/(client)/discover/${coach.id}`))}
-        onMessagePress={() => router.push(href('/(client)/messages'))}
-        onEndCollaboration={endCoachCollab}
-      />
-    </ScrollView>
-  )
-}
-
-// ─── Main screen ─────────────────────────────────────────────────────
+// ─── Main screen ───────────────────────────────────────────────────────
 
 export default function DiscoverScreen() {
   const colors = useTheme()
+  const { t } = useTranslation()
   const hasTrainer = useAuthStore((s) => s.hasTrainer)
   const hasCoach = useAuthStore((s) => s.hasCoach)
   const trainer = useAuthStore((s) => s.trainer)
   const coach = useAuthStore((s) => s.coach)
+  const { endTrainerCollab, endCoachCollab } = useCollaboration()
 
-  // Initialize collaboration data
-  useCollaboration()
+  const { trainerEnabled, coachEnabled, searchEnabled, defaultTab } = getTabConfig(hasTrainer, hasCoach)
 
-  const state = getCollabState(hasTrainer, hasCoach)
+  const [selectedTab, setSelectedTab] = useState<CollabTab>(defaultTab)
 
-  const subtitleKey =
-    state === 'none'
-      ? 'collab.subtitleNone'
-      : state === 'both'
-        ? 'collab.subtitleBoth'
-        : undefined
+  // If the default tab changes (e.g. collab ends while on screen), snap to a valid enabled tab.
+  const effectiveTab = (() => {
+    if (selectedTab === 'trainer' && !trainerEnabled) return defaultTab
+    if (selectedTab === 'coach' && !coachEnabled) return defaultTab
+    if (selectedTab === 'search' && !searchEnabled) return defaultTab
+    return selectedTab
+  })()
+
+  const segmentOptions = [
+    { key: 'trainer' as const, label: t('collab.tabTrainer'), disabled: !trainerEnabled },
+    { key: 'coach' as const, label: t('collab.tabCoach'), disabled: !coachEnabled },
+    { key: 'search' as const, label: t('collab.tabSearch'), disabled: !searchEnabled },
+  ]
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={['top']}>
-      <PageHeader titleKey="collab.title" subtitleKey={subtitleKey} />
-      {state === 'none' && <DiscoveryView />}
-      {state === 'trainer' && trainer && <TrainerActiveView trainer={trainer} />}
-      {state === 'coach' && coach && <CoachActiveView coach={coach} />}
-      {state === 'both' && trainer && coach && (
-        <BothActiveView trainer={trainer} coach={coach} />
+      {/* Header: title only — no subtitle per AC */}
+      <View style={styles.pageHeader}>
+        <Text style={[Type.largeTitle, { color: colors.label }]}>{t('collab.title')}</Text>
+      </View>
+
+      {/* Segmented control */}
+      <SegmentedControl
+        options={segmentOptions}
+        selectedKey={effectiveTab}
+        onSelect={(key) => setSelectedTab(key as CollabTab)}
+      />
+
+      {/* Tab content */}
+      {effectiveTab === 'trainer' && trainer && (
+        <ProTab collaborator={trainer} onEnd={endTrainerCollab} />
       )}
+      {effectiveTab === 'coach' && coach && (
+        <ProTab collaborator={coach} onEnd={endCoachCollab} />
+      )}
+      {effectiveTab === 'search' && <SearchTab />}
     </SafeAreaView>
   )
 }
 
-// ─── Styles ──────────────────────────────────────────────────────────
+// ─── Styles ────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: {
@@ -408,17 +297,7 @@ const styles = StyleSheet.create({
   pageHeader: {
     paddingHorizontal: 20,
     paddingTop: 8,
-    paddingBottom: 12,
-  },
-  sectionHeader: {
-    paddingHorizontal: 20,
-    paddingVertical: 6,
-  },
-  sectionTitle: {
-    ...Type.subheadline,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    paddingBottom: 4,
   },
   list: {
     paddingHorizontal: 20,
@@ -431,24 +310,5 @@ const styles = StyleSheet.create({
   emptyList: {
     alignItems: 'center',
     paddingTop: 60,
-  },
-  bothContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 100,
-  },
-  infoBanner: {
-    marginHorizontal: 0,
-    marginTop: 8,
-    padding: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  infoBannerTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  infoBannerBody: {
-    fontSize: 12,
   },
 })

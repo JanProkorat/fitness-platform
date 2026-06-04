@@ -620,7 +620,13 @@
     "priceOnRequest": "Cena na dotaz",
     "revokeTitle": "Zrušit žádost",
     "revokeMessage": "Chcete zrušit žádost odeslanou {{name}}?",
-    "revokeConfirm": "Zrušit"
+    "revokeConfirm": "Zrušit",
+    "tabTrainer": "Trenér",
+    "tabCoach": "Poradce",
+    "tabSearch": "Hledat",
+    "activeSince": "Aktivní · od {{date}}",
+    "profileLoadError": "Profil se nepodařilo načíst.",
+    "retry": "Zkusit znovu"
   },
   "weeklyCheckIn": {
     "title": "Týdenní check-iny",
