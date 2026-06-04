@@ -613,7 +613,13 @@
     "priceOnRequest": "Preis auf Anfrage",
     "revokeTitle": "Anfrage zurückziehen",
     "revokeMessage": "Die Anfrage an {{name}} zurückziehen?",
-    "revokeConfirm": "Zurückziehen"
+    "revokeConfirm": "Zurückziehen",
+    "tabTrainer": "Trainer",
+    "tabCoach": "Coach",
+    "tabSearch": "Suchen",
+    "activeSince": "Aktiv · seit {{date}}",
+    "profileLoadError": "Profil konnte nicht geladen werden.",
+    "retry": "Erneut versuchen"
   },
   "foodDetail": {
     "nutritionValues": "Nährwerte",
