@@ -16,6 +16,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/hooks/useTheme'
 import { hrefParams, href } from '@/lib/navigation'
+import { getDayLabels } from '@/lib/nutrition-plan-helpers'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
 import { useAuthStore } from '@/stores/auth'
@@ -86,8 +87,6 @@ function dayStatus(
   if (dayOfWeek === today) return 'today'
   return 'planned'
 }
-
-const DAY_LABELS_CS = ['Pondělí', 'Úterý', 'Středa', 'Čtvrtek', 'Pátek', 'Sobota', 'Neděle']
 
 // ─── Plan Hero ────────────────────────────────────────────────────────
 
@@ -355,7 +354,7 @@ function TrainingSessionRow({
 }) {
   const { t } = useTranslation()
 
-  const dayLabel = DAY_LABELS_CS[(session.dayOfWeek ?? 1) - 1] ?? ''
+  const dayLabel = getDayLabels()[(session.dayOfWeek ?? 1) - 1] ?? ''
   const totalEx = session.totalExerciseCount ?? 0
   const completedEx = session.completedExerciseCount ?? 0
 
@@ -366,7 +365,7 @@ function TrainingSessionRow({
     subParts.push(dayLabel)
   }
   if (totalEx > 0) {
-    subParts.push(t('plans.sessions_other', { count: totalEx }))
+    subParts.push(t('plans.sessions', { count: totalEx }))
   }
   const sub = subParts.join(' · ')
 
@@ -469,10 +468,10 @@ function NutritionDayRow({
 }) {
   const { t } = useTranslation()
 
-  const dayLabel = DAY_LABELS_CS[dayOfWeek - 1] ?? ''
+  const dayLabel = getDayLabels()[dayOfWeek - 1] ?? ''
   const sub = status === 'today'
     ? t('plans.thisWeek')
-    : t('plans.meals_other', { count: mealCount })
+    : t('plans.meals', { count: mealCount })
 
   const iconBg =
     status === 'done'
@@ -1148,73 +1147,6 @@ const contentStyles = StyleSheet.create({
   },
 })
 
-// ─── Completed Plan Row ───────────────────────────────────────────────
-
-function CompletedPlanCard({
-  plan,
-  onPress,
-}: {
-  plan: ClientPlanSummary
-  onPress: () => void
-}) {
-  const colors = useTheme()
-  const { t } = useTranslation()
-
-  const isTraining = plan.type === 'training'
-  const gradientColors: [string, string] = isTraining
-    ? ['#1a1a2e', '#16213e']
-    : [colors.nutritionHeroStart, colors.nutritionHeroEnd]
-
-  return (
-    <Pressable onPress={onPress} style={({ pressed }) => [{ opacity: pressed ? 0.9 : 1 }]}>
-      <View style={[styles.planCard, { backgroundColor: colors.bg2 }]}>
-        <LinearGradient
-          colors={gradientColors}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[styles.planHero, { opacity: 0.85 }]}
-        >
-          <View style={[styles.statusTag, { backgroundColor: 'rgba(201,168,76,0.2)' }]}>
-            <Text style={[styles.statusTagText, { color: colors.gold }]}>
-              {`✓ ${t('plans.completed')}`}
-            </Text>
-          </View>
-          <Text style={styles.planTypeLabel}>
-            {isTraining ? t('plans.trainingPlanType') : t('plans.nutritionPlanType')}
-          </Text>
-          <Text style={styles.planName}>{plan.planName}</Text>
-          {(plan.totalWeeks ?? 0) > 0 && (
-            <Text style={styles.planSubtitle}>
-              {t('plans.weeksCount', { count: plan.totalWeeks ?? 0 })}
-            </Text>
-          )}
-          <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: '100%', backgroundColor: colors.gold }]} />
-          </View>
-          <Text style={styles.planProgressLabel}>
-            {t('plans.weekOf', { current: plan.totalWeeks ?? 0, total: plan.totalWeeks ?? 0 })} ✓
-          </Text>
-        </LinearGradient>
-        <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <Text style={[styles.statNum, { color: colors.label }]}>
-              {plan.publishedWeekCount ?? 0}
-            </Text>
-            <Text style={[styles.statDesc, { color: colors.label3 }]}>{t('plans.published')}</Text>
-          </View>
-          <View style={[styles.statDivider, { backgroundColor: colors.sep2 }]} />
-          <View style={styles.statItem}>
-            <Text style={[styles.statNum, { color: colors.label }]}>
-              {plan.totalWeeks ?? 0}
-            </Text>
-            <Text style={[styles.statDesc, { color: colors.label3 }]}>{t('plans.totalWeeksLabel')}</Text>
-          </View>
-        </View>
-      </View>
-    </Pressable>
-  )
-}
-
 // ─── Main Screen ──────────────────────────────────────────────────────
 
 export default function PlansScreen() {
@@ -1257,6 +1189,8 @@ export default function PlansScreen() {
   const onRefresh = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['client-plans-active'] })
     queryClient.invalidateQueries({ queryKey: ['collaborations'] })
+    queryClient.invalidateQueries({ queryKey: ['training-full-plan'] })
+    queryClient.invalidateQueries({ queryKey: ['nutrition-full-plan'] })
   }, [queryClient])
 
   const activePlans = activePlansQuery.data?.items ?? []
@@ -1385,80 +1319,5 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
     padding: 32,
     alignItems: 'center',
-  },
-  // Retained from old UI for CompletedPlanCard
-  planCard: {
-    borderRadius: Radius.md,
-    overflow: 'hidden',
-  },
-  planHero: {
-    padding: 20,
-  },
-  statusTag: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: Radius.full,
-  },
-  statusTagText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  planTypeLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.5)',
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    marginBottom: 4,
-  },
-  planName: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#ffffff',
-    letterSpacing: -0.3,
-  },
-  planSubtitle: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.6)',
-    marginTop: 3,
-  },
-  planProgressLabel: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.5)',
-    marginTop: 4,
-  },
-  progressTrack: {
-    height: 4,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 2,
-    marginTop: 12,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: 4,
-    borderRadius: 2,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statNum: {
-    ...Type.title3,
-  },
-  statDesc: {
-    ...Type.caption2,
-    marginTop: 2,
-  },
-  statDivider: {
-    width: StyleSheet.hairlineWidth,
-    alignSelf: 'stretch',
   },
 })
