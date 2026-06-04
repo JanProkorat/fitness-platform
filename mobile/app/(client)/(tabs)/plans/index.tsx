@@ -708,6 +708,7 @@ function TrainingPane({
   onStep,
   onHeroPress,
   onRowPress,
+  professionalName,
   colors,
 }: {
   trainingPlan: ClientPlanSummary
@@ -716,6 +717,7 @@ function TrainingPane({
   onStep: (dir: -1 | 1) => void
   onHeroPress: () => void
   onRowPress: (session: SessionDto, weekNum: number) => void
+  professionalName?: string
   colors: ReturnType<typeof useTheme>
 }) {
   const { t } = useTranslation()
@@ -757,6 +759,7 @@ function TrainingPane({
         plan={trainingPlan}
         type="training"
         onPress={onHeroPress}
+        professionalName={professionalName}
         colors={colors}
       />
       <WeekStepper
@@ -800,6 +803,7 @@ function NutritionPane({
   onStep,
   onHeroPress,
   onRowPress,
+  professionalName,
   colors,
 }: {
   nutritionPlan: ClientPlanSummary
@@ -808,6 +812,7 @@ function NutritionPane({
   onStep: (dir: -1 | 1) => void
   onHeroPress: () => void
   onRowPress: (dayOfWeek: number, weekNum: number) => void
+  professionalName?: string
   colors: ReturnType<typeof useTheme>
 }) {
   const { t } = useTranslation()
@@ -853,6 +858,7 @@ function NutritionPane({
         plan={nutritionPlan}
         type="nutrition"
         onPress={onHeroPress}
+        professionalName={professionalName}
         colors={colors}
       />
       <WeekStepper
@@ -1088,6 +1094,7 @@ function ActivePlansContent({
           onStep={handleTrainingStep}
           onHeroPress={handleTrainingHeroPress}
           onRowPress={handleTrainingRowPress}
+          professionalName={trainerName}
           colors={colors}
         />
       )}
@@ -1101,6 +1108,7 @@ function ActivePlansContent({
           onStep={handleNutritionStep}
           onHeroPress={handleNutritionHeroPress}
           onRowPress={handleNutritionRowPress}
+          professionalName={nutritionistName}
           colors={colors}
         />
       )}
