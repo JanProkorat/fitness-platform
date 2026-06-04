@@ -1,13 +1,11 @@
 import React, { useState, useCallback } from 'react'
-import { View, StyleSheet, ScrollView, Pressable, Image, Text } from 'react-native'
+import { View, StyleSheet } from 'react-native'
 import { useTheme } from '@/hooks/useTheme'
 import { Radius } from '@/constants/radius'
-import { Type } from '@/constants/typography'
 import { NutritionCardHero } from '@/components/nutrition/NutritionCardHero'
 import { MealRow } from '@/components/nutrition/MealRow'
 import { NoteBanner } from '@/components/ui/NoteBanner'
 import { GoldButton } from '@/components/ui/GoldButton'
-import { ImageLightbox } from '@/components/ui/ImageLightbox'
 import { useTranslation } from 'react-i18next'
 import type { NutrientTotals, PlanMeal } from '@/api/nutrition'
 
@@ -93,20 +91,6 @@ export function NutritionCard({
     () => new Set(),
   )
 
-  const [lightbox, setLightbox] = useState<{ visible: boolean; startIndex: number }>(
-    { visible: false, startIndex: 0 },
-  )
-
-  // Flatten all photos from all meals into a single ordered list for the strip
-  const allPhotos: { blobUrl: string; mealId: string; note?: string | null }[] =
-    mealPhotosByMealId
-      ? Object.entries(mealPhotosByMealId).flatMap(([mealId, photos]) =>
-          photos.map((p) => ({ blobUrl: p.blobUrl, mealId, note: p.note })),
-        )
-      : []
-  const allPhotoUrls = allPhotos.map((p) => p.blobUrl)
-  const allPhotoNotes = allPhotos.map((p) => p.note ?? null)
-
   const toggle = useCallback(
     (mealId: string) =>
       setExpandedMealIds((cur) => {
@@ -164,43 +148,6 @@ export function NutritionCard({
         ))}
       </View>
 
-      {/* Photo strip — visible only when at least one meal has diary photos */}
-      {allPhotos.length > 0 ? (
-        <View style={styles.photoStrip}>
-          <Text style={[styles.photoStripLabel, { color: colors.label3 }]}>
-            {t('nutrition.todayPhotos')}
-          </Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.photoStripContent}
-          >
-            {allPhotos.map((photo, index) => (
-              <Pressable
-                key={`${photo.mealId}-${index}`}
-                style={styles.photoStripTile}
-                onPress={() => setLightbox({ visible: true, startIndex: index })}
-              >
-                <Image
-                  source={{ uri: photo.blobUrl }}
-                  style={styles.photoStripImage}
-                  resizeMode="cover"
-                />
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
-      ) : null}
-
-      {/* Card-level lightbox for the photo strip */}
-      <ImageLightbox
-        visible={lightbox.visible}
-        images={allPhotoUrls}
-        startIndex={lightbox.startIndex}
-        onClose={() => setLightbox({ visible: false, startIndex: 0 })}
-        imageNotes={allPhotoNotes}
-      />
-
       {/* Mark whole day as eaten — hidden when every meal is already logged */}
       {onMarkAllEaten && eatenMealIds.size < meals.length && meals.length > 0 ? (
         <View style={styles.ctaWrap}>
@@ -229,32 +176,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 16,
-  },
-  photoStrip: {
-    marginTop: 12,
-    marginBottom: 4,
-  },
-  photoStripLabel: {
-    ...Type.caption2,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    paddingHorizontal: 16,
-    marginBottom: 6,
-  },
-  photoStripContent: {
-    paddingHorizontal: 16,
-    gap: 6,
-  },
-  photoStripTile: {
-    width: 56,
-    height: 56,
-    borderRadius: Radius.sm,
-    overflow: 'hidden',
-  },
-  photoStripImage: {
-    width: '100%',
-    height: '100%',
   },
 })
 

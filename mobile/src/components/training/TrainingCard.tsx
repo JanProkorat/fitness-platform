@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback } from 'react'
-import { View, Text, StyleSheet, Pressable, ActivityIndicator, ScrollView, Image } from 'react-native'
+import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
@@ -8,7 +8,6 @@ import { Type, interFamily } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
 import { ProgressRing } from '@/components/ui/ProgressRing'
 import { GoldButton } from '@/components/ui/GoldButton'
-import { ImageLightbox } from '@/components/ui/ImageLightbox'
 import { ExpandableSessionCard } from '@/components/training/ExpandableSessionCard'
 import { ExpandableExerciseCard } from '@/components/training/ExpandableExerciseCard'
 import {
@@ -287,21 +286,6 @@ export function TrainingCard({
   const colors = useTheme()
   const { t } = useTranslation()
 
-  // Flatten all photos from all sessions for the "Fotky dne" strip.
-  // Mirrors NutritionCard's allPhotos derivation from mealPhotosByMealId.
-  const allPhotos = useMemo<{ blobUrl: string; sessionId: string; note?: string | null }[]>(() => {
-    return Object.entries(photosBySession).flatMap(([sessionId, photos]) =>
-      photos.map((p) => ({ blobUrl: p.blobUrl, sessionId, note: p.note })),
-    )
-  }, [photosBySession])
-
-  const allPhotoUrls = useMemo(() => allPhotos.map((p) => p.blobUrl), [allPhotos])
-  const allPhotoNotes = useMemo(() => allPhotos.map((p) => p.note ?? null), [allPhotos])
-
-  const [lightbox, setLightbox] = useState<{ visible: boolean; startIndex: number }>(
-    { visible: false, startIndex: 0 },
-  )
-
   // Aggregate training-session counts for the hero ring. The ring tracks how
   // many of today's training sessions the client has fully completed (via
   // the per-session checkbox / live runner finish flow).
@@ -507,44 +491,6 @@ export function TrainingCard({
           )
         })}
       </View>
-
-      {/* Photo strip — "Fotky dne" — visible only when at least one session has diary photos.
-          Mirrors NutritionCard's photoStrip section exactly. */}
-      {allPhotos.length > 0 ? (
-        <View style={styles.photoStrip}>
-          <Text style={[styles.photoStripLabel, { color: colors.label3 }]}>
-            {t('training.todayPhotos')}
-          </Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.photoStripContent}
-          >
-            {allPhotos.map((photo, index) => (
-              <Pressable
-                key={`${photo.sessionId}-${index}`}
-                style={styles.photoStripTile}
-                onPress={() => setLightbox({ visible: true, startIndex: index })}
-              >
-                <Image
-                  source={{ uri: photo.blobUrl }}
-                  style={styles.photoStripImage}
-                  resizeMode="cover"
-                />
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
-      ) : null}
-
-      {/* Card-level lightbox for the photo strip */}
-      <ImageLightbox
-        visible={lightbox.visible}
-        images={allPhotoUrls}
-        startIndex={lightbox.startIndex}
-        onClose={() => setLightbox({ visible: false, startIndex: 0 })}
-        imageNotes={allPhotoNotes}
-      />
 
       {/* Mark whole day done — hidden when every session is already complete or no sessions */}
       {onMarkAllTrainingDone && hasIncompleteSessions && sessions.length > 0 && (
@@ -995,33 +941,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 16,
-  },
-  // Photo strip — mirrors NutritionCard's photoStrip styles exactly.
-  photoStrip: {
-    marginTop: 12,
-    marginBottom: 4,
-  },
-  photoStripLabel: {
-    ...Type.caption2,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    paddingHorizontal: 16,
-    marginBottom: 6,
-  },
-  photoStripContent: {
-    paddingHorizontal: 16,
-    gap: 6,
-  },
-  photoStripTile: {
-    width: 56,
-    height: 56,
-    borderRadius: Radius.sm,
-    overflow: 'hidden',
-  },
-  photoStripImage: {
-    width: '100%',
-    height: '100%',
   },
 })
 
