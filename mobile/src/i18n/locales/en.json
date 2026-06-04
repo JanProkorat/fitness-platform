@@ -454,7 +454,8 @@
     "sessions_other": "{{count}} exercises",
     "meals_one": "{{count}} meal",
     "meals_few": "{{count}} meals",
-    "meals_other": "{{count}} meals"
+    "meals_other": "{{count}} meals",
+    "planNotFound": "Plan not found"
   },
   "pendingQuestionnaires": {
     "title": "Pending Questionnaires",
