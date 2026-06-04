@@ -55,6 +55,7 @@ function CompletedPlanCard({
       onPress={onPress}
       style={({ pressed }) => [styles.cardPressable, { opacity: pressed ? 0.9 : 1 }]}
       accessibilityRole="button"
+      accessibilityLabel={plan.planName ?? t('plans.completed')}
     >
       <View style={[styles.planCard, { backgroundColor: colors.bg2 }]}>
         <LinearGradient

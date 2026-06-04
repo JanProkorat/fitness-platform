@@ -406,6 +406,7 @@ function TrainingSessionRow({
         },
       ]}
       accessibilityRole="button"
+      accessibilityLabel={[dayLabel, session.name ?? '', rightLabel].filter(Boolean).join(', ')}
     >
       {/* Icon */}
       <View style={[rowStyles.iconWrap, { backgroundColor: iconBg }]}>
@@ -508,6 +509,7 @@ function NutritionDayRow({
         },
       ]}
       accessibilityRole="button"
+      accessibilityLabel={[dayLabel, rightLabel].filter(Boolean).join(', ')}
     >
       {/* Icon */}
       <View style={[rowStyles.iconWrap, { backgroundColor: iconBg }]}>
