@@ -74,6 +74,21 @@ public class UnlockTrainingSessionEndpoint(
             return;
         }
 
+        // Finished-guard: reject unlock attempts on sessions that already have a completed WorkoutLog.
+        // Checked AFTER ownership/existence guards (404 takes precedence) and BEFORE acquiring the Editing lock.
+        // Reuses the existing SESSION_ALREADY_COMPLETED error code (matches FinishSessionEndpoint pattern).
+        var completedLogFilter = Builders<WorkoutLog>.Filter.Eq(l => l.PlanId, req.PlanId)
+                                 & Builders<WorkoutLog>.Filter.Eq(l => l.SessionId, req.SessionId)
+                                 & Builders<WorkoutLog>.Filter.Eq(l => l.IsCompleted, true);
+        var completedLogCount = await mongo.WorkoutLogs.CountDocumentsAsync(completedLogFilter, cancellationToken: ct);
+
+        if (completedLogCount > 0)
+        {
+            await this.SendProblemAsync(409, ErrorCodes.SessionAlreadyCompleted,
+                "This session has already been completed and cannot be unlocked for editing.", ct);
+            return;
+        }
+
         var ttl = TimeSpan.FromHours(lockOptions.Value.EditingTtlHours);
 
         var result = await lockService.AcquireAsync(

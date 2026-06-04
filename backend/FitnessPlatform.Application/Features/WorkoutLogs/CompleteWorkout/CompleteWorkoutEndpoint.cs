@@ -6,8 +6,10 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Features.ClientTraining;
 using FitnessPlatform.Application.Features.WorkoutLogs.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.WorkoutLogs.CompleteWorkout;
@@ -19,16 +21,21 @@ namespace FitnessPlatform.Application.Features.WorkoutLogs.CompleteWorkout;
 /// Also releases the <c>Live</c> session lock when the log is plan-bound
 /// (i.e. when the log carries a non-null <c>SessionId</c>).
 /// Emits <c>sessioneditlockchanged</c> (state=Stable) to both client and trainer when a lock is released.
+/// Emits <c>trainingprogressupdated</c> to the trainer so the portal reflects the finished state in real time.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="completionService">Shared workout completion pipeline (PR detection, fan-out, notification).</param>
 /// <param name="lockService">Session lock service — used to release the Live lock on finish.</param>
 /// <param name="notifier">Realtime notifier for SignalR fan-out.</param>
+/// <param name="compliance">Compliance service for computing today's metrics (used by the broadcaster).</param>
+/// <param name="logger">Logger for swallowing broadcast errors.</param>
 public class CompleteWorkoutEndpoint(
     IMongoContext mongo,
     IWorkoutCompletionService completionService,
     ISessionLockService lockService,
-    IRealtimeNotifier notifier) : Endpoint<CompleteWorkoutRequest, WorkoutLogDetail>
+    IRealtimeNotifier notifier,
+    IComplianceService compliance,
+    ILogger<CompleteWorkoutEndpoint> logger) : Endpoint<CompleteWorkoutRequest, WorkoutLogDetail>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -96,23 +103,40 @@ public class CompleteWorkoutEndpoint(
         {
             var released = await lockService.ReleaseAsync(log.SessionId.Value, LockHolder.Client, LockType.Live, ct);
 
-            if (released && log.PlanId.HasValue)
+            if (log.PlanId.HasValue)
             {
-                // Resolve the trainer to fan out to. Load the plan by ExternalId.
+                // Load the plan once — used for both the lock-changed broadcast and the progress broadcast.
                 var planFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, log.PlanId.Value);
                 using var planCursor = await mongo.TrainingPlans.FindAsync(planFilter, cancellationToken: ct);
                 var plan = await planCursor.FirstOrDefaultAsync(ct);
 
                 if (plan is not null)
                 {
-                    var payload = new SessionLockChangedPayload(
-                        log.PlanId.Value,
-                        log.SessionId.Value,
-                        "Stable",
-                        "Client");
+                    if (released)
+                    {
+                        // Emit sessioneditlockchanged (state=Stable) to both parties.
+                        var lockPayload = new SessionLockChangedPayload(
+                            log.PlanId.Value,
+                            log.SessionId.Value,
+                            "Stable",
+                            "Client");
 
-                    await notifier.NotifyAsync(clientId, "sessioneditlockchanged", payload, ct);
-                    await notifier.NotifyAsync(plan.TrainerId, "sessioneditlockchanged", payload, ct);
+                        await notifier.NotifyAsync(clientId, "sessioneditlockchanged", lockPayload, ct);
+                        await notifier.NotifyAsync(plan.TrainerId, "sessioneditlockchanged", lockPayload, ct);
+                    }
+
+                    // Emit trainingprogressupdated so the trainer portal reflects the finished state in real time.
+                    // plan.ClientId is the ClientProfile.PublicId — the same key used by compliance / TrainingCompletion.
+                    // All exercises in the log were stamped as done by completionService; count both sides as totalExercises.
+                    var totalExercises = log.Exercises.Count;
+                    await TrainingProgressBroadcaster.BroadcastSessionAsync(
+                        notifier, compliance, mongo, plan,
+                        clientId: plan.ClientId,
+                        sessionId: log.SessionId.Value,
+                        date: DateOnly.FromDateTime(log.CompletedDate ?? DateTime.UtcNow),
+                        completedExerciseCount: totalExercises,
+                        totalExerciseCount: totalExercises,
+                        logger, ct);
                 }
             }
         }

@@ -6,7 +6,9 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Features.ClientTraining;
 using FitnessPlatform.Application.Features.WorkoutLogs.CompleteWorkout;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 
@@ -14,8 +16,8 @@ namespace FitnessPlatform.Tests.Endpoints.WorkoutLogs;
 
 /// <summary>
 /// Tests for <see cref="CompleteWorkoutEndpoint"/>.
-/// The endpoint now delegates the completion pipeline to <see cref="IWorkoutCompletionService"/>;
-/// these tests verify the HTTP contract and ownership check.
+/// The endpoint delegates the completion pipeline to <see cref="IWorkoutCompletionService"/>;
+/// these tests verify the HTTP contract, ownership check, and the trainingprogressupdated broadcast.
 /// Behavioral tests (TrainingCompletion fan-out, PR detection) live in
 /// <see cref="WorkoutCompletionServiceTests"/>.
 /// </summary>
@@ -39,6 +41,16 @@ public class CompleteWorkoutEndpointTests
         return svc;
     }
 
+    private static IComplianceService StubComplianceService()
+    {
+        var svc = Substitute.For<IComplianceService>();
+        svc.CalculateComplianceAsync(Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+            .Returns(new ComplianceResult { CompliancePercent = 100m });
+        svc.CalculateStreakAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns(1);
+        return svc;
+    }
+
     [Fact]
     public async Task HandleAsync_ValidRequest_CompletesWorkout()
     {
@@ -51,7 +63,8 @@ public class CompleteWorkoutEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, completionService, StubLockService(), Substitute.For<IRealtimeNotifier>());
+            mongo, completionService, StubLockService(), Substitute.For<IRealtimeNotifier>(),
+            StubComplianceService(), Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
 
         await ep.HandleAsync(new CompleteWorkoutRequest { LogId = logId }, TestContext.Current.CancellationToken);
 
@@ -72,7 +85,8 @@ public class CompleteWorkoutEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, StubCompletionService(), StubLockService(), Substitute.For<IRealtimeNotifier>());
+            mongo, StubCompletionService(), StubLockService(), Substitute.For<IRealtimeNotifier>(),
+            StubComplianceService(), Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
 
         await ep.HandleAsync(new CompleteWorkoutRequest { LogId = Guid.NewGuid() }, TestContext.Current.CancellationToken);
 
@@ -89,7 +103,8 @@ public class CompleteWorkoutEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, StubCompletionService(), StubLockService(), Substitute.For<IRealtimeNotifier>());
+            mongo, StubCompletionService(), StubLockService(), Substitute.For<IRealtimeNotifier>(),
+            StubComplianceService(), Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
 
         await ep.HandleAsync(new CompleteWorkoutRequest { LogId = Guid.NewGuid() }, TestContext.Current.CancellationToken);
 
@@ -110,7 +125,8 @@ public class CompleteWorkoutEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, completionService, StubLockService(), Substitute.For<IRealtimeNotifier>());
+            mongo, completionService, StubLockService(), Substitute.For<IRealtimeNotifier>(),
+            StubComplianceService(), Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
 
         await ep.HandleAsync(new CompleteWorkoutRequest { LogId = logId }, TestContext.Current.CancellationToken);
 
@@ -138,11 +154,99 @@ public class CompleteWorkoutEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, completionService, StubLockService(), Substitute.For<IRealtimeNotifier>());
+            mongo, completionService, StubLockService(), Substitute.For<IRealtimeNotifier>(),
+            StubComplianceService(), Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
 
         await ep.HandleAsync(new CompleteWorkoutRequest { LogId = logId }, TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(409,
             "WorkoutAlreadyCompletedException must be surfaced as 409, not 500");
+    }
+
+    // ── Gap A: trainingprogressupdated broadcast ─────────────────────────────────
+
+    [Fact]
+    public async Task HandleAsync_PlanBoundWorkout_EmitsTrainingProgressUpdated()
+    {
+        // Arrange: a plan-bound log (has both SessionId and PlanId), with a matching plan.
+        var logId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var planId = Guid.NewGuid();
+        var trainerId = Guid.NewGuid();
+        var clientPublicId = Guid.NewGuid();
+
+        var log = WorkoutLogTestHelpers.CreateLog(
+            externalId: logId,
+            clientId: _clientId,
+            planId: planId,
+            sessionId: sessionId);
+
+        var plan = new TrainingPlan
+        {
+            ExternalId = planId,
+            ClientId = clientPublicId,
+            TrainerId = trainerId,
+            Name = "Test Plan",
+            Status = TrainingPlanStatus.Active,
+            Weeks = [],
+            Version = 1,
+            DateCreated = DateTime.UtcNow.AddDays(-10)
+        };
+
+        var mongo = WorkoutLogTestHelpers.CreateMockMongo(logs: [log], plans: [plan]);
+        var notifier = Substitute.For<IRealtimeNotifier>();
+
+        var ep = Factory.Create<CompleteWorkoutEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
+            mongo, StubCompletionService(), StubLockService(), notifier,
+            StubComplianceService(), Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
+
+        // Act
+        await ep.HandleAsync(new CompleteWorkoutRequest { LogId = logId }, TestContext.Current.CancellationToken);
+
+        // Assert: 200 and trainingprogressupdated sent to trainer
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        await notifier.Received(1).NotifyAsync(
+            trainerId,
+            TrainingProgressBroadcaster.EventName,
+            Arg.Is<TrainingProgressUpdatedEvent>(e =>
+                e.SessionId == sessionId &&
+                e.ClientId == clientPublicId &&
+                e.SessionComplete),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleAsync_AdHocWorkoutNoSessionId_DoesNotEmitTrainingProgressUpdated()
+    {
+        // Arrange: an ad-hoc workout (no SessionId, no PlanId).
+        var logId = Guid.NewGuid();
+        var log = WorkoutLogTestHelpers.CreateLog(externalId: logId, clientId: _clientId);
+        // sessionId and planId are null by default
+
+        var mongo = WorkoutLogTestHelpers.CreateMockMongo(logs: [log]);
+        var notifier = Substitute.For<IRealtimeNotifier>();
+
+        var ep = Factory.Create<CompleteWorkoutEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
+            mongo, StubCompletionService(), StubLockService(), notifier,
+            StubComplianceService(), Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
+
+        // Act
+        await ep.HandleAsync(new CompleteWorkoutRequest { LogId = logId }, TestContext.Current.CancellationToken);
+
+        // Assert: 200 and NO trainingprogressupdated (no trainer to notify)
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        await notifier.DidNotReceive().NotifyAsync(
+            Arg.Any<Guid>(),
+            TrainingProgressBroadcaster.EventName,
+            Arg.Any<object>(),
+            Arg.Any<CancellationToken>());
     }
 }

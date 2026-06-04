@@ -13,6 +13,7 @@ using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints;
+using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using NSubstitute;
 
@@ -146,6 +147,16 @@ public class SessionLockEnforcementTests
         return svc;
     }
 
+    private static IComplianceService StubComplianceService()
+    {
+        var svc = Substitute.For<IComplianceService>();
+        svc.CalculateComplianceAsync(Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+            .Returns(new ComplianceResult { CompliancePercent = 100m });
+        svc.CalculateStreakAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns(1);
+        return svc;
+    }
+
     private CompleteWorkoutEndpoint CreateCompleteEndpoint(
         IMongoContext mongo,
         IWorkoutCompletionService completionService,
@@ -154,7 +165,8 @@ public class SessionLockEnforcementTests
         return Factory.Create<CompleteWorkoutEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, completionService, lockService, Substitute.For<IRealtimeNotifier>());
+            mongo, completionService, lockService, Substitute.For<IRealtimeNotifier>(),
+            StubComplianceService(), Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
     }
 
     [Fact]
