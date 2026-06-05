@@ -343,7 +343,9 @@
       "sessionInProgress": "Trainingseinheit läuft bereits"
     },
     "noNutritionPlanForToday": "Heute ist kein Ernährungsplan geplant",
-    "noTrainingForToday": "Heute ist kein Training geplant"
+    "noTrainingForToday": "Heute ist kein Training geplant",
+    "hydration": "Trinken",
+    "hydrationSub": "von {{target}} ml"
   },
   "questionnaire": {
     "allDone": "Fertig!",

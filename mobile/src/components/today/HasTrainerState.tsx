@@ -17,7 +17,7 @@ import { SectionHeader } from '@/components/ui/SectionHeader'
 import { TrainingCard } from '@/components/training/TrainingCard'
 import { NutritionCard } from '@/components/nutrition/NutritionCard'
 import { WaitingForPlanCard } from '@/components/today/WaitingForPlanCard'
-import { HydrationCard } from '@/components/hydration/HydrationCard'
+import { HydrationStatCard } from '@/components/today/HydrationStatCard'
 import { useHydrationStore } from '@/stores/hydrationStore'
 import { ShoppingPrepBanner } from '@/components/today/ShoppingPrepBanner'
 import {
@@ -1229,14 +1229,18 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
           weightDelta={weightTrend?.change ?? null}
           periodDays={weightTrend?.periodDays ?? null}
         />
-        <StatCard
-          label={t('today.compliance')}
-          value={`${compliancePercent}%`}
-          sub={t('today.complianceSub')}
-          color={complianceColor}
-          progress={compliancePercent / 100}
-          progressColor={complianceColor}
-        />
+        {hydrationEnabled ? (
+          <HydrationStatCard />
+        ) : (
+          <StatCard
+            label={t('today.compliance')}
+            value={`${compliancePercent}%`}
+            sub={t('today.complianceSub')}
+            color={complianceColor}
+            progress={compliancePercent / 100}
+            progressColor={complianceColor}
+          />
+        )}
         <StatCard
           label={t('today.streak')}
           value={streak}
@@ -1275,13 +1279,6 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
       {showShoppingBanner !== null && (
         <View style={[styles.section, { marginBottom: -8 }]}>
           <ShoppingPrepBanner week={showShoppingBanner} />
-        </View>
-      )}
-
-      {/* Hydration card — sits ABOVE the training card, gated on enabled flag */}
-      {hydrationEnabled && (
-        <View style={styles.section}>
-          <HydrationCard />
         </View>
       )}
 

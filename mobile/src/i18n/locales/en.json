@@ -343,7 +343,9 @@
       "sessionInProgress": "Session already in progress"
     },
     "noNutritionPlanForToday": "No nutrition plan for today",
-    "noTrainingForToday": "No training planned for today"
+    "noTrainingForToday": "No training planned for today",
+    "hydration": "Water",
+    "hydrationSub": "of {{target}} ml"
   },
   "questionnaire": {
     "allDone": "All done!",
