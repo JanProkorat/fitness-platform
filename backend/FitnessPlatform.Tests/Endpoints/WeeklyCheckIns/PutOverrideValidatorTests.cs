@@ -93,13 +93,13 @@ public class PutOverrideValidatorTests
     }
 
     [Fact]
-    public void TimeOfDay_WithMinutes_Fails_WithInvalidTimeOfDayCode()
+    public void TimeOfDay_WithMinutes_Passes()
     {
+        // AC: minute-precision times must be accepted (e.g. 14:15)
         var req = ValidRequest();
         req.TimeOfDay = new TimeSpan(0, 14, 15, 0); // 14:15:00
         var result = _validator.TestValidate(req);
-        result.ShouldHaveValidationErrorFor(x => x.TimeOfDay)
-              .WithErrorCode(ErrorCodes.InvalidTimeOfDay);
+        result.ShouldNotHaveValidationErrorFor(x => x.TimeOfDay);
     }
 
     [Fact]
@@ -112,12 +112,42 @@ public class PutOverrideValidatorTests
     }
 
     [Fact]
+    public void TimeOfDay_NonHour_18h45_Passes()
+    {
+        var req = ValidRequest();
+        req.TimeOfDay = new TimeSpan(0, 18, 45, 0); // 18:45:00
+        var result = _validator.TestValidate(req);
+        result.ShouldNotHaveValidationErrorFor(x => x.TimeOfDay);
+    }
+
+    [Fact]
     public void TimeOfDay_Null_PassesValidation()
     {
         var req = ValidRequest();
         req.TimeOfDay = null;
         var result = _validator.TestValidate(req);
         result.ShouldNotHaveValidationErrorFor(x => x.TimeOfDay);
+    }
+
+    [Fact]
+    public void TimeOfDay_ExactlyTwentyFourHours_Fails_WithInvalidTimeOfDayCode()
+    {
+        // AC: >= 24:00 must be rejected even in override
+        var req = ValidRequest();
+        req.TimeOfDay = TimeSpan.FromHours(24);
+        var result = _validator.TestValidate(req);
+        result.ShouldHaveValidationErrorFor(x => x.TimeOfDay)
+              .WithErrorCode(ErrorCodes.InvalidTimeOfDay);
+    }
+
+    [Fact]
+    public void TimeOfDay_Negative_Fails_WithInvalidTimeOfDayCode()
+    {
+        var req = ValidRequest();
+        req.TimeOfDay = TimeSpan.FromHours(-1);
+        var result = _validator.TestValidate(req);
+        result.ShouldHaveValidationErrorFor(x => x.TimeOfDay)
+              .WithErrorCode(ErrorCodes.InvalidTimeOfDay);
     }
 
     [Fact]

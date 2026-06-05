@@ -1332,8 +1332,19 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
                         )
                       }}
                       hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('today.sectionActionDetail')}
+                      style={styles.photoCtaBtn}
                     >
-                      <Text style={[styles.trainingDetailAction, { color: colors.gold }]}>
+                      <View
+                        style={[
+                          styles.photoCtaIconChip,
+                          { backgroundColor: goldAlpha['12'], borderColor: goldAlpha['35'] },
+                        ]}
+                      >
+                        <Ionicons name="chevron-forward" size={13} color={colors.onGoldChip} />
+                      </View>
+                      <Text style={[styles.photoCtaLabel, { color: colors.gold }]}>
                         {t('today.sectionActionDetail')}
                       </Text>
                     </Pressable>
@@ -1460,9 +1471,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-  },
-  trainingDetailAction: {
-    ...Type.subheadline,
   },
   mealsProgress: {
     ...Type.footnote,

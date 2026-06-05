@@ -500,7 +500,7 @@ function NutritionPlanDetail({
           style={styles.nutritionBackBtn}
         >
           <Ionicons name="chevron-back" size={24} color={colors.gold} />
-          <Text style={[Type.body, { color: colors.gold }]}>Plans</Text>
+          <Text style={[Type.body, { color: colors.gold }]}>{t('plans.title')}</Text>
         </Pressable>
         <TouchableOpacity
           onPress={() => handleStepWeek(-1)}
@@ -1126,7 +1126,7 @@ function TrainingPlanDetail({
           style={styles.nutritionBackBtn}
         >
           <Ionicons name="chevron-back" size={24} color={colors.gold} />
-          <Text style={[Type.body, { color: colors.gold }]}>Plans</Text>
+          <Text style={[Type.body, { color: colors.gold }]}>{t('plans.title')}</Text>
         </Pressable>
         <TouchableOpacity
           onPress={() => handleStepWeek(-1)}
@@ -1618,6 +1618,7 @@ export default function PlanDetailScreen() {
     day?: string
   }>()
   const colors = useTheme()
+  const { t } = useTranslation()
   const router = useRouter()
 
   const isNutrition = type === 'nutrition'
@@ -1675,7 +1676,7 @@ export default function PlanDetailScreen() {
           />
         ) : (
           <View style={styles.centered}>
-            <Text style={[Type.headline, { color: colors.label3 }]}>Plan not found</Text>
+            <Text style={[Type.headline, { color: colors.label3 }]}>{t('plans.planNotFound')}</Text>
           </View>
         )}
       </SafeAreaView>
@@ -1686,21 +1687,6 @@ export default function PlanDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  navBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-  },
-  backBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-  },
-  titleBar: {
-    paddingHorizontal: 16,
-    paddingBottom: 12,
   },
   centered: {
     flex: 1,
@@ -1876,13 +1862,6 @@ const styles = StyleSheet.create({
     paddingTop: 40,
     alignItems: 'center',
   },
-  emptyDay: {
-    margin: 16,
-    borderRadius: Radius.md,
-    padding: 32,
-    alignItems: 'center',
-  },
-
   // Training plan detail — no horizontal padding; standalone ExpandableSessionCard
   // carries its own marginHorizontal: 16 in standalone mode.
   sessionsWrap: {

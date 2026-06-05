@@ -145,8 +145,9 @@ public class PutOverrideEndpointTests(FitnessApiFactory factory)
     // ── Validation ───────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task PutOverride_TimeNotHourAligned_Returns400WithInvalidTimeOfDay()
+    public async Task PutOverride_MinutePrecisionTime_Returns2xx()
     {
+        // AC: non-hour times (e.g. 18:45) must now be accepted in overrides too
         var (http, _, trainerProfileId) = await SetupTrainerAsync();
         var (clientUserId, clientProfileId) = await SetupClientAsync();
         await LinkTrainerToClientAsync(trainerProfileId, clientProfileId);
@@ -154,6 +155,23 @@ public class PutOverrideEndpointTests(FitnessApiFactory factory)
         var response = await http.PutAsJsonAsync(
             $"/trainer/weekly-check-ins/overrides/{clientUserId}/Training",
             new { DayOfWeek = (int?)1, TimeOfDay = "18:45:00", Enabled = (bool?)true, Addendum = (string?)null },
+            TestContext.Current.CancellationToken);
+
+        ((int)response.StatusCode).Should().BeInRange(200, 299,
+            "minute-precision times must now be accepted in overrides");
+    }
+
+    [Fact]
+    public async Task PutOverride_TimeOf1Day_Returns400()
+    {
+        // AC: a TimeSpan ≥ 24h (using "1.00:00:00" = 1 day = 24h) must still be rejected
+        var (http, _, trainerProfileId) = await SetupTrainerAsync();
+        var (clientUserId, clientProfileId) = await SetupClientAsync();
+        await LinkTrainerToClientAsync(trainerProfileId, clientProfileId);
+
+        var response = await http.PutAsJsonAsync(
+            $"/trainer/weekly-check-ins/overrides/{clientUserId}/Training",
+            new { DayOfWeek = (int?)1, TimeOfDay = "1.00:00:00", Enabled = (bool?)true, Addendum = (string?)null },
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
