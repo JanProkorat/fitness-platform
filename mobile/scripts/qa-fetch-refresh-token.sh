@@ -95,23 +95,27 @@ if [[ -z "$harness_url" ]]; then
 fi
 
 # ── POST to /auth/login on the compose harness ─────────────────────────────
-# Capture body + HTTP status code in one curl call.
-# The status code is appended after a newline separator.
-response="$(
+# Capture body and HTTP status code separately to avoid BSD head(1) incompatibility.
+# BSD head on macOS rejects negative line counts (head -n -1 → "illegal line count").
+# Using -o to write the body to a temp file and -w to capture only the status code
+# on stdout avoids any line-trimming and keeps stderr clean from response data.
+body_file="$(mktemp)"
+trap 'rm -f "$body_file"' EXIT
+
+status_code="$(
   curl -k -sS \
-    -w '\n%{http_code}' \
+    -o "$body_file" \
+    -w '%{http_code}' \
     -X POST "$harness_url/auth/login" \
     -H 'Content-Type: application/json' \
-    -d "{\"email\":\"$email\",\"password\":\"$QA_SEED_PASSWORD\"}" \
-  2>&1
+    -d "{\"email\":\"$email\",\"password\":\"$QA_SEED_PASSWORD\"}"
 )" || {
+  rm -f "$body_file"
   echo "error: harness unreachable at $harness_url — run \`scripts/test-env up\`" >&2
   exit 1
 }
 
-# Split body and status code (last line).
-status_code="$(printf '%s' "$response" | tail -1)"
-body="$(printf '%s' "$response" | head -n -1)"
+body="$(cat "$body_file")"
 
 # ── Handle HTTP error codes ────────────────────────────────────────────────
 case "$status_code" in
