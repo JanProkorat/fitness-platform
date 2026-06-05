@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -15,7 +16,7 @@ using Npgsql;
 namespace FitnessPlatform.Application.Infrastructure.Services;
 
 /// <summary>
-/// Background service that fires weekly check-in reminders on an hourly tick.
+/// Background service that fires weekly check-in reminders on a configurable tick interval.
 /// For each enabled <see cref="WeeklyCheckInSetting"/> (with optional per-client overrides),
 /// it checks whether the configured fire time fell within the last tick window and, if so,
 /// inserts a <see cref="WeeklyCheckIn"/> row, creates a push notification, and broadcasts
@@ -25,15 +26,29 @@ namespace FitnessPlatform.Application.Infrastructure.Services;
 /// </summary>
 public class WeeklyCheckInScheduler(
     IServiceScopeFactory scopeFactory,
-    ILogger<WeeklyCheckInScheduler> logger) : BackgroundService
+    ILogger<WeeklyCheckInScheduler> logger,
+    IConfiguration configuration) : BackgroundService
 {
     /// <summary>
     /// Default deadline offset in hours. Applied when neither a per-client override nor
     /// the professional's <see cref="WeeklyCheckInSetting.DeadlineOffsetHours"/> is set.
     /// </summary>
     internal const int DefaultDeadlineOffsetHours = 72;
+
+    /// <summary>
+    /// Default tick interval in minutes. Override via <c>CheckInTickIntervalMinutes</c>
+    /// in configuration (primarily for tests that need deterministic ticks).
+    /// </summary>
+    internal const int DefaultTickIntervalMinutes = 5;
+
     // Exposed for unit/integration tests — drive the scheduler with a virtual clock.
     internal DateTime? OverrideNow { get; set; }
+
+    // Tick interval resolved from configuration. Tests can inject a short interval
+    // (e.g. 1 minute) via IConfiguration to drive ticks deterministically.
+    private TimeSpan TickInterval =>
+        TimeSpan.FromMinutes(
+            configuration.GetValue("CheckInTickIntervalMinutes", DefaultTickIntervalMinutes));
 
     private DateTime _lastTickAt;
     private bool _cursorInitialized;
@@ -81,20 +96,33 @@ public class WeeklyCheckInScheduler(
     /// <inheritdoc />
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        // Align first tick to the next :00 boundary.
+        var interval = TickInterval;
+
+        // Align first tick to the next interval boundary.
+        // E.g. for a 5-minute interval: tick at :00, :05, :10, … :55 of each hour.
+        // Minimum delay is one full interval to ensure the host and DB are ready.
         var now = UtcNow();
-        var delay = TimeSpan.FromMinutes(60 - now.Minute)
+        var totalMinutes = now.Hour * 60 + now.Minute;
+        var intervalMinutes = (int)interval.TotalMinutes;
+        var minutesToNextBoundary = intervalMinutes == 0
+            ? 0
+            : intervalMinutes - (totalMinutes % intervalMinutes);
+        // If we're already on a boundary, advance one interval so the first tick is not immediate.
+        if (minutesToNextBoundary == 0 || minutesToNextBoundary == intervalMinutes)
+            minutesToNextBoundary = intervalMinutes;
+
+        var delay = TimeSpan.FromMinutes(minutesToNextBoundary)
                             .Subtract(TimeSpan.FromSeconds(now.Second))
                             .Subtract(TimeSpan.FromMilliseconds(now.Millisecond));
 
         if (delay.TotalMilliseconds > 0)
         {
             logger.LogInformation(
-                "WeeklyCheckInScheduler: first tick in {Delay:mm\\:ss} (aligning to :00).", delay);
+                "WeeklyCheckInScheduler: first tick in {Delay:mm\\:ss} (aligning to interval boundary).", delay);
             await Task.Delay(delay, stoppingToken);
         }
 
-        // Seed cursor from DB so a cold start doesn't re-fire the last hour.
+        // Seed cursor from DB so a cold start doesn't re-fire the last interval window.
         using (var scope = scopeFactory.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
@@ -103,7 +131,7 @@ public class WeeklyCheckInScheduler(
 
         _cursorInitialized = true;
 
-        using var timer = new PeriodicTimer(TimeSpan.FromHours(1));
+        using var timer = new PeriodicTimer(interval);
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -139,20 +167,20 @@ public class WeeklyCheckInScheduler(
     private async Task<DateTime> SeedCursorAsync(
         IApplicationDbContext db, DateTime now, CancellationToken ct)
     {
-        // Seed the cursor so that settings whose fire time fell in the last hour
+        // Seed the cursor so that settings whose fire time fell in the last tick window
         // before startup are not re-fired (they already ran, and we would duplicate).
-        // We back off by 1 minute to ensure a setting whose fire time was at :00
-        // is not skipped on the very first tick after startup.
+        // We back off by 1 minute to ensure a setting whose fire time is very close to
+        // the boundary is not skipped on the very first tick after startup.
         var maxSentAt = await db.WeeklyCheckIns
             .AsNoTracking()
             .MaxAsync(c => (DateTime?)c.SentAt, ct);
 
-        var oneHourAgo = now.AddHours(-1);
+        var oneIntervalAgo = now - TickInterval;
 
         if (maxSentAt.HasValue)
         {
             var seedFrom = maxSentAt.Value.AddMinutes(-1);
-            var cursor = seedFrom < oneHourAgo ? oneHourAgo : seedFrom;
+            var cursor = seedFrom < oneIntervalAgo ? oneIntervalAgo : seedFrom;
             logger.LogInformation(
                 "WeeklyCheckInScheduler: seeding cursor to {Cursor:u} (maxSentAt={MaxSentAt:u}).",
                 cursor, maxSentAt.Value);
@@ -160,8 +188,8 @@ public class WeeklyCheckInScheduler(
         }
 
         logger.LogInformation(
-            "WeeklyCheckInScheduler: no previous check-ins; seeding cursor to {Cursor:u}.", oneHourAgo);
-        return oneHourAgo;
+            "WeeklyCheckInScheduler: no previous check-ins; seeding cursor to {Cursor:u}.", oneIntervalAgo);
+        return oneIntervalAgo;
     }
 
     private async Task ProcessTickAsync(

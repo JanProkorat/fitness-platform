@@ -29,8 +29,8 @@ public class WeeklyCheckInSetting
     public DayOfWeek DayOfWeek { get; set; }
 
     /// <summary>
-    /// Hour-aligned local time of day when the reminder fires.
-    /// Minutes, Seconds, and Milliseconds must be zero (enforced at API layer).
+    /// Local time of day when the reminder fires.
+    /// Must be between 00:00:00 and 23:59:59 (enforced at API layer).
     /// </summary>
     public TimeSpan TimeOfDay { get; set; }
 

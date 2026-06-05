@@ -28,10 +28,10 @@ public class PutOverrideValidator : Validator<PutOverrideRequest>
             .WithMessage("DayOfWeek must be between 0 (Sunday) and 6 (Saturday).");
 
         RuleFor(x => x.TimeOfDay)
-            .Must(t => t!.Value.Minutes == 0 && t.Value.Seconds == 0 && t.Value.Milliseconds == 0)
+            .Must(t => t!.Value >= TimeSpan.Zero && t.Value < TimeSpan.FromHours(24))
             .When(x => x.TimeOfDay.HasValue)
             .WithErrorCode(ErrorCodes.InvalidTimeOfDay)
-            .WithMessage("TimeOfDay must be hour-aligned (minutes, seconds, and milliseconds must be zero).");
+            .WithMessage("TimeOfDay must be between 00:00:00 and 23:59:59.");
 
         RuleFor(x => x.Addendum)
             .MaximumLength(200)

@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { CSSProperties } from 'react';
 import { Select } from '@/components/ui';
+import { TimePicker } from '@/components/ui/TimePicker';
 import { useToastStore } from '@/stores/toast';
 import {
   getCheckInSettings,
@@ -44,12 +45,6 @@ const innerRowStyle: CSSProperties = {
 
 /* ─────────────────────── Other Constants ─────────────────────── */
 
-/** Hour options from 06:00 to 22:00, rendered as "HH:mm". Wire value is "HH:mm:ss". */
-const HOUR_OPTIONS: string[] = Array.from({ length: 17 }, (_, i) => {
-  const h = i + 6;
-  return `${String(h).padStart(2, '0')}:00`;
-});
-
 /** Default hour:minute string used when no setting exists yet. */
 const DEFAULT_HOUR = '09:00';
 
@@ -72,7 +67,7 @@ const settingSchema = z.object({
   /** DayOfWeek as int (0=Sunday…6=Saturday) */
   dayOfWeek: dayOfWeekSchema,
   /** "HH:mm" — converted to "HH:mm:ss" before sending */
-  timeOfDay: z.string().regex(/^\d{2}:00$/, 'Invalid time'),
+  timeOfDay: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Invalid time'),
   defaultAddendum: z.string().max(200, 'Max 200 characters').nullable(),
   /** Hours until check-in expires; must be one of DEADLINE_OFFSET_OPTIONS. */
   deadlineOffsetHours: deadlineOffsetSchema,
@@ -271,13 +266,10 @@ const ProfessionBlock = forwardRef<ProfessionBlockHandle, ProfessionBlockProps>(
                 name="timeOfDay"
                 control={control}
                 render={({ field }) => (
-                  <Select value={field.value} onChange={(e) => field.onChange(e.target.value)}>
-                    {HOUR_OPTIONS.map((h) => (
-                      <option key={h} value={h}>
-                        {h}
-                      </option>
-                    ))}
-                  </Select>
+                  <TimePicker
+                    value={field.value}
+                    onChange={(e) => field.onChange(e.target.value)}
+                  />
                 )}
               />
               {errors.timeOfDay && (

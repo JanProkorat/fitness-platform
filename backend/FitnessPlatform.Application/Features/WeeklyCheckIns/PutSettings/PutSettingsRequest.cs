@@ -17,7 +17,7 @@ public class PutSettingsRequest
     public int DayOfWeek { get; set; }
 
     /// <summary>
-    /// Hour-aligned local time of day for the reminder. Minutes, Seconds, and Milliseconds must all be zero.
+    /// Local time of day for the reminder. Must be between 00:00:00 and 23:59:59.
     /// </summary>
     public TimeSpan TimeOfDay { get; set; }
 
