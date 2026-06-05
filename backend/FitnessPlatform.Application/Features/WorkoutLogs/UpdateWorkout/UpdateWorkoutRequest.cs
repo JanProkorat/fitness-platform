@@ -104,4 +104,34 @@ public class UpdateWorkoutSetRequest
     /// When this set was completed.
     /// </summary>
     public DateTime? CompletedAt { get; set; }
+
+    // ── Snapshot-planned fields ─────────────────────────────────────────────────
+    // Clients send these once from the plan prescription when first logging a set;
+    // they are frozen as a snapshot onto WorkoutSet and must not change on subsequent calls.
+    // All are nullable for backward compatibility with clients that do not yet send them.
+
+    /// <summary>
+    /// Prescribed repetitions from the plan prescription.
+    /// </summary>
+    public int? PlannedReps { get; set; }
+
+    /// <summary>
+    /// Prescribed weight (kg) from the plan prescription.
+    /// </summary>
+    public decimal? PlannedWeightKg { get; set; }
+
+    /// <summary>
+    /// Prescribed RPE from the plan prescription.
+    /// </summary>
+    public decimal? PlannedRpe { get; set; }
+
+    /// <summary>
+    /// Prescribed duration (seconds) from the plan prescription.
+    /// </summary>
+    public int? PlannedDurationSeconds { get; set; }
+
+    /// <summary>
+    /// Prescribed distance (meters) from the plan prescription.
+    /// </summary>
+    public decimal? PlannedDistanceMeters { get; set; }
 }

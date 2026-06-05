@@ -96,7 +96,12 @@ public class UpdateWorkoutEndpoint(
                 Rpe = rs.Rpe,
                 DurationSeconds = rs.DurationSeconds,
                 DistanceMeters = rs.DistanceMeters,
-                CompletedAt = rs.CompletedAt
+                CompletedAt = rs.CompletedAt,
+                PlannedReps = rs.PlannedReps,
+                PlannedWeightKg = rs.PlannedWeightKg,
+                PlannedRpe = rs.PlannedRpe,
+                PlannedDurationSeconds = rs.PlannedDurationSeconds,
+                PlannedDistanceMeters = rs.PlannedDistanceMeters
             }).ToList()
         }).ToList();
         // Preserve existing section structure when available; otherwise use a single default section.

@@ -131,6 +131,12 @@ public class SessionDto
     /// Possible values: "Coach", "Client", or null when the session is Stable.
     /// </summary>
     public string? LockHolder { get; set; }
+
+    /// <summary>
+    /// True when at least one exercise in this session has HasModifications == true.
+    /// Always false when no workout log exists for this session.
+    /// </summary>
+    public bool HasModifications { get; set; }
 }
 
 /// <summary>
@@ -216,12 +222,18 @@ public class ExerciseDto
     /// <summary>True when every planned set has a completed workout log entry.</summary>
     public bool IsCompleted { get; set; }
 
-    /// <summary>Planned sets with per-set completion timestamps.</summary>
+    /// <summary>
+    /// True when at least one set under this exercise has IsModified == true.
+    /// Always false when no workout log exists for this exercise.
+    /// </summary>
+    public bool HasModifications { get; set; }
+
+    /// <summary>Planned sets with per-set completion timestamps and actual-vs-planned delta.</summary>
     public List<SetDto> Sets { get; set; } = [];
 }
 
 /// <summary>
-/// A planned set with its completion state derived from workout logs.
+/// A planned set with its completion state and actual-vs-planned delta derived from workout logs.
 /// </summary>
 public class SetDto
 {
@@ -231,16 +243,16 @@ public class SetDto
     /// <summary>Set type (Normal, Warmup, Dropset, Superset).</summary>
     public string Type { get; set; } = "";
 
-    /// <summary>Target number of repetitions.</summary>
+    /// <summary>Target number of repetitions (from the plan prescription).</summary>
     public int? Reps { get; set; }
 
-    /// <summary>Target weight in kilograms.</summary>
+    /// <summary>Target weight in kilograms (from the plan prescription).</summary>
     public decimal? WeightKg { get; set; }
 
-    /// <summary>Target duration in seconds (for timed exercises).</summary>
+    /// <summary>Target duration in seconds (from the plan prescription).</summary>
     public int? DurationSeconds { get; set; }
 
-    /// <summary>Target distance in meters (for distance-based exercises).</summary>
+    /// <summary>Target distance in meters (from the plan prescription).</summary>
     public decimal? DistanceMeters { get; set; }
 
     /// <summary>Rest time after this set in seconds.</summary>
@@ -248,4 +260,46 @@ public class SetDto
 
     /// <summary>When this set was completed, or null if not yet done.</summary>
     public DateTime? CompletedAt { get; set; }
+
+    // ── Actual logged values (from WorkoutLog) ──────────────────────────────────
+    // Null when no log exists for this set (i.e. set not yet performed).
+
+    /// <summary>Actual repetitions logged. Null when not yet performed.</summary>
+    public int? ActualReps { get; set; }
+
+    /// <summary>Actual weight (kg) logged. Null when not yet performed.</summary>
+    public decimal? ActualWeightKg { get; set; }
+
+    /// <summary>Actual RPE logged. Null when not yet performed.</summary>
+    public decimal? ActualRpe { get; set; }
+
+    /// <summary>Actual duration (seconds) logged. Null when not yet performed.</summary>
+    public int? ActualDurationSeconds { get; set; }
+
+    /// <summary>Actual distance (meters) logged. Null when not yet performed.</summary>
+    public decimal? ActualDistanceMeters { get; set; }
+
+    // ── Snapshot-planned values (frozen on WorkoutLog at log time) ──────────────
+    // Null on legacy logs that pre-date snapshot storage — treat as planned == actual.
+
+    /// <summary>Snapshot-planned repetitions at log time. Null for legacy logs.</summary>
+    public int? PlannedReps { get; set; }
+
+    /// <summary>Snapshot-planned weight (kg) at log time. Null for legacy logs.</summary>
+    public decimal? PlannedWeightKg { get; set; }
+
+    /// <summary>Snapshot-planned RPE at log time. Null for legacy logs.</summary>
+    public decimal? PlannedRpe { get; set; }
+
+    /// <summary>Snapshot-planned duration (seconds) at log time. Null for legacy logs.</summary>
+    public int? PlannedDurationSeconds { get; set; }
+
+    /// <summary>Snapshot-planned distance (meters) at log time. Null for legacy logs.</summary>
+    public decimal? PlannedDistanceMeters { get; set; }
+
+    /// <summary>
+    /// Backend-computed flag: true when any actual field differs from its snapshot-planned
+    /// counterpart. Always false for legacy sets (no snapshot → treated as planned == actual).
+    /// </summary>
+    public bool IsModified { get; set; }
 }
