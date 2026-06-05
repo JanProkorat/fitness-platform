@@ -150,6 +150,51 @@ export interface TrainingPlanCompletion {
 }
 
 /**
+ * Per-set actual + snapshot-planned values and the backend-computed isModified flag.
+ * Sourced from a WorkoutSet document. Key fields are null for legacy sets without
+ * snapshot storage — treat as planned == actual / isModified == false.
+ *
+ * Hand-written (not from generated.ts) — the plan response is consumed via the
+ * hand-written TrainingPlanDetail type, not the NSwag-generated client.
+ */
+export interface LoggedSetDto {
+  /** 1-based set number within the exercise. */
+  setNumber: number;
+
+  // ── Actual logged values ─────────────────────────────────────────────────────
+  /** Actual repetitions logged. Null when the set has not been performed. */
+  actualReps: number | null;
+  /** Actual weight (kg) logged. Null when not performed. */
+  actualWeightKg: number | null;
+  /** Actual RPE logged. Null when not performed. */
+  actualRpe: number | null;
+  /** Actual duration (seconds) logged. Null when not performed. */
+  actualDurationSeconds: number | null;
+  /** Actual distance (meters) logged. Null when not performed. */
+  actualDistanceMeters: number | null;
+
+  // ── Snapshot-planned values ──────────────────────────────────────────────────
+  // Frozen at log time from the plan prescription.
+  // Null on legacy documents that pre-date snapshot storage.
+  /** Snapshot-planned repetitions at log time. Null for legacy logs. */
+  plannedReps: number | null;
+  /** Snapshot-planned weight (kg) at log time. Null for legacy logs. */
+  plannedWeightKg: number | null;
+  /** Snapshot-planned RPE at log time. Null for legacy logs. */
+  plannedRpe: number | null;
+  /** Snapshot-planned duration (seconds) at log time. Null for legacy logs. */
+  plannedDurationSeconds: number | null;
+  /** Snapshot-planned distance (meters) at log time. Null for legacy logs. */
+  plannedDistanceMeters: number | null;
+
+  /**
+   * Backend-computed flag: true when any actual field differs from its snapshot-planned
+   * counterpart. Always false for legacy sets (no snapshot → treated as planned == actual).
+   */
+  isModified: boolean;
+}
+
+/**
  * Per-session workout-log execution data returned by the trainer endpoint.
  * Used to derive completed / skipped / not-yet-reached states per set.
  *
@@ -169,6 +214,19 @@ export interface SessionExecutionDto {
    * An absent key means no sets for that exercise were logged.
    */
   completedSetsByExercise: Record<string, number[]>;
+  /**
+   * Key = exerciseExternalId (matches SessionExercise.exerciseExternalId).
+   * Value = list of LoggedSetDto (one per logged set), carrying actual values,
+   * snapshot-planned values, and the isModified flag.
+   * An absent key means no sets for that exercise were logged.
+   */
+  loggedSetsByExercise: Record<string, LoggedSetDto[]>;
+  /**
+   * True when at least one set in any exercise under this session has isModified === true.
+   * The web layer uses this to show the "upraveno" badge at the session-header level.
+   * Always false when the session has no WorkoutLog (or all logs are legacy without snapshots).
+   */
+  hasModifications: boolean;
 }
 
 /**

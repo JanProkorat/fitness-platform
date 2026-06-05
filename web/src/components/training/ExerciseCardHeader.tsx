@@ -37,6 +37,11 @@ interface ExerciseCardHeaderProps {
   exerciseCompletionState?: ExerciseCompletionState;
   /** Counts for the aggregate badge (required when exerciseCompletionState is set). */
   exerciseCounts?: ExerciseCounts;
+  /**
+   * True when any set under this exercise has isModified === true (derived client-side).
+   * Shows the "upraveno" roll-up badge next to the completion badge.
+   */
+  hasModifications?: boolean;
 }
 
 export function ExerciseCardHeader({
@@ -56,6 +61,7 @@ export function ExerciseCardHeader({
   disabled,
   exerciseCompletionState,
   exerciseCounts,
+  hasModifications,
 }: ExerciseCardHeaderProps) {
   const { t } = useTranslation();
 
@@ -114,6 +120,12 @@ export function ExerciseCardHeader({
               kind="exercise"
               state={exerciseCompletionState}
               counts={exerciseCounts}
+            />
+          )}
+          {hasModifications && (
+            <CompletionBadge
+              kind="modified"
+              state={hasModifications}
             />
           )}
         </div>

@@ -15,6 +15,7 @@ import type { ExerciseSet } from '@/api/training-plan-types';
 import {
   deriveSetCompletionState,
   deriveExerciseCompletionState,
+  deriveExerciseModificationState,
 } from '@/lib/completionState';
 
 /**
@@ -328,6 +329,21 @@ export function SectionCard({
                   ex.sets.length,
                 );
 
+              // Derive modification state: true when any logged set under this
+              // exercise has isModified === true. Backend has no per-exercise flag —
+              // we derive client-side mirroring deriveExerciseCompletionState.
+              const exHasModifications = deriveExerciseModificationState(
+                sessionExecution,
+                ex.exerciseExternalId,
+              );
+
+              // Logged sets for this exercise, keyed by 1-based setNumber.
+              const loggedSetsMap = sessionExecution?.loggedSetsByExercise[ex.exerciseExternalId]
+                ? Object.fromEntries(
+                    sessionExecution.loggedSetsByExercise[ex.exerciseExternalId].map((ls) => [ls.setNumber, ls])
+                  )
+                : undefined;
+
               return (
                 <div
                   key={exKey}
@@ -374,6 +390,9 @@ export function SectionCard({
                     // Completion state (additive, display-only).
                     exerciseCompletionState={exCompletionState}
                     exerciseCounts={exCounts}
+                    // Modification roll-up: true when any set under this exercise
+                    // has isModified === true (derived client-side).
+                    hasModifications={exHasModifications || undefined}
                   />
 
                   <div className="collapse-grid" data-open={isExOpen}>
@@ -411,6 +430,7 @@ export function SectionCard({
                                 movementType={ex.movementType}
                                 sectionFormat={section.format}
                                 onUpdate={(updates) => onUpdateSet(exIdx, 0, updates)}
+                                loggedSet={loggedSetsMap?.[ex.sets[0].setNumber]}
                               />
                             </div>
                           )
@@ -441,7 +461,7 @@ export function SectionCard({
                               <span />
                             </div>
 
-                            {/* Set rows */}
+                            {/* Set rows (planned sets) */}
                             {ex.sets.map((s, sIdx) => (
                               <SetRow
                                 key={sIdx}
@@ -460,8 +480,37 @@ export function SectionCard({
                                       )
                                     : undefined
                                 }
+                                // Logged-set actual/planned overlay when available
+                                loggedSet={loggedSetsMap?.[s.setNumber]}
                               />
                             ))}
+                            {/* Extra sets — sets logged beyond the plan count.
+                                These have set numbers > ex.sets.length. */}
+                            {loggedSetsMap &&
+                              Object.values(loggedSetsMap)
+                                .filter((ls) => !ex.sets.some((s) => s.setNumber === ls.setNumber))
+                                .sort((a, b) => a.setNumber - b.setNumber)
+                                .map((ls) => (
+                                  <SetRow
+                                    key={`extra-${ls.setNumber}`}
+                                    set={{
+                                      setNumber: ls.setNumber,
+                                      type: 'Normal',
+                                      reps: null,
+                                      weightKg: null,
+                                      durationSeconds: null,
+                                      rpe: null,
+                                      distanceMeters: null,
+                                      restSeconds: null,
+                                    }}
+                                    movementType="Reps"
+                                    onUpdate={() => {/* extra sets are read-only */}}
+                                    onRemove={() => {/* extra sets are read-only */}}
+                                    completionState="completed"
+                                    loggedSet={ls}
+                                    isExtraSet
+                                  />
+                                ))}
 
                             {/* Add set — hidden when the section is locked
                                 (also covers session-locked + day-in-past per
