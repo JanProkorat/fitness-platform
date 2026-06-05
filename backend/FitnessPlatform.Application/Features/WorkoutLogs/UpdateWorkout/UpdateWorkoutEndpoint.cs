@@ -77,6 +77,15 @@ public class UpdateWorkoutEndpoint(
                 .Select(s => (e.ExerciseExternalId, s.SetNumber)))
             .ToHashSet();
 
+        // ── Build snapshot lookup from the existing stored sets ──────────────────
+        // Key: (ExerciseExternalId, SetNumber) → stored WorkoutSet.
+        // Used below to freeze Planned* fields on re-PUT: once a Planned* field has
+        // a non-null value in the database it is immutable; later requests cannot
+        // overwrite it even if they supply different planned values.
+        var storedSetLookup = log.Exercises
+            .SelectMany(e => e.Sets.Select(s => (e.ExerciseExternalId, s)))
+            .ToDictionary(x => (x.ExerciseExternalId, x.s.SetNumber), x => x.s);
+
         // ── Build new exercise list from request ──────────────────────────────────
         // The UpdateWorkout API accepts a flat exercise list (offline-first protocol).
         // Exercises are stored inside a single default section named "Hlavní".
@@ -88,15 +97,27 @@ public class UpdateWorkoutEndpoint(
             ExerciseExternalId = re.ExerciseExternalId,
             ExerciseName = re.ExerciseName,
             WodResult = re.WodResult,
-            Sets = re.Sets.Select(rs => new WorkoutSet
+            Sets = re.Sets.Select(rs =>
             {
-                SetNumber = rs.SetNumber,
-                Reps = rs.Reps,
-                WeightKg = rs.WeightKg,
-                Rpe = rs.Rpe,
-                DurationSeconds = rs.DurationSeconds,
-                DistanceMeters = rs.DistanceMeters,
-                CompletedAt = rs.CompletedAt
+                // Per-field snapshot freeze: use stored value when it is already non-null,
+                // otherwise take the incoming request value (first-log or extra-set case).
+                storedSetLookup.TryGetValue((re.ExerciseExternalId, rs.SetNumber), out var stored);
+
+                return new WorkoutSet
+                {
+                    SetNumber = rs.SetNumber,
+                    Reps = rs.Reps,
+                    WeightKg = rs.WeightKg,
+                    Rpe = rs.Rpe,
+                    DurationSeconds = rs.DurationSeconds,
+                    DistanceMeters = rs.DistanceMeters,
+                    CompletedAt = rs.CompletedAt,
+                    PlannedReps = stored?.PlannedReps ?? rs.PlannedReps,
+                    PlannedWeightKg = stored?.PlannedWeightKg ?? rs.PlannedWeightKg,
+                    PlannedRpe = stored?.PlannedRpe ?? rs.PlannedRpe,
+                    PlannedDurationSeconds = stored?.PlannedDurationSeconds ?? rs.PlannedDurationSeconds,
+                    PlannedDistanceMeters = stored?.PlannedDistanceMeters ?? rs.PlannedDistanceMeters
+                };
             }).ToList()
         }).ToList();
         // Preserve existing section structure when available; otherwise use a single default section.

@@ -1,5 +1,6 @@
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Features.WorkoutLogs.Shared;
 
 namespace FitnessPlatform.Application.Features.ClientTraining.GetTodaySession;
 
@@ -139,6 +140,23 @@ public class GetTodaySessionResponse
     /// Empty dictionary when no session has a note today (or when no active plan exists).
     /// </summary>
     public Dictionary<Guid, string> NotesBySession { get; set; } = new();
+
+    /// <summary>
+    /// Per-session, per-exercise logged set values for today.
+    /// Keyed by SessionId → ExerciseExternalId → list of <see cref="LoggedSetDto"/> (one per set).
+    /// Carries actual logged values, snapshot-planned values, and the backend-computed isModified flag.
+    /// Replaces the set-number-only <see cref="CompletedSetsBySessionExercise"/> for callers that
+    /// need actual vs planned comparison.
+    /// Empty when no live-training progress has been logged for today.
+    /// </summary>
+    public Dictionary<Guid, Dictionary<Guid, List<LoggedSetDto>>> LoggedSetsBySessionExercise { get; set; } = new();
+
+    /// <summary>
+    /// Per-session hasModifications flag for today, keyed by SessionId.
+    /// True when any set under any exercise in the session has IsModified == true in the latest log.
+    /// Missing entries are treated as false (no modifications / no log).
+    /// </summary>
+    public Dictionary<Guid, bool> HasModificationsBySession { get; set; } = new();
 }
 
 /// <summary>

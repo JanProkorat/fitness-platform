@@ -132,6 +132,38 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
         // per set so accidental duplicate logs don't wipe completion state.
         var completedSets = new Dictionary<(Guid sessionId, Guid exerciseId, int setNumber), DateTime>();
 
+        // Extended lookup: (sessionId, exerciseId, setNumber) → WorkoutSet for actual+planned values.
+        // We prefer the most-recently-updated log per session (mirrors the dedup logic used elsewhere).
+        // If two logs for the same session have the set, the one from the "best" log wins.
+        var loggedSets = new Dictionary<(Guid sessionId, Guid exerciseId, int setNumber), WorkoutSet>();
+
+        // Deduplicate logs per sessionId: prefer most-recently-updated FINALISED, else most-recent.
+        var bestLogBySession = workoutLogs
+            .Where(l => l.SessionId.HasValue)
+            .GroupBy(l => l.SessionId!.Value)
+            .Select(g =>
+            {
+                var finalised = g
+                    .Where(l => l.IsCompleted)
+                    .OrderByDescending(l => l.DateUpdated ?? l.DateCreated)
+                    .FirstOrDefault();
+                return finalised ?? g.OrderByDescending(l => l.DateUpdated ?? l.DateCreated).First();
+            })
+            .ToList();
+
+        foreach (var log in bestLogBySession)
+        {
+            var sessionId = log.SessionId!.Value;
+            foreach (var ex in log.Exercises)
+            {
+                foreach (var set in ex.Sets)
+                {
+                    var key = (sessionId, ex.ExerciseExternalId, set.SetNumber);
+                    loggedSets[key] = set;
+                }
+            }
+        }
+
         foreach (var log in workoutLogs)
         {
             if (log.SessionId is null) continue;
@@ -293,6 +325,7 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
                         {
                             var key = (session.SessionId, ex.ExerciseExternalId, set.SetNumber);
                             completedSets.TryGetValue(key, out var completedAt);
+                            loggedSets.TryGetValue(key, out var loggedSet);
 
                             return new SetDto
                             {
@@ -303,12 +336,26 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
                                 DurationSeconds = set.DurationSeconds,
                                 DistanceMeters = set.DistanceMeters,
                                 RestSeconds = set.RestSeconds,
-                                CompletedAt = completedAt == default ? null : completedAt
+                                CompletedAt = completedAt == default ? null : completedAt,
+                                // Actual values from the workout log (null when not yet logged).
+                                ActualReps = loggedSet?.Reps,
+                                ActualWeightKg = loggedSet?.WeightKg,
+                                ActualRpe = loggedSet?.Rpe,
+                                ActualDurationSeconds = loggedSet?.DurationSeconds,
+                                ActualDistanceMeters = loggedSet?.DistanceMeters,
+                                // Snapshot-planned values (null on legacy logs → isModified stays false).
+                                PlannedReps = loggedSet?.PlannedReps,
+                                PlannedWeightKg = loggedSet?.PlannedWeightKg,
+                                PlannedRpe = loggedSet?.PlannedRpe,
+                                PlannedDurationSeconds = loggedSet?.PlannedDurationSeconds,
+                                PlannedDistanceMeters = loggedSet?.PlannedDistanceMeters,
+                                IsModified = loggedSet?.IsModified ?? false
                             };
                         }).ToList();
 
                         // An exercise is complete only when every planned set has a log entry.
                         var isCompleted = setDtos.Count > 0 && setDtos.All(s => s.CompletedAt is not null);
+                        var hasModifications = setDtos.Any(s => s.IsModified);
 
                         return new ExerciseDto
                         {
@@ -323,6 +370,7 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
                             MovementType = ex.MovementType.ToString(),
                             MuscleGroups = muscleGroups,
                             IsCompleted = isCompleted,
+                            HasModifications = hasModifications,
                             Sets = setDtos
                         };
                     }).ToList();
@@ -350,6 +398,7 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
                 var exerciseDtos = sectionDtos.SelectMany(s => s.Exercises).ToList();
 
                 var completedExerciseCount = exerciseDtos.Count(e => e.IsCompleted);
+                var sessionHasModifications = exerciseDtos.Any(e => e.HasModifications);
 
                 // Resolve lock state for this session (Stable if no active lock doc).
                 var sessionLockState = "Stable";
@@ -373,7 +422,8 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
                     Sections = sectionDtos,
                     Exercises = exerciseDtos,
                     LockState = sessionLockState,
-                    LockHolder = sessionLockHolder
+                    LockHolder = sessionLockHolder,
+                    HasModifications = sessionHasModifications
                 };
             }).ToList();
 

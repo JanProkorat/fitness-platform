@@ -1,4 +1,5 @@
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Features.WorkoutLogs.Shared;
 
 namespace FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
 
@@ -69,6 +70,22 @@ public class SessionExecutionDto
     /// An empty list should not occur but is treated identically to an absent key.
     /// </summary>
     public Dictionary<Guid, List<int>> CompletedSetsByExercise { get; set; } = new();
+
+    /// <summary>
+    /// Per-exercise map of per-set actual values, snapshot-planned values, and isModified flags.
+    /// Key = ExerciseExternalId; value = list of <see cref="LoggedSetDto"/> (one per logged set).
+    /// An absent key means no sets for that exercise were logged.
+    /// The web layer uses this together with <see cref="CompletedSetsByExercise"/> to render
+    /// the actual-vs-planned comparison and the upraveno (modified) indicator per set.
+    /// </summary>
+    public Dictionary<Guid, List<LoggedSetDto>> LoggedSetsByExercise { get; set; } = new();
+
+    /// <summary>
+    /// True when at least one set in any exercise under this session has IsModified == true.
+    /// The web layer uses this to show the upraveno badge at the session-header level.
+    /// Always false when the session has no WorkoutLog (or all logs are legacy without snapshots).
+    /// </summary>
+    public bool HasModifications { get; set; }
 }
 
 /// <summary>
