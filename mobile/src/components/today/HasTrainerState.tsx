@@ -1322,7 +1322,7 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
                     <Pressable
                       onPress={() => {
                         router.push(
-                          hrefParams('/(client)/(tabs)/plans/[planId]', {
+                          hrefParams('/(client)/plan/[planId]', {
                             planId: training.planId!,
                             type: 'training',
                           }),
@@ -1409,7 +1409,7 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
                     <Pressable
                       onPress={() => {
                         router.push(
-                          hrefParams('/(client)/(tabs)/plans/[planId]', {
+                          hrefParams('/(client)/plan/[planId]', {
                             planId: plan.planId!,
                             type: 'nutrition',
                           }),
