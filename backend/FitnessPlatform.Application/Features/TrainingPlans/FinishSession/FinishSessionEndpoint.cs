@@ -185,7 +185,15 @@ public class FinishSessionEndpoint(
                                 // Stamp all sets as completed at the supplied instant.
                                 // IsPR is left false — the completion service will set it via PR detection.
                                 CompletedAt = completedAt,
-                                IsPR = false
+                                IsPR = false,
+                                // Snapshot: done-as-prescribed → planned == actual.
+                                // When the trainer finishes a session retroactively the actual
+                                // values ARE the prescription, so isModified stays false for every set.
+                                PlannedReps = es.Reps,
+                                PlannedWeightKg = es.WeightKg,
+                                PlannedRpe = es.Rpe,
+                                PlannedDurationSeconds = es.DurationSeconds,
+                                PlannedDistanceMeters = es.DistanceMeters
                             })
                             .ToList()
                     })

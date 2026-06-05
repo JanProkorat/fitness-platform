@@ -11,13 +11,15 @@ import type {
   TrainingSection as GeneratedTrainingSection,
   TrainingSession,
   GetTodaySessionResponse,
-  GetFullTrainingPlanResponse as GeneratedFullTrainingPlanResponse,
-  WeekDto as GeneratedWeekDto,
-  SessionDto as GeneratedSessionDto,
-  SectionDto as GeneratedSectionDto,
+  GetFullTrainingPlanResponse,
+  WeekDto,
+  SessionDto,
+  SectionDto,
   ExerciseDto,
   SetDto,
   WodConfig,
+  SessionPhotoDto,
+  GenerateSessionPhotoUploadUrlResponse,
 } from './generated';
 
 // Re-export generated types and enums so consumer imports (`from '@/api/training'`) still work.
@@ -27,59 +29,15 @@ export type {
   SessionExercise,
   TrainingSession,
   GetTodaySessionResponse,
+  GetFullTrainingPlanResponse,
+  WeekDto,
+  SessionDto,
+  SectionDto,
   ExerciseDto,
   SetDto,
   WodConfig,
-};
-
-/**
- * Augmented SectionDto — adds `formatConfig`, `notes`, and `isCompleted` that
- * the backend now emits but NSwag hasn't been re-run for yet.
- * Drop the augmentation fields once the generated client is regenerated
- * and the fields appear on GeneratedSectionDto directly.
- */
-export type SectionDto = Omit<GeneratedSectionDto, 'exercises'> & {
-  formatConfig?: WodConfig | null;
-  notes?: string | null;
-  /** True when the backend considers this section fully complete.
-   * For sections with exercises: every exercise has IsCompleted=true.
-   * For sections without exercises: the section id is in
-   * TrainingCompletion.CompletedSectionIds (#260 fix). */
-  isCompleted?: boolean;
-  exercises?: GeneratedSectionDto['exercises'];
-};
-
-/**
- * Augmented SessionDto — propagates SectionDto augmentation so
- * `response.weeks[i].sessions[j].sections[k].formatConfig` is typed correctly
- * without per-call casts.
- * Also adds `lockState` which the backend (#382) now includes in GetFullTrainingPlan
- * responses. Drop once regen produces this field natively.
- */
-export type SessionDto = Omit<GeneratedSessionDto, 'sections'> & {
-  sections?: SectionDto[];
-  /**
-   * Session edit-lock state from the backend.
-   * "Stable"  — no active lock; normal operation.
-   * "Editing" — a trainer currently holds the edit lock; banner should be shown.
-   * "Live"    — the client's own live session is in progress; no banner.
-   * Defaults to "Stable" when the field is absent (pre-#382 response shape).
-   */
-  lockState?: string;
-};
-
-/**
- * Augmented WeekDto — propagates SessionDto augmentation up the chain.
- */
-export type WeekDto = Omit<GeneratedWeekDto, 'sessions'> & {
-  sessions?: SessionDto[];
-};
-
-/**
- * Augmented GetFullTrainingPlanResponse — propagates WeekDto augmentation up the chain.
- */
-export type GetFullTrainingPlanResponse = Omit<GeneratedFullTrainingPlanResponse, 'weeks'> & {
-  weeks?: WeekDto[];
+  SessionPhotoDto,
+  GenerateSessionPhotoUploadUrlResponse,
 };
 
 /**
@@ -94,52 +52,25 @@ export type TrainingSection = Omit<GeneratedTrainingSection, 'notes'> & {
   notes?: string | null;
 }
 
-// Re-export WodResult from wod-types (hand-declared until fully superseded by generated).
+// Re-export WOD types from wod-types (UpdateWodExerciseRequest and UpdateWorkoutWodRequest
+// are still hand-maintained; WodResult, WodConfig, LoggedSetDto are re-exported
+// from generated via wod-types).
 export type {
   WodResult,
   WodSessionExercise,
+  LoggedSetDto,
+  UpdateWodExerciseRequest,
+  UpdateWorkoutWodRequest,
 } from './wod-types';
 
 /**
- * A single training-session diary photo from the session log.
- * Mirrors `MealPhotoDto` from nutrition (blobUrl, uploadedAt, note?).
- *
- * Hand-declared until regen-api is run against the backend (#405).
- * Drop this type once generated.ts emits `SessionPhotoDto` natively.
+ * `TodayTrainingResponse` is now a direct alias for `GetTodaySessionResponse`.
+ * After the #440 regen all previously-augmented fields
+ * (`lockStateBySession`, `photosBySession`, `notesBySession`,
+ * `loggedSetsBySessionExercise`, `hasModificationsBySession`)
+ * are emitted natively by generated.ts.
  */
-export interface SessionPhotoDto {
-  blobUrl: string;
-  uploadedAt?: string;
-  note?: string | null;
-}
-
-/**
- * Augmented GetTodaySessionResponse — adds:
- *   - `lockStateBySession` (#382): session edit-lock state.
- *   - `photosBySession` (#405): per-session diary photos from the session log.
- *   - `notesBySession` (#405): persisted session-level notes keyed by sessionId.
- *
- * All fields hand-declared until regen-api runs against the updated backend.
- * Drop the augmentation for each field once the generated client emits it natively.
- */
-export type TodayTrainingResponse = GetTodaySessionResponse & {
-  lockStateBySession?: Record<string, string>;
-  /**
-   * Per-session diary photos from today's session logs, keyed by sessionId.
-   * Mirrors how `mealsEaten[].photos` is embedded in GetTodayLogResponse for nutrition.
-   * Added in #405 (GenerateSessionPhotoUploadUrl + SaveSessionPhotos endpoints).
-   * Returns an empty object when no session has any diary photos today.
-   */
-  photosBySession?: Record<string, SessionPhotoDto[]>;
-  /**
-   * Persisted session-level note for today's session log, keyed by sessionId.
-   * Only present for sessions that have a non-empty note — mirrors how
-   * nutrition's today read path returns each meal's note.
-   * Added in #405 review fix: seeds the note textarea so REPLACE semantics
-   * do not wipe previously saved notes on re-open.
-   */
-  notesBySession?: Record<string, string>;
-};
+export type TodayTrainingResponse = GetTodaySessionResponse;
 
 /**
  * @deprecated Use `GetFullTrainingPlanResponse` from generated. Kept as alias for backward compatibility.
@@ -157,12 +88,18 @@ export type FullPlanWeek = WeekDto;
 export type FullPlanSession = SessionDto;
 
 /**
- * @deprecated Use `ExerciseDto` from generated. Kept as alias for backward compatibility.
+ * `FullPlanExercise` is now a direct alias for the generated `ExerciseDto`.
+ * After the #440 regen `ExerciseDto` carries `hasModifications` and
+ * `sets?: SetDto[]` (where `SetDto` has all actual + planned + isModified fields).
+ * Kept as alias for backward compatibility with `SetGrid` and `LiveFinishedSummary`.
  */
 export type FullPlanExercise = ExerciseDto;
 
 /**
- * @deprecated Use `SetDto` from generated. Kept as alias for backward compatibility.
+ * `FullPlanSet` is now a direct alias for the generated `SetDto`.
+ * After the #440 regen `SetDto` carries all actual values, snapshot-planned
+ * values, and the backend-computed `isModified` flag.
+ * Kept as alias for backward compatibility with `SetGrid` and `LiveFinishedSummary`.
  */
 export type FullPlanSet = SetDto;
 
@@ -180,11 +117,8 @@ export async function getFullTrainingPlan(planId: string): Promise<GetFullTraini
 
 // ─── Session photo upload API (#405) ─────────────────────────────────────────
 // Mirrors the nutrition meal-photo API pattern exactly.
-
-export interface GenerateSessionPhotoUploadUrlResponse {
-  uploadUrl: string;
-  blobUrl: string;
-}
+// GenerateSessionPhotoUploadUrlResponse and SessionPhotoDto are now natively
+// in generated.ts — consumed via the re-exports above.
 
 /**
  * Request a signed upload URL for a training-session diary photo.

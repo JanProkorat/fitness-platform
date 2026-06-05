@@ -45,6 +45,19 @@ public class UpdateWorkoutValidator : Validator<UpdateWorkoutRequest>
                 set.RuleFor(s => s.Rpe)
                     .InclusiveBetween(1, 10)
                     .When(s => s.Rpe.HasValue);
+
+                // ── Snapshot-planned bounds — mirror actual-value rules ─────────
+                set.RuleFor(s => s.PlannedReps)
+                    .InclusiveBetween(1, 1000)
+                    .When(s => s.PlannedReps.HasValue);
+
+                set.RuleFor(s => s.PlannedWeightKg)
+                    .GreaterThanOrEqualTo(0)
+                    .When(s => s.PlannedWeightKg.HasValue);
+
+                set.RuleFor(s => s.PlannedRpe)
+                    .InclusiveBetween(1, 10)
+                    .When(s => s.PlannedRpe.HasValue);
             });
         });
     }

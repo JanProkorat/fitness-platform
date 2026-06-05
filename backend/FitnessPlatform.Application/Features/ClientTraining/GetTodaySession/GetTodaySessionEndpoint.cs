@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.ClientTraining;
+using FitnessPlatform.Application.Features.WorkoutLogs.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
@@ -268,6 +269,9 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
                     completedBySession[log.SessionId.Value] = set = [];
 
                 var setsForExerciseInSession = new Dictionary<Guid, List<int>>();
+                var loggedSetsForExercise = new Dictionary<Guid, List<LoggedSetDto>>();
+                var sessionHasModifications = false;
+
                 foreach (var ex in log.Exercises)
                 {
                     if (ex.Sets.Count == 0) continue;
@@ -280,9 +284,35 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
                         .ToList();
                     if (completedSetNumbers.Count > 0)
                         setsForExerciseInSession[ex.ExerciseExternalId] = completedSetNumbers;
+
+                    // Build value-bearing LoggedSetDto list for every set in this exercise.
+                    var loggedSetDtos = ex.Sets.Select(s => new LoggedSetDto
+                    {
+                        SetNumber = s.SetNumber,
+                        ActualReps = s.Reps,
+                        ActualWeightKg = s.WeightKg,
+                        ActualRpe = s.Rpe,
+                        ActualDurationSeconds = s.DurationSeconds,
+                        ActualDistanceMeters = s.DistanceMeters,
+                        PlannedReps = s.PlannedReps,
+                        PlannedWeightKg = s.PlannedWeightKg,
+                        PlannedRpe = s.PlannedRpe,
+                        PlannedDurationSeconds = s.PlannedDurationSeconds,
+                        PlannedDistanceMeters = s.PlannedDistanceMeters,
+                        IsModified = s.IsModified
+                    }).ToList();
+
+                    loggedSetsForExercise[ex.ExerciseExternalId] = loggedSetDtos;
+
+                    if (loggedSetDtos.Any(s => s.IsModified))
+                        sessionHasModifications = true;
                 }
                 if (setsForExerciseInSession.Count > 0)
                     response.CompletedSetsBySessionExercise[log.SessionId.Value] = setsForExerciseInSession;
+                if (loggedSetsForExercise.Count > 0)
+                    response.LoggedSetsBySessionExercise[log.SessionId.Value] = loggedSetsForExercise;
+                if (sessionHasModifications)
+                    response.HasModificationsBySession[log.SessionId.Value] = true;
             }
 
             foreach (var (sessionId, set) in completedBySession)

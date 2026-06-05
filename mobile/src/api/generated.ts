@@ -8750,6 +8750,78 @@ export class ApiClient {
     }
 
     /**
+     * Save photos / note for a training session diary entry
+     * @param sessionId The unique identifier of the training session whose photos/note are being saved.
+    Sourced from the route segment {SessionId}.
+     * @return No Content
+     */
+    saveSessionPhotosEndpoint(sessionId: string, saveSessionPhotosRequest: SaveSessionPhotosRequest, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/client/training/log/sessions/{sessionId}/photos";
+        if (sessionId === undefined || sessionId === null)
+            throw new globalThis.Error("The parameter 'sessionId' must be defined.");
+        url_ = url_.replace("{sessionId}", encodeURIComponent("" + sessionId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(saveSessionPhotosRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSaveSessionPhotosEndpoint(_response);
+        });
+    }
+
+    protected processSaveSessionPhotosEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Mark all training sessions for a day complete
      * @return Success
      */
@@ -9407,6 +9479,82 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<GetFullTrainingPlanResponse>(null as any);
+    }
+
+    /**
+     * Generate training session photo upload URL
+     * @param sessionId The unique identifier of the session the photo will be attached to.
+    Sourced from the route segment {SessionId}.
+     * @return Success
+     */
+    generateSessionPhotoUploadUrlEndpoint(sessionId: string, generateSessionPhotoUploadUrlRequest: GenerateSessionPhotoUploadUrlRequest, signal?: AbortSignal): Promise<GenerateSessionPhotoUploadUrlResponse> {
+        let url_ = this.baseUrl + "/client/training/log/sessions/{sessionId}/photo-upload-url";
+        if (sessionId === undefined || sessionId === null)
+            throw new globalThis.Error("The parameter 'sessionId' must be defined.");
+        url_ = url_.replace("{sessionId}", encodeURIComponent("" + sessionId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(generateSessionPhotoUploadUrlRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGenerateSessionPhotoUploadUrlEndpoint(_response);
+        });
+    }
+
+    protected processGenerateSessionPhotoUploadUrlEndpoint(response: AxiosResponse): Promise<GenerateSessionPhotoUploadUrlResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GenerateSessionPhotoUploadUrlResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GenerateSessionPhotoUploadUrlResponse>(null as any);
     }
 
     /**
@@ -12790,7 +12938,7 @@ export interface WodResult {
     repsByRound?: number[] | undefined;
 }
 
-/** A single set actually performed during a workout with recorded values. */
+/** A single set actually performed during a workout with recorded values. Snapshot-planned fields capture the prescribed values at the time the set was first logged; they are immutable after initial persistence so later plan edits do not affect them. */
 export interface WorkoutSet {
     /** Set number within the exercise (1-based). */
     setNumber?: number;
@@ -12808,6 +12956,20 @@ export interface WorkoutSet {
     completedAt?: string | undefined;
     /** Whether this set is a personal record for this exercise. */
     isPR?: boolean;
+    /** Prescribed repetitions at the time this set was first logged. */
+    plannedReps?: number | undefined;
+    /** Prescribed weight (kg) at the time this set was first logged. */
+    plannedWeightKg?: number | undefined;
+    /** Prescribed RPE at the time this set was first logged. */
+    plannedRpe?: number | undefined;
+    /** Prescribed duration (seconds) at the time this set was first logged. */
+    plannedDurationSeconds?: number | undefined;
+    /** Prescribed distance (meters) at the time this set was first logged. */
+    plannedDistanceMeters?: number | undefined;
+    /** Backend-computed flag: true when any actual field differs from its snapshot-planned counterpart.
+Always false for legacy sets whose planned fields are all null (backward-compatible default).
+Never stored — derived on read. */
+    isModified?: boolean;
 }
 
 /** Request to progressively update a workout log with exercise data. Designed for offline-first: client sends all exercises/sets accumulated so far. */
@@ -12852,29 +13014,32 @@ export interface UpdateWorkoutSetRequest {
     distanceMeters?: number | undefined;
     /** When this set was completed. */
     completedAt?: string | undefined;
+    /** Prescribed repetitions from the plan prescription. */
+    plannedReps?: number | undefined;
+    /** Prescribed weight (kg) from the plan prescription. */
+    plannedWeightKg?: number | undefined;
+    /** Prescribed RPE from the plan prescription. */
+    plannedRpe?: number | undefined;
+    /** Prescribed duration (seconds) from the plan prescription. */
+    plannedDurationSeconds?: number | undefined;
+    /** Prescribed distance (meters) from the plan prescription. */
+    plannedDistanceMeters?: number | undefined;
 }
 
-/** RFC7807 compatible problem details/ error response class. this can be used by configuring startup like so: app.UseFastEndpoints(c => c.Errors.UseProblemDetails()) */
 export interface ProblemDetails {
     type?: string;
     title?: string;
     status?: number;
     instance?: string;
     traceId?: string;
-    /** the details of the error */
     detail?: string | undefined;
     errors?: ProblemDetails_Error[];
 }
 
-/** the error details object */
 export interface ProblemDetails_Error {
-    /** the name of the error or property of the dto that caused the error */
     name?: string;
-    /** the reason for the error */
     reason?: string;
-    /** the code of the error */
     code?: string | undefined;
-    /** the severity of the error */
     severity?: string | undefined;
 }
 
@@ -13026,7 +13191,7 @@ export interface PutSettingsResponse {
     profession?: string;
     /** Day of the week (0 = Sunday … 6 = Saturday). */
     dayOfWeek?: number;
-    /** Hour-aligned time of day. */
+    /** Time of day for the reminder. Between 00:00:00 and 23:59:59. */
     timeOfDay?: string;
     /** Whether the reminder is enabled. */
     enabled?: boolean;
@@ -13043,7 +13208,7 @@ Accepted values: "Training", "Nutrition". */
     profession: string;
     /** Day of the week on which the reminder fires (0 = Sunday … 6 = Saturday). */
     dayOfWeek?: number;
-    /** Hour-aligned local time of day for the reminder. Minutes, Seconds, and Milliseconds must all be zero. */
+    /** Local time of day for the reminder. Must be between 00:00:00 and 23:59:59. */
     timeOfDay?: string;
     /** Whether the reminder is enabled. */
     enabled?: boolean;
@@ -13079,7 +13244,7 @@ export interface PutOverrideResponse {
 export interface PutOverrideRequest {
     /** Override day of week (0 = Sunday … 6 = Saturday). Null = inherit. */
     dayOfWeek?: number | undefined;
-    /** Override time of day (hour-aligned). Null = inherit. Minutes/Seconds/Milliseconds must be zero if set. */
+    /** Override time of day. Null = inherit. Must be between 00:00:00 and 23:59:59 if set. */
     timeOfDay?: string | undefined;
     /** Override enabled flag. Null = inherit. */
     enabled?: boolean | undefined;
@@ -13156,7 +13321,7 @@ export interface CheckInSettingDto {
     profession?: string;
     /** Day of the week (0 = Sunday, 1 = Monday, …, 6 = Saturday). */
     dayOfWeek?: number;
-    /** Hour-aligned time of day in "HH:mm:ss" format. */
+    /** Time of day for the reminder in "HH:mm:ss" format. Between 00:00:00 and 23:59:59. */
     timeOfDay?: string;
     /** Whether the reminder is enabled. */
     enabled?: boolean;
@@ -13616,6 +13781,45 @@ of 1-based set numbers that were stamped as complete in the WorkoutLog.
 An absent key means no sets for that exercise were logged.
 An empty list should not occur but is treated identically to an absent key. */
     completedSetsByExercise?: { [key: string]: number[]; };
+    /** Per-exercise map of per-set actual values, snapshot-planned values, and isModified flags.
+Key = ExerciseExternalId; value = list of LoggedSetDto (one per logged set).
+An absent key means no sets for that exercise were logged.
+The web layer uses this together with CompletedSetsByExercise to render
+the actual-vs-planned comparison and the upraveno (modified) indicator per set. */
+    loggedSetsByExercise?: { [key: string]: LoggedSetDto[]; };
+    /** True when at least one set in any exercise under this session has IsModified == true.
+The web layer uses this to show the upraveno badge at the session-header level.
+Always false when the session has no WorkoutLog (or all logs are legacy without snapshots). */
+    hasModifications?: boolean;
+}
+
+/** Per-set actual values + snapshot-planned values + backend-computed isModified flag, sourced from a WorkoutSet. Used by training-read endpoints that need to surface actual-vs-planned comparison (GetTodaySession, GetFullTrainingPlan, and the trainer GetTrainingPlan). */
+export interface LoggedSetDto {
+    /** 1-based set number within the exercise. */
+    setNumber?: number;
+    /** Actual repetitions logged. Null when the set has not been performed. */
+    actualReps?: number | undefined;
+    /** Actual weight (kg) logged. Null when not performed. */
+    actualWeightKg?: number | undefined;
+    /** Actual RPE logged. Null when not performed. */
+    actualRpe?: number | undefined;
+    /** Actual duration (seconds) logged. Null when not performed. */
+    actualDurationSeconds?: number | undefined;
+    /** Actual distance (meters) logged. Null when not performed. */
+    actualDistanceMeters?: number | undefined;
+    /** Snapshot-planned repetitions at log time. Null for legacy logs. */
+    plannedReps?: number | undefined;
+    /** Snapshot-planned weight (kg) at log time. Null for legacy logs. */
+    plannedWeightKg?: number | undefined;
+    /** Snapshot-planned RPE at log time. Null for legacy logs. */
+    plannedRpe?: number | undefined;
+    /** Snapshot-planned duration (seconds) at log time. Null for legacy logs. */
+    plannedDurationSeconds?: number | undefined;
+    /** Snapshot-planned distance (meters) at log time. Null for legacy logs. */
+    plannedDistanceMeters?: number | undefined;
+    /** Backend-computed flag: true when any actual field differs from its snapshot-planned counterpart.
+Always false for legacy sets (no snapshot → treated as planned == actual). */
+    isModified?: boolean;
 }
 
 /** Per-session edit-lock state projected into the trainer read model. A session with no active lock document reports Stable with a null holder. */
@@ -16003,6 +16207,28 @@ export interface CreateExerciseRequest {
     techniqueNotes?: string | undefined;
 }
 
+/** Request model for saving the complete photo and note state of a training session diary entry. The Photos list and Note are replaced with exactly what the client sends. */
+export interface SaveSessionPhotosRequest {
+    /** The complete list of photos to persist on the session log.
+Replaces the existing Photos list entirely — pass an empty list to remove all photos.
+Each item carries the blob URL and an optional per-photo caption.
+Existing URLs that are re-submitted keep their original UploadedAt
+timestamp; new URLs receive the current UTC time. */
+    photos?: SessionPhotoInput[];
+    /** Optional free-text note to persist on the session log entry (max 500 chars).
+When non-null, the stored note is replaced with the trimmed value
+(whitespace-only strings are treated as null). When null, the existing note is cleared. */
+    note?: string | undefined;
+}
+
+/** A single photo input in a SaveSessionPhotosRequest. */
+export interface SessionPhotoInput {
+    /** The MinIO blob URL for this photo, as returned by the signed-URL upload helper. */
+    blobUrl?: string;
+    /** Optional per-photo caption (max 500 chars). */
+    note?: string | undefined;
+}
+
 /** Response for marking all training sessions on a day complete. */
 export interface MarkWholeDayCompleteResponse {
     /** The date that was marked complete. */
@@ -16264,6 +16490,38 @@ Populated via a single batch GetStateAsync call on the session lock service. */
 Possible values: "Coach" (trainer/nutritionist holds the lock) or "Client".
 Null / missing when the session is in the Stable state. */
     lockHolderBySession?: { [key: string]: string; };
+    /** Per-session photo list for today, keyed by SessionId.
+Each value is an ordered list of photos that were saved to the session log for today's date.
+Sourced from the SessionLog MongoDB document for today.
+Empty dictionary when no photos have been saved for any session today (or when no active plan exists). */
+    photosBySession?: { [key: string]: SessionPhotoDto[]; };
+    /** Per-session diary note for today, keyed by SessionId.
+Only populated for sessions whose SessionLog has a non-null, non-empty Note.
+Allows the mobile client to pre-load the existing note into its textarea so a subsequent
+Save does not overwrite it with null (data-loss prevention).
+Empty dictionary when no session has a note today (or when no active plan exists). */
+    notesBySession?: { [key: string]: string; };
+    /** Per-session, per-exercise logged set values for today.
+Keyed by SessionId → ExerciseExternalId → list of LoggedSetDto (one per set).
+Carries actual logged values, snapshot-planned values, and the backend-computed isModified flag.
+Replaces the set-number-only CompletedSetsBySessionExercise for callers that
+need actual vs planned comparison.
+Empty when no live-training progress has been logged for today. */
+    loggedSetsBySessionExercise?: { [key: string]: { [key: string]: LoggedSetDto[]; }; };
+    /** Per-session hasModifications flag for today, keyed by SessionId.
+True when any set under any exercise in the session has IsModified == true in the latest log.
+Missing entries are treated as false (no modifications / no log). */
+    hasModificationsBySession?: { [key: string]: boolean; };
+}
+
+/** A photo attached to a session diary entry, as returned in PhotosBySession. */
+export interface SessionPhotoDto {
+    /** The MinIO blob URL for this photo. */
+    blobUrl?: string;
+    /** UTC timestamp when the photo was uploaded/persisted. */
+    uploadedAt?: string;
+    /** Optional per-photo caption (max 500 chars). Null when none was provided. */
+    note?: string | undefined;
 }
 
 /** Full training plan response for the client mobile view. Contains all published weeks enriched with completion state and muscle group data. */
@@ -16344,6 +16602,9 @@ Populated via a batch GetStateAsync call on the session lock service. */
     /** Who currently holds the lock, if any.
 Possible values: "Coach", "Client", or null when the session is Stable. */
     lockHolder?: string | undefined;
+    /** True when at least one exercise in this session has HasModifications == true.
+Always false when no workout log exists for this session. */
+    hasModifications?: boolean;
 }
 
 /** An ordered section within a session (e.g. "Hlavní", "Warm-up", "Cool-down"). */
@@ -16398,28 +16659,71 @@ Empty list when the exercise no longer exists in the database. */
     muscleGroups?: MuscleGroup[];
     /** True when every planned set has a completed workout log entry. */
     isCompleted?: boolean;
-    /** Planned sets with per-set completion timestamps. */
+    /** True when at least one set under this exercise has IsModified == true.
+Always false when no workout log exists for this exercise. */
+    hasModifications?: boolean;
+    /** Planned sets with per-set completion timestamps and actual-vs-planned delta. */
     sets?: SetDto[];
 }
 
-/** A planned set with its completion state derived from workout logs. */
+/** A planned set with its completion state and actual-vs-planned delta derived from workout logs. */
 export interface SetDto {
     /** 1-based set number within the exercise. */
     setNumber?: number;
     /** Set type (Normal, Warmup, Dropset, Superset). */
     type?: string;
-    /** Target number of repetitions. */
+    /** Target number of repetitions (from the plan prescription). */
     reps?: number | undefined;
-    /** Target weight in kilograms. */
+    /** Target weight in kilograms (from the plan prescription). */
     weightKg?: number | undefined;
-    /** Target duration in seconds (for timed exercises). */
+    /** Target duration in seconds (from the plan prescription). */
     durationSeconds?: number | undefined;
-    /** Target distance in meters (for distance-based exercises). */
+    /** Target distance in meters (from the plan prescription). */
     distanceMeters?: number | undefined;
     /** Rest time after this set in seconds. */
     restSeconds?: number | undefined;
     /** When this set was completed, or null if not yet done. */
     completedAt?: string | undefined;
+    /** Actual repetitions logged. Null when not yet performed. */
+    actualReps?: number | undefined;
+    /** Actual weight (kg) logged. Null when not yet performed. */
+    actualWeightKg?: number | undefined;
+    /** Actual RPE logged. Null when not yet performed. */
+    actualRpe?: number | undefined;
+    /** Actual duration (seconds) logged. Null when not yet performed. */
+    actualDurationSeconds?: number | undefined;
+    /** Actual distance (meters) logged. Null when not yet performed. */
+    actualDistanceMeters?: number | undefined;
+    /** Snapshot-planned repetitions at log time. Null for legacy logs. */
+    plannedReps?: number | undefined;
+    /** Snapshot-planned weight (kg) at log time. Null for legacy logs. */
+    plannedWeightKg?: number | undefined;
+    /** Snapshot-planned RPE at log time. Null for legacy logs. */
+    plannedRpe?: number | undefined;
+    /** Snapshot-planned duration (seconds) at log time. Null for legacy logs. */
+    plannedDurationSeconds?: number | undefined;
+    /** Snapshot-planned distance (meters) at log time. Null for legacy logs. */
+    plannedDistanceMeters?: number | undefined;
+    /** Backend-computed flag: true when any actual field differs from its snapshot-planned
+counterpart. Always false for legacy sets (no snapshot → treated as planned == actual). */
+    isModified?: boolean;
+}
+
+/** Response for the session photo upload URL generation endpoint. */
+export interface GenerateSessionPhotoUploadUrlResponse {
+    /** Time-limited pre-signed URL the client uses to PUT the image directly to blob storage. */
+    uploadUrl?: string;
+    /** The permanent blob URL to pass to POST /client/training/log/sessions/{sessionId}/photos
+after the upload completes. */
+    blobUrl?: string;
+}
+
+/** Request model for generating a pre-signed training session photo upload URL. */
+export interface GenerateSessionPhotoUploadUrlRequest {
+    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"). */
+    contentType: string;
+    /** Declared file size in bytes. Must not exceed 10 MiB. */
+    sizeBytes?: number;
 }
 
 /** Response model returned after sending a client request. */
@@ -16493,6 +16797,7 @@ export enum PlanPhotoCategory {
     Food = "Food",
     Body = "Body",
     FreeForm = "FreeForm",
+    Training = "Training",
 }
 
 /** Identifies whether a PlanPhoto is associated with a nutrition plan or a training plan. */

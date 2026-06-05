@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import type { ExerciseSet, MovementType, WorkoutFormat } from '@/api/training-plan-types';
+import type { ExerciseSet, MovementType, WorkoutFormat, LoggedSetDto } from '@/api/training-plan-types';
 
 interface WodExerciseRowProps {
   /** The single set holding the WOD round prescription. */
@@ -13,6 +13,11 @@ interface WodExerciseRowProps {
   sectionFormat: WorkoutFormat;
   /** Patches the single set in the store. */
   onUpdate: (updates: Partial<ExerciseSet>) => void;
+  /**
+   * Logged-set actual + snapshot-planned values from the client's workout log.
+   * When present, renders actual as headline + snapshot-planned as caption + change dot.
+   */
+  loggedSet?: LoggedSetDto;
 }
 
 /**
@@ -29,12 +34,47 @@ interface WodExerciseRowProps {
  *   Distance    → distance (m) + duration (s)
  *   RepsForTime → reps
  */
-export function WodExerciseRow({ set, movementType, sectionFormat, onUpdate }: WodExerciseRowProps) {
+export function WodExerciseRow({ set, movementType, sectionFormat, onUpdate, loggedSet }: WodExerciseRowProps) {
   const { t } = useTranslation();
   // Tabata sets work duration at the section level (`formatConfig.workSeconds`),
   // so per-exercise reps don't make sense — the trainer prescribes load and
   // movement; the rep count is whatever the client achieves in the work window.
   const hideReps = sectionFormat === 'Tabata';
+
+  /**
+   * Renders a single WOD field in "logged view" (Treatment B):
+   *   - actual value as headline
+   *   - snapshot-planned as quiet "plán X" caption
+   *   - gold dot change indicator when isModifiedField is true
+   */
+  const loggedWodField = (
+    label: string,
+    actual: number | null | undefined,
+    planned: number | null | undefined,
+    isModifiedField: boolean,
+    unit?: string,
+  ) => (
+    <span className="inline-flex items-start gap-1.5">
+      <span className="text-[11px] font-medium text-text3 uppercase">{label}</span>
+      <span className="inline-flex flex-col items-end">
+        <span className="text-[12px] font-semibold text-text tabular-nums">
+          {actual != null ? String(actual) : '–'}
+          {isModifiedField && (
+            <span
+              className="inline-block w-1.5 h-1.5 rounded-full bg-accent ml-[2px] align-middle"
+              aria-label={t('training.completionState.modified')}
+            />
+          )}
+        </span>
+        {planned != null && (
+          <span className="text-[9px] text-text4 tabular-nums leading-none">
+            {t('training.completionState.plan')} {planned}
+          </span>
+        )}
+      </span>
+      {unit && <span className="text-[11px] text-text4">{unit}</span>}
+    </span>
+  );
 
   const inputStyle: React.CSSProperties = {
     border: 'none',
@@ -93,6 +133,42 @@ export function WodExerciseRow({ set, movementType, sectionFormat, onUpdate }: W
     numInput(set.weightKg, (v) => onUpdate({ weightKg: v })),
     'kg',
   );
+
+  // When a logged set is present, render actual/planned overlay instead of editable inputs
+  if (loggedSet) {
+    switch (movementType) {
+      case 'Time':
+        return (
+          <div className="flex items-center gap-3 flex-wrap">
+            {loggedWodField(t('training.wod.durationLabel'), loggedSet.actualDurationSeconds, loggedSet.plannedDurationSeconds, loggedSet.isModified, 's')}
+            {loggedWodField(t('training.weightLabel'), loggedSet.actualWeightKg, loggedSet.plannedWeightKg, loggedSet.isModified, 'kg')}
+          </div>
+        );
+      case 'Distance':
+        return (
+          <div className="flex items-center gap-3 flex-wrap">
+            {loggedWodField(t('training.wod.distanceLabel'), loggedSet.actualDistanceMeters, loggedSet.plannedDistanceMeters, loggedSet.isModified, 'm')}
+            {loggedWodField(t('training.wod.durationLabel'), loggedSet.actualDurationSeconds, loggedSet.plannedDurationSeconds, loggedSet.isModified, 's')}
+            {loggedWodField(t('training.weightLabel'), loggedSet.actualWeightKg, loggedSet.plannedWeightKg, loggedSet.isModified, 'kg')}
+          </div>
+        );
+      case 'RepsForTime':
+        return (
+          <div className="flex items-center gap-3 flex-wrap">
+            {!hideReps && loggedWodField(t('training.repsLabel'), loggedSet.actualReps, loggedSet.plannedReps, loggedSet.isModified)}
+            {loggedWodField(t('training.weightLabel'), loggedSet.actualWeightKg, loggedSet.plannedWeightKg, loggedSet.isModified, 'kg')}
+          </div>
+        );
+      // Reps (default)
+      default:
+        return (
+          <div className="flex items-center gap-3 flex-wrap">
+            {loggedWodField(t('training.weightLabel'), loggedSet.actualWeightKg, loggedSet.plannedWeightKg, loggedSet.isModified, 'kg')}
+            {!hideReps && loggedWodField(t('training.repsLabel'), loggedSet.actualReps, loggedSet.plannedReps, loggedSet.isModified)}
+          </div>
+        );
+    }
+  }
 
   switch (movementType) {
     case 'Time':

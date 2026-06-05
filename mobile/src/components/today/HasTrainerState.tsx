@@ -1370,6 +1370,8 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
               isMarkAllTrainingLoading={markAllTrainingDoneMutation.isPending}
               onSessionPhotoPress={handleSessionPhotoPress}
               photosBySession={photosBySession}
+              loggedSetsBySessionExercise={trainingQuery.data?.loggedSetsBySessionExercise}
+              hasModificationsBySession={trainingQuery.data?.hasModificationsBySession}
             />
           </View>
         ) : hasActivePlanButNoTrainingToday ? (

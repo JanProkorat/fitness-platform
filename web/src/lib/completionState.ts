@@ -22,6 +22,29 @@
 import type { SessionExecutionDto } from '@/api/training-plan-types';
 import type { MealLogDto } from '@/api/plan-types';
 
+// ── Per-exercise modification state ─────────────────────────────────────────
+
+/**
+ * Derive whether an exercise has any set-level modifications.
+ *
+ * The backend only surfaces session-level hasModifications and per-set isModified
+ * flags. There is no per-exercise hasModifications on the DTO — we derive it
+ * client-side by checking whether any LoggedSetDto under the exercise has
+ * isModified === true.
+ *
+ * @param sessionExecution  The execution record for the session (may be undefined)
+ * @param exerciseExternalId The exercise to check
+ */
+export function deriveExerciseModificationState(
+  sessionExecution: SessionExecutionDto | undefined,
+  exerciseExternalId: string,
+): boolean {
+  if (!sessionExecution) return false;
+  const loggedSets = sessionExecution.loggedSetsByExercise[exerciseExternalId];
+  if (!loggedSets || loggedSets.length === 0) return false;
+  return loggedSets.some((s) => s.isModified);
+}
+
 // ── Per-set state ────────────────────────────────────────────────────────────
 
 export type SetCompletionState = 'completed' | 'skipped' | 'not-reached';

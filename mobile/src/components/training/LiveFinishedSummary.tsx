@@ -4,7 +4,7 @@ import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
 import { useTranslation } from 'react-i18next'
-import type { WorkoutFormat } from '@/api/wod-types'
+import type { WorkoutFormat, LoggedSetDto } from '@/api/wod-types'
 import type { FullPlanSet } from '@/api/training'
 import { SetGrid } from '@/components/training/SetGrid'
 
@@ -20,6 +20,12 @@ export interface FinishedExerciseSetData {
   completedSetNumbers: number[]
   /** 1-based set numbers that the user skipped (↷). */
   skippedSetNumbers: number[]
+  /**
+   * Actual vs. snapshot-planned set data from the finished workout log.
+   * When present, SetGrid renders treatment B: actual headline, planned
+   * caption, and a gold change-indicator dot for modified sets (#441).
+   */
+  loggedSets?: LoggedSetDto[]
 }
 
 export interface FinishedWorkoutCardData {
@@ -183,6 +189,7 @@ export function LiveFinishedSummary({
                       sets={ex.sets}
                       completedSetNumbers={ex.completedSetNumbers}
                       skippedSetNumbers={ex.skippedSetNumbers}
+                      loggedSets={ex.loggedSets}
                     />
                   </View>
                 ))}

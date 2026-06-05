@@ -8,6 +8,7 @@ import type {
   StartWorkoutResponse,
   UpdateWorkoutExerciseRequest,
   UpdateWorkoutRequest,
+  UpdateWorkoutSetRequest,
   GetExerciseProgressResponse,
   ExerciseProgressPoint,
   GoLiveResponse,
@@ -28,6 +29,13 @@ export type {
   GoLiveResponse,
   AbandonWorkoutResponse,
 };
+
+/**
+ * `UpdateWorkoutSetWithPlannedRequest` is now identical to the generated
+ * `UpdateWorkoutSetRequest` (which carries planned fields natively after the #440 regen).
+ * Kept as an alias so callers that still reference the old name compile without changes.
+ */
+export type { UpdateWorkoutSetRequest, UpdateWorkoutSetRequest as UpdateWorkoutSetWithPlannedRequest };
 
 /**
  * @deprecated Use `GetExerciseProgressResponse` from generated. Kept as alias for backward compatibility.

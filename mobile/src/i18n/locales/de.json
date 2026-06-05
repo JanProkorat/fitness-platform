@@ -998,6 +998,9 @@
     "exerciseCount_other": "{{count}} Übungen",
     "workoutUntimedCount_one": "{{count}} ohne Zeit",
     "workoutUntimedCount_other": "{{count}} ohne Zeit",
+    "upraveno": "geändert",
+    "plan": "Plan",
+    "navic": "extra",
     "section": {
       "label": "Abschnitt",
       "defaultName": "Haupt",
