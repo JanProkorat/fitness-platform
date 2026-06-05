@@ -82,7 +82,12 @@ pods_manifest="$mobile_dir/ios/Pods/Manifest.lock"
 podfile_lock="$mobile_dir/ios/Podfile.lock"
 if [[ ! -f "$pods_manifest" ]] || ! diff -q "$pods_manifest" "$podfile_lock" > /dev/null 2>&1; then
   echo "[qa-build] Pods/Manifest.lock missing or diverged — running pod install" >&2
-  (cd "$mobile_dir/ios" && pod install) >&2
+  # Force UTF-8 locale for this step only. CocoaPods 1.16.2 under Ruby 4.0.2
+  # raises Encoding::CompatibilityError ("Unicode Normalization not appropriate
+  # for ASCII-8BIT") when the process locale is not UTF-8. Exporting LANG/LC_ALL
+  # here scopes the fix to the pod install subshell without touching the global
+  # system Ruby or CocoaPods installation.
+  (cd "$mobile_dir/ios" && export LANG=en_US.UTF-8 && export LC_ALL=en_US.UTF-8 && pod install) >&2
 fi
 
 workspace="$(find "$mobile_dir/ios" -maxdepth 1 -name "*.xcworkspace" -print -quit)"
