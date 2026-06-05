@@ -262,4 +262,262 @@ public class UpdateWorkoutPlannedSnapshotTests
         var set = new WorkoutSet { SetNumber = 1, DistanceMeters = 450m, PlannedDistanceMeters = 500m };
         set.IsModified.Should().BeTrue();
     }
+
+    // ── Snapshot immutability: re-PUT must not overwrite an existing snapshot ───
+
+    /// <summary>
+    /// A second PUT that supplies different Planned* values must not overwrite
+    /// the snapshot recorded on the first PUT. The stored non-null values win.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_RePut_WithDifferentPlannedValues_PreservesOriginalSnapshot()
+    {
+        var logId = Guid.NewGuid();
+        var exerciseId = Guid.NewGuid();
+
+        // Simulate the document as it exists AFTER the first PUT:
+        // the snapshot fields are already populated.
+        var storedLog = WorkoutLogTestHelpers.CreateLog(externalId: logId, clientId: _clientId);
+        storedLog.Sections =
+        [
+            new WorkoutSection
+            {
+                SectionId = Guid.NewGuid(),
+                Order = 0,
+                Name = "Hlavní",
+                Exercises =
+                [
+                    new WorkoutExercise
+                    {
+                        ExerciseExternalId = exerciseId,
+                        ExerciseName = "Squat",
+                        Sets =
+                        [
+                            new WorkoutSet
+                            {
+                                SetNumber = 1,
+                                Reps = 8,
+                                WeightKg = 100m,
+                                PlannedReps = 10,       // original snapshot
+                                PlannedWeightKg = 105m  // original snapshot
+                            }
+                        ]
+                    }
+                ]
+            }
+        ];
+
+        var mongo = WorkoutLogTestHelpers.CreateMockMongo(logs: [storedLog]);
+        var ep = CreateEndpoint(mongo);
+
+        // Second PUT: coach edited the plan — client sends new Planned* values that differ.
+        var request = new UpdateWorkoutRequest
+        {
+            LogId = logId,
+            Exercises =
+            [
+                new UpdateWorkoutExerciseRequest
+                {
+                    ExerciseExternalId = exerciseId,
+                    ExerciseName = "Squat",
+                    Sets =
+                    [
+                        new UpdateWorkoutSetRequest
+                        {
+                            SetNumber = 1,
+                            Reps = 9,                    // actual updated
+                            WeightKg = 102.5m,           // actual updated
+                            PlannedReps = 12,            // attacker/stale value — must be ignored
+                            PlannedWeightKg = 110m       // attacker/stale value — must be ignored
+                        }
+                    ]
+                }
+            ]
+        };
+
+        await ep.HandleAsync(request, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        // Snapshot fields must remain at the ORIGINAL values (10, 105m), not the request values (12, 110m).
+        await mongo.WorkoutLogs.Received().ReplaceOneAsync(
+            Arg.Any<FilterDefinition<WorkoutLog>>(),
+            Arg.Is<WorkoutLog>(w =>
+                w.Exercises[0].Sets[0].PlannedReps == 10 &&
+                w.Exercises[0].Sets[0].PlannedWeightKg == 105m),
+            Arg.Any<ReplaceOptions>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    /// <summary>
+    /// A second PUT must still update actual (Reps, WeightKg, Rpe, etc.) values —
+    /// only the Planned* snapshot fields are frozen, not the whole set.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_RePut_UpdatesActualValuesWhilePreservingSnapshot()
+    {
+        var logId = Guid.NewGuid();
+        var exerciseId = Guid.NewGuid();
+
+        // Stored state: snapshot already set, actuals from first PUT.
+        var storedLog = WorkoutLogTestHelpers.CreateLog(externalId: logId, clientId: _clientId);
+        storedLog.Sections =
+        [
+            new WorkoutSection
+            {
+                SectionId = Guid.NewGuid(),
+                Order = 0,
+                Name = "Hlavní",
+                Exercises =
+                [
+                    new WorkoutExercise
+                    {
+                        ExerciseExternalId = exerciseId,
+                        ExerciseName = "Bench Press",
+                        Sets =
+                        [
+                            new WorkoutSet
+                            {
+                                SetNumber = 1,
+                                Reps = 5,
+                                WeightKg = 80m,
+                                PlannedReps = 8,
+                                PlannedWeightKg = 80m
+                            }
+                        ]
+                    }
+                ]
+            }
+        ];
+
+        var mongo = WorkoutLogTestHelpers.CreateMockMongo(logs: [storedLog]);
+        var ep = CreateEndpoint(mongo);
+
+        // Second PUT: client corrects their actual reps/weight.
+        var request = new UpdateWorkoutRequest
+        {
+            LogId = logId,
+            Exercises =
+            [
+                new UpdateWorkoutExerciseRequest
+                {
+                    ExerciseExternalId = exerciseId,
+                    ExerciseName = "Bench Press",
+                    Sets =
+                    [
+                        new UpdateWorkoutSetRequest
+                        {
+                            SetNumber = 1,
+                            Reps = 7,              // corrected actual
+                            WeightKg = 82.5m,      // corrected actual
+                            PlannedReps = 99,      // should be ignored — stored is 8
+                            PlannedWeightKg = 99m  // should be ignored — stored is 80m
+                        }
+                    ]
+                }
+            ]
+        };
+
+        await ep.HandleAsync(request, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        await mongo.WorkoutLogs.Received().ReplaceOneAsync(
+            Arg.Any<FilterDefinition<WorkoutLog>>(),
+            Arg.Is<WorkoutLog>(w =>
+                // Actuals are updated to the new values.
+                w.Exercises[0].Sets[0].Reps == 7 &&
+                w.Exercises[0].Sets[0].WeightKg == 82.5m &&
+                // Snapshot stays frozen at original values.
+                w.Exercises[0].Sets[0].PlannedReps == 8 &&
+                w.Exercises[0].Sets[0].PlannedWeightKg == 80m),
+            Arg.Any<ReplaceOptions>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    /// <summary>
+    /// An extra set added on a re-PUT (index beyond stored count) has no prior snapshot.
+    /// The request's Planned* values flow through without error.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_RePut_ExtraSetBeyondStoredCount_TakesRequestPlannedValues()
+    {
+        var logId = Guid.NewGuid();
+        var exerciseId = Guid.NewGuid();
+
+        // Stored state: only set 1 exists.
+        var storedLog = WorkoutLogTestHelpers.CreateLog(externalId: logId, clientId: _clientId);
+        storedLog.Sections =
+        [
+            new WorkoutSection
+            {
+                SectionId = Guid.NewGuid(),
+                Order = 0,
+                Name = "Hlavní",
+                Exercises =
+                [
+                    new WorkoutExercise
+                    {
+                        ExerciseExternalId = exerciseId,
+                        ExerciseName = "Pull-up",
+                        Sets =
+                        [
+                            new WorkoutSet
+                            {
+                                SetNumber = 1,
+                                Reps = 10,
+                                PlannedReps = 10
+                            }
+                        ]
+                    }
+                ]
+            }
+        ];
+
+        var mongo = WorkoutLogTestHelpers.CreateMockMongo(logs: [storedLog]);
+        var ep = CreateEndpoint(mongo);
+
+        // Second PUT: client adds an extra set 2 (no stored snapshot for it).
+        var request = new UpdateWorkoutRequest
+        {
+            LogId = logId,
+            Exercises =
+            [
+                new UpdateWorkoutExerciseRequest
+                {
+                    ExerciseExternalId = exerciseId,
+                    ExerciseName = "Pull-up",
+                    Sets =
+                    [
+                        new UpdateWorkoutSetRequest
+                        {
+                            SetNumber = 1,
+                            Reps = 10,
+                            PlannedReps = 99 // ignored — stored is 10
+                        },
+                        new UpdateWorkoutSetRequest
+                        {
+                            SetNumber = 2,         // extra set — no stored snapshot
+                            Reps = 8,
+                            PlannedReps = 8        // should flow through (no stored value)
+                        }
+                    ]
+                }
+            ]
+        };
+
+        await ep.HandleAsync(request, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        await mongo.WorkoutLogs.Received().ReplaceOneAsync(
+            Arg.Any<FilterDefinition<WorkoutLog>>(),
+            Arg.Is<WorkoutLog>(w =>
+                // Set 1: snapshot frozen at original 10.
+                w.Exercises[0].Sets[0].PlannedReps == 10 &&
+                // Set 2 (extra): request planned value flows through.
+                w.Exercises[0].Sets[1].PlannedReps == 8),
+            Arg.Any<ReplaceOptions>(),
+            Arg.Any<CancellationToken>());
+    }
 }
