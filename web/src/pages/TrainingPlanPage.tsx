@@ -1132,6 +1132,15 @@ export default function TrainingPlanPage() {
                           />
                         );
                       })()}
+                      {/* Session-level "upraveno" badge — shown when the client
+                          performed at least one set that differs from the plan.
+                          hasModifications is backend-computed on the SessionExecutionDto. */}
+                      {sessionExec?.hasModifications && (
+                        <CompletionBadge
+                          kind="modified"
+                          state={sessionExec.hasModifications}
+                        />
+                      )}
                     </span>
                     {/* ── Edit-lock affordances (published sessions only) ─────────
                         Live   → in-progress badge + disabled affordance with tooltip

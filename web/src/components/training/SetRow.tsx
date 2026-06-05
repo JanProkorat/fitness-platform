@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import type { ExerciseSet, MovementType } from '@/api/training-plan-types';
+import type { ExerciseSet, MovementType, LoggedSetDto } from '@/api/training-plan-types';
 import type { SetCompletionState } from '@/lib/completionState';
 import { CompletionBadge } from '@/components/common/CompletionBadge';
 
@@ -11,6 +11,20 @@ interface SetRowProps {
   onRemove: () => void;
   /** Completion state for this set (additive display-only; omit to render nothing). */
   completionState?: SetCompletionState;
+  /**
+   * Logged-set actual + snapshot-planned values from the client's workout log.
+   * When present, the set is rendered in read-view (Treatment B):
+   *   - Actual value as the headline number
+   *   - Snapshot-planned as a quiet "plán…" caption below
+   *   - Gold accent change-indicator dot when isModified === true
+   * When absent (no workout log for this set), the editable plan inputs render as normal.
+   */
+  loggedSet?: LoggedSetDto;
+  /**
+   * When true, the set is an extra set performed beyond the plan count
+   * (actual only, no planned value). Shown in gold + "navíc" caption.
+   */
+  isExtraSet?: boolean;
 }
 
 /**
@@ -21,7 +35,7 @@ interface SetRowProps {
  *   Distance    → distance + duration + rest
  *   RepsForTime → reps + rest
  */
-export function SetRow({ set, movementType, onUpdate, onDuplicate, onRemove, completionState }: SetRowProps) {
+export function SetRow({ set, movementType, onUpdate, onDuplicate, onRemove, completionState, loggedSet, isExtraSet }: SetRowProps) {
   const { t } = useTranslation();
 
   // Shared input styling. Values are centered in their columns so that the
@@ -69,9 +83,96 @@ export function SetRow({ set, movementType, onUpdate, onDuplicate, onRemove, com
     />
   );
 
+  /**
+   * Renders a single value cell in "logged view" (Treatment B):
+   *   - actual value as headline (gold if isExtraSet, else default text color)
+   *   - snapshot-planned as a quiet "plán X" caption below (hidden for extra sets)
+   *   - gold dot change indicator when isModified === true
+   *
+   * Returns null when both actual and planned are null (set not performed).
+   */
+  const loggedCell = (
+    actual: number | null | undefined,
+    planned: number | null | undefined,
+    isModifiedField: boolean,
+  ) => {
+    const actualDisplay = actual != null ? String(actual) : '–';
+    const plannedDisplay = planned != null ? String(planned) : null;
+    return (
+      <div className="flex flex-col items-center gap-0" style={{ minWidth: 0 }}>
+        {/* Actual headline */}
+        <span
+          className={
+            isExtraSet
+              ? 'text-[12px] font-semibold text-accent tabular-nums'
+              : 'text-[12px] font-semibold text-text tabular-nums'
+          }
+        >
+          {actualDisplay}
+          {isModifiedField && !isExtraSet && (
+            <span
+              className="inline-block w-1.5 h-1.5 rounded-full bg-accent ml-[2px] align-middle"
+              aria-label={t('training.completionState.modified')}
+            />
+          )}
+        </span>
+        {/* Snapshot-planned caption */}
+        {!isExtraSet && plannedDisplay != null && (
+          <span className="text-[9px] text-text4 tabular-nums leading-none">
+            {t('training.completionState.plan')} {plannedDisplay}
+          </span>
+        )}
+        {/* Extra-set "navíc" caption */}
+        {isExtraSet && (
+          <span className="text-[9px] text-accent tabular-nums leading-none">
+            {t('training.completionState.navic')}
+          </span>
+        )}
+      </div>
+    );
+  };
+
   // Determine grid template based on movementType.
   // Columns: # | type-specific fields | rest | remove
   const renderColumns = () => {
+    // When loggedSet is present, render actual/planned overlay instead of editable inputs
+    if (loggedSet) {
+      switch (movementType) {
+        case 'Time':
+          return (
+            <>
+              {loggedCell(loggedSet.actualDurationSeconds, loggedSet.plannedDurationSeconds, loggedSet.isModified)}
+              {/* Rest is plan-only — no logged "actual rest" in the contract */}
+              {numInput(set.restSeconds, (v) => onUpdate({ restSeconds: v }), '--', t('training.restSecondsLabel'))}
+            </>
+          );
+        case 'Distance':
+          return (
+            <>
+              {loggedCell(loggedSet.actualDistanceMeters, loggedSet.plannedDistanceMeters, loggedSet.isModified)}
+              {loggedCell(loggedSet.actualDurationSeconds, loggedSet.plannedDurationSeconds, loggedSet.isModified)}
+              {numInput(set.restSeconds, (v) => onUpdate({ restSeconds: v }), '--', t('training.restSecondsLabel'))}
+            </>
+          );
+        case 'RepsForTime':
+          return (
+            <>
+              {loggedCell(loggedSet.actualReps, loggedSet.plannedReps, loggedSet.isModified)}
+              {numInput(set.restSeconds, (v) => onUpdate({ restSeconds: v }), '--', t('training.restSecondsLabel'))}
+            </>
+          );
+        // Reps (default)
+        default:
+          return (
+            <>
+              {loggedCell(loggedSet.actualWeightKg, loggedSet.plannedWeightKg, loggedSet.isModified)}
+              {loggedCell(loggedSet.actualReps, loggedSet.plannedReps, loggedSet.isModified)}
+              {numInput(set.restSeconds, (v) => onUpdate({ restSeconds: v }), '--', t('training.restSecondsLabel'))}
+            </>
+          );
+      }
+    }
+
     switch (movementType) {
       case 'Time':
         return (

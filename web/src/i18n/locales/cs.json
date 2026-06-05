@@ -1215,7 +1215,10 @@
       "exerciseCompleted": "{{done}}/{{total}} dokončeno",
       "exerciseSkippedSuffix": "{{count}} vynecháno",
       "sessionAllComplete": "Vše dokončeno",
-      "sessionMixed": "{{completed}} dokončeno · {{skipped}} vynecháno"
+      "sessionMixed": "{{completed}} dokončeno · {{skipped}} vynecháno",
+      "modified": "upraveno",
+      "plan": "plán",
+      "navic": "navíc"
     },
     "retroactiveFinish": {
       "buttonLabel": "Označit jako dokončeno",

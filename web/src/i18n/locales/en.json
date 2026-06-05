@@ -1200,7 +1200,10 @@
       "exerciseCompleted": "{{done}}/{{total}} completed",
       "exerciseSkippedSuffix": "{{count}} skipped",
       "sessionAllComplete": "All complete",
-      "sessionMixed": "{{completed}} completed · {{skipped}} skipped"
+      "sessionMixed": "{{completed}} completed · {{skipped}} skipped",
+      "modified": "modified",
+      "plan": "plan",
+      "navic": "extra"
     },
     "retroactiveFinish": {
       "buttonLabel": "Mark finished",

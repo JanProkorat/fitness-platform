@@ -1199,7 +1199,10 @@
       "exerciseCompleted": "{{done}}/{{total}} abgeschlossen",
       "exerciseSkippedSuffix": "{{count}} übersprungen",
       "sessionAllComplete": "Alles erledigt",
-      "sessionMixed": "{{completed}} abgeschlossen · {{skipped}} übersprungen"
+      "sessionMixed": "{{completed}} abgeschlossen · {{skipped}} übersprungen",
+      "modified": "geändert",
+      "plan": "Plan",
+      "navic": "extra"
     },
     "retroactiveFinish": {
       "buttonLabel": "Als abgeschlossen markieren",

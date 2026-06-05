@@ -147,12 +147,26 @@ type DayBadgeProps = {
   counts?: DayCompletionCounts;
 };
 
+/**
+ * Training: "upraveno" (modified) roll-up badge.
+ * Shown at exercise-header and session-header level when any set under the
+ * exercise / session has isModified === true.
+ * false → nothing rendered (returns null).
+ * true  → accent pill with a small pencil-edit icon + t('training.completionState.modified') label.
+ */
+type ModifiedBadgeProps = {
+  kind: 'modified';
+  state: boolean;
+  counts?: undefined;
+};
+
 export type CompletionBadgeProps =
   | SetBadgeProps
   | ExerciseBadgeProps
   | SessionBadgeProps
   | MealBadgeProps
-  | DayBadgeProps;
+  | DayBadgeProps
+  | ModifiedBadgeProps;
 
 // ── Component ────────────────────────────────────────────────────────────────
 
@@ -184,6 +198,9 @@ export function CompletionBadge(props: CompletionBadgeProps) {
   }
   if (props.kind === 'day') {
     return <DayBadge state={props.state} counts={props.counts} t={t} />;
+  }
+  if (props.kind === 'modified') {
+    return <ModifiedBadge state={props.state} t={t} />;
   }
   return <SessionBadge state={props.state} counts={props.counts} t={t} />;
 }
@@ -322,6 +339,44 @@ function DayBadge({
       title={label}
     >
       <IconCheckCircle2 size={12} />
+      {label}
+    </span>
+  );
+}
+
+// ── Modified (upraveno) badge ────────────────────────────────────────────────
+
+function ModifiedBadge({
+  state,
+  t,
+}: {
+  state: boolean;
+  t: ReturnType<typeof useTranslation>['t'];
+}) {
+  if (!state) return null;
+  const label = t('training.completionState.modified');
+  return (
+    <span
+      className={accentPill}
+      aria-label={label}
+      title={label}
+    >
+      {/* Inline pencil-edit SVG — same pattern as other micro-icons above */}
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={10}
+        height={10}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+      </svg>
       {label}
     </span>
   );
