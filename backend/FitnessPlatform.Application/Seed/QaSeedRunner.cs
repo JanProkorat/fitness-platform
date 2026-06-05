@@ -83,6 +83,23 @@ public static class QaSeedRunner
     public static readonly Guid QaPastCompletedWorkoutLogId = new("11111111-1111-1111-2222-000000000005");
     public static readonly Guid QaPastSkippedWorkoutLogId   = new("11111111-1111-1111-2222-000000000006");
 
+    // -------------------------------------------------------------------------
+    // #457 — Main plan (dddd...) WorkoutLog with four-case planned-vs-actual sets.
+    // A distinct GUID so the WorkoutLogs==0 minimal-kind assertion is not affected
+    // (gated to Rich seed path only, same as the past-plan logs above).
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Completed WorkoutLog for the main QA training plan (dddddddd-...), Standard section.
+    /// Exercises four per-set cases needed by the planned-vs-actual UI surface:
+    ///   Exercise 1 (QA Squat) — Set 1: modified (actual != planned), Set 2: as-prescribed.
+    ///   Exercise 2 (QA Deadlift) — Set 1: skipped (planned present, actual null), Set 2: extra (no planned snapshot).
+    /// </summary>
+    public static readonly Guid QaMainPlanCompletedWorkoutLogId = new("11111111-1111-1111-4455-000000000001");
+
+    // Section ID within the main-plan completed WorkoutLog (mirrors StandardSectionId).
+    public static readonly Guid MainPlanCompletedSectionId = new("11111111-1111-1111-4455-000000000002");
+
     // Section IDs within the three past sessions.
     public static readonly Guid PastCompletedSectionId = new("11111111-1111-1111-3333-000000000001");
     public static readonly Guid PastSkippedSectionId   = new("11111111-1111-1111-3333-000000000002");
@@ -211,6 +228,9 @@ public static class QaSeedRunner
         {
             // Training plan — ForTime + 0-exercise fixture for #258 non-regression.
             await EnsureTrainingPlanAsync(mongo, clientProfile.PublicId, trainerProfile.PublicId, logger);
+
+            // Main-plan completed WorkoutLog — exercises four planned-vs-actual set cases (#457).
+            await EnsureMainPlanWorkoutLogAsync(mongo, logger);
 
             // Past-dated training plan — three sessions in distinct completion states for #326.
             await EnsurePastTrainingPlanAsync(mongo, clientProfile.PublicId, trainerProfile.PublicId, logger);
@@ -484,7 +504,9 @@ public static class QaSeedRunner
                                         },
                                     ],
                                 },
-                                // Section 3 — Standard (null format) + 2 synthetic exercises (non-regression)
+                                // Section 3 — Standard (null format) + 2 synthetic exercises with prescribed sets.
+                                // Sets are populated so the planned-vs-actual WorkoutLog (#457) can exercise
+                                // all four UI cases: modified, as-prescribed, skipped, extra.
                                 new TrainingSection
                                 {
                                     SectionId    = StandardSectionId,
@@ -500,6 +522,12 @@ public static class QaSeedRunner
                                             ExerciseName       = "QA Squat",
                                             Order              = 1,
                                             MovementType       = MovementType.Reps,
+                                            // Prescribed: 2 sets × 10 reps @ 80 kg.
+                                            Sets =
+                                            [
+                                                new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 10, WeightKg = 80m },
+                                                new ExerciseSet { SetNumber = 2, Type = SetType.Normal, Reps = 10, WeightKg = 80m },
+                                            ],
                                         },
                                         new SessionExercise
                                         {
@@ -507,6 +535,12 @@ public static class QaSeedRunner
                                             ExerciseName       = "QA Deadlift",
                                             Order              = 2,
                                             MovementType       = MovementType.Reps,
+                                            // Prescribed: 2 sets × 5 reps @ 100 kg.
+                                            Sets =
+                                            [
+                                                new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 5, WeightKg = 100m },
+                                                new ExerciseSet { SetNumber = 2, Type = SetType.Normal, Reps = 5, WeightKg = 100m },
+                                            ],
                                         },
                                     ],
                                 },
@@ -546,6 +580,132 @@ public static class QaSeedRunner
         logger.LogInformation(
             "QA TrainingPlan created: externalId={ExternalId} clientId={ClientId}",
             QaTrainingPlanExternalId, clientProfilePublicId);
+    }
+
+    /// <summary>
+    /// Seeds a completed WorkoutLog against the main QA training plan (dddddddd-...)
+    /// Standard section, exercising all four planned-vs-actual set cases in one session:
+    ///
+    ///   Exercise 1 (QA Squat):
+    ///     Set 1 — MODIFIED    PlannedReps=10, PlannedWeightKg=80, actual Reps=8,  WeightKg=85  → IsModified=true.
+    ///     Set 2 — AS-PRESCRIBED PlannedReps=10, PlannedWeightKg=80, actual Reps=10, WeightKg=80 → IsModified=false.
+    ///
+    ///   Exercise 2 (QA Deadlift):
+    ///     Set 1 — SKIPPED     PlannedReps=5, PlannedWeightKg=100, Reps=null, WeightKg=null     → planned set, no actual.
+    ///     Set 2 — EXTRA       PlannedReps=null (no snapshot), actual Reps=6, WeightKg=90       → no planned snapshot.
+    ///
+    /// ClientId = ClientUserId (ApplicationUser.Id) — WorkoutLog ownership mirrors
+    /// CompleteWorkoutEndpoint's filter on AppClaims.UserId.
+    /// Gated to the Rich seed path only; never created for the Minimal kind.
+    /// </summary>
+    private static async Task EnsureMainPlanWorkoutLogAsync(
+        IMongoContext mongo,
+        ILogger logger)
+    {
+        var existing = await mongo.WorkoutLogs
+            .Find(l => l.ExternalId == QaMainPlanCompletedWorkoutLogId)
+            .FirstOrDefaultAsync();
+
+        if (existing is not null)
+        {
+            logger.LogInformation(
+                "QA MainPlan WorkoutLog already present: externalId={ExternalId}", QaMainPlanCompletedWorkoutLogId);
+            return;
+        }
+
+        var completedAt = DateTime.UtcNow.Date.AddDays(-3).AddHours(11); // 11:00 UTC, 3 days ago.
+        var log = new WorkoutLog
+        {
+            ExternalId  = QaMainPlanCompletedWorkoutLogId,
+            // ClientId = ApplicationUser.Id — CompleteWorkoutEndpoint scopes WorkoutLogs by
+            // Guid.Parse(AppClaims.UserId) which is ApplicationUser.Id, NOT ClientProfile.PublicId.
+            ClientId      = ClientUserId,
+            PlanId        = QaTrainingPlanExternalId,
+            SessionId     = QaSessionId,
+            StartedAt     = completedAt.AddMinutes(-60),
+            CompletedAt   = completedAt,
+            CompletedDate = WorkoutLog.ToCompletionDateUtc(completedAt),
+            IsCompleted   = true,
+            DateCreated   = completedAt.AddMinutes(-60),
+            DateUpdated   = completedAt,
+            Sections =
+            [
+                new WorkoutSection
+                {
+                    SectionId = MainPlanCompletedSectionId,
+                    Order     = 2,    // mirrors Standard section Order=2 in the plan
+                    Name      = "Standard test",
+                    Format    = null,
+                    Exercises =
+                    [
+                        // Exercise 1: QA Squat — Set 1 modified, Set 2 as-prescribed.
+                        new WorkoutExercise
+                        {
+                            ExerciseExternalId = StandardExercise1Id,
+                            ExerciseName       = "QA Squat",
+                            Sets =
+                            [
+                                // MODIFIED — actual differs from planned.
+                                new WorkoutSet
+                                {
+                                    SetNumber       = 1,
+                                    Reps            = 8,          // actual: fewer reps
+                                    WeightKg        = 85m,         // actual: heavier weight
+                                    PlannedReps     = 10,          // snapshot from plan prescription
+                                    PlannedWeightKg = 80m,
+                                    CompletedAt     = completedAt.AddMinutes(-50),
+                                },
+                                // AS-PRESCRIBED — actual matches planned exactly.
+                                new WorkoutSet
+                                {
+                                    SetNumber       = 2,
+                                    Reps            = 10,
+                                    WeightKg        = 80m,
+                                    PlannedReps     = 10,
+                                    PlannedWeightKg = 80m,
+                                    CompletedAt     = completedAt.AddMinutes(-40),
+                                },
+                            ],
+                        },
+                        // Exercise 2: QA Deadlift — Set 1 skipped (planned present, no actual),
+                        //                           Set 2 extra (actual present, no planned snapshot).
+                        new WorkoutExercise
+                        {
+                            ExerciseExternalId = StandardExercise2Id,
+                            ExerciseName       = "QA Deadlift",
+                            Sets =
+                            [
+                                // SKIPPED — planned prescription captured, client did not perform the set.
+                                // Reps/WeightKg are null; PlannedReps/PlannedWeightKg are set.
+                                new WorkoutSet
+                                {
+                                    SetNumber       = 1,
+                                    Reps            = null,
+                                    WeightKg        = null,
+                                    PlannedReps     = 5,
+                                    PlannedWeightKg = 100m,
+                                    CompletedAt     = null,
+                                },
+                                // EXTRA — client logged an additional set beyond what was prescribed.
+                                // No planned snapshot (PlannedReps/PlannedWeightKg remain null).
+                                new WorkoutSet
+                                {
+                                    SetNumber   = 2,
+                                    Reps        = 6,
+                                    WeightKg    = 90m,
+                                    CompletedAt = completedAt.AddMinutes(-20),
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        };
+
+        await mongo.WorkoutLogs.InsertOneAsync(log);
+        logger.LogInformation(
+            "QA MainPlan WorkoutLog created: externalId={ExternalId} planId={PlanId} sessionId={SessionId}",
+            QaMainPlanCompletedWorkoutLogId, QaTrainingPlanExternalId, QaSessionId);
     }
 
     /// <summary>
