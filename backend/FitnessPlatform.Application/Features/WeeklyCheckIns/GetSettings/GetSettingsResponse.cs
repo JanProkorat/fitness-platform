@@ -23,7 +23,7 @@ public class CheckInSettingDto
     /// <summary>Day of the week (0 = Sunday, 1 = Monday, …, 6 = Saturday).</summary>
     public int DayOfWeek { get; set; }
 
-    /// <summary>Hour-aligned time of day in "HH:mm:ss" format.</summary>
+    /// <summary>Time of day for the reminder in "HH:mm:ss" format. Between 00:00:00 and 23:59:59.</summary>
     public TimeSpan TimeOfDay { get; set; }
 
     /// <summary>Whether the reminder is enabled.</summary>

@@ -36,7 +36,8 @@ public class WeeklyCheckInClientOverride
     public DayOfWeek? DayOfWeek { get; set; }
 
     /// <summary>
-    /// Override time of day (hour-aligned). Null = inherit from the professional's setting.
+    /// Override time of day. Null = inherit from the professional's setting.
+    /// Must be between 00:00:00 and 23:59:59 when set (enforced at API layer).
     /// </summary>
     public TimeSpan? TimeOfDay { get; set; }
 

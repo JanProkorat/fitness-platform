@@ -462,7 +462,8 @@
     "sessions_other": "{{count}} cvičení",
     "meals_one": "{{count}} jídlo",
     "meals_few": "{{count}} jídla",
-    "meals_other": "{{count}} jídel"
+    "meals_other": "{{count}} jídel",
+    "planNotFound": "Plán nebyl nalezen"
   },
   "pendingQuestionnaires": {
     "title": "Čekající dotazníky",

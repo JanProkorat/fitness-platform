@@ -239,6 +239,129 @@ public class WeeklyCheckInSchedulerTests(FitnessApiFactory factory)
             "scheduler must broadcast exactly one newnotification to the client");
     }
 
+    // ── Sub-hour precision tests ──────────────────────────────────────────────
+
+    /// <summary>
+    /// AC: a setting configured at a non-hour time (18:30) fires when the scheduler
+    /// ticks past that minute boundary.
+    /// </summary>
+    [Fact]
+    public async Task Tick_NonHourFireTime_18h30_CreatesCheckIn()
+    {
+        var (trainerUserId, clientUserId) = await SetupTrainerAndClientWithSettingAsync(
+            DayOfWeek.Wednesday,
+            new TimeSpan(18, 30, 0), // 18:30:00 UTC
+            "UTC");
+
+        var utcNow = DateTime.UtcNow;
+        var daysToLastWed = ((int)utcNow.DayOfWeek - (int)DayOfWeek.Wednesday + 7) % 7;
+        var lastWed1830 = utcNow.Date.AddDays(-daysToLastWed)
+                                     .AddHours(18).AddMinutes(30);
+        if (lastWed1830 >= utcNow) lastWed1830 = lastWed1830.AddDays(-7);
+
+        var scheduler = factory.Services.GetRequiredService<WeeklyCheckInScheduler>();
+
+        // Position cursor just before the fire time so 18:30 is in the upcoming window.
+        scheduler.SetLastTickAt(lastWed1830.AddMinutes(-10));
+
+        // Tick just after 18:30 — scheduler must fire.
+        scheduler.OverrideNow = lastWed1830.AddMinutes(3);
+        await scheduler.TickAsync(scheduler.OverrideNow.Value, TestContext.Current.CancellationToken);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var checkIns = await db.WeeklyCheckIns
+            .Where(c => c.ClientUserId == clientUserId && c.ProfessionalUserId == trainerUserId)
+            .ToListAsync(TestContext.Current.CancellationToken);
+
+        checkIns.Should().HaveCount(1,
+            "a non-hour fire time (18:30) must trigger exactly one check-in when the window crosses it");
+    }
+
+    /// <summary>
+    /// AC: a setting configured at 09:15 fires correctly.
+    /// </summary>
+    [Fact]
+    public async Task Tick_NonHourFireTime_09h15_CreatesCheckIn()
+    {
+        var (trainerUserId, clientUserId) = await SetupTrainerAndClientWithSettingAsync(
+            DayOfWeek.Thursday,
+            new TimeSpan(9, 15, 0), // 09:15:00 UTC
+            "UTC");
+
+        var utcNow = DateTime.UtcNow;
+        var daysToLastThu = ((int)utcNow.DayOfWeek - (int)DayOfWeek.Thursday + 7) % 7;
+        var lastThu0915 = utcNow.Date.AddDays(-daysToLastThu)
+                                      .AddHours(9).AddMinutes(15);
+        if (lastThu0915 >= utcNow) lastThu0915 = lastThu0915.AddDays(-7);
+
+        var scheduler = factory.Services.GetRequiredService<WeeklyCheckInScheduler>();
+
+        scheduler.SetLastTickAt(lastThu0915.AddMinutes(-10));
+        scheduler.OverrideNow = lastThu0915.AddMinutes(5);
+        await scheduler.TickAsync(scheduler.OverrideNow.Value, TestContext.Current.CancellationToken);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var checkIns = await db.WeeklyCheckIns
+            .Where(c => c.ClientUserId == clientUserId && c.ProfessionalUserId == trainerUserId)
+            .ToListAsync(TestContext.Current.CancellationToken);
+
+        checkIns.Should().HaveCount(1,
+            "a non-hour fire time (09:15) must trigger exactly one check-in when the window crosses it");
+    }
+
+    /// <summary>
+    /// AC: multiple sub-hour ticks within the same fire window do NOT produce duplicate check-ins.
+    /// The unique-key dedup (23505 catch) must hold even when ticking every few minutes.
+    /// </summary>
+    [Fact]
+    public async Task Tick_MultipleSubHourTicksAcrossSameFireMinute_DoesNotDuplicate()
+    {
+        var (trainerUserId, clientUserId) = await SetupTrainerAndClientWithSettingAsync(
+            DayOfWeek.Monday,
+            new TimeSpan(14, 30, 0), // 14:30:00 UTC
+            "UTC");
+
+        var utcNow = DateTime.UtcNow;
+        var daysToLastMon = ((int)utcNow.DayOfWeek - (int)DayOfWeek.Monday + 7) % 7;
+        var lastMon1430 = utcNow.Date.AddDays(-daysToLastMon)
+                                      .AddHours(14).AddMinutes(30);
+        if (lastMon1430 >= utcNow) lastMon1430 = lastMon1430.AddDays(-7);
+
+        var scheduler = factory.Services.GetRequiredService<WeeklyCheckInScheduler>();
+
+        // Tick before fire time — nothing should fire.
+        scheduler.SetLastTickAt(lastMon1430.AddMinutes(-10));
+        scheduler.OverrideNow = lastMon1430.AddMinutes(-5);
+        await scheduler.TickAsync(scheduler.OverrideNow.Value, TestContext.Current.CancellationToken);
+
+        // First tick past 14:30 — fires once.
+        scheduler.OverrideNow = lastMon1430.AddMinutes(1);
+        await scheduler.TickAsync(scheduler.OverrideNow.Value, TestContext.Current.CancellationToken);
+
+        // Second tick — still within same week's window; unique key prevents duplicate.
+        scheduler.OverrideNow = lastMon1430.AddMinutes(6);
+        await scheduler.TickAsync(scheduler.OverrideNow.Value, TestContext.Current.CancellationToken);
+
+        // Third tick — still same week.
+        scheduler.OverrideNow = lastMon1430.AddMinutes(11);
+        await scheduler.TickAsync(scheduler.OverrideNow.Value, TestContext.Current.CancellationToken);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var checkIns = await db.WeeklyCheckIns
+            .Where(c => c.ClientUserId == clientUserId && c.ProfessionalUserId == trainerUserId)
+            .ToListAsync(TestContext.Current.CancellationToken);
+
+        checkIns.Should().HaveCount(1,
+            "multiple sub-hour ticks across the same fire minute must produce exactly one check-in " +
+            "— the half-open window + unique-key dedup together prevent duplication");
+    }
+
     /// <summary>
     /// Regression test for the EF Core change-tracker cascade (issue #280).
     ///

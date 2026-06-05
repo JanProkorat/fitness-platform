@@ -24,9 +24,9 @@ public class PutSettingsValidator : Validator<PutSettingsRequest>
             .WithMessage("DayOfWeek must be between 0 (Sunday) and 6 (Saturday).");
 
         RuleFor(x => x.TimeOfDay)
-            .Must(t => t.Minutes == 0 && t.Seconds == 0 && t.Milliseconds == 0)
+            .Must(t => t >= TimeSpan.Zero && t < TimeSpan.FromHours(24))
             .WithErrorCode(ErrorCodes.InvalidTimeOfDay)
-            .WithMessage("TimeOfDay must be hour-aligned (minutes, seconds, and milliseconds must be zero).");
+            .WithMessage("TimeOfDay must be between 00:00:00 and 23:59:59.");
 
         RuleFor(x => x.DefaultAddendum)
             .MaximumLength(200)

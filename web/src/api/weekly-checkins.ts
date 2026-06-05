@@ -14,10 +14,9 @@ export type DayOfWeekInt = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
 /**
  * C# TimeSpan serializes to "HH:mm:ss" by System.Text.Json.
- * The backend enforces hour-aligned times (minutes/seconds = 0), so values will
- * always be of the form "HH:00:00".
+ * Values follow the form "HH:mm:ss" (minute precision; seconds are always 0).
  */
-export type TimeSpanString = string; // e.g. "18:00:00"
+export type TimeSpanString = string; // e.g. "18:30:00"
 
 /* ─────────────────────── WeeklyCheckInStatus ────────────────────────────────────── */
 
@@ -47,7 +46,7 @@ export interface CheckInSettingDto {
   profession: Profession;
   /** 0 = Sunday, 1 = Monday, …, 6 = Saturday */
   dayOfWeek: DayOfWeekInt;
-  /** "HH:mm:ss", always hour-aligned */
+  /** "HH:mm:ss" — minute precision; seconds always 0 */
   timeOfDay: TimeSpanString;
   enabled: boolean;
   defaultAddendum: string | null;
@@ -77,7 +76,7 @@ export interface PutSettingsRequest {
   profession: Profession;
   /** 0 = Sunday … 6 = Saturday */
   dayOfWeek: DayOfWeekInt;
-  /** "HH:mm:ss" — must be hour-aligned */
+  /** "HH:mm:ss" — minute precision; seconds always 0 */
   timeOfDay: TimeSpanString;
   enabled: boolean;
   defaultAddendum: string | null;
@@ -154,7 +153,7 @@ export async function getCheckInOverrides(): Promise<GetOverridesResponse> {
 export interface PutOverrideRequest {
   /** Null = inherit */
   dayOfWeek: DayOfWeekInt | null;
-  /** "HH:mm:ss" — must be hour-aligned. Null = inherit. */
+  /** "HH:mm:ss" — minute precision; seconds always 0. Null = inherit. */
   timeOfDay: TimeSpanString | null;
   /** Null = inherit */
   enabled: boolean | null;
