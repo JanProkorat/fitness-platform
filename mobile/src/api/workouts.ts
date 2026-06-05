@@ -13,6 +13,7 @@ import type {
   GoLiveResponse,
   AbandonWorkoutResponse,
 } from './generated';
+import type { UpdateWorkoutSetWithPlannedRequest } from './wod-types';
 
 // Re-export generated types so consumer imports (`from '@/api/workouts'`) still work.
 export type {
@@ -27,6 +28,7 @@ export type {
   ExerciseProgressPoint,
   GoLiveResponse,
   AbandonWorkoutResponse,
+  UpdateWorkoutSetWithPlannedRequest,
 };
 
 /**

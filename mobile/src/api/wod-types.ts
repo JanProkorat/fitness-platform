@@ -86,19 +86,46 @@ export interface WodSessionExercise {
 }
 
 /**
- * Extended UpdateWorkoutExerciseRequest that includes WodResult.
+ * Per-set request payload with snapshot-planned fields (#441 / backend #440).
+ *
+ * Hand-declared until regen-api is run against the backend that includes
+ * these fields on UpdateWorkoutSetRequest.  Drop the augmentation once
+ * generated.ts emits the planned fields natively.
+ */
+export interface UpdateWorkoutSetWithPlannedRequest {
+  setNumber?: number;
+  /** Actual reps completed. */
+  reps?: number | null;
+  /** Actual weight in kg. */
+  weightKg?: number | null;
+  /** Rate of Perceived Exertion (1-10). */
+  rpe?: number | null;
+  /** Duration in seconds. */
+  durationSeconds?: number | null;
+  /** Distance in meters. */
+  distanceMeters?: number | null;
+  /** When this set was completed. */
+  completedAt?: string | null;
+  // ── Snapshot-planned fields — frozen from plan prescription at log time ──────
+  /** Prescribed repetitions from the plan (snapshot). */
+  plannedReps?: number | null;
+  /** Prescribed weight (kg) from the plan (snapshot). */
+  plannedWeightKg?: number | null;
+  /** Prescribed RPE from the plan (snapshot). */
+  plannedRpe?: number | null;
+  /** Prescribed duration in seconds from the plan (snapshot). */
+  plannedDurationSeconds?: number | null;
+  /** Prescribed distance in meters from the plan (snapshot). */
+  plannedDistanceMeters?: number | null;
+}
+
+/**
+ * Extended UpdateWorkoutExerciseRequest that includes WodResult and planned-field sets.
  */
 export interface UpdateWodExerciseRequest {
   exerciseExternalId?: string;
   exerciseName?: string;
-  sets?: Array<{
-    setNumber?: number;
-    reps?: number | null;
-    weightKg?: number | null;
-    durationSeconds?: number | null;
-    distanceMeters?: number | null;
-    completedAt?: string | null;
-  }>;
+  sets?: UpdateWorkoutSetWithPlannedRequest[];
   /** WOD outcome for this exercise (when exercise has a format override). */
   wodResult?: WodResult | null;
 }
@@ -112,4 +139,33 @@ export interface UpdateWorkoutWodRequest {
   exercises?: UpdateWodExerciseRequest[];
   /** WOD outcome for the whole session (when session has a non-Standard format). */
   wodResult?: WodResult | null;
+}
+
+/**
+ * Per-set read DTO with actual values, snapshot-planned values, and the
+ * backend-computed isModified flag (#441 / backend #440).
+ *
+ * Hand-declared until regen-api is run.  Used by GetTodaySession
+ * (loggedSetsBySessionExercise) and GetFullTrainingPlan.
+ */
+export interface LoggedSetDto {
+  /** 1-based set number within the exercise. */
+  setNumber: number;
+  // ── Actual logged values ───────────────────────────────────────────────────
+  actualReps?: number | null;
+  actualWeightKg?: number | null;
+  actualRpe?: number | null;
+  actualDurationSeconds?: number | null;
+  actualDistanceMeters?: number | null;
+  // ── Snapshot-planned values ────────────────────────────────────────────────
+  plannedReps?: number | null;
+  plannedWeightKg?: number | null;
+  plannedRpe?: number | null;
+  plannedDurationSeconds?: number | null;
+  plannedDistanceMeters?: number | null;
+  /**
+   * Backend-computed: true when any actual field differs from its
+   * snapshot-planned counterpart.  Always false for legacy sets (no snapshot).
+   */
+  isModified: boolean;
 }

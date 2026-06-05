@@ -78,6 +78,12 @@ interface ExpandableExerciseCardProps {
    * section-note line in `SectionHeader`.
    */
   notes?: string | null
+  /**
+   * When true, renders a small "upraveno" badge in the summary line to
+   * signal that at least one set in this exercise was modified vs. the plan.
+   * Designed for the finished Today card and plan detail screens (#441).
+   */
+  hasModifications?: boolean
   children: React.ReactNode
 }
 
@@ -99,6 +105,7 @@ export function ExpandableExerciseCard({
   hideCompletionIndicator = false,
   nonExpandable = false,
   notes,
+  hasModifications = false,
   children,
 }: ExpandableExerciseCardProps) {
   const colors = useTheme()
@@ -151,10 +158,21 @@ export function ExpandableExerciseCard({
           <Text style={[Type.subheadline, { color: colors.label }]} numberOfLines={1}>
             {name}
           </Text>
-          {summaryText.length > 0 && (
-            <Text style={[Type.caption1, { color: colors.label2, marginTop: 1 }]} numberOfLines={1}>
-              {summaryText}
-            </Text>
+          {(summaryText.length > 0 || hasModifications) && (
+            <View style={styles.summaryRow}>
+              {summaryText.length > 0 && (
+                <Text style={[Type.caption1, { color: colors.label2 }]} numberOfLines={1}>
+                  {summaryText}
+                </Text>
+              )}
+              {hasModifications && (
+                <View style={[styles.modifiedBadge, { backgroundColor: colors.goldBg }]}>
+                  <Text style={[styles.modifiedBadgeText, { color: colors.gold }]}>
+                    {t('training.upraveno')}
+                  </Text>
+                </View>
+              )}
+            </View>
           )}
           {bodyParts && bodyParts.length > 0 && (
             <View style={styles.badgeRow}>
@@ -285,6 +303,25 @@ const styles = StyleSheet.create({
   nameWrap: {
     flex: 1,
     minWidth: 0,
+  },
+  /** Row wrapping summary text + optional "upraveno" badge. */
+  summaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 1,
+  },
+  /** Small pill badge shown when hasModifications is true. */
+  modifiedBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  modifiedBadgeText: {
+    fontFamily: interFamily('600'),
+    fontSize: 10,
+    fontWeight: '600',
   },
   badgeRow: {
     flexDirection: 'row',

@@ -19,6 +19,7 @@ import type {
   SetDto,
   WodConfig,
 } from './generated';
+import type { LoggedSetDto } from './wod-types';
 
 // Re-export generated types and enums so consumer imports (`from '@/api/training'`) still work.
 export { SetType, MuscleGroup, WorkoutFormat, MovementType };
@@ -46,15 +47,21 @@ export type SectionDto = Omit<GeneratedSectionDto, 'exercises'> & {
    * For sections without exercises: the section id is in
    * TrainingCompletion.CompletedSectionIds (#260 fix). */
   isCompleted?: boolean;
-  exercises?: GeneratedSectionDto['exercises'];
+  /**
+   * Exercises in this section. Uses `FullPlanExercise` so call sites can
+   * read `hasModifications` and augmented `sets` (actual + planned + isModified)
+   * without extra casts. The generated shape is a subset, so the widening is safe.
+   * (#440 — drop cast once regen surfaces these fields in generated.ts natively).
+   */
+  exercises?: FullPlanExercise[];
 };
 
 /**
  * Augmented SessionDto — propagates SectionDto augmentation so
  * `response.weeks[i].sessions[j].sections[k].formatConfig` is typed correctly
  * without per-call casts.
- * Also adds `lockState` which the backend (#382) now includes in GetFullTrainingPlan
- * responses. Drop once regen produces this field natively.
+ * Also adds `lockState` (#382) and `hasModifications` (#440).
+ * Drop once regen produces these fields natively.
  */
 export type SessionDto = Omit<GeneratedSessionDto, 'sections'> & {
   sections?: SectionDto[];
@@ -66,6 +73,12 @@ export type SessionDto = Omit<GeneratedSessionDto, 'sections'> & {
    * Defaults to "Stable" when the field is absent (pre-#382 response shape).
    */
   lockState?: string;
+  /**
+   * True when at least one exercise in this session has hasModifications == true.
+   * Always false when no workout log exists for this session.
+   * Hand-declared until regen-api surfaces this field natively (#440).
+   */
+  hasModifications?: boolean;
 };
 
 /**
@@ -98,6 +111,8 @@ export type TrainingSection = Omit<GeneratedTrainingSection, 'notes'> & {
 export type {
   WodResult,
   WodSessionExercise,
+  LoggedSetDto,
+  UpdateWorkoutSetWithPlannedRequest,
 } from './wod-types';
 
 /**
@@ -118,6 +133,9 @@ export interface SessionPhotoDto {
  *   - `lockStateBySession` (#382): session edit-lock state.
  *   - `photosBySession` (#405): per-session diary photos from the session log.
  *   - `notesBySession` (#405): persisted session-level notes keyed by sessionId.
+ *   - `loggedSetsBySessionExercise` (#440): per-session, per-exercise logged sets
+ *     with actual values, snapshot-planned values, and isModified flag.
+ *   - `hasModificationsBySession` (#440): per-session roll-up modification flag.
  *
  * All fields hand-declared until regen-api runs against the updated backend.
  * Drop the augmentation for each field once the generated client emits it natively.
@@ -139,6 +157,19 @@ export type TodayTrainingResponse = GetTodaySessionResponse & {
    * do not wipe previously saved notes on re-open.
    */
   notesBySession?: Record<string, string>;
+  /**
+   * Per-session, per-exercise logged sets with actual values, snapshot-planned
+   * values, and backend-computed isModified flag.
+   * Outer key = sessionId (string UUID), inner key = exerciseExternalId (string UUID).
+   * Hand-declared until regen-api surfaces LoggedSetsBySessionExercise natively (#440).
+   */
+  loggedSetsBySessionExercise?: Record<string, Record<string, LoggedSetDto[]>>;
+  /**
+   * Per-session roll-up modification flag: true when the session has at least one
+   * exercise with at least one isModified set.
+   * Hand-declared until regen-api surfaces HasModificationsBySession natively (#440).
+   */
+  hasModificationsBySession?: Record<string, boolean>;
 };
 
 /**
@@ -157,14 +188,61 @@ export type FullPlanWeek = WeekDto;
 export type FullPlanSession = SessionDto;
 
 /**
- * @deprecated Use `ExerciseDto` from generated. Kept as alias for backward compatibility.
+ * Augmented ExerciseDto — adds hasModifications from #440, and widens
+ * `sets` from `SetDto[]` to `FullPlanSet[]` (a superset with actual values,
+ * snapshot-planned values, and the isModified flag).
+ *
+ * Uses `Omit` to replace the generated `sets` property so TypeScript resolves
+ * the narrower `FullPlanSet[]` type unambiguously (plain intersection would
+ * produce `SetDto[] & FullPlanSet[]`, which TypeScript cannot narrow at call sites).
+ *
+ * Hand-declared until regen-api produces these fields natively.
  */
-export type FullPlanExercise = ExerciseDto;
+export type FullPlanExercise = Omit<ExerciseDto, 'sets'> & {
+  /**
+   * True when at least one set under this exercise has isModified == true.
+   * Always false when no workout log exists for this exercise.
+   */
+  hasModifications?: boolean;
+  /** Augmented sets with actual + planned values and isModified (#440). */
+  sets?: FullPlanSet[];
+};
 
 /**
- * @deprecated Use `SetDto` from generated. Kept as alias for backward compatibility.
+ * Augmented SetDto — adds actual values, snapshot-planned values, and
+ * the backend-computed isModified flag introduced in #440.
+ * Hand-declared until regen-api produces these fields natively in generated.ts.
+ * Drop augmentation once generated.ts emits the full shape.
  */
-export type FullPlanSet = SetDto;
+export type FullPlanSet = SetDto & {
+  // ── Actual logged values ────────────────────────────────────────────────────
+  /** Actual reps completed. Null when set has not been performed. */
+  actualReps?: number | null;
+  /** Actual weight (kg) logged. Null when not performed. */
+  actualWeightKg?: number | null;
+  /** Actual RPE logged. Null when not performed. */
+  actualRpe?: number | null;
+  /** Actual duration (seconds) logged. Null when not performed. */
+  actualDurationSeconds?: number | null;
+  /** Actual distance (meters) logged. Null when not performed. */
+  actualDistanceMeters?: number | null;
+  // ── Snapshot-planned values ─────────────────────────────────────────────────
+  /** Snapshot-planned repetitions at log time. Null for legacy logs. */
+  plannedReps?: number | null;
+  /** Snapshot-planned weight (kg) at log time. Null for legacy logs. */
+  plannedWeightKg?: number | null;
+  /** Snapshot-planned RPE at log time. Null for legacy logs. */
+  plannedRpe?: number | null;
+  /** Snapshot-planned duration (seconds) at log time. Null for legacy logs. */
+  plannedDurationSeconds?: number | null;
+  /** Snapshot-planned distance (meters) at log time. Null for legacy logs. */
+  plannedDistanceMeters?: number | null;
+  /**
+   * Backend-computed: true when any actual field differs from its snapshot-planned
+   * counterpart. Always false for legacy sets (no snapshot).
+   */
+  isModified?: boolean;
+};
 
 // --- API calls ---
 
