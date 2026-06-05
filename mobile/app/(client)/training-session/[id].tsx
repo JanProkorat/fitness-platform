@@ -58,6 +58,7 @@ import type {
   WodResult,
   UpdateWorkoutWodRequest,
   UpdateWodExerciseRequest,
+  LoggedSetDto,
 } from '@/api/wod-types'
 import { SectionHeader } from '@/components/training/SectionHeader'
 import { ExpandableExerciseCard } from '@/components/training/ExpandableExerciseCard'
@@ -2406,15 +2407,25 @@ export default function WorkoutLogScreen() {
           reps: isDone ? (override?.reps ?? planned.reps) : undefined,
           weightKg: isDone ? (override?.weightKg ?? planned.weightKg) : undefined,
           // Time-movement actuals: durationSeconds replaces the reps slot.
-          durationSeconds: isDone ? (override?.durationSeconds ?? null) : undefined,
+          // Use undefined (not null) to match UpdateWorkoutSetRequest's field type.
+          durationSeconds: isDone ? (override?.durationSeconds ?? undefined) : undefined,
           // Distance-movement actuals: distanceMeters replaces the weightKg slot.
-          distanceMeters: isDone ? (override?.distanceMeters ?? null) : undefined,
+          distanceMeters: isDone ? (override?.distanceMeters ?? undefined) : undefined,
           // Only truly completed sets carry completedAt. Skipped sets must NOT
           // receive a completedAt timestamp — the backend (GetTodaySession)
           // uses CompletedAt != null to populate completedSetsBySessionExercise,
           // so sending completedAt for skipped sets caused them to show as '✓'
           // on the Today-screen TrainingCard SetGrid (bug #322).
           completedAt: isDone ? new Date().toISOString() : undefined,
+          // Snapshot-planned values (#441): the backend stores these on the
+          // WorkoutLog so the isModified flag can be computed on read. Send
+          // the original plan values from the exercise's planned sets.
+          // Use undefined (not null) to match UpdateWorkoutSetRequest's field type.
+          plannedReps: planned.reps ?? undefined,
+          plannedWeightKg: planned.weightKg ?? undefined,
+          plannedRpe: planned.rpe ?? undefined,
+          plannedDurationSeconds: planned.durationSeconds ?? undefined,
+          plannedDistanceMeters: planned.distanceMeters ?? undefined,
         }
       })
       // Per-exercise WOD result (only present when the exercise has a format override).
@@ -2893,11 +2904,53 @@ export default function WorkoutLogScreen() {
           (si) => plannedSets[si]?.setNumber ?? si + 1,
         )
         if (plannedSets.length > 0) {
+          // Build client-side LoggedSetDto from the live session store (#441).
+          // The backend computes isModified server-side (stored in WorkoutLog),
+          // but for the local finished summary we derive it from the plan vs
+          // the user's actual inputs (formOverrides). This gives immediate
+          // visual feedback in the LiveFinishedSummary before the PUT/GET cycle.
+          const loggedSets: LoggedSetDto[] = plannedSets.map((planned, si) => {
+            const override = formOverrides[exId]?.[si]
+            const isDone = doneIndices.includes(si)
+            const actualReps = isDone ? (override?.reps ?? planned.reps ?? null) : null
+            const actualWeightKg = isDone ? (override?.weightKg ?? planned.weightKg ?? null) : null
+            const actualDurationSeconds = isDone ? (override?.durationSeconds ?? null) : null
+            const actualDistanceMeters = isDone ? (override?.distanceMeters ?? null) : null
+            // isModified: true when the user changed reps or weight vs. plan.
+            const repsModified =
+              isDone &&
+              actualReps != null &&
+              planned.reps != null &&
+              actualReps !== planned.reps
+            const weightModified =
+              isDone &&
+              actualWeightKg != null &&
+              planned.weightKg != null &&
+              actualWeightKg !== planned.weightKg
+            const durationModified =
+              isDone &&
+              actualDurationSeconds != null &&
+              planned.durationSeconds != null &&
+              actualDurationSeconds !== planned.durationSeconds
+            return {
+              setNumber: planned.setNumber ?? si + 1,
+              actualReps: actualReps ?? undefined,
+              actualWeightKg: actualWeightKg ?? undefined,
+              actualDurationSeconds: actualDurationSeconds ?? undefined,
+              actualDistanceMeters: actualDistanceMeters ?? undefined,
+              plannedReps: planned.reps ?? undefined,
+              plannedWeightKg: planned.weightKg ?? undefined,
+              plannedDurationSeconds: planned.durationSeconds ?? undefined,
+              plannedDistanceMeters: planned.distanceMeters ?? undefined,
+              isModified: repsModified || weightModified || durationModified,
+            }
+          })
           exerciseSets.push({
             exerciseName: ex.exerciseName ?? '',
             sets: plannedSets,
             completedSetNumbers: completedSetNums,
             skippedSetNumbers: skippedSetNums,
+            loggedSets,
           })
         }
       }

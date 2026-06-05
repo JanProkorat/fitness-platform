@@ -126,6 +126,13 @@ interface ExpandableSessionCardProps {
    * only — mirrors MealRow's `hasPhotos`/`photos` pattern exactly.
    */
   photos?: SessionPhotoDto[]
+  /**
+   * When true, renders an "upraveno" pill badge in the session header row,
+   * mirroring the exercise-level badge from ExpandableExerciseCard.
+   * Sourced from `hasModificationsBySession[sessionId]` (Today card) or
+   * `session.hasModifications` (full-plan / plan-detail screen).
+   */
+  hasModifications?: boolean
   children: React.ReactNode
 }
 
@@ -152,6 +159,7 @@ export function ExpandableSessionCard({
   bodyFooter,
   onPhotoPress,
   photos,
+  hasModifications = false,
 }: ExpandableSessionCardProps) {
   const colors = useTheme()
   const { t } = useTranslation()
@@ -163,7 +171,7 @@ export function ExpandableSessionCard({
   const [lightboxVisible, setLightboxVisible] = useState(false)
   const photoList = photos ?? []
   const hasPhotos = photoList.length > 0
-  const photoUrls = photoList.map((p) => p.blobUrl).filter(Boolean)
+  const photoUrls = photoList.map((p) => p.blobUrl).filter((u): u is string => typeof u === 'string' && u.length > 0)
   const photoNotes = photoList.map((p) => p.note ?? null)
 
   const handleBadgePress = useCallback(() => {
@@ -227,9 +235,26 @@ export function ExpandableSessionCard({
           >
             {name}
           </Text>
-          <Text style={[Type.caption1, { color: colors.label2, marginTop: 2 }]} numberOfLines={1}>
-            {summaryText}
-          </Text>
+          {/* Summary row: summary text + optional session-level "upraveno" badge.
+              Mirrors ExpandableExerciseCard's summaryRow — same flexDirection,
+              gap, and pill style so session and exercise badges are visually
+              identical. */}
+          {(summaryText.length > 0 || hasModifications) && (
+            <View style={styles.summaryRow}>
+              {summaryText.length > 0 && (
+                <Text style={[Type.caption1, { color: colors.label2 }]} numberOfLines={1}>
+                  {summaryText}
+                </Text>
+              )}
+              {hasModifications && (
+                <View style={[styles.modifiedBadge, { backgroundColor: colors.goldBg }]}>
+                  <Text style={[styles.modifiedBadgeText, { color: colors.gold }]}>
+                    {t('training.upraveno')}
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
         </View>
 
         {/* Photo indicator badge — tappable, shown only when this session has
@@ -364,6 +389,27 @@ const styles = StyleSheet.create({
   nameWrap: {
     flex: 1,
     minWidth: 0,
+  },
+  /** Row wrapping summary text + optional "upraveno" badge — mirrors
+   *  ExpandableExerciseCard.summaryRow for visual consistency. */
+  summaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 2,
+  },
+  /** Small gold pill shown when hasModifications is true — mirrors
+   *  ExpandableExerciseCard.modifiedBadge exactly (same padding, radius, font). */
+  modifiedBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  modifiedBadgeText: {
+    fontFamily: interFamily('600'),
+    fontSize: 10,
+    fontWeight: '600',
   },
   /**
    * Gold-tinted circular camera button — mirrors MealRow's cameraBtn style.

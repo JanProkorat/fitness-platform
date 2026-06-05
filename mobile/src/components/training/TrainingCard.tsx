@@ -19,7 +19,9 @@ import { SectionHeader } from '@/components/training/SectionHeader'
 import { SetGrid } from '@/components/training/SetGrid'
 import { getMuscleGroupColor } from '@/constants/muscleGroups'
 import type { TrainingSession, TrainingSection, MuscleGroup, SessionPhotoDto } from '@/api/training'
+import type { LoggedSetDto } from '@/api/wod-types'
 import type { SessionCtaState } from './trainingCardHelpers'
+import { deriveExerciseHasModifications } from './trainingCardHelpers'
 import { SessionEditingBanner } from '@/components/today/SessionEditingBanner'
 
 // ─── Section fallback ──────────────────────────────────────────────────────────
@@ -158,6 +160,20 @@ interface TrainingCardProps {
    * Sourced from `photosBySession` in TodayTrainingResponse (#405).
    */
   photosBySession?: Record<string, SessionPhotoDto[]>
+  /**
+   * Per-session, per-exercise logged sets with actual values, snapshot-planned
+   * values, and isModified flag. Outer key = sessionId, inner key = exerciseExternalId.
+   * Sourced from `loggedSetsBySessionExercise` in TodayTrainingResponse (#440).
+   * When present, SetGrid renders treatment B (actual headline + planned caption + dot).
+   */
+  loggedSetsBySessionExercise?: Record<string, Record<string, LoggedSetDto[]>>
+  /**
+   * Per-session roll-up modification flag, keyed by sessionId.
+   * Sourced from `hasModificationsBySession` in TodayTrainingResponse (#440).
+   * When true for a session, the session-level "upraveno" badge is shown in the
+   * ExpandableSessionCard header for that session.
+   */
+  hasModificationsBySession?: Record<string, boolean>
 }
 
 // ─── formatSets ───────────────────────────────────────────────────────────────
@@ -282,6 +298,8 @@ export function TrainingCard({
   lockStateBySession = {},
   onSessionPhotoPress,
   photosBySession = {},
+  loggedSetsBySessionExercise,
+  hasModificationsBySession,
 }: TrainingCardProps) {
   const colors = useTheme()
   const { t } = useTranslation()
@@ -486,6 +504,16 @@ export function TrainingCard({
                   ? (photosBySession[session.sessionId] ?? [])
                   : []
               }
+              loggedSetsForSession={
+                session.sessionId != null
+                  ? loggedSetsBySessionExercise?.[session.sessionId]
+                  : undefined
+              }
+              sessionHasModifications={
+                session.sessionId != null
+                  ? (hasModificationsBySession?.[session.sessionId] ?? false)
+                  : false
+              }
               t={t}
             />
           )
@@ -572,6 +600,18 @@ interface SessionSectionListProps {
    * Passed to ExpandableSessionCard so the per-session badge + lightbox work.
    */
   sessionPhotos?: SessionPhotoDto[]
+  /**
+   * Per-exercise logged sets for this specific session (inner key = exerciseExternalId).
+   * Already sliced from `loggedSetsBySessionExercise[sessionId]` by the parent.
+   * Passed down to SetGrid for treatment B rendering (#440).
+   */
+  loggedSetsForSession?: Record<string, LoggedSetDto[]>
+  /**
+   * Whether this session has any modifications overall.
+   * Sourced from `hasModificationsBySession[sessionId]`.
+   * Passed to ExpandableSessionCard to render the session-level "upraveno" badge.
+   */
+  sessionHasModifications?: boolean
   t: (key: string, opts?: Record<string, unknown>) => string
 }
 
@@ -601,6 +641,8 @@ function SessionSectionList({
   onSessionCta,
   onSessionPhotoPress,
   sessionPhotos,
+  loggedSetsForSession,
+  sessionHasModifications,
   t,
 }: SessionSectionListProps) {
   const colors = useTheme()
@@ -628,6 +670,7 @@ function SessionSectionList({
               headerRight={sessionCheckbox}
               onPhotoPress={onSessionPhotoPress}
               photos={sessionPhotos}
+              hasModifications={sessionHasModifications ?? false}
             >
               {/* Section-grouped exercise cards */}
               {sections.map((section, sectionIdx) => {
@@ -809,6 +852,14 @@ function SessionSectionList({
                             ? getMuscleGroupColor(primaryMg, colors)
                             : colors.gold
 
+                          // Derive per-exercise modification flag from per-set
+                          // isModified flags (#441 — plan endpoint has no per-exercise
+                          // field; GetTodaySession has loggedSetsBySessionExercise).
+                          const exHasModifications =
+                            exId != null
+                              ? deriveExerciseHasModifications(exId, loggedSetsForSession)
+                              : false
+
                           return (
                             <ExpandableExerciseCard
                               key={exId ?? exIdx}
@@ -830,8 +881,17 @@ function SessionSectionList({
                                   : undefined
                               }
                               notes={exercise.notes}
+                              hasModifications={exHasModifications}
                             >
-                              <SetGrid sets={sets} completedSetNumbers={completedSetNumbers} />
+                              <SetGrid
+                                sets={sets}
+                                completedSetNumbers={completedSetNumbers}
+                                loggedSets={
+                                  exId != null
+                                    ? (loggedSetsForSession?.[exId] ?? undefined)
+                                    : undefined
+                                }
+                              />
                             </ExpandableExerciseCard>
                           )
                         })}

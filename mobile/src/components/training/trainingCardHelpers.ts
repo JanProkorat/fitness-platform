@@ -12,6 +12,7 @@
  */
 
 import type { TrainingSession } from '@/api/training'
+import type { LoggedSetDto } from '@/api/wod-types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -135,6 +136,34 @@ export function deriveSessionCtaState(
   if (hasActiveLiveSession) return 'in-progress'
 
   return 'not-started'
+}
+
+// ─── deriveExerciseHasModifications ─────────────────────────────────────────
+
+/**
+ * Derives whether a specific exercise has any modified sets, given the
+ * per-exercise logged-sets map from GetTodaySession.
+ *
+ * The plan/today endpoint does NOT expose a per-exercise hasModifications field
+ * (it only has hasModificationsBySession at session level).  This helper derives
+ * the per-exercise flag from the per-set isModified flags in
+ * loggedSetsBySessionExercise so the Today card can show the "upraveno" badge on
+ * individual exercise headers (#441 design handoff finding #3).
+ *
+ * @param exerciseExternalId   The exercise's external id.
+ * @param loggedSetsForSession The inner map for this session:
+ *                             exerciseExternalId → LoggedSetDto[].
+ *                             May be undefined if no log exists yet.
+ * @returns true when any set under this exercise has isModified === true.
+ */
+export function deriveExerciseHasModifications(
+  exerciseExternalId: string,
+  loggedSetsForSession: Readonly<Record<string, LoggedSetDto[]>> | undefined,
+): boolean {
+  if (!loggedSetsForSession) return false
+  const sets = loggedSetsForSession[exerciseExternalId]
+  if (!sets || sets.length === 0) return false
+  return sets.some((s) => s.isModified)
 }
 
 // ─── computeLockedSessionIds ──────────────────────────────────────────────────

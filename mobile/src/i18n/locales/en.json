@@ -773,6 +773,9 @@
     "exerciseCount_other": "{{count}} exercises",
     "workoutUntimedCount_one": "{{count}} untimed",
     "workoutUntimedCount_other": "{{count}} untimed",
+    "upraveno": "modified",
+    "plan": "plan",
+    "navic": "extra",
     "section": {
       "label": "Section",
       "defaultName": "Main",

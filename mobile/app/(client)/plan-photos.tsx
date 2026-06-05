@@ -61,8 +61,13 @@ import { ImageLightbox } from '@/components/ui/ImageLightbox'
 type UiCategory = 'Food' | 'Progress' | 'Free'
 type FilterCategory = 'All' | UiCategory
 
-/** Map from PlanPhotoCategory wire value back to UI category for display. */
-const WIRE_TO_UI: Record<PlanPhotoCategory, UiCategory> = {
+/**
+ * Map from PlanPhotoCategory wire value back to UI category for display.
+ * Partial by design: wire categories without a dedicated chip (e.g. Training,
+ * which is surfaced on session-scoped screens, not this plan-photos filter)
+ * fall back to 'Free' at the call site via `?? 'Free'`.
+ */
+const WIRE_TO_UI: Partial<Record<PlanPhotoCategory, UiCategory>> = {
   [PlanPhotoCategory.Food]: 'Food',
   [PlanPhotoCategory.Body]: 'Progress',
   [PlanPhotoCategory.FreeForm]: 'Free',

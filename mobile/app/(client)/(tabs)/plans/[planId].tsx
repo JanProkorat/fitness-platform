@@ -42,6 +42,7 @@ import {
   type SectionDto,
   type WorkoutFormat,
   type MuscleGroup,
+  type LoggedSetDto,
 } from '@/api/training'
 import {
   getSubmittedQuestionnairesByCoach,
@@ -1436,6 +1437,7 @@ function TrainingPlanDetail({
                       standalone
                       headerRight={sessionCheckIndicator}
                       bodyFooter={<SessionReminderRow session={session} planId={planId} />}
+                      hasModifications={session.hasModifications ?? false}
                     >
                       {/* Section-grouped exercise cards (read-only) */}
                       {sections.map((section, sectionIdx) => {
@@ -1529,6 +1531,28 @@ function TrainingPlanDetail({
                                     ? getMuscleGroupColor(primaryMg, colors)
                                     : colors.gold
 
+                                // Build LoggedSetDto array from FullPlanSet (#441).
+                                // FullPlanSet carries actual + planned + isModified after
+                                // backend #440. Sets without actual data (never performed)
+                                // have all actual* === null and isModified === false.
+                                const planLoggedSets: LoggedSetDto[] | undefined =
+                                  sets.some((s) => s.isModified != null)
+                                    ? sets.map((s, si) => ({
+                                        setNumber: s.setNumber ?? si + 1,
+                                        actualReps: s.actualReps ?? undefined,
+                                        actualWeightKg: s.actualWeightKg ?? undefined,
+                                        actualRpe: s.actualRpe ?? undefined,
+                                        actualDurationSeconds: s.actualDurationSeconds ?? undefined,
+                                        actualDistanceMeters: s.actualDistanceMeters ?? undefined,
+                                        plannedReps: s.plannedReps ?? undefined,
+                                        plannedWeightKg: s.plannedWeightKg ?? undefined,
+                                        plannedRpe: s.plannedRpe ?? undefined,
+                                        plannedDurationSeconds: s.plannedDurationSeconds ?? undefined,
+                                        plannedDistanceMeters: s.plannedDistanceMeters ?? undefined,
+                                        isModified: s.isModified ?? false,
+                                      }))
+                                    : undefined
+
                                 return (
                                   <ExpandableExerciseCard
                                     key={exId ?? exIdx}
@@ -1542,6 +1566,7 @@ function TrainingPlanDetail({
                                     nonExpandable={isWodFormat}
                                     hideCompletionIndicator={isWodFormat}
                                     notes={exercise.notes}
+                                    hasModifications={exercise.hasModifications ?? false}
                                   >
                                     <SetGrid
                                       sets={sets}
@@ -1549,6 +1574,7 @@ function TrainingPlanDetail({
                                         .filter((s) => s.completedAt != null)
                                         .map((s) => s.setNumber ?? 0)
                                         .filter((n) => n > 0)}
+                                      loggedSets={planLoggedSets}
                                     />
                                   </ExpandableExerciseCard>
                                 )
