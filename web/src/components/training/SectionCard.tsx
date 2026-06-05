@@ -484,33 +484,52 @@ export function SectionCard({
                                 loggedSet={loggedSetsMap?.[s.setNumber]}
                               />
                             ))}
-                            {/* Extra sets — sets logged beyond the plan count.
-                                These have set numbers > ex.sets.length. */}
+                            {/* Extra sets — logged sets with NO planned snapshot at all
+                                (client performed sets that were never prescribed, or
+                                the plan had no snapshot at log time).
+                                NOTE: a logged set whose setNumber is absent from ex.sets
+                                because the coach deleted that prescribed set post-log will
+                                still carry non-null planned* snapshot fields. Those sets
+                                must NOT be classified as navíc — they render with
+                                actual headline + "plán …" caption just like any other
+                                logged-with-snapshot set. isExtraSet is keyed on snapshot
+                                nullness, not on plan-array membership. */}
                             {loggedSetsMap &&
                               Object.values(loggedSetsMap)
                                 .filter((ls) => !ex.sets.some((s) => s.setNumber === ls.setNumber))
                                 .sort((a, b) => a.setNumber - b.setNumber)
-                                .map((ls) => (
-                                  <SetRow
-                                    key={`extra-${ls.setNumber}`}
-                                    set={{
-                                      setNumber: ls.setNumber,
-                                      type: 'Normal',
-                                      reps: null,
-                                      weightKg: null,
-                                      durationSeconds: null,
-                                      rpe: null,
-                                      distanceMeters: null,
-                                      restSeconds: null,
-                                    }}
-                                    movementType="Reps"
-                                    onUpdate={() => {/* extra sets are read-only */}}
-                                    onRemove={() => {/* extra sets are read-only */}}
-                                    completionState="completed"
-                                    loggedSet={ls}
-                                    isExtraSet
-                                  />
-                                ))}
+                                .map((ls) => {
+                                  // A set is genuinely "extra" (navíc) only when every
+                                  // planned snapshot field is null — meaning there was no
+                                  // plan prescription at the time of logging.
+                                  const hasSnapshot =
+                                    ls.plannedReps != null ||
+                                    ls.plannedWeightKg != null ||
+                                    ls.plannedRpe != null ||
+                                    ls.plannedDurationSeconds != null ||
+                                    ls.plannedDistanceMeters != null;
+                                  return (
+                                    <SetRow
+                                      key={`extra-${ls.setNumber}`}
+                                      set={{
+                                        setNumber: ls.setNumber,
+                                        type: 'Normal',
+                                        reps: null,
+                                        weightKg: null,
+                                        durationSeconds: null,
+                                        rpe: null,
+                                        distanceMeters: null,
+                                        restSeconds: null,
+                                      }}
+                                      movementType="Reps"
+                                      onUpdate={() => {/* extra/orphaned sets are read-only */}}
+                                      onRemove={() => {/* extra/orphaned sets are read-only */}}
+                                      completionState="completed"
+                                      loggedSet={ls}
+                                      isExtraSet={!hasSnapshot}
+                                    />
+                                  );
+                                })}
 
                             {/* Add set — hidden when the section is locked
                                 (also covers session-locked + day-in-past per
