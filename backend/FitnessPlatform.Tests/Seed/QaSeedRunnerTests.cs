@@ -548,4 +548,142 @@ public class QaSeedRunnerTests : IAsyncLifetime
         day.DayOfWeek.Should().Be(1, "Monday is day 1");
         day.Meals.Should().HaveCount(3, "Breakfast, Lunch, Dinner");
     }
+
+    /// <summary>
+    /// The main QA training plan (dddddddd-...) Standard section must have prescribed sets
+    /// on both exercises so the planned-vs-actual WorkoutLog has concrete prescription values
+    /// to compare against.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_MainPlan_StandardSectionHasPrescribedSets()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var plan = await mongo.TrainingPlans
+            .Find(p => p.ExternalId == QaSeedRunner.QaTrainingPlanExternalId)
+            .FirstOrDefaultAsync(ct);
+
+        plan.Should().NotBeNull("main training plan must be seeded");
+
+        var session = plan!.Weeks[0].Sessions.Single(s => s.SessionId == QaSeedRunner.QaSessionId);
+        var standardSection = session.Sections.Single(s => s.SectionId == QaSeedRunner.StandardSectionId);
+
+        standardSection.Exercises.Should().HaveCount(2, "Standard section has two exercises");
+
+        var squat = standardSection.Exercises.Single(e => e.ExerciseExternalId == QaSeedRunner.StandardExercise1Id);
+        squat.Sets.Should().HaveCount(2, "QA Squat has 2 prescribed sets");
+        squat.Sets.Should().AllSatisfy(s =>
+        {
+            s.Reps.Should().Be(10, "prescribed 10 reps");
+            s.WeightKg.Should().Be(80m, "prescribed 80 kg");
+        });
+
+        var deadlift = standardSection.Exercises.Single(e => e.ExerciseExternalId == QaSeedRunner.StandardExercise2Id);
+        deadlift.Sets.Should().HaveCount(2, "QA Deadlift has 2 prescribed sets");
+        deadlift.Sets.Should().AllSatisfy(s =>
+        {
+            s.Reps.Should().Be(5, "prescribed 5 reps");
+            s.WeightKg.Should().Be(100m, "prescribed 100 kg");
+        });
+    }
+
+    /// <summary>
+    /// The completed WorkoutLog seeded for the main QA plan must exercise all four
+    /// planned-vs-actual set cases in a single session:
+    ///
+    ///   QA Squat  Set 1 — MODIFIED      actual != planned  (IsModified=true)
+    ///   QA Squat  Set 2 — AS-PRESCRIBED actual == planned  (IsModified=false)
+    ///   QA Deadlift Set 1 — SKIPPED     planned present, actual null
+    ///   QA Deadlift Set 2 — EXTRA       no planned snapshot, actual present
+    ///
+    /// ClientId must be ApplicationUser.Id so the log is visible to CompleteWorkoutEndpoint
+    /// and the coach-view planned-vs-actual query.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_MainPlanWorkoutLog_ExercisesFourPlannedVsActualCases()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var log = await mongo.WorkoutLogs
+            .Find(l => l.ExternalId == QaSeedRunner.QaMainPlanCompletedWorkoutLogId)
+            .FirstOrDefaultAsync(ct);
+
+        log.Should().NotBeNull("main-plan completed WorkoutLog must be seeded");
+        log!.IsCompleted.Should().BeTrue("log is marked complete");
+        log.PlanId.Should().Be(QaSeedRunner.QaTrainingPlanExternalId);
+        log.SessionId.Should().Be(QaSeedRunner.QaSessionId);
+        log.ClientId.Should().Be(QaSeedRunner.ClientUserId,
+            "WorkoutLog.ClientId must be ApplicationUser.Id (11111111-...) — same contract as past-plan logs");
+        log.CompletedDate.Should().NotBeNull("CompletedDate is required for the partial unique index");
+
+        log.Sections.Should().HaveCount(1, "one section mirrors the Standard section");
+        var section = log.Sections[0];
+        section.Exercises.Should().HaveCount(2);
+
+        // ── Exercise 1: QA Squat ───────────────────────────────────────────────
+        var squat = section.Exercises.Single(e => e.ExerciseExternalId == QaSeedRunner.StandardExercise1Id);
+        squat.Sets.Should().HaveCount(2);
+
+        var squatSet1 = squat.Sets.Single(s => s.SetNumber == 1);
+        squatSet1.Reps.Should().Be(8, "actual reps differ from planned");
+        squatSet1.WeightKg.Should().Be(85m, "actual weight differs from planned");
+        squatSet1.PlannedReps.Should().Be(10, "snapshot from plan prescription");
+        squatSet1.PlannedWeightKg.Should().Be(80m);
+        squatSet1.IsModified.Should().BeTrue("actual != planned → MODIFIED");
+
+        var squatSet2 = squat.Sets.Single(s => s.SetNumber == 2);
+        squatSet2.Reps.Should().Be(10);
+        squatSet2.WeightKg.Should().Be(80m);
+        squatSet2.PlannedReps.Should().Be(10);
+        squatSet2.PlannedWeightKg.Should().Be(80m);
+        squatSet2.IsModified.Should().BeFalse("actual == planned → AS-PRESCRIBED");
+
+        // ── Exercise 2: QA Deadlift ────────────────────────────────────────────
+        var deadlift = section.Exercises.Single(e => e.ExerciseExternalId == QaSeedRunner.StandardExercise2Id);
+        deadlift.Sets.Should().HaveCount(2);
+
+        var deadliftSet1 = deadlift.Sets.Single(s => s.SetNumber == 1);
+        deadliftSet1.PlannedReps.Should().Be(5, "prescription captured");
+        deadliftSet1.PlannedWeightKg.Should().Be(100m);
+        deadliftSet1.Reps.Should().BeNull("client did not perform the set → SKIPPED");
+        deadliftSet1.WeightKg.Should().BeNull();
+        deadliftSet1.CompletedAt.Should().BeNull("skipped set has no completion timestamp");
+
+        var deadliftSet2 = deadlift.Sets.Single(s => s.SetNumber == 2);
+        deadliftSet2.Reps.Should().Be(6, "client logged an extra set");
+        deadliftSet2.WeightKg.Should().Be(90m);
+        deadliftSet2.PlannedReps.Should().BeNull("no planned snapshot → EXTRA set");
+        deadliftSet2.PlannedWeightKg.Should().BeNull();
+    }
+
+    /// <summary>
+    /// Seeding twice must not create a duplicate main-plan WorkoutLog.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_MainPlanWorkoutLog_IsIdempotent()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var count = await mongo.WorkoutLogs.CountDocumentsAsync(
+            Builders<WorkoutLog>.Filter.Eq(l => l.ExternalId, QaSeedRunner.QaMainPlanCompletedWorkoutLogId),
+            cancellationToken: ct);
+
+        count.Should().Be(1, "main-plan WorkoutLog must not be duplicated on re-seed");
+    }
 }
