@@ -138,7 +138,7 @@ export function SetGrid({
                 )}
                 {repsCell.caption != null && (
                   <Text style={[styles.planCaption, { color: colors.label3 }]}>
-                    {t('training.plan')}{repsCell.caption}
+                    {t('training.plan')} {repsCell.caption}
                   </Text>
                 )}
               </View>
@@ -152,7 +152,7 @@ export function SetGrid({
                 )}
                 {weightCell.caption != null && (
                   <Text style={[styles.planCaption, { color: colors.label3 }]}>
-                    {t('training.plan')}{weightCell.caption}
+                    {t('training.plan')} {weightCell.caption}
                   </Text>
                 )}
               </View>
