@@ -62,7 +62,9 @@ export function SetGrid({
     const map = new Map<number, LoggedSetDto>()
     if (loggedSets) {
       for (const ls of loggedSets) {
-        map.set(ls.setNumber, ls)
+        if (ls.setNumber != null) {
+          map.set(ls.setNumber, ls)
+        }
       }
     }
     return map
@@ -74,8 +76,9 @@ export function SetGrid({
   const extraSetNumbers: number[] = []
   if (loggedSets) {
     for (const ls of loggedSets) {
-      if (!plannedSetNumbers.includes(ls.setNumber) && ls.setNumber > 0) {
-        extraSetNumbers.push(ls.setNumber)
+      const sn = ls.setNumber
+      if (sn != null && !plannedSetNumbers.includes(sn) && sn > 0) {
+        extraSetNumbers.push(sn)
       }
     }
     extraSetNumbers.sort((a, b) => a - b)

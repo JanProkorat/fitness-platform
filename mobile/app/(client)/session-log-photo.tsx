@@ -72,7 +72,9 @@ export default function SessionLogPhotoScreen() {
     const cache = queryClient.getQueryData<TodayTrainingResponse>(['today-training'])
     const photos = (cache?.photosBySession ?? {})[sessionId] ?? []
     return photos
-      .filter((p) => typeof p.blobUrl === 'string' && p.blobUrl.length > 0)
+      .filter((p): p is typeof p & { blobUrl: string } =>
+        typeof p.blobUrl === 'string' && p.blobUrl.length > 0,
+      )
       .map((p) => ({ blobUrl: p.blobUrl, note: p.note ?? null }))
   }, [queryClient, sessionId])
 
@@ -93,7 +95,9 @@ export default function SessionLogPhotoScreen() {
       source: 'library',
       allowsMultipleSelection: true,
       requestUploadUrl: async ({ contentType, sizeBytes }) => {
-        return generateSessionPhotoUploadUrl(sessionId, contentType, sizeBytes)
+        const res = await generateSessionPhotoUploadUrl(sessionId, contentType, sizeBytes)
+        // Generated type marks these optional; the API always returns them.
+        return { uploadUrl: res.uploadUrl ?? '', blobUrl: res.blobUrl ?? '' }
       },
     },
     undefined,
@@ -110,7 +114,9 @@ export default function SessionLogPhotoScreen() {
     {
       source: 'camera',
       requestUploadUrl: async ({ contentType, sizeBytes }) => {
-        return generateSessionPhotoUploadUrl(sessionId, contentType, sizeBytes)
+        const res = await generateSessionPhotoUploadUrl(sessionId, contentType, sizeBytes)
+        // Generated type marks these optional; the API always returns them.
+        return { uploadUrl: res.uploadUrl ?? '', blobUrl: res.blobUrl ?? '' }
       },
     },
     (blobUrl) => {

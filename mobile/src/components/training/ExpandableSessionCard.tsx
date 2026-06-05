@@ -163,7 +163,7 @@ export function ExpandableSessionCard({
   const [lightboxVisible, setLightboxVisible] = useState(false)
   const photoList = photos ?? []
   const hasPhotos = photoList.length > 0
-  const photoUrls = photoList.map((p) => p.blobUrl).filter(Boolean)
+  const photoUrls = photoList.map((p) => p.blobUrl).filter((u): u is string => typeof u === 'string' && u.length > 0)
   const photoNotes = photoList.map((p) => p.note ?? null)
 
   const handleBadgePress = useCallback(() => {

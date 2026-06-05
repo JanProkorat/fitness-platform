@@ -11,15 +11,16 @@ import type {
   TrainingSection as GeneratedTrainingSection,
   TrainingSession,
   GetTodaySessionResponse,
-  GetFullTrainingPlanResponse as GeneratedFullTrainingPlanResponse,
-  WeekDto as GeneratedWeekDto,
-  SessionDto as GeneratedSessionDto,
-  SectionDto as GeneratedSectionDto,
+  GetFullTrainingPlanResponse,
+  WeekDto,
+  SessionDto,
+  SectionDto,
   ExerciseDto,
   SetDto,
   WodConfig,
+  SessionPhotoDto,
+  GenerateSessionPhotoUploadUrlResponse,
 } from './generated';
-import type { LoggedSetDto } from './wod-types';
 
 // Re-export generated types and enums so consumer imports (`from '@/api/training'`) still work.
 export { SetType, MuscleGroup, WorkoutFormat, MovementType };
@@ -28,71 +29,15 @@ export type {
   SessionExercise,
   TrainingSession,
   GetTodaySessionResponse,
+  GetFullTrainingPlanResponse,
+  WeekDto,
+  SessionDto,
+  SectionDto,
   ExerciseDto,
   SetDto,
   WodConfig,
-};
-
-/**
- * Augmented SectionDto — adds `formatConfig`, `notes`, and `isCompleted` that
- * the backend now emits but NSwag hasn't been re-run for yet.
- * Drop the augmentation fields once the generated client is regenerated
- * and the fields appear on GeneratedSectionDto directly.
- */
-export type SectionDto = Omit<GeneratedSectionDto, 'exercises'> & {
-  formatConfig?: WodConfig | null;
-  notes?: string | null;
-  /** True when the backend considers this section fully complete.
-   * For sections with exercises: every exercise has IsCompleted=true.
-   * For sections without exercises: the section id is in
-   * TrainingCompletion.CompletedSectionIds (#260 fix). */
-  isCompleted?: boolean;
-  /**
-   * Exercises in this section. Uses `FullPlanExercise` so call sites can
-   * read `hasModifications` and augmented `sets` (actual + planned + isModified)
-   * without extra casts. The generated shape is a subset, so the widening is safe.
-   * (#440 — drop cast once regen surfaces these fields in generated.ts natively).
-   */
-  exercises?: FullPlanExercise[];
-};
-
-/**
- * Augmented SessionDto — propagates SectionDto augmentation so
- * `response.weeks[i].sessions[j].sections[k].formatConfig` is typed correctly
- * without per-call casts.
- * Also adds `lockState` (#382) and `hasModifications` (#440).
- * Drop once regen produces these fields natively.
- */
-export type SessionDto = Omit<GeneratedSessionDto, 'sections'> & {
-  sections?: SectionDto[];
-  /**
-   * Session edit-lock state from the backend.
-   * "Stable"  — no active lock; normal operation.
-   * "Editing" — a trainer currently holds the edit lock; banner should be shown.
-   * "Live"    — the client's own live session is in progress; no banner.
-   * Defaults to "Stable" when the field is absent (pre-#382 response shape).
-   */
-  lockState?: string;
-  /**
-   * True when at least one exercise in this session has hasModifications == true.
-   * Always false when no workout log exists for this session.
-   * Hand-declared until regen-api surfaces this field natively (#440).
-   */
-  hasModifications?: boolean;
-};
-
-/**
- * Augmented WeekDto — propagates SessionDto augmentation up the chain.
- */
-export type WeekDto = Omit<GeneratedWeekDto, 'sessions'> & {
-  sessions?: SessionDto[];
-};
-
-/**
- * Augmented GetFullTrainingPlanResponse — propagates WeekDto augmentation up the chain.
- */
-export type GetFullTrainingPlanResponse = Omit<GeneratedFullTrainingPlanResponse, 'weeks'> & {
-  weeks?: WeekDto[];
+  SessionPhotoDto,
+  GenerateSessionPhotoUploadUrlResponse,
 };
 
 /**
@@ -107,70 +52,25 @@ export type TrainingSection = Omit<GeneratedTrainingSection, 'notes'> & {
   notes?: string | null;
 }
 
-// Re-export WodResult from wod-types (hand-declared until fully superseded by generated).
+// Re-export WOD types from wod-types (UpdateWodExerciseRequest and UpdateWorkoutWodRequest
+// are still hand-maintained; WodResult, WodConfig, LoggedSetDto are re-exported
+// from generated via wod-types).
 export type {
   WodResult,
   WodSessionExercise,
   LoggedSetDto,
-  UpdateWorkoutSetWithPlannedRequest,
+  UpdateWodExerciseRequest,
+  UpdateWorkoutWodRequest,
 } from './wod-types';
 
 /**
- * A single training-session diary photo from the session log.
- * Mirrors `MealPhotoDto` from nutrition (blobUrl, uploadedAt, note?).
- *
- * Hand-declared until regen-api is run against the backend (#405).
- * Drop this type once generated.ts emits `SessionPhotoDto` natively.
+ * `TodayTrainingResponse` is now a direct alias for `GetTodaySessionResponse`.
+ * After the #440 regen all previously-augmented fields
+ * (`lockStateBySession`, `photosBySession`, `notesBySession`,
+ * `loggedSetsBySessionExercise`, `hasModificationsBySession`)
+ * are emitted natively by generated.ts.
  */
-export interface SessionPhotoDto {
-  blobUrl: string;
-  uploadedAt?: string;
-  note?: string | null;
-}
-
-/**
- * Augmented GetTodaySessionResponse — adds:
- *   - `lockStateBySession` (#382): session edit-lock state.
- *   - `photosBySession` (#405): per-session diary photos from the session log.
- *   - `notesBySession` (#405): persisted session-level notes keyed by sessionId.
- *   - `loggedSetsBySessionExercise` (#440): per-session, per-exercise logged sets
- *     with actual values, snapshot-planned values, and isModified flag.
- *   - `hasModificationsBySession` (#440): per-session roll-up modification flag.
- *
- * All fields hand-declared until regen-api runs against the updated backend.
- * Drop the augmentation for each field once the generated client emits it natively.
- */
-export type TodayTrainingResponse = GetTodaySessionResponse & {
-  lockStateBySession?: Record<string, string>;
-  /**
-   * Per-session diary photos from today's session logs, keyed by sessionId.
-   * Mirrors how `mealsEaten[].photos` is embedded in GetTodayLogResponse for nutrition.
-   * Added in #405 (GenerateSessionPhotoUploadUrl + SaveSessionPhotos endpoints).
-   * Returns an empty object when no session has any diary photos today.
-   */
-  photosBySession?: Record<string, SessionPhotoDto[]>;
-  /**
-   * Persisted session-level note for today's session log, keyed by sessionId.
-   * Only present for sessions that have a non-empty note — mirrors how
-   * nutrition's today read path returns each meal's note.
-   * Added in #405 review fix: seeds the note textarea so REPLACE semantics
-   * do not wipe previously saved notes on re-open.
-   */
-  notesBySession?: Record<string, string>;
-  /**
-   * Per-session, per-exercise logged sets with actual values, snapshot-planned
-   * values, and backend-computed isModified flag.
-   * Outer key = sessionId (string UUID), inner key = exerciseExternalId (string UUID).
-   * Hand-declared until regen-api surfaces LoggedSetsBySessionExercise natively (#440).
-   */
-  loggedSetsBySessionExercise?: Record<string, Record<string, LoggedSetDto[]>>;
-  /**
-   * Per-session roll-up modification flag: true when the session has at least one
-   * exercise with at least one isModified set.
-   * Hand-declared until regen-api surfaces HasModificationsBySession natively (#440).
-   */
-  hasModificationsBySession?: Record<string, boolean>;
-};
+export type TodayTrainingResponse = GetTodaySessionResponse;
 
 /**
  * @deprecated Use `GetFullTrainingPlanResponse` from generated. Kept as alias for backward compatibility.
@@ -188,61 +88,20 @@ export type FullPlanWeek = WeekDto;
 export type FullPlanSession = SessionDto;
 
 /**
- * Augmented ExerciseDto — adds hasModifications from #440, and widens
- * `sets` from `SetDto[]` to `FullPlanSet[]` (a superset with actual values,
- * snapshot-planned values, and the isModified flag).
- *
- * Uses `Omit` to replace the generated `sets` property so TypeScript resolves
- * the narrower `FullPlanSet[]` type unambiguously (plain intersection would
- * produce `SetDto[] & FullPlanSet[]`, which TypeScript cannot narrow at call sites).
- *
- * Hand-declared until regen-api produces these fields natively.
+ * `FullPlanExercise` is now a direct alias for the generated `ExerciseDto`.
+ * After the #440 regen `ExerciseDto` carries `hasModifications` and
+ * `sets?: SetDto[]` (where `SetDto` has all actual + planned + isModified fields).
+ * Kept as alias for backward compatibility with `SetGrid` and `LiveFinishedSummary`.
  */
-export type FullPlanExercise = Omit<ExerciseDto, 'sets'> & {
-  /**
-   * True when at least one set under this exercise has isModified == true.
-   * Always false when no workout log exists for this exercise.
-   */
-  hasModifications?: boolean;
-  /** Augmented sets with actual + planned values and isModified (#440). */
-  sets?: FullPlanSet[];
-};
+export type FullPlanExercise = ExerciseDto;
 
 /**
- * Augmented SetDto — adds actual values, snapshot-planned values, and
- * the backend-computed isModified flag introduced in #440.
- * Hand-declared until regen-api produces these fields natively in generated.ts.
- * Drop augmentation once generated.ts emits the full shape.
+ * `FullPlanSet` is now a direct alias for the generated `SetDto`.
+ * After the #440 regen `SetDto` carries all actual values, snapshot-planned
+ * values, and the backend-computed `isModified` flag.
+ * Kept as alias for backward compatibility with `SetGrid` and `LiveFinishedSummary`.
  */
-export type FullPlanSet = SetDto & {
-  // ── Actual logged values ────────────────────────────────────────────────────
-  /** Actual reps completed. Null when set has not been performed. */
-  actualReps?: number | null;
-  /** Actual weight (kg) logged. Null when not performed. */
-  actualWeightKg?: number | null;
-  /** Actual RPE logged. Null when not performed. */
-  actualRpe?: number | null;
-  /** Actual duration (seconds) logged. Null when not performed. */
-  actualDurationSeconds?: number | null;
-  /** Actual distance (meters) logged. Null when not performed. */
-  actualDistanceMeters?: number | null;
-  // ── Snapshot-planned values ─────────────────────────────────────────────────
-  /** Snapshot-planned repetitions at log time. Null for legacy logs. */
-  plannedReps?: number | null;
-  /** Snapshot-planned weight (kg) at log time. Null for legacy logs. */
-  plannedWeightKg?: number | null;
-  /** Snapshot-planned RPE at log time. Null for legacy logs. */
-  plannedRpe?: number | null;
-  /** Snapshot-planned duration (seconds) at log time. Null for legacy logs. */
-  plannedDurationSeconds?: number | null;
-  /** Snapshot-planned distance (meters) at log time. Null for legacy logs. */
-  plannedDistanceMeters?: number | null;
-  /**
-   * Backend-computed: true when any actual field differs from its snapshot-planned
-   * counterpart. Always false for legacy sets (no snapshot).
-   */
-  isModified?: boolean;
-};
+export type FullPlanSet = SetDto;
 
 // --- API calls ---
 
@@ -258,11 +117,8 @@ export async function getFullTrainingPlan(planId: string): Promise<GetFullTraini
 
 // ─── Session photo upload API (#405) ─────────────────────────────────────────
 // Mirrors the nutrition meal-photo API pattern exactly.
-
-export interface GenerateSessionPhotoUploadUrlResponse {
-  uploadUrl: string;
-  blobUrl: string;
-}
+// GenerateSessionPhotoUploadUrlResponse and SessionPhotoDto are now natively
+// in generated.ts — consumed via the re-exports above.
 
 /**
  * Request a signed upload URL for a training-session diary photo.

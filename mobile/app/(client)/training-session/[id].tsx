@@ -2407,9 +2407,10 @@ export default function WorkoutLogScreen() {
           reps: isDone ? (override?.reps ?? planned.reps) : undefined,
           weightKg: isDone ? (override?.weightKg ?? planned.weightKg) : undefined,
           // Time-movement actuals: durationSeconds replaces the reps slot.
-          durationSeconds: isDone ? (override?.durationSeconds ?? null) : undefined,
+          // Use undefined (not null) to match UpdateWorkoutSetRequest's field type.
+          durationSeconds: isDone ? (override?.durationSeconds ?? undefined) : undefined,
           // Distance-movement actuals: distanceMeters replaces the weightKg slot.
-          distanceMeters: isDone ? (override?.distanceMeters ?? null) : undefined,
+          distanceMeters: isDone ? (override?.distanceMeters ?? undefined) : undefined,
           // Only truly completed sets carry completedAt. Skipped sets must NOT
           // receive a completedAt timestamp — the backend (GetTodaySession)
           // uses CompletedAt != null to populate completedSetsBySessionExercise,
@@ -2419,11 +2420,12 @@ export default function WorkoutLogScreen() {
           // Snapshot-planned values (#441): the backend stores these on the
           // WorkoutLog so the isModified flag can be computed on read. Send
           // the original plan values from the exercise's planned sets.
-          plannedReps: planned.reps ?? null,
-          plannedWeightKg: planned.weightKg ?? null,
-          plannedRpe: planned.rpe ?? null,
-          plannedDurationSeconds: planned.durationSeconds ?? null,
-          plannedDistanceMeters: planned.distanceMeters ?? null,
+          // Use undefined (not null) to match UpdateWorkoutSetRequest's field type.
+          plannedReps: planned.reps ?? undefined,
+          plannedWeightKg: planned.weightKg ?? undefined,
+          plannedRpe: planned.rpe ?? undefined,
+          plannedDurationSeconds: planned.durationSeconds ?? undefined,
+          plannedDistanceMeters: planned.distanceMeters ?? undefined,
         }
       })
       // Per-exercise WOD result (only present when the exercise has a format override).
