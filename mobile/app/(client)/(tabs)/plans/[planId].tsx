@@ -1437,6 +1437,7 @@ function TrainingPlanDetail({
                       standalone
                       headerRight={sessionCheckIndicator}
                       bodyFooter={<SessionReminderRow session={session} planId={planId} />}
+                      hasModifications={session.hasModifications ?? false}
                     >
                       {/* Section-grouped exercise cards (read-only) */}
                       {sections.map((section, sectionIdx) => {

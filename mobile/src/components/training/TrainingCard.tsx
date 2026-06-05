@@ -171,7 +171,7 @@ interface TrainingCardProps {
    * Per-session roll-up modification flag, keyed by sessionId.
    * Sourced from `hasModificationsBySession` in TodayTrainingResponse (#440).
    * When true for a session, the session-level "upraveno" badge is shown in the
-   * session header (passed to SectionHeader via the "upraveno" concept).
+   * ExpandableSessionCard header for that session.
    */
   hasModificationsBySession?: Record<string, boolean>
 }
@@ -609,7 +609,7 @@ interface SessionSectionListProps {
   /**
    * Whether this session has any modifications overall.
    * Sourced from `hasModificationsBySession[sessionId]`.
-   * Currently unused but available for a future session-level "upraveno" badge.
+   * Passed to ExpandableSessionCard to render the session-level "upraveno" badge.
    */
   sessionHasModifications?: boolean
   t: (key: string, opts?: Record<string, unknown>) => string
@@ -642,6 +642,7 @@ function SessionSectionList({
   onSessionPhotoPress,
   sessionPhotos,
   loggedSetsForSession,
+  sessionHasModifications,
   t,
 }: SessionSectionListProps) {
   const colors = useTheme()
@@ -669,6 +670,7 @@ function SessionSectionList({
               headerRight={sessionCheckbox}
               onPhotoPress={onSessionPhotoPress}
               photos={sessionPhotos}
+              hasModifications={sessionHasModifications ?? false}
             >
               {/* Section-grouped exercise cards */}
               {sections.map((section, sectionIdx) => {
