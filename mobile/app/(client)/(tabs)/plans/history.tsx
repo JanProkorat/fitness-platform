@@ -140,10 +140,11 @@ export default function PlansHistoryScreen() {
         <Pressable
           onPress={() => router.back()}
           style={styles.backBtn}
+          hitSlop={8}
           accessibilityRole="button"
           accessibilityLabel={t('common.back', { defaultValue: 'Back' })}
         >
-          <Ionicons name="chevron-back" size={24} color={colors.blue} />
+          <Ionicons name="chevron-back" size={26} color={colors.gold} />
         </Pressable>
         <Text style={[Type.headline, { color: colors.label }]}>{t('plans.archive')}</Text>
         <View style={styles.backBtn} />

@@ -1234,11 +1234,14 @@ export default function PlansScreen() {
         <Pressable
           onPress={() => router.push(href('/(client)/plans/history'))}
           style={styles.archiveLink}
+          hitSlop={8}
           accessibilityRole="link"
+          accessibilityLabel={t('plans.archive')}
         >
-          <Text style={[styles.archiveLinkText, { color: colors.blue }]}>
-            {t('plans.archive')} ›
+          <Text style={[Type.body, styles.archiveLinkText, { color: colors.gold }]}>
+            {t('plans.archive')}
           </Text>
+          <Ionicons name="chevron-forward" size={24} color={colors.gold} />
         </Pressable>
       </View>
 
@@ -1322,13 +1325,14 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   archiveLink: {
-    paddingBottom: 3,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
     minHeight: 44,
     justifyContent: 'flex-end',
   },
   archiveLinkText: {
-    fontSize: 15,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   centered: {
     flex: 1,
