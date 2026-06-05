@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Button, Toggle, Select, Dialog } from '@/components/ui';
+import { TimePicker } from '@/components/ui/TimePicker';
 import { useToastStore } from '@/stores/toast';
 import { getApiErrorMessage } from '@/lib/api-errors';
 import {
@@ -24,12 +25,6 @@ import type {
 
 /* ─────────────────────── Constants ─────────────────────── */
 
-/** Hour options from 06:00 to 22:00, rendered as "HH:mm". */
-const HOUR_OPTIONS: string[] = Array.from({ length: 17 }, (_, i) => {
-  const h = i + 6;
-  return `${String(h).padStart(2, '0')}:00`;
-});
-
 const DEFAULT_DAY: DayOfWeekInt = 1;
 const DEFAULT_HOUR = '09:00';
 
@@ -48,7 +43,8 @@ const overrideSchema = z.object({
   useDefaultDay: z.boolean(),
   dayOfWeek: dayOfWeekSchema.nullable(),
   useDefaultTime: z.boolean(),
-  timeOfDay: z.string().nullable(),
+  /** "HH:mm" when set — converted to "HH:mm:ss" before sending. Null = inherit. */
+  timeOfDay: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Invalid time').nullable(),
   useDefaultEnabled: z.boolean(),
   enabled: z.boolean().nullable(),
   useDefaultAddendum: z.boolean(),
@@ -316,16 +312,10 @@ export function OverrideDialog({ override, settings, onClose }: OverrideDialogPr
               name="timeOfDay"
               control={control}
               render={({ field }) => (
-                <Select
+                <TimePicker
                   value={field.value ?? ''}
                   onChange={(e) => field.onChange(e.target.value)}
-                >
-                  {HOUR_OPTIONS.map((h) => (
-                    <option key={h} value={h}>
-                      {h}
-                    </option>
-                  ))}
-                </Select>
+                />
               )}
             />
           )}

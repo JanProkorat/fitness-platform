@@ -454,7 +454,8 @@
     "sessions_one": "{{count}} Übung",
     "sessions_other": "{{count}} Übungen",
     "meals_one": "{{count}} Mahlzeit",
-    "meals_other": "{{count}} Mahlzeiten"
+    "meals_other": "{{count}} Mahlzeiten",
+    "planNotFound": "Plan nicht gefunden"
   },
   "pendingQuestionnaires": {
     "title": "Ausstehende Fragebögen",

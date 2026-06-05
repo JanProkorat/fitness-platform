@@ -87,23 +87,23 @@ public class PutSettingsValidatorTests
     }
 
     [Fact]
-    public void TimeOfDay_WithMinutes_Fails_WithInvalidTimeOfDayCode()
+    public void TimeOfDay_WithMinutes_Passes()
     {
+        // AC: minute-precision times must be accepted (e.g. 18:30)
         var req = ValidRequest();
         req.TimeOfDay = new TimeSpan(0, 18, 30, 0); // 18:30:00
         var result = _validator.TestValidate(req);
-        result.ShouldHaveValidationErrorFor(x => x.TimeOfDay)
-              .WithErrorCode(ErrorCodes.InvalidTimeOfDay);
+        result.ShouldNotHaveValidationErrorFor(x => x.TimeOfDay);
     }
 
     [Fact]
-    public void TimeOfDay_WithSeconds_Fails_WithInvalidTimeOfDayCode()
+    public void TimeOfDay_WithSeconds_Passes()
     {
+        // AC: sub-minute precision must also be accepted (e.g. 18:00:45)
         var req = ValidRequest();
         req.TimeOfDay = new TimeSpan(0, 18, 0, 45); // 18:00:45
         var result = _validator.TestValidate(req);
-        result.ShouldHaveValidationErrorFor(x => x.TimeOfDay)
-              .WithErrorCode(ErrorCodes.InvalidTimeOfDay);
+        result.ShouldNotHaveValidationErrorFor(x => x.TimeOfDay);
     }
 
     [Fact]
@@ -113,6 +113,49 @@ public class PutSettingsValidatorTests
         req.TimeOfDay = TimeSpan.FromHours(9);
         var result = _validator.TestValidate(req);
         result.ShouldNotHaveValidationErrorFor(x => x.TimeOfDay);
+    }
+
+    [Theory]
+    [InlineData(0, 9, 15, 0)]    // 09:15:00
+    [InlineData(0, 23, 59, 59)]  // 23:59:59 — boundary accepted
+    [InlineData(0, 0, 0, 0)]     // 00:00:00 — midnight accepted
+    public void TimeOfDay_ValidMinutePrecision_Passes(int days, int hours, int minutes, int seconds)
+    {
+        var req = ValidRequest();
+        req.TimeOfDay = new TimeSpan(days, hours, minutes, seconds);
+        var result = _validator.TestValidate(req);
+        result.ShouldNotHaveValidationErrorFor(x => x.TimeOfDay);
+    }
+
+    [Fact]
+    public void TimeOfDay_ExactlyTwentyFourHours_Fails_WithInvalidTimeOfDayCode()
+    {
+        // AC: >= 24:00 must be rejected
+        var req = ValidRequest();
+        req.TimeOfDay = TimeSpan.FromHours(24);
+        var result = _validator.TestValidate(req);
+        result.ShouldHaveValidationErrorFor(x => x.TimeOfDay)
+              .WithErrorCode(ErrorCodes.InvalidTimeOfDay);
+    }
+
+    [Fact]
+    public void TimeOfDay_GreaterThanTwentyFourHours_Fails_WithInvalidTimeOfDayCode()
+    {
+        var req = ValidRequest();
+        req.TimeOfDay = TimeSpan.FromHours(25);
+        var result = _validator.TestValidate(req);
+        result.ShouldHaveValidationErrorFor(x => x.TimeOfDay)
+              .WithErrorCode(ErrorCodes.InvalidTimeOfDay);
+    }
+
+    [Fact]
+    public void TimeOfDay_Negative_Fails_WithInvalidTimeOfDayCode()
+    {
+        var req = ValidRequest();
+        req.TimeOfDay = TimeSpan.FromHours(-1);
+        var result = _validator.TestValidate(req);
+        result.ShouldHaveValidationErrorFor(x => x.TimeOfDay)
+              .WithErrorCode(ErrorCodes.InvalidTimeOfDay);
     }
 
     [Fact]

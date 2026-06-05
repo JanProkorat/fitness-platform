@@ -96,12 +96,18 @@ function PlanHero({
   professionalName,
   onPress,
   colors,
+  showSwitch,
+  activeTab,
+  onTabSelect,
 }: {
   plan: ClientPlanSummary
   type: 'training' | 'nutrition'
   professionalName?: string
   onPress: () => void
   colors: ReturnType<typeof useTheme>
+  showSwitch?: boolean
+  activeTab?: PlanTab
+  onTabSelect?: (tab: PlanTab) => void
 }) {
   const { t } = useTranslation()
 
@@ -134,6 +140,8 @@ function PlanHero({
       ? [colors.nutritionHeroStart, colors.nutritionHeroEnd]
       : [colors.trainingHeroStart, colors.trainingHeroEnd]
 
+  const tabs: PlanTab[] = ['training', 'nutrition']
+
   return (
     <Pressable
       onPress={onPress}
@@ -147,17 +155,51 @@ function PlanHero({
         end={{ x: 1, y: 1 }}
         style={heroStyles.gradient}
       >
-        {/* Active badge */}
-        <View style={[heroStyles.badge, { backgroundColor: 'rgba(52,199,89,0.2)' }]}>
-          <Text style={[heroStyles.badgeText, { color: colors.green }]}>
-            {`● ${t('plans.statusActive')}`}
-          </Text>
+        {/* Top row: Active badge (left) + optional type toggle (right) */}
+        <View style={heroStyles.topRow}>
+          <View style={[heroStyles.badge, { backgroundColor: 'rgba(52,199,89,0.2)' }]}>
+            <Text style={[heroStyles.badgeText, { color: colors.green }]}>
+              {`● ${t('plans.statusActive')}`}
+            </Text>
+          </View>
+
+          {showSwitch && onTabSelect && activeTab !== undefined && (
+            <Pressable
+              onPress={(e) => e.stopPropagation?.()}
+              style={heroStyles.toggleWrap}
+              accessibilityRole="none"
+            >
+              {tabs.map((tab) => {
+                const active = tab === activeTab
+                return (
+                  <Pressable
+                    key={tab}
+                    onPress={(e) => {
+                      // Prevent the hero card's onPress from firing
+                      e.stopPropagation?.()
+                      onTabSelect(tab)
+                    }}
+                    style={[heroStyles.toggleSegment, active && heroStyles.toggleSegmentActive]}
+                    accessibilityRole="tab"
+                    accessibilityState={{ selected: active }}
+                    accessibilityLabel={tab === 'training' ? t('plans.training') : t('plans.nutrition')}
+                  >
+                    <Text style={[heroStyles.toggleLabel, active ? heroStyles.toggleLabelActive : heroStyles.toggleLabelInactive]}>
+                      {tab === 'training' ? t('plans.training') : t('plans.nutrition')}
+                    </Text>
+                  </Pressable>
+                )
+              })}
+            </Pressable>
+          )}
         </View>
 
-        {/* Type label */}
-        <Text style={heroStyles.typeLabel}>
-          {type === 'training' ? t('plans.trainingPlanType') : t('plans.nutritionPlanType')}
-        </Text>
+        {/* Type label — only when NOT showing the toggle */}
+        {!showSwitch && (
+          <Text style={heroStyles.typeLabel}>
+            {type === 'training' ? t('plans.trainingPlanType') : t('plans.nutritionPlanType')}
+          </Text>
+        )}
 
         {/* Plan name */}
         <Text style={heroStyles.planName}>{plan.planName ?? ''}</Text>
@@ -203,16 +245,45 @@ const heroStyles = StyleSheet.create({
     padding: 18,
     paddingTop: 18,
   },
+  topRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   badge: {
     alignSelf: 'flex-start',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: Radius.full,
-    marginBottom: 8,
   },
   badgeText: {
     fontSize: 11,
     fontWeight: '600',
+  },
+  toggleWrap: {
+    flexDirection: 'row',
+    padding: 2,
+    borderRadius: Radius.full,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+  },
+  toggleSegment: {
+    paddingHorizontal: 13,
+    paddingVertical: 5,
+    borderRadius: Radius.full,
+  },
+  toggleSegmentActive: {
+    backgroundColor: 'rgba(255,255,255,0.24)',
+  },
+  toggleLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  toggleLabelActive: {
+    color: '#ffffff',
+  },
+  toggleLabelInactive: {
+    color: 'rgba(255,255,255,0.55)',
   },
   typeLabel: {
     fontSize: 11,
@@ -643,67 +714,6 @@ const sectionStyles = StyleSheet.create({
   },
 })
 
-// ─── Segmented Control (Training / Nutrition) ─────────────────────────
-
-function PlanTypeSwitch({
-  selected,
-  onSelect,
-  colors,
-}: {
-  selected: PlanTab
-  onSelect: (tab: PlanTab) => void
-  colors: ReturnType<typeof useTheme>
-}) {
-  const { t } = useTranslation()
-  const tabs: PlanTab[] = ['training', 'nutrition']
-
-  return (
-    <View style={[switchStyles.wrap, { backgroundColor: colors.fill }]}>
-      {tabs.map((tab) => {
-        const active = tab === selected
-        return (
-          <Pressable
-            key={tab}
-            onPress={() => onSelect(tab)}
-            style={[switchStyles.segment, active && { backgroundColor: colors.bg2 }]}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: active }}
-          >
-            <Text
-              style={[
-                switchStyles.label,
-                { color: active ? colors.label : colors.label2 },
-              ]}
-            >
-              {tab === 'training' ? t('plans.training') : t('plans.nutrition')}
-            </Text>
-          </Pressable>
-        )
-      })}
-    </View>
-  )
-}
-
-const switchStyles = StyleSheet.create({
-  wrap: {
-    flexDirection: 'row',
-    borderRadius: Radius.sm,
-    padding: 2,
-    marginHorizontal: 16,
-    marginBottom: 12,
-  },
-  segment: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: Radius.sm - 2,
-    alignItems: 'center',
-  },
-  label: {
-    ...Type.subheadline,
-    fontWeight: '600',
-  },
-})
-
 // ─── Training Pane ────────────────────────────────────────────────────
 
 function TrainingPane({
@@ -715,6 +725,9 @@ function TrainingPane({
   onRowPress,
   professionalName,
   colors,
+  showSwitch,
+  activeTab,
+  onTabSelect,
 }: {
   trainingPlan: ClientPlanSummary
   fullPlan: GetFullTrainingPlanResponse
@@ -724,6 +737,9 @@ function TrainingPane({
   onRowPress: (session: SessionDto, weekNum: number) => void
   professionalName?: string
   colors: ReturnType<typeof useTheme>
+  showSwitch?: boolean
+  activeTab?: PlanTab
+  onTabSelect?: (tab: PlanTab) => void
 }) {
   const { t } = useTranslation()
   const publishedWeekCount = fullPlan.publishedWeekCount ?? 0
@@ -766,6 +782,9 @@ function TrainingPane({
         onPress={onHeroPress}
         professionalName={professionalName}
         colors={colors}
+        showSwitch={showSwitch}
+        activeTab={activeTab}
+        onTabSelect={onTabSelect}
       />
       <WeekStepper
         week={selectedWeek}
@@ -810,6 +829,9 @@ function NutritionPane({
   onRowPress,
   professionalName,
   colors,
+  showSwitch,
+  activeTab,
+  onTabSelect,
 }: {
   nutritionPlan: ClientPlanSummary
   fullPlan: FullPlanResponse
@@ -819,6 +841,9 @@ function NutritionPane({
   onRowPress: (dayOfWeek: number, weekNum: number) => void
   professionalName?: string
   colors: ReturnType<typeof useTheme>
+  showSwitch?: boolean
+  activeTab?: PlanTab
+  onTabSelect?: (tab: PlanTab) => void
 }) {
   const { t } = useTranslation()
   const publishedWeekCount = fullPlan.publishedWeekCount ?? 0
@@ -865,6 +890,9 @@ function NutritionPane({
         onPress={onHeroPress}
         professionalName={professionalName}
         colors={colors}
+        showSwitch={showSwitch}
+        activeTab={activeTab}
+        onTabSelect={onTabSelect}
       />
       <WeekStepper
         week={selectedWeek}
@@ -1082,14 +1110,6 @@ function ActivePlansContent({
 
   return (
     <>
-      {showSwitch && (
-        <PlanTypeSwitch
-          selected={activeTab}
-          onSelect={setPlanTab}
-          colors={colors}
-        />
-      )}
-
       {/* Training pane — shown only when activeTab === 'training' */}
       {activeTab === 'training' && trainingPlan !== null && trainingFullQuery.data && (
         <TrainingPane
@@ -1101,6 +1121,9 @@ function ActivePlansContent({
           onRowPress={handleTrainingRowPress}
           professionalName={trainerName}
           colors={colors}
+          showSwitch={showSwitch}
+          activeTab={activeTab}
+          onTabSelect={showSwitch ? setPlanTab : undefined}
         />
       )}
 
@@ -1115,6 +1138,9 @@ function ActivePlansContent({
           onRowPress={handleNutritionRowPress}
           professionalName={nutritionistName}
           colors={colors}
+          showSwitch={showSwitch}
+          activeTab={activeTab}
+          onTabSelect={showSwitch ? setPlanTab : undefined}
         />
       )}
     </>
@@ -1208,11 +1234,14 @@ export default function PlansScreen() {
         <Pressable
           onPress={() => router.push(href('/(client)/plans/history'))}
           style={styles.archiveLink}
+          hitSlop={8}
           accessibilityRole="link"
+          accessibilityLabel={t('plans.archive')}
         >
-          <Text style={[styles.archiveLinkText, { color: colors.blue }]}>
-            {t('plans.archive')} ›
+          <Text style={[Type.body, styles.archiveLinkText, { color: colors.gold }]}>
+            {t('plans.archive')}
           </Text>
+          <Ionicons name="chevron-forward" size={24} color={colors.gold} />
         </Pressable>
       </View>
 
@@ -1296,13 +1325,14 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   archiveLink: {
-    paddingBottom: 3,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
     minHeight: 44,
     justifyContent: 'flex-end',
   },
   archiveLinkText: {
-    fontSize: 15,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   centered: {
     flex: 1,
