@@ -68,76 +68,187 @@ public class UpdateWorkoutEndpoint(
         }
 
         // ── Snapshot previously-completed sets BEFORE we overwrite them ──────────
-        // Key: (exerciseExternalId, setNumber) → true if already completed.
+        // Key: (sectionId, exerciseExternalId, setNumber) → true if already completed.
         // Used downstream to determine which sets are *newly* completed this call.
         log.WithBackfilledSections();
-        var previouslyCompleted = log.Exercises
-            .SelectMany(e => e.Sets
-                .Where(s => s.CompletedAt.HasValue)
-                .Select(s => (e.ExerciseExternalId, s.SetNumber)))
+        var previouslyCompleted = log.Sections
+            .SelectMany(sec => sec.Exercises
+                .SelectMany(e => e.Sets
+                    .Where(s => s.CompletedAt.HasValue)
+                    .Select(s => (sec.SectionId, e.ExerciseExternalId, s.SetNumber))))
             .ToHashSet();
 
         // ── Build snapshot lookup from the existing stored sets ──────────────────
-        // Key: (ExerciseExternalId, SetNumber) → stored WorkoutSet.
+        // Key: (SectionId, ExerciseExternalId, SetNumber) → stored WorkoutSet.
         // Used below to freeze Planned* fields on re-PUT: once a Planned* field has
         // a non-null value in the database it is immutable; later requests cannot
         // overwrite it even if they supply different planned values.
-        var storedSetLookup = log.Exercises
-            .SelectMany(e => e.Sets.Select(s => (e.ExerciseExternalId, s)))
-            .ToDictionary(x => (x.ExerciseExternalId, x.s.SetNumber), x => x.s);
+        //
+        // Keying includes SectionId so that the same exercise repeated in two
+        // different sections (e.g. standard + AMRAP) gets independent snapshots.
+        var storedSetLookup = log.Sections
+            .SelectMany(sec => sec.Exercises
+                .SelectMany(e => e.Sets.Select(s => (sec.SectionId, e.ExerciseExternalId, s))))
+            .ToDictionary(
+                x => (x.SectionId, x.ExerciseExternalId, x.s.SetNumber),
+                x => x.s);
 
-        // ── Build new exercise list from request ──────────────────────────────────
-        // The UpdateWorkout API accepts a flat exercise list (offline-first protocol).
-        // Exercises are stored inside a single default section named "Hlavní".
+        // ── Determine whether all request exercises carry SectionId ───────────────
+        // Legacy clients (no SectionId) → single-section fallback for backward compat.
+        var allHaveSectionId = req.Exercises.Count > 0
+                               && req.Exercises.All(e => e.SectionId.HasValue);
+
         log.Mood = req.Mood;
         log.Notes = req.Notes?.Trim();
         log.WodResult = req.WodResult;
-        var exercises = req.Exercises.Select(re => new WorkoutExercise
-        {
-            ExerciseExternalId = re.ExerciseExternalId,
-            ExerciseName = re.ExerciseName,
-            WodResult = re.WodResult,
-            Sets = re.Sets.Select(rs =>
-            {
-                // Per-field snapshot freeze: use stored value when it is already non-null,
-                // otherwise take the incoming request value (first-log or extra-set case).
-                storedSetLookup.TryGetValue((re.ExerciseExternalId, rs.SetNumber), out var stored);
 
-                return new WorkoutSet
-                {
-                    SetNumber = rs.SetNumber,
-                    Reps = rs.Reps,
-                    WeightKg = rs.WeightKg,
-                    Rpe = rs.Rpe,
-                    DurationSeconds = rs.DurationSeconds,
-                    DistanceMeters = rs.DistanceMeters,
-                    CompletedAt = rs.CompletedAt,
-                    PlannedReps = stored?.PlannedReps ?? rs.PlannedReps,
-                    PlannedWeightKg = stored?.PlannedWeightKg ?? rs.PlannedWeightKg,
-                    PlannedRpe = stored?.PlannedRpe ?? rs.PlannedRpe,
-                    PlannedDurationSeconds = stored?.PlannedDurationSeconds ?? rs.PlannedDurationSeconds,
-                    PlannedDistanceMeters = stored?.PlannedDistanceMeters ?? rs.PlannedDistanceMeters
-                };
-            }).ToList()
-        }).ToList();
-        // Preserve existing section structure when available; otherwise use a single default section.
-        if (log.Sections.Count == 1)
+        if (allHaveSectionId)
         {
-            log.Sections[0].Exercises = exercises;
+            // ── Section-aware path: exercises are routed to their designated section ──
+            // Each exercise in the request carries the SectionId it belongs to.
+            // We update or create sections as needed, preserving sections that the
+            // request does not mention (empty sections remain in the document).
+            //
+            // Group request exercises by SectionId.
+            var exercisesBySectionId = req.Exercises
+                .GroupBy(e => e.SectionId!.Value)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            // Walk existing sections and update their exercise lists.
+            // Sections in the stored log that are not in the request remain untouched.
+            foreach (var section in log.Sections)
+            {
+                if (!exercisesBySectionId.TryGetValue(section.SectionId, out var sectionExercises))
+                    continue;
+
+                section.Exercises = sectionExercises.Select(re => new WorkoutExercise
+                {
+                    ExerciseExternalId = re.ExerciseExternalId,
+                    ExerciseName = re.ExerciseName,
+                    WodResult = re.WodResult,
+                    Sets = re.Sets.Select(rs =>
+                    {
+                        storedSetLookup.TryGetValue(
+                            (section.SectionId, re.ExerciseExternalId, rs.SetNumber), out var stored);
+
+                        return new WorkoutSet
+                        {
+                            SetNumber = rs.SetNumber,
+                            Reps = rs.Reps,
+                            WeightKg = rs.WeightKg,
+                            Rpe = rs.Rpe,
+                            DurationSeconds = rs.DurationSeconds,
+                            DistanceMeters = rs.DistanceMeters,
+                            CompletedAt = rs.CompletedAt,
+                            PlannedReps = stored?.PlannedReps ?? rs.PlannedReps,
+                            PlannedWeightKg = stored?.PlannedWeightKg ?? rs.PlannedWeightKg,
+                            PlannedRpe = stored?.PlannedRpe ?? rs.PlannedRpe,
+                            PlannedDurationSeconds = stored?.PlannedDurationSeconds ?? rs.PlannedDurationSeconds,
+                            PlannedDistanceMeters = stored?.PlannedDistanceMeters ?? rs.PlannedDistanceMeters
+                        };
+                    }).ToList()
+                }).ToList();
+            }
+
+            // Handle exercises for sections that don't exist yet in the stored log
+            // (can happen on first write if the document was just created with no sections).
+            var existingSectionIds = log.Sections.Select(s => s.SectionId).ToHashSet();
+            foreach (var (sectionId, sectionExercises) in exercisesBySectionId)
+            {
+                if (existingSectionIds.Contains(sectionId))
+                    continue;
+
+                // New section for this log — add it at the end.
+                log.Sections.Add(new WorkoutSection
+                {
+                    SectionId = sectionId,
+                    Order = log.Sections.Count,
+                    Name = "Hlavní",
+                    Exercises = sectionExercises.Select(re => new WorkoutExercise
+                    {
+                        ExerciseExternalId = re.ExerciseExternalId,
+                        ExerciseName = re.ExerciseName,
+                        WodResult = re.WodResult,
+                        Sets = re.Sets.Select(rs => new WorkoutSet
+                        {
+                            SetNumber = rs.SetNumber,
+                            Reps = rs.Reps,
+                            WeightKg = rs.WeightKg,
+                            Rpe = rs.Rpe,
+                            DurationSeconds = rs.DurationSeconds,
+                            DistanceMeters = rs.DistanceMeters,
+                            CompletedAt = rs.CompletedAt,
+                            PlannedReps = rs.PlannedReps,
+                            PlannedWeightKg = rs.PlannedWeightKg,
+                            PlannedRpe = rs.PlannedRpe,
+                            PlannedDurationSeconds = rs.PlannedDurationSeconds,
+                            PlannedDistanceMeters = rs.PlannedDistanceMeters
+                        }).ToList()
+                    }).ToList()
+                });
+            }
         }
         else
         {
-            log.Sections =
-            [
-                new WorkoutSection
+            // ── Legacy / single-section path (no SectionId in request) ─────────────
+            // All exercises are placed into a single default section.
+            // This preserves backward compatibility with clients that do not send SectionId.
+            // For multi-section logs that already exist, all request exercises collapse
+            // into the first section — this is the existing behaviour for legacy clients.
+            var fallbackSectionId = log.Sections.Count > 0
+                ? log.Sections[0].SectionId
+                : Guid.NewGuid();
+
+            var exercises = req.Exercises.Select(re => new WorkoutExercise
+            {
+                ExerciseExternalId = re.ExerciseExternalId,
+                ExerciseName = re.ExerciseName,
+                WodResult = re.WodResult,
+                Sets = re.Sets.Select(rs =>
                 {
-                    SectionId = log.Sections.Count > 0 ? log.Sections[0].SectionId : Guid.NewGuid(),
-                    Order = 0,
-                    Name = "Hlavní",
-                    Exercises = exercises
-                }
-            ];
+                    // For the legacy path, try the stored section's SectionId first,
+                    // then fall back to any section that has this exercise+set pair
+                    // (handles the rare case of a section-keyed lookup on a legacy client call).
+                    storedSetLookup.TryGetValue(
+                        (fallbackSectionId, re.ExerciseExternalId, rs.SetNumber), out var stored);
+
+                    return new WorkoutSet
+                    {
+                        SetNumber = rs.SetNumber,
+                        Reps = rs.Reps,
+                        WeightKg = rs.WeightKg,
+                        Rpe = rs.Rpe,
+                        DurationSeconds = rs.DurationSeconds,
+                        DistanceMeters = rs.DistanceMeters,
+                        CompletedAt = rs.CompletedAt,
+                        PlannedReps = stored?.PlannedReps ?? rs.PlannedReps,
+                        PlannedWeightKg = stored?.PlannedWeightKg ?? rs.PlannedWeightKg,
+                        PlannedRpe = stored?.PlannedRpe ?? rs.PlannedRpe,
+                        PlannedDurationSeconds = stored?.PlannedDurationSeconds ?? rs.PlannedDurationSeconds,
+                        PlannedDistanceMeters = stored?.PlannedDistanceMeters ?? rs.PlannedDistanceMeters
+                    };
+                }).ToList()
+            }).ToList();
+
+            if (log.Sections.Count == 1)
+            {
+                log.Sections[0].Exercises = exercises;
+            }
+            else
+            {
+                log.Sections =
+                [
+                    new WorkoutSection
+                    {
+                        SectionId = fallbackSectionId,
+                        Order = 0,
+                        Name = "Hlavní",
+                        Exercises = exercises
+                    }
+                ];
+            }
         }
+
         log.DateUpdated = DateTime.UtcNow;
 
         await mongo.WorkoutLogs.ReplaceOneAsync(
@@ -181,20 +292,22 @@ public class UpdateWorkoutEndpoint(
     private async Task<bool> DetectAndPersistPRsAsync(
         WorkoutLog log,
         Guid clientId,
-        HashSet<(Guid ExerciseExternalId, int SetNumber)> previouslyCompleted,
+        HashSet<(Guid SectionId, Guid ExerciseExternalId, int SetNumber)> previouslyCompleted,
         IRealtimeNotifier realtimeNotifier,
         CancellationToken ct)
     {
         // Collect newly-completed sets (CompletedAt moved null → non-null),
         // only for sets with both weight and reps recorded (required for comparison).
-        var newlyCompletedByExercise = log.Exercises
-            .SelectMany(e => e.Sets
-                .Where(s =>
-                    s.CompletedAt.HasValue &&
-                    s.WeightKg.HasValue &&
-                    s.Reps.HasValue &&
-                    !previouslyCompleted.Contains((e.ExerciseExternalId, s.SetNumber)))
-                .Select(s => (Exercise: e, Set: s)))
+        // Key lookup uses (SectionId, ExerciseExternalId, SetNumber) to match the updated snapshot.
+        var newlyCompletedByExercise = log.Sections
+            .SelectMany(sec => sec.Exercises
+                .SelectMany(e => e.Sets
+                    .Where(s =>
+                        s.CompletedAt.HasValue &&
+                        s.WeightKg.HasValue &&
+                        s.Reps.HasValue &&
+                        !previouslyCompleted.Contains((sec.SectionId, e.ExerciseExternalId, s.SetNumber)))
+                    .Select(s => (Exercise: e, Set: s))))
             .GroupBy(x => x.Exercise.ExerciseExternalId)
             .ToList();
 
@@ -275,8 +388,9 @@ public class UpdateWorkoutEndpoint(
             // Ordering by SetNumber ensures lower sets are evaluated before higher ones.
             // Using a running max means a single call can emit multiple PRs for strictly
             // ascending sets, but a lower set after a higher one does not re-win.
-            foreach (var (_, newSet) in exerciseGroup.OrderBy(x => x.Set.SetNumber))
+            foreach (var item in exerciseGroup.OrderBy(x => x.Set.SetNumber))
             {
+                var newSet = item.Set;
                 var setWeight = newSet.WeightKg!.Value;
                 var setReps = newSet.Reps!.Value;
 
