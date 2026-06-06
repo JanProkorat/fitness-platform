@@ -1117,7 +1117,9 @@ export default function TrainingPlanPage() {
                       {(() => {
                         // Session-level completion badge — derive from execution data.
                         // sessionExec is already resolved above in the outer scope.
-                        const allExercises = session.sections.flatMap((sec) => sec.exercises);
+                        const allExercises = session.sections.flatMap((sec) =>
+                          sec.exercises.map((ex) => ({ ...ex, sectionId: sec.sectionId })),
+                        );
                         const { state, counts } = deriveSessionCompletionState(
                           sessionExec ? [sessionExec] : undefined,
                           session.sessionId,
