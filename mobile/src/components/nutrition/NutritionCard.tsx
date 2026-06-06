@@ -58,6 +58,13 @@ interface NutritionCardProps {
    * overlay caption when the user opens photos for that meal.
    */
   mealNoteByMealId?: Record<string, string | null>
+  /**
+   * Plan id passed through to each MealRow so the reminder toggle in the
+   * expanded accordion body uses the correct MMKV namespace
+   * (`meal-<planId>-<mealId>`). When omitted, the reminder toggle is not
+   * rendered (read-only / plan-overview contexts).
+   */
+  planId?: string
 }
 
 /**
@@ -83,6 +90,7 @@ export function NutritionCard({
   isMarkAllLoading,
   mealPhotosByMealId,
   mealNoteByMealId,
+  planId,
 }: NutritionCardProps) {
   const colors = useTheme()
   const { t } = useTranslation()
@@ -144,6 +152,7 @@ export function NutritionCard({
             hasPhotos={meal.mealId ? (eatenMealIdsWithPhotos?.has(meal.mealId) ?? false) : false}
             photos={meal.mealId ? (mealPhotosByMealId?.[meal.mealId] ?? []) : []}
             mealNote={meal.mealId ? (mealNoteByMealId?.[meal.mealId] ?? null) : null}
+            planId={planId}
           />
         ))}
       </View>

@@ -1372,6 +1372,7 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
               photosBySession={photosBySession}
               loggedSetsBySessionExercise={trainingQuery.data?.loggedSetsBySessionExercise}
               hasModificationsBySession={trainingQuery.data?.hasModificationsBySession}
+              planId={training?.planId ?? undefined}
             />
           </View>
         ) : hasActivePlanButNoTrainingToday ? (
@@ -1453,6 +1454,7 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
               onPhotoPress={handlePhotoPress}
               onMarkAllEaten={handleMarkAllEaten}
               isMarkAllLoading={markAllEatenMutation.isPending}
+              planId={plan!.planId ?? undefined}
             />
           </View>
         ) : hasActivePlanButNoDayToday ? (
