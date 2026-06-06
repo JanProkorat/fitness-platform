@@ -533,6 +533,12 @@ interface ExerciseQueueProps {
   currentRelativeIdx: number
   /** Set index within the active exercise. */
   currentSetIdx: number
+  /**
+   * Actual reps/weight logged per set, keyed by exerciseExternalId then setIdx.
+   * Mirrors the liveSessionStore formOverrides shape. Used to show edited values
+   * on finished rows instead of the original planned prescription.
+   */
+  formOverrides: Record<string, Record<number, { reps?: number; weightKg?: number }>>
   /** Tap handler — section-relative exercise index + set index. */
   onGoToSet: (exRelIdx: number, setIdx: number) => void
 }
@@ -541,6 +547,7 @@ function ExerciseQueue({
   exercises,
   currentRelativeIdx,
   currentSetIdx,
+  formOverrides,
   onGoToSet,
 }: ExerciseQueueProps) {
   const colors = useTheme()
@@ -556,6 +563,7 @@ function ExerciseQueue({
     key: string
     exRelIdx: number
     setIdx: number
+    exerciseExternalId: string
     exerciseName: string
     reps: number
     weightKg: number
@@ -564,12 +572,14 @@ function ExerciseQueue({
   let position = 0
   exercises.forEach((ex, exRelIdx) => {
     const sets = ex.sets ?? []
+    const exId = ex.exerciseExternalId ?? `ex-${exRelIdx}`
     sets.forEach((set, setIdx) => {
       position += 1
       rows.push({
-        key: `${ex.exerciseExternalId ?? `ex-${exRelIdx}`}-${setIdx}`,
+        key: `${exId}-${setIdx}`,
         exRelIdx,
         setIdx,
+        exerciseExternalId: exId,
         exerciseName: ex.exerciseName ?? `#${exRelIdx + 1}`,
         reps: set.reps ?? 0,
         weightKg: set.weightKg ?? 0,
@@ -625,6 +635,9 @@ function ExerciseQueue({
           (row.exRelIdx === currentRelativeIdx && row.setIdx < currentSetIdx)
         const isBodyweight = row.weightKg === 0
         const badgeColor = isDone || isActive ? colors.gold : colors.label2
+        // Look up the client's edited actuals for finished rows, mirroring
+        // SetsList: formOverrides[exerciseExternalId]?.[setIdx].
+        const logged = isDone ? formOverrides[row.exerciseExternalId]?.[row.setIdx] : undefined
 
         return (
           <Pressable
@@ -672,12 +685,21 @@ function ExerciseQueue({
               </Text>
             </View>
 
-            {/* Right: this set's prescription — "10 × 50 kg" or "10 × BW". */}
+            {/* Right: actual values (gold) for done rows, planned for the rest. */}
             <View style={setsListStyles.rightWrap}>
-              <Text style={[setsListStyles.plannedText, { color: colors.label2 }]}>
-                {row.reps} ×{' '}
-                {isBodyweight ? t('training.live.bw') : `${row.weightKg} kg`}
-              </Text>
+              {isDone ? (
+                <Text style={[setsListStyles.actualText, { color: colors.gold }]}>
+                  {(logged?.reps ?? row.reps)} ×{' '}
+                  {isBodyweight
+                    ? t('training.live.bw')
+                    : `${logged?.weightKg ?? row.weightKg} kg`}
+                </Text>
+              ) : (
+                <Text style={[setsListStyles.plannedText, { color: colors.label2 }]}>
+                  {row.reps} ×{' '}
+                  {isBodyweight ? t('training.live.bw') : `${row.weightKg} kg`}
+                </Text>
+              )}
             </View>
           </Pressable>
         )
@@ -3553,12 +3575,12 @@ export default function WorkoutLogScreen() {
               // WORKOUTU") instead of the per-exercise SetsList. The form
               // card above already tracks the current set; the queue keeps
               // the user oriented within the whole workout.
+              //
+              // currentExerciseIdx is always section-relative: storeAdvance(0,0)
+              // resets it when a new section starts and setExercises() updates
+              // the local exercises to the current section. No subtraction is
+              // needed — using it directly as the relative index is correct.
               const queueExercises = activeSecForList?.exercises ?? []
-              let queueSectionStartIdx = 0
-              for (let i = 0; i < (currentSectionIdx ?? 0); i++) {
-                queueSectionStartIdx += sections[i]?.exercises?.length ?? 0
-              }
-              const queueRelativeCurrent = currentExerciseIdx - queueSectionStartIdx
               return (
                 <>
                   <View style={styles.sectionHdrWrap}>
@@ -3574,18 +3596,21 @@ export default function WorkoutLogScreen() {
                   >
                     <ExerciseQueue
                       exercises={queueExercises}
-                      currentRelativeIdx={queueRelativeCurrent}
+                      currentRelativeIdx={currentExerciseIdx}
                       currentSetIdx={currentSetIdx}
+                      formOverrides={formOverrides}
                       onGoToSet={(relIdx, setIdx) => {
                         // Cross-exercise jump (different relative index) or
                         // same-exercise set jump — handle both via the same
                         // storeAdvance + prefillForm pair, so the form card
                         // re-populates with this set's planned prescription.
-                        const absoluteIdx = queueSectionStartIdx + relIdx
+                        // relIdx is already section-relative and matches
+                        // currentExerciseIdx's coordinate space (both are
+                        // relative to the current section's exercises array).
                         storeSkipRest()
                         pendingAdvanceRef.current = null
-                        storeAdvance(absoluteIdx, setIdx)
-                        prefillForm(absoluteIdx, setIdx, exercises)
+                        storeAdvance(relIdx, setIdx)
+                        prefillForm(relIdx, setIdx, exercises)
                       }}
                     />
                   </View>
