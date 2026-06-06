@@ -26,6 +26,10 @@ export default function ClientLayout() {
         options={{ animation: 'slide_from_right' }}
       />
       <Stack.Screen
+        name="coach-profile/[coachId]"
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
         name="meal-log-photo"
         options={{ animation: 'slide_from_bottom', presentation: 'modal' }}
       />
