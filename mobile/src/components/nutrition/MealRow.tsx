@@ -14,6 +14,7 @@ import { Radius } from '@/constants/radius'
 import { getMealKindConfig } from '@/constants/mealKinds'
 import { totalMealItems } from '@/lib/nutrition-plan-helpers'
 import { FoodItemRow, RecipeItemRow } from '@/components/nutrition/MealCard'
+import { MealReminderRow } from '@/components/nutrition/MealReminderRow'
 import { NoteBanner } from '@/components/ui/NoteBanner'
 import { ImageLightbox } from '@/components/ui/ImageLightbox'
 import type { PlanMeal } from '@/api/nutrition'
@@ -65,6 +66,20 @@ interface MealRowProps {
    * the lightbox when photos are opened.
    */
   mealNote?: string | null
+  /**
+   * Plan id used to namespace the MMKV reminder key — `meal-<planId>-<mealId>`.
+   * When provided in accordion mode, a `MealReminderRow` is mounted in the
+   * expanded body so the Today screen surfaces the same reminder toggle as the
+   * plan-detail screen. Omit for read-only (plans-page) usage where reminders
+   * are managed on the plan-detail screen directly.
+   */
+  planId?: string
+  /**
+   * Localized day label (e.g. "Pondělí") passed through to MealReminderRow
+   * for the push-notification body. Pass empty string to omit the day part.
+   * Defaults to '' when omitted.
+   */
+  dayLabel?: string
 }
 
 /**
@@ -92,6 +107,8 @@ export const MealRow = React.memo(function MealRow({
   hasPhotos,
   photos,
   mealNote,
+  planId,
+  dayLabel = '',
 }: MealRowProps) {
   const colors = useTheme()
   const { t } = useTranslation()
@@ -343,6 +360,15 @@ export const MealRow = React.memo(function MealRow({
                   mealName={title}
                 />
               ))}
+              {/* Reminder toggle — mounted inside the measured body so its
+                  height is counted toward the accordion expand measurement.
+                  Only rendered in accordion mode when a planId is provided
+                  (Today screen). Reuses the exact same MMKV key as
+                  plan-detail (meal-<planId>-<mealId>) for cross-surface
+                  parity. */}
+              {isExpandable && planId != null ? (
+                <MealReminderRow meal={meal} planId={planId} dayLabel={dayLabel} />
+              ) : null}
             </View>
           </Animated.View>
         </>
