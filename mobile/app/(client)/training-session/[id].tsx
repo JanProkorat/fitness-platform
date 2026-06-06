@@ -1457,9 +1457,9 @@ interface SectionFinishedExerciseRow {
   /**
    * One entry per planned set, carrying its set number, the actual (or
    * planned-fallback) reps + weight, and a `done` flag identifying whether
-   * the user actually completed it. The stats card + per-exercise meta line
-   * only count sets with `done === true` — skipping the workout before
-   * completing anything must report 0/0/0, not the prescribed plan.
+   * the user actually completed it. The stats card only counts sets with
+   * `done === true` — skipping the workout before completing anything must
+   * report 0/0/0, not the prescribed plan.
    */
   sets: {
     setNumber: number
@@ -1467,6 +1467,22 @@ interface SectionFinishedExerciseRow {
     weightKg: number | null
     done: boolean
   }[]
+  /**
+   * Planned sets from the session's exercise prescription.
+   * Passed directly to SetGrid as the `sets` prop so it can render set
+   * numbers, rest times, and the planned-value captions for treatment B.
+   */
+  plannedSets: ExerciseSet[]
+  /** 1-based set numbers that the user actually completed. */
+  completedSetNumbers: number[]
+  /** 1-based set numbers that the user skipped (↷). */
+  skippedSetNumbers: number[]
+  /**
+   * Actual vs. snapshot-planned set data built client-side from formOverrides
+   * (#441/#468). Passed to SetGrid to enable treatment B: actual headline +
+   * "plán X" caption + gold change-dot when the user edited a value.
+   */
+  loggedSets: LoggedSetDto[]
 }
 
 /**
@@ -1726,38 +1742,35 @@ function SectionFinishedScreen({
             contentContainerStyle={sectionFinishedStyles.summaryListContent}
             showsVerticalScrollIndicator
           >
-            {exerciseSummaries.map((ex, exIdx) => {
-              const summary = summarizeExerciseSets(ex.sets, t)
-              return (
-                <View
-                  key={`${exIdx}-${ex.name}`}
-                  style={[
-                    sectionFinishedStyles.summaryExerciseBlock,
-                    exIdx < exerciseSummaries.length - 1 && {
-                      borderBottomWidth: StyleSheet.hairlineWidth,
-                      borderBottomColor: colors.sep2,
-                    },
-                  ]}
+            {exerciseSummaries.map((ex, exIdx) => (
+              <View
+                key={`${exIdx}-${ex.name}`}
+                style={[
+                  sectionFinishedStyles.summaryExerciseBlock,
+                  exIdx < exerciseSummaries.length - 1 && {
+                    borderBottomWidth: StyleSheet.hairlineWidth,
+                    borderBottomColor: colors.sep2,
+                  },
+                ]}
+              >
+                <Text
+                  style={[sectionFinishedStyles.summaryExerciseName, { color: colors.label }]}
+                  numberOfLines={1}
                 >
-                  <Text
-                    style={[sectionFinishedStyles.summaryExerciseName, { color: colors.label }]}
-                    numberOfLines={1}
-                  >
-                    {ex.name}
-                  </Text>
-                  {summary != null && (
-                    <Text
-                      style={[
-                        sectionFinishedStyles.summaryExerciseMeta,
-                        { color: colors.label3 },
-                      ]}
-                    >
-                      {summary}
-                    </Text>
-                  )}
-                </View>
-              )
-            })}
+                  {ex.name}
+                </Text>
+                {/* Treatment B: actual headline + "plán X" caption + gold dot
+                    when the user edited a value, matching LiveFinishedSummary
+                    (#468). SetGrid renders one row per planned set so skipped
+                    sets show '↷' and completed sets show the actual value. */}
+                <SetGrid
+                  sets={ex.plannedSets}
+                  completedSetNumbers={ex.completedSetNumbers}
+                  skippedSetNumbers={ex.skippedSetNumbers}
+                  loggedSets={ex.loggedSets}
+                />
+              </View>
+            ))}
           </ScrollView>
         </View>
       )}
@@ -3783,7 +3796,8 @@ export default function WorkoutLogScreen() {
                       const exId = ex.exerciseExternalId ?? ''
                       const overrides = formOverrides[exId] ?? {}
                       const doneSetIdxs = new Set(completedSets[exId] ?? [])
-                      const sets = (ex.sets ?? []).map((planned, sIdx) => {
+                      const plannedSets = ex.sets ?? []
+                      const sets = plannedSets.map((planned, sIdx) => {
                         const ovr = overrides[sIdx]
                         return {
                           setNumber: planned.setNumber ?? sIdx + 1,
@@ -3796,7 +3810,79 @@ export default function WorkoutLogScreen() {
                           done: doneSetIdxs.has(sIdx),
                         }
                       })
-                      return { name: ex.exerciseName ?? '', sets }
+                      // Build treatment-B fields: actual headline + "plán X"
+                      // caption + gold change-dot when the user edited a value.
+                      // Mirrors the finishedWorkoutCards memo used by
+                      // LiveFinishedSummary (#468).
+                      const doneIndices = completedSets[exId] ?? []
+                      const isExSkipped = skippedExercises.includes(exId)
+                      const skippedIndices = isExSkipped
+                        ? plannedSets.map((_, si) => si)
+                        : (skippedSets[exId] ?? [])
+                      const completedSetNumbers = doneIndices.map(
+                        (si) => plannedSets[si]?.setNumber ?? si + 1,
+                      )
+                      const skippedSetNumbers = skippedIndices.map(
+                        (si) => plannedSets[si]?.setNumber ?? si + 1,
+                      )
+                      const loggedSets: LoggedSetDto[] = plannedSets.map(
+                        (planned, si) => {
+                          const ovr = overrides[si]
+                          const isDone = doneIndices.includes(si)
+                          const actualReps = isDone
+                            ? (ovr?.reps ?? planned.reps ?? null)
+                            : null
+                          const actualWeightKg = isDone
+                            ? (ovr?.weightKg ?? planned.weightKg ?? null)
+                            : null
+                          const actualDurationSeconds = isDone
+                            ? (ovr?.durationSeconds ?? null)
+                            : null
+                          const actualDistanceMeters = isDone
+                            ? (ovr?.distanceMeters ?? null)
+                            : null
+                          const repsModified =
+                            isDone &&
+                            actualReps != null &&
+                            planned.reps != null &&
+                            actualReps !== planned.reps
+                          const weightModified =
+                            isDone &&
+                            actualWeightKg != null &&
+                            planned.weightKg != null &&
+                            actualWeightKg !== planned.weightKg
+                          const durationModified =
+                            isDone &&
+                            actualDurationSeconds != null &&
+                            planned.durationSeconds != null &&
+                            actualDurationSeconds !== planned.durationSeconds
+                          return {
+                            setNumber: planned.setNumber ?? si + 1,
+                            actualReps: actualReps ?? undefined,
+                            actualWeightKg: actualWeightKg ?? undefined,
+                            actualDurationSeconds:
+                              actualDurationSeconds ?? undefined,
+                            actualDistanceMeters:
+                              actualDistanceMeters ?? undefined,
+                            plannedReps: planned.reps ?? undefined,
+                            plannedWeightKg: planned.weightKg ?? undefined,
+                            plannedDurationSeconds:
+                              planned.durationSeconds ?? undefined,
+                            plannedDistanceMeters:
+                              planned.distanceMeters ?? undefined,
+                            isModified:
+                              repsModified || weightModified || durationModified,
+                          }
+                        },
+                      )
+                      return {
+                        name: ex.exerciseName ?? '',
+                        sets,
+                        plannedSets,
+                        completedSetNumbers,
+                        skippedSetNumbers,
+                        loggedSets,
+                      }
                     })
                   })()}
                   sectionFormat={finishedFormat}
