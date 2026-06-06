@@ -1485,47 +1485,6 @@ interface SectionFinishedExerciseRow {
   loggedSets: LoggedSetDto[]
 }
 
-/**
- * Collapse an exercise's logged sets into a single one-line summary:
- *
- *   "3 × 10 · 50 kg"             — all sets identical
- *   "3 × 8-10 · 50 kg"           — varied reps, same weight
- *   "3 × 10 · 40-50 kg"          — same reps, varied weight (pyramid)
- *   "3 × 8-10 · 40-50 kg"        — both vary
- *   "3 × 10 · BW"                — bodyweight only
- *
- * Returns null when there are no sets with any rep data (purely skipped
- * exercise) so the meta line can be omitted entirely.
- */
-function summarizeExerciseSets(
-  sets: SectionFinishedExerciseRow['sets'],
-  t: (key: string) => string,
-): string | null {
-  // Consider only sets the user actually finished. An exercise with zero
-  // completed sets returns null so the meta line is hidden entirely.
-  const doneSets = sets.filter((s) => s.done)
-  if (doneSets.length === 0) return null
-  const reps = doneSets.map((s) => s.reps).filter((r): r is number => r != null && r > 0)
-  if (reps.length === 0) return null
-  const weights = doneSets.map((s) => s.weightKg ?? 0)
-
-  const setCount = doneSets.length
-  const minR = Math.min(...reps)
-  const maxR = Math.max(...reps)
-  const repsPart =
-    minR === maxR ? `${setCount}×${minR}` : `${setCount}×${minR}-${maxR}`
-
-  const allBW = weights.every((w) => w === 0)
-  if (allBW) return `${repsPart} · ${t('training.live.bw')}`
-
-  // Only consider non-zero weights for the range so a mixed BW/loaded
-  // exercise still reports the loaded range cleanly.
-  const loaded = weights.filter((w) => w > 0)
-  const minW = Math.min(...loaded)
-  const maxW = Math.max(...loaded)
-  const weightPart = minW === maxW ? `${minW} kg` : `${minW}-${maxW} kg`
-  return `${repsPart} · ${weightPart}`
-}
 
 interface SectionFinishedNextWorkout {
   /** Display name of the upcoming workout (section). */
@@ -1762,13 +1721,17 @@ function SectionFinishedScreen({
                 {/* Treatment B: actual headline + "plán X" caption + gold dot
                     when the user edited a value, matching LiveFinishedSummary
                     (#468). SetGrid renders one row per planned set so skipped
-                    sets show '↷' and completed sets show the actual value. */}
-                <SetGrid
-                  sets={ex.plannedSets}
-                  completedSetNumbers={ex.completedSetNumbers}
-                  skippedSetNumbers={ex.skippedSetNumbers}
-                  loggedSets={ex.loggedSets}
-                />
+                    sets show '↷' and completed sets show the actual value.
+                    Guard mirrors finishedWorkoutCards memo: skip the grid
+                    entirely when an exercise has no planned sets. */}
+                {ex.plannedSets.length > 0 && (
+                  <SetGrid
+                    sets={ex.plannedSets}
+                    completedSetNumbers={ex.completedSetNumbers}
+                    skippedSetNumbers={ex.skippedSetNumbers}
+                    loggedSets={ex.loggedSets}
+                  />
+                )}
               </View>
             ))}
           </ScrollView>
@@ -1960,13 +1923,6 @@ const sectionFinishedStyles = StyleSheet.create({
   },
   summaryExerciseName: {
     ...Type.headline,
-  },
-  // One-line "N×reps · weight" meta below the exercise name. Tabular-num so
-  // the row stays vertically aligned across exercises.
-  summaryExerciseMeta: {
-    ...Type.subheadline,
-    fontVariant: ['tabular-nums'],
-    marginTop: 2,
   },
   // Next-workout preview card — rendered in the pinned bottom slot
   // (`pinnedNextCardWrap` in the page-level styles handles the spacing
