@@ -183,7 +183,11 @@ export default function ChatScreen() {
         <ChatHeader
           participant={participant}
           onBack={() => router.back()}
-          onInfoPress={() => {}}
+          onInfoPress={() => {
+            if (participant?.id) {
+              router.push(href(`/(client)/coach-profile/${participant.id}`))
+            }
+          }}
         />
       </View>
 
