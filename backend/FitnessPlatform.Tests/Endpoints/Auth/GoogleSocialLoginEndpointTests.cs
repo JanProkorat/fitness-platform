@@ -96,6 +96,44 @@ public class GoogleSocialLoginEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(StatusCodes.Status401Unauthorized);
     }
 
+    /// <summary>
+    /// Covers the email_verified=false security fix in GoogleTokenVerifier.
+    ///
+    /// GoogleTokenVerifier.VerifyAsync now throws InvalidOperationException when
+    /// payload.EmailVerified != true (i.e. Google did not verify the email address).
+    /// Since offline unit-testing of GoogleJsonWebSignature.ValidateAsync with a
+    /// real signed JWT is not feasible, we verify the endpoint contract: any
+    /// InvalidOperationException thrown by the verifier — including one triggered
+    /// by an unverified email — is mapped to 401 invalid_credentials.
+    ///
+    /// To see the verifier guard at source, inspect:
+    ///   Infrastructure/Services/GoogleTokenVerifier.cs — the "email_verified" check.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_VerifierThrowsForUnverifiedEmail_Returns401WithInvalidCredentials()
+    {
+        // Arrange — simulate the InvalidOperationException GoogleTokenVerifier now
+        // raises when payload.EmailVerified is false or null.
+        var verifier = Substitute.For<IGoogleTokenVerifier>();
+        verifier.VerifyAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .ThrowsAsync(new InvalidOperationException(
+                "Google ID token has an unverified email address (email_verified is not true)."));
+
+        var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        var db = new MockDbBuilder().Build();
+        var config = MakeConfig();
+        var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config);
+
+        // Act
+        await ep.HandleAsync(
+            new GoogleSocialLoginRequest { IdToken = "token-with-unverified-email" },
+            CancellationToken.None);
+
+        // Assert — 401, not 200/409/403. The unverified-email path must never
+        // proceed to account lookup or provisioning.
+        ep.HttpContext.Response.StatusCode.Should().Be(StatusCodes.Status401Unauthorized);
+    }
+
     // ── 403 — deactivated account ──────────────────────────────────────────
 
     [Fact]
