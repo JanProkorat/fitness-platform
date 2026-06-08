@@ -24,7 +24,6 @@ interface StatTile {
   label: string;
   value: string;
   delta: string | null;
-  deltaPositiveIsGood: boolean;
   /** delta colour: 'green' | 'orange' | null */
   deltaColor: 'green' | 'orange' | null;
   accent: boolean;
@@ -46,6 +45,7 @@ function formatDelta(
   decimals = 1,
 ): string | null {
   if (diff == null) return null;
+  if (diff === 0) return `${(0).toFixed(decimals).replace('.', ',')} ${unit}`;
   const sign = diff < 0 ? '' : '+';
   return `${sign}${diff.toFixed(decimals).replace('.', ',')} ${unit}`;
 }
@@ -54,7 +54,7 @@ function formatDelta(
  * Find the reference measurement for delta comparison:
  * the most recent measurement that is at least 6 weeks before `latest`.
  */
-function findReferenceBelow6Weeks(
+function findReferenceAtLeast6WeeksBefore(
   sorted: MeasurementDto[],
   latestDate: Date,
 ): MeasurementDto | null {
@@ -129,7 +129,7 @@ export function MereniTab({ clientId, targetWeightKg }: MereniTabProps) {
     if (!latest?.measuredAt) return null;
     const latestDate = toDate(latest.measuredAt);
     if (!latestDate) return null;
-    return findReferenceBelow6Weeks(sorted, latestDate);
+    return findReferenceAtLeast6WeeksBefore(sorted, latestDate);
   }, [sorted, latest]);
 
   // ── Stat tiles ──────────────────────────────────────────────────────────────
@@ -163,9 +163,12 @@ export function MereniTab({ clientId, targetWeightKg }: MereniTabProps) {
         label: t('clientDetail.mereni.tiles.currentWeight'),
         value: formatNum(latest?.weightKg, 'kg'),
         delta: formatDelta(weightDiff, 'kg'),
-        deltaPositiveIsGood: false,
         deltaColor:
-          weightDiff == null ? null : weightDiff < 0 ? 'green' : 'orange',
+          weightDiff == null || weightDiff === 0
+            ? null
+            : weightDiff < 0
+              ? 'green'
+              : 'orange',
         accent: false,
         sub: refMeasurement?.measuredAt
           ? t('clientDetail.mereni.tiles.comparedToWeeksAgo')
@@ -175,9 +178,12 @@ export function MereniTab({ clientId, targetWeightKg }: MereniTabProps) {
         label: t('clientDetail.mereni.tiles.bodyFat'),
         value: formatNum(latest?.bodyFatPercentage, '%'),
         delta: formatDelta(fatDiff, '%'),
-        deltaPositiveIsGood: false,
         deltaColor:
-          fatDiff == null ? null : fatDiff < 0 ? 'green' : 'orange',
+          fatDiff == null || fatDiff === 0
+            ? null
+            : fatDiff < 0
+              ? 'green'
+              : 'orange',
         accent: false,
         sub: null,
       },
@@ -185,9 +191,12 @@ export function MereniTab({ clientId, targetWeightKg }: MereniTabProps) {
         label: t('clientDetail.mereni.tiles.waist'),
         value: formatNum(latest?.waistCm, 'cm', 0),
         delta: formatDelta(waistDiff, 'cm', 0),
-        deltaPositiveIsGood: false,
         deltaColor:
-          waistDiff == null ? null : waistDiff < 0 ? 'green' : 'orange',
+          waistDiff == null || waistDiff === 0
+            ? null
+            : waistDiff < 0
+              ? 'green'
+              : 'orange',
         accent: false,
         sub: null,
       },
@@ -196,7 +205,6 @@ export function MereniTab({ clientId, targetWeightKg }: MereniTabProps) {
         value:
           remaining != null ? formatNum(remaining, 'kg') : '—',
         delta: null,
-        deltaPositiveIsGood: true,
         deltaColor: null,
         accent: true,
         sub:
@@ -226,7 +234,7 @@ export function MereniTab({ clientId, targetWeightKg }: MereniTabProps) {
         </div>
         <button
           type="button"
-          className="text-[13px] font-medium text-text2 border border-border rounded-[var(--radius-sm)] px-3 py-1.5 hover:bg-surface2 transition-colors"
+          className="text-[13px] font-medium text-text2 border border-border rounded-[var(--radius-sm)] px-3 py-1.5 hover:bg-bg-hover transition-colors"
           onClick={() =>
             addToast(t('clientDetail.mereni.addMeasurementPlaceholder'), 'success')
           }
@@ -381,21 +389,19 @@ export function MereniTab({ clientId, targetWeightKg }: MereniTabProps) {
                         {dateStr}
                       </td>
                       <td className="py-2 pr-4 text-text2">
-                        {m.weightKg != null ? `${m.weightKg} kg` : '—'}
+                        {formatNum(m.weightKg, 'kg')}
                       </td>
                       <td className="py-2 pr-4 text-text2">
-                        {m.bodyFatPercentage != null
-                          ? `${m.bodyFatPercentage} %`
-                          : '—'}
+                        {formatNum(m.bodyFatPercentage, '%')}
                       </td>
                       <td className="py-2 pr-4 text-text2">
-                        {m.waistCm != null ? `${m.waistCm} cm` : '—'}
+                        {formatNum(m.waistCm, 'cm', 0)}
                       </td>
                       <td className="py-2 pr-4 text-text2">
-                        {m.hipsCm != null ? `${m.hipsCm} cm` : '—'}
+                        {formatNum(m.hipsCm, 'cm', 0)}
                       </td>
                       <td className="py-2 text-text2">
-                        {m.chestCm != null ? `${m.chestCm} cm` : '—'}
+                        {formatNum(m.chestCm, 'cm', 0)}
                       </td>
                     </tr>
                   );
