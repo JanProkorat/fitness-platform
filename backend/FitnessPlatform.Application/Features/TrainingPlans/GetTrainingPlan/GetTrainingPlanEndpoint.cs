@@ -148,45 +148,68 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
                     // Apply schema-on-read backfill for legacy flat-exercise documents.
                     log.WithBackfilledSections();
 
-                    // Build the per-exercise map of completed set numbers.
+                    // Build the per-exercise maps of completed set numbers and logged set data.
                     // A set is "completed" iff its WorkoutSet.CompletedAt is non-null.
+                    //
+                    // We populate both the legacy flat maps (keyed by ExerciseExternalId alone)
+                    // and the new section-aware maps (keyed by "{sectionId}:{exerciseId}").
+                    // The flat maps are kept for backward compatibility but are unreliable when
+                    // the same exercise appears in two sections — in that case the last-encountered
+                    // section wins in the flat map. The section-aware maps are authoritative.
                     var completedSetsByExercise = new Dictionary<Guid, List<int>>();
+                    var completedSetsBySectionAndExercise = new Dictionary<string, List<int>>();
                     var loggedSetsByExercise = new Dictionary<Guid, List<LoggedSetDto>>();
+                    var loggedSetsBySectionAndExercise = new Dictionary<string, List<LoggedSetDto>>();
                     var sessionHasModifications = false;
 
-                    foreach (var ex in log.Exercises)
+                    foreach (var section in log.Sections)
                     {
-                        var completedSetNumbers = ex.Sets
-                            .Where(s => s.CompletedAt.HasValue)
-                            .Select(s => s.SetNumber)
-                            .OrderBy(n => n)
-                            .ToList();
-
-                        if (completedSetNumbers.Count > 0)
-                            completedSetsByExercise[ex.ExerciseExternalId] = completedSetNumbers;
-
-                        // Build value-bearing LoggedSetDto list for every set in this exercise.
-                        var loggedSetDtos = ex.Sets.Select(s => new LoggedSetDto
+                        foreach (var ex in section.Exercises)
                         {
-                            SetNumber = s.SetNumber,
-                            ActualReps = s.Reps,
-                            ActualWeightKg = s.WeightKg,
-                            ActualRpe = s.Rpe,
-                            ActualDurationSeconds = s.DurationSeconds,
-                            ActualDistanceMeters = s.DistanceMeters,
-                            PlannedReps = s.PlannedReps,
-                            PlannedWeightKg = s.PlannedWeightKg,
-                            PlannedRpe = s.PlannedRpe,
-                            PlannedDurationSeconds = s.PlannedDurationSeconds,
-                            PlannedDistanceMeters = s.PlannedDistanceMeters,
-                            IsModified = s.IsModified
-                        }).ToList();
+                            var sectionKey = $"{section.SectionId}:{ex.ExerciseExternalId}";
 
-                        if (loggedSetDtos.Count > 0)
-                            loggedSetsByExercise[ex.ExerciseExternalId] = loggedSetDtos;
+                            var completedSetNumbers = ex.Sets
+                                .Where(s => s.CompletedAt.HasValue)
+                                .Select(s => s.SetNumber)
+                                .OrderBy(n => n)
+                                .ToList();
 
-                        if (loggedSetDtos.Any(s => s.IsModified))
-                            sessionHasModifications = true;
+                            if (completedSetNumbers.Count > 0)
+                            {
+                                // Flat map (last-write-wins for same exercise across sections).
+                                completedSetsByExercise[ex.ExerciseExternalId] = completedSetNumbers;
+                                // Section-aware map.
+                                completedSetsBySectionAndExercise[sectionKey] = completedSetNumbers;
+                            }
+
+                            // Build value-bearing LoggedSetDto list for every set in this exercise.
+                            var loggedSetDtos = ex.Sets.Select(s => new LoggedSetDto
+                            {
+                                SetNumber = s.SetNumber,
+                                ActualReps = s.Reps,
+                                ActualWeightKg = s.WeightKg,
+                                ActualRpe = s.Rpe,
+                                ActualDurationSeconds = s.DurationSeconds,
+                                ActualDistanceMeters = s.DistanceMeters,
+                                PlannedReps = s.PlannedReps,
+                                PlannedWeightKg = s.PlannedWeightKg,
+                                PlannedRpe = s.PlannedRpe,
+                                PlannedDurationSeconds = s.PlannedDurationSeconds,
+                                PlannedDistanceMeters = s.PlannedDistanceMeters,
+                                IsModified = s.IsModified
+                            }).ToList();
+
+                            if (loggedSetDtos.Count > 0)
+                            {
+                                // Flat map (last-write-wins for same exercise across sections).
+                                loggedSetsByExercise[ex.ExerciseExternalId] = loggedSetDtos;
+                                // Section-aware map.
+                                loggedSetsBySectionAndExercise[sectionKey] = loggedSetDtos;
+                            }
+
+                            if (loggedSetDtos.Any(s => s.IsModified))
+                                sessionHasModifications = true;
+                        }
                     }
 
                     return new SessionExecutionDto
@@ -194,7 +217,9 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
                         SessionId = log.SessionId!.Value,
                         IsSessionFinished = log.IsCompleted,
                         CompletedSetsByExercise = completedSetsByExercise,
+                        CompletedSetsBySectionAndExercise = completedSetsBySectionAndExercise,
                         LoggedSetsByExercise = loggedSetsByExercise,
+                        LoggedSetsBySectionAndExercise = loggedSetsBySectionAndExercise,
                         HasModifications = sessionHasModifications
                     };
                 })

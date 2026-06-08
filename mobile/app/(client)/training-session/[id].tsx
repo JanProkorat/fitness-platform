@@ -2380,6 +2380,22 @@ export default function WorkoutLogScreen() {
   // instead of the pre-mutation snapshot (which would persist N-1 sets).
   const buildRequest = useCallback((): UpdateWorkoutWodRequest => {
     const state = useLiveSessionStore.getState()
+    // Resolve the active section's id for keying exercises by (sectionId, exerciseExternalId).
+    // The backend introduced SectionId on UpdateWorkoutExerciseRequest in #469 so it can
+    // distinguish the same exercise appearing in two sections (e.g. Standard + AMRAP).
+    // `exercises` is always scoped to the current section (set in handleStart /
+    // handleNextSection), so every exercise in this request belongs to the same section.
+    // When sectionId is absent (legacy 'default' sentinel or missing plan) we omit it —
+    // the backend treats a missing sectionId as the legacy single-section behaviour.
+    const activeSectionId =
+      sections[currentSectionIdx ?? 0]?.sectionId ?? null
+    // Only send a real UUID — the synthetic 'default' sentinel used by
+    // getEffectiveSections for flat (pre-sections) plans is not a valid backend id.
+    const sectionIdForRequest =
+      activeSectionId !== null && activeSectionId !== 'default'
+        ? activeSectionId
+        : undefined
+
     const exerciseList: UpdateWodExerciseRequest[] = exercises.map((ex) => {
       const exId = ex.exerciseExternalId ?? ''
       const doneSetIndices = state.completedSets[exId] ?? []
@@ -2426,12 +2442,15 @@ export default function WorkoutLogScreen() {
         exerciseName: ex.exerciseName ?? '',
         sets,
         wodResult: exWodResult ?? undefined,
+        // Section keying (#469): tell the backend which workout/section this
+        // exercise belongs to so edits don't leak across sections when the
+        // same exercise appears in both (e.g. Standard + AMRAP in one session).
+        sectionId: sectionIdForRequest,
       }
     })
     // Section-level WOD result: use the current (or first) section's sectionId as the key.
     // If there are multiple sections, only the active section's WOD result is sent as the
     // top-level wodResult. Per-exercise results are already in exerciseList entries.
-    const activeSectionId = sections[currentSectionIdx ?? 0]?.sectionId ?? null
     const sectionWodResult = activeSectionId != null
       ? (state.wodResults[activeSectionId] ?? null)
       : null

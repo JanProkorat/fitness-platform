@@ -321,27 +321,44 @@ export function SectionCard({
 
               // Derive completion state for this exercise (additive, display-only).
               // sessionExecution is pre-filtered to this session by the parent.
+              // Pass section.sectionId so that the section-aware map is used when
+              // the backend has emitted completedSetsBySectionAndExercise — this
+              // prevents exercises shared across sections (e.g. same exercise in
+              // Standard + AMRAP) from showing cross-section completion data (#470).
               const { state: exCompletionState, counts: exCounts } =
                 deriveExerciseCompletionState(
                   sessionExecution ? [sessionExecution] : undefined,
                   sessionExecution?.sessionId ?? '',
                   ex.exerciseExternalId,
                   ex.sets.length,
+                  section.sectionId,
                 );
 
               // Derive modification state: true when any logged set under this
               // exercise has isModified === true. Backend has no per-exercise flag —
               // we derive client-side mirroring deriveExerciseCompletionState.
+              // Pass section.sectionId for section-aware lookup (same isolation fix).
               const exHasModifications = deriveExerciseModificationState(
                 sessionExecution,
                 ex.exerciseExternalId,
+                section.sectionId,
               );
 
               // Logged sets for this exercise, keyed by 1-based setNumber.
-              const loggedSetsMap = sessionExecution?.loggedSetsByExercise[ex.exerciseExternalId]
-                ? Object.fromEntries(
-                    sessionExecution.loggedSetsByExercise[ex.exerciseExternalId].map((ls) => [ls.setNumber, ls])
-                  )
+              // Prefer the section-aware map when available (fixes #469 / #470):
+              // the same exercise in two sections gets independent logged-set lists.
+              const resolvedLoggedSets = (() => {
+                if (
+                  sessionExecution?.loggedSetsBySectionAndExercise
+                ) {
+                  const key = `${section.sectionId}:${ex.exerciseExternalId}`;
+                  const sectionSets = sessionExecution.loggedSetsBySectionAndExercise[key];
+                  if (sectionSets !== undefined) return sectionSets;
+                }
+                return sessionExecution?.loggedSetsByExercise[ex.exerciseExternalId];
+              })();
+              const loggedSetsMap = resolvedLoggedSets
+                ? Object.fromEntries(resolvedLoggedSets.map((ls) => [ls.setNumber, ls]))
                 : undefined;
 
               return (
@@ -477,6 +494,7 @@ export function SectionCard({
                                         sessionExecution.sessionId,
                                         ex.exerciseExternalId,
                                         s.setNumber,
+                                        section.sectionId,
                                       )
                                     : undefined
                                 }

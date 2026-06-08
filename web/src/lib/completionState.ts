@@ -19,8 +19,69 @@
  *   Meals/days with no log entry are 'not-touched'.
  */
 
-import type { SessionExecutionDto } from '@/api/training-plan-types';
+import type { SessionExecutionDto, LoggedSetDto } from '@/api/training-plan-types';
 import type { MealLogDto } from '@/api/plan-types';
+
+// ── Composite key helper ─────────────────────────────────────────────────────
+
+/**
+ * Build the composite key used by the section-aware maps on `SessionExecutionDto`.
+ * Mirrors the backend encoding: `"{sectionId}:{exerciseExternalId}"`.
+ */
+function compositeKey(sectionId: string, exerciseExternalId: string): string {
+  return `${sectionId}:${exerciseExternalId}`;
+}
+
+/**
+ * Resolve the logged-sets list for a given exercise, preferring the
+ * section-aware map when both a `sectionId` and the new map are present,
+ * and falling back to the legacy exercise-only map for historical data.
+ *
+ * @param sessionExecution  The execution record (may be undefined).
+ * @param exerciseExternalId The exercise to look up.
+ * @param sectionId  The section the exercise belongs to. When provided and
+ *   `completedSetsBySectionAndExercise` is present on the DTO, the composite
+ *   key lookup is used; otherwise falls back to the flat exercise key.
+ */
+function resolveLoggedSets(
+  sessionExecution: SessionExecutionDto,
+  exerciseExternalId: string,
+  sectionId?: string,
+): LoggedSetDto[] | undefined {
+  if (
+    sectionId &&
+    sessionExecution.loggedSetsBySectionAndExercise
+  ) {
+    const key = compositeKey(sectionId, exerciseExternalId);
+    const sectionResult = sessionExecution.loggedSetsBySectionAndExercise[key];
+    // If the key exists in the section-aware map (even as an empty array),
+    // use it. Only fall back to the flat map when the key is entirely absent
+    // — this handles the case where the AMRAP section has no edits but the
+    // Standard section does.
+    if (sectionResult !== undefined) return sectionResult;
+  }
+  return sessionExecution.loggedSetsByExercise[exerciseExternalId];
+}
+
+/**
+ * Resolve the completed-set-numbers list for a given exercise, preferring the
+ * section-aware map when both a `sectionId` and the new map are present.
+ */
+function resolveCompletedSets(
+  sessionExecution: SessionExecutionDto,
+  exerciseExternalId: string,
+  sectionId?: string,
+): number[] {
+  if (
+    sectionId &&
+    sessionExecution.completedSetsBySectionAndExercise
+  ) {
+    const key = compositeKey(sectionId, exerciseExternalId);
+    const sectionResult = sessionExecution.completedSetsBySectionAndExercise[key];
+    if (sectionResult !== undefined) return sectionResult;
+  }
+  return sessionExecution.completedSetsByExercise[exerciseExternalId] ?? [];
+}
 
 // ── Per-exercise modification state ─────────────────────────────────────────
 
@@ -34,13 +95,18 @@ import type { MealLogDto } from '@/api/plan-types';
  *
  * @param sessionExecution  The execution record for the session (may be undefined)
  * @param exerciseExternalId The exercise to check
+ * @param sectionId  The section the exercise belongs to. Used for section-aware
+ *   map lookup when the backend has emitted `loggedSetsBySectionAndExercise`.
+ *   Falls back to the legacy flat map when absent or when the composite key
+ *   is not present in the section-aware map.
  */
 export function deriveExerciseModificationState(
   sessionExecution: SessionExecutionDto | undefined,
   exerciseExternalId: string,
+  sectionId?: string,
 ): boolean {
   if (!sessionExecution) return false;
-  const loggedSets = sessionExecution.loggedSetsByExercise[exerciseExternalId];
+  const loggedSets = resolveLoggedSets(sessionExecution, exerciseExternalId, sectionId);
   if (!loggedSets || loggedSets.length === 0) return false;
   return loggedSets.some((s) => s.isModified);
 }
@@ -56,17 +122,21 @@ export type SetCompletionState = 'completed' | 'skipped' | 'not-reached';
  * @param sessionId          The session this set belongs to
  * @param exerciseExternalId The exercise this set belongs to
  * @param setNumber          1-based set number (matches ExerciseSet.setNumber)
+ * @param sectionId  The section the exercise belongs to. When provided and the
+ *   backend has emitted `completedSetsBySectionAndExercise`, the composite-key
+ *   lookup is used; falls back to the legacy flat map for historical data.
  */
 export function deriveSetCompletionState(
   sessionExecutions: SessionExecutionDto[] | undefined,
   sessionId: string,
   exerciseExternalId: string,
   setNumber: number,
+  sectionId?: string,
 ): SetCompletionState {
   const execution = sessionExecutions?.find((e) => e.sessionId === sessionId);
   if (!execution) return 'not-reached';
 
-  const completedSets = execution.completedSetsByExercise[exerciseExternalId] ?? [];
+  const completedSets = resolveCompletedSets(execution, exerciseExternalId, sectionId);
   if (completedSets.includes(setNumber)) return 'completed';
 
   return execution.isSessionFinished ? 'skipped' : 'not-reached';
@@ -93,12 +163,16 @@ export interface ExerciseCounts {
  * @param sessionId          The session this exercise belongs to
  * @param exerciseExternalId The exercise
  * @param totalSets          Total number of planned sets (ExerciseSet[].length)
+ * @param sectionId  The section the exercise belongs to. When provided and the
+ *   backend has emitted `completedSetsBySectionAndExercise`, the composite-key
+ *   lookup is used; falls back to the legacy flat map for historical data.
  */
 export function deriveExerciseCompletionState(
   sessionExecutions: SessionExecutionDto[] | undefined,
   sessionId: string,
   exerciseExternalId: string,
   totalSets: number,
+  sectionId?: string,
 ): { state: ExerciseCompletionState; counts: ExerciseCounts } {
   const counts: ExerciseCounts = { completed: 0, skipped: 0, total: totalSets };
 
@@ -107,7 +181,7 @@ export function deriveExerciseCompletionState(
   const execution = sessionExecutions?.find((e) => e.sessionId === sessionId);
   if (!execution) return { state: 'none', counts };
 
-  const completedSets = execution.completedSetsByExercise[exerciseExternalId] ?? [];
+  const completedSets = resolveCompletedSets(execution, exerciseExternalId, sectionId);
   counts.completed = completedSets.length;
 
   if (execution.isSessionFinished) {
@@ -139,12 +213,16 @@ export interface SessionCounts {
  *
  * @param sessionExecutions  Full list from TrainingPlanDetail.sessionExecutions
  * @param sessionId          The session
- * @param exercises          All exercises in the session (for total set counts)
+ * @param exercises          All exercises in the session (for total set counts).
+ *   Each entry may include an optional `sectionId` for section-aware lookup.
+ *   When `sectionId` is provided and `completedSetsBySectionAndExercise` is
+ *   present on the execution DTO, the composite key is used; otherwise falls
+ *   back to the legacy flat map.
  */
 export function deriveSessionCompletionState(
   sessionExecutions: SessionExecutionDto[] | undefined,
   sessionId: string,
-  exercises: Array<{ exerciseExternalId: string; sets: unknown[] }>,
+  exercises: Array<{ exerciseExternalId: string; sets: unknown[]; sectionId?: string }>,
 ): { state: SessionCompletionState; counts: SessionCounts } {
   const counts: SessionCounts = { completed: 0, skipped: 0, total: 0 };
 
@@ -158,7 +236,7 @@ export function deriveSessionCompletionState(
   if (!execution) return { state: 'none', counts };
 
   for (const ex of exercises) {
-    const completedSets = execution.completedSetsByExercise[ex.exerciseExternalId] ?? [];
+    const completedSets = resolveCompletedSets(execution, ex.exerciseExternalId, ex.sectionId);
     counts.completed += completedSets.length;
   }
 
