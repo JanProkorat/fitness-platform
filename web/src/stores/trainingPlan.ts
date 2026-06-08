@@ -1393,7 +1393,19 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
       // FastEndpoints errors[].reason validation shape.
       const errorCode = getRfc7807ErrorCode(err);
 
-      if (errorCode === 'session_locked') {
+      if (errorCode === 'SECTION_ALREADY_COMPLETED') {
+        // 409 SECTION_ALREADY_COMPLETED: the coach tried to save changes to a section
+        // the client has already finished via the per-section completion path (#465).
+        // Surface as an error toast — the translated message explains what happened.
+        // The client-side locked affordance (isSectionLocked / isSectionFinishedByClient)
+        // should have prevented the edit in most cases; this is the server-side guard.
+        // After showing the toast, trigger a plan refresh so the UI shows the current
+        // finished state (in case the section finished after the page was loaded).
+        useToastStore.getState().addToast(i18n.t('apiErrors.SECTION_ALREADY_COMPLETED'), 'error');
+        // Refresh completions so the finished badge appears immediately and the coach
+        // can see which section is now locked without a full page reload.
+        void get().refreshCompletions();
+      } else if (errorCode === 'session_locked') {
         const { sessionLockMap, originalPlan } = get();
         // A session is "blocking the save" when it is published AND the trainer
         // has changed it AND it is not currently in Editing state (i.e. the

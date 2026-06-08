@@ -4,6 +4,26 @@ using FitnessPlatform.Application.Features.WorkoutLogs.Shared;
 namespace FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
 
 /// <summary>
+/// Per-section finished state for a training session.
+/// A section is "finished" when the client has completed it via either the WorkoutLog path
+/// (session-level completion) or the TrainingCompletion path (home-checkbox / section-complete).
+/// </summary>
+public class SectionFinishedStateDto
+{
+    /// <summary>
+    /// The <see cref="TrainingSection.SectionId"/> this finished state belongs to.
+    /// </summary>
+    public Guid SectionId { get; set; }
+
+    /// <summary>
+    /// Whether this section is finished.
+    /// True when a completed WorkoutLog exists for the session (all sections done),
+    /// or when the TrainingCompletion document shows this section as complete.
+    /// </summary>
+    public bool IsFinished { get; set; }
+}
+
+/// <summary>
 /// Per-session edit-lock state projected into the trainer read model.
 /// A session with no active lock document reports <c>Stable</c> with a null holder.
 /// </summary>
@@ -112,6 +132,18 @@ public class SessionExecutionDto
     /// Always false when the session has no WorkoutLog (or all logs are legacy without snapshots).
     /// </summary>
     public bool HasModifications { get; set; }
+
+    /// <summary>
+    /// Per-section finished state for all sections in this session.
+    /// Populated by the endpoint from both WorkoutLog and TrainingCompletion signals.
+    /// A section is finished when <see cref="IsSessionFinished"/> is true (session-level completion
+    /// implies every section is done), OR when the TrainingCompletion document records that specific
+    /// section as complete.
+    /// Empty for sessions with no completion data.
+    /// The web layer uses this to render the finished label and disable editing on completed sections
+    /// independently of the session-level finished state.
+    /// </summary>
+    public List<SectionFinishedStateDto> FinishedSections { get; set; } = [];
 }
 
 /// <summary>

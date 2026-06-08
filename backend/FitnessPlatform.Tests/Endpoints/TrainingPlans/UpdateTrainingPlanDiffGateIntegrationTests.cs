@@ -10,6 +10,7 @@ using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using MongoDB.Driver;
 
 namespace FitnessPlatform.Tests.Endpoints.TrainingPlans;
 
@@ -285,6 +286,343 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
             $"legacy flat-exercise doc with unchanged section-shaped request must not trigger the diff-gate. Body: {body200}");
     }
 
+    // ── Section-finished guard helpers ──────────────────────────────────────────
+
+    /// <summary>
+    /// Seeds a two-section plan and a completed WorkoutLog for its session.
+    /// Returns (plan, sessionId, sectionAId, sectionBId, exerciseAId, exerciseBId).
+    /// </summary>
+    private async Task<(TrainingPlan Plan, Guid SessionId, Guid SectionAId, Guid SectionBId, Guid ExerciseAId, Guid ExerciseBId)>
+        SeedTwoSectionPlanWithCompletedLogAsync(Guid trainerUserId)
+    {
+        var planId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var sectionAId = Guid.NewGuid();
+        var sectionBId = Guid.NewGuid();
+        var exerciseAId = Guid.NewGuid();
+        var exerciseBId = Guid.NewGuid();
+
+        var session = new TrainingSession
+        {
+            SessionId = sessionId,
+            DayOfWeek = 1,
+            Name = "Two-Section Day",
+            Order = 1,
+            Sections =
+            [
+                new TrainingSection
+                {
+                    SectionId = sectionAId,
+                    Order = 0,
+                    Name = "Section A",
+                    Exercises =
+                    [
+                        new SessionExercise
+                        {
+                            ExerciseExternalId = exerciseAId,
+                            ExerciseName = "Squat",
+                            Order = 1,
+                            MovementType = MovementType.Reps,
+                            Sets = [new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 5, WeightKg = 100 }]
+                        }
+                    ]
+                },
+                new TrainingSection
+                {
+                    SectionId = sectionBId,
+                    Order = 1,
+                    Name = "Section B",
+                    Exercises =
+                    [
+                        new SessionExercise
+                        {
+                            ExerciseExternalId = exerciseBId,
+                            ExerciseName = "Press",
+                            Order = 1,
+                            MovementType = MovementType.Reps,
+                            Sets = [new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 8, WeightKg = 80 }]
+                        }
+                    ]
+                }
+            ]
+        };
+
+        var clientId = Guid.NewGuid();
+
+        var plan = new TrainingPlan
+        {
+            ExternalId = planId,
+            ClientId = clientId,
+            TrainerId = trainerUserId,
+            Name = "Section Finished Guard Plan",
+            Status = TrainingPlanStatus.Active,
+            StartDate = TrainingPlanTestHelpers.LastMonday(),
+            Version = 1,
+            DateCreated = DateTime.UtcNow.AddDays(-14),
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = DateTime.UtcNow.AddDays(-7),
+                    Sessions = [session]
+                }
+            ]
+        };
+
+        var log = new WorkoutLog
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = Guid.NewGuid(),
+            PlanId = planId,
+            SessionId = sessionId,
+            StartedAt = DateTime.UtcNow.AddHours(-1),
+            IsCompleted = true,
+            CompletedAt = DateTime.UtcNow.AddMinutes(-30),
+            Sections =
+            [
+                new WorkoutSection
+                {
+                    SectionId = sectionAId, Order = 0, Name = "Section A",
+                    Exercises = [new WorkoutExercise
+                    {
+                        ExerciseExternalId = exerciseAId, ExerciseName = "Squat",
+                        Sets = [new WorkoutSet { SetNumber = 1, Reps = 5, CompletedAt = DateTime.UtcNow.AddMinutes(-50) }]
+                    }]
+                },
+                new WorkoutSection
+                {
+                    SectionId = sectionBId, Order = 1, Name = "Section B",
+                    Exercises = [new WorkoutExercise
+                    {
+                        ExerciseExternalId = exerciseBId, ExerciseName = "Press",
+                        Sets = [new WorkoutSet { SetNumber = 1, Reps = 8, CompletedAt = DateTime.UtcNow.AddMinutes(-40) }]
+                    }]
+                }
+            ],
+            DateCreated = DateTime.UtcNow.AddHours(-1)
+        };
+
+        using var scope = factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+        await mongo.TrainingPlans.InsertOneAsync(plan, cancellationToken: TestContext.Current.CancellationToken);
+        await mongo.WorkoutLogs.InsertOneAsync(log, cancellationToken: TestContext.Current.CancellationToken);
+
+        return (plan, sessionId, sectionAId, sectionBId, exerciseAId, exerciseBId);
+    }
+
+    /// <summary>
+    /// Seeds a two-section plan and a partial TrainingCompletion that marks only section A
+    /// as finished (section B is unfinished). Returns the plan + IDs.
+    /// </summary>
+    private async Task<(TrainingPlan Plan, Guid SessionId, Guid SectionAId, Guid SectionBId, Guid ExerciseAId, Guid ExerciseBId)>
+        SeedTwoSectionPlanWithPartialCompletionAsync(Guid trainerUserId)
+    {
+        var planId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var sectionAId = Guid.NewGuid();
+        var sectionBId = Guid.NewGuid();
+        var exerciseAId = Guid.NewGuid();
+        var exerciseBId = Guid.NewGuid();
+
+        var session = new TrainingSession
+        {
+            SessionId = sessionId,
+            DayOfWeek = 1,
+            Name = "Two-Section Day",   // must match BuildTwoSectionUpdateBody
+            Order = 1,
+            Sections =
+            [
+                new TrainingSection
+                {
+                    SectionId = sectionAId, Order = 0, Name = "Section A",
+                    Exercises = [new SessionExercise
+                    {
+                        ExerciseExternalId = exerciseAId, ExerciseName = "Squat", Order = 1,   // must match BuildTwoSectionUpdateBody
+                        MovementType = MovementType.Reps,
+                        Sets = [new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 5, WeightKg = 100 }]
+                    }]
+                },
+                new TrainingSection
+                {
+                    SectionId = sectionBId, Order = 1, Name = "Section B",
+                    Exercises = [new SessionExercise
+                    {
+                        ExerciseExternalId = exerciseBId, ExerciseName = "Press", Order = 1,   // must match BuildTwoSectionUpdateBody
+                        MovementType = MovementType.Reps,
+                        Sets = [new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 8, WeightKg = 80 }]
+                    }]
+                }
+            ]
+        };
+
+        var clientId = Guid.NewGuid();
+
+        var plan = new TrainingPlan
+        {
+            ExternalId = planId,
+            ClientId = clientId,
+            TrainerId = trainerUserId,
+            Name = "Mixed-State Guard Plan",
+            Status = TrainingPlanStatus.Active,
+            StartDate = TrainingPlanTestHelpers.LastMonday(),
+            Version = 1,
+            DateCreated = DateTime.UtcNow.AddDays(-14),
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = DateTime.UtcNow.AddDays(-7),
+                    Sessions = [session]
+                }
+            ]
+        };
+
+        // Partial completion: only section A's exercise done.
+        var completion = new TrainingCompletion
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = clientId,
+            Date = DateTime.UtcNow.Date,
+            SessionId = sessionId,
+            CompletedExerciseIds = [exerciseAId],
+            CompletedExerciseIdsBySection = new Dictionary<string, List<Guid>>
+            {
+                [sectionAId.ToString()] = [exerciseAId]
+            },
+            Version = 1,
+            DateCreated = DateTime.UtcNow
+        };
+
+        using var scope = factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+        await mongo.TrainingPlans.InsertOneAsync(plan, cancellationToken: TestContext.Current.CancellationToken);
+        await mongo.TrainingCompletions.InsertOneAsync(completion, cancellationToken: TestContext.Current.CancellationToken);
+
+        return (plan, sessionId, sectionAId, sectionBId, exerciseAId, exerciseBId);
+    }
+
+    /// <summary>
+    /// Builds the request body to update the two-section plan, editing the content of one
+    /// specific section (changes its set reps) while keeping the other section unchanged.
+    /// </summary>
+    private static object BuildTwoSectionUpdateBody(
+        TrainingPlan plan,
+        Guid sessionId,
+        Guid sectionAId, Guid sectionBId,
+        Guid exerciseAId, Guid exerciseBId,
+        bool changeA, bool changeB)
+    {
+        return new
+        {
+            Name = plan.Name,
+            Version = plan.Version,
+            StartDate = plan.StartDate,
+            Weeks = new[]
+            {
+                new
+                {
+                    WeekNumber = 1,
+                    Sessions = new[]
+                    {
+                        new
+                        {
+                            SessionId = sessionId.ToString(),
+                            DayOfWeek = 1,
+                            Name = "Two-Section Day",
+                            Order = 1,
+                            Sections = new[]
+                            {
+                                new
+                                {
+                                    SectionId = sectionAId.ToString(),
+                                    Order = 0,
+                                    Name = "Section A",
+                                    Exercises = new[]
+                                    {
+                                        new
+                                        {
+                                            ExerciseExternalId = exerciseAId.ToString(),
+                                            ExerciseName = "Squat",
+                                            Order = 1,
+                                            MovementType = "Reps",
+                                            Sets = new[]
+                                            {
+                                                new { SetNumber = 1, Type = "Normal",
+                                                    Reps = changeA ? 10 : 5, WeightKg = 100.0 }
+                                            }
+                                        }
+                                    }
+                                },
+                                new
+                                {
+                                    SectionId = sectionBId.ToString(),
+                                    Order = 1,
+                                    Name = "Section B",
+                                    Exercises = new[]
+                                    {
+                                        new
+                                        {
+                                            ExerciseExternalId = exerciseBId.ToString(),
+                                            ExerciseName = "Press",
+                                            Order = 1,
+                                            MovementType = "Reps",
+                                            Sets = new[]
+                                            {
+                                                new { SetNumber = 1, Type = "Normal",
+                                                    Reps = changeB ? 12 : 8, WeightKg = 80.0 }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+    }
+
+    /// <summary>
+    /// Acquires an Editing lock for the given session via POST /training/plans/{planId}/sessions/{sessionId}/unlock.
+    /// Returns the updated plan version from the response (if available), or falls back to seeding the lock
+    /// directly in MongoDB when the endpoint returns 409 (session already finished in the DB state).
+    /// </summary>
+    private async Task AcquireEditingLockAsync(
+        HttpClient httpClient, TrainingPlan plan, Guid sessionId, string accessToken,
+        Guid trainerUserId)
+    {
+        TestHelpers.SetBearerToken(httpClient, accessToken);
+        var unlockResponse = await httpClient.PostAsJsonAsync(
+            $"/training/plans/{plan.ExternalId}/sessions/{sessionId}/unlock",
+            new { PlanId = plan.ExternalId, SessionId = sessionId },
+            TestContext.Current.CancellationToken);
+
+        // If the session already has completion data, the unlock endpoint may return 409.
+        // In that case, seed the lock directly in MongoDB (the test exercises the PUT guard,
+        // not the unlock guard).
+        if (unlockResponse.StatusCode == HttpStatusCode.Conflict)
+        {
+            using var scope = factory.Services.CreateScope();
+            var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+            var lockDoc = new SessionLock
+            {
+                SessionId = sessionId,
+                PlanId = plan.ExternalId,
+                ClientId = plan.ClientId,
+                TrainerId = trainerUserId,
+                Type = LockType.Editing,
+                Holder = LockHolder.Coach,
+                AcquiredAt = DateTime.UtcNow,
+                ExpiresAt = DateTime.UtcNow.AddHours(2)
+            };
+            await mongo.SessionLocks.InsertOneAsync(lockDoc, cancellationToken: TestContext.Current.CancellationToken);
+        }
+    }
+
     // ── gap #5b: removed/replaced published session without lock → 409 ───────────
 
     /// <summary>
@@ -348,5 +686,139 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
         responseBody.Should().Contain(
             "session_locked",
             "the RFC 7807 error_code must be 'session_locked'");
+    }
+
+    // ── #465: section-finished guard ────────────────────────────────────────────
+
+    /// <summary>
+    /// When the session has a completed WorkoutLog (Signal 1) and the trainer holds an Editing
+    /// lock, attempting to change any section's content must be rejected with 409 SECTION_ALREADY_COMPLETED.
+    /// </summary>
+    [Fact]
+    public async Task UpdatePlan_FinishedSectionContent_WorkoutLogSignal_Returns409SectionAlreadyCompleted()
+    {
+        // ── 1. Register + login trainer ───────────────────────────────────────────
+        var httpClient = factory.CreateClient();
+        var email = UniqueEmail();
+        await TestHelpers.RegisterAsync(httpClient, email, "TestPass1!", "Guard", "WorkoutLog", "Trainer");
+        var (accessToken, _) = await TestHelpers.LoginAsync(httpClient, email, "TestPass1!");
+
+        Guid trainerUserId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var user = await db.Users.FirstAsync(
+                u => u.Email == email,
+                TestContext.Current.CancellationToken);
+            trainerUserId = user.Id;
+        }
+
+        // ── 2. Seed a two-section plan with a completed WorkoutLog ────────────────
+        var (plan, sessionId, sectionAId, sectionBId, exerciseAId, exerciseBId) =
+            await SeedTwoSectionPlanWithCompletedLogAsync(trainerUserId);
+
+        // ── 3. Acquire editing lock (seed directly — unlock guard blocks finished sessions) ──
+        await AcquireEditingLockAsync(httpClient, plan, sessionId, accessToken, trainerUserId);
+
+        // ── 4. Build an update that changes section A's content ───────────────────
+        var body = BuildTwoSectionUpdateBody(
+            plan, sessionId,
+            sectionAId, sectionBId,
+            exerciseAId, exerciseBId,
+            changeA: true, changeB: false);
+
+        // ── 5. PUT /training/plans/{planId} ───────────────────────────────────────
+        TestHelpers.SetBearerToken(httpClient, accessToken);
+        var response = await httpClient.PutAsJsonAsync(
+            $"/training/plans/{plan.ExternalId}",
+            body,
+            TestContext.Current.CancellationToken);
+
+        // ── 6. Assert 409 SECTION_ALREADY_COMPLETED ───────────────────────────────
+        var responseBody = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        response.StatusCode.Should().Be(
+            HttpStatusCode.Conflict,
+            $"editing a finished section (WorkoutLog signal) must be rejected 409. Body: {responseBody}");
+        responseBody.Should().Contain(
+            "SECTION_ALREADY_COMPLETED",
+            "the RFC 7807 errorCode must be SECTION_ALREADY_COMPLETED");
+    }
+
+    /// <summary>
+    /// MIXED-STATE: a session where section A is finished (TrainingCompletion Signal 2) and
+    /// section B is NOT finished. Editing section B must return 200; editing section A must
+    /// return 409 SECTION_ALREADY_COMPLETED.
+    /// </summary>
+    [Fact]
+    public async Task UpdatePlan_MixedState_FinishedAndUnfinishedSections_TrainingCompletionSignal()
+    {
+        // ── 1. Register + login trainer ───────────────────────────────────────────
+        var httpClient = factory.CreateClient();
+        var email = UniqueEmail();
+        await TestHelpers.RegisterAsync(httpClient, email, "TestPass1!", "Guard", "MixedState", "Trainer");
+        var (accessToken, _) = await TestHelpers.LoginAsync(httpClient, email, "TestPass1!");
+
+        Guid trainerUserId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var user = await db.Users.FirstAsync(
+                u => u.Email == email,
+                TestContext.Current.CancellationToken);
+            trainerUserId = user.Id;
+        }
+
+        // ── 2. Seed plan with partial completion (section A done, section B not) ──
+        var (plan, sessionId, sectionAId, sectionBId, exerciseAId, exerciseBId) =
+            await SeedTwoSectionPlanWithPartialCompletionAsync(trainerUserId);
+
+        // ── 3a. Acquire editing lock and edit section B (unfinished) → expect 200 ──
+        await AcquireEditingLockAsync(httpClient, plan, sessionId, accessToken, trainerUserId);
+
+        var bodyChangeB = BuildTwoSectionUpdateBody(
+            plan, sessionId,
+            sectionAId, sectionBId,
+            exerciseAId, exerciseBId,
+            changeA: false, changeB: true);
+
+        TestHelpers.SetBearerToken(httpClient, accessToken);
+        var responseB = await httpClient.PutAsJsonAsync(
+            $"/training/plans/{plan.ExternalId}",
+            bodyChangeB,
+            TestContext.Current.CancellationToken);
+
+        var responseBodyB = await responseB.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        responseB.StatusCode.Should().Be(
+            HttpStatusCode.OK,
+            $"editing the unfinished section B must return 200. Body: {responseBodyB}");
+
+        // ── 3b. Re-seed the plan (version was bumped) and acquire a fresh editing lock ──
+        // After the 200, the plan version is bumped; we need to re-seed the original plan
+        // to test editing section A at version 1.
+        var (plan2, sessionId2, sectionAId2, sectionBId2, exerciseAId2, exerciseBId2) =
+            await SeedTwoSectionPlanWithPartialCompletionAsync(trainerUserId);
+
+        await AcquireEditingLockAsync(httpClient, plan2, sessionId2, accessToken, trainerUserId);
+
+        // ── 4. Edit section A (finished) → expect 409 ────────────────────────────
+        var bodyChangeA = BuildTwoSectionUpdateBody(
+            plan2, sessionId2,
+            sectionAId2, sectionBId2,
+            exerciseAId2, exerciseBId2,
+            changeA: true, changeB: false);
+
+        TestHelpers.SetBearerToken(httpClient, accessToken);
+        var responseA = await httpClient.PutAsJsonAsync(
+            $"/training/plans/{plan2.ExternalId}",
+            bodyChangeA,
+            TestContext.Current.CancellationToken);
+
+        var responseBodyA = await responseA.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        responseA.StatusCode.Should().Be(
+            HttpStatusCode.Conflict,
+            $"editing the finished section A must return 409. Body: {responseBodyA}");
+        responseBodyA.Should().Contain(
+            "SECTION_ALREADY_COMPLETED",
+            "the RFC 7807 errorCode must be SECTION_ALREADY_COMPLETED");
     }
 }

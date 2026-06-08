@@ -1406,12 +1406,35 @@ export default function TrainingPlanPage() {
                               //   - the session is a past completed session
                               //     (client formally finished the workout log)
                               //   - the session has an edit lock (Stable or Live)
+                              //   - the backend reports this section as finished
+                              //     via SessionExecutionDto.finishedSections (new
+                              //     per-section completion path from #465)
                               // NOTE: isSelectedDayInPast alone no longer locks —
                               // past skipped / untouched sessions are editable.
                               planLocks.sectionIds.has(section.sectionId) ||
                               isClientLockedSession ||
                               isPastCompletedSession ||
-                              isEditLocked
+                              isEditLocked ||
+                              // Section-grain finished signal from the backend (#465):
+                              // true when MarkSectionComplete was called for this section
+                              // OR when the whole session WorkoutLog is completed.
+                              (sessionExec?.finishedSections?.some(
+                                (fs) => fs.sectionId === section.sectionId && fs.isFinished,
+                              ) ?? false)
+                            }
+                            isSectionFinishedByClient={
+                              // Show the per-section finished badge when the backend
+                              // reports this section as completed. This is the
+                              // per-section analogue of sessionExec?.isSessionFinished
+                              // (session grain), scoped to the individual section.
+                              // We only show the badge when the session itself is NOT
+                              // fully finished — when the whole session is finished,
+                              // the session-level badge on the session header already
+                              // covers it, and showing both would be redundant.
+                              !sessionExec?.isSessionFinished &&
+                              (sessionExec?.finishedSections?.some(
+                                (fs) => fs.sectionId === section.sectionId && fs.isFinished,
+                              ) ?? false)
                             }
                             lockedExerciseIds={new Set(
                               section.exercises

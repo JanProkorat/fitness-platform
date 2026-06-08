@@ -223,6 +223,99 @@ public class UpdateTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService
                     ct);
                 return;
             }
+
+            // ── Section-finished guard (issue #465) ───────────────────────────────
+            // For each locked session, check whether any changed section has already been
+            // completed by the client. A section is "completed" when either:
+            //   Signal 1: a finished WorkoutLog exists for the session (IsCompleted=true).
+            //   Signal 2: the TrainingCompletion document marks that section as done.
+            // If any changed section is finished → 409 SECTION_ALREADY_COMPLETED.
+            //
+            // Only runs for sessions that have an Editing lock (editingLocksBySession).
+            // Sessions without a lock have already been rejected above.
+
+            var lockedChangedSessionIds = changedSessionIds
+                .Where(sid => editingLocksBySession.Contains(sid))
+                .ToList();
+
+            if (lockedChangedSessionIds.Count > 0)
+            {
+                var clientId = plan.ClientId;
+
+                // Signal 1: completed WorkoutLogs for any of the locked sessions.
+                var nullableLockedSessionIds = lockedChangedSessionIds.Cast<Guid?>().ToList();
+                var logFilter = Builders<WorkoutLog>.Filter.Eq(l => l.PlanId, req.PlanId)
+                                & Builders<WorkoutLog>.Filter.In(l => l.SessionId, nullableLockedSessionIds)
+                                & Builders<WorkoutLog>.Filter.Eq(l => l.IsCompleted, true);
+                using var logCursor = await mongo.WorkoutLogs.FindAsync(logFilter, cancellationToken: ct);
+                var completedLogs = await logCursor.ToListAsync(ct);
+                var sessionsWithCompletedLog = completedLogs
+                    .Where(l => l.SessionId.HasValue)
+                    .Select(l => l.SessionId!.Value)
+                    .ToHashSet();
+
+                // Signal 2: TrainingCompletion documents for any of the locked sessions.
+                var completionFilter = Builders<TrainingCompletion>.Filter.Eq(c => c.ClientId, clientId)
+                                       & Builders<TrainingCompletion>.Filter.In(c => c.SessionId, lockedChangedSessionIds);
+                using var completionCursor = await mongo.TrainingCompletions.FindAsync(completionFilter, cancellationToken: ct);
+                var completionDocs = await completionCursor.ToListAsync(ct);
+                var bestCompletionBySession = completionDocs
+                    .GroupBy(c => c.SessionId)
+                    .ToDictionary(g => g.Key,
+                        g => g.OrderByDescending(c => c.DateUpdated ?? c.DateCreated).First());
+
+                // Check each locked session for section-level completions.
+                foreach (var sessionId in lockedChangedSessionIds)
+                {
+                    if (!storedPublishedSessions.TryGetValue(sessionId, out var storedSession))
+                        continue;
+                    if (!incomingPublishedSessions.TryGetValue(sessionId, out var incomingSession))
+                        continue;
+
+                    var hasCompletedLog = sessionsWithCompletedLog.Contains(sessionId);
+                    bestCompletionBySession.TryGetValue(sessionId, out var bestCompletion);
+
+                    // Skip sessions with no completion data (nothing to guard).
+                    if (!hasCompletedLog && bestCompletion is null) continue;
+
+                    // Build a lookup of incoming sections by SectionId (only those with a non-null SectionId).
+                    var incomingSectionsBySectionId = incomingSession.Sections
+                        .Where(rs => rs.SectionId.HasValue)
+                        .ToDictionary(rs => rs.SectionId!.Value);
+
+                    foreach (var storedSection in storedSession.Sections)
+                    {
+                        // Determine whether this section's content has changed.
+                        bool sectionChanged;
+                        if (!incomingSectionsBySectionId.TryGetValue(storedSection.SectionId, out var incomingSection))
+                        {
+                            // Section removed from incoming request — counts as changed.
+                            sectionChanged = true;
+                        }
+                        else
+                        {
+                            sectionChanged = HasSectionContentChanged(storedSection, incomingSection);
+                        }
+
+                        if (!sectionChanged) continue;
+
+                        // Section content changed — check if it's already completed.
+                        var sectionIsCompleted = bestCompletion.IsSectionComplete(
+                            storedSession, storedSection, hasCompletedWorkoutLog: hasCompletedLog);
+
+                        if (sectionIsCompleted)
+                        {
+                            await this.SendProblemAsync(
+                                409,
+                                ErrorCodes.SectionAlreadyCompleted,
+                                $"Section {storedSection.SectionId} in session {sessionId} has already been completed by the client and cannot be edited.",
+                                ct);
+                            return;
+                        }
+                    }
+                }
+            }
+            // ── End section-finished guard ────────────────────────────────────────
         }
         // ── End diff-gate ─────────────────────────────────────────────────────
 
@@ -406,6 +499,63 @@ public class UpdateTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService
                     if (storedSet.DistanceMeters != incomingSet.DistanceMeters) return true;
                     if (storedSet.RestSeconds != incomingSet.RestSeconds) return true;
                 }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Returns true when the content of a single stored section differs from the incoming
+    /// update request section. Keyed on <see cref="TrainingSection.SectionId"/> (caller's
+    /// responsibility). Compares Order, Name, Format, Notes, FormatConfig, and all exercises
+    /// and their sets (by positional order within the section).
+    /// </summary>
+    private static bool HasSectionContentChanged(TrainingSection stored, UpdateSectionRequest incoming)
+    {
+        if (stored.Order != incoming.Order) return true;
+        if (stored.Name != incoming.Name) return true;
+        if (stored.Format != incoming.Format) return true;
+        if (stored.Notes?.Trim() != incoming.Notes?.Trim()) return true;
+        if (!FormatConfigEqual(stored.FormatConfig, incoming.FormatConfig)) return true;
+
+        var storedExercises = stored.Exercises.OrderBy(e => e.Order).ToList();
+        var incomingExercises = incoming.Exercises.OrderBy(e => e.Order).ToList();
+
+        if (storedExercises.Count != incomingExercises.Count) return true;
+
+        for (var j = 0; j < storedExercises.Count; j++)
+        {
+            var se = storedExercises[j];
+            var re = incomingExercises[j];
+
+            if (se.ExerciseExternalId != re.ExerciseExternalId) return true;
+            if (se.ExerciseName != re.ExerciseName) return true;
+            if (se.Order != re.Order) return true;
+            if (se.Notes?.Trim() != re.Notes?.Trim()) return true;
+            if (se.RestSeconds != re.RestSeconds) return true;
+            if (se.MovementType != re.MovementType) return true;
+            if (se.Format != re.Format) return true;
+            if (!FormatConfigEqual(se.FormatConfig, re.FormatConfig)) return true;
+
+            var storedSets = se.Sets.OrderBy(s => s.SetNumber).ToList();
+            var incomingSets = re.Sets.OrderBy(s => s.SetNumber).ToList();
+
+            if (storedSets.Count != incomingSets.Count) return true;
+
+            for (var k = 0; k < storedSets.Count; k++)
+            {
+                var storedSet = storedSets[k];
+                var incomingSet = incomingSets[k];
+
+                if (storedSet.SetNumber != incomingSet.SetNumber) return true;
+                if (storedSet.Type != incomingSet.Type) return true;
+                if (storedSet.Reps != incomingSet.Reps) return true;
+                if (storedSet.WeightKg != incomingSet.WeightKg) return true;
+                if (storedSet.DurationSeconds != incomingSet.DurationSeconds) return true;
+                if (storedSet.Rpe != incomingSet.Rpe) return true;
+                if (storedSet.DistanceMeters != incomingSet.DistanceMeters) return true;
+                if (storedSet.RestSeconds != incomingSet.RestSeconds) return true;
             }
         }
 

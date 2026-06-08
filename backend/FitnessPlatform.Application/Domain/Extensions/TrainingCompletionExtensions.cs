@@ -31,6 +31,43 @@ public static class TrainingCompletionExtensions
     /// </summary>
     /// <param name="completion">The completion document to test. Must not be null.</param>
     /// <param name="session">The session definition (already backfilled). Must not be null.</param>
+    /// <summary>
+    /// Returns <c>true</c> when the specified section within the session is done, using the
+    /// two-signal model:
+    /// <list type="bullet">
+    ///   <item><description>Signal 1 — a completed <c>WorkoutLog</c> exists for the session
+    ///     (<paramref name="hasCompletedWorkoutLog"/>). Session-level completion implies every
+    ///     section is done.</description></item>
+    ///   <item><description>Signal 2 — the <c>TrainingCompletion</c> document records this
+    ///     section as complete (exercise-free sections via <see cref="TrainingCompletion.CompletedSectionIds"/>;
+    ///     exercise-bearing sections via
+    ///     <see cref="TrainingCompletionBackfill.GetEffectiveCompletedExerciseIdsBySection"/>).</description></item>
+    /// </list>
+    /// </summary>
+    public static bool IsSectionComplete(
+        this TrainingCompletion? completion,
+        TrainingSession session,
+        TrainingSection section,
+        bool hasCompletedWorkoutLog)
+    {
+        // Signal 1: session-level completion from WorkoutLog implies all sections are done.
+        if (hasCompletedWorkoutLog) return true;
+
+        if (completion is null) return false;
+
+        // Exercise-free sections: completed via CompletedSectionIds.
+        if (section.Exercises.Count == 0)
+            return (completion.CompletedSectionIds ?? []).Contains(section.SectionId);
+
+        // Exercise-bearing sections: use section-aware effective map to prevent
+        // cross-section false positives when the same exercise appears in two sections.
+        var effectiveBySection =
+            TrainingCompletionBackfill.GetEffectiveCompletedExerciseIdsBySection(completion, session);
+
+        return effectiveBySection.TryGetValue(section.SectionId, out var completedInSection)
+               && section.Exercises.All(e => completedInSection.Contains(e.ExerciseExternalId));
+    }
+
     public static bool IsSessionComplete(this TrainingCompletion completion, TrainingSession session)
     {
         // Guard: a session with no sections is never complete.

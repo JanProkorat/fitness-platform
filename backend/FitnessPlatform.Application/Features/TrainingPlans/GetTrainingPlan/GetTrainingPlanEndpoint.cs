@@ -282,6 +282,66 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
             }
         }
 
+        // ── 3b. Per-section finished state fold-in ───────────────────────────────
+        // For each session that has execution data (either a WorkoutLog entry or a fully-complete
+        // TrainingCompletion), project per-section finished state into FinishedSections.
+        // This feeds the web trainer portal so it can render a "Finished" label per section
+        // and gate the edit-lock unlock affordance at section granularity (issue #465).
+        //
+        // Two signals are combined:
+        //   Signal 1 — IsSessionFinished=true on the execution DTO means the WorkoutLog is
+        //              finalised; all sections are implicitly finished.
+        //   Signal 2 — TrainingCompletion docs (home-checkbox path) record section-level state.
+        if (completions.Count > 0 || response.SessionExecutions.Any(e => e.IsSessionFinished))
+        {
+            var bestCompletionBySession = completions
+                .GroupBy(c => c.SessionId)
+                .ToDictionary(g => g.Key,
+                    g => g.OrderByDescending(c => c.DateUpdated ?? c.DateCreated).First());
+
+            var executionIndex = response.SessionExecutions.ToDictionary(e => e.SessionId);
+
+            foreach (var (sessionId, session) in sessionLookup)
+            {
+                if (session.Sections.Count == 0) continue;
+
+                var hasFinishedLog = executionIndex.TryGetValue(sessionId, out var exec) && exec.IsSessionFinished;
+                bestCompletionBySession.TryGetValue(sessionId, out var bestCompletion);
+
+                // Skip this session if there is nothing to project.
+                if (!hasFinishedLog && bestCompletion is null) continue;
+
+                var finishedSections = session.Sections
+                    .Select(sec => new SectionFinishedStateDto
+                    {
+                        SectionId = sec.SectionId,
+                        IsFinished = bestCompletion.IsSectionComplete(session, sec, hasCompletedWorkoutLog: hasFinishedLog)
+                    })
+                    .Where(dto => dto.IsFinished)
+                    .ToList();
+
+                if (finishedSections.Count > 0)
+                {
+                    if (exec is not null)
+                    {
+                        exec.FinishedSections = finishedSections;
+                    }
+                    else
+                    {
+                        // No execution entry yet (partial TrainingCompletion with no WorkoutLog) —
+                        // add a synthetic entry so FinishedSections is visible to the web layer.
+                        response.SessionExecutions.Add(new SessionExecutionDto
+                        {
+                            SessionId = sessionId,
+                            IsSessionFinished = false,
+                            CompletedSetsByExercise = new Dictionary<Guid, List<int>>(),
+                            FinishedSections = finishedSections
+                        });
+                    }
+                }
+            }
+        }
+
         // ── 4. Batch-fetch session lock state ────────────────────────────────────
         // Single Mongo round-trip — not one per session. Mirrors the pattern used
         // in GetFullTrainingPlanEndpoint (client read) so the shape is consistent.
