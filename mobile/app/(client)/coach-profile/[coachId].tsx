@@ -49,7 +49,7 @@ export function CoachProfileScreen() {
             hitSlop={8}
           >
             <Ionicons name="chevron-back" size={22} color={colors.gold} />
-            <Text style={[styles.backLabel, { color: colors.gold }]}>{t('collab.title')}</Text>
+            <Text style={[styles.backLabel, { color: colors.gold }]}>{t('messages.title')}</Text>
           </Pressable>
         </View>
         <View style={[styles.headerBorder, { backgroundColor: colors.sep2 }]} />
