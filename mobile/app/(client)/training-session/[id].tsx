@@ -533,6 +533,12 @@ interface ExerciseQueueProps {
   currentRelativeIdx: number
   /** Set index within the active exercise. */
   currentSetIdx: number
+  /**
+   * Actual reps/weight logged per set, keyed by exerciseExternalId then setIdx.
+   * Mirrors the liveSessionStore formOverrides shape. Used to show edited values
+   * on finished rows instead of the original planned prescription.
+   */
+  formOverrides: Record<string, Record<number, { reps?: number; weightKg?: number }>>
   /** Tap handler — section-relative exercise index + set index. */
   onGoToSet: (exRelIdx: number, setIdx: number) => void
 }
@@ -541,6 +547,7 @@ function ExerciseQueue({
   exercises,
   currentRelativeIdx,
   currentSetIdx,
+  formOverrides,
   onGoToSet,
 }: ExerciseQueueProps) {
   const colors = useTheme()
@@ -556,6 +563,7 @@ function ExerciseQueue({
     key: string
     exRelIdx: number
     setIdx: number
+    exerciseExternalId: string
     exerciseName: string
     reps: number
     weightKg: number
@@ -564,12 +572,14 @@ function ExerciseQueue({
   let position = 0
   exercises.forEach((ex, exRelIdx) => {
     const sets = ex.sets ?? []
+    const exId = ex.exerciseExternalId ?? `ex-${exRelIdx}`
     sets.forEach((set, setIdx) => {
       position += 1
       rows.push({
-        key: `${ex.exerciseExternalId ?? `ex-${exRelIdx}`}-${setIdx}`,
+        key: `${exId}-${setIdx}`,
         exRelIdx,
         setIdx,
+        exerciseExternalId: exId,
         exerciseName: ex.exerciseName ?? `#${exRelIdx + 1}`,
         reps: set.reps ?? 0,
         weightKg: set.weightKg ?? 0,
@@ -625,6 +635,9 @@ function ExerciseQueue({
           (row.exRelIdx === currentRelativeIdx && row.setIdx < currentSetIdx)
         const isBodyweight = row.weightKg === 0
         const badgeColor = isDone || isActive ? colors.gold : colors.label2
+        // Look up the client's edited actuals for finished rows, mirroring
+        // SetsList: formOverrides[exerciseExternalId]?.[setIdx].
+        const logged = isDone ? formOverrides[row.exerciseExternalId]?.[row.setIdx] : undefined
 
         return (
           <Pressable
@@ -672,12 +685,21 @@ function ExerciseQueue({
               </Text>
             </View>
 
-            {/* Right: this set's prescription — "10 × 50 kg" or "10 × BW". */}
+            {/* Right: actual values (gold) for done rows, planned for the rest. */}
             <View style={setsListStyles.rightWrap}>
-              <Text style={[setsListStyles.plannedText, { color: colors.label2 }]}>
-                {row.reps} ×{' '}
-                {isBodyweight ? t('training.live.bw') : `${row.weightKg} kg`}
-              </Text>
+              {isDone ? (
+                <Text style={[setsListStyles.actualText, { color: colors.gold }]}>
+                  {(logged?.reps ?? row.reps)} ×{' '}
+                  {isBodyweight
+                    ? t('training.live.bw')
+                    : `${logged?.weightKg ?? row.weightKg} kg`}
+                </Text>
+              ) : (
+                <Text style={[setsListStyles.plannedText, { color: colors.label2 }]}>
+                  {row.reps} ×{' '}
+                  {isBodyweight ? t('training.live.bw') : `${row.weightKg} kg`}
+                </Text>
+              )}
             </View>
           </Pressable>
         )
@@ -1435,9 +1457,9 @@ interface SectionFinishedExerciseRow {
   /**
    * One entry per planned set, carrying its set number, the actual (or
    * planned-fallback) reps + weight, and a `done` flag identifying whether
-   * the user actually completed it. The stats card + per-exercise meta line
-   * only count sets with `done === true` — skipping the workout before
-   * completing anything must report 0/0/0, not the prescribed plan.
+   * the user actually completed it. The stats card only counts sets with
+   * `done === true` — skipping the workout before completing anything must
+   * report 0/0/0, not the prescribed plan.
    */
   sets: {
     setNumber: number
@@ -1445,49 +1467,24 @@ interface SectionFinishedExerciseRow {
     weightKg: number | null
     done: boolean
   }[]
+  /**
+   * Planned sets from the session's exercise prescription.
+   * Passed directly to SetGrid as the `sets` prop so it can render set
+   * numbers, rest times, and the planned-value captions for treatment B.
+   */
+  plannedSets: ExerciseSet[]
+  /** 1-based set numbers that the user actually completed. */
+  completedSetNumbers: number[]
+  /** 1-based set numbers that the user skipped (↷). */
+  skippedSetNumbers: number[]
+  /**
+   * Actual vs. snapshot-planned set data built client-side from formOverrides
+   * (#441/#468). Passed to SetGrid to enable treatment B: actual headline +
+   * "plán X" caption + gold change-dot when the user edited a value.
+   */
+  loggedSets: LoggedSetDto[]
 }
 
-/**
- * Collapse an exercise's logged sets into a single one-line summary:
- *
- *   "3 × 10 · 50 kg"             — all sets identical
- *   "3 × 8-10 · 50 kg"           — varied reps, same weight
- *   "3 × 10 · 40-50 kg"          — same reps, varied weight (pyramid)
- *   "3 × 8-10 · 40-50 kg"        — both vary
- *   "3 × 10 · BW"                — bodyweight only
- *
- * Returns null when there are no sets with any rep data (purely skipped
- * exercise) so the meta line can be omitted entirely.
- */
-function summarizeExerciseSets(
-  sets: SectionFinishedExerciseRow['sets'],
-  t: (key: string) => string,
-): string | null {
-  // Consider only sets the user actually finished. An exercise with zero
-  // completed sets returns null so the meta line is hidden entirely.
-  const doneSets = sets.filter((s) => s.done)
-  if (doneSets.length === 0) return null
-  const reps = doneSets.map((s) => s.reps).filter((r): r is number => r != null && r > 0)
-  if (reps.length === 0) return null
-  const weights = doneSets.map((s) => s.weightKg ?? 0)
-
-  const setCount = doneSets.length
-  const minR = Math.min(...reps)
-  const maxR = Math.max(...reps)
-  const repsPart =
-    minR === maxR ? `${setCount}×${minR}` : `${setCount}×${minR}-${maxR}`
-
-  const allBW = weights.every((w) => w === 0)
-  if (allBW) return `${repsPart} · ${t('training.live.bw')}`
-
-  // Only consider non-zero weights for the range so a mixed BW/loaded
-  // exercise still reports the loaded range cleanly.
-  const loaded = weights.filter((w) => w > 0)
-  const minW = Math.min(...loaded)
-  const maxW = Math.max(...loaded)
-  const weightPart = minW === maxW ? `${minW} kg` : `${minW}-${maxW} kg`
-  return `${repsPart} · ${weightPart}`
-}
 
 interface SectionFinishedNextWorkout {
   /** Display name of the upcoming workout (section). */
@@ -1704,38 +1701,39 @@ function SectionFinishedScreen({
             contentContainerStyle={sectionFinishedStyles.summaryListContent}
             showsVerticalScrollIndicator
           >
-            {exerciseSummaries.map((ex, exIdx) => {
-              const summary = summarizeExerciseSets(ex.sets, t)
-              return (
-                <View
-                  key={`${exIdx}-${ex.name}`}
-                  style={[
-                    sectionFinishedStyles.summaryExerciseBlock,
-                    exIdx < exerciseSummaries.length - 1 && {
-                      borderBottomWidth: StyleSheet.hairlineWidth,
-                      borderBottomColor: colors.sep2,
-                    },
-                  ]}
+            {exerciseSummaries.map((ex, exIdx) => (
+              <View
+                key={`${exIdx}-${ex.name}`}
+                style={[
+                  sectionFinishedStyles.summaryExerciseBlock,
+                  exIdx < exerciseSummaries.length - 1 && {
+                    borderBottomWidth: StyleSheet.hairlineWidth,
+                    borderBottomColor: colors.sep2,
+                  },
+                ]}
+              >
+                <Text
+                  style={[sectionFinishedStyles.summaryExerciseName, { color: colors.label }]}
+                  numberOfLines={1}
                 >
-                  <Text
-                    style={[sectionFinishedStyles.summaryExerciseName, { color: colors.label }]}
-                    numberOfLines={1}
-                  >
-                    {ex.name}
-                  </Text>
-                  {summary != null && (
-                    <Text
-                      style={[
-                        sectionFinishedStyles.summaryExerciseMeta,
-                        { color: colors.label3 },
-                      ]}
-                    >
-                      {summary}
-                    </Text>
-                  )}
-                </View>
-              )
-            })}
+                  {ex.name}
+                </Text>
+                {/* Treatment B: actual headline + "plán X" caption + gold dot
+                    when the user edited a value, matching LiveFinishedSummary
+                    (#468). SetGrid renders one row per planned set so skipped
+                    sets show '↷' and completed sets show the actual value.
+                    Guard mirrors finishedWorkoutCards memo: skip the grid
+                    entirely when an exercise has no planned sets. */}
+                {ex.plannedSets.length > 0 && (
+                  <SetGrid
+                    sets={ex.plannedSets}
+                    completedSetNumbers={ex.completedSetNumbers}
+                    skippedSetNumbers={ex.skippedSetNumbers}
+                    loggedSets={ex.loggedSets}
+                  />
+                )}
+              </View>
+            ))}
           </ScrollView>
         </View>
       )}
@@ -1925,13 +1923,6 @@ const sectionFinishedStyles = StyleSheet.create({
   },
   summaryExerciseName: {
     ...Type.headline,
-  },
-  // One-line "N×reps · weight" meta below the exercise name. Tabular-num so
-  // the row stays vertically aligned across exercises.
-  summaryExerciseMeta: {
-    ...Type.subheadline,
-    fontVariant: ['tabular-nums'],
-    marginTop: 2,
   },
   // Next-workout preview card — rendered in the pinned bottom slot
   // (`pinnedNextCardWrap` in the page-level styles handles the spacing
@@ -3572,12 +3563,12 @@ export default function WorkoutLogScreen() {
               // WORKOUTU") instead of the per-exercise SetsList. The form
               // card above already tracks the current set; the queue keeps
               // the user oriented within the whole workout.
+              //
+              // currentExerciseIdx is always section-relative: storeAdvance(0,0)
+              // resets it when a new section starts and setExercises() updates
+              // the local exercises to the current section. No subtraction is
+              // needed — using it directly as the relative index is correct.
               const queueExercises = activeSecForList?.exercises ?? []
-              let queueSectionStartIdx = 0
-              for (let i = 0; i < (currentSectionIdx ?? 0); i++) {
-                queueSectionStartIdx += sections[i]?.exercises?.length ?? 0
-              }
-              const queueRelativeCurrent = currentExerciseIdx - queueSectionStartIdx
               return (
                 <>
                   <View style={styles.sectionHdrWrap}>
@@ -3593,18 +3584,21 @@ export default function WorkoutLogScreen() {
                   >
                     <ExerciseQueue
                       exercises={queueExercises}
-                      currentRelativeIdx={queueRelativeCurrent}
+                      currentRelativeIdx={currentExerciseIdx}
                       currentSetIdx={currentSetIdx}
+                      formOverrides={formOverrides}
                       onGoToSet={(relIdx, setIdx) => {
                         // Cross-exercise jump (different relative index) or
                         // same-exercise set jump — handle both via the same
                         // storeAdvance + prefillForm pair, so the form card
                         // re-populates with this set's planned prescription.
-                        const absoluteIdx = queueSectionStartIdx + relIdx
+                        // relIdx is already section-relative and matches
+                        // currentExerciseIdx's coordinate space (both are
+                        // relative to the current section's exercises array).
                         storeSkipRest()
                         pendingAdvanceRef.current = null
-                        storeAdvance(absoluteIdx, setIdx)
-                        prefillForm(absoluteIdx, setIdx, exercises)
+                        storeAdvance(relIdx, setIdx)
+                        prefillForm(relIdx, setIdx, exercises)
                       }}
                     />
                   </View>
@@ -3777,7 +3771,8 @@ export default function WorkoutLogScreen() {
                       const exId = ex.exerciseExternalId ?? ''
                       const overrides = formOverrides[exId] ?? {}
                       const doneSetIdxs = new Set(completedSets[exId] ?? [])
-                      const sets = (ex.sets ?? []).map((planned, sIdx) => {
+                      const plannedSets = ex.sets ?? []
+                      const sets = plannedSets.map((planned, sIdx) => {
                         const ovr = overrides[sIdx]
                         return {
                           setNumber: planned.setNumber ?? sIdx + 1,
@@ -3790,7 +3785,79 @@ export default function WorkoutLogScreen() {
                           done: doneSetIdxs.has(sIdx),
                         }
                       })
-                      return { name: ex.exerciseName ?? '', sets }
+                      // Build treatment-B fields: actual headline + "plán X"
+                      // caption + gold change-dot when the user edited a value.
+                      // Mirrors the finishedWorkoutCards memo used by
+                      // LiveFinishedSummary (#468).
+                      const doneIndices = completedSets[exId] ?? []
+                      const isExSkipped = skippedExercises.includes(exId)
+                      const skippedIndices = isExSkipped
+                        ? plannedSets.map((_, si) => si)
+                        : (skippedSets[exId] ?? [])
+                      const completedSetNumbers = doneIndices.map(
+                        (si) => plannedSets[si]?.setNumber ?? si + 1,
+                      )
+                      const skippedSetNumbers = skippedIndices.map(
+                        (si) => plannedSets[si]?.setNumber ?? si + 1,
+                      )
+                      const loggedSets: LoggedSetDto[] = plannedSets.map(
+                        (planned, si) => {
+                          const ovr = overrides[si]
+                          const isDone = doneIndices.includes(si)
+                          const actualReps = isDone
+                            ? (ovr?.reps ?? planned.reps ?? null)
+                            : null
+                          const actualWeightKg = isDone
+                            ? (ovr?.weightKg ?? planned.weightKg ?? null)
+                            : null
+                          const actualDurationSeconds = isDone
+                            ? (ovr?.durationSeconds ?? null)
+                            : null
+                          const actualDistanceMeters = isDone
+                            ? (ovr?.distanceMeters ?? null)
+                            : null
+                          const repsModified =
+                            isDone &&
+                            actualReps != null &&
+                            planned.reps != null &&
+                            actualReps !== planned.reps
+                          const weightModified =
+                            isDone &&
+                            actualWeightKg != null &&
+                            planned.weightKg != null &&
+                            actualWeightKg !== planned.weightKg
+                          const durationModified =
+                            isDone &&
+                            actualDurationSeconds != null &&
+                            planned.durationSeconds != null &&
+                            actualDurationSeconds !== planned.durationSeconds
+                          return {
+                            setNumber: planned.setNumber ?? si + 1,
+                            actualReps: actualReps ?? undefined,
+                            actualWeightKg: actualWeightKg ?? undefined,
+                            actualDurationSeconds:
+                              actualDurationSeconds ?? undefined,
+                            actualDistanceMeters:
+                              actualDistanceMeters ?? undefined,
+                            plannedReps: planned.reps ?? undefined,
+                            plannedWeightKg: planned.weightKg ?? undefined,
+                            plannedDurationSeconds:
+                              planned.durationSeconds ?? undefined,
+                            plannedDistanceMeters:
+                              planned.distanceMeters ?? undefined,
+                            isModified:
+                              repsModified || weightModified || durationModified,
+                          }
+                        },
+                      )
+                      return {
+                        name: ex.exerciseName ?? '',
+                        sets,
+                        plannedSets,
+                        completedSetNumbers,
+                        skippedSetNumbers,
+                        loggedSets,
+                      }
                     })
                   })()}
                   sectionFormat={finishedFormat}

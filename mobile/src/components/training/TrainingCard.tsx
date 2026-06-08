@@ -17,6 +17,7 @@ import {
 } from '@/lib/training-plan-format'
 import { SectionHeader } from '@/components/training/SectionHeader'
 import { SetGrid } from '@/components/training/SetGrid'
+import { SessionReminderRow } from '@/components/training/SessionReminderRow'
 import { getMuscleGroupColor } from '@/constants/muscleGroups'
 import type { TrainingSession, TrainingSection, MuscleGroup, SessionPhotoDto } from '@/api/training'
 import type { LoggedSetDto } from '@/api/wod-types'
@@ -174,6 +175,13 @@ interface TrainingCardProps {
    * ExpandableSessionCard header for that session.
    */
   hasModificationsBySession?: Record<string, boolean>
+  /**
+   * Training plan id passed through to each session card's `bodyFooter` slot
+   * so the `SessionReminderRow` uses the correct MMKV namespace
+   * (`session-<planId>-<sessionId>`). When omitted, the reminder toggle is not
+   * rendered in the expanded session body.
+   */
+  planId?: string
 }
 
 // ─── formatSets ───────────────────────────────────────────────────────────────
@@ -300,6 +308,7 @@ export function TrainingCard({
   photosBySession = {},
   loggedSetsBySessionExercise,
   hasModificationsBySession,
+  planId,
 }: TrainingCardProps) {
   const colors = useTheme()
   const { t } = useTranslation()
@@ -514,6 +523,7 @@ export function TrainingCard({
                   ? (hasModificationsBySession?.[session.sessionId] ?? false)
                   : false
               }
+              planId={planId}
               t={t}
             />
           )
@@ -612,6 +622,12 @@ interface SessionSectionListProps {
    * Passed to ExpandableSessionCard to render the session-level "upraveno" badge.
    */
   sessionHasModifications?: boolean
+  /**
+   * Training plan id forwarded to ExpandableSessionCard's `bodyFooter` so the
+   * SessionReminderRow can namespace its MMKV key correctly. When omitted, no
+   * reminder toggle is rendered in the expanded session body.
+   */
+  planId?: string
   t: (key: string, opts?: Record<string, unknown>) => string
 }
 
@@ -643,6 +659,7 @@ function SessionSectionList({
   sessionPhotos,
   loggedSetsForSession,
   sessionHasModifications,
+  planId,
   t,
 }: SessionSectionListProps) {
   const colors = useTheme()
@@ -671,6 +688,11 @@ function SessionSectionList({
               onPhotoPress={onSessionPhotoPress}
               photos={sessionPhotos}
               hasModifications={sessionHasModifications ?? false}
+              bodyFooter={
+                planId != null
+                  ? <SessionReminderRow session={session} planId={planId} />
+                  : undefined
+              }
             >
               {/* Section-grouped exercise cards */}
               {sections.map((section, sectionIdx) => {
