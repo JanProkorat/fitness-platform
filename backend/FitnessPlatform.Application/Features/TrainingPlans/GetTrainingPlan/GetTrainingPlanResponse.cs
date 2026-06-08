@@ -68,8 +68,22 @@ public class SessionExecutionDto
     /// of 1-based set numbers that were stamped as complete in the <see cref="WorkoutLog"/>.
     /// An absent key means no sets for that exercise were logged.
     /// An empty list should not occur but is treated identically to an absent key.
+    /// <para>
+    /// <b>Deprecated in favour of <see cref="CompletedSetsBySectionAndExercise"/>.</b>
+    /// Retained for backward compatibility. When a multi-section log has the same exercise
+    /// in two sections, only the last-encountered section's data appears here — use the
+    /// section-aware map for reliable results.
+    /// </para>
     /// </summary>
     public Dictionary<Guid, List<int>> CompletedSetsByExercise { get; set; } = new();
+
+    /// <summary>
+    /// Section-aware completed sets map. Key = (SectionId, ExerciseExternalId) encoded as
+    /// the string <c>"{sectionId}:{exerciseId}"</c>; value = sorted list of completed set numbers.
+    /// Use this in preference to <see cref="CompletedSetsByExercise"/> when section context
+    /// is available (i.e. when the plan has multi-section sessions).
+    /// </summary>
+    public Dictionary<string, List<int>> CompletedSetsBySectionAndExercise { get; set; } = new();
 
     /// <summary>
     /// Per-exercise map of per-set actual values, snapshot-planned values, and isModified flags.
@@ -77,8 +91,20 @@ public class SessionExecutionDto
     /// An absent key means no sets for that exercise were logged.
     /// The web layer uses this together with <see cref="CompletedSetsByExercise"/> to render
     /// the actual-vs-planned comparison and the upraveno (modified) indicator per set.
+    /// <para>
+    /// <b>Deprecated in favour of <see cref="LoggedSetsBySectionAndExercise"/>.</b>
+    /// Retained for backward compatibility. When a multi-section log has the same exercise
+    /// in two sections, only the last-encountered section's data appears here.
+    /// </para>
     /// </summary>
     public Dictionary<Guid, List<LoggedSetDto>> LoggedSetsByExercise { get; set; } = new();
+
+    /// <summary>
+    /// Section-aware logged sets map. Key = (SectionId, ExerciseExternalId) encoded as
+    /// the string <c>"{sectionId}:{exerciseId}"</c>; value = list of <see cref="LoggedSetDto"/>.
+    /// Use this in preference to <see cref="LoggedSetsByExercise"/> for multi-section sessions.
+    /// </summary>
+    public Dictionary<string, List<LoggedSetDto>> LoggedSetsBySectionAndExercise { get; set; } = new();
 
     /// <summary>
     /// True when at least one set in any exercise under this session has IsModified == true.

@@ -209,18 +209,53 @@ export interface SessionExecutionDto {
   /** True when the client finalised the workout log (WorkoutLog.IsCompleted). */
   isSessionFinished: boolean;
   /**
+   * @deprecated Use `completedSetsBySectionAndExercise` for section-aware lookup.
+   *
    * Key = exerciseExternalId (matches SessionExercise.exerciseExternalId).
    * Value = sorted list of 1-based set numbers that were stamped as complete.
    * An absent key means no sets for that exercise were logged.
+   *
+   * When the same exercise appears in multiple sections, this map reflects only the
+   * last-section-wins entry (legacy flattened view). Prefer `completedSetsBySectionAndExercise`.
    */
   completedSetsByExercise: Record<string, number[]>;
   /**
+   * @deprecated Use `loggedSetsBySectionAndExercise` for section-aware lookup.
+   *
    * Key = exerciseExternalId (matches SessionExercise.exerciseExternalId).
    * Value = list of LoggedSetDto (one per logged set), carrying actual values,
    * snapshot-planned values, and the isModified flag.
    * An absent key means no sets for that exercise were logged.
+   *
+   * When the same exercise appears in multiple sections, this map reflects only the
+   * last-section-wins entry. Prefer `loggedSetsBySectionAndExercise`.
    */
   loggedSetsByExercise: Record<string, LoggedSetDto[]>;
+  /**
+   * Section-aware completed sets map.
+   * Key = "{sectionId}:{exerciseExternalId}" composite string.
+   * Value = sorted list of 1-based set numbers that were stamped as complete.
+   *
+   * An absent key means no sets for that exercise in that section were logged.
+   * Use this in preference to `completedSetsByExercise` to avoid cross-section collisions
+   * (e.g. the same exercise appearing in both a Standard and an AMRAP section).
+   *
+   * Absent on responses from backends that pre-date this field — fall back to
+   * `completedSetsByExercise` when the map is missing or the composite key is absent.
+   */
+  completedSetsBySectionAndExercise?: Record<string, number[]>;
+  /**
+   * Section-aware logged sets map.
+   * Key = "{sectionId}:{exerciseExternalId}" composite string.
+   * Value = list of LoggedSetDto (one per logged set).
+   *
+   * An absent key means no sets for that exercise in that section were logged.
+   * Use this in preference to `loggedSetsByExercise` to avoid cross-section collisions.
+   *
+   * Absent on responses from backends that pre-date this field — fall back to
+   * `loggedSetsByExercise` when the map is missing or the composite key is absent.
+   */
+  loggedSetsBySectionAndExercise?: Record<string, LoggedSetDto[]>;
   /**
    * True when at least one set in any exercise under this session has isModified === true.
    * The web layer uses this to show the "upraveno" badge at the session-header level.
