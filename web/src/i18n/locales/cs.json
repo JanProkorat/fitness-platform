@@ -803,6 +803,7 @@
     "OUT_OF_RANGE": "Hodnota je mimo povolený rozsah.",
     "INVALID_DEADLINE_OFFSET_HOURS": "Neplatná lhůta. Povolené hodnoty: 24, 48, 72, 120 nebo 168 hodin.",
     "SESSION_ALREADY_COMPLETED": "Tento trénink byl již dokončen.",
+    "SECTION_ALREADY_COMPLETED": "Tato část tréninku byla již dokončena klientem — úpravy nejsou možné.",
     "COMPLETED_AT_IN_FUTURE": "Datum dokončení nesmí být v budoucnosti.",
     "COMPLETED_AT_BEFORE_PLAN_START": "Datum dokončení nesmí být před začátkem plánu.",
     "session_locked": "Trénink je aktuálně uzamčen — uložení selhalo."

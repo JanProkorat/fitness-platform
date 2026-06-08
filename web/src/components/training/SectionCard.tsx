@@ -61,6 +61,14 @@ interface SectionCardProps extends SectionCardCallbacks {
   hasError?: boolean;
   /** Section is read-only — every exercise in it has been completed by the client. */
   isSectionLocked?: boolean;
+  /**
+   * True when the backend reports this specific section as finished by the client
+   * (via SessionExecutionDto.finishedSections). Triggers the per-section "finished"
+   * label in the header, distinct from the session-level badge. Subset of isSectionLocked
+   * in practice — a finished section is always locked, but the badge is rendered here
+   * independently so it shows even when the whole session is not yet finished.
+   */
+  isSectionFinishedByClient?: boolean;
   /** Exercise IDs that the client has marked complete; their inputs are locked. */
   lockedExerciseIds?: Set<string>;
   /**
@@ -77,6 +85,7 @@ export function SectionCard({
   onToggleExpanded,
   hasError,
   isSectionLocked,
+  isSectionFinishedByClient,
   lockedExerciseIds,
   onUpdate,
   onRemove,
@@ -183,6 +192,26 @@ export function SectionCard({
             style={{ fontFamily: 'inherit', minWidth: 0 }}
           />
         </div>
+
+        {/* Per-section "finished" badge — shown when the backend reports this
+            specific section as completed by the client (isSectionFinishedByClient).
+            Mirrors the session-level finishedLabel badge on TrainingPlanPage.
+            Reuses the same Tailwind token classes and i18n keys as the session badge
+            (training.lock.finishedLabel / finishedTooltip) — per design-review i18n
+            finding: identical wording, no new keys needed. */}
+        {isSectionFinishedByClient && (
+          <span
+            className={cn(
+              'shrink-0 inline-flex items-center gap-1 rounded-sm border px-2 py-[2px]',
+              'text-[10px] font-medium',
+              'border-text3/30 text-text3 bg-bg2',
+            )}
+            title={t('training.lock.finishedTooltip')}
+            aria-label={t('training.lock.finishedTooltip')}
+          >
+            {t('training.lock.finishedLabel')}
+          </span>
+        )}
 
         {/* Format pill — inline in header row. Disabled for locked sections so
             the dropdown doesn't open and the format can't be swapped on a

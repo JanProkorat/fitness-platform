@@ -794,6 +794,7 @@
     "OUT_OF_RANGE": "Value is out of the allowed range.",
     "INVALID_DEADLINE_OFFSET_HOURS": "Invalid deadline. Allowed values: 24, 48, 72, 120 or 168 hours.",
     "SESSION_ALREADY_COMPLETED": "This session has already been completed.",
+    "SECTION_ALREADY_COMPLETED": "This section has already been completed by the client and cannot be edited.",
     "COMPLETED_AT_IN_FUTURE": "Completion date cannot be in the future.",
     "COMPLETED_AT_BEFORE_PLAN_START": "Completion date cannot be before the plan's start date.",
     "session_locked": "Session is currently locked — save failed."

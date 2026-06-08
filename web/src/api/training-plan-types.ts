@@ -195,6 +195,30 @@ export interface LoggedSetDto {
 }
 
 /**
+ * Per-section finished state as reported by the backend on the SessionExecutionDto.
+ * A section is finished when either:
+ *   - The session-level WorkoutLog is completed (IsSessionFinished = true), OR
+ *   - The TrainingCompletion document records this specific section as finished
+ *     (MarkSectionComplete path — section-grain completion without a full log).
+ *
+ * The web layer uses this to render the per-section "finished" label and disable
+ * editing on sections that the client has completed, independently of the session-
+ * level IsSessionFinished flag.
+ *
+ * Hand-written (not from generated.ts) — mirrors the C# SectionFinishedStateDto.
+ */
+export interface SectionFinishedStateDto {
+  /** The sectionId this finished state belongs to. Matches TrainingSection.sectionId. */
+  sectionId: string;
+  /**
+   * Whether this section is finished.
+   * True when IsSessionFinished is true (session-level completion implies every section
+   * is done), OR when the TrainingCompletion document shows this section as complete.
+   */
+  isFinished: boolean;
+}
+
+/**
  * Per-session workout-log execution data returned by the trainer endpoint.
  * Used to derive completed / skipped / not-yet-reached states per set.
  *
@@ -262,6 +286,18 @@ export interface SessionExecutionDto {
    * Always false when the session has no WorkoutLog (or all logs are legacy without snapshots).
    */
   hasModifications: boolean;
+  /**
+   * Per-section finished state for all sections in this session.
+   * Populated by the endpoint from both WorkoutLog and TrainingCompletion signals.
+   * A section is finished when IsSessionFinished is true (session-level completion
+   * implies every section is done), OR when the TrainingCompletion document records
+   * that specific section as complete via the MarkSectionComplete path.
+   * Empty array (or absent) for sessions with no completion data.
+   *
+   * The web layer uses this to render the per-section "finished" label and disable
+   * editing on completed sections independently of the session-level finished state.
+   */
+  finishedSections?: SectionFinishedStateDto[];
 }
 
 /**

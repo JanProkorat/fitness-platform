@@ -793,6 +793,7 @@
     "OUT_OF_RANGE": "Der Wert liegt außerhalb des zulässigen Bereichs.",
     "INVALID_DEADLINE_OFFSET_HOURS": "Ungültige Frist. Erlaubte Werte: 24, 48, 72, 120 oder 168 Stunden.",
     "SESSION_ALREADY_COMPLETED": "Diese Einheit wurde bereits abgeschlossen.",
+    "SECTION_ALREADY_COMPLETED": "Dieser Abschnitt wurde bereits vom Klienten abgeschlossen und kann nicht bearbeitet werden.",
     "COMPLETED_AT_IN_FUTURE": "Das Abschlussdatum darf nicht in der Zukunft liegen.",
     "COMPLETED_AT_BEFORE_PLAN_START": "Das Abschlussdatum darf nicht vor dem Startdatum des Plans liegen.",
     "session_locked": "Einheit ist derzeit gesperrt — Speichern fehlgeschlagen."
