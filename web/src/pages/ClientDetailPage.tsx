@@ -258,7 +258,10 @@ export default function ClientDetailPage() {
               aria-labelledby="cl-tab-mereni"
               className="tab-content-transition"
             >
-              <MereniTab />
+              <MereniTab
+                clientId={id!}
+                targetWeightKg={ob?.targetWeightKg ?? null}
+              />
             </div>
           )}
 

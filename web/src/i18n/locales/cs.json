@@ -1748,6 +1748,32 @@
     "pendingInvite": {
       "title": "Pozvánka odeslána",
       "description": "Klient zatím nemá vytvořený účet. Na jeho email byla odeslána pozvánka s odkazem pro registraci. Po registraci si klient vyplní své údaje a jeho profil se zde automaticky doplní."
+    },
+    "mereni": {
+      "title": "Tělesná měření",
+      "addMeasurement": "Přidat měření",
+      "addMeasurementPlaceholder": "Přidat měření (funkce připravena v klientské aplikaci)",
+      "addFirstMeasurement": "Přidat první měření",
+      "emptyTitle": "Žádná měření",
+      "emptyDescription": "Klient zatím nezaznamenal žádná tělesná měření. Měření lze přidávat z mobilní aplikace.",
+      "errorLoading": "Měření se nepodařilo načíst.",
+      "chartLabel": "Vývoj váhy · posledních 8 týdnů",
+      "tiles": {
+        "currentWeight": "Aktuální váha",
+        "bodyFat": "Tělesný tuk",
+        "waist": "Pas",
+        "toGoal": "Do cíle",
+        "goalWeight": "cíl {{kg}} kg",
+        "comparedToWeeksAgo": "za 6 týd"
+      },
+      "table": {
+        "date": "Datum",
+        "weight": "Váha",
+        "bodyFat": "Tělesný tuk",
+        "waist": "Pas",
+        "hips": "Boky",
+        "chest": "Hrudník"
+      }
     }
   }
 }
