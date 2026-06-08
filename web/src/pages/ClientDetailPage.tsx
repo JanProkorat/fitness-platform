@@ -288,7 +288,7 @@ export default function ClientDetailPage() {
               aria-labelledby="cl-tab-aktivita"
               className="tab-content-transition"
             >
-              <AktivitaTab />
+              <AktivitaTab clientId={id!} />
             </div>
           )}
 

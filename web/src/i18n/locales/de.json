@@ -266,7 +266,9 @@
       "mealCount_other": "🥗 {{count}} Ernährungspläne",
       "repsLabel_one": "{{count}}× Wiederholung",
       "repsLabel_other": "{{count}}× Wiederholungen",
-      "monthPickerPrefix": "📅 Monat:"
+      "monthPickerPrefix": "📅 Monat:",
+      "resetFilter": "Alles anzeigen",
+      "errorLoading": "Aktivität konnte nicht geladen werden"
     },
     "values": {
       "Male": "Männlich",

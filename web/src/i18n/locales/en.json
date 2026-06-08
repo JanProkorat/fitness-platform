@@ -266,7 +266,9 @@
       "mealCount_other": "🥗 {{count}} meal plans",
       "repsLabel_one": "{{count}}× rep",
       "repsLabel_other": "{{count}}× reps",
-      "monthPickerPrefix": "📅 Month:"
+      "monthPickerPrefix": "📅 Month:",
+      "resetFilter": "Show all",
+      "errorLoading": "Failed to load activity"
     },
     "values": {
       "Male": "Male",
