@@ -1720,6 +1720,32 @@
     "pendingInvite": {
       "title": "Einladung gesendet",
       "description": "Der Klient hat noch kein Konto erstellt. Eine Einladung mit Registrierungslink wurde an seine E-Mail-Adresse gesendet. Nach der Registrierung füllt der Klient seine Daten aus und sein Profil wird hier automatisch aktualisiert."
+    },
+    "mereni": {
+      "title": "Körpermessungen",
+      "addMeasurement": "Messung hinzufügen",
+      "addMeasurementPlaceholder": "Messung hinzufügen (in der Client-App verfügbar)",
+      "addFirstMeasurement": "Erste Messung hinzufügen",
+      "emptyTitle": "Keine Messungen",
+      "emptyDescription": "Der Klient hat noch keine Körpermessungen aufgezeichnet. Messungen können über die mobile App hinzugefügt werden.",
+      "errorLoading": "Messungen konnten nicht geladen werden.",
+      "chartLabel": "Gewichtsverlauf · letzte 8 Wochen",
+      "tiles": {
+        "currentWeight": "Aktuelles Gewicht",
+        "bodyFat": "Körperfett",
+        "waist": "Taille",
+        "toGoal": "Zum Ziel",
+        "goalWeight": "Ziel {{kg}} kg",
+        "comparedToWeeksAgo": "über 6 Wo."
+      },
+      "table": {
+        "date": "Datum",
+        "weight": "Gewicht",
+        "bodyFat": "Körperfett",
+        "waist": "Taille",
+        "hips": "Hüfte",
+        "chest": "Brust"
+      }
     }
   }
 }

@@ -1721,6 +1721,32 @@
     "pendingInvite": {
       "title": "Invitation sent",
       "description": "The client hasn't created an account yet. An invitation with a registration link was sent to their email. After registering, the client will fill in their details and their profile will update here automatically."
+    },
+    "mereni": {
+      "title": "Body measurements",
+      "addMeasurement": "Add measurement",
+      "addMeasurementPlaceholder": "Add measurement (available in the client app)",
+      "addFirstMeasurement": "Add first measurement",
+      "emptyTitle": "No measurements",
+      "emptyDescription": "The client hasn't recorded any body measurements yet. Measurements can be added from the mobile app.",
+      "errorLoading": "Could not load measurements.",
+      "chartLabel": "Weight trend · last 8 weeks",
+      "tiles": {
+        "currentWeight": "Current weight",
+        "bodyFat": "Body fat",
+        "waist": "Waist",
+        "toGoal": "To goal",
+        "goalWeight": "goal {{kg}} kg",
+        "comparedToWeeksAgo": "over 6 wks"
+      },
+      "table": {
+        "date": "Date",
+        "weight": "Weight",
+        "bodyFat": "Body fat",
+        "waist": "Waist",
+        "hips": "Hips",
+        "chest": "Chest"
+      }
     }
   }
 }
