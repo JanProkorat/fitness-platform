@@ -271,7 +271,14 @@ export default function ClientDetailPage() {
               aria-labelledby="cl-tab-fotky"
               className="tab-content-transition"
             >
-              <FotkyTab />
+              <FotkyTab
+                clientId={id!}
+                clientName={clientName}
+                clientInitials={clientInitials}
+                linkId={client.linkId}
+                activeNutritionPlan={activeNutritionPlanSummary}
+                activeTrainingPlan={activeTrainingPlan}
+              />
             </div>
           )}
 

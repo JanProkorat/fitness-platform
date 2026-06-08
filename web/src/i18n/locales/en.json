@@ -1747,6 +1747,24 @@
         "hips": "Hips",
         "chest": "Chest"
       }
+    },
+    "fotky": {
+      "title": "Photo diary",
+      "countBadge": "{{photos}} photos · {{plans}} plans",
+      "activeDiary": "Active diary",
+      "newRequest": "New request",
+      "openGallery": "Open gallery",
+      "noActivePlanTooltip": "No active plan — gallery not available",
+      "filterAll": "All",
+      "categoryFood": "Food",
+      "categoryBody": "Body",
+      "emptyTitle": "No photos yet",
+      "emptyDescription": "Ask your client to share photos of their meals or progress.",
+      "emptyRequestCta": "Send photo diary request",
+      "errorLoading": "Failed to load photos",
+      "photoAlt": "Client photo",
+      "overflowLabel": "view all",
+      "overflowAriaLabel": "View {{count}} more photos"
     }
   }
 }

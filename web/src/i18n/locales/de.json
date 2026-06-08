@@ -1746,6 +1746,24 @@
         "hips": "Hüfte",
         "chest": "Brust"
       }
+    },
+    "fotky": {
+      "title": "Foto-Tagebuch",
+      "countBadge": "{{photos}} Fotos · {{plans}} Pläne",
+      "activeDiary": "Aktives Tagebuch",
+      "newRequest": "Neue Anfrage",
+      "openGallery": "Galerie öffnen",
+      "noActivePlanTooltip": "Kein aktiver Plan — Galerie nicht verfügbar",
+      "filterAll": "Alle",
+      "categoryFood": "Essen",
+      "categoryBody": "Körper",
+      "emptyTitle": "Noch keine Fotos",
+      "emptyDescription": "Bitten Sie den Kunden, Fotos von Mahlzeiten oder Fortschritten zu teilen.",
+      "emptyRequestCta": "Foto-Tagebuch-Anfrage senden",
+      "errorLoading": "Fotos konnten nicht geladen werden",
+      "photoAlt": "Kundenfoto",
+      "overflowLabel": "alle anzeigen",
+      "overflowAriaLabel": "{{count}} weitere Fotos anzeigen"
     }
   }
 }
