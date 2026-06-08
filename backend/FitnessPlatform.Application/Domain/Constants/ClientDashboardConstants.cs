@@ -32,4 +32,9 @@ public static class ClientDashboardConstants
     /// Weight change (kg) below which movement is considered Stable.
     /// </summary>
     public const decimal WeightStableBandKg = 0.5m;
+
+    /// <summary>
+    /// Number of days in the rolling window used to compute nutrition compliance.
+    /// </summary>
+    public const int ComplianceWindowDays = 30;
 }

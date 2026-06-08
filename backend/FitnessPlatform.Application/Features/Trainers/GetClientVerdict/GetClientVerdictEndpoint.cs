@@ -81,13 +81,12 @@ public class GetClientVerdictEndpoint(
 
         var targetWeightKg = clientProfile.OnboardingData?.TargetWeightKg;
 
-        // clientProfile.UserId is the ApplicationUser.Id (Guid) used by Mongo documents
-        // clientProfile.Id is the long PK used by BodyMeasurement (keyed on ClientProfileId)
-        // clientProfile.PublicId is the ApplicationUser.PublicId analog — used for PersonalRecord.ClientId
+        // clientProfile.UserId is the ApplicationUser.Id (Guid) used by all Mongo documents
+        // (WorkoutLog, MealLog, NutritionPlan, TrainingPlan, PersonalRecord).
+        // clientProfile.Id is the long PK used by BodyMeasurement (keyed on ClientProfileId).
         var result = await verdictService.ComputeAsync(
             clientUserId: clientProfile.UserId,
             clientProfileId: clientProfile.Id,
-            clientPublicId: clientProfile.PublicId,
             targetWeightKg: targetWeightKg,
             ct: ct);
 

@@ -12,15 +12,11 @@ public interface IClientVerdictService
     /// </summary>
     /// <param name="clientUserId">
     /// The client's <c>ApplicationUser.Id</c> (Guid) — used for MongoDB queries
-    /// (WorkoutLog, MealLog, NutritionPlan, TrainingPlan).
+    /// (WorkoutLog, MealLog, NutritionPlan, TrainingPlan, PersonalRecord).
     /// </param>
     /// <param name="clientProfileId">
     /// The client's <c>ClientProfile.Id</c> (long) — used for PostgreSQL queries
     /// (BodyMeasurement is keyed on ClientProfileId).
-    /// </param>
-    /// <param name="clientPublicId">
-    /// The client's <c>ApplicationUser.PublicId</c> (Guid) — used for
-    /// PersonalRecord queries (PersonalRecord.ClientId == ApplicationUser.PublicId).
     /// </param>
     /// <param name="targetWeightKg">
     /// The client's target weight in kg from onboarding, or null if not set.
@@ -30,7 +26,6 @@ public interface IClientVerdictService
     Task<ClientVerdictResult> ComputeAsync(
         Guid clientUserId,
         long clientProfileId,
-        Guid clientPublicId,
         decimal? targetWeightKg,
         CancellationToken ct);
 }

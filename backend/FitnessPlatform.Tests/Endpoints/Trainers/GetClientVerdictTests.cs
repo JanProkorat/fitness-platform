@@ -25,7 +25,6 @@ public class GetClientVerdictTests
         _verdictService.ComputeAsync(
             clientProfile.UserId,
             clientProfile.Id,
-            clientProfile.PublicId,
             Arg.Any<decimal?>(),
             Arg.Any<CancellationToken>())
             .Returns(new ClientVerdictResult
@@ -64,7 +63,7 @@ public class GetClientVerdictTests
         var (db, clientProfile) = BuildLinkedClientSetup();
 
         _verdictService.ComputeAsync(
-            Arg.Any<Guid>(), Arg.Any<long>(), Arg.Any<Guid>(),
+            Arg.Any<Guid>(), Arg.Any<long>(),
             Arg.Any<decimal?>(), Arg.Any<CancellationToken>())
             .Returns(new ClientVerdictResult
             {
@@ -93,7 +92,7 @@ public class GetClientVerdictTests
         var (db, clientProfile) = BuildLinkedClientSetup();
 
         _verdictService.ComputeAsync(
-            Arg.Any<Guid>(), Arg.Any<long>(), Arg.Any<Guid>(),
+            Arg.Any<Guid>(), Arg.Any<long>(),
             Arg.Any<decimal?>(), Arg.Any<CancellationToken>())
             .Returns(new ClientVerdictResult
             {
@@ -123,7 +122,7 @@ public class GetClientVerdictTests
         var (db, clientProfile) = BuildLinkedClientSetup();
 
         _verdictService.ComputeAsync(
-            Arg.Any<Guid>(), Arg.Any<long>(), Arg.Any<Guid>(),
+            Arg.Any<Guid>(), Arg.Any<long>(),
             Arg.Any<decimal?>(), Arg.Any<CancellationToken>())
             .Returns(new ClientVerdictResult
             {
@@ -155,7 +154,7 @@ public class GetClientVerdictTests
         var (db, clientProfile) = BuildLinkedClientSetup();
 
         _verdictService.ComputeAsync(
-            Arg.Any<Guid>(), Arg.Any<long>(), Arg.Any<Guid>(),
+            Arg.Any<Guid>(), Arg.Any<long>(),
             Arg.Any<decimal?>(), Arg.Any<CancellationToken>())
             .Returns(new ClientVerdictResult
             {
@@ -184,7 +183,7 @@ public class GetClientVerdictTests
         var (db, clientProfile) = BuildLinkedClientSetup();
 
         _verdictService.ComputeAsync(
-            Arg.Any<Guid>(), Arg.Any<long>(), Arg.Any<Guid>(),
+            Arg.Any<Guid>(), Arg.Any<long>(),
             Arg.Any<decimal?>(), Arg.Any<CancellationToken>())
             .Returns(new ClientVerdictResult
             {
@@ -210,7 +209,7 @@ public class GetClientVerdictTests
         var (db, clientProfile) = BuildLinkedClientSetup();
 
         _verdictService.ComputeAsync(
-            Arg.Any<Guid>(), Arg.Any<long>(), Arg.Any<Guid>(),
+            Arg.Any<Guid>(), Arg.Any<long>(),
             Arg.Any<decimal?>(), Arg.Any<CancellationToken>())
             .Returns(new ClientVerdictResult
             {
@@ -242,7 +241,7 @@ public class GetClientVerdictTests
         var (db, clientProfile) = BuildLinkedClientSetup();
 
         _verdictService.ComputeAsync(
-            Arg.Any<Guid>(), Arg.Any<long>(), Arg.Any<Guid>(),
+            Arg.Any<Guid>(), Arg.Any<long>(),
             Arg.Any<decimal?>(), Arg.Any<CancellationToken>())
             .Returns(new ClientVerdictResult
             {
@@ -271,7 +270,7 @@ public class GetClientVerdictTests
         var (db, clientProfile) = BuildLinkedClientSetup();
 
         _verdictService.ComputeAsync(
-            Arg.Any<Guid>(), Arg.Any<long>(), Arg.Any<Guid>(),
+            Arg.Any<Guid>(), Arg.Any<long>(),
             Arg.Any<decimal?>(), Arg.Any<CancellationToken>())
             .Returns(new ClientVerdictResult
             {

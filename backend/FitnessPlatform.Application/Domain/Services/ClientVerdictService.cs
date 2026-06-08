@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
@@ -7,12 +8,17 @@ using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
+[assembly: InternalsVisibleTo("FitnessPlatform.Tests")]
+
 namespace FitnessPlatform.Application.Domain.Services;
 
 /// <summary>
 /// Computes the on-track verdict and supporting dashboard signals for a single client.
 /// Aggregates data from PostgreSQL (BodyMeasurement) and MongoDB (NutritionPlan, TrainingPlan,
 /// WorkoutLog, MealLog, PersonalRecord) without duplicating compliance calculation logic.
+///
+/// EF Core's DbContext is NOT thread-safe. All queries against <see cref="IApplicationDbContext"/>
+/// are executed sequentially. MongoDB collections are thread-safe and may be queried in parallel.
 /// </summary>
 public class ClientVerdictService(
     IApplicationDbContext db,
@@ -24,24 +30,55 @@ public class ClientVerdictService(
     public async Task<ClientVerdictResult> ComputeAsync(
         Guid clientUserId,
         long clientProfileId,
-        Guid clientPublicId,
         decimal? targetWeightKg,
         CancellationToken ct)
     {
-        // Run all data queries in parallel to minimize latency.
+        // ── EF queries — must be serialized (DbContext is not thread-safe) ──
+        // Fold both BodyMeasurements usages into a single query that serves:
+        //   - ComputeWeightSignal: top-2 measurements with WeightKg != null
+        //   - ComputeLastActiveAt: most recent MeasuredAt (any measurement)
+        // We take the top-2 WeightKg-non-null rows, then separately the most-recent MeasuredAt.
+        // Both filters share the clientProfileId predicate so one round-trip suffices.
+
+        // Take the 2 most recent measurements that have a weight reading.
+        var recentWeightMeasurements = await db.BodyMeasurements
+            .AsNoTracking()
+            .Where(bm => bm.ClientProfileId == clientProfileId && bm.WeightKg != null)
+            .OrderByDescending(bm => bm.MeasuredAt)
+            .Select(bm => new { bm.WeightKg, bm.MeasuredAt })
+            .Take(2)
+            .ToListAsync(ct);
+
+        // Also take the single most recent measurement regardless of whether WeightKg is set,
+        // to capture lastActiveAt from a non-weight measurement (e.g. body-fat only).
+        var latestAnyMeasurementDate = await db.BodyMeasurements
+            .AsNoTracking()
+            .Where(bm => bm.ClientProfileId == clientProfileId)
+            .OrderByDescending(bm => bm.MeasuredAt)
+            .Select(bm => (DateTime?)bm.MeasuredAt)
+            .FirstOrDefaultAsync(ct);
+
+        // ── MongoDB queries — thread-safe, run in parallel ──────────────────
         var complianceTask = ComputeComplianceAsync(clientUserId, ct);
-        var weightTask = ComputeWeightSignalAsync(clientProfileId, targetWeightKg, ct);
         var trainingTask = ComputeTrainingFrequencyAsync(clientUserId, ct);
-        var lastActiveAtTask = ComputeLastActiveAtAsync(clientUserId, clientProfileId, ct);
+        var latestWorkoutTask = FetchLatestWorkoutCompletedAtAsync(clientUserId, ct);
+        var latestMealTask = FetchLatestMealLogTimestampAsync(clientUserId, ct);
         var prCountTask = ComputePrCountThisMonthAsync(clientUserId, ct);
 
-        await Task.WhenAll(complianceTask, weightTask, trainingTask, lastActiveAtTask, prCountTask);
+        await Task.WhenAll(complianceTask, trainingTask, latestWorkoutTask, latestMealTask, prCountTask);
 
         var (compliancePercent, hasActiveNutritionPlan) = complianceTask.Result;
-        var (weightDeltaToGoal, weightDirection, hasWeightSignal) = weightTask.Result;
         var (frequencyActual, frequencyPrescribed, hasActiveTrainingPlan) = trainingTask.Result;
-        var lastActiveAt = lastActiveAtTask.Result;
+        DateTime? latestWorkoutAt = latestWorkoutTask.Result;
+        DateTime? latestMealAt = latestMealTask.Result;
         var prCountThisMonth = prCountTask.Result;
+
+        // ── Derive weight signal from the pre-fetched EF data ───────────────
+        var (weightDeltaToGoal, weightDirection, hasWeightSignal) =
+            DeriveWeightSignal(recentWeightMeasurements.Select(m => (m.WeightKg!.Value, m.MeasuredAt)).ToList(), targetWeightKg);
+
+        // ── Coalesce lastActiveAt from all three sources ─────────────────────
+        var lastActiveAt = CoalesceLastActiveAt(latestWorkoutAt, latestMealAt, latestAnyMeasurementDate);
 
         var verdict = ComputeVerdict(
             compliancePercent, hasActiveNutritionPlan,
@@ -78,35 +115,26 @@ public class ClientVerdictService(
             return (null, false);
 
         // Use NutritionCompliancePercent (not combined CompliancePercent) as specified in AC.
-        // Calculate over the last 30 days to cover most nutrition plan periods.
-        var from = DateTime.UtcNow.Date.AddDays(-30);
+        // Calculate over the last ComplianceWindowDays days to cover most nutrition plan periods.
+        var from = DateTime.UtcNow.Date.AddDays(-ClientDashboardConstants.ComplianceWindowDays);
         var to = DateTime.UtcNow.Date.AddDays(1).AddTicks(-1);
         var complianceResult = await complianceService.CalculateComplianceAsync(clientUserId, from, to, ct);
 
         return (complianceResult.NutritionCompliancePercent, true);
     }
 
-    private async Task<(decimal? weightDeltaToGoal, WeightDirection weightDirection, bool hasSignal)> ComputeWeightSignalAsync(
-        long clientProfileId, decimal? targetWeightKg, CancellationToken ct)
+    /// <summary>
+    /// Derives the weight signal from pre-fetched measurement rows.
+    /// Pure computation — no I/O.
+    /// </summary>
+    private static (decimal? weightDeltaToGoal, WeightDirection weightDirection, bool hasSignal)
+        DeriveWeightSignal(List<(decimal WeightKg, DateTime MeasuredAt)> measurements, decimal? targetWeightKg)
     {
-        if (targetWeightKg is null)
+        if (targetWeightKg is null || measurements.Count == 0)
             return (null, WeightDirection.Stable, false);
 
-        // Get the two most recent measurements to derive direction.
-        var measurements = await db.BodyMeasurements
-            .AsNoTracking()
-            .Where(bm => bm.ClientProfileId == clientProfileId && bm.WeightKg != null)
-            .OrderByDescending(bm => bm.MeasuredAt)
-            .Select(bm => new { bm.WeightKg, bm.MeasuredAt })
-            .Take(2)
-            .ToListAsync(ct);
-
-        if (measurements.Count == 0)
-            return (null, WeightDirection.Stable, false);
-
-        var latestWeight = measurements[0].WeightKg!.Value;
+        var latestWeight = measurements[0].WeightKg;
         var deltaToGoal = latestWeight - targetWeightKg.Value;
-        var absDelta = Math.Abs(deltaToGoal);
 
         WeightDirection direction;
 
@@ -117,7 +145,7 @@ public class ClientVerdictService(
         }
         else
         {
-            var previousWeight = measurements[1].WeightKg!.Value;
+            var previousWeight = measurements[1].WeightKg;
             var change = latestWeight - previousWeight;
 
             if (Math.Abs(change) < ClientDashboardConstants.WeightStableBandKg)
@@ -180,10 +208,8 @@ public class ClientVerdictService(
         return (actual, prescribed, true);
     }
 
-    private async Task<DateTime?> ComputeLastActiveAtAsync(
-        Guid clientUserId, long clientProfileId, CancellationToken ct)
+    private async Task<DateTime?> FetchLatestWorkoutCompletedAtAsync(Guid clientUserId, CancellationToken ct)
     {
-        // 1. Latest completed workout log
         var workoutFilter = Builders<WorkoutLog>.Filter.Eq(w => w.ClientId, clientUserId)
             & Builders<WorkoutLog>.Filter.Eq(w => w.IsCompleted, true);
 
@@ -193,36 +219,33 @@ public class ClientVerdictService(
             ct);
         var latestWorkout = await workoutCursor.FirstOrDefaultAsync(ct);
 
-        // 2. Latest meal log — sort by EatenAt (prefer) then LogDate as fallback
-        var mealFilter = Builders<MealLog>.Filter.Eq(l => l.ClientId, clientUserId);
+        return latestWorkout?.CompletedAt;
+    }
+
+    private async Task<DateTime?> FetchLatestMealLogTimestampAsync(Guid clientUserId, CancellationToken ct)
+    {
+        // Sort by EatenAt descending so the comparison field matches the sort field.
+        // A backdated or edited entry cannot produce a stale lastActiveAt at the boundary.
+        var mealFilter = Builders<MealLog>.Filter.Eq(l => l.ClientId, clientUserId)
+            & Builders<MealLog>.Filter.Ne(l => l.EatenAt, (DateTime?)null);
+
         using var mealCursor = await mongo.MealLogs.FindAsync(
             mealFilter,
-            new FindOptions<MealLog> { Sort = Builders<MealLog>.Sort.Descending(l => l.LogDate), Limit = 1 },
+            new FindOptions<MealLog> { Sort = Builders<MealLog>.Sort.Descending(l => l.EatenAt), Limit = 1 },
             ct);
         var latestMealLog = await mealCursor.FirstOrDefaultAsync(ct);
 
-        // 3. Latest body measurement (PostgreSQL, keyed on ClientProfileId)
-        var latestMeasurementDate = await db.BodyMeasurements
-            .AsNoTracking()
-            .Where(bm => bm.ClientProfileId == clientProfileId)
-            .OrderByDescending(bm => bm.MeasuredAt)
-            .Select(bm => (DateTime?)bm.MeasuredAt)
-            .FirstOrDefaultAsync(ct);
+        if (latestMealLog is not null)
+            return latestMealLog.EatenAt;
 
-        // Coalesce to the most recent timestamp across all three sources.
-        var candidates = new List<DateTime?>();
-        candidates.Add(latestWorkout?.CompletedAt);
-        // Use EatenAt when available, fall back to LogDate for legacy entries
-        candidates.Add(latestMealLog is not null ? (latestMealLog.EatenAt ?? latestMealLog.LogDate) : null);
-        candidates.Add(latestMeasurementDate);
-
-        var validDates = candidates
-            .Where(d => d.HasValue)
-            .Select(d => d!.Value)
-            .OrderByDescending(d => d)
-            .ToList();
-
-        return validDates.Count > 0 ? validDates[0] : null;
+        // Fall back: any meal log without EatenAt, sorted by LogDate.
+        var fallbackFilter = Builders<MealLog>.Filter.Eq(l => l.ClientId, clientUserId);
+        using var fallbackCursor = await mongo.MealLogs.FindAsync(
+            fallbackFilter,
+            new FindOptions<MealLog> { Sort = Builders<MealLog>.Sort.Descending(l => l.LogDate), Limit = 1 },
+            ct);
+        var fallbackLog = await fallbackCursor.FirstOrDefaultAsync(ct);
+        return fallbackLog?.LogDate;
     }
 
     private async Task<int> ComputePrCountThisMonthAsync(Guid clientUserId, CancellationToken ct)
@@ -231,7 +254,7 @@ public class ClientVerdictService(
         var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
         var monthEnd = monthStart.AddMonths(1);
 
-        // PersonalRecord.ClientId is the client's ApplicationUser.Id (same as clientUserId)
+        // PersonalRecord.ClientId is the client's ApplicationUser.Id (same as clientUserId).
         var prFilter = Builders<PersonalRecord>.Filter.Eq(r => r.ClientId, clientUserId)
             & Builders<PersonalRecord>.Filter.Gte(r => r.AchievedAt, monthStart)
             & Builders<PersonalRecord>.Filter.Lt(r => r.AchievedAt, monthEnd);
@@ -241,9 +264,31 @@ public class ClientVerdictService(
         return prs.Count;
     }
 
+    /// <summary>
+    /// Coalesces the three lastActiveAt sources into the most recent timestamp.
+    /// Pure computation — no I/O.
+    /// </summary>
+    private static DateTime? CoalesceLastActiveAt(
+        DateTime? latestWorkoutAt,
+        DateTime? latestMealAt,
+        DateTime? latestMeasurementAt)
+    {
+        var candidates = new[] { latestWorkoutAt, latestMealAt, latestMeasurementAt }
+            .Where(d => d.HasValue)
+            .Select(d => d!.Value)
+            .OrderByDescending(d => d)
+            .ToList();
+
+        return candidates.Count > 0 ? candidates[0] : null;
+    }
+
     // ── Verdict logic ───────────────────────────────────────────────────────
 
-    private static ClientVerdict ComputeVerdict(
+    /// <summary>
+    /// Computes the overall verdict from the pre-computed signals.
+    /// Pure computation — no I/O. Internal visibility to allow direct unit testing.
+    /// </summary>
+    internal static ClientVerdict ComputeVerdict(
         decimal? compliancePercent, bool hasActiveNutritionPlan,
         WeightDirection weightDirection, decimal? weightDeltaToGoal, bool hasWeightSignal,
         int? frequencyActual, int? frequencyPrescribed, bool hasActiveTrainingPlan,
@@ -251,7 +296,7 @@ public class ClientVerdictService(
     {
         // ── OffTrack hard thresholds (any one triggers OffTrack) ─────────────
 
-        // Inactivity threshold: no activity in N days
+        // Inactivity threshold: no activity in > N days (strict greater-than; exactly N days is NOT OffTrack).
         if (lastActiveAt.HasValue)
         {
             var daysSinceActivity = (DateTime.UtcNow - lastActiveAt.Value).TotalDays;
@@ -295,11 +340,8 @@ public class ClientVerdictService(
         if (offSignals == 0)
             return ClientVerdict.OnTrack;
 
-        if (offSignals == 1)
-            return ClientVerdict.NeedsAttention;
-
-        // More than one signal off but not OffTrack level -> NeedsAttention
-        // (The spec says OffTrack only for specific hard thresholds; multiple soft misses = NeedsAttention)
+        // One or more soft signals off but not OffTrack level -> NeedsAttention.
+        // The spec says OffTrack only for specific hard thresholds; multiple soft misses = NeedsAttention.
         return ClientVerdict.NeedsAttention;
     }
 }
