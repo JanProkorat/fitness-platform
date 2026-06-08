@@ -1774,6 +1774,24 @@
         "hips": "Boky",
         "chest": "Hrudník"
       }
+    },
+    "fotky": {
+      "title": "Foto-deník",
+      "countBadge": "{{photos}} fotek · {{plans}} plánů",
+      "activeDiary": "Aktivní deník",
+      "newRequest": "Nová žádost",
+      "openGallery": "Otevřít galerii",
+      "noActivePlanTooltip": "Žádný aktivní plán — galerie není k dispozici",
+      "filterAll": "Vše",
+      "categoryFood": "Jídla",
+      "categoryBody": "Postava",
+      "emptyTitle": "Zatím žádné fotky",
+      "emptyDescription": "Požádejte klienta o sdílení fotek jídel nebo pokroku.",
+      "emptyRequestCta": "Odeslat žádost o foto-deník",
+      "errorLoading": "Fotky se nepodařilo načíst",
+      "photoAlt": "Fotka klienta",
+      "overflowLabel": "zobrazit vše",
+      "overflowAriaLabel": "Zobrazit dalších {{count}} fotek"
     }
   }
 }
