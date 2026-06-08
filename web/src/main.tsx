@@ -5,6 +5,7 @@ import '@/lib/polyfills';
 
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import './index.css';
 import './styles/dialog-animations.css';
 import './i18n';
@@ -14,7 +15,9 @@ import { ErrorBoundary } from './ErrorBoundary';
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
-      <App />
+      <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID ?? ''}>
+        <App />
+      </GoogleOAuthProvider>
     </ErrorBoundary>
   </StrictMode>,
 );
