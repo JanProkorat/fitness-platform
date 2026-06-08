@@ -1636,5 +1636,89 @@
       "inviteCheckboxWarning": "Die Fototagebuch-Anfrage wird nach erfolgreicher Erstellung der Einladung gesendet.",
       "inviteDiaryFailed": "Einladung gesendet, aber Fototagebuch-Anfrage fehlgeschlagen. Sie können sie später über das Klientendetail senden."
     }
+  },
+  "clientDetail": {
+    "photoDiary": "Fototagebuch",
+    "writeMessage": "Schreiben",
+    "lastName": "Nachname",
+    "heightCm": "Körpergröße (cm)",
+    "weightKg": "Gewicht (kg)",
+    "tabBarLabel": "Klienten-Reiter",
+    "ageYears_one": "{{count}} Jahr",
+    "ageYears_other": "{{count}} Jahre",
+    "tabs": {
+      "prehled": "Übersicht",
+      "mereni": "Messungen",
+      "fotky": "Fotos",
+      "aktivita": "Aktivität",
+      "plany": "Pläne",
+      "checkiny": "Check-ins",
+      "dotazniky": "Fragebögen",
+      "poznamky": "Notizen"
+    },
+    "verdict": {
+      "unavailable": "Bewertung nicht verfügbar",
+      "onTrack": {
+        "label": "Auf Kurs",
+        "subtitle": "Pläne aktiv und aktuell"
+      },
+      "needsAttention": {
+        "label": "Benötigt Aufmerksamkeit",
+        "subtitle": "Ein Indikator außerhalb des Ziels"
+      },
+      "offTrack": {
+        "label": "Außer Plan",
+        "subtitle": "Kritische Abweichung — Klient braucht Unterstützung"
+      },
+      "signals": {
+        "compliance": "Compliance",
+        "weightDelta": "Zum Ziel",
+        "trainingsPerWeek": "Einheiten/Woche",
+        "prThisMonth": "PBs diesen Monat"
+      }
+    },
+    "prehled": {
+      "noActivePlan": {
+        "nutrition": "Kein aktiver Ernährungsplan",
+        "training": "Kein aktiver Trainingsplan",
+        "createNutrition": "Ernährungsplan erstellen →",
+        "createTraining": "Trainingsplan erstellen →"
+      },
+      "planCard": {
+        "active": "Aktiv",
+        "goal": "Ziel",
+        "targetWeight": "Zielgewicht {{kg}} kg",
+        "compliance": "Compliance {{pct}} %",
+        "openNutrition": "Ernährungsplan öffnen",
+        "history": "Planhistorie",
+        "from": "ab {{date}}"
+      },
+      "trainingCard": {
+        "weeklyFrequency_one": "{{count}} Einheit/Woche",
+        "weeklyFrequency_other": "{{count}} Einheiten/Woche",
+        "thisWeek_one": "{{count}}× diese Woche",
+        "thisWeek_other": "{{count}}× diese Woche",
+        "prThisMonth_one": "{{count}} PB diesen Monat",
+        "prThisMonth_other": "{{count}} PBs diesen Monat",
+        "openTraining": "Trainingsplan öffnen"
+      },
+      "progress": {
+        "weightTitle": "Gewichtsfortschritt zum Ziel",
+        "allMeasurements": "Alle Messungen",
+        "remaining": "{{kg}} kg bis zum Ziel",
+        "noData": "Keine Messungen",
+        "thisMonth": "Diesen Monat",
+        "stats": {
+          "prTotal": "PBs gesamt",
+          "workouts": "Trainings",
+          "measurements": "Messungen",
+          "completedDays": "Erfüllte Tage"
+        }
+      }
+    },
+    "pendingInvite": {
+      "title": "Einladung gesendet",
+      "description": "Der Klient hat noch kein Konto erstellt. Eine Einladung mit Registrierungslink wurde an seine E-Mail-Adresse gesendet. Nach der Registrierung füllt der Klient seine Daten aus und sein Profil wird hier automatisch aktualisiert."
+    }
   }
 }

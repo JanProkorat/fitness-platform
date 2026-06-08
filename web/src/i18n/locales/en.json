@@ -1637,5 +1637,89 @@
       "inviteCheckboxWarning": "Diary request will be sent after the invite is successfully created.",
       "inviteDiaryFailed": "Invite sent, but diary request failed. You can send it later from the client detail."
     }
+  },
+  "clientDetail": {
+    "photoDiary": "Photo diary",
+    "writeMessage": "Message",
+    "lastName": "Last name",
+    "heightCm": "Height (cm)",
+    "weightKg": "Weight (kg)",
+    "tabBarLabel": "Client tabs",
+    "ageYears_one": "{{count}} year",
+    "ageYears_other": "{{count}} years",
+    "tabs": {
+      "prehled": "Overview",
+      "mereni": "Measurements",
+      "fotky": "Photos",
+      "aktivita": "Activity",
+      "plany": "Plans",
+      "checkiny": "Check-ins",
+      "dotazniky": "Questionnaires",
+      "poznamky": "Notes"
+    },
+    "verdict": {
+      "unavailable": "Verdict unavailable",
+      "onTrack": {
+        "label": "On Track",
+        "subtitle": "Plans active and up to date"
+      },
+      "needsAttention": {
+        "label": "Needs Attention",
+        "subtitle": "One indicator off target"
+      },
+      "offTrack": {
+        "label": "Off Plan",
+        "subtitle": "Critical deviation — client needs support"
+      },
+      "signals": {
+        "compliance": "Compliance",
+        "weightDelta": "To goal",
+        "trainingsPerWeek": "Sessions/week",
+        "prThisMonth": "PRs this month"
+      }
+    },
+    "prehled": {
+      "noActivePlan": {
+        "nutrition": "No active nutrition plan",
+        "training": "No active training plan",
+        "createNutrition": "Create nutrition plan →",
+        "createTraining": "Create training plan →"
+      },
+      "planCard": {
+        "active": "Active",
+        "goal": "Goal",
+        "targetWeight": "target weight {{kg}} kg",
+        "compliance": "Compliance {{pct}} %",
+        "openNutrition": "Open nutrition plan",
+        "history": "Plan history",
+        "from": "from {{date}}"
+      },
+      "trainingCard": {
+        "weeklyFrequency_one": "{{count}} session/week",
+        "weeklyFrequency_other": "{{count}} sessions/week",
+        "thisWeek_one": "{{count}}× this week",
+        "thisWeek_other": "{{count}}× this week",
+        "prThisMonth_one": "{{count}} PR this month",
+        "prThisMonth_other": "{{count}} PRs this month",
+        "openTraining": "Open training plan"
+      },
+      "progress": {
+        "weightTitle": "Weight progress to goal",
+        "allMeasurements": "All measurements",
+        "remaining": "{{kg}} kg remaining to goal",
+        "noData": "No measurements",
+        "thisMonth": "This month",
+        "stats": {
+          "prTotal": "Total PRs",
+          "workouts": "Workouts",
+          "measurements": "Measurements",
+          "completedDays": "Completed days"
+        }
+      }
+    },
+    "pendingInvite": {
+      "title": "Invitation sent",
+      "description": "The client hasn't created an account yet. An invitation with a registration link was sent to their email. After registering, the client will fill in their details and their profile will update here automatically."
+    }
   }
 }

@@ -1656,5 +1656,97 @@
       "inviteCheckboxWarning": "Žádost o foto-deník bude odeslána po úspěšném vytvoření pozvánky.",
       "inviteDiaryFailed": "Pozvánka odeslána, ale žádost o foto-deník se nepodařila. Můžete ji odeslat později z detailu klienta."
     }
+  },
+  "clientDetail": {
+    "photoDiary": "Foto-deník",
+    "writeMessage": "Napsat",
+    "lastName": "Příjmení",
+    "heightCm": "Výška (cm)",
+    "weightKg": "Váha (kg)",
+    "tabBarLabel": "Záložky klienta",
+    "ageYears_one": "{{count}} rok",
+    "ageYears_few": "{{count}} roky",
+    "ageYears_many": "{{count}} let",
+    "ageYears_other": "{{count}} let",
+    "tabs": {
+      "prehled": "Přehled",
+      "mereni": "Měření",
+      "fotky": "Fotky",
+      "aktivita": "Aktivita",
+      "plany": "Plány",
+      "checkiny": "Check-iny",
+      "dotazniky": "Dotazníky",
+      "poznamky": "Poznámky"
+    },
+    "verdict": {
+      "unavailable": "Hodnocení není k dispozici",
+      "onTrack": {
+        "label": "Na dobré cestě",
+        "subtitle": "Plány aktivní a aktuální"
+      },
+      "needsAttention": {
+        "label": "Vyžaduje pozornost",
+        "subtitle": "Jeden ukazatel mimo cíl"
+      },
+      "offTrack": {
+        "label": "Mimo plán",
+        "subtitle": "Kritická odchylka — klient potřebuje pomoc"
+      },
+      "signals": {
+        "compliance": "Compliance",
+        "weightDelta": "K cíli",
+        "trainingsPerWeek": "Tréninky/týd",
+        "prThisMonth": "PR tento měsíc"
+      }
+    },
+    "prehled": {
+      "noActivePlan": {
+        "nutrition": "Žádný aktivní jídelníček",
+        "training": "Žádný aktivní tréninkový plán",
+        "createNutrition": "Vytvořit jídelníček →",
+        "createTraining": "Vytvořit tréninkový plán →"
+      },
+      "planCard": {
+        "active": "Aktivní",
+        "goal": "Cíl",
+        "targetWeight": "cílová váha {{kg}} kg",
+        "compliance": "Compliance {{pct}} %",
+        "openNutrition": "Otevřít jídelníček",
+        "history": "Historie plánů",
+        "from": "od {{date}}"
+      },
+      "trainingCard": {
+        "weeklyFrequency_one": "{{count}} trénink týdně",
+        "weeklyFrequency_few": "{{count}} tréninky týdně",
+        "weeklyFrequency_many": "{{count}} tréninků týdně",
+        "weeklyFrequency_other": "{{count}} tréninků týdně",
+        "thisWeek_one": "{{count}}× tento týden",
+        "thisWeek_few": "{{count}}× tento týden",
+        "thisWeek_many": "{{count}}× tento týden",
+        "thisWeek_other": "{{count}}× tento týden",
+        "prThisMonth_one": "{{count}} PR tento měsíc",
+        "prThisMonth_few": "{{count}} PR tento měsíc",
+        "prThisMonth_many": "{{count}} PR tento měsíc",
+        "prThisMonth_other": "{{count}} PR tento měsíc",
+        "openTraining": "Otevřít tréninkový plán"
+      },
+      "progress": {
+        "weightTitle": "Pokrok váhy k cíli",
+        "allMeasurements": "Všechna měření",
+        "remaining": "zbývá {{kg}} kg k cíli",
+        "noData": "Žádná měření",
+        "thisMonth": "Tento měsíc",
+        "stats": {
+          "prTotal": "PR celkem",
+          "workouts": "Tréninky",
+          "measurements": "Měření",
+          "completedDays": "Splněno dní"
+        }
+      }
+    },
+    "pendingInvite": {
+      "title": "Pozvánka odeslána",
+      "description": "Klient zatím nemá vytvořený účet. Na jeho email byla odeslána pozvánka s odkazem pro registraci. Po registraci si klient vyplní své údaje a jeho profil se zde automaticky doplní."
+    }
   }
 }
