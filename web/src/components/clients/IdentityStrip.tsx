@@ -47,7 +47,7 @@ export function IdentityStrip({
       {/* Avatar with camera badge */}
       <div className="relative flex-shrink-0">
         <div
-          className="w-12 h-12 rounded-full bg-bg3 flex items-center justify-content-center font-semibold text-[18px] text-text2 flex items-center justify-center"
+          className="w-12 h-12 rounded-full bg-bg3 flex items-center justify-center font-semibold text-[18px] text-text2"
           aria-label={clientInitials}
         >
           {clientInitials}
