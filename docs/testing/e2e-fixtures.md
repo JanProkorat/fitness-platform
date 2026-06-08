@@ -52,6 +52,10 @@ docker ps --format '{{.Names}}'
 | Client       | `qa.client@fitnessplatform.test` | `11111111-1111-1111-1111-111111111111`    |
 | Trainer      | `qa.trainer@fitnessplatform.test`| `22222222-2222-2222-2222-222222222222`    |
 | Nutritionist | `qa.nutri@fitnessplatform.test`  | `33333333-3333-3333-3333-333333333333`    |
+| Client 2     | `qa.client2@fitnessplatform.test`| `55555555-5555-5555-5555-555555555555`    |
+| Trainer 2    | `qa.trainer2@fitnessplatform.test`| `66666666-6666-6666-6666-666666666666`   |
+
+The second pair (`Client 2` / `Trainer 2`) is dedicated to the multi-section shared-exercise fixture (#474). They share the same password as the other accounts (`QA_SEED_PASSWORD` from `.env.test`).
 
 All three accounts share the password held in `QA_SEED_PASSWORD` in your local `.env.test` (gitignored). Copy `.env.test.example` to `.env.test` and fill `JWT_SECRET` (≥32 chars) and `QA_SEED_PASSWORD` before the first `npm run e2e:up`. The seed runner refuses to start if `QA_SEED_PASSWORD` is unset, so a missing env file fails fast instead of creating users with a default password.
 
@@ -251,6 +255,86 @@ NutritionPlan (ExternalId = dddddddd-eeee-ffff-0000-111111111111)
 | `QaFoodImageBlobKey`  | `foods/qa-food-1.png`                | 1×1 pixel PNG    |
 
 Both blobs are loaded from embedded resources (`Seed/Assets/qa-avatar.png` and `qa-food.png`) and uploaded to MinIO via `IBlobStorageService.UploadAsync` during seed. Upload is idempotent: `ObjectExistsAsync` is checked first; existing blobs are left in place.
+
+## Seeded multi-section fixture — shared exercise across Standard + AMRAP (#474)
+
+A third training plan is seeded for the **second** QA client/trainer pair. Its purpose is to let the web coach-detail screen demonstrate section-keyed planned-vs-actual values for a session where the same exercise appears in two different section types.
+
+### Ownership
+
+- Client: `qa.client2@fitnessplatform.test` (`Client2UserId = 55555555-5555-5555-5555-555555555555`)
+- Trainer: `qa.trainer2@fitnessplatform.test` (`Trainer2UserId = 66666666-6666-6666-6666-666666666666`)
+- `TrainingPlan.TrainerId` = `Trainer2UserId` (ApplicationUser.Id — same rule as all other plans)
+- `TrainingPlan.ClientId` = `Client2ProfilePublicId = 55555555-5555-5555-aaaa-000000000001` (ClientProfile.PublicId — same rule as all other plans)
+
+### Stable GUIDs
+
+| Constant | Value | What it maps to |
+|---|---|---|
+| `QaMultiSectionPlanExternalId` | `55555555-5555-5555-dddd-000000000001` | Plan `ExternalId` |
+| `QaMultiSectionSessionId` | `55555555-5555-5555-bbbb-000000000001` | Session in Week 1, DayOfWeek=2 (Tuesday) |
+| `MultiSectionStandardSectionId` | `55555555-5555-5555-aaaa-000000000001` | Standard section SectionId |
+| `MultiSectionAmrapSectionId` | `55555555-5555-5555-aaaa-000000000002` | AMRAP section SectionId |
+| `SharedExerciseId` | `55555555-5555-5555-cccc-000000000001` | "QA Kettlebell Swing" (appears in BOTH sections) |
+| `QaMultiSectionWorkoutLogId` | `55555555-5555-5555-4455-000000000001` | Completed WorkoutLog for this session |
+
+### Plan shape
+
+```
+TrainingPlan (ExternalId = 55555555-5555-5555-dddd-000000000001)
+  Status: Active
+  Weeks:
+    Week 1 (Status = Published)
+      Session "QA Multi-Section Session" (DayOfWeek = 2 = Tuesday)
+        Section 1 "Standard work" (Standard, SectionId = 55555555-5555-5555-aaaa-000000000001)
+          [QA Kettlebell Swing — 3 prescribed sets × 15 reps @ 24 kg]
+        Section 2 "AMRAP 10 min" (AMRAP 600s, SectionId = 55555555-5555-5555-aaaa-000000000002)
+          [QA Kettlebell Swing — no prescribed sets (AMRAP accumulates rounds)]
+```
+
+### WorkoutLog shape
+
+```
+WorkoutLog (ExternalId = 55555555-5555-5555-4455-000000000001)
+  IsCompleted: true
+  ClientId: 55555555-5555-5555-5555-555555555555  (Client2UserId — ApplicationUser.Id)
+
+  Section "Standard work" (SectionId = 55555555-5555-5555-aaaa-000000000001)
+    QA Kettlebell Swing:
+      Set 1 — MODIFIED:      actual Reps=12 WeightKg=28 | planned Reps=15 WeightKg=24 → IsModified=true  → shows "upraveno"
+      Set 2 — AS-PRESCRIBED: actual Reps=15 WeightKg=24 | planned Reps=15 WeightKg=24 → IsModified=false → no badge
+      Set 3 — MODIFIED:      actual Reps=10 WeightKg=28 | planned Reps=15 WeightKg=24 → IsModified=true  → shows "upraveno"
+
+  Section "AMRAP 10 min" (SectionId = 55555555-5555-5555-aaaa-000000000002)
+    QA Kettlebell Swing:
+      Set 1 — no planned snapshot: actual Reps=15 WeightKg=24 | planned=null → IsModified=false → no "upraveno"
+```
+
+### What to verify on the coach-detail screen
+
+Log in as `qa.trainer2@fitnessplatform.test` and navigate to the client's workout log for this session. On the coach-detail planned-vs-actual view:
+
+- **Standard section**: Set 1 and Set 3 for "QA Kettlebell Swing" must show the "upraveno" indicator and display the actual values (`12 reps / 28 kg` and `10 reps / 28 kg`). Set 2 shows `15 reps / 24 kg` without an "upraveno" indicator.
+- **AMRAP section**: "QA Kettlebell Swing" shows `15 reps / 24 kg` with no "upraveno" indicator, even though the same exercise ID was edited in the Standard section — because section keying means each section is independent.
+
+### Curl recipe — fetch as Trainer 2
+
+```bash
+# Resolve the api URL for the current branch's stack
+API_URL=$(scripts/test-env ports | jq -r '.api_url')
+
+# Log in as qa.trainer2 and capture the access token
+ACCESS=$(curl -sk -X POST "$API_URL/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"qa.trainer2@fitnessplatform.test","password":"<QA_SEED_PASSWORD>"}' \
+  | jq -r '.accessToken')
+
+# Fetch the multi-section plan
+curl -sk -H "Authorization: Bearer $ACCESS" \
+  "$API_URL/training/plans/55555555-5555-5555-dddd-000000000001" | jq '.'
+```
+
+---
 
 ## CI
 

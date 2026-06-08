@@ -97,6 +97,41 @@ public static class QaSeedRunner
     /// </summary>
     public static readonly Guid QaMainPlanCompletedWorkoutLogId = new("11111111-1111-1111-4455-000000000001");
 
+    // -------------------------------------------------------------------------
+    // #474 — Multi-section fixture: second client/trainer pair with a session
+    // where the SAME exercise appears in both a Standard section AND an AMRAP
+    // section. Demonstrates section-keyed planned-vs-actual read path (coach-detail).
+    // -------------------------------------------------------------------------
+
+    // Second QA client/trainer pair — separate from the #457/#326 pair so the
+    // two planned-vs-actual scenarios are independently exercisable.
+    public static readonly Guid Client2UserId    = new("55555555-5555-5555-5555-555555555555");
+    public static readonly Guid Trainer2UserId   = new("66666666-6666-6666-6666-666666666666");
+    public static readonly Guid Client2ProfilePublicId  = new("55555555-5555-5555-aaaa-000000000001");
+    public static readonly Guid Trainer2ProfilePublicId = new("66666666-6666-6666-bbbb-000000000001");
+
+    public const string Client2Email  = "qa.client2@fitnessplatform.test";
+    public const string Trainer2Email = "qa.trainer2@fitnessplatform.test";
+
+    // Training plan for the multi-section fixture.
+    public static readonly Guid QaMultiSectionPlanExternalId = new("55555555-5555-5555-dddd-000000000001");
+
+    // Session in the multi-section plan.
+    public static readonly Guid QaMultiSectionSessionId = new("55555555-5555-5555-bbbb-000000000001");
+
+    // Standard section — edited reps/weights logged here.
+    public static readonly Guid MultiSectionStandardSectionId = new("55555555-5555-5555-aaaa-000000000001");
+
+    // AMRAP section — left at planned values (no edits).
+    public static readonly Guid MultiSectionAmrapSectionId = new("55555555-5555-5555-aaaa-000000000002");
+
+    // The SAME exercise appears in BOTH sections to prove section-keyed lookup
+    // returns independent values per section.
+    public static readonly Guid SharedExerciseId = new("55555555-5555-5555-cccc-000000000001");
+
+    // WorkoutLog for the completed multi-section session.
+    public static readonly Guid QaMultiSectionWorkoutLogId = new("55555555-5555-5555-4455-000000000001");
+
     // Section ID within the main-plan completed WorkoutLog (mirrors StandardSectionId).
     public static readonly Guid MainPlanCompletedSectionId = new("11111111-1111-1111-4455-000000000002");
 
@@ -149,6 +184,7 @@ public static class QaSeedRunner
     public const string ClientEmail   = "qa.client@fitnessplatform.test";
     public const string TrainerEmail  = "qa.trainer@fitnessplatform.test";
     public const string NutriEmail    = "qa.nutri@fitnessplatform.test";
+    // #474 second pair — separate accounts so multi-section fixture is independently exercisable.
 
     // Sourced from QA_SEED_PASSWORD via .env.test (gitignored). The harness
     // refuses to seed without it so a missing env file fails fast instead of
@@ -212,6 +248,10 @@ public static class QaSeedRunner
         await EnsureUserAsync(userManager, TrainerUserId, TrainerEmail, "QA",  "Trainer",  UserRole.Trainer,      logger);
         await EnsureUserAsync(userManager, NutriUserId,   NutriEmail,   "QA",  "Nutri",    UserRole.Nutritionist, logger);
 
+        // #474 — second pair for the multi-section fixture.
+        await EnsureUserAsync(userManager, Client2UserId,  Client2Email,  "QA",  "Client2",  UserRole.Client,  logger);
+        await EnsureUserAsync(userManager, Trainer2UserId, Trainer2Email, "QA",  "Trainer2", UserRole.Trainer, logger);
+
         // Profiles — each user requires a role-matching profile row so that
         // trainer endpoints (which look up ProfessionalProfile by UserId) and
         // client endpoints (which look up ClientProfile by UserId) work without
@@ -220,9 +260,17 @@ public static class QaSeedRunner
         var trainerProfile = await EnsureProfessionalProfileAsync(db, TrainerUserId, TrainerProfilePublicId, logger);
         var nutriProfile   = await EnsureProfessionalProfileAsync(db, NutriUserId,   NutriProfilePublicId,   logger);
 
+        // #474 — profiles for the second pair.
+        var client2Profile  = await EnsureClientProfileAsync(db, Client2UserId,  Client2ProfilePublicId,  logger);
+        var trainer2Profile = await EnsureProfessionalProfileAsync(db, Trainer2UserId, Trainer2ProfilePublicId, logger);
+
         // Trainer↔client link — without this the trainer dashboard returns an
         // empty client list and Playwright's getByText('QA Client') never resolves.
         await EnsureTrainerClientLinkAsync(db, trainerProfile, clientProfile, logger);
+
+        // #474 — trainer↔client link for the second pair (done regardless of kind
+        // so minimal mode also has two clean pairs with working auth).
+        await EnsureTrainerClientLinkAsync(db, trainer2Profile, client2Profile, logger);
 
         if (kind == SeedKind.Rich)
         {
@@ -234,6 +282,10 @@ public static class QaSeedRunner
 
             // Past-dated training plan — three sessions in distinct completion states for #326.
             await EnsurePastTrainingPlanAsync(mongo, clientProfile.PublicId, trainerProfile.PublicId, logger);
+
+            // #474 — Multi-section plan + completed WorkoutLog for section-keying coach-detail fixture.
+            await EnsureMultiSectionTrainingPlanAsync(mongo, client2Profile.PublicId, Trainer2UserId, logger);
+            await EnsureMultiSectionWorkoutLogAsync(mongo, logger);
 
             // Foods + Recipes + NutritionPlan.
             // NutriUserId (not nutriProfile.PublicId) — ownership guards in UploadFoodImageUrlEndpoint
@@ -253,8 +305,9 @@ public static class QaSeedRunner
             logger.LogInformation("QA seed kind=minimal — skipping training plan, foods, recipes, nutrition plan, and blobs.");
         }
 
-        logger.LogInformation("QA seed complete (kind={Kind}) — client={Client} trainer={Trainer} nutri={Nutri}",
-            kind, ClientEmail, TrainerEmail, NutriEmail);
+        logger.LogInformation(
+            "QA seed complete (kind={Kind}) — client={Client} trainer={Trainer} nutri={Nutri} client2={Client2} trainer2={Trainer2}",
+            kind, ClientEmail, TrainerEmail, NutriEmail, Client2Email, Trainer2Email);
     }
 
     private static async Task EnsureUserAsync(
@@ -1062,6 +1115,266 @@ public static class QaSeedRunner
             "completed={CompletedId} skipped={SkippedId} untouched={UntouchedId}",
             QaPastTrainingPlanExternalId, startDate,
             QaPastSessionCompletedId, QaPastSessionSkippedId, QaPastSessionUntouchedId);
+    }
+
+    /// <summary>
+    /// Seeds a training plan for the second QA client/trainer pair (#474).
+    ///
+    /// The plan has one Published week with one session.  That session contains
+    /// two sections that BOTH reference the same shared exercise
+    /// (<see cref="SharedExerciseId"/> = "QA Kettlebell Swing"):
+    ///
+    ///   Section 1 — Standard (null format) + 1 prescribed set for QA Kettlebell Swing.
+    ///   Section 2 — AMRAP 10 min + 1 prescribed set for QA Kettlebell Swing.
+    ///
+    /// This shape lets the coach-detail "planned-vs-actual" read path verify that
+    /// it correctly keys actual values by (SectionId, ExerciseExternalId) rather
+    /// than by ExerciseExternalId alone — a different section should return different
+    /// values even when the exercise is the same object.
+    ///
+    /// TrainerId = Trainer2UserId (ApplicationUser.Id) — same rule as all other plans.
+    /// ClientId  = client2ProfilePublicId (ClientProfile.PublicId) — same rule as all other plans.
+    /// </summary>
+    private static async Task EnsureMultiSectionTrainingPlanAsync(
+        IMongoContext mongo,
+        Guid client2ProfilePublicId,
+        Guid trainer2UserId,
+        ILogger logger)
+    {
+        var existing = await mongo.TrainingPlans
+            .Find(p => p.ExternalId == QaMultiSectionPlanExternalId)
+            .FirstOrDefaultAsync();
+
+        if (existing is not null)
+        {
+            logger.LogInformation(
+                "QA MultiSection TrainingPlan already present: externalId={ExternalId}", QaMultiSectionPlanExternalId);
+            return;
+        }
+
+        var now = DateTime.UtcNow;
+
+        var plan = new TrainingPlan
+        {
+            ExternalId    = QaMultiSectionPlanExternalId,
+            ClientId      = client2ProfilePublicId,
+            TrainerId     = trainer2UserId,
+            Name          = "QA Multi-Section Plan — shared-exercise section-keying fixture",
+            Status        = TrainingPlanStatus.Active,
+            DateCreated   = now,
+            DatePublished = now,
+            Version       = 1,
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber    = 1,
+                    Status        = WeekStatus.Published,
+                    DatePublished = now,
+                    Sessions =
+                    [
+                        new TrainingSession
+                        {
+                            SessionId = QaMultiSectionSessionId,
+                            DayOfWeek = 2, // Tuesday
+                            Name      = "QA Multi-Section Session",
+                            Order     = 1,
+                            Sections  =
+                            [
+                                // Section 1 — Standard: prescribed set for QA Kettlebell Swing.
+                                new TrainingSection
+                                {
+                                    SectionId    = MultiSectionStandardSectionId,
+                                    Order        = 0,
+                                    Name         = "Standard work",
+                                    Format       = null,
+                                    FormatConfig = null,
+                                    Exercises =
+                                    [
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = SharedExerciseId,
+                                            ExerciseName       = "QA Kettlebell Swing",
+                                            Order              = 1,
+                                            MovementType       = MovementType.Reps,
+                                            // Prescribed: 3 sets × 15 reps @ 24 kg.
+                                            Sets =
+                                            [
+                                                new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 15, WeightKg = 24m },
+                                                new ExerciseSet { SetNumber = 2, Type = SetType.Normal, Reps = 15, WeightKg = 24m },
+                                                new ExerciseSet { SetNumber = 3, Type = SetType.Normal, Reps = 15, WeightKg = 24m },
+                                            ],
+                                        },
+                                    ],
+                                },
+                                // Section 2 — AMRAP 10 min: same exercise but AMRAP context.
+                                // No prescribed sets (AMRAP format — reps accumulate per round).
+                                new TrainingSection
+                                {
+                                    SectionId    = MultiSectionAmrapSectionId,
+                                    Order        = 1,
+                                    Name         = "AMRAP 10 min",
+                                    Format       = WorkoutFormat.AMRAP,
+                                    FormatConfig = new WodConfig { TimeCapSeconds = 600 },
+                                    Exercises =
+                                    [
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = SharedExerciseId,
+                                            ExerciseName       = "QA Kettlebell Swing",
+                                            Order              = 1,
+                                            MovementType       = MovementType.Reps,
+                                            // AMRAP: no prescribed sets — client accumulates rounds.
+                                            Sets = [],
+                                        },
+                                    ],
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        };
+
+        await mongo.TrainingPlans.InsertOneAsync(plan);
+
+        logger.LogInformation(
+            "QA MultiSection TrainingPlan created: externalId={ExternalId} clientId={ClientId}",
+            QaMultiSectionPlanExternalId, client2ProfilePublicId);
+    }
+
+    /// <summary>
+    /// Seeds a completed WorkoutLog for the multi-section session (#474).
+    ///
+    /// Standard section — QA Kettlebell Swing with EDITED values (actual != planned):
+    ///   Set 1: actual Reps=12, WeightKg=28, planned Reps=15, WeightKg=24  → IsModified=true ("upraveno").
+    ///   Set 2: actual Reps=15, WeightKg=24, planned Reps=15, WeightKg=24  → IsModified=false (as-prescribed).
+    ///   Set 3: actual Reps=10, WeightKg=28, planned Reps=15, WeightKg=24  → IsModified=true ("upraveno").
+    ///
+    /// AMRAP section — QA Kettlebell Swing logged at planned values only (no modifications):
+    ///   Set 1: actual Reps=15, WeightKg=24, no planned snapshot           → no "upraveno".
+    ///
+    /// This data lets the coach-detail demonstrate:
+    ///   - Standard section: Set 1 and Set 3 show "upraveno"; Set 2 shows plain actual.
+    ///   - AMRAP section: shows only the AMRAP count with no "upraveno" badge.
+    ///
+    /// SectionId is set on each logged section so the section-keying read path works (#472).
+    /// </summary>
+    private static async Task EnsureMultiSectionWorkoutLogAsync(
+        IMongoContext mongo,
+        ILogger logger)
+    {
+        var existing = await mongo.WorkoutLogs
+            .Find(l => l.ExternalId == QaMultiSectionWorkoutLogId)
+            .FirstOrDefaultAsync();
+
+        if (existing is not null)
+        {
+            logger.LogInformation(
+                "QA MultiSection WorkoutLog already present: externalId={ExternalId}", QaMultiSectionWorkoutLogId);
+            return;
+        }
+
+        var completedAt = DateTime.UtcNow.Date.AddDays(-1).AddHours(14); // 14:00 UTC, yesterday.
+        var log = new WorkoutLog
+        {
+            ExternalId    = QaMultiSectionWorkoutLogId,
+            // ClientId = ApplicationUser.Id — same contract as all other WorkoutLogs.
+            ClientId      = Client2UserId,
+            PlanId        = QaMultiSectionPlanExternalId,
+            SessionId     = QaMultiSectionSessionId,
+            StartedAt     = completedAt.AddMinutes(-40),
+            CompletedAt   = completedAt,
+            CompletedDate = WorkoutLog.ToCompletionDateUtc(completedAt),
+            IsCompleted   = true,
+            DateCreated   = completedAt.AddMinutes(-40),
+            DateUpdated   = completedAt,
+            Sections =
+            [
+                // Standard section — edited reps/weights on Set 1 + Set 3; Set 2 as-prescribed.
+                new WorkoutSection
+                {
+                    SectionId = MultiSectionStandardSectionId,
+                    Order     = 0, // mirrors Standard section Order=0 in the plan
+                    Name      = "Standard work",
+                    Format    = null,
+                    Exercises =
+                    [
+                        new WorkoutExercise
+                        {
+                            ExerciseExternalId = SharedExerciseId,
+                            ExerciseName       = "QA Kettlebell Swing",
+                            Sets =
+                            [
+                                // MODIFIED — client used heavier KB for fewer reps.
+                                new WorkoutSet
+                                {
+                                    SetNumber       = 1,
+                                    Reps            = 12,
+                                    WeightKg        = 28m,
+                                    PlannedReps     = 15,
+                                    PlannedWeightKg = 24m,
+                                    CompletedAt     = completedAt.AddMinutes(-30),
+                                },
+                                // AS-PRESCRIBED — exactly as planned.
+                                new WorkoutSet
+                                {
+                                    SetNumber       = 2,
+                                    Reps            = 15,
+                                    WeightKg        = 24m,
+                                    PlannedReps     = 15,
+                                    PlannedWeightKg = 24m,
+                                    CompletedAt     = completedAt.AddMinutes(-20),
+                                },
+                                // MODIFIED — client again used heavier KB for fewer reps.
+                                new WorkoutSet
+                                {
+                                    SetNumber       = 3,
+                                    Reps            = 10,
+                                    WeightKg        = 28m,
+                                    PlannedReps     = 15,
+                                    PlannedWeightKg = 24m,
+                                    CompletedAt     = completedAt.AddMinutes(-10),
+                                },
+                            ],
+                        },
+                    ],
+                },
+                // AMRAP section — same exercise, logged at face value (no edits).
+                // No planned snapshot because AMRAP sections don't carry prescribed sets.
+                new WorkoutSection
+                {
+                    SectionId = MultiSectionAmrapSectionId,
+                    Order     = 1, // mirrors AMRAP section Order=1 in the plan
+                    Name      = "AMRAP 10 min",
+                    Format    = WorkoutFormat.AMRAP,
+                    Exercises =
+                    [
+                        new WorkoutExercise
+                        {
+                            ExerciseExternalId = SharedExerciseId,
+                            ExerciseName       = "QA Kettlebell Swing",
+                            Sets =
+                            [
+                                // No planned snapshot — AMRAP accumulates rounds, not prescribed sets.
+                                new WorkoutSet
+                                {
+                                    SetNumber   = 1,
+                                    Reps        = 15,
+                                    WeightKg    = 24m,
+                                    CompletedAt = completedAt.AddMinutes(-5),
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        };
+
+        await mongo.WorkoutLogs.InsertOneAsync(log);
+        logger.LogInformation(
+            "QA MultiSection WorkoutLog created: externalId={ExternalId} planId={PlanId} sessionId={SessionId}",
+            QaMultiSectionWorkoutLogId, QaMultiSectionPlanExternalId, QaMultiSectionSessionId);
     }
 
     private static async Task EnsureFoodsAsync(

@@ -296,8 +296,11 @@ public class QaSeedRunnerTests : IAsyncLifetime
             .Should().Be(1);
         (await db.Users.CountAsync(u => u.Email == QaSeedRunner.NutriEmail, ct))
             .Should().Be(1);
+        // Both trainer↔client links are seeded outside the Rich guard (so both
+        // pairs are available for auth in any seed mode). Minimal mode creates
+        // both links but no plans/foods/blobs.
         (await db.ClientProfessionalLinks.CountAsync(ct))
-            .Should().Be(1, "trainer↔client link is part of the minimal fixture");
+            .Should().Be(2, "both trainer↔client links are part of the minimal fixture (#474 adds a second pair)");
 
         // Rich fixtures must be absent.
         (await mongo.TrainingPlans.CountDocumentsAsync(
@@ -308,6 +311,10 @@ public class QaSeedRunnerTests : IAsyncLifetime
             Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, QaSeedRunner.QaPastTrainingPlanExternalId),
             cancellationToken: ct))
             .Should().Be(0, "minimal seed skips the past training plan (#326)");
+        (await mongo.TrainingPlans.CountDocumentsAsync(
+            Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, QaSeedRunner.QaMultiSectionPlanExternalId),
+            cancellationToken: ct))
+            .Should().Be(0, "minimal seed skips the multi-section training plan (#474)");
         (await mongo.WorkoutLogs.CountDocumentsAsync(
             Builders<WorkoutLog>.Filter.Empty,
             cancellationToken: ct))
@@ -685,5 +692,136 @@ public class QaSeedRunnerTests : IAsyncLifetime
             cancellationToken: ct);
 
         count.Should().Be(1, "main-plan WorkoutLog must not be duplicated on re-seed");
+    }
+
+    /// <summary>
+    /// The multi-section fixture (#474) must seed:
+    ///  - A TrainingPlan for the second QA client/trainer pair with one session
+    ///    whose two sections BOTH reference the same shared exercise (SharedExerciseId).
+    ///  - A completed WorkoutLog with SectionId set on both sections so the
+    ///    section-keying read path works. The Standard section contains edited
+    ///    values (Set 1 and Set 3: IsModified=true). The AMRAP section contains
+    ///    a plain logged set with no planned snapshot (IsModified=false).
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_MultiSectionFixture_HasSharedExerciseInBothSectionsWithCorrectValues()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        // Plan must exist and be owned by the second pair.
+        var plan = await mongo.TrainingPlans
+            .Find(p => p.ExternalId == QaSeedRunner.QaMultiSectionPlanExternalId)
+            .FirstOrDefaultAsync(ct);
+
+        plan.Should().NotBeNull("multi-section training plan must be seeded");
+        plan!.TrainerId.Should().Be(QaSeedRunner.Trainer2UserId,
+            "TrainingPlan.TrainerId must be Trainer2UserId (ApplicationUser.Id)");
+        plan.ClientId.Should().Be(QaSeedRunner.Client2ProfilePublicId,
+            "TrainingPlan.ClientId must be Client2ProfilePublicId (ClientProfile.PublicId)");
+
+        var session = plan.Weeks[0].Sessions.Single(s => s.SessionId == QaSeedRunner.QaMultiSectionSessionId);
+        session.Sections.Should().HaveCount(2, "session has Standard + AMRAP sections");
+
+        var standardSection = session.Sections.Single(s => s.SectionId == QaSeedRunner.MultiSectionStandardSectionId);
+        standardSection.Format.Should().BeNull("Standard section has null format");
+        standardSection.Exercises.Should().HaveCount(1);
+        standardSection.Exercises[0].ExerciseExternalId.Should().Be(QaSeedRunner.SharedExerciseId);
+        standardSection.Exercises[0].Sets.Should().HaveCount(3, "Standard section has 3 prescribed sets");
+
+        var amrapSection = session.Sections.Single(s => s.SectionId == QaSeedRunner.MultiSectionAmrapSectionId);
+        amrapSection.Format.Should().Be(FitnessPlatform.Application.Domain.Enums.WorkoutFormat.AMRAP);
+        amrapSection.Exercises.Should().HaveCount(1);
+        amrapSection.Exercises[0].ExerciseExternalId.Should().Be(QaSeedRunner.SharedExerciseId,
+            "AMRAP section references the SAME exercise as the Standard section");
+        amrapSection.Exercises[0].Sets.Should().BeEmpty("AMRAP section carries no prescribed sets");
+
+        // WorkoutLog must exist with SectionId populated on both sections.
+        var log = await mongo.WorkoutLogs
+            .Find(l => l.ExternalId == QaSeedRunner.QaMultiSectionWorkoutLogId)
+            .FirstOrDefaultAsync(ct);
+
+        log.Should().NotBeNull("multi-section WorkoutLog must be seeded");
+        log!.IsCompleted.Should().BeTrue("log is marked complete");
+        log.PlanId.Should().Be(QaSeedRunner.QaMultiSectionPlanExternalId);
+        log.SessionId.Should().Be(QaSeedRunner.QaMultiSectionSessionId);
+        log.ClientId.Should().Be(QaSeedRunner.Client2UserId,
+            "WorkoutLog.ClientId must be ApplicationUser.Id (Client2UserId)");
+        log.CompletedDate.Should().NotBeNull("CompletedDate is required for the partial unique index");
+        log.Sections.Should().HaveCount(2, "log captures both Standard and AMRAP sections");
+
+        // Standard section in the log — SectionId must match the plan section.
+        var logStandard = log.Sections.Single(s => s.SectionId == QaSeedRunner.MultiSectionStandardSectionId);
+        logStandard.Exercises.Should().HaveCount(1);
+        var logStandardExercise = logStandard.Exercises[0];
+        logStandardExercise.ExerciseExternalId.Should().Be(QaSeedRunner.SharedExerciseId);
+        logStandardExercise.Sets.Should().HaveCount(3);
+
+        // Set 1: MODIFIED (actual Reps=12 != planned 15, actual WeightKg=28 != planned 24).
+        var set1 = logStandardExercise.Sets.Single(s => s.SetNumber == 1);
+        set1.Reps.Should().Be(12);
+        set1.WeightKg.Should().Be(28m);
+        set1.PlannedReps.Should().Be(15);
+        set1.PlannedWeightKg.Should().Be(24m);
+        set1.IsModified.Should().BeTrue("Set 1 actual != planned → MODIFIED (shows 'upraveno' on coach-detail)");
+
+        // Set 2: AS-PRESCRIBED (actual matches planned).
+        var set2 = logStandardExercise.Sets.Single(s => s.SetNumber == 2);
+        set2.Reps.Should().Be(15);
+        set2.WeightKg.Should().Be(24m);
+        set2.PlannedReps.Should().Be(15);
+        set2.PlannedWeightKg.Should().Be(24m);
+        set2.IsModified.Should().BeFalse("Set 2 actual == planned → AS-PRESCRIBED (no 'upraveno' badge)");
+
+        // Set 3: MODIFIED.
+        var set3 = logStandardExercise.Sets.Single(s => s.SetNumber == 3);
+        set3.Reps.Should().Be(10);
+        set3.WeightKg.Should().Be(28m);
+        set3.IsModified.Should().BeTrue("Set 3 actual != planned → MODIFIED");
+
+        // AMRAP section in the log — SectionId must match the plan AMRAP section.
+        var logAmrap = log.Sections.Single(s => s.SectionId == QaSeedRunner.MultiSectionAmrapSectionId);
+        logAmrap.Format.Should().Be(FitnessPlatform.Application.Domain.Enums.WorkoutFormat.AMRAP);
+        logAmrap.Exercises.Should().HaveCount(1);
+        var logAmrapExercise = logAmrap.Exercises[0];
+        logAmrapExercise.ExerciseExternalId.Should().Be(QaSeedRunner.SharedExerciseId,
+            "AMRAP section references the SAME exercise but is keyed by a different SectionId");
+        logAmrapExercise.Sets.Should().HaveCount(1);
+
+        var amrapSet = logAmrapExercise.Sets[0];
+        amrapSet.Reps.Should().Be(15);
+        amrapSet.WeightKg.Should().Be(24m);
+        amrapSet.PlannedReps.Should().BeNull("AMRAP set has no planned snapshot");
+        amrapSet.PlannedWeightKg.Should().BeNull("AMRAP set has no planned snapshot");
+        amrapSet.IsModified.Should().BeFalse("AMRAP set without planned snapshot → IsModified=false (no 'upraveno')");
+    }
+
+    /// <summary>
+    /// Seeding twice must not create duplicate multi-section plan or WorkoutLog documents.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_MultiSectionFixture_IsIdempotent()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var planCount = await mongo.TrainingPlans.CountDocumentsAsync(
+            Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, QaSeedRunner.QaMultiSectionPlanExternalId),
+            cancellationToken: ct);
+        planCount.Should().Be(1, "multi-section plan must not be duplicated on re-seed");
+
+        var logCount = await mongo.WorkoutLogs.CountDocumentsAsync(
+            Builders<WorkoutLog>.Filter.Eq(l => l.ExternalId, QaSeedRunner.QaMultiSectionWorkoutLogId),
+            cancellationToken: ct);
+        logCount.Should().Be(1, "multi-section WorkoutLog must not be duplicated on re-seed");
     }
 }
