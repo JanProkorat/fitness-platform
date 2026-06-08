@@ -1700,6 +1700,7 @@
         "thisWeek_other": "{{count}}× diese Woche",
         "prThisMonth_one": "{{count}} PB diesen Monat",
         "prThisMonth_other": "{{count}} PBs diesen Monat",
+        "topPr": "🏆 Top PB: {{name}} — {{kg}} kg × {{reps}} Whd.",
         "openTraining": "Trainingsplan öffnen"
       },
       "progress": {

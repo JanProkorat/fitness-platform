@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import type { TrainingPlanSummary } from '@/api/training-plan-types';
+import type { TopPrRecord } from '@/components/domain/RecentActivity/useRecentActivityAggregates';
 
 interface ActiveTrainingPlanCardProps {
   plan: TrainingPlanSummary;
@@ -10,6 +11,8 @@ interface ActiveTrainingPlanCardProps {
   trainingFrequencyPrescribed?: number | null;
   /** Number of PRs achieved this month. */
   prCountThisMonth?: number;
+  /** Top personal record this month derived from the client timeline. */
+  topPr?: TopPrRecord | null;
   onHistoryClick: () => void;
 }
 
@@ -24,6 +27,7 @@ export function ActiveTrainingPlanCard({
   trainingFrequencyActual,
   trainingFrequencyPrescribed,
   prCountThisMonth,
+  topPr,
   onHistoryClick,
 }: ActiveTrainingPlanCardProps) {
   const { t } = useTranslation();
@@ -74,8 +78,17 @@ export function ActiveTrainingPlanCard({
 
       {/* PR count + top PR */}
       {prCountThisMonth != null && (
-        <div className="text-[16px] font-bold text-accent tracking-[-0.01em] mb-2.5">
+        <div className="text-[16px] font-bold text-accent tracking-[-0.01em] mb-1">
           {t('clientDetail.prehled.trainingCard.prThisMonth', { count: prCountThisMonth })}
+        </div>
+      )}
+      {topPr && (
+        <div className="text-[12px] text-text2 mb-2.5">
+          {t('clientDetail.prehled.trainingCard.topPr', {
+            name: topPr.exerciseName,
+            kg: topPr.weightKg,
+            reps: topPr.reps,
+          })}
         </div>
       )}
 

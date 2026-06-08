@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import type { PlanSummary, GlobalNutritionSettings } from '@/api/plan-types';
 
 interface ActiveNutritionPlanCardProps {
-  plan: PlanSummary & { globalSettings?: GlobalNutritionSettings | null };
+  plan: PlanSummary;
+  /** Macro targets from the plan detail. PlanSummary does not carry globalSettings. */
+  globalSettings?: GlobalNutritionSettings | null;
   targetWeightKg?: number | null;
   goalLabel?: string | null;
   compliancePercent?: number | null;
@@ -18,6 +20,7 @@ function formatDate(iso: string | null | undefined): string {
 
 export function ActiveNutritionPlanCard({
   plan,
+  globalSettings,
   targetWeightKg,
   goalLabel,
   compliancePercent,
@@ -26,7 +29,7 @@ export function ActiveNutritionPlanCard({
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  const gs = plan.globalSettings;
+  const gs = globalSettings;
   const periodStart = formatDate(plan.startDate);
   const periodEnd = formatDate(plan.dateCompleted);
   const period = periodStart && periodEnd

@@ -1728,6 +1728,7 @@
         "prThisMonth_few": "{{count}} PR tento měsíc",
         "prThisMonth_many": "{{count}} PR tento měsíc",
         "prThisMonth_other": "{{count}} PR tento měsíc",
+        "topPr": "🏆 Top PR: {{name}} — {{kg}} kg × {{reps}} opak.",
         "openTraining": "Otevřít tréninkový plán"
       },
       "progress": {

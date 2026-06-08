@@ -1701,6 +1701,7 @@
         "thisWeek_other": "{{count}}× this week",
         "prThisMonth_one": "{{count}} PR this month",
         "prThisMonth_other": "{{count}} PRs this month",
+        "topPr": "🏆 Top PR: {{name}} — {{kg}} kg × {{reps}} reps",
         "openTraining": "Open training plan"
       },
       "progress": {

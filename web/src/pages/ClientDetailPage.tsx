@@ -5,8 +5,10 @@ import { useTranslation } from 'react-i18next';
 
 import { getClientDashboard } from '@/api/nutrition-goals';
 import { getClientVerdict } from '@/api/client-verdict';
-import { getPlans } from '@/api/plans';
+import { getPlans, getPlan } from '@/api/plans';
 import { getTrainingPlans } from '@/api/training-plans';
+import { getClientTimeline } from '@/api/timeline';
+import { useRecentActivityAggregates } from '@/components/domain/RecentActivity/useRecentActivityAggregates';
 
 import { Button, Dialog, Input } from '@/components/ui';
 import { IdentityStrip } from '@/components/clients/IdentityStrip';
@@ -92,11 +94,28 @@ export default function ClientDetailPage() {
     return age;
   }, [client?.dateOfBirth]);
 
-  const activeNutritionPlan: (PlanSummary & { globalSettings?: null }) | null =
+  const activeNutritionPlanSummary: PlanSummary | null =
     nutritionPlans?.plans?.[0] ?? null;
 
   const activeTrainingPlan: TrainingPlanSummary | null =
     trainingPlans?.plans?.[0] ?? null;
+
+  // Fetch the active nutrition plan detail to get globalSettings (macros).
+  // PlanSummary does not carry globalSettings — the detail does.
+  const { data: activeNutritionPlanDetail } = useQuery({
+    queryKey: ['plan', activeNutritionPlanSummary?.planId],
+    queryFn: () => getPlan(activeNutritionPlanSummary!.planId),
+    enabled: !!activeNutritionPlanSummary?.planId,
+  });
+
+  // Fetch the client timeline so we can derive the top PR for the training card.
+  const { data: timelineData } = useQuery({
+    queryKey: ['client-timeline', id],
+    queryFn: () => getClientTimeline(id!, 50),
+    enabled: !!id && client?.hasRegistered === true,
+  });
+
+  const { topPr } = useRecentActivityAggregates(timelineData?.items ?? []);
 
   const startWeight = client?.weightKg ?? null;
   const currentWeight = client?.latestMeasurement?.weightKg ?? startWeight;
@@ -186,9 +205,10 @@ export default function ClientDetailPage() {
 
               {/* Active plan cards (nutrition + training side by side) */}
               <div className="grid grid-cols-2 gap-3.5 mb-4">
-                {activeNutritionPlan ? (
+                {activeNutritionPlanSummary ? (
                   <ActiveNutritionPlanCard
-                    plan={activeNutritionPlan}
+                    plan={activeNutritionPlanSummary}
+                    globalSettings={activeNutritionPlanDetail?.globalSettings}
                     targetWeightKg={ob?.targetWeightKg}
                     goalLabel={ob?.derivedNutritionGoal ?? ob?.primaryGoal}
                     compliancePercent={client.compliancePercent}
@@ -207,6 +227,7 @@ export default function ClientDetailPage() {
                     trainingFrequencyActual={verdict?.trainingFrequencyActual}
                     trainingFrequencyPrescribed={verdict?.trainingFrequencyPrescribed}
                     prCountThisMonth={verdict?.prCountThisMonth}
+                    topPr={topPr}
                     onHistoryClick={() => setActiveTab('plany')}
                   />
                 ) : (
@@ -228,10 +249,11 @@ export default function ClientDetailPage() {
             </div>
           )}
 
-          {/* ── PLACEHOLDER PANES ── (wave-3 children fill these) */}
+          {/* ── PLACEHOLDER PANES ── (wave-3 children fill these)
+              NOTE: id="cl-pane-<id>" lives on each placeholder component's root div,
+              not on this wrapper, to avoid duplicate DOM ids. */}
           {activeTab === 'mereni' && (
             <div
-              id="cl-pane-mereni"
               role="tabpanel"
               aria-labelledby="cl-tab-mereni"
               className="tab-content-transition"
@@ -242,7 +264,6 @@ export default function ClientDetailPage() {
 
           {activeTab === 'fotky' && (
             <div
-              id="cl-pane-fotky"
               role="tabpanel"
               aria-labelledby="cl-tab-fotky"
               className="tab-content-transition"
@@ -253,7 +274,6 @@ export default function ClientDetailPage() {
 
           {activeTab === 'aktivita' && (
             <div
-              id="cl-pane-aktivita"
               role="tabpanel"
               aria-labelledby="cl-tab-aktivita"
               className="tab-content-transition"
@@ -264,7 +284,6 @@ export default function ClientDetailPage() {
 
           {activeTab === 'plany' && (
             <div
-              id="cl-pane-plany"
               role="tabpanel"
               aria-labelledby="cl-tab-plany"
               className="tab-content-transition"
@@ -275,7 +294,6 @@ export default function ClientDetailPage() {
 
           {activeTab === 'checkiny' && (
             <div
-              id="cl-pane-checkiny"
               role="tabpanel"
               aria-labelledby="cl-tab-checkiny"
               className="tab-content-transition"
@@ -286,7 +304,6 @@ export default function ClientDetailPage() {
 
           {activeTab === 'dotazniky' && (
             <div
-              id="cl-pane-dotazniky"
               role="tabpanel"
               aria-labelledby="cl-tab-dotazniky"
               className="tab-content-transition"
@@ -297,7 +314,6 @@ export default function ClientDetailPage() {
 
           {activeTab === 'poznamky' && (
             <div
-              id="cl-pane-poznamky"
               role="tabpanel"
               aria-labelledby="cl-tab-poznamky"
               className="tab-content-transition"
