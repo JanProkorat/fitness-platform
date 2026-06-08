@@ -42,6 +42,19 @@ public class TrainingProgressUpdatedEvent
     public bool SessionComplete { get; set; }
 
     /// <summary>
+    /// The specific section that was mutated, when the event originates from a
+    /// <c>MarkSectionComplete</c> / <c>MarkSectionIncomplete</c> call.
+    /// Null for exercise-level or whole-session mutations.
+    /// </summary>
+    public Guid? SectionId { get; set; }
+
+    /// <summary>
+    /// Whether the section identified by <see cref="SectionId"/> is now fully complete.
+    /// Meaningful only when <see cref="SectionId"/> is non-null; always false otherwise.
+    /// </summary>
+    public bool SectionComplete { get; set; }
+
+    /// <summary>
     /// Combined compliance percentage for the client today (training + nutrition weighted).
     /// </summary>
     public decimal NewCompliancePercent { get; set; }

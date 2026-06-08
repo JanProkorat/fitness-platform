@@ -168,7 +168,8 @@ public class MarkSectionCompleteEndpoint(
                 notifier, compliance, mongo, plan, clientId,
                 req.SessionId, DateOnly.FromDateTime(targetDate),
                 existing.CompletedExerciseIds.Count, totalExercises,
-                logger, ct);
+                logger, ct,
+                sectionId: req.SectionId, sectionComplete: true);
 
             await Send.OkAsync(BuildResponse(req.SessionId, req.SectionId, targetDate, existing, totalExercises), ct);
         }
@@ -237,7 +238,8 @@ public class MarkSectionCompleteEndpoint(
                 notifier, compliance, mongo, plan, clientId,
                 req.SessionId, DateOnly.FromDateTime(targetDate),
                 completion.CompletedExerciseIds.Count, totalExercises,
-                logger, ct);
+                logger, ct,
+                sectionId: req.SectionId, sectionComplete: true);
 
             await Send.OkAsync(BuildResponse(req.SessionId, req.SectionId, targetDate, completion, totalExercises), ct);
         }

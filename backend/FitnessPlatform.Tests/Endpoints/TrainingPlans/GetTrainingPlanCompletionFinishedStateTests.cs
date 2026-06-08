@@ -295,6 +295,230 @@ public class GetTrainingPlanCompletionFinishedStateTests
         response!.SessionExecutions.Should().BeEmpty();
     }
 
+    // ── FinishedSections projection tests (issue #465) ────────────────────────────
+
+    private readonly Guid _sectionAId = Guid.NewGuid();
+    private readonly Guid _sectionBId = Guid.NewGuid();
+    private readonly Guid _exerciseAId = Guid.NewGuid();
+    private readonly Guid _exerciseBId = Guid.NewGuid();
+
+    /// <summary>
+    /// Builds a plan with two sections, each containing one exercise.
+    /// </summary>
+    private TrainingPlan BuildTwoSectionPlan()
+    {
+        return new TrainingPlan
+        {
+            ExternalId = _planId,
+            ClientId = _clientId,
+            TrainerId = _trainerId,
+            Name = "Two-Section Plan",
+            Status = TrainingPlanStatus.Active,
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    Sessions =
+                    [
+                        new TrainingSession
+                        {
+                            SessionId = _sessionId,
+                            Name = "Session 1",
+                            DayOfWeek = 1,
+                            Sections =
+                            [
+                                new TrainingSection
+                                {
+                                    SectionId = _sectionAId,
+                                    Order = 0,
+                                    Name = "Section A",
+                                    Exercises =
+                                    [
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = _exerciseAId,
+                                            ExerciseName = "Squat",
+                                            Order = 0,
+                                            Sets = [new ExerciseSet { SetNumber = 1, Reps = 10 }]
+                                        }
+                                    ]
+                                },
+                                new TrainingSection
+                                {
+                                    SectionId = _sectionBId,
+                                    Order = 1,
+                                    Name = "Section B",
+                                    Exercises =
+                                    [
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = _exerciseBId,
+                                            ExerciseName = "Press",
+                                            Order = 0,
+                                            Sets = [new ExerciseSet { SetNumber = 1, Reps = 8 }]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            Version = 1,
+            DateCreated = _now
+        };
+    }
+
+    /// <summary>
+    /// When a TrainingCompletion records both sections as complete, both sections must appear
+    /// in FinishedSections with IsFinished=true.
+    /// </summary>
+    [Fact]
+    public async Task FinishedSections_FullyCompleteCompletion_AllSectionsReportedFinished()
+    {
+        var plan = BuildTwoSectionPlan();
+
+        var completion = new TrainingCompletion
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = _clientId,
+            Date = _now.Date,
+            SessionId = _sessionId,
+            CompletedExerciseIds = [_exerciseAId, _exerciseBId],
+            CompletedExerciseIdsBySection = new Dictionary<string, List<Guid>>
+            {
+                [_sectionAId.ToString()] = [_exerciseAId],
+                [_sectionBId.ToString()] = [_exerciseBId]
+            },
+            Version = 1,
+            DateCreated = _now
+        };
+
+        var response = await ExecuteAsync(plan, logs: [], completions: [completion]);
+
+        response.Should().NotBeNull();
+        var exec = response!.SessionExecutions.FirstOrDefault(e => e.SessionId == _sessionId);
+        exec.Should().NotBeNull("a session entry must be present when completion data exists");
+        exec!.FinishedSections.Should().HaveCount(2,
+            "both sections are complete so both must appear in FinishedSections");
+        exec.FinishedSections.Should().Contain(s => s.SectionId == _sectionAId && s.IsFinished);
+        exec.FinishedSections.Should().Contain(s => s.SectionId == _sectionBId && s.IsFinished);
+    }
+
+    /// <summary>
+    /// A completed WorkoutLog (IsCompleted=true) implies session-level completion — all sections
+    /// in the session must appear as finished in FinishedSections.
+    /// </summary>
+    [Fact]
+    public async Task FinishedSections_CompletedWorkoutLog_AllSectionsReportedFinished()
+    {
+        var plan = BuildTwoSectionPlan();
+
+        var log = new WorkoutLog
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = Guid.NewGuid(),
+            PlanId = _planId,
+            SessionId = _sessionId,
+            StartedAt = _now.AddMinutes(-30),
+            IsCompleted = true,
+            CompletedAt = _now,
+            Sections =
+            [
+                new WorkoutSection
+                {
+                    SectionId = _sectionAId, Order = 0, Name = "Section A",
+                    Exercises = [new WorkoutExercise
+                    {
+                        ExerciseExternalId = _exerciseAId, ExerciseName = "Squat",
+                        Sets = [new WorkoutSet { SetNumber = 1, CompletedAt = _now.AddMinutes(-20) }]
+                    }]
+                },
+                new WorkoutSection
+                {
+                    SectionId = _sectionBId, Order = 1, Name = "Section B",
+                    Exercises = [new WorkoutExercise
+                    {
+                        ExerciseExternalId = _exerciseBId, ExerciseName = "Press",
+                        Sets = [new WorkoutSet { SetNumber = 1, CompletedAt = _now.AddMinutes(-10) }]
+                    }]
+                }
+            ],
+            DateCreated = _now.AddMinutes(-35)
+        };
+
+        var response = await ExecuteAsync(plan, logs: [log], completions: []);
+
+        response.Should().NotBeNull();
+        var exec = response!.SessionExecutions.FirstOrDefault(e => e.SessionId == _sessionId);
+        exec.Should().NotBeNull();
+        exec!.IsSessionFinished.Should().BeTrue();
+        exec.FinishedSections.Should().HaveCount(2,
+            "a completed WorkoutLog implies all sections are done");
+        exec.FinishedSections.Should().Contain(s => s.SectionId == _sectionAId && s.IsFinished);
+        exec.FinishedSections.Should().Contain(s => s.SectionId == _sectionBId && s.IsFinished);
+    }
+
+    /// <summary>
+    /// When only section A is finished (TrainingCompletion records only section A's exercise),
+    /// only section A must appear in FinishedSections — section B must NOT.
+    /// This is the key MIXED-STATE case from issue #465.
+    /// </summary>
+    [Fact]
+    public async Task FinishedSections_PartialCompletion_OnlyFinishedSectionReported()
+    {
+        var plan = BuildTwoSectionPlan();
+
+        // Only section A's exercise is completed — section B is not done.
+        var completion = new TrainingCompletion
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = _clientId,
+            Date = _now.Date,
+            SessionId = _sessionId,
+            CompletedExerciseIds = [_exerciseAId],
+            CompletedExerciseIdsBySection = new Dictionary<string, List<Guid>>
+            {
+                [_sectionAId.ToString()] = [_exerciseAId]
+            },
+            Version = 1,
+            DateCreated = _now
+        };
+
+        var response = await ExecuteAsync(plan, logs: [], completions: [completion]);
+
+        response.Should().NotBeNull();
+        var exec = response!.SessionExecutions.FirstOrDefault(e => e.SessionId == _sessionId);
+        exec.Should().NotBeNull();
+        exec!.FinishedSections.Should().HaveCount(1,
+            "only the finished section must appear — not the unfinished one");
+        exec.FinishedSections.Should().Contain(s => s.SectionId == _sectionAId && s.IsFinished);
+        exec.FinishedSections.Should().NotContain(s => s.SectionId == _sectionBId,
+            "section B is not finished so it must not appear in FinishedSections");
+    }
+
+    /// <summary>
+    /// When there is no completion data at all, FinishedSections must be empty.
+    /// </summary>
+    [Fact]
+    public async Task FinishedSections_NoCompletion_IsEmpty()
+    {
+        var plan = BuildTwoSectionPlan();
+
+        var response = await ExecuteAsync(plan, logs: [], completions: []);
+
+        response.Should().NotBeNull();
+        // Either no entry at all, or an entry with empty FinishedSections.
+        var exec = response!.SessionExecutions.FirstOrDefault(e => e.SessionId == _sessionId);
+        if (exec is not null)
+        {
+            exec.FinishedSections.Should().BeEmpty(
+                "no completion data means FinishedSections must be empty");
+        }
+    }
+
     /// <summary>
     /// Regression test for Defect 2: a session with zero sections must never be treated as
     /// vacuously complete — <c>Enumerable.All()</c> over an empty collection returns <c>true</c>,

@@ -239,6 +239,12 @@ public static class ErrorCodes
     /// <summary>The session already has a completed workout log; cannot finish again.</summary>
     public const string SessionAlreadyCompleted = "SESSION_ALREADY_COMPLETED";
 
+    /// <summary>
+    /// Attempt to edit a training plan section whose content has already been completed
+    /// by the client (via a finished WorkoutLog or a TrainingCompletion record).
+    /// </summary>
+    public const string SectionAlreadyCompleted = "SECTION_ALREADY_COMPLETED";
+
     /// <summary>completedAt is in the future; backdating to the future is not allowed.</summary>
     public const string CompletedAtInFuture = "COMPLETED_AT_IN_FUTURE";
 

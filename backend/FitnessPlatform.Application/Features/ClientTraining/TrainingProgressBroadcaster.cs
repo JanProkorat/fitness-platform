@@ -37,6 +37,15 @@ internal static class TrainingProgressBroadcaster
     /// <param name="totalExerciseCount">Total exercises in the session.</param>
     /// <param name="logger">Logger for swallowing broadcast errors.</param>
     /// <param name="ct">Cancellation token.</param>
+    /// <param name="sectionId">
+    /// When the mutation originated from a <c>MarkSectionComplete</c> /
+    /// <c>MarkSectionIncomplete</c> call, the specific section that was mutated.
+    /// Null for exercise-level or whole-session mutations.
+    /// </param>
+    /// <param name="sectionComplete">
+    /// Whether the section identified by <paramref name="sectionId"/> is now fully complete.
+    /// Meaningful only when <paramref name="sectionId"/> is non-null.
+    /// </param>
     internal static async Task BroadcastSessionAsync(
         IRealtimeNotifier notifier,
         IComplianceService compliance,
@@ -48,7 +57,9 @@ internal static class TrainingProgressBroadcaster
         int completedExerciseCount,
         int totalExerciseCount,
         ILogger logger,
-        CancellationToken ct)
+        CancellationToken ct,
+        Guid? sectionId = null,
+        bool sectionComplete = false)
     {
         var trainerId = plan.TrainerId;
         if (trainerId == Guid.Empty)
@@ -67,6 +78,8 @@ internal static class TrainingProgressBroadcaster
                 CompletedExerciseCount = completedExerciseCount,
                 TotalExerciseCount = totalExerciseCount,
                 SessionComplete = completedExerciseCount >= totalExerciseCount,
+                SectionId = sectionId,
+                SectionComplete = sectionId.HasValue && sectionComplete,
                 NewCompliancePercent = compliancePercent,
                 NewStreak = streak,
                 SessionsCompletedToday = sessionsCompleted,
