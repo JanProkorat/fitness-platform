@@ -151,7 +151,10 @@ public class GoogleSocialLoginEndpoint(
         // 3. Check if the account is active.
         if (!user.IsActive)
         {
-            this.ThrowErrorWithCode(ErrorCodes.AccountDeactivated, "Account is deactivated.");
+            await this.SendProblemAsync(StatusCodes.Status403Forbidden,
+                ErrorCodes.AccountDeactivated,
+                "Account is deactivated.",
+                ct);
             return;
         }
 

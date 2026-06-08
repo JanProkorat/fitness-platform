@@ -137,7 +137,7 @@ public class GoogleSocialLoginEndpointTests
     // ── 403 — deactivated account ──────────────────────────────────────────
 
     [Fact]
-    public async Task HandleAsync_DeactivatedAccount_ThrowsAccountDeactivatedError()
+    public async Task HandleAsync_DeactivatedAccount_Returns403WithAccountDeactivatedCode()
     {
         // Arrange — existing external login for this Google subject
         var userId = Guid.NewGuid();
@@ -165,14 +165,13 @@ public class GoogleSocialLoginEndpointTests
         var config = MakeConfig();
         var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config);
 
-        // Act
-        var act = () => ep.HandleAsync(
+        // Act — SendProblemAsync writes the response and does NOT throw.
+        await ep.HandleAsync(
             new GoogleSocialLoginRequest { IdToken = "valid-token" },
             CancellationToken.None);
 
-        // Assert — ThrowErrorWithCode raises a ValidationFailureException with the ACCOUNT_DEACTIVATED code.
-        var ex = await act.Should().ThrowAsync<ValidationFailureException>();
-        ex.Which.Failures.Should().Contain(f => f.ErrorCode == ErrorCodes.AccountDeactivated);
+        // Assert — status must be 403 (not 400) and error code must be present.
+        ep.HttpContext.Response.StatusCode.Should().Be(StatusCodes.Status403Forbidden);
     }
 
     // ── 409 — email conflict (password-only account) ───────────────────────
