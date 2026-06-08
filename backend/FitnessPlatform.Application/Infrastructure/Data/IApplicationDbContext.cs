@@ -141,6 +141,11 @@ public interface IApplicationDbContext
     DbSet<PhotoDiaryReminderLog> PhotoDiaryReminderLogs { get; set; }
 
     /// <summary>
+    /// External OAuth provider logins linked to application users.
+    /// </summary>
+    DbSet<UserExternalLogin> UserExternalLogins { get; set; }
+
+    /// <summary>
     /// Saves all changes made in this context to the database.
     /// </summary>
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

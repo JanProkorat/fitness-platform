@@ -135,6 +135,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     /// </summary>
     public virtual DbSet<PhotoDiaryReminderLog> PhotoDiaryReminderLogs { get; set; } = null!;
 
+    /// <summary>
+    /// External OAuth provider logins linked to application users.
+    /// </summary>
+    public virtual DbSet<UserExternalLogin> UserExternalLogins { get; set; } = null!;
+
     /// <inheritdoc />
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {

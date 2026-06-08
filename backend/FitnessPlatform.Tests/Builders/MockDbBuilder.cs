@@ -27,6 +27,7 @@ public class MockDbBuilder
     private readonly List<WeeklyCheckInSetting> _weeklyCheckInSettings = [];
     private readonly List<WeeklyCheckInClientOverride> _weeklyCheckInClientOverrides = [];
     private readonly List<PhotoDiaryRequest> _photoDiaryRequests = [];
+    private readonly List<UserExternalLogin> _userExternalLogins = [];
 
     /// <summary>
     /// Adds an <see cref="ApplicationUser"/> to the mock context.
@@ -104,6 +105,11 @@ public class MockDbBuilder
     public MockDbBuilder With(PhotoDiaryRequest request) { _photoDiaryRequests.Add(request); return this; }
 
     /// <summary>
+    /// Adds a <see cref="UserExternalLogin"/> to the mock context.
+    /// </summary>
+    public MockDbBuilder With(UserExternalLogin externalLogin) { _userExternalLogins.Add(externalLogin); return this; }
+
+    /// <summary>
     /// Builds a mocked <see cref="IApplicationDbContext"/> with all registered entities as queryable DbSets.
     /// </summary>
     public IApplicationDbContext Build()
@@ -127,6 +133,7 @@ public class MockDbBuilder
         var weeklyCheckInSettingsSet = _weeklyCheckInSettings.BuildMockDbSet();
         var weeklyCheckInClientOverridesSet = _weeklyCheckInClientOverrides.BuildMockDbSet();
         var photoDiaryRequestsSet = _photoDiaryRequests.BuildMockDbSet();
+        var userExternalLoginsSet = _userExternalLogins.BuildMockDbSet();
 
         var db = Substitute.For<IApplicationDbContext>();
 
@@ -147,6 +154,7 @@ public class MockDbBuilder
         db.WeeklyCheckInSettings.Returns(weeklyCheckInSettingsSet);
         db.WeeklyCheckInClientOverrides.Returns(weeklyCheckInClientOverridesSet);
         db.PhotoDiaryRequests.Returns(photoDiaryRequestsSet);
+        db.UserExternalLogins.Returns(userExternalLoginsSet);
 
         db.SaveChangesAsync(Arg.Any<CancellationToken>()).Returns(1);
 
