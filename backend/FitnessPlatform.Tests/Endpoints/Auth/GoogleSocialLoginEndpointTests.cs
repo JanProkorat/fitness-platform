@@ -64,7 +64,7 @@ public class GoogleSocialLoginEndpointTests
         var validator = new GoogleSocialLoginValidator();
         var result = validator.Validate(new GoogleSocialLoginRequest { IdToken = "" });
         result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.PropertyName == nameof(GoogleSocialLoginRequest.IdToken));
+        result.Errors.Should().Contain(e => string.Equals(e.PropertyName, nameof(GoogleSocialLoginRequest.IdToken), StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
