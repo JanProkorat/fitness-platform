@@ -276,7 +276,9 @@
       "repsLabel_few": "{{count}}× opakování",
       "repsLabel_many": "{{count}}× opakování",
       "repsLabel_other": "{{count}}× opakování",
-      "monthPickerPrefix": "📅 Měsíc:"
+      "monthPickerPrefix": "📅 Měsíc:",
+      "resetFilter": "Zobrazit vše",
+      "errorLoading": "Nepodařilo se načíst aktivitu"
     },
     "values": {
       "Male": "Muž",
