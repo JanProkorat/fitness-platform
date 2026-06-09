@@ -1876,7 +1876,8 @@
       "editLabel": "Upravit",
       "deleteLabel": "Smazat",
       "editAriaLabel": "Upravit poznámku",
-      "deleteAriaLabel": "Smazat poznámku"
+      "deleteAriaLabel": "Smazat poznámku",
+      "errorLoading": "Poznámky se nepodařilo načíst"
     }
   }
 }

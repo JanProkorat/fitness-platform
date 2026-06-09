@@ -41,12 +41,18 @@ export async function listNotes(
   return { notes: data.notes ?? [], totalCount };
 }
 
+export interface EditNoteResponse {
+  noteId: string;
+  text: string;
+  updatedAt: string;
+}
+
 export async function updateNote(
   clientId: string,
   noteId: string,
   text: string,
-): Promise<TrainerNote> {
-  const { data } = await api.patch<TrainerNote>(
+): Promise<EditNoteResponse> {
+  const { data } = await api.patch<EditNoteResponse>(
     `/trainer/clients/${clientId}/notes/${noteId}`,
     { text },
   );

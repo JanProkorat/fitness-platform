@@ -1849,7 +1849,8 @@
       "editLabel": "Edit",
       "deleteLabel": "Delete",
       "editAriaLabel": "Edit note",
-      "deleteAriaLabel": "Delete note"
+      "deleteAriaLabel": "Delete note",
+      "errorLoading": "Failed to load notes"
     }
   }
 }

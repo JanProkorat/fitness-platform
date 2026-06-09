@@ -134,7 +134,7 @@ function NoteCard({ note, clientId }: NoteCardProps) {
           <button
             type="button"
             disabled={updateMutation.isPending || !editText.trim()}
-            className="text-[12px] font-medium text-text px-3 py-1.5 border border-border rounded-[var(--radius-sm)] bg-surface hover:bg-bg-hover transition-colors disabled:opacity-50"
+            className="text-[12px] font-medium text-text px-3 py-1.5 border border-border rounded-[var(--radius-sm)] bg-bg2 hover:bg-bg-hover transition-colors disabled:opacity-50"
             onClick={() => updateMutation.mutate(editText)}
           >
             {t('common.save')}
@@ -166,7 +166,7 @@ function NoteCard({ note, clientId }: NoteCardProps) {
           type="button"
           aria-label={t('clientDetail.poznamky.deleteAriaLabel')}
           disabled={deleteMutation.isPending}
-          className="text-[11px] text-text3 hover:text-danger px-2 py-1 rounded-[var(--radius-sm)] hover:bg-bg-hover transition-colors disabled:opacity-50"
+          className="text-[11px] text-text3 hover:text-red px-2 py-1 rounded-[var(--radius-sm)] hover:bg-bg-hover transition-colors disabled:opacity-50"
           onClick={() => deleteMutation.mutate()}
         >
           {t('clientDetail.poznamky.deleteLabel')}
@@ -184,7 +184,7 @@ export function PoznamkyTab({ clientId }: PoznamkyTabProps) {
   const queryClient = useQueryClient();
   const [newText, setNewText] = useState('');
 
-  const { data: notes, isPending } = useQuery({
+  const { data: notes, isPending, isError } = useQuery({
     queryKey: ['trainer-notes', clientId],
     queryFn: async () => {
       const result = await listNotes(clientId);
@@ -266,7 +266,7 @@ export function PoznamkyTab({ clientId }: PoznamkyTabProps) {
           <button
             type="button"
             disabled={createMutation.isPending || !newText.trim()}
-            className="text-[13px] font-medium text-text px-3 py-1.5 border border-border rounded-[var(--radius-sm)] bg-surface hover:bg-bg-hover transition-colors disabled:opacity-50"
+            className="text-[13px] font-medium text-text px-3 py-1.5 border border-border rounded-[var(--radius-sm)] bg-bg2 hover:bg-bg-hover transition-colors disabled:opacity-50"
             onClick={handleSubmit}
           >
             {t('clientDetail.poznamky.saveButton')}
@@ -281,8 +281,15 @@ export function PoznamkyTab({ clientId }: PoznamkyTabProps) {
         </div>
       )}
 
+      {/* Error state */}
+      {!isPending && isError && (
+        <div className="text-[13px] text-red py-8 text-center">
+          {t('clientDetail.poznamky.errorLoading')}
+        </div>
+      )}
+
       {/* Note list (newest first) */}
-      {!isPending && notes && notes.length > 0 && (
+      {!isPending && !isError && notes && notes.length > 0 && (
         <div className="flex flex-col gap-2">
           {notes.map((note) => (
             <NoteCard key={note.noteId} note={note} clientId={clientId} />
@@ -291,7 +298,7 @@ export function PoznamkyTab({ clientId }: PoznamkyTabProps) {
       )}
 
       {/* Empty state — show nothing extra; add-note box is always visible */}
-      {!isPending && (!notes || notes.length === 0) && (
+      {!isPending && !isError && (!notes || notes.length === 0) && (
         <div className="text-[13px] text-text3 text-center py-6">
           {t('clientDetail.poznamky.emptyState')}
         </div>

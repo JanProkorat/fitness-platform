@@ -1848,7 +1848,8 @@
       "editLabel": "Bearbeiten",
       "deleteLabel": "Löschen",
       "editAriaLabel": "Notiz bearbeiten",
-      "deleteAriaLabel": "Notiz löschen"
+      "deleteAriaLabel": "Notiz löschen",
+      "errorLoading": "Notizen konnten nicht geladen werden"
     }
   }
 }
