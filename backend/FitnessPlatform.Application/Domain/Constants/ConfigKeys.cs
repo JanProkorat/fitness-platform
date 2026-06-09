@@ -74,4 +74,9 @@ public static class ConfigKeys
     /// MongoDB database name.
     /// </summary>
     public const string MongoDbDatabaseName = "MongoDB:DatabaseName";
+
+    /// <summary>
+    /// Google OAuth 2.0 client ID used to verify Google ID tokens.
+    /// </summary>
+    public const string GoogleClientId = "Google:ClientId";
 }

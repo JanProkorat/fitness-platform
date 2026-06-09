@@ -10,6 +10,9 @@ public static class ErrorCodes
     /// <summary>Invalid email or password during login.</summary>
     public const string InvalidCredentials = "INVALID_CREDENTIALS";
 
+    /// <summary>Google-verified email matches a password-only account with no Google external login. The user should sign in with their password.</summary>
+    public const string SocialEmailConflict = "social_email_conflict";
+
     /// <summary>Account is deactivated.</summary>
     public const string AccountDeactivated = "ACCOUNT_DEACTIVATED";
 
