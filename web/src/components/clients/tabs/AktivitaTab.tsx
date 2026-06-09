@@ -57,7 +57,12 @@ export function AktivitaTab({ clientId }: AktivitaTabProps) {
     retry: false,
   });
 
-  const items = data?.items ?? [];
+  // Stabilise the array reference: produce a new value only when `data` changes.
+  // A plain `data?.items ?? []` would create a new array on every render while
+  // `data` is undefined (the entire loading phase), which feeds instability into
+  // `availableMonths` and triggers the "adjust state during render" guard on
+  // every render — causing the "Too many re-renders" crash.
+  const items = useMemo(() => data?.items ?? [], [data]);
 
   const aggregates = useRecentActivityAggregates(items);
 
@@ -112,8 +117,11 @@ export function AktivitaTab({ clientId }: AktivitaTabProps) {
   const isEmpty = !isPending && !isError && items.length === 0;
   const isFilterEmpty = !isPending && !isError && items.length > 0 && filteredGroups.length === 0;
 
-  // Locale string for Intl month formatter
-  const locale = (i18n.language as 'cs' | 'en' | 'de') ?? 'cs';
+  // Pass i18n.language directly — Intl.DateTimeFormat accepts any BCP-47 tag
+  // (including region variants like "en-US"). The previous cast to a narrow
+  // union was incorrect and the `?? 'cs'` fallback was dead (strings are never
+  // nullish).
+  const locale = i18n.language;
 
   return (
     <div id="cl-pane-aktivita">
