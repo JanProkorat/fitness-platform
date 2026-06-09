@@ -251,6 +251,10 @@ public static class ErrorCodes
     /// <summary>completedAt is before the plan's start date; history cannot be written before the plan began.</summary>
     public const string CompletedAtBeforePlanStart = "COMPLETED_AT_BEFORE_PLAN_START";
 
+    // ── Trainer Notes ─────────────────────────────────────────────────
+    /// <summary>Trainer note not found or belongs to a different trainer/client.</summary>
+    public const string TrainerNoteNotFound = "TRAINER_NOTE_NOT_FOUND";
+
     // ── Validation (generic) ─────────────────────────────────────────
     /// <summary>Required field is missing.</summary>
     public const string Required = "REQUIRED";

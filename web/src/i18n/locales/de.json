@@ -1832,6 +1832,24 @@
       "viewAnswers": "Antworten anzeigen",
       "submittedOn": "Eingereicht am {{date}}",
       "pendingSubtitle": "Gesendet am {{date}} · Wartet auf Antwort"
+    },
+    "poznamky": {
+      "title": "Trainer-Notizen",
+      "subtitle": "· privat, der Kunde sieht dies nicht",
+      "placeholder": "Notiz hinzufügen…",
+      "saveButton": "Notiz speichern",
+      "emptyState": "Noch keine Notizen.",
+      "createSuccess": "Notiz gespeichert",
+      "createError": "Notiz konnte nicht gespeichert werden",
+      "updateSuccess": "Notiz aktualisiert",
+      "updateError": "Notiz konnte nicht aktualisiert werden",
+      "deleteSuccess": "Notiz gelöscht",
+      "deleteError": "Notiz konnte nicht gelöscht werden",
+      "editLabel": "Bearbeiten",
+      "deleteLabel": "Löschen",
+      "editAriaLabel": "Notiz bearbeiten",
+      "deleteAriaLabel": "Notiz löschen",
+      "errorLoading": "Notizen konnten nicht geladen werden"
     }
   }
 }
