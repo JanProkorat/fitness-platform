@@ -1807,6 +1807,32 @@
       "photoAlt": "Client photo",
       "overflowLabel": "view all",
       "overflowAriaLabel": "View {{count}} more photos"
+    },
+    "checkiny": {
+      "title": "Weekly check-ins",
+      "scheduleDesc": "Schedule: {{schedule}}",
+      "scheduleButton": "Check-in schedule",
+      "errorLoading": "Failed to load check-ins.",
+      "emptyTitle": "No check-ins",
+      "emptyDescription": "No weekly check-ins have been sent to this client yet.",
+      "statusCompleted": "Completed",
+      "statusPending": "Pending"
+    },
+    "dotazniky": {
+      "title": "Questionnaires",
+      "assignButton": "Assign questionnaire",
+      "errorLoading": "Failed to load questionnaires.",
+      "emptyTitle": "No questionnaires",
+      "emptyDescription": "No questionnaire has been assigned to this client yet.",
+      "assignFirst": "Assign first questionnaire",
+      "assignSuccess": "Questionnaire assigned successfully",
+      "assignConflict": "Client already has a questionnaire pending",
+      "assignError": "Failed to assign questionnaire",
+      "statusCompleted": "Completed",
+      "statusPending": "Pending",
+      "viewAnswers": "View answers",
+      "submittedOn": "Submitted {{date}}",
+      "pendingSubtitle": "Sent {{date}} · Waiting for response"
     }
   }
 }

@@ -1834,6 +1834,32 @@
       "photoAlt": "Fotka klienta",
       "overflowLabel": "zobrazit vše",
       "overflowAriaLabel": "Zobrazit dalších {{count}} fotek"
+    },
+    "checkiny": {
+      "title": "Týdenní check-iny",
+      "scheduleDesc": "Rozvrh: {{schedule}}",
+      "scheduleButton": "Rozvrh check-inů",
+      "errorLoading": "Check-iny se nepodařilo načíst.",
+      "emptyTitle": "Žádné check-iny",
+      "emptyDescription": "Pro tohoto klienta zatím nebyly odeslány žádné týdenní check-iny.",
+      "statusCompleted": "Vyplněno",
+      "statusPending": "Čeká"
+    },
+    "dotazniky": {
+      "title": "Dotazníky",
+      "assignButton": "Přiřadit dotazník",
+      "errorLoading": "Dotazníky se nepodařilo načíst.",
+      "emptyTitle": "Žádné dotazníky",
+      "emptyDescription": "Klientovi zatím nebyl přiřazen žádný dotazník.",
+      "assignFirst": "Přiřadit první dotazník",
+      "assignSuccess": "Dotazník byl úspěšně přiřazen",
+      "assignConflict": "Klient již má dotazník čekající na vyplnění",
+      "assignError": "Nepodařilo se přiřadit dotazník",
+      "statusCompleted": "Vyplněno",
+      "statusPending": "Čeká",
+      "viewAnswers": "Zobrazit odpovědi",
+      "submittedOn": "Odesláno {{date}}",
+      "pendingSubtitle": "Odesláno {{date}} · Čeká na vyplnění"
     }
   }
 }

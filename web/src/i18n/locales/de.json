@@ -1806,6 +1806,32 @@
       "photoAlt": "Kundenfoto",
       "overflowLabel": "alle anzeigen",
       "overflowAriaLabel": "{{count}} weitere Fotos anzeigen"
+    },
+    "checkiny": {
+      "title": "Wöchentliche Check-ins",
+      "scheduleDesc": "Zeitplan: {{schedule}}",
+      "scheduleButton": "Check-in-Zeitplan",
+      "errorLoading": "Check-ins konnten nicht geladen werden.",
+      "emptyTitle": "Keine Check-ins",
+      "emptyDescription": "Für diesen Kunden wurden noch keine wöchentlichen Check-ins gesendet.",
+      "statusCompleted": "Ausgefüllt",
+      "statusPending": "Ausstehend"
+    },
+    "dotazniky": {
+      "title": "Fragebögen",
+      "assignButton": "Fragebogen zuweisen",
+      "errorLoading": "Fragebögen konnten nicht geladen werden.",
+      "emptyTitle": "Keine Fragebögen",
+      "emptyDescription": "Diesem Kunden wurde noch kein Fragebogen zugewiesen.",
+      "assignFirst": "Ersten Fragebogen zuweisen",
+      "assignSuccess": "Fragebogen erfolgreich zugewiesen",
+      "assignConflict": "Für den Kunden ist bereits ein Fragebogen ausstehend",
+      "assignError": "Fragebogen konnte nicht zugewiesen werden",
+      "statusCompleted": "Ausgefüllt",
+      "statusPending": "Ausstehend",
+      "viewAnswers": "Antworten anzeigen",
+      "submittedOn": "Eingereicht am {{date}}",
+      "pendingSubtitle": "Gesendet am {{date}} · Wartet auf Antwort"
     }
   }
 }

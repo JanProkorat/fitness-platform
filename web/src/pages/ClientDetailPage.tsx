@@ -308,7 +308,7 @@ export default function ClientDetailPage() {
               aria-labelledby="cl-tab-checkiny"
               className="tab-content-transition"
             >
-              <CheckinyTab />
+              <CheckinyTab clientUserId={id!} />
             </div>
           )}
 
@@ -318,7 +318,7 @@ export default function ClientDetailPage() {
               aria-labelledby="cl-tab-dotazniky"
               className="tab-content-transition"
             >
-              <DotaznikyTab />
+              <DotaznikyTab clientId={id!} />
             </div>
           )}
 
