@@ -75,4 +75,10 @@ public interface IMongoContext
     /// Keyed by (ClientId = ClientProfile.PublicId, PlanId, SessionId, LogDate).
     /// </summary>
     IMongoCollection<SessionLog> SessionLogs { get; }
+
+    /// <summary>
+    /// Trainer notes — private notes written by a trainer about a client.
+    /// Never exposed to client-authenticated callers.
+    /// </summary>
+    IMongoCollection<TrainerNote> TrainerNotes { get; }
 }
