@@ -1833,6 +1833,23 @@
       "viewAnswers": "View answers",
       "submittedOn": "Submitted {{date}}",
       "pendingSubtitle": "Sent {{date}} · Waiting for response"
+    },
+    "poznamky": {
+      "title": "Trainer notes",
+      "subtitle": "· private, client cannot see",
+      "placeholder": "Add a note…",
+      "saveButton": "Save note",
+      "emptyState": "No notes yet.",
+      "createSuccess": "Note saved",
+      "createError": "Failed to save note",
+      "updateSuccess": "Note updated",
+      "updateError": "Failed to update note",
+      "deleteSuccess": "Note deleted",
+      "deleteError": "Failed to delete note",
+      "editLabel": "Edit",
+      "deleteLabel": "Delete",
+      "editAriaLabel": "Edit note",
+      "deleteAriaLabel": "Delete note"
     }
   }
 }

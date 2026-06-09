@@ -328,7 +328,7 @@ export default function ClientDetailPage() {
               aria-labelledby="cl-tab-poznamky"
               className="tab-content-transition"
             >
-              <PoznamkyTab />
+              <PoznamkyTab clientId={id!} />
             </div>
           )}
         </div>

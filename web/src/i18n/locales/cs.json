@@ -1860,6 +1860,23 @@
       "viewAnswers": "Zobrazit odpovědi",
       "submittedOn": "Odesláno {{date}}",
       "pendingSubtitle": "Odesláno {{date}} · Čeká na vyplnění"
+    },
+    "poznamky": {
+      "title": "Poznámky trenéra",
+      "subtitle": "· soukromé, klient nevidí",
+      "placeholder": "Přidat poznámku…",
+      "saveButton": "Uložit poznámku",
+      "emptyState": "Zatím žádné poznámky.",
+      "createSuccess": "Poznámka uložena",
+      "createError": "Poznámku se nepodařilo uložit",
+      "updateSuccess": "Poznámka upravena",
+      "updateError": "Poznámku se nepodařilo upravit",
+      "deleteSuccess": "Poznámka smazána",
+      "deleteError": "Poznámku se nepodařilo smazat",
+      "editLabel": "Upravit",
+      "deleteLabel": "Smazat",
+      "editAriaLabel": "Upravit poznámku",
+      "deleteAriaLabel": "Smazat poznámku"
     }
   }
 }
