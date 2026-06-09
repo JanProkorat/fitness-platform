@@ -212,6 +212,9 @@ builder.Services.AddScoped<IComplianceService, ComplianceService>();
 // Client verdict
 builder.Services.AddScoped<IClientVerdictService, ClientVerdictService>();
 
+// Google social login token verification
+builder.Services.AddScoped<IGoogleTokenVerifier, GoogleTokenVerifier>();
+
 // Audit
 builder.Services.AddScoped<IAuditService, AuditService>();
 

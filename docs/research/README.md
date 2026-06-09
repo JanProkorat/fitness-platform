@@ -24,6 +24,16 @@ previous run, so they're shorter and assume context.
 | 2026-05-16 | [`claude-code-ecosystem-additions-2026-05-16.md`](claude-code-ecosystem-additions-2026-05-16.md) | |
 | 2026-05-19 | [`claude-code-ecosystem-additions-2026-05-19.md`](claude-code-ecosystem-additions-2026-05-19.md) | Most recent run. |
 
+## Focused evaluations
+
+Distinct from the dated daily-researcher digests above — these are
+deliberate evaluation + decision records spawned from a specific tracking
+issue, not as-of-date scans:
+
+| Date | File | Issue | Decision |
+|---|---|---|---|
+| 2026-06-08 | [`agent-teams-vs-ship-epic-evaluation-2026-06-08.md`](agent-teams-vs-ship-epic-evaluation-2026-06-08.md) | [#193](https://github.com/JanProkorat/fitness-platform/issues/193) | Partial adopt — retain `ship-epic`, pilot Agent Teams for review/debug only |
+
 ## Source
 
 Produced by [`.claude/skills/daily-researcher/`](../../.claude/skills/daily-researcher/) —

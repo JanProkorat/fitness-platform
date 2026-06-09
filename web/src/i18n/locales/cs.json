@@ -97,7 +97,8 @@
     "verifyEmailResent": "Ověřovací e-mail byl odeslán znovu.",
     "verifyEmailSuccess": "E-mail byl úspěšně ověřen.",
     "verifyEmailExpired": "Odkaz vypršel. Nechte si odeslat nový.",
-    "verifyEmailInvalid": "Neplatný ověřovací odkaz."
+    "verifyEmailInvalid": "Neplatný ověřovací odkaz.",
+    "googleLoading": "Přihlašuji přes Google..."
   },
   "downloadApp": {
     "title": "Stáhněte si aplikaci",
@@ -808,7 +809,8 @@
     "SECTION_ALREADY_COMPLETED": "Tato část tréninku byla již dokončena klientem — úpravy nejsou možné.",
     "COMPLETED_AT_IN_FUTURE": "Datum dokončení nesmí být v budoucnosti.",
     "COMPLETED_AT_BEFORE_PLAN_START": "Datum dokončení nesmí být před začátkem plánu.",
-    "session_locked": "Trénink je aktuálně uzamčen — uložení selhalo."
+    "session_locked": "Trénink je aktuálně uzamčen — uložení selhalo.",
+    "social_email_conflict": "Tento e-mail je registrován s heslem. Přihlaste se emailem a heslem."
   },
   "nutritionGoals": {
     "title": "Cíle & makra",
