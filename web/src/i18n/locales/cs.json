@@ -1777,6 +1777,46 @@
         "chest": "Hrudník"
       }
     },
+    "plany": {
+      "title": "Plány klienta",
+      "errorLoading": "Plány se nepodařilo načíst.",
+      "emptyTitle": "Žádné plány",
+      "emptyDescription": "Klient zatím nemá žádné výživové ani tréninkové plány.",
+      "table": {
+        "plan": "Plán",
+        "type": "Typ",
+        "period": "Období",
+        "status": "Stav",
+        "result": "Výsledek",
+        "openPlan": "Otevřít plán"
+      },
+      "typeLabel": {
+        "nutrition": "Výživa",
+        "training": "Trénink"
+      },
+      "status": {
+        "active": "Aktivní",
+        "completed": "Dokončený",
+        "draft": "Koncept",
+        "archived": "Archivovaný"
+      },
+      "result": {
+        "compliance": "Compliance {{pct}} %",
+        "weightDelta": "váha {{delta}} kg",
+        "totalTrainings_one": "{{count}} trénink",
+        "totalTrainings_few": "{{count}} tréninky",
+        "totalTrainings_many": "{{count}} tréninků",
+        "totalTrainings_other": "{{count}} tréninků",
+        "prCount_one": "{{count}} PR",
+        "prCount_few": "{{count}} PR",
+        "prCount_many": "{{count}} PR",
+        "prCount_other": "{{count}} PR"
+      },
+      "actions": {
+        "newNutrition": "Nový jídelníček",
+        "newTraining": "Nový tréninkový plán"
+      }
+    },
     "fotky": {
       "title": "Foto-deník",
       "countBadge": "{{photos}} fotek · {{plans}} plánů",

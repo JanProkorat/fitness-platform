@@ -298,7 +298,7 @@ export default function ClientDetailPage() {
               aria-labelledby="cl-tab-plany"
               className="tab-content-transition"
             >
-              <PlanyTab />
+              <PlanyTab clientId={id!} />
             </div>
           )}
 
