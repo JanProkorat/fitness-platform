@@ -1749,6 +1749,46 @@
         "chest": "Brust"
       }
     },
+    "plany": {
+      "title": "Kundenpläne",
+      "errorLoading": "Pläne konnten nicht geladen werden.",
+      "emptyTitle": "Keine Pläne",
+      "emptyDescription": "Dieser Kunde hat noch keine Ernährungs- oder Trainingspläne.",
+      "table": {
+        "plan": "Plan",
+        "type": "Typ",
+        "period": "Zeitraum",
+        "status": "Status",
+        "result": "Ergebnis",
+        "openPlan": "Plan öffnen"
+      },
+      "typeLabel": {
+        "nutrition": "Ernährung",
+        "training": "Training"
+      },
+      "status": {
+        "active": "Aktiv",
+        "completed": "Abgeschlossen",
+        "draft": "Entwurf",
+        "archived": "Archiviert"
+      },
+      "result": {
+        "compliance": "Compliance {{pct}} %",
+        "weightDelta": "Gewicht {{delta}} kg",
+        "totalTrainings_one": "{{count}} Einheit",
+        "totalTrainings_few": "{{count}} Einheiten",
+        "totalTrainings_many": "{{count}} Einheiten",
+        "totalTrainings_other": "{{count}} Einheiten",
+        "prCount_one": "{{count}} PR",
+        "prCount_few": "{{count}} PRs",
+        "prCount_many": "{{count}} PRs",
+        "prCount_other": "{{count}} PRs"
+      },
+      "actions": {
+        "newNutrition": "Neuer Ernährungsplan",
+        "newTraining": "Neuer Trainingsplan"
+      }
+    },
     "fotky": {
       "title": "Foto-Tagebuch",
       "countBadge": "{{photos}} Fotos · {{plans}} Pläne",

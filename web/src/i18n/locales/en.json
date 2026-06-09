@@ -1750,6 +1750,46 @@
         "chest": "Chest"
       }
     },
+    "plany": {
+      "title": "Client plans",
+      "errorLoading": "Failed to load plans.",
+      "emptyTitle": "No plans",
+      "emptyDescription": "This client has no nutrition or training plans yet.",
+      "table": {
+        "plan": "Plan",
+        "type": "Type",
+        "period": "Period",
+        "status": "Status",
+        "result": "Result",
+        "openPlan": "Open plan"
+      },
+      "typeLabel": {
+        "nutrition": "Nutrition",
+        "training": "Training"
+      },
+      "status": {
+        "active": "Active",
+        "completed": "Completed",
+        "draft": "Draft",
+        "archived": "Archived"
+      },
+      "result": {
+        "compliance": "Compliance {{pct}}%",
+        "weightDelta": "weight {{delta}} kg",
+        "totalTrainings_one": "{{count}} session",
+        "totalTrainings_few": "{{count}} sessions",
+        "totalTrainings_many": "{{count}} sessions",
+        "totalTrainings_other": "{{count}} sessions",
+        "prCount_one": "{{count}} PR",
+        "prCount_few": "{{count}} PRs",
+        "prCount_many": "{{count}} PRs",
+        "prCount_other": "{{count}} PRs"
+      },
+      "actions": {
+        "newNutrition": "New nutrition plan",
+        "newTraining": "New training plan"
+      }
+    },
     "fotky": {
       "title": "Photo diary",
       "countBadge": "{{photos}} photos · {{plans}} plans",
