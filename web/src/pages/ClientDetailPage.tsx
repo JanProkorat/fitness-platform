@@ -84,15 +84,16 @@ export default function ClientDetailPage() {
 
   const ob = client?.onboarding;
 
+  const dob = client?.dateOfBirth;
   const clientAge = useMemo(() => {
-    if (!client?.dateOfBirth) return null;
-    const birth = new Date(client.dateOfBirth);
+    if (!dob) return null;
+    const birth = new Date(dob);
     const now = new Date();
     let age = now.getFullYear() - birth.getFullYear();
     const m = now.getMonth() - birth.getMonth();
     if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--;
     return age;
-  }, [client?.dateOfBirth]);
+  }, [dob]);
 
   const activeNutritionPlanSummary: PlanSummary | null =
     nutritionPlans?.plans?.[0] ?? null;

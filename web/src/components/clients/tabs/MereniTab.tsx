@@ -112,15 +112,16 @@ export function MereniTab({ clientId, targetWeightKg }: MereniTabProps) {
     retry: false,
   });
 
+  const items = data?.items;
   // Sorted newest-first
   const sorted: MeasurementDto[] = useMemo(() => {
-    if (!data?.items) return [];
-    return [...data.items].sort((a, b) => {
+    if (!items) return [];
+    return [...items].sort((a, b) => {
       const da = toDate(a.measuredAt)?.getTime() ?? 0;
       const db = toDate(b.measuredAt)?.getTime() ?? 0;
       return db - da;
     });
-  }, [data?.items]);
+  }, [items]);
 
   const latest = sorted[0] ?? null;
 
