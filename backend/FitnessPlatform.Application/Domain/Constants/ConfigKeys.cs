@@ -79,4 +79,9 @@ public static class ConfigKeys
     /// Google OAuth 2.0 client ID used to verify Google ID tokens.
     /// </summary>
     public const string GoogleClientId = "Google:ClientId";
+
+    /// <summary>
+    /// Apple Service ID (reverse-domain format) used as the JWT audience when verifying Apple identity tokens.
+    /// </summary>
+    public const string AppleClientId = "Apple:ClientId";
 }

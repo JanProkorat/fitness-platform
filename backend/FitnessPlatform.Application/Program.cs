@@ -215,6 +215,9 @@ builder.Services.AddScoped<IClientVerdictService, ClientVerdictService>();
 // Google social login token verification
 builder.Services.AddScoped<IGoogleTokenVerifier, GoogleTokenVerifier>();
 
+// Apple Sign-In token verification
+builder.Services.AddScoped<IAppleTokenVerifier, AppleTokenVerifier>();
+
 // Audit
 builder.Services.AddScoped<IAuditService, AuditService>();
 
