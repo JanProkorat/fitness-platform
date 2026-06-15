@@ -267,7 +267,9 @@
       "mealCount_other": "🥗 {{count}} meal plans",
       "repsLabel_one": "{{count}}× rep",
       "repsLabel_other": "{{count}}× reps",
-      "monthPickerPrefix": "📅 Month:"
+      "monthPickerPrefix": "📅 Month:",
+      "resetFilter": "Show all",
+      "errorLoading": "Failed to load activity"
     },
     "values": {
       "Male": "Male",
@@ -1638,6 +1640,219 @@
       "inviteCheckboxHint": "After the client accepts, they will be prompted to share food photos.",
       "inviteCheckboxWarning": "Diary request will be sent after the invite is successfully created.",
       "inviteDiaryFailed": "Invite sent, but diary request failed. You can send it later from the client detail."
+    }
+  },
+  "clientDetail": {
+    "photoDiary": "Photo diary",
+    "writeMessage": "Message",
+    "lastName": "Last name",
+    "heightCm": "Height (cm)",
+    "weightKg": "Weight (kg)",
+    "tabBarLabel": "Client tabs",
+    "ageYears_one": "{{count}} year",
+    "ageYears_other": "{{count}} years",
+    "tabs": {
+      "prehled": "Overview",
+      "mereni": "Measurements",
+      "fotky": "Photos",
+      "aktivita": "Activity",
+      "plany": "Plans",
+      "checkiny": "Check-ins",
+      "dotazniky": "Questionnaires",
+      "poznamky": "Notes"
+    },
+    "verdict": {
+      "unavailable": "Verdict unavailable",
+      "onTrack": {
+        "label": "On Track",
+        "subtitle": "Plans active and up to date"
+      },
+      "needsAttention": {
+        "label": "Needs Attention",
+        "subtitle": "One indicator off target"
+      },
+      "offTrack": {
+        "label": "Off Plan",
+        "subtitle": "Critical deviation — client needs support"
+      },
+      "signals": {
+        "compliance": "Compliance",
+        "weightDelta": "To goal",
+        "trainingsPerWeek": "Sessions/week",
+        "prThisMonth": "PRs this month"
+      }
+    },
+    "prehled": {
+      "noActivePlan": {
+        "nutrition": "No active nutrition plan",
+        "training": "No active training plan",
+        "createNutrition": "Create nutrition plan →",
+        "createTraining": "Create training plan →"
+      },
+      "planCard": {
+        "active": "Active",
+        "goal": "Goal",
+        "targetWeight": "target weight {{kg}} kg",
+        "compliance": "Compliance {{pct}} %",
+        "openNutrition": "Open nutrition plan",
+        "history": "Plan history",
+        "from": "from {{date}}"
+      },
+      "trainingCard": {
+        "weeklyFrequency_one": "{{count}} session/week",
+        "weeklyFrequency_other": "{{count}} sessions/week",
+        "thisWeek_one": "{{count}}× this week",
+        "thisWeek_other": "{{count}}× this week",
+        "prThisMonth_one": "{{count}} PR this month",
+        "prThisMonth_other": "{{count}} PRs this month",
+        "topPr": "🏆 Top PR: {{name}} — {{kg}} kg × {{reps}} reps",
+        "openTraining": "Open training plan"
+      },
+      "progress": {
+        "weightTitle": "Weight progress to goal",
+        "allMeasurements": "All measurements",
+        "remaining": "{{kg}} kg remaining to goal",
+        "noData": "No measurements",
+        "thisMonth": "This month",
+        "stats": {
+          "prTotal": "Total PRs",
+          "workouts": "Workouts",
+          "measurements": "Measurements",
+          "completedDays": "Completed days"
+        }
+      }
+    },
+    "pendingInvite": {
+      "title": "Invitation sent",
+      "description": "The client hasn't created an account yet. An invitation with a registration link was sent to their email. After registering, the client will fill in their details and their profile will update here automatically."
+    },
+    "mereni": {
+      "title": "Body measurements",
+      "addMeasurement": "Add measurement",
+      "addMeasurementPlaceholder": "Add measurement (available in the client app)",
+      "addFirstMeasurement": "Add first measurement",
+      "emptyTitle": "No measurements",
+      "emptyDescription": "The client hasn't recorded any body measurements yet. Measurements can be added from the mobile app.",
+      "errorLoading": "Could not load measurements.",
+      "chartLabel": "Weight trend · last 8 weeks",
+      "tiles": {
+        "currentWeight": "Current weight",
+        "bodyFat": "Body fat",
+        "waist": "Waist",
+        "toGoal": "To goal",
+        "goalWeight": "goal {{kg}} kg",
+        "comparedToWeeksAgo": "over 6 wks"
+      },
+      "table": {
+        "date": "Date",
+        "weight": "Weight",
+        "bodyFat": "Body fat",
+        "waist": "Waist",
+        "hips": "Hips",
+        "chest": "Chest"
+      }
+    },
+    "plany": {
+      "title": "Client plans",
+      "errorLoading": "Failed to load plans.",
+      "emptyTitle": "No plans",
+      "emptyDescription": "This client has no nutrition or training plans yet.",
+      "table": {
+        "plan": "Plan",
+        "type": "Type",
+        "period": "Period",
+        "status": "Status",
+        "result": "Result",
+        "openPlan": "Open plan"
+      },
+      "typeLabel": {
+        "nutrition": "Nutrition",
+        "training": "Training"
+      },
+      "status": {
+        "active": "Active",
+        "completed": "Completed",
+        "draft": "Draft",
+        "archived": "Archived"
+      },
+      "result": {
+        "compliance": "Compliance {{pct}}%",
+        "weightDelta": "weight {{delta}} kg",
+        "totalTrainings_one": "{{count}} session",
+        "totalTrainings_few": "{{count}} sessions",
+        "totalTrainings_many": "{{count}} sessions",
+        "totalTrainings_other": "{{count}} sessions",
+        "prCount_one": "{{count}} PR",
+        "prCount_few": "{{count}} PRs",
+        "prCount_many": "{{count}} PRs",
+        "prCount_other": "{{count}} PRs"
+      },
+      "actions": {
+        "newNutrition": "New nutrition plan",
+        "newTraining": "New training plan"
+      }
+    },
+    "fotky": {
+      "title": "Photo diary",
+      "countBadge": "{{photos}} photos · {{plans}} plans",
+      "activeDiary": "Active diary",
+      "newRequest": "New request",
+      "openGallery": "Open gallery",
+      "noActivePlanTooltip": "No active plan — gallery not available",
+      "filterAll": "All",
+      "categoryFood": "Food",
+      "categoryBody": "Body",
+      "emptyTitle": "No photos yet",
+      "emptyDescription": "Ask your client to share photos of their meals or progress.",
+      "emptyRequestCta": "Send photo diary request",
+      "errorLoading": "Failed to load photos",
+      "photoAlt": "Client photo",
+      "overflowLabel": "view all",
+      "overflowAriaLabel": "View {{count}} more photos"
+    },
+    "checkiny": {
+      "title": "Weekly check-ins",
+      "scheduleDesc": "Schedule: {{schedule}}",
+      "scheduleButton": "Check-in schedule",
+      "errorLoading": "Failed to load check-ins.",
+      "emptyTitle": "No check-ins",
+      "emptyDescription": "No weekly check-ins have been sent to this client yet.",
+      "statusCompleted": "Completed",
+      "statusPending": "Pending"
+    },
+    "dotazniky": {
+      "title": "Questionnaires",
+      "assignButton": "Assign questionnaire",
+      "errorLoading": "Failed to load questionnaires.",
+      "emptyTitle": "No questionnaires",
+      "emptyDescription": "No questionnaire has been assigned to this client yet.",
+      "assignFirst": "Assign first questionnaire",
+      "assignSuccess": "Questionnaire assigned successfully",
+      "assignConflict": "Client already has a questionnaire pending",
+      "assignError": "Failed to assign questionnaire",
+      "statusCompleted": "Completed",
+      "statusPending": "Pending",
+      "viewAnswers": "View answers",
+      "submittedOn": "Submitted {{date}}",
+      "pendingSubtitle": "Sent {{date}} · Waiting for response"
+    },
+    "poznamky": {
+      "title": "Trainer notes",
+      "subtitle": "· private, client cannot see",
+      "placeholder": "Add a note…",
+      "saveButton": "Save note",
+      "emptyState": "No notes yet.",
+      "createSuccess": "Note saved",
+      "createError": "Failed to save note",
+      "updateSuccess": "Note updated",
+      "updateError": "Failed to update note",
+      "deleteSuccess": "Note deleted",
+      "deleteError": "Failed to delete note",
+      "editLabel": "Edit",
+      "deleteLabel": "Delete",
+      "editAriaLabel": "Edit note",
+      "deleteAriaLabel": "Delete note",
+      "errorLoading": "Failed to load notes"
     }
   }
 }

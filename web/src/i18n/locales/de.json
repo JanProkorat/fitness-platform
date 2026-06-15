@@ -267,7 +267,9 @@
       "mealCount_other": "🥗 {{count}} Ernährungspläne",
       "repsLabel_one": "{{count}}× Wiederholung",
       "repsLabel_other": "{{count}}× Wiederholungen",
-      "monthPickerPrefix": "📅 Monat:"
+      "monthPickerPrefix": "📅 Monat:",
+      "resetFilter": "Alles anzeigen",
+      "errorLoading": "Aktivität konnte nicht geladen werden"
     },
     "values": {
       "Male": "Männlich",
@@ -1637,6 +1639,219 @@
       "inviteCheckboxHint": "Nach der Annahme wird der Klient aufgefordert, Fotos seiner Mahlzeiten zu teilen.",
       "inviteCheckboxWarning": "Die Fototagebuch-Anfrage wird nach erfolgreicher Erstellung der Einladung gesendet.",
       "inviteDiaryFailed": "Einladung gesendet, aber Fototagebuch-Anfrage fehlgeschlagen. Sie können sie später über das Klientendetail senden."
+    }
+  },
+  "clientDetail": {
+    "photoDiary": "Fototagebuch",
+    "writeMessage": "Schreiben",
+    "lastName": "Nachname",
+    "heightCm": "Körpergröße (cm)",
+    "weightKg": "Gewicht (kg)",
+    "tabBarLabel": "Klienten-Reiter",
+    "ageYears_one": "{{count}} Jahr",
+    "ageYears_other": "{{count}} Jahre",
+    "tabs": {
+      "prehled": "Übersicht",
+      "mereni": "Messungen",
+      "fotky": "Fotos",
+      "aktivita": "Aktivität",
+      "plany": "Pläne",
+      "checkiny": "Check-ins",
+      "dotazniky": "Fragebögen",
+      "poznamky": "Notizen"
+    },
+    "verdict": {
+      "unavailable": "Bewertung nicht verfügbar",
+      "onTrack": {
+        "label": "Auf Kurs",
+        "subtitle": "Pläne aktiv und aktuell"
+      },
+      "needsAttention": {
+        "label": "Benötigt Aufmerksamkeit",
+        "subtitle": "Ein Indikator außerhalb des Ziels"
+      },
+      "offTrack": {
+        "label": "Außer Plan",
+        "subtitle": "Kritische Abweichung — Klient braucht Unterstützung"
+      },
+      "signals": {
+        "compliance": "Compliance",
+        "weightDelta": "Zum Ziel",
+        "trainingsPerWeek": "Einheiten/Woche",
+        "prThisMonth": "PBs diesen Monat"
+      }
+    },
+    "prehled": {
+      "noActivePlan": {
+        "nutrition": "Kein aktiver Ernährungsplan",
+        "training": "Kein aktiver Trainingsplan",
+        "createNutrition": "Ernährungsplan erstellen →",
+        "createTraining": "Trainingsplan erstellen →"
+      },
+      "planCard": {
+        "active": "Aktiv",
+        "goal": "Ziel",
+        "targetWeight": "Zielgewicht {{kg}} kg",
+        "compliance": "Compliance {{pct}} %",
+        "openNutrition": "Ernährungsplan öffnen",
+        "history": "Planhistorie",
+        "from": "ab {{date}}"
+      },
+      "trainingCard": {
+        "weeklyFrequency_one": "{{count}} Einheit/Woche",
+        "weeklyFrequency_other": "{{count}} Einheiten/Woche",
+        "thisWeek_one": "{{count}}× diese Woche",
+        "thisWeek_other": "{{count}}× diese Woche",
+        "prThisMonth_one": "{{count}} PB diesen Monat",
+        "prThisMonth_other": "{{count}} PBs diesen Monat",
+        "topPr": "🏆 Top PB: {{name}} — {{kg}} kg × {{reps}} Whd.",
+        "openTraining": "Trainingsplan öffnen"
+      },
+      "progress": {
+        "weightTitle": "Gewichtsfortschritt zum Ziel",
+        "allMeasurements": "Alle Messungen",
+        "remaining": "{{kg}} kg bis zum Ziel",
+        "noData": "Keine Messungen",
+        "thisMonth": "Diesen Monat",
+        "stats": {
+          "prTotal": "PBs gesamt",
+          "workouts": "Trainings",
+          "measurements": "Messungen",
+          "completedDays": "Erfüllte Tage"
+        }
+      }
+    },
+    "pendingInvite": {
+      "title": "Einladung gesendet",
+      "description": "Der Klient hat noch kein Konto erstellt. Eine Einladung mit Registrierungslink wurde an seine E-Mail-Adresse gesendet. Nach der Registrierung füllt der Klient seine Daten aus und sein Profil wird hier automatisch aktualisiert."
+    },
+    "mereni": {
+      "title": "Körpermessungen",
+      "addMeasurement": "Messung hinzufügen",
+      "addMeasurementPlaceholder": "Messung hinzufügen (in der Client-App verfügbar)",
+      "addFirstMeasurement": "Erste Messung hinzufügen",
+      "emptyTitle": "Keine Messungen",
+      "emptyDescription": "Der Klient hat noch keine Körpermessungen aufgezeichnet. Messungen können über die mobile App hinzugefügt werden.",
+      "errorLoading": "Messungen konnten nicht geladen werden.",
+      "chartLabel": "Gewichtsverlauf · letzte 8 Wochen",
+      "tiles": {
+        "currentWeight": "Aktuelles Gewicht",
+        "bodyFat": "Körperfett",
+        "waist": "Taille",
+        "toGoal": "Zum Ziel",
+        "goalWeight": "Ziel {{kg}} kg",
+        "comparedToWeeksAgo": "über 6 Wo."
+      },
+      "table": {
+        "date": "Datum",
+        "weight": "Gewicht",
+        "bodyFat": "Körperfett",
+        "waist": "Taille",
+        "hips": "Hüfte",
+        "chest": "Brust"
+      }
+    },
+    "plany": {
+      "title": "Kundenpläne",
+      "errorLoading": "Pläne konnten nicht geladen werden.",
+      "emptyTitle": "Keine Pläne",
+      "emptyDescription": "Dieser Kunde hat noch keine Ernährungs- oder Trainingspläne.",
+      "table": {
+        "plan": "Plan",
+        "type": "Typ",
+        "period": "Zeitraum",
+        "status": "Status",
+        "result": "Ergebnis",
+        "openPlan": "Plan öffnen"
+      },
+      "typeLabel": {
+        "nutrition": "Ernährung",
+        "training": "Training"
+      },
+      "status": {
+        "active": "Aktiv",
+        "completed": "Abgeschlossen",
+        "draft": "Entwurf",
+        "archived": "Archiviert"
+      },
+      "result": {
+        "compliance": "Compliance {{pct}} %",
+        "weightDelta": "Gewicht {{delta}} kg",
+        "totalTrainings_one": "{{count}} Einheit",
+        "totalTrainings_few": "{{count}} Einheiten",
+        "totalTrainings_many": "{{count}} Einheiten",
+        "totalTrainings_other": "{{count}} Einheiten",
+        "prCount_one": "{{count}} PR",
+        "prCount_few": "{{count}} PRs",
+        "prCount_many": "{{count}} PRs",
+        "prCount_other": "{{count}} PRs"
+      },
+      "actions": {
+        "newNutrition": "Neuer Ernährungsplan",
+        "newTraining": "Neuer Trainingsplan"
+      }
+    },
+    "fotky": {
+      "title": "Foto-Tagebuch",
+      "countBadge": "{{photos}} Fotos · {{plans}} Pläne",
+      "activeDiary": "Aktives Tagebuch",
+      "newRequest": "Neue Anfrage",
+      "openGallery": "Galerie öffnen",
+      "noActivePlanTooltip": "Kein aktiver Plan — Galerie nicht verfügbar",
+      "filterAll": "Alle",
+      "categoryFood": "Essen",
+      "categoryBody": "Körper",
+      "emptyTitle": "Noch keine Fotos",
+      "emptyDescription": "Bitten Sie den Kunden, Fotos von Mahlzeiten oder Fortschritten zu teilen.",
+      "emptyRequestCta": "Foto-Tagebuch-Anfrage senden",
+      "errorLoading": "Fotos konnten nicht geladen werden",
+      "photoAlt": "Kundenfoto",
+      "overflowLabel": "alle anzeigen",
+      "overflowAriaLabel": "{{count}} weitere Fotos anzeigen"
+    },
+    "checkiny": {
+      "title": "Wöchentliche Check-ins",
+      "scheduleDesc": "Zeitplan: {{schedule}}",
+      "scheduleButton": "Check-in-Zeitplan",
+      "errorLoading": "Check-ins konnten nicht geladen werden.",
+      "emptyTitle": "Keine Check-ins",
+      "emptyDescription": "Für diesen Kunden wurden noch keine wöchentlichen Check-ins gesendet.",
+      "statusCompleted": "Ausgefüllt",
+      "statusPending": "Ausstehend"
+    },
+    "dotazniky": {
+      "title": "Fragebögen",
+      "assignButton": "Fragebogen zuweisen",
+      "errorLoading": "Fragebögen konnten nicht geladen werden.",
+      "emptyTitle": "Keine Fragebögen",
+      "emptyDescription": "Diesem Kunden wurde noch kein Fragebogen zugewiesen.",
+      "assignFirst": "Ersten Fragebogen zuweisen",
+      "assignSuccess": "Fragebogen erfolgreich zugewiesen",
+      "assignConflict": "Für den Kunden ist bereits ein Fragebogen ausstehend",
+      "assignError": "Fragebogen konnte nicht zugewiesen werden",
+      "statusCompleted": "Ausgefüllt",
+      "statusPending": "Ausstehend",
+      "viewAnswers": "Antworten anzeigen",
+      "submittedOn": "Eingereicht am {{date}}",
+      "pendingSubtitle": "Gesendet am {{date}} · Wartet auf Antwort"
+    },
+    "poznamky": {
+      "title": "Trainer-Notizen",
+      "subtitle": "· privat, der Kunde sieht dies nicht",
+      "placeholder": "Notiz hinzufügen…",
+      "saveButton": "Notiz speichern",
+      "emptyState": "Noch keine Notizen.",
+      "createSuccess": "Notiz gespeichert",
+      "createError": "Notiz konnte nicht gespeichert werden",
+      "updateSuccess": "Notiz aktualisiert",
+      "updateError": "Notiz konnte nicht aktualisiert werden",
+      "deleteSuccess": "Notiz gelöscht",
+      "deleteError": "Notiz konnte nicht gelöscht werden",
+      "editLabel": "Bearbeiten",
+      "deleteLabel": "Löschen",
+      "editAriaLabel": "Notiz bearbeiten",
+      "deleteAriaLabel": "Notiz löschen",
+      "errorLoading": "Notizen konnten nicht geladen werden"
     }
   }
 }

@@ -5,6 +5,7 @@ using FastEndpoints.Swagger;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.HealthChecks;
@@ -207,6 +208,9 @@ builder.Services.AddScoped<ISessionLockService, SessionLockService>();
 
 // Compliance
 builder.Services.AddScoped<IComplianceService, ComplianceService>();
+
+// Client verdict
+builder.Services.AddScoped<IClientVerdictService, ClientVerdictService>();
 
 // Google social login token verification
 builder.Services.AddScoped<IGoogleTokenVerifier, GoogleTokenVerifier>();
