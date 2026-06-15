@@ -36,6 +36,7 @@ const CATEGORY_EMOJI: Record<PlanPhotoCategory, string> = {
   [PlanPhotoCategory.Food]: '🍽️',
   [PlanPhotoCategory.Body]: '📏',
   [PlanPhotoCategory.FreeForm]: '📷',
+  [PlanPhotoCategory.Training]: '🏋️',
 };
 
 // ── Props ─────────────────────────────────────────────────────────────────────
