@@ -98,7 +98,8 @@
     "verifyEmailSuccess": "E-Mail erfolgreich bestätigt.",
     "verifyEmailExpired": "Link abgelaufen. Fordern Sie einen neuen an.",
     "verifyEmailInvalid": "Ungültiger Bestätigungslink.",
-    "googleLoading": "Anmeldung mit Google..."
+    "googleLoading": "Anmeldung mit Google...",
+    "appleLoading": "Anmeldung mit Apple..."
   },
   "downloadApp": {
     "title": "App herunterladen",
@@ -800,7 +801,8 @@
     "COMPLETED_AT_IN_FUTURE": "Das Abschlussdatum darf nicht in der Zukunft liegen.",
     "COMPLETED_AT_BEFORE_PLAN_START": "Das Abschlussdatum darf nicht vor dem Startdatum des Plans liegen.",
     "session_locked": "Einheit ist derzeit gesperrt — Speichern fehlgeschlagen.",
-    "social_email_conflict": "Diese E-Mail ist mit einem Passwort registriert. Bitte melden Sie sich mit E-Mail und Passwort an."
+    "social_email_conflict": "Diese E-Mail ist mit einem Passwort registriert. Bitte melden Sie sich mit E-Mail und Passwort an.",
+    "APPLE_NO_EMAIL_NO_LINK": "Apple-Anmeldung fehlgeschlagen: Es wurde keine E-Mail angegeben. Öffnen Sie Einstellungen > Apple-ID und erlauben Sie das Teilen der E-Mail mit dieser App."
   },
   "nutritionGoals": {
     "title": "Ziele & Makros",
