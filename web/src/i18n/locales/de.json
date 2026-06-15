@@ -99,7 +99,9 @@
     "verifyEmailExpired": "Link abgelaufen. Fordern Sie einen neuen an.",
     "verifyEmailInvalid": "Ungültiger Bestätigungslink.",
     "googleLoading": "Anmeldung mit Google...",
-    "appleLoading": "Anmeldung mit Apple..."
+    "appleLoading": "Anmeldung mit Apple...",
+    "continueWithGoogle": "Mit Google fortfahren",
+    "continueWithApple": "Mit Apple fortfahren"
   },
   "downloadApp": {
     "title": "App herunterladen",
