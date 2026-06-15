@@ -99,7 +99,9 @@
     "verifyEmailExpired": "Link expired. Request a new one.",
     "verifyEmailInvalid": "Invalid verification link.",
     "googleLoading": "Signing in with Google...",
-    "appleLoading": "Signing in with Apple..."
+    "appleLoading": "Signing in with Apple...",
+    "continueWithGoogle": "Continue with Google",
+    "continueWithApple": "Continue with Apple"
   },
   "downloadApp": {
     "title": "Download the app",

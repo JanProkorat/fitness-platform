@@ -99,7 +99,9 @@
     "verifyEmailExpired": "Odkaz vypršel. Nechte si odeslat nový.",
     "verifyEmailInvalid": "Neplatný ověřovací odkaz.",
     "googleLoading": "Přihlašuji přes Google...",
-    "appleLoading": "Přihlašuji přes Apple..."
+    "appleLoading": "Přihlašuji přes Apple...",
+    "continueWithGoogle": "Pokračovat přes Google",
+    "continueWithApple": "Pokračovat přes Apple"
   },
   "downloadApp": {
     "title": "Stáhněte si aplikaci",
