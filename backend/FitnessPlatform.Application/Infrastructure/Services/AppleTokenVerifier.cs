@@ -32,21 +32,40 @@ public class AppleTokenVerifier : IAppleTokenVerifier
     /// <param name="httpClientFactory">Factory for creating named HTTP clients.</param>
     /// <param name="config">Application configuration (reads <c>Apple:ClientId</c>).</param>
     public AppleTokenVerifier(IHttpClientFactory httpClientFactory, IConfiguration config)
+        : this(config, BuildConfigManager(httpClientFactory))
+    {
+    }
+
+    /// <summary>
+    /// Test seam constructor — injects a pre-configured OIDC config manager so tests
+    /// can supply a self-signed RSA key without making real network calls.
+    /// </summary>
+    internal AppleTokenVerifier(
+        IConfiguration config,
+        IConfigurationManager<OpenIdConnectConfiguration> configManager)
     {
         _config = config;
+        _configManager = configManager;
 
+        // MapInboundClaims = false is REQUIRED: the default (true) remaps the JWT's
+        // short claim names ("sub", "email", …) to long XML URI types, which makes
+        // FindFirstValue("sub") return null and breaks every real Apple token.
+        _tokenHandler = new JwtSecurityTokenHandler { MapInboundClaims = false };
+    }
+
+    private static IConfigurationManager<OpenIdConnectConfiguration> BuildConfigManager(
+        IHttpClientFactory httpClientFactory)
+    {
         // Use the ConfigurationManager pattern so JWKS is fetched and cached automatically.
         // It refreshes keys when the cache age exceeds the default (1 hour) or when an
         // unknown "kid" is encountered — handles Apple's key rotation.
         var httpClient = httpClientFactory.CreateClient("AppleAuth");
         var httpDocRetriever = new HttpDocumentRetriever(httpClient) { RequireHttps = true };
 
-        _configManager = new ConfigurationManager<OpenIdConnectConfiguration>(
+        return new ConfigurationManager<OpenIdConnectConfiguration>(
             AppleDiscoveryEndpoint,
             new OpenIdConnectConfigurationRetriever(),
             httpDocRetriever);
-
-        _tokenHandler = new JwtSecurityTokenHandler();
     }
 
     /// <inheritdoc />
