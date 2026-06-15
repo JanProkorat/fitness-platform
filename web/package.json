@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "generate-api": "cd ../backend && curl -sk https://localhost:5001/swagger/v1/swagger.json -o swagger.json && dotnet nswag run nswag.json && sed -i '' 's|/\\* eslint-disable \\*/|/* eslint-disable */\\n// @ts-nocheck|' ../web/src/api/generated.ts",
+    "generate-api:e2e": "cd ../backend && curl -sk \"$(../scripts/test-env ports | jq -r .api_url)/swagger/v1/swagger.json\" -o swagger.json && dotnet nswag run nswag.json && sed -i '' 's|/\\* eslint-disable \\*/|/* eslint-disable */\\n// @ts-nocheck|' ../web/src/api/generated.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
   },
