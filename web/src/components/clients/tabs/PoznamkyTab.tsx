@@ -41,10 +41,12 @@ function NoteCard({ note, clientId }: NoteCardProps) {
   const addToast = useToastStore((s) => s.addToast);
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
-  const [editText, setEditText] = useState(note.text);
+  const [editText, setEditText] = useState(note.text ?? '');
 
   const updateMutation = useMutation({
-    mutationFn: (text: string) => updateNote(clientId, note.noteId, text),
+    // NoteDto.noteId is technically optional in the generated type, but the
+    // backend always populates it; the fallback '' is a safety net only.
+    mutationFn: (text: string) => updateNote(clientId, note.noteId ?? '', text),
     onMutate: async (text: string) => {
       await queryClient.cancelQueries({
         queryKey: ['trainer-notes', clientId],
@@ -80,7 +82,9 @@ function NoteCard({ note, clientId }: NoteCardProps) {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: () => deleteNote(clientId, note.noteId),
+    // NoteDto.noteId is technically optional in the generated type, but the
+    // backend always populates it; the fallback '' is a safety net only.
+    mutationFn: () => deleteNote(clientId, note.noteId ?? ''),
     onMutate: async () => {
       await queryClient.cancelQueries({
         queryKey: ['trainer-notes', clientId],
@@ -126,7 +130,7 @@ function NoteCard({ note, clientId }: NoteCardProps) {
             className="text-[12px] text-text3 px-3 py-1.5 border border-border rounded-[var(--radius-sm)] hover:bg-bg-hover transition-colors"
             onClick={() => {
               setEditing(false);
-              setEditText(note.text);
+              setEditText(note.text ?? '');
             }}
           >
             {t('common.cancel')}
@@ -151,7 +155,7 @@ function NoteCard({ note, clientId }: NoteCardProps) {
         <div className="text-[13px] text-text whitespace-pre-wrap break-words">
           {note.text}
         </div>
-        <div className="text-[11px] text-text3 mt-1">{formatDate(note.createdAt)}</div>
+        <div className="text-[11px] text-text3 mt-1">{note.createdAt ? formatDate(note.createdAt) : ''}</div>
       </div>
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
         <button

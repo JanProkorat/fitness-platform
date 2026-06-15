@@ -11,7 +11,7 @@ interface PlanyTabProps {
 
 // ── Date formatting helpers ───────────────────────────────────────────────────
 
-function formatDate(iso: string | null): string {
+function formatDate(iso: string | null | undefined): string {
   if (!iso) return '';
   return new Date(iso).toLocaleDateString('cs-CZ', {
     day: 'numeric',
@@ -20,7 +20,7 @@ function formatDate(iso: string | null): string {
   });
 }
 
-function formatPeriod(periodStart: string | null, periodEnd: string | null): string {
+function formatPeriod(periodStart: string | null | undefined, periodEnd: string | null | undefined): string {
   const start = formatDate(periodStart);
   const end = formatDate(periodEnd);
   if (!start && !end) return '—';
@@ -32,7 +32,10 @@ function formatPeriod(periodStart: string | null, periodEnd: string | null): str
 // ── Status chip ───────────────────────────────────────────────────────────────
 
 interface StatusChipProps {
-  status: PlanStatus;
+  // Accept string because the generated ClientPlanItem.status field is typed
+  // as `string | undefined`; the modifierMap lookup falls back to 'tag-gray'
+  // for any unrecognised or undefined value.
+  status: string | undefined;
   label: string;
 }
 
@@ -45,8 +48,9 @@ function StatusChip({ status, label }: StatusChipProps) {
     Draft: 'tag-gray',
     Archived: 'tag-gray',
   };
+  const modifier = status != null ? (modifierMap[status as PlanStatus] ?? 'tag-gray') : 'tag-gray';
   return (
-    <span className={`tag ${modifierMap[status] ?? 'tag-gray'}`}>
+    <span className={`tag ${modifier}`}>
       {label}
     </span>
   );
@@ -56,6 +60,9 @@ function StatusChip({ status, label }: StatusChipProps) {
 
 function formatResultSummary(plan: ClientPlanItem, t: TFunction): string {
   const { planType, resultSummary: r } = plan;
+
+  // resultSummary is optional in the generated type; guard before accessing fields.
+  if (!r) return '—';
 
   if (planType === 'Nutrition') {
     const parts: string[] = [];
@@ -102,7 +109,7 @@ function formatResultSummary(plan: ClientPlanItem, t: TFunction): string {
 
 // ── Plan type emoji prefix ────────────────────────────────────────────────────
 
-function planTypeEmoji(planType: string): string {
+function planTypeEmoji(planType: string | undefined): string {
   return planType === 'Nutrition' ? '🥗' : '🏋️';
 }
 
@@ -123,6 +130,7 @@ export function PlanyTab({ clientId }: PlanyTabProps) {
   const isEmpty = !isPending && !isError && plans.length === 0;
 
   function handleRowClick(plan: ClientPlanItem) {
+    if (!plan.planId) return;
     if (plan.planType === 'Nutrition') {
       navigate(`/clients/${clientId}/plans/${plan.planId}`);
     } else {
@@ -192,7 +200,7 @@ export function PlanyTab({ clientId }: PlanyTabProps) {
             <tbody>
               {plans.map((plan) => {
                 const statusLabel = t(
-                  `clientDetail.plany.status.${plan.status.toLowerCase()}`,
+                  `clientDetail.plany.status.${(plan.status ?? '').toLowerCase()}`,
                 );
                 return (
                   <tr
@@ -207,7 +215,7 @@ export function PlanyTab({ clientId }: PlanyTabProps) {
                         handleRowClick(plan);
                       }
                     }}
-                    aria-label={`${t('clientDetail.plany.table.openPlan')} ${plan.name}`}
+                    aria-label={`${t('clientDetail.plany.table.openPlan')} ${plan.name ?? ''}`}
                   >
                     <td className="row-title py-2.5 pr-4 font-medium text-text">
                       <span className="mr-1.5">{planTypeEmoji(plan.planType)}</span>

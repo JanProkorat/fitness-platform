@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { ClientVerdictResponse } from '@/api/client-verdict';
+import type { GetClientVerdictResponse } from '@/api/client-verdict';
 
 interface WeightBar {
   pct: number;
@@ -11,7 +11,7 @@ interface ProgressSnapshotProps {
   startWeight?: number | null;
   currentWeight?: number | null;
   targetWeight?: number | null;
-  verdict?: ClientVerdictResponse | null;
+  verdict?: GetClientVerdictResponse | null;
   onAllMeasurementsClick: () => void;
 }
 

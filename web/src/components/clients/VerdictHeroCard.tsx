@@ -1,15 +1,16 @@
 import { useTranslation } from 'react-i18next';
-import type { ClientVerdictResponse } from '@/api/client-verdict';
+import type { GetClientVerdictResponse } from '@/api/client-verdict';
+import { ClientVerdict, WeightDirection } from '@/api/client-verdict';
 
 interface VerdictHeroCardProps {
-  verdict: ClientVerdictResponse;
+  verdict: GetClientVerdictResponse;
 }
 
 export function VerdictHeroCard({ verdict }: VerdictHeroCardProps) {
   const { t } = useTranslation();
 
-  const isOnTrack = verdict.verdict === 'OnTrack';
-  const isNeedsAttention = verdict.verdict === 'NeedsAttention';
+  const isOnTrack = verdict.verdict === ClientVerdict.OnTrack;
+  const isNeedsAttention = verdict.verdict === ClientVerdict.NeedsAttention;
 
   const borderClass = isOnTrack
     ? 'border-green-bg'
@@ -51,7 +52,7 @@ export function VerdictHeroCard({ verdict }: VerdictHeroCardProps) {
 
   // Format weight delta signal
   const weightSignal = verdict.weightDeltaToGoal != null
-    ? `${verdict.weightDeltaToGoal < 0 ? '' : '+'}${verdict.weightDeltaToGoal.toFixed(1)} kg ${verdict.weightDirection === 'Towards' ? '↘' : verdict.weightDirection === 'Away' ? '↗' : '→'}`
+    ? `${verdict.weightDeltaToGoal < 0 ? '' : '+'}${verdict.weightDeltaToGoal.toFixed(1)} kg ${verdict.weightDirection === WeightDirection.Towards ? '↘' : verdict.weightDirection === WeightDirection.Away ? '↗' : '→'}`
     : '—';
 
   // Training frequency signal

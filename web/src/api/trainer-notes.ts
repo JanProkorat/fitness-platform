@@ -1,21 +1,19 @@
 import api from '@/lib/api';
+import type {
+  NoteDto,
+  CreateNoteResponse,
+  EditNoteResponse,
+  ListNotesResponse,
+} from '@/api/generated';
 
-export interface TrainerNote {
-  noteId: string;
-  text: string;
-  createdAt: string;
-  updatedAt: string;
-}
+// Re-export generated types so consumers can import from this module unchanged.
+export type { CreateNoteResponse, EditNoteResponse, ListNotesResponse };
 
-export interface CreateNoteResponse {
-  noteId: string;
-  createdAt: string;
-}
-
-export interface ListNotesResponse {
-  notes: TrainerNote[];
-  totalCount: number;
-}
+/**
+ * Alias for the generated NoteDto — keeps consumer imports stable
+ * (`import type { TrainerNote } from '@/api/trainer-notes'`).
+ */
+export type TrainerNote = NoteDto;
 
 export async function createNote(
   clientId: string,
@@ -32,19 +30,13 @@ export async function listNotes(
   clientId: string,
   page = 1,
   pageSize = 20,
-): Promise<ListNotesResponse> {
-  const { data, headers } = await api.get<{ notes: TrainerNote[] }>(
+): Promise<{ notes: TrainerNote[]; totalCount: number }> {
+  const { data, headers } = await api.get<ListNotesResponse>(
     `/trainer/clients/${clientId}/notes`,
     { params: { page, pageSize } },
   );
   const totalCount = parseInt(headers['x-total-count'] ?? '0', 10);
   return { notes: data.notes ?? [], totalCount };
-}
-
-export interface EditNoteResponse {
-  noteId: string;
-  text: string;
-  updatedAt: string;
 }
 
 export async function updateNote(
