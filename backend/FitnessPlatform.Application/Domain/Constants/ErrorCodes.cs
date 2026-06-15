@@ -13,6 +13,9 @@ public static class ErrorCodes
     /// <summary>Google-verified email matches a password-only account with no Google external login. The user should sign in with their password.</summary>
     public const string SocialEmailConflict = "social_email_conflict";
 
+    /// <summary>Apple did not provide an email in the identity token, and no (apple, sub) link exists. Cannot provision or log in without an email address.</summary>
+    public const string AppleNoEmailNoLink = "APPLE_NO_EMAIL_NO_LINK";
+
     /// <summary>Account is deactivated.</summary>
     public const string AccountDeactivated = "ACCOUNT_DEACTIVATED";
 

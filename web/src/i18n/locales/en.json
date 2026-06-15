@@ -98,7 +98,8 @@
     "verifyEmailSuccess": "Email verified successfully.",
     "verifyEmailExpired": "Link expired. Request a new one.",
     "verifyEmailInvalid": "Invalid verification link.",
-    "googleLoading": "Signing in with Google..."
+    "googleLoading": "Signing in with Google...",
+    "appleLoading": "Signing in with Apple..."
   },
   "downloadApp": {
     "title": "Download the app",
@@ -801,7 +802,8 @@
     "COMPLETED_AT_IN_FUTURE": "Completion date cannot be in the future.",
     "COMPLETED_AT_BEFORE_PLAN_START": "Completion date cannot be before the plan's start date.",
     "session_locked": "Session is currently locked — save failed.",
-    "social_email_conflict": "This email is registered with a password. Please sign in with your email and password."
+    "social_email_conflict": "This email is registered with a password. Please sign in with your email and password.",
+    "APPLE_NO_EMAIL_NO_LINK": "Apple sign-in failed: no email was provided. Open Settings > Apple ID and allow email sharing with this app."
   },
   "nutritionGoals": {
     "title": "Goals & Macros",
