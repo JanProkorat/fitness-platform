@@ -309,7 +309,7 @@ export default function ClientDetailPage() {
               aria-labelledby="cl-tab-checkiny"
               className="tab-content-transition"
             >
-              <CheckinyTab clientUserId={id!} />
+              <CheckinyTab clientUserId={client.clientUserId} />
             </div>
           )}
 

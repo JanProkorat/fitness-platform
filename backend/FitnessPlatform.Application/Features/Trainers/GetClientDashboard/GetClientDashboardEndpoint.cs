@@ -192,6 +192,7 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
         {
             LinkId = link.Id,
             ClientPublicId = clientProfile.PublicId,
+            ClientUserId = clientProfile.UserId,
             Email = clientProfile.User.Email!,
             FirstName = clientProfile.User.FirstName,
             LastName = clientProfile.User.LastName,

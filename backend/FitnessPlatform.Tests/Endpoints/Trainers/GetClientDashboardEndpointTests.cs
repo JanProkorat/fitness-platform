@@ -52,6 +52,45 @@ public class GetClientDashboardEndpointTests
         ep.Response.TotalMeasurements.Should().Be(0);
         ep.Response.TotalProgressPhotos.Should().Be(0);
         ep.Response.LinkId.Should().Be(99);
+        ep.Response.ClientUserId.Should().Be(clientUser.Id);
+    }
+
+    [Fact]
+    public async Task HandleAsync_LinkedClient_ReturnsClientUserId_MatchingApplicationUserId()
+    {
+        // ClientUserId must equal the ApplicationUser.Id (the FK on ClientProfile),
+        // which differs from ClientPublicId. This is the identifier the weekly-check-in
+        // endpoint filters on.
+        var clientUser = EntityBuilder.User.WithEmail("checkin@test.com")
+            .WithFirstName("Check").WithLastName("In").Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(2).WithUserId(_trainerId).Build();
+        var clientProfile = EntityBuilder.ClientProfile.WithId(2).WithUser(clientUser).Build();
+        var link = EntityBuilder.ClientProfessionalLink
+            .WithId(100)
+            .WithClientProfile(clientProfile)
+            .WithProfessionalProfile(trainerProfile)
+            .Build();
+
+        var db = new MockDbBuilder()
+            .With(trainerProfile)
+            .With(clientProfile)
+            .With(link)
+            .Build();
+
+        var ep = Factory.Create<GetClientDashboardEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
+                new System.Security.Claims.ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            db, _audit, _complianceService);
+
+        await ep.HandleAsync(new GetClientDashboardRequest
+        {
+            ClientId = clientProfile.PublicId
+        }, TestContext.Current.CancellationToken);
+
+        ep.Response.ClientUserId.Should().Be(clientUser.Id);
+        ep.Response.ClientPublicId.Should().Be(clientProfile.PublicId);
+        ep.Response.ClientUserId.Should().NotBe(clientProfile.PublicId);
     }
 
     [Fact]

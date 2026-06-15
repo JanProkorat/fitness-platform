@@ -66,6 +66,8 @@ export interface OnboardingData {
 
 export interface ClientDashboard {
   clientPublicId: string;
+  /** ApplicationUser.Id for the client. Used for weekly check-in queries. */
+  clientUserId: string;
   /** Internal integer PK of the ClientProfessionalLink row. Used for diary requests. */
   linkId?: number | null;
   email: string;

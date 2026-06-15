@@ -17,6 +17,13 @@ public class GetClientDashboardResponse
     public Guid ClientPublicId { get; set; }
 
     /// <summary>
+    /// The client's <c>ApplicationUser.Id</c> (= <c>ClientProfile.UserId</c>).
+    /// This is the identifier used by the weekly-check-in and schedule-override
+    /// endpoints — it differs from <see cref="ClientPublicId"/>.
+    /// </summary>
+    public Guid ClientUserId { get; set; }
+
+    /// <summary>
     /// The client's email address.
     /// </summary>
     public string Email { get; set; } = string.Empty;
