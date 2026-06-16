@@ -1,8 +1,12 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
+using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.ClientMeasurements.GetMeasurementStats;
 
@@ -10,7 +14,8 @@ namespace FitnessPlatform.Application.Features.ClientMeasurements.GetMeasurement
 /// Returns aggregated weight statistics for the authenticated client's measurements.
 /// </summary>
 /// <param name="db">Database context.</param>
-public class GetMeasurementStatsEndpoint(IApplicationDbContext db) : EndpointWithoutRequest<MeasurementStatsResponse>
+/// <param name="mongo">MongoDB context for reading target weight from the active nutrition plan.</param>
+public class GetMeasurementStatsEndpoint(IApplicationDbContext db, IMongoContext mongo) : EndpointWithoutRequest<MeasurementStatsResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -55,7 +60,30 @@ public class GetMeasurementStatsEndpoint(IApplicationDbContext db) : EndpointWit
 
         var hasWeightData = await weightMeasurements.AnyAsync(ct);
 
-        var targetWeightKg = clientProfile.OnboardingData?.TargetWeightKg;
+        // Query the active NutritionPlan to source targetWeightKg plan-first.
+        // Fallback to OnboardingData only when the plan value is null.
+        // Key: plan.ClientId == clientProfile.UserId (the ApplicationUser.Id Guid, NOT PublicId).
+        decimal? planTargetWeightKg = null;
+        try
+        {
+            var planFilter = Builders<NutritionPlan>.Filter.And(
+                Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientId),
+                Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active));
+
+            using var planCursor = await mongo.NutritionPlans.FindAsync(
+                planFilter,
+                new FindOptions<NutritionPlan> { Sort = Builders<NutritionPlan>.Sort.Descending(p => p.DateCreated), Limit = 1 },
+                ct);
+            var activePlan = await planCursor.FirstOrDefaultAsync(ct);
+            planTargetWeightKg = activePlan?.TargetWeightKg;
+        }
+        catch
+        {
+            // Active plan query is optional — fall back to onboarding if Mongo is unavailable
+        }
+
+        // Plan-first: prefer plan's targetWeightKg; fall back to onboarding baseline.
+        var targetWeightKg = planTargetWeightKg ?? clientProfile.OnboardingData?.TargetWeightKg;
 
         if (!hasWeightData)
         {

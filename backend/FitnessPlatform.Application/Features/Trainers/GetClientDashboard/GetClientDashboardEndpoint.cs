@@ -1,11 +1,14 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
+using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.Trainers.GetClientDashboard;
 
@@ -16,7 +19,8 @@ namespace FitnessPlatform.Application.Features.Trainers.GetClientDashboard;
 /// <param name="db">Database context.</param>
 /// <param name="audit">Audit logging service.</param>
 /// <param name="complianceService">Service for calculating compliance metrics.</param>
-public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService audit, IComplianceService complianceService)
+/// <param name="mongo">MongoDB context for reading active plan goal/macros.</param>
+public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService audit, IComplianceService complianceService, IMongoContext mongo)
     : Endpoint<GetClientDashboardRequest, GetClientDashboardResponse>
 {
     /// <inheritdoc />
@@ -152,15 +156,40 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
             questionnaireResponsePublicId = qResponse.PublicId;
         }
 
+        // Query the active NutritionPlan to source goal + targetWeightKg plan-first.
+        // Fallback to OnboardingData only when the plan value is null.
+        // Key: plan.ClientId == clientProfile.UserId (the ApplicationUser.Id Guid, NOT PublicId).
+        NutritionPlan? activePlan = null;
+        try
+        {
+            var planFilter = Builders<NutritionPlan>.Filter.And(
+                Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientProfile.UserId),
+                Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active));
+
+            using var planCursor = await mongo.NutritionPlans.FindAsync(
+                planFilter,
+                new FindOptions<NutritionPlan> { Sort = Builders<NutritionPlan>.Sort.Descending(p => p.DateCreated), Limit = 1 },
+                ct);
+            activePlan = await planCursor.FirstOrDefaultAsync(ct);
+        }
+        catch
+        {
+            // Active plan query is optional — fall back to onboarding if Mongo is unavailable
+        }
+
         OnboardingDataDto? onboarding = null;
         if (clientProfile.OnboardingData is { } od)
         {
+            // Plan-first: prefer plan's goal and targetWeightKg; fall back to onboarding baseline.
+            var effectiveTargetWeightKg = activePlan?.TargetWeightKg ?? od.TargetWeightKg;
+            var effectivePrimaryGoal = activePlan?.Goal?.ToString() ?? od.PrimaryGoal.ToString();
+
             onboarding = new OnboardingDataDto
             {
                 Sex = od.Sex.ToString(),
-                TargetWeightKg = od.TargetWeightKg,
+                TargetWeightKg = effectiveTargetWeightKg,
                 BodyType = od.BodyType.ToString(),
-                PrimaryGoal = od.PrimaryGoal.ToString(),
+                PrimaryGoal = effectivePrimaryGoal,
                 TimeHorizon = od.TimeHorizon.ToString(),
                 JobType = od.JobType.ToString(),
                 SleepHours = od.SleepHours,
