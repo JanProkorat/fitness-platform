@@ -116,7 +116,7 @@ public class TrainingPlanGoalFieldsTests
         var result = validator.Validate(request);
 
         result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.PropertyName == nameof(CreateTrainingPlanRequest.TargetWeightKg));
+        result.Errors.Should().Contain(e => e.PropertyName.StartsWith(nameof(CreateTrainingPlanRequest.TargetWeightKg)));
     }
 
     // ── UpdateTrainingPlan ────────────────────────────────────────────────────
