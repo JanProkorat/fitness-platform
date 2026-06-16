@@ -203,6 +203,9 @@ export default function LoginScreen() {
     await promptGoogleAsync();
   };
 
+  // Combined guard: disable all auth buttons while either login is in flight.
+  const busy = loading || googleLoading;
+
   const styles = makeStyles(colors);
 
   return (
@@ -239,7 +242,7 @@ export default function LoginScreen() {
         <TouchableOpacity
           style={[styles.button, loading && styles.buttonDisabled]}
           onPress={handleLogin}
-          disabled={loading}
+          disabled={busy}
           activeOpacity={0.8}
         >
           <Text style={styles.buttonText}>
@@ -251,9 +254,9 @@ export default function LoginScreen() {
             Disabled while loading or while the nonce prefetch is in flight
             (googleNonce === null) to prevent a prompt with no nonce. */}
         <TouchableOpacity
-          style={[styles.socialButton, (googleLoading || googleNonce === null) && styles.buttonDisabled]}
+          style={[styles.socialButton, (busy || googleNonce === null) && styles.buttonDisabled]}
           onPress={handleGoogleSignIn}
-          disabled={googleLoading || googleNonce === null}
+          disabled={busy || googleNonce === null}
           activeOpacity={0.8}
           accessibilityLabel={t('auth.login.continueWithGoogle')}
         >

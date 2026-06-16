@@ -26,7 +26,8 @@ export async function requestSocialNonce(): Promise<string> {
  * The backend verifies the ID token via GoogleJsonWebSignature.ValidateAsync,
  * checks the nonce claim, and returns platform JWT tokens.
  *
- * Note: idToken is the ID token JWT from @react-native-google-signin/google-signin,
+ * Note: idToken is the ID token JWT obtained from expo-auth-session's Google provider
+ * (expo-auth-session/providers/google with ResponseType.IdToken),
  * NOT an OAuth access token. Google embeds the raw nonce directly in the id_token
  * nonce claim (no hashing, unlike Apple).
  *
