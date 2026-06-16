@@ -67,6 +67,23 @@ public class NutritionPlan
     public List<Supplement> Supplements { get; set; } = [];
 
     /// <summary>
+    /// Primary fitness goal for this plan period.
+    /// When set, read sites prefer this value over the client's onboarding baseline.
+    /// </summary>
+    [BsonElement("goal")]
+    [BsonIgnoreIfNull]
+    [BsonRepresentation(BsonType.String)]
+    public PrimaryGoal? Goal { get; set; }
+
+    /// <summary>
+    /// Target body weight in kilograms for this plan period.
+    /// When set, read sites prefer this value over the client's onboarding baseline.
+    /// </summary>
+    [BsonElement("targetWeightKg")]
+    [BsonIgnoreIfNull]
+    public decimal? TargetWeightKg { get; set; }
+
+    /// <summary>
     /// Optimistic concurrency version. Incremented on each update.
     /// </summary>
     [BsonElement("version")]
