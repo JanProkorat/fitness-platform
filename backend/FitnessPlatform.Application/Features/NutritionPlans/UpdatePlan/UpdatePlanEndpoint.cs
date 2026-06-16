@@ -129,8 +129,13 @@ public class UpdatePlanEndpoint(IMongoContext mongo, IMacroCalculatorService mac
         plan.Name = req.Name;
         plan.StartDate = req.StartDate.HasValue ? DateTime.SpecifyKind(req.StartDate.Value.Date, DateTimeKind.Utc) : null;
         plan.GlobalSettings = req.GlobalSettings;
-        plan.Goal = req.Goal;
-        plan.TargetWeightKg = req.TargetWeightKg;
+        // Transitional guard: web/mobile clients built against the pre-#493 Swagger do not
+        // yet send Goal/TargetWeightKg in their update payloads, so the fields arrive as
+        // null. Blindly assigning would clobber a goal set at create-time or via the
+        // backfill migration. Preserve the stored value whenever the caller omits the field.
+        // Explicit clear-to-null will be supported once regen-api ships the updated contract.
+        if (req.Goal.HasValue) plan.Goal = req.Goal;
+        if (req.TargetWeightKg.HasValue) plan.TargetWeightKg = req.TargetWeightKg;
         plan.Weeks = req.Weeks.Select(rw =>
         {
             var existing = existingWeeks.GetValueOrDefault(rw.WeekNumber);

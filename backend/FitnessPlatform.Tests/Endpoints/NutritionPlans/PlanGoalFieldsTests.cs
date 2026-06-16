@@ -176,8 +176,14 @@ public class PlanGoalFieldsTests
             Arg.Any<CancellationToken>());
     }
 
+    /// <summary>
+    /// Regression test for #493: the pre-regen web/mobile client omits Goal and
+    /// TargetWeightKg from update payloads (both arrive as null). The endpoint must
+    /// preserve the stored values rather than clobbering them with null. This guards
+    /// against the transitional period before regen-api ships the updated contract.
+    /// </summary>
     [Fact]
-    public async Task UpdatePlan_ClearsGoalToNull_PersistsNull()
+    public async Task UpdatePlan_OmitsGoalAndTarget_PreservesStoredValues()
     {
         var planId = Guid.NewGuid();
         var plan = PlanTestHelpers.CreatePlan(
@@ -200,23 +206,28 @@ public class PlanGoalFieldsTests
             new MockDbBuilder().Build(),
             Substitute.For<IRealtimeNotifier>());
 
+        // Simulate a legacy client payload: Goal and TargetWeightKg are null (omitted)
+        // while another field (Name) is legitimately updated.
         var req = new UpdatePlanRequest
         {
             PlanId = planId,
-            Name = "Plan Without Goal",
+            Name = "Renamed Plan",
             Version = 1,
-            Goal = null,
-            TargetWeightKg = null,
+            Goal = null,          // omitted by old client — must NOT clear the stored goal
+            TargetWeightKg = null, // omitted by old client — must NOT clear the stored weight
             Weeks = []
         };
 
         await ep.HandleAsync(req, TestContext.Current.CancellationToken);
 
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        // The persisted document must still carry the original Goal and TargetWeightKg.
         await mongo.NutritionPlans.Received(1).ReplaceOneAsync(
             Arg.Any<FilterDefinition<NutritionPlan>>(),
             Arg.Is<NutritionPlan>(p =>
-                p.Goal == null &&
-                p.TargetWeightKg == null),
+                p.Goal == PrimaryGoal.LoseFat &&
+                p.TargetWeightKg == 70.0m),
             Arg.Any<ReplaceOptions>(),
             Arg.Any<CancellationToken>());
     }

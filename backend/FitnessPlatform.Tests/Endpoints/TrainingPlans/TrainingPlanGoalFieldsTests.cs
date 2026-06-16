@@ -162,6 +162,57 @@ public class TrainingPlanGoalFieldsTests
             Arg.Any<CancellationToken>());
     }
 
+    /// <summary>
+    /// Regression test for #493: the pre-regen web/mobile client omits Goal and
+    /// TargetWeightKg from update payloads (both arrive as null). The endpoint must
+    /// preserve the stored values rather than clobbering them with null.
+    /// </summary>
+    [Fact]
+    public async Task UpdateTrainingPlan_OmitsGoalAndTarget_PreservesStoredValues()
+    {
+        var planId = Guid.NewGuid();
+        var plan = TrainingPlanTestHelpers.CreatePlan(
+            externalId: planId,
+            trainerId: _trainerId,
+            weekCount: 1,
+            version: 1);
+        plan.Goal = PrimaryGoal.GainMuscle;
+        plan.TargetWeightKg = 88.5m;
+
+        var mongo = TrainingPlanTestHelpers.CreateMockMongo(plan);
+
+        var ep = Factory.Create<UpdateTrainingPlanEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            mongo, StubLockService(), Substitute.For<IRealtimeNotifier>());
+
+        // Simulate a legacy client payload: Goal and TargetWeightKg are null (omitted)
+        // while another field (Name) is legitimately updated.
+        var request = new UpdateTrainingPlanRequest
+        {
+            PlanId = planId,
+            Name = "Renamed Block",
+            Version = 1,
+            Goal = null,           // omitted by old client — must NOT clear the stored goal
+            TargetWeightKg = null, // omitted by old client — must NOT clear the stored weight
+            Weeks = [new UpdateTrainingWeekRequest { WeekNumber = 1, Sessions = [] }]
+        };
+
+        await ep.HandleAsync(request, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        // The persisted document must still carry the original Goal and TargetWeightKg.
+        await mongo.TrainingPlans.Received(1).ReplaceOneAsync(
+            Arg.Any<FilterDefinition<TrainingPlan>>(),
+            Arg.Is<TrainingPlan>(p =>
+                p.Goal == PrimaryGoal.GainMuscle &&
+                p.TargetWeightKg == 88.5m),
+            Arg.Any<ReplaceOptions>(),
+            Arg.Any<CancellationToken>());
+    }
+
     [Fact]
     public async Task UpdateTrainingPlan_StaleConcurrencyVersion_Returns409()
     {
