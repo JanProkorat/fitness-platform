@@ -290,6 +290,24 @@ if (args.Contains("--backfill-photo-descriptions"))
     return;
 }
 
+// One-shot backfill: copy goal + targetWeightKg from ClientOnboardingData onto existing
+// NutritionPlan and TrainingPlan MongoDB documents that were created before the plan-level
+// goal fields were introduced.
+// Usage: dotnet run -- --backfill-plan-goals
+if (args.Contains("--backfill-plan-goals"))
+{
+    using var scope = app.Services.CreateScope();
+    var db     = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
+    var mongoc = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+    var logFactory = scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
+    var svc = new FitnessPlatform.Application.Infrastructure.Services.PlanGoalBackfillService(
+        db, mongoc, logFactory.CreateLogger<FitnessPlatform.Application.Infrastructure.Services.PlanGoalBackfillService>());
+    var (nutritionCount, trainingCount) = await svc.BackfillAsync();
+    Console.WriteLine($"Nutrition plans updated: {nutritionCount}");
+    Console.WriteLine($"Training plans updated:  {trainingCount}");
+    return;
+}
+
 // Auto-apply pending EF Core migrations — OPT-IN via Database:RunMigrationsOnStartup=true.
 //
 // This flag is intentionally OFF by default. It must be set explicitly in the
