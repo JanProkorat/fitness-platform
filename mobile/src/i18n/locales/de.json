@@ -1128,7 +1128,10 @@
       "signUp": "Registrieren",
       "forgotLink": "Passwort vergessen?",
       "failedTitle": "Anmeldung fehlgeschlagen",
-      "failedMessage": "Ungültige E-Mail oder Passwort."
+      "failedMessage": "Ungültige E-Mail oder Passwort.",
+      "continueWithGoogle": "Mit Google fortfahren",
+      "googleSigningIn": "Anmeldung mit Google…",
+      "googleConflict": "Diese E-Mail ist bereits mit einem Passwort registriert. Bitte melde dich mit E-Mail und Passwort an."
     },
     "forgot": {
       "title": "Passwort vergessen",

@@ -1151,7 +1151,10 @@
       "signUp": "Zaregistrovat se",
       "forgotLink": "Zapomněli jste heslo?",
       "failedTitle": "Přihlášení selhalo",
-      "failedMessage": "Neplatný email nebo heslo."
+      "failedMessage": "Neplatný email nebo heslo.",
+      "continueWithGoogle": "Pokračovat přes Google",
+      "googleSigningIn": "Přihlašování přes Google…",
+      "googleConflict": "Tento email je již registrován s heslem. Přihlaste se emailem a heslem."
     },
     "forgot": {
       "title": "Zapomenuté heslo",
