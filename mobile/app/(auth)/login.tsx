@@ -15,9 +15,10 @@ import { useTranslation } from 'react-i18next';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
 import { ResponseType } from 'expo-auth-session';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import axios from 'axios';
 import api from '@/api/client';
-import { requestSocialNonce, googleSocialLogin } from '@/api/social';
+import { requestSocialNonce, googleSocialLogin, appleSocialLogin } from '@/api/social';
 import { useAuthStore } from '@/stores/auth';
 import { useTheme } from '@/hooks/useTheme';
 import { Colors, type ColorScheme } from '@/constants/colors';
@@ -34,6 +35,9 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
+  // Whether Apple Sign In is available on this device (iOS only).
+  const [appleAvailable, setAppleAvailable] = useState(false);
 
   // Server-issued nonce for the current Google sign-in attempt.
   // Fetched on mount and refreshed after each attempt (nonces are single-use).
@@ -62,6 +66,14 @@ export default function LoginScreen() {
   useEffect(() => {
     fetchGoogleNonce();
   }, [fetchGoogleNonce]);
+
+  // Check Apple Sign In availability on mount (iOS only — always false on Android/web).
+  useEffect(() => {
+    if (Platform.OS !== 'ios') return;
+    AppleAuthentication.isAvailableAsync()
+      .then(setAppleAvailable)
+      .catch(() => setAppleAvailable(false));
+  }, []);
 
   // Build the Google auth request with the server-issued nonce in extraParams.
   // The nonce is passed as a raw string; Google embeds it verbatim in the
@@ -203,8 +215,96 @@ export default function LoginScreen() {
     await promptGoogleAsync();
   };
 
-  // Combined guard: disable all auth buttons while either login is in flight.
-  const busy = loading || googleLoading;
+  const handleAppleSignIn = async () => {
+    // Guard against concurrent auth flows.
+    if (loading || googleLoading || appleLoading) return;
+    // Fetch a fresh single-use nonce from the backend before opening the Apple sheet.
+    // The raw nonce is passed to Apple; Apple embeds SHA-256(rawNonce) in the
+    // identity token. The backend receives the raw nonce and hashes it for comparison.
+    let rawNonce: string;
+    try {
+      rawNonce = await requestSocialNonce();
+    } catch {
+      Alert.alert(t('auth.login.failedTitle'), t('auth.login.failedMessage'));
+      return;
+    }
+
+    setAppleLoading(true);
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+        nonce: rawNonce,
+      });
+
+      if (!credential.identityToken) {
+        Alert.alert(t('auth.login.failedTitle'), t('auth.login.failedMessage'));
+        return;
+      }
+
+      const res = await appleSocialLogin({
+        identityToken: credential.identityToken,
+        authorizationCode: credential.authorizationCode,
+        // firstName/lastName are only present on the first authorization for
+        // this device/app pair. null is fine — the backend (#480) handles it.
+        firstName: credential.fullName?.givenName ?? null,
+        lastName: credential.fullName?.familyName ?? null,
+        nonce: rawNonce,
+      });
+
+      // Hydrate profile with the new access token — same pattern as handleLogin
+      // and handleGoogleResponse.
+      const { data: profile } = await api.get('/users/me', {
+        headers: { Authorization: `Bearer ${res.accessToken}` },
+      });
+
+      login(
+        {
+          publicId: profile.userId,
+          email: profile.email,
+          firstName: profile.firstName,
+          lastName: profile.lastName,
+          roles: profile.roles ?? [],
+          isOnboardingComplete: profile.isOnboardingComplete ?? null,
+          emailConfirmed: res.emailConfirmed ?? profile.emailConfirmed ?? false,
+          hasActiveLink: profile.hasActiveLink ?? false,
+          hasPendingQuestionnaire: profile.hasPendingQuestionnaire ?? false,
+          linkedRoles: profile.linkedRoles ?? [],
+          avatarBlobUrl: profile.avatarBlobUrl ?? null,
+        },
+        res.accessToken,
+        res.refreshToken,
+      );
+    } catch (err: unknown) {
+      // User cancelled the native Apple sign-in sheet — return silently.
+      if (
+        err instanceof Error &&
+        'code' in err &&
+        (err as { code: string }).code === 'ERR_REQUEST_CANCELED'
+      ) {
+        return;
+      }
+
+      // 409: email already registered with a password login.
+      if (axios.isAxiosError(err) && err.response?.data?.errorCode === 'social_email_conflict') {
+        Alert.alert(
+          t('auth.login.failedTitle'),
+          t('auth.login.appleConflict'),
+        );
+        return;
+      }
+
+      // Anything else (401 invalid token/nonce, network error, etc.)
+      Alert.alert(t('auth.login.failedTitle'), t('auth.login.failedMessage'));
+    } finally {
+      setAppleLoading(false);
+    }
+  };
+
+  // Combined guard: disable all auth buttons while any login is in flight.
+  const busy = loading || googleLoading || appleLoading;
 
   const styles = makeStyles(colors);
 
@@ -275,6 +375,27 @@ export default function LoginScreen() {
               : t('auth.login.continueWithGoogle')}
           </Text>
         </TouchableOpacity>
+
+        {/* Apple Sign In — iOS only, shown only when the native capability is
+            available. Uses the native AppleAuthenticationButton which renders
+            Apple-approved chrome automatically. Must not be re-skinned.
+            buttonStyle is theme-aware: WHITE on dark backgrounds so the button
+            remains visible against the dark bg, BLACK on light backgrounds.
+            Disabled while any auth flow is in flight. */}
+        {appleAvailable && (
+          <AppleAuthentication.AppleAuthenticationButton
+            buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+            buttonStyle={
+              colors === Colors.dark
+                ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
+                : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
+            }
+            cornerRadius={4}
+            style={[styles.appleButton, busy && styles.buttonDisabled]}
+            onPress={handleAppleSignIn}
+            accessibilityLabel={t('auth.login.continueWithApple')}
+          />
+        )}
 
         <TouchableOpacity
           onPress={() => router.replace('/(auth)/register')}
@@ -403,6 +524,13 @@ const makeStyles = (colors: ColorScheme) =>
       color: colors.label,
       fontSize: 14,
       fontWeight: '600',
+    },
+    // AppleAuthenticationButton requires an explicit width + height per the SDK.
+    // We match the Google socialButton height so both buttons align consistently.
+    appleButton: {
+      width: '100%',
+      height: 50,
+      marginTop: 12,
     },
     forgotRow: {
       marginTop: 14,

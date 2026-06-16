@@ -7,6 +7,14 @@ interface LoginResponse {
   emailConfirmed: boolean;
 }
 
+interface AppleSocialLoginArgs {
+  identityToken: string;
+  authorizationCode?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  nonce: string;
+}
+
 /**
  * POST /auth/social/nonce (anonymous)
  * Requests a single-use, server-issued nonce for a social sign-in attempt.
@@ -44,6 +52,39 @@ export async function googleSocialLogin(
   const { data } = await api.post<LoginResponse>('/auth/social/google', {
     idToken,
     nonce,
+  });
+  return data;
+}
+
+/**
+ * POST /auth/social/apple (anonymous)
+ * Sends an Apple identity token JWT, the raw nonce, and optional name fields
+ * to the backend.
+ *
+ * Nonce contract: pass the RAW nonce from requestSocialNonce() here AND into
+ * AppleAuthentication.signInAsync({ nonce: rawNonce }). Apple embeds
+ * SHA-256(rawNonce) in the identity token automatically — the backend hashes
+ * the raw nonce and compares it against the claim. Do NOT pre-hash client-side.
+ *
+ * firstName / lastName are only present on the very first authorization for a
+ * given device/app pair. Pass whatever Apple returns (null is valid — the
+ * backend handles absent name gracefully per #480).
+ *
+ * Error shapes:
+ * - 200 → LoginResponse (tokens ready)
+ * - 409 → ProblemDetails with top-level errorCode "social_email_conflict"
+ *          (email already registered with password — surface conflict message)
+ * - 401 → invalid token or nonce → surface generic login-failed message
+ */
+export async function appleSocialLogin(
+  args: AppleSocialLoginArgs,
+): Promise<LoginResponse> {
+  const { data } = await api.post<LoginResponse>('/auth/social/apple', {
+    identityToken: args.identityToken,
+    authorizationCode: args.authorizationCode,
+    firstName: args.firstName,
+    lastName: args.lastName,
+    nonce: args.nonce,
   });
   return data;
 }

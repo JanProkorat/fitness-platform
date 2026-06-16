@@ -1154,7 +1154,9 @@
       "failedMessage": "Neplatný email nebo heslo.",
       "continueWithGoogle": "Pokračovat přes Google",
       "googleSigningIn": "Přihlašování přes Google…",
-      "googleConflict": "Tento email je již registrován s heslem. Přihlaste se emailem a heslem."
+      "googleConflict": "Tento email je již registrován s heslem. Přihlaste se emailem a heslem.",
+      "continueWithApple": "Pokračovat přes Apple",
+      "appleConflict": "Tento email je již registrován s heslem. Přihlaste se emailem a heslem."
     },
     "forgot": {
       "title": "Zapomenuté heslo",

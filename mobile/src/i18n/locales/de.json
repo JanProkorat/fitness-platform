@@ -1131,7 +1131,9 @@
       "failedMessage": "Ungültige E-Mail oder Passwort.",
       "continueWithGoogle": "Mit Google fortfahren",
       "googleSigningIn": "Anmeldung mit Google…",
-      "googleConflict": "Diese E-Mail ist bereits mit einem Passwort registriert. Bitte melde dich mit E-Mail und Passwort an."
+      "googleConflict": "Diese E-Mail ist bereits mit einem Passwort registriert. Bitte melde dich mit E-Mail und Passwort an.",
+      "continueWithApple": "Mit Apple fortfahren",
+      "appleConflict": "Diese E-Mail ist bereits mit einem Passwort registriert. Bitte melde dich mit E-Mail und Passwort an."
     },
     "forgot": {
       "title": "Passwort vergessen",
