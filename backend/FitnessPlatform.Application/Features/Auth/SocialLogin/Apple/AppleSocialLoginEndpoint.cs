@@ -41,8 +41,8 @@ public class AppleSocialLoginEndpoint(
             s.Summary = "Apple Sign-In";
             s.Description = "Verifies an Apple identity token and returns platform JWT tokens. Provisions a new account if the email is not yet registered.";
             s.Response<AppleSocialLoginResponse>(200, "Login successful");
-            s.Responses[400] = "identityToken is missing or empty";
-            s.Responses[401] = "Apple identity token is invalid, expired, has wrong audience, or email is explicitly unverified";
+            s.Responses[400] = "identityToken or nonce is missing or empty";
+            s.Responses[401] = "Apple identity token is invalid, expired, has wrong audience, email is explicitly unverified, or the nonce is invalid/consumed/expired";
             s.Responses[403] = "Account is deactivated";
             s.Responses[409] = "Email belongs to an existing password-only account (social_email_conflict)";
             s.Responses[422] = "No Apple account link exists and token carries no email — cannot provision";
@@ -52,11 +52,29 @@ public class AppleSocialLoginEndpoint(
     /// <inheritdoc />
     public override async Task HandleAsync(AppleSocialLoginRequest req, CancellationToken ct)
     {
-        // 1. Verify the Apple identity token (throws on failure).
+        // 1. Validate the nonce: must exist in the DB, be unconsumed, and not expired.
+        var nonceRecord = await db.SocialLoginNonces
+            .FirstOrDefaultAsync(n => n.Nonce == req.Nonce, ct);
+
+        if (nonceRecord is null || nonceRecord.ConsumedAt != null || nonceRecord.ExpiresAt < DateTime.UtcNow)
+        {
+            await this.SendProblemAsync(StatusCodes.Status401Unauthorized,
+                ErrorCodes.InvalidCredentials,
+                "Social sign-in nonce is invalid, already used, or has expired. Request a new nonce and retry.",
+                ct);
+            return;
+        }
+
+        // 2. Verify the Apple identity token (throws on failure).
+        // The verifier confirms the token's nonce claim equals SHA-256(req.Nonce).
+        // Consume the nonce immediately after successful token verification — at this point the
+        // nonce has served its purpose (proved the request is fresh). Consuming here, before
+        // branching into link/provision/conflict logic, ensures the nonce is spent even if the
+        // outcome is 409 or 422. A verified token's nonce must never be replayable.
         AppleTokenPayload applePayload;
         try
         {
-            applePayload = await appleVerifier.VerifyAsync(req.IdentityToken, ct);
+            applePayload = await appleVerifier.VerifyAsync(req.IdentityToken, req.Nonce, ct);
         }
         catch (InvalidOperationException)
         {
@@ -66,6 +84,10 @@ public class AppleSocialLoginEndpoint(
                 ct);
             return;
         }
+
+        // Mark the nonce consumed — it has been validated against the token successfully.
+        nonceRecord.ConsumedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(ct);
 
         // 2. Look up the UserExternalLogin row for (apple, sub) FIRST.
         // Apple omits email/name after first auth, so the sub-based lookup is the

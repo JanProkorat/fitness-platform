@@ -30,4 +30,11 @@ public class AppleSocialLoginRequest
     /// Apple does not re-send this on subsequent authentications.
     /// </summary>
     public string? LastName { get; set; }
+
+    /// <summary>
+    /// The raw nonce value obtained from <c>POST /auth/social/nonce</c>.
+    /// The client must pass the same raw value that was embedded in the Apple sign-in flow
+    /// (Apple hashes it before embedding: SHA-256(nonce) appears in the id_token's nonce claim).
+    /// </summary>
+    public string Nonce { get; set; } = string.Empty;
 }

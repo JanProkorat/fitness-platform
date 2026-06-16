@@ -15,14 +15,20 @@ public record GoogleTokenPayload(string Subject, string Email, string? Name);
 public interface IGoogleTokenVerifier
 {
     /// <summary>
-    /// Validates <paramref name="idToken"/> against Google's public keys
-    /// and the configured OAuth client ID.
+    /// Validates <paramref name="idToken"/> against Google's public keys and the configured
+    /// OAuth client ID, and verifies that the token's <c>nonce</c> payload field equals
+    /// <paramref name="expectedNonce"/> (Google embeds the raw nonce — not a hash).
     /// </summary>
     /// <param name="idToken">The raw Google ID token from the client.</param>
+    /// <param name="expectedNonce">
+    /// The raw nonce value the client obtained from <c>POST /auth/social/nonce</c>.
+    /// Google embeds the raw value directly in the token's <c>nonce</c> field.
+    /// </param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The verified payload on success.</returns>
     /// <exception cref="InvalidOperationException">
-    /// Thrown when the token is invalid, expired, or the audience does not match.
+    /// Thrown when the token is invalid, expired, the audience does not match,
+    /// the email is unverified, or the nonce field does not equal expectedNonce.
     /// </exception>
-    Task<GoogleTokenPayload> VerifyAsync(string idToken, CancellationToken ct = default);
+    Task<GoogleTokenPayload> VerifyAsync(string idToken, string expectedNonce, CancellationToken ct = default);
 }

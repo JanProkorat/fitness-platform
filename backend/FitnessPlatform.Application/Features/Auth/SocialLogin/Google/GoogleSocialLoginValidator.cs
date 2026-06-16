@@ -16,5 +16,7 @@ public class GoogleSocialLoginValidator : Validator<GoogleSocialLoginRequest>
         RuleFor(x => x.IdToken)
             .NotEmpty()
             .WithMessage("Google ID token is required.");
+
+        RuleFor(x => x.Nonce).NotEmpty();
     }
 }

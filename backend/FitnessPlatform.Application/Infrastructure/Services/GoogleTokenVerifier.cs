@@ -10,7 +10,7 @@ namespace FitnessPlatform.Application.Infrastructure.Services;
 public class GoogleTokenVerifier(IConfiguration config) : IGoogleTokenVerifier
 {
     /// <inheritdoc />
-    public async Task<GoogleTokenPayload> VerifyAsync(string idToken, CancellationToken ct = default)
+    public async Task<GoogleTokenPayload> VerifyAsync(string idToken, string expectedNonce, CancellationToken ct = default)
     {
         var clientId = config[ConfigKeys.GoogleClientId]
             ?? throw new InvalidOperationException("Google:ClientId is not configured.");
@@ -38,6 +38,20 @@ public class GoogleTokenVerifier(IConfiguration config) : IGoogleTokenVerifier
         {
             throw new InvalidOperationException(
                 "Google ID token has an unverified email address (email_verified is not true).");
+        }
+
+        // Nonce verification: Google embeds the raw nonce directly in the payload's Nonce field.
+        // Reject the token if the field is absent or does not match expectedNonce exactly.
+        if (string.IsNullOrEmpty(payload.Nonce))
+        {
+            throw new InvalidOperationException(
+                "Google ID token is missing the 'nonce' field. The sign-in must embed a nonce.");
+        }
+
+        if (!string.Equals(payload.Nonce, expectedNonce, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Google ID token nonce does not match the expected nonce. Possible replay attack.");
         }
 
         return new GoogleTokenPayload(

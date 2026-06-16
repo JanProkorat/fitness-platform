@@ -140,6 +140,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     /// </summary>
     public virtual DbSet<UserExternalLogin> UserExternalLogins { get; set; } = null!;
 
+    /// <summary>
+    /// Server-issued single-use nonces for social sign-in replay hardening.
+    /// </summary>
+    public virtual DbSet<SocialLoginNonce> SocialLoginNonces { get; set; } = null!;
+
     /// <inheritdoc />
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {

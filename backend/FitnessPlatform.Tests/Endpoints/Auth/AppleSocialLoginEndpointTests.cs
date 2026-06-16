@@ -22,6 +22,9 @@ public class AppleSocialLoginEndpointTests
 {
     private static readonly string JwtSecret = new('x', 64);
 
+    // Raw nonce used in all tests — the DB is seeded with a valid record for this value.
+    private const string ValidNonce = "test-raw-nonce-apple";
+
     // Shared Apple token payload returned by the fake verifier — verified email, not private-relay.
     private static readonly AppleTokenPayload ValidPayloadWithEmail = new(
         Subject: "apple-sub-12345",
@@ -53,10 +56,13 @@ public class AppleSocialLoginEndpointTests
             })
             .Build();
 
+    /// <summary>
+    /// Creates a fake verifier that always returns the given payload regardless of nonce.
+    /// </summary>
     private static IAppleTokenVerifier MakeVerifier(AppleTokenPayload payload)
     {
         var verifier = Substitute.For<IAppleTokenVerifier>();
-        verifier.VerifyAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        verifier.VerifyAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(payload);
         return verifier;
     }
@@ -64,10 +70,21 @@ public class AppleSocialLoginEndpointTests
     private static IAppleTokenVerifier MakeFailingVerifier()
     {
         var verifier = Substitute.For<IAppleTokenVerifier>();
-        verifier.VerifyAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        verifier.VerifyAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .ThrowsAsync(new InvalidOperationException("Token invalid"));
         return verifier;
     }
+
+    /// <summary>
+    /// Returns a valid, unconsumed nonce row seeded in the mock DB.
+    /// </summary>
+    private static SocialLoginNonce MakeValidNonce() => new()
+    {
+        Nonce = ValidNonce,
+        ExpiresAt = DateTime.UtcNow.AddMinutes(10),
+        ConsumedAt = null,
+        CreatedAt = DateTime.UtcNow
+    };
 
     // ── 400 — FluentValidation rejects missing identityToken ─────────────────
 
@@ -75,7 +92,7 @@ public class AppleSocialLoginEndpointTests
     public void Validator_EmptyIdentityToken_HasValidationError()
     {
         var validator = new AppleSocialLoginValidator();
-        var result = validator.Validate(new AppleSocialLoginRequest { IdentityToken = "" });
+        var result = validator.Validate(new AppleSocialLoginRequest { IdentityToken = "", Nonce = "some-nonce" });
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(e => string.Equals(
             e.PropertyName, nameof(AppleSocialLoginRequest.IdentityToken),
@@ -86,8 +103,92 @@ public class AppleSocialLoginEndpointTests
     public void Validator_NullIdentityToken_HasValidationError()
     {
         var validator = new AppleSocialLoginValidator();
-        var result = validator.Validate(new AppleSocialLoginRequest { IdentityToken = null! });
+        var result = validator.Validate(new AppleSocialLoginRequest { IdentityToken = null!, Nonce = "some-nonce" });
         result.IsValid.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Validator_EmptyNonce_HasValidationError()
+    {
+        var validator = new AppleSocialLoginValidator();
+        var result = validator.Validate(new AppleSocialLoginRequest { IdentityToken = "token", Nonce = "" });
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => string.Equals(
+            e.PropertyName, nameof(AppleSocialLoginRequest.Nonce),
+            StringComparison.OrdinalIgnoreCase));
+    }
+
+    // ── 401 — nonce not found in DB ───────────────────────────────────────────
+
+    [Fact]
+    public async Task HandleAsync_NonceNotFound_Returns401()
+    {
+        // DB has no nonce rows — any nonce value is unknown.
+        var verifier = MakeVerifier(ValidPayloadWithEmail);
+        var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        var db = new MockDbBuilder().Build(); // no nonce rows
+        var config = MakeConfig();
+        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config);
+
+        await ep.HandleAsync(
+            new AppleSocialLoginRequest { IdentityToken = "valid-token", Nonce = "unknown-nonce" },
+            CancellationToken.None);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(StatusCodes.Status401Unauthorized);
+        // Verifier must NOT be called when the nonce is invalid.
+        await verifier.DidNotReceive().VerifyAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleAsync_NonceAlreadyConsumed_Returns401()
+    {
+        // Nonce exists but has already been consumed.
+        var consumedNonce = new SocialLoginNonce
+        {
+            Nonce = ValidNonce,
+            ExpiresAt = DateTime.UtcNow.AddMinutes(10),
+            ConsumedAt = DateTime.UtcNow.AddMinutes(-1), // already consumed
+            CreatedAt = DateTime.UtcNow.AddMinutes(-2)
+        };
+
+        var verifier = MakeVerifier(ValidPayloadWithEmail);
+        var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        var db = new MockDbBuilder().With(consumedNonce).Build();
+        var config = MakeConfig();
+        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config);
+
+        await ep.HandleAsync(
+            new AppleSocialLoginRequest { IdentityToken = "valid-token", Nonce = ValidNonce },
+            CancellationToken.None);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(StatusCodes.Status401Unauthorized);
+        await verifier.DidNotReceive().VerifyAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleAsync_NonceExpired_Returns401()
+    {
+        // Nonce exists but has expired.
+        var expiredNonce = new SocialLoginNonce
+        {
+            Nonce = ValidNonce,
+            ExpiresAt = DateTime.UtcNow.AddMinutes(-1), // expired
+            ConsumedAt = null,
+            CreatedAt = DateTime.UtcNow.AddMinutes(-11)
+        };
+
+        var verifier = MakeVerifier(ValidPayloadWithEmail);
+        var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        var db = new MockDbBuilder().With(expiredNonce).Build();
+        var config = MakeConfig();
+        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config);
+
+        await ep.HandleAsync(
+            new AppleSocialLoginRequest { IdentityToken = "valid-token", Nonce = ValidNonce },
+            CancellationToken.None);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(StatusCodes.Status401Unauthorized);
+        await verifier.DidNotReceive().VerifyAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     // ── 401 — invalid Apple token ─────────────────────────────────────────────
@@ -95,16 +196,16 @@ public class AppleSocialLoginEndpointTests
     [Fact]
     public async Task HandleAsync_InvalidAppleToken_Returns401()
     {
-        // Arrange
+        // Arrange — nonce is valid but verifier rejects the token.
         var verifier = MakeFailingVerifier();
         var userManager = EndpointTestHelpers.CreateFakeUserManager();
-        var db = new MockDbBuilder().Build();
+        var db = new MockDbBuilder().With(MakeValidNonce()).Build();
         var config = MakeConfig();
         var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config);
 
         // Act — SendProblemAsync writes the response; it does NOT throw.
         await ep.HandleAsync(
-            new AppleSocialLoginRequest { IdentityToken = "bad-token" },
+            new AppleSocialLoginRequest { IdentityToken = "bad-token", Nonce = ValidNonce },
             CancellationToken.None);
 
         // Assert
@@ -121,18 +222,18 @@ public class AppleSocialLoginEndpointTests
     {
         // Arrange — simulate the exception raised by alg-confusion guard
         var verifier = Substitute.For<IAppleTokenVerifier>();
-        verifier.VerifyAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        verifier.VerifyAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .ThrowsAsync(new InvalidOperationException(
                 "Apple identity token validation failed after JWKS refresh."));
 
         var userManager = EndpointTestHelpers.CreateFakeUserManager();
-        var db = new MockDbBuilder().Build();
+        var db = new MockDbBuilder().With(MakeValidNonce()).Build();
         var config = MakeConfig();
         var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config);
 
         // Act
         await ep.HandleAsync(
-            new AppleSocialLoginRequest { IdentityToken = "alg-none-token" },
+            new AppleSocialLoginRequest { IdentityToken = "alg-none-token", Nonce = ValidNonce },
             CancellationToken.None);
 
         // Assert — must be 401, not 200/409/403
@@ -147,17 +248,41 @@ public class AppleSocialLoginEndpointTests
     public async Task HandleAsync_VerifierThrowsForUnverifiedNonRelayEmail_Returns401()
     {
         var verifier = Substitute.For<IAppleTokenVerifier>();
-        verifier.VerifyAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        verifier.VerifyAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .ThrowsAsync(new InvalidOperationException(
                 "Apple identity token email is explicitly unverified and is not a private-relay address."));
 
         var userManager = EndpointTestHelpers.CreateFakeUserManager();
-        var db = new MockDbBuilder().Build();
+        var db = new MockDbBuilder().With(MakeValidNonce()).Build();
         var config = MakeConfig();
         var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config);
 
         await ep.HandleAsync(
-            new AppleSocialLoginRequest { IdentityToken = "unverified-email-token" },
+            new AppleSocialLoginRequest { IdentityToken = "unverified-email-token", Nonce = ValidNonce },
+            CancellationToken.None);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(StatusCodes.Status401Unauthorized);
+    }
+
+    /// <summary>
+    /// Verifier throws when the nonce claim in the token does not match the expected nonce.
+    /// The endpoint maps this to 401 — same as any other InvalidOperationException from the verifier.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_VerifierThrowsForNonceMismatch_Returns401()
+    {
+        var verifier = Substitute.For<IAppleTokenVerifier>();
+        verifier.VerifyAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .ThrowsAsync(new InvalidOperationException(
+                "Apple identity token nonce claim does not match the expected nonce. Possible replay attack."));
+
+        var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        var db = new MockDbBuilder().With(MakeValidNonce()).Build();
+        var config = MakeConfig();
+        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config);
+
+        await ep.HandleAsync(
+            new AppleSocialLoginRequest { IdentityToken = "replay-token", Nonce = ValidNonce },
             CancellationToken.None);
 
         ep.HttpContext.Response.StatusCode.Should().Be(StatusCodes.Status401Unauthorized);
@@ -183,13 +308,14 @@ public class AppleSocialLoginEndpointTests
         userManager.FindByIdAsync(userId.ToString()).Returns((ApplicationUser?)null);
 
         var db = new MockDbBuilder()
+            .With(MakeValidNonce())
             .With(externalLogin)
             .Build();
         var config = MakeConfig();
         var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config);
 
         await ep.HandleAsync(
-            new AppleSocialLoginRequest { IdentityToken = "valid-token" },
+            new AppleSocialLoginRequest { IdentityToken = "valid-token", Nonce = ValidNonce },
             CancellationToken.None);
 
         ep.HttpContext.Response.StatusCode.Should().Be(StatusCodes.Status401Unauthorized);
@@ -203,12 +329,14 @@ public class AppleSocialLoginEndpointTests
         // Arrange — no external login, token has no email (Apple re-auth without link)
         var verifier = MakeVerifier(ReturningUserPayload);
         var userManager = EndpointTestHelpers.CreateFakeUserManager();
-        var db = new MockDbBuilder().Build(); // no external logins
+        var db = new MockDbBuilder()
+            .With(MakeValidNonce())
+            .Build(); // no external logins
         var config = MakeConfig();
         var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config);
 
         await ep.HandleAsync(
-            new AppleSocialLoginRequest { IdentityToken = "no-email-token" },
+            new AppleSocialLoginRequest { IdentityToken = "no-email-token", Nonce = ValidNonce },
             CancellationToken.None);
 
         // Assert — 422, not NRE or 401
@@ -230,12 +358,14 @@ public class AppleSocialLoginEndpointTests
         userManager.FindByEmailAsync(ValidPayloadWithEmail.Email!).Returns(existingUser);
 
         // No UserExternalLogin rows in the DB.
-        var db = new MockDbBuilder().Build();
+        var db = new MockDbBuilder()
+            .With(MakeValidNonce())
+            .Build();
         var config = MakeConfig();
         var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config);
 
         await ep.HandleAsync(
-            new AppleSocialLoginRequest { IdentityToken = "valid-token" },
+            new AppleSocialLoginRequest { IdentityToken = "valid-token", Nonce = ValidNonce },
             CancellationToken.None);
 
         ep.HttpContext.Response.StatusCode.Should().Be(StatusCodes.Status409Conflict);
@@ -266,13 +396,14 @@ public class AppleSocialLoginEndpointTests
         userManager.FindByIdAsync(userId.ToString()).Returns(inactiveUser);
 
         var db = new MockDbBuilder()
+            .With(MakeValidNonce())
             .With(externalLogin)
             .Build();
         var config = MakeConfig();
         var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config);
 
         await ep.HandleAsync(
-            new AppleSocialLoginRequest { IdentityToken = "valid-token" },
+            new AppleSocialLoginRequest { IdentityToken = "valid-token", Nonce = ValidNonce },
             CancellationToken.None);
 
         ep.HttpContext.Response.StatusCode.Should().Be(StatusCodes.Status403Forbidden);
@@ -303,13 +434,14 @@ public class AppleSocialLoginEndpointTests
         userManager.GetRolesAsync(user).Returns(["Trainer"]);
 
         var db = new MockDbBuilder()
+            .With(MakeValidNonce())
             .With(externalLogin)
             .Build();
         var config = MakeConfig();
         var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config);
 
         await ep.HandleAsync(
-            new AppleSocialLoginRequest { IdentityToken = "valid-token" },
+            new AppleSocialLoginRequest { IdentityToken = "valid-token", Nonce = ValidNonce },
             CancellationToken.None);
 
         ep.ValidationFailed.Should().BeFalse();
@@ -348,6 +480,7 @@ public class AppleSocialLoginEndpointTests
         userManager.GetRolesAsync(user).Returns(["Trainer"]);
 
         var db = new MockDbBuilder()
+            .With(MakeValidNonce())
             .With(externalLogin)
             .Build();
         var config = MakeConfig();
@@ -355,7 +488,7 @@ public class AppleSocialLoginEndpointTests
 
         // Act — no FirstName/LastName in body
         await ep.HandleAsync(
-            new AppleSocialLoginRequest { IdentityToken = "valid-token" },
+            new AppleSocialLoginRequest { IdentityToken = "valid-token", Nonce = ValidNonce },
             CancellationToken.None);
 
         // Assert — tokens returned; no name update attempted on userManager
@@ -386,7 +519,9 @@ public class AppleSocialLoginEndpointTests
 
         userManager.GetRolesAsync(Arg.Any<ApplicationUser>()).Returns(["Trainer"]);
 
-        var db = new MockDbBuilder().Build();
+        var db = new MockDbBuilder()
+            .With(MakeValidNonce())
+            .Build();
         var config = MakeConfig();
         var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config);
 
@@ -396,7 +531,8 @@ public class AppleSocialLoginEndpointTests
             {
                 IdentityToken = "valid-token",
                 FirstName = "Anna",
-                LastName = "Smith"
+                LastName = "Smith",
+                Nonce = ValidNonce
             },
             CancellationToken.None);
 
@@ -440,13 +576,15 @@ public class AppleSocialLoginEndpointTests
             .Returns(Microsoft.AspNetCore.Identity.IdentityResult.Success);
         userManager.GetRolesAsync(Arg.Any<ApplicationUser>()).Returns(["Trainer"]);
 
-        var db = new MockDbBuilder().Build();
+        var db = new MockDbBuilder()
+            .With(MakeValidNonce())
+            .Build();
         var config = MakeConfig();
         var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config);
 
         // Act — no name in body (Apple omitted on first auth for this test)
         await ep.HandleAsync(
-            new AppleSocialLoginRequest { IdentityToken = "valid-token" },
+            new AppleSocialLoginRequest { IdentityToken = "valid-token", Nonce = ValidNonce },
             CancellationToken.None);
 
         ep.ValidationFailed.Should().BeFalse();

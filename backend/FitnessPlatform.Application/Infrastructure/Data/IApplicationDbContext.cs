@@ -146,6 +146,11 @@ public interface IApplicationDbContext
     DbSet<UserExternalLogin> UserExternalLogins { get; set; }
 
     /// <summary>
+    /// Server-issued single-use nonces for social sign-in replay hardening.
+    /// </summary>
+    DbSet<SocialLoginNonce> SocialLoginNonces { get; set; }
+
+    /// <summary>
     /// Saves all changes made in this context to the database.
     /// </summary>
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
