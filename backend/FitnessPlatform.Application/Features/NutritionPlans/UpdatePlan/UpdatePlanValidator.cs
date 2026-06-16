@@ -20,6 +20,16 @@ public class UpdatePlanValidator : Validator<UpdatePlanRequest>
         RuleFor(x => x.Version)
             .GreaterThanOrEqualTo(1);
 
+        RuleFor(x => x.TargetWeightKg)
+            .GreaterThan(0)
+            .WithMessage("TargetWeightKg must be greater than zero.")
+            .When(x => x.TargetWeightKg.HasValue);
+
+        RuleFor(x => x.Goal)
+            .IsInEnum()
+            .WithMessage("Goal must be a valid PrimaryGoal value.")
+            .When(x => x.Goal.HasValue);
+
         RuleForEach(x => x.Supplements).ChildRules(supplement =>
         {
             supplement.RuleFor(s => s.Name)

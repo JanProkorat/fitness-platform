@@ -81,6 +81,8 @@ public class CreateTrainingPlanEndpoint(IMongoContext mongo, ProfessionalAuthHel
             Description = req.Description?.Trim(),
             Status = TrainingPlanStatus.Draft,
             QuestionnaireResponseId = req.QuestionnaireResponseId,
+            Goal = req.Goal,
+            TargetWeightKg = req.TargetWeightKg,
             Weeks = Enumerable.Range(1, req.WeekCount).Select(w => new TrainingWeek
             {
                 WeekNumber = w,

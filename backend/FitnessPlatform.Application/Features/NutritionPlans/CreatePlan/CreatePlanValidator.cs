@@ -34,5 +34,15 @@ public class CreatePlanValidator : Validator<CreatePlanRequest>
             .WithErrorCode(Domain.Constants.ErrorCodes.StartDateInPast)
             .WithMessage("Start date cannot be in the past.")
             .When(x => x.StartDate.HasValue);
+
+        RuleFor(x => x.TargetWeightKg)
+            .GreaterThan(0)
+            .WithMessage("TargetWeightKg must be greater than zero.")
+            .When(x => x.TargetWeightKg.HasValue);
+
+        RuleFor(x => x.Goal)
+            .IsInEnum()
+            .WithMessage("Goal must be a valid PrimaryGoal value.")
+            .When(x => x.Goal.HasValue);
     }
 }

@@ -129,6 +129,8 @@ public class UpdatePlanEndpoint(IMongoContext mongo, IMacroCalculatorService mac
         plan.Name = req.Name;
         plan.StartDate = req.StartDate.HasValue ? DateTime.SpecifyKind(req.StartDate.Value.Date, DateTimeKind.Utc) : null;
         plan.GlobalSettings = req.GlobalSettings;
+        plan.Goal = req.Goal;
+        plan.TargetWeightKg = req.TargetWeightKg;
         plan.Weeks = req.Weeks.Select(rw =>
         {
             var existing = existingWeeks.GetValueOrDefault(rw.WeekNumber);

@@ -26,6 +26,16 @@ public class UpdateTrainingPlanValidator : Validator<UpdateTrainingPlanRequest>
             .MaximumLength(2000)
             .When(x => x.Description is not null);
 
+        RuleFor(x => x.TargetWeightKg)
+            .GreaterThan(0)
+            .WithMessage("TargetWeightKg must be greater than zero.")
+            .When(x => x.TargetWeightKg.HasValue);
+
+        RuleFor(x => x.Goal)
+            .IsInEnum()
+            .WithMessage("Goal must be a valid PrimaryGoal value.")
+            .When(x => x.Goal.HasValue);
+
         RuleFor(x => x.Weeks)
             .NotEmpty().WithMessage("At least one week is required.")
             .Must(weeks => weeks.Count <= 52).WithMessage("A plan may not exceed 52 weeks.")

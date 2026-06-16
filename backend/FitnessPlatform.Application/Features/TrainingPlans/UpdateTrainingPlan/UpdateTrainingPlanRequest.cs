@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+
 namespace FitnessPlatform.Application.Features.TrainingPlans.UpdateTrainingPlan;
 
 /// <summary>
@@ -34,4 +36,16 @@ public class UpdateTrainingPlanRequest
     /// Updated start date. Must be a Monday and not in the past.
     /// </summary>
     public DateTime? StartDate { get; set; }
+
+    /// <summary>
+    /// Optional primary fitness goal for this plan period.
+    /// When set, read sites prefer this value over the client's onboarding baseline.
+    /// </summary>
+    public PrimaryGoal? Goal { get; set; }
+
+    /// <summary>
+    /// Optional target body weight in kilograms for this plan period.
+    /// Must be greater than zero when provided.
+    /// </summary>
+    public decimal? TargetWeightKg { get; set; }
 }
