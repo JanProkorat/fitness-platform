@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
 import { ResponseType } from 'expo-auth-session';
+import axios from 'axios';
 import api from '@/api/client';
 import { requestSocialNonce, googleSocialLogin } from '@/api/social';
 import { useAuthStore } from '@/stores/auth';
@@ -38,13 +39,23 @@ export default function LoginScreen() {
   // Fetched on mount and refreshed after each attempt (nonces are single-use).
   const [googleNonce, setGoogleNonce] = useState<string | null>(null);
 
-  const fetchGoogleNonce = useCallback(async () => {
+  // Holds the exact nonce that was embedded in the in-flight promptGoogleAsync
+  // request. We capture it into a ref at prompt time so the success handler
+  // always sends the nonce that matches the id_token — even if googleNonce
+  // state was refreshed between the prompt and the response.
+  const inflightNonceRef = useRef<string | null>(null);
+
+  // Returns the nonce string as well as setting state so callers can act on
+  // the value immediately without waiting for a re-render.
+  const fetchGoogleNonce = useCallback(async (): Promise<string | null> => {
     try {
       const nonce = await requestSocialNonce();
       setGoogleNonce(nonce);
+      return nonce;
     } catch {
       // Silent fail — the nonce will be re-fetched on the next attempt if needed.
       setGoogleNonce(null);
+      return null;
     }
   }, []);
 
@@ -85,12 +96,16 @@ export default function LoginScreen() {
         }
 
         const idToken = googleResponse.params.id_token;
-        if (!idToken || !googleNonce) {
+        // Read the nonce that was embedded in THIS prompt's request from the
+        // ref, not from googleNonce state. State may have been refreshed
+        // between when promptGoogleAsync built the request and now.
+        const nonceForThisAttempt = inflightNonceRef.current;
+        if (!idToken || !nonceForThisAttempt) {
           Alert.alert(t('auth.login.failedTitle'), t('auth.login.failedMessage'));
           return;
         }
 
-        const res = await googleSocialLogin(idToken, googleNonce);
+        const res = await googleSocialLogin(idToken, nonceForThisAttempt);
 
         // Hydrate profile with the new access token — same pattern as handleLogin.
         const { data: profile } = await api.get('/users/me', {
@@ -117,8 +132,7 @@ export default function LoginScreen() {
       } catch (err: unknown) {
         // 409: email already registered with a password login.
         // Read errorCode from the top-level camelCase field per ProblemDetails wire shape.
-        const axiosErr = err as { response?: { data?: { errorCode?: string } } };
-        if (axiosErr.response?.data?.errorCode === 'social_email_conflict') {
+        if (axios.isAxiosError(err) && err.response?.data?.errorCode === 'social_email_conflict') {
           Alert.alert(
             t('auth.login.failedTitle'),
             t('auth.login.googleConflict'),
@@ -130,17 +144,14 @@ export default function LoginScreen() {
         Alert.alert(t('auth.login.failedTitle'), t('auth.login.failedMessage'));
       } finally {
         setGoogleLoading(false);
+        inflightNonceRef.current = null;
         // Refresh the nonce so the next attempt gets a fresh single-use token.
         fetchGoogleNonce();
       }
     };
 
     handleGoogleResponse();
-    // googleNonce, t, login, fetchGoogleNonce are stable or intentionally
-    // captured at the time googleResponse was built — only re-run when the
-    // response itself changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [googleResponse]);
+  }, [googleResponse, t, login, fetchGoogleNonce]);
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) return;
@@ -175,14 +186,17 @@ export default function LoginScreen() {
   };
 
   const handleGoogleSignIn = async () => {
-    if (!googleNonce) {
-      // Nonce not yet available — try fetching it now before proceeding.
-      await fetchGoogleNonce();
-      if (!googleNonce) {
-        Alert.alert(t('auth.login.failedTitle'), t('auth.login.failedMessage'));
-        return;
-      }
+    // Use the current nonce from state, or fetch a fresh one if not yet available.
+    // fetchGoogleNonce() returns the value directly so we don't read stale state.
+    const currentNonce = googleNonce ?? (await fetchGoogleNonce());
+    if (!currentNonce) {
+      Alert.alert(t('auth.login.failedTitle'), t('auth.login.failedMessage'));
+      return;
     }
+    // Capture the nonce used for this specific prompt so the response handler
+    // can send the exact nonce embedded in the id_token regardless of later
+    // state updates.
+    inflightNonceRef.current = currentNonce;
     setGoogleLoading(true);
     // promptGoogleAsync() opens the browser for the OAuth flow.
     // The result is handled in the useEffect above via googleResponse.
@@ -233,11 +247,13 @@ export default function LoginScreen() {
           </Text>
         </TouchableOpacity>
 
-        {/* Google Sign-In button — placed below the primary login button */}
+        {/* Google Sign-In button — placed below the primary login button.
+            Disabled while loading or while the nonce prefetch is in flight
+            (googleNonce === null) to prevent a prompt with no nonce. */}
         <TouchableOpacity
-          style={[styles.socialButton, googleLoading && styles.buttonDisabled]}
+          style={[styles.socialButton, (googleLoading || googleNonce === null) && styles.buttonDisabled]}
           onPress={handleGoogleSignIn}
-          disabled={googleLoading}
+          disabled={googleLoading || googleNonce === null}
           activeOpacity={0.8}
           accessibilityLabel={t('auth.login.continueWithGoogle')}
         >
