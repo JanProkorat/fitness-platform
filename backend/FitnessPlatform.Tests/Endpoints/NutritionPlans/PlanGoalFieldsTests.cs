@@ -110,7 +110,7 @@ public class PlanGoalFieldsTests
         var result = validator.Validate(request);
 
         result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.PropertyName.StartsWith(nameof(CreatePlanRequest.TargetWeightKg)));
+        result.Errors.Should().Contain(e => e.ErrorMessage == "TargetWeightKg must be greater than zero.");
     }
 
     [Fact]
@@ -128,7 +128,7 @@ public class PlanGoalFieldsTests
         var result = validator.Validate(request);
 
         result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.PropertyName.StartsWith(nameof(CreatePlanRequest.TargetWeightKg)));
+        result.Errors.Should().Contain(e => e.ErrorMessage == "TargetWeightKg must be greater than zero.");
     }
 
     // ── UpdatePlan ────────────────────────────────────────────────────────────
