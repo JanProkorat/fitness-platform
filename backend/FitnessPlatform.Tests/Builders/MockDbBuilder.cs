@@ -166,6 +166,11 @@ public class MockDbBuilder
 
         db.SaveChangesAsync(Arg.Any<CancellationToken>()).Returns(1);
 
+        // Default: consuming any nonce succeeds (1 row updated).
+        // Tests that exercise the "already consumed / expired / not found" path
+        // override this with db.ConsumeNonceAsync(...).Returns(0).
+        db.ConsumeNonceAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(1);
+
         return db;
     }
 }

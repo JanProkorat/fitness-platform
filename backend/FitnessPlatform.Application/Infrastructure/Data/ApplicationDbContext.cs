@@ -302,6 +302,17 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         return base.SaveChangesAsync(cancellationToken);
     }
 
+    /// <inheritdoc />
+    public Task<int> ConsumeNonceAsync(string nonce, CancellationToken cancellationToken = default)
+    {
+        var now = DateTime.UtcNow;
+        return SocialLoginNonces
+            .Where(n => n.Nonce == nonce && n.ConsumedAt == null && n.ExpiresAt >= now)
+            .ExecuteUpdateAsync(
+                s => s.SetProperty(n => n.ConsumedAt, now),
+                cancellationToken);
+    }
+
     /// <summary>
     /// Automatically sets DateCreated and DateUpdated on tracked entities.
     /// </summary>

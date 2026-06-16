@@ -193,8 +193,40 @@ public class GoogleSocialLoginEndpointTests
             new GoogleSocialLoginRequest { IdToken = "bad-token", Nonce = ValidNonce },
             CancellationToken.None);
 
-        // Assert
+        // Assert — 401, and the nonce must NOT have been consumed (atomic consume is
+        // only called after token verification succeeds — bad tokens do not burn the nonce).
         ep.HttpContext.Response.StatusCode.Should().Be(StatusCodes.Status401Unauthorized);
+        await db.DidNotReceive().ConsumeNonceAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    // ── 401 — concurrent consume race lost ───────────────────────────────────
+
+    /// <summary>
+    /// Simulates a concurrent-request race where two requests both pass the
+    /// pre-check read (nonce appears valid) but only one wins the atomic UPDATE.
+    /// The loser receives 0 rows from ConsumeNonceAsync and must return 401.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_ConsumeRaceLost_Returns401()
+    {
+        // Arrange — nonce is valid at pre-check time but ConsumeNonceAsync returns
+        // 0 (another request consumed it in the gap between read and update).
+        var verifier = MakeVerifier(ValidPayload);
+        var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        var db = new MockDbBuilder().With(MakeValidNonce()).Build();
+        // Override the default return: atomic consume lost the race.
+        db.ConsumeNonceAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(0);
+        var config = MakeConfig();
+        var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config);
+
+        await ep.HandleAsync(
+            new GoogleSocialLoginRequest { IdToken = "valid-token", Nonce = ValidNonce },
+            CancellationToken.None);
+
+        // Assert — must be 401; no user lookup / provisioning should have occurred.
+        ep.HttpContext.Response.StatusCode.Should().Be(StatusCodes.Status401Unauthorized);
+        await userManager.DidNotReceive().FindByIdAsync(Arg.Any<string>());
+        await userManager.DidNotReceive().FindByEmailAsync(Arg.Any<string>());
     }
 
     /// <summary>
@@ -209,6 +241,7 @@ public class GoogleSocialLoginEndpointTests
     ///
     /// To see the verifier guard at source, inspect:
     ///   Infrastructure/Services/GoogleTokenVerifier.cs — the "email_verified" check.
+    /// Critically: the nonce must NOT be consumed when token verification fails.
     /// </summary>
     [Fact]
     public async Task HandleAsync_VerifierThrowsForUnverifiedEmail_Returns401WithInvalidCredentials()
@@ -231,13 +264,15 @@ public class GoogleSocialLoginEndpointTests
             CancellationToken.None);
 
         // Assert — 401, not 200/409/403. The unverified-email path must never
-        // proceed to account lookup or provisioning.
+        // proceed to account lookup or provisioning; nonce must not be burned.
         ep.HttpContext.Response.StatusCode.Should().Be(StatusCodes.Status401Unauthorized);
+        await db.DidNotReceive().ConsumeNonceAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     /// <summary>
     /// Verifier throws when the nonce field in the token does not match the expected nonce.
     /// The endpoint maps this to 401 — same as any other InvalidOperationException from the verifier.
+    /// Critically: the nonce must NOT be consumed when token verification fails.
     /// </summary>
     [Fact]
     public async Task HandleAsync_VerifierThrowsForNonceMismatch_Returns401()
@@ -257,6 +292,7 @@ public class GoogleSocialLoginEndpointTests
             CancellationToken.None);
 
         ep.HttpContext.Response.StatusCode.Should().Be(StatusCodes.Status401Unauthorized);
+        await db.DidNotReceive().ConsumeNonceAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     // ── 403 — deactivated account ──────────────────────────────────────────
@@ -374,6 +410,8 @@ public class GoogleSocialLoginEndpointTests
         ep.Response.ExpiresAt.Should().BeAfter(DateTime.UtcNow);
         db.RefreshTokens.Received(1).Add(Arg.Is<RefreshToken>(rt => rt.UserId == userId));
         await db.Received().SaveChangesAsync(Arg.Any<CancellationToken>());
+        // Atomic consume must have been called exactly once.
+        await db.Received(1).ConsumeNonceAsync(ValidNonce, Arg.Any<CancellationToken>());
     }
 
     // ── 200 — new user provisioning ───────────────────────────────────────

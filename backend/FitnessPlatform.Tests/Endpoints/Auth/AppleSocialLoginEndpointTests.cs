@@ -208,14 +208,47 @@ public class AppleSocialLoginEndpointTests
             new AppleSocialLoginRequest { IdentityToken = "bad-token", Nonce = ValidNonce },
             CancellationToken.None);
 
-        // Assert
+        // Assert — 401, and the nonce must NOT have been consumed (atomic consume is
+        // only called after token verification succeeds — bad tokens do not burn the nonce).
         ep.HttpContext.Response.StatusCode.Should().Be(StatusCodes.Status401Unauthorized);
+        await db.DidNotReceive().ConsumeNonceAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    // ── 401 — concurrent consume race lost ───────────────────────────────────
+
+    /// <summary>
+    /// Simulates a concurrent-request race where two requests both pass the
+    /// pre-check read (nonce appears valid) but only one wins the atomic UPDATE.
+    /// The loser receives 0 rows from ConsumeNonceAsync and must return 401.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_ConsumeRaceLost_Returns401()
+    {
+        // Arrange — nonce is valid at pre-check time but ConsumeNonceAsync returns
+        // 0 (another request consumed it in the gap between read and update).
+        var verifier = MakeVerifier(ValidPayloadWithEmail);
+        var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        var db = new MockDbBuilder().With(MakeValidNonce()).Build();
+        // Override the default return: atomic consume lost the race.
+        db.ConsumeNonceAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(0);
+        var config = MakeConfig();
+        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config);
+
+        await ep.HandleAsync(
+            new AppleSocialLoginRequest { IdentityToken = "valid-token", Nonce = ValidNonce },
+            CancellationToken.None);
+
+        // Assert — must be 401; no user lookup / provisioning should have occurred.
+        ep.HttpContext.Response.StatusCode.Should().Be(StatusCodes.Status401Unauthorized);
+        await userManager.DidNotReceive().FindByIdAsync(Arg.Any<string>());
+        await userManager.DidNotReceive().FindByEmailAsync(Arg.Any<string>());
     }
 
     /// <summary>
     /// Verifier throws when token uses alg=none or HS256 — endpoint must return 401.
     /// The ValidAlgorithms=["RS256"] guard inside AppleTokenVerifier rejects these;
     /// the endpoint maps any InvalidOperationException to 401 invalid_credentials.
+    /// Critically: the nonce must NOT be consumed when token verification fails.
     /// </summary>
     [Fact]
     public async Task HandleAsync_VerifierThrowsForAlgConfusion_Returns401()
@@ -236,13 +269,15 @@ public class AppleSocialLoginEndpointTests
             new AppleSocialLoginRequest { IdentityToken = "alg-none-token", Nonce = ValidNonce },
             CancellationToken.None);
 
-        // Assert — must be 401, not 200/409/403
+        // Assert — must be 401, not 200/409/403; nonce must not be burned on failed token verification.
         ep.HttpContext.Response.StatusCode.Should().Be(StatusCodes.Status401Unauthorized);
+        await db.DidNotReceive().ConsumeNonceAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     /// <summary>
     /// Verifier throws when email is explicitly unverified and not a private-relay address.
     /// The endpoint maps this InvalidOperationException to 401 invalid_credentials.
+    /// Critically: the nonce must NOT be consumed when token verification fails.
     /// </summary>
     [Fact]
     public async Task HandleAsync_VerifierThrowsForUnverifiedNonRelayEmail_Returns401()
@@ -262,11 +297,13 @@ public class AppleSocialLoginEndpointTests
             CancellationToken.None);
 
         ep.HttpContext.Response.StatusCode.Should().Be(StatusCodes.Status401Unauthorized);
+        await db.DidNotReceive().ConsumeNonceAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     /// <summary>
     /// Verifier throws when the nonce claim in the token does not match the expected nonce.
     /// The endpoint maps this to 401 — same as any other InvalidOperationException from the verifier.
+    /// Critically: the nonce must NOT be consumed when token verification fails.
     /// </summary>
     [Fact]
     public async Task HandleAsync_VerifierThrowsForNonceMismatch_Returns401()
@@ -286,6 +323,7 @@ public class AppleSocialLoginEndpointTests
             CancellationToken.None);
 
         ep.HttpContext.Response.StatusCode.Should().Be(StatusCodes.Status401Unauthorized);
+        await db.DidNotReceive().ConsumeNonceAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     // ── 401 — orphaned external login ─────────────────────────────────────────
@@ -450,6 +488,8 @@ public class AppleSocialLoginEndpointTests
         ep.Response.ExpiresAt.Should().BeAfter(DateTime.UtcNow);
         db.RefreshTokens.Received(1).Add(Arg.Is<RefreshToken>(rt => rt.UserId == userId));
         await db.Received().SaveChangesAsync(Arg.Any<CancellationToken>());
+        // Atomic consume must have been called exactly once.
+        await db.Received(1).ConsumeNonceAsync(ValidNonce, Arg.Any<CancellationToken>());
     }
 
     /// <summary>
