@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,24 +12,17 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import {
-  GoogleSignin,
-  statusCodes,
-  isErrorWithCode,
-} from '@react-native-google-signin/google-signin';
+import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
+import { ResponseType } from 'expo-auth-session';
 import api from '@/api/client';
 import { requestSocialNonce, googleSocialLogin } from '@/api/social';
 import { useAuthStore } from '@/stores/auth';
 import { useTheme } from '@/hooks/useTheme';
 import { Colors, type ColorScheme } from '@/constants/colors';
 
-// Configure Google Sign-In once at module level.
-// EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID and EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID
-// are set per-environment — never hardcode OAuth client IDs here.
-GoogleSignin.configure({
-  iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-});
+// Required for expo-auth-session to complete the browser redirect on iOS/Android.
+WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
   const colors = useTheme();
@@ -40,6 +33,114 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+
+  // Server-issued nonce for the current Google sign-in attempt.
+  // Fetched on mount and refreshed after each attempt (nonces are single-use).
+  const [googleNonce, setGoogleNonce] = useState<string | null>(null);
+
+  const fetchGoogleNonce = useCallback(async () => {
+    try {
+      const nonce = await requestSocialNonce();
+      setGoogleNonce(nonce);
+    } catch {
+      // Silent fail — the nonce will be re-fetched on the next attempt if needed.
+      setGoogleNonce(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchGoogleNonce();
+  }, [fetchGoogleNonce]);
+
+  // Build the Google auth request with the server-issued nonce in extraParams.
+  // The nonce is passed as a raw string; Google embeds it verbatim in the
+  // returned id_token nonce claim so the backend can verify it.
+  // useAuthRequest is a hook and rebuilds whenever the config changes (nonce update).
+  const [, googleResponse, promptGoogleAsync] = Google.useAuthRequest(
+    {
+      iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+      androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+      webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+      responseType: ResponseType.IdToken,
+      // Pass the server-issued nonce so Google embeds it in the id_token claim.
+      // The library only generates its own nonce when extraParams.nonce is absent.
+      extraParams: googleNonce ? { nonce: googleNonce } : undefined,
+    },
+  );
+
+  // Process the Google auth response whenever it changes.
+  useEffect(() => {
+    if (!googleResponse || googleResponse.type === 'opened') return;
+
+    const handleGoogleResponse = async () => {
+      try {
+        if (googleResponse.type === 'cancel' || googleResponse.type === 'dismiss') {
+          // User closed the browser — return to default state silently.
+          return;
+        }
+
+        if (googleResponse.type !== 'success') {
+          Alert.alert(t('auth.login.failedTitle'), t('auth.login.failedMessage'));
+          return;
+        }
+
+        const idToken = googleResponse.params.id_token;
+        if (!idToken || !googleNonce) {
+          Alert.alert(t('auth.login.failedTitle'), t('auth.login.failedMessage'));
+          return;
+        }
+
+        const res = await googleSocialLogin(idToken, googleNonce);
+
+        // Hydrate profile with the new access token — same pattern as handleLogin.
+        const { data: profile } = await api.get('/users/me', {
+          headers: { Authorization: `Bearer ${res.accessToken}` },
+        });
+
+        login(
+          {
+            publicId: profile.userId,
+            email: profile.email,
+            firstName: profile.firstName,
+            lastName: profile.lastName,
+            roles: profile.roles ?? [],
+            isOnboardingComplete: profile.isOnboardingComplete ?? null,
+            emailConfirmed: res.emailConfirmed ?? profile.emailConfirmed ?? false,
+            hasActiveLink: profile.hasActiveLink ?? false,
+            hasPendingQuestionnaire: profile.hasPendingQuestionnaire ?? false,
+            linkedRoles: profile.linkedRoles ?? [],
+            avatarBlobUrl: profile.avatarBlobUrl ?? null,
+          },
+          res.accessToken,
+          res.refreshToken,
+        );
+      } catch (err: unknown) {
+        // 409: email already registered with a password login.
+        // Read errorCode from the top-level camelCase field per ProblemDetails wire shape.
+        const axiosErr = err as { response?: { data?: { errorCode?: string } } };
+        if (axiosErr.response?.data?.errorCode === 'social_email_conflict') {
+          Alert.alert(
+            t('auth.login.failedTitle'),
+            t('auth.login.googleConflict'),
+          );
+          return;
+        }
+
+        // Anything else (401 invalid token/nonce, network error, etc.)
+        Alert.alert(t('auth.login.failedTitle'), t('auth.login.failedMessage'));
+      } finally {
+        setGoogleLoading(false);
+        // Refresh the nonce so the next attempt gets a fresh single-use token.
+        fetchGoogleNonce();
+      }
+    };
+
+    handleGoogleResponse();
+    // googleNonce, t, login, fetchGoogleNonce are stable or intentionally
+    // captured at the time googleResponse was built — only re-run when the
+    // response itself changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [googleResponse]);
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) return;
@@ -64,7 +165,7 @@ export default function LoginScreen() {
           avatarBlobUrl: profile.avatarBlobUrl ?? null,
         },
         data.accessToken,
-        data.refreshToken
+        data.refreshToken,
       );
     } catch {
       Alert.alert(t('auth.login.failedTitle'), t('auth.login.failedMessage'));
@@ -74,75 +175,18 @@ export default function LoginScreen() {
   };
 
   const handleGoogleSignIn = async () => {
-    setGoogleLoading(true);
-    try {
-      // Each attempt gets a fresh nonce — nonces are single-use.
-      const nonce = await requestSocialNonce();
-
-      await GoogleSignin.hasPlayServices();
-      // The @react-native-google-signin/google-signin v16 SDK does not support
-      // per-call nonce injection via signIn() — nonce is not in SignInParams.
-      // The nonce is still sent in the POST /auth/social/google body; the
-      // backend uses it as an anti-replay token and also verifies the idToken
-      // nonce claim when present. Follow-up: investigate SDK upgrade or a
-      // custom nonce injection path if the backend requires idToken nonce claim.
-      const userInfo = await GoogleSignin.signIn();
-
-      const idToken = userInfo.data?.idToken;
-      if (!idToken) {
+    if (!googleNonce) {
+      // Nonce not yet available — try fetching it now before proceeding.
+      await fetchGoogleNonce();
+      if (!googleNonce) {
         Alert.alert(t('auth.login.failedTitle'), t('auth.login.failedMessage'));
         return;
       }
-
-      const res = await googleSocialLogin(idToken, nonce);
-
-      // Hydrate the profile with the new access token — same pattern as handleLogin.
-      const { data: profile } = await api.get('/users/me', {
-        headers: { Authorization: `Bearer ${res.accessToken}` },
-      });
-
-      login(
-        {
-          publicId: profile.userId,
-          email: profile.email,
-          firstName: profile.firstName,
-          lastName: profile.lastName,
-          roles: profile.roles ?? [],
-          isOnboardingComplete: profile.isOnboardingComplete ?? null,
-          emailConfirmed: res.emailConfirmed ?? profile.emailConfirmed ?? false,
-          hasActiveLink: profile.hasActiveLink ?? false,
-          hasPendingQuestionnaire: profile.hasPendingQuestionnaire ?? false,
-          linkedRoles: profile.linkedRoles ?? [],
-          avatarBlobUrl: profile.avatarBlobUrl ?? null,
-        },
-        res.accessToken,
-        res.refreshToken
-      );
-    } catch (err: unknown) {
-      // User cancelled — return to default state silently.
-      if (isErrorWithCode(err) && err.code === statusCodes.SIGN_IN_CANCELLED) {
-        return;
-      }
-
-      // 409: email already registered with a password login.
-      // Read errorCode from the top-level camelCase field per ProblemDetails wire shape.
-      const axiosErr = err as { response?: { data?: { errorCode?: string } } };
-      if (axiosErr.response?.data?.errorCode === 'social_email_conflict') {
-        Alert.alert(
-          t('auth.login.failedTitle'),
-          t('auth.login.googleConflict')
-        );
-        return;
-      }
-
-      // Anything else (401 invalid token/nonce, network error, etc.)
-      Alert.alert(t('auth.login.failedTitle'), t('auth.login.failedMessage'));
-    } finally {
-      setGoogleLoading(false);
-      // Sign out from the Google SDK so the picker shows on the next attempt.
-      // This does not revoke the platform tokens.
-      await GoogleSignin.signOut();
     }
+    setGoogleLoading(true);
+    // promptGoogleAsync() opens the browser for the OAuth flow.
+    // The result is handled in the useEffect above via googleResponse.
+    await promptGoogleAsync();
   };
 
   const styles = makeStyles(colors);
@@ -237,15 +281,11 @@ export default function LoginScreen() {
   );
 }
 
-// Inline SVG for the Google logo — no external asset dependency.
+// Inline Google "G" mark using a styled View.
+// Google brand colors are required by Google's Identity Branding Guidelines
+// (https://developers.google.com/identity/branding-guidelines) — these are
+// third-party brand colors, not app design tokens; hardcoding is intentional.
 function GoogleLogo() {
-  // react-native-svg is already a dependency of this project.
-  // Using a View with styled children to avoid importing Svg here
-  // (Svg is only needed in SVG-heavy components; inline Text is sufficient).
-  // We render the standard Google "G" icon as a small coloured square
-  // as a platform-agnostic fallback. The real Google "G" multicoloured
-  // logo requires react-native-svg; import it when the design team confirms
-  // the exact asset path.
   return (
     <View style={googleLogoStyles.container}>
       <Text style={googleLogoStyles.letter}>G</Text>
@@ -253,11 +293,6 @@ function GoogleLogo() {
   );
 }
 
-// Google brand colors per Google Identity Branding Guidelines.
-// These are third-party brand colors, NOT app theme tokens — hardcoding is
-// intentional and required to comply with Google's sign-in button appearance
-// requirements. See https://developers.google.com/identity/branding-guidelines
-// The companion #482 (Apple Sign-In) will follow the same pattern.
 const googleLogoStyles = StyleSheet.create({
   container: {
     width: 18,
