@@ -81,6 +81,8 @@ public class CreatePlanEndpoint(IMongoContext mongo, NutritionAuthHelper authHel
             Status = NutritionPlanStatus.Draft,
             GlobalSettings = req.GlobalSettings,
             QuestionnaireResponseId = req.QuestionnaireResponseId,
+            Goal = req.Goal,
+            TargetWeightKg = req.TargetWeightKg,
             Weeks = Enumerable.Range(1, req.WeekCount).Select(w => new PlanWeek
             {
                 WeekNumber = w,

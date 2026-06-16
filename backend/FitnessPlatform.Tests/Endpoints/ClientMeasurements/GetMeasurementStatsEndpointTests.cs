@@ -4,7 +4,9 @@ using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Features.ClientMeasurements.GetMeasurementStats;
+using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Tests.Builders;
+using FitnessPlatform.Tests.Endpoints.NutritionPlans;
 
 namespace FitnessPlatform.Tests.Endpoints.ClientMeasurements;
 
@@ -14,6 +16,12 @@ namespace FitnessPlatform.Tests.Endpoints.ClientMeasurements;
 public class GetMeasurementStatsEndpointTests
 {
     private readonly Guid _clientId = Guid.NewGuid();
+
+    // Helper: returns a mock IMongoContext with empty NutritionPlans collection
+    // (no active plan) — ensures the plan-first read path falls back gracefully
+    // without affecting the assertion being tested.
+    private static IMongoContext CreateEmptyMongo() =>
+        PlanTestHelpers.CreateMockMongo();
 
     [Fact]
     public async Task HandleAsync_WithWeightData_ReturnsStats()
@@ -59,7 +67,7 @@ public class GetMeasurementStatsEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            db);
+            db, CreateEmptyMongo());
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -102,7 +110,7 @@ public class GetMeasurementStatsEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            db);
+            db, CreateEmptyMongo());
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -122,7 +130,7 @@ public class GetMeasurementStatsEndpointTests
         var ep = Factory.Create<GetMeasurementStatsEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity()),
-            db);
+            db, CreateEmptyMongo());
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 

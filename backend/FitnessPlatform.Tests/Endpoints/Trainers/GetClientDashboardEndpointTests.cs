@@ -4,7 +4,9 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.Trainers.GetClientDashboard;
+using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Tests.Builders;
+using FitnessPlatform.Tests.Endpoints.NutritionPlans;
 using NSubstitute;
 
 namespace FitnessPlatform.Tests.Endpoints.Trainers;
@@ -14,6 +16,10 @@ public class GetClientDashboardEndpointTests
     private readonly Guid _trainerId = Guid.NewGuid();
     private readonly IAuditService _audit = Substitute.For<IAuditService>();
     private readonly IComplianceService _complianceService = Substitute.For<IComplianceService>();
+
+    // Returns a mock IMongoContext with no active plans — plan-first path
+    // falls back to onboarding data without affecting the assertion.
+    private static IMongoContext EmptyMongo() => PlanTestHelpers.CreateMockMongo();
 
     [Fact]
     public async Task HandleAsync_LinkedClient_ReturnsDashboard()
@@ -38,7 +44,7 @@ public class GetClientDashboardEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, _audit, _complianceService);
+            db, _audit, _complianceService, EmptyMongo());
 
         await ep.HandleAsync(new GetClientDashboardRequest
         {
@@ -81,7 +87,7 @@ public class GetClientDashboardEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, _audit, _complianceService);
+            db, _audit, _complianceService, EmptyMongo());
 
         await ep.HandleAsync(new GetClientDashboardRequest
         {
@@ -110,7 +116,7 @@ public class GetClientDashboardEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, _audit, _complianceService);
+            db, _audit, _complianceService, EmptyMongo());
 
         await ep.HandleAsync(new GetClientDashboardRequest
         {
@@ -130,7 +136,7 @@ public class GetClientDashboardEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, _audit, _complianceService);
+            db, _audit, _complianceService, EmptyMongo());
 
         await ep.HandleAsync(new GetClientDashboardRequest
         {
@@ -144,7 +150,7 @@ public class GetClientDashboardEndpointTests
     public async Task HandleAsync_NoClaims_Returns401()
     {
         var db = new MockDbBuilder().Build();
-        var ep = Factory.Create<GetClientDashboardEndpoint>(db, _audit, _complianceService);
+        var ep = Factory.Create<GetClientDashboardEndpoint>(db, _audit, _complianceService, EmptyMongo());
 
         await ep.HandleAsync(new GetClientDashboardRequest
         {
@@ -176,7 +182,7 @@ public class GetClientDashboardEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, _audit, _complianceService);
+            db, _audit, _complianceService, EmptyMongo());
 
         await ep.HandleAsync(new GetClientDashboardRequest
         {

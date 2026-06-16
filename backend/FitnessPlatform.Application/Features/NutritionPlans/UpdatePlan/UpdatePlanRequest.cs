@@ -1,4 +1,5 @@
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 
 namespace FitnessPlatform.Application.Features.NutritionPlans.UpdatePlan;
 
@@ -43,6 +44,18 @@ public class UpdatePlanRequest
     /// Omitting an entry removes that supplement (full-state replace pattern).
     /// </summary>
     public List<UpdateSupplementRequest> Supplements { get; set; } = [];
+
+    /// <summary>
+    /// Optional primary fitness goal for this plan period.
+    /// When set, read sites prefer this value over the client's onboarding baseline.
+    /// </summary>
+    public PrimaryGoal? Goal { get; set; }
+
+    /// <summary>
+    /// Optional target body weight in kilograms for this plan period.
+    /// Must be greater than zero when provided.
+    /// </summary>
+    public decimal? TargetWeightKg { get; set; }
 }
 
 /// <summary>

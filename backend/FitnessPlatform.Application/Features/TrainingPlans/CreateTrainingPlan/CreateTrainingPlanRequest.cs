@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+
 namespace FitnessPlatform.Application.Features.TrainingPlans.CreateTrainingPlan;
 
 /// <summary>
@@ -35,4 +37,16 @@ public class CreateTrainingPlanRequest
     /// Must be a submitted response owned by this professional for the same client.
     /// </summary>
     public Guid? QuestionnaireResponseId { get; set; }
+
+    /// <summary>
+    /// Optional primary fitness goal for this plan period.
+    /// When set, read sites prefer this value over the client's onboarding baseline.
+    /// </summary>
+    public PrimaryGoal? Goal { get; set; }
+
+    /// <summary>
+    /// Optional target body weight in kilograms for this plan period.
+    /// Must be greater than zero when provided.
+    /// </summary>
+    public decimal? TargetWeightKg { get; set; }
 }

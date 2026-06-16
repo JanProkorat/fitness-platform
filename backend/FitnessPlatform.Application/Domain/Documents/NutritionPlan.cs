@@ -23,7 +23,7 @@ public class NutritionPlan
     public Guid ExternalId { get; set; }
 
     /// <summary>
-    /// The client this plan belongs to (matches ApplicationUser.Id).
+    /// The client this plan belongs to (matches <c>ClientProfile.PublicId</c>, NOT <c>ApplicationUser.Id</c>).
     /// </summary>
     [BsonElement("clientId")]
     public Guid ClientId { get; set; }
@@ -65,6 +65,23 @@ public class NutritionPlan
     /// </summary>
     [BsonElement("supplements")]
     public List<Supplement> Supplements { get; set; } = [];
+
+    /// <summary>
+    /// Primary fitness goal for this plan period.
+    /// When set, read sites prefer this value over the client's onboarding baseline.
+    /// </summary>
+    [BsonElement("goal")]
+    [BsonIgnoreIfNull]
+    [BsonRepresentation(BsonType.String)]
+    public PrimaryGoal? Goal { get; set; }
+
+    /// <summary>
+    /// Target body weight in kilograms for this plan period.
+    /// When set, read sites prefer this value over the client's onboarding baseline.
+    /// </summary>
+    [BsonElement("targetWeightKg")]
+    [BsonIgnoreIfNull]
+    public decimal? TargetWeightKg { get; set; }
 
     /// <summary>
     /// Optimistic concurrency version. Incremented on each update.
