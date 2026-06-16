@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -12,7 +12,7 @@ import { apiClient } from '@/api/client';
 import { showError, showApiError } from '@/lib/api-errors';
 import type { LoginResponse } from '@/api/client';
 import { INVITE_TOKEN_KEY } from '@/pages/InviteAcceptPage';
-import { googleSocialLogin, appleSocialLogin } from '@/api/auth';
+import { googleSocialLogin, appleSocialLogin, requestSocialNonce } from '@/api/auth';
 import { signInWithApple } from '@/lib/appleAuth';
 
 export default function LoginPage() {
@@ -26,6 +26,33 @@ export default function LoginPage() {
   const [appleLoading, setAppleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [inviteStatus, setInviteStatus] = useState<'accepted' | 'failed' | null>(null);
+  /**
+   * Single-use nonce for the Google sign-in flow. Fetched on mount so it
+   * exists before the user clicks the Google button (the nonce must be
+   * present when GoogleLogin calls google.accounts.id.initialize).
+   * Refreshed after each attempt (success or failure) so a retry works.
+   * null means the nonce is still loading — the Google button is disabled
+   * until a nonce is available.
+   */
+  const [googleNonce, setGoogleNonce] = useState<string | null>(null);
+
+  const fetchGoogleNonce = useCallback(async () => {
+    try {
+      const nonce = await requestSocialNonce();
+      setGoogleNonce(nonce);
+    } catch {
+      // Non-fatal on load — showApiError would be noise before the user has
+      // even tried to sign in. The button stays disabled until the next
+      // refresh attempt (triggered after a sign-in error). If the error
+      // persists the user will see auth.loginError when they try to use it.
+      setGoogleNonce(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchGoogleNonce();
+  }, [fetchGoogleNonce]);
+
   const justRegistered = (location.state as { registered?: boolean })?.registered;
   const fromInvite = (location.state as { fromInvite?: boolean })?.fromInvite;
   const hasPendingInvite = !!localStorage.getItem(INVITE_TOKEN_KEY);
@@ -103,12 +130,22 @@ export default function LoginPage() {
    * dialog completes. credentialResponse.credential is the ID token JWT that the
    * backend verifies via GoogleJsonWebSignature.ValidateAsync — not an OAuth
    * access token.
+   *
+   * The nonce passed to <GoogleLogin> is embedded by GIS into the id_token's
+   * nonce claim as the raw value; the backend compares it directly (Google does
+   * not hash it, unlike Apple). After each attempt we clear and re-fetch the
+   * nonce so a retry works — the old nonce is consumed (or expired on failure)
+   * and cannot be reused.
    */
   const handleGoogleSuccess = async (credentialResponse: { credential?: string }) => {
-    if (!credentialResponse.credential) return;
+    if (!credentialResponse.credential || !googleNonce) return;
     setGoogleLoading(true);
+    // Capture the current nonce and immediately clear it so the button becomes
+    // disabled during the in-flight request; we re-fetch in finally.
+    const nonce = googleNonce;
+    setGoogleNonce(null);
     try {
-      const res: LoginResponse = await googleSocialLogin(credentialResponse.credential);
+      const res: LoginResponse = await googleSocialLogin(credentialResponse.credential, nonce);
       setTokens(res.accessToken!, res.refreshToken!);
       const profile = await apiClient.getProfileEndpoint();
       const emailConfirmed = res.emailConfirmed ?? true;
@@ -142,6 +179,9 @@ export default function LoginPage() {
       showApiError(err, 'auth.loginError');
     } finally {
       setGoogleLoading(false);
+      // Re-fetch a fresh nonce regardless of outcome — the used nonce is
+      // consumed (success) or should not be retried (failure).
+      void fetchGoogleNonce();
     }
   };
 
@@ -152,16 +192,23 @@ export default function LoginPage() {
    * firstName/lastName are present only on the first Apple authorization —
    * Apple omits them on subsequent sign-ins. The backend persists them on
    * new account provision only and ignores them on returning users.
+   *
+   * The nonce flow: we first request a single-use nonce from the backend, then
+   * pass it to signInWithApple so the Apple JS SDK embeds SHA-256(nonce) into
+   * the id_token. We then send the RAW nonce back in the login body; the
+   * backend hashes it and compares against the token claim.
    */
   const handleAppleSignIn = async () => {
     setAppleLoading(true);
     try {
-      const { identityToken, authorizationCode, firstName, lastName } = await signInWithApple();
+      const nonce = await requestSocialNonce();
+      const { identityToken, authorizationCode, firstName, lastName } = await signInWithApple({ nonce });
       const res: LoginResponse = await appleSocialLogin({
         identityToken,
         authorizationCode,
         firstName,
         lastName,
+        nonce,
       });
       setTokens(res.accessToken!, res.refreshToken!);
       const profile = await apiClient.getProfileEndpoint();
@@ -321,12 +368,17 @@ export default function LoginPage() {
           Google's credential dialog fires when the user clicks the button area.
           The onSuccess callback receives credentialResponse.credential — the
           ID token JWT — which is what POST /auth/social/google expects.
+
+          The nonce prop is passed to GoogleLogin so GIS embeds it in the
+          id_token via google.accounts.id.initialize. The overlay is disabled
+          until googleNonce is available (non-null) so a click before the nonce
+          is fetched does not produce a credential without a nonce.
         */}
         <div style={{ position: 'relative' }}>
           <button
             type="button"
             className="auth-social"
-            disabled={googleLoading}
+            disabled={googleLoading || googleNonce === null}
             style={{ width: '100%' }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24">
@@ -339,23 +391,30 @@ export default function LoginPage() {
           </button>
           {/* Invisible GoogleLogin overlay — renders a 0-opacity button that
               fills the same space. When clicked it opens Google's credential
-              popup and calls onSuccess with the ID token credential. */}
+              popup and calls onSuccess with the ID token credential.
+              Disabled until googleNonce is loaded (null = loading/unavailable). */}
           <div
             style={{
               position: 'absolute',
               inset: 0,
               opacity: 0,
               overflow: 'hidden',
-              pointerEvents: googleLoading ? 'none' : 'all',
+              pointerEvents: googleLoading || googleNonce === null ? 'none' : 'all',
             }}
             aria-hidden="true"
           >
-            <GoogleLogin
-              onSuccess={handleGoogleSuccess}
-              onError={() => showError('auth.loginError')}
-              width="100%"
-              useOneTap={false}
-            />
+            {googleNonce !== null && (
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => {
+                  showError('auth.loginError');
+                  void fetchGoogleNonce();
+                }}
+                width="100%"
+                useOneTap={false}
+                nonce={googleNonce}
+              />
+            )}
           </div>
         </div>
 

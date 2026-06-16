@@ -42,6 +42,7 @@ interface AppleIDAuth {
     scope: string;
     redirectURI: string;
     usePopup: boolean;
+    nonce?: string;
   }): void;
   signIn(): Promise<AppleSignInAuthorizationResult>;
 }
@@ -96,6 +97,18 @@ function loadAppleSdk(): Promise<void> {
 }
 
 /**
+ * Options for signInWithApple.
+ */
+export interface SignInWithAppleOptions {
+  /**
+   * A raw nonce obtained from POST /auth/social/nonce. Apple embeds
+   * SHA-256(nonce) into the id_token's nonce claim; the web client does NOT
+   * hash it — the backend does the comparison.
+   */
+  nonce: string;
+}
+
+/**
  * Initiates Apple Sign-In via the popup/JS-callback flow.
  *
  * Reads clientId + redirectURI from Vite env:
@@ -108,7 +121,7 @@ function loadAppleSdk(): Promise<void> {
  *
  * Throws if the user cancels or the SDK rejects.
  */
-export async function signInWithApple(): Promise<AppleSignInResult> {
+export async function signInWithApple({ nonce }: SignInWithAppleOptions): Promise<AppleSignInResult> {
   await loadAppleSdk();
 
   // The interop cast: window.AppleID is unknown at compile time because the
@@ -121,6 +134,7 @@ export async function signInWithApple(): Promise<AppleSignInResult> {
     scope: 'name email',
     redirectURI: import.meta.env.VITE_APPLE_REDIRECT_URI ?? '',
     usePopup: true,
+    nonce,
   });
 
   const response = await appleID.auth.signIn();
