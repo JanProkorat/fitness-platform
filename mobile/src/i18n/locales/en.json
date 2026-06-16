@@ -1134,7 +1134,9 @@
       "failedMessage": "Invalid email or password.",
       "continueWithGoogle": "Continue with Google",
       "googleSigningIn": "Signing in with Google...",
-      "googleConflict": "This email is already registered with a password. Please sign in with your email and password."
+      "googleConflict": "This email is already registered with a password. Please sign in with your email and password.",
+      "appleSigningIn": "Signing in with Apple...",
+      "appleConflict": "This email is already registered with a password. Please sign in with your email and password."
     },
     "forgot": {
       "title": "Forgot password",
