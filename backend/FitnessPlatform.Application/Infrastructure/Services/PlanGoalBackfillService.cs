@@ -1,4 +1,5 @@
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
@@ -99,12 +100,11 @@ public class PlanGoalBackfillService(
             if (!onboardingByUserId.TryGetValue(plan.ClientId, out var od))
                 continue;
 
-            // Only backfill if we have at least one value to write.
-            if (od.PrimaryGoal is null && od.TargetWeightKg is null)
-                continue;
-
+            // PrimaryGoal is a non-nullable enum so we always have a value to write.
+            // Only skip if onboarding data has no target weight AND goal is unset
+            // (the goal is always set since it is required on the onboarding form).
             var update = Builders<NutritionPlan>.Update
-                .Set(p => p.Goal, od.PrimaryGoal)
+                .Set(p => p.Goal, (PrimaryGoal?)od.PrimaryGoal)
                 .Set(p => p.TargetWeightKg, od.TargetWeightKg);
 
             // Idempotent guard: only update documents still null in both fields.
@@ -169,11 +169,8 @@ public class PlanGoalBackfillService(
             if (!onboardingByUserId.TryGetValue(plan.ClientId, out var od))
                 continue;
 
-            if (od.PrimaryGoal is null && od.TargetWeightKg is null)
-                continue;
-
             var update = Builders<TrainingPlan>.Update
-                .Set(p => p.Goal, od.PrimaryGoal)
+                .Set(p => p.Goal, (PrimaryGoal?)od.PrimaryGoal)
                 .Set(p => p.TargetWeightKg, od.TargetWeightKg);
 
             var idempotentFilter = Builders<TrainingPlan>.Filter.And(
