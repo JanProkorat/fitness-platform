@@ -201,6 +201,11 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<WeeklyCheckInSched
 builder.Services.AddSingleton<PhotoDiaryReminderScheduler>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<PhotoDiaryReminderScheduler>());
 
+// Social login nonce reaper — periodically deletes expired/consumed nonce rows.
+// Registered as singleton (for test access via IServiceProvider) and hosted service.
+builder.Services.AddSingleton<SocialLoginNonceReaperService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<SocialLoginNonceReaperService>());
+
 // Session lock service — mutual exclusion for trainer-edit vs client-live sessions
 builder.Services.Configure<TrainingLockOptions>(
     builder.Configuration.GetSection(TrainingLockOptions.SectionName));
