@@ -12,7 +12,7 @@ namespace FitnessPlatform.Application.Features.Auth.SocialLogin.RequestNonce;
 /// then presents the raw nonce back together with the resulting identity token so the backend can
 /// verify the token's embedded nonce claim and reject replays.
 /// </summary>
-public class RequestNonceEndpoint(IApplicationDbContext db) : Endpoint<RequestNonceRequest, RequestNonceResponse>
+public class RequestNonceEndpoint(IApplicationDbContext db) : EndpointWithoutRequest<RequestNonceResponse>
 {
     /// <summary>
     /// Nonce time-to-live. 10 minutes is generous enough for a normal sign-in flow
@@ -35,7 +35,7 @@ public class RequestNonceEndpoint(IApplicationDbContext db) : Endpoint<RequestNo
     }
 
     /// <inheritdoc />
-    public override async Task HandleAsync(RequestNonceRequest req, CancellationToken ct)
+    public override async Task HandleAsync(CancellationToken ct)
     {
         // Generate a cryptographically random nonce — 32 bytes encoded as base64url (no padding).
         var rawBytes = RandomNumberGenerator.GetBytes(32);
