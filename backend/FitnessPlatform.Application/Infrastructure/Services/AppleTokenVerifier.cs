@@ -1,5 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 using FitnessPlatform.Application.Domain.Constants;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
@@ -69,7 +71,7 @@ public class AppleTokenVerifier : IAppleTokenVerifier
     }
 
     /// <inheritdoc />
-    public async Task<AppleTokenPayload> VerifyAsync(string identityToken, CancellationToken ct = default)
+    public async Task<AppleTokenPayload> VerifyAsync(string identityToken, string expectedNonce, CancellationToken ct = default)
     {
         var clientId = _config[ConfigKeys.AppleClientId]
             ?? throw new InvalidOperationException("Apple:ClientId is not configured.");
@@ -172,11 +174,37 @@ public class AppleTokenVerifier : IAppleTokenVerifier
                 "Apple identity token email is explicitly unverified and is not a private-relay address.");
         }
 
+        // Nonce verification: Apple embeds SHA-256(rawNonce) in the token's "nonce" claim (lowercase hex).
+        // Reject the token if the claim is absent or does not match SHA-256(expectedNonce).
+        var nonceClaim = principal.FindFirstValue("nonce");
+        if (string.IsNullOrEmpty(nonceClaim))
+        {
+            throw new InvalidOperationException(
+                "Apple identity token is missing the 'nonce' claim. The sign-in must embed a nonce.");
+        }
+
+        var expectedNonceHash = ComputeSha256Hex(expectedNonce);
+        if (!string.Equals(nonceClaim, expectedNonceHash, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                "Apple identity token nonce claim does not match the expected nonce. Possible replay attack.");
+        }
+
         return new AppleTokenPayload(
             Subject: sub,
             Email: email,
             EmailVerified: emailVerified || isPrivateEmail,
             IsPrivateEmail: isPrivateEmail);
+    }
+
+    /// <summary>
+    /// Computes the lowercase hex-encoded SHA-256 hash of the UTF-8 encoding of <paramref name="input"/>.
+    /// Apple embeds this value in the identity token's <c>nonce</c> claim.
+    /// </summary>
+    internal static string ComputeSha256Hex(string input)
+    {
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(input));
+        return Convert.ToHexString(hash).ToLowerInvariant();
     }
 
     /// <summary>

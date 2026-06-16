@@ -36,8 +36,8 @@ public class GoogleSocialLoginEndpoint(
             s.Summary = "Google social login";
             s.Description = "Verifies a Google ID token and returns platform JWT tokens. Provisions a new account if the email is not yet registered.";
             s.Response<GoogleSocialLoginResponse>(200, "Login successful");
-            s.Responses[400] = "idToken is missing or empty";
-            s.Responses[401] = "Google ID token is invalid, expired, or has wrong audience";
+            s.Responses[400] = "idToken or nonce is missing or empty";
+            s.Responses[401] = "Google ID token is invalid, expired, has wrong audience, or the nonce is invalid/consumed/expired";
             s.Responses[403] = "Account is deactivated";
             s.Responses[409] = "Email belongs to an existing password-only account (social_email_conflict)";
         });
@@ -46,17 +46,53 @@ public class GoogleSocialLoginEndpoint(
     /// <inheritdoc />
     public override async Task HandleAsync(GoogleSocialLoginRequest req, CancellationToken ct)
     {
-        // 1. Verify the Google ID token (throws on failure).
+        // 1. Fast pre-check: reject obviously invalid nonces before paying for token verification.
+        // This path is NOT the consume step — it is a cheap short-circuit for clearly-bad nonces.
+        var nonceRecord = await db.SocialLoginNonces
+            .FirstOrDefaultAsync(n => n.Nonce == req.Nonce, ct);
+
+        if (nonceRecord is null || nonceRecord.ConsumedAt != null || nonceRecord.ExpiresAt < DateTime.UtcNow)
+        {
+            await this.SendProblemAsync(StatusCodes.Status401Unauthorized,
+                ErrorCodes.InvalidCredentials,
+                "Social sign-in nonce is invalid, already used, or has expired. Request a new nonce and retry.",
+                ct);
+            return;
+        }
+
+        // 2. Verify the Google ID token (throws on failure).
+        // The verifier confirms the token's nonce field equals req.Nonce (raw, not hashed for Google).
+        // Token verification happens BEFORE the atomic consume so that a bad token
+        // does NOT burn the nonce — the client may retry with the same nonce if
+        // the token itself was the problem (e.g. a transient clock skew).
         GoogleTokenPayload googlePayload;
         try
         {
-            googlePayload = await googleVerifier.VerifyAsync(req.IdToken, ct);
+            googlePayload = await googleVerifier.VerifyAsync(req.IdToken, req.Nonce, ct);
         }
         catch (InvalidOperationException)
         {
             await this.SendProblemAsync(StatusCodes.Status401Unauthorized,
                 ErrorCodes.InvalidCredentials,
                 "Google ID token is invalid, expired, or has the wrong audience.",
+                ct);
+            return;
+        }
+
+        // 3. Atomically consume the nonce with a single conditional UPDATE statement.
+        // This closes the concurrent-request window: two parallel requests that both
+        // passed the pre-check and both verified a valid token will race here; only
+        // one UPDATE will find ConsumedAt == null, the other returns 0 rows affected.
+        // The nonce is spent on every verified outcome (200, 409) — it must not be
+        // replayable once the identity token has been accepted.
+        var consumed = await db.ConsumeNonceAsync(req.Nonce, ct);
+        if (consumed == 0)
+        {
+            // Lost the concurrent consume race, or the nonce expired between the
+            // pre-check read and the UPDATE. Either way, deny as invalid.
+            await this.SendProblemAsync(StatusCodes.Status401Unauthorized,
+                ErrorCodes.InvalidCredentials,
+                "Social sign-in nonce is invalid, already used, or has expired. Request a new nonce and retry.",
                 ct);
             return;
         }

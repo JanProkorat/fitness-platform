@@ -10,7 +10,7 @@ namespace FitnessPlatform.Application.Infrastructure.Services;
 public class GoogleTokenVerifier(IConfiguration config) : IGoogleTokenVerifier
 {
     /// <inheritdoc />
-    public async Task<GoogleTokenPayload> VerifyAsync(string idToken, CancellationToken ct = default)
+    public async Task<GoogleTokenPayload> VerifyAsync(string idToken, string expectedNonce, CancellationToken ct = default)
     {
         var clientId = config[ConfigKeys.GoogleClientId]
             ?? throw new InvalidOperationException("Google:ClientId is not configured.");
@@ -40,9 +40,37 @@ public class GoogleTokenVerifier(IConfiguration config) : IGoogleTokenVerifier
                 "Google ID token has an unverified email address (email_verified is not true).");
         }
 
+        // Nonce verification: Google embeds the raw nonce directly in the payload's Nonce field.
+        // Reject the token if the field is absent or does not match expectedNonce exactly.
+        ValidateNonce(payload.Nonce, expectedNonce);
+
         return new GoogleTokenPayload(
             Subject: payload.Subject,
             Email: payload.Email,
             Name: payload.Name);
+    }
+
+    /// <summary>
+    /// Validates that <paramref name="tokenNonce"/> (the raw value from the Google ID token's
+    /// <c>nonce</c> field) equals <paramref name="expectedNonce"/> using an ordinal comparison.
+    /// Google embeds the raw nonce — no hashing, unlike Apple.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when <paramref name="tokenNonce"/> is null/empty or does not match
+    /// <paramref name="expectedNonce"/>.
+    /// </exception>
+    internal static void ValidateNonce(string? tokenNonce, string expectedNonce)
+    {
+        if (string.IsNullOrEmpty(tokenNonce))
+        {
+            throw new InvalidOperationException(
+                "Google ID token is missing the 'nonce' field. The sign-in must embed a nonce.");
+        }
+
+        if (!string.Equals(tokenNonce, expectedNonce, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Google ID token nonce does not match the expected nonce. Possible replay attack.");
+        }
     }
 }

@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
+using System.Text;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Infrastructure.Services;
@@ -54,11 +55,28 @@ public class AppleTokenVerifierTests : IDisposable
         return new AppleTokenVerifier(config, configManager);
     }
 
+    // ── Test constants ────────────────────────────────────────────────────────
+
+    /// <summary>Raw nonce used in tests that exercise nonce verification.</summary>
+    private const string TestRawNonce = "test-raw-nonce-value";
+
+    /// <summary>
+    /// Computes SHA-256(rawNonce) in lowercase hex — the value Apple embeds in the token's nonce claim.
+    /// </summary>
+    private static string Sha256Hex(string rawNonce) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(rawNonce))).ToLowerInvariant();
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
     /// <summary>
     /// Signs a JWT with the test RSA key.
     /// </summary>
     /// <param name="notBefore">Start of the token validity window. Defaults to now.</param>
     /// <param name="expires">End of the token validity window. Defaults to one hour from now.</param>
+    /// <param name="nonce">
+    /// Optional nonce claim. Defaults to SHA-256(TestRawNonce) — matching Apple's scheme.
+    /// Pass null to omit the nonce claim (for nonce-absent rejection tests).
+    /// </param>
     private string BuildToken(
         string sub,
         string? email = null,
@@ -68,12 +86,16 @@ public class AppleTokenVerifierTests : IDisposable
         string audience = TestAudience,
         DateTime? notBefore = null,
         DateTime? expires = null,
-        SecurityAlgorithm algorithm = SecurityAlgorithm.Rs256)
+        SecurityAlgorithm algorithm = SecurityAlgorithm.Rs256,
+        string? nonce = "USE_DEFAULT")
     {
+        var resolvedNonce = nonce == "USE_DEFAULT" ? Sha256Hex(TestRawNonce) : nonce;
+
         var claims = new List<Claim> { new("sub", sub) };
         if (email is not null) claims.Add(new Claim("email", email));
         if (emailVerified is not null) claims.Add(new Claim("email_verified", emailVerified));
         if (isPrivateEmail is not null) claims.Add(new Claim("is_private_email", isPrivateEmail));
+        if (resolvedNonce is not null) claims.Add(new Claim("nonce", resolvedNonce));
 
         SigningCredentials signingCredentials;
         switch (algorithm)
@@ -127,7 +149,7 @@ public class AppleTokenVerifierTests : IDisposable
             email: "user@example.com",
             emailVerified: "true");
 
-        var result = await verifier.VerifyAsync(token);
+        var result = await verifier.VerifyAsync(token, TestRawNonce);
 
         result.Subject.Should().Be("apple-test-sub");
         result.Email.Should().Be("user@example.com");
@@ -147,7 +169,7 @@ public class AppleTokenVerifierTests : IDisposable
             emailVerified: "true",
             isPrivateEmail: "false");
 
-        var result = await verifier.VerifyAsync(token);
+        var result = await verifier.VerifyAsync(token, TestRawNonce);
 
         result.EmailVerified.Should().BeTrue();
         result.IsPrivateEmail.Should().BeFalse();
@@ -164,7 +186,7 @@ public class AppleTokenVerifierTests : IDisposable
             emailVerified: "false",
             isPrivateEmail: "false");
 
-        var act = () => verifier.VerifyAsync(token);
+        var act = () => verifier.VerifyAsync(token, TestRawNonce);
 
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*unverified*");
@@ -182,7 +204,7 @@ public class AppleTokenVerifierTests : IDisposable
             emailVerified: null,    // absent — real Apple private-relay tokens omit this
             isPrivateEmail: "true");
 
-        var result = await verifier.VerifyAsync(token);
+        var result = await verifier.VerifyAsync(token, TestRawNonce);
 
         result.IsPrivateEmail.Should().BeTrue();
         result.EmailVerified.Should().BeTrue(); // because IsPrivateEmail → EmailVerified = true
@@ -202,7 +224,7 @@ public class AppleTokenVerifierTests : IDisposable
             sub: "attacker",
             algorithm: SecurityAlgorithm.Hs256WithRsaPublicKeyBytes);
 
-        var act = () => verifier.VerifyAsync(token);
+        var act = () => verifier.VerifyAsync(token, TestRawNonce);
 
         await act.Should().ThrowAsync<InvalidOperationException>();
     }
@@ -215,7 +237,7 @@ public class AppleTokenVerifierTests : IDisposable
         var verifier = BuildVerifier();
         var token = BuildToken(sub: "sub-bad-aud", audience: "com.attacker.app");
 
-        var act = () => verifier.VerifyAsync(token);
+        var act = () => verifier.VerifyAsync(token, TestRawNonce);
 
         await act.Should().ThrowAsync<InvalidOperationException>();
     }
@@ -226,7 +248,7 @@ public class AppleTokenVerifierTests : IDisposable
         var verifier = BuildVerifier();
         var token = BuildToken(sub: "sub-bad-iss", issuer: "https://evil.example.com");
 
-        var act = () => verifier.VerifyAsync(token);
+        var act = () => verifier.VerifyAsync(token, TestRawNonce);
 
         await act.Should().ThrowAsync<InvalidOperationException>();
     }
@@ -241,9 +263,60 @@ public class AppleTokenVerifierTests : IDisposable
             notBefore: DateTime.UtcNow.AddHours(-3),
             expires: DateTime.UtcNow.AddHours(-2));
 
-        var act = () => verifier.VerifyAsync(token);
+        var act = () => verifier.VerifyAsync(token, TestRawNonce);
 
         await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    // ── Nonce verification ────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task VerifyAsync_CorrectNonce_Succeeds()
+    {
+        // Token contains SHA-256(TestRawNonce) as the nonce claim.
+        // Passing TestRawNonce as expectedNonce must succeed.
+        var verifier = BuildVerifier();
+        var token = BuildToken(
+            sub: "sub-nonce-ok",
+            email: "user@example.com",
+            emailVerified: "true");
+
+        var result = await verifier.VerifyAsync(token, TestRawNonce);
+
+        result.Subject.Should().Be("sub-nonce-ok");
+    }
+
+    [Fact]
+    public async Task VerifyAsync_WrongNonce_Rejected()
+    {
+        // Token contains SHA-256(TestRawNonce) but we pass a different expectedNonce.
+        var verifier = BuildVerifier();
+        var token = BuildToken(
+            sub: "sub-bad-nonce",
+            email: "user@example.com",
+            emailVerified: "true");
+
+        var act = () => verifier.VerifyAsync(token, "different-nonce-that-does-not-match");
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*nonce*");
+    }
+
+    [Fact]
+    public async Task VerifyAsync_MissingNonceClaim_Rejected()
+    {
+        // Token has no nonce claim at all.
+        var verifier = BuildVerifier();
+        var token = BuildToken(
+            sub: "sub-no-nonce",
+            email: "user@example.com",
+            emailVerified: "true",
+            nonce: null);  // explicitly omit nonce claim
+
+        var act = () => verifier.VerifyAsync(token, TestRawNonce);
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*nonce*");
     }
 
     // ── IDisposable ───────────────────────────────────────────────────────────

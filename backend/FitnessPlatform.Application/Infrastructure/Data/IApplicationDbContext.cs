@@ -146,7 +146,20 @@ public interface IApplicationDbContext
     DbSet<UserExternalLogin> UserExternalLogins { get; set; }
 
     /// <summary>
+    /// Server-issued single-use nonces for social sign-in replay hardening.
+    /// </summary>
+    DbSet<SocialLoginNonce> SocialLoginNonces { get; set; }
+
+    /// <summary>
     /// Saves all changes made in this context to the database.
     /// </summary>
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Atomically marks a nonce as consumed by issuing a single UPDATE statement
+    /// conditional on the nonce being currently unconsumed and not expired.
+    /// Returns the number of rows updated (1 = consumed; 0 = already consumed,
+    /// expired, or not found — the caller lost the consume race).
+    /// </summary>
+    Task<int> ConsumeNonceAsync(string nonce, CancellationToken cancellationToken = default);
 }

@@ -22,6 +22,9 @@ public class GoogleSocialLoginEndpointTests
 {
     private static readonly string JwtSecret = new('x', 64);
 
+    // Raw nonce used in all tests — the DB is seeded with a valid record for this value.
+    private const string ValidNonce = "test-raw-nonce-google";
+
     // Shared Google token payload returned by the fake verifier.
     private static readonly GoogleTokenPayload ValidPayload = new(
         Subject: "google-sub-12345",
@@ -38,10 +41,13 @@ public class GoogleSocialLoginEndpointTests
             })
             .Build();
 
+    /// <summary>
+    /// Creates a fake verifier that always returns the given payload regardless of nonce.
+    /// </summary>
     private static IGoogleTokenVerifier MakeVerifier(GoogleTokenPayload payload)
     {
         var verifier = Substitute.For<IGoogleTokenVerifier>();
-        verifier.VerifyAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        verifier.VerifyAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(payload);
         return verifier;
     }
@@ -49,12 +55,23 @@ public class GoogleSocialLoginEndpointTests
     private static IGoogleTokenVerifier MakeFailingVerifier()
     {
         var verifier = Substitute.For<IGoogleTokenVerifier>();
-        verifier.VerifyAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        verifier.VerifyAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .ThrowsAsync(new InvalidOperationException("Token invalid"));
         return verifier;
     }
 
-    // ── 400 — FluentValidation rejects missing idToken ────────────────────
+    /// <summary>
+    /// Returns a valid, unconsumed nonce row seeded in the mock DB.
+    /// </summary>
+    private static SocialLoginNonce MakeValidNonce() => new()
+    {
+        Nonce = ValidNonce,
+        ExpiresAt = DateTime.UtcNow.AddMinutes(10),
+        ConsumedAt = null,
+        CreatedAt = DateTime.UtcNow
+    };
+
+    // ── 400 — FluentValidation rejects missing idToken ────────────────
     // This path is enforced by the validator before HandleAsync is reached.
     // We verify the validator rejects an empty token directly.
 
@@ -62,7 +79,7 @@ public class GoogleSocialLoginEndpointTests
     public void Validator_EmptyIdToken_HasValidationError()
     {
         var validator = new GoogleSocialLoginValidator();
-        var result = validator.Validate(new GoogleSocialLoginRequest { IdToken = "" });
+        var result = validator.Validate(new GoogleSocialLoginRequest { IdToken = "", Nonce = "some-nonce" });
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(e => string.Equals(e.PropertyName, nameof(GoogleSocialLoginRequest.IdToken), StringComparison.OrdinalIgnoreCase));
     }
@@ -71,8 +88,92 @@ public class GoogleSocialLoginEndpointTests
     public void Validator_NullIdToken_HasValidationError()
     {
         var validator = new GoogleSocialLoginValidator();
-        var result = validator.Validate(new GoogleSocialLoginRequest { IdToken = null! });
+        var result = validator.Validate(new GoogleSocialLoginRequest { IdToken = null!, Nonce = "some-nonce" });
         result.IsValid.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Validator_EmptyNonce_HasValidationError()
+    {
+        var validator = new GoogleSocialLoginValidator();
+        var result = validator.Validate(new GoogleSocialLoginRequest { IdToken = "token", Nonce = "" });
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => string.Equals(
+            e.PropertyName, nameof(GoogleSocialLoginRequest.Nonce),
+            StringComparison.OrdinalIgnoreCase));
+    }
+
+    // ── 401 — nonce not found in DB ───────────────────────────────────────────
+
+    [Fact]
+    public async Task HandleAsync_NonceNotFound_Returns401()
+    {
+        // DB has no nonce rows — any nonce value is unknown.
+        var verifier = MakeVerifier(ValidPayload);
+        var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        var db = new MockDbBuilder().Build(); // no nonce rows
+        var config = MakeConfig();
+        var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config);
+
+        await ep.HandleAsync(
+            new GoogleSocialLoginRequest { IdToken = "valid-token", Nonce = "unknown-nonce" },
+            CancellationToken.None);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(StatusCodes.Status401Unauthorized);
+        // Verifier must NOT be called when the nonce is invalid.
+        await verifier.DidNotReceive().VerifyAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleAsync_NonceAlreadyConsumed_Returns401()
+    {
+        // Nonce exists but has already been consumed.
+        var consumedNonce = new SocialLoginNonce
+        {
+            Nonce = ValidNonce,
+            ExpiresAt = DateTime.UtcNow.AddMinutes(10),
+            ConsumedAt = DateTime.UtcNow.AddMinutes(-1), // already consumed
+            CreatedAt = DateTime.UtcNow.AddMinutes(-2)
+        };
+
+        var verifier = MakeVerifier(ValidPayload);
+        var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        var db = new MockDbBuilder().With(consumedNonce).Build();
+        var config = MakeConfig();
+        var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config);
+
+        await ep.HandleAsync(
+            new GoogleSocialLoginRequest { IdToken = "valid-token", Nonce = ValidNonce },
+            CancellationToken.None);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(StatusCodes.Status401Unauthorized);
+        await verifier.DidNotReceive().VerifyAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleAsync_NonceExpired_Returns401()
+    {
+        // Nonce exists but has expired.
+        var expiredNonce = new SocialLoginNonce
+        {
+            Nonce = ValidNonce,
+            ExpiresAt = DateTime.UtcNow.AddMinutes(-1), // expired
+            ConsumedAt = null,
+            CreatedAt = DateTime.UtcNow.AddMinutes(-11)
+        };
+
+        var verifier = MakeVerifier(ValidPayload);
+        var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        var db = new MockDbBuilder().With(expiredNonce).Build();
+        var config = MakeConfig();
+        var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config);
+
+        await ep.HandleAsync(
+            new GoogleSocialLoginRequest { IdToken = "valid-token", Nonce = ValidNonce },
+            CancellationToken.None);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(StatusCodes.Status401Unauthorized);
+        await verifier.DidNotReceive().VerifyAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     // ── 401 — invalid Google token ─────────────────────────────────────────
@@ -80,20 +181,52 @@ public class GoogleSocialLoginEndpointTests
     [Fact]
     public async Task HandleAsync_InvalidGoogleToken_Returns401()
     {
-        // Arrange
+        // Arrange — nonce is valid but verifier rejects the token.
         var verifier = MakeFailingVerifier();
         var userManager = EndpointTestHelpers.CreateFakeUserManager();
-        var db = new MockDbBuilder().Build();
+        var db = new MockDbBuilder().With(MakeValidNonce()).Build();
         var config = MakeConfig();
         var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config);
 
         // Act — SendProblemAsync writes the response; it does NOT throw.
         await ep.HandleAsync(
-            new GoogleSocialLoginRequest { IdToken = "bad-token" },
+            new GoogleSocialLoginRequest { IdToken = "bad-token", Nonce = ValidNonce },
             CancellationToken.None);
 
-        // Assert
+        // Assert — 401, and the nonce must NOT have been consumed (atomic consume is
+        // only called after token verification succeeds — bad tokens do not burn the nonce).
         ep.HttpContext.Response.StatusCode.Should().Be(StatusCodes.Status401Unauthorized);
+        await db.DidNotReceive().ConsumeNonceAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    // ── 401 — concurrent consume race lost ───────────────────────────────────
+
+    /// <summary>
+    /// Simulates a concurrent-request race where two requests both pass the
+    /// pre-check read (nonce appears valid) but only one wins the atomic UPDATE.
+    /// The loser receives 0 rows from ConsumeNonceAsync and must return 401.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_ConsumeRaceLost_Returns401()
+    {
+        // Arrange — nonce is valid at pre-check time but ConsumeNonceAsync returns
+        // 0 (another request consumed it in the gap between read and update).
+        var verifier = MakeVerifier(ValidPayload);
+        var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        var db = new MockDbBuilder().With(MakeValidNonce()).Build();
+        // Override the default return: atomic consume lost the race.
+        db.ConsumeNonceAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(0);
+        var config = MakeConfig();
+        var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config);
+
+        await ep.HandleAsync(
+            new GoogleSocialLoginRequest { IdToken = "valid-token", Nonce = ValidNonce },
+            CancellationToken.None);
+
+        // Assert — must be 401; no user lookup / provisioning should have occurred.
+        ep.HttpContext.Response.StatusCode.Should().Be(StatusCodes.Status401Unauthorized);
+        await userManager.DidNotReceive().FindByIdAsync(Arg.Any<string>());
+        await userManager.DidNotReceive().FindByEmailAsync(Arg.Any<string>());
     }
 
     /// <summary>
@@ -108,6 +241,7 @@ public class GoogleSocialLoginEndpointTests
     ///
     /// To see the verifier guard at source, inspect:
     ///   Infrastructure/Services/GoogleTokenVerifier.cs — the "email_verified" check.
+    /// Critically: the nonce must NOT be consumed when token verification fails.
     /// </summary>
     [Fact]
     public async Task HandleAsync_VerifierThrowsForUnverifiedEmail_Returns401WithInvalidCredentials()
@@ -115,23 +249,50 @@ public class GoogleSocialLoginEndpointTests
         // Arrange — simulate the InvalidOperationException GoogleTokenVerifier now
         // raises when payload.EmailVerified is false or null.
         var verifier = Substitute.For<IGoogleTokenVerifier>();
-        verifier.VerifyAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        verifier.VerifyAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .ThrowsAsync(new InvalidOperationException(
                 "Google ID token has an unverified email address (email_verified is not true)."));
 
         var userManager = EndpointTestHelpers.CreateFakeUserManager();
-        var db = new MockDbBuilder().Build();
+        var db = new MockDbBuilder().With(MakeValidNonce()).Build();
         var config = MakeConfig();
         var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config);
 
         // Act
         await ep.HandleAsync(
-            new GoogleSocialLoginRequest { IdToken = "token-with-unverified-email" },
+            new GoogleSocialLoginRequest { IdToken = "token-with-unverified-email", Nonce = ValidNonce },
             CancellationToken.None);
 
         // Assert — 401, not 200/409/403. The unverified-email path must never
-        // proceed to account lookup or provisioning.
+        // proceed to account lookup or provisioning; nonce must not be burned.
         ep.HttpContext.Response.StatusCode.Should().Be(StatusCodes.Status401Unauthorized);
+        await db.DidNotReceive().ConsumeNonceAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    /// <summary>
+    /// Verifier throws when the nonce field in the token does not match the expected nonce.
+    /// The endpoint maps this to 401 — same as any other InvalidOperationException from the verifier.
+    /// Critically: the nonce must NOT be consumed when token verification fails.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_VerifierThrowsForNonceMismatch_Returns401()
+    {
+        var verifier = Substitute.For<IGoogleTokenVerifier>();
+        verifier.VerifyAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .ThrowsAsync(new InvalidOperationException(
+                "Google ID token nonce does not match the expected nonce. Possible replay attack."));
+
+        var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        var db = new MockDbBuilder().With(MakeValidNonce()).Build();
+        var config = MakeConfig();
+        var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config);
+
+        await ep.HandleAsync(
+            new GoogleSocialLoginRequest { IdToken = "replay-token", Nonce = ValidNonce },
+            CancellationToken.None);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(StatusCodes.Status401Unauthorized);
+        await db.DidNotReceive().ConsumeNonceAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     // ── 403 — deactivated account ──────────────────────────────────────────
@@ -160,6 +321,7 @@ public class GoogleSocialLoginEndpointTests
         userManager.FindByIdAsync(userId.ToString()).Returns(inactiveUser);
 
         var db = new MockDbBuilder()
+            .With(MakeValidNonce())
             .With(externalLogin)
             .Build();
         var config = MakeConfig();
@@ -167,7 +329,7 @@ public class GoogleSocialLoginEndpointTests
 
         // Act — SendProblemAsync writes the response and does NOT throw.
         await ep.HandleAsync(
-            new GoogleSocialLoginRequest { IdToken = "valid-token" },
+            new GoogleSocialLoginRequest { IdToken = "valid-token", Nonce = ValidNonce },
             CancellationToken.None);
 
         // Assert — status must be 403 (not 400) and error code must be present.
@@ -189,13 +351,15 @@ public class GoogleSocialLoginEndpointTests
         userManager.FindByEmailAsync(ValidPayload.Email).Returns(existingUser);
 
         // No UserExternalLogin rows in the DB.
-        var db = new MockDbBuilder().Build();
+        var db = new MockDbBuilder()
+            .With(MakeValidNonce())
+            .Build();
         var config = MakeConfig();
         var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config);
 
         // Act
         await ep.HandleAsync(
-            new GoogleSocialLoginRequest { IdToken = "valid-token" },
+            new GoogleSocialLoginRequest { IdToken = "valid-token", Nonce = ValidNonce },
             CancellationToken.None);
 
         // Assert
@@ -228,6 +392,7 @@ public class GoogleSocialLoginEndpointTests
         userManager.GetRolesAsync(user).Returns(["Trainer"]);
 
         var db = new MockDbBuilder()
+            .With(MakeValidNonce())
             .With(externalLogin)
             .Build();
         var config = MakeConfig();
@@ -235,7 +400,7 @@ public class GoogleSocialLoginEndpointTests
 
         // Act
         await ep.HandleAsync(
-            new GoogleSocialLoginRequest { IdToken = "valid-token" },
+            new GoogleSocialLoginRequest { IdToken = "valid-token", Nonce = ValidNonce },
             CancellationToken.None);
 
         // Assert
@@ -245,6 +410,8 @@ public class GoogleSocialLoginEndpointTests
         ep.Response.ExpiresAt.Should().BeAfter(DateTime.UtcNow);
         db.RefreshTokens.Received(1).Add(Arg.Is<RefreshToken>(rt => rt.UserId == userId));
         await db.Received().SaveChangesAsync(Arg.Any<CancellationToken>());
+        // Atomic consume must have been called exactly once.
+        await db.Received(1).ConsumeNonceAsync(ValidNonce, Arg.Any<CancellationToken>());
     }
 
     // ── 200 — new user provisioning ───────────────────────────────────────
@@ -269,13 +436,15 @@ public class GoogleSocialLoginEndpointTests
         // GetRolesAsync needs to return roles for token creation
         userManager.GetRolesAsync(Arg.Any<ApplicationUser>()).Returns(["Trainer"]);
 
-        var db = new MockDbBuilder().Build();
+        var db = new MockDbBuilder()
+            .With(MakeValidNonce())
+            .Build();
         var config = MakeConfig();
         var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config);
 
         // Act
         await ep.HandleAsync(
-            new GoogleSocialLoginRequest { IdToken = "valid-token" },
+            new GoogleSocialLoginRequest { IdToken = "valid-token", Nonce = ValidNonce },
             CancellationToken.None);
 
         // Assert
@@ -317,6 +486,7 @@ public class GoogleSocialLoginEndpointTests
         userManager.GetRolesAsync(user).Returns(["Trainer"]);
 
         var db = new MockDbBuilder()
+            .With(MakeValidNonce())
             .With(externalLogin)
             .Build();
         var config = MakeConfig();
@@ -324,7 +494,7 @@ public class GoogleSocialLoginEndpointTests
 
         // Act
         await ep.HandleAsync(
-            new GoogleSocialLoginRequest { IdToken = "valid-token" },
+            new GoogleSocialLoginRequest { IdToken = "valid-token", Nonce = ValidNonce },
             CancellationToken.None);
 
         // Assert — no 409; returns tokens

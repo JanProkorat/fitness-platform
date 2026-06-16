@@ -14,5 +14,6 @@ public class AppleSocialLoginValidator : Validator<AppleSocialLoginRequest>
     public AppleSocialLoginValidator()
     {
         RuleFor(x => x.IdentityToken).NotEmpty();
+        RuleFor(x => x.Nonce).NotEmpty();
     }
 }
