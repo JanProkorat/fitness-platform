@@ -1155,7 +1155,7 @@
       "continueWithGoogle": "Pokračovat přes Google",
       "googleSigningIn": "Přihlašování přes Google…",
       "googleConflict": "Tento email je již registrován s heslem. Přihlaste se emailem a heslem.",
-      "appleSigningIn": "Přihlašování přes Apple…",
+      "continueWithApple": "Pokračovat přes Apple",
       "appleConflict": "Tento email je již registrován s heslem. Přihlaste se emailem a heslem."
     },
     "forgot": {

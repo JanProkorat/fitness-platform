@@ -379,14 +379,21 @@ export default function LoginScreen() {
         {/* Apple Sign In — iOS only, shown only when the native capability is
             available. Uses the native AppleAuthenticationButton which renders
             Apple-approved chrome automatically. Must not be re-skinned.
+            buttonStyle is theme-aware: WHITE on dark backgrounds so the button
+            remains visible against the dark bg, BLACK on light backgrounds.
             Disabled while any auth flow is in flight. */}
         {appleAvailable && (
           <AppleAuthentication.AppleAuthenticationButton
             buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-            buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+            buttonStyle={
+              colors === Colors.dark
+                ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
+                : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
+            }
             cornerRadius={4}
             style={[styles.appleButton, busy && styles.buttonDisabled]}
             onPress={handleAppleSignIn}
+            accessibilityLabel={t('auth.login.continueWithApple')}
           />
         )}
 
