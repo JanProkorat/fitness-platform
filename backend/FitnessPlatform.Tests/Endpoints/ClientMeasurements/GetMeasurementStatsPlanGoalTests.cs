@@ -21,7 +21,8 @@ namespace FitnessPlatform.Tests.Endpoints.ClientMeasurements;
 /// </summary>
 public class GetMeasurementStatsPlanGoalTests
 {
-    private readonly Guid _clientId = Guid.NewGuid();
+    private readonly Guid _clientId = Guid.NewGuid();       // ApplicationUser.Id (JWT claim)
+    private readonly Guid _clientPublicId = Guid.NewGuid(); // ClientProfile.PublicId (plan join key)
 
     private static ClientOnboardingData BuildOnboarding(long clientProfileId, decimal? targetWeightKg) =>
         new()
@@ -56,6 +57,7 @@ public class GetMeasurementStatsPlanGoalTests
     {
         var clientProfile = EntityBuilder.ClientProfile
             .WithUserId(_clientId)
+            .WithPublicId(_clientPublicId)
             .WithId(20)
             .Build();
 
@@ -65,9 +67,9 @@ public class GetMeasurementStatsPlanGoalTests
             .With(clientProfile)
             .Build();
 
-        // Active plan with different target weight
+        // Active plan — seeded with PublicId (what CreatePlanEndpoint writes)
         var activePlan = PlanTestHelpers.CreatePlan(
-            clientId: _clientId,
+            clientId: _clientPublicId,
             status: NutritionPlanStatus.Active);
         activePlan.TargetWeightKg = 72.5m;  // plan = 72.5
 
@@ -95,6 +97,7 @@ public class GetMeasurementStatsPlanGoalTests
     {
         var clientProfile = EntityBuilder.ClientProfile
             .WithUserId(_clientId)
+            .WithPublicId(_clientPublicId)
             .WithId(21)
             .Build();
 
@@ -129,6 +132,7 @@ public class GetMeasurementStatsPlanGoalTests
     {
         var clientProfile = EntityBuilder.ClientProfile
             .WithUserId(_clientId)
+            .WithPublicId(_clientPublicId)
             .WithId(22)
             .Build();
 
@@ -138,9 +142,9 @@ public class GetMeasurementStatsPlanGoalTests
             .With(clientProfile)
             .Build();
 
-        // Active plan exists but has no target weight (pre-migration document)
+        // Active plan exists but has no target weight (pre-migration document) — seeded with PublicId
         var activePlan = PlanTestHelpers.CreatePlan(
-            clientId: _clientId,
+            clientId: _clientPublicId,
             status: NutritionPlanStatus.Active);
         activePlan.TargetWeightKg = null;
 
@@ -168,6 +172,7 @@ public class GetMeasurementStatsPlanGoalTests
     {
         var clientProfile = EntityBuilder.ClientProfile
             .WithUserId(_clientId)
+            .WithPublicId(_clientPublicId)
             .WithId(23)
             .Build();
 

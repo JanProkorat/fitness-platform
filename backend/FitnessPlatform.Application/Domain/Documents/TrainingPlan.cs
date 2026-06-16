@@ -23,7 +23,7 @@ public class TrainingPlan
     public Guid ExternalId { get; set; }
 
     /// <summary>
-    /// The client this plan belongs to (matches ApplicationUser.Id).
+    /// The client this plan belongs to (matches <c>ClientProfile.PublicId</c>, NOT <c>ApplicationUser.Id</c>).
     /// </summary>
     [BsonElement("clientId")]
     public Guid ClientId { get; set; }

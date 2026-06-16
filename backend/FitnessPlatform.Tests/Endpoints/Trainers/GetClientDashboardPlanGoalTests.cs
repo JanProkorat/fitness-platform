@@ -75,9 +75,9 @@ public class GetClientDashboardPlanGoalTests
             .With(link)
             .Build();
 
-        // Active NutritionPlan with DIFFERENT goal
+        // Active NutritionPlan with DIFFERENT goal — seeded with PublicId (what CreatePlanEndpoint writes)
         var activePlan = PlanTestHelpers.CreatePlan(
-            clientId: clientProfile.UserId,
+            clientId: clientProfile.PublicId,
             status: NutritionPlanStatus.Active);
         activePlan.Goal = PrimaryGoal.GainMuscle;       // plan says MuscleGain
         activePlan.TargetWeightKg = 85.0m;              // plan target
@@ -215,9 +215,9 @@ public class GetClientDashboardPlanGoalTests
             .With(link)
             .Build();
 
-        // Active plan but goal fields are null (pre-migration document)
+        // Active plan but goal fields are null (pre-migration document) — seeded with PublicId
         var activePlan = PlanTestHelpers.CreatePlan(
-            clientId: clientProfile.UserId,
+            clientId: clientProfile.PublicId,
             status: NutritionPlanStatus.Active);
         activePlan.Goal = null;
         activePlan.TargetWeightKg = null;

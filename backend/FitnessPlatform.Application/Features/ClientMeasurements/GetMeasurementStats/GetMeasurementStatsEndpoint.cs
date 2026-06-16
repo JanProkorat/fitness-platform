@@ -62,12 +62,12 @@ public class GetMeasurementStatsEndpoint(IApplicationDbContext db, IMongoContext
 
         // Query the active NutritionPlan to source targetWeightKg plan-first.
         // Fallback to OnboardingData only when the plan value is null.
-        // Key: plan.ClientId == clientProfile.UserId (the ApplicationUser.Id Guid, NOT PublicId).
+        // Key: plan.ClientId == clientProfile.PublicId (the ClientProfile.PublicId Guid, NOT UserId).
         decimal? planTargetWeightKg = null;
         try
         {
             var planFilter = Builders<NutritionPlan>.Filter.And(
-                Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientId),
+                Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientProfile.PublicId),
                 Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active));
 
             using var planCursor = await mongo.NutritionPlans.FindAsync(
@@ -77,9 +77,10 @@ public class GetMeasurementStatsEndpoint(IApplicationDbContext db, IMongoContext
             var activePlan = await planCursor.FirstOrDefaultAsync(ct);
             planTargetWeightKg = activePlan?.TargetWeightKg;
         }
-        catch
+        catch (MongoDB.Driver.MongoException ex)
         {
-            // Active plan query is optional — fall back to onboarding if Mongo is unavailable
+            // Active plan query is optional — log and fall back to onboarding if Mongo is unavailable
+            Logger.LogWarning(ex, "Mongo query for active NutritionPlan failed for client {ClientPublicId}; falling back to onboarding data", clientProfile.PublicId);
         }
 
         // Plan-first: prefer plan's targetWeightKg; fall back to onboarding baseline.
