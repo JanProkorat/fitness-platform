@@ -1885,5 +1885,8 @@
       "deleteAriaLabel": "Smazat poznámku",
       "errorLoading": "Poznámky se nepodařilo načíst"
     }
+  },
+  "errors": {
+    "rateLimitRefresh": "Příliš mnoho pokusů — zkuste to za chvíli znovu"
   }
 }

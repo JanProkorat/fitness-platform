@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { create } from 'zustand';
+import { executeRefresh } from '@/lib/refresh';
 
 interface User {
   publicId: string;
@@ -67,12 +68,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       try {
-        const { data: tokens } = await axios.post('/auth/refresh', { refreshToken });
-        const newAccessToken = tokens.accessToken as string;
-        const newRefreshToken = tokens.refreshToken as string;
-
-        localStorage.setItem('refreshToken', newRefreshToken);
-        set({ accessToken: newAccessToken, refreshToken: newRefreshToken });
+        // Use the shared single-flight helper so an app-start refresh and a
+        // concurrent interceptor refresh cannot both fire with the same token.
+        const newAccessToken = await executeRefresh();
 
         const { data: profile } = await axios.get('/users/me', {
           headers: { Authorization: `Bearer ${newAccessToken}` },
