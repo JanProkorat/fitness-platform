@@ -1,5 +1,6 @@
 using System.Threading.RateLimiting;
 using FastEndpoints;
+using Microsoft.AspNetCore.HttpOverrides;
 using FastEndpoints.Security;
 using FastEndpoints.Swagger;
 using FitnessPlatform.Application.Domain.Constants;
@@ -124,17 +125,46 @@ var rateLimitingDisabled = builder.Configuration.GetValue<bool>("RateLimiting:Di
 
 builder.Services.AddRateLimiter(options =>
 {
+    // Resolve the client IP from the request context.
+    // Behind a trusted reverse proxy (Render edge), X-Forwarded-For has already
+    // been resolved into HttpContext.Connection.RemoteIpAddress by UseForwardedHeaders.
+    // If RemoteIpAddress is still null (should not happen in production because
+    // UseForwardedHeaders is registered before UseRateLimiter), fall back to the
+    // connection id — a per-connection unique string — so we never collapse all
+    // anonymous connections into a single shared "unknown" bucket that one flood
+    // could exhaust for everyone.
+    static string GetPartitionKey(HttpContext context) =>
+        context.Connection.RemoteIpAddress?.ToString()
+        ?? context.Connection.Id;
+
     options.AddPolicy(AppPolicies.AuthRateLimit, context =>
         rateLimitingDisabled
             ? RateLimitPartition.GetNoLimiter("disabled")
             : RateLimitPartition.GetFixedWindowLimiter(
-                partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                partitionKey: GetPartitionKey(context),
                 factory: _ => new FixedWindowRateLimiterOptions
                 {
                     PermitLimit = 10,
                     Window = TimeSpan.FromMinutes(15),
                     QueueLimit = 0
                 }));
+
+    // Separate policy for the refresh endpoint so background token rotation
+    // does not consume the shared login/register budget.
+    // 120 permits per 15 min per IP: bounds flood abuse while comfortably
+    // accommodating normal transparent refresh (multiple tabs, concurrent requests).
+    options.AddPolicy(AppPolicies.RefreshRateLimit, context =>
+        rateLimitingDisabled
+            ? RateLimitPartition.GetNoLimiter("disabled")
+            : RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: GetPartitionKey(context),
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 120,
+                    Window = TimeSpan.FromMinutes(15),
+                    QueueLimit = 0
+                }));
+
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 
@@ -337,6 +367,41 @@ if (runMigrationsOnStartup)
 
 // Middleware pipeline
 app.UseExceptionHandler();
+
+// Resolve the true client IP from X-Forwarded-For when the app runs behind
+// the Render edge proxy (or any trusted reverse proxy).
+//
+// SECURITY: blanket trust (ForwardedHeadersOptions with no KnownProxies /
+// KnownNetworks configured) lets any client spoof X-Forwarded-For and forge
+// its own rate-limit partition key.  We restrict trust to:
+//   • RFC 1918 private ranges (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16)
+//   • IPv6 loopback / link-local (::1, fc00::/7, fe80::/10)
+//
+// Render's internal routing places the edge proxy on a private IP relative
+// to the application container, so these ranges cover the production topology
+// while preventing a public client from injecting an arbitrary forwarded IP.
+//
+// Must run BEFORE UseRateLimiter so the rate-limiter already sees the resolved
+// IP in HttpContext.Connection.RemoteIpAddress.
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor,
+    KnownIPNetworks =
+    {
+        // 10.0.0.0/8  (RFC 1918)
+        new System.Net.IPNetwork(System.Net.IPAddress.Parse("10.0.0.0"), 8),
+        // 172.16.0.0/12  (RFC 1918)
+        new System.Net.IPNetwork(System.Net.IPAddress.Parse("172.16.0.0"), 12),
+        // 192.168.0.0/16  (RFC 1918)
+        new System.Net.IPNetwork(System.Net.IPAddress.Parse("192.168.0.0"), 16),
+        // ::1/128  (IPv6 loopback)
+        new System.Net.IPNetwork(System.Net.IPAddress.IPv6Loopback, 128),
+        // fc00::/7  (IPv6 unique local)
+        new System.Net.IPNetwork(System.Net.IPAddress.Parse("fc00::"), 7),
+        // fe80::/10  (IPv6 link-local)
+        new System.Net.IPNetwork(System.Net.IPAddress.Parse("fe80::"), 10),
+    }
+});
 
 // Health endpoints — registered before HTTPS redirect / auth so they remain
 // reachable on plain HTTP (Render terminates TLS at the edge) and don't

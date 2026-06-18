@@ -26,7 +26,7 @@ public class RefreshTokenEndpoint(
     {
         Post("/auth/refresh");
         AllowAnonymous();
-        Options(x => x.RequireRateLimiting(AppPolicies.AuthRateLimit));
+        Options(x => x.RequireRateLimiting(AppPolicies.RefreshRateLimit));
         Summary(s =>
         {
             s.Summary = "Refresh access token";
