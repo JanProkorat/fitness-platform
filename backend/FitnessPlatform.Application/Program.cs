@@ -386,6 +386,9 @@ app.UseExceptionHandler();
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor,
+    // ForwardLimit defaults to 1 — assumes exactly ONE trusted hop (the Render edge proxy).
+    // If the deployment topology ever adds a second trusted hop (e.g. an internal LB behind
+    // Render), bump this to 2 and add the LB's network to KnownIPNetworks.
     KnownIPNetworks =
     {
         // 10.0.0.0/8  (RFC 1918)
