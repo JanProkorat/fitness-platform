@@ -35,17 +35,36 @@ function attachToken(config: import('axios').InternalAxiosRequestConfig) {
 
 // On 401: use the shared single-flight refresh, then retry original request once.
 // On 429: surface a toast and reject — do NOT logout.
+
+/**
+ * Returns true if the error is an Axios 429 response.
+ * Extracted so both the top-level 429 guard and the refresh catch share the
+ * same logic — the refresh call itself can also be rate-limited.
+ */
+function isRateLimited(error: unknown): boolean {
+  const err = error as import('axios').AxiosError;
+  return err?.response?.status === 429;
+}
+
+/**
+ * Show the rate-limit toast and return a rejected promise.
+ * Does NOT call logout() — the user session remains valid.
+ */
+function rejectWithRateLimit(error: unknown): Promise<never> {
+  useToastStore
+    .getState()
+    .addToast(i18n.t('errors.rateLimitRefresh'), 'error');
+  return Promise.reject(error);
+}
+
 function handleRefresh(instance: import('axios').AxiosInstance) {
   return async (error: unknown) => {
     const err = error as import('axios').AxiosError & { config: { _retry?: boolean } };
     const original = err.config;
 
-    // 429 — rate limited. Surface toast, keep the user logged in.
-    if (err.response?.status === 429) {
-      useToastStore
-        .getState()
-        .addToast(i18n.t('errors.rateLimitRefresh'), 'error');
-      return Promise.reject(error);
+    // 429 on the original request — surface toast, keep the user logged in.
+    if (isRateLimited(error)) {
+      return rejectWithRateLimit(error);
     }
 
     if (err.response?.status === 401 && !original._retry) {
@@ -62,7 +81,14 @@ function handleRefresh(instance: import('axios').AxiosInstance) {
         const newAccessToken = await executeRefresh();
         original.headers.Authorization = `Bearer ${newAccessToken}`;
         return instance(original);
-      } catch {
+      } catch (refreshError) {
+        // If the /auth/refresh call itself was rate-limited, show the toast
+        // and keep the user logged in — same as a top-level 429.
+        if (isRateLimited(refreshError)) {
+          return rejectWithRateLimit(refreshError);
+        }
+        // Any other refresh failure (expired/invalid token, network error) →
+        // the session cannot be recovered; logout.
         logout();
         return Promise.reject(error);
       }
