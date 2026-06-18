@@ -1858,5 +1858,8 @@
       "deleteAriaLabel": "Delete note",
       "errorLoading": "Failed to load notes"
     }
+  },
+  "errors": {
+    "rateLimitRefresh": "Too many attempts — please try again shortly"
   }
 }

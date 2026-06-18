@@ -1,6 +1,8 @@
 import axios from 'axios';
 import i18n from '@/i18n';
 import { useAuthStore } from '@/stores/auth';
+import { useToastStore } from '@/stores/toast';
+import { executeRefresh } from '@/lib/refresh';
 
 const api = axios.create({
   baseURL: '/',
@@ -31,26 +33,34 @@ function attachToken(config: import('axios').InternalAxiosRequestConfig) {
   return config;
 }
 
-// On 401: attempt token refresh, then retry original request once
+// On 401: use the shared single-flight refresh, then retry original request once.
+// On 429: surface a toast and reject — do NOT logout.
 function handleRefresh(instance: import('axios').AxiosInstance) {
   return async (error: unknown) => {
     const err = error as import('axios').AxiosError & { config: { _retry?: boolean } };
     const original = err.config;
+
+    // 429 — rate limited. Surface toast, keep the user logged in.
+    if (err.response?.status === 429) {
+      useToastStore
+        .getState()
+        .addToast(i18n.t('errors.rateLimitRefresh'), 'error');
+      return Promise.reject(error);
+    }
+
     if (err.response?.status === 401 && !original._retry) {
       original._retry = true;
 
-      const { refreshToken, setTokens, logout } = useAuthStore.getState();
+      const { refreshToken, logout } = useAuthStore.getState();
       if (!refreshToken) {
         logout();
         return Promise.reject(error);
       }
 
       try {
-        const { data } = await axios.post('/auth/refresh', {
-          refreshToken,
-        });
-        setTokens(data.accessToken, data.refreshToken);
-        original.headers.Authorization = `Bearer ${data.accessToken}`;
+        // executeRefresh() is single-flight: concurrent 401s await the same promise.
+        const newAccessToken = await executeRefresh();
+        original.headers.Authorization = `Bearer ${newAccessToken}`;
         return instance(original);
       } catch {
         logout();

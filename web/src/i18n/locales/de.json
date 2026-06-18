@@ -1857,5 +1857,8 @@
       "deleteAriaLabel": "Notiz löschen",
       "errorLoading": "Notizen konnten nicht geladen werden"
     }
+  },
+  "errors": {
+    "rateLimitRefresh": "Zu viele Versuche — bitte versuchen Sie es in Kürze erneut"
   }
 }
