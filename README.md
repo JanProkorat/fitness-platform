@@ -73,45 +73,45 @@ make web
 
 ## Automated security review
 
-Every PR targeting `develop` or `main` runs the
-[`anthropics/claude-code-security-review`](https://github.com/anthropics/claude-code-security-review)
-GitHub Action (`.github/workflows/security-review.yml`). It uses Claude to
-review **only the files changed in the PR diff** and looks for the kinds of
-issues SAST tools miss — missing authorization checks, business-logic flaws,
-unsafe blob/upload handling, secret leakage, and attack-path chaining. This
-backstops the manual `gc-sec-review` skill; it does not replace it.
+Every push and PR targeting `develop` or `main` is scanned by
+[GitHub CodeQL](https://codeql.github.com/) (`.github/workflows/codeql.yml`),
+plus a weekly full scan. CodeQL is GitHub's static-analysis (SAST) engine; it
+analyzes both the C# backend and the JavaScript/TypeScript web + mobile code
+for known vulnerability patterns — injection, unsafe deserialization, path
+traversal, hardcoded-credential flows, and similar. It is **free for public
+repositories** and needs no API key. This backstops the manual `gc-sec-review`
+skill; it does not replace it.
+
+Analysis runs in CodeQL **`build-mode: none`** (buildless) for both languages,
+so the job needs no .NET SDK or npm install and can't break on an unrelated
+build error.
 
 **How to read the findings**
 
-- Findings appear as **review comments on the PR**. Each one names a file,
-  line, severity, and a suggested remediation.
-- The scan is **advisory** — the `Security Review` check is *not* a required
-  status check, so a finding (or a red check) does **not** block merge. Treat
-  the comments as a prompt to think, not an automatic veto.
-- **Triage each finding before acting:** the reviewer is diff-aware but lacks
-  full repo context, so it can flag false positives (e.g. a check that exists
-  in a caller it can't see). Confirm the issue against the real code path
-  before changing anything; resolve/dismiss the comment with a one-line reason
-  if it's a false positive.
-- High-severity findings on auth, invite, ownership, or upload surfaces should
-  be fixed in the same PR. Lower-severity or stylistic findings can become a
-  follow-up issue.
+- Findings surface in the repo's **Security → Code scanning alerts** tab (not
+  as PR comments). On a PR, new alerts introduced by the diff also appear as
+  annotations in the PR's **Checks** tab.
+- The scan is **advisory** — the CodeQL check is *not* a required status
+  check, so an alert does **not** block merge. Treat alerts as a prompt to
+  triage, not an automatic veto.
+- **Triage each alert:** open it in the Security tab, follow the data-flow
+  path CodeQL shows, and either fix it or dismiss it with a reason
+  (`False positive` / `Used in tests` / `Won't fix`). Dismissals are
+  remembered so the same alert doesn't resurface.
+- High-severity alerts on auth, invite, ownership, or upload surfaces should
+  be fixed in the same PR. Lower-severity findings can become a follow-up
+  issue.
 
-**Setup / cost notes**
+**Setup / notes**
 
-- The Action requires the **`ANTHROPIC_API_KEY`** repo secret
-  (Settings → Secrets and variables → Actions). Without it the job runs but
-  produces no findings — it fails quietly rather than erroring.
-- Each PR scan incurs Anthropic API cost. If that becomes a concern, scope the
-  workflow down (e.g. a diff-size filter, or run only on `develop`-targeted
-  PRs) — see the comments at the top of the workflow file.
-- **Public repo / fork PRs:** the Action is not hardened against prompt
-  injection and should only review trusted PRs. The workflow uses the safe
-  `pull_request` trigger (not `pull_request_target`), so fork PRs run with a
-  read-only token and do **not** receive the `ANTHROPIC_API_KEY` secret by
-  default. Keep "Require approval for all external contributors" enabled under
-  Settings → Actions → General so a fork PR's diff is never scanned without a
-  maintainer's go-ahead.
-- To make it a hard gate instead of advisory, add `Security Review` to the
-  branch-protection required checks and/or configure a severity threshold in
-  the workflow step.
+- **No secret or API key required** — CodeQL runs on GitHub-hosted runners
+  against the public repo. Code scanning must be enabled for the repo
+  (Settings → Code security → Code scanning); the workflow itself provides the
+  analysis.
+- The workflow needs `security-events: write` permission to upload results —
+  already set in the workflow's least-privilege `permissions` block.
+- To make it a hard gate instead of advisory, add the CodeQL check to the
+  branch-protection required checks, or configure code-scanning merge
+  protection rules in repo settings.
+- The query suite can be widened (e.g. `security-extended`) via a
+  `queries:` input on the `init` step if deeper coverage is wanted later.
