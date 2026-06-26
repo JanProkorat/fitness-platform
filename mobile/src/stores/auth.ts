@@ -177,14 +177,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return;
     }
     try {
-      // Dynamic import to avoid circular dependency
-      const api = (await import('../api/client')).default;
-      const { data: tokens } = await api.post('/auth/refresh', { refreshToken });
-      const newAccessToken = tokens.accessToken as string;
-      const newRefreshToken = tokens.refreshToken as string;
-      storage.set('refreshToken', newRefreshToken);
-      set({ accessToken: newAccessToken, refreshToken: newRefreshToken });
+      // Dynamic import to avoid circular dependency:
+      // auth.ts → lib/refresh.ts → auth.ts (via useAuthStore.getState()).
+      // The single-flight lock in executeRefresh() is shared with the 401
+      // interceptor in api/client.ts so both callers coalesce onto the same
+      // /auth/refresh request if they race at startup.
+      const { executeRefresh } = await import('../lib/refresh');
+      await executeRefresh();
 
+      // At this point setTokens() has already been called by executeRefresh,
+      // so get() now returns the new access token.
+      const api = (await import('../api/client')).default;
       const { data: profile } = await api.get('/users/me');
       set({
         user: {

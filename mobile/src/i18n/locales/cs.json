@@ -189,6 +189,9 @@
     "previous": "Předchozí",
     "next": "Další"
   },
+  "errors": {
+    "rateLimit": "Příliš mnoho požadavků. Zkuste to prosím za chvíli."
+  },
   "imagePicker": {
     "sourceTitle": "Vyberte zdroj",
     "sourceCamera": "Vyfotit",

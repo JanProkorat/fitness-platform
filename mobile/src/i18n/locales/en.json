@@ -189,6 +189,9 @@
     "previous": "Previous",
     "next": "Next"
   },
+  "errors": {
+    "rateLimit": "Too many requests. Please try again in a moment."
+  },
   "imagePicker": {
     "sourceTitle": "Select source",
     "sourceCamera": "Take photo",
