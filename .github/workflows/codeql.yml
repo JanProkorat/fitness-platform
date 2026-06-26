@@ -1,0 +1,60 @@
+name: CodeQL
+
+# Free, key-less SAST backstop (replaces the Anthropic-key-gated
+# claude-code-security-review workflow from #386). Analyzes the repo's
+# C# backend and JS/TS web + mobile code. Findings surface in the
+# repository's Security → Code scanning alerts tab. Advisory: the check
+# is not a required status check, so alerts do not hard-block merge. See
+# the "Automated security review" section in README.md.
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+  schedule:
+    # Weekly full scan (Sundays 03:17 UTC) to catch newly-published
+    # query updates against code that hasn't changed in a while.
+    - cron: '17 3 * * 0'
+
+# Least-privilege: write code-scanning results, read the tree + workflow run.
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+concurrency:
+  group: codeql-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Buildless analysis for both languages — no .NET SDK / npm
+          # install needed, so the job stays fast and cannot break on a
+          # build error unrelated to the security scan.
+          - language: csharp
+            build-mode: none
+          - language: javascript-typescript
+            build-mode: none
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:${{ matrix.language }}
