@@ -105,6 +105,13 @@ backstops the manual `gc-sec-review` skill; it does not replace it.
 - Each PR scan incurs Anthropic API cost. If that becomes a concern, scope the
   workflow down (e.g. a diff-size filter, or run only on `develop`-targeted
   PRs) — see the comments at the top of the workflow file.
+- **Public repo / fork PRs:** the Action is not hardened against prompt
+  injection and should only review trusted PRs. The workflow uses the safe
+  `pull_request` trigger (not `pull_request_target`), so fork PRs run with a
+  read-only token and do **not** receive the `ANTHROPIC_API_KEY` secret by
+  default. Keep "Require approval for all external contributors" enabled under
+  Settings → Actions → General so a fork PR's diff is never scanned without a
+  maintainer's go-ahead.
 - To make it a hard gate instead of advisory, add `Security Review` to the
   branch-protection required checks and/or configure a severity threshold in
   the workflow step.
