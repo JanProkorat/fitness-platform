@@ -84,7 +84,12 @@ skill; it does not replace it.
 
 Analysis runs in CodeQL **`build-mode: none`** (buildless) for both languages,
 so the job needs no .NET SDK or npm install and can't break on an unrelated
-build error.
+build error. Note that buildless C# analysis is *lighter* than a built one — it
+doesn't resolve the full build graph, so dataflow through generated/compiled-only
+code can be missed. That's a deliberate tradeoff for a fast, always-green
+advisory backstop; the manual `gc-sec-review` remains the deeper check. If
+richer C# coverage is needed later, switch the `csharp` matrix entry to
+`build-mode: autobuild` (at the cost of a full backend build in CI).
 
 **How to read the findings**
 
@@ -105,9 +110,11 @@ build error.
 **Setup / notes**
 
 - **No secret or API key required** — CodeQL runs on GitHub-hosted runners
-  against the public repo. Code scanning must be enabled for the repo
-  (Settings → Code security → Code scanning); the workflow itself provides the
-  analysis.
+  against the public repo. This workflow *is* the code-scanning setup (GitHub's
+  "advanced setup"): results upload via the job's `security-events: write`
+  token and populate the Security tab automatically — no separate enablement
+  toggle is required. Do **not** also turn on CodeQL "default setup" in
+  Settings → Code security, or the two configurations conflict.
 - The workflow needs `security-events: write` permission to upload results —
   already set in the workflow's least-privilege `permissions` block.
 - To make it a hard gate instead of advisory, add the CodeQL check to the
