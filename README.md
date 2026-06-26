@@ -70,3 +70,41 @@ make web
 - `main` - production
 - `develop` - integration
 - `feature/*` - feature branches
+
+## Automated security review
+
+Every PR targeting `develop` or `main` runs the
+[`anthropics/claude-code-security-review`](https://github.com/anthropics/claude-code-security-review)
+GitHub Action (`.github/workflows/security-review.yml`). It uses Claude to
+review **only the files changed in the PR diff** and looks for the kinds of
+issues SAST tools miss — missing authorization checks, business-logic flaws,
+unsafe blob/upload handling, secret leakage, and attack-path chaining. This
+backstops the manual `gc-sec-review` skill; it does not replace it.
+
+**How to read the findings**
+
+- Findings appear as **review comments on the PR**. Each one names a file,
+  line, severity, and a suggested remediation.
+- The scan is **advisory** — the `Security Review` check is *not* a required
+  status check, so a finding (or a red check) does **not** block merge. Treat
+  the comments as a prompt to think, not an automatic veto.
+- **Triage each finding before acting:** the reviewer is diff-aware but lacks
+  full repo context, so it can flag false positives (e.g. a check that exists
+  in a caller it can't see). Confirm the issue against the real code path
+  before changing anything; resolve/dismiss the comment with a one-line reason
+  if it's a false positive.
+- High-severity findings on auth, invite, ownership, or upload surfaces should
+  be fixed in the same PR. Lower-severity or stylistic findings can become a
+  follow-up issue.
+
+**Setup / cost notes**
+
+- The Action requires the **`ANTHROPIC_API_KEY`** repo secret
+  (Settings → Secrets and variables → Actions). Without it the job runs but
+  produces no findings — it fails quietly rather than erroring.
+- Each PR scan incurs Anthropic API cost. If that becomes a concern, scope the
+  workflow down (e.g. a diff-size filter, or run only on `develop`-targeted
+  PRs) — see the comments at the top of the workflow file.
+- To make it a hard gate instead of advisory, add `Security Review` to the
+  branch-protection required checks and/or configure a severity threshold in
+  the workflow step.
