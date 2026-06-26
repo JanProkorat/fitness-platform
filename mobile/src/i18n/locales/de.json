@@ -189,6 +189,9 @@
     "previous": "Zurück",
     "next": "Weiter"
   },
+  "errors": {
+    "rateLimit": "Zu viele Anfragen. Bitte versuchen Sie es in einem Moment erneut."
+  },
   "imagePicker": {
     "sourceTitle": "Quelle auswählen",
     "sourceCamera": "Foto aufnehmen",
