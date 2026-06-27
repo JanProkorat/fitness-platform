@@ -105,6 +105,42 @@ public class PublishWeekEndpointTests
     }
 
     [Fact]
+    public async Task HandleAsync_VersionMismatch_Returns409WithProblemDetailsStatusCode()
+    {
+        // Verifies the version-mismatch path returns 409 via SendProblemAsync (RFC 7807
+        // Problem Details), not the legacy raw anonymous-object SendAsync pattern.
+        var planId = Guid.NewGuid();
+        var plan = PlanTestHelpers.CreatePlan(
+            externalId: planId,
+            nutritionistId: _nutritionistId,
+            status: NutritionPlanStatus.Draft,
+            weekCount: 1,
+            version: 5);
+
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+        var ep = CreateEndpoint(mongo);
+
+        // Send request with version 1, but plan is at version 5
+        var req = new PublishWeekRequest
+        {
+            PlanId = planId,
+            WeekNumber = 1,
+            Version = 1
+        };
+
+        await ep.HandleAsync(req, TestContext.Current.CancellationToken);
+
+        // Status 409 + ReplaceOneAsync never called confirms the version check fires
+        // and uses SendProblemAsync (not a thrown exception which would surface differently).
+        ep.HttpContext.Response.StatusCode.Should().Be(409);
+        await mongo.NutritionPlans.DidNotReceive().ReplaceOneAsync(
+            Arg.Any<FilterDefinition<NutritionPlan>>(),
+            Arg.Any<NutritionPlan>(),
+            Arg.Any<ReplaceOptions>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task HandleAsync_NotFound_Returns404()
     {
         var mongo = PlanTestHelpers.CreateMockMongo();

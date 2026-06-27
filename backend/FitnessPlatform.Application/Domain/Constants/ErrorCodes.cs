@@ -103,6 +103,9 @@ public static class ErrorCodes
     /// <summary>Only active plans can be completed.</summary>
     public const string PlanNotActive = "PLAN_NOT_ACTIVE";
 
+    /// <summary>The plan version is stale; another write occurred first (optimistic concurrency).</summary>
+    public const string PlanVersionConflict = "PLAN_VERSION_CONFLICT";
+
     // ── Plan Start Date ────────────────────────────────────────────
     /// <summary>Start date is not a Monday.</summary>
     public const string StartDateNotMonday = "START_DATE_NOT_MONDAY";

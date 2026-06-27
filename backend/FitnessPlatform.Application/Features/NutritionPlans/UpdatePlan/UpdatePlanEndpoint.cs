@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.NutritionPlans.GetPlan;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
@@ -64,9 +65,8 @@ public class UpdatePlanEndpoint(IMongoContext mongo, IMacroCalculatorService mac
         // Optimistic concurrency check
         if (plan.Version != req.Version)
         {
-            await HttpContext.Response.SendAsync(
-                new { Error = "Version conflict. The plan was modified by another request." },
-                409, cancellation: ct);
+            await this.SendProblemAsync(409, ErrorCodes.PlanVersionConflict,
+                "Version conflict. The plan was modified by another request.", ct);
             return;
         }
 
@@ -210,9 +210,8 @@ public class UpdatePlanEndpoint(IMongoContext mongo, IMacroCalculatorService mac
 
         if (result.ModifiedCount == 0)
         {
-            await HttpContext.Response.SendAsync(
-                new { Error = "Version conflict. The plan was modified by another request." },
-                409, cancellation: ct);
+            await this.SendProblemAsync(409, ErrorCodes.PlanVersionConflict,
+                "Version conflict. The plan was modified concurrently.", ct);
             return;
         }
 

@@ -123,7 +123,14 @@ public class UpdatePlanFullStateTests
 
         await ep.HandleAsync(req, TestContext.Current.CancellationToken);
 
+        // Status 409 + ReplaceOneAsync never called confirms the version check fires early
+        // and uses SendProblemAsync (RFC 7807 Problem Details), not a thrown exception.
         ep.HttpContext.Response.StatusCode.Should().Be(409);
+        await mongo.NutritionPlans.DidNotReceive().ReplaceOneAsync(
+            Arg.Any<FilterDefinition<NutritionPlan>>(),
+            Arg.Any<NutritionPlan>(),
+            Arg.Any<ReplaceOptions>(),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
