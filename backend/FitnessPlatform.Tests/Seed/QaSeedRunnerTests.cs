@@ -543,7 +543,8 @@ public class QaSeedRunnerTests : IAsyncLifetime
         plan.Should().NotBeNull("QaSeedRunner must create the QA nutrition plan");
         plan!.ClientId.Should().Be(QaSeedRunner.ClientProfilePublicId,
             "NutritionPlan.ClientId must be keyed on ClientProfile.PublicId, not ApplicationUser.Id");
-        plan.NutritionistId.Should().Be(QaSeedRunner.NutriProfilePublicId);
+        plan.NutritionistId.Should().Be(QaSeedRunner.NutriUserId,
+            "NutritionPlan.NutritionistId must be keyed on ApplicationUser.Id (NutriUserId), not the professional profile PublicId, so nutritionist endpoint filters match AppClaims.UserId");
         plan.Status.Should().Be(FitnessPlatform.Application.Domain.Enums.NutritionPlanStatus.Active);
 
         plan.Weeks.Should().HaveCount(1);

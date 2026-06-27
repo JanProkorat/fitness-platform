@@ -294,7 +294,7 @@ public static class QaSeedRunner
             // RECIPE_NOT_OWNED (HTTP 400) when the e2e flow calls the upload-url endpoint.
             await EnsureFoodsAsync(mongo, NutriUserId, logger);
             await EnsureRecipesAsync(mongo, NutriUserId, logger);
-            await EnsureNutritionPlanAsync(mongo, clientProfile.PublicId, nutriProfile.PublicId, logger);
+            await EnsureNutritionPlanAsync(mongo, clientProfile.PublicId, NutriUserId, logger);
 
             // Image blobs in MinIO — idempotent, bucket created if absent.
             await EnsureAvatarAsync(sp, logger);
@@ -1568,7 +1568,7 @@ public static class QaSeedRunner
     private static async Task EnsureNutritionPlanAsync(
         IMongoContext mongo,
         Guid clientProfilePublicId,
-        Guid nutriProfilePublicId,
+        Guid nutriUserId,
         ILogger logger)
     {
         var existing = await mongo.NutritionPlans
@@ -1588,7 +1588,7 @@ public static class QaSeedRunner
         {
             ExternalId     = QaNutritionPlanExternalId,
             ClientId       = clientProfilePublicId,
-            NutritionistId = nutriProfilePublicId,
+            NutritionistId = nutriUserId,
             Name           = "QA Test Nutrition Plan",
             Status         = NutritionPlanStatus.Active,
             DateCreated    = now,
