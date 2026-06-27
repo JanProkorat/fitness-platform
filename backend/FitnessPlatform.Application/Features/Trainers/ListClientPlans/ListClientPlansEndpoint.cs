@@ -83,16 +83,18 @@ public class ListClientPlansEndpoint(
             return;
         }
 
-        // clientProfile.UserId is ApplicationUser.Id (Guid) — used by all Mongo documents
-        // clientProfile.Id is the long PK used by BodyMeasurement (keyed on ClientProfileId)
+        // NutritionPlan.ClientId and TrainingPlan.ClientId store ClientProfile.PublicId.
+        // WorkoutLog.ClientId and PersonalRecord.ClientId store ApplicationUser.Id (UserId).
+        // clientProfile.Id is the long PK used by BodyMeasurement (keyed on ClientProfileId).
+        var clientPublicId = clientProfile.PublicId;
         var clientUserId = clientProfile.UserId;
         var clientProfileId = clientProfile.Id;
 
-        // Load all plans from Mongo in parallel
+        // Load all plans from Mongo in parallel — keyed on PublicId
         var nutritionFilter = Builders<Domain.Documents.NutritionPlan>.Filter
-            .Eq(p => p.ClientId, clientUserId);
+            .Eq(p => p.ClientId, clientPublicId);
         var trainingFilter = Builders<Domain.Documents.TrainingPlan>.Filter
-            .Eq(p => p.ClientId, clientUserId);
+            .Eq(p => p.ClientId, clientPublicId);
 
         var nutritionTask = mongo.NutritionPlans
             .Find(nutritionFilter)
