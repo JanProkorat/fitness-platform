@@ -162,11 +162,13 @@ export default function MessagesPage() {
     startConvMutation.mutate(clientIdParam);
   }, [clientIdParam]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-select first conversation (when no clientId param) — derived from
-  // conversation list, runs in render rather than an effect.
-  if (!activeConvId && conversations.length > 0 && !clientIdParam) {
-    setActiveConvId(conversations[0].id);
-  }
+  // Auto-select first conversation (when no clientId param) — must run in an
+  // effect to avoid enqueuing a state update during render.
+  useEffect(() => {
+    if (!activeConvId && conversations.length > 0 && !clientIdParam) {
+      setActiveConvId(conversations[0].id);
+    }
+  }, [conversations, activeConvId, clientIdParam]);
 
   const activeConv = conversations.find((c) => c.id === activeConvId);
 
