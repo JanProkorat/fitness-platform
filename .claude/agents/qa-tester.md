@@ -503,7 +503,7 @@ scope appears on the issue — don't cherry-pick.
 | Scope       | Commands (run in order, fail fast)                                                                                                                          |
 |-------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `backend`   | `cd backend && dotnet build` then `dotnet test`. Testcontainers require Docker — if Docker isn't available, mark ⚠️ UNVERIFIED with the reason; do not PASS. |
-| `web`       | `cd web && npm ci` (only if `node_modules` is missing or `package-lock.json` changed) then `npm run build` (typecheck lives in the build). If `npm test` ever appears, run it. |
+| `web`       | `cd web && npm ci` (only if `node_modules` is missing or `package-lock.json` changed) then `npm run build` (typecheck lives in the build) **and `npm run lint`** (`eslint .` — NOT part of the build; lint-only errors like `react-hooks` setState-in-effect pass the build but fail CI's `build-and-lint`). Lint must be **0 errors** to PASS (pre-existing warnings OK). If `npm test` ever appears, run it. |
 | `mobile`    | `cd mobile && npm ci` (same condition) then `npx tsc --noEmit` and `npx expo-doctor`. No test suite exists yet — if one appears, run it. |
 | `docs-infra`| File-level diff review, `gh workflow view <file>` or `yamllint` for any changed `.github/workflows/*.yml`, scene-anchor existence for prototype changes.     |
 
@@ -841,8 +841,8 @@ For each dev server in step 3b marked "started by qa-tester":
 - `git fetch`, `git checkout`, `git diff`, `git log`, `git show` (all
   read-only).
 - `dotnet build`, `dotnet test`, `dotnet run` (for boot in step 3b).
-- `npm ci`, `npm run build`, `npm run dev`, `npm test` (if it exists),
-  `npx tsc --noEmit`, `npx expo-doctor`,
+- `npm ci`, `npm run build`, `npm run lint`, `npm run dev`,
+  `npm test` (if it exists), `npx tsc --noEmit`, `npx expo-doctor`,
   `npx expo start --web`.
 - `npm run e2e:up`, `npm run e2e:down`, `npm run e2e:health`,
   `npm run e2e:logs` and the underlying

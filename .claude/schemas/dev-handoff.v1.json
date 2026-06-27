@@ -44,7 +44,7 @@
       "description": "Constrained verification shape — no raw shell strings. Orchestrator/QA substitutes into a fixed template.",
       "required": ["tool"],
       "properties": {
-        "tool": { "enum": ["dotnet-test", "dotnet-build", "web-build", "web-typecheck", "mobile-typecheck", "mobile-prebuild-check"] },
+        "tool": { "enum": ["dotnet-test", "dotnet-build", "web-build", "web-lint", "web-typecheck", "mobile-typecheck", "mobile-prebuild-check"] },
         "filter": {
           "type": "string",
           "pattern": "^[A-Za-z0-9._~-]+$",

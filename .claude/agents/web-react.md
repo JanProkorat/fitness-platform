@@ -40,7 +40,7 @@ it to run design-review first (Rule 5.5).
 - [`rules/code-quality.md#no-any-in-typescript`](../rules/code-quality.md#no-any-in-typescript) — strict-mode TS.
 - [`rules/code-quality.md#generated-files-are-write-locked`](../rules/code-quality.md#generated-files-are-write-locked) — `web/src/api/generated.ts` is write-locked; use `regen-api`.
 - [`rules/i18n.md#supported-languages`](../rules/i18n.md#supported-languages) — cs/en/de in same PR.
-- [`rules/verification.md#web`](../rules/verification.md#web) — `npm run build`.
+- [`rules/verification.md#web`](../rules/verification.md#web) — `npm run build` **and** `npm run lint` (lint is separate from the build).
 
 ## Stack
 - React 19, TypeScript (strict), Vite 7
@@ -93,7 +93,11 @@ src/
 ## Commands
 - Dev: `npm run dev` (proxies to `https://localhost:5001`)
 - Type-check: `npx tsc --noEmit` (no test suite exists today)
-- Build: `npm run build`
+- Build: `npm run build` (runs `tsc -b && vite build` — does NOT run ESLint)
+- Lint: `npm run lint` (`eslint .`) — **required, separate from the build.**
+  Must be 0 errors before you report done; lint-only errors (e.g.
+  `react-hooks` setState-in-effect) pass `npm run build` but fail CI's
+  `build-and-lint` job. Pre-existing warnings are OK; don't add new errors.
 - Regenerate API client: `npm run generate-api` (run from `/web`, requires
   backend running on 5001)
 
@@ -158,7 +162,12 @@ Before returning control to the orchestrator, write
 ```
 
 Use `verification.tool: "web-build"` (covers typecheck) or
-`"web-typecheck"` for typecheck-only runs. The `gate-check.sh`
+`"web-typecheck"` for typecheck-only runs. Always **also** run
+`npm run lint` (0 errors) before reporting — the `verification` field
+holds one tool, so report `"web-lint"` when lint is the gating check
+you want recorded and note the build result in your summary, or report
+`"web-build"` and state in your summary that lint passed too. Either
+way both must be green. The `gate-check.sh`
 SubagentStop hook validates before control returns; a malformed
 handoff exits non-zero so you can self-correct.
 
