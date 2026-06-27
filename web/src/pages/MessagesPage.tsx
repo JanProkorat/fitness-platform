@@ -122,7 +122,7 @@ export default function MessagesPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const userId = useAuthStore((s) => s.user?.publicId);
-  const [activeConvId, setActiveConvId] = useState<string | null>(null);
+  const [selectedConvId, setSelectedConvId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [messageInput, setMessageInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -143,11 +143,16 @@ export default function MessagesPage() {
   // Start or open conversation when ?clientId= is present
   const clientIdParam = searchParams.get('clientId');
 
+  // Derive the effective conversation id during render — no setState in effect.
+  // Explicit selection (selectedConvId) wins; fall back to the first
+  // conversation when there is no ?clientId= param in the URL.
+  const activeConvId = selectedConvId ?? (!clientIdParam && conversations.length > 0 ? conversations[0].id : null);
+
   const startConvMutation = useMutation({
     mutationFn: startConversation,
     onSuccess: async (conv) => {
       await queryClient.refetchQueries({ queryKey: ['conversations'] });
-      setActiveConvId(String(conv.id));
+      setSelectedConvId(String(conv.id));
       navigate('/messages', { replace: true });
     },
     onError: (err) => {
@@ -161,14 +166,6 @@ export default function MessagesPage() {
     openedClientRef.current = clientIdParam;
     startConvMutation.mutate(clientIdParam);
   }, [clientIdParam]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Auto-select first conversation (when no clientId param) — must run in an
-  // effect to avoid enqueuing a state update during render.
-  useEffect(() => {
-    if (!activeConvId && conversations.length > 0 && !clientIdParam) {
-      setActiveConvId(conversations[0].id);
-    }
-  }, [conversations, activeConvId, clientIdParam]);
 
   const activeConv = conversations.find((c) => c.id === activeConvId);
 
@@ -312,7 +309,7 @@ export default function MessagesPage() {
               key={conv.id}
               conv={conv}
               isActive={conv.id === activeConvId}
-              onClick={() => setActiveConvId(conv.id)}
+              onClick={() => setSelectedConvId(conv.id)}
             />
           ))}
           {filteredConvs.length === 0 && (
