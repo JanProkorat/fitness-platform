@@ -27,6 +27,14 @@ Both can run simultaneously (different ports + DBs).
 
 - `npm ci` when the lockfile changed.
 - `npm run build` — typecheck is part of the build.
+- `npm run lint` (`eslint .`) — **required, and distinct from the build.**
+  `npm run build` runs only `tsc -b && vite build`; it does NOT run
+  ESLint, so lint-only **errors** (e.g. `react-hooks` rule violations like
+  setState-in-effect) pass the local build and the QA gate but fail the
+  CI `build-and-lint` job. Dev agents and `qa-tester` must run `npm run
+  lint` and confirm **0 errors** (pre-existing warnings are acceptable;
+  do not introduce new errors). This mirrors the CI `build-and-lint` job
+  so lint regressions are caught before push, not on the PR.
 
 For interactive AC checks `qa-tester` boots `npm run dev:e2e` on `:5173`
 (the Vite variant whose proxy points at the compose harness on `:5101`)
@@ -73,9 +81,14 @@ JSON's `verification` field — see
 shape is constrained:
 
 - `tool` — one of `dotnet-build`, `dotnet-test`, `web-build`,
-  `web-typecheck`, `mobile-typecheck`, `mobile-prebuild-check` (now
-  maps to `npx expo-doctor` after #314; schema enum value kept stable
-  so archived handoffs still validate).
+  `web-lint`, `web-typecheck`, `mobile-typecheck`,
+  `mobile-prebuild-check` (the last now maps to `npx expo-doctor` after
+  #314; schema enum value kept stable so archived handoffs still
+  validate). `web-lint` maps to `npm run lint` (`eslint .`) and is a
+  **separate** required check from `web-build` — the verification field
+  holds one `tool`, so a web change that needs both reports `web-lint`
+  as its declared check after confirming `web-build` also passed (note
+  the build result in `notes`/summary). Lint must be **0 errors**.
 - `filter` — optional, regex-validated **fully-qualified class name**
   for `dotnet-test` (no quotes/whitespace/shell metacharacters). Used
   with xUnit v3 + Microsoft.Testing.Platform's `--filter-class`
