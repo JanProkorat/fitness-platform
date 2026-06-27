@@ -2,8 +2,10 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
+using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.WorkoutLogs.GetExerciseProgress;
@@ -13,7 +15,8 @@ namespace FitnessPlatform.Application.Features.WorkoutLogs.GetExerciseProgress;
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="authHelper">Validates trainer-client relationship.</param>
-public class GetExerciseProgressEndpoint(IMongoContext mongo, ProfessionalAuthHelper authHelper)
+/// <param name="db">PostgreSQL context — used to resolve ClientProfile.UserId from the public id.</param>
+public class GetExerciseProgressEndpoint(IMongoContext mongo, ProfessionalAuthHelper authHelper, IApplicationDbContext db)
     : Endpoint<GetExerciseProgressRequest, GetExerciseProgressResponse>
 {
     /// <inheritdoc />
@@ -48,8 +51,20 @@ public class GetExerciseProgressEndpoint(IMongoContext mongo, ProfessionalAuthHe
             return;
         }
 
+        // req.ClientId is ClientProfile.PublicId; WorkoutLog.ClientId stores ApplicationUser.Id (UserId).
+        // Resolve the client's UserId before filtering Mongo.
+        var clientProfile = await db.ClientProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cp => cp.PublicId == req.ClientId, ct);
+
+        if (clientProfile is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
         // Find all completed workout logs for this client
-        var filter = Builders<WorkoutLog>.Filter.Eq(w => w.ClientId, req.ClientId)
+        var filter = Builders<WorkoutLog>.Filter.Eq(w => w.ClientId, clientProfile.UserId)
                      & Builders<WorkoutLog>.Filter.Eq(w => w.IsCompleted, true);
 
         var options = new FindOptions<WorkoutLog>

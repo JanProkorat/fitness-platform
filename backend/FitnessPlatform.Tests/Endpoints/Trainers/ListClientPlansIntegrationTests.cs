@@ -1,0 +1,213 @@
+using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using FluentAssertions;
+using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Tests.Infrastructure;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using MongoDB.Bson;
+
+namespace FitnessPlatform.Tests.Endpoints.Trainers;
+
+/// <summary>
+/// Integration tests for GET /trainer/clients/{clientId}/plans — issue #528.
+///
+/// Root cause: ListClientPlansEndpoint was filtering NutritionPlan.ClientId and
+/// TrainingPlan.ClientId by clientProfile.UserId, but those fields store
+/// clientProfile.PublicId. The result was always an empty list.
+///
+/// These tests use real PostgreSQL + MongoDB (Testcontainers) to validate
+/// that plans are only found when ClientId == PublicId — not when it equals UserId.
+/// A mock-based test cannot catch this bug because mocks ignore the filter value.
+/// </summary>
+[Collection(TestCollection.Name)]
+public class ListClientPlansIntegrationTests(FitnessApiFactory factory)
+{
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        Converters = { new JsonStringEnumConverter() }
+    };
+
+    private static string UniqueEmail(string tag) => $"{Guid.NewGuid():N}@listplans-{tag}.com";
+
+    // ── helpers ───────────────────────────────────────────────────────────────
+
+    private async Task<(HttpClient Http, long ProfessionalProfileId)> SetupTrainerAsync()
+    {
+        var http = factory.CreateClient();
+        var email = UniqueEmail("trainer");
+
+        await TestHelpers.RegisterAsync(http, email, "TestPass1!", "Test", "Trainer", "Trainer");
+        var (token, _) = await TestHelpers.LoginAsync(http, email, "TestPass1!");
+        TestHelpers.SetBearerToken(http, token);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var user = await db.Users.FirstAsync(
+            u => u.Email == email, TestContext.Current.CancellationToken);
+        var profile = await db.ProfessionalProfiles.FirstAsync(
+            p => p.UserId == user.Id, TestContext.Current.CancellationToken);
+
+        return (http, profile.Id);
+    }
+
+    private async Task<(Guid ClientPublicId, long ClientProfileId, Guid ClientUserId)>
+        SetupClientAsync()
+    {
+        var http = factory.CreateClient();
+        var email = UniqueEmail("client");
+
+        await TestHelpers.RegisterAsync(http, email, "TestPass1!", "Test", "Client", "Client");
+        await TestHelpers.LoginAsync(http, email, "TestPass1!");
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var user = await db.Users.FirstAsync(
+            u => u.Email == email, TestContext.Current.CancellationToken);
+        var profile = await db.ClientProfiles.FirstAsync(
+            cp => cp.UserId == user.Id, TestContext.Current.CancellationToken);
+
+        return (profile.PublicId, profile.Id, user.Id);
+    }
+
+    private async Task LinkTrainerToClientAsync(long trainerProfileId, long clientProfileId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        db.ClientProfessionalLinks.Add(new ClientProfessionalLink
+        {
+            PublicId = Guid.NewGuid(),
+            ProfessionalProfileId = trainerProfileId,
+            ClientProfileId = clientProfileId,
+            ProfessionalRole = UserRole.Trainer,
+            IsActive = true,
+            CanViewTrainingPlans = true,
+            CanViewNutritionPlans = true,
+            DateCreated = DateTime.UtcNow,
+        });
+
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
+    // ── regression guard tests ────────────────────────────────────────────────
+
+    /// <summary>
+    /// Regression guard for #528: when a NutritionPlan is seeded with
+    /// ClientId = clientProfile.PublicId (the correct key), the endpoint returns it.
+    /// A test seeding with UserId would pass green even with the broken filter —
+    /// this test would fail with the broken filter and pass with the fix.
+    /// </summary>
+    [Fact]
+    public async Task Plans_SeededWithPublicId_AreReturnedByTrainer()
+    {
+        var (trainerHttp, trainerProfileId) = await SetupTrainerAsync();
+        var (clientPublicId, clientProfileId, _) = await SetupClientAsync();
+        await LinkTrainerToClientAsync(trainerProfileId, clientProfileId);
+
+        // Seed a NutritionPlan with ClientId = PublicId (the correct key)
+        using (var scope = factory.Services.CreateScope())
+        {
+            var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+            await mongo.NutritionPlans.InsertOneAsync(new NutritionPlan
+            {
+                Id = ObjectId.GenerateNewId(),
+                ExternalId = Guid.NewGuid(),
+                ClientId = clientPublicId,   // ← MUST be PublicId, not UserId
+                NutritionistId = Guid.NewGuid(),
+                Name = "Test Plan PublicId",
+                Status = NutritionPlanStatus.Active,
+                StartDate = DateTime.UtcNow.AddDays(-7),
+                Weeks = [],
+                Version = 1,
+                DateCreated = DateTime.UtcNow,
+            }, cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        var response = await trainerHttp.GetAsync(
+            $"/trainer/clients/{clientPublicId}/plans",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<PlansResponse>(
+            JsonOptions, cancellationToken: TestContext.Current.CancellationToken);
+
+        body!.Plans.Should().HaveCountGreaterThanOrEqualTo(1,
+            "the plan seeded with ClientId = PublicId must appear in the list");
+        body.Plans.Should().Contain(p => p.Name == "Test Plan PublicId");
+    }
+
+    /// <summary>
+    /// Regression guard for #528: a plan seeded with ClientId = UserId (the WRONG key,
+    /// the old bug) must NOT appear in the response. Without this guard, a test
+    /// seeding with UserId would still pass green while production (which uses PublicId)
+    /// would silently return zero plans.
+    /// </summary>
+    [Fact]
+    public async Task Plans_SeededWithUserIdInsteadOfPublicId_AreNotReturned()
+    {
+        var (trainerHttp, trainerProfileId) = await SetupTrainerAsync();
+        var (clientPublicId, clientProfileId, clientUserId) = await SetupClientAsync();
+        await LinkTrainerToClientAsync(trainerProfileId, clientProfileId);
+
+        // Seed a NutritionPlan with ClientId = UserId (wrong key — the old bug)
+        using (var scope = factory.Services.CreateScope())
+        {
+            var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+            await mongo.NutritionPlans.InsertOneAsync(new NutritionPlan
+            {
+                Id = ObjectId.GenerateNewId(),
+                ExternalId = Guid.NewGuid(),
+                ClientId = clientUserId,   // ← WRONG: UserId not PublicId
+                NutritionistId = Guid.NewGuid(),
+                Name = "WrongKey Plan UserId",
+                Status = NutritionPlanStatus.Active,
+                StartDate = DateTime.UtcNow.AddDays(-7),
+                Weeks = [],
+                Version = 1,
+                DateCreated = DateTime.UtcNow,
+            }, cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        var response = await trainerHttp.GetAsync(
+            $"/trainer/clients/{clientPublicId}/plans",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<PlansResponse>(
+            JsonOptions, cancellationToken: TestContext.Current.CancellationToken);
+
+        body!.Plans.Should().NotContain(p => p.Name == "WrongKey Plan UserId",
+            "a plan whose ClientId is UserId (not PublicId) must not match the filter");
+    }
+
+    // ── DTOs for deserialization ──────────────────────────────────────────────
+
+    private record PlansResponse(List<PlanItem> Plans);
+
+    private record PlanItem(
+        Guid PlanId,
+        string PlanType,
+        string Name,
+        string Status,
+        DateTime? PeriodStart,
+        DateTime? PeriodEnd,
+        ResultSummary ResultSummary);
+
+    private record ResultSummary(
+        int? TotalTrainings,
+        int? PrCount,
+        decimal? CompliancePercent,
+        decimal? WeightDeltaKg);
+}

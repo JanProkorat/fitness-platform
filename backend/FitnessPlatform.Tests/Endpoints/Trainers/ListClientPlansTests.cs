@@ -29,13 +29,14 @@ public class ListClientPlansTests
     public async Task List_BothPlanTypes_ReturnsCombinedListNewestFirst()
     {
         var (db, clientProfile) = BuildLinkedClientSetup();
-        var clientUserId = clientProfile.UserId;
+        // NutritionPlan.ClientId and TrainingPlan.ClientId store ClientProfile.PublicId (not UserId).
+        var clientPublicId = clientProfile.PublicId;
 
         var olderStart = new DateTime(2025, 1, 6, 0, 0, 0, DateTimeKind.Utc);  // Monday
         var newerStart = new DateTime(2025, 6, 2, 0, 0, 0, DateTimeKind.Utc);  // Monday
 
-        var nutritionPlan = CreateNutritionPlan(clientUserId, startDate: olderStart, name: "Old Nutrition Plan");
-        var trainingPlan = CreateTrainingPlan(clientUserId, startDate: newerStart, name: "New Training Plan");
+        var nutritionPlan = CreateNutritionPlan(clientPublicId, startDate: olderStart, name: "Old Nutrition Plan");
+        var trainingPlan = CreateTrainingPlan(clientPublicId, startDate: newerStart, name: "New Training Plan");
 
         var mongo = BuildMongo(
             nutritionPlans: [nutritionPlan],
@@ -65,15 +66,16 @@ public class ListClientPlansTests
     public async Task List_AllStatuses_ReturnsDraftActiveCompleted()
     {
         var (db, clientProfile) = BuildLinkedClientSetup();
-        var clientUserId = clientProfile.UserId;
+        // NutritionPlan.ClientId and TrainingPlan.ClientId store ClientProfile.PublicId (not UserId).
+        var clientPublicId = clientProfile.PublicId;
 
         var start1 = new DateTime(2025, 1, 6, 0, 0, 0, DateTimeKind.Utc);
         var start2 = new DateTime(2025, 3, 3, 0, 0, 0, DateTimeKind.Utc);
         var start3 = new DateTime(2025, 5, 5, 0, 0, 0, DateTimeKind.Utc);
 
-        var draftPlan = CreateTrainingPlan(clientUserId, status: TrainingPlanStatus.Draft, startDate: start1, name: "Draft Plan");
-        var activePlan = CreateTrainingPlan(clientUserId, status: TrainingPlanStatus.Active, startDate: start2, name: "Active Plan");
-        var completedPlan = CreateTrainingPlan(clientUserId, status: TrainingPlanStatus.Completed, startDate: start3, name: "Completed Plan");
+        var draftPlan = CreateTrainingPlan(clientPublicId, status: TrainingPlanStatus.Draft, startDate: start1, name: "Draft Plan");
+        var activePlan = CreateTrainingPlan(clientPublicId, status: TrainingPlanStatus.Active, startDate: start2, name: "Active Plan");
+        var completedPlan = CreateTrainingPlan(clientPublicId, status: TrainingPlanStatus.Completed, startDate: start3, name: "Completed Plan");
 
         var mongo = BuildMongo(
             trainingPlans: [draftPlan, activePlan, completedPlan],
@@ -99,14 +101,17 @@ public class ListClientPlansTests
     public async Task List_TrainingPlan_ResultSummaryIncludesTotalTrainingsAndPrCount()
     {
         var (db, clientProfile) = BuildLinkedClientSetup();
+        // NutritionPlan.ClientId and TrainingPlan.ClientId store ClientProfile.PublicId (not UserId).
+        // WorkoutLog.ClientId and PersonalRecord.ClientId store UserId.
+        var clientPublicId = clientProfile.PublicId;
         var clientUserId = clientProfile.UserId;
 
         var planStart = new DateTime(2025, 1, 6, 0, 0, 0, DateTimeKind.Utc);
         var planId = Guid.NewGuid();
 
-        var trainingPlan = CreateTrainingPlan(clientUserId, externalId: planId, startDate: planStart, name: "Hypertrophy Plan");
+        var trainingPlan = CreateTrainingPlan(clientPublicId, externalId: planId, startDate: planStart, name: "Hypertrophy Plan");
 
-        // 3 completed logs for this plan
+        // 3 completed logs for this plan — keyed on UserId (WorkoutLog convention)
         var log1 = CreateWorkoutLog(clientUserId, planId, isCompleted: true);
         var log2 = CreateWorkoutLog(clientUserId, planId, isCompleted: true);
         var log3 = CreateWorkoutLog(clientUserId, planId, isCompleted: true);
@@ -115,7 +120,7 @@ public class ListClientPlansTests
         // 1 completed but for a different plan (should not be counted)
         var log5 = CreateWorkoutLog(clientUserId, Guid.NewGuid(), isCompleted: true);
 
-        // 2 PRs in the plan window
+        // 2 PRs in the plan window — keyed on UserId (PersonalRecord convention)
         var pr1 = CreatePersonalRecord(clientUserId, achievedAt: planStart.AddDays(10));
         var pr2 = CreatePersonalRecord(clientUserId, achievedAt: planStart.AddDays(20));
         // 1 PR before plan start (should not be counted)
@@ -143,11 +148,12 @@ public class ListClientPlansTests
     public async Task List_TrainingPlanNoStartDate_PrCountIsNull()
     {
         var (db, clientProfile) = BuildLinkedClientSetup();
+        var clientPublicId = clientProfile.PublicId;
         var clientUserId = clientProfile.UserId;
 
         var planId = Guid.NewGuid();
-        // No StartDate set — Draft plan
-        var trainingPlan = CreateTrainingPlan(clientUserId, externalId: planId, startDate: null, name: "Draft Plan");
+        // No StartDate set — Draft plan — ClientId is PublicId for plans
+        var trainingPlan = CreateTrainingPlan(clientPublicId, externalId: planId, startDate: null, name: "Draft Plan");
 
         var pr = CreatePersonalRecord(clientUserId, achievedAt: DateTime.UtcNow.AddDays(-5));
 
@@ -175,15 +181,16 @@ public class ListClientPlansTests
         var planEnd = new DateTime(2025, 3, 31, 0, 0, 0, DateTimeKind.Utc);
         var clientUserId = Guid.NewGuid();
 
-        var nutritionPlan = CreateNutritionPlan(
-            clientUserId,
-            startDate: planStart,
-            dateCompleted: planEnd,
-            name: "Weight Loss Plan");
-
         var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUserId(_trainerId).Build();
         var clientUser = EntityBuilder.User.WithId(clientUserId).Build();
         var clientProfile = EntityBuilder.ClientProfile.WithId(10).WithUser(clientUser).Build();
+
+        // NutritionPlan.ClientId stores ClientProfile.PublicId (not UserId).
+        var nutritionPlan = CreateNutritionPlan(
+            clientProfile.PublicId,
+            startDate: planStart,
+            dateCompleted: planEnd,
+            name: "Weight Loss Plan");
         var link = EntityBuilder.ClientProfessionalLink
             .WithId(42)
             .WithClientProfile(clientProfile)
@@ -244,9 +251,9 @@ public class ListClientPlansTests
     public async Task List_NutritionPlanNoStartDate_ComplianceAndWeightDeltaAreNull()
     {
         var (db, clientProfile) = BuildLinkedClientSetup();
-        var clientUserId = clientProfile.UserId;
+        var clientPublicId = clientProfile.PublicId;
 
-        var nutritionPlan = CreateNutritionPlan(clientUserId, startDate: null, name: "Draft Nutrition Plan");
+        var nutritionPlan = CreateNutritionPlan(clientPublicId, startDate: null, name: "Draft Nutrition Plan");
 
         var mongo = BuildMongo(nutritionPlans: [nutritionPlan], workoutLogs: [], personalRecords: []);
 
