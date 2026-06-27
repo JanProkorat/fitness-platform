@@ -430,11 +430,11 @@ public class GoogleSocialLoginEndpointTests
         userManager.CreateAsync(Arg.Any<ApplicationUser>())
             .Returns(Microsoft.AspNetCore.Identity.IdentityResult.Success);
 
-        userManager.AddToRoleAsync(Arg.Any<ApplicationUser>(), AppRoles.Trainer)
+        userManager.AddToRoleAsync(Arg.Any<ApplicationUser>(), AppRoles.Client)
             .Returns(Microsoft.AspNetCore.Identity.IdentityResult.Success);
 
         // GetRolesAsync needs to return roles for token creation
-        userManager.GetRolesAsync(Arg.Any<ApplicationUser>()).Returns(["Trainer"]);
+        userManager.GetRolesAsync(Arg.Any<ApplicationUser>()).Returns(["Client"]);
 
         var db = new MockDbBuilder()
             .With(MakeValidNonce())
@@ -457,8 +457,17 @@ public class GoogleSocialLoginEndpointTests
         db.UserExternalLogins.Received(1).Add(Arg.Is<UserExternalLogin>(el =>
             el.Provider == "google" && el.Subject == ValidPayload.Subject));
 
-        // A ProfessionalProfile must have been created (Trainer role provisioning)
-        db.ProfessionalProfiles.Received(1).Add(Arg.Any<ProfessionalProfile>());
+        // New user must be provisioned with the Client role — NOT Trainer.
+        // Assigning Trainer here would allow any anonymous caller with a valid
+        // Google token to gain Trainer privileges (privilege escalation).
+        await userManager.Received(1).AddToRoleAsync(Arg.Any<ApplicationUser>(), AppRoles.Client);
+        await userManager.DidNotReceive().AddToRoleAsync(Arg.Any<ApplicationUser>(), AppRoles.Trainer);
+
+        // A ClientProfile must have been created (mirroring RegisterEndpoint for Client role).
+        db.ClientProfiles.Received(1).Add(Arg.Any<ClientProfile>());
+
+        // ProfessionalProfile must NOT be created for a new Google social-login user.
+        db.ProfessionalProfiles.DidNotReceive().Add(Arg.Any<ProfessionalProfile>());
     }
 
     // ── 200 — email matches existing google-linked account (returning user) ──
