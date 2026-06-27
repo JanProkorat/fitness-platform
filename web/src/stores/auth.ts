@@ -99,7 +99,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           isInitialized: true,
         });
       }
-    })();
+    })().finally(() => {
+      restorePromise = null;
+    });
 
     return restorePromise;
   },
