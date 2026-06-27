@@ -175,7 +175,11 @@ public class AppleSocialLoginEndpoint(
                 GdprConsentDate = DateTime.UtcNow
             };
 
-            // The trainer-portal register flow assigns the Trainer role by default.
+            // New Apple social-login users default to the Client role.
+            // The client-facing mobile app is the social-login consumer; trainers are
+            // provisioned via the password register flow only. Defaulting to Trainer here
+            // would allow any anonymous caller with a valid Apple token to gain Trainer
+            // privileges — a privilege escalation on an anonymous endpoint.
             var createResult = await userManager.CreateAsync(newUser);
             if (!createResult.Succeeded)
             {
@@ -187,10 +191,10 @@ public class AppleSocialLoginEndpoint(
                 return;
             }
 
-            await userManager.AddToRoleAsync(newUser, AppRoles.Trainer);
+            await userManager.AddToRoleAsync(newUser, AppRoles.Client);
 
-            // Create the professional profile (mirroring RegisterEndpoint for Trainer role).
-            db.ProfessionalProfiles.Add(new ProfessionalProfile { UserId = newUser.Id });
+            // Create the client profile (mirroring RegisterEndpoint for Client role).
+            db.ClientProfiles.Add(new ClientProfile { UserId = newUser.Id });
 
             // Link the Apple identity.
             db.UserExternalLogins.Add(new UserExternalLogin
