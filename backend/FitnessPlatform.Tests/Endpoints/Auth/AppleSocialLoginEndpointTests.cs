@@ -554,10 +554,10 @@ public class AppleSocialLoginEndpointTests
         userManager.CreateAsync(Arg.Any<ApplicationUser>())
             .Returns(Microsoft.AspNetCore.Identity.IdentityResult.Success);
 
-        userManager.AddToRoleAsync(Arg.Any<ApplicationUser>(), AppRoles.Trainer)
+        userManager.AddToRoleAsync(Arg.Any<ApplicationUser>(), AppRoles.Client)
             .Returns(Microsoft.AspNetCore.Identity.IdentityResult.Success);
 
-        userManager.GetRolesAsync(Arg.Any<ApplicationUser>()).Returns(["Trainer"]);
+        userManager.GetRolesAsync(Arg.Any<ApplicationUser>()).Returns(["Client"]);
 
         var db = new MockDbBuilder()
             .With(MakeValidNonce())
@@ -594,8 +594,17 @@ public class AppleSocialLoginEndpointTests
         db.UserExternalLogins.Received(1).Add(Arg.Is<UserExternalLogin>(el =>
             el.Provider == "apple" && el.Subject == PrivateRelayPayload.Subject));
 
-        // A ProfessionalProfile must have been created (Trainer role provisioning)
-        db.ProfessionalProfiles.Received(1).Add(Arg.Any<ProfessionalProfile>());
+        // New user must be provisioned with the Client role — NOT Trainer.
+        // Assigning Trainer here would allow any anonymous caller with a valid
+        // Apple token to gain Trainer privileges (privilege escalation).
+        await userManager.Received(1).AddToRoleAsync(Arg.Any<ApplicationUser>(), AppRoles.Client);
+        await userManager.DidNotReceive().AddToRoleAsync(Arg.Any<ApplicationUser>(), AppRoles.Trainer);
+
+        // A ClientProfile must have been created (mirroring RegisterEndpoint for Client role).
+        db.ClientProfiles.Received(1).Add(Arg.Any<ClientProfile>());
+
+        // ProfessionalProfile must NOT be created for a new Apple social-login user.
+        db.ProfessionalProfiles.DidNotReceive().Add(Arg.Any<ProfessionalProfile>());
     }
 
     /// <summary>
@@ -612,9 +621,9 @@ public class AppleSocialLoginEndpointTests
         userManager.FindByEmailAsync(ValidPayloadWithEmail.Email!).Returns((ApplicationUser?)null);
         userManager.CreateAsync(Arg.Any<ApplicationUser>())
             .Returns(Microsoft.AspNetCore.Identity.IdentityResult.Success);
-        userManager.AddToRoleAsync(Arg.Any<ApplicationUser>(), AppRoles.Trainer)
+        userManager.AddToRoleAsync(Arg.Any<ApplicationUser>(), AppRoles.Client)
             .Returns(Microsoft.AspNetCore.Identity.IdentityResult.Success);
-        userManager.GetRolesAsync(Arg.Any<ApplicationUser>()).Returns(["Trainer"]);
+        userManager.GetRolesAsync(Arg.Any<ApplicationUser>()).Returns(["Client"]);
 
         var db = new MockDbBuilder()
             .With(MakeValidNonce())
@@ -634,5 +643,17 @@ public class AppleSocialLoginEndpointTests
             Arg.Is<ApplicationUser>(u =>
                 u.FirstName == string.Empty &&
                 u.LastName == string.Empty));
+
+        // New user must be provisioned with the Client role — NOT Trainer.
+        // Assigning Trainer here would allow any anonymous caller with a valid
+        // Apple token to gain Trainer privileges (privilege escalation).
+        await userManager.Received(1).AddToRoleAsync(Arg.Any<ApplicationUser>(), AppRoles.Client);
+        await userManager.DidNotReceive().AddToRoleAsync(Arg.Any<ApplicationUser>(), AppRoles.Trainer);
+
+        // A ClientProfile must have been created (mirroring RegisterEndpoint for Client role).
+        db.ClientProfiles.Received(1).Add(Arg.Any<ClientProfile>());
+
+        // ProfessionalProfile must NOT be created for a new Apple social-login user.
+        db.ProfessionalProfiles.DidNotReceive().Add(Arg.Any<ProfessionalProfile>());
     }
 }
