@@ -1,6 +1,7 @@
 import React from 'react'
 import { View, Text, Pressable, StyleSheet } from 'react-native'
 import { useTheme } from '@/hooks/useTheme'
+import { Static } from '@/constants/colors'
 import { Radius } from '@/constants/radius'
 
 interface FormerTrainerBannerProps {
@@ -62,7 +63,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#ff9500',
+    color: Static.orange,
   },
   sub: {
     fontSize: 12,

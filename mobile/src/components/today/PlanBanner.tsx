@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/hooks/useTheme'
+import { Static } from '@/constants/colors'
 import { Radius } from '@/constants/radius'
 import { href } from '@/lib/navigation'
 import type { PendingPlan } from '@/stores/todayStore'
@@ -149,7 +150,7 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#ff9500',
+    color: Static.orange,
   },
   ctaButton: {
     flexDirection: 'row',

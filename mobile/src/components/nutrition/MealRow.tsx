@@ -129,7 +129,7 @@ export const MealRow = React.memo(function MealRow({
   }, [])
 
   const kindConfig = getMealKindConfig(meal.kind)
-  const isDark = colors.bg === '#1c1c1e'
+  const isDark = colors.isDark
   const tint = isDark ? kindConfig.tintDark : kindConfig.tintLight
 
   const title = meal.kind ? t(`nutrition.mealKind.${meal.kind}`) : ''

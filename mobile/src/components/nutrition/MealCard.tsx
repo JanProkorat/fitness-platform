@@ -17,7 +17,7 @@ import { getFoodCategoryColor, RECIPE_CHIP_COLOR } from '@/constants/foodCategor
 import { getMealKindConfig } from '@/constants/mealKinds'
 import { ImageLightbox } from '@/components/ui/ImageLightbox'
 import type { MealFood, MealRecipe, PlanMeal } from '@/api/nutrition'
-import { goldAlpha, Colors } from '@/constants/colors'
+import { goldAlpha, Static } from '@/constants/colors'
 import { MealReminderRow } from './MealReminderRow'
 import i18n from '@/i18n'
 import {
@@ -70,7 +70,7 @@ function MealCard({ meal, expanded, onToggle, eaten, photos = [], onPhotoPress, 
   // Meal-kind palette for the header tint + accent bar (mirrors MealRow on
   // the Today card so the plan-detail screen reads identically).
   const kindConfig = getMealKindConfig(meal.kind)
-  const isDark = colors.bg === '#1c1c1e'
+  const isDark = colors.isDark
   const headerTint = isDark ? kindConfig.tintDark : kindConfig.tintLight
 
   // Lightbox state
@@ -489,7 +489,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.lg,
     overflow: 'hidden',
     // iOS shadow
-    shadowColor: Colors.dark.shadow,
+    shadowColor: Static.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 12,

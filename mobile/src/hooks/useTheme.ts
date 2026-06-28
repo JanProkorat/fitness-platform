@@ -9,5 +9,6 @@ export function useTheme(): ColorScheme {
   const effective =
     preference === 'system' ? (systemScheme ?? 'light') : preference
 
-  return effective === 'dark' ? Colors.dark : Colors.light
+  const scheme = effective === 'dark' ? Colors.dark : Colors.light
+  return { ...scheme, isDark: effective === 'dark' }
 }

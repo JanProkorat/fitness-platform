@@ -3,19 +3,19 @@ import { View, Text, StyleSheet, Pressable, ScrollView, Alert } from 'react-nati
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
-import { goldAlpha, Brand } from '@/constants/colors'
+import { goldAlpha, Brand, Static } from '@/constants/colors'
 import { Radius } from '@/constants/radius'
 import { Avatar } from '@/components/ui/Avatar'
 
 export type RequestStatus = 'none' | 'pending' | 'active'
 
 const ROLE_BADGE_COLORS: Record<string, { bg: string; text: string }> = {
-  'Osobní trenér': { bg: 'rgba(0,122,255,0.10)', text: '#007aff' },
-  'Výž. poradce': { bg: 'rgba(52,199,89,0.10)', text: '#34c759' },
-  'Výživový poradce': { bg: 'rgba(52,199,89,0.10)', text: '#34c759' },
+  'Osobní trenér': { bg: 'rgba(0,122,255,0.10)', text: Static.blue },
+  'Výž. poradce': { bg: 'rgba(52,199,89,0.10)', text: Static.green },
+  'Výživový poradce': { bg: 'rgba(52,199,89,0.10)', text: Static.green },
   'Trenér & poradce': { bg: goldAlpha['10'], text: Brand.gold },
-  Trainer: { bg: 'rgba(0,122,255,0.10)', text: '#007aff' },
-  Nutritionist: { bg: 'rgba(52,199,89,0.10)', text: '#34c759' },
+  Trainer: { bg: 'rgba(0,122,255,0.10)', text: Static.blue },
+  Nutritionist: { bg: 'rgba(52,199,89,0.10)', text: Static.green },
 }
 
 /**

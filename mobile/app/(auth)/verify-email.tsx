@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/stores/auth';
 import { useTheme } from '@/hooks/useTheme';
-import { Colors } from '@/constants/colors';
+import { Static } from '@/constants/colors';
 import { resendVerification } from '@/api/verification';
 import { connect, onEvent, disconnect } from '@/api/signalr';
 
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(173,87,0,0.3)',
     marginBottom: 12,
   },
-  warningText: { fontSize: 13, color: '#ad5700', textAlign: 'center' },
+  warningText: { fontSize: 13, color: Static.amber, textAlign: 'center' },
   primaryBtn: {
     width: '100%',
     paddingVertical: 14,
@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
     letterSpacing: 2,
-    color: Colors.light.onGoldChip,
+    color: Static.shadow,
     textTransform: 'uppercase',
   },
   secondaryBtn: {

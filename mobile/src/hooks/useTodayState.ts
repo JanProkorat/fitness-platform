@@ -5,7 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useTodayStore, type PendingPlan } from '@/stores/todayStore'
 import { getFullPlan, getClientPlans, type FullPlanResponse } from '@/api/nutrition'
 import { getCollaborations } from '@/api/profile'
-import { Brand } from '@/constants/colors'
+import { Brand, Static } from '@/constants/colors'
 
 // ─── Helpers ─────────────────────────────────────────────────────────
 
@@ -47,7 +47,7 @@ function buildNutritionPending(
     trainerName,
     chips,
     startDate: plan.startDate ?? '',
-    accentColor: '#34c759',
+    accentColor: Static.green,
   }
 }
 
