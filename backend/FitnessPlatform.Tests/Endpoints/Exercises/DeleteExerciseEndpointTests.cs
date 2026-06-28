@@ -122,22 +122,27 @@ public class DeleteExerciseEndpointTests
     }
 
     [Fact]
-    public async Task HandleAsync_LegacyDoc_VersionZero_MatchingRequest_Returns204()
+    public async Task HandleAsync_LegacyDoc_VersionOne_MatchingRequest_Returns204()
     {
-        // A legacy document with no version field deserializes to Version=0.
-        // Deleting with req.Version=0 should succeed and soft-delete the document.
+        // A legacy document with no version field deserializes to Version=1
+        // (MongoDB.Driver 3.x preserves the C# property initializer value = 1 when the
+        // BSON field is absent). A client fetching it receives Version=1 and echoes back 1.
+        // The soft-delete uses the legacy-aware filter so it succeeds on the first write.
+        //
+        // NOTE: The mock returns ModifiedCount=1 regardless of filter; the real behavior
+        // is verified by LegacyDocumentIntegrationTests.LegacyDoc_FixedCasFilter_CasSoftDeleteWithVersion1_Succeeds.
         var exerciseId = Guid.NewGuid();
         var exercise = ExerciseTestHelpers.CreateExercise(
             externalId: exerciseId,
             isCustom: true,
             trainerId: _trainerId,
             source: "custom",
-            version: 0);
+            version: 1);  // reflects actual deserialized value for a legacy field-absent doc
 
         var mongo = ExerciseTestHelpers.CreateMockMongo(exercise);
         var ep = CreateEndpoint(mongo);
 
-        await ep.HandleAsync(new DeleteExerciseRequest { ExerciseId = exerciseId, Version = 0 }, TestContext.Current.CancellationToken);
+        await ep.HandleAsync(new DeleteExerciseRequest { ExerciseId = exerciseId, Version = 1 }, TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(204);
 

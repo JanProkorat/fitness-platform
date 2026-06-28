@@ -73,9 +73,24 @@ public class DeleteExerciseEndpoint(IMongoContext mongo) : Endpoint<DeleteExerci
             return;
         }
 
-        // Version-guarded soft-delete: filter includes current version to prevent concurrent writes
+        // Version-guarded soft-delete: filter includes current version to prevent concurrent writes.
+        //
+        // Legacy documents (created before optimistic concurrency was added) have no
+        // "version" field stored in BSON. The MongoDB.Driver deserializes them using the
+        // C# property initializer (= 1), so clients receive Version = 1. However,
+        // Eq(version, 1) does NOT match a field-absent BSON document. To allow the first
+        // write (soft-delete) on legacy docs to succeed, the filter also matches when the
+        // field is absent and req.Version == 1 (the only value a client gets for a legacy doc).
+        var normalVersionMatch = Builders<Exercise>.Filter.Eq(e => e.Version, req.Version);
+        var legacyFieldAbsent = req.Version == 1
+            ? Builders<Exercise>.Filter.Not(Builders<Exercise>.Filter.Exists(e => e.Version))
+            : null;
+        var versionClause = legacyFieldAbsent is not null
+            ? Builders<Exercise>.Filter.Or(normalVersionMatch, legacyFieldAbsent)
+            : normalVersionMatch;
+
         var versionFilter = Builders<Exercise>.Filter.Eq(e => e.ExternalId, req.ExerciseId)
-            & Builders<Exercise>.Filter.Eq(e => e.Version, req.Version);
+            & versionClause;
 
         var update = Builders<Exercise>.Update
             .Set(e => e.IsActive, false)

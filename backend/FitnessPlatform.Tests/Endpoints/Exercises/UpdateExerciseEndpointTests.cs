@@ -158,18 +158,23 @@ public class UpdateExerciseEndpointTests
     }
 
     [Fact]
-    public async Task HandleAsync_LegacyDoc_VersionZero_MatchingRequest_Returns200()
+    public async Task HandleAsync_LegacyDoc_VersionOne_MatchingRequest_Returns200()
     {
-        // A legacy document with no version field deserializes to Version=0.
-        // A client who fetched it receives Version=0 and echoes back Version=0.
-        // The CAS guard should pass (0 == 0) and the update succeeds, bumping to version 1.
+        // A legacy document with no version field deserializes to Version=1
+        // (MongoDB.Driver 3.x preserves the C# property initializer value = 1 when the
+        // BSON field is absent). A client fetching it receives Version=1 and echoes back 1.
+        // The CAS guard passes (1 == 1) and the DB write uses the legacy-aware filter that
+        // also matches field-absent documents, so the update succeeds and bumps to version 2.
+        //
+        // NOTE: The mock returns ModifiedCount=1 regardless of filter; the real behavior
+        // is verified by LegacyDocumentIntegrationTests.LegacyDoc_FixedCasFilter_CasWriteWithVersion1_Succeeds.
         var exerciseId = Guid.NewGuid();
         var exercise = ExerciseTestHelpers.CreateExercise(
             externalId: exerciseId,
             isCustom: true,
             trainerId: _trainerId,
             source: "custom",
-            version: 0);  // simulates a legacy doc with no version field (CLR default)
+            version: 1);  // reflects actual deserialized value for a legacy field-absent doc
 
         var mongo = ExerciseTestHelpers.CreateMockMongo(exercise);
         var ep = CreateEndpoint(mongo);
@@ -182,14 +187,14 @@ public class UpdateExerciseEndpointTests
             Equipment = ExerciseEquipment.Barbell,
             Category = ExerciseCategory.Strength,
             Difficulty = ExerciseDifficulty.Advanced,
-            Version = 0
+            Version = 1  // client echoes back the deserialized version
         };
 
         await ep.HandleAsync(request, TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
-        // Verify the update was attempted (legacy doc with version 0 goes through)
+        // Verify the update was attempted (legacy doc with version 1 goes through)
         await mongo.Exercises.Received(1).UpdateOneAsync(
             Arg.Any<FilterDefinition<Exercise>>(),
             Arg.Any<UpdateDefinition<Exercise>>(),
