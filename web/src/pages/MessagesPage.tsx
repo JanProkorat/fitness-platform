@@ -19,7 +19,7 @@ import {
 // ── Avatar color palette (CSS var tokens from :root) ──
 const AVATAR_COLORS = [
   'var(--blue)', 'var(--orange)', 'var(--green)', 'var(--purple)',
-  'var(--accent)', 'var(--red)', 'var(--blue-dark)', 'var(--purple)',
+  'var(--accent)', 'var(--red)', 'var(--blue-dark)', 'var(--purple-light)',
 ];
 
 function colorForName(name: string): string {

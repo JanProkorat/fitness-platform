@@ -42,7 +42,8 @@
   --blue-dark: #0056b3;
   --blue-bg:   rgba(11, 110, 153, 0.08);
   --blue-br:   rgba(11, 110, 153, 0.2);
-  --purple:    #6940a5;
+  --purple:       #6940a5;
+  --purple-light: #8854d0;
   --purple-bg: rgba(105, 64, 165, 0.08);
   --orange:    #ad5700;
   --orange-bg: rgba(173, 87, 0, 0.08);
