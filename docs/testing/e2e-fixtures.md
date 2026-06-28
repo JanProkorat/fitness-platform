@@ -214,7 +214,7 @@ Five foods, three recipes, and one nutrition plan are seeded by `QaSeedRunner` a
 | `QaFood4ExternalId`   | `00000000-0000-0000-eeee-000000000004`   | Banana (medium)         | Fruit             |
 | `QaFood5ExternalId`   | `00000000-0000-0000-eeee-000000000005`   | Rolled Oats             | GrainsAndCereals  |
 
-All five foods are owned by the QA Nutri (`NutritionistId = NutriProfilePublicId = cccccccc-...`), visibility `Public`.
+All five foods are owned by the QA Nutri (`NutritionistId = NutriUserId = 33333333-...`), visibility `Public`.
 
 ### Recipes
 
