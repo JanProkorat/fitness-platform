@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getTrainingPlans, createTrainingPlan } from '@/api/training-plans';
@@ -13,6 +13,11 @@ export default function ClientTrainingPage() {
   const clientId = id ?? '';
   const navigate = useNavigate();
   const { t } = useTranslation();
+  // Keep a ref to `t` so the resolve effect can access the current translator
+  // without adding it to the deps array (t changes identity on every language
+  // switch, which would re-fire the mutating effect and create duplicate plans).
+  const tRef = useRef(t);
+  useEffect(() => { tRef.current = t; });
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -32,7 +37,7 @@ export default function ClientTrainingPage() {
         } else {
           const newPlan = await createTrainingPlan({
             clientId,
-            name: t('clientTraining.defaultPlanName'),
+            name: tRef.current('clientTraining.defaultPlanName'),
             weekCount: 1,
           });
 
@@ -41,19 +46,19 @@ export default function ClientTrainingPage() {
           if (newPlan?.planId) {
             navigate(`/clients/${clientId}/training-plans/${newPlan.planId}`, { replace: true });
           } else {
-            setError(t('clientTraining.createError'));
+            setError(tRef.current('clientTraining.createError'));
           }
         }
       } catch {
         if (!cancelled) {
-          setError(t('clientTraining.loadError'));
+          setError(tRef.current('clientTraining.loadError'));
         }
       }
     }
 
     resolve();
     return () => { cancelled = true; };
-  }, [clientId, navigate, t]);
+  }, [clientId, navigate]);
 
   if (error) {
     return (

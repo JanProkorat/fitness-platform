@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getPlans, createPlan } from '@/api/plans';
@@ -13,6 +13,11 @@ export default function ClientNutritionPage() {
   const clientId = id ?? '';
   const navigate = useNavigate();
   const { t } = useTranslation();
+  // Keep a ref to `t` so the resolve effect can access the current translator
+  // without adding it to the deps array (t changes identity on every language
+  // switch, which would re-fire the mutating effect and create duplicate plans).
+  const tRef = useRef(t);
+  useEffect(() => { tRef.current = t; });
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -35,7 +40,7 @@ export default function ClientNutritionPage() {
           // No plan → create one
           const newPlan = await createPlan({
             clientId,
-            name: t('clientNutrition.defaultPlanName'),
+            name: tRef.current('clientNutrition.defaultPlanName'),
             weekCount: 1,
           });
 
@@ -44,19 +49,19 @@ export default function ClientNutritionPage() {
           if (newPlan?.planId) {
             navigate(`/clients/${clientId}/plans/${newPlan.planId}`, { replace: true });
           } else {
-            setError(t('clientNutrition.createError'));
+            setError(tRef.current('clientNutrition.createError'));
           }
         }
       } catch {
         if (!cancelled) {
-          setError(t('clientNutrition.loadError'));
+          setError(tRef.current('clientNutrition.loadError'));
         }
       }
     }
 
     resolve();
     return () => { cancelled = true; };
-  }, [clientId, navigate, t]);
+  }, [clientId, navigate]);
 
   if (error) {
     return (
