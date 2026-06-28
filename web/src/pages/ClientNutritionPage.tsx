@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { getPlans, createPlan } from '@/api/plans';
 
 /**
@@ -11,6 +12,7 @@ export default function ClientNutritionPage() {
   const { id } = useParams<{ id: string }>();
   const clientId = id ?? '';
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -33,7 +35,7 @@ export default function ClientNutritionPage() {
           // No plan → create one
           const newPlan = await createPlan({
             clientId,
-            name: 'Jídelníček',
+            name: t('clientNutrition.defaultPlanName'),
             weekCount: 1,
           });
 
@@ -42,19 +44,19 @@ export default function ClientNutritionPage() {
           if (newPlan?.planId) {
             navigate(`/clients/${clientId}/plans/${newPlan.planId}`, { replace: true });
           } else {
-            setError('Nepodařilo se vytvořit plán.');
+            setError(t('clientNutrition.createError'));
           }
         }
       } catch {
         if (!cancelled) {
-          setError('Chyba při načítání jídelníčku.');
+          setError(t('clientNutrition.loadError'));
         }
       }
     }
 
     resolve();
     return () => { cancelled = true; };
-  }, [clientId, navigate]);
+  }, [clientId, navigate, t]);
 
   if (error) {
     return (
@@ -66,7 +68,7 @@ export default function ClientNutritionPage() {
           style={{ marginTop: 12 }}
           onClick={() => navigate(-1)}
         >
-          ← Zpět
+          {t('clientNutrition.back')}
         </button>
       </div>
     );
@@ -74,7 +76,7 @@ export default function ClientNutritionPage() {
 
   return (
     <div style={{ padding: '80px', textAlign: 'center', color: 'var(--text3)', fontSize: 14 }}>
-      Načítání jídelníčku…
+      {t('clientNutrition.loading')}
     </div>
   );
 }
