@@ -67,8 +67,8 @@ export function AppShell() {
       const data = payload as { clientName?: string } | undefined;
       addToast(
         data?.clientName
-          ? `${data.clientName} declined your invitation`
-          : 'Your invitation was declined',
+          ? t('notifications.inviteDeclined', { name: data.clientName })
+          : t('notifications.inviteDeclinedGeneric'),
         'error',
       );
       queryClient.invalidateQueries({ queryKey: ['pending-invites'] });
@@ -114,7 +114,7 @@ export function AppShell() {
     newMessage: (payload: unknown) => {
       const data = payload as { conversationId?: string; senderName?: string } | undefined;
       if (data?.senderName) {
-        addToast(`${data.senderName}: Nová zpráva`, 'success');
+        addToast(t('notifications.newMessage', { name: data.senderName }), 'success');
       }
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       if (data?.conversationId) {

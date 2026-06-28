@@ -19,6 +19,7 @@
     "page": "Page {{current}} of {{total}}",
     "total": "Total {{count}}",
     "error": "Error",
+    "loadError": "Failed to load the plan. Please refresh the page.",
     "success": "Success",
     "clear": "Clear",
     "delete": "Delete",
@@ -1454,6 +1455,9 @@
     "collaborationEnded": "{{name}} ended the collaboration",
     "collaborationEndedGeneric": "A client ended the collaboration",
     "personalRecordAchieved": "New personal record – {{exerciseName}}",
+    "newMessage": "{{name}}: New message",
+    "inviteDeclined": "{{name}} declined your invitation",
+    "inviteDeclinedGeneric": "Your invitation was declined",
     "title": "Notifications",
     "markAllRead": "Mark all as read",
     "empty": "No notifications",
@@ -1859,6 +1863,19 @@
       "deleteAriaLabel": "Delete note",
       "errorLoading": "Failed to load notes"
     }
+  },
+  "messages": {
+    "title": "Messages",
+    "searchPlaceholder": "Search...",
+    "noConversations": "No conversations found",
+    "noMessages": "No messages yet",
+    "send": "Send",
+    "selectConversation": "Select a conversation",
+    "you": "You: ",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "loadingOlder": "Loading...",
+    "loadOlder": "Load older messages"
   },
   "errors": {
     "rateLimitRefresh": "Too many attempts — please try again shortly"

@@ -19,6 +19,7 @@
     "page": "Stránka {{current}} z {{total}}",
     "total": "Celkem {{count}}",
     "error": "Chyba",
+    "loadError": "Plán se nepodařilo načíst. Zkuste stránku obnovit.",
     "success": "Úspěch",
     "clear": "Vymazat",
     "delete": "Smazat",
@@ -1469,6 +1470,9 @@
     "collaborationEnded": "{{name}} ukončil/a spolupráci",
     "collaborationEndedGeneric": "Klient ukončil spolupráci",
     "personalRecordAchieved": "Nový osobní rekord – {{exerciseName}}",
+    "newMessage": "{{name}}: Nová zpráva",
+    "inviteDeclined": "{{name}} odmítl/a vaši pozvánku",
+    "inviteDeclinedGeneric": "Vaše pozvánka byla odmítnuta",
     "title": "Oznámení",
     "markAllRead": "Označit vše jako přečtené",
     "empty": "Žádná oznámení",
@@ -1886,6 +1890,19 @@
       "deleteAriaLabel": "Smazat poznámku",
       "errorLoading": "Poznámky se nepodařilo načíst"
     }
+  },
+  "messages": {
+    "title": "Zprávy",
+    "searchPlaceholder": "Hledat...",
+    "noConversations": "Žádné konverzace nenalezeny",
+    "noMessages": "Zatím žádné zprávy",
+    "send": "Odeslat",
+    "selectConversation": "Vyberte konverzaci",
+    "you": "Vy: ",
+    "today": "Dnes",
+    "yesterday": "Včera",
+    "loadingOlder": "Načítání...",
+    "loadOlder": "Načíst starší zprávy"
   },
   "errors": {
     "rateLimitRefresh": "Příliš mnoho pokusů — zkuste to za chvíli znovu"

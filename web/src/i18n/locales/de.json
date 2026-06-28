@@ -19,6 +19,7 @@
     "page": "Seite {{current}} von {{total}}",
     "total": "Gesamt {{count}}",
     "error": "Fehler",
+    "loadError": "Der Plan konnte nicht geladen werden. Bitte Seite neu laden.",
     "success": "Erfolg",
     "clear": "Löschen",
     "delete": "Löschen",
@@ -1453,6 +1454,9 @@
     "collaborationEnded": "{{name}} hat die Zusammenarbeit beendet",
     "collaborationEndedGeneric": "Ein Klient hat die Zusammenarbeit beendet",
     "personalRecordAchieved": "Neuer persönlicher Rekord – {{exerciseName}}",
+    "newMessage": "{{name}}: Neue Nachricht",
+    "inviteDeclined": "{{name}} hat Ihre Einladung abgelehnt",
+    "inviteDeclinedGeneric": "Ihre Einladung wurde abgelehnt",
     "title": "Benachrichtigungen",
     "markAllRead": "Alle als gelesen markieren",
     "empty": "Keine Benachrichtigungen",
@@ -1858,6 +1862,19 @@
       "deleteAriaLabel": "Notiz löschen",
       "errorLoading": "Notizen konnten nicht geladen werden"
     }
+  },
+  "messages": {
+    "title": "Nachrichten",
+    "searchPlaceholder": "Suchen...",
+    "noConversations": "Keine Gespräche gefunden",
+    "noMessages": "Noch keine Nachrichten",
+    "send": "Senden",
+    "selectConversation": "Gespräch auswählen",
+    "you": "Sie: ",
+    "today": "Heute",
+    "yesterday": "Gestern",
+    "loadingOlder": "Laden...",
+    "loadOlder": "Ältere Nachrichten laden"
   },
   "errors": {
     "rateLimitRefresh": "Zu viele Versuche — bitte versuchen Sie es in Kürze erneut"

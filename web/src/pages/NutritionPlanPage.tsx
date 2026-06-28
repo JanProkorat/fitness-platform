@@ -99,17 +99,19 @@ export default function NutritionPlanPage() {
   );
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   // ── Load plan ──
   useEffect(() => {
     if (!planId) return;
     let cancelled = false;
+    setLoadError(false);
     (async () => {
       try {
         const data = await getPlan(planId);
         if (!cancelled) setPlan(data);
       } catch {
-        // Plan load failed
+        if (!cancelled) setLoadError(true);
       }
     })();
     return () => { cancelled = true; };
@@ -351,11 +353,11 @@ export default function NutritionPlanPage() {
     });
   }, [currentWeek, t]);
 
-  // ── Loading state ──
+  // ── Loading / error state ──
   if (!plan) {
     return (
       <div className="flex items-center justify-center text-text3" style={{ height: '100vh' }}>
-        {t('common.loading')}
+        {loadError ? t('common.loadError') : t('common.loading')}
       </div>
     );
   }

@@ -106,6 +106,7 @@ export default function TrainingPlanPage() {
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [pendingNav, setPendingNav] = useState<string | null>(null);
   // State for the retroactive "mark session finished" confirmation dialog.
   const [markFinishedTarget, setMarkFinishedTarget] = useState<{
@@ -184,12 +185,13 @@ export default function TrainingPlanPage() {
   useEffect(() => {
     if (!planId) return;
     let cancelled = false;
+    setLoadError(false);
     (async () => {
       try {
         const data = await getTrainingPlan(planId);
         if (!cancelled) setPlan(data);
       } catch {
-        // Plan load failed
+        if (!cancelled) setLoadError(true);
       }
     })();
     return () => { cancelled = true; };
@@ -614,11 +616,11 @@ export default function TrainingPlanPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedWeek, selectedDay, planLoaded]);
 
-  // ── Loading state ──
+  // ── Loading / error state ──
   if (!plan) {
     return (
       <div className="flex items-center justify-center text-text3" style={{ height: '100vh' }}>
-        {t('common.loading')}
+        {loadError ? t('common.loadError') : t('common.loading')}
       </div>
     );
   }
