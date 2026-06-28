@@ -1064,9 +1064,9 @@
     "setsCount": "Série",
     "setsCountAriaLabel": "Počet sérií pro {{name}}",
     "restLabel": "Odpočinek (s)",
-    "restSecondsAriaLabel": "Odpočinek v sekundách pro {{name}}",
-    "setRepsAriaLabel": "Opakování série {{setNumber}} pro {{name}}",
-    "setWeightKgAriaLabel": "Váha v kg série {{setNumber}} pro {{name}}",
+    "drawerRestSecondsAriaLabel": "Odpočinek v sekundách pro {{name}}",
+    "drawerSetRepsAriaLabel": "Opakování série {{setNumber}} pro {{name}}",
+    "drawerSetWeightKgAriaLabel": "Váha v kg série {{setNumber}} pro {{name}}",
     "addToSession": "Přidat do tréninku",
     "closeDrawerAriaLabel": "Zavřít panel",
     "startDate": "Datum zahájení",
@@ -1216,6 +1216,9 @@
       "distance": "Vzdálenost",
       "repsForTime": "Opakování na čas"
     },
+    "sessionFormatAriaLabel": "Formát tréninku",
+    "removeSetAriaLabel": "Odebrat sérii",
+    "addSetAriaLabel": "Přidat sérii",
     "wod": {
       "timeCap": "Časový limit",
       "interval": "Interval",
@@ -1225,7 +1228,12 @@
       "durationLabel": "Trvání (s)",
       "durationSeconds": "Trvání (s)",
       "distanceLabel": "Vzdálenost (m)",
-      "distanceMeters": "Vzdálenost (m)"
+      "distanceMeters": "Vzdálenost (m)",
+      "timeCapAriaLabel": "Časový limit v sekundách",
+      "intervalAriaLabel": "Délka intervalu v sekundách",
+      "roundsAriaLabel": "Počet kol",
+      "workSecondsAriaLabel": "Délka pracovní fáze v sekundách",
+      "restSecondsAriaLabel": "Délka odpočinkové fáze v sekundách"
     },
     "section": {
       "label": "Sekce",

@@ -79,6 +79,7 @@ export function SessionFormatBar({
               type="number"
               placeholder="--"
               value={formatConfig?.timeCapSeconds ?? ''}
+              aria-label={t('training.wod.timeCapAriaLabel')}
               style={inputStyle}
               onChange={(e) =>
                 updateConfig({ timeCapSeconds: e.target.value !== '' ? Number(e.target.value) : null })
@@ -96,6 +97,7 @@ export function SessionFormatBar({
               type="number"
               placeholder="--"
               value={formatConfig?.timeCapSeconds ?? ''}
+              aria-label={t('training.wod.timeCapAriaLabel')}
               style={inputStyle}
               onChange={(e) =>
                 updateConfig({ timeCapSeconds: e.target.value !== '' ? Number(e.target.value) : null })
@@ -114,6 +116,7 @@ export function SessionFormatBar({
                 type="number"
                 placeholder="60"
                 value={formatConfig?.intervalSeconds ?? ''}
+                aria-label={t('training.wod.intervalAriaLabel')}
                 style={inputStyle}
                 onChange={(e) =>
                   updateConfig({ intervalSeconds: e.target.value !== '' ? Number(e.target.value) : null })
@@ -127,6 +130,7 @@ export function SessionFormatBar({
                 type="number"
                 placeholder="--"
                 value={formatConfig?.totalRounds ?? ''}
+                aria-label={t('training.wod.roundsAriaLabel')}
                 style={{ ...inputStyle, width: 46 }}
                 onChange={(e) =>
                   updateConfig({ totalRounds: e.target.value !== '' ? Number(e.target.value) : null })
@@ -145,6 +149,7 @@ export function SessionFormatBar({
                 type="number"
                 placeholder="20"
                 value={formatConfig?.workSeconds ?? ''}
+                aria-label={t('training.wod.workSecondsAriaLabel')}
                 style={inputStyle}
                 onChange={(e) =>
                   updateConfig({ workSeconds: e.target.value !== '' ? Number(e.target.value) : null })
@@ -158,6 +163,7 @@ export function SessionFormatBar({
                 type="number"
                 placeholder="10"
                 value={formatConfig?.restSeconds ?? ''}
+                aria-label={t('training.wod.restSecondsAriaLabel')}
                 style={inputStyle}
                 onChange={(e) =>
                   updateConfig({ restSeconds: e.target.value !== '' ? Number(e.target.value) : null })
@@ -171,6 +177,7 @@ export function SessionFormatBar({
                 type="number"
                 placeholder="8"
                 value={formatConfig?.totalRounds ?? ''}
+                aria-label={t('training.wod.roundsAriaLabel')}
                 style={{ ...inputStyle, width: 46 }}
                 onChange={(e) =>
                   updateConfig({ totalRounds: e.target.value !== '' ? Number(e.target.value) : null })
@@ -196,6 +203,7 @@ export function SessionFormatBar({
         <select
           value={format}
           disabled={disabled}
+          aria-label={t('training.sessionFormatAriaLabel')}
           onChange={(e) => handleFormatChange(e.target.value as WorkoutFormat)}
           style={{
             appearance: 'none',

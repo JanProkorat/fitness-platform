@@ -48,6 +48,7 @@ export function SectionFormatPill({
       <select
         value={format}
         disabled={disabled}
+        aria-label={t('training.sectionFormatAriaLabel')}
         onChange={(e) => handleFormatChange(e.target.value as WorkoutFormat)}
         style={{ background: FORMAT_BG_COLORS[format], color: FORMAT_COLORS[format] }}
         className={cn(

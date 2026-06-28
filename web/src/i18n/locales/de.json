@@ -1052,9 +1052,9 @@
     "setsCount": "Sätze",
     "setsCountAriaLabel": "Anzahl der Sätze für {{name}}",
     "restLabel": "Pause (s)",
-    "restSecondsAriaLabel": "Pause in Sekunden für {{name}}",
-    "setRepsAriaLabel": "Wiederholungen für Satz {{setNumber}} von {{name}}",
-    "setWeightKgAriaLabel": "Gewicht in kg für Satz {{setNumber}} von {{name}}",
+    "drawerRestSecondsAriaLabel": "Pause in Sekunden für {{name}}",
+    "drawerSetRepsAriaLabel": "Wiederholungen für Satz {{setNumber}} von {{name}}",
+    "drawerSetWeightKgAriaLabel": "Gewicht in kg für Satz {{setNumber}} von {{name}}",
     "addToSession": "Zur Einheit hinzufügen",
     "closeDrawerAriaLabel": "Panel schließen",
     "startDate": "Startdatum",
@@ -1200,6 +1200,9 @@
       "distance": "Distanz",
       "repsForTime": "Wiederholungen auf Zeit"
     },
+    "sessionFormatAriaLabel": "Trainingsformat",
+    "removeSetAriaLabel": "Satz entfernen",
+    "addSetAriaLabel": "Satz hinzufügen",
     "wod": {
       "timeCap": "Zeitlimit",
       "interval": "Intervall",
@@ -1209,7 +1212,12 @@
       "durationLabel": "Dauer (s)",
       "durationSeconds": "Dauer (s)",
       "distanceLabel": "Distanz (m)",
-      "distanceMeters": "Distanz (m)"
+      "distanceMeters": "Distanz (m)",
+      "timeCapAriaLabel": "Zeitlimit in Sekunden",
+      "intervalAriaLabel": "Intervalldauer in Sekunden",
+      "roundsAriaLabel": "Anzahl der Runden",
+      "workSecondsAriaLabel": "Arbeitsphase in Sekunden",
+      "restSecondsAriaLabel": "Pausenphase in Sekunden"
     },
     "section": {
       "label": "Abschnitt",

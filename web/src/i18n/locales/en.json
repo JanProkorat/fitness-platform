@@ -1053,9 +1053,9 @@
     "setsCount": "Sets",
     "setsCountAriaLabel": "Number of sets for {{name}}",
     "restLabel": "Rest (s)",
-    "restSecondsAriaLabel": "Rest in seconds for {{name}}",
-    "setRepsAriaLabel": "Reps for set {{setNumber}} of {{name}}",
-    "setWeightKgAriaLabel": "Weight in kg for set {{setNumber}} of {{name}}",
+    "drawerRestSecondsAriaLabel": "Rest in seconds for {{name}}",
+    "drawerSetRepsAriaLabel": "Reps for set {{setNumber}} of {{name}}",
+    "drawerSetWeightKgAriaLabel": "Weight in kg for set {{setNumber}} of {{name}}",
     "addToSession": "Add to Session",
     "closeDrawerAriaLabel": "Close panel",
     "startDate": "Start Date",
@@ -1201,6 +1201,9 @@
       "distance": "Distance",
       "repsForTime": "Reps for Time"
     },
+    "sessionFormatAriaLabel": "Session format",
+    "removeSetAriaLabel": "Remove set",
+    "addSetAriaLabel": "Add set",
     "wod": {
       "timeCap": "Time cap",
       "interval": "Interval",
@@ -1210,7 +1213,12 @@
       "durationLabel": "Duration (s)",
       "durationSeconds": "Duration (s)",
       "distanceLabel": "Distance (m)",
-      "distanceMeters": "Distance (m)"
+      "distanceMeters": "Distance (m)",
+      "timeCapAriaLabel": "Time cap in seconds",
+      "intervalAriaLabel": "Interval duration in seconds",
+      "roundsAriaLabel": "Number of rounds",
+      "workSecondsAriaLabel": "Work phase duration in seconds",
+      "restSecondsAriaLabel": "Rest phase duration in seconds"
     },
     "section": {
       "label": "Section",

@@ -156,7 +156,7 @@ export default function AddExercisesDrawer({ open, onClose, onAdd }: AddExercise
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <span className="text-sm font-semibold">{t('training.addExercisesToSession')}</span>
-          <button onClick={onClose} className="text-text3 transition-colors hover:text-text" aria-label="Close drawer">
+          <button onClick={onClose} className="text-text3 transition-colors hover:text-text" aria-label={t('training.closeDrawerAriaLabel')}>
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -167,15 +167,17 @@ export default function AddExercisesDrawer({ open, onClose, onAdd }: AddExercise
         <div className="flex-1 overflow-y-auto p-6">
           {/* Exercise search */}
           <div className="mb-6">
-            <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-text3">
+            <label htmlFor="drawer-exercise-search" className="mb-2 block text-xs font-semibold uppercase tracking-wide text-text3">
               {t('training.searchExercises')}
             </label>
             <input
+              id="drawer-exercise-search"
               ref={inputRef}
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t('training.searchExercisesPlaceholder')}
+              aria-label={t('training.searchExercisesAriaLabel')}
               className="w-full rounded-md border border-border-md bg-bg px-3 py-2 text-sm text-text outline-none placeholder:text-text3 focus:border-border-hv"
             />
 
@@ -251,6 +253,7 @@ export default function AddExercisesDrawer({ open, onClose, onAdd }: AddExercise
                             min={1}
                             max={20}
                             value={ex.sets.length}
+                            aria-label={t('training.setsCountAriaLabel', { name: ex.exerciseName })}
                             onChange={(e) => updateSetCount(ex.exerciseExternalId, Number(e.target.value) || 1)}
                             className="w-14 rounded-sm border border-border bg-bg px-2 py-0.5 text-center text-xs text-text outline-none focus:border-border-hv"
                           />
@@ -263,6 +266,7 @@ export default function AddExercisesDrawer({ open, onClose, onAdd }: AddExercise
                             max={600}
                             step={5}
                             value={ex.restSeconds ?? ''}
+                            aria-label={t('training.drawerRestSecondsAriaLabel', { name: ex.exerciseName })}
                             onChange={(e) => updateRestSeconds(ex.exerciseExternalId, e.target.value ? Number(e.target.value) : null)}
                             placeholder="s"
                             className="w-16 rounded-sm border border-border bg-bg px-2 py-0.5 text-center text-xs text-text outline-none focus:border-border-hv"
@@ -291,6 +295,7 @@ export default function AddExercisesDrawer({ open, onClose, onAdd }: AddExercise
                                   type="number"
                                   min={1}
                                   value={set.reps ?? ''}
+                                  aria-label={t('training.drawerSetRepsAriaLabel', { setNumber: set.setNumber, name: ex.exerciseName })}
                                   onChange={(e) =>
                                     updateSetField(ex.exerciseExternalId, sIdx, 'reps', e.target.value ? Number(e.target.value) : null)
                                   }
@@ -305,6 +310,7 @@ export default function AddExercisesDrawer({ open, onClose, onAdd }: AddExercise
                                     min={0}
                                     step={0.5}
                                     value={set.weightKg ?? ''}
+                                    aria-label={t('training.drawerSetWeightKgAriaLabel', { setNumber: set.setNumber, name: ex.exerciseName })}
                                     onChange={(e) =>
                                       updateSetField(ex.exerciseExternalId, sIdx, 'weightKg', e.target.value ? Number(e.target.value) : null)
                                     }
