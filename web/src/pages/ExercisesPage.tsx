@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { searchExercises, createExercise, updateExercise, deleteExercise } from '@/api/exercises';
 import type { CreateExerciseRequest, ExerciseSummary, MuscleGroup, ExerciseEquipment, ExerciseCategory, ExerciseDifficulty } from '@/api/exercise-types';
-import { showApiError, showSuccess } from '@/lib/api-errors';
+import { showApiError, showSuccess, getRfc7807ErrorCode } from '@/lib/api-errors';
 import { useApiMutation } from '@/hooks/useApiMutation';
 import { useConfirmDelete } from '@/hooks/useConfirmDelete';
 import { PageHeader, Toolbar } from '@/components/layout';
@@ -96,13 +96,24 @@ export default function ExercisesPage() {
       }),
   });
 
-  const deleteMutation = useApiMutation(deleteExercise, {
-    successKey: 'exercises.deleted',
-    errorKey: 'exercises.deleteError',
-    onSuccess: () => refetch(),
-  });
+  const deleteMutation = useApiMutation(
+    ({ exerciseId, version }: { exerciseId: string; version: number }) =>
+      deleteExercise(exerciseId, version),
+    {
+      successKey: 'exercises.deleted',
+      onSuccess: () => refetch(),
+      onError: (error) => {
+        if (getRfc7807ErrorCode(error) === 'EXERCISE_VERSION_CONFLICT') {
+          showApiError(error, 'exercises.deleteError');
+          refetch();
+        } else {
+          showApiError(error, 'exercises.deleteError');
+        }
+      },
+    },
+  );
 
-  const confirmDelete = useConfirmDelete(deleteMutation);
+  const confirmDelete = useConfirmDelete<{ exerciseId: string; version: number }>(deleteMutation);
 
   const totalPages = data ? Math.ceil((data.totalCount ?? 0) / (data.pageSize ?? 1)) : 0;
 
@@ -112,16 +123,24 @@ export default function ExercisesPage() {
     setSaving(true);
     try {
       if (editingExercise) {
-        await updateExercise(editingExercise.exerciseId, form);
+        await updateExercise(editingExercise.exerciseId, { ...form, version: editingExercise.version });
         showSuccess('exercises.updated');
+        closeDialog();
+        refetch();
       } else {
         await createExercise(form);
         showSuccess('exercises.created');
+        closeDialog();
+        refetch();
       }
-      closeDialog();
-      refetch();
     } catch (err) {
-      showApiError(err, editingExercise ? 'exercises.updateError' : 'exercises.createError');
+      if (getRfc7807ErrorCode(err) === 'EXERCISE_VERSION_CONFLICT') {
+        showApiError(err, 'exercises.updateError');
+        // Reload to give the user the latest version so they can retry.
+        refetch();
+      } else {
+        showApiError(err, editingExercise ? 'exercises.updateError' : 'exercises.createError');
+      }
     } finally {
       setSaving(false);
     }
@@ -129,7 +148,7 @@ export default function ExercisesPage() {
 
   const handleDeleteClick = (e: React.MouseEvent, exercise: ExerciseSummary) => {
     e.stopPropagation();
-    confirmDelete.requestDelete(exercise.exerciseId, exercise.name);
+    confirmDelete.requestDelete({ exerciseId: exercise.exerciseId, version: exercise.version }, exercise.name);
   };
 
   const toggleMuscleGroup = (mg: MuscleGroup) => {

@@ -791,6 +791,7 @@
     "EMAIL_ALREADY_VERIFIED": "Your email is already verified.",
     "EXERCISE_NOT_OWNED": "You can only modify your own custom exercises.",
     "SYSTEM_EXERCISE": "System exercises cannot be modified.",
+    "EXERCISE_VERSION_CONFLICT": "This exercise was modified by someone else. Your changes were not saved — reloading the latest version.",
     "PROFESSIONAL_NOT_FOUND": "Professional profile not found.",
     "ALREADY_LINKED": "You are already linked with this professional.",
     "REQUEST_ALREADY_PENDING": "A request to this professional is already pending.",

@@ -57,7 +57,8 @@ public class CreateExerciseEndpoint(IMongoContext mongo) : Endpoint<CreateExerci
             TrainerId = Guid.Parse(userId),
             IsActive = true,
             Source = "custom",
-            DateCreated = DateTime.UtcNow
+            DateCreated = DateTime.UtcNow,
+            Version = 1
         };
 
         await mongo.Exercises.InsertOneAsync(exercise, cancellationToken: ct);

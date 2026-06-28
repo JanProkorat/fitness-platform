@@ -790,6 +790,7 @@
     "EMAIL_ALREADY_VERIFIED": "Ihre E-Mail ist bereits bestätigt.",
     "EXERCISE_NOT_OWNED": "Sie können nur eigene Übungen bearbeiten.",
     "SYSTEM_EXERCISE": "Systemübungen können nicht geändert werden.",
+    "EXERCISE_VERSION_CONFLICT": "Diese Übung wurde von jemand anderem geändert. Ihre Änderungen wurden nicht gespeichert — die aktuelle Version wird geladen.",
     "PROFESSIONAL_NOT_FOUND": "Profil des Fachmanns nicht gefunden.",
     "ALREADY_LINKED": "Sie sind bereits mit diesem Fachmann verknüpft.",
     "REQUEST_ALREADY_PENDING": "Eine Anfrage an diesen Fachmann ist bereits ausstehend.",

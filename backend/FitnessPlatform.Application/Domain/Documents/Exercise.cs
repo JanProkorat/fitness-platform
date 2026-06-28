@@ -125,4 +125,15 @@ public class Exercise
     [BsonElement("dateUpdated")]
     [BsonIgnoreIfNull]
     public DateTime? DateUpdated { get; set; }
+
+    /// <summary>
+    /// Optimistic concurrency version. Incremented on each update.
+    /// Legacy documents missing this BSON field deserialize to 1 — MongoDB.Driver 3.x
+    /// preserves the C# property initializer value (= 1) when the field is absent.
+    /// The CAS write filter in Update/Delete handles this by also matching field-absent
+    /// documents when the client echoes back Version = 1 (the value it receives for
+    /// a legacy doc). After the first such write the field is stored and normal CAS applies.
+    /// </summary>
+    [BsonElement("version")]
+    public int Version { get; set; } = 1;
 }
