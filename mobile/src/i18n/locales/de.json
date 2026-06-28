@@ -1183,6 +1183,9 @@
       "healthDataConsentRequiredMessage": "Die Registrierung als Klient erfordert die Einwilligung in die Verarbeitung von Gesundheitsdaten gemäß DSGVO Art. 9.",
       "failedTitle": "Registrierung fehlgeschlagen",
       "failedMessage": "Registrierung fehlgeschlagen. Bitte erneut versuchen."
+    },
+    "verifyEmail": {
+      "resendError": "E-Mail konnte nicht gesendet werden"
     }
   },
   "diary": {

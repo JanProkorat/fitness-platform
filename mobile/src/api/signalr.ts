@@ -55,6 +55,12 @@ const KNOWN_EVENTS = [
   // acquired or released (Stable→Editing→Live and back to Stable).
   // Payload: { planId: string, sessionId: string, state: 'Stable'|'Editing'|'Live', holder: 'Coach'|'Client' }
   'sessioneditlockchanged',
+  // #548: questionnaire lifecycle events missing from KNOWN_EVENTS
+  'questionnairecancelled',
+  // #548: email verification realtime event
+  'emailverified',
+  // #548: training plan content update (distinct from trainingplanpublished)
+  'trainingplanupdated',
 ]
 
 function createConnection(): HubConnection {

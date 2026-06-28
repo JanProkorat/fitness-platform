@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { AxiosError } from 'axios';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -64,11 +65,11 @@ export default function WeekOverviewScreen() {
 
   const paramWeekNumber = params.weekNumber ? parseInt(params.weekNumber, 10) : 1;
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ['full-plan'],
+  const { data, isLoading, isError } = useQuery<FullPlanResponse, AxiosError>({
+    queryKey: ['nutrition-plan-full'],
     queryFn: getFullPlan,
     staleTime: 5 * 60 * 1000,
-    retry: (failureCount, error: any) => {
+    retry: (failureCount, error) => {
       if (error?.response?.status === 404) return false;
       return failureCount < 3;
     },

@@ -1206,6 +1206,9 @@
       "healthDataConsentRequiredMessage": "Pro registraci jako klient je nutný souhlas se zpracováním zdravotních dat dle GDPR čl. 9.",
       "failedTitle": "Registrace selhala",
       "failedMessage": "Registrace selhala. Zkuste to prosím znovu."
+    },
+    "verifyEmail": {
+      "resendError": "Nepodařilo se odeslat e-mail"
     }
   },
   "diary": {
