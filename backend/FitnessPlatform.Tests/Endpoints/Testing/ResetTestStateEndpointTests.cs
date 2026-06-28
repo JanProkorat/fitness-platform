@@ -177,10 +177,10 @@ public class ResetEndpointDisabledFactory : ResetEndpointFactoryBase
 }
 
 /// <summary>
-/// Gate: Testing:Enabled=true + non-Development environment — prod-leak safety net.
-/// Even with the flag on, the endpoint must NOT be registered unless the
-/// environment is "Development". Using "Staging" to simulate any non-Development
-/// environment; the critical thing is IHostEnvironment.IsDevelopment() == false.
+/// Gate: Testing:Enabled=true + non-Development environment.
+/// With the single-gate model (Testing:Enabled is the sole gate), the endpoint
+/// must succeed (return 204) even when the environment is not "Development".
+/// Using "Staging" to simulate a non-Development CI test harness environment.
 /// </summary>
 public class ResetEndpointProductionFactory : ResetEndpointFactoryBase
 {
@@ -429,33 +429,24 @@ public class ResetTestStateEndpointTests : IAsyncLifetime
             because: "request-time gate must reject the call when Testing:Enabled=false");
     }
 
-    // ── Gate: Production environment ────────────────────────────────────────
+    // ── Gate: Non-Development environment with Testing:Enabled=true ────────────
 
     /// <summary>
-    /// Testing:Enabled=true + non-Development environment → request-time gate
-    /// rejects the call. Protects against a misconfigured production deploy that
-    /// accidentally copies Testing:Enabled=true into App Settings.
+    /// Testing:Enabled=true + non-Development environment → endpoint succeeds (204).
+    /// The environment name is no longer checked — Testing:Enabled is the sole gate.
+    /// This verifies CI test harnesses that use non-Development environment names
+    /// (e.g. "Testing", "Staging") can call /test/reset as long as the flag is set.
     /// </summary>
     [Fact]
-    public async Task Reset_TestingEnabledButNonDevelopment_GateRejects()
+    public async Task Reset_TestingEnabled_NonDevelopment_Succeeds()
     {
         await using var factory = new ResetEndpointProductionFactory();
         await factory.InitializeAsync();
 
-        // AllowAutoRedirect=false: non-Development environments enable HTTPS redirect
-        // (UseHttpsRedirection in Program.cs). The in-memory transport returns a 307/308
-        // redirect to https://, which the default test client would follow. We disable
-        // auto-redirect so we see the raw gate response. Either way (404 or 307/308),
-        // the crucial invariant is that the endpoint returns neither 204 nor 200.
-        var client = factory.CreateClient(new WebApplicationFactoryClientOptions
-        {
-            AllowAutoRedirect = false
-        });
+        var client = factory.CreateClient();
         var response = await client.PostAsync("/test/reset", null, TestContext.Current.CancellationToken);
 
-        response.StatusCode.Should().NotBe(HttpStatusCode.NoContent,
-            because: "POST /test/reset must not succeed when environment is not Development");
-        response.StatusCode.Should().NotBe(HttpStatusCode.OK,
-            because: "POST /test/reset must not return 200 when gate is rejected");
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent,
+            because: "Testing:Enabled=true is the sole gate; environment name must not block the call");
     }
 }

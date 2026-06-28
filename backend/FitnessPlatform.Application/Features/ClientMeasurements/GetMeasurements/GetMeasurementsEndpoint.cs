@@ -69,6 +69,8 @@ public class GetMeasurementsEndpoint(IApplicationDbContext db) : Endpoint<GetMea
             .Select(m => MeasurementDto.FromEntity(m))
             .ToListAsync(ct);
 
+        HttpContext.Response.Headers["X-Total-Count"] = totalCount.ToString();
+
         await Send.OkAsync(new GetMeasurementsResponse
         {
             Items = items,
