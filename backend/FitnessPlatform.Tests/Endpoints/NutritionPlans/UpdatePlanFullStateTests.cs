@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Text.Json;
 using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
@@ -20,11 +21,17 @@ public class UpdatePlanFullStateTests
 {
     private readonly Guid _nutritionistId = Guid.NewGuid();
 
-    private UpdatePlanEndpoint CreateEndpoint(IMongoContext mongo, IMacroCalculatorService macroCalc) =>
+    private UpdatePlanEndpoint CreateEndpoint(IMongoContext mongo, IMacroCalculatorService macroCalc,
+        MemoryStream? responseBody = null) =>
         Factory.Create<UpdatePlanEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+            ctx =>
+            {
+                ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                    new ClaimsIdentity(
+                        EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)));
+                if (responseBody is not null)
+                    ctx.Request.HttpContext.Response.Body = responseBody;
+            },
             mongo,
             macroCalc,
             new MockDbBuilder().Build(),
@@ -99,7 +106,7 @@ public class UpdatePlanFullStateTests
     }
 
     [Fact]
-    public async Task HandleAsync_VersionMismatch_Returns409()
+    public async Task HandleAsync_VersionMismatch_Returns409WithProblemDetailsShape()
     {
         var planId = Guid.NewGuid();
         var plan = PlanTestHelpers.CreatePlan(
@@ -108,9 +115,10 @@ public class UpdatePlanFullStateTests
             weekCount: 1,
             version: 2);
 
+        using var responseBody = new MemoryStream();
         var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
         var macroCalc = Substitute.For<IMacroCalculatorService>();
-        var ep = CreateEndpoint(mongo, macroCalc);
+        var ep = CreateEndpoint(mongo, macroCalc, responseBody);
 
         // Send request with version 1, but plan is at version 2
         var req = new UpdatePlanRequest
@@ -123,7 +131,22 @@ public class UpdatePlanFullStateTests
 
         await ep.HandleAsync(req, TestContext.Current.CancellationToken);
 
+        // 1. HTTP status
         ep.HttpContext.Response.StatusCode.Should().Be(409);
+
+        // 2. errorCode extension in the RFC 7807 body — the raw SendAsync pattern would write
+        //    { "Error": "..." } with no "errorCode" field, so this assertion locks the contract.
+        responseBody.Seek(0, SeekOrigin.Begin);
+        using var doc = await JsonDocument.ParseAsync(responseBody);
+        doc.RootElement.GetProperty("errorCode").GetString()
+            .Should().Be(ErrorCodes.PlanVersionConflict);
+
+        // 3. ReplaceOneAsync never called — confirms the version check fires before persistence
+        await mongo.NutritionPlans.DidNotReceive().ReplaceOneAsync(
+            Arg.Any<FilterDefinition<NutritionPlan>>(),
+            Arg.Any<NutritionPlan>(),
+            Arg.Any<ReplaceOptions>(),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]

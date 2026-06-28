@@ -67,9 +67,8 @@ public class UpdateTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService
         // Optimistic concurrency check — must precede diff-gate.
         if (plan.Version != req.Version)
         {
-            await HttpContext.Response.SendAsync(
-                new { Error = "Version conflict. The plan was modified by another request." },
-                409, cancellation: ct);
+            await this.SendProblemAsync(409, ErrorCodes.PlanVersionConflict,
+                "Version conflict. The plan was modified by another request.", ct);
             return;
         }
 
@@ -401,9 +400,8 @@ public class UpdateTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService
 
         if (result.ModifiedCount == 0)
         {
-            await HttpContext.Response.SendAsync(
-                new { Error = "Version conflict. The plan was modified by another request." },
-                409, cancellation: ct);
+            await this.SendProblemAsync(409, ErrorCodes.PlanVersionConflict,
+                "Version conflict. The plan was modified by another request.", ct);
             return;
         }
 
