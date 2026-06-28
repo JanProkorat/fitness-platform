@@ -54,7 +54,7 @@ export default function VerifyEmailScreen() {
     } finally {
       setResending(false);
     }
-  }, []);
+  }, [t]);
 
   const handleCheckManually = useCallback(async () => {
     setChecking(true);
