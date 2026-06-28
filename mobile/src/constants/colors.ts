@@ -8,6 +8,37 @@ export const Brand = {
   gold: '#c9a84c',
 } as const
 
+/**
+ * iOS system colors (light-mode values). Use these in module-scope
+ * StyleSheet.create blocks and data maps where `useTheme()` is not
+ * reachable. In render paths, prefer `useTheme().blue` etc. which
+ * automatically returns the dark-mode variant.
+ *
+ * These map directly to the iOS Human Interface Guidelines system palette
+ * light values. The names match the `light` scheme object for parity.
+ */
+export const Static = {
+  /** iOS system blue — light: #007aff */
+  blue: '#007aff',
+  /** iOS system green — light: #34c759 */
+  green: '#34c759',
+  /** iOS system red — light: #ff3b30 */
+  red: '#ff3b30',
+  /** iOS system orange — light: #ff9500 */
+  orange: '#ff9500',
+  /** Deep blue used for new_plan notification accent — #0b6e99 */
+  deepBlue: '#0b6e99',
+  /** Warning/amber used for former-trainer / verify-email warning — #ad5700 */
+  amber: '#ad5700',
+  /** Always-white — for text/icons rendered on dark hero overlays and SVG strokes
+   *  that must stay white regardless of the active color scheme. */
+  alwaysWhite: '#ffffff',
+  /** Always-black shadow color — conventional iOS shadowColor value, identical
+   *  in both light and dark schemes. Replaces `Colors.dark.shadow` in
+   *  module-scope StyleSheet.create where useTheme() is not available. */
+  shadow: '#000000',
+} as const
+
 /** Shared gold alpha values used across components */
 export const goldAlpha = {
   '04': 'rgba(201,168,76,0.04)',
@@ -185,6 +216,8 @@ export interface ColorScheme {
   readonly macroFat: string
   readonly macroFiber: string
   readonly overlay: string
+  /** True when the effective color scheme is dark. Use instead of `colors.bg === '#1c1c1e'`. */
+  readonly isDark: boolean
 }
 
 export const Colors = { light, dark } as const

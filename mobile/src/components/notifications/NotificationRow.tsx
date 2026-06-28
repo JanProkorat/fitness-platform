@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
-import { goldAlpha, Brand } from '@/constants/colors'
+import { goldAlpha, Brand, Static } from '@/constants/colors'
 import type { Notification } from '@/hooks/useNotifications'
 
 const NOTIF_CONFIG: Record<Notification['type'], {
@@ -14,10 +14,10 @@ const NOTIF_CONFIG: Record<Notification['type'], {
 }> = {
   invitation:     { bg: goldAlpha['12'],                 icon: 'person-add',         color: Brand.gold },
   questionnaire:  { bg: goldAlpha['12'],                 icon: 'clipboard',          color: Brand.gold },
-  new_plan:       { bg: 'rgba(11,110,153,0.10)',         icon: 'calendar',           color: '#0b6e99' },
-  message:        { bg: 'rgba(0,122,255,0.10)',          icon: 'chatbubble',         color: '#007aff' },
-  training_done:  { bg: 'rgba(52,199,89,0.10)',          icon: 'checkmark-circle',   color: '#34c759' },
-  alarm:          { bg: 'rgba(255,59,48,0.10)',          icon: 'alert-circle',       color: '#ff3b30' },
+  new_plan:       { bg: 'rgba(11,110,153,0.10)',         icon: 'calendar',           color: Static.deepBlue },
+  message:        { bg: 'rgba(0,122,255,0.10)',          icon: 'chatbubble',         color: Static.blue },
+  training_done:  { bg: 'rgba(52,199,89,0.10)',          icon: 'checkmark-circle',   color: Static.green },
+  alarm:          { bg: 'rgba(255,59,48,0.10)',          icon: 'alert-circle',       color: Static.red },
   weekly_checkin: { bg: goldAlpha['12'],                 icon: 'calendar-number',    color: Brand.gold },
 }
 

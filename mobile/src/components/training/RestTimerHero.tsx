@@ -3,6 +3,7 @@ import { View, Text, Pressable, StyleSheet } from 'react-native'
 import Svg, { Circle } from 'react-native-svg'
 import * as Haptics from 'expo-haptics'
 import { useTheme } from '@/hooks/useTheme'
+import { Static } from '@/constants/colors'
 import { Radius } from '@/constants/radius'
 import { useTranslation } from 'react-i18next'
 import { computeRestRemaining } from './liveTrainingHelpers'
@@ -166,7 +167,7 @@ const styles = StyleSheet.create({
   countdownNumber: {
     fontSize: 52,
     fontWeight: '700',
-    color: '#ffffff',
+    color: Static.alwaysWhite,
     letterSpacing: -1,
     fontVariant: ['tabular-nums'],
     lineHeight: 56,
@@ -183,7 +184,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   nextName: {
-    color: '#ffffff',
+    color: Static.alwaysWhite,
     fontWeight: '600',
   },
   nextMeta: {
@@ -202,7 +203,7 @@ const styles = StyleSheet.create({
   skipBtnText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#ffffff',
+    color: Static.alwaysWhite,
   },
 })
 
