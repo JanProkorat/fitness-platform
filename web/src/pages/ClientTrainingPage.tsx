@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { getTrainingPlans, createTrainingPlan } from '@/api/training-plans';
 
 /**
@@ -11,6 +12,12 @@ export default function ClientTrainingPage() {
   const { id } = useParams<{ id: string }>();
   const clientId = id ?? '';
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  // Keep a ref to `t` so the resolve effect can access the current translator
+  // without adding it to the deps array (t changes identity on every language
+  // switch, which would re-fire the mutating effect and create duplicate plans).
+  const tRef = useRef(t);
+  useEffect(() => { tRef.current = t; });
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -30,7 +37,7 @@ export default function ClientTrainingPage() {
         } else {
           const newPlan = await createTrainingPlan({
             clientId,
-            name: 'Tréninkový plán',
+            name: tRef.current('clientTraining.defaultPlanName'),
             weekCount: 1,
           });
 
@@ -39,12 +46,12 @@ export default function ClientTrainingPage() {
           if (newPlan?.planId) {
             navigate(`/clients/${clientId}/training-plans/${newPlan.planId}`, { replace: true });
           } else {
-            setError('Nepodařilo se vytvořit plán.');
+            setError(tRef.current('clientTraining.createError'));
           }
         }
       } catch {
         if (!cancelled) {
-          setError('Chyba při načítání tréninkového plánu.');
+          setError(tRef.current('clientTraining.loadError'));
         }
       }
     }
@@ -63,7 +70,7 @@ export default function ClientTrainingPage() {
           style={{ marginTop: 12 }}
           onClick={() => navigate(-1)}
         >
-          &larr; Zpět
+          {t('clientTraining.back')}
         </button>
       </div>
     );
@@ -71,7 +78,7 @@ export default function ClientTrainingPage() {
 
   return (
     <div style={{ padding: '80px', textAlign: 'center', color: 'var(--text3)', fontSize: 14 }}>
-      Načítání tréninkového plánu&hellip;
+      {t('clientTraining.loading')}
     </div>
   );
 }

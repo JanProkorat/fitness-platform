@@ -30,23 +30,26 @@ type FilterKey = 'all' | 'active' | 'inactive' | 'withPlan' | 'noPlan' | 'lowCom
 type SortKey = 'name' | 'compliance' | 'streak' | 'lastActivity' | 'kcal' | 'trains';
 type SortDir = 'asc' | 'desc';
 
-const VIEWS: { id: ViewType; label: string; icon: string }[] = [
-  { id: 'table', label: 'Tabulka', icon: '⊞' },
-  { id: 'list', label: 'Seznam', icon: '☰' },
-  { id: 'cards', label: 'Karty', icon: '⬜' },
+const VIEW_IDS: { id: ViewType; tKey: string; icon: string }[] = [
+  { id: 'table', tKey: 'common.viewTable', icon: '⊞' },
+  { id: 'list', tKey: 'common.viewList', icon: '☰' },
+  { id: 'cards', tKey: 'common.viewCards', icon: '⬜' },
 ];
 
-const FILTER_OPTIONS: { key: FilterKey; label: string }[] = [
-  { key: 'all', label: 'Vše' },
-  { key: 'active', label: 'Aktivní' },
-  { key: 'inactive', label: 'Neaktivní' },
-  { key: 'withPlan', label: 'S aktivním plánem' },
-  { key: 'noPlan', label: 'Bez plánu' },
-  { key: 'lowCompliance', label: 'Nízká compliance (< 50 %)' },
-];
 
 export default function DashboardPage() {
   const { t, i18n } = useTranslation();
+
+  // Build translated VIEWS and FILTER_OPTIONS inside the component so they react to locale changes
+  const VIEWS = VIEW_IDS.map((v) => ({ id: v.id, label: t(v.tKey), icon: v.icon }));
+  const FILTER_OPTIONS: { key: FilterKey; label: string }[] = [
+    { key: 'all', label: t('dashboard.filterAll') },
+    { key: 'active', label: t('dashboard.filterActive') },
+    { key: 'inactive', label: t('dashboard.filterInactive') },
+    { key: 'withPlan', label: t('dashboard.filterWithPlan') },
+    { key: 'noPlan', label: t('dashboard.filterNoPlan') },
+    { key: 'lowCompliance', label: t('dashboard.filterLowCompliance') },
+  ];
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
@@ -132,15 +135,15 @@ export default function DashboardPage() {
   // -- filter & sort options ------------------------------------------------
   const sortOptions = useMemo(() => {
     const opts: { key: SortKey; label: string }[] = [
-      { key: 'name', label: 'Jméno' },
-      { key: 'compliance', label: 'Compliance' },
-      { key: 'streak', label: 'Streak' },
-      { key: 'lastActivity', label: 'Poslední aktivita' },
+      { key: 'name', label: t('dashboard.sortName') },
+      { key: 'compliance', label: t('dashboard.sortCompliance') },
+      { key: 'streak', label: t('dashboard.sortStreak') },
+      { key: 'lastActivity', label: t('dashboard.sortLastActivity') },
     ];
-    if (isNutritionist) opts.push({ key: 'kcal', label: 'Kalorie dnes' });
-    if (isTrainer) opts.push({ key: 'trains', label: 'Tréninky dnes' });
+    if (isNutritionist) opts.push({ key: 'kcal', label: t('dashboard.sortKcal') });
+    if (isTrainer) opts.push({ key: 'trains', label: t('dashboard.sortTrains') });
     return opts;
-  }, [isNutritionist, isTrainer]);
+  }, [isNutritionist, isTrainer, t]);
 
   // Derived list used by table/list/cards. Aggregates above (stats, callouts)
   // intentionally use the unfiltered `clients`.
@@ -200,7 +203,7 @@ export default function DashboardPage() {
     setShowSortMenu(false);
   };
 
-  const filterLabel = FILTER_OPTIONS.find((o) => o.key === filter)?.label ?? 'Vše';
+  const filterLabel = FILTER_OPTIONS.find((o) => o.key === filter)?.label ?? t('dashboard.filterAll');
 
   // -- date string ----------------------------------------------------------
   const dateStr = new Date().toLocaleDateString(i18n.language, {
@@ -209,77 +212,79 @@ export default function DashboardPage() {
     month: 'long',
     year: 'numeric',
   });
-  const subtitle = `Přehled všech klientů · ${dateStr.charAt(0).toUpperCase() + dateStr.slice(1)}`;
+  const subtitle = t('dashboard.subtitle', { date: dateStr.charAt(0).toUpperCase() + dateStr.slice(1) });
 
   // -- stats ----------------------------------------------------------------
   const stats = useMemo(() => {
     const items: { label: string; value: string; valueColor?: string; sub: string }[] = [
       {
-        label: 'Aktivní klienti',
+        label: t('dashboard.statActiveClients'),
         value: String(activeCount),
-        sub: totalCount > 0 ? `celkem ${totalCount}` : '—',
+        sub: totalCount > 0 ? t('dashboard.statActiveClientsTotal', { count: totalCount }) : '—',
       },
       {
-        label: 'Avg. compliance',
+        label: t('dashboard.statAvgCompliance'),
         value: clients.length > 0 ? `${avgCompliance} %` : '—',
         valueColor: clients.length > 0 ? complianceColor(avgCompliance) : undefined,
-        sub: clients.length > 0 ? '↑ vs. minulý týden' : '—',
+        sub: clients.length > 0 ? t('dashboard.statComplianceVsLastWeek') : '—',
       },
     ];
 
     // Role-based training / plan card
     if (isTrainer && isNutritionist) {
       items.push({
-        label: 'Tréninky / plány',
+        label: t('dashboard.statTrainingsAndPlans'),
         value: clients.length > 0
           ? `${totalTrains}/${totalTrainsGoal} · ${activePlansCount}`
           : '—',
-        sub: 'tréninky dnes · aktivní plány',
+        sub: t('dashboard.statTrainingsAndPlansSub'),
       });
     } else if (isTrainer) {
       items.push({
-        label: 'Tréninky dnes',
+        label: t('dashboard.statTrainingsToday'),
         value: clients.length > 0 ? `${totalTrains}/${totalTrainsGoal}` : '—',
-        sub: 'splněno dnes',
+        sub: t('dashboard.statTrainingsTodayDone'),
       });
     } else if (isNutritionist) {
       items.push({
-        label: 'Aktivní plány',
+        label: t('dashboard.statActivePlans'),
         value: clients.length > 0 ? String(activePlansCount) : '—',
-        sub: activePlansCount === 1 ? 'aktivní plán' : 'aktivních plánů',
+        sub: activePlansCount === 1 ? t('dashboard.statActivePlan') : t('dashboard.statActivePlanPlural'),
       });
     }
 
     items.push({
-      label: 'Nízká compliance',
+      label: t('dashboard.statLowCompliance'),
       value: String(alertClients.length),
       valueColor: alertClients.length > 0 ? 'var(--orange)' : undefined,
-      sub: alertClients.length > 0 ? `${alertClients.length === 1 ? 'klient' : 'klienti'} pod 50 %` : 'vše v pořádku',
+      sub: alertClients.length > 0
+        ? t('dashboard.statLowComplianceSub', { count: alertClients.length })
+        : t('dashboard.statAllGood'),
     });
 
     return items;
-  }, [activeCount, totalCount, clients.length, avgCompliance, totalTrains, totalTrainsGoal, activePlansCount, alertClients.length, isTrainer, isNutritionist]);
+  }, [activeCount, totalCount, clients.length, avgCompliance, totalTrains, totalTrainsGoal, activePlansCount, alertClients.length, isTrainer, isNutritionist, t]);
 
   // -- table columns --------------------------------------------------------
   const columns = useMemo(() => {
     const cols: { key: string; label: string; render: (row: EnrichedClient) => React.ReactNode }[] = [
       {
         key: 'name',
-        label: 'Jméno',
+        label: t('dashboard.colName'),
         render: (row: EnrichedClient) => (
           <span>{row.firstName} {row.lastName}</span>
         ),
       },
       {
         key: 'goal',
-        label: 'Cíl',
+        label: t('dashboard.colGoal'),
         render: (row: EnrichedClient) => (
           <Tag variant={row.goalTag}>{row.goal}</Tag>
         ),
       },
       {
         key: 'compliance',
-        label: 'Compliance',
+        label: t('dashboard.colCompliance'),
         render: (row: EnrichedClient) => (
           <div className="flex items-center gap-2">
             <ProgressBar
@@ -294,7 +299,7 @@ export default function DashboardPage() {
       },
       {
         key: 'streak',
-        label: 'Streak',
+        label: t('dashboard.colStreak'),
         render: (row: EnrichedClient) => (
           <span className="text-[13px]">🔥 {row.streak}d</span>
         ),
@@ -304,7 +309,7 @@ export default function DashboardPage() {
     if (isNutritionist) {
       cols.push({
         key: 'kcal',
-        label: 'Kalorie dnes',
+        label: t('dashboard.colKcalToday'),
         render: (row: EnrichedClient) => {
           const pct = row.kcalGoal > 0 ? Math.round((row.todayKcalRounded / row.kcalGoal) * 100) : 0;
           return (
@@ -327,7 +332,7 @@ export default function DashboardPage() {
     if (isTrainer) {
       cols.push({
         key: 'trains',
-        label: 'Tréninky dnes',
+        label: t('dashboard.colTrainsToday'),
         render: (row: EnrichedClient) => {
           const variant = row.trains >= row.trainsGoal
             ? 'green'
@@ -346,10 +351,10 @@ export default function DashboardPage() {
     if (isNutritionist) {
       cols.push({
         key: 'nutritionPlan',
-        label: 'Nutriční plán',
+        label: t('dashboard.colNutritionPlan'),
         render: (row: EnrichedClient) => (
           <Tag variant={row.activeNutritionPlansCount > 0 ? 'green' : 'gray'}>
-            {row.activeNutritionPlansCount > 0 ? 'Ano' : 'Ne'}
+            {row.activeNutritionPlansCount > 0 ? t('dashboard.yesLabel') : t('dashboard.noLabel')}
           </Tag>
         ),
       });
@@ -358,10 +363,10 @@ export default function DashboardPage() {
     if (isTrainer) {
       cols.push({
         key: 'trainingPlan',
-        label: 'Tréninkový plán',
+        label: t('dashboard.colTrainingPlan'),
         render: (row: EnrichedClient) => (
           <Tag variant={row.hasActiveTrainingPlan ? 'green' : 'gray'}>
-            {row.hasActiveTrainingPlan ? 'Ano' : 'Ne'}
+            {row.hasActiveTrainingPlan ? t('dashboard.yesLabel') : t('dashboard.noLabel')}
           </Tag>
         ),
       });
@@ -369,7 +374,7 @@ export default function DashboardPage() {
 
     cols.push({
       key: 'activity',
-      label: 'Aktivita',
+      label: t('dashboard.colActivity'),
       render: (row: EnrichedClient) => (
         <span className="text-xs" style={{ color: row.lastActivityColor }}>
           {row.lastActivity}
@@ -378,7 +383,7 @@ export default function DashboardPage() {
     });
 
     return cols;
-  }, [isTrainer, isNutritionist]);
+  }, [isTrainer, isNutritionist, t]);
 
   // -- handlers -------------------------------------------------------------
   const handleRowClick = (row: EnrichedClient) => {
@@ -388,7 +393,7 @@ export default function DashboardPage() {
   // -- render ---------------------------------------------------------------
   return (
     <div className="flex h-full flex-col">
-      <PageHeader icon="📊" title="Dashboard" subtitle={subtitle} />
+      <PageHeader icon="📊" title={t('dashboard.title')} subtitle={subtitle} />
 
       <Toolbar
         views={VIEWS}
@@ -397,7 +402,7 @@ export default function DashboardPage() {
       >
         <div className="relative">
           <Button variant="ghost" size="sm" onClick={() => { setShowFilterMenu((v) => !v); setShowSortMenu(false); }}>
-            ⊞ Filtr{filter !== 'all' ? ` · ${filterLabel}` : ''}
+            ⊞ {t('dashboard.filterButton')}{filter !== 'all' ? ` · ${filterLabel}` : ''}
           </Button>
           {showFilterMenu && (
             <>
@@ -420,7 +425,7 @@ export default function DashboardPage() {
         </div>
         <div className="relative">
           <Button variant="ghost" size="sm" onClick={() => { setShowSortMenu((v) => !v); setShowFilterMenu(false); }}>
-            ↕ Seřadit
+            ↕ {t('dashboard.sortButton')}
           </Button>
           {showSortMenu && (
             <>
@@ -514,20 +519,20 @@ export default function DashboardPage() {
           {alertClients.map((client) => {
             const details: string[] = [];
             if (isNutritionist) {
-              details.push(`Compliance ${client.compliance} % — neplní plán`);
+              details.push(t('dashboard.calloutComplianceDetail', { compliance: client.compliance }));
             }
             if (isTrainer) {
-              details.push(`Plní ${client.trains}/${client.trainsGoal} tréninků`);
+              details.push(t('dashboard.calloutTrainsDetail', { trains: client.trains, trainsGoal: client.trainsGoal }));
             }
             return (
               <Callout
                 key={client.publicId}
                 variant="warning"
                 icon="⚠"
-                title={`${client.firstName} ${client.lastName} — ${client.compliance < 40 ? 'nízká compliance' : 'vyžaduje pozornost'}`}
+                title={`${client.firstName} ${client.lastName} — ${client.compliance < 40 ? t('dashboard.calloutTitleLow') : t('dashboard.calloutTitleAttention')}`}
                 action={
                   <Mention onClick={() => navigate(`/messages?clientId=${client.publicId}`)}>
-                    ✉ Napsat zprávu
+                    ✉ {t('clients.sendMessage')}
                   </Mention>
                 }
               >
@@ -549,13 +554,13 @@ export default function DashboardPage() {
           {clients.length > 0 && displayedClients.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 text-text3">
               <span className="text-4xl">🔍</span>
-              <p className="mt-3 text-sm">Žádní klienti pro vybraný filtr.</p>
+              <p className="mt-3 text-sm">{t('dashboard.noClientsForFilter')}</p>
               <button
                 type="button"
                 onClick={() => setFilter('all')}
                 className="mt-2 text-[13px] underline hover:text-text2"
               >
-                Zrušit filtr
+                {t('dashboard.clearFilter')}
               </button>
             </div>
           )}
@@ -568,7 +573,7 @@ export default function DashboardPage() {
               rowKey={(row) => row.publicId ?? row.email ?? ''}
               onRowClick={handleRowClick}
               onAddRow={() => setDialogOpen(true)}
-              addRowLabel="+ Přidat klienta"
+              addRowLabel={`+ ${t('dashboard.addClient')}`}
               renderRowActions={(row) => (
                 <>
                   <Button
@@ -579,7 +584,7 @@ export default function DashboardPage() {
                       navigate(`/clients/${row.publicId}`);
                     }}
                   >
-                    Otevřít
+                    {t('dashboard.openClient')}
                   </Button>
                   <Button
                     variant="ghost"
@@ -589,7 +594,7 @@ export default function DashboardPage() {
                       navigate(`/messages?clientId=${row.publicId}`);
                     }}
                   >
-                    Zpráva
+                    {t('dashboard.sendMessageShort')}
                   </Button>
                 </>
               )}
@@ -637,7 +642,7 @@ export default function DashboardPage() {
                     >
                       {item.compliance} %
                     </div>
-                    <div className="text-[11px] text-text3">compliance</div>
+                    <div className="text-[11px] text-text3">{t('dashboard.colCompliance').toLowerCase()}</div>
                   </div>
                   <div className="text-right">
                     <div className="text-xs text-text2">🔥 {item.streak}d</div>
@@ -654,7 +659,7 @@ export default function DashboardPage() {
                       navigate(`/clients/${item.publicId}`);
                     }}
                   >
-                    Otevřít
+                    {t('dashboard.openClient')}
                   </Button>
                   <Button
                     variant="ghost"
@@ -664,7 +669,7 @@ export default function DashboardPage() {
                       navigate(`/messages?clientId=${item.publicId}`);
                     }}
                   >
-                    Zpráva
+                    {t('dashboard.sendMessageShort')}
                   </Button>
                 </div>
               )}
@@ -721,12 +726,12 @@ export default function DashboardPage() {
                       <span className="text-text3 ml-1">compliance · 🔥{client.streak}d</span>
                     </CardPropRow>
                     {isNutritionist && (
-                      <CardPropRow label="Kalorie:">
+                      <CardPropRow label={`${t('dashboard.colKcalToday')}:`}>
                         {client.todayKcalRounded}/{client.kcalGoal}
                       </CardPropRow>
                     )}
                     {isTrainer && (
-                      <CardPropRow label="Tréninky dnes:">
+                      <CardPropRow label={`${t('dashboard.colTrainsToday')}:`}>
                         {client.trains}/{client.trainsGoal}
                       </CardPropRow>
                     )}
@@ -775,7 +780,7 @@ export default function DashboardPage() {
               <div style={{ fontSize: 14, color: 'var(--text)', fontWeight: 500 }}>{managedRequest.clientFirstName} {managedRequest.clientLastName}</div>
             </div>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text3)', marginBottom: 4 }}>Email</div>
+              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text3)', marginBottom: 4 }}>{t('common.email')}</div>
               <div style={{ fontSize: 14, color: 'var(--text)' }}>{managedRequest.clientEmail}</div>
             </div>
             {managedRequest.message && (
