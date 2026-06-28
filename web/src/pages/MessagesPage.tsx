@@ -141,7 +141,6 @@ export default function MessagesPage() {
     queryKey: ['conversations'],
     queryFn: fetchConversations,
     staleTime: 10_000,
-    refetchInterval: 15_000,
   });
   const conversations = useMemo(
     () => (Array.isArray(rawConversations) ? rawConversations : []),
@@ -203,7 +202,6 @@ export default function MessagesPage() {
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.cursor ?? undefined,
     enabled: !!activeConvId,
-    refetchInterval: 5_000,
   });
 
   const messages = useMemo(
