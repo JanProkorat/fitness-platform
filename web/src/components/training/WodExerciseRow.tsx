@@ -100,11 +100,13 @@ export function WodExerciseRow({ set, movementType, sectionFormat, onUpdate, log
   const numInput = (
     value: number | null | undefined,
     onChange: (v: number | null) => void,
+    ariaLabel?: string,
   ) => (
     <input
       type="number"
       placeholder="--"
       value={value ?? ''}
+      aria-label={ariaLabel}
       style={inputStyle}
       onClick={(e) => e.stopPropagation()}
       onChange={(e) => onChange(e.target.value !== '' ? Number(e.target.value) : null)}
@@ -130,7 +132,7 @@ export function WodExerciseRow({ set, movementType, sectionFormat, onUpdate, log
   // the validator never requires it.
   const weightField = fieldGroup(
     t('training.weightLabel'),
-    numInput(set.weightKg, (v) => onUpdate({ weightKg: v })),
+    numInput(set.weightKg, (v) => onUpdate({ weightKg: v }), t('training.wodWeightAriaLabel')),
     'kg',
   );
 
@@ -176,7 +178,7 @@ export function WodExerciseRow({ set, movementType, sectionFormat, onUpdate, log
         <div className="flex items-center gap-3 flex-wrap">
           {fieldGroup(
             t('training.wod.durationLabel'),
-            numInput(set.durationSeconds, (v) => onUpdate({ durationSeconds: v })),
+            numInput(set.durationSeconds, (v) => onUpdate({ durationSeconds: v }), t('training.wodDurationAriaLabel')),
             's',
           )}
           {weightField}
@@ -187,12 +189,12 @@ export function WodExerciseRow({ set, movementType, sectionFormat, onUpdate, log
         <div className="flex items-center gap-3 flex-wrap">
           {fieldGroup(
             t('training.wod.distanceLabel'),
-            numInput(set.distanceMeters, (v) => onUpdate({ distanceMeters: v })),
+            numInput(set.distanceMeters, (v) => onUpdate({ distanceMeters: v }), t('training.wodDistanceAriaLabel')),
             'm',
           )}
           {fieldGroup(
             t('training.wod.durationLabel'),
-            numInput(set.durationSeconds, (v) => onUpdate({ durationSeconds: v })),
+            numInput(set.durationSeconds, (v) => onUpdate({ durationSeconds: v }), t('training.wodDurationAriaLabel')),
             's',
           )}
           {weightField}
@@ -202,7 +204,7 @@ export function WodExerciseRow({ set, movementType, sectionFormat, onUpdate, log
       return (
         <div className="flex items-center gap-3 flex-wrap">
           {!hideReps &&
-            fieldGroup(t('training.repsLabel'), numInput(set.reps, (v) => onUpdate({ reps: v })))}
+            fieldGroup(t('training.repsLabel'), numInput(set.reps, (v) => onUpdate({ reps: v }), t('training.wodRepsAriaLabel')))}
           {weightField}
         </div>
       );
@@ -212,7 +214,7 @@ export function WodExerciseRow({ set, movementType, sectionFormat, onUpdate, log
         <div className="flex items-center gap-3 flex-wrap">
           {weightField}
           {!hideReps &&
-            fieldGroup(t('training.repsLabel'), numInput(set.reps, (v) => onUpdate({ reps: v })))}
+            fieldGroup(t('training.repsLabel'), numInput(set.reps, (v) => onUpdate({ reps: v }), t('training.wodRepsAriaLabel')))}
         </div>
       );
   }

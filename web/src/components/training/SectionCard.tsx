@@ -188,6 +188,7 @@ export function SectionCard({
             placeholder={t('training.section.placeholderName')}
             onChange={(e) => onUpdate({ name: e.target.value })}
             disabled={isSectionLocked}
+            aria-label={t('training.sectionNameAriaLabel')}
             className="w-full bg-transparent text-[13px] font-semibold text-text outline-none cursor-text disabled:cursor-not-allowed"
             style={{ fontFamily: 'inherit', minWidth: 0 }}
           />
@@ -312,6 +313,7 @@ export function SectionCard({
               value={section.notes ?? ''}
               placeholder={t('training.section.placeholderNotes')}
               onChange={(e) => onUpdate({ notes: e.target.value || null })}
+              aria-label={t('training.sectionNotesAriaLabel')}
               className="w-full bg-transparent text-[11px] text-text3 outline-none"
               style={{ fontFamily: 'inherit', fontStyle: 'italic', padding: '2px 4px', borderRadius: 'var(--radius)', transition: 'background 0.1s' }}
               onFocus={(e) => { e.target.style.background = 'var(--bg-hover)'; }}
@@ -453,6 +455,7 @@ export function SectionCard({
                             value={ex.notes ?? ''}
                             onChange={(e) => onUpdateExerciseNotes(exIdx, e.target.value)}
                             placeholder={t('training.notePlaceholder')}
+                            aria-label={t('training.exerciseNotesAriaLabel')}
                             style={{
                               width: '100%', border: 'none', outline: 'none', background: 'transparent',
                               fontSize: 11, color: 'var(--text3)', fontFamily: 'inherit', fontStyle: 'italic',

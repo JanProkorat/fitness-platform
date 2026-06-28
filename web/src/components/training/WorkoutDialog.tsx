@@ -341,9 +341,11 @@ export function WorkoutDialog({ open, template, onClose, onSaved }: WorkoutDialo
           {/* Header — name input + format dropdown */}
           <div className="flex items-center gap-3 px-5 py-3 border-b border-border" style={{ flexShrink: 0 }}>
             <input
+              id="workout-dialog-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder={t('training.template.namePlaceholder')}
+              aria-label={t('training.template.nameAriaLabel')}
               className="flex-1 text-[15px] font-semibold bg-transparent border-none outline-none text-text placeholder:text-text3"
               autoFocus
             />
@@ -382,10 +384,11 @@ export function WorkoutDialog({ open, template, onClose, onSaved }: WorkoutDialo
 
                   {/* Workout-level notes */}
                   <div>
-                    <label className="mb-1.5 block text-xs font-medium text-text3">
+                    <label htmlFor="workout-dialog-notes" className="mb-1.5 block text-xs font-medium text-text3">
                       {t('training.template.notesLabel')}
                     </label>
                     <input
+                      id="workout-dialog-notes"
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       placeholder={t('training.template.notesPlaceholder')}
@@ -395,16 +398,18 @@ export function WorkoutDialog({ open, template, onClose, onSaved }: WorkoutDialo
 
                   {/* Exercises label + search */}
                   <div>
-                    <label className="mb-1.5 block text-xs font-medium text-text3">
+                    <label htmlFor="workout-dialog-exercise-search" className="mb-1.5 block text-xs font-medium text-text3">
                       {t('training.template.colExercises')}
                     </label>
                     <div className="relative">
                       <input
+                        id="workout-dialog-exercise-search"
                         value={exQuery}
                         onChange={(e) => setExQuery(e.target.value)}
                         onFocus={() => setExFocused(true)}
                         onBlur={() => setExFocused(false)}
                         placeholder={t('exercises.search')}
+                        aria-label={t('training.template.exerciseSearchAriaLabel')}
                         className={`${INPUT_CLASS_SM} pl-8`}
                       />
                       <svg
@@ -513,6 +518,7 @@ export function WorkoutDialog({ open, template, onClose, onSaved }: WorkoutDialo
                               value={row.notes}
                               onChange={(e) => updateExerciseNotes(exIdx, e.target.value)}
                               placeholder={t('training.template.exerciseNotesPlaceholder')}
+                              aria-label={t('training.exerciseNotesAriaLabel')}
                               className="w-full rounded border border-transparent bg-transparent px-1.5 py-0.5 text-[12px] text-text2 outline-none placeholder:text-text4 hover:border-border focus:border-border-hv focus:bg-bg2"
                             />
                           </div>
@@ -541,6 +547,7 @@ export function WorkoutDialog({ open, template, onClose, onSaved }: WorkoutDialo
                                           min={0}
                                           step={1}
                                           value={set.reps}
+                                          aria-label={t('training.setRepsAriaLabel', { setNumber: setIdx + 1 })}
                                           onChange={(e) =>
                                             updateSet(exIdx, setIdx, {
                                               reps: e.target.value === '' ? '' : Number(e.target.value),
@@ -555,6 +562,7 @@ export function WorkoutDialog({ open, template, onClose, onSaved }: WorkoutDialo
                                           min={0}
                                           step={0.5}
                                           value={set.weightKg}
+                                          aria-label={t('training.setWeightAriaLabel', { setNumber: setIdx + 1 })}
                                           onChange={(e) =>
                                             updateSet(exIdx, setIdx, {
                                               weightKg: e.target.value === '' ? '' : Number(e.target.value),
@@ -569,6 +577,7 @@ export function WorkoutDialog({ open, template, onClose, onSaved }: WorkoutDialo
                                           min={0}
                                           step={5}
                                           value={set.restSeconds}
+                                          aria-label={t('training.setRestAriaLabel', { setNumber: setIdx + 1 })}
                                           onChange={(e) =>
                                             updateSet(exIdx, setIdx, {
                                               restSeconds: e.target.value === '' ? '' : Number(e.target.value),
@@ -616,6 +625,7 @@ export function WorkoutDialog({ open, template, onClose, onSaved }: WorkoutDialo
                                       min={0}
                                       step={1}
                                       value={row.sets[0]?.reps ?? ''}
+                                      aria-label={t('training.wodRepsAriaLabel')}
                                       onChange={(e) =>
                                         updateSet(exIdx, 0, {
                                           reps: e.target.value === '' ? '' : Number(e.target.value),
@@ -634,6 +644,7 @@ export function WorkoutDialog({ open, template, onClose, onSaved }: WorkoutDialo
                                     min={0}
                                     step={0.5}
                                     value={row.sets[0]?.weightKg ?? ''}
+                                    aria-label={t('training.wodWeightAriaLabel')}
                                     onChange={(e) =>
                                       updateSet(exIdx, 0, {
                                         weightKg: e.target.value === '' ? '' : Number(e.target.value),

@@ -131,6 +131,7 @@ export default function SectionTemplatesPage() {
         <div className="flex flex-wrap items-center gap-2">
           <SearchInput
             placeholder={t('training.template.search')}
+            aria-label={t('training.template.searchAriaLabel')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-[240px]"
@@ -139,6 +140,7 @@ export default function SectionTemplatesPage() {
             value={formatFilter}
             onChange={(e) => { setFormatFilter(e.target.value); setPage(1); }}
             className={filterClass}
+            aria-label={t('training.template.formatFilterAriaLabel')}
           >
             <option value="">{t('training.template.allFormats')}</option>
             {ALL_FORMATS.map((f) => (

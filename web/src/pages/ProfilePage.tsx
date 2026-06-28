@@ -392,15 +392,15 @@ export default function ProfilePage() {
             <div className="profile-fields">
               <div className="form-row" style={{ marginBottom: 0 }}>
                 <div className="form-group">
-                  <label className="form-label">{t('profile.firstName')}</label>
-                  <input {...register('firstName')} className="form-input" />
+                  <label htmlFor="profile-first-name" className="form-label">{t('profile.firstName')}</label>
+                  <input id="profile-first-name" {...register('firstName')} className="form-input" />
                   {errors.firstName && (
                     <p className="mt-1 text-xs text-red">{errors.firstName.message}</p>
                   )}
                 </div>
                 <div className="form-group">
-                  <label className="form-label">{t('profile.lastName')}</label>
-                  <input {...register('lastName')} className="form-input" />
+                  <label htmlFor="profile-last-name" className="form-label">{t('profile.lastName')}</label>
+                  <input id="profile-last-name" {...register('lastName')} className="form-input" />
                   {errors.lastName && (
                     <p className="mt-1 text-xs text-red">{errors.lastName.message}</p>
                   )}
@@ -408,8 +408,9 @@ export default function ProfilePage() {
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">{t('profile.email')}</label>
+                  <label htmlFor="profile-email" className="form-label">{t('profile.email')}</label>
                   <input
+                    id="profile-email"
                     className="form-input"
                     value={user?.email ?? ''}
                     readOnly
@@ -417,8 +418,9 @@ export default function ProfilePage() {
                   />
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">{t('profile.phone')}</label>
+                  <label htmlFor="profile-phone" className="form-label">{t('profile.phone')}</label>
                   <input
+                    id="profile-phone"
                     className="form-input"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}

@@ -66,13 +66,13 @@ export function SetRow({ set, movementType, onUpdate, onDuplicate, onRemove, com
     value: number | null | undefined,
     onChange: (v: number | null) => void,
     placeholder = '--',
-    title?: string,
+    ariaLabel?: string,
   ) => (
     <input
       type="number"
       placeholder={placeholder}
       value={value ?? ''}
-      title={title}
+      aria-label={ariaLabel}
       style={inputStyle}
       onClick={(e) => e.stopPropagation()}
       onChange={(e) =>
@@ -143,7 +143,7 @@ export function SetRow({ set, movementType, onUpdate, onDuplicate, onRemove, com
             <>
               {loggedCell(loggedSet.actualDurationSeconds, loggedSet.plannedDurationSeconds, loggedSet.isModified)}
               {/* Rest is plan-only — no logged "actual rest" in the contract */}
-              {numInput(set.restSeconds, (v) => onUpdate({ restSeconds: v }), '--', t('training.restSecondsLabel'))}
+              {numInput(set.restSeconds, (v) => onUpdate({ restSeconds: v }), '--', t('training.setRestAriaLabel', { setNumber: set.setNumber }))}
             </>
           );
         case 'Distance':
@@ -151,14 +151,14 @@ export function SetRow({ set, movementType, onUpdate, onDuplicate, onRemove, com
             <>
               {loggedCell(loggedSet.actualDistanceMeters, loggedSet.plannedDistanceMeters, loggedSet.isModified)}
               {loggedCell(loggedSet.actualDurationSeconds, loggedSet.plannedDurationSeconds, loggedSet.isModified)}
-              {numInput(set.restSeconds, (v) => onUpdate({ restSeconds: v }), '--', t('training.restSecondsLabel'))}
+              {numInput(set.restSeconds, (v) => onUpdate({ restSeconds: v }), '--', t('training.setRestAriaLabel', { setNumber: set.setNumber }))}
             </>
           );
         case 'RepsForTime':
           return (
             <>
               {loggedCell(loggedSet.actualReps, loggedSet.plannedReps, loggedSet.isModified)}
-              {numInput(set.restSeconds, (v) => onUpdate({ restSeconds: v }), '--', t('training.restSecondsLabel'))}
+              {numInput(set.restSeconds, (v) => onUpdate({ restSeconds: v }), '--', t('training.setRestAriaLabel', { setNumber: set.setNumber }))}
             </>
           );
         // Reps (default)
@@ -167,7 +167,7 @@ export function SetRow({ set, movementType, onUpdate, onDuplicate, onRemove, com
             <>
               {loggedCell(loggedSet.actualWeightKg, loggedSet.plannedWeightKg, loggedSet.isModified)}
               {loggedCell(loggedSet.actualReps, loggedSet.plannedReps, loggedSet.isModified)}
-              {numInput(set.restSeconds, (v) => onUpdate({ restSeconds: v }), '--', t('training.restSecondsLabel'))}
+              {numInput(set.restSeconds, (v) => onUpdate({ restSeconds: v }), '--', t('training.setRestAriaLabel', { setNumber: set.setNumber }))}
             </>
           );
       }
@@ -177,32 +177,32 @@ export function SetRow({ set, movementType, onUpdate, onDuplicate, onRemove, com
       case 'Time':
         return (
           <>
-            {numInput(set.durationSeconds, (v) => onUpdate({ durationSeconds: v }), '--', t('training.wod.durationSeconds'))}
-            {numInput(set.restSeconds, (v) => onUpdate({ restSeconds: v }), '--', t('training.restSecondsLabel'))}
+            {numInput(set.durationSeconds, (v) => onUpdate({ durationSeconds: v }), '--', t('training.setDurationAriaLabel', { setNumber: set.setNumber }))}
+            {numInput(set.restSeconds, (v) => onUpdate({ restSeconds: v }), '--', t('training.setRestAriaLabel', { setNumber: set.setNumber }))}
           </>
         );
       case 'Distance':
         return (
           <>
-            {numInput(set.distanceMeters, (v) => onUpdate({ distanceMeters: v }), '--', t('training.wod.distanceMeters'))}
-            {numInput(set.durationSeconds, (v) => onUpdate({ durationSeconds: v }), '--', t('training.wod.durationSeconds'))}
-            {numInput(set.restSeconds, (v) => onUpdate({ restSeconds: v }), '--', t('training.restSecondsLabel'))}
+            {numInput(set.distanceMeters, (v) => onUpdate({ distanceMeters: v }), '--', t('training.setDistanceAriaLabel', { setNumber: set.setNumber }))}
+            {numInput(set.durationSeconds, (v) => onUpdate({ durationSeconds: v }), '--', t('training.setDurationAriaLabel', { setNumber: set.setNumber }))}
+            {numInput(set.restSeconds, (v) => onUpdate({ restSeconds: v }), '--', t('training.setRestAriaLabel', { setNumber: set.setNumber }))}
           </>
         );
       case 'RepsForTime':
         return (
           <>
-            {numInput(set.reps, (v) => onUpdate({ reps: v }), '--', t('training.repsLabel'))}
-            {numInput(set.restSeconds, (v) => onUpdate({ restSeconds: v }), '--', t('training.restSecondsLabel'))}
+            {numInput(set.reps, (v) => onUpdate({ reps: v }), '--', t('training.setRepsAriaLabel', { setNumber: set.setNumber }))}
+            {numInput(set.restSeconds, (v) => onUpdate({ restSeconds: v }), '--', t('training.setRestAriaLabel', { setNumber: set.setNumber }))}
           </>
         );
       // Reps (default)
       default:
         return (
           <>
-            {numInput(set.weightKg, (v) => onUpdate({ weightKg: v }), '--', t('training.weightLabel'))}
-            {numInput(set.reps, (v) => onUpdate({ reps: v }), '--', t('training.repsLabel'))}
-            {numInput(set.restSeconds, (v) => onUpdate({ restSeconds: v }), '--', t('training.restSecondsLabel'))}
+            {numInput(set.weightKg, (v) => onUpdate({ weightKg: v }), '--', t('training.setWeightAriaLabel', { setNumber: set.setNumber }))}
+            {numInput(set.reps, (v) => onUpdate({ reps: v }), '--', t('training.setRepsAriaLabel', { setNumber: set.setNumber }))}
+            {numInput(set.restSeconds, (v) => onUpdate({ restSeconds: v }), '--', t('training.setRestAriaLabel', { setNumber: set.setNumber }))}
           </>
         );
     }
@@ -296,7 +296,7 @@ export function SetRow({ set, movementType, onUpdate, onDuplicate, onRemove, com
           onMouseLeave={(e) => {
             e.currentTarget.style.color = 'var(--text4)';
           }}
-          title={t('common.delete')}
+          aria-label={t('common.delete')}
         >
           ✕
         </button>
