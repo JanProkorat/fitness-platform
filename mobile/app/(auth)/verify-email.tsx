@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/stores/auth';
 import { useTheme } from '@/hooks/useTheme';
 import { Colors } from '@/constants/colors';
@@ -8,6 +9,7 @@ import { resendVerification } from '@/api/verification';
 import { connect, onEvent, disconnect } from '@/api/signalr';
 
 export default function VerifyEmailScreen() {
+  const { t } = useTranslation();
   const colors = useTheme();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
@@ -47,12 +49,12 @@ export default function VerifyEmailScreen() {
       if (code === 'VERIFICATION_RESEND_LIMIT_REACHED') {
         setRemainingResends(0);
       } else {
-        setError('Nepodařilo se odeslat e-mail');
+        setError(t('auth.verifyEmail.resendError'));
       }
     } finally {
       setResending(false);
     }
-  }, []);
+  }, [t]);
 
   const handleCheckManually = useCallback(async () => {
     setChecking(true);

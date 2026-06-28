@@ -234,7 +234,7 @@ export default function ShoppingListScreen() {
   const [tabBarWidth, setTabBarWidth] = useState(0)
 
   const { data: plan, isLoading, isError } = useQuery({
-    queryKey: ['nutrition', 'full-plan'],
+    queryKey: ['nutrition-plan-full'],
     queryFn: getFullPlan,
     staleTime: 30_000,
   })

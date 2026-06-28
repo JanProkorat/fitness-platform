@@ -1,4 +1,5 @@
 import React, { useRef, useMemo, useCallback, useState, useEffect } from 'react';
+import { AxiosError } from 'axios';
 import {
   View,
   Text,
@@ -133,12 +134,12 @@ export default function NutritionScreen() {
     isLoading,
     isError,
     refetch,
-  } = useQuery({
-    queryKey: ['full-plan'],
+  } = useQuery<FullPlanResponse, AxiosError>({
+    queryKey: ['nutrition-plan-full'],
     queryFn: getFullPlan,
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 1000, // short cache for errors so tab switches retry quickly
-    retry: (failureCount, error: any) => {
+    retry: (failureCount, error) => {
       if (error?.response?.status === 404) return false;
       return failureCount < 3;
     },

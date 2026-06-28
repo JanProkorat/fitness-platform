@@ -292,6 +292,17 @@ export default function ClientTabLayout() {
           queryClient.invalidateQueries({ queryKey: ['archived-conversations'] });
         }
       }),
+      // #548: trainingplanupdated — content edit without a publish event;
+      // invalidate same keys as trainingPlanPublished so training screens refresh.
+      onEvent('trainingplanupdated', (raw: unknown) => {
+        const payload = raw as { planId?: string } | undefined;
+        queryClient.invalidateQueries({ queryKey: ['today-training'] });
+        queryClient.invalidateQueries({
+          predicate: (q) =>
+            q.queryKey[0] === 'training-full-plan' &&
+            (payload?.planId == null || q.queryKey[1] === payload.planId),
+        });
+      }),
       onEvent('personalrecordachieved', (raw: unknown) => {
         const _p = raw as PersonalRecordAchievedPayload;
         void _p; // payload received; invalidate PR queries so cards refresh
@@ -321,7 +332,7 @@ export default function ClientTabLayout() {
       unsubs.forEach((unsub) => unsub());
       disconnect().catch(() => {});
     };
-  }, [queryClient]);
+  }, [queryClient, t]);
 
   // Background/tap: deep link on notification tap
   useEffect(() => {

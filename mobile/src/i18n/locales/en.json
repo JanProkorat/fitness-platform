@@ -1186,6 +1186,9 @@
       "healthDataConsentRequiredMessage": "Client registration requires consent to health data processing under GDPR Art. 9.",
       "failedTitle": "Registration Failed",
       "failedMessage": "Registration failed. Please try again."
+    },
+    "verifyEmail": {
+      "resendError": "Failed to send email"
     }
   },
   "diary": {
