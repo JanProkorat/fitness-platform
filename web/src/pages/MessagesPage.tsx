@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/cn';
 import { MessageBubble } from '@/components/domain';
 import { useAuthStore } from '@/stores/auth';
@@ -34,23 +35,23 @@ function formatTime(iso: string): string {
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-function formatDate(iso: string): string {
+function formatDate(iso: string, lang: string, todayLabel: string, yesterdayLabel: string): string {
   const d = new Date(iso);
   const now = new Date();
   const diffDays = Math.floor((now.getTime() - d.getTime()) / 86400000);
-  if (diffDays === 0) return 'Dnes';
-  if (diffDays === 1) return 'Včera';
-  return d.toLocaleDateString('cs', { weekday: 'long', day: 'numeric', month: 'long' });
+  if (diffDays === 0) return todayLabel;
+  if (diffDays === 1) return yesterdayLabel;
+  return d.toLocaleDateString(lang, { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
-function formatConvTime(iso: string): string {
+function formatConvTime(iso: string, lang: string, yesterdayLabel: string): string {
   const d = new Date(iso);
   const now = new Date();
   const diffDays = Math.floor((now.getTime() - d.getTime()) / 86400000);
   if (diffDays === 0) return formatTime(iso);
-  if (diffDays === 1) return 'Včera';
-  if (diffDays < 7) return d.toLocaleDateString('cs', { weekday: 'short' });
-  return d.toLocaleDateString('cs', { day: 'numeric', month: 'short' });
+  if (diffDays === 1) return yesterdayLabel;
+  if (diffDays < 7) return d.toLocaleDateString(lang, { weekday: 'short' });
+  return d.toLocaleDateString(lang, { day: 'numeric', month: 'short' });
 }
 
 // ── Conversation Item ──
@@ -58,10 +59,16 @@ function ConversationItem({
   conv,
   isActive,
   onClick,
+  lang,
+  youLabel,
+  yesterdayLabel,
 }: {
   conv: ConversationDto;
   isActive: boolean;
   onClick: () => void;
+  lang: string;
+  youLabel: string;
+  yesterdayLabel: string;
 }) {
   const color = colorForName(conv.participant.name);
   const hasUnread = conv.unreadCount > 0;
@@ -96,7 +103,7 @@ function ConversationItem({
             hasUnread ? 'text-text font-medium' : 'text-text3',
           )}
         >
-          {conv.lastMessageIsOwn ? 'Vy: ' : ''}
+          {conv.lastMessageIsOwn ? youLabel : ''}
           {conv.lastMessage}
         </div>
       </div>
@@ -104,7 +111,7 @@ function ConversationItem({
       {/* Right column */}
       <div className="flex flex-col items-end gap-1 shrink-0">
         <div className="text-[11px] text-text3">
-          {formatConvTime(conv.lastMessageAt)}
+          {formatConvTime(conv.lastMessageAt, lang, yesterdayLabel)}
         </div>
         {hasUnread && (
           <div className="min-w-[18px] h-[18px] rounded-full bg-accent text-white text-[11px] font-semibold flex items-center justify-center px-1">
@@ -118,6 +125,7 @@ function ConversationItem({
 
 // ── Main Page ──
 export default function MessagesPage() {
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -208,14 +216,16 @@ export default function MessagesPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
   }, [messages.length, activeConvId]);
 
-  // Mark as read when opening a conversation
+  // Mark as read when opening a conversation, or when a new unread arrives in
+  // the currently-open conversation. The unreadCount guard prevents repeated
+  // mark-read calls once the server returns unreadCount: 0.
   useEffect(() => {
     if (activeConvId && activeConv && activeConv.unreadCount > 0) {
       markConversationRead(activeConvId).then(() => {
         queryClient.invalidateQueries({ queryKey: ['conversations'] });
       });
     }
-  }, [activeConvId]);
+  }, [activeConvId, activeConv?.unreadCount, queryClient]);
 
   // ── Send message ──
   const sendMutation = useMutation({
@@ -259,19 +269,22 @@ export default function MessagesPage() {
 
   // ── Group messages by date ──
   const groupedMessages = useMemo(() => {
+    const lang = i18n.language;
+    const todayLabel = t('messages.today');
+    const yesterdayLabel = t('messages.yesterday');
     const groups: { date: string; messages: MessageDto[] }[] = [];
     let lastDate = '';
     for (const msg of messages) {
       const date = new Date(msg.timestamp).toDateString();
       if (date !== lastDate) {
-        groups.push({ date: formatDate(msg.timestamp), messages: [msg] });
+        groups.push({ date: formatDate(msg.timestamp, lang, todayLabel, yesterdayLabel), messages: [msg] });
         lastDate = date;
       } else {
         groups[groups.length - 1].messages.push(msg);
       }
     }
     return groups;
-  }, [messages]);
+  }, [messages, i18n.language, t]);
 
   const avatarColor = activeConv ? colorForName(activeConv.participant.name) : '#0b6e99';
 
@@ -280,7 +293,7 @@ export default function MessagesPage() {
       {/* ── Conversation panel ── */}
       <div className="w-[280px] shrink-0 border-r border-border flex flex-col bg-bg2 overflow-hidden">
         <div className="px-3.5 pt-3 pb-2 border-b border-border shrink-0">
-          <div className="text-[15px] font-semibold text-text mb-2">Zprávy</div>
+          <div className="text-[15px] font-semibold text-text mb-2">{t('messages.title')}</div>
           <div className="flex items-center gap-1.5 bg-bg3 rounded-md px-2.5 py-[5px]">
             <svg
               width="12"
@@ -296,7 +309,7 @@ export default function MessagesPage() {
               <path d="m21 21-4.35-4.35" />
             </svg>
             <input
-              placeholder="Hledat..."
+              placeholder={t('messages.searchPlaceholder')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="flex-1 border-none outline-none bg-transparent text-[13px] text-text font-[inherit] placeholder:text-text4"
@@ -310,11 +323,14 @@ export default function MessagesPage() {
               conv={conv}
               isActive={conv.id === activeConvId}
               onClick={() => setSelectedConvId(conv.id)}
+              lang={i18n.language}
+              youLabel={t('messages.you')}
+              yesterdayLabel={t('messages.yesterday')}
             />
           ))}
           {filteredConvs.length === 0 && (
             <div className="p-6 text-center text-[13px] text-text3">
-              {search ? 'Žádné konverzace nenalezeny' : 'Zatím žádné zprávy'}
+              {search ? t('messages.noConversations') : t('messages.noMessages')}
             </div>
           )}
         </div>
@@ -372,7 +388,7 @@ export default function MessagesPage() {
                   disabled={isFetchingNextPage}
                   className="text-xs text-text3 hover:text-text mb-2 self-center"
                 >
-                  {isFetchingNextPage ? 'Načítání...' : 'Načíst starší zprávy'}
+                  {isFetchingNextPage ? t('messages.loadingOlder') : t('messages.loadOlder')}
                 </button>
               )}
 
@@ -439,14 +455,14 @@ export default function MessagesPage() {
                 disabled={!messageInput.trim() || sendMutation.isPending}
                 className="h-8 px-3.5 rounded-md bg-accent text-white border-none text-[13px] font-medium font-[inherit] cursor-pointer transition-colors hover:bg-[#b8933d] disabled:bg-bg3 disabled:text-text3 disabled:cursor-default shrink-0"
               >
-                Odeslat
+                {t('messages.send')}
               </button>
             </div>
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-text3 gap-2">
             <div className="text-4xl opacity-30">💬</div>
-            <div className="text-[13px]">Vyberte konverzaci</div>
+            <div className="text-[13px]">{t('messages.selectConversation')}</div>
           </div>
         )}
       </div>
