@@ -269,17 +269,19 @@ builder.Services.AddHealthChecks()
 var app = builder.Build();
 
 // Warn loudly at startup when Testing:Enabled=true.
-// POST /test/reset wipes the database on every call. The endpoint itself enforces
-// the Development + Testing:Enabled gate at request time, so a bad environment
-// value won't bypass the guard, but a startup warning catches misconfiguration
-// early (e.g. a prod deploy that accidentally copies Testing:Enabled=true).
+// POST /test/reset wipes the database on every call. The Testing:Enabled flag is the
+// SOLE gate — the environment name is no longer checked. This means a misconfigured
+// production deploy that accidentally sets Testing:Enabled=true would expose the
+// endpoint with no further backstop. The startup warning is the early alarm for
+// exactly this scenario. This flag must never be set outside of test harnesses.
 var testingEnabled = builder.Configuration.GetValue<bool>("Testing:Enabled");
 if (testingEnabled)
 {
     app.Logger.LogWarning(
         "TESTING MODE ACTIVE: POST /test/reset will wipe the database on demand. " +
-        "This endpoint must never be enabled in a production environment. " +
-        "Requests are rejected unless the environment is also Development.");
+        "Testing:Enabled=true is the SOLE gate — the environment name is not checked. " +
+        "This flag must NEVER be set outside of isolated test harnesses. " +
+        "A production deploy with this flag set has no further protection.");
 }
 
 // Seed data
@@ -429,10 +431,10 @@ app.UseAuthorization();
 app.MapHub<NotificationHub>("/hubs/notifications");
 app.UseRateLimiter();
 // NOTE: ResetTestStateEndpoint is always registered in the route table.
-// The double gate (Testing:Enabled=true AND IsDevelopment) is enforced at
-// request time inside the endpoint's HandleAsync. This avoids a process-wide
-// static route table poisoning issue in test environments where multiple
-// WebApplicationFactory instances share FastEndpoints' static EndpointData
+// The single gate (Testing:Enabled=true) is enforced at request time inside
+// the endpoint's HandleAsync. This avoids a process-wide static route table
+// poisoning issue in test environments where multiple WebApplicationFactory
+// instances share FastEndpoints' static EndpointData
 // (FastEndpoints 8.x builds the route table once per process).
 app.UseFastEndpoints(c =>
 {

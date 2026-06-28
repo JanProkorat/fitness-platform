@@ -60,6 +60,10 @@ public class GetMeasurementsEndpointTests
         ep.Response.TotalCount.Should().Be(2);
         ep.Response.Items.Should().HaveCount(2);
         ep.Response.Page.Should().Be(1);
+
+        // X-Total-Count header must equal the unpaged row count
+        ep.HttpContext.Response.Headers["X-Total-Count"].ToString().Should().Be("2",
+            because: "X-Total-Count header must equal the total matching measurement count");
     }
 
     [Fact]

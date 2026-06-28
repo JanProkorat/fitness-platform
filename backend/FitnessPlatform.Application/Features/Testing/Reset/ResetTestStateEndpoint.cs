@@ -12,11 +12,17 @@ namespace FitnessPlatform.Application.Features.Testing.Reset;
 /// drops all MongoDB collections, and re-runs the QA seed fixture.
 ///
 /// SECURITY NOTE: This endpoint intentionally has NO [Authorize] attribute.
-/// The double gate (Testing:Enabled=true AND IHostEnvironment.IsDevelopment())
-/// is enforced at REQUEST TIME in HandleAsync. When either condition fails, the
-/// endpoint returns 404 so its existence is not advertised via 405/401. A future
-/// reviewer must NOT add [Authorize] here — it would break the "wiped DB has no users"
-/// use-case where the endpoint is called immediately after reset before any user exists.
+/// The single gate (Testing:Enabled=true) is enforced at REQUEST TIME in HandleAsync.
+/// When the condition fails, the endpoint returns 404 so its existence is not advertised
+/// via 405/401. A future reviewer must NOT add [Authorize] here — it would break the
+/// "wiped DB has no users" use-case where the endpoint is called immediately after
+/// reset before any user exists.
+///
+/// The Testing:Enabled flag is the sole protection. Production deployments must never
+/// set this flag — render.yaml and the production app settings intentionally omit it.
+/// The environment name is no longer checked; callers in CI test harnesses that run
+/// under a non-Development environment name (e.g. "Testing") are now permitted as long
+/// as the flag is set.
 ///
 /// The endpoint is always registered in the route table (no startup-time filter)
 /// so that test WebApplicationFactory instances that share the FastEndpoints static
@@ -32,7 +38,6 @@ public class ResetTestStateEndpoint(
     ApplicationDbContext db,
     IMongoDatabase mongoDatabase,
     IServiceProvider serviceProvider,
-    IHostEnvironment hostEnvironment,
     IConfiguration configuration) : EndpointWithoutRequest
 {
     public override void Configure()
@@ -44,19 +49,20 @@ public class ResetTestStateEndpoint(
         {
             s.Summary = "Reset test state";
             s.Description = "Drops and recreates PostgreSQL schema, drops MongoDB collections, and re-seeds QA fixture. " +
-                             "Only available when Testing:Enabled=true AND environment is Development.";
+                             "Only available when Testing:Enabled=true. The environment name is not checked.";
         });
     }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        // Double gate evaluated at request time:
-        //   1. Testing:Enabled must be true in configuration
-        //   2. The environment must be Development
-        // Both conditions must hold. When either fails, return 404 so the response
-        // surface is identical to the endpoint not existing at all.
+        // Single gate evaluated at request time:
+        //   Testing:Enabled must be true in configuration.
+        // The environment name is NOT checked — the absent flag is the sole production
+        // protection. Production deployments must never set Testing:Enabled=true.
+        // When the gate fails, return 404 so the response surface is identical to the
+        // endpoint not existing at all.
         var testingEnabled = configuration.GetValue<bool>("Testing:Enabled");
-        if (!testingEnabled || !hostEnvironment.IsDevelopment())
+        if (!testingEnabled)
         {
             await Send.NotFoundAsync(ct);
             return;
