@@ -69,6 +69,18 @@ public class GetClientDashboardResponse
     public bool IsActive { get; set; }
 
     /// <summary>
+    /// Whether this professional is permitted to view the client's nutrition plans.
+    /// Mirrors <c>ClientProfessionalLink.CanViewNutritionPlans</c>.
+    /// </summary>
+    public bool CanViewNutritionPlans { get; set; }
+
+    /// <summary>
+    /// Whether this professional is permitted to view the client's training plans.
+    /// Mirrors <c>ClientProfessionalLink.CanViewTrainingPlans</c>.
+    /// </summary>
+    public bool CanViewTrainingPlans { get; set; }
+
+    /// <summary>
     /// Whether the client has registered an account (email confirmed).
     /// </summary>
     public bool HasRegistered { get; set; }

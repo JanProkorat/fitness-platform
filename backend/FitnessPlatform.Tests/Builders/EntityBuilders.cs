@@ -199,6 +199,8 @@ public class ClientProfessionalLinkBuilder
     private long _professionalProfileId;
     private UserRole _professionalRole = UserRole.Trainer;
     private bool _isActive = true;
+    private bool _canViewNutritionPlans = true;
+    private bool _canViewTrainingPlans = true;
     private ClientProfile? _clientProfile;
     private ProfessionalProfile? _professionalProfile;
     private DateTime _dateCreated = DateTime.UtcNow;
@@ -229,6 +231,16 @@ public class ClientProfessionalLinkBuilder
     public ClientProfessionalLinkBuilder Inactive() { _isActive = false; return this; }
 
     /// <summary>
+    /// Sets whether this link permits viewing nutrition plans.
+    /// </summary>
+    public ClientProfessionalLinkBuilder WithCanViewNutritionPlans(bool value) { _canViewNutritionPlans = value; return this; }
+
+    /// <summary>
+    /// Sets whether this link permits viewing training plans.
+    /// </summary>
+    public ClientProfessionalLinkBuilder WithCanViewTrainingPlans(bool value) { _canViewTrainingPlans = value; return this; }
+
+    /// <summary>
     /// Sets the ClientProfile navigation property.
     /// </summary>
     public ClientProfessionalLinkBuilder WithClientProfile(ClientProfile cp) { _clientProfile = cp; _clientProfileId = cp.Id; return this; }
@@ -251,6 +263,8 @@ public class ClientProfessionalLinkBuilder
         Id = _id,
         ClientProfileId = _clientProfileId, ProfessionalProfileId = _professionalProfileId,
         ProfessionalRole = _professionalRole, IsActive = _isActive,
+        CanViewNutritionPlans = _canViewNutritionPlans,
+        CanViewTrainingPlans = _canViewTrainingPlans,
         ClientProfile = _clientProfile!, ProfessionalProfile = _professionalProfile!,
         DateCreated = _dateCreated
     };
