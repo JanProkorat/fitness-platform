@@ -72,6 +72,17 @@ public class GetMessagesEndpointTests(FitnessApiFactory factory)
     /// Seeds messages directly into the DB, bypassing the API so we can control
     /// DateCreated precisely to reproduce same-millisecond collisions.
     /// </summary>
+    /// <remarks>
+    /// ApplyTimestamps() in ApplicationDbContext unconditionally overwrites DateCreated
+    /// with DateTime.UtcNow on EntityState.Added, so timestamps set on the entity
+    /// before SaveChangesAsync are lost.  To force a shared DateCreated on tied rows,
+    /// we insert in two passes:
+    ///   1. Insert all rows (ApplyTimestamps assigns distinct UtcNow values).
+    ///   2. Use ExecuteUpdateAsync (direct SQL, no change-tracker) to stamp the
+    ///      desired DateCreated on each row individually, matching the caller's intent.
+    /// This guarantees the two "tied" messages end up with byte-identical DateCreated
+    /// values, producing the tie scenario the keyset pagination regression tests for.
+    /// </remarks>
     private async Task<List<Guid>> SeedMessagesAsync(
         Guid conversationId,
         Guid senderUserId,
@@ -79,13 +90,15 @@ public class GetMessagesEndpointTests(FitnessApiFactory factory)
     {
         var ct = TestContext.Current.CancellationToken;
         var publicIds = new List<Guid>();
+        var timestampList = timestamps.ToList();
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
         var conv = await db.Conversations.FirstAsync(c => c.PublicId == conversationId, ct);
 
-        foreach (var ts in timestamps)
+        // Pass 1: insert all messages (ApplyTimestamps will overwrite DateCreated).
+        foreach (var ts in timestampList)
         {
             var publicId = Guid.NewGuid();
             publicIds.Add(publicId);
@@ -96,12 +109,26 @@ public class GetMessagesEndpointTests(FitnessApiFactory factory)
                 SenderUserId = senderUserId,
                 Text = $"msg at {ts:O}",
                 IsRead = false,
-                DateCreated = ts,
+                DateCreated = ts,   // will be overwritten by ApplyTimestamps
                 DateUpdated = ts
             });
         }
 
         await db.SaveChangesAsync(ct);
+
+        // Pass 2: force the intended DateCreated on each row via ExecuteUpdateAsync
+        // (bypasses the change tracker, so ApplyTimestamps does not interfere).
+        for (var i = 0; i < publicIds.Count; i++)
+        {
+            var id = publicIds[i];
+            var desiredTs = timestampList[i];
+            await db.ChatMessages
+                .Where(m => m.PublicId == id)
+                .ExecuteUpdateAsync(
+                    s => s.SetProperty(m => m.DateCreated, desiredTs),
+                    ct);
+        }
+
         return publicIds;
     }
 
