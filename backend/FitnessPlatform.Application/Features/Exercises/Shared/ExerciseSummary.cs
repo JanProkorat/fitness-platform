@@ -69,6 +69,11 @@ public class ExerciseSummary
     public bool IsCustom { get; set; }
 
     /// <summary>
+    /// Optimistic concurrency version. Clients must echo this back on update/delete.
+    /// </summary>
+    public int Version { get; set; }
+
+    /// <summary>
     /// Maps an <see cref="Exercise"/> document to an <see cref="ExerciseSummary"/> DTO.
     /// </summary>
     /// <param name="exercise">The exercise document.</param>
@@ -86,6 +91,7 @@ public class ExerciseSummary
         Category = exercise.Category,
         Difficulty = exercise.Difficulty,
         ThumbnailUrl = exercise.ThumbnailUrl,
-        IsCustom = exercise.IsCustom
+        IsCustom = exercise.IsCustom,
+        Version = exercise.Version
     };
 }

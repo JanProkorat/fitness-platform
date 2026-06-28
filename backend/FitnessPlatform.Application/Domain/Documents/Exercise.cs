@@ -125,4 +125,12 @@ public class Exercise
     [BsonElement("dateUpdated")]
     [BsonIgnoreIfNull]
     public DateTime? DateUpdated { get; set; }
+
+    /// <summary>
+    /// Optimistic concurrency version. Incremented on each update.
+    /// Legacy documents without this field deserialize to 0 (CLR default),
+    /// which is the correct initial value for the CAS guard on first write.
+    /// </summary>
+    [BsonElement("version")]
+    public int Version { get; set; } = 1;
 }

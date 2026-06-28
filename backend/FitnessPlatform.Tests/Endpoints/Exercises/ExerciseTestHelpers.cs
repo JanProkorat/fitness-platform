@@ -23,7 +23,8 @@ public static class ExerciseTestHelpers
         bool isActive = true,
         ExerciseCategory category = ExerciseCategory.Strength,
         ExerciseEquipment equipment = ExerciseEquipment.None,
-        ExerciseDifficulty difficulty = ExerciseDifficulty.Intermediate)
+        ExerciseDifficulty difficulty = ExerciseDifficulty.Intermediate,
+        int version = 1)
     {
         return new Exercise
         {
@@ -37,16 +38,27 @@ public static class ExerciseTestHelpers
             Equipment = equipment,
             Difficulty = difficulty,
             MuscleGroups = [MuscleGroup.Chest],
-            DateCreated = DateTime.UtcNow
+            DateCreated = DateTime.UtcNow,
+            Version = version
         };
     }
 
     /// <summary>
     /// Creates a mocked <see cref="IMongoContext"/> with the given exercise documents.
+    /// By default, UpdateOneAsync returns ModifiedCount = 1 (successful update).
     /// </summary>
     public static IMongoContext CreateMockMongo(params Exercise[] exercises)
     {
-        var collection = CreateMockCollection(exercises.ToList());
+        return CreateMockMongoWithUpdateResult(modifiedCount: 1, exercises);
+    }
+
+    /// <summary>
+    /// Creates a mocked <see cref="IMongoContext"/> where UpdateOneAsync returns the specified ModifiedCount.
+    /// Use modifiedCount = 0 to simulate a concurrent write conflict (version-guarded update matched nothing).
+    /// </summary>
+    public static IMongoContext CreateMockMongoWithUpdateResult(long modifiedCount, params Exercise[] exercises)
+    {
+        var collection = CreateMockCollection(exercises.ToList(), modifiedCount);
 
         var mongo = Substitute.For<IMongoContext>();
         mongo.Exercises.Returns(collection);
@@ -54,9 +66,9 @@ public static class ExerciseTestHelpers
     }
 
     /// <summary>
-    /// Creates a mock <see cref="IMongoCollection{Exercise}"/> that supports FindAsync and CountDocumentsAsync.
+    /// Creates a mock <see cref="IMongoCollection{Exercise}"/> that supports FindAsync, CountDocumentsAsync, and UpdateOneAsync.
     /// </summary>
-    public static IMongoCollection<Exercise> CreateMockCollection(List<Exercise> exercises)
+    public static IMongoCollection<Exercise> CreateMockCollection(List<Exercise> exercises, long updateModifiedCount = 1)
     {
         var collection = Substitute.For<IMongoCollection<Exercise>>();
 
@@ -71,6 +83,17 @@ public static class ExerciseTestHelpers
                 Arg.Any<CountOptions>(),
                 Arg.Any<CancellationToken>())
             .Returns(exercises.Count);
+
+        var updateResult = Substitute.For<UpdateResult>();
+        updateResult.ModifiedCount.Returns(updateModifiedCount);
+        updateResult.IsAcknowledged.Returns(true);
+
+        collection.UpdateOneAsync(
+                Arg.Any<FilterDefinition<Exercise>>(),
+                Arg.Any<UpdateDefinition<Exercise>>(),
+                Arg.Any<UpdateOptions>(),
+                Arg.Any<CancellationToken>())
+            .Returns(updateResult);
 
         return collection;
     }

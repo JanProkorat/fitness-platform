@@ -13,6 +13,11 @@ public class UpdateExerciseRequest
     public Guid ExerciseId { get; set; }
 
     /// <summary>
+    /// Optimistic concurrency version. Must match the current document version.
+    /// </summary>
+    public int Version { get; set; }
+
+    /// <summary>
     /// Canonical name of the exercise.
     /// </summary>
     public string Name { get; set; } = string.Empty;

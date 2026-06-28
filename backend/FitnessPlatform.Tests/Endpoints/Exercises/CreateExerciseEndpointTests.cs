@@ -46,7 +46,8 @@ public class CreateExerciseEndpointTests
                 e.Name == "Custom Press" &&
                 e.Source == "custom" &&
                 e.IsCustom &&
-                e.TrainerId == _trainerId),
+                e.TrainerId == _trainerId &&
+                e.Version == 1),
             Arg.Any<InsertOneOptions>(),
             Arg.Any<CancellationToken>());
     }

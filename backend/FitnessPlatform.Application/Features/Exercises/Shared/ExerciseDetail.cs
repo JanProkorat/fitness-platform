@@ -89,6 +89,11 @@ public class ExerciseDetail
     public string Source { get; set; } = string.Empty;
 
     /// <summary>
+    /// Optimistic concurrency version. Clients must echo this back on update/delete.
+    /// </summary>
+    public int Version { get; set; }
+
+    /// <summary>
     /// Maps an <see cref="Exercise"/> document to an <see cref="ExerciseDetail"/> DTO.
     /// </summary>
     /// <param name="exercise">The exercise document.</param>
@@ -110,6 +115,7 @@ public class ExerciseDetail
         ThumbnailUrl = exercise.ThumbnailUrl,
         TechniqueNotes = exercise.TechniqueNotes,
         IsCustom = exercise.IsCustom,
-        Source = exercise.Source
+        Source = exercise.Source,
+        Version = exercise.Version
     };
 }

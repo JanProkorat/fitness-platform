@@ -9,4 +9,9 @@ public class DeleteExerciseRequest
     /// The public identifier of the exercise to delete.
     /// </summary>
     public Guid ExerciseId { get; set; }
+
+    /// <summary>
+    /// Optimistic concurrency version. Must match the current document version.
+    /// </summary>
+    public int Version { get; set; }
 }

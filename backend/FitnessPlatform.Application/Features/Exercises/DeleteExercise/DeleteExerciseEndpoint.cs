@@ -10,6 +10,7 @@ namespace FitnessPlatform.Application.Features.Exercises.DeleteExercise;
 
 /// <summary>
 /// Soft-deletes a custom exercise. Only the owning trainer can delete.
+/// Uses optimistic concurrency — the client must supply the current Version.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 public class DeleteExerciseEndpoint(IMongoContext mongo) : Endpoint<DeleteExerciseRequest>
@@ -22,7 +23,8 @@ public class DeleteExerciseEndpoint(IMongoContext mongo) : Endpoint<DeleteExerci
         Summary(s =>
         {
             s.Summary = "Delete custom exercise";
-            s.Description = "Soft-deletes a custom exercise. Only the trainer who created it can delete.";
+            s.Description = "Soft-deletes a custom exercise. Only the trainer who created it can delete. " +
+                            "Uses optimistic concurrency via the Version field.";
         });
     }
 
@@ -63,14 +65,32 @@ public class DeleteExerciseEndpoint(IMongoContext mongo) : Endpoint<DeleteExerci
             return;
         }
 
+        // Early optimistic concurrency check (in-memory, before the DB write)
+        if (exercise.Version != req.Version)
+        {
+            await this.SendProblemAsync(409, ErrorCodes.ExerciseVersionConflict,
+                "Version conflict. The exercise was modified by another request.", ct);
+            return;
+        }
+
+        // Version-guarded soft-delete: filter includes current version to prevent concurrent writes
+        var versionFilter = Builders<Exercise>.Filter.Eq(e => e.ExternalId, req.ExerciseId)
+            & Builders<Exercise>.Filter.Eq(e => e.Version, req.Version);
+
         var update = Builders<Exercise>.Update
             .Set(e => e.IsActive, false)
-            .Set(e => e.DateUpdated, DateTime.UtcNow);
+            .Set(e => e.DateUpdated, DateTime.UtcNow)
+            .Set(e => e.Version, exercise.Version + 1);
 
-        await mongo.Exercises.UpdateOneAsync(
-            e => e.ExternalId == req.ExerciseId,
-            update,
-            cancellationToken: ct);
+        var result = await mongo.Exercises.UpdateOneAsync(versionFilter, update, cancellationToken: ct);
+
+        // Double-guard: if ModifiedCount == 0 a concurrent write beat us
+        if (result.ModifiedCount == 0)
+        {
+            await this.SendProblemAsync(409, ErrorCodes.ExerciseVersionConflict,
+                "Version conflict. The exercise was modified concurrently.", ct);
+            return;
+        }
 
         await Send.NoContentAsync(ct);
     }

@@ -80,6 +80,9 @@ public static class ErrorCodes
     /// <summary>Cannot modify system exercises.</summary>
     public const string SystemExercise = "SYSTEM_EXERCISE";
 
+    /// <summary>The exercise version is stale; another write occurred first (optimistic concurrency).</summary>
+    public const string ExerciseVersionConflict = "EXERCISE_VERSION_CONFLICT";
+
     // ── Trainers ─────────────────────────────────────────────────────
     /// <summary>Trainer profile not found.</summary>
     public const string TrainerProfileMissing = "TRAINER_PROFILE_MISSING";
