@@ -46,9 +46,9 @@ public class DismissCheckInEndpoint(
         var clientUserId = Guid.Parse(userId);
 
         var checkIn = await db.WeeklyCheckIns
-            .FirstOrDefaultAsync(c => c.Id == req.Id, ct);
+            .FirstOrDefaultAsync(c => c.Id == req.Id && c.ClientUserId == clientUserId, ct);
 
-        if (checkIn is null || checkIn.ClientUserId != clientUserId)
+        if (checkIn is null)
         {
             await Send.NotFoundAsync(ct);
             return;
