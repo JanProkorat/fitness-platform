@@ -800,6 +800,7 @@
     "EMAIL_ALREADY_VERIFIED": "Váš e-mail je již ověřen.",
     "EXERCISE_NOT_OWNED": "Můžete upravovat pouze vlastní cviky.",
     "SYSTEM_EXERCISE": "Systémové cviky nelze upravovat.",
+    "EXERCISE_VERSION_CONFLICT": "Cvik byl mezitím upraven jiným uživatelem. Vaše změny nebyly uloženy — načítám aktuální verzi.",
     "PROFESSIONAL_NOT_FOUND": "Profil profesionála nebyl nalezen.",
     "ALREADY_LINKED": "S tímto profesionálem jste již propojeni.",
     "REQUEST_ALREADY_PENDING": "Žádost k tomuto profesionálovi již čeká na vyřízení.",

@@ -5,6 +5,7 @@ import type {
   ExerciseSummary,
   CreateExerciseRequest,
   UpdateExerciseRequest,
+  DeleteExerciseRequest,
   UploadUrlResponse,
   MuscleGroup,
   ExerciseEquipment,
@@ -44,9 +45,10 @@ export async function updateExercise(exerciseId: string, request: UpdateExercise
   return data;
 }
 
-/** Delete a custom exercise (soft delete, Trainer only). */
-export async function deleteExercise(exerciseId: string): Promise<void> {
-  await api.delete(`/exercises/${exerciseId}`);
+/** Delete a custom exercise (soft delete, Trainer only). Requires the last-seen version. */
+export async function deleteExercise(exerciseId: string, version: number): Promise<void> {
+  const body: DeleteExerciseRequest = { version };
+  await api.delete(`/exercises/${exerciseId}`, { data: body });
 }
 
 /** Generate a pre-signed upload URL for exercise video. */

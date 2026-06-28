@@ -28,6 +28,8 @@ export interface ExerciseSummary {
   difficulty: ExerciseDifficulty;
   thumbnailUrl?: string | null;
   isCustom: boolean;
+  /** Optimistic-concurrency version. Echo back on update/delete to prevent stale overwrites. */
+  version: number;
 }
 
 /** Full exercise detail. */
@@ -60,8 +62,17 @@ export interface CreateExerciseRequest {
   techniqueNotes?: string | null;
 }
 
-/** Request to update a custom exercise. */
-export type UpdateExerciseRequest = CreateExerciseRequest;
+/** Request to update a custom exercise. Includes the last-seen version for optimistic concurrency. */
+export interface UpdateExerciseRequest extends CreateExerciseRequest {
+  /** The version the client last fetched. Backend returns 409 if this is stale. */
+  version: number;
+}
+
+/** Request to delete a custom exercise. Includes the last-seen version for optimistic concurrency. */
+export interface DeleteExerciseRequest {
+  /** The version the client last fetched. Backend returns 409 if this is stale. */
+  version: number;
+}
 
 /** Response from upload URL generation. */
 export interface UploadUrlResponse {
