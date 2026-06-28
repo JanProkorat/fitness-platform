@@ -780,7 +780,7 @@ export default function DashboardPage() {
               <div style={{ fontSize: 14, color: 'var(--text)', fontWeight: 500 }}>{managedRequest.clientFirstName} {managedRequest.clientLastName}</div>
             </div>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text3)', marginBottom: 4 }}>Email</div>
+              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text3)', marginBottom: 4 }}>{t('common.email')}</div>
               <div style={{ fontSize: 14, color: 'var(--text)' }}>{managedRequest.clientEmail}</div>
             </div>
             {managedRequest.message && (
