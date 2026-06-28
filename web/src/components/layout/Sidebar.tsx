@@ -19,9 +19,11 @@ import { ImageLightbox } from '@/components/ui';
 
 interface SidebarProps {
   onToggleDark?: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
-export function Sidebar({ onToggleDark }: SidebarProps) {
+export function Sidebar({ onToggleDark, isOpen = false, onClose }: SidebarProps) {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
@@ -142,7 +144,7 @@ export function Sidebar({ onToggleDark }: SidebarProps) {
     location.pathname === path || location.pathname.startsWith(path + '/');
 
   return (
-    <aside className="sb">
+    <aside className={cn('sb', isOpen && 'sb--open')}>
       {/* Workspace header */}
       <div className="sb-ws">
         <button
@@ -163,15 +165,15 @@ export function Sidebar({ onToggleDark }: SidebarProps) {
       <nav style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: '4px 0' }}>
         {/* Dashboard & Messages */}
         <div className="sb-sec shrink-0">
-          <NavLink to="/dashboard" className={cn('sb-item', isActive('/dashboard') && 'active')}>
+          <NavLink to="/dashboard" className={cn('sb-item', isActive('/dashboard') && 'active')} onClick={onClose}>
             <span className="sbi-icon">📊</span>
             <span className="sbi-lbl">{t('sidebar.dashboard')}</span>
           </NavLink>
-          <NavLink to="/profile" className={cn('sb-item', isActive('/profile') && 'active')}>
+          <NavLink to="/profile" className={cn('sb-item', isActive('/profile') && 'active')} onClick={onClose}>
             <span className="sbi-icon">👤</span>
             <span className="sbi-lbl">{t('sidebar.profile')}</span>
           </NavLink>
-          <NavLink to="/messages" className={cn('sb-item', isActive('/messages') && 'active')}>
+          <NavLink to="/messages" className={cn('sb-item', isActive('/messages') && 'active')} onClick={onClose}>
             <span className="sbi-icon">💬</span>
             <span className="sbi-lbl">{t('sidebar.messages')}</span>
             {unreadMessages > 0 && <span className="sbi-badge">{unreadMessages}</span>}
@@ -235,11 +237,12 @@ export function Sidebar({ onToggleDark }: SidebarProps) {
                     role="button"
                     tabIndex={0}
                     className="sbi-lbl"
-                    onClick={() => navigate(`/clients/${cId}`)}
+                    onClick={() => { navigate(`/clients/${cId}`); onClose?.(); }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
                         navigate(`/clients/${cId}`);
+                        onClose?.();
                       }
                     }}
                     style={{ cursor: 'pointer' }}
@@ -256,6 +259,7 @@ export function Sidebar({ onToggleDark }: SidebarProps) {
                         to={`/clients/${cId}/training`}
                         className={cn('sb-item', (isActive(`/clients/${cId}/training`) || isActive(`/clients/${cId}/training-plans`)) && 'active')}
                         style={{ paddingLeft: 28 }}
+                        onClick={onClose}
                       >
                         <span className="sbi-icon">🏋️</span>
                         <span className="sbi-lbl">{t('sidebar.trainingPlan')}</span>
@@ -266,6 +270,7 @@ export function Sidebar({ onToggleDark }: SidebarProps) {
                         to={`/clients/${cId}/nutrition`}
                         className={cn('sb-item', (isActive(`/clients/${cId}/nutrition`) || isActive(`/clients/${cId}/plans`)) && 'active')}
                         style={{ paddingLeft: 28 }}
+                        onClick={onClose}
                       >
                         <span className="sbi-icon">🥗</span>
                         <span className="sbi-lbl">{t('sidebar.mealPlan')}</span>
@@ -275,6 +280,7 @@ export function Sidebar({ onToggleDark }: SidebarProps) {
                       to={`/clients/${cId}/nutrition-goals`}
                       className={cn('sb-item', isActive(`/clients/${cId}/nutrition-goals`) && 'active')}
                       style={{ paddingLeft: 28 }}
+                      onClick={onClose}
                     >
                       <span className="sbi-icon">🎯</span>
                       <span className="sbi-lbl">{t('sidebar.goalsAndMacros')}</span>
@@ -368,11 +374,11 @@ export function Sidebar({ onToggleDark }: SidebarProps) {
 
             {isNutritionist && (
               <>
-                <NavLink to="/foods" className={cn('sb-item', isActive('/foods') && 'active')}>
+                <NavLink to="/foods" className={cn('sb-item', isActive('/foods') && 'active')} onClick={onClose}>
                   <span className="sbi-icon">📦</span>
                   <span className="sbi-lbl">{t('sidebar.foods')}</span>
                 </NavLink>
-                <NavLink to="/recipes" className={cn('sb-item', isActive('/recipes') && 'active')}>
+                <NavLink to="/recipes" className={cn('sb-item', isActive('/recipes') && 'active')} onClick={onClose}>
                   <span className="sbi-icon">📖</span>
                   <span className="sbi-lbl">{t('sidebar.recipes')}</span>
                 </NavLink>
@@ -381,11 +387,11 @@ export function Sidebar({ onToggleDark }: SidebarProps) {
 
             {isTrainer && (
               <>
-                <NavLink to="/exercises" className={cn('sb-item', isActive('/exercises') && 'active')}>
+                <NavLink to="/exercises" className={cn('sb-item', isActive('/exercises') && 'active')} onClick={onClose}>
                   <span className="sbi-icon">💪</span>
                   <span className="sbi-lbl">{t('sidebar.exercises')}</span>
                 </NavLink>
-                <NavLink to="/section-templates" className={cn('sb-item', isActive('/section-templates') && 'active')}>
+                <NavLink to="/section-templates" className={cn('sb-item', isActive('/section-templates') && 'active')} onClick={onClose}>
                   <span className="sbi-icon">📋</span>
                   <span className="sbi-lbl">{t('sidebar.sectionTemplates')}</span>
                 </NavLink>

@@ -23,6 +23,7 @@ function getInitialDarkMode(): boolean {
 
 export function AppShell() {
   const [dark, setDark] = useState(getInitialDarkMode);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   const addToast = useToastStore((s) => s.addToast);
@@ -35,6 +36,19 @@ export function AppShell() {
   const handleToggleDark = useCallback(() => {
     setDark((prev) => !prev);
   }, []);
+
+  const handleCloseSidebar = useCallback(() => {
+    setSidebarOpen(false);
+  }, []);
+
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSidebarOpen(false);
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [sidebarOpen]);
 
   // Real-time notification handlers
   const signalRHandlers = useMemo(() => ({
@@ -331,8 +345,36 @@ export function AppShell() {
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-      <Sidebar onToggleDark={handleToggleDark} />
+      {/* Off-canvas overlay — visible only <md when drawer is open */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-[199] bg-black/45 md:hidden"
+          onClick={handleCloseSidebar}
+          aria-hidden="true"
+        />
+      )}
+      <Sidebar
+        onToggleDark={handleToggleDark}
+        isOpen={sidebarOpen}
+        onClose={handleCloseSidebar}
+      />
       <main style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
+        {/* Hamburger — visible only <md */}
+        <div className="flex items-center px-3 py-2 border-b border-border md:hidden">
+          <button
+            type="button"
+            className="flex items-center justify-center w-9 h-9 rounded-md text-text2 hover:bg-bg-hover hover:text-text transition-colors border-none bg-transparent cursor-pointer"
+            onClick={() => setSidebarOpen(true)}
+            aria-label={t('sidebar.openMenu')}
+            aria-expanded={sidebarOpen}
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+              <rect x="2" y="4" width="14" height="1.5" rx="0.75" fill="currentColor" />
+              <rect x="2" y="8.25" width="14" height="1.5" rx="0.75" fill="currentColor" />
+              <rect x="2" y="12.5" width="14" height="1.5" rx="0.75" fill="currentColor" />
+            </svg>
+          </button>
+        </div>
         <Suspense fallback={<div className="flex flex-1 items-center justify-center text-text3">Loading…</div>}>
           <Outlet />
         </Suspense>

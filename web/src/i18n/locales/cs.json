@@ -132,7 +132,9 @@
     "mealPlan": "Jídelníček",
     "goalsAndMacros": "Cíle a makra",
     "addClient": "Přidat klienta",
-    "pendingInvites": "ČEKAJÍCÍ POZVÁNKY"
+    "pendingInvites": "ČEKAJÍCÍ POZVÁNKY",
+    "openMenu": "Otevřít menu",
+    "closeMenu": "Zavřít menu"
   },
   "dashboard": {
     "title": "Dashboard",
