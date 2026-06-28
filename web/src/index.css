@@ -275,6 +275,25 @@
   overflow-x: hidden;
 }
 
+/* ── SIDEBAR RESPONSIVE (off-canvas drawer below md / 768px) ─────────────── */
+
+@media (max-width: 767px) {
+  .sb {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    z-index: 200;
+    transform: translateX(-100%);
+    transition: transform 220ms ease;
+    box-shadow: 2px 0 16px rgba(0, 0, 0, 0.12);
+  }
+
+  .sb.sb--open {
+    transform: translateX(0);
+  }
+}
+
 .sb::-webkit-scrollbar { width: 0; }
 
 .sb-ws {

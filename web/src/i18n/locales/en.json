@@ -132,7 +132,9 @@
     "mealPlan": "Meal plan",
     "goalsAndMacros": "Goals & macros",
     "addClient": "Add client",
-    "pendingInvites": "PENDING INVITES"
+    "pendingInvites": "PENDING INVITES",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu"
   },
   "dashboard": {
     "title": "Dashboard",
