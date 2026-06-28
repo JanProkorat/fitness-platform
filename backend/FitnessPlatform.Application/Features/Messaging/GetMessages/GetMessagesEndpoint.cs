@@ -47,7 +47,8 @@ public class GetMessagesEndpoint(IApplicationDbContext db) : Endpoint<GetMessage
         var query = db.ChatMessages
             .AsNoTracking()
             .Where(m => m.ConversationId == conversation.Id)
-            .OrderByDescending(m => m.DateCreated);
+            .OrderByDescending(m => m.DateCreated)
+            .ThenByDescending(m => m.Id);
 
         if (req.Cursor.HasValue)
         {
@@ -56,8 +57,13 @@ public class GetMessagesEndpoint(IApplicationDbContext db) : Endpoint<GetMessage
                 .FirstOrDefaultAsync(m => m.PublicId == req.Cursor.Value, ct);
 
             if (cursorMsg is not null)
+            {
+                var cursorDate = cursorMsg.DateCreated;
+                var cursorId = cursorMsg.Id;
                 query = (IOrderedQueryable<Domain.Entities.ChatMessage>)query
-                    .Where(m => m.DateCreated < cursorMsg.DateCreated);
+                    .Where(m => m.DateCreated < cursorDate ||
+                                (m.DateCreated == cursorDate && m.Id < cursorId));
+            }
         }
 
         var items = await query
