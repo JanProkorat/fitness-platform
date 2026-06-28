@@ -119,7 +119,7 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
             compliancePercent = compliance.CompliancePercent;
             currentStreak = await complianceService.CalculateStreakAsync(clientProfile.PublicId, ct);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             // Compliance data is optional — may fail if no active nutrition plan exists
             Logger.LogWarning(ex, "Compliance computation failed for client {ClientPublicId}; returning null compliance", clientProfile.PublicId);
