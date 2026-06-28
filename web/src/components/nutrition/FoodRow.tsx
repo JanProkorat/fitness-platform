@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CATEGORY_ICONS, CATEGORY_COLORS } from './food-category';
+import { CATEGORY_ICONS, CATEGORY_CSS_COLORS } from './food-category';
 
 export interface FoodRowProps {
   food: {
@@ -34,7 +34,7 @@ export interface FoodRowProps {
 
 export function FoodRow({ food, mealId, dayOfWeek, weekNumber, onAmountChange, onRemove, onNoteChange, accentColor: _accentColor, readOnly = false }: FoodRowProps) {
   const { t } = useTranslation();
-  const accentColor = CATEGORY_COLORS[food.category ?? ''] ?? _accentColor;
+  const accentColor = CATEGORY_CSS_COLORS[food.category ?? '']?.color ?? _accentColor;
   const [localAmount, setLocalAmount] = useState(String(food.amount));
   const [localNote, setLocalNote] = useState(food.note ?? '');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -78,8 +78,8 @@ export function FoodRow({ food, mealId, dayOfWeek, weekNumber, onAmountChange, o
               <span
                 className="inline-flex items-center gap-0.5 rounded-sm px-1.5 py-0.5 text-[10px] font-semibold"
                 style={{
-                  color: CATEGORY_COLORS[food.category] ?? 'var(--text3)',
-                  background: `color-mix(in srgb, ${CATEGORY_COLORS[food.category] ?? 'var(--text3)'} 12%, transparent)`,
+                  color: CATEGORY_CSS_COLORS[food.category]?.color ?? 'var(--text3)',
+                  background: CATEGORY_CSS_COLORS[food.category]?.bg ?? 'var(--bg3)',
                 }}
               >
                 {CATEGORY_ICONS[food.category] ?? '🍽️'} {t(`foods.category${food.category}`)}

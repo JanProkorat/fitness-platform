@@ -7,7 +7,7 @@ export const MEAL_KIND_CONFIG: Record<MealKind, { icon: string; color: string }>
   MorningSnack:   { icon: '🍎', color: 'var(--green)' },
   Lunch:          { icon: '🍽️', color: 'var(--blue)' },
   AfternoonSnack: { icon: '🥜', color: 'var(--purple)' },
-  Dinner:         { icon: '🌙', color: '#6366f1' },
+  Dinner:         { icon: '🌙', color: 'var(--purple)' },
   PreWorkout:     { icon: '⚡', color: 'var(--orange)' },
   PostWorkout:    { icon: '💪', color: 'var(--green)' },
 };

@@ -15,8 +15,8 @@ export default function Toaster() {
           onClick={() => removeToast(toast.id)}
           className={`cursor-pointer rounded-sm border px-5 py-3 text-sm font-medium shadow-lg transition-all ${
             toast.type === 'error'
-              ? 'border-red-dim bg-[#1a0a0a] text-red'
-              : 'border-green-bright/30 bg-[#0a1a0a] text-green-bright'
+              ? 'border-red-br bg-red-bg text-red'
+              : 'border-green-br bg-green-bg text-green'
           }`}
         >
           {toast.message}
