@@ -162,10 +162,11 @@ services:
       # as Development for TLS reasons and must NOT auto-migrate, so the guard
       # keys on Database:RunMigrationsOnStartup which Render never sets.
       Database__RunMigrationsOnStartup: "true"
-      # Enables POST /test/reset for Playwright global-setup. The endpoint
-      # remains double-gated: this flag is one half; the other is that
-      # ASPNETCORE_ENVIRONMENT=Development (above). Both must be true for
-      # the endpoint to respond — in production the env gate alone keeps it 404.
+      # Enables POST /test/reset for Playwright global-setup. The endpoint is
+      # gated EXCLUSIVELY on this flag (regardless of ASPNETCORE_ENVIRONMENT, so
+      # the harness works under any environment value). This is a secret knob
+      # production never sets — the absent flag is what keeps the endpoint 404
+      # in prod (#538).
       Testing__Enabled: "true"
     networks:
       - qa-net
