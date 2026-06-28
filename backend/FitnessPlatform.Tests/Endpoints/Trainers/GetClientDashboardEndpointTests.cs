@@ -8,6 +8,7 @@ using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints.NutritionPlans;
 using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 
 namespace FitnessPlatform.Tests.Endpoints.Trainers;
 
@@ -158,6 +159,48 @@ public class GetClientDashboardEndpointTests
         }, TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(401);
+    }
+
+    [Fact]
+    public async Task HandleAsync_ComplianceServiceThrows_Returns200_WithNullCompliance()
+    {
+        // Arrange: compliance service throws — endpoint must degrade gracefully
+        var clientUser = EntityBuilder.User.WithEmail("client@test.com")
+            .WithFirstName("Dash").WithLastName("Client").Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUserId(_trainerId).Build();
+        var clientProfile = EntityBuilder.ClientProfile.WithId(1).WithUser(clientUser).Build();
+        var link = EntityBuilder.ClientProfessionalLink
+            .WithId(99)
+            .WithClientProfile(clientProfile)
+            .WithProfessionalProfile(trainerProfile)
+            .Build();
+
+        var db = new MockDbBuilder()
+            .With(trainerProfile)
+            .With(clientProfile)
+            .With(link)
+            .Build();
+
+        _complianceService
+            .CalculateComplianceAsync(Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+            .ThrowsAsync(new InvalidOperationException("No active nutrition plan"));
+
+        var ep = Factory.Create<GetClientDashboardEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
+                new System.Security.Claims.ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            db, _audit, _complianceService, EmptyMongo());
+
+        // Act — must not throw
+        await ep.HandleAsync(new GetClientDashboardRequest
+        {
+            ClientId = clientProfile.PublicId
+        }, TestContext.Current.CancellationToken);
+
+        // Assert — graceful degradation: 200 with null compliance fields
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        ep.Response.CompliancePercent.Should().BeNull();
+        ep.Response.CurrentStreak.Should().Be(0);
     }
 
     [Fact]
