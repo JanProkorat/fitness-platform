@@ -16,10 +16,10 @@ import {
   type MessageDto,
 } from '@/api/messages';
 
-// ── Avatar color palette ──
+// ── Avatar color palette (CSS var tokens from :root) ──
 const AVATAR_COLORS = [
-  '#0b6e99', '#ad5700', '#0f7b6c', '#6940a5',
-  '#c9a84c', '#d44d2c', '#2d7d9a', '#8854d0',
+  'var(--blue)', 'var(--orange)', 'var(--green)', 'var(--purple)',
+  'var(--accent)', 'var(--red)', 'var(--blue-dark)', 'var(--purple-light)',
 ];
 
 function colorForName(name: string): string {
@@ -286,7 +286,7 @@ export default function MessagesPage() {
     return groups;
   }, [messages, i18n.language, t]);
 
-  const avatarColor = activeConv ? colorForName(activeConv.participant.name) : '#0b6e99';
+  const avatarColor = activeConv ? colorForName(activeConv.participant.name) : 'var(--blue)';
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -453,7 +453,7 @@ export default function MessagesPage() {
               <button
                 onClick={handleSend}
                 disabled={!messageInput.trim() || sendMutation.isPending}
-                className="h-8 px-3.5 rounded-md bg-accent text-white border-none text-[13px] font-medium font-[inherit] cursor-pointer transition-colors hover:bg-[#b8933d] disabled:bg-bg3 disabled:text-text3 disabled:cursor-default shrink-0"
+                className="h-8 px-3.5 rounded-md bg-accent text-white border-none text-[13px] font-medium font-[inherit] cursor-pointer transition-colors hover:bg-accent/90 disabled:bg-bg3 disabled:text-text3 disabled:cursor-default shrink-0"
               >
                 {t('messages.send')}
               </button>

@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CATEGORY_ICONS, CATEGORY_COLORS } from './food-category';
+import { CATEGORY_ICONS, CATEGORY_CSS_COLORS } from './food-category';
 
 export interface RecipeRowProps {
   recipe: {
@@ -72,8 +72,8 @@ export function RecipeRow({ recipe, mealId, dayOfWeek, weekNumber, onServingsCha
                 key={cat}
                 className="inline-flex items-center gap-0.5 rounded-sm px-1.5 py-0.5 text-[10px] font-semibold"
                 style={{
-                  color: CATEGORY_COLORS[cat] ?? 'var(--text3)',
-                  background: `color-mix(in srgb, ${CATEGORY_COLORS[cat] ?? 'var(--text3)'} 12%, transparent)`,
+                  color: CATEGORY_CSS_COLORS[cat]?.color ?? 'var(--text3)',
+                  background: CATEGORY_CSS_COLORS[cat]?.bg ?? 'var(--bg3)',
                 }}
               >
                 {CATEGORY_ICONS[cat] ?? '🍽️'} {t(`foods.category${cat}`)}

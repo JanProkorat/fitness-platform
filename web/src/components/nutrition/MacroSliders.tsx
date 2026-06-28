@@ -11,9 +11,9 @@ interface MacroSlidersProps {
 }
 
 const COLORS = {
-  protein: '#60a5fa', // blue-400
-  carbs: '#fbbf24', // amber-400
-  fat: '#fb7185', // rose-400
+  protein: 'var(--color-macro-protein)',
+  carbs: 'var(--color-macro-carbs)',
+  fat: 'var(--color-macro-fat)',
 };
 
 function DonutChart({
@@ -262,7 +262,7 @@ export default function MacroSliders({
           <span className="flex items-center gap-2">
             <span
               className="inline-block h-3 w-3 rounded-sm"
-              style={{ backgroundColor: '#4ade80' }}
+              style={{ backgroundColor: 'var(--color-macro-fiber)' }}
             />
             {t('nutritionGoals.fiber')}
           </span>
