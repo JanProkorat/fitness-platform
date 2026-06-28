@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { WorkoutFormat, WodConfig } from '@/api/training-plan-types';
 import { estimatedSectionDurationSeconds, formatDurationCompact } from '@/lib/training-plan-format';
@@ -64,6 +65,7 @@ export function SectionFormatConfigRow({
   onChange,
 }: SectionFormatConfigRowProps) {
   const { t } = useTranslation();
+  const uid = useId();
 
   if (format === 'Standard') return null;
 
@@ -77,9 +79,9 @@ export function SectionFormatConfigRow({
         >
           {/* Time cap — stored as seconds, displayed as minutes */}
           <div className="flex items-center gap-1.5">
-            <label htmlFor="amrap-time-cap" style={labelStyle}>{t('training.section.amrapTimeCap')}</label>
+            <label htmlFor={`${uid}-amrap-time-cap`} style={labelStyle}>{t('training.section.amrapTimeCap')}</label>
             <input
-              id="amrap-time-cap"
+              id={`${uid}-amrap-time-cap`}
               type="number"
               placeholder="--"
               value={
@@ -100,9 +102,9 @@ export function SectionFormatConfigRow({
           </div>
           {/* Total rounds (0 = unlimited) */}
           <div className="flex items-center gap-1.5">
-            <label htmlFor="amrap-total-rounds" style={labelStyle}>{t('training.section.amrapTotalRounds')}</label>
+            <label htmlFor={`${uid}-amrap-total-rounds`} style={labelStyle}>{t('training.section.amrapTotalRounds')}</label>
             <input
-              id="amrap-total-rounds"
+              id={`${uid}-amrap-total-rounds`}
               type="number"
               placeholder="0"
               value={formatConfig?.totalRounds ?? ''}
@@ -128,9 +130,9 @@ export function SectionFormatConfigRow({
         >
           {/* Time cap — stored as seconds, displayed as minutes */}
           <div className="flex items-center gap-1.5">
-            <label htmlFor="fortime-time-cap" style={labelStyle}>{t('training.section.fortimeTimeCap')}</label>
+            <label htmlFor={`${uid}-fortime-time-cap`} style={labelStyle}>{t('training.section.fortimeTimeCap')}</label>
             <input
-              id="fortime-time-cap"
+              id={`${uid}-fortime-time-cap`}
               type="number"
               placeholder="--"
               value={
@@ -162,9 +164,9 @@ export function SectionFormatConfigRow({
         >
           {/* Interval in seconds */}
           <div className="flex items-center gap-1.5">
-            <label htmlFor="emom-interval" style={labelStyle}>{t('training.section.emomInterval')}</label>
+            <label htmlFor={`${uid}-emom-interval`} style={labelStyle}>{t('training.section.emomInterval')}</label>
             <input
-              id="emom-interval"
+              id={`${uid}-emom-interval`}
               type="number"
               placeholder="60"
               value={formatConfig?.intervalSeconds ?? ''}
@@ -179,9 +181,9 @@ export function SectionFormatConfigRow({
           </div>
           {/* Total rounds */}
           <div className="flex items-center gap-1.5">
-            <label htmlFor="emom-total-rounds" style={labelStyle}>{t('training.section.emomRounds')}</label>
+            <label htmlFor={`${uid}-emom-total-rounds`} style={labelStyle}>{t('training.section.emomRounds')}</label>
             <input
-              id="emom-total-rounds"
+              id={`${uid}-emom-total-rounds`}
               type="number"
               placeholder="--"
               value={formatConfig?.totalRounds ?? ''}
@@ -207,9 +209,9 @@ export function SectionFormatConfigRow({
         >
           {/* Work interval in seconds */}
           <div className="flex items-center gap-1.5">
-            <label htmlFor="tabata-work" style={labelStyle}>{t('training.section.tabataWork')}</label>
+            <label htmlFor={`${uid}-tabata-work`} style={labelStyle}>{t('training.section.tabataWork')}</label>
             <input
-              id="tabata-work"
+              id={`${uid}-tabata-work`}
               type="number"
               placeholder="20"
               value={formatConfig?.workSeconds ?? ''}
@@ -224,9 +226,9 @@ export function SectionFormatConfigRow({
           </div>
           {/* Rest interval in seconds */}
           <div className="flex items-center gap-1.5">
-            <label htmlFor="tabata-rest" style={labelStyle}>{t('training.section.tabataRest')}</label>
+            <label htmlFor={`${uid}-tabata-rest`} style={labelStyle}>{t('training.section.tabataRest')}</label>
             <input
-              id="tabata-rest"
+              id={`${uid}-tabata-rest`}
               type="number"
               placeholder="10"
               value={formatConfig?.restSeconds ?? ''}
@@ -241,9 +243,9 @@ export function SectionFormatConfigRow({
           </div>
           {/* Total rounds */}
           <div className="flex items-center gap-1.5">
-            <label htmlFor="tabata-rounds" style={labelStyle}>{t('training.section.tabataRounds')}</label>
+            <label htmlFor={`${uid}-tabata-rounds`} style={labelStyle}>{t('training.section.tabataRounds')}</label>
             <input
-              id="tabata-rounds"
+              id={`${uid}-tabata-rounds`}
               type="number"
               placeholder="8"
               value={formatConfig?.totalRounds ?? ''}
