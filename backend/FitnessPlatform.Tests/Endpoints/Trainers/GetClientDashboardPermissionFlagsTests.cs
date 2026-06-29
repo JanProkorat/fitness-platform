@@ -18,7 +18,24 @@ public class GetClientDashboardPermissionFlagsTests
 {
     private readonly Guid _trainerId = Guid.NewGuid();
     private readonly IAuditService _audit = Substitute.For<IAuditService>();
-    private readonly IComplianceService _complianceService = Substitute.For<IComplianceService>();
+
+    // Stub the compliance service to return a non-null ComplianceResult so the happy path
+    // is exercised in all three permission-flag tests. The endpoint has a catch path that
+    // logs a warning on compliance failure; providing a real stub keeps the test focused on
+    // the CanViewNutritionPlans/CanViewTrainingPlans assertions rather than graceful degradation.
+    // Pattern matches TrainingCompletionTestHelpers.CreateStubComplianceService().
+    private readonly IComplianceService _complianceService = CreateStubComplianceService();
+
+    private static IComplianceService CreateStubComplianceService()
+    {
+        var svc = Substitute.For<IComplianceService>();
+        svc.CalculateComplianceAsync(
+                Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+            .Returns(new ComplianceResult { CompliancePercent = 0m });
+        svc.CalculateStreakAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns(0);
+        return svc;
+    }
 
     private static System.Security.Claims.ClaimsPrincipal TrainerPrincipal(Guid trainerId) =>
         new(new System.Security.Claims.ClaimsIdentity(
