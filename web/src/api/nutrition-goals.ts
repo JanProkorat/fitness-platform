@@ -94,6 +94,8 @@ export interface ClientDashboard {
   compliancePercent?: number | null;
   currentStreak: number;
   onboarding?: OnboardingData | null;
+  canViewNutritionPlans?: boolean;
+  canViewTrainingPlans?: boolean;
 }
 
 export async function calculateGoals(
