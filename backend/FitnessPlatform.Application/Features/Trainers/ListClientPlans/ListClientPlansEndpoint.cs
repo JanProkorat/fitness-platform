@@ -164,57 +164,65 @@ public class ListClientPlansEndpoint(
             .OrderBy(m => m.MeasuredAt)
             .ToListAsync(ct);
 
-        var nutritionItems = new List<ClientPlanItem>();
-        foreach (var plan in nutritionPlans)
+        // Compute compliance for all nutrition plans concurrently — IComplianceService only
+        // reads from IMongoContext (IMongoCollection is thread-safe for concurrent reads);
+        // it does NOT touch the EF DbContext, so Task.WhenAll is safe here.
+        // Results are captured as an index-correlated array to preserve plan order.
+        // Using async lambdas so faults from CalculateComplianceAsync propagate through
+        // Task.WhenAll naturally, matching the exception-propagation behavior of the
+        // original serial loop (no ContinueWith+OnlyOnRanToCompletion swallowing).
+        var complianceTasks = nutritionPlans.Select(async plan =>
         {
-            decimal? compliancePercent = null;
+            if (!plan.StartDate.HasValue)
+                return ((decimal?)null, (decimal?)null);
+
+            var periodEnd = plan.DateCompleted ?? DateTime.UtcNow;
+
+            // Weight delta computation is pure in-memory — safe to run inside the projection.
+            var startMeasurement = allMeasurements
+                .FirstOrDefault(m => m.MeasuredAt >= plan.StartDate.Value && m.MeasuredAt <= periodEnd);
+            var endMeasurement = allMeasurements
+                .LastOrDefault(m => m.MeasuredAt >= plan.StartDate.Value && m.MeasuredAt <= periodEnd);
+
             decimal? weightDeltaKg = null;
-
-            if (plan.StartDate.HasValue)
+            if (startMeasurement != null &&
+                endMeasurement != null &&
+                startMeasurement.Id != endMeasurement.Id &&
+                startMeasurement.WeightKg.HasValue &&
+                endMeasurement.WeightKg.HasValue)
             {
-                var periodEnd = plan.DateCompleted ?? DateTime.UtcNow;
-
-                // Nutrition compliance over the plan period via IComplianceService
-                var complianceResult = await complianceService.CalculateComplianceAsync(
-                    clientUserId,
-                    plan.StartDate.Value,
-                    periodEnd,
-                    ct);
-                compliancePercent = complianceResult.NutritionCompliancePercent;
-
-                // Weight delta: first measurement on/after start vs last measurement on/before end
-                var startMeasurement = allMeasurements
-                    .FirstOrDefault(m => m.MeasuredAt >= plan.StartDate.Value && m.MeasuredAt <= periodEnd);
-                var endMeasurement = allMeasurements
-                    .LastOrDefault(m => m.MeasuredAt >= plan.StartDate.Value && m.MeasuredAt <= periodEnd);
-
-                if (startMeasurement != null &&
-                    endMeasurement != null &&
-                    startMeasurement.Id != endMeasurement.Id &&
-                    startMeasurement.WeightKg.HasValue &&
-                    endMeasurement.WeightKg.HasValue)
-                {
-                    weightDeltaKg = endMeasurement.WeightKg.Value - startMeasurement.WeightKg.Value;
-                }
+                weightDeltaKg = endMeasurement.WeightKg.Value - startMeasurement.WeightKg.Value;
             }
 
-            nutritionItems.Add(new ClientPlanItem
+            var complianceResult = await complianceService.CalculateComplianceAsync(
+                clientUserId, plan.StartDate.Value, periodEnd, ct);
+            return ((decimal?)complianceResult.NutritionCompliancePercent, weightDeltaKg);
+        }).ToList();
+
+        var complianceResults = await Task.WhenAll(complianceTasks);
+
+        var nutritionItems = nutritionPlans
+            .Select((plan, i) =>
             {
-                PlanId = plan.ExternalId,
-                PlanType = "Nutrition",
-                Name = plan.Name,
-                PeriodStart = plan.StartDate,
-                PeriodEnd = plan.DateCompleted,
-                Status = plan.Status.ToString(),
-                ResultSummary = new ClientPlanResultSummary
+                var (compliancePercent, weightDeltaKg) = complianceResults[i];
+                return new ClientPlanItem
                 {
-                    TotalTrainings = null,
-                    PrCount = null,
-                    CompliancePercent = compliancePercent,
-                    WeightDeltaKg = weightDeltaKg
-                }
-            });
-        }
+                    PlanId = plan.ExternalId,
+                    PlanType = "Nutrition",
+                    Name = plan.Name,
+                    PeriodStart = plan.StartDate,
+                    PeriodEnd = plan.DateCompleted,
+                    Status = plan.Status.ToString(),
+                    ResultSummary = new ClientPlanResultSummary
+                    {
+                        TotalTrainings = null,
+                        PrCount = null,
+                        CompliancePercent = compliancePercent,
+                        WeightDeltaKg = weightDeltaKg
+                    }
+                };
+            })
+            .ToList();
 
         // Merge all plans and sort newest-first:
         // Primary sort: StartDate desc (null StartDate treated as oldest — draft plans)
