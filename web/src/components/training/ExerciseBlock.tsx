@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/cn';
 
 export interface ExerciseSet {
@@ -58,6 +59,7 @@ export function ExerciseBlock({
   onAddSet,
   onRemoveSet,
 }: ExerciseBlockProps) {
+  const { t } = useTranslation();
   return (
     <div className="border border-border rounded-md overflow-hidden mb-1.5">
       {/* Header */}
@@ -131,7 +133,7 @@ export function ExerciseBlock({
                     type="button"
                     onClick={() => onRemoveSet(idx)}
                     className="opacity-0 group-hover:opacity-100 text-[11px] text-text4 cursor-pointer transition-all hover:text-red px-1"
-                    aria-label="Odebrat sérii"
+                    aria-label={t('training.removeSetAriaLabel')}
                   >
                     ✕
                   </button>
@@ -153,10 +155,10 @@ export function ExerciseBlock({
                   onAddSet();
                 }
               }}
-              aria-label="Přidat sérii"
+              aria-label={t('training.addSetAriaLabel')}
             >
               <span>+</span>
-              <span>Přidat sérii</span>
+              <span>{t('training.addSetAriaLabel')}</span>
             </div>
           )}
         </div>

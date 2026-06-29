@@ -101,6 +101,7 @@ export function SectionTemplateSearch({
           onChange={(e) => setQuery(e.target.value)}
           onFocus={handleFocus}
           placeholder={effectivePlaceholder}
+          aria-label={t('training.section.templateSearchAriaLabel')}
           className="flex-1 bg-transparent border-none outline-none text-[11px] text-text3 placeholder:text-text3 focus:text-text"
           style={{ fontFamily: 'inherit' }}
         />

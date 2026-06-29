@@ -4,7 +4,7 @@ interface SearchInputProps extends Omit<React.InputHTMLAttributes<HTMLInputEleme
   onSearch?: (value: string) => void;
 }
 
-export function SearchInput({ onSearch, className, onChange, ...props }: SearchInputProps) {
+export function SearchInput({ onSearch, className, onChange, 'aria-label': ariaLabel, ...props }: SearchInputProps) {
   return (
     <div
       className={cn(
@@ -22,12 +22,14 @@ export function SearchInput({ onSearch, className, onChange, ...props }: SearchI
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
+        aria-hidden="true"
       >
         <circle cx="11" cy="11" r="8" />
         <path d="m21 21-4.3-4.3" />
       </svg>
       <input
         type="text"
+        aria-label={ariaLabel}
         className="border-none outline-none bg-transparent text-[13px] text-text flex-1 font-[inherit] placeholder:text-text3"
         onChange={(e) => {
           onChange?.(e);

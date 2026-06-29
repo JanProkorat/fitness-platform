@@ -60,6 +60,7 @@ export function MovementTypePill({ value, onChange, disabled, sectionFormat }: M
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value as MovementType)}
+        aria-label={t('training.movementTypeAriaLabel')}
         style={{
           appearance: 'none',
           WebkitAppearance: 'none',

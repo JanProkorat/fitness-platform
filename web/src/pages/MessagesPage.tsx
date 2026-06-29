@@ -307,6 +307,7 @@ export default function MessagesPage() {
               <path d="m21 21-4.35-4.35" />
             </svg>
             <input
+              aria-label={t('messages.searchAriaLabel')}
               placeholder={t('messages.searchPlaceholder')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -364,13 +365,13 @@ export default function MessagesPage() {
               <div className="ml-auto flex gap-1">
                 <button
                   className="w-7 h-7 rounded flex items-center justify-center text-[13px] text-text3 hover:bg-bg-hover hover:text-text transition-colors"
-                  title="Profil klienta"
+                  aria-label={t('messages.clientProfileAriaLabel')}
                 >
                   👤
                 </button>
                 <button
                   className="w-7 h-7 rounded flex items-center justify-center text-[13px] text-text3 hover:bg-bg-hover hover:text-text transition-colors"
-                  title="Více"
+                  aria-label={t('messages.moreActionsAriaLabel')}
                 >
                   ···
                 </button>
@@ -431,11 +432,12 @@ export default function MessagesPage() {
               <div className="flex-1 flex items-center gap-1.5 bg-bg2 border border-border-md rounded-lg px-3 py-[7px] transition-colors focus-within:border-border-hv">
                 <button
                   className="w-5 h-5 flex items-center justify-center text-text3 hover:text-text text-sm shrink-0"
-                  title="Připojit plán"
+                  aria-label={t('messages.attachPlanAriaLabel')}
                 >
                   📎
                 </button>
                 <input
+                  aria-label={t('messages.messageInputAriaLabel', { name: activeConv.participant.name.split(' ')[0] })}
                   value={messageInput}
                   onChange={(e) => { setMessageInput(e.target.value); handleTyping(); }}
                   onKeyDown={(e) => {
@@ -444,7 +446,7 @@ export default function MessagesPage() {
                       handleSend();
                     }
                   }}
-                  placeholder={`Napsat ${activeConv.participant.name.split(' ')[0]}...`}
+                  placeholder={t('messages.messageInputPlaceholder', { name: activeConv.participant.name.split(' ')[0] })}
                   className="flex-1 border-none outline-none bg-transparent text-[13px] text-text font-[inherit] placeholder:text-text4"
                 />
               </div>

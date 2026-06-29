@@ -108,8 +108,9 @@ export function TrainerProfileFields({
         {/* Bio card */}
         <div style={cardStyle}>
           <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">{t('profile.bio')}</label>
+            <label htmlFor="trainer-bio" className="form-label">{t('profile.bio')}</label>
             <textarea
+              id="trainer-bio"
               className="form-input"
               rows={4}
               maxLength={BIO_MAX}
@@ -133,8 +134,9 @@ export function TrainerProfileFields({
         <div style={cardStyle}>
           <div className="form-row">
             <div className="form-group">
-              <label className="form-label">{t('profile.city')}</label>
+              <label htmlFor="trainer-city" className="form-label">{t('profile.city')}</label>
               <input
+                id="trainer-city"
                 className="form-input"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
@@ -142,8 +144,9 @@ export function TrainerProfileFields({
               />
             </div>
             <div className="form-group">
-              <label className="form-label">{t('profile.estimatedPrice')}</label>
+              <label htmlFor="trainer-estimated-price" className="form-label">{t('profile.estimatedPrice')}</label>
               <input
+                id="trainer-estimated-price"
                 className="form-input"
                 value={estimatedPrice}
                 onChange={(e) => setEstimatedPrice(e.target.value)}
@@ -152,8 +155,9 @@ export function TrainerProfileFields({
             </div>
           </div>
           <div className="form-group">
-            <label className="form-label">{t('profile.collaborationType')}</label>
+            <label htmlFor="trainer-collaboration-type" className="form-label">{t('profile.collaborationType')}</label>
             <select
+              id="trainer-collaboration-type"
               className="form-select"
               value={collaborationType}
               onChange={(e) => setCollaborationType(e.target.value)}
@@ -164,8 +168,9 @@ export function TrainerProfileFields({
             </select>
           </div>
           <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">{t('profile.maxClients')}</label>
+            <label htmlFor="trainer-max-clients" className="form-label">{t('profile.maxClients')}</label>
             <input
+              id="trainer-max-clients"
               className="form-input"
               type="number"
               min={1}
@@ -230,8 +235,9 @@ export function TrainerProfileFields({
             {t('profile.socialNetworks')}
           </div>
           <div className="form-group">
-            <label className="form-label">{t('profile.linkedin')}</label>
+            <label htmlFor="trainer-linkedin" className="form-label">{t('profile.linkedin')}</label>
             <input
+              id="trainer-linkedin"
               className="form-input"
               value={linkedin}
               onChange={(e) => setLinkedin(e.target.value)}
@@ -239,8 +245,9 @@ export function TrainerProfileFields({
             />
           </div>
           <div className="form-group">
-            <label className="form-label">{t('profile.instagram')}</label>
+            <label htmlFor="trainer-instagram" className="form-label">{t('profile.instagram')}</label>
             <input
+              id="trainer-instagram"
               className="form-input"
               value={instagram}
               onChange={(e) => setInstagram(e.target.value)}
@@ -248,8 +255,9 @@ export function TrainerProfileFields({
             />
           </div>
           <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">{t('profile.website')}</label>
+            <label htmlFor="trainer-website" className="form-label">{t('profile.website')}</label>
             <input
+              id="trainer-website"
               className="form-input"
               value={website}
               onChange={(e) => setWebsite(e.target.value)}
@@ -291,6 +299,8 @@ export function TrainerProfileFields({
               type="button"
               className={`toggle${showInSearch ? ' on' : ''}`}
               onClick={() => setShowInSearch(!showInSearch)}
+              aria-pressed={showInSearch}
+              aria-label={t('profile.showInSearch')}
             >
               <span className="toggle-thumb" />
             </button>
@@ -316,6 +326,8 @@ export function TrainerProfileFields({
               type="button"
               className={`toggle${acceptNewClients ? ' on' : ''}`}
               onClick={() => setAcceptNewClients(!acceptNewClients)}
+              aria-pressed={acceptNewClients}
+              aria-label={t('profile.acceptNewClients')}
             >
               <span className="toggle-thumb" />
             </button>
