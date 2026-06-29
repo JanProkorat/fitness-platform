@@ -108,7 +108,7 @@ public class AssignQuestionnaireEndpoint(
             $"You have been assigned a questionnaire: {questionnaire.Title}",
             ct: ct);
 
-        await notifier.NotifyAsync(clientProfile.UserId, "questionnaireAssigned", new
+        await notifier.NotifyAsync(clientProfile.UserId, "questionnaireassigned", new
         {
             QuestionnairePublicId = questionnaire.PublicId,
             questionnaire.Title

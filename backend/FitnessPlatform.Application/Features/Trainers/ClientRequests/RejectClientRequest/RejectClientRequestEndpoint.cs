@@ -93,7 +93,7 @@ public class RejectClientRequestEndpoint(
             $"{profName} declined your invitation.",
             ct: ct);
 
-        await notifier.NotifyAsync(clientRequest.ClientProfile.UserId, "clientRequestRejected", new
+        await notifier.NotifyAsync(clientRequest.ClientProfile.UserId, "clientrequestrejected", new
         {
             RequestPublicId = clientRequest.PublicId
         }, ct);
@@ -134,7 +134,7 @@ public class RejectClientRequestEndpoint(
 
             await db.SaveChangesAsync(ct);
 
-            await notifier.NotifyAsync(clientRequest.ClientProfile.UserId, "newMessage", new
+            await notifier.NotifyAsync(clientRequest.ClientProfile.UserId, "newmessage", new
             {
                 ConversationId = conversation.PublicId,
                 SenderName = profName,

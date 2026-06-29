@@ -83,7 +83,7 @@ public class AcceptRequestEndpoint(
             var clientName = ResolveClientName(request, emailClaim);
             await notifier.NotifyAsync(
                 request.ProfessionalId,   // → professional group
-                "photoDiaryAccepted",
+                "photodiaryaccepted",
                 new PhotoDiaryAcceptedEvent
                 {
                     RequestId = request.Id,

@@ -96,7 +96,7 @@ public class SendMessageEndpoint(
             if (autoUnarchived)
             {
                 await db.SaveChangesAsync(ct);
-                await notifier.NotifyAsync(recipientUserId, "conversationUnarchived", new
+                await notifier.NotifyAsync(recipientUserId, "conversationunarchived", new
                 {
                     conversationId = conversation.PublicId,
                     isFormer = false,
@@ -105,7 +105,7 @@ public class SendMessageEndpoint(
         }
 
         // Notify recipient via SignalR
-        await notifier.NotifyAsync(recipientUserId, "newMessage", new
+        await notifier.NotifyAsync(recipientUserId, "newmessage", new
         {
             conversationId = conversation.PublicId,
             messageId = message.PublicId,

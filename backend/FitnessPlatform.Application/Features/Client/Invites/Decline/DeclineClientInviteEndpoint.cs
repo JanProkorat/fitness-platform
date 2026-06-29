@@ -51,7 +51,7 @@ public class DeclineClientInviteEndpoint(IApplicationDbContext db, IRealtimeNoti
 
         await notifier.NotifyAsync(
             invite.ProfessionalProfile.UserId,
-            "inviteDeclined",
+            "invitedeclined",
             new { clientName, inviteId = invite.PublicId },
             ct);
 

@@ -80,7 +80,7 @@ public class SubmitRequestEndpoint(
 
             await notifier.NotifyAsync(
                 request.ProfessionalId,   // → professional group
-                "photoDiarySubmitted",
+                "photodiarysubmitted",
                 new PhotoDiarySubmittedEvent
                 {
                     RequestId = request.Id,

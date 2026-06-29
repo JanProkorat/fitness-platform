@@ -427,7 +427,7 @@ public class PhotoDiaryReminderScheduler(
 
             await notifier.NotifyAsync(
                 request.ProfessionalId,
-                "photoDiarySubmitted",
+                "photodiarysubmitted",
                 new PhotoDiarySubmittedEvent
                 {
                     RequestId = request.Id,

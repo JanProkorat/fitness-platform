@@ -53,7 +53,7 @@ public class VerifyEmailEndpoint(IApplicationDbContext db, IRealtimeNotifier not
         token.User.EmailConfirmed = true;
         await db.SaveChangesAsync(ct);
 
-        await notifier.NotifyAsync(token.UserId, "emailVerified", new { }, ct);
+        await notifier.NotifyAsync(token.UserId, "emailverified", new { }, ct);
 
         await Send.OkAsync(new { message = "Email verified successfully." }, ct);
     }

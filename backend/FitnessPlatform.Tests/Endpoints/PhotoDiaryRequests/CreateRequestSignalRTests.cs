@@ -139,7 +139,7 @@ public class CreateRequestSignalRTests(FitnessApiFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var calls = notifier.Calls
-            .Where(c => c.EventType == "photoDiaryRequested")
+            .Where(c => c.EventType == "photodiaryrequested")
             .ToList();
 
         calls.Should().HaveCount(1, "exactly one photoDiaryRequested event must be emitted");
@@ -173,7 +173,7 @@ public class CreateRequestSignalRTests(FitnessApiFactory factory)
         body.Should().NotBeNull();
 
         var calls = notifier.Calls
-            .Where(c => c.EventType == "photoDiaryRequested")
+            .Where(c => c.EventType == "photodiaryrequested")
             .ToList();
 
         calls.Should().HaveCount(1);
@@ -210,7 +210,7 @@ public class CreateRequestSignalRTests(FitnessApiFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var calls = notifier.Calls
-            .Where(c => c.EventType == "photoDiaryRequested")
+            .Where(c => c.EventType == "photodiaryrequested")
             .ToList();
 
         calls.Should().HaveCount(1, "the registered client must receive exactly one photoDiaryRequested event");
@@ -237,7 +237,7 @@ public class CreateRequestSignalRTests(FitnessApiFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var calls = notifier.Calls
-            .Where(c => c.EventType == "photoDiaryRequested")
+            .Where(c => c.EventType == "photodiaryrequested")
             .ToList();
 
         calls.Should().BeEmpty(

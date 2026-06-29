@@ -180,7 +180,7 @@ public class CreateRequestEndpoint(
 
                 await notifier.NotifyAsync(
                     clientUserId.Value,   // → client group
-                    "photoDiaryRequested",
+                    "photodiaryrequested",
                     new PhotoDiaryRequestedEvent
                     {
                         RequestId = request.Id,

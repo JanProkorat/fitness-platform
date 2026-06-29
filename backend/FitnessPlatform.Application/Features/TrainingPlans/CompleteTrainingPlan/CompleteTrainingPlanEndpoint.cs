@@ -108,7 +108,7 @@ public class CompleteTrainingPlanEndpoint(
                 $"Your training plan \"{plan.Name}\" has been marked as completed.",
                 ct: ct);
 
-            await notifier.NotifyAsync(clientProfile.UserId, "trainingPlanCompleted", new
+            await notifier.NotifyAsync(clientProfile.UserId, "trainingplancompleted", new
             {
                 PlanId = plan.ExternalId,
                 plan.Name,

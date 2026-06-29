@@ -148,7 +148,7 @@ public class CreatePendingInviteEndpoint(
                 await db.SaveChangesAsync(ct);
 
                 // Send newMessage SignalR event to the client
-                await notifier.NotifyAsync(existingUser.Id, "newMessage", new
+                await notifier.NotifyAsync(existingUser.Id, "newmessage", new
                 {
                     conversationId = conversation.PublicId,
                     messageId = chatMessage.PublicId,
@@ -177,7 +177,7 @@ public class CreatePendingInviteEndpoint(
 
             await notifier.NotifyAsync(
                 existingUser.Id,
-                "invitationReceived",
+                "invitationreceived",
                 new
                 {
                     id = pendingInvite.PublicId,

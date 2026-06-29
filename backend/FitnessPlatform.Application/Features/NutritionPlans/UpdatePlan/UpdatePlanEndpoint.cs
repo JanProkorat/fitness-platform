@@ -224,7 +224,7 @@ public class UpdatePlanEndpoint(IMongoContext mongo, IMacroCalculatorService mac
 
             if (clientProfile is not null)
             {
-                await notifier.NotifyAsync(clientProfile.UserId, "nutritionPlanUpdated", new
+                await notifier.NotifyAsync(clientProfile.UserId, "nutritionplanupdated", new
                 {
                     PlanId = plan.ExternalId,
                 }, ct);

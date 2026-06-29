@@ -133,7 +133,7 @@ public class AcceptClientInviteEndpoint(
 
         await notifier.NotifyAsync(
             invite.ProfessionalProfile.UserId,
-            "inviteAccepted",
+            "inviteaccepted",
             new { clientName, inviteId = invite.PublicId },
             ct);
 

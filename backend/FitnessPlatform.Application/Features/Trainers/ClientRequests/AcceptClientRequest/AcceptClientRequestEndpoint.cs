@@ -158,7 +158,7 @@ public class AcceptClientRequestEndpoint(
             $"{profName} accepted your invitation.",
             ct: ct);
 
-        await notifier.NotifyAsync(clientRequest.ClientProfile.UserId, "clientRequestAccepted", new
+        await notifier.NotifyAsync(clientRequest.ClientProfile.UserId, "clientrequestaccepted", new
         {
             RequestPublicId = clientRequest.PublicId,
             ProfessionalProfilePublicId = professionalProfile.PublicId
@@ -186,7 +186,7 @@ public class AcceptClientRequestEndpoint(
             other.Status = ClientRequestStatus.Cancelled;
             other.RespondedAt = DateTime.UtcNow;
 
-            await notifier.NotifyAsync(other.ProfessionalProfile.UserId, "clientRequestCancelled", new
+            await notifier.NotifyAsync(other.ProfessionalProfile.UserId, "clientrequestcancelled", new
             {
                 RequestPublicId = other.PublicId,
                 ClientName = clientName
@@ -217,7 +217,7 @@ public class AcceptClientRequestEndpoint(
                 $"You have been assigned a questionnaire: {questionnaire.Title}",
                 ct: ct);
 
-            await notifier.NotifyAsync(clientRequest.ClientProfile.UserId, "questionnaireAssigned", new
+            await notifier.NotifyAsync(clientRequest.ClientProfile.UserId, "questionnaireassigned", new
             {
                 QuestionnairePublicId = questionnaire.PublicId,
                 questionnaire.Title
@@ -260,7 +260,7 @@ public class AcceptClientRequestEndpoint(
 
             await db.SaveChangesAsync(ct);
 
-            await notifier.NotifyAsync(clientRequest.ClientProfile.UserId, "newMessage", new
+            await notifier.NotifyAsync(clientRequest.ClientProfile.UserId, "newmessage", new
             {
                 ConversationId = conversation.PublicId,
                 SenderName = profName,

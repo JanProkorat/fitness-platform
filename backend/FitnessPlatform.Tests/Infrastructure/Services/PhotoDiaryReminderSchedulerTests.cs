@@ -500,7 +500,7 @@ public class PhotoDiaryReminderSchedulerTests(FitnessApiFactory factory)
 
         // Verify photoDiarySubmitted emitted to the professional.
         var submittedEvents = notifier.Calls
-            .Where(c => c.UserId == professionalId && c.EventType == "photoDiarySubmitted")
+            .Where(c => c.UserId == professionalId && c.EventType == "photodiarysubmitted")
             .ToList();
 
         submittedEvents.Should().HaveCount(1, "photoDiarySubmitted must be emitted to the professional");

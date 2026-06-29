@@ -35,7 +35,7 @@ public class ProfileMapperService(IApplicationDbContext db, INotificationService
             $"{clientName} vyplnil(a) vstupní dotazník.",
             ct: ct);
 
-        await notifier.NotifyAsync(response.ProfessionalId, "questionnaireSubmitted", new
+        await notifier.NotifyAsync(response.ProfessionalId, "questionnairesubmitted", new
         {
             ClientPublicId = clientProfile?.PublicId,
             ClientName = clientName,
