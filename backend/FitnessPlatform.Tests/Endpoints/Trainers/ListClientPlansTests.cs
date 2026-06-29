@@ -286,6 +286,41 @@ public class ListClientPlansTests
         ep.Response.Plans.Should().BeEmpty();
     }
 
+    // ── Fault propagation ────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task List_ComplianceServiceFaults_SurfacesOriginalException_NotTaskCanceledException()
+    {
+        // Regression guard for the ContinueWith+OnlyOnRanToCompletion pattern that was
+        // introduced in the first parallel refactor. That pattern puts the continuation
+        // in Canceled state when the antecedent faults, so Task.WhenAll throws
+        // TaskCanceledException and the real exception is never observed. The async-lambda
+        // pattern must surface the real exception type through Task.WhenAll.
+        var (db, clientProfile) = BuildLinkedClientSetup();
+        var clientPublicId = clientProfile.PublicId;
+
+        var planStart = new DateTime(2025, 1, 6, 0, 0, 0, DateTimeKind.Utc);
+        var nutritionPlan = CreateNutritionPlan(clientPublicId, startDate: planStart, name: "Faulting Plan");
+        var mongo = BuildMongo(nutritionPlans: [nutritionPlan], workoutLogs: [], personalRecords: []);
+
+        // Force CalculateComplianceAsync to throw a domain-specific exception
+        var expected = new InvalidOperationException("compliance-db-error");
+        _complianceService
+            .CalculateComplianceAsync(Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+            .Returns<ComplianceResult>(_ => throw expected);
+
+        var ep = CreateEndpoint(db, mongo, _trainerId, setupDefaultCompliance: false);
+
+        var act = async () => await ep.HandleAsync(
+            new ListClientPlansRequest { ClientId = clientProfile.PublicId },
+            TestContext.Current.CancellationToken);
+
+        // Must surface InvalidOperationException (or an AggregateException wrapping it),
+        // NOT TaskCanceledException — which is what OnlyOnRanToCompletion produced.
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("compliance-db-error");
+    }
+
     // ── Auth & ownership errors ──────────────────────────────────────────────
 
     [Fact]

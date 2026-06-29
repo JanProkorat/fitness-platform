@@ -168,10 +168,13 @@ public class ListClientPlansEndpoint(
         // reads from IMongoContext (IMongoCollection is thread-safe for concurrent reads);
         // it does NOT touch the EF DbContext, so Task.WhenAll is safe here.
         // Results are captured as an index-correlated array to preserve plan order.
-        var complianceTasks = nutritionPlans.Select(plan =>
+        // Using async lambdas so faults from CalculateComplianceAsync propagate through
+        // Task.WhenAll naturally, matching the exception-propagation behavior of the
+        // original serial loop (no ContinueWith+OnlyOnRanToCompletion swallowing).
+        var complianceTasks = nutritionPlans.Select(async plan =>
         {
             if (!plan.StartDate.HasValue)
-                return Task.FromResult<(decimal? compliance, decimal? weightDelta)>((null, null));
+                return ((decimal?)null, (decimal?)null);
 
             var periodEnd = plan.DateCompleted ?? DateTime.UtcNow;
 
@@ -191,15 +194,9 @@ public class ListClientPlansEndpoint(
                 weightDeltaKg = endMeasurement.WeightKg.Value - startMeasurement.WeightKg.Value;
             }
 
-            // Capture loop variable for the async continuation
-            var capturedWeightDelta = weightDeltaKg;
-            return complianceService
-                .CalculateComplianceAsync(clientUserId, plan.StartDate.Value, periodEnd, ct)
-                .ContinueWith(
-                    t => (compliance: (decimal?)t.Result.NutritionCompliancePercent, weightDelta: capturedWeightDelta),
-                    ct,
-                    System.Threading.Tasks.TaskContinuationOptions.OnlyOnRanToCompletion,
-                    System.Threading.Tasks.TaskScheduler.Default);
+            var complianceResult = await complianceService.CalculateComplianceAsync(
+                clientUserId, plan.StartDate.Value, periodEnd, ct);
+            return ((decimal?)complianceResult.NutritionCompliancePercent, weightDeltaKg);
         }).ToList();
 
         var complianceResults = await Task.WhenAll(complianceTasks);
