@@ -8836,17 +8836,21 @@ export class ApiClient {
      * @param exerciseId The public identifier of the exercise to delete.
      * @return No Content
      */
-    deleteExerciseEndpoint(exerciseId: string, signal?: AbortSignal): Promise<void> {
+    deleteExerciseEndpoint(exerciseId: string, deleteExerciseRequest: DeleteExerciseRequest, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/exercises/{exerciseId}";
         if (exerciseId === undefined || exerciseId === null)
             throw new globalThis.Error("The parameter 'exerciseId' must be defined.");
         url_ = url_.replace("{exerciseId}", encodeURIComponent("" + exerciseId));
         url_ = url_.replace(/[?&]$/, "");
 
+        const content_ = JSON.stringify(deleteExerciseRequest);
+
         let options_: AxiosRequestConfig = {
+            data: content_,
             method: "DELETE",
             url: url_,
             headers: {
+                "Content-Type": "*/*",
             },
             signal
         };
@@ -12836,6 +12840,58 @@ export class ApiClient {
     }
 
     /**
+     * Request a social sign-in nonce
+     * @return Nonce issued successfully
+     */
+    requestNonceEndpoint(signal?: AbortSignal): Promise<RequestNonceResponse> {
+        let url_ = this.baseUrl + "/auth/social/nonce";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processRequestNonceEndpoint(_response);
+        });
+    }
+
+    protected processRequestNonceEndpoint(response: AxiosResponse): Promise<RequestNonceResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<RequestNonceResponse>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<RequestNonceResponse>(null as any);
+    }
+
+    /**
      * Google social login
      * @return Login successful
      */
@@ -12889,13 +12945,76 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("idToken is missing or empty", status, _responseText, _headers, result400);
+            return throwException("idToken or nonce is missing or empty", status, _responseText, _headers, result400);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<GoogleSocialLoginResponse>(null as any);
+    }
+
+    /**
+     * Apple Sign-In
+     * @return Login successful
+     */
+    appleSocialLoginEndpoint(appleSocialLoginRequest: AppleSocialLoginRequest, signal?: AbortSignal): Promise<AppleSocialLoginResponse> {
+        let url_ = this.baseUrl + "/auth/social/apple";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(appleSocialLoginRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processAppleSocialLoginEndpoint(_response);
+        });
+    }
+
+    protected processAppleSocialLoginEndpoint(response: AxiosResponse): Promise<AppleSocialLoginResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<AppleSocialLoginResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("identityToken or nonce is missing or empty", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<AppleSocialLoginResponse>(null as any);
     }
 
     /**
@@ -14397,6 +14516,12 @@ export interface UpdateTrainingPlanRequest {
     weeks: UpdateTrainingWeekRequest[];
     /** Updated start date. Must be a Monday and not in the past. */
     startDate?: string | undefined;
+    /** Optional primary fitness goal for this plan period.
+When set, read sites prefer this value over the client's onboarding baseline. */
+    goal?: PrimaryGoal | undefined;
+    /** Optional target body weight in kilograms for this plan period.
+Must be greater than zero when provided. */
+    targetWeightKg?: number | undefined;
 }
 
 /** Represents a single week submitted in a full-state training plan update. */
@@ -14488,6 +14613,15 @@ export interface UpdateExerciseSetRequest {
     distanceMeters?: number | undefined;
     /** Rest time after this set in seconds. */
     restSeconds?: number | undefined;
+}
+
+/** Primary fitness or health goal selected during onboarding. */
+export enum PrimaryGoal {
+    LoseFat = "LoseFat",
+    GainMuscle = "GainMuscle",
+    Recomposition = "Recomposition",
+    Fitness = "Fitness",
+    Health = "Health",
 }
 
 /** Request to acquire an Editing lock on a published training session. */
@@ -14607,6 +14741,12 @@ export interface CreateTrainingPlanRequest {
     /** Optional questionnaire response to link to this plan (cross-DB reference).
 Must be a submitted response owned by this professional for the same client. */
     questionnaireResponseId?: string | undefined;
+    /** Optional primary fitness goal for this plan period.
+When set, read sites prefer this value over the client's onboarding baseline. */
+    goal?: PrimaryGoal | undefined;
+    /** Optional target body weight in kilograms for this plan period.
+Must be greater than zero when provided. */
+    targetWeightKg?: number | undefined;
 }
 
 /** Request to mark a training plan as completed. */
@@ -15077,6 +15217,12 @@ endpoints — it differs from ClientPublicId. */
     linkedAt?: string;
     /** Whether the trainer-client relationship is currently active. */
     isActive?: boolean;
+    /** Whether this professional is permitted to view the client's nutrition plans.
+Mirrors ClientProfessionalLink.CanViewNutritionPlans. */
+    canViewNutritionPlans?: boolean;
+    /** Whether this professional is permitted to view the client's training plans.
+Mirrors ClientProfessionalLink.CanViewTrainingPlans. */
+    canViewTrainingPlans?: boolean;
     /** Whether the client has registered an account (email confirmed). */
     hasRegistered?: boolean;
     /** Status of the client's questionnaire: "none", "pending", or "submitted". */
@@ -16166,6 +16312,12 @@ Null clears the start date (only if it hasn't arrived and no weeks are published
     /** Full supplement list to persist. Replaces all existing supplements.
 Omitting an entry removes that supplement (full-state replace pattern). */
     supplements?: UpdateSupplementRequest[];
+    /** Optional primary fitness goal for this plan period.
+When set, read sites prefer this value over the client's onboarding baseline. */
+    goal?: PrimaryGoal | undefined;
+    /** Optional target body weight in kilograms for this plan period.
+Must be greater than zero when provided. */
+    targetWeightKg?: number | undefined;
 }
 
 /** Represents a single week submitted in a full-state plan update. */
@@ -16345,6 +16497,12 @@ Transmitted as ISO date string (e.g. "2026-03-30"), stored as midnight UTC. */
     /** Optional questionnaire response to link to this plan (cross-DB reference).
 Must be a submitted response owned by this professional for the same client. */
     questionnaireResponseId?: string | undefined;
+    /** Optional primary fitness goal for this plan period.
+When set, read sites prefer this value over the client's onboarding baseline. */
+    goal?: PrimaryGoal | undefined;
+    /** Optional target body weight in kilograms for this plan period.
+Must be greater than zero when provided. */
+    targetWeightKg?: number | undefined;
 }
 
 /** Request to mark a nutrition plan as completed. */
@@ -16692,6 +16850,8 @@ export interface ExerciseSummary {
     thumbnailUrl?: string | undefined;
     /** Whether this is a custom exercise created by a trainer. */
     isCustom?: boolean;
+    /** Optimistic concurrency version. Clients must echo this back on update/delete. */
+    version?: number;
 }
 
 /** Target muscle groups for exercises. */
@@ -16742,6 +16902,8 @@ export enum ExerciseDifficulty {
 
 /** Request model for updating a custom exercise. */
 export interface UpdateExerciseRequest {
+    /** Optimistic concurrency version. Must match the current document version. */
+    version?: number;
     /** Canonical name of the exercise. */
     name: string;
     /** Optional English name. */
@@ -16814,6 +16976,8 @@ export interface ExerciseDetail {
     isCustom?: boolean;
     /** Data source: "system" or "custom". */
     source?: string;
+    /** Optimistic concurrency version. Clients must echo this back on update/delete. */
+    version?: number;
 }
 
 /** Request model for retrieving a single exercise. */
@@ -16852,6 +17016,8 @@ export interface GenerateUploadUrlRequest {
 
 /** Request model for deleting a custom exercise. */
 export interface DeleteExerciseRequest {
+    /** Optimistic concurrency version. Must match the current document version. */
+    version?: number;
 }
 
 /** Request model for creating a custom exercise. */
@@ -18168,6 +18334,13 @@ export interface VerifyEmailRequest {
     token?: string;
 }
 
+/** Response body for POST /auth/social/nonce. */
+export interface RequestNonceResponse {
+    /** The raw nonce value to embed in the Apple/Google sign-in flow.
+Apple expects SHA-256(nonce) in the id_token; Google expects the raw value. */
+    nonce?: string;
+}
+
 /** Response returned after a successful Google social login. Shape is intentionally identical to LoginResponse so clients can reuse the same token-storage logic. */
 export interface GoogleSocialLoginResponse {
     /** JWT access token (short-lived, 15 minutes). */
@@ -18186,6 +18359,44 @@ verifies the email before issuing the ID token. */
 export interface GoogleSocialLoginRequest {
     /** The Google ID token returned by the Google Identity Services flow on the client. */
     idToken: string;
+    /** The raw nonce value obtained from POST /auth/social/nonce.
+The client must pass the same raw value that was embedded in the Google sign-in flow
+(Google embeds the raw nonce directly in the id_token's nonce field — no hashing). */
+    nonce: string;
+}
+
+/** Response returned on a successful Apple Sign-In. Identical shape to Google Social Login response. */
+export interface AppleSocialLoginResponse {
+    /** Short-lived JWT access token (15 minutes by default). */
+    accessToken?: string;
+    /** Long-lived opaque refresh token (7 days by default). */
+    refreshToken?: string;
+    /** UTC expiry time of the access token. */
+    expiresAt?: string;
+    /** Whether the account's email address has been confirmed.
+Apple-provisioned and Apple-verified accounts always have this set to true,
+which causes the client to redirect to /download-app rather than /verify-email. */
+    emailConfirmed?: boolean;
+}
+
+/** Request body for the Apple Sign-In endpoint. The identity token is always required. The authorization code and name fields are only present on first authorization (Apple omits them on re-auth). */
+export interface AppleSocialLoginRequest {
+    /** The Apple identity token (JWT) returned by the Apple JS SDK or native Sign-In. */
+    identityToken: string;
+    /** The authorization code returned by Apple (forwarded for forward-compatibility).
+The backend does not currently exchange this for tokens — identity verification
+is performed via the identity token alone. */
+    authorizationCode?: string | undefined;
+    /** The user's first name, present only on first authorization.
+Apple does not re-send this on subsequent authentications. */
+    firstName?: string | undefined;
+    /** The user's last name, present only on first authorization.
+Apple does not re-send this on subsequent authentications. */
+    lastName?: string | undefined;
+    /** The raw nonce value obtained from POST /auth/social/nonce.
+The client must pass the same raw value that was embedded in the Apple sign-in flow
+(Apple hashes it before embedding: SHA-256(nonce) appears in the id_token's nonce claim). */
+    nonce: string;
 }
 
 /** Request model for completing a password reset using a token. */

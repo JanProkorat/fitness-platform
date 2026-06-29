@@ -233,6 +233,8 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
             Goals = clientProfile.Goals,
             LinkedAt = link.DateUpdated ?? link.DateCreated,
             IsActive = link.IsActive,
+            CanViewNutritionPlans = link.CanViewNutritionPlans,
+            CanViewTrainingPlans = link.CanViewTrainingPlans,
             HasRegistered = clientProfile.User.EmailConfirmed,
             QuestionnaireStatus = questionnaireStatus,
             QuestionnaireTitle = questionnaireTitle,

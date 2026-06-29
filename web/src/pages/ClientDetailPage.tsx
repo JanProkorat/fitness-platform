@@ -63,13 +63,13 @@ export default function ClientDetailPage() {
   const { data: nutritionPlans } = useQuery({
     queryKey: ['plans', { clientId: id, status: 'Active' }],
     queryFn: () => getPlans({ clientId: id, status: 'Active', pageSize: 1 }),
-    enabled: !!id && client?.hasRegistered === true,
+    enabled: !!id && client?.hasRegistered === true && client?.canViewNutritionPlans === true,
   });
 
   const { data: trainingPlans } = useQuery({
     queryKey: ['training-plans', { clientId: id, status: 'Active' }],
     queryFn: () => getTrainingPlans({ clientId: id, status: 'Active', pageSize: 1 }),
-    enabled: !!id && client?.hasRegistered === true,
+    enabled: !!id && client?.hasRegistered === true && client?.canViewTrainingPlans === true,
   });
 
   // ── Derived values ───────────────────────────────────────────────────────────
