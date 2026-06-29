@@ -198,7 +198,7 @@ public class FinalizePlanPhotoEndpoint(
 
                 await notifier.NotifyAsync(
                     diaryRequest.ProfessionalId,  // → professional group
-                    "photodiaryphoto\x75ploaded",
+                    "photodiaryphotouploaded",
                     new PhotoDiaryPhotoUploadedEvent
                     {
                         RequestId = diaryRequest.Id,
