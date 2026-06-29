@@ -117,7 +117,7 @@ public class ReplaceQuestionnaireEndpoint(
         var profName = $"{profUser.FirstName} {profUser.LastName}";
 
         // Notify client: old cancelled, new assigned
-        await notifier.NotifyAsync(clientProfile.UserId, "questionnaireCancelled", new
+        await notifier.NotifyAsync(clientProfile.UserId, "questionnairecancelled", new
         {
             QuestionnaireTitle = oldResponse.Questionnaire?.Title ?? "",
         }, ct);
@@ -129,7 +129,7 @@ public class ReplaceQuestionnaireEndpoint(
             $"You have been assigned a new questionnaire: {questionnaire.Title}",
             ct: ct);
 
-        await notifier.NotifyAsync(clientProfile.UserId, "questionnaireAssigned", new
+        await notifier.NotifyAsync(clientProfile.UserId, "questionnaireassigned", new
         {
             QuestionnairePublicId = questionnaire.PublicId,
             questionnaire.Title,

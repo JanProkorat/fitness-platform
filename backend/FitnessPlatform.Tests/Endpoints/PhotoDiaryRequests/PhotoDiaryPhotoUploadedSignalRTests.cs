@@ -141,7 +141,7 @@ public class PhotoDiaryPhotoUploadedSignalRTests
         // Professional must receive photoDiaryPhotoUploaded
         await _notifier.Received(1).NotifyAsync(
             _nutritionistId,          // recipient = professional group
-            "photoDiaryPhotoUploaded",
+            "photodiaryphotouploaded",
             Arg.Is<PhotoDiaryPhotoUploadedEvent>(e =>
                 e.RequestId == diaryReq.Id &&
                 e.ClientName == "Petr Novak"),
@@ -190,7 +190,7 @@ public class PhotoDiaryPhotoUploadedSignalRTests
         // PhotoId in the diary event must match the photo returned by the endpoint
         await _notifier.Received(1).NotifyAsync(
             _nutritionistId,
-            "photoDiaryPhotoUploaded",
+            "photodiaryphotouploaded",
             Arg.Is<PhotoDiaryPhotoUploadedEvent>(e => e.PhotoId == ep.Response.Id),
             Arg.Any<CancellationToken>());
     }
@@ -239,7 +239,7 @@ public class PhotoDiaryPhotoUploadedSignalRTests
 
         await _notifier.Received(1).NotifyAsync(
             _nutritionistId,
-            "photoDiaryPhotoUploaded",
+            "photodiaryphotouploaded",
             Arg.Is<PhotoDiaryPhotoUploadedEvent>(e => e.DayIndex == 4),
             Arg.Any<CancellationToken>());
     }
@@ -272,7 +272,7 @@ public class PhotoDiaryPhotoUploadedSignalRTests
         // photoDiaryPhotoUploaded must NOT be emitted for a plain upload
         await _notifier.DidNotReceive().NotifyAsync(
             Arg.Any<Guid>(),
-            "photoDiaryPhotoUploaded",
+            "photodiaryphotouploaded",
             Arg.Any<object>(),
             Arg.Any<CancellationToken>());
     }

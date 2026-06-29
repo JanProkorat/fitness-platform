@@ -115,7 +115,7 @@ public class SendClientRequestEndpoint(
             $"{clientName} wants to work with you",
             ct: ct);
 
-        await notifier.NotifyAsync(professionalProfile.UserId, "clientRequestReceived", new
+        await notifier.NotifyAsync(professionalProfile.UserId, "clientrequestreceived", new
         {
             RequestPublicId = clientRequest.PublicId,
             ClientFirstName = clientUser.FirstName,

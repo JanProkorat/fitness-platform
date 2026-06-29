@@ -171,7 +171,7 @@ public class PublishTrainingWeekEndpoint(
                 $"Week {req.WeekNumber} of your training plan has been published.",
                 ct: ct);
 
-            await notifier.NotifyAsync(clientProfile.UserId, "trainingPlanPublished", new
+            await notifier.NotifyAsync(clientProfile.UserId, "trainingplanpublished", new
             {
                 PlanId = plan.ExternalId,
                 PlanName = plan.Name,

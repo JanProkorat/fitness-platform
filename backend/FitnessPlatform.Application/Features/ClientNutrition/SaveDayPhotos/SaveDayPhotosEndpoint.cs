@@ -189,7 +189,7 @@ public class SaveDayPhotosEndpoint(
                 {
                     await notifier.NotifyAsync(
                         plan.NutritionistId,
-                        "planPhotoUploaded",
+                        "planphotouploaded",
                         new PlanPhotoUploadedEvent
                         {
                             PlanId = newPhoto.PlanId,

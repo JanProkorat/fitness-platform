@@ -91,7 +91,7 @@ public class CancelClientRequestEndpoint(IApplicationDbContext db, IRealtimeNoti
             $"{clientName} revoked their invitation.",
             ct: ct);
 
-        await notifier.NotifyAsync(profProfile.UserId, "clientRequestCancelled", new
+        await notifier.NotifyAsync(profProfile.UserId, "clientrequestcancelled", new
         {
             RequestPublicId = request.PublicId,
             ClientName = clientName

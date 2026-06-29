@@ -151,7 +151,7 @@ public class DiaryLifecycleSignalRTests
         // The professional must receive exactly one photoDiaryDismissed event
         await _notifier.Received(1).NotifyAsync(
             _professionalId,        // recipient = professional group
-            "photoDiaryDismissed",
+            "photodiarydismissed",
             Arg.Is<PhotoDiaryDismissedEvent>(e =>
                 e.RequestId == diaryReq.Id &&
                 e.ClientName == "Petr Novak" &&
@@ -192,7 +192,7 @@ public class DiaryLifecycleSignalRTests
 
         await _notifier.Received(1).NotifyAsync(
             _professionalId,
-            "photoDiaryDismissed",
+            "photodiarydismissed",
             Arg.Is<PhotoDiaryDismissedEvent>(e =>
                 e.RequestId == diaryReq.Id &&
                 e.DismissReason == reason),
@@ -300,7 +300,7 @@ public class DiaryLifecycleSignalRTests
         // The professional must receive exactly one photoDiarySubmitted event
         await _notifier.Received(1).NotifyAsync(
             _professionalId,       // recipient = professional group
-            "photoDiarySubmitted",
+            "photodiarysubmitted",
             Arg.Is<PhotoDiarySubmittedEvent>(e =>
                 e.RequestId == diaryReq.Id &&
                 e.ClientName == "Petr Novak"),
@@ -356,7 +356,7 @@ public class DiaryLifecycleSignalRTests
 
         await _notifier.Received(1).NotifyAsync(
             _professionalId,
-            "photoDiarySubmitted",
+            "photodiarysubmitted",
             Arg.Is<PhotoDiarySubmittedEvent>(e =>
                 e.RequestId == diaryReq.Id &&
                 e.PhotoCount == 3),

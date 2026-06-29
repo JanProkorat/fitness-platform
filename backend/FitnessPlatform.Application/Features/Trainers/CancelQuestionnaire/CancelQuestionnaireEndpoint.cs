@@ -98,7 +98,7 @@ public class CancelQuestionnaireEndpoint(
             $"{profName} has revoked your questionnaire.",
             ct: ct);
 
-        await notifier.NotifyAsync(clientProfile.UserId, "questionnaireCancelled", new
+        await notifier.NotifyAsync(clientProfile.UserId, "questionnairecancelled", new
         {
             QuestionnaireTitle = response.Questionnaire.Title,
         }, ct);

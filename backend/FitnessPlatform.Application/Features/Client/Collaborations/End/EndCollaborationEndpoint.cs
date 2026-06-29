@@ -74,7 +74,7 @@ public class EndCollaborationEndpoint(
             $"{clientName} ended the collaboration with you.",
             ct: ct);
 
-        await notifier.NotifyAsync(link.ProfessionalProfile.UserId, "collaborationEnded", new
+        await notifier.NotifyAsync(link.ProfessionalProfile.UserId, "collaborationended", new
         {
             LinkPublicId = link.PublicId,
             ClientName = clientName

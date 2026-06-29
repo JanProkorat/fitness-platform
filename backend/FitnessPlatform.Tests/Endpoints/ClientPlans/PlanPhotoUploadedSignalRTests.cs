@@ -218,7 +218,7 @@ public class PlanPhotoUploadedSignalRTests
         // The owning nutritionist must receive exactly one event
         await _notifier.Received(1).NotifyAsync(
             _nutritionistId,
-            "planPhotoUploaded",
+            "planphotouploaded",
             Arg.Is<PlanPhotoUploadedEvent>(e =>
                 e.PlanId == planId &&
                 e.Category == PlanPhotoCategory.Body),
@@ -280,7 +280,7 @@ public class PlanPhotoUploadedSignalRTests
         // PhotoId must match the created photo's PublicId; TakenAt must match the request
         await _notifier.Received(1).NotifyAsync(
             _nutritionistId,
-            "planPhotoUploaded",
+            "planphotouploaded",
             Arg.Is<PlanPhotoUploadedEvent>(e =>
                 e.PhotoId == ep.Response.Id &&
                 e.TakenAt == takenAt &&
@@ -319,7 +319,7 @@ public class PlanPhotoUploadedSignalRTests
 
         await _notifier.Received(1).NotifyAsync(
             _trainerId,
-            "planPhotoUploaded",
+            "planphotouploaded",
             Arg.Is<PlanPhotoUploadedEvent>(e =>
                 e.PlanId == planId &&
                 e.Category == PlanPhotoCategory.FreeForm),
@@ -424,7 +424,7 @@ public class PlanPhotoUploadedSignalRTests
         // Nutritionist receives the event
         await _notifier.Received(1).NotifyAsync(
             _nutritionistId,
-            "planPhotoUploaded",
+            "planphotouploaded",
             Arg.Is<PlanPhotoUploadedEvent>(e =>
                 e.PlanId == plan.ExternalId &&
                 e.Category == PlanPhotoCategory.Food),
@@ -516,7 +516,7 @@ public class PlanPhotoUploadedSignalRTests
         // No event should be emitted — the row already existed
         await _notifier.DidNotReceive().NotifyAsync(
             Arg.Any<Guid>(),
-            "planPhotoUploaded",
+            "planphotouploaded",
             Arg.Any<object>(),
             Arg.Any<CancellationToken>());
     }
@@ -553,7 +553,7 @@ public class PlanPhotoUploadedSignalRTests
 
         await _notifier.Received(1).NotifyAsync(
             _nutritionistId,
-            "planPhotoUploaded",
+            "planphotouploaded",
             Arg.Is<PlanPhotoUploadedEvent>(e =>
                 e.PlanId == plan.ExternalId &&
                 e.Category == PlanPhotoCategory.Body),
@@ -612,7 +612,7 @@ public class PlanPhotoUploadedSignalRTests
         // No photos inserted → no events
         await _notifier.DidNotReceive().NotifyAsync(
             Arg.Any<Guid>(),
-            "planPhotoUploaded",
+            "planphotouploaded",
             Arg.Any<object>(),
             Arg.Any<CancellationToken>());
     }

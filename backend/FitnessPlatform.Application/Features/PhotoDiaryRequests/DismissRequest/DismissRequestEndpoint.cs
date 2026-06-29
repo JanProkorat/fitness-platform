@@ -78,7 +78,7 @@ public class DismissRequestEndpoint(
             var clientName = ResolveClientName(request, emailClaim);
             await notifier.NotifyAsync(
                 request.ProfessionalId,   // → professional group
-                "photoDiaryDismissed",
+                "photodiarydismissed",
                 new PhotoDiaryDismissedEvent
                 {
                     RequestId = request.Id,

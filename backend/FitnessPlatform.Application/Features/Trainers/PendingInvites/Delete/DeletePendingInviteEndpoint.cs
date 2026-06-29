@@ -95,7 +95,7 @@ public class DeletePendingInviteEndpoint(
                 $"{trainerName} has cancelled their invitation.",
                 ct: ct);
 
-            await notifier.NotifyAsync(invitedUser.Id, "invitationCancelled", new
+            await notifier.NotifyAsync(invitedUser.Id, "invitationcancelled", new
             {
                 InviteId = pendingInvite.PublicId,
             }, ct);

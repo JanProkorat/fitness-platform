@@ -191,7 +191,7 @@ public class SaveSessionPhotosEndpoint(
                 {
                     await notifier.NotifyAsync(
                         plan.TrainerId,
-                        "planPhotoUploaded",
+                        "planphotouploaded",
                         new PlanPhotoUploadedEvent
                         {
                             PlanId = newPhoto.PlanId,

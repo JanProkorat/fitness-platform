@@ -161,7 +161,7 @@ public class FinalizePlanPhotoEndpoint(
             {
                 await notifier.NotifyAsync(
                     professionalUserId.Value,
-                    "planPhotoUploaded",
+                    "planphotouploaded",
                     new PlanPhotoUploadedEvent
                     {
                         PlanId = photo.PlanId,
@@ -198,7 +198,7 @@ public class FinalizePlanPhotoEndpoint(
 
                 await notifier.NotifyAsync(
                     diaryRequest.ProfessionalId,  // → professional group
-                    "photoDiaryPhotoUploaded",
+                    "photodiaryphotouploaded",
                     new PhotoDiaryPhotoUploadedEvent
                     {
                         RequestId = diaryRequest.Id,
