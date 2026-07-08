@@ -4,10 +4,15 @@ using FluentAssertions;
 using FitnessPlatform.Application.Domain.Common;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.TrainingPlans.FinishSession;
+using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Application.Infrastructure.Services;
+using FitnessPlatform.Tests.Builders;
+using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
@@ -30,6 +35,26 @@ public class FinishSessionEndpointTests
             .Returns(new List<string>());
         return svc;
     }
+
+    /// <summary>
+    /// Builds a mock <see cref="IApplicationDbContext"/> containing a <see cref="ClientProfile"/>
+    /// whose PublicId matches the plan's ClientId — this is the resolution FinishSessionEndpoint
+    /// performs when materializing a new WorkoutLog (TrainingPlan.ClientId == ClientProfile.PublicId,
+    /// but WorkoutLog.ClientId must be keyed on ClientProfile.UserId).
+    /// </summary>
+    private static IApplicationDbContext CreateDbWithProfileForPlan(TrainingPlan plan, Guid clientUserId) =>
+        new MockDbBuilder()
+            .With(new ClientProfile { Id = 1, UserId = clientUserId, PublicId = plan.ClientId })
+            .Build();
+
+    /// <summary>
+    /// An empty-but-valid mocked <see cref="IApplicationDbContext"/> (no ClientProfiles seeded).
+    /// Safe for tests whose code path never reaches the ClientProfile resolution (early-return
+    /// guards, or an existing in-progress log) AND for the "no matching ClientProfile" 404 test,
+    /// since <see cref="MockDbBuilder"/> wires ClientProfiles as a real (empty) queryable DbSet
+    /// rather than a bare, un-stubbed substitute.
+    /// </summary>
+    private static IApplicationDbContext EmptyDb() => new MockDbBuilder().Build();
 
     private static TrainingPlan CreatePlanWithSession(
         Guid trainerId,
@@ -135,7 +160,7 @@ public class FinishSessionEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, completionService);
+            mongo, EmptyDb(), completionService);
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
@@ -157,15 +182,17 @@ public class FinishSessionEndpointTests
     {
         var sessionId = Guid.NewGuid();
         var plan = CreatePlanWithSession(_trainerId, sessionId);
+        var clientUserId = Guid.NewGuid();
 
         var (mongo, logCollection) = CreateMockMongoWithInsert(plan, []);
+        var db = CreateDbWithProfileForPlan(plan, clientUserId);
         var completionService = StubCompletionService();
 
         var ep = Factory.Create<FinishSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, completionService);
+            mongo, db, completionService);
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
@@ -173,12 +200,16 @@ public class FinishSessionEndpointTests
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
-        // A new log must be inserted.
+        // A new log must be inserted, keyed on the client's ApplicationUser.Id (resolved via
+        // ClientProfile.PublicId == plan.ClientId) — NOT the raw plan.ClientId (PublicId).
+        // This is the #651 regression guard: WorkoutLog.ClientId must match every other
+        // WorkoutLog write path's convention so client history/PR-detection can see it.
         await logCollection.Received(1).InsertOneAsync(
             Arg.Is<WorkoutLog>(l =>
                 l.PlanId == plan.ExternalId &&
                 l.SessionId == sessionId &&
-                l.ClientId == plan.ClientId &&
+                l.ClientId == clientUserId &&
+                l.ClientId != plan.ClientId &&
                 !l.IsCompleted &&
                 l.Sections.Count > 0),
             Arg.Any<InsertOneOptions>(),
@@ -204,6 +235,7 @@ public class FinishSessionEndpointTests
         var plan = CreatePlanWithSession(_trainerId, sessionId);
 
         var (mongo, _) = CreateMockMongoWithInsert(plan, []);
+        var db = CreateDbWithProfileForPlan(plan, Guid.NewGuid());
         var completionService = StubCompletionService();
 
         WorkoutLog? capturedLog = null;
@@ -217,7 +249,7 @@ public class FinishSessionEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, completionService);
+            mongo, db, completionService);
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
@@ -243,13 +275,14 @@ public class FinishSessionEndpointTests
         var backdated = DateTime.UtcNow.Date.AddDays(-7).AddHours(14); // last week
 
         var (mongo, _) = CreateMockMongoWithInsert(plan, []);
+        var db = CreateDbWithProfileForPlan(plan, Guid.NewGuid());
         var completionService = StubCompletionService();
 
         var ep = Factory.Create<FinishSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, completionService);
+            mongo, db, completionService);
 
         await ep.HandleAsync(
             new FinishSessionRequest
@@ -299,7 +332,7 @@ public class FinishSessionEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, completionService);
+            mongo, EmptyDb(), completionService);
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
@@ -325,7 +358,7 @@ public class FinishSessionEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, StubCompletionService());
+            mongo, EmptyDb(), StubCompletionService());
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
@@ -345,7 +378,7 @@ public class FinishSessionEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, StubCompletionService());
+            mongo, EmptyDb(), StubCompletionService());
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = Guid.NewGuid(), SessionId = Guid.NewGuid() },
@@ -366,7 +399,7 @@ public class FinishSessionEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, StubCompletionService());
+            mongo, EmptyDb(), StubCompletionService());
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = wrongSessionId },
@@ -401,7 +434,7 @@ public class FinishSessionEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, StubCompletionService());
+            mongo, EmptyDb(), StubCompletionService());
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
@@ -449,7 +482,7 @@ public class FinishSessionEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, StubCompletionService());
+            mongo, EmptyDb(), StubCompletionService());
 
         await ep.HandleAsync(
             new FinishSessionRequest
@@ -512,7 +545,7 @@ public class FinishSessionEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, StubCompletionService());
+            mongo, EmptyDb(), StubCompletionService());
 
         // completedAt is one day before the plan was created — must be rejected
         var tooEarly = dateCreated.AddDays(-1);
@@ -541,6 +574,7 @@ public class FinishSessionEndpointTests
         var plan = CreatePlanWithSession(_trainerId, sessionId);
 
         var (mongo, _) = CreateMockMongoWithInsert(plan, []);
+        var db = CreateDbWithProfileForPlan(plan, Guid.NewGuid());
 
         var completionService = Substitute.For<IWorkoutCompletionService>();
         completionService
@@ -551,7 +585,7 @@ public class FinishSessionEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, completionService);
+            mongo, db, completionService);
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
@@ -574,13 +608,14 @@ public class FinishSessionEndpointTests
         var plan = CreatePlanWithSession(_trainerId, sessionId);
 
         var (mongo, _) = CreateMockMongoWithInsert(plan, []);
+        var db = CreateDbWithProfileForPlan(plan, Guid.NewGuid());
         var completionService = StubCompletionService();
 
         var ep = Factory.Create<FinishSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, completionService);
+            mongo, db, completionService);
 
         // Simulate JSON-bound DateTime with Unspecified kind (equivalent to a UTC instant one week ago)
         var rawFromJson = DateTime.SpecifyKind(DateTime.UtcNow.AddDays(-5), DateTimeKind.Unspecified);
@@ -601,6 +636,90 @@ public class FinishSessionEndpointTests
         await completionService.Received(1).CompleteAsync(
             Arg.Any<WorkoutLog>(),
             Arg.Is<DateTime>(d => d.Kind == DateTimeKind.Utc),
+            Arg.Any<CancellationToken>());
+    }
+
+    // ── #651: no ClientProfile resolves plan.ClientId → 404, never fall back ─────
+
+    [Fact]
+    public async Task HandleAsync_NoClientProfileForPlanClientId_Returns404()
+    {
+        // A data-integrity edge: TrainingPlan.ClientId (a ClientProfile.PublicId) has no
+        // matching ClientProfile row. The endpoint must NOT fall back to writing the raw
+        // plan.ClientId onto WorkoutLog.ClientId — it must surface 404, mirroring
+        // StartWorkoutEndpoint's precedent for an unresolvable ClientProfile.
+        var sessionId = Guid.NewGuid();
+        var plan = CreatePlanWithSession(_trainerId, sessionId);
+
+        var (mongo, logCollection) = CreateMockMongoWithInsert(plan, []);
+        var db = EmptyDb(); // no ClientProfile seeded — plan.ClientId cannot be resolved
+
+        var ep = Factory.Create<FinishSessionEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            mongo, db, StubCompletionService());
+
+        await ep.HandleAsync(
+            new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
+
+        // No log must ever be materialized/inserted when the client cannot be resolved.
+        await logCollection.DidNotReceive().InsertOneAsync(
+            Arg.Any<WorkoutLog>(), Arg.Any<InsertOneOptions>(), Arg.Any<CancellationToken>());
+    }
+
+    // ── #651: second consequence — TrainingCompletion fan-out must now succeed ──
+
+    [Fact]
+    public async Task HandleAsync_UntouchedSession_WritesTrainingCompletionDocument()
+    {
+        // This is the second consequence of #651: with WorkoutLog.ClientId correctly resolved
+        // to the ApplicationUser.Id, WorkoutCompletionService.CompleteAsync's internal
+        // ClientProfile lookup (by UserId) must succeed and fan out a TrainingCompletion
+        // document. Exercises the REAL WorkoutCompletionService (not the stub) to prove the
+        // end-to-end pipeline, per the design-review MAJOR finding.
+        var sessionId = Guid.NewGuid();
+        var plan = CreatePlanWithSession(_trainerId, sessionId);
+        var clientUserId = Guid.NewGuid();
+
+        var mongo = TrainingPlanTestHelpers.CreateMockMongoWithLogs(
+            plans: [plan],
+            workoutLogs: [],
+            trainingCompletions: []);
+        var db = CreateDbWithProfileForPlan(plan, clientUserId);
+
+        var prDetection = Substitute.For<IPrDetectionService>();
+        prDetection.DetectAndMarkPRsAsync(Arg.Any<WorkoutLog>(), Arg.Any<CancellationToken>())
+            .Returns(new List<string>());
+        var notifications = Substitute.For<INotificationService>();
+        var logger = Substitute.For<ILogger<WorkoutCompletionService>>();
+
+        var completionService = new WorkoutCompletionService(mongo, db, prDetection, notifications, logger);
+
+        var ep = Factory.Create<FinishSessionEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            mongo, db, completionService);
+
+        await ep.HandleAsync(
+            new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        // The real completion pipeline must have written a TrainingCompletion document —
+        // this fails pre-fix because WorkoutLog.ClientId held plan.ClientId (a PublicId),
+        // so WorkoutCompletionService's `ClientProfiles.FirstOrDefaultAsync(cp => cp.UserId == log.ClientId)`
+        // lookup never matched and the fan-out silently no-op'd.
+        await mongo.TrainingCompletions.Received(1).InsertOneAsync(
+            Arg.Is<TrainingCompletion>(c =>
+                c.ClientId == plan.ClientId && // TrainingCompletion is keyed by ClientProfile.PublicId
+                c.SessionId == sessionId),
+            Arg.Any<InsertOneOptions>(),
             Arg.Any<CancellationToken>());
     }
 }
