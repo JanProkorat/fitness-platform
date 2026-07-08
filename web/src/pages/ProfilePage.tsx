@@ -8,6 +8,7 @@ import { useAuthStore } from '@/stores/auth';
 import api from '@/lib/api';
 import { PageHeader } from '@/components/layout';
 import { useToastStore } from '@/stores/toast';
+import { showApiError } from '@/lib/api-errors';
 import { Dialog, Button, EditableAvatar } from '@/components/ui';
 import { QuestionnaireList, QuestionnaireEditor, type QuestionnaireEditorHandle } from '@/components/questionnaire';
 import { RolesSection } from '@/components/RolesSection';
@@ -142,7 +143,9 @@ export default function ProfilePage() {
           phoneVal = data.phoneNumber ?? '';
           setPhone(phoneVal);
           setAvatarSrc(data.avatarBlobUrl ?? null);
-        }).catch(() => {});
+        }).catch((err) => {
+          showApiError(err, 'profile.loadError');
+        });
 
         // Fetch trainer profile (if applicable)
         const trainerPromise = isTrainer
@@ -174,7 +177,9 @@ export default function ProfilePage() {
               setWebsite(websiteVal);
               setShowInSearch(showInSearchVal);
               setAcceptNewClients(acceptNewClientsVal);
-            }).catch(() => {})
+            }).catch((err) => {
+              showApiError(err, 'profile.trainerProfileLoadError');
+            })
           : Promise.resolve();
 
         await Promise.all([userPromise, trainerPromise]);

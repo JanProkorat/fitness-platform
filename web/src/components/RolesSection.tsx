@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth';
 import { useToastStore } from '@/stores/toast';
 import api from '@/lib/api';
 import { addRole } from '@/api/roles';
+import { getApiErrorMessage } from '@/lib/api-errors';
 
 interface User {
   publicId: string;
@@ -30,7 +31,7 @@ interface RoleCardConfig {
 export function RolesSection({ user, onRoleAdded }: RolesSectionProps) {
   const { t } = useTranslation();
   const addToast = useToastStore((s) => s.addToast);
-  const [status, setStatus] = useState<string | null>(null);
+  const [status, setStatus] = useState<{ message: string; isError: boolean } | null>(null);
   const [loading, setLoading] = useState(false);
 
   const hasTrainer = user.roles.includes('Trainer');
@@ -83,9 +84,9 @@ export function RolesSection({ user, onRoleAdded }: RolesSectionProps) {
       };
 
       onRoleAdded(updatedUser);
-      setStatus(t('profile.roleAdded'));
-    } catch {
-      setStatus(t('profile.addRoleError'));
+      setStatus({ message: t('profile.roleAdded'), isError: false });
+    } catch (err) {
+      setStatus({ message: getApiErrorMessage(err, 'profile.addRoleError'), isError: true });
     } finally {
       setLoading(false);
     }
@@ -196,30 +197,23 @@ export function RolesSection({ user, onRoleAdded }: RolesSectionProps) {
       {/* Status message */}
       {status && (
         <div style={{ marginTop: 12 }}>
-          <StatusMessage status={status} errorKey={t('profile.addRoleError')} />
+          <StatusMessage status={status} />
         </div>
       )}
     </div>
   );
 }
 
-function StatusMessage({
-  status,
-  errorKey,
-}: {
-  status: string | null;
-  errorKey: string;
-}) {
-  if (!status) return null;
+function StatusMessage({ status }: { status: { message: string; isError: boolean } }) {
   return (
     <div
       className={`mb-4 rounded-sm border px-4 py-2.5 text-sm ${
-        status === errorKey
+        status.isError
           ? 'border-red bg-red-bg text-red'
           : 'border-green bg-green-bg text-green'
       }`}
     >
-      {status}
+      {status.message}
     </div>
   );
 }
