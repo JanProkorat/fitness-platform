@@ -314,6 +314,28 @@ public class UpdateWorkoutEndpoint(
         if (newlyCompletedByExercise.Count == 0)
             return false;
 
+        // ── Historical logs for prior-max lookups — fetched ONCE per request ───────
+        // Exercises now live inside sections, so ElemMatch on a flat exercises field is not
+        // available. Filter by clientId + isCompleted + not-this-log; exercise lookup is done
+        // in-memory per exercise group below. This query does not vary by exercise, so it is
+        // hoisted above the per-exercise loop (was previously re-issued once per distinct
+        // exercise in the session — see #661). The per-exercise running-max scan below is
+        // unchanged, so results are identical to the pre-fix behavior.
+        var priorLogFilter = Builders<WorkoutLog>.Filter.And(
+            Builders<WorkoutLog>.Filter.Eq(w => w.ClientId, clientId),
+            Builders<WorkoutLog>.Filter.Eq(w => w.IsCompleted, true),
+            Builders<WorkoutLog>.Filter.Ne(w => w.ExternalId, log.ExternalId));
+
+        using var priorCursor = await mongo.WorkoutLogs.FindAsync(
+            priorLogFilter,
+            cancellationToken: ct);
+        var priorLogs = await priorCursor.ToListAsync(ct);
+
+        foreach (var priorLog in priorLogs)
+        {
+            priorLog.WithBackfilledSections();
+        }
+
         var anyPrFlagged = false;
 
         foreach (var exerciseGroup in newlyCompletedByExercise)
@@ -322,25 +344,11 @@ public class UpdateWorkoutEndpoint(
             var exercise = exerciseGroup.First().Exercise;
 
             // ── 1. Historical max from prior COMPLETED workout logs ───────────────
-            // Exercises now live inside sections, so ElemMatch on a flat exercises field is not
-            // available. Filter by clientId + isCompleted + not-this-log; exercise lookup is done
-            // in-memory below.
-            var priorLogFilter = Builders<WorkoutLog>.Filter.And(
-                Builders<WorkoutLog>.Filter.Eq(w => w.ClientId, clientId),
-                Builders<WorkoutLog>.Filter.Eq(w => w.IsCompleted, true),
-                Builders<WorkoutLog>.Filter.Ne(w => w.ExternalId, log.ExternalId));
-
-            using var priorCursor = await mongo.WorkoutLogs.FindAsync(
-                priorLogFilter,
-                cancellationToken: ct);
-            var priorLogs = await priorCursor.ToListAsync(ct);
-
             decimal runningBestWeight = 0m;
             int runningBestReps = 0;
 
             foreach (var priorLog in priorLogs)
             {
-                priorLog.WithBackfilledSections();
                 var priorEx = priorLog.Exercises
                     .FirstOrDefault(e => e.ExerciseExternalId == exerciseExternalId);
 
