@@ -520,4 +520,137 @@ public class UpdateWorkoutPlannedSnapshotTests
             Arg.Any<ReplaceOptions>(),
             Arg.Any<CancellationToken>());
     }
+
+    // ── PR-detection history fetch — query-count regression guard (#661) ────────
+    //
+    // The PR-detection side-effect queries the client's completed-WorkoutLog
+    // history once per request, not once per distinct exercise in the session.
+    // A Testcontainers test cannot count queries, so this NSubstitute-mocked
+    // unit test asserts the exact WorkoutLogs.FindAsync call count instead.
+    // PR-correctness (which logs/records actually get matched) stays covered
+    // by the Testcontainers-backed PersonalRecordDetectionTests.
+
+    [Fact]
+    public async Task HandleAsync_WithMultipleDistinctExercises_IssuesOneHistoryQuery()
+    {
+        var logId = Guid.NewGuid();
+        var exerciseAId = Guid.NewGuid();
+        var exerciseBId = Guid.NewGuid();
+        var log = WorkoutLogTestHelpers.CreateLog(externalId: logId, clientId: _clientId);
+        var mongo = WorkoutLogTestHelpers.CreateMockMongo(logs: [log]);
+
+        // PersonalRecords collection: no seeded records and no idempotency
+        // duplicates, so every newly-completed set reaches the insert path
+        // without needing a real Mongo. Configured directly here rather than
+        // extending WorkoutLogTestHelpers (out of the approved scope for #661).
+        var emptyPrCursor = Substitute.For<IAsyncCursor<PersonalRecord>>();
+        emptyPrCursor.Current.Returns(new List<PersonalRecord>());
+        emptyPrCursor.MoveNext(Arg.Any<CancellationToken>()).Returns(false);
+        emptyPrCursor.MoveNextAsync(Arg.Any<CancellationToken>()).Returns(false);
+
+        var prCollection = Substitute.For<IMongoCollection<PersonalRecord>>();
+        prCollection.FindAsync(
+                Arg.Any<FilterDefinition<PersonalRecord>>(),
+                Arg.Any<FindOptions<PersonalRecord, PersonalRecord>>(),
+                Arg.Any<CancellationToken>())
+            .Returns(emptyPrCursor);
+        mongo.PersonalRecords.Returns(prCollection);
+
+        var ep = CreateEndpoint(mongo);
+
+        var request = new UpdateWorkoutRequest
+        {
+            LogId = logId,
+            Exercises =
+            [
+                new UpdateWorkoutExerciseRequest
+                {
+                    ExerciseExternalId = exerciseAId,
+                    ExerciseName = "Squat",
+                    Sets =
+                    [
+                        new UpdateWorkoutSetRequest
+                        {
+                            SetNumber = 1,
+                            Reps = 5,
+                            WeightKg = 100m,
+                            CompletedAt = DateTime.UtcNow
+                        }
+                    ]
+                },
+                new UpdateWorkoutExerciseRequest
+                {
+                    ExerciseExternalId = exerciseBId,
+                    ExerciseName = "Bench Press",
+                    Sets =
+                    [
+                        new UpdateWorkoutSetRequest
+                        {
+                            SetNumber = 1,
+                            Reps = 8,
+                            WeightKg = 60m,
+                            CompletedAt = DateTime.UtcNow
+                        }
+                    ]
+                }
+            ]
+        };
+
+        await ep.HandleAsync(request, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        // Exactly 2 WorkoutLogs.FindAsync calls total for this request:
+        // 1) the initial in-progress-log lookup, 2) the hoisted completed-history
+        // fetch. Pre-fix this would have been 1 + N (N = distinct exercises = 2).
+        await mongo.WorkoutLogs.Received(2).FindAsync(
+            Arg.Any<FilterDefinition<WorkoutLog>>(),
+            Arg.Any<FindOptions<WorkoutLog, WorkoutLog>>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    /// <summary>
+    /// Regression guard for the hoist: when no set is newly completed this call,
+    /// the PR-detection side-effect must return early with zero history queries
+    /// (the early-return in DetectAndPersistPRsAsync), and the log update must
+    /// still succeed with 200.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_WithNoNewlyCompletedSets_FiresZeroHistoryQueriesAndReturns200()
+    {
+        var logId = Guid.NewGuid();
+        var exerciseId = Guid.NewGuid();
+        var log = WorkoutLogTestHelpers.CreateLog(externalId: logId, clientId: _clientId);
+        var mongo = WorkoutLogTestHelpers.CreateMockMongo(logs: [log]);
+        var ep = CreateEndpoint(mongo);
+
+        // No CompletedAt on the set → not newly completed → PR detection short-circuits.
+        var request = new UpdateWorkoutRequest
+        {
+            LogId = logId,
+            Exercises =
+            [
+                new UpdateWorkoutExerciseRequest
+                {
+                    ExerciseExternalId = exerciseId,
+                    ExerciseName = "Squat",
+                    Sets =
+                    [
+                        new UpdateWorkoutSetRequest { SetNumber = 1, Reps = 5, WeightKg = 100m }
+                    ]
+                }
+            ]
+        };
+
+        await ep.HandleAsync(request, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        // Only the single initial in-progress-log lookup — the hoisted history
+        // query never fires because there are no newly-completed weighted sets.
+        await mongo.WorkoutLogs.Received(1).FindAsync(
+            Arg.Any<FilterDefinition<WorkoutLog>>(),
+            Arg.Any<FindOptions<WorkoutLog, WorkoutLog>>(),
+            Arg.Any<CancellationToken>());
+    }
 }
