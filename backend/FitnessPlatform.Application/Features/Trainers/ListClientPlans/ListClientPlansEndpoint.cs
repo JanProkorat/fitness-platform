@@ -195,7 +195,7 @@ public class ListClientPlansEndpoint(
             }
 
             var complianceResult = await complianceService.CalculateComplianceAsync(
-                clientUserId, plan.StartDate.Value, periodEnd, ct);
+                clientPublicId, plan.StartDate.Value, periodEnd, ct);
             return ((decimal?)complianceResult.NutritionCompliancePercent, weightDeltaKg);
         }).ToList();
 

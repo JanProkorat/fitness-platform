@@ -17,7 +17,11 @@ public class MealLog
     public ObjectId Id { get; set; }
 
     /// <summary>
-    /// The client who ate the meal (matches ApplicationUser.Id).
+    /// The client who ate the meal (matches ClientProfile.PublicId — NOT
+    /// ApplicationUser.Id). This is the same convention used by
+    /// NutritionPlan.ClientId, TrainingPlan.ClientId, and TrainingCompletion.ClientId;
+    /// WorkoutLog.ClientId and PersonalRecord.ClientId are the only collections
+    /// keyed on ApplicationUser.Id instead.
     /// </summary>
     [BsonElement("clientId")]
     public Guid ClientId { get; set; }
