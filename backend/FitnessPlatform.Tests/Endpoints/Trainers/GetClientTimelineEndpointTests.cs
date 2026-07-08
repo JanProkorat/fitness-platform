@@ -227,11 +227,12 @@ public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
         {
             var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
 
-            // Seed a meal log at T1 (MealLog has no ExternalId/Version fields)
+            // Seed a meal log at T1 (MealLog has no ExternalId/Version fields).
+            // MealLog.ClientId is keyed on ClientProfile.PublicId — NOT UserId (see #650).
             await mongo.MealLogs.InsertOneAsync(new MealLog
             {
                 Id = ObjectId.GenerateNewId(),
-                ClientId = clientUserId,
+                ClientId = clientPublicId,
                 PlanId = Guid.NewGuid(),
                 MealId = Guid.NewGuid(),
                 EatenAt = t1,
@@ -389,6 +390,104 @@ public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
         // Items must be in descending OccurredAt order
         body.Items.Select(i => i.OccurredAt)
             .Should().BeInDescendingOrder("timeline is newest-first");
+    }
+
+    /// <summary>
+    /// Test 6: Regression guard for #650. MealLog, NutritionPlan, and TrainingPlan all
+    /// key ClientId on ClientProfile.PublicId — NOT ApplicationUser.Id. Prior to the fix,
+    /// GetClientTimelineEndpoint filtered these three collections by clientProfile.UserId,
+    /// so meal_day / nutrition_plan_published / training_plan_published items were always
+    /// silently empty (zero documents, no exception). WorkoutLog stays keyed on UserId and
+    /// must remain visible after the fix — proving the fix only re-keys the three broken
+    /// collections, not the two that were already correct.
+    /// </summary>
+    [Fact]
+    public async Task Timeline_MealNutritionAndTrainingPlanSeededOnPublicId_AllAppear()
+    {
+        var (trainerHttp, trainerProfileId, _) = await SetupTrainerAsync();
+        var (clientPublicId, clientProfileId, clientUserId) = await SetupClientAsync();
+        await LinkTrainerToClientAsync(trainerProfileId, clientProfileId);
+
+        var mealAt = DateTime.UtcNow.AddDays(-1);
+        var nutritionPublishedAt = DateTime.UtcNow.AddDays(-2);
+        var trainingPublishedAt = DateTime.UtcNow.AddDays(-3);
+        var workoutAt = DateTime.UtcNow.AddDays(-4);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+            // MealLog, NutritionPlan, TrainingPlan — keyed on ClientProfile.PublicId.
+            await mongo.MealLogs.InsertOneAsync(new MealLog
+            {
+                Id = ObjectId.GenerateNewId(),
+                ClientId = clientPublicId,
+                PlanId = Guid.NewGuid(),
+                MealId = Guid.NewGuid(),
+                EatenAt = mealAt,
+                FoodsEaten = [],
+            }, cancellationToken: TestContext.Current.CancellationToken);
+
+            await mongo.NutritionPlans.InsertOneAsync(new NutritionPlan
+            {
+                Id = ObjectId.GenerateNewId(),
+                ExternalId = Guid.NewGuid(),
+                ClientId = clientPublicId,
+                NutritionistId = Guid.NewGuid(),
+                Name = "Timeline Nutrition Plan",
+                Status = NutritionPlanStatus.Active,
+                DatePublished = nutritionPublishedAt,
+                Weeks = [],
+                Version = 1,
+                DateCreated = DateTime.UtcNow,
+            }, cancellationToken: TestContext.Current.CancellationToken);
+
+            await mongo.TrainingPlans.InsertOneAsync(new TrainingPlan
+            {
+                Id = ObjectId.GenerateNewId(),
+                ExternalId = Guid.NewGuid(),
+                ClientId = clientPublicId,
+                TrainerId = Guid.NewGuid(),
+                Name = "Timeline Training Plan",
+                Status = TrainingPlanStatus.Active,
+                DatePublished = trainingPublishedAt,
+                Weeks = [],
+                Version = 1,
+                DateCreated = DateTime.UtcNow,
+            }, cancellationToken: TestContext.Current.CancellationToken);
+
+            // WorkoutLog — keyed on ApplicationUser.Id, must remain unaffected by the fix.
+            await mongo.WorkoutLogs.InsertOneAsync(new WorkoutLog
+            {
+                Id = ObjectId.GenerateNewId(),
+                ExternalId = Guid.NewGuid(),
+                ClientId = clientUserId,
+                StartedAt = workoutAt.AddMinutes(-30),
+                CompletedAt = workoutAt,
+                IsCompleted = true,
+                Sections = [],
+                DateCreated = DateTime.UtcNow,
+            }, cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        var response = await trainerHttp.GetAsync(
+            $"/trainer/clients/{clientPublicId}/timeline?limit=100",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<TimelineResponse>(
+            JsonOptions,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        body!.Items.Should().Contain(i => i.Type == "meal_day",
+            "MealLog.ClientId is keyed on PublicId — must be found when queried by PublicId");
+        body.Items.Should().Contain(i => i.Type == "nutrition_plan_published",
+            "NutritionPlan.ClientId is keyed on PublicId — must be found when queried by PublicId");
+        body.Items.Should().Contain(i => i.Type == "training_plan_published",
+            "TrainingPlan.ClientId is keyed on PublicId — must be found when queried by PublicId");
+        body.Items.Should().Contain(i => i.Type == "workout",
+            "WorkoutLog stays keyed on UserId and must remain visible after the fix");
     }
 
     // ── local response DTOs ────────────────────────────────────────────────────
