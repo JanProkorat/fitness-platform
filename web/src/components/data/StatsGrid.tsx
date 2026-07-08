@@ -1,8 +1,12 @@
-import { cn } from '@/lib/cn';
-
 interface StatBlock {
   label: string;
   value: string | number;
+  /**
+   * CSS custom-property reference for the value text color, e.g. 'var(--orange)'.
+   * Must always be a `var(--token)` reference — never a hex literal — so
+   * theme/dark-mode swaps keep working. Applied via inline `style` since
+   * CSS variable references cannot be used as Tailwind class names.
+   */
   valueColor?: string;
   sub?: string;
 }
@@ -27,17 +31,8 @@ export function StatsGrid({ stats, columns = 4 }: StatsGridProps) {
             {stat.label}
           </div>
           <div
-            className={cn(
-              'text-[22px] font-bold tracking-tight leading-none',
-              typeof stat.valueColor === 'string' &&
-                stat.valueColor.startsWith('#') === false &&
-                stat.valueColor,
-            )}
-            style={
-              typeof stat.valueColor === 'string' && stat.valueColor.startsWith('#')
-                ? { color: stat.valueColor }
-                : undefined
-            }
+            className="text-[22px] font-bold tracking-tight leading-none"
+            style={stat.valueColor ? { color: stat.valueColor } : undefined}
           >
             {stat.value}
           </div>

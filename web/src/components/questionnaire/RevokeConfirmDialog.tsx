@@ -26,7 +26,7 @@ export function RevokeConfirmDialog({
           className="pointer-events-auto flex flex-col border border-border shadow-2xl overflow-hidden"
           style={{ width: 440, maxWidth: '95vw', background: 'var(--bg)', borderRadius: 10, animation: 'dlg-slide-up .4s ease-out' }}
         >
-          <div className="flex items-center justify-center" style={{ height: 80, background: 'var(--red-bg, rgba(255,59,48,0.08))', borderRadius: '10px 10px 0 0' }}>
+          <div className="flex items-center justify-center" style={{ height: 80, background: 'var(--red-bg)', borderRadius: '10px 10px 0 0' }}>
             <span style={{ fontSize: 32, opacity: 0.7 }}>🗑️</span>
           </div>
           <div className="px-5 py-4">

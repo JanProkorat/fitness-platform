@@ -200,10 +200,9 @@ export function RequestDiaryDialog({
                       key={d}
                       type="button"
                       onClick={() => setDurationDays(d)}
-                      className="flex-1 px-3 py-1.5 rounded-md text-[12px] font-medium border transition-colors"
+                      className={`flex-1 px-3 py-1.5 rounded-md text-[12px] font-medium border transition-colors ${durationDays === d ? 'text-white' : 'text-text3'}`}
                       style={{
                         background: durationDays === d ? 'var(--accent)' : 'var(--bg2)',
-                        color: durationDays === d ? '#fff' : 'var(--text3)',
                         borderColor: durationDays === d ? 'var(--accent)' : 'var(--border)',
                       }}
                     >
@@ -274,8 +273,8 @@ export function RequestDiaryDialog({
                 if (canSubmit) mutation.mutate();
               }}
               disabled={!canSubmit}
-              className="px-5 py-2 rounded-md text-[13px] font-medium transition-colors disabled:opacity-50"
-              style={{ background: 'var(--accent)', color: '#fff' }}
+              className="px-5 py-2 rounded-md text-[13px] font-medium text-white transition-colors disabled:opacity-50"
+              style={{ background: 'var(--accent)' }}
             >
               {mutation.isPending
                 ? t('diary.request.sending')

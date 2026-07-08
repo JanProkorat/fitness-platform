@@ -100,7 +100,7 @@ export function PlanQuestionnairePanel({
               padding: '6px 8px',
               background: 'var(--accent-bg)',
               borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--accent-br, rgba(201,168,76,0.2))',
+              border: '1px solid var(--accent-br)',
               marginBottom: 6,
             }}
           >
@@ -175,9 +175,9 @@ export function PlanQuestionnairePanel({
         <div>
           <div style={{
             padding: '6px 8px',
-            background: 'var(--orange-bg, rgba(255,149,0,0.08))',
+            background: 'var(--orange-bg)',
             borderRadius: 'var(--radius-md)',
-            border: '1px solid rgba(173,87,0,0.15)',
+            border: '1px solid var(--orange-br)',
             fontSize: 11,
             color: 'var(--orange)',
             display: 'flex',
@@ -203,13 +203,13 @@ export function PlanQuestionnairePanel({
                   borderRadius: 'var(--radius-md)',
                   border: 'none',
                   background: 'var(--accent)',
-                  color: '#fff',
                   fontSize: 10,
                   fontWeight: 600,
                   fontFamily: 'inherit',
                   cursor: 'pointer',
                   transition: 'opacity 0.15s',
                 }}
+                className="text-white"
                 onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.85'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
               >
@@ -223,7 +223,7 @@ export function PlanQuestionnairePanel({
                   padding: '4px 0',
                   borderRadius: 'var(--radius-md)',
                   border: 'none',
-                  background: 'var(--red-bg, rgba(255,59,48,0.08))',
+                  background: 'var(--red-bg)',
                   color: 'var(--red)',
                   fontSize: 10,
                   fontWeight: 600,
