@@ -72,10 +72,25 @@ export default function LoginPage() {
     resolver: zodResolver(loginSchema),
   });
 
-  const onSubmit = async (data: LoginForm) => {
-    setLoading(true);
-    try {
-      const res: LoginResponse = await apiClient.loginEndpoint(data);
+  /**
+   * Shared post-authentication flow, run identically after any successful
+   * login — email/password, Google, or Apple. Each provider-specific caller
+   * is responsible only for obtaining the `LoginResponse`; this helper owns
+   * everything that happens once tokens exist:
+   *
+   *   session set → fetch profile → store login → redirect to email
+   *   verification if unconfirmed → consume a pending invite token (if any)
+   *   → navigate to the final destination.
+   *
+   * Invite consumption (410/expired or success) always resolves before
+   * navigating — a stale or invalid invite must never block login, so both
+   * branches fall through to the same final `navigate` call. Provider auth
+   * errors (401 social-login rejection) are intentionally NOT handled here;
+   * they stay in the caller's own try/catch so `showApiError` and
+   * provider-specific loading/nonce cleanup are not swallowed by this helper.
+   */
+  const completeLogin = useCallback(
+    async (res: LoginResponse) => {
       setTokens(res.accessToken!, res.refreshToken!);
       const profile = await apiClient.getProfileEndpoint();
       const emailConfirmed = res.emailConfirmed ?? true;
@@ -118,6 +133,15 @@ export default function LoginPage() {
       }
 
       navigate(isClientOnly ? '/download-app' : '/dashboard', { replace: true });
+    },
+    [navigate, login, setTokens],
+  );
+
+  const onSubmit = async (data: LoginForm) => {
+    setLoading(true);
+    try {
+      const res: LoginResponse = await apiClient.loginEndpoint(data);
+      await completeLogin(res);
     } catch {
       showError('auth.loginError');
     } finally {
@@ -146,35 +170,10 @@ export default function LoginPage() {
     setGoogleNonce(null);
     try {
       const res: LoginResponse = await googleSocialLogin(credentialResponse.credential, nonce);
-      setTokens(res.accessToken!, res.refreshToken!);
-      const profile = await apiClient.getProfileEndpoint();
-      const emailConfirmed = res.emailConfirmed ?? true;
-
-      login(
-        {
-          publicId: profile.userId!,
-          email: profile.email!,
-          firstName: profile.firstName!,
-          lastName: profile.lastName!,
-          roles: profile.roles ?? [],
-          emailConfirmed,
-          avatarBlobUrl: profile.avatarBlobUrl ?? null,
-        },
-        res.accessToken!,
-        res.refreshToken!,
-      );
-
       // Google has verified the email, so emailConfirmed is always true for
-      // new accounts. Still check in case an existing linked account was
-      // somehow unverified.
-      if (!emailConfirmed) {
-        navigate('/verify-email', { replace: true });
-        return;
-      }
-
-      const roles = profile.roles ?? [];
-      const isClientOnly = roles.includes('Client') && !roles.some((r: string) => ['Trainer', 'Nutritionist', 'Admin'].includes(r));
-      navigate(isClientOnly ? '/download-app' : '/dashboard', { replace: true });
+      // new accounts. completeLogin still checks in case an existing linked
+      // account was somehow unverified.
+      await completeLogin(res);
     } catch (err) {
       showApiError(err, 'auth.loginError');
     } finally {
@@ -210,35 +209,10 @@ export default function LoginPage() {
         lastName,
         nonce,
       });
-      setTokens(res.accessToken!, res.refreshToken!);
-      const profile = await apiClient.getProfileEndpoint();
-      const emailConfirmed = res.emailConfirmed ?? true;
-
-      login(
-        {
-          publicId: profile.userId!,
-          email: profile.email!,
-          firstName: profile.firstName!,
-          lastName: profile.lastName!,
-          roles: profile.roles ?? [],
-          emailConfirmed,
-          avatarBlobUrl: profile.avatarBlobUrl ?? null,
-        },
-        res.accessToken!,
-        res.refreshToken!,
-      );
-
       // Apple has verified the email (or it is a private-relay address, which
-      // is also considered confirmed). Still check in case an existing linked
-      // account was somehow unverified.
-      if (!emailConfirmed) {
-        navigate('/verify-email', { replace: true });
-        return;
-      }
-
-      const roles = profile.roles ?? [];
-      const isClientOnly = roles.includes('Client') && !roles.some((r: string) => ['Trainer', 'Nutritionist', 'Admin'].includes(r));
-      navigate(isClientOnly ? '/download-app' : '/dashboard', { replace: true });
+      // is also considered confirmed). completeLogin still checks in case an
+      // existing linked account was somehow unverified.
+      await completeLogin(res);
     } catch (err) {
       showApiError(err, 'auth.loginError');
     } finally {
