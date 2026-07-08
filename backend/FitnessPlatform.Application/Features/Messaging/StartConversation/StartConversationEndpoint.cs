@@ -91,7 +91,7 @@ public class StartConversationEndpoint(IApplicationDbContext db) : Endpoint<Star
                 {
                     Id = otherUser.Id,
                     Name = otherUser.FirstName + " " + otherUser.LastName,
-                    Initials = (otherUser.FirstName[..1] + otherUser.LastName[..1]).ToUpper(),
+                    Initials = ComputeInitials(otherUser.FirstName, otherUser.LastName, otherUser.Email),
                     Online = false,
                     AvatarBlobUrl = participantAvatarBlobUrl,
                 },
@@ -119,7 +119,7 @@ public class StartConversationEndpoint(IApplicationDbContext db) : Endpoint<Star
             {
                 Id = otherUser.Id,
                 Name = otherUser.FirstName + " " + otherUser.LastName,
-                Initials = (otherUser.FirstName[..1] + otherUser.LastName[..1]).ToUpper(),
+                Initials = ComputeInitials(otherUser.FirstName, otherUser.LastName, otherUser.Email),
                 Online = false,
                 AvatarBlobUrl = participantAvatarBlobUrl,
             },
@@ -128,6 +128,29 @@ public class StartConversationEndpoint(IApplicationDbContext db) : Endpoint<Star
             LastMessageIsOwn = false,
             UnreadCount = 0,
         }, ct);
+    }
+
+    /// <summary>
+    /// Computes a two-letter initials fallback for a participant's avatar badge.
+    /// Handles Apple Sign-In users who declined to share their name (FirstName
+    /// and/or LastName persisted as ""), where naively slicing the first
+    /// character would throw <see cref="ArgumentOutOfRangeException"/>.
+    /// Falls back to the email's first character, then a generic glyph, when
+    /// both names are empty.
+    /// </summary>
+    private static string ComputeInitials(string firstName, string lastName, string? email)
+    {
+        var firstInitial = string.IsNullOrEmpty(firstName) ? "" : firstName[..1];
+        var lastInitial = string.IsNullOrEmpty(lastName) ? "" : lastName[..1];
+        var initials = (firstInitial + lastInitial).ToUpper();
+
+        if (!string.IsNullOrEmpty(initials))
+            return initials;
+
+        if (!string.IsNullOrEmpty(email))
+            return email[..1].ToUpper();
+
+        return "?";
     }
 }
 
