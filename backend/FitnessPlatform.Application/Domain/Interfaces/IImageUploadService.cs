@@ -81,4 +81,35 @@ public interface IImageUploadService
         string contentType,
         long sizeBytes,
         CancellationToken ct);
+
+    /// <summary>
+    /// Validates that <paramref name="blobUrl"/> is exactly the URL this service would have
+    /// issued via <see cref="GenerateUploadUrlAsync(ImageUploadScope,string,string,long,CancellationToken)"/>
+    /// for the given scope and identity-bound sub-path prefix, for one of the allowed image
+    /// extensions.
+    ///
+    /// <para>
+    /// Confirm-style endpoints receive an already-authenticated identity (a userId claim or a
+    /// DB-resolved profile), not a raw request DTO — so this check cannot live in a
+    /// <c>FluentValidation</c> validator, which has no access to the caller's identity. Call
+    /// this from the endpoint's <c>HandleAsync</c> after resolving the caller's identity, and
+    /// reject the request before persisting <paramref name="blobUrl"/> if it returns false.
+    /// This closes the stored-content-injection hole where an attacker submits an arbitrary
+    /// or another user's URL to be persisted verbatim and later rendered to other users.
+    /// </para>
+    /// </summary>
+    /// <param name="scope">Logical bucket scope (e.g. <see cref="ImageUploadScope.Avatar"/>).</param>
+    /// <param name="subPathPrefix">
+    /// The scope-specific, extension-less portion of the expected key — e.g. <c>"{userId}"</c>
+    /// for a user avatar or <c>"prof-{profileId}"</c> for a professional avatar. Must match
+    /// exactly what the paired <c>GenerateUploadUrlEndpoint</c> used to build its <c>subPath</c>.
+    /// </param>
+    /// <param name="blobUrl">The blobUrl the caller is attempting to persist.</param>
+    /// <returns>
+    /// True only if <paramref name="blobUrl"/> matches <c>"{prefix}/{subPathPrefix}.{ext}"</c>
+    /// (reconstructed via the same public-URL builder used at upload-url generation time) for
+    /// one of the allowed image extensions. False for a null/empty/whitespace input, a
+    /// mismatched prefix, or a foreign/external URL.
+    /// </returns>
+    bool IsValidBlobUrlForSubPath(ImageUploadScope scope, string subPathPrefix, string blobUrl);
 }

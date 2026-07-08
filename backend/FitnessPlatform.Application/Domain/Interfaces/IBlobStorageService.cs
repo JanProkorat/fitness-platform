@@ -16,6 +16,22 @@ public interface IBlobStorageService
     Task<BlobUploadUrl> GenerateUploadUrlAsync(string containerPath, string contentType, TimeSpan expiresIn, CancellationToken ct);
 
     /// <summary>
+    /// Builds the public blob URL for a given container path, using the exact same
+    /// construction logic as <see cref="GenerateUploadUrlAsync"/> — without generating a
+    /// new pre-signed upload URL or making a network call.
+    ///
+    /// <para>
+    /// Confirm-style endpoints use this to validate a client-supplied blobUrl by
+    /// reconstructing the value this service would have issued for a known,
+    /// identity-scoped container path, rather than parsing the caller's URL (which would
+    /// duplicate the host/bucket concatenation logic and drift from it over time).
+    /// </para>
+    /// </summary>
+    /// <param name="containerPath">The container/bucket path including the object key.</param>
+    /// <returns>The same public URL string that <see cref="GenerateUploadUrlAsync"/> would return as <c>BlobUrl</c> for that path.</returns>
+    string BuildPublicUrl(string containerPath);
+
+    /// <summary>
     /// Uploads raw bytes directly to blob storage (server-side upload).
     /// Used by seed runners and background jobs that have the bytes in memory
     /// and do not need a client-facing pre-signed URL.
