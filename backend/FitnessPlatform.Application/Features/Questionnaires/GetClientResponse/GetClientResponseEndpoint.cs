@@ -52,7 +52,8 @@ public class GetClientResponseEndpoint(IApplicationDbContext db) : EndpointWitho
         var hasLink = await db.ClientProfessionalLinks
             .AsNoTracking()
             .AnyAsync(l => l.ClientProfileId == clientProfile.Id
-                        && l.ProfessionalProfileId == professionalProfile.Id, ct);
+                        && l.ProfessionalProfileId == professionalProfile.Id
+                        && l.IsActive, ct);
 
         if (!hasLink)
         {
