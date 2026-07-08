@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useQueryClient } from '@tanstack/react-query';
 import { getTrainingPlans, createTrainingPlan } from '@/api/training-plans';
 
 /**
@@ -13,6 +14,7 @@ export default function ClientTrainingPage() {
   const clientId = id ?? '';
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   // Keep a ref to `t` so the resolve effect can access the current translator
   // without adding it to the deps array (t changes identity on every language
   // switch, which would re-fire the mutating effect and create duplicate plans).
@@ -44,6 +46,13 @@ export default function ClientTrainingPage() {
           if (cancelled) return;
 
           if (newPlan?.planId) {
+            // ClientDetailPage reads ['training-plans', { clientId, status: 'Active' }]
+            // for its "active training plan" card — without this invalidation
+            // it keeps rendering the create-plan placeholder after the trainer
+            // navigates back from this auto-create redirect (#615).
+            queryClient.invalidateQueries({
+              queryKey: ['training-plans', { clientId, status: 'Active' }],
+            });
             navigate(`/clients/${clientId}/training-plans/${newPlan.planId}`, { replace: true });
           } else {
             setError(tRef.current('clientTraining.createError'));
@@ -58,7 +67,7 @@ export default function ClientTrainingPage() {
 
     resolve();
     return () => { cancelled = true; };
-  }, [clientId, navigate]);
+  }, [clientId, navigate, queryClient]);
 
   if (error) {
     return (

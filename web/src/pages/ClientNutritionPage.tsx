@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useQueryClient } from '@tanstack/react-query';
 import { getPlans, createPlan } from '@/api/plans';
 
 /**
@@ -13,6 +14,7 @@ export default function ClientNutritionPage() {
   const clientId = id ?? '';
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   // Keep a ref to `t` so the resolve effect can access the current translator
   // without adding it to the deps array (t changes identity on every language
   // switch, which would re-fire the mutating effect and create duplicate plans).
@@ -47,6 +49,13 @@ export default function ClientNutritionPage() {
           if (cancelled) return;
 
           if (newPlan?.planId) {
+            // ClientDetailPage reads ['plans', { clientId, status: 'Active' }]
+            // for its "active nutrition plan" card — without this invalidation
+            // it keeps rendering the create-plan placeholder after the trainer
+            // navigates back from this auto-create redirect (#615).
+            queryClient.invalidateQueries({
+              queryKey: ['plans', { clientId, status: 'Active' }],
+            });
             navigate(`/clients/${clientId}/plans/${newPlan.planId}`, { replace: true });
           } else {
             setError(tRef.current('clientNutrition.createError'));
@@ -61,7 +70,7 @@ export default function ClientNutritionPage() {
 
     resolve();
     return () => { cancelled = true; };
-  }, [clientId, navigate]);
+  }, [clientId, navigate, queryClient]);
 
   if (error) {
     return (
