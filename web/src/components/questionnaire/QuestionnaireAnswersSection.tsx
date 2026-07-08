@@ -17,9 +17,9 @@ interface Props {
 
 function StatusBadge({ status, label }: { status: string; label: string }) {
   const colorMap: Record<string, { bg: string; color: string }> = {
-    Submitted: { bg: 'var(--green-bg, rgba(52,199,89,0.1))', color: 'var(--green, #34c759)' },
-    Pending: { bg: 'var(--orange-bg, rgba(255,149,0,0.1))', color: 'var(--orange, #ff9500)' },
-    InProgress: { bg: 'var(--orange-bg, rgba(255,149,0,0.1))', color: 'var(--orange, #ff9500)' },
+    Submitted: { bg: 'var(--green-bg)', color: 'var(--green)' },
+    Pending: { bg: 'var(--orange-bg)', color: 'var(--orange)' },
+    InProgress: { bg: 'var(--orange-bg)', color: 'var(--orange)' },
   };
   const colors = colorMap[status] ?? { bg: 'var(--bg2)', color: 'var(--text3)' };
 

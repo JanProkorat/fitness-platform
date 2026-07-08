@@ -307,11 +307,11 @@ export function Sidebar({ onToggleDark, isOpen = false, onClose }: SidebarProps)
             <div className="shrink-0">
               <div style={{ padding: '6px 14px 2px', fontSize: 10, color: 'var(--red)', letterSpacing: '0.03em', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
                 {t('clientRequests.sidebarSection')}
-                <span style={{
+                <span className="text-white" style={{
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                   minWidth: 16, height: 16, padding: '0 4px',
                   borderRadius: 8, background: 'var(--red)', border: '1px solid var(--red)',
-                  fontSize: 10, fontWeight: 600, color: '#fff',
+                  fontSize: 10, fontWeight: 600,
                 }}>
                   {incomingRequests.length}
                 </span>
