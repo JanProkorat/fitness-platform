@@ -101,6 +101,26 @@ public class MarkWholeDayCompleteEndpoint(
 
         var summaries = new List<SessionCompletionSummary>();
 
+        // ── Batch-fetch existing TrainingCompletion docs for the day ──────────
+        // One round trip covering every session resolved for the day, instead of
+        // a per-session FindAsync inside the loop below. Mirrors the pattern used
+        // by GetTodaySessionEndpoint and TrainingProgressBroadcaster.CountCompletedSessionsAsync.
+        // Only the READ is batched — writes below stay per-session so the Version
+        // bump, the fan-out version-conflict skip, and the 11000 duplicate-key
+        // retry all keep their original per-session semantics.
+        var completionsBySessionId = new Dictionary<Guid, TrainingCompletion>();
+        if (sessionsForDay.Count > 0)
+        {
+            var sessionIds = sessionsForDay.Select(s => s.SessionId).ToList();
+            var batchFilter = Builders<TrainingCompletion>.Filter.Eq(c => c.ClientId, clientId)
+                              & Builders<TrainingCompletion>.Filter.Eq(c => c.Date, targetDate)
+                              & Builders<TrainingCompletion>.Filter.In(c => c.SessionId, sessionIds);
+
+            using var batchCursor = await mongo.TrainingCompletions.FindAsync(batchFilter, cancellationToken: ct);
+            var existingCompletions = await batchCursor.ToListAsync(ct);
+            completionsBySessionId = existingCompletions.ToDictionary(c => c.SessionId);
+        }
+
         foreach (var session in sessionsForDay)
         {
             session.WithBackfilledSections();
@@ -111,8 +131,7 @@ public class MarkWholeDayCompleteEndpoint(
                                    & Builders<TrainingCompletion>.Filter.Eq(c => c.Date, targetDate)
                                    & Builders<TrainingCompletion>.Filter.Eq(c => c.SessionId, session.SessionId);
 
-            using var completionCursor = await mongo.TrainingCompletions.FindAsync(completionFilter, cancellationToken: ct);
-            var existing = await completionCursor.FirstOrDefaultAsync(ct);
+            completionsBySessionId.TryGetValue(session.SessionId, out var existing);
 
             int version;
 
