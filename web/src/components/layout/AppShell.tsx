@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo, Suspense } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef, Suspense } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -49,6 +49,20 @@ export function AppShell() {
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, [sidebarOpen]);
+
+  // Per-conversation typing-indicator clear timers (#638). Declared outside the
+  // memoized handler map below so a single Map instance persists across
+  // re-renders — a lone shared timer ref would let conversation B's typing
+  // ping clear conversation A's still-pending clear-timer.
+  const typingTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  useEffect(() => {
+    const timers = typingTimersRef.current;
+    return () => {
+      timers.forEach((timer) => clearTimeout(timer));
+      timers.clear();
+    };
+  }, []);
 
   // Real-time notification handlers
   const signalRHandlers = useMemo(() => ({
@@ -335,13 +349,23 @@ export function AppShell() {
     },
     typing: (payload: unknown) => {
       const data = payload as { conversationId?: string; senderId?: string } | undefined;
-      if (data?.conversationId) {
-        queryClient.setQueryData(['typing', data.conversationId], { isTyping: true, senderId: data.senderId });
-        // Clear typing after 3 seconds
-        setTimeout(() => {
-          queryClient.setQueryData(['typing', data.conversationId], { isTyping: false });
-        }, 3000);
+      if (!data?.conversationId) return;
+      const { conversationId } = data;
+      queryClient.setQueryData(['typing', conversationId], { isTyping: true, senderId: data.senderId });
+
+      // Reset this conversation's clear-timer on every ping instead of letting
+      // the first-scheduled timer fire mid-typing (#638). Each conversation
+      // gets its own map entry so pings on other conversations never touch it.
+      const timers = typingTimersRef.current;
+      const existing = timers.get(conversationId);
+      if (existing) {
+        clearTimeout(existing);
       }
+      const timer = setTimeout(() => {
+        queryClient.setQueryData(['typing', conversationId], { isTyping: false });
+        timers.delete(conversationId);
+      }, 3000);
+      timers.set(conversationId, timer);
     },
   }), [queryClient, addToast, t]);
 
