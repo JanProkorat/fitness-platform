@@ -1,3 +1,5 @@
+using System.Net;
+using System.Reflection;
 using System.Security.Claims;
 using FastEndpoints;
 using FluentAssertions;
@@ -8,11 +10,16 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.ClientTraining.MarkWholeDayComplete;
 using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Builders;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using MongoDB.Bson;
 using MongoDB.Driver;
+using MongoDB.Driver.Core.Clusters;
+using MongoDB.Driver.Core.Connections;
+using MongoDB.Driver.Core.Servers;
 using NSubstitute;
 
 namespace FitnessPlatform.Tests.Endpoints.ClientTraining;
@@ -123,6 +130,108 @@ public class MarkWholeDayCompleteEndpointTests
             Version = 1,
             DateCreated = startOfWeek
         };
+    }
+
+    /// <summary>
+    /// Creates a plan with a single session scheduled today (isolates a single
+    /// session's read/write path for concurrency-scenario tests, avoiding cross-talk
+    /// with a second session's mocked calls).
+    /// </summary>
+    private TrainingPlan CreateSingleSessionPlan(Guid sessionId, IReadOnlyList<Guid> exerciseIds)
+    {
+        var today = DateTime.UtcNow;
+        var startOfWeek = today.Date.AddDays(-(((int)today.DayOfWeek + 6) % 7));
+        var todayDow = (int)today.DayOfWeek;
+        todayDow = todayDow == 0 ? 7 : todayDow;
+
+        return new TrainingPlan
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = _clientId,
+            TrainerId = Guid.NewGuid(),
+            Name = "Single-Session Day Plan",
+            Status = TrainingPlanStatus.Active,
+            StartDate = startOfWeek,
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = startOfWeek,
+                    Sessions =
+                    [
+                        new TrainingSession
+                        {
+                            SessionId = sessionId,
+                            DayOfWeek = todayDow,
+                            Name = "Session 1",
+                            Order = 1,
+                            Sections =
+                            [
+                                new TrainingSection
+                                {
+                                    SectionId = Guid.NewGuid(),
+                                    Order = 0,
+                                    Name = "Hlavní",
+                                    Exercises = exerciseIds.Select((id, i) => new SessionExercise
+                                    {
+                                        ExerciseExternalId = id, ExerciseName = $"Ex{i + 1}", Order = i + 1, Sets = []
+                                    }).ToList()
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            Version = 1,
+            DateCreated = startOfWeek
+        };
+    }
+
+    /// <summary>
+    /// Builds an <see cref="IAsyncCursor{TrainingCompletion}"/> substitute backed by the given list —
+    /// local copy of <see cref="TrainingCompletionTestHelpers"/>'s private cursor helper, needed here
+    /// to stage sequential FindAsync return values (batch-read vs. duplicate-key retry-read).
+    /// </summary>
+    private static IAsyncCursor<TrainingCompletion> CreateCursor(List<TrainingCompletion> completions)
+    {
+        var cursor = Substitute.For<IAsyncCursor<TrainingCompletion>>();
+        var moved = false;
+        cursor.Current.Returns(completions);
+        cursor.MoveNext(Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            if (moved) return false;
+            moved = true;
+            return completions.Count > 0;
+        });
+        cursor.MoveNextAsync(Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            if (moved) return false;
+            moved = true;
+            return completions.Count > 0;
+        });
+        return cursor;
+    }
+
+    /// <summary>
+    /// Constructs a real <see cref="MongoWriteException"/> with a duplicate-key (11000) write error,
+    /// via reflection since <see cref="WriteError"/>'s constructor is internal to the driver.
+    /// </summary>
+    private static MongoWriteException CreateDuplicateKeyException()
+    {
+        var writeErrorCtor = typeof(WriteError).GetConstructor(
+            BindingFlags.NonPublic | BindingFlags.Instance,
+            null,
+            [typeof(ServerErrorCategory), typeof(int), typeof(string), typeof(BsonDocument)],
+            null)!;
+        var writeError = (WriteError)writeErrorCtor.Invoke(
+            [ServerErrorCategory.DuplicateKey, 11000, "E11000 duplicate key error", new BsonDocument()]);
+
+        var serverId = new ServerId(new ClusterId(), new DnsEndPoint("localhost", 27017));
+        var connectionId = new ConnectionId(serverId);
+
+        return new MongoWriteException(connectionId, writeError, null!, null!);
     }
 
     [Fact]
@@ -236,5 +345,231 @@ public class MarkWholeDayCompleteEndpointTests
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(401);
+    }
+
+    /// <summary>
+    /// Regression test for #662: the completion read must be a single batched
+    /// Filter.In(SessionId) round trip covering every session resolved for the day,
+    /// not one FindAsync per session inside the loop.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_MultipleSessions_IssuesSingleBatchedFindForCompletions()
+    {
+        var plan = CreateMultiSessionPlan();
+        var mongo = Substitute.For<IMongoContext>();
+
+        var planCollection = TrainingCompletionTestHelpers.CreateMockMongo(plan: plan).Mongo.TrainingPlans;
+        mongo.TrainingPlans.Returns(planCollection);
+
+        var completionCollection = TrainingCompletionTestHelpers.CreateMockCompletionCollection([]);
+        mongo.TrainingCompletions.Returns(completionCollection);
+
+        var db = CreateMockDb();
+
+        var ep = Factory.Create<MarkWholeDayCompleteEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+
+        await ep.HandleAsync(
+            new MarkWholeDayCompleteRequest { Date = DateOnly.FromDateTime(DateTime.UtcNow) },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        // Two round trips total for a two-session day: one batched Filter.In read for our
+        // own completion check (this endpoint's fix), plus TrainingProgressBroadcaster's own
+        // already-batched read for the compliance broadcast. Before #662 this was 3 — one
+        // per-session FindAsync (2, one per session) plus the broadcaster's read (1).
+        await completionCollection.Received(2).FindAsync(
+            Arg.Any<FilterDefinition<TrainingCompletion>>(),
+            Arg.Any<FindOptions<TrainingCompletion, TrainingCompletion>>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    /// <summary>
+    /// Fan-out version conflict: another request bumped the session's Version between
+    /// our batched read and our per-session UpdateOneAsync, so the version-matched filter
+    /// modifies zero rows. The session is skipped (existing version reported back) but the
+    /// whole request must still succeed — it must not fail the entire day's batch.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_FanOutVersionConflict_SkipsSessionWithoutFailingRequest()
+    {
+        var plan = CreateMultiSessionPlan();
+
+        // Session1 has a partial completion; UpdateOneAsync is stubbed to modify zero rows,
+        // simulating a concurrent writer winning the race after our batch read.
+        var existingCompletion = TrainingCompletionTestHelpers.CreateCompletion(
+            clientId: _clientId,
+            sessionId: _session1,
+            date: DateTime.UtcNow.Date,
+            completedExerciseIds: [],
+            version: 3);
+
+        var mongo = Substitute.For<IMongoContext>();
+        var planCollection = TrainingCompletionTestHelpers.CreateMockMongo(plan: plan).Mongo.TrainingPlans;
+        mongo.TrainingPlans.Returns(planCollection);
+
+        var completionCollection = TrainingCompletionTestHelpers.CreateMockCompletionCollection(
+            [existingCompletion], updateSucceeds: false);
+        mongo.TrainingCompletions.Returns(completionCollection);
+
+        var db = CreateMockDb();
+
+        var ep = Factory.Create<MarkWholeDayCompleteEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+
+        await ep.HandleAsync(
+            new MarkWholeDayCompleteRequest { Date = DateOnly.FromDateTime(DateTime.UtcNow) },
+            TestContext.Current.CancellationToken);
+
+        // The whole batch still succeeds even though session1's write lost the race.
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        var session1Summary = ep.Response.Sessions.Single(s => s.SessionId == _session1);
+        session1Summary.Version.Should().Be(3); // kept the existing version, not incremented
+    }
+
+    /// <summary>
+    /// Duplicate-key (Mongo 11000) on concurrent insert: a concurrent request inserts the
+    /// completion doc first, so our InsertOneAsync fails with a 11000 write error. The
+    /// handler must re-read the doc and retry the fan-out once, still returning 200.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_DuplicateKeyOnConcurrentInsert_RetriesAndSucceeds()
+    {
+        var plan = CreateSingleSessionPlan(_session1, [_exercise1, _exercise2]);
+
+        var mongo = Substitute.For<IMongoContext>();
+        var planCollection = TrainingCompletionTestHelpers.CreateMockMongo(plan: plan).Mongo.TrainingPlans;
+        mongo.TrainingPlans.Returns(planCollection);
+
+        // The concurrent request's winning doc: only exercise1 completed so far.
+        var winnerCompletion = TrainingCompletionTestHelpers.CreateCompletion(
+            clientId: _clientId,
+            sessionId: _session1,
+            date: DateTime.UtcNow.Date,
+            completedExerciseIds: [_exercise1],
+            version: 1);
+
+        var completionCollection = Substitute.For<IMongoCollection<TrainingCompletion>>();
+
+        // Batch read (before the insert race) sees nothing yet; the retry read after the
+        // 11000 sees the concurrent winner's doc.
+        completionCollection.FindAsync(
+                Arg.Any<FilterDefinition<TrainingCompletion>>(),
+                Arg.Any<FindOptions<TrainingCompletion, TrainingCompletion>>(),
+                Arg.Any<CancellationToken>())
+            .Returns(
+                _ => CreateCursor([]),
+                _ => CreateCursor([winnerCompletion]));
+
+        completionCollection
+            .InsertOneAsync(Arg.Any<TrainingCompletion>(), Arg.Any<InsertOneOptions>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromException(CreateDuplicateKeyException()));
+
+        var updateResult = Substitute.For<UpdateResult>();
+        updateResult.ModifiedCount.Returns(1L);
+        completionCollection.UpdateOneAsync(
+                Arg.Any<FilterDefinition<TrainingCompletion>>(),
+                Arg.Any<UpdateDefinition<TrainingCompletion>>(),
+                Arg.Any<UpdateOptions>(),
+                Arg.Any<CancellationToken>())
+            .Returns(updateResult);
+
+        mongo.TrainingCompletions.Returns(completionCollection);
+        // Extracted to a local first — configuring a nested substitute inline inside
+        // another .Returns() call corrupts NSubstitute's "last call" tracking.
+        var workoutLogCollection = TrainingCompletionTestHelpers.CreateMockWorkoutLogCollection([]);
+        mongo.WorkoutLogs.Returns(workoutLogCollection);
+
+        var db = CreateMockDb();
+
+        var ep = Factory.Create<MarkWholeDayCompleteEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+
+        await ep.HandleAsync(
+            new MarkWholeDayCompleteRequest { Date = DateOnly.FromDateTime(DateTime.UtcNow) },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        // Retried after the duplicate-key error, found the winner's doc (only exercise1
+        // complete), and fanned out the remaining exercise via an update — not a second insert.
+        await completionCollection.Received(1).InsertOneAsync(
+            Arg.Any<TrainingCompletion>(), Arg.Any<InsertOneOptions>(), Arg.Any<CancellationToken>());
+        await completionCollection.Received(1).UpdateOneAsync(
+            Arg.Any<FilterDefinition<TrainingCompletion>>(),
+            Arg.Any<UpdateDefinition<TrainingCompletion>>(),
+            Arg.Any<UpdateOptions>(),
+            Arg.Any<CancellationToken>());
+
+        ep.Response.Sessions.Single().Version.Should().Be(2);
+    }
+
+    /// <summary>
+    /// Empty day: no sessions resolved for the date. Must return empty summaries without
+    /// issuing the batch completion read or firing the whole-day broadcast.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_EmptyDay_ReturnsEmptySummariesWithoutBroadcasting()
+    {
+        var start = DateTime.UtcNow.Date.AddDays(-(int)DateTime.UtcNow.DayOfWeek + 1);
+        var plan = new TrainingPlan
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = _clientId,
+            TrainerId = Guid.NewGuid(),
+            Name = "No Sessions Plan",
+            Status = TrainingPlanStatus.Active,
+            StartDate = start,
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = start,
+                    Sessions = []
+                }
+            ],
+            Version = 1,
+            DateCreated = start
+        };
+
+        var mongo = Substitute.For<IMongoContext>();
+        var planCollection = TrainingCompletionTestHelpers.CreateMockMongo(plan: plan).Mongo.TrainingPlans;
+        mongo.TrainingPlans.Returns(planCollection);
+
+        var completionCollection = TrainingCompletionTestHelpers.CreateMockCompletionCollection([]);
+        mongo.TrainingCompletions.Returns(completionCollection);
+
+        var db = CreateMockDb();
+
+        var ep = Factory.Create<MarkWholeDayCompleteEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+
+        await ep.HandleAsync(
+            new MarkWholeDayCompleteRequest { Date = DateOnly.FromDateTime(DateTime.UtcNow) },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        ep.Response.Sessions.Should().BeEmpty();
+
+        // No completion read should happen when there's nothing to resolve for the day,
+        // and no realtime broadcast should fire.
+        await completionCollection.DidNotReceive().FindAsync(
+            Arg.Any<FilterDefinition<TrainingCompletion>>(),
+            Arg.Any<FindOptions<TrainingCompletion, TrainingCompletion>>(),
+            Arg.Any<CancellationToken>());
+        await _notifier.DidNotReceive().NotifyAsync(
+            Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<object>(), Arg.Any<CancellationToken>());
     }
 }
