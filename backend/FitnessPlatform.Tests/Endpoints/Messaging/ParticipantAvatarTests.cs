@@ -20,6 +20,27 @@ public class ParticipantAvatarTests(FitnessApiFactory factory)
     private static string UniqueEmail() => $"{Guid.NewGuid():N}@msg-avatar-test.com";
     private const string Password = "TestPass1!";
 
+    /// <summary>
+    /// Requests a real, identity-scoped avatar blobUrl via the given upload-url route —
+    /// exactly what a legitimate client does before calling the paired confirm endpoint.
+    /// Since #658, both confirm endpoints reject any blobUrl that isn't the caller's own
+    /// presigned key, so tests can no longer PUT a hand-picked string.
+    /// </summary>
+    private static async Task<string> GetOwnUploadBlobUrlAsync(HttpClient client, string uploadUrlRoute)
+    {
+        var resp = await client.PostAsJsonAsync(
+            uploadUrlRoute,
+            new { ContentType = "image/jpeg", SizeBytes = 1024 },
+            TestContext.Current.CancellationToken);
+
+        resp.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await resp.Content.ReadFromJsonAsync<UploadUrlResponse>(
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        body.Should().NotBeNull();
+        return body!.BlobUrl;
+    }
+
     // ── POST /conversations ──────────────────────────────────────────────────
 
     /// <summary>
@@ -37,7 +58,7 @@ public class ParticipantAvatarTests(FitnessApiFactory factory)
         var (trainerToken, _) = await TestHelpers.LoginAsync(http, trainerEmail, Password);
         TestHelpers.SetBearerToken(http, trainerToken);
 
-        const string profAvatarUrl = "avatars/prof-alice.jpg";
+        var profAvatarUrl = await GetOwnUploadBlobUrlAsync(http, "/professionals/me/avatar/upload-url");
         await http.PutAsJsonAsync(
             "/professionals/me/avatar",
             new { BlobUrl = profAvatarUrl },
@@ -93,7 +114,7 @@ public class ParticipantAvatarTests(FitnessApiFactory factory)
         var (trainerToken, _) = await TestHelpers.LoginAsync(http, trainerEmail, Password);
         TestHelpers.SetBearerToken(http, trainerToken);
 
-        const string userAvatarUrl = "avatars/user-carol.jpg";
+        var userAvatarUrl = await GetOwnUploadBlobUrlAsync(http, "/users/me/avatar/upload-url");
         await http.PutAsJsonAsync(
             "/users/me/avatar",
             new { BlobUrl = userAvatarUrl },
@@ -152,7 +173,7 @@ public class ParticipantAvatarTests(FitnessApiFactory factory)
         var (trainerToken, _) = await TestHelpers.LoginAsync(http, trainerEmail, Password);
         TestHelpers.SetBearerToken(http, trainerToken);
 
-        const string profAvatarUrl = "avatars/prof-eve.png";
+        var profAvatarUrl = await GetOwnUploadBlobUrlAsync(http, "/professionals/me/avatar/upload-url");
         await http.PutAsJsonAsync(
             "/professionals/me/avatar",
             new { BlobUrl = profAvatarUrl },
@@ -201,4 +222,5 @@ public class ParticipantAvatarTests(FitnessApiFactory factory)
 
     private record ParticipantResponse(Guid Id, string Name, string? AvatarBlobUrl);
     private record ConversationResponse(Guid Id, ParticipantResponse Participant);
+    private record UploadUrlResponse(string UploadUrl, string BlobUrl);
 }
