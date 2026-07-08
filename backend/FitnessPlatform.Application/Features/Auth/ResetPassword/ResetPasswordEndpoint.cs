@@ -24,6 +24,15 @@ public class ResetPasswordEndpoint(UserManager<ApplicationUser> userManager) : E
         });
     }
 
+    /// <summary>
+    /// Generic failure message shared by both the non-existent-email branch and the
+    /// invalid/expired/used-token branch. Both MUST throw this exact same message —
+    /// surfacing Identity's distinct "Invalid token." text (or any of
+    /// <see cref="IdentityResult.Errors"/>) only when the email exists would let an
+    /// attacker enumerate registered accounts by comparing response text. See #656.
+    /// </summary>
+    private const string GenericResetFailureMessage = "Invalid or expired password reset request.";
+
     /// <inheritdoc />
     public override async Task HandleAsync(ResetPasswordRequest req, CancellationToken ct)
     {
@@ -31,7 +40,7 @@ public class ResetPasswordEndpoint(UserManager<ApplicationUser> userManager) : E
 
         if (user is null)
         {
-            ThrowError("Invalid reset request.");
+            ThrowError(GenericResetFailureMessage);
             return;
         }
 
@@ -39,12 +48,8 @@ public class ResetPasswordEndpoint(UserManager<ApplicationUser> userManager) : E
 
         if (!result.Succeeded)
         {
-            foreach (var error in result.Errors)
-            {
-                AddError(error.Description);
-            }
-
-            ThrowIfAnyErrors();
+            ThrowError(GenericResetFailureMessage);
+            return;
         }
 
         await Send.OkAsync(new { Message = "Password has been reset successfully." }, ct);
