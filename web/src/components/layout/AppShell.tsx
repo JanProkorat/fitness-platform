@@ -234,13 +234,20 @@ export function AppShell() {
       }
     },
     // ── Photo diary real-time events (from #94 / #97) ────────────────────────
+    // Every handler below ALSO invalidates the bare ['diary-requests'] prefix
+    // in addition to the plan-scoped key. TanStack Query's invalidateQueries
+    // is prefix-match only — a plan-scoped invalidation (['diary-requests',
+    // planId]) can never reach FotkyTab's client-scoped query key
+    // (['diary-requests', clientId]), since neither is a prefix of the other.
+    // Broadening to always also hit the bare key keeps FotkyTab (and any
+    // other client-scoped consumer) in sync regardless of whether the event
+    // payload carried a planId (#614).
     photodiaryrequested: (payload: unknown) => {
       const data = payload as { planId?: string } | undefined;
       if (data?.planId) {
         queryClient.invalidateQueries({ queryKey: ['diary-requests', data.planId] });
-      } else {
-        queryClient.invalidateQueries({ queryKey: ['diary-requests'] });
       }
+      queryClient.invalidateQueries({ queryKey: ['diary-requests'] });
     },
     photodiaryaccepted: (payload: unknown) => {
       // Client just accepted a Pending request — flip its status chip
@@ -248,17 +255,15 @@ export function AppShell() {
       const data = payload as { planId?: string } | undefined;
       if (data?.planId) {
         queryClient.invalidateQueries({ queryKey: ['diary-requests', data.planId] });
-      } else {
-        queryClient.invalidateQueries({ queryKey: ['diary-requests'] });
       }
+      queryClient.invalidateQueries({ queryKey: ['diary-requests'] });
     },
     photodiarydismissed: (payload: unknown) => {
       const data = payload as { planId?: string } | undefined;
       if (data?.planId) {
         queryClient.invalidateQueries({ queryKey: ['diary-requests', data.planId] });
-      } else {
-        queryClient.invalidateQueries({ queryKey: ['diary-requests'] });
       }
+      queryClient.invalidateQueries({ queryKey: ['diary-requests'] });
     },
     photodiaryphotouploaded: (payload: unknown) => {
       // Diary photo uploads re-use the planphotouploaded path for the photo
@@ -274,17 +279,16 @@ export function AppShell() {
             q.queryKey[0] === 'planPhotos' && q.queryKey[2] === data.planId,
         });
       } else {
-        queryClient.invalidateQueries({ queryKey: ['diary-requests'] });
         queryClient.invalidateQueries({ queryKey: ['planPhotos'] });
       }
+      queryClient.invalidateQueries({ queryKey: ['diary-requests'] });
     },
     photodiarysubmitted: (payload: unknown) => {
       const data = payload as { planId?: string } | undefined;
       if (data?.planId) {
         queryClient.invalidateQueries({ queryKey: ['diary-requests', data.planId] });
-      } else {
-        queryClient.invalidateQueries({ queryKey: ['diary-requests'] });
       }
+      queryClient.invalidateQueries({ queryKey: ['diary-requests'] });
     },
     weeklycheckinupdated: (payload: unknown) => {
       if (import.meta.env.DEV) {

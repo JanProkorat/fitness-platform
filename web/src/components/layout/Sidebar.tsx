@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -124,6 +124,11 @@ export function Sidebar({ onToggleDark, isOpen = false, onClose }: SidebarProps)
   const [questionnaires, setQuestionnaires] = useState<QuestionnaireSummaryDto[]>([]);
   const [selectedQuestionnaireId, setSelectedQuestionnaireId] = useState<string>('');
   const [clientSearch, setClientSearch] = useState('');
+  // Tracks which incoming request the in-flight getTrainerQuestionnaires()
+  // fetch belongs to. If the trainer clicks request B before request A's
+  // fetch resolves, A's stale response must not overwrite B's default
+  // questionnaire selection (#639).
+  const activeRequestIdRef = useRef<string | null>(null);
 
   const clientMatch = location.pathname.match(/^\/clients\/([^/]+)/);
   const activeClientId = clientMatch?.[1] ?? null;
@@ -316,11 +321,18 @@ export function Sidebar({ onToggleDark, isOpen = false, onClose }: SidebarProps)
                     setSelectedRequest(req);
                     setStatementText('');
                     setSelectedQuestionnaireId('');
+                    activeRequestIdRef.current = req.publicId;
                     getTrainerQuestionnaires().then((data) => {
+                      // Ignore a late resolution if the trainer has since
+                      // selected a different request.
+                      if (activeRequestIdRef.current !== req.publicId) return;
                       setQuestionnaires(data);
                       const defaultQ = data.find((q) => q.isDefault && q.isActive);
                       setSelectedQuestionnaireId(defaultQ?.publicId ?? '');
-                    }).catch(() => setQuestionnaires([]));
+                    }).catch(() => {
+                      if (activeRequestIdRef.current !== req.publicId) return;
+                      setQuestionnaires([]);
+                    });
                   }}
                   title={req.message ? `${req.clientFirstName} ${req.clientLastName}: ${req.message}` : `${req.clientFirstName} ${req.clientLastName}`}
                   style={{ width: '100%', textAlign: 'left', fontFamily: 'inherit' }}

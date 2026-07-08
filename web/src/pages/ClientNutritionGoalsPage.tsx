@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/stores/auth';
 import { PageHeader } from '@/components/layout';
@@ -63,6 +63,7 @@ const ACTIVITY_ITEM_KEYS: Record<string, string> = {
 export default function ClientNutritionGoalsPage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
+  const queryClient = useQueryClient();
 
   const user = useAuthStore((s) => s.user);
   const isTrainer = user?.roles?.includes('Trainer') || user?.roles?.includes('Admin');
@@ -166,6 +167,11 @@ export default function ClientNutritionGoalsPage() {
         carbsGrams: result.macroTargets.carbsGrams,
         fatGrams: result.macroTargets.fatGrams,
       });
+      // The BMR/TDEE/macro fields just saved are surfaced via the
+      // ['client-dashboard', id] query (NutritionGoalsTab, NutritionPlanPage
+      // meal-macro widgets). Without this invalidation those views keep
+      // showing the pre-save goals until an unrelated refetch happens (#619).
+      queryClient.invalidateQueries({ queryKey: ['client-dashboard', id] });
     } catch {
       // handled
     } finally {
