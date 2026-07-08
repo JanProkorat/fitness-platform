@@ -37,6 +37,23 @@ export function FoodRow({ food, mealId, dayOfWeek, weekNumber, onAmountChange, o
   const accentColor = CATEGORY_CSS_COLORS[food.category ?? '']?.color ?? _accentColor;
   const [localAmount, setLocalAmount] = useState(String(food.amount));
   const [localNote, setLocalNote] = useState(food.note ?? '');
+  // Resync local input state when the source value changes underneath us —
+  // e.g. after "Discard changes" reloads the plan. Adjusting state during
+  // render (rather than in a useEffect) avoids the extra commit-then-effect
+  // render pass — see https://react.dev/learn/you-might-not-need-an-effect.
+  // onAmountChange/onNoteChange only fire on blur, so the prop only changes
+  // to reflect a value we already just committed, or an external reload —
+  // never mid-typing.
+  const [prevAmount, setPrevAmount] = useState(food.amount);
+  if (food.amount !== prevAmount) {
+    setPrevAmount(food.amount);
+    setLocalAmount(String(food.amount));
+  }
+  const [prevNote, setPrevNote] = useState(food.note ?? '');
+  if ((food.note ?? '') !== prevNote) {
+    setPrevNote(food.note ?? '');
+    setLocalNote(food.note ?? '');
+  }
   const inputRef = useRef<HTMLInputElement>(null);
 
   function handleBlur() {

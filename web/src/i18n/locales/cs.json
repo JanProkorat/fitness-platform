@@ -1765,6 +1765,8 @@
     "lastName": "Příjmení",
     "heightCm": "Výška (cm)",
     "weightKg": "Váha (kg)",
+    "profileUpdated": "Profil klienta uložen",
+    "readOnlyFieldHint": "Toto pole nelze z portálu trenéra upravit.",
     "tabBarLabel": "Záložky klienta",
     "ageYears_one": "{{count}} rok",
     "ageYears_few": "{{count}} roky",

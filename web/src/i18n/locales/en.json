@@ -1744,6 +1744,8 @@
     "lastName": "Last name",
     "heightCm": "Height (cm)",
     "weightKg": "Weight (kg)",
+    "profileUpdated": "Client profile saved",
+    "readOnlyFieldHint": "This field can't be edited from the trainer portal.",
     "tabBarLabel": "Client tabs",
     "ageYears_one": "{{count}} year",
     "ageYears_other": "{{count}} years",
