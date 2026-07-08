@@ -4,6 +4,9 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { getClientPlans } from '@/api/client-plans';
 import type { ClientPlanItem, PlanStatus } from '@/api/client-plans';
+// Module-scope helper — no React hook available here. Use the i18n singleton
+// directly, mirroring lib/api-errors.ts.
+import i18n from '@/i18n';
 
 interface PlanyTabProps {
   clientId: string;
@@ -13,7 +16,7 @@ interface PlanyTabProps {
 
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return '';
-  return new Date(iso).toLocaleDateString('cs-CZ', {
+  return new Date(iso).toLocaleDateString(i18n.language, {
     day: 'numeric',
     month: 'numeric',
     year: 'numeric',
@@ -199,9 +202,14 @@ export function PlanyTab({ clientId }: PlanyTabProps) {
             </thead>
             <tbody>
               {plans.map((plan) => {
-                const statusLabel = t(
-                  `clientDetail.plany.status.${(plan.status ?? '').toLowerCase()}`,
-                );
+                // Guard against an undefined/unrecognised status: falling through to
+                // t() unconditionally would render the raw dotted key string
+                // ("clientDetail.plany.status.") instead of a sensible fallback (#643).
+                const statusLabel = plan.status
+                  ? t(`clientDetail.plany.status.${plan.status.toLowerCase()}`, {
+                      defaultValue: plan.status,
+                    })
+                  : '—';
                 return (
                   <tr
                     key={plan.planId}

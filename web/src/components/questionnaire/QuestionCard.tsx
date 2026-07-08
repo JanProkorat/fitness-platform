@@ -199,7 +199,7 @@ export function QuestionCard({ question, onChange, onRemove, defaultExpanded = f
           {!isSection && (
           <div className="form-group" style={{ marginBottom: 10 }}>
             <label className="form-label" style={{ fontSize: 11 }}>
-              {t('questionnaire.typeShortText').split(' ')[0] === 'Krátký' ? 'Typ' : 'Type'}
+              {t('questionnaire.typeFieldLabel')}
             </label>
             <select
               className="form-select"
@@ -274,7 +274,7 @@ export function QuestionCard({ question, onChange, onRemove, defaultExpanded = f
           {(question.type === 'single_choice' || question.type === 'multi_select') && (
             <div className="form-group" style={{ marginBottom: 10 }}>
               <label className="form-label" style={{ fontSize: 11 }}>
-                {t('questionnaire.addOption').replace('Přidat ', '').replace('Add ', '').replace('hinzufügen', '').trim() || 'Options'}
+                {t('questionnaire.optionsLabel')}
               </label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {options.map((opt, i) => (

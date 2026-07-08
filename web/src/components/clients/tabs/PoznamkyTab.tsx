@@ -20,9 +20,9 @@ interface PoznamkyTabProps {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function formatDate(iso: string): string {
+function formatDate(iso: string, locale: string): string {
   const d = new Date(iso);
-  return d.toLocaleDateString('cs-CZ', {
+  return d.toLocaleDateString(locale, {
     day: 'numeric',
     month: 'numeric',
     year: 'numeric',
@@ -37,7 +37,7 @@ interface NoteCardProps {
 }
 
 function NoteCard({ note, clientId }: NoteCardProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const addToast = useToastStore((s) => s.addToast);
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
@@ -155,7 +155,7 @@ function NoteCard({ note, clientId }: NoteCardProps) {
         <div className="text-[13px] text-text whitespace-pre-wrap break-words">
           {note.text}
         </div>
-        <div className="text-[11px] text-text3 mt-1">{note.createdAt ? formatDate(note.createdAt) : ''}</div>
+        <div className="text-[11px] text-text3 mt-1">{note.createdAt ? formatDate(note.createdAt, i18n.language) : ''}</div>
       </div>
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
         <button

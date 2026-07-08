@@ -73,7 +73,7 @@ export function ClientRequestDialog({
         </div>
         <div>
           <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text3)', marginBottom: 4 }}>
-            Email
+            {t('common.email')}
           </div>
           <div style={{ fontSize: 14, color: 'var(--text)' }}>
             {request.clientEmail}
@@ -206,7 +206,7 @@ export function PendingInviteDialog({
         </div>
         <div>
           <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text3)', marginBottom: 4 }}>
-            Email
+            {t('common.email')}
           </div>
           <div style={{ fontSize: 14, color: 'var(--text)' }}>
             {invite.email}

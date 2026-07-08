@@ -14,6 +14,11 @@
     "name": "Name",
     "email": "E-Mail",
     "actions": "Aktionen",
+    "toggleDarkMode": "Dunkelmodus umschalten",
+    "lightMode": "Heller Modus",
+    "darkMode": "Dunkler Modus",
+    "removeChip": "{{value}} entfernen",
+    "addNew": "+ Neu",
     "previous": "Zurück",
     "next": "Weiter",
     "page": "Seite {{current}} von {{total}}",
@@ -134,7 +139,10 @@
     "addClient": "Klient hinzufügen",
     "pendingInvites": "AUSSTEHENDE EINLADUNGEN",
     "openMenu": "Menü öffnen",
-    "closeMenu": "Menü schließen"
+    "closeMenu": "Menü schließen",
+    "collapseClient": "{{name}} einklappen",
+    "expandClient": "{{name}} ausklappen",
+    "goToClient": "Zu {{name}} wechseln"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -209,7 +217,11 @@
     "calloutComplianceDetail": "Compliance {{compliance}} % — Plan wird nicht eingehalten",
     "calloutTrainsDetail": "Absolviert {{trains}}/{{trainsGoal}} Trainings",
     "calloutTitleLow": "niedrige Compliance",
-    "calloutTitleAttention": "benötigt Aufmerksamkeit"
+    "calloutTitleAttention": "benötigt Aufmerksamkeit",
+    "activityToday": "heute",
+    "activityYesterday": "gestern",
+    "activityDaysAgo_one": "vor {{count}} Tag",
+    "activityDaysAgo_other": "vor {{count}} Tagen"
   },
   "clients": {
     "title": "Klienten",
@@ -814,6 +826,11 @@
         "save": "Speichern"
       }
     }
+  },
+  "richTextEditor": {
+    "placeholder": "Beginne zu schreiben...",
+    "list": "Liste",
+    "quote": "Zitat"
   },
   "apiErrors": {
     "INVALID_CREDENTIALS": "Ungültige E-Mail oder Passwort.",
@@ -1442,7 +1459,9 @@
     "typeNumber": "Zahl",
     "typeScale": "Skala",
     "typeFileUpload": "Datei-Upload",
+    "typeFieldLabel": "Typ",
     "addOption": "Option hinzufügen",
+    "optionsLabel": "Optionen",
     "optionPlaceholder": "Option...",
     "allowCustom": "Eigene Antwort erlauben",
     "customAnswerHint": "Klient kann eigene hinzufügen...",
