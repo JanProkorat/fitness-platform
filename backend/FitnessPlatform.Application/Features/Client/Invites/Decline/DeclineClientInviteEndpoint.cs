@@ -28,9 +28,23 @@ public class DeclineClientInviteEndpoint(IApplicationDbContext db, IRealtimeNoti
         var userId = User.FindFirstValue(AppClaims.UserId);
         if (userId is null) { await Send.UnauthorizedAsync(ct); return; }
 
+        var userGuid = Guid.Parse(userId);
+
+        var caller = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userGuid, ct);
+        if (caller is null) { await Send.UnauthorizedAsync(ct); return; }
+
+        // Use NormalizedEmail (uppercase, set by Identity) for reliable matching.
+        // PendingInvite.Email stores the original casing from the trainer, so compare
+        // using UPPER() on both sides. Folding this into the lookup itself (rather than
+        // checking after) means a GUID that belongs to someone else's invite falls
+        // through to the same 404 as an unknown/consumed invite — never a distinct 403
+        // that would confirm the GUID exists.
+        var normalizedEmail = caller.NormalizedEmail ?? caller.Email?.ToUpper() ?? string.Empty;
+
         var invite = await db.PendingInvites
             .Include(pi => pi.ProfessionalProfile)
-            .FirstOrDefaultAsync(pi => pi.PublicId == req.Id && !pi.IsAccepted, ct);
+            .FirstOrDefaultAsync(pi => pi.PublicId == req.Id && !pi.IsAccepted
+                && pi.Email.ToUpper() == normalizedEmail, ct);
 
         if (invite is null)
         {
@@ -43,11 +57,7 @@ public class DeclineClientInviteEndpoint(IApplicationDbContext db, IRealtimeNoti
         await db.SaveChangesAsync(ct);
 
         // Notify the professional that the invite was declined
-        var clientUser = await db.Users.AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Id == Guid.Parse(userId), ct);
-        var clientName = clientUser is not null
-            ? $"{clientUser.FirstName} {clientUser.LastName}"
-            : invite.Email;
+        var clientName = $"{caller.FirstName} {caller.LastName}";
 
         await notifier.NotifyAsync(
             invite.ProfessionalProfile.UserId,
