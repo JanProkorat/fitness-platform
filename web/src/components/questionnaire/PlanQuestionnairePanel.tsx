@@ -11,6 +11,7 @@ import {
 import { QuestionnaireSelectDialog } from './QuestionnaireSelectDialog';
 import { RevokeConfirmDialog } from './RevokeConfirmDialog';
 import { formatAnswerValue } from './questionnaire-helpers';
+import { showApiError } from '@/lib/api-errors';
 
 interface Props {
   clientId: string;
@@ -67,16 +68,19 @@ export function PlanQuestionnairePanel({
   const assignMutation = useMutation({
     mutationFn: (qId: string) => assignQuestionnaire(clientId, qId),
     onSuccess: () => { setSendDialogOpen(false); invalidateAll(); },
+    onError: (err) => { showApiError(err, 'questionnaire.assignError'); },
   });
 
   const cancelMutation = useMutation({
     mutationFn: () => cancelQuestionnaire(clientId),
     onSuccess: () => { setRevokeOpen(false); invalidateAll(); },
+    onError: (err) => { showApiError(err, 'questionnaire.cancelError'); },
   });
 
   const replaceMutation = useMutation({
     mutationFn: (qId: string) => replaceQuestionnaire(clientId, qId),
     onSuccess: () => { setReplaceOpen(false); invalidateAll(); },
+    onError: (err) => { showApiError(err, 'questionnaire.replaceError'); },
   });
 
   return (

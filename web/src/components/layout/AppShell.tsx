@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo, useRef, Suspense } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Sidebar } from './Sidebar';
@@ -10,6 +10,7 @@ import { isTrainingProgressUpdatedEvent } from '@/api/trainingProgressEvent';
 import { isPersonalRecordAchievedEvent } from '@/api/personalRecordEvent';
 import { isSessionEditLockChangedEvent } from '@/api/sessionEditLockEvent';
 import { weeklyCheckInKeys } from '@/hooks/useWeeklyCheckIns';
+import { RouteErrorBoundary } from '@/RouteErrorBoundary';
 
 const DARK_MODE_KEY = 'gf-dark-mode';
 
@@ -27,6 +28,7 @@ export function AppShell() {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   const addToast = useToastStore((s) => s.addToast);
+  const location = useLocation();
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark);
@@ -403,9 +405,11 @@ export function AppShell() {
             </svg>
           </button>
         </div>
-        <Suspense fallback={<div className="flex flex-1 items-center justify-center text-text3">Loading…</div>}>
-          <Outlet />
-        </Suspense>
+        <RouteErrorBoundary key={location.pathname}>
+          <Suspense fallback={<div className="flex flex-1 items-center justify-center text-text3">Loading…</div>}>
+            <Outlet />
+          </Suspense>
+        </RouteErrorBoundary>
       </main>
     </div>
   );
