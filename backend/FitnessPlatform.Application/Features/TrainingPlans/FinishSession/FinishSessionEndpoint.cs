@@ -5,7 +5,9 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.TrainingPlans.FinishSession;
@@ -17,9 +19,13 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.FinishSession;
 /// document so that compliance/streak attribution lands on the correct calendar day.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
+/// <param name="db">Relational database context — used to resolve the client's ApplicationUser.Id
+/// from TrainingPlan.ClientId (which stores ClientProfile.PublicId, NOT ApplicationUser.Id) when
+/// materializing a new WorkoutLog. Mirrors the resolution StartWorkoutEndpoint already performs.</param>
 /// <param name="completionService">Shared workout completion pipeline.</param>
 public class FinishSessionEndpoint(
     IMongoContext mongo,
+    IApplicationDbContext db,
     IWorkoutCompletionService completionService) : Endpoint<FinishSessionRequest, FinishSessionResponse>
 {
     /// <inheritdoc />
@@ -117,7 +123,23 @@ public class FinishSessionEndpoint(
 
         if (log is null)
         {
-            log = MaterializeFromTemplate(plan, session, completedAt, ct);
+            // Resolve the client's ApplicationUser.Id — TrainingPlan.ClientId stores
+            // ClientProfile.PublicId, but WorkoutLog.ClientId (like every other write path,
+            // e.g. StartWorkoutEndpoint) must be keyed on ApplicationUser.Id. Without this
+            // resolution the materialized log would be invisible to client-facing history/PR
+            // detection and WorkoutCompletionService couldn't resolve the client for the
+            // TrainingCompletion fan-out.
+            var clientProfile = await db.ClientProfiles
+                .AsNoTracking()
+                .FirstOrDefaultAsync(cp => cp.PublicId == plan.ClientId, ct);
+
+            if (clientProfile is null)
+            {
+                await Send.NotFoundAsync(ct);
+                return;
+            }
+
+            log = MaterializeFromTemplate(plan, session, completedAt, clientProfile.UserId);
             await mongo.WorkoutLogs.InsertOneAsync(log, cancellationToken: ct);
         }
 
@@ -156,7 +178,7 @@ public class FinishSessionEndpoint(
         TrainingPlan plan,
         TrainingSession session,
         DateTime completedAt,
-        CancellationToken _)
+        Guid clientUserId)
     {
         // Backfill legacy flat-exercise sessions into the section structure first.
         session.WithBackfilledSections();
@@ -204,7 +226,7 @@ public class FinishSessionEndpoint(
         return new WorkoutLog
         {
             ExternalId = Guid.NewGuid(),
-            ClientId = plan.ClientId,
+            ClientId = clientUserId,
             PlanId = plan.ExternalId,
             SessionId = session.SessionId,
             StartedAt = completedAt,
