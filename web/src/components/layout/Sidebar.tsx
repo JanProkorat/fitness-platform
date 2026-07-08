@@ -234,7 +234,11 @@ export function Sidebar({ onToggleDark, isOpen = false, onClose }: SidebarProps)
                       transition: 'transform 0.15s',
                       transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
                     }}
-                    aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${client.firstName} ${client.lastName}`}
+                    aria-label={
+                      isExpanded
+                        ? t('sidebar.collapseClient', { name: `${client.firstName} ${client.lastName}` })
+                        : t('sidebar.expandClient', { name: `${client.firstName} ${client.lastName}` })
+                    }
                   >
                     ▶
                   </button>
@@ -251,7 +255,7 @@ export function Sidebar({ onToggleDark, isOpen = false, onClose }: SidebarProps)
                       }
                     }}
                     style={{ cursor: 'pointer' }}
-                    aria-label={`Go to ${client.firstName} ${client.lastName}`}
+                    aria-label={t('sidebar.goToClient', { name: `${client.firstName} ${client.lastName}` })}
                   >
                     {client.firstName} {client.lastName}
                   </span>
@@ -463,8 +467,8 @@ export function Sidebar({ onToggleDark, isOpen = false, onClose }: SidebarProps)
             style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 15, color: 'var(--text3)', padding: '4px 6px', borderRadius: 'var(--radius)', transition: 'color 0.15s', flexShrink: 0 }}
             onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text)'; }}
             onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text3)'; }}
-            title="Toggle dark mode"
-            aria-label="Toggle dark mode"
+            title={t('common.toggleDarkMode')}
+            aria-label={t('common.toggleDarkMode')}
           >
             ◑
           </button>

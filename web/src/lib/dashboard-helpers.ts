@@ -1,4 +1,7 @@
 import type { ClientDashboardItem } from '@/api/dashboard';
+// Module-scope helper — no React hook available here. Use the i18n singleton
+// directly, mirroring lib/api-errors.ts.
+import i18n from '@/i18n';
 
 export function complianceColor(c: number): string {
   if (c >= 80) return 'var(--green)';
@@ -10,19 +13,30 @@ export function initials(first?: string, last?: string): string {
   return `${(first ?? '')[0] ?? ''}${(last ?? '')[0] ?? ''}`.toUpperCase();
 }
 
-/** Goal label → tag variant mapping. */
+/**
+ * Goal label → tag variant mapping. This maps free-text goal strings to a
+ * COLOR variant (not a translated string) so it needs no i18n keys — just
+ * phrases in every locale the trainer might type/see the goal in.
+ */
 const GOAL_TAGS: Record<string, EnrichedClient['goalTag']> = {
   hubnutí: 'blue',
   'weight loss': 'blue',
+  abnehmen: 'blue',
+  gewichtsabnahme: 'blue',
   nabírání: 'purple',
   'weight gain': 'purple',
   'muscle gain': 'purple',
+  zunehmen: 'purple',
+  muskelaufbau: 'purple',
   zdraví: 'green',
   health: 'green',
+  gesundheit: 'green',
   výkonnost: 'orange',
   performance: 'orange',
+  leistung: 'orange',
   síla: 'gray',
   strength: 'gray',
+  kraft: 'gray',
 };
 
 function goalToTag(goal: string | null): EnrichedClient['goalTag'] {
@@ -40,10 +54,18 @@ function formatLastActivity(lastActivityAt: string | null): { text: string; colo
   const diffMs = now.getTime() - activity.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-  if (diffDays === 0) return { text: 'dnes', color: 'var(--green)' };
-  if (diffDays === 1) return { text: 'včera', color: 'var(--green)' };
-  if (diffDays <= 3) return { text: `${diffDays} dny`, color: 'var(--text3)' };
-  return { text: `${diffDays} dní`, color: 'var(--red)' };
+  if (diffDays === 0) return { text: i18n.t('dashboard.activityToday'), color: 'var(--green)' };
+  if (diffDays === 1) return { text: i18n.t('dashboard.activityYesterday'), color: 'var(--green)' };
+  if (diffDays <= 3) {
+    return {
+      text: i18n.t('dashboard.activityDaysAgo', { count: diffDays }),
+      color: 'var(--text3)',
+    };
+  }
+  return {
+    text: i18n.t('dashboard.activityDaysAgo', { count: diffDays }),
+    color: 'var(--red)',
+  };
 }
 
 export interface EnrichedClient extends ClientDashboardItem {

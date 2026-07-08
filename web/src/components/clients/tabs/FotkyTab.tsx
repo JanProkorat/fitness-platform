@@ -82,7 +82,7 @@ export function FotkyTab({
   activeNutritionPlan,
   activeTrainingPlan,
 }: FotkyTabProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
 
   const [activeFilter, setActiveFilter] = useState<PhotoFilter>('all');
@@ -229,10 +229,10 @@ export function FotkyTab({
     if (galleryTarget) navigate(galleryTarget);
   }
 
-  // ── Date formatter (cs-CZ, matching MereniTab / PlanPhotosTab pattern) ────────
+  // ── Date formatter (active locale, matching MereniTab / PlanPhotosTab pattern) ─
   function formatDate(iso: string | undefined): string {
     if (!iso) return '—';
-    return new Date(iso).toLocaleDateString('cs-CZ', {
+    return new Date(iso).toLocaleDateString(i18n.language, {
       day: 'numeric',
       month: 'numeric',
       year: 'numeric',

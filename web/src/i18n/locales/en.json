@@ -14,6 +14,11 @@
     "name": "Name",
     "email": "Email",
     "actions": "Actions",
+    "toggleDarkMode": "Toggle dark mode",
+    "lightMode": "Light mode",
+    "darkMode": "Dark mode",
+    "removeChip": "Remove {{value}}",
+    "addNew": "+ New",
     "previous": "Previous",
     "next": "Next",
     "page": "Page {{current}} of {{total}}",
@@ -134,7 +139,10 @@
     "addClient": "Add client",
     "pendingInvites": "PENDING INVITES",
     "openMenu": "Open menu",
-    "closeMenu": "Close menu"
+    "closeMenu": "Close menu",
+    "collapseClient": "Collapse {{name}}",
+    "expandClient": "Expand {{name}}",
+    "goToClient": "Go to {{name}}"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -209,7 +217,11 @@
     "calloutComplianceDetail": "Compliance {{compliance}} % — not following the plan",
     "calloutTrainsDetail": "Completing {{trains}}/{{trainsGoal}} workouts",
     "calloutTitleLow": "low compliance",
-    "calloutTitleAttention": "needs attention"
+    "calloutTitleAttention": "needs attention",
+    "activityToday": "today",
+    "activityYesterday": "yesterday",
+    "activityDaysAgo_one": "{{count}} day ago",
+    "activityDaysAgo_other": "{{count}} days ago"
   },
   "clients": {
     "title": "Clients",
@@ -815,6 +827,11 @@
         "save": "Save"
       }
     }
+  },
+  "richTextEditor": {
+    "placeholder": "Start writing...",
+    "list": "List",
+    "quote": "Quote"
   },
   "apiErrors": {
     "INVALID_CREDENTIALS": "Invalid email or password.",
@@ -1443,7 +1460,9 @@
     "typeNumber": "Number",
     "typeScale": "Scale",
     "typeFileUpload": "File upload",
+    "typeFieldLabel": "Type",
     "addOption": "Add option",
+    "optionsLabel": "Options",
     "optionPlaceholder": "Option...",
     "allowCustom": "Allow custom answer",
     "customAnswerHint": "Client can add their own...",

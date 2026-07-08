@@ -102,7 +102,7 @@ function buildWeightBars(sorted: MeasurementDto[]): WeightBar[] {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function MereniTab({ clientId, targetWeightKg }: MereniTabProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const addToast = useToastStore((s) => s.addToast);
 
   const { data, isError, isPending } = useQuery({
@@ -378,7 +378,7 @@ export function MereniTab({ clientId, targetWeightKg }: MereniTabProps) {
                 {sorted.map((m) => {
                   const date = toDate(m.measuredAt);
                   const dateStr = date
-                    ? date.toLocaleDateString('cs-CZ', {
+                    ? date.toLocaleDateString(i18n.language, {
                         day: 'numeric',
                         month: 'numeric',
                         year: 'numeric',

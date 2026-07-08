@@ -14,6 +14,11 @@
     "name": "Jméno",
     "email": "Email",
     "actions": "Akce",
+    "toggleDarkMode": "Přepnout tmavý režim",
+    "lightMode": "Světlý režim",
+    "darkMode": "Tmavý režim",
+    "removeChip": "Odebrat {{value}}",
+    "addNew": "+ Nový",
     "previous": "Předchozí",
     "next": "Další",
     "page": "Stránka {{current}} z {{total}}",
@@ -134,7 +139,10 @@
     "addClient": "Přidat klienta",
     "pendingInvites": "ČEKAJÍCÍ POZVÁNKY",
     "openMenu": "Otevřít menu",
-    "closeMenu": "Zavřít menu"
+    "closeMenu": "Zavřít menu",
+    "collapseClient": "Sbalit {{name}}",
+    "expandClient": "Rozbalit {{name}}",
+    "goToClient": "Přejít na {{name}}"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -211,7 +219,13 @@
     "calloutComplianceDetail": "Compliance {{compliance}} % — neplní plán",
     "calloutTrainsDetail": "Plní {{trains}}/{{trainsGoal}} tréninků",
     "calloutTitleLow": "nízká compliance",
-    "calloutTitleAttention": "vyžaduje pozornost"
+    "calloutTitleAttention": "vyžaduje pozornost",
+    "activityToday": "dnes",
+    "activityYesterday": "včera",
+    "activityDaysAgo_one": "{{count}} den",
+    "activityDaysAgo_few": "{{count}} dny",
+    "activityDaysAgo_many": "{{count}} dní",
+    "activityDaysAgo_other": "{{count}} dní"
   },
   "clients": {
     "title": "Klienti",
@@ -826,6 +840,11 @@
         "save": "Uložit"
       }
     }
+  },
+  "richTextEditor": {
+    "placeholder": "Začněte psát...",
+    "list": "Seznam",
+    "quote": "Citace"
   },
   "apiErrors": {
     "INVALID_CREDENTIALS": "Neplatný email nebo heslo.",
@@ -1460,7 +1479,9 @@
     "typeNumber": "Číslo",
     "typeScale": "Škála",
     "typeFileUpload": "Nahrání souboru",
+    "typeFieldLabel": "Typ",
     "addOption": "Přidat možnost",
+    "optionsLabel": "Možnosti",
     "optionPlaceholder": "Možnost...",
     "allowCustom": "Povolit vlastní odpověď",
     "customAnswerHint": "Klient může přidat vlastní...",

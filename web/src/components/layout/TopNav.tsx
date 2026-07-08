@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/cn';
 
 export interface TopNavItem {
@@ -13,6 +14,7 @@ export interface TopNavProps {
 }
 
 export function TopNav({ items, onToggleDark }: TopNavProps) {
+  const { t } = useTranslation();
   // Group items by section
   const sections: { section: string | undefined; items: TopNavItem[] }[] = [];
   let currentSection: string | undefined;
@@ -73,7 +75,7 @@ export function TopNav({ items, onToggleDark }: TopNavProps) {
             type="button"
             onClick={onToggleDark}
             className="flex h-7 w-7 items-center justify-center rounded-sm border border-border-md text-[13px] text-text2 transition-colors duration-100 hover:bg-bg-hover hover:text-text"
-            aria-label="Přepnout tmavý režim"
+            aria-label={t('common.toggleDarkMode')}
           >
             ◑
           </button>

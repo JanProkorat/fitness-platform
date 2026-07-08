@@ -16,10 +16,10 @@ interface ActiveTrainingPlanCardProps {
   onHistoryClick: () => void;
 }
 
-function formatDate(iso: string | null | undefined): string {
+function formatDate(iso: string | null | undefined, locale: string): string {
   if (!iso) return '';
   const d = new Date(iso);
-  return d.toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric', year: 'numeric' });
+  return d.toLocaleDateString(locale, { day: 'numeric', month: 'numeric', year: 'numeric' });
 }
 
 export function ActiveTrainingPlanCard({
@@ -30,10 +30,10 @@ export function ActiveTrainingPlanCard({
   topPr,
   onHistoryClick,
 }: ActiveTrainingPlanCardProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
 
-  const periodStart = formatDate(plan.startDate);
+  const periodStart = formatDate(plan.startDate, i18n.language);
   const period = periodStart
     ? t('clientDetail.prehled.planCard.from', { date: periodStart })
     : '';
