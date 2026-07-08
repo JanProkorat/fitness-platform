@@ -1743,6 +1743,8 @@
     "lastName": "Nachname",
     "heightCm": "Körpergröße (cm)",
     "weightKg": "Gewicht (kg)",
+    "profileUpdated": "Klientenprofil gespeichert",
+    "readOnlyFieldHint": "Dieses Feld kann im Trainerportal nicht bearbeitet werden.",
     "tabBarLabel": "Klienten-Reiter",
     "ageYears_one": "{{count}} Jahr",
     "ageYears_other": "{{count}} Jahre",

@@ -201,7 +201,14 @@ export default function NutritionPlanPage() {
 
   // No auto-save — save only on explicit button click
 
-  // ── Open all meals of the current day on first load ──
+  // ── Open all meals of the current day on first load / week-or-day change ──
+  // Intentionally does NOT depend on `plan` — every store mutation (editing a
+  // food, toggling a note, etc.) creates a new plan object, and depending on
+  // it here would force-reopen every meal of the day on each edit, undoing
+  // the trainer's manual collapse of other meals. `isPlanLoaded` triggers the
+  // one-time seed once the plan first arrives; `plan` itself is read fresh
+  // from the render closure when the effect actually runs.
+  const isPlanLoaded = plan != null;
   useEffect(() => {
     if (!plan) return;
     const week = plan.weeks.find((w) => w.weekNumber === selectedWeek);
@@ -209,7 +216,8 @@ export default function NutritionPlanPage() {
     if (day) {
       setOpenMeals(new Set(day.meals.map((m) => m.mealId)));
     }
-  }, [plan, selectedWeek, selectedDay]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPlanLoaded, selectedWeek, selectedDay]);
 
   // ── Handlers ──
   const handleSave = async () => {

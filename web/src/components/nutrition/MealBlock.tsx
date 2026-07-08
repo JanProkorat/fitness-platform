@@ -77,6 +77,16 @@ function MealDropZone({ mealId, itemIds, onItemDrop, onReorder, children }: {
 function MealNoteInput({ note, onChange }: { note?: string | null; onChange: (note: string) => void }) {
   const { t } = useTranslation();
   const [value, setValue] = useState(note ?? '');
+  // Resync local input state when the source value changes underneath us —
+  // e.g. after "Discard changes" reloads the plan. Adjusting state during
+  // render (rather than in a useEffect) avoids the extra commit-then-effect
+  // render pass (see FoodRow/RecipeRow for the same pattern and rationale).
+  const [prevNote, setPrevNote] = useState(note ?? '');
+  if ((note ?? '') !== prevNote) {
+    setPrevNote(note ?? '');
+    setValue(note ?? '');
+  }
+
   return (
     <div style={{ padding: '4px 8px 6px' }}>
       <input

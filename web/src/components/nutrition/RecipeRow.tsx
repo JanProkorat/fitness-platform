@@ -34,6 +34,20 @@ export function RecipeRow({ recipe, mealId, dayOfWeek, weekNumber, onServingsCha
   const { t } = useTranslation();
   const [localServings, setLocalServings] = useState(String(recipe.servings));
   const [localNote, setLocalNote] = useState(recipe.note ?? '');
+  // Resync local input state when the source value changes underneath us —
+  // e.g. after "Discard changes" reloads the plan. Adjusting state during
+  // render (rather than in a useEffect) avoids the extra commit-then-effect
+  // render pass (see FoodRow for the same pattern and rationale).
+  const [prevServings, setPrevServings] = useState(recipe.servings);
+  if (recipe.servings !== prevServings) {
+    setPrevServings(recipe.servings);
+    setLocalServings(String(recipe.servings));
+  }
+  const [prevNote, setPrevNote] = useState(recipe.note ?? '');
+  if ((recipe.note ?? '') !== prevNote) {
+    setPrevNote(recipe.note ?? '');
+    setLocalNote(recipe.note ?? '');
+  }
   const inputRef = useRef<HTMLInputElement>(null);
 
   function handleBlur() {
