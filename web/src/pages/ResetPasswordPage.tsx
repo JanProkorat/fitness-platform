@@ -104,8 +104,13 @@ export default function ResetPasswordPage() {
 
   const schema = z
     .object({
-      newPassword: z.string().min(8, t('validation.passwordMin')),
-      confirmPassword: z.string().min(1, t('validation.required')),
+      newPassword: z
+        .string()
+        .min(8, t('validation.passwordMinLength'))
+        .regex(/[a-z]/, t('validation.passwordLowercase'))
+        .regex(/[A-Z]/, t('validation.passwordUppercase'))
+        .regex(/[0-9]/, t('validation.passwordDigit')),
+      confirmPassword: z.string().min(1, t('validation.confirmPassword')),
     })
     .refine((d) => d.newPassword === d.confirmPassword, {
       message: t('validation.passwordsMismatch'),
