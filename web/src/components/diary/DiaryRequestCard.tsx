@@ -20,16 +20,12 @@ import { ImageLightbox } from '@/components/ui/ImageLightbox';
 import type { PhotoDiaryRequestSummary } from '@/api/diary-requests';
 import { PhotoDiaryStatus, PhotoDiaryMode } from '@/api/generated';
 import type { PlanPhotoResponse2 } from '@/api/generated';
+import { toLocalDateKey, calendarDayNumberFromKeys } from './diaryDayNumber';
 
 interface Props {
   request: PhotoDiaryRequestSummary;
   /** All plan photos already loaded — this component filters by diaryRequestId FK. */
   allPhotos: PlanPhotoResponse2[];
-}
-
-/** Returns an ISO date string "YYYY-MM-DD" from a UTC timestamp string. */
-function toLocalDateKey(utcTimestamp: string): string {
-  return new Date(utcTimestamp).toLocaleDateString('sv-SE'); // 'sv-SE' gives ISO format
 }
 
 interface DayGroup {
@@ -61,12 +57,10 @@ function buildDayGroups(
   }
 
   // Convert to array and sort chronologically
+  const acceptedDateKey = toLocalDateKey(acceptedAt);
   const days: DayGroup[] = [];
   for (const [dateKey, dayPhotos] of grouped) {
     const date = new Date(dateKey);
-    const dayNumber = Math.floor(
-      (date.getTime() - new Date(toLocalDateKey(acceptedAt)).getTime()) / (1000 * 60 * 60 * 24),
-    ) + 1;
     days.push({
       dateKey,
       label: date.toLocaleDateString(undefined, {
@@ -74,7 +68,7 @@ function buildDayGroups(
         day: 'numeric',
         month: 'short',
       }),
-      dayNumber: Math.max(1, Math.min(dayNumber, durationDays)),
+      dayNumber: calendarDayNumberFromKeys(dateKey, acceptedDateKey, durationDays),
       photos: dayPhotos,
     });
   }

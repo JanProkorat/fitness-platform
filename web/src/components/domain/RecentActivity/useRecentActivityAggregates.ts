@@ -57,8 +57,16 @@ export interface RecentActivityAggregates {
   thisWeek: ThisWeekAggregates;
 }
 
-function toDateKey(isoString: string): string {
-  return isoString.substring(0, 10); // "YYYY-MM-DD"
+// Buckets by LOCAL calendar day (not a UTC date substring) so this agrees
+// with the local `Date` getters used by monthItems/weekItems below — an
+// event near local midnight must land in the same day bucket the sidebar
+// count and the day-card list both expect (#641).
+function toDateKey(value: string | Date): string {
+  const d = typeof value === 'string' ? new Date(value) : value;
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function toDateLabel(dateKey: string): string {
@@ -79,6 +87,14 @@ function startOfCurrentWeek(): Date {
 export function useRecentActivityAggregates(
   items: ClientTimelineItem[],
 ): RecentActivityAggregates {
+  // Recomputed on every render (cheap — just Date getters). Feeding it into
+  // the memo's dependency array means a month/week rollover with no new
+  // `items` still triggers a recompute on the next render after the
+  // calendar boundary changes, instead of staying frozen on stale `now`
+  // captured at the last `items` change (#641). No timers — this piggybacks
+  // on whatever causes the component tree to re-render anyway.
+  const todayKey = toDateKey(new Date());
+
   return useMemo<RecentActivityAggregates>(() => {
     const now = new Date();
     const currentYear = now.getFullYear();
@@ -209,7 +225,7 @@ export function useRecentActivityAggregates(
         compliancePercent: weekCompliancePct,
       },
     };
-  }, [items]);
+  }, [items, todayKey]);
 }
 
 /**

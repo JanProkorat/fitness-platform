@@ -2,7 +2,11 @@
  * DiaryRequestStatusChip — inline pill showing the lifecycle status of a
  * photo diary request.
  *
- * For InProgress, it shows "Day N of M" computed from acceptedAt.
+ * For InProgress, it shows "Day N of M" computed from acceptedAt, using the
+ * same local-calendar-day logic as DiaryRequestCard's day grouping (#644) —
+ * previously this chip used a 24h rolling window from `acceptedAt`, which
+ * disagreed with the card's calendar-day buckets for photos taken near
+ * local midnight.
  * For Dismissed, a separate DismissReason display is handled by the caller.
  *
  * Status-chip colours resolve through CSS custom properties defined in
@@ -12,18 +16,10 @@
 import { useTranslation } from 'react-i18next';
 import { PhotoDiaryStatus } from '@/api/generated';
 import type { PhotoDiaryRequestSummary } from '@/api/diary-requests';
+import { computeCalendarDayNumber } from './diaryDayNumber';
 
 interface Props {
   request: PhotoDiaryRequestSummary;
-}
-
-function computeDay(acceptedAt: string, durationDays: number): number {
-  const accepted = new Date(acceptedAt);
-  const now = new Date();
-  const msDiff = now.getTime() - accepted.getTime();
-  const daysDiff = Math.floor(msDiff / (1000 * 60 * 60 * 24));
-  // Day 1 = the day of acceptance, so add 1; clamp to durationDays.
-  return Math.min(daysDiff + 1, durationDays);
 }
 
 export function DiaryRequestStatusChip({ request }: Props) {
@@ -53,7 +49,9 @@ export function DiaryRequestStatusChip({ request }: Props) {
       break;
 
     case PhotoDiaryStatus.InProgress: {
-      const day = acceptedAt ? computeDay(acceptedAt, durationDays) : 1;
+      const day = acceptedAt
+        ? computeCalendarDayNumber(new Date().toISOString(), acceptedAt, durationDays)
+        : 1;
       label = t('diary.viewer.statusInProgress', { day, total: durationDays });
       style = {
         color: 'var(--status-inprogress-text)',

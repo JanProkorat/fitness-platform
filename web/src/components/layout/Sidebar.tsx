@@ -42,6 +42,17 @@ export function Sidebar({ onToggleDark, isOpen = false, onClose }: SidebarProps)
 
   const [avatarLightboxOpen, setAvatarLightboxOpen] = useState(false);
   const [avatarFailed, setAvatarFailed] = useState(false);
+  // Tracks the avatarBlobUrl a failure was recorded against. A fresh
+  // presigned URL deserves a fresh load attempt — without this, a single
+  // transient failure on an old URL permanently pins the avatar to initials
+  // even after the URL rotates (#640). Adjusted during render (same pattern
+  // as trackedActiveClientId below) rather than in a useEffect, per the
+  // React "reset state when a prop changes" guidance.
+  const [trackedAvatarUrl, setTrackedAvatarUrl] = useState(user?.avatarBlobUrl ?? null);
+  if ((user?.avatarBlobUrl ?? null) !== trackedAvatarUrl) {
+    setTrackedAvatarUrl(user?.avatarBlobUrl ?? null);
+    setAvatarFailed(false);
+  }
   const avatarUrl = !avatarFailed && user?.avatarBlobUrl ? user.avatarBlobUrl : null;
 
   // Fetch clients
