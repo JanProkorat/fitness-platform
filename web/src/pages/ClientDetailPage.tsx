@@ -215,7 +215,6 @@ export default function ClientDetailPage() {
         clientInitials={clientInitials}
         clientAge={clientAge}
         onEditProfile={handleOpenEditDialog}
-        onPhotoDiary={() => setActiveTab('fotky')}
       />
 
       {/* Gold-chip tab bar */}

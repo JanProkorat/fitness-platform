@@ -1770,7 +1770,6 @@
     }
   },
   "clientDetail": {
-    "photoDiary": "Photo diary",
     "writeMessage": "Message",
     "lastName": "Last name",
     "heightCm": "Height (cm)",
