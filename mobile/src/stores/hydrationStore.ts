@@ -359,6 +359,13 @@ interface HydrationActions {
   pruneOldDrinks: (beforeIso: string) => void
   /** Called by the layout after it has cancelled the v1 reminders. */
   clearMigrationFlag: () => void
+  /**
+   * Wipes the entire mmkv.hydration instance (log + settings) and resets
+   * in-memory state to fresh defaults. Called on logout to prevent a
+   * subsequent user on the same device from seeing the previous user's
+   * hydration history/settings (#602).
+   */
+  reset: () => void
 }
 
 type HydrationStore = HydrationState & HydrationActions
@@ -471,6 +478,19 @@ export const useHydrationStore = create<HydrationStore>((set, get) => {
 
     clearMigrationFlag: () => {
       set({ pendingMigrationV1Count: 0 })
+    },
+
+    reset: () => {
+      if (mmkv) {
+        mmkv.clearAll()
+      }
+      set({
+        targetMl: DEFAULT_TARGET_ML,
+        slots: DEFAULT_SLOTS,
+        enabled: false,
+        log: [],
+        pendingMigrationV1Count: 0,
+      })
     },
   }
 })

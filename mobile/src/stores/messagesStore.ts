@@ -12,6 +12,10 @@ interface MessagesState {
   dismissAutoUnarchive: (id: string) => void
   showInviteBanner: (trainerName: string) => void
   dismissInviteBanner: () => void
+  /** Clears all in-memory state. Called on logout to prevent a subsequent
+   *  user on the same device from briefly seeing the previous user's
+   *  unarchive banners / invite banner text (#602). */
+  reset: () => void
 }
 
 export const useMessagesStore = create<MessagesState>((set) => ({
@@ -34,4 +38,10 @@ export const useMessagesStore = create<MessagesState>((set) => ({
 
   showInviteBanner: (trainerName) => set({ pendingInviteBanner: trainerName }),
   dismissInviteBanner: () => set({ pendingInviteBanner: null }),
+  reset: () =>
+    set({
+      autoUnarchivedIds: [],
+      autoUnarchivedNames: {},
+      pendingInviteBanner: null,
+    }),
 }))
