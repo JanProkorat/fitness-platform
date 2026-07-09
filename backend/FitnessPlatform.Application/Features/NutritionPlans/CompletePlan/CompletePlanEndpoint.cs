@@ -4,6 +4,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.NutritionPlans.GetPlan;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Infrastructure.Data;
@@ -21,7 +22,8 @@ public class CompletePlanEndpoint(
     IMongoContext mongo,
     IApplicationDbContext db,
     INotificationService notificationService,
-    IRealtimeNotifier notifier) : Endpoint<CompletePlanRequest, GetPlanResponse>
+    IRealtimeNotifier notifier,
+    PlanConcurrencyGuard guard) : Endpoint<CompletePlanRequest, GetPlanResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -47,52 +49,56 @@ public class CompletePlanEndpoint(
 
         var nutritionistId = Guid.Parse(userId);
 
-        // Fetch plan owned by this nutritionist
-        var filter = Builders<NutritionPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
+        var lookupFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
                      & Builders<NutritionPlan>.Filter.Eq(p => p.NutritionistId, nutritionistId);
-
-        var cursor = await mongo.NutritionPlans.FindAsync(filter, cancellationToken: ct);
-        var plan = await cursor.FirstOrDefaultAsync(ct);
-
-        if (plan is null)
-        {
-            await Send.NotFoundAsync(ct);
-            return;
-        }
-
-        // Version check
-        if (plan.Version != req.Version)
-        {
-            await this.SendProblemAsync(409, ErrorCodes.PlanVersionConflict,
-                "Version conflict. The plan was modified by another request.", ct);
-            return;
-        }
-
-        // Only active plans can be completed
-        if (plan.Status != NutritionPlanStatus.Active)
-        {
-            ThrowError(ErrorCodes.PlanNotActive, "Only active plans can be completed.");
-            return;
-        }
-
-        // Mark as completed
-        var now = DateTime.UtcNow;
-        plan.Status = NutritionPlanStatus.Completed;
-        plan.DateCompleted = now;
-        plan.DateUpdated = now;
-        plan.Version += 1;
-
-        var versionFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
+        var replaceFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
                             & Builders<NutritionPlan>.Filter.Eq(p => p.Version, req.Version);
 
-        var result = await mongo.NutritionPlans.ReplaceOneAsync(versionFilter, plan, cancellationToken: ct);
+        var guardResult = await guard.ReplaceWithVersionGuardAsync(
+            mongo.NutritionPlans,
+            lookupFilter,
+            replaceFilter,
+            req.Version,
+            p => p.Version,
+            (plan, _) =>
+            {
+                // Only active plans can be completed
+                if (plan.Status != NutritionPlanStatus.Active)
+                {
+                    ThrowError(ErrorCodes.PlanNotActive, "Only active plans can be completed.");
+                    return Task.FromResult(false);
+                }
 
-        if (result.ModifiedCount == 0)
+                // Mark as completed
+                var now = DateTime.UtcNow;
+                plan.Status = NutritionPlanStatus.Completed;
+                plan.DateCompleted = now;
+                plan.DateUpdated = now;
+                plan.Version += 1;
+
+                return Task.FromResult(true);
+            },
+            ct);
+
+        switch (guardResult.Outcome)
         {
-            await this.SendProblemAsync(409, ErrorCodes.PlanVersionConflict,
-                "Version conflict. The plan was modified concurrently.", ct);
-            return;
+            case PlanConcurrencyOutcome.NotFound:
+                await Send.NotFoundAsync(ct);
+                return;
+            case PlanConcurrencyOutcome.VersionConflict:
+                await this.SendProblemAsync(409, ErrorCodes.PlanVersionConflict,
+                    "Version conflict. The plan was modified by another request.", ct);
+                return;
+            case PlanConcurrencyOutcome.ReplaceConflict:
+                await this.SendProblemAsync(409, ErrorCodes.PlanVersionConflict,
+                    "Version conflict. The plan was modified concurrently.", ct);
+                return;
+            case PlanConcurrencyOutcome.HandledByMutator:
+                // Never reached: this endpoint's mutate delegate never writes a response directly.
+                return;
         }
+
+        var plan = guardResult.Document!;
 
         // Notify the client
         var clientProfile = await db.ClientProfiles

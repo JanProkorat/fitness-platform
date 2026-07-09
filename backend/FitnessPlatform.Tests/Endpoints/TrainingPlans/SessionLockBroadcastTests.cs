@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.TrainingPlans.RelockTrainingSession;
 using FitnessPlatform.Application.Features.TrainingPlans.UnlockTrainingSession;
 using FitnessPlatform.Application.Features.TrainingPlans.UpdateTrainingPlan;
@@ -392,7 +393,7 @@ public class SessionLockBroadcastTests
         var ep = Factory.Create<UpdateTrainingPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, notifier);
+            mongo, lockService, notifier, new PlanConcurrencyGuard());
 
         var changedSession = ChangedSessionRequest(plan.Weeks[0].Sessions[0], sessionId);
         var req = new UpdateTrainingPlanRequest
@@ -456,7 +457,7 @@ public class SessionLockBroadcastTests
         var ep = Factory.Create<UpdateTrainingPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, notifier);
+            mongo, lockService, notifier, new PlanConcurrencyGuard());
 
         var changedSession = ChangedSessionRequest(plan.Weeks[0].Sessions[0], sessionId);
         var req = new UpdateTrainingPlanRequest

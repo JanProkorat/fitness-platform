@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.NutritionPlans.CreatePlan;
 using FitnessPlatform.Application.Features.NutritionPlans.UpdatePlan;
 using FluentValidation;
@@ -153,7 +154,8 @@ public class PlanGoalFieldsTests
             mongo,
             macroCalc,
             new MockDbBuilder().Build(),
-            Substitute.For<IRealtimeNotifier>());
+            Substitute.For<IRealtimeNotifier>(),
+            new PlanConcurrencyGuard());
 
         var req = new UpdatePlanRequest
         {
@@ -204,7 +206,8 @@ public class PlanGoalFieldsTests
             mongo,
             macroCalc,
             new MockDbBuilder().Build(),
-            Substitute.For<IRealtimeNotifier>());
+            Substitute.For<IRealtimeNotifier>(),
+            new PlanConcurrencyGuard());
 
         // Simulate a legacy client payload: Goal and TargetWeightKg are null (omitted)
         // while another field (Name) is legitimately updated.
@@ -252,7 +255,8 @@ public class PlanGoalFieldsTests
             mongo,
             macroCalc,
             new MockDbBuilder().Build(),
-            Substitute.For<IRealtimeNotifier>());
+            Substitute.For<IRealtimeNotifier>(),
+            new PlanConcurrencyGuard());
 
         var req = new UpdatePlanRequest
         {

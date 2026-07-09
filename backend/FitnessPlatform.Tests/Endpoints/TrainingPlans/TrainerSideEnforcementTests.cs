@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.TrainingPlans.RelockTrainingSession;
 using FitnessPlatform.Application.Features.TrainingPlans.UnlockTrainingSession;
 using FitnessPlatform.Application.Features.TrainingPlans.UpdateTrainingPlan;
@@ -360,7 +361,7 @@ public class TrainerSideEnforcementTests
         var ep = Factory.Create<UpdateTrainingPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, Substitute.For<IRealtimeNotifier>());
+            mongo, lockService, Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard());
 
         var changedSession = ChangedSessionRequest(plan.Weeks[0].Sessions[0], sessionId);
         var req = new UpdateTrainingPlanRequest
@@ -407,7 +408,7 @@ public class TrainerSideEnforcementTests
         var ep = Factory.Create<UpdateTrainingPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, Substitute.For<IRealtimeNotifier>());
+            mongo, lockService, Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard());
 
         var changedSession = ChangedSessionRequest(plan.Weeks[0].Sessions[0], sessionId);
         var req = new UpdateTrainingPlanRequest
@@ -453,7 +454,7 @@ public class TrainerSideEnforcementTests
         var ep = Factory.Create<UpdateTrainingPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, Substitute.For<IRealtimeNotifier>());
+            mongo, lockService, Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard());
 
         var changedSession = ChangedSessionRequest(plan.Weeks[0].Sessions[0], sessionId);
         var req = new UpdateTrainingPlanRequest
@@ -499,7 +500,7 @@ public class TrainerSideEnforcementTests
         var ep = Factory.Create<UpdateTrainingPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, Substitute.For<IRealtimeNotifier>());
+            mongo, lockService, Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard());
 
         // Request changes the reps — but this is a draft session, so no gate.
         var req = new UpdateTrainingPlanRequest
@@ -632,7 +633,7 @@ public class TrainerSideEnforcementTests
         var ep = Factory.Create<UpdateTrainingPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, Substitute.For<IRealtimeNotifier>());
+            mongo, lockService, Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard());
 
         var identicalSession = IdenticalSessionRequest(plan.Weeks[0].Sessions[0], sessionId);
         var req = new UpdateTrainingPlanRequest

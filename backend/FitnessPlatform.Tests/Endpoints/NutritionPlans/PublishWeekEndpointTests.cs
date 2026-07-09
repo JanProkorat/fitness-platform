@@ -6,6 +6,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.NutritionPlans.PublishWeek;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -36,7 +37,8 @@ public class PublishWeekEndpointTests
             mongo,
             new MockDbBuilder().Build(),
             Substitute.For<INotificationService>(),
-            Substitute.For<IRealtimeNotifier>());
+            Substitute.For<IRealtimeNotifier>(),
+            new PlanConcurrencyGuard());
 
     [Fact]
     public async Task HandleAsync_DraftWeek_PublishesSuccessfully()

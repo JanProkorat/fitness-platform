@@ -247,6 +247,10 @@ builder.Services.AddScoped<IComplianceService, ComplianceService>();
 // Client verdict
 builder.Services.AddScoped<IClientVerdictService, ClientVerdictService>();
 
+// Shared version-gated fetch-check-replace-409 skeleton for NutritionPlans/TrainingPlans
+// mutation endpoints (Update, Publish, Complete, LinkQuestionnaire).
+builder.Services.AddScoped<PlanConcurrencyGuard>();
+
 // Google social login token verification
 builder.Services.AddScoped<IGoogleTokenVerifier, GoogleTokenVerifier>();
 

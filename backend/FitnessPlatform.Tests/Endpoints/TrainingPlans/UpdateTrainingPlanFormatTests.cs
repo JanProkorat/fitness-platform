@@ -6,6 +6,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.TrainingPlans.UpdateTrainingPlan;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Tests.Endpoints;
@@ -40,7 +41,8 @@ public class UpdateTrainingPlanFormatTests
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo,
             CreateNoOpLockService(),
-            Substitute.For<IRealtimeNotifier>());
+            Substitute.For<IRealtimeNotifier>(),
+            new PlanConcurrencyGuard());
 
     /// <summary>Builds a minimal single-section request for a given session.</summary>
     private static UpdateSectionRequest DefaultSection(List<UpdateSessionExerciseRequest>? exercises = null) =>
