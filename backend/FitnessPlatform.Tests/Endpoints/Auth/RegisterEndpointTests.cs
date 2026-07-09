@@ -4,6 +4,7 @@ using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.Auth.Register;
 using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Builders;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
@@ -19,6 +20,16 @@ public class RegisterEndpointTests
     private readonly IEmailService _emailService = Substitute.For<IEmailService>();
     private readonly ILogger<RegisterEndpoint> _logger = Substitute.For<ILogger<RegisterEndpoint>>();
 
+    // Real EmailVerificationTokenService wired to the same mocked _db/_emailService so
+    // assertions on token persistence (_db.EmailVerificationTokens) and email dispatch
+    // (_emailService.SendEmailVerificationAsync) still exercise the shared path (#679).
+    private readonly IEmailVerificationTokenService _tokenService;
+
+    public RegisterEndpointTests()
+    {
+        _tokenService = new EmailVerificationTokenService(_db, _emailService);
+    }
+
     [Fact]
     public async Task HandleAsync_ValidRequest_Returns201WithUserId()
     {
@@ -27,7 +38,7 @@ public class RegisterEndpointTests
         _userManager.AddToRolesAsync(Arg.Any<ApplicationUser>(), Arg.Any<IEnumerable<string>>())
             .Returns(IdentityResult.Success);
 
-        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _emailService, _logger);
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _tokenService, _logger);
 
         var req = new RegisterRequest
         {
@@ -53,7 +64,7 @@ public class RegisterEndpointTests
         _userManager.CreateAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>())
             .Returns(IdentityResult.Failed(new IdentityError { Description = "Email already taken." }));
 
-        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _emailService, _logger);
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _tokenService, _logger);
 
         var req = new RegisterRequest
         {
@@ -79,7 +90,7 @@ public class RegisterEndpointTests
         _userManager.AddToRolesAsync(Arg.Any<ApplicationUser>(), Arg.Any<IEnumerable<string>>())
             .Returns(IdentityResult.Success);
 
-        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _emailService, _logger);
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _tokenService, _logger);
 
         var req = new RegisterRequest
         {
@@ -107,7 +118,7 @@ public class RegisterEndpointTests
         _userManager.AddToRolesAsync(Arg.Any<ApplicationUser>(), Arg.Any<IEnumerable<string>>())
             .Returns(IdentityResult.Success);
 
-        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _emailService, _logger);
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _tokenService, _logger);
 
         await ep.HandleAsync(new RegisterRequest
         {
@@ -131,7 +142,7 @@ public class RegisterEndpointTests
         _userManager.AddToRolesAsync(Arg.Any<ApplicationUser>(), Arg.Any<IEnumerable<string>>())
             .Returns(IdentityResult.Success);
 
-        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _emailService, _logger);
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _tokenService, _logger);
 
         await ep.HandleAsync(new RegisterRequest
         {
@@ -156,7 +167,7 @@ public class RegisterEndpointTests
         _userManager.AddToRolesAsync(Arg.Any<ApplicationUser>(), Arg.Any<IEnumerable<string>>())
             .Returns(IdentityResult.Success);
 
-        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _emailService, _logger);
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _tokenService, _logger);
 
         var req = new RegisterRequest
         {
@@ -184,7 +195,7 @@ public class RegisterEndpointTests
         _userManager.AddToRolesAsync(Arg.Any<ApplicationUser>(), Arg.Any<IEnumerable<string>>())
             .Returns(IdentityResult.Success);
 
-        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _emailService, _logger);
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _tokenService, _logger);
 
         await ep.HandleAsync(new RegisterRequest
         {
@@ -216,7 +227,7 @@ public class RegisterEndpointTests
         _userManager.AddToRolesAsync(Arg.Any<ApplicationUser>(), Arg.Any<IEnumerable<string>>())
             .Returns(IdentityResult.Success);
 
-        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _emailService, _logger);
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _tokenService, _logger);
 
         await ep.HandleAsync(new RegisterRequest
         {
@@ -253,7 +264,7 @@ public class RegisterEndpointTests
             .SendEmailVerificationAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns<Task>(_ => throw new InvalidOperationException("smtp down"));
 
-        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _emailService, _logger);
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _tokenService, _logger);
 
         var req = new RegisterRequest
         {

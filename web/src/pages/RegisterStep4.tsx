@@ -1,10 +1,32 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import api from '@/lib/api';
 
 interface RegisterStep4Props {
   email: string;
 }
 
 export function RegisterStep4({ email }: RegisterStep4Props) {
+  const { t } = useTranslation();
+  const [resending, setResending] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
+  const [resendError, setResendError] = useState(false);
+
+  const handleResend = async () => {
+    setResending(true);
+    setResendSuccess(false);
+    setResendError(false);
+    try {
+      await api.post('/auth/resend-verification/anonymous', { email });
+      setResendSuccess(true);
+    } catch {
+      setResendError(true);
+    } finally {
+      setResending(false);
+    }
+  };
+
   return (
     <div className="auth-success">
       {/* Success icon */}
@@ -45,10 +67,27 @@ export function RegisterStep4({ email }: RegisterStep4Props) {
 
       <div style={{ marginTop: 12, fontSize: 13, color: 'var(--text3)' }}>
         Email nedorazil?{' '}
-        <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500, color: 'var(--blue)', fontSize: 13, fontFamily: 'inherit', padding: 0 }}>
-          Odeslat znovu
+        <button
+          type="button"
+          onClick={handleResend}
+          disabled={resending}
+          style={{ background: 'none', border: 'none', cursor: resending ? 'default' : 'pointer', fontWeight: 500, color: 'var(--blue)', fontSize: 13, fontFamily: 'inherit', padding: 0 }}
+        >
+          {resending ? t('auth.verifyEmailResending') : t('auth.verifyEmailResend')}
         </button>
       </div>
+
+      {resendSuccess && (
+        <div style={{ marginTop: 8, padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--green)', background: 'var(--green-bg)', fontSize: 13, color: 'var(--green)' }}>
+          {t('auth.verifyEmailResent')}
+        </div>
+      )}
+
+      {resendError && (
+        <div style={{ marginTop: 8, padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--red)', background: 'var(--red-bg)', fontSize: 13, color: 'var(--red)' }}>
+          {t('common.error')}
+        </div>
+      )}
     </div>
   );
 }

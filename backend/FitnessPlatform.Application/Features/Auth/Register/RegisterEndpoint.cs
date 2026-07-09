@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
@@ -16,9 +15,9 @@ namespace FitnessPlatform.Application.Features.Auth.Register;
 /// <param name="userManager">ASP.NET Identity user manager.</param>
 /// <param name="dbContext">Database context.</param>
 /// <param name="audit">Audit logging service.</param>
-/// <param name="emailService">Email sending service.</param>
+/// <param name="tokenService">Shared email-verification token issuance service (see #679).</param>
 /// <param name="logger">Logger for non-fatal send failures.</param>
-public class RegisterEndpoint(UserManager<ApplicationUser> userManager, IApplicationDbContext dbContext, IAuditService audit, IEmailService emailService, ILogger<RegisterEndpoint> logger) : Endpoint<RegisterRequest, RegisterResponse>
+public class RegisterEndpoint(UserManager<ApplicationUser> userManager, IApplicationDbContext dbContext, IAuditService audit, IEmailVerificationTokenService tokenService, ILogger<RegisterEndpoint> logger) : Endpoint<RegisterRequest, RegisterResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -80,25 +79,17 @@ public class RegisterEndpoint(UserManager<ApplicationUser> userManager, IApplica
             dbContext.ClientProfiles.Add(new ClientProfile { UserId = user.Id });
         }
 
-        // Generate email verification token
-        var tokenValue = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
-        var verificationToken = new EmailVerificationToken
-        {
-            UserId = user.Id,
-            Token = tokenValue,
-            ExpiresAt = DateTime.UtcNow.AddHours(24)
-        };
-        dbContext.EmailVerificationTokens.Add(verificationToken);
-        user.VerificationEmailsSent = 1;
-
+        // Persist the user + role profiles before issuing the verification token so the
+        // account exists even if the token issuance/send step below fails.
         await dbContext.SaveChangesAsync(ct);
 
-        // Send verification email — non-fatal: if the send fails the user is already created
-        // and can re-trigger sending via /auth/resend-verification.
+        // Issue + send the verification email via the shared token service (#679) —
+        // non-fatal: if the send fails the user is already created and can re-trigger
+        // sending via /auth/resend-verification (or the anonymous resend endpoint).
         var language = HttpContext.Request.Headers.AcceptLanguage.FirstOrDefault() ?? "en";
         try
         {
-            await emailService.SendEmailVerificationAsync(user.Email!, tokenValue, language, ct);
+            await tokenService.IssueAndSendAsync(user, language, ct);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

@@ -195,6 +195,7 @@ builder.Services.AddScoped<ProfessionalAuthHelper>();
 builder.Services.AddScoped<IPrDetectionService, PrDetectionService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IWorkoutCompletionService, WorkoutCompletionService>();
+builder.Services.AddScoped<IEmailVerificationTokenService, EmailVerificationTokenService>();
 // Registers IHttpClientFactory — consumed by ExpoPushNotificationService below
 // and by the ResendClient typed client when Email:Provider = Resend.
 builder.Services.AddHttpClient();
