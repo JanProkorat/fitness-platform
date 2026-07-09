@@ -209,7 +209,7 @@ export function WeekDayTabs({
                     }}
                     onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--red)'; e.currentTarget.style.background = 'var(--red-bg)'; }}
                     onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text4)'; e.currentTarget.style.background = 'transparent'; }}
-                    title="Odebrat týden"
+                    title={t('nutrition.removeWeek')}
                   >
                     ✕
                   </button>
@@ -231,9 +231,9 @@ export function WeekDayTabs({
             }}
             onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.borderColor = 'var(--border-hv)'; }}
             onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text2)'; e.currentTarget.style.background = 'var(--bg)'; e.currentTarget.style.borderColor = 'var(--border-md)'; }}
-            title="Přidat týden"
+            title={t('nutrition.addWeek')}
           >
-            + Týden
+            {t('nutrition.addWeekShort')}
           </button>
         )}
       </div>
