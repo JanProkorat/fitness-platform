@@ -78,15 +78,11 @@ interface TrainingPlanState {
   addExerciseToSection: (weekNumber: number, sessionId: string, sectionId: string, exercise: { exerciseExternalId: string; exerciseName: string }) => void;
   removeExerciseFromSection: (weekNumber: number, sessionId: string, sectionId: string, exerciseIndex: number) => void;
   duplicateExerciseInSection: (weekNumber: number, sessionId: string, sectionId: string, exerciseIndex: number) => void;
-  reorderExercisesInSection: (weekNumber: number, sessionId: string, sectionId: string, fromIndex: number, toIndex: number) => void;
-  reorderExercisesInSectionByIds: (weekNumber: number, sessionId: string, sectionId: string, orderedIds: string[]) => void;
 
   // Legacy exercise mutations (kept for DnD cross-session moves — operate on the first section)
   addExercise: (weekNumber: number, sessionId: string, exercise: { exerciseExternalId: string; exerciseName: string }) => void;
   removeExercise: (weekNumber: number, sessionId: string, exerciseIndex: number) => void;
   duplicateExercise: (weekNumber: number, sessionId: string, exerciseIndex: number) => void;
-  reorderExercises: (weekNumber: number, sessionId: string, fromIndex: number, toIndex: number) => void;
-  reorderExercisesByIds: (weekNumber: number, sessionId: string, orderedIds: string[]) => void;
   moveExerciseToSession: (weekNumber: number, fromSessionId: string, toSessionId: string, fromIndex: number, toIndex: number) => void;
 
   // Set mutations (section-scoped)
@@ -105,7 +101,6 @@ interface TrainingPlanState {
 
   // Cross-week mutations
   moveSessionToWeek: (fromWeek: number, toWeek: number, sessionId: string, targetDayOfWeek: number, insertIndex?: number) => void;
-  moveExerciseToWeek: (fromWeek: number, toWeek: number, fromSessionId: string, toSessionId: string, fromIndex: number, toIndex: number) => void;
   copyDayToWeek: (fromWeek: number, fromDay: number, toWeek: number, toDay: number) => void;
 
   // Day mutations
@@ -665,33 +660,6 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
     });
   },
 
-  reorderExercisesInSection: (weekNumber, sessionId, sectionId, fromIndex, toIndex) => {
-    const { plan } = get();
-    if (!plan) return;
-    set({
-      plan: patchSection(plan, weekNumber, sessionId, sectionId, (sec) => {
-        const exercises = [...sec.exercises];
-        const [moved] = exercises.splice(fromIndex, 1);
-        exercises.splice(toIndex, 0, moved);
-        return { ...sec, exercises: exercises.map((e, i) => ({ ...e, order: i + 1 })) };
-      }),
-      isDirty: true,
-    });
-  },
-
-  reorderExercisesInSectionByIds: (weekNumber, sessionId, sectionId, orderedIds) => {
-    const { plan } = get();
-    if (!plan) return;
-    set({
-      plan: patchSection(plan, weekNumber, sessionId, sectionId, (sec) => {
-        const byId = new Map(sec.exercises.map((e, i) => [`${e.exerciseExternalId}-${i}`, e]));
-        const reordered = orderedIds.map((id) => byId.get(id)).filter((e): e is SessionExercise => e !== undefined);
-        return { ...sec, exercises: reordered.map((e, i) => ({ ...e, order: i + 1 })) };
-      }),
-      isDirty: true,
-    });
-  },
-
   // Legacy flat-exercise mutations — delegate to first section for DnD compatibility.
   addExercise: (weekNumber, sessionId, exercise) => {
     const { plan } = get();
@@ -731,25 +699,6 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
       }
       remaining -= sec.exercises.length;
     }
-  },
-
-  reorderExercises: (weekNumber, sessionId, fromIndex, toIndex) => {
-    // Legacy: assumes single-section (operates on flat index of first section only).
-    const { plan } = get();
-    if (!plan) return;
-    const session = plan.weeks.find((w) => w.weekNumber === weekNumber)?.sessions.find((s) => s.sessionId === sessionId);
-    const firstSectionId = session?.sections[0]?.sectionId;
-    if (!firstSectionId) return;
-    get().reorderExercisesInSection(weekNumber, sessionId, firstSectionId, fromIndex, toIndex);
-  },
-
-  reorderExercisesByIds: (weekNumber, sessionId, orderedIds) => {
-    const { plan } = get();
-    if (!plan) return;
-    const session = plan.weeks.find((w) => w.weekNumber === weekNumber)?.sessions.find((s) => s.sessionId === sessionId);
-    const firstSectionId = session?.sections[0]?.sectionId;
-    if (!firstSectionId) return;
-    get().reorderExercisesInSectionByIds(weekNumber, sessionId, firstSectionId, orderedIds);
   },
 
   moveExerciseToSession: (weekNumber, fromSessionId, toSessionId, fromIndex, toIndex) => {
@@ -976,72 +925,6 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
               ...existing.map((s) => ({ ...s, order: orderMap.get(s.sessionId)! })),
             ];
             return { ...w, sessions };
-          }
-          return w;
-        }),
-      },
-      isDirty: true,
-    });
-  },
-
-  moveExerciseToWeek: (fromWeek, toWeek, fromSessionId, toSessionId, fromIndex, toIndex) => {
-    const { plan } = get();
-    if (!plan || fromWeek === toWeek) {
-      // Same week — delegate to existing action
-      if (fromSessionId === toSessionId) {
-        get().reorderExercises(fromWeek, fromSessionId, fromIndex, toIndex);
-      } else {
-        get().moveExerciseToSession(fromWeek, fromSessionId, toSessionId, fromIndex, toIndex);
-      }
-      return;
-    }
-    const sourceWeek = plan.weeks.find((w) => w.weekNumber === fromWeek);
-    const targetWeek = plan.weeks.find((w) => w.weekNumber === toWeek);
-    if (!sourceWeek || !targetWeek) return;
-    const fromSession = sourceWeek.sessions.find((s) => s.sessionId === fromSessionId);
-    if (!fromSession) return;
-    const exercise = fromSession.exercises[fromIndex];
-    if (!exercise) return;
-
-    set({
-      plan: {
-        ...plan,
-        weeks: plan.weeks.map((w) => {
-          if (w.weekNumber === fromWeek) {
-            return {
-              ...w,
-              sessions: w.sessions.map((s) => {
-                if (s.sessionId !== fromSessionId) return s;
-                let remaining = fromIndex;
-                const sections = s.sections.map((sec) => {
-                  if (remaining >= 0 && remaining < sec.exercises.length) {
-                    const exercises = sec.exercises.filter((_, i) => i !== remaining);
-                    remaining = -1;
-                    return { ...sec, exercises: exercises.map((e, i) => ({ ...e, order: i + 1 })) };
-                  }
-                  if (remaining >= 0) remaining -= sec.exercises.length;
-                  return sec;
-                });
-                return { ...s, sections, exercises: sections.flatMap((sec) => sec.exercises) };
-              }),
-            };
-          }
-          if (w.weekNumber === toWeek) {
-            return {
-              ...w,
-              sessions: w.sessions.map((s) => {
-                if (s.sessionId !== toSessionId) return s;
-                const firstSection = s.sections[0];
-                if (!firstSection) return s;
-                const sections = s.sections.map((sec) => {
-                  if (sec.sectionId !== firstSection.sectionId) return sec;
-                  const exercises = [...sec.exercises];
-                  exercises.splice(toIndex, 0, { ...exercise });
-                  return { ...sec, exercises: exercises.map((e, i) => ({ ...e, order: i + 1 })) };
-                });
-                return { ...s, sections, exercises: sections.flatMap((sec) => sec.exercises) };
-              }),
-            };
           }
           return w;
         }),

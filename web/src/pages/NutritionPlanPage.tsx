@@ -140,7 +140,6 @@ export default function NutritionPlanPage() {
   const mealLogs = plan?.mealLogs ?? [];
   const planLocks = useMemo(
     () => computeNutritionPlanLocks(plan ?? null, mealLogs),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [plan, mealLogs],
   );
 

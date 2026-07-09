@@ -28,7 +28,7 @@ interface MessagesResponse {
 }
 
 export async function fetchConversations(): Promise<ConversationDto[]> {
-  const { data } = await api.get('/conversations');
+  const { data } = await api.get<ConversationDto[]>('/conversations');
   return data;
 }
 
@@ -36,7 +36,7 @@ export async function fetchMessages(
   conversationId: string,
   cursor?: string,
 ): Promise<MessagesResponse> {
-  const { data } = await api.get(`/conversations/${conversationId}/messages`, {
+  const { data } = await api.get<MessagesResponse>(`/conversations/${conversationId}/messages`, {
     params: { cursor, limit: 50 },
   });
   return data;
@@ -46,7 +46,7 @@ export async function sendMessage(
   conversationId: string,
   text: string,
 ): Promise<MessageDto> {
-  const { data } = await api.post(`/conversations/${conversationId}/messages`, {
+  const { data } = await api.post<MessageDto>(`/conversations/${conversationId}/messages`, {
     text,
   });
   return data;
@@ -61,6 +61,6 @@ export async function markConversationRead(
 export async function startConversation(
   participantId: string,
 ): Promise<ConversationDto> {
-  const { data } = await api.post('/conversations', { participantId });
+  const { data } = await api.post<ConversationDto>('/conversations', { participantId });
   return data;
 }

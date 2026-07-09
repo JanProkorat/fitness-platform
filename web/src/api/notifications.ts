@@ -11,8 +11,12 @@ export interface NotificationDto {
   actionPayload?: string | null;
 }
 
+interface GetNotificationsResponse {
+  items: NotificationDto[];
+}
+
 export async function getNotifications(limit = 10): Promise<NotificationDto[]> {
-  const { data } = await api.get('/client/notifications', { params: { limit } });
+  const { data } = await api.get<GetNotificationsResponse>('/client/notifications', { params: { limit } });
   return data.items;
 }
 

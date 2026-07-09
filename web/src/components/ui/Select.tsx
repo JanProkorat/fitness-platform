@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+import { forwardRef, useId } from 'react';
 import { cn } from '@/lib/cn';
 
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
@@ -11,7 +11,8 @@ const chevronSvg = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
   ({ label, hint, error, className, id, children, ...props }, ref) => {
-    const selectId = id || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
+    const generatedId = useId();
+    const selectId = id || (label ? generatedId : undefined);
 
     const select = (
       <select

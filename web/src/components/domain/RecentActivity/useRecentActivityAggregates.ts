@@ -225,6 +225,7 @@ export function useRecentActivityAggregates(
         compliancePercent: weekCompliancePct,
       },
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, todayKey]);
 }
 
