@@ -6,6 +6,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.TrainingPlans.PublishTrainingWeek;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints;
@@ -46,7 +47,8 @@ public class PublishTrainingWeekEndpointTests
             new MockDbBuilder().Build(),
             Substitute.For<INotificationService>(),
             Substitute.For<IRealtimeNotifier>(),
-            StubLockService());
+            StubLockService(),
+            new PlanConcurrencyGuard());
 
         await ep.HandleAsync(new PublishTrainingWeekRequest
         {
@@ -82,7 +84,8 @@ public class PublishTrainingWeekEndpointTests
             new MockDbBuilder().Build(),
             Substitute.For<INotificationService>(),
             Substitute.For<IRealtimeNotifier>(),
-            StubLockService());
+            StubLockService(),
+            new PlanConcurrencyGuard());
 
         await ep.HandleAsync(new PublishTrainingWeekRequest
         {
@@ -134,7 +137,8 @@ public class PublishTrainingWeekEndpointTests
             new MockDbBuilder().Build(),
             Substitute.For<INotificationService>(),
             Substitute.For<IRealtimeNotifier>(),
-            StubLockService());
+            StubLockService(),
+            new PlanConcurrencyGuard());
 
         await ep.HandleAsync(new PublishTrainingWeekRequest
         {

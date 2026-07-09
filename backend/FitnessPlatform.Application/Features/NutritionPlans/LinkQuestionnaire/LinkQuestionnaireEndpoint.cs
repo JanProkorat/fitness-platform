@@ -4,6 +4,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.NutritionPlans.GetPlan;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -16,7 +17,7 @@ namespace FitnessPlatform.Application.Features.NutritionPlans.LinkQuestionnaire;
 /// Links or unlinks a questionnaire response to/from a nutrition plan.
 /// Validates that the response belongs to the same professional and client.
 /// </summary>
-public class LinkQuestionnaireEndpoint(IMongoContext mongo, IApplicationDbContext db)
+public class LinkQuestionnaireEndpoint(IMongoContext mongo, IApplicationDbContext db, PlanConcurrencyGuard guard)
     : Endpoint<LinkQuestionnaireRequest, GetPlanResponse>
 {
     /// <inheritdoc />
@@ -43,67 +44,71 @@ public class LinkQuestionnaireEndpoint(IMongoContext mongo, IApplicationDbContex
 
         var nutritionistId = Guid.Parse(userId);
 
-        // Fetch plan owned by this nutritionist
-        var filter = Builders<NutritionPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
+        var lookupFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
                      & Builders<NutritionPlan>.Filter.Eq(p => p.NutritionistId, nutritionistId);
-
-        var cursor = await mongo.NutritionPlans.FindAsync(filter, cancellationToken: ct);
-        var plan = await cursor.FirstOrDefaultAsync(ct);
-
-        if (plan is null)
-        {
-            await Send.NotFoundAsync(ct);
-            return;
-        }
-
-        // Version check
-        if (plan.Version != req.Version)
-        {
-            await this.SendProblemAsync(409, ErrorCodes.PlanVersionConflict,
-                "Version conflict. The plan was modified by another request.", ct);
-            return;
-        }
-
-        // Only draft or active plans can have their questionnaire link changed
-        if (plan.Status is NutritionPlanStatus.Completed or NutritionPlanStatus.Archived)
-        {
-            ThrowError("Only draft or active plans can have their questionnaire link changed.");
-            return;
-        }
-
-        // Validate the questionnaire response if linking (not unlinking)
-        if (req.QuestionnaireResponseId.HasValue)
-        {
-            var responseExists = await db.QuestionnaireResponses
-                .AsNoTracking()
-                .AnyAsync(r => r.PublicId == req.QuestionnaireResponseId.Value
-                               && r.ProfessionalId == nutritionistId
-                               && r.ClientId == plan.ClientId
-                               && r.Status == QuestionnaireResponseStatus.Submitted, ct);
-
-            if (!responseExists)
-            {
-                ThrowError("QuestionnaireResponseId", "Questionnaire response not found or not submitted.");
-                return;
-            }
-        }
-
-        // Update the link
-        plan.QuestionnaireResponseId = req.QuestionnaireResponseId;
-        plan.DateUpdated = DateTime.UtcNow;
-        plan.Version += 1;
-
-        var versionFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
+        var replaceFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
                             & Builders<NutritionPlan>.Filter.Eq(p => p.Version, req.Version);
 
-        var result = await mongo.NutritionPlans.ReplaceOneAsync(versionFilter, plan, cancellationToken: ct);
+        var guardResult = await guard.ReplaceWithVersionGuardAsync(
+            mongo.NutritionPlans,
+            lookupFilter,
+            replaceFilter,
+            req.Version,
+            p => p.Version,
+            async (plan, mutateCt) =>
+            {
+                // Only draft or active plans can have their questionnaire link changed
+                if (plan.Status is NutritionPlanStatus.Completed or NutritionPlanStatus.Archived)
+                {
+                    ThrowError("Only draft or active plans can have their questionnaire link changed.");
+                    return false;
+                }
 
-        if (result.ModifiedCount == 0)
+                // Validate the questionnaire response if linking (not unlinking)
+                if (req.QuestionnaireResponseId.HasValue)
+                {
+                    var responseExists = await db.QuestionnaireResponses
+                        .AsNoTracking()
+                        .AnyAsync(r => r.PublicId == req.QuestionnaireResponseId.Value
+                                       && r.ProfessionalId == nutritionistId
+                                       && r.ClientId == plan.ClientId
+                                       && r.Status == QuestionnaireResponseStatus.Submitted, mutateCt);
+
+                    if (!responseExists)
+                    {
+                        ThrowError("QuestionnaireResponseId", "Questionnaire response not found or not submitted.");
+                        return false;
+                    }
+                }
+
+                // Update the link
+                plan.QuestionnaireResponseId = req.QuestionnaireResponseId;
+                plan.DateUpdated = DateTime.UtcNow;
+                plan.Version += 1;
+
+                return true;
+            },
+            ct);
+
+        switch (guardResult.Outcome)
         {
-            await this.SendProblemAsync(409, ErrorCodes.PlanVersionConflict,
-                "Version conflict. The plan was modified concurrently.", ct);
-            return;
+            case PlanConcurrencyOutcome.NotFound:
+                await Send.NotFoundAsync(ct);
+                return;
+            case PlanConcurrencyOutcome.VersionConflict:
+                await this.SendProblemAsync(409, ErrorCodes.PlanVersionConflict,
+                    "Version conflict. The plan was modified by another request.", ct);
+                return;
+            case PlanConcurrencyOutcome.ReplaceConflict:
+                await this.SendProblemAsync(409, ErrorCodes.PlanVersionConflict,
+                    "Version conflict. The plan was modified concurrently.", ct);
+                return;
+            case PlanConcurrencyOutcome.HandledByMutator:
+                // Never reached: this endpoint's mutate delegate never writes a response directly.
+                return;
         }
+
+        var plan = guardResult.Document!;
 
         await Send.OkAsync(GetPlanResponse.FromDocument(plan), ct);
     }

@@ -6,6 +6,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.NutritionPlans.UpdatePlan;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Tests.Builders;
@@ -35,7 +36,8 @@ public class UpdatePlanFullStateTests
             mongo,
             macroCalc,
             new MockDbBuilder().Build(),
-            Substitute.For<IRealtimeNotifier>());
+            Substitute.For<IRealtimeNotifier>(),
+            new PlanConcurrencyGuard());
 
     private static UpdateWeekRequest BuildWeekRequest(int weekNumber, MealFood? food = null)
     {
