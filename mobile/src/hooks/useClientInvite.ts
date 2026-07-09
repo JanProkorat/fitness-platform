@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../api/client'
-import { useAuthStore } from '../stores/auth'
+import { useAcceptInvite } from './useAcceptInvite'
 
 export interface TrainerInvite {
   id: string
@@ -21,17 +21,12 @@ async function fetchPendingInvite(): Promise<TrainerInvite | null> {
   return resp.data as TrainerInvite
 }
 
-async function acceptInvite(id: string): Promise<void> {
-  await api.post(`/client/invites/${id}/accept`)
-}
-
 async function declineInvite(id: string): Promise<void> {
   await api.post(`/client/invites/${id}/decline`)
 }
 
 export function useClientInvite(enabled: boolean) {
   const queryClient = useQueryClient()
-  const refreshProfile = useAuthStore((s) => s.refreshProfile)
 
   const query = useQuery({
     queryKey: ['client-invite'],
@@ -44,17 +39,12 @@ export function useClientInvite(enabled: boolean) {
     refetchInterval: (q) => (q.state.data ? false : 30_000),
   })
 
-  const acceptMutation = useMutation({
-    mutationFn: acceptInvite,
-    onSuccess: async () => {
-      queryClient.setQueryData(['client-invite'], null)
-      await refreshProfile()
-      queryClient.invalidateQueries({ queryKey: ['today-plan'] })
-      queryClient.invalidateQueries({ queryKey: ['today-training'] })
-      queryClient.invalidateQueries({ queryKey: ['conversation-context'] })
-      queryClient.invalidateQueries({ queryKey: ['conversations'] })
-    },
-  })
+  // Shared accept-invite mutation (#605) — owns the union invalidation set
+  // (today-plan/today-training/conversation-context/conversations/
+  // collaborations/my-requests/client-invite + refreshProfile). This site
+  // additionally clears the invite banner optimistically so it disappears
+  // immediately rather than waiting on the client-invite refetch.
+  const acceptMutation = useAcceptInvite()
 
   const declineMutation = useMutation({
     mutationFn: declineInvite,
@@ -73,7 +63,10 @@ export function useClientInvite(enabled: boolean) {
   return {
     invite: query.data ?? null,
     isLoading: query.isLoading,
-    accept: acceptMutation.mutate,
+    accept: (id: string) =>
+      acceptMutation.mutate(id, {
+        onSuccess: () => queryClient.setQueryData(['client-invite'], null),
+      }),
     decline: declineMutation.mutate,
   }
 }

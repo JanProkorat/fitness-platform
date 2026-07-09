@@ -223,13 +223,14 @@ function NutritionPlanDetail({
   const effectiveWeek = selectedWeek ?? plan.currentWeek ?? 1
   const effectiveDay = selectedDay ?? plan.currentDayOfWeek ?? 1
 
-  // Invalidate cache when coach updates or publishes the plan
+  // Invalidate cache when coach updates or publishes the plan.
+  // Canonical key shared with Today/Nutrition/Plans-list screens (#603).
   useEffect(() => {
     const offUpdated = onEvent('nutritionplanupdated', () => {
-      queryClient.invalidateQueries({ queryKey: ['nutrition-full-plan'] })
+      queryClient.invalidateQueries({ queryKey: ['nutrition-plan-full'] })
     })
     const offPublished = onEvent('nutritionplanpublished', () => {
-      queryClient.invalidateQueries({ queryKey: ['nutrition-full-plan'] })
+      queryClient.invalidateQueries({ queryKey: ['nutrition-plan-full'] })
     })
     return () => { offUpdated(); offPublished() }
   }, [queryClient])
@@ -1654,7 +1655,8 @@ export default function PlanDetailScreen() {
   const initialDay = day ? parseInt(day, 10) || undefined : undefined
 
   const nutritionQuery = useQuery({
-    queryKey: ['nutrition-full-plan'],
+    // Canonical key — shared with Today/Nutrition/Plans-list screens (#603).
+    queryKey: ['nutrition-plan-full'],
     queryFn: getFullPlan,
     enabled: isNutrition,
     staleTime: 30_000,

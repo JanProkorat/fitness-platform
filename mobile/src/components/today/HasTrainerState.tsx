@@ -239,7 +239,9 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
   })
 
   const fullPlanQuery = useQuery<FullPlanResponse>({
-    queryKey: ['nutrition', 'full-plan'],
+    // Canonical key — shared with useTodayState / nutrition & plans tabs so
+    // publish/update SignalR invalidations refresh every screen at once (#603).
+    queryKey: ['nutrition-plan-full'],
     queryFn: getFullPlan,
     staleTime: 60_000,
   })

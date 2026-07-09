@@ -1,5 +1,5 @@
-import { useCallback, useMemo } from 'react';
-import { View, Text, FlatList, Pressable, StyleSheet } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { View, Text, FlatList, Pressable, RefreshControl, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -13,11 +13,22 @@ export default function TrainingHistoryScreen() {
   const { t } = useTranslation();
   const colors = useTheme();
   const styles = useMemo(() => getStyles(colors), [colors]);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, refetch } = useQuery({
     queryKey: ['workout-logs'],
     queryFn: () => getWorkoutLogs({ page: 1, pageSize: 50 }),
   });
+
+  // Manual pull-to-refresh fallback in case any invalidation path is missed (#604).
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetch]);
 
   const formatDuration = (seconds?: number | null) => {
     if (!seconds) return '—';
@@ -60,6 +71,9 @@ export default function TrainingHistoryScreen() {
         renderItem={renderItem}
         keyExtractor={(item) => item.logId ?? ''}
         contentContainerStyle={styles.list}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.gold} />
+        }
         ListEmptyComponent={
           isLoading ? null : (
             <Text style={styles.emptyText}>{t('training.noWorkouts')}</Text>

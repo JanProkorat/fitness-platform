@@ -14,6 +14,7 @@ import { useTheme } from '@/hooks/useTheme'
 import { useMessages } from '@/hooks/useMessages'
 import { useTypingStatus } from '@/hooks/useTypingStatus'
 import { useAuthStore } from '@/stores/auth'
+import { useAcceptInvite } from '@/hooks/useAcceptInvite'
 import api from '@/api/client'
 import { Toast } from '@/lib/toast'
 import { fetchConversations, fetchConversationContext, markConversationRead } from '@/api/messages'
@@ -55,18 +56,12 @@ export default function ChatScreen() {
   })
 
   const queryClient = useQueryClient()
-  const refreshProfile = useAuthStore((s) => s.refreshProfile)
 
-  const acceptMutation = useMutation({
-    mutationFn: (inviteId: string) => api.post(`/client/invites/${inviteId}/accept`),
-    onSuccess: async () => {
-      Toast.show(t('messages.connected', { name: participant?.name }))
-      queryClient.invalidateQueries({ queryKey: ['conversation-context'] })
-      queryClient.invalidateQueries({ queryKey: ['client-invite'] })
-      queryClient.invalidateQueries({ queryKey: ['conversations'] })
-      await refreshProfile()
-    },
-  })
+  // Shared accept-invite mutation (#605) — owns the union invalidation set
+  // (today-plan/today-training/conversation-context/conversations/
+  // collaborations/my-requests/client-invite + refreshProfile). This site
+  // adds its own toast on top.
+  const acceptMutation = useAcceptInvite()
 
   const declineMutation = useMutation({
     mutationFn: (inviteId: string) => api.post(`/client/invites/${inviteId}/decline`),
@@ -213,7 +208,11 @@ export default function ChatScreen() {
           sub={context.sub ?? ''}
           actionLabel={context.actionLabel ?? ''}
           onAction={() => {}}
-          onAccept={() => acceptMutation.mutate(context.inviteId!)}
+          onAccept={() =>
+            acceptMutation.mutate(context.inviteId!, {
+              onSuccess: () => Toast.show(t('messages.connected', { name: participant?.name })),
+            })
+          }
           onDecline={() => declineMutation.mutate(context.inviteId!)}
         />
       )}

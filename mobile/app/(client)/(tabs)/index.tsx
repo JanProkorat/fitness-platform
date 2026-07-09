@@ -184,11 +184,9 @@ export default function TodayScreen() {
         queryClient.invalidateQueries({ queryKey: ['today-log'] }),
         queryClient.invalidateQueries({ queryKey: ['today-training'] }),
         queryClient.invalidateQueries({ queryKey: ['compliance-score'] }),
-        // Full nutrition plan — two keys in use across the screen:
-        //   ['nutrition-plan-full'] drives useTodayState (pending-plan detection)
-        //   ['nutrition', 'full-plan'] drives HasTrainerState's fullPlanQuery
+        // Full nutrition plan — canonical key shared by useTodayState
+        // (pending-plan detection) and HasTrainerState's fullPlanQuery (#603).
         queryClient.invalidateQueries({ queryKey: ['nutrition-plan-full'] }),
-        queryClient.invalidateQueries({ queryKey: ['nutrition', 'full-plan'] }),
         // Active plans (training pending-plan detection in useTodayState)
         queryClient.invalidateQueries({ queryKey: ['client-plans-active'] }),
         // Collaborations (coach/trainer name + waiting-for-plan logic)

@@ -150,6 +150,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     import('../stores/todayStore').then(({ useTodayStore }) => {
       useTodayStore.getState().reset();
     });
+    import('../stores/liveSessionStore').then(({ useLiveSessionStore }) => {
+      useLiveSessionStore.getState().discard();
+    });
+    import('../stores/hydrationStore').then(({ useHydrationStore }) => {
+      useHydrationStore.getState().reset();
+    });
+    import('../stores/messagesStore').then(({ useMessagesStore }) => {
+      useMessagesStore.getState().reset();
+    });
     import('../stores/offline').then(({ clearPendingMutations }) => {
       clearPendingMutations();
     });
