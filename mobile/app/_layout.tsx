@@ -104,17 +104,24 @@ function AuthGate() {
       router.replace('/(auth)/login');
     } else if (isAuthenticated && !user?.emailConfirmed && !onVerifyScreen) {
       router.replace(href('/(auth)/verify-email'));
-    } else if (isAuthenticated && user?.emailConfirmed && pendingInviteToken) {
+    } else if (isAuthenticated && user?.emailConfirmed && pendingInviteToken && !onInviteScreen) {
       // Deterministic invite hand-off (#606). login.tsx recorded the intent
       // in the store instead of navigating imperatively — AuthGate is the
-      // single routing authority so there is no race with the `/(client)`
-      // branch below. Consume the flag before navigating so this branch
-      // fires exactly once (onInviteScreen becomes true on the next run).
-      const token = pendingInviteToken;
-      setPendingInviteToken(null);
-      router.replace(`/(auth)/invite/${token}`);
+      // single routing authority. The flag is kept SET (not consumed here)
+      // and the branch is guarded on `!onInviteScreen`, so it keeps winning
+      // over the `/(client)` branch below on every re-run until `segments`
+      // actually reaches the invite screen. Consuming the flag here instead
+      // let a re-run with a cleared flag but still-stale `seg=login` fall
+      // through to `/(client)` and stomp the in-flight navigation.
+      router.replace(`/(auth)/invite/${pendingInviteToken}`);
     } else if (isAuthenticated && user?.emailConfirmed && inAuthGroup && !onQuestionnaireScreen && !onInviteScreen) {
       router.replace('/(client)');
+    }
+
+    // Consume the one-shot invite flag only once we've actually landed on the
+    // invite screen — clearing it earlier reopens the stale-segments race.
+    if (onInviteScreen && pendingInviteToken) {
+      setPendingInviteToken(null);
     }
   }, [isAuthenticated, isInitialized, fontsLoaded, segments, router, user, pendingInviteToken, setPendingInviteToken]);
 
