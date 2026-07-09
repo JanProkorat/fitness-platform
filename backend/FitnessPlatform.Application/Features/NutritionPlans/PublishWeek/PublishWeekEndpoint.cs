@@ -98,19 +98,8 @@ public class PublishWeekEndpoint(
         }
 
         // Check if this is the first published week — if so, archive other active plans
+        // afterward. Computed BEFORE the mutation below so it reflects pre-publish state.
         var hadPublishedWeeks = plan.Weeks.Any(w => w.Status == WeekStatus.Published);
-        if (!hadPublishedWeeks)
-        {
-            var archiveFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, plan.ClientId)
-                                & Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active)
-                                & Builders<NutritionPlan>.Filter.Ne(p => p.ExternalId, plan.ExternalId);
-
-            var archiveUpdate = Builders<NutritionPlan>.Update
-                .Set(p => p.Status, NutritionPlanStatus.Archived)
-                .Set(p => p.DateUpdated, DateTime.UtcNow);
-
-            await mongo.NutritionPlans.UpdateManyAsync(archiveFilter, archiveUpdate, cancellationToken: ct);
-        }
 
         // Publish the week
         week.Status = WeekStatus.Published;
@@ -122,6 +111,8 @@ public class PublishWeekEndpoint(
         var versionFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
                             & Builders<NutritionPlan>.Filter.Eq(p => p.Version, req.Version);
 
+        // Version-gated write MUST happen before archiving siblings — if this loses the
+        // concurrency race, the client's other active plans must be left untouched.
         var result = await mongo.NutritionPlans.ReplaceOneAsync(versionFilter, plan, cancellationToken: ct);
 
         if (result.ModifiedCount == 0)
@@ -129,6 +120,21 @@ public class PublishWeekEndpoint(
             await this.SendProblemAsync(409, ErrorCodes.PlanVersionConflict,
                 "Version conflict. The plan was modified concurrently.", ct);
             return;
+        }
+
+        // Now that the publish itself is confirmed, archive other active plans if this was
+        // the first published week.
+        if (!hadPublishedWeeks)
+        {
+            var archiveFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, plan.ClientId)
+                                & Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active)
+                                & Builders<NutritionPlan>.Filter.Ne(p => p.ExternalId, plan.ExternalId);
+
+            var archiveUpdate = Builders<NutritionPlan>.Update
+                .Set(p => p.Status, NutritionPlanStatus.Archived)
+                .Set(p => p.DateUpdated, DateTime.UtcNow);
+
+            await mongo.NutritionPlans.UpdateManyAsync(archiveFilter, archiveUpdate, cancellationToken: ct);
         }
 
         // Notify the client about the published week
