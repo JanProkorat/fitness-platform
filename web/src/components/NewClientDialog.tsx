@@ -191,7 +191,7 @@ export function NewClientDialog({ open, onClose }: NewClientDialogProps) {
                   <input
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
-                    placeholder="Jan"
+                    placeholder={t('auth.firstNamePlaceholder')}
                     className={inp}
                   />
                 </div>
@@ -202,7 +202,7 @@ export function NewClientDialog({ open, onClose }: NewClientDialogProps) {
                   <input
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
-                    placeholder="Novák"
+                    placeholder={t('auth.lastNamePlaceholder')}
                     className={inp}
                   />
                 </div>
@@ -210,7 +210,7 @@ export function NewClientDialog({ open, onClose }: NewClientDialogProps) {
 
               {/* Email */}
               <div>
-                <label className="mb-1 block text-xs font-medium text-text3">Email</label>
+                <label className="mb-1 block text-xs font-medium text-text3">{t('common.email')}</label>
                 <input
                   type="email"
                   value={email}
