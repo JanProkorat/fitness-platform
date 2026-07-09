@@ -9,8 +9,12 @@ export interface IncomingRequest {
   sentAt: string;
 }
 
+interface GetIncomingRequestsResponse {
+  requests: IncomingRequest[];
+}
+
 export async function getIncomingRequests(): Promise<IncomingRequest[]> {
-  const { data } = await api.get('/trainer/client-requests');
+  const { data } = await api.get<GetIncomingRequestsResponse>('/trainer/client-requests');
   return data.requests ?? [];
 }
 

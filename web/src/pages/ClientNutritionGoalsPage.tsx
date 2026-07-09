@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/stores/auth';
 import { PageHeader } from '@/components/layout';
@@ -15,6 +15,40 @@ import {
   type CalculateGoalsRequest,
   type CalculateGoalsResponse,
 } from '@/api/nutrition-goals';
+
+/** Matches the sliders' own 5% floor — see GoalsMacroPanel.tsx `min={5}`. */
+const MACRO_DISTRIBUTION_FLOOR_PERCENT = 5;
+
+/**
+ * Redistributes the remainder (100 - changedValue) between the two macros
+ * that were NOT directly edited, proportionally to their current split.
+ *
+ * Defensive against:
+ *   - divide-by-zero / near-zero remainder when `otherA + otherB` collapses
+ *     to (near) 0 — falls back to an even split of the remainder.
+ *   - either result dropping below the sliders' 5% floor (GoalsMacroPanel
+ *     enforces `min={5}` on drag; a purely computed redistribution has no
+ *     such guard and can otherwise land below it, or at NaN).
+ *
+ * Returns `[newA, newB]`, both clamped to >= 5, summing to
+ * `100 - changedValue` whenever that remainder is itself >= 10 (guaranteed
+ * by the sliders' own floor on `changedValue`).
+ */
+function redistributeRemainder(
+  changedValue: number,
+  otherA: number,
+  otherB: number,
+): [number, number] {
+  const remainder = 100 - changedValue;
+  const denom = otherA + otherB;
+  const newA =
+    denom > MACRO_DISTRIBUTION_FLOOR_PERCENT / 100
+      ? Math.round((remainder * otherA) / denom)
+      : Math.round(remainder / 2);
+  const clampedA = Math.max(MACRO_DISTRIBUTION_FLOOR_PERCENT, newA);
+  const clampedB = Math.max(MACRO_DISTRIBUTION_FLOOR_PERCENT, remainder - clampedA);
+  return [clampedA, clampedB];
+}
 
 const TRAINING_FREQ_KEYS: Record<string, string> = {
   None: 'nutritionGoals.trainingFreq_None',
@@ -63,6 +97,7 @@ const ACTIVITY_ITEM_KEYS: Record<string, string> = {
 export default function ClientNutritionGoalsPage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
+  const queryClient = useQueryClient();
 
   const user = useAuthStore((s) => s.user);
   const isTrainer = user?.roles?.includes('Trainer') || user?.roles?.includes('Admin');
@@ -166,6 +201,11 @@ export default function ClientNutritionGoalsPage() {
         carbsGrams: result.macroTargets.carbsGrams,
         fatGrams: result.macroTargets.fatGrams,
       });
+      // The BMR/TDEE/macro fields just saved are surfaced via the
+      // ['client-dashboard', id] query (NutritionGoalsTab, NutritionPlanPage
+      // meal-macro widgets). Without this invalidation those views keep
+      // showing the pre-save goals until an unrelated refetch happens (#619).
+      queryClient.invalidateQueries({ queryKey: ['client-dashboard', id] });
     } catch {
       // handled
     } finally {
@@ -346,54 +386,42 @@ export default function ClientNutritionGoalsPage() {
               fatDistributionPercent={fatPercent}
               result={result}
               onProteinGramsChange={(n) => {
-                const remainder = 100 - n;
-                const newCarbs = Math.round(remainder * carbsPercent / (carbsPercent + fatPercent));
-                const newFat = remainder - newCarbs;
+                const [newCarbs, newFat] = redistributeRemainder(n, carbsPercent, fatPercent);
                 setProteinPercent(n);
                 setCarbsPercent(newCarbs);
                 setFatPercent(newFat);
                 recalculate({ pp: n, cp: newCarbs, fp: newFat });
               }}
               onCarbsGramsChange={(n) => {
-                const remainder = 100 - n;
-                const newProtein = Math.round(remainder * proteinPercent / (proteinPercent + fatPercent));
-                const newFat = remainder - newProtein;
+                const [newProtein, newFat] = redistributeRemainder(n, proteinPercent, fatPercent);
                 setCarbsPercent(n);
                 setProteinPercent(newProtein);
                 setFatPercent(newFat);
                 recalculate({ pp: newProtein, cp: n, fp: newFat });
               }}
               onFatGramsChange={(n) => {
-                const remainder = 100 - n;
-                const newProtein = Math.round(remainder * proteinPercent / (proteinPercent + carbsPercent));
-                const newCarbs = remainder - newProtein;
+                const [newProtein, newCarbs] = redistributeRemainder(n, proteinPercent, carbsPercent);
                 setFatPercent(n);
                 setProteinPercent(newProtein);
                 setCarbsPercent(newCarbs);
                 recalculate({ pp: newProtein, cp: newCarbs, fp: n });
               }}
               onProteinDistributionChange={(v) => {
-                const r = 100 - v;
-                const nc = Math.round(r * carbsPercent / (carbsPercent + fatPercent));
-                const nf = r - nc;
+                const [nc, nf] = redistributeRemainder(v, carbsPercent, fatPercent);
                 setProteinPercent(v);
                 setCarbsPercent(nc);
                 setFatPercent(nf);
                 recalculate({ pp: v, cp: nc, fp: nf });
               }}
               onCarbsDistributionChange={(v) => {
-                const r = 100 - v;
-                const np = Math.round(r * proteinPercent / (proteinPercent + fatPercent));
-                const nf = r - np;
+                const [np, nf] = redistributeRemainder(v, proteinPercent, fatPercent);
                 setCarbsPercent(v);
                 setProteinPercent(np);
                 setFatPercent(nf);
                 recalculate({ pp: np, cp: v, fp: nf });
               }}
               onFatDistributionChange={(v) => {
-                const r = 100 - v;
-                const np = Math.round(r * proteinPercent / (proteinPercent + carbsPercent));
-                const nc = r - np;
+                const [np, nc] = redistributeRemainder(v, proteinPercent, carbsPercent);
                 setFatPercent(v);
                 setProteinPercent(np);
                 setCarbsPercent(nc);

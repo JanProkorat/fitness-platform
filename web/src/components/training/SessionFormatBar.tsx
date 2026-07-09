@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import type { WorkoutFormat, WodConfig } from '@/api/training-plan-types';
 import { FORMAT_LABEL_KEYS } from '@/constants/training';
+import { parseNumericInput } from '@/lib/parseNumericInput';
 
 const FORMATS: WorkoutFormat[] = ['Standard', 'EMOM', 'AMRAP', 'ForTime', 'Tabata'];
 
@@ -78,12 +79,14 @@ export function SessionFormatBar({
             <input
               type="number"
               placeholder="--"
+              min={1}
               value={formatConfig?.timeCapSeconds ?? ''}
               aria-label={t('training.wod.timeCapAriaLabel')}
               style={inputStyle}
-              onChange={(e) =>
-                updateConfig({ timeCapSeconds: e.target.value !== '' ? Number(e.target.value) : null })
-              }
+              onChange={(e) => {
+                const parsed = parseNumericInput(e.target.value, 1);
+                if (parsed !== undefined) updateConfig({ timeCapSeconds: parsed });
+              }}
             />
             <span style={labelStyle}>s</span>
           </span>
@@ -96,12 +99,14 @@ export function SessionFormatBar({
             <input
               type="number"
               placeholder="--"
+              min={1}
               value={formatConfig?.timeCapSeconds ?? ''}
               aria-label={t('training.wod.timeCapAriaLabel')}
               style={inputStyle}
-              onChange={(e) =>
-                updateConfig({ timeCapSeconds: e.target.value !== '' ? Number(e.target.value) : null })
-              }
+              onChange={(e) => {
+                const parsed = parseNumericInput(e.target.value, 1);
+                if (parsed !== undefined) updateConfig({ timeCapSeconds: parsed });
+              }}
             />
             <span style={labelStyle}>s</span>
           </span>
@@ -115,12 +120,14 @@ export function SessionFormatBar({
               <input
                 type="number"
                 placeholder="60"
+                min={1}
                 value={formatConfig?.intervalSeconds ?? ''}
                 aria-label={t('training.wod.intervalAriaLabel')}
                 style={inputStyle}
-                onChange={(e) =>
-                  updateConfig({ intervalSeconds: e.target.value !== '' ? Number(e.target.value) : null })
-                }
+                onChange={(e) => {
+                  const parsed = parseNumericInput(e.target.value, 1);
+                  if (parsed !== undefined) updateConfig({ intervalSeconds: parsed });
+                }}
               />
               <span style={labelStyle}>s</span>
             </span>
@@ -129,12 +136,14 @@ export function SessionFormatBar({
               <input
                 type="number"
                 placeholder="--"
+                min={1}
                 value={formatConfig?.totalRounds ?? ''}
                 aria-label={t('training.wod.roundsAriaLabel')}
                 style={{ ...inputStyle, width: 46 }}
-                onChange={(e) =>
-                  updateConfig({ totalRounds: e.target.value !== '' ? Number(e.target.value) : null })
-                }
+                onChange={(e) => {
+                  const parsed = parseNumericInput(e.target.value, 1);
+                  if (parsed !== undefined) updateConfig({ totalRounds: parsed });
+                }}
               />
             </span>
           </span>
@@ -148,12 +157,14 @@ export function SessionFormatBar({
               <input
                 type="number"
                 placeholder="20"
+                min={1}
                 value={formatConfig?.workSeconds ?? ''}
                 aria-label={t('training.wod.workSecondsAriaLabel')}
                 style={inputStyle}
-                onChange={(e) =>
-                  updateConfig({ workSeconds: e.target.value !== '' ? Number(e.target.value) : null })
-                }
+                onChange={(e) => {
+                  const parsed = parseNumericInput(e.target.value, 1);
+                  if (parsed !== undefined) updateConfig({ workSeconds: parsed });
+                }}
               />
               <span style={labelStyle}>s</span>
             </span>
@@ -162,12 +173,14 @@ export function SessionFormatBar({
               <input
                 type="number"
                 placeholder="10"
+                min={1}
                 value={formatConfig?.restSeconds ?? ''}
                 aria-label={t('training.wod.restSecondsAriaLabel')}
                 style={inputStyle}
-                onChange={(e) =>
-                  updateConfig({ restSeconds: e.target.value !== '' ? Number(e.target.value) : null })
-                }
+                onChange={(e) => {
+                  const parsed = parseNumericInput(e.target.value, 1);
+                  if (parsed !== undefined) updateConfig({ restSeconds: parsed });
+                }}
               />
               <span style={labelStyle}>s</span>
             </span>
@@ -176,12 +189,14 @@ export function SessionFormatBar({
               <input
                 type="number"
                 placeholder="8"
+                min={1}
                 value={formatConfig?.totalRounds ?? ''}
                 aria-label={t('training.wod.roundsAriaLabel')}
                 style={{ ...inputStyle, width: 46 }}
-                onChange={(e) =>
-                  updateConfig({ totalRounds: e.target.value !== '' ? Number(e.target.value) : null })
-                }
+                onChange={(e) => {
+                  const parsed = parseNumericInput(e.target.value, 1);
+                  if (parsed !== undefined) updateConfig({ totalRounds: parsed });
+                }}
               />
             </span>
           </span>

@@ -2,6 +2,7 @@ import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { WorkoutFormat, WodConfig } from '@/api/training-plan-types';
 import { estimatedSectionDurationSeconds, formatDurationCompact } from '@/lib/training-plan-format';
+import { parseNumericInput } from '@/lib/parseNumericInput';
 
 interface SectionFormatConfigRowProps {
   format: WorkoutFormat;
@@ -84,20 +85,19 @@ export function SectionFormatConfigRow({
               id={`${uid}-amrap-time-cap`}
               type="number"
               placeholder="--"
+              min={1}
               value={
                 formatConfig?.timeCapSeconds != null
                   ? Math.round(formatConfig.timeCapSeconds / 60)
                   : ''
               }
               style={inputStyle}
-              onChange={(e) =>
-                onChange({
-                  timeCapSeconds:
-                    e.target.value !== ''
-                      ? Math.round(Number(e.target.value) * 60)
-                      : null,
-                })
-              }
+              onChange={(e) => {
+                const minutes = parseNumericInput(e.target.value, 1);
+                if (minutes !== undefined) {
+                  onChange({ timeCapSeconds: minutes === null ? null : Math.round(minutes * 60) });
+                }
+              }}
             />
           </div>
           {/* Total rounds (0 = unlimited) */}
@@ -107,14 +107,13 @@ export function SectionFormatConfigRow({
               id={`${uid}-amrap-total-rounds`}
               type="number"
               placeholder="0"
+              min={0}
               value={formatConfig?.totalRounds ?? ''}
               style={{ ...inputStyle, width: 52 }}
-              onChange={(e) =>
-                onChange({
-                  totalRounds:
-                    e.target.value !== '' ? Number(e.target.value) : null,
-                })
-              }
+              onChange={(e) => {
+                const parsed = parseNumericInput(e.target.value, 0);
+                if (parsed !== undefined) onChange({ totalRounds: parsed });
+              }}
             />
           </div>
           <DurationCaption format={format} formatConfig={formatConfig} />
@@ -135,20 +134,19 @@ export function SectionFormatConfigRow({
               id={`${uid}-fortime-time-cap`}
               type="number"
               placeholder="--"
+              min={1}
               value={
                 formatConfig?.timeCapSeconds != null
                   ? Math.round(formatConfig.timeCapSeconds / 60)
                   : ''
               }
               style={inputStyle}
-              onChange={(e) =>
-                onChange({
-                  timeCapSeconds:
-                    e.target.value !== ''
-                      ? Math.round(Number(e.target.value) * 60)
-                      : null,
-                })
-              }
+              onChange={(e) => {
+                const minutes = parseNumericInput(e.target.value, 1);
+                if (minutes !== undefined) {
+                  onChange({ timeCapSeconds: minutes === null ? null : Math.round(minutes * 60) });
+                }
+              }}
             />
           </div>
           <DurationCaption format={format} formatConfig={formatConfig} />
@@ -169,14 +167,13 @@ export function SectionFormatConfigRow({
               id={`${uid}-emom-interval`}
               type="number"
               placeholder="60"
+              min={1}
               value={formatConfig?.intervalSeconds ?? ''}
               style={inputStyle}
-              onChange={(e) =>
-                onChange({
-                  intervalSeconds:
-                    e.target.value !== '' ? Number(e.target.value) : null,
-                })
-              }
+              onChange={(e) => {
+                const parsed = parseNumericInput(e.target.value, 1);
+                if (parsed !== undefined) onChange({ intervalSeconds: parsed });
+              }}
             />
           </div>
           {/* Total rounds */}
@@ -186,14 +183,13 @@ export function SectionFormatConfigRow({
               id={`${uid}-emom-total-rounds`}
               type="number"
               placeholder="--"
+              min={1}
               value={formatConfig?.totalRounds ?? ''}
               style={{ ...inputStyle, width: 52 }}
-              onChange={(e) =>
-                onChange({
-                  totalRounds:
-                    e.target.value !== '' ? Number(e.target.value) : null,
-                })
-              }
+              onChange={(e) => {
+                const parsed = parseNumericInput(e.target.value, 1);
+                if (parsed !== undefined) onChange({ totalRounds: parsed });
+              }}
             />
           </div>
           <DurationCaption format={format} formatConfig={formatConfig} />
@@ -214,14 +210,13 @@ export function SectionFormatConfigRow({
               id={`${uid}-tabata-work`}
               type="number"
               placeholder="20"
+              min={1}
               value={formatConfig?.workSeconds ?? ''}
               style={inputStyle}
-              onChange={(e) =>
-                onChange({
-                  workSeconds:
-                    e.target.value !== '' ? Number(e.target.value) : null,
-                })
-              }
+              onChange={(e) => {
+                const parsed = parseNumericInput(e.target.value, 1);
+                if (parsed !== undefined) onChange({ workSeconds: parsed });
+              }}
             />
           </div>
           {/* Rest interval in seconds */}
@@ -231,14 +226,13 @@ export function SectionFormatConfigRow({
               id={`${uid}-tabata-rest`}
               type="number"
               placeholder="10"
+              min={1}
               value={formatConfig?.restSeconds ?? ''}
               style={inputStyle}
-              onChange={(e) =>
-                onChange({
-                  restSeconds:
-                    e.target.value !== '' ? Number(e.target.value) : null,
-                })
-              }
+              onChange={(e) => {
+                const parsed = parseNumericInput(e.target.value, 1);
+                if (parsed !== undefined) onChange({ restSeconds: parsed });
+              }}
             />
           </div>
           {/* Total rounds */}
@@ -248,14 +242,13 @@ export function SectionFormatConfigRow({
               id={`${uid}-tabata-rounds`}
               type="number"
               placeholder="8"
+              min={1}
               value={formatConfig?.totalRounds ?? ''}
               style={{ ...inputStyle, width: 52 }}
-              onChange={(e) =>
-                onChange({
-                  totalRounds:
-                    e.target.value !== '' ? Number(e.target.value) : null,
-                })
-              }
+              onChange={(e) => {
+                const parsed = parseNumericInput(e.target.value, 1);
+                if (parsed !== undefined) onChange({ totalRounds: parsed });
+              }}
             />
           </div>
           <DurationCaption format={format} formatConfig={formatConfig} />

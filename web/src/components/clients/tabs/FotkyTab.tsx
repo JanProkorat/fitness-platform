@@ -82,7 +82,7 @@ export function FotkyTab({
   activeNutritionPlan,
   activeTrainingPlan,
 }: FotkyTabProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
 
   const [activeFilter, setActiveFilter] = useState<PhotoFilter>('all');
@@ -115,10 +115,20 @@ export function FotkyTab({
   // ── Diary requests query ─────────────────────────────────────────────────────
   // Mirror the PlanPhotosTab.hasInFlightDiary guard: fetch all requests for
   // this link (no planId filter) and check for in-flight statuses.
+  //
+  // Key is a plain string segment (['diary-requests', clientId]) — NOT an
+  // object segment — so AppShell's photodiary* SignalR handlers (which
+  // invalidate the bare ['diary-requests'] prefix as their fallback branch)
+  // structurally match via TanStack Query's prefix-match invalidation (#614).
+  //
+  // `enabled` requires linkId to be resolved (not just clientId) before
+  // fetching: passing `linkId: undefined` to listDiaryRequests() drops the
+  // backend's linkId filter entirely and returns every diary request across
+  // ALL of the trainer's clients — a cross-client data leak (#647).
   const { data: diaryRequests = [] } = useQuery({
-    queryKey: ['diary-requests', { clientId }],
+    queryKey: ['diary-requests', clientId],
     queryFn: () => listDiaryRequests({ linkId: linkId ?? undefined }),
-    enabled: Boolean(clientId),
+    enabled: Boolean(clientId) && linkId != null,
     staleTime: 30_000,
   });
 
@@ -219,10 +229,10 @@ export function FotkyTab({
     if (galleryTarget) navigate(galleryTarget);
   }
 
-  // ── Date formatter (cs-CZ, matching MereniTab / PlanPhotosTab pattern) ────────
+  // ── Date formatter (active locale, matching MereniTab / PlanPhotosTab pattern) ─
   function formatDate(iso: string | undefined): string {
     if (!iso) return '—';
-    return new Date(iso).toLocaleDateString('cs-CZ', {
+    return new Date(iso).toLocaleDateString(i18n.language, {
       day: 'numeric',
       month: 'numeric',
       year: 'numeric',

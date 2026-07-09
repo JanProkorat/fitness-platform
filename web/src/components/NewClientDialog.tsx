@@ -35,7 +35,14 @@ export function NewClientDialog({ open, onClose }: NewClientDialogProps) {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [message, setMessage] = useState('');
-  const [selectedQuestionnaireId, setSelectedQuestionnaireId] = useState<string>('');
+  // `null` means "no manual override yet" — the effective selection falls
+  // back to the trainer's default questionnaire once that data arrives.
+  // '' means "explicitly cleared by the trainer" (the "no questionnaire"
+  // option). Kept as a separate concept from the fetched `questionnaires`
+  // list so the pre-select doesn't need to run inside an effect: deriving
+  // it at render time means it applies correctly whether `questionnaires`
+  // is already warm-cached or still arriving on a cold-cache first open (#626).
+  const [questionnaireOverride, setQuestionnaireOverride] = useState<string | null>(null);
 
   // Photo diary bundle state
   const [bundleDiary, setBundleDiary] = useState(false);
@@ -58,10 +65,21 @@ export function NewClientDialog({ open, onClose }: NewClientDialogProps) {
       setMessage('');
       setBundleDiary(false);
       setDiaryDurationDays(7);
-      const defaultQ = questionnaires.find((q) => q.isDefault && q.isActive);
-      setSelectedQuestionnaireId(defaultQ?.publicId ?? '');
+      // Clear any override from a previous open — the effective selection
+      // (below) re-derives the default from whatever `questionnaires` data
+      // is available at render time, warm or cold cache alike (#626).
+      setQuestionnaireOverride(null);
     }
   }
+
+  // Effective selection: an explicit trainer choice wins; otherwise fall
+  // back to the trainer's default questionnaire. Computed at render time
+  // (not in an effect) so it's correct immediately once `questionnaires`
+  // arrives — including the cold-cache case where the query is still
+  // pending on the render that flips `open` to true (#626).
+  const defaultQuestionnaireId =
+    questionnaires.find((q) => q.isDefault && q.isActive)?.publicId ?? '';
+  const selectedQuestionnaireId = questionnaireOverride ?? defaultQuestionnaireId;
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -230,7 +248,7 @@ export function NewClientDialog({ open, onClose }: NewClientDialogProps) {
                 </label>
                 <select
                   value={selectedQuestionnaireId}
-                  onChange={(e) => setSelectedQuestionnaireId(e.target.value)}
+                  onChange={(e) => setQuestionnaireOverride(e.target.value)}
                   className={inp}
                   style={{ fontFamily: 'inherit' }}
                 >

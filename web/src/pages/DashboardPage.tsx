@@ -5,8 +5,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/auth';
 import { getDashboardSummary } from '@/api/dashboard';
 import { getIncomingRequests, acceptClientRequest, rejectClientRequest, type IncomingRequest } from '@/api/client-requests';
-import { getTrainerQuestionnaires, type QuestionnaireSummaryDto } from '@/api/questionnaires';
+import { getTrainerQuestionnaires } from '@/api/questionnaires';
 import { complianceColor, initials, enrichClient, type EnrichedClient } from '@/lib/dashboard-helpers';
+import { showApiError } from '@/lib/api-errors';
 
 import { PageHeader } from '@/components/layout';
 import { Toolbar } from '@/components/layout';
@@ -63,8 +64,9 @@ export default function DashboardPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [managedRequest, setManagedRequest] = useState<IncomingRequest | null>(null);
   const [statementText, setStatementText] = useState('');
-  const [questionnaires, setQuestionnaires] = useState<QuestionnaireSummaryDto[]>([]);
-  const [selectedQuestionnaireId, setSelectedQuestionnaireId] = useState<string>('');
+  // null = trainer hasn't touched the select yet (fall back to the default
+  // questionnaire below); '' = trainer explicitly chose "No questionnaire".
+  const [selectedQuestionnaireId, setSelectedQuestionnaireId] = useState<string | null>(null);
 
   // -- incoming client requests ---------------------------------------------
   const { data: incomingRequests } = useQuery({
@@ -73,15 +75,33 @@ export default function DashboardPage() {
     staleTime: 30_000,
   });
 
+  // Questionnaire options for the accept-request dialog. Query (not a plain
+  // promise) so a fetch failure is distinguishable from "trainer genuinely
+  // has zero questionnaires" via `isError` — TanStack Query v5 dropped
+  // useQuery's onError, so the error is surfaced inline below the <select>
+  // instead of via a mutation-style callback (#636).
+  const {
+    data: questionnaires = [],
+    isError: questionnairesError,
+  } = useQuery({
+    queryKey: ['trainer-questionnaires'],
+    queryFn: getTrainerQuestionnaires,
+    enabled: managedRequest !== null,
+  });
+
+  // Derived, not effect-synced (avoids a setState-in-effect cascade): the
+  // trainer's default questionnaire pre-fills the select until they pick
+  // something themselves.
+  const defaultQuestionnaireId = useMemo(
+    () => questionnaires.find((q) => q.isDefault && q.isActive)?.publicId ?? '',
+    [questionnaires],
+  );
+  const effectiveQuestionnaireId = selectedQuestionnaireId ?? defaultQuestionnaireId;
+
   const openManageDialog = (req: IncomingRequest) => {
     setManagedRequest(req);
     setStatementText('');
-    setSelectedQuestionnaireId('');
-    getTrainerQuestionnaires().then((data) => {
-      setQuestionnaires(data);
-      const defaultQ = data.find((q) => q.isDefault && q.isActive);
-      setSelectedQuestionnaireId(defaultQ?.publicId ?? '');
-    }).catch(() => setQuestionnaires([]));
+    setSelectedQuestionnaireId(null);
   };
 
   const dashAcceptMutation = useMutation({
@@ -92,6 +112,9 @@ export default function DashboardPage() {
       queryClient.invalidateQueries({ queryKey: ['sidebar-clients'] });
       setManagedRequest(null);
     },
+    onError: (err) => {
+      showApiError(err, 'clientRequests.acceptError');
+    },
   });
 
   const dashRejectMutation = useMutation({
@@ -100,6 +123,9 @@ export default function DashboardPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['client-requests'] });
       setManagedRequest(null);
+    },
+    onError: (err) => {
+      showApiError(err, 'clientRequests.rejectError');
     },
   });
 
@@ -764,7 +790,7 @@ export default function DashboardPage() {
                 variant="primary"
                 onClick={() => dashAcceptMutation.mutate({
                   publicId: managedRequest.publicId,
-                  questionnaireId: selectedQuestionnaireId || undefined,
+                  questionnaireId: effectiveQuestionnaireId || undefined,
                   statement: statementText || undefined,
                 })}
                 disabled={dashAcceptMutation.isPending}
@@ -798,7 +824,7 @@ export default function DashboardPage() {
             <div>
               <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text3)', marginBottom: 4 }}>{t('clientRequests.selectQuestionnaire')}</div>
               <select
-                value={selectedQuestionnaireId}
+                value={effectiveQuestionnaireId}
                 onChange={(e) => setSelectedQuestionnaireId(e.target.value)}
                 style={{
                   width: '100%', padding: '7px 10px', fontSize: 13, fontFamily: 'inherit',
@@ -813,6 +839,11 @@ export default function DashboardPage() {
                   </option>
                 ))}
               </select>
+              {questionnairesError && (
+                <div style={{ fontSize: 12, color: 'var(--red)', marginTop: 4 }}>
+                  {t('clientRequests.questionnairesLoadError')}
+                </div>
+              )}
             </div>
             <div>
               <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text3)', marginBottom: 4 }}>{t('clientRequests.statement')}</div>

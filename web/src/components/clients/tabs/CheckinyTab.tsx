@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { useMarkCheckInReviewed } from '@/hooks/useWeeklyCheckIns';
+import { useMarkCheckInReviewed, weeklyCheckInKeys } from '@/hooks/useWeeklyCheckIns';
 import { CheckInFlagChips } from '@/components/weekly-checkin/CheckInFlagChips';
 import { OverrideDialog } from '@/components/profile/OverrideDialog';
 import {
@@ -59,7 +59,7 @@ export function CheckinyTab({ clientUserId }: CheckinyTabProps) {
     isLoading,
     isError,
   } = useQuery({
-    queryKey: ['weekly-check-ins', 'client-current', clientUserId, 'all'],
+    queryKey: weeklyCheckInKeys.clientCurrent(clientUserId),
     queryFn: () => getClientCurrentCheckIn(clientUserId),
     enabled: Boolean(clientUserId),
     retry: false,

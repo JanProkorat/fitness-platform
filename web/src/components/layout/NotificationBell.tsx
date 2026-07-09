@@ -113,7 +113,14 @@ export function NotificationBell() {
 
           {/* Footer */}
           <div className="notif-popover-footer">
-            <button className="notif-popover-show-all">
+            {/* No dedicated notifications page exists yet — disable with a
+                clear "coming soon" affordance rather than inventing a route
+                or leaving a silent no-op (#642). */}
+            <button
+              className="notif-popover-show-all"
+              disabled
+              title={t('notifications.showAllComingSoon')}
+            >
               {t('notifications.showAll')}
             </button>
           </div>

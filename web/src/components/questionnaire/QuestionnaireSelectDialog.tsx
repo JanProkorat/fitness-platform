@@ -85,8 +85,8 @@ export function QuestionnaireSelectDialog({
             <button
               onClick={() => { if (selectedQId) onConfirm(selectedQId); }}
               disabled={!selectedQId || isPending}
-              className="px-5 py-2 rounded-md text-[13px] font-medium transition-colors disabled:opacity-50"
-              style={{ background: 'var(--accent)', color: '#fff' }}
+              className="px-5 py-2 rounded-md text-[13px] font-medium text-white transition-colors disabled:opacity-50"
+              style={{ background: 'var(--accent)' }}
             >
               {confirmLabel}
             </button>

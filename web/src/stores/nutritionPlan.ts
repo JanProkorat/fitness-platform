@@ -8,7 +8,7 @@ import type {
   UpdatePlanRequest,
   SupplementDto,
 } from '@/api/plan-types';
-import { updatePlan as apiUpdatePlan, publishWeek as apiPublishWeek, getPlan } from '@/api/plans';
+import { updatePlan as apiUpdatePlan, publishWeek as apiPublishWeek } from '@/api/plans';
 
 interface NutritionPlanState {
   plan: NutritionPlanDetail | null;
@@ -717,13 +717,24 @@ export const useNutritionPlanStore = create<NutritionPlanState>((set, get) => ({
   },
 
   reorderWeeks: (weekNumbers) => {
-    const { plan } = get();
+    const { plan, selectedWeek } = get();
     if (!plan) return;
     const reordered = weekNumbers
       .map((num) => plan.weeks.find((w) => w.weekNumber === num))
       .filter(Boolean) as typeof plan.weeks;
     if (reordered.length !== plan.weeks.length) return;
-    set({ plan: { ...plan, weeks: reordered }, isDirty: true });
+
+    // `weekNumbers` is the new order expressed via the OLD weekNumber values.
+    // Renumber by array index (mirrors removeWeek) so tab labels reflect the
+    // new order immediately instead of waiting for the next save.
+    const renumbered = reordered.map((w, i) => ({ ...w, weekNumber: i + 1 }));
+
+    // Keep the trainer on the same physical week after the renumber — find
+    // where the previously-selected weekNumber landed in the new order.
+    const newSelectedIndex = weekNumbers.indexOf(selectedWeek);
+    const nextSelectedWeek = newSelectedIndex !== -1 ? newSelectedIndex + 1 : selectedWeek;
+
+    set({ plan: { ...plan, weeks: renumbered }, isDirty: true, selectedWeek: nextSelectedWeek });
   },
 
   removeWeek: (weekNum) => {
@@ -797,16 +808,11 @@ export const useNutritionPlanStore = create<NutritionPlanState>((set, get) => ({
       const result = await apiUpdatePlan(plan.planId, request);
       set({ plan: recalculateTotals(result), isDirty: false, isSaving: false });
     } catch (error: unknown) {
+      // On 409 (version conflict) do NOT overwrite local edits or clear the
+      // dirty flag — the trainer's unsaved changes must survive so they can
+      // retry (e.g. after reloading). Re-throw so the caller's catch shows
+      // a conflict toast instead of the success toast.
       set({ isSaving: false });
-      // On 409, silently refetch the plan (conflict resolved by reload)
-      if (error && typeof error === 'object' && 'response' in error) {
-        const axiosError = error as { response?: { status?: number } };
-        if (axiosError.response?.status === 409) {
-          const fresh = await getPlan(plan.planId);
-          set({ plan: recalculateTotals(fresh), isDirty: false });
-          return; // Don't re-throw — 409 is handled gracefully
-        }
-      }
       throw error;
     }
   },

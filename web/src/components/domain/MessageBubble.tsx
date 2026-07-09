@@ -14,7 +14,7 @@ export function MessageBubble({
   time,
   isOwn,
   initials,
-  avatarColor = '#0b6e99',
+  avatarColor = 'var(--blue)',
   showAvatar = true,
 }: MessageBubbleProps) {
   return (

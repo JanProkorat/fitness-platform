@@ -14,6 +14,11 @@
     "name": "Name",
     "email": "Email",
     "actions": "Actions",
+    "toggleDarkMode": "Toggle dark mode",
+    "lightMode": "Light mode",
+    "darkMode": "Dark mode",
+    "removeChip": "Remove {{value}}",
+    "addNew": "+ New",
     "previous": "Previous",
     "next": "Next",
     "page": "Page {{current}} of {{total}}",
@@ -23,6 +28,7 @@
     "success": "Success",
     "clear": "Clear",
     "delete": "Delete",
+    "confirm": "Confirm",
     "deleteConfirmTitle": "Delete item",
     "deleteConfirmMessage": "Are you sure you want to delete \"{{name}}\"?",
     "viewTable": "Table",
@@ -134,7 +140,10 @@
     "addClient": "Add client",
     "pendingInvites": "PENDING INVITES",
     "openMenu": "Open menu",
-    "closeMenu": "Close menu"
+    "closeMenu": "Close menu",
+    "collapseClient": "Collapse {{name}}",
+    "expandClient": "Expand {{name}}",
+    "goToClient": "Go to {{name}}"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -209,7 +218,11 @@
     "calloutComplianceDetail": "Compliance {{compliance}} % — not following the plan",
     "calloutTrainsDetail": "Completing {{trains}}/{{trainsGoal}} workouts",
     "calloutTitleLow": "low compliance",
-    "calloutTitleAttention": "needs attention"
+    "calloutTitleAttention": "needs attention",
+    "activityToday": "today",
+    "activityYesterday": "yesterday",
+    "activityDaysAgo_one": "{{count}} day ago",
+    "activityDaysAgo_other": "{{count}} days ago"
   },
   "clients": {
     "title": "Clients",
@@ -407,6 +420,8 @@
     "saved": "Profile saved",
     "trainerSaved": "Trainer profile saved",
     "saveError": "Error saving",
+    "loadError": "Failed to load your profile data",
+    "trainerProfileLoadError": "Failed to load your trainer profile",
     "rolesTitle": "Roles",
     "rolesSubtitle": "Choose which services you offer to clients. Roles can be combined.",
     "trainerRoleDesc": "Strength training, cardio, rehabilitation, conditioning",
@@ -414,6 +429,7 @@
     "roleRemovalNotSupported": "Role removal is not supported yet",
     "addNutritionistRole": "Also work as Nutritionist",
     "addTrainerRole": "Also work as Trainer",
+    "addRoleConfirmTitle": "Add role",
     "addRoleConfirm": "Are you sure you want to add this role? This cannot be undone.",
     "roleAdded": "Role added successfully",
     "addRoleError": "Failed to add role",
@@ -815,6 +831,11 @@
         "save": "Save"
       }
     }
+  },
+  "richTextEditor": {
+    "placeholder": "Start writing...",
+    "list": "List",
+    "quote": "Quote"
   },
   "apiErrors": {
     "INVALID_CREDENTIALS": "Invalid email or password.",
@@ -1443,7 +1464,9 @@
     "typeNumber": "Number",
     "typeScale": "Scale",
     "typeFileUpload": "File upload",
+    "typeFieldLabel": "Type",
     "addOption": "Add option",
+    "optionsLabel": "Options",
     "optionPlaceholder": "Option...",
     "allowCustom": "Allow custom answer",
     "customAnswerHint": "Client can add their own...",
@@ -1488,6 +1511,9 @@
     "replaceQuestionnaireTitle": "Replace questionnaire",
     "replaceQuestionnaireDesc": "Select a different questionnaire. The current pending one will be cancelled.",
     "replacing": "Replacing...",
+    "assignError": "Failed to send questionnaire",
+    "cancelError": "Failed to revoke questionnaire",
+    "replaceError": "Failed to replace questionnaire",
     "submittedAt": "Submitted {{date}}",
     "answersTitle": "Questionnaire",
     "previousResponses": "Previous responses",
@@ -1521,8 +1547,11 @@
     "selectQuestionnaire": "Select questionnaire (optional)",
     "noQuestionnaire": "No questionnaire",
     "noQuestionnairesAvailable": "No questionnaires created yet. You can create one in the client's detail page.",
+    "questionnairesLoadError": "Failed to load your questionnaires",
     "accepted": "Request accepted",
     "rejected": "Request rejected",
+    "acceptError": "Failed to accept request",
+    "rejectError": "Failed to reject request",
     "message": "Message",
     "sentAt": "Sent",
     "confirmReject": "Are you sure you want to reject this request?",
@@ -1549,6 +1578,7 @@
     "markAllRead": "Mark all as read",
     "empty": "No notifications",
     "showAll": "Show all notifications",
+    "showAllComingSoon": "Full notifications page coming soon",
     "justNow": "Just now"
   },
   "weeklyCheckIn": {
@@ -1744,6 +1774,8 @@
     "lastName": "Last name",
     "heightCm": "Height (cm)",
     "weightKg": "Weight (kg)",
+    "profileUpdated": "Client profile saved",
+    "readOnlyFieldHint": "This field can't be edited from the trainer portal.",
     "tabBarLabel": "Client tabs",
     "ageYears_one": "{{count}} year",
     "ageYears_other": "{{count}} years",

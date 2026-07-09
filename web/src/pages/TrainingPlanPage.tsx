@@ -1,6 +1,6 @@
 import { useEffect, useCallback, useState, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getTrainingPlan, completeTrainingPlan, finishSession, unlockTrainingSession, relockTrainingSession } from '@/api/training-plans';
 import { listSectionTemplates, createSectionTemplate } from '@/api/sectionTemplates';
@@ -40,6 +40,7 @@ export default function TrainingPlanPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
 
   // ── Store selectors ──
   const plan = useTrainingPlanStore((s) => s.plan);
@@ -119,6 +120,11 @@ export default function TrainingPlanPage() {
   // Set during `confirmLeave` so the popstate trap and pushState interceptor
   // don't re-trigger as we're intentionally tearing down the trap to leave.
   const skipDirtyTrapRef = useRef(false);
+  // Tracks whether the dirty-trap effect below has an unpopped history
+  // sentinel pushed for the current isDirty=true streak. Popped on the
+  // dirty->clean transition so repeated edit/save cycles don't leave a
+  // growing pile of duplicate history entries (see #625).
+  const pushedDirtyEntryRef = useRef(false);
   const [weekViewExpanded, setWeekViewExpanded] = useState(false);
 
   // ── Resolve client name ──
@@ -207,7 +213,20 @@ export default function TrainingPlanPage() {
 
   // ── Block in-app navigation when dirty ──
   useEffect(() => {
-    if (!isDirty) return;
+    if (!isDirty) {
+      // Dirty -> clean transition (save or discard): pop the sentinel entry
+      // pushed below so history doesn't accumulate one stale entry per
+      // edit/save cycle. Skip when confirmLeave is already tearing down the
+      // trap to leave the page — its own history.go(-2) already accounts
+      // for this entry, and popping again here would double-navigate.
+      if (pushedDirtyEntryRef.current && !skipDirtyTrapRef.current) {
+        skipDirtyTrapRef.current = true;
+        window.history.back();
+        setTimeout(() => { skipDirtyTrapRef.current = false; }, 0);
+      }
+      pushedDirtyEntryRef.current = false;
+      return;
+    }
     const handler = () => {
       // skipDirtyTrapRef is set by confirmLeave so we don't re-trap
       // the popstate fired by our own history.go() call.
@@ -217,6 +236,7 @@ export default function TrainingPlanPage() {
     };
     window.addEventListener('popstate', handler);
     window.history.pushState(null, '', location.pathname + location.search);
+    pushedDirtyEntryRef.current = true;
     return () => window.removeEventListener('popstate', handler);
   }, [isDirty, location.pathname, location.search]);
 
@@ -488,6 +508,12 @@ export default function TrainingPlanPage() {
           })),
         })),
       });
+      // This page's own SectionTemplateSearch reads ['section-templates']
+      // (see templatesData query above) — without this invalidation the
+      // newly-saved template doesn't show up in the search results until an
+      // unrelated refetch happens. Mirrors SectionTemplatesPage's own
+      // post-create invalidation (#620).
+      queryClient.invalidateQueries({ queryKey: ['section-templates'] });
       showSuccess(t('training.section.savedAsTemplate'));
       setSaveAsTemplateTarget(null);
     } catch (err) {
@@ -1236,7 +1262,7 @@ export default function TrainingPlanPage() {
                             completedAt,
                           });
                         }}
-                        disabled={finishSessionMutation.isPending}
+                        disabled={finishSessionMutation.isPending || isDirty}
                         className={cn(
                           'shrink-0 rounded-sm border px-2 py-[2px] text-[10px] font-medium transition-colors',
                           'border-amber-500/50 text-amber-600 bg-amber-50/80',
@@ -1244,7 +1270,7 @@ export default function TrainingPlanPage() {
                           'disabled:opacity-40 disabled:cursor-not-allowed',
                           'dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-500/40',
                         )}
-                        title={t('training.retroactiveFinish.buttonTooltip')}
+                        title={isDirty ? t('training.unsavedChanges') : t('training.retroactiveFinish.buttonTooltip')}
                         aria-label={t('training.retroactiveFinish.buttonLabel')}
                       >
                         {t('training.retroactiveFinish.buttonLabel')}

@@ -12,10 +12,10 @@ interface ActiveNutritionPlanCardProps {
   onHistoryClick: () => void;
 }
 
-function formatDate(iso: string | null | undefined): string {
+function formatDate(iso: string | null | undefined, locale: string): string {
   if (!iso) return '';
   const d = new Date(iso);
-  return d.toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric', year: 'numeric' });
+  return d.toLocaleDateString(locale, { day: 'numeric', month: 'numeric', year: 'numeric' });
 }
 
 export function ActiveNutritionPlanCard({
@@ -26,12 +26,12 @@ export function ActiveNutritionPlanCard({
   compliancePercent,
   onHistoryClick,
 }: ActiveNutritionPlanCardProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
 
   const gs = globalSettings;
-  const periodStart = formatDate(plan.startDate);
-  const periodEnd = formatDate(plan.dateCompleted);
+  const periodStart = formatDate(plan.startDate, i18n.language);
+  const periodEnd = formatDate(plan.dateCompleted, i18n.language);
   const period = periodStart && periodEnd
     ? `${periodStart} – ${periodEnd}`
     : periodStart

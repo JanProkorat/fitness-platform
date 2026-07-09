@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -42,6 +42,17 @@ export function Sidebar({ onToggleDark, isOpen = false, onClose }: SidebarProps)
 
   const [avatarLightboxOpen, setAvatarLightboxOpen] = useState(false);
   const [avatarFailed, setAvatarFailed] = useState(false);
+  // Tracks the avatarBlobUrl a failure was recorded against. A fresh
+  // presigned URL deserves a fresh load attempt — without this, a single
+  // transient failure on an old URL permanently pins the avatar to initials
+  // even after the URL rotates (#640). Adjusted during render (same pattern
+  // as trackedActiveClientId below) rather than in a useEffect, per the
+  // React "reset state when a prop changes" guidance.
+  const [trackedAvatarUrl, setTrackedAvatarUrl] = useState(user?.avatarBlobUrl ?? null);
+  if ((user?.avatarBlobUrl ?? null) !== trackedAvatarUrl) {
+    setTrackedAvatarUrl(user?.avatarBlobUrl ?? null);
+    setAvatarFailed(false);
+  }
   const avatarUrl = !avatarFailed && user?.avatarBlobUrl ? user.avatarBlobUrl : null;
 
   // Fetch clients
@@ -124,6 +135,11 @@ export function Sidebar({ onToggleDark, isOpen = false, onClose }: SidebarProps)
   const [questionnaires, setQuestionnaires] = useState<QuestionnaireSummaryDto[]>([]);
   const [selectedQuestionnaireId, setSelectedQuestionnaireId] = useState<string>('');
   const [clientSearch, setClientSearch] = useState('');
+  // Tracks which incoming request the in-flight getTrainerQuestionnaires()
+  // fetch belongs to. If the trainer clicks request B before request A's
+  // fetch resolves, A's stale response must not overwrite B's default
+  // questionnaire selection (#639).
+  const activeRequestIdRef = useRef<string | null>(null);
 
   const clientMatch = location.pathname.match(/^\/clients\/([^/]+)/);
   const activeClientId = clientMatch?.[1] ?? null;
@@ -229,7 +245,11 @@ export function Sidebar({ onToggleDark, isOpen = false, onClose }: SidebarProps)
                       transition: 'transform 0.15s',
                       transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
                     }}
-                    aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${client.firstName} ${client.lastName}`}
+                    aria-label={
+                      isExpanded
+                        ? t('sidebar.collapseClient', { name: `${client.firstName} ${client.lastName}` })
+                        : t('sidebar.expandClient', { name: `${client.firstName} ${client.lastName}` })
+                    }
                   >
                     ▶
                   </button>
@@ -246,7 +266,7 @@ export function Sidebar({ onToggleDark, isOpen = false, onClose }: SidebarProps)
                       }
                     }}
                     style={{ cursor: 'pointer' }}
-                    aria-label={`Go to ${client.firstName} ${client.lastName}`}
+                    aria-label={t('sidebar.goToClient', { name: `${client.firstName} ${client.lastName}` })}
                   >
                     {client.firstName} {client.lastName}
                   </span>
@@ -298,11 +318,11 @@ export function Sidebar({ onToggleDark, isOpen = false, onClose }: SidebarProps)
             <div className="shrink-0">
               <div style={{ padding: '6px 14px 2px', fontSize: 10, color: 'var(--red)', letterSpacing: '0.03em', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
                 {t('clientRequests.sidebarSection')}
-                <span style={{
+                <span className="text-white" style={{
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                   minWidth: 16, height: 16, padding: '0 4px',
                   borderRadius: 8, background: 'var(--red)', border: '1px solid var(--red)',
-                  fontSize: 10, fontWeight: 600, color: '#fff',
+                  fontSize: 10, fontWeight: 600,
                 }}>
                   {incomingRequests.length}
                 </span>
@@ -316,11 +336,18 @@ export function Sidebar({ onToggleDark, isOpen = false, onClose }: SidebarProps)
                     setSelectedRequest(req);
                     setStatementText('');
                     setSelectedQuestionnaireId('');
+                    activeRequestIdRef.current = req.publicId;
                     getTrainerQuestionnaires().then((data) => {
+                      // Ignore a late resolution if the trainer has since
+                      // selected a different request.
+                      if (activeRequestIdRef.current !== req.publicId) return;
                       setQuestionnaires(data);
                       const defaultQ = data.find((q) => q.isDefault && q.isActive);
                       setSelectedQuestionnaireId(defaultQ?.publicId ?? '');
-                    }).catch(() => setQuestionnaires([]));
+                    }).catch(() => {
+                      if (activeRequestIdRef.current !== req.publicId) return;
+                      setQuestionnaires([]);
+                    });
                   }}
                   title={req.message ? `${req.clientFirstName} ${req.clientLastName}: ${req.message}` : `${req.clientFirstName} ${req.clientLastName}`}
                   style={{ width: '100%', textAlign: 'left', fontFamily: 'inherit' }}
@@ -451,8 +478,8 @@ export function Sidebar({ onToggleDark, isOpen = false, onClose }: SidebarProps)
             style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 15, color: 'var(--text3)', padding: '4px 6px', borderRadius: 'var(--radius)', transition: 'color 0.15s', flexShrink: 0 }}
             onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text)'; }}
             onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text3)'; }}
-            title="Toggle dark mode"
-            aria-label="Toggle dark mode"
+            title={t('common.toggleDarkMode')}
+            aria-label={t('common.toggleDarkMode')}
           >
             ◑
           </button>

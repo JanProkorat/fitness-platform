@@ -1,5 +1,5 @@
-import { useState, useCallback, useEffect, useMemo, Suspense } from 'react';
-import { Outlet } from 'react-router-dom';
+import { useState, useCallback, useEffect, useMemo, useRef, Suspense } from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Sidebar } from './Sidebar';
@@ -10,6 +10,7 @@ import { isTrainingProgressUpdatedEvent } from '@/api/trainingProgressEvent';
 import { isPersonalRecordAchievedEvent } from '@/api/personalRecordEvent';
 import { isSessionEditLockChangedEvent } from '@/api/sessionEditLockEvent';
 import { weeklyCheckInKeys } from '@/hooks/useWeeklyCheckIns';
+import { RouteErrorBoundary } from '@/RouteErrorBoundary';
 
 const DARK_MODE_KEY = 'gf-dark-mode';
 
@@ -27,6 +28,7 @@ export function AppShell() {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   const addToast = useToastStore((s) => s.addToast);
+  const location = useLocation();
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark);
@@ -49,6 +51,20 @@ export function AppShell() {
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, [sidebarOpen]);
+
+  // Per-conversation typing-indicator clear timers (#638). Declared outside the
+  // memoized handler map below so a single Map instance persists across
+  // re-renders — a lone shared timer ref would let conversation B's typing
+  // ping clear conversation A's still-pending clear-timer.
+  const typingTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  useEffect(() => {
+    const timers = typingTimersRef.current;
+    return () => {
+      timers.forEach((timer) => clearTimeout(timer));
+      timers.clear();
+    };
+  }, []);
 
   // Real-time notification handlers
   const signalRHandlers = useMemo(() => ({
@@ -234,13 +250,20 @@ export function AppShell() {
       }
     },
     // ── Photo diary real-time events (from #94 / #97) ────────────────────────
+    // Every handler below ALSO invalidates the bare ['diary-requests'] prefix
+    // in addition to the plan-scoped key. TanStack Query's invalidateQueries
+    // is prefix-match only — a plan-scoped invalidation (['diary-requests',
+    // planId]) can never reach FotkyTab's client-scoped query key
+    // (['diary-requests', clientId]), since neither is a prefix of the other.
+    // Broadening to always also hit the bare key keeps FotkyTab (and any
+    // other client-scoped consumer) in sync regardless of whether the event
+    // payload carried a planId (#614).
     photodiaryrequested: (payload: unknown) => {
       const data = payload as { planId?: string } | undefined;
       if (data?.planId) {
         queryClient.invalidateQueries({ queryKey: ['diary-requests', data.planId] });
-      } else {
-        queryClient.invalidateQueries({ queryKey: ['diary-requests'] });
       }
+      queryClient.invalidateQueries({ queryKey: ['diary-requests'] });
     },
     photodiaryaccepted: (payload: unknown) => {
       // Client just accepted a Pending request — flip its status chip
@@ -248,17 +271,15 @@ export function AppShell() {
       const data = payload as { planId?: string } | undefined;
       if (data?.planId) {
         queryClient.invalidateQueries({ queryKey: ['diary-requests', data.planId] });
-      } else {
-        queryClient.invalidateQueries({ queryKey: ['diary-requests'] });
       }
+      queryClient.invalidateQueries({ queryKey: ['diary-requests'] });
     },
     photodiarydismissed: (payload: unknown) => {
       const data = payload as { planId?: string } | undefined;
       if (data?.planId) {
         queryClient.invalidateQueries({ queryKey: ['diary-requests', data.planId] });
-      } else {
-        queryClient.invalidateQueries({ queryKey: ['diary-requests'] });
       }
+      queryClient.invalidateQueries({ queryKey: ['diary-requests'] });
     },
     photodiaryphotouploaded: (payload: unknown) => {
       // Diary photo uploads re-use the planphotouploaded path for the photo
@@ -274,17 +295,16 @@ export function AppShell() {
             q.queryKey[0] === 'planPhotos' && q.queryKey[2] === data.planId,
         });
       } else {
-        queryClient.invalidateQueries({ queryKey: ['diary-requests'] });
         queryClient.invalidateQueries({ queryKey: ['planPhotos'] });
       }
+      queryClient.invalidateQueries({ queryKey: ['diary-requests'] });
     },
     photodiarysubmitted: (payload: unknown) => {
       const data = payload as { planId?: string } | undefined;
       if (data?.planId) {
         queryClient.invalidateQueries({ queryKey: ['diary-requests', data.planId] });
-      } else {
-        queryClient.invalidateQueries({ queryKey: ['diary-requests'] });
       }
+      queryClient.invalidateQueries({ queryKey: ['diary-requests'] });
     },
     weeklycheckinupdated: (payload: unknown) => {
       if (import.meta.env.DEV) {
@@ -331,13 +351,23 @@ export function AppShell() {
     },
     typing: (payload: unknown) => {
       const data = payload as { conversationId?: string; senderId?: string } | undefined;
-      if (data?.conversationId) {
-        queryClient.setQueryData(['typing', data.conversationId], { isTyping: true, senderId: data.senderId });
-        // Clear typing after 3 seconds
-        setTimeout(() => {
-          queryClient.setQueryData(['typing', data.conversationId], { isTyping: false });
-        }, 3000);
+      if (!data?.conversationId) return;
+      const { conversationId } = data;
+      queryClient.setQueryData(['typing', conversationId], { isTyping: true, senderId: data.senderId });
+
+      // Reset this conversation's clear-timer on every ping instead of letting
+      // the first-scheduled timer fire mid-typing (#638). Each conversation
+      // gets its own map entry so pings on other conversations never touch it.
+      const timers = typingTimersRef.current;
+      const existing = timers.get(conversationId);
+      if (existing) {
+        clearTimeout(existing);
       }
+      const timer = setTimeout(() => {
+        queryClient.setQueryData(['typing', conversationId], { isTyping: false });
+        timers.delete(conversationId);
+      }, 3000);
+      timers.set(conversationId, timer);
     },
   }), [queryClient, addToast, t]);
 
@@ -375,9 +405,11 @@ export function AppShell() {
             </svg>
           </button>
         </div>
-        <Suspense fallback={<div className="flex flex-1 items-center justify-center text-text3">Loading…</div>}>
-          <Outlet />
-        </Suspense>
+        <RouteErrorBoundary key={location.pathname}>
+          <Suspense fallback={<div className="flex flex-1 items-center justify-center text-text3">Loading…</div>}>
+            <Outlet />
+          </Suspense>
+        </RouteErrorBoundary>
       </main>
     </div>
   );

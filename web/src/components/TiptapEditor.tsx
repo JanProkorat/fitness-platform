@@ -3,6 +3,7 @@ import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import Placeholder from '@tiptap/extension-placeholder';
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface TiptapEditorProps {
   content: string;
@@ -38,6 +39,7 @@ function ToolbarButton({
 }
 
 export default function TiptapEditor({ content, onChange, placeholder }: TiptapEditorProps) {
+  const { t } = useTranslation();
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -45,7 +47,7 @@ export default function TiptapEditor({ content, onChange, placeholder }: TiptapE
       }),
       Underline,
       Placeholder.configure({
-        placeholder: placeholder ?? 'Start writing...',
+        placeholder: placeholder ?? t('richTextEditor.placeholder'),
       }),
     ],
     content,
@@ -112,13 +114,13 @@ export default function TiptapEditor({ content, onChange, placeholder }: TiptapE
           active={editor.isActive('bulletList')}
           onClick={() => editor.chain().focus().toggleBulletList().run()}
         >
-          &bull; List
+          &bull; {t('richTextEditor.list')}
         </ToolbarButton>
         <ToolbarButton
           active={editor.isActive('orderedList')}
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
         >
-          1. List
+          1. {t('richTextEditor.list')}
         </ToolbarButton>
 
         <div className="mx-1 w-px bg-border" />
@@ -127,7 +129,7 @@ export default function TiptapEditor({ content, onChange, placeholder }: TiptapE
           active={editor.isActive('blockquote')}
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
         >
-          &ldquo; Quote
+          &ldquo; {t('richTextEditor.quote')}
         </ToolbarButton>
       </div>
 

@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 
-import { getClientDashboard } from '@/api/nutrition-goals';
+import { getClientDashboard, updateClientData } from '@/api/nutrition-goals';
+import { showApiError, showSuccess } from '@/lib/api-errors';
 import { getClientVerdict } from '@/api/client-verdict';
 import { getPlans, getPlan } from '@/api/plans';
 import { getTrainingPlans } from '@/api/training-plans';
@@ -36,8 +37,14 @@ export default function ClientDetailPage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  // Only heightCm/weightKg are persistable via updateClientData (PUT
+  // /trainer/clients/{id}) — firstName/lastName/email are identity fields
+  // with no trainer-facing write endpoint, so they render read-only below.
+  const [editHeightCm, setEditHeightCm] = useState('');
+  const [editWeightKg, setEditWeightKg] = useState('');
   const [activeTab, setActiveTab] = useState<ClientTabId>('prehled');
 
   // ── Server state ─────────────────────────────────────────────────────────────
@@ -71,6 +78,37 @@ export default function ClientDetailPage() {
     queryFn: () => getTrainingPlans({ clientId: id, status: 'Active', pageSize: 1 }),
     enabled: !!id && client?.hasRegistered === true && client?.canViewTrainingPlans === true,
   });
+
+  const updateClientMutation = useMutation({
+    mutationFn: (values: { heightCm?: number; weightKg?: number }) =>
+      updateClientData(id!, values),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['client-dashboard', id] });
+      showSuccess(t('clientDetail.profileUpdated'));
+      setEditDialogOpen(false);
+    },
+    onError: (err: unknown) => {
+      // Keep the dialog open with the entered values retained so the
+      // trainer's edits aren't silently discarded on a failed save.
+      showApiError(err, 'common.error');
+    },
+  });
+
+  const handleOpenEditDialog = () => {
+    setEditHeightCm(client?.heightCm != null ? String(client.heightCm) : '');
+    setEditWeightKg(client?.weightKg != null ? String(client.weightKg) : '');
+    setEditDialogOpen(true);
+  };
+
+  const handleSaveEditDialog = () => {
+    const heightCm = editHeightCm.trim() === '' ? undefined : Number(editHeightCm);
+    const weightKg = editWeightKg.trim() === '' ? undefined : Number(editWeightKg);
+    if ((heightCm != null && Number.isNaN(heightCm)) || (weightKg != null && Number.isNaN(weightKg))) {
+      showApiError(null, 'common.error');
+      return;
+    }
+    updateClientMutation.mutate({ heightCm, weightKg });
+  };
 
   // ── Derived values ───────────────────────────────────────────────────────────
 
@@ -176,10 +214,8 @@ export default function ClientDetailPage() {
         clientId={id!}
         clientInitials={clientInitials}
         clientAge={clientAge}
-        onEditProfile={() => setEditDialogOpen(true)}
-        onPhotoDiary={() => {
-          // Photo diary action — to be wired by wave-3 Fotky sub-issue
-        }}
+        onEditProfile={handleOpenEditDialog}
+        onPhotoDiary={() => setActiveTab('fotky')}
       />
 
       {/* Gold-chip tab bar */}
@@ -335,18 +371,28 @@ export default function ClientDetailPage() {
         </div>
       </div>
 
-      {/* Edit client dialog (unchanged from original) */}
+      {/* Edit client dialog — only heightCm/weightKg persist (see
+          handleSaveEditDialog); firstName/lastName/email are read-only
+          identity fields with no trainer-facing write endpoint. */}
       <Dialog
         open={editDialogOpen}
         onClose={() => setEditDialogOpen(false)}
         title={t('clients.editProfile')}
         footer={
           <>
-            <Button variant="ghost" onClick={() => setEditDialogOpen(false)}>
+            <Button
+              variant="ghost"
+              onClick={() => setEditDialogOpen(false)}
+              disabled={updateClientMutation.isPending}
+            >
               {t('common.cancel')}
             </Button>
-            <Button variant="primary" onClick={() => setEditDialogOpen(false)}>
-              {t('common.save')}
+            <Button
+              variant="primary"
+              onClick={handleSaveEditDialog}
+              disabled={updateClientMutation.isPending}
+            >
+              {updateClientMutation.isPending ? t('common.saving') : t('common.save')}
             </Button>
           </>
         }
@@ -356,27 +402,35 @@ export default function ClientDetailPage() {
             label={t('common.name')}
             defaultValue={client?.firstName ?? ''}
             placeholder={t('common.name')}
+            disabled
+            title={t('clientDetail.readOnlyFieldHint')}
           />
           <Input
             label={t('clientDetail.lastName')}
             defaultValue={client?.lastName ?? ''}
             placeholder={t('clientDetail.lastName')}
+            disabled
+            title={t('clientDetail.readOnlyFieldHint')}
           />
           <Input
             label={t('common.email')}
             defaultValue={client?.email ?? ''}
             placeholder={t('common.email')}
             type="email"
+            disabled
+            title={t('clientDetail.readOnlyFieldHint')}
           />
           <Input
             label={t('clientDetail.heightCm')}
-            defaultValue={client?.heightCm?.toString() ?? ''}
+            value={editHeightCm}
+            onChange={(e) => setEditHeightCm(e.target.value)}
             placeholder="168"
             type="number"
           />
           <Input
             label={t('clientDetail.weightKg')}
-            defaultValue={client?.weightKg?.toString() ?? ''}
+            value={editWeightKg}
+            onChange={(e) => setEditWeightKg(e.target.value)}
             placeholder="63"
             type="number"
           />

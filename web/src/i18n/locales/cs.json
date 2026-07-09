@@ -14,6 +14,11 @@
     "name": "Jméno",
     "email": "Email",
     "actions": "Akce",
+    "toggleDarkMode": "Přepnout tmavý režim",
+    "lightMode": "Světlý režim",
+    "darkMode": "Tmavý režim",
+    "removeChip": "Odebrat {{value}}",
+    "addNew": "+ Nový",
     "previous": "Předchozí",
     "next": "Další",
     "page": "Stránka {{current}} z {{total}}",
@@ -23,6 +28,7 @@
     "success": "Úspěch",
     "clear": "Vymazat",
     "delete": "Smazat",
+    "confirm": "Potvrdit",
     "deleteConfirmTitle": "Smazat položku",
     "deleteConfirmMessage": "Opravdu chcete smazat „{{name}}“?",
     "viewTable": "Tabulka",
@@ -134,7 +140,10 @@
     "addClient": "Přidat klienta",
     "pendingInvites": "ČEKAJÍCÍ POZVÁNKY",
     "openMenu": "Otevřít menu",
-    "closeMenu": "Zavřít menu"
+    "closeMenu": "Zavřít menu",
+    "collapseClient": "Sbalit {{name}}",
+    "expandClient": "Rozbalit {{name}}",
+    "goToClient": "Přejít na {{name}}"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -211,7 +220,13 @@
     "calloutComplianceDetail": "Compliance {{compliance}} % — neplní plán",
     "calloutTrainsDetail": "Plní {{trains}}/{{trainsGoal}} tréninků",
     "calloutTitleLow": "nízká compliance",
-    "calloutTitleAttention": "vyžaduje pozornost"
+    "calloutTitleAttention": "vyžaduje pozornost",
+    "activityToday": "dnes",
+    "activityYesterday": "včera",
+    "activityDaysAgo_one": "{{count}} den",
+    "activityDaysAgo_few": "{{count}} dny",
+    "activityDaysAgo_many": "{{count}} dní",
+    "activityDaysAgo_other": "{{count}} dní"
   },
   "clients": {
     "title": "Klienti",
@@ -418,6 +433,8 @@
     "saved": "Profil uložen",
     "trainerSaved": "Profil trenéra uložen",
     "saveError": "Chyba při ukládání",
+    "loadError": "Nepodařilo se načíst údaje profilu",
+    "trainerProfileLoadError": "Nepodařilo se načíst profil trenéra",
     "rolesTitle": "Role",
     "rolesSubtitle": "Vyber, jaké služby poskytuješ klientům. Role lze kombinovat.",
     "trainerRoleDesc": "Silový trénink, kardio, rehabilitace, kondice",
@@ -425,6 +442,7 @@
     "roleRemovalNotSupported": "Odebrání role zatím není podporováno",
     "addNutritionistRole": "Pracovat také jako Výživový poradce",
     "addTrainerRole": "Pracovat také jako Trenér",
+    "addRoleConfirmTitle": "Přidat roli",
     "addRoleConfirm": "Opravdu chcete přidat tuto roli? Tuto akci nelze vrátit zpět.",
     "roleAdded": "Role úspěšně přidána",
     "addRoleError": "Nepodařilo se přidat roli",
@@ -826,6 +844,11 @@
         "save": "Uložit"
       }
     }
+  },
+  "richTextEditor": {
+    "placeholder": "Začněte psát...",
+    "list": "Seznam",
+    "quote": "Citace"
   },
   "apiErrors": {
     "INVALID_CREDENTIALS": "Neplatný email nebo heslo.",
@@ -1460,7 +1483,9 @@
     "typeNumber": "Číslo",
     "typeScale": "Škála",
     "typeFileUpload": "Nahrání souboru",
+    "typeFieldLabel": "Typ",
     "addOption": "Přidat možnost",
+    "optionsLabel": "Možnosti",
     "optionPlaceholder": "Možnost...",
     "allowCustom": "Povolit vlastní odpověď",
     "customAnswerHint": "Klient může přidat vlastní...",
@@ -1505,6 +1530,9 @@
     "replaceQuestionnaireTitle": "Nahradit dotazník",
     "replaceQuestionnaireDesc": "Vyberte jiný dotazník. Aktuální čekající dotazník bude zrušen.",
     "replacing": "Nahrazuji...",
+    "assignError": "Nepodařilo se odeslat dotazník",
+    "cancelError": "Nepodařilo se zrušit dotazník",
+    "replaceError": "Nepodařilo se nahradit dotazník",
     "submittedAt": "Vyplněno {{date}}",
     "answersTitle": "Dotazník",
     "previousResponses": "Předchozí odpovědi",
@@ -1538,8 +1566,11 @@
     "selectQuestionnaire": "Vyberte dotazník (volitelné)",
     "noQuestionnaire": "Žádný dotazník",
     "noQuestionnairesAvailable": "Zatím nemáte vytvořený žádný dotazník. Můžete ho vytvořit v detailu klienta.",
+    "questionnairesLoadError": "Nepodařilo se načíst vaše dotazníky",
     "accepted": "Žádost přijata",
     "rejected": "Žádost odmítnuta",
+    "acceptError": "Nepodařilo se přijmout žádost",
+    "rejectError": "Nepodařilo se odmítnout žádost",
     "message": "Zpráva",
     "sentAt": "Odesláno",
     "confirmReject": "Opravdu chcete tuto žádost odmítnout?",
@@ -1566,6 +1597,7 @@
     "markAllRead": "Označit vše jako přečtené",
     "empty": "Žádná oznámení",
     "showAll": "Zobrazit všechna oznámení",
+    "showAllComingSoon": "Stránka se všemi oznámeními se připravuje",
     "justNow": "Právě teď"
   },
   "weeklyCheckIn": {
@@ -1765,6 +1797,8 @@
     "lastName": "Příjmení",
     "heightCm": "Výška (cm)",
     "weightKg": "Váha (kg)",
+    "profileUpdated": "Profil klienta uložen",
+    "readOnlyFieldHint": "Toto pole nelze z portálu trenéra upravit.",
     "tabBarLabel": "Záložky klienta",
     "ageYears_one": "{{count}} rok",
     "ageYears_few": "{{count}} roky",

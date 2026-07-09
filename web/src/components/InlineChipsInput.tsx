@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export type ChipColorScheme = 'gold' | 'green' | 'gray';
 
@@ -30,6 +31,7 @@ export function InlineChipsInput({
   placeholder,
   colorScheme,
 }: InlineChipsInputProps) {
+  const { t } = useTranslation();
   const [inputVal, setInputVal] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const { bg, color } = schemeStyles[colorScheme];
@@ -89,7 +91,7 @@ export function InlineChipsInput({
               lineHeight: 1,
               fontFamily: 'inherit',
             }}
-            aria-label={`Remove ${val}`}
+            aria-label={t('common.removeChip', { value: val })}
           >
             ✕
           </button>

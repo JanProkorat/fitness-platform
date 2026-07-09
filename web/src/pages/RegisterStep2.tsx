@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useFormContext } from 'react-hook-form';
+import { Link } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import { PASSWORD_REQUIREMENTS } from './register-types';
 import { computePasswordStrength, strengthClass } from './register-helpers';
@@ -196,7 +197,7 @@ export function RegisterStep2({
 
       <div className="auth-footer">
         Máte účet?{' '}
-        <a href="/login" style={{ color: 'var(--blue)', textDecoration: 'underline' }}>Přihlaste se</a>
+        <Link to="/login">Přihlaste se</Link>
       </div>
     </>
   );

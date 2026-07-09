@@ -209,10 +209,30 @@ export default function MessagesPage() {
     [messagesData],
   );
 
-  // Scroll to bottom on new messages or conversation switch
+  // Scroll to bottom on conversation switch or when the newest message
+  // changes — never on `messages.length` growth alone (#637). Keying the
+  // effect on length treated a prepended older page (fetchNextPage) the same
+  // as a brand-new message, snapping the viewport back to the bottom while
+  // the trainer was reading history. Tracking the newest (last, post-reverse)
+  // message identity instead means prepends — which leave the newest id
+  // untouched — no longer trigger a scroll; only an actual new message
+  // (SignalR invalidation) or switching conversations does. Native
+  // `overflow-anchor` handles keeping the prepended content in view without
+  // any manual scrollHeight/scrollTop bookkeeping.
+  const prevActiveConvIdRef = useRef<string | null>(null);
+  const prevLastMessageIdRef = useRef<string | null>(null);
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
-  }, [messages.length, activeConvId]);
+    const lastMessageId = messages.length > 0 ? messages[messages.length - 1].id : null;
+    const convSwitched = prevActiveConvIdRef.current !== activeConvId;
+    const newestChanged = lastMessageId !== null && lastMessageId !== prevLastMessageIdRef.current;
+
+    if (convSwitched || newestChanged) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+    }
+
+    prevActiveConvIdRef.current = activeConvId;
+    prevLastMessageIdRef.current = lastMessageId;
+  }, [messages, activeConvId]);
 
   // Mark as read when opening a conversation, or when a new unread arrives in
   // the currently-open conversation. The unreadCount guard prevents repeated
@@ -226,17 +246,32 @@ export default function MessagesPage() {
   }, [activeConvId, activeConv?.unreadCount, queryClient]);
 
   // ── Send message ──
+  // Synchronous in-flight guard for #616: `sendMutation.isPending` is
+  // React-Query async state, so it is stale (still `false`) inside the same
+  // synchronous event-handling turn as a second trigger (Enter keydown then
+  // click, or two fast Enters) — both would read `false` and both would call
+  // `mutate()` before React re-renders with the updated pending state. A
+  // plain `useRef(false)` flip happens synchronously inside `handleSend`
+  // itself, closing that window. Cleared in `onSettled` so it resets on
+  // both success and error.
+  const sendInFlightRef = useRef(false);
+
   const sendMutation = useMutation({
     mutationFn: (text: string) => sendMessage(activeConvId!, text),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['messages', activeConvId] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
     },
+    onSettled: () => {
+      sendInFlightRef.current = false;
+    },
   });
 
   const handleSend = useCallback(() => {
+    if (sendInFlightRef.current) return;
     const text = messageInput.trim();
     if (!text || !activeConvId) return;
+    sendInFlightRef.current = true;
     sendMutation.mutate(text);
     setMessageInput('');
   }, [messageInput, activeConvId, sendMutation]);

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/cn';
 
 interface Column<T = Record<string, unknown>> {
@@ -24,9 +25,11 @@ export function DatabaseTable<T>({
   rowKey,
   onRowClick,
   onAddRow,
-  addRowLabel = '+ New',
+  addRowLabel,
   renderRowActions,
 }: DatabaseTableProps<T>) {
+  const { t } = useTranslation();
+  const resolvedAddRowLabel = addRowLabel ?? t('common.addNew');
   return (
     <div className="border border-border rounded-md overflow-hidden">
       <table className="w-full border-collapse">
@@ -108,9 +111,9 @@ export function DatabaseTable<T>({
               onAddRow();
             }
           }}
-          aria-label={addRowLabel}
+          aria-label={resolvedAddRowLabel}
         >
-          {addRowLabel}
+          {resolvedAddRowLabel}
         </div>
       )}
     </div>
