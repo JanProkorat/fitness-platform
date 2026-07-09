@@ -17,6 +17,10 @@ import {
 interface CheckinyTabProps {
   /** Client's ApplicationUser Id (Guid string) — passed to check-in endpoints. */
   clientUserId: string;
+  /** Client's first name — used to build a human-readable override-dialog title. */
+  clientFirstName: string;
+  /** Client's last name — used to build a human-readable override-dialog title. */
+  clientLastName: string;
 }
 
 /** Formats an ISO string to a short localised date. */
@@ -47,7 +51,11 @@ function formatDateTimeStr(iso: string, language: string): string {
   }
 }
 
-export function CheckinyTab({ clientUserId }: CheckinyTabProps) {
+export function CheckinyTab({
+  clientUserId,
+  clientFirstName,
+  clientLastName,
+}: CheckinyTabProps) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
 
@@ -102,8 +110,8 @@ export function CheckinyTab({ clientUserId }: CheckinyTabProps) {
     return {
       id: '',
       clientUserId,
-      clientFirstName: '',
-      clientLastName: '',
+      clientFirstName,
+      clientLastName,
       profession,
       dayOfWeek: null,
       timeOfDay: null,

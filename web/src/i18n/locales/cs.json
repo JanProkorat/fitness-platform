@@ -1639,7 +1639,8 @@
       "saved": "Nastavení uloženo",
       "saveError": "Nepodařilo se uložit nastavení",
       "overrideSaved": "Individuální nastavení uloženo",
-      "overrideDeleted": "Individuální nastavení zrušeno — používá se výchozí"
+      "overrideDeleted": "Individuální nastavení zrušeno — používá se výchozí",
+      "overrideDialogHeadline": "Individuální rozvrh check-inu pro tohoto klienta a profesi {{profession}}. Nezaškrtnutá pole se řídí vaším výchozím nastavením."
     },
     "settings": {
       "deadlineLabel": "Lhůta pro odpověď",
