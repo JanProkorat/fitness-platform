@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useTheme } from '@/hooks/useTheme';
+import { goldAlpha } from '@/constants/colors';
 import { href } from '@/lib/navigation';
 import {
   searchProfessionals,
@@ -227,7 +228,7 @@ const getStyles = (colors: ReturnType<typeof useTheme>) =>
       flex: 1,
     },
     roleBadge: {
-      backgroundColor: 'rgba(200, 169, 78, 0.15)',
+      backgroundColor: goldAlpha['15'],
       paddingHorizontal: 10,
       paddingVertical: 3,
       borderRadius: 12,

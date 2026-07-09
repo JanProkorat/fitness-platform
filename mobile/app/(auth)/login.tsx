@@ -10,7 +10,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
@@ -29,6 +29,15 @@ WebBrowser.maybeCompleteAuthSession();
 export default function LoginScreen() {
   const colors = useTheme();
   const router = useRouter();
+  // A logged-out user tapping a trainer's invite link is bounced here by
+  // app/(auth)/invite/[token].tsx as `/(auth)/login?redirect=invite&token=<t>`.
+  // Read those params so every successful login path below can navigate
+  // straight back to the invite screen instead of falling through to
+  // AuthGate's default `/(client)` redirect (see app/_layout.tsx).
+  const { redirect, token: inviteToken } = useLocalSearchParams<{
+    redirect?: string;
+    token?: string;
+  }>();
   const { t } = useTranslation();
   const login = useAuthStore((s) => s.login);
   const [email, setEmail] = useState('');
@@ -74,6 +83,23 @@ export default function LoginScreen() {
       .then(setAppleAvailable)
       .catch(() => setAppleAvailable(false));
   }, []);
+
+  // Must be called synchronously, right after login() resolves, on every
+  // successful login path. Rather than navigating imperatively here (which
+  // used to race against AuthGate's own post-auth redirect effect in
+  // app/_layout.tsx and lose nondeterministically — #606), this records the
+  // intent in the auth store. AuthGate is the single routing authority: once
+  // isAuthenticated + emailConfirmed are both true, it reads
+  // pendingInviteToken and redirects to the invite screen itself, then
+  // clears the flag. login() and setPendingInviteToken() are both
+  // synchronous store updates batched into the same render, so there is no
+  // race — AuthGate always observes the flag already set on its first
+  // post-login run of the redirect effect.
+  const navigateAfterLogin = useCallback(() => {
+    if (redirect === 'invite' && inviteToken) {
+      useAuthStore.getState().setPendingInviteToken(inviteToken);
+    }
+  }, [redirect, inviteToken]);
 
   // Build the Google auth request with the server-issued nonce in extraParams.
   // The nonce is passed as a raw string; Google embeds it verbatim in the
@@ -141,6 +167,7 @@ export default function LoginScreen() {
           res.accessToken,
           res.refreshToken,
         );
+        navigateAfterLogin();
       } catch (err: unknown) {
         // 409: email already registered with a password login.
         // Read errorCode from the top-level camelCase field per ProblemDetails wire shape.
@@ -163,7 +190,7 @@ export default function LoginScreen() {
     };
 
     handleGoogleResponse();
-  }, [googleResponse, t, login, fetchGoogleNonce]);
+  }, [googleResponse, t, login, fetchGoogleNonce, navigateAfterLogin]);
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) return;
@@ -190,6 +217,7 @@ export default function LoginScreen() {
         data.accessToken,
         data.refreshToken,
       );
+      navigateAfterLogin();
     } catch {
       Alert.alert(t('auth.login.failedTitle'), t('auth.login.failedMessage'));
     } finally {
@@ -277,6 +305,7 @@ export default function LoginScreen() {
         res.accessToken,
         res.refreshToken,
       );
+      navigateAfterLogin();
     } catch (err: unknown) {
       // User cancelled the native Apple sign-in sheet — return silently.
       if (

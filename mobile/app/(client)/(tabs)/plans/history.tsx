@@ -15,6 +15,7 @@ import { useRouter, Stack } from 'expo-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/hooks/useTheme'
+import { goldAlpha } from '@/constants/colors'
 import { hrefParams } from '@/lib/navigation'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
@@ -64,7 +65,7 @@ function CompletedPlanCard({
           end={{ x: 1, y: 1 }}
           style={[styles.planHero, { opacity: 0.85 }]}
         >
-          <View style={[styles.statusTag, { backgroundColor: 'rgba(201,168,76,0.2)' }]}>
+          <View style={[styles.statusTag, { backgroundColor: goldAlpha['20'] }]}>
             <Text style={[styles.statusTagText, { color: colors.gold }]}>
               {`✓ ${t('plans.completed')}`}
             </Text>

@@ -33,6 +33,8 @@ function AuthGate() {
   const isInitialized = useAuthStore((s) => s.isInitialized);
   const restoreSession = useAuthStore((s) => s.restoreSession);
   const user = useAuthStore((s) => s.user);
+  const pendingInviteToken = useAuthStore((s) => s.pendingInviteToken);
+  const setPendingInviteToken = useAuthStore((s) => s.setPendingInviteToken);
 
   // Load Inter weights used across the app — typography.ts maps fontWeight →
   // Inter_<weight><Name> family name. Splash stays up until the fonts are in.
@@ -102,10 +104,26 @@ function AuthGate() {
       router.replace('/(auth)/login');
     } else if (isAuthenticated && !user?.emailConfirmed && !onVerifyScreen) {
       router.replace(href('/(auth)/verify-email'));
+    } else if (isAuthenticated && user?.emailConfirmed && pendingInviteToken && !onInviteScreen) {
+      // Deterministic invite hand-off (#606). login.tsx recorded the intent
+      // in the store instead of navigating imperatively — AuthGate is the
+      // single routing authority. The flag is kept SET (not consumed here)
+      // and the branch is guarded on `!onInviteScreen`, so it keeps winning
+      // over the `/(client)` branch below on every re-run until `segments`
+      // actually reaches the invite screen. Consuming the flag here instead
+      // let a re-run with a cleared flag but still-stale `seg=login` fall
+      // through to `/(client)` and stomp the in-flight navigation.
+      router.replace(`/(auth)/invite/${pendingInviteToken}`);
     } else if (isAuthenticated && user?.emailConfirmed && inAuthGroup && !onQuestionnaireScreen && !onInviteScreen) {
       router.replace('/(client)');
     }
-  }, [isAuthenticated, isInitialized, fontsLoaded, segments, router, user]);
+
+    // Consume the one-shot invite flag only once we've actually landed on the
+    // invite screen — clearing it earlier reopens the stale-segments race.
+    if (onInviteScreen && pendingInviteToken) {
+      setPendingInviteToken(null);
+    }
+  }, [isAuthenticated, isInitialized, fontsLoaded, segments, router, user, pendingInviteToken, setPendingInviteToken]);
 
   if (!isInitialized || !fontsLoaded) {
     return (

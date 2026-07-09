@@ -1,7 +1,7 @@
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/hooks/useTheme'
-import { Colors } from '@/constants/colors'
+import { Colors, goldAlpha } from '@/constants/colors'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
 import { GoldButton } from '@/components/ui/GoldButton'
@@ -71,7 +71,7 @@ export function IntroScreen({
 
         {/* Trainer message with questionnaire description */}
         <View style={styles.introBottom}>
-          <View style={[styles.trainerMessage, { backgroundColor: colors.goldBg, borderColor: 'rgba(201,168,76,0.2)' }]}>
+          <View style={[styles.trainerMessage, { backgroundColor: colors.goldBg, borderColor: goldAlpha['20'] }]}>
             <Text style={{ color: colors.label2, lineHeight: 22, fontSize: 13 }}>
               <Text style={{ fontWeight: '600', color: colors.label }}>{t('questionnaire.messageFrom', { name: profFirstName })}:</Text>
               {' „'}{questionnaire.description || t('questionnaire.trainerIntro')}{'"'}

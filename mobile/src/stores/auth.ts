@@ -90,6 +90,16 @@ interface AuthState {
   isAuthenticated: boolean;
   isInitialized: boolean;
 
+  // Set by login.tsx when a logged-out user arrived via a trainer invite
+  // link (redirect=invite&token=<t>). AuthGate (app/_layout.tsx) is the
+  // single routing authority post-login: it reads this flag and — once
+  // isAuthenticated + emailConfirmed are both true — redirects to the
+  // invite screen, then clears the flag so the redirect fires exactly once.
+  // This replaces an imperative router.replace() call from login.tsx, which
+  // raced against AuthGate's own redirect effect and lost nondeterministically
+  // (see #606).
+  pendingInviteToken: string | null;
+
   // Collaboration state
   hasTrainer: boolean;
   hasCoach: boolean;
@@ -104,6 +114,7 @@ interface AuthState {
   logout: () => void;
   restoreSession: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  setPendingInviteToken: (token: string | null) => void;
 
   // Collaboration actions
   setTrainer: (trainer: ActiveCollaborator | null) => void;
@@ -122,6 +133,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   refreshToken: readInitialRefreshToken(),
   isAuthenticated: false,
   isInitialized: false,
+  pendingInviteToken: null,
 
   // Collaboration defaults
   hasTrainer: false,
@@ -140,6 +152,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     storage.set('refreshToken', refreshToken);
     set({ user, accessToken, refreshToken, isAuthenticated: true });
   },
+
+  setPendingInviteToken: (token) => set({ pendingInviteToken: token }),
 
   logout: () => {
     // Clear all persisted and in-memory caches to prevent data leaking between users
@@ -170,6 +184,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       accessToken: null,
       refreshToken: null,
       isAuthenticated: false,
+      pendingInviteToken: null,
       hasTrainer: false,
       hasCoach: false,
       trainer: null,

@@ -13,7 +13,7 @@ import { BlurView } from 'expo-blur'
 import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from '@/hooks/useTheme'
-import { Colors } from '@/constants/colors'
+import { Colors, goldAlpha } from '@/constants/colors'
 import { href } from '@/lib/navigation'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
@@ -25,7 +25,7 @@ const INCLUDES = [
   { emoji: '🏋️', i18nKey: 'collab.includeTraining', bg: 'rgba(11,110,153,0.1)' },
   { emoji: '🥗', i18nKey: 'collab.includeNutrition', bg: 'rgba(52,199,89,0.1)' },
   { emoji: '💬', i18nKey: 'collab.includeMessaging', bg: 'rgba(0,122,255,0.1)' },
-  { emoji: '📈', i18nKey: 'collab.includeProgress', bg: 'rgba(201,168,76,0.1)' },
+  { emoji: '📈', i18nKey: 'collab.includeProgress', bg: goldAlpha['10'] },
 ]
 
 export default function InviteDetailScreen() {
