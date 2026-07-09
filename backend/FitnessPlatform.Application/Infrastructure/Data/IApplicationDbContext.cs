@@ -162,4 +162,26 @@ public interface IApplicationDbContext
     /// expired, or not found — the caller lost the consume race).
     /// </summary>
     Task<int> ConsumeNonceAsync(string nonce, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Atomically rotates a refresh token by issuing a single UPDATE statement
+    /// conditional on the token not already being revoked
+    /// (<c>WHERE Token = @token AND RevokedAt IS NULL</c>). This closes the
+    /// read-then-write race where two concurrent <c>/auth/refresh</c> calls for
+    /// the same token could both observe it as active and both succeed.
+    /// Returns the number of rows updated (1 = this caller won the rotation
+    /// race and must issue the new token pair; 0 = the token was already
+    /// revoked by a concurrent request — the caller must re-read the row and
+    /// route into the reuse/reconcile discriminator).
+    /// </summary>
+    Task<int> RotateRefreshTokenAsync(string token, string replacedByToken, DateTime revokedAt, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Atomically revokes every currently-active refresh token belonging to a
+    /// user (a "token family" invalidation). Used when a rotated refresh token
+    /// is replayed outside the reuse grace window — treated as theft, so the
+    /// whole family is burned rather than just the one token. Returns the
+    /// number of rows revoked.
+    /// </summary>
+    Task<int> RevokeRefreshTokenFamilyAsync(Guid userId, DateTime revokedAt, CancellationToken cancellationToken = default);
 }
