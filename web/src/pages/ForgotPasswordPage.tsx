@@ -68,14 +68,14 @@ export default function ForgotPasswordPage() {
         {step === 'form' ? (
           <>
             <button type="button" className="auth-back" onClick={() => navigate('/login')}>
-              ← Zpět na přihlášení
+              {'← '}{t('auth.backToLogin')}
             </button>
 
             <div className="auth-title">
-              Zapomenuté <span>heslo</span>
+              {t('auth.forgotPasswordHeroTitle')} <span>{t('auth.forgotPasswordHeroTitleHighlight')}</span>
             </div>
             <div className="auth-sub">
-              Zadejte svůj email a pošleme vám odkaz pro reset hesla.
+              {t('auth.forgotPasswordHeroSubtitle')}
             </div>
 
             {error && (
@@ -86,12 +86,12 @@ export default function ForgotPasswordPage() {
 
             <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div className="form-group">
-                <label className="form-label">Email</label>
+                <label className="form-label">{t('common.email')}</label>
                 <input
                   type="email"
                   {...register('email')}
                   className="auth-input"
-                  placeholder="vas@email.cz"
+                  placeholder={t('auth.emailPlaceholder')}
                   autoComplete="email"
                 />
                 {errors.email && (
@@ -100,19 +100,19 @@ export default function ForgotPasswordPage() {
               </div>
 
               <button type="submit" disabled={loading} className="btn-auth-primary" style={{ marginBottom: 12 }}>
-                {loading ? 'Odesílání...' : 'Odeslat odkaz pro reset'}
+                {loading ? t('auth.sendingEllipsis') : t('auth.forgotPasswordSubmitButton')}
               </button>
             </form>
 
             <div className="auth-footer">
-              Vzpomněli jste si?{' '}
-              <Link to="/login">Přihlaste se</Link>
+              {t('auth.rememberedPassword')}{' '}
+              <Link to="/login">{t('auth.loginLinkText')}</Link>
             </div>
           </>
         ) : (
           <>
             <button type="button" className="auth-back" onClick={() => navigate('/login')}>
-              ← Zpět na přihlášení
+              {'← '}{t('auth.backToLogin')}
             </button>
 
             <div className="auth-success">
@@ -122,31 +122,31 @@ export default function ForgotPasswordPage() {
                   <polyline points="22,6 12,13 2,6"/>
                 </svg>
               </div>
-              <div className="auth-success-title">Email odeslán</div>
+              <div className="auth-success-title">{t('auth.emailSentTitle')}</div>
               <div className="auth-success-text">
-                Poslali jsme vám instrukce pro reset hesla. Zkontrolujte svou schránku — email by měl dorazit do pár minut.
+                {t('auth.emailSentInstructions')}
               </div>
             </div>
 
             <div style={{ marginTop: 16, padding: '12px 14px', background: 'var(--bg2)', borderRadius: 'var(--radius-md)', fontSize: 13, color: 'var(--text2)', textAlign: 'left' as const }}>
-              <span style={{ color: 'var(--text3)', fontSize: 11, display: 'block', marginBottom: 3 }}>Odkaz odeslán na:</span>
+              <span style={{ color: 'var(--text3)', fontSize: 11, display: 'block', marginBottom: 3 }}>{t('auth.linkSentTo')}</span>
               <span style={{ fontWeight: 500, color: 'var(--text)' }}>{sentEmail}</span>
             </div>
 
             <div style={{ marginTop: 12, fontSize: 13, color: 'var(--text3)', textAlign: 'center' as const }}>
-              Email nedorazil?{' '}
+              {t('auth.emailNotArrived')}{' '}
               <button
                 type="button"
                 onClick={handleResend}
                 disabled={resending}
                 style={{ color: 'var(--blue)', cursor: 'pointer', background: 'none', border: 'none', fontFamily: 'inherit', fontSize: 'inherit', padding: 0 }}
               >
-                {resending ? 'Odesílání...' : 'Odeslat znovu'}
+                {resending ? t('auth.sendingEllipsis') : t('auth.verifyEmailResend')}
               </button>
             </div>
 
             <button type="button" className="btn-auth-primary" style={{ marginTop: 16 }} onClick={() => navigate('/login')}>
-              Zpět na přihlášení
+              {t('auth.backToLogin')}
             </button>
           </>
         )}

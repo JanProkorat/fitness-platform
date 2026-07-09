@@ -149,7 +149,7 @@ export default function RegisterPage() {
             <div className="auth-logo-icon">GF</div>
             <div>
               <div className="auth-logo-name">GoodFellas Platform</div>
-              <div className="auth-logo-sub">Fitness &amp; výživa</div>
+              <div className="auth-logo-sub">{t('auth.tagline')}</div>
             </div>
           </div>
 

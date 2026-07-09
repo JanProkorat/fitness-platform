@@ -67,24 +67,26 @@ function PasswordStrength({ password }: { password: string }) {
   );
 }
 
+// labelKey is an i18n key (not literal text) — resolve with t() at render time.
 const reqs = [
-  { test: (v: string) => v.length >= 8, label: 'Alespoň 8 znaků' },
-  { test: (v: string) => /[A-Z]/.test(v), label: 'Alespoň jedno velké písmeno (A–Z)' },
-  { test: (v: string) => /[a-z]/.test(v), label: 'Alespoň jedno malé písmeno (a–z)' },
-  { test: (v: string) => /[0-9]/.test(v), label: 'Alespoň jedna číslice (0–9)' },
+  { test: (v: string) => v.length >= 8, labelKey: 'auth.passwordReqMinLength' },
+  { test: (v: string) => /[A-Z]/.test(v), labelKey: 'auth.passwordReqUppercase' },
+  { test: (v: string) => /[a-z]/.test(v), labelKey: 'auth.passwordReqLowercase' },
+  { test: (v: string) => /[0-9]/.test(v), labelKey: 'auth.passwordReqDigit' },
 ];
 
 function PasswordRequirements({ password }: { password: string }) {
+  const { t } = useTranslation();
   return (
     <div className="auth-pw-reqs">
-      {reqs.map(({ test, label }) => {
+      {reqs.map(({ test, labelKey }) => {
         const met = test(password);
         return (
-          <div key={label} className={cn('auth-pw-req', met && 'met')}>
+          <div key={labelKey} className={cn('auth-pw-req', met && 'met')}>
             <span className="auth-pw-req-dot">
               {met ? '✓' : ''}
             </span>
-            {label}
+            {t(labelKey)}
           </div>
         );
       })}
@@ -145,7 +147,7 @@ export default function ResetPasswordPage() {
             {t('auth.resetPasswordInvalidLink')}
           </p>
           <Link to="/login" className="auth-back">
-            Zpět na přihlášení
+            {t('auth.backToLogin')}
           </Link>
         </div>
       </div>
@@ -191,10 +193,10 @@ export default function ResetPasswordPage() {
               </svg>
             </div>
             <h1 className="auth-success-title">
-              Heslo bylo změněno!
+              {t('auth.resetPasswordSuccessTitle')}
             </h1>
             <p className="auth-success-text">
-              Vaše heslo bylo úspěšně změněno. Nyní se můžete přihlásit s novým heslem.
+              {t('auth.resetPasswordSuccessText')}
             </p>
           </div>
 
@@ -204,7 +206,7 @@ export default function ResetPasswordPage() {
             className="btn-auth-primary"
             style={{ marginTop: '24px' }}
           >
-            Přejít na přihlášení
+            {t('auth.goToLoginButton')}
           </button>
         </div>
       </div>
@@ -221,10 +223,10 @@ export default function ResetPasswordPage() {
       <div className="auth-card">
         {/* Title */}
         <h1 className="auth-title">
-          Nové <span>heslo</span>
+          {t('auth.resetPasswordFormHeroTitle')} <span>{t('auth.resetPasswordFormHeroTitleHighlight')}</span>
         </h1>
         <p className="auth-sub">
-          Zadejte nové heslo pro váš účet.
+          {t('auth.resetPasswordFormSubtitle')}
         </p>
 
         {errorMsg && (
@@ -237,11 +239,11 @@ export default function ResetPasswordPage() {
           {/* New password */}
           <div className="form-group">
             <label htmlFor="newPassword" className="form-label">
-              Nové heslo
+              {t('auth.newPassword')}
             </label>
             <PasswordInput
               id="newPassword"
-              placeholder="Zadejte nové heslo"
+              placeholder={t('auth.newPasswordPlaceholder')}
               {...register('newPassword')}
             />
             <PasswordStrength password={watchedPassword} />
@@ -256,11 +258,11 @@ export default function ResetPasswordPage() {
           {/* Confirm password */}
           <div className="form-group">
             <label htmlFor="confirmPassword" className="form-label">
-              Potvrzení hesla
+              {t('auth.confirmPassword')}
             </label>
             <PasswordInput
               id="confirmPassword"
-              placeholder="Zopakujte nové heslo"
+              placeholder={t('auth.confirmNewPasswordPlaceholder')}
               {...register('confirmPassword')}
             />
             {errors.confirmPassword && (
@@ -276,7 +278,7 @@ export default function ResetPasswordPage() {
             disabled={loading}
             className="btn-auth-primary"
           >
-            {loading ? 'Ukládání...' : 'Uložit nové heslo'}
+            {loading ? t('auth.savingEllipsis') : t('auth.saveNewPasswordButton')}
           </button>
         </form>
       </div>

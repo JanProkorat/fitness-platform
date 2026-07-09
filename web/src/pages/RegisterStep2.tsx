@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/cn';
 import { PASSWORD_REQUIREMENTS } from './register-types';
 import { computePasswordStrength, strengthClass } from './register-helpers';
@@ -29,15 +30,16 @@ export function RegisterStep2({
   fromInvite,
 }: RegisterStep2Props) {
   const { register, formState: { errors } } = useFormContext();
+  const { t } = useTranslation();
   const strength = useMemo(() => computePasswordStrength(passwordValue), [passwordValue]);
 
   return (
     <>
       <div className="auth-title">
-        Vaše <span>údaje</span>
+        {t('auth.registerStep2HeroTitle')} <span>{t('auth.registerStep2HeroTitleHighlight')}</span>
       </div>
       <div className="auth-sub">
-        Vyplňte základní informace o účtu.
+        {t('auth.registerStep2Subtitle')}
       </div>
 
       {error && (
@@ -50,24 +52,24 @@ export function RegisterStep2({
         {/* Name row */}
         <div className="form-row">
           <div className="form-group">
-            <label className="form-label">Jméno</label>
+            <label className="form-label">{t('auth.firstName')}</label>
             <input
               type="text"
               {...register('firstName')}
               className="auth-input"
-              placeholder="Jan"
+              placeholder={t('auth.firstNamePlaceholder')}
             />
             {errors.firstName && (
               <p style={{ marginTop: 4, fontSize: 12, color: 'var(--red)' }}>{String(errors.firstName.message ?? '')}</p>
             )}
           </div>
           <div className="form-group">
-            <label className="form-label">Příjmení</label>
+            <label className="form-label">{t('auth.lastName')}</label>
             <input
               type="text"
               {...register('lastName')}
               className="auth-input"
-              placeholder="Novák"
+              placeholder={t('auth.lastNamePlaceholder')}
             />
             {errors.lastName && (
               <p style={{ marginTop: 4, fontSize: 12, color: 'var(--red)' }}>{String(errors.lastName.message ?? '')}</p>
@@ -77,12 +79,12 @@ export function RegisterStep2({
 
         {/* Email */}
         <div className="form-group">
-          <label className="form-label">Email</label>
+          <label className="form-label">{t('common.email')}</label>
           <input
             type="email"
             {...register('email')}
             className="auth-input"
-            placeholder="vas@email.cz"
+            placeholder={t('auth.emailPlaceholder')}
           />
           {errors.email && (
             <p style={{ marginTop: 4, fontSize: 12, color: 'var(--red)' }}>{String(errors.email.message ?? '')}</p>
@@ -91,7 +93,7 @@ export function RegisterStep2({
 
         {/* Password */}
         <div className="form-group">
-          <label className="form-label">Heslo</label>
+          <label className="form-label">{t('auth.password')}</label>
           <div className="auth-password-wrap">
             <input
               type={showPassword ? 'text' : 'password'}
@@ -133,11 +135,11 @@ export function RegisterStep2({
             {PASSWORD_REQUIREMENTS.map((req) => {
               const met = req.test(passwordValue);
               return (
-                <div key={req.label} className={cn('auth-pw-req', met && 'met')}>
+                <div key={req.labelKey} className={cn('auth-pw-req', met && 'met')}>
                   <div className="auth-pw-req-dot">
                     {met && '✓'}
                   </div>
-                  <span>{req.label}</span>
+                  <span>{t(req.labelKey)}</span>
                 </div>
               );
             })}
@@ -146,7 +148,7 @@ export function RegisterStep2({
 
         {/* Confirm password */}
         <div className="form-group">
-          <label className="form-label">Potvrďte heslo</label>
+          <label className="form-label">{t('auth.confirmPasswordLabel')}</label>
           <div className="auth-password-wrap">
             <input
               type={showConfirmPassword ? 'text' : 'password'}
@@ -181,7 +183,7 @@ export function RegisterStep2({
               className="btn"
               style={{ padding: '10px 16px', fontSize: 14 }}
             >
-              ← Zpět
+              {t('auth.backButton')}
             </button>
           )}
           <button
@@ -190,14 +192,14 @@ export function RegisterStep2({
             className="btn-auth-primary"
             style={{ flex: 1 }}
           >
-            Pokračovat →
+            {t('auth.continueButton')}
           </button>
         </div>
       </div>
 
       <div className="auth-footer">
-        Máte účet?{' '}
-        <Link to="/login">Přihlaste se</Link>
+        {t('auth.hasAccountRegister')}{' '}
+        <Link to="/login">{t('auth.loginLinkText')}</Link>
       </div>
     </>
   );
