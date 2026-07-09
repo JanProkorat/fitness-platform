@@ -1,0 +1,18 @@
+# Build output — regenerated inside the container by `dotnet publish`.
+# Shipping these as build context bloats it to ~9 GB (bin/obj across
+# Application + Tests) and has crashed Docker Desktop on constrained disks.
+**/bin/
+**/obj/
+# Literal-backslash junk dir occasionally created on Windows/CI.
+**/bin\\Release/
+
+# IDE / editor / OS cruft — never needed in the image.
+.vs/
+.idea/
+**/*.user
+**/.DS_Store
+
+# Test artifacts / coverage.
+**/TestResults/
+**/*.trx
+**/coverage*.xml
