@@ -17,7 +17,7 @@ namespace FitnessPlatform.Application.Infrastructure.Services;
 public class EmailVerificationTokenService(IApplicationDbContext db, IEmailService emailService) : IEmailVerificationTokenService
 {
     /// <inheritdoc />
-    public async Task IssueAndSendAsync(ApplicationUser user, string language, CancellationToken ct)
+    public async Task IssueAndSendAsync(ApplicationUser user, string language, CancellationToken ct, bool countTowardLifetimeCap = true)
     {
         // Invalidate previous unused tokens
         var previousTokens = await db.EmailVerificationTokens
@@ -39,7 +39,17 @@ public class EmailVerificationTokenService(IApplicationDbContext db, IEmailServi
         };
 
         db.EmailVerificationTokens.Add(verificationToken);
-        user.VerificationEmailsSent++;
+
+        // Only advance the lifetime cap for the registration + authenticated-resend call
+        // sites. The anonymous resend endpoint (#679 security follow-up) passes
+        // countTowardLifetimeCap: false — see the interface doc comment for why: letting
+        // anonymous sends climb this counter would let anyone lock a victim out of the
+        // authenticated resend path permanently.
+        if (countTowardLifetimeCap)
+        {
+            user.VerificationEmailsSent++;
+        }
+
         await db.SaveChangesAsync(ct);
 
         // Send AFTER the DB write commits: the token row (and the incremented counter)
