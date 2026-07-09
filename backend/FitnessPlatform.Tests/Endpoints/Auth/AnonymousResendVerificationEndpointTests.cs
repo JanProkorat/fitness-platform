@@ -93,6 +93,12 @@ public class AnonymousResendVerificationEndpointTests(FitnessApiFactory factory)
         var body = await response.Content.ReadFromJsonAsync<GenericResult>(cancellationToken: TestContext.Current.CancellationToken);
         body!.Message.Should().Be(GenericMessage);
 
+        // The resend's SMTP send is now fire-and-forget (#702) -- it may not have landed
+        // in SentVerifications yet by the time the HTTP response returns. Drain
+        // deterministically (bounded poll, not a fixed sleep) before asserting on it.
+        await FakeEmailService.WaitForAsync(() =>
+            FakeEmailService.SentVerifications.Count(v => v.Email == email) >= 2);
+
         // Registration sends one verification email; the resend call sends a second,
         // distinct one (prior unused tokens are invalidated by the shared token service).
         var sentForEmail = FakeEmailService.SentVerifications.Where(v => v.Email == email).ToList();
@@ -140,6 +146,10 @@ public class AnonymousResendVerificationEndpointTests(FitnessApiFactory factory)
 
         var body = await response.Content.ReadFromJsonAsync<GenericResult>(cancellationToken: TestContext.Current.CancellationToken);
         body!.Message.Should().Be(GenericMessage);
+
+        // Fire-and-forget send (#702) -- drain deterministically before asserting.
+        await FakeEmailService.WaitForAsync(() =>
+            FakeEmailService.SentVerifications.Count(v => v.Email == email) > sentBeforeResend);
 
         FakeEmailService.SentVerifications.Count(v => v.Email == email).Should().Be(sentBeforeResend + 1,
             "the anonymous endpoint must not gate on the lifetime counter — only the rolling-window throttle applies here");
@@ -208,6 +218,11 @@ public class AnonymousResendVerificationEndpointTests(FitnessApiFactory factory)
             response.StatusCode.Should().Be(HttpStatusCode.OK);
         }
 
+        // Both anonymous sends are fire-and-forget (#702) -- drain deterministically
+        // before asserting on the total count.
+        await FakeEmailService.WaitForAsync(() =>
+            FakeEmailService.SentVerifications.Count(v => v.Email == email) >= 3);
+
         // Registration + 2 anonymous sends = 3 emails total, but the lifetime counter the
         // AUTHENTICATED endpoint gates on must still read 1 — proving the anonymous sends
         // never advanced it.
@@ -230,6 +245,83 @@ public class AnonymousResendVerificationEndpointTests(FitnessApiFactory factory)
         var authResendResponse = await client.PostAsync("/auth/resend-verification", null, TestContext.Current.CancellationToken);
         authResendResponse.StatusCode.Should().Be(HttpStatusCode.OK,
             "the authenticated resend must still be available after anonymous-triggered sends");
+    }
+
+    [Fact]
+    public async Task FireAndForget_UnverifiedBranchEnqueuesOne_NoOpBranchesEnqueueNone_ResponseIdenticalAcrossAllFour()
+    {
+        // #702 coverage: the unverified branch must enqueue exactly one background send;
+        // the three no-op branches (unregistered / already-verified / throttled) must
+        // enqueue none; and the response body must be byte-identical across all four --
+        // proving the enumeration defense survives the fire-and-forget refactor.
+        var client = factory.CreateClient();
+
+        // -- Unregistered (no-op): nothing is ever enqueued for this email, so absence
+        // right after the response is already conclusive -- no wait needed.
+        var unregisteredEmail = UniqueEmail();
+        var unregisteredResponse = await client.PostAsJsonAsync(Route, new { Email = unregisteredEmail }, TestContext.Current.CancellationToken);
+        FakeEmailService.SentVerifications.Should().NotContain(v => v.Email == unregisteredEmail,
+            "an unregistered email must never enqueue a background send");
+
+        // -- Already-verified (no-op): only the registration send exists.
+        var verifiedEmail = UniqueEmail();
+        await TestHelpers.RegisterAsync(client, verifiedEmail, "TestPass1!", "Anon", "AllFourVerified", "Client");
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var user = await db.Users.FirstAsync(u => u.Email == verifiedEmail, TestContext.Current.CancellationToken);
+            user.EmailConfirmed = true;
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+        var verifiedResponse = await client.PostAsJsonAsync(Route, new { Email = verifiedEmail }, TestContext.Current.CancellationToken);
+        FakeEmailService.SentVerifications.Where(v => v.Email == verifiedEmail).Should().ContainSingle(
+            "an already-verified account must never enqueue a background send beyond the original registration email");
+
+        // -- Throttled (no-op): window cap already exhausted.
+        var throttledEmail = UniqueEmail();
+        await TestHelpers.RegisterAsync(client, throttledEmail, "TestPass1!", "Anon", "AllFourThrottled", "Client");
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var user = await db.Users.FirstAsync(u => u.Email == throttledEmail, TestContext.Current.CancellationToken);
+            db.EmailVerificationTokens.AddRange(
+                new EmailVerificationToken { UserId = user.Id, Token = Guid.NewGuid().ToString("N"), ExpiresAt = DateTime.UtcNow.AddHours(23) },
+                new EmailVerificationToken { UserId = user.Id, Token = Guid.NewGuid().ToString("N"), ExpiresAt = DateTime.UtcNow.AddHours(23) });
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+        var sentBeforeThrottled = FakeEmailService.SentVerifications.Count(v => v.Email == throttledEmail);
+        var throttledResponse = await client.PostAsJsonAsync(Route, new { Email = throttledEmail }, TestContext.Current.CancellationToken);
+        FakeEmailService.SentVerifications.Count(v => v.Email == throttledEmail).Should().Be(sentBeforeThrottled,
+            "a throttled (window-cap) request must never enqueue a background send");
+
+        // -- Real send (registered + unverified + under-throttle): exactly one enqueued
+        // send, observed once the background worker drains it.
+        var sendEmail = UniqueEmail();
+        await TestHelpers.RegisterAsync(client, sendEmail, "TestPass1!", "Anon", "AllFourRealSend", "Client");
+        var sentBeforeSend = FakeEmailService.SentVerifications.Count(v => v.Email == sendEmail);
+        var sendResponse = await client.PostAsJsonAsync(Route, new { Email = sendEmail }, TestContext.Current.CancellationToken);
+
+        await FakeEmailService.WaitForAsync(() =>
+            FakeEmailService.SentVerifications.Count(v => v.Email == sendEmail) > sentBeforeSend);
+
+        FakeEmailService.SentVerifications.Count(v => v.Email == sendEmail).Should().Be(sentBeforeSend + 1,
+            "the unverified branch must enqueue exactly one background send");
+
+        // -- Response identity: all four requests get the SAME 200 with the SAME body.
+        unregisteredResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        verifiedResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        throttledResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        sendResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var unregisteredBody = await unregisteredResponse.Content.ReadFromJsonAsync<GenericResult>(cancellationToken: TestContext.Current.CancellationToken);
+        var verifiedBody = await verifiedResponse.Content.ReadFromJsonAsync<GenericResult>(cancellationToken: TestContext.Current.CancellationToken);
+        var throttledBody = await throttledResponse.Content.ReadFromJsonAsync<GenericResult>(cancellationToken: TestContext.Current.CancellationToken);
+        var sendBody = await sendResponse.Content.ReadFromJsonAsync<GenericResult>(cancellationToken: TestContext.Current.CancellationToken);
+
+        unregisteredBody!.Message.Should().Be(GenericMessage);
+        verifiedBody!.Message.Should().Be(GenericMessage);
+        throttledBody!.Message.Should().Be(GenericMessage);
+        sendBody!.Message.Should().Be(GenericMessage);
     }
 
     [Fact]

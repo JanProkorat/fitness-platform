@@ -13,12 +13,40 @@ namespace FitnessPlatform.Application.Domain.Interfaces;
 /// persist, then send the verification email. All three call sites (registration,
 /// the authenticated resend endpoint, and the anonymous resend endpoint) share
 /// this single implementation.
+/// <para>
+/// Split into <see cref="IssueAsync"/> (DB-only: invalidate → mint → persist →
+/// optional counter) and <see cref="IssueAndSendAsync"/> (issue, then send) for #702:
+/// the anonymous resend endpoint needs to keep issuance synchronous (so its
+/// rolling-window throttle count stays accurate and the token row exists even if the
+/// send is later dropped) while deferring only the SMTP round-trip to a background
+/// worker. <see cref="IssueAndSendAsync"/> itself is unchanged — it still issues then
+/// sends synchronously — so <c>RegisterEndpoint</c> and the authenticated
+/// <c>ResendVerificationEndpoint</c> keep their exact original behavior.
+/// </para>
 /// </remarks>
 public interface IEmailVerificationTokenService
 {
     /// <summary>
     /// Invalidates the user's previously issued unused verification tokens, mints a
-    /// new token, persists the change, and sends the verification email.
+    /// new token, persists the change, and returns the new token's value. Does NOT
+    /// send the email — callers that need the send performed synchronously should use
+    /// <see cref="IssueAndSendAsync"/>; callers that defer the send (e.g. to a
+    /// background queue, #702) call this directly.
+    /// </summary>
+    /// <param name="user">The user to issue a token for. Must be tracked by the same
+    /// database context instance used elsewhere in the caller's unit of work.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <param name="countTowardLifetimeCap">
+    /// See the parameter of the same name on <see cref="IssueAndSendAsync"/> — identical
+    /// semantics, this is simply the DB-only half of that call.
+    /// </param>
+    /// <returns>The newly minted token value.</returns>
+    Task<string> IssueAsync(ApplicationUser user, CancellationToken ct, bool countTowardLifetimeCap = true);
+
+    /// <summary>
+    /// Invalidates the user's previously issued unused verification tokens, mints a
+    /// new token, persists the change, and sends the verification email — synchronously,
+    /// in that order. Equivalent to <c>await IssueAsync(...)</c> followed by the send.
     /// </summary>
     /// <param name="user">The user to issue a token for. Must be tracked by the same
     /// database context instance used elsewhere in the caller's unit of work.</param>
