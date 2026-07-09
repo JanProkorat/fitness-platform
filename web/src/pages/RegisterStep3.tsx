@@ -32,10 +32,10 @@ export function RegisterStep3({
   return (
     <>
       <div className="auth-title">
-        Téměř <span>hotovo</span>
+        {t('auth.registerStep3HeroTitle')} <span>{t('auth.registerStep3HeroTitleHighlight')}</span>
       </div>
       <div className="auth-sub">
-        Přečtěte si podmínky a dokončete registraci.
+        {t('auth.registerStep3Subtitle')}
       </div>
 
       {error && (
@@ -88,7 +88,7 @@ export function RegisterStep3({
           className="btn"
           style={{ padding: '10px 16px', fontSize: 14 }}
         >
-          ← Zpět
+          {t('auth.backButton')}
         </button>
         <button
           type="button"
