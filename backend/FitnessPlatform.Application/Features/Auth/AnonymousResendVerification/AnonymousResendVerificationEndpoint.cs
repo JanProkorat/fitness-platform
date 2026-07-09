@@ -23,10 +23,14 @@ namespace FitnessPlatform.Application.Features.Auth.AnonymousResendVerification;
 /// or throw the <see cref="ErrorCodes.EmailAlreadyVerified"/> /
 /// <see cref="ErrorCodes.VerificationResendLimitReached"/> codes the authenticated
 /// <c>/auth/resend-verification</c> endpoint uses — those would turn the response
-/// into an account-existence oracle. The residual timing side-channel (the
-/// unverified branch does DB writes + an email send; the other branches return
-/// immediately) is a known, accepted limitation flagged for the mandatory
-/// gc-sec-review pass rather than solved here.
+/// into an account-existence oracle. The residual timing side-channel flagged at
+/// #679 (the unverified branch used to await an SMTP round-trip; the other
+/// branches returned immediately) is closed by #702: the token is still issued
+/// SYNCHRONOUSLY (keeps the rolling-window throttle count accurate and guarantees
+/// the token row exists even if the send is later dropped), but the SMTP send
+/// itself is enqueued fire-and-forget onto <see cref="IBackgroundEmailQueue"/> and
+/// processed by <c>EmailDispatchWorker</c> off the request path — so all four
+/// branches now return in roughly constant time.
 /// </para>
 /// <para>
 /// Anti-abuse gate (security-review follow-up, #679): this endpoint does NOT gate
@@ -51,11 +55,13 @@ namespace FitnessPlatform.Application.Features.Auth.AnonymousResendVerification;
 /// </remarks>
 /// <param name="userManager">ASP.NET Identity user manager.</param>
 /// <param name="tokenService">Shared email-verification token issuance service (see #679).</param>
+/// <param name="emailQueue">Background dispatch queue for the fire-and-forget SMTP send (#702).</param>
 /// <param name="db">Database context — used to count recent tokens for the anti-abuse throttle.</param>
-/// <param name="logger">Logger for non-fatal send failures.</param>
+/// <param name="logger">Logger for non-fatal issuance failures and dropped enqueues.</param>
 public class AnonymousResendVerificationEndpoint(
     UserManager<ApplicationUser> userManager,
     IEmailVerificationTokenService tokenService,
+    IBackgroundEmailQueue emailQueue,
     IApplicationDbContext db,
     ILogger<AnonymousResendVerificationEndpoint> logger)
     : Endpoint<AnonymousResendVerificationRequest, AnonymousResendVerificationResponse>
@@ -99,19 +105,36 @@ public class AnonymousResendVerificationEndpoint(
             var language = HttpContext.Request.Headers.AcceptLanguage.FirstOrDefault() ?? "en";
             try
             {
-                // countTowardLifetimeCap: false — anonymous sends must never advance
-                // VerificationEmailsSent (see the class remarks / interface doc comment
-                // for why: doing so would let anonymous abuse re-create a permanent
-                // lockout of the authenticated resend path over repeated 24h windows).
-                await tokenService.IssueAndSendAsync(user, language, ct, countTowardLifetimeCap: false);
+                // Issue SYNCHRONOUSLY (#702): the token row must exist before we
+                // respond — it is what IsWithinThrottleBudgetAsync counts on the next
+                // call, and the "row exists even if the send fails" invariant from
+                // #679 still holds. countTowardLifetimeCap: false — anonymous sends
+                // must never advance VerificationEmailsSent (see the class remarks /
+                // interface doc comment for why: doing so would let anonymous abuse
+                // re-create a permanent lockout of the authenticated resend path over
+                // repeated 24h windows).
+                var token = await tokenService.IssueAsync(user, ct, countTowardLifetimeCap: false);
+
+                // Enqueue only the SMTP send — fire-and-forget (#702). TryEnqueue is
+                // non-blocking; a full queue drops + logs rather than falling back to
+                // an awaited write, which would reintroduce a load-dependent timing
+                // oracle on this branch only.
+                if (!emailQueue.TryEnqueue(new EmailDispatchWorkItem(user.Email!, token, language)))
+                {
+                    logger.LogWarning(
+                        "Background email queue full; dropped anonymous verification-resend send for {Email}.",
+                        req.Email);
+                }
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                // Non-fatal: never let an email-provider failure surface as a different
+                // Non-fatal: never let an issuance failure surface as a different
                 // response than the other no-op branches (unregistered / already-verified /
-                // throttled) — that would leak account existence.
+                // throttled) — that would leak account existence. Send-failure logging now
+                // lives in EmailDispatchWorker, since the send itself is no longer awaited
+                // here.
                 logger.LogError(ex,
-                    "Failed to send anonymous verification-resend email to {Email}.",
+                    "Failed to issue anonymous verification-resend token for {Email}.",
                     req.Email);
             }
         }

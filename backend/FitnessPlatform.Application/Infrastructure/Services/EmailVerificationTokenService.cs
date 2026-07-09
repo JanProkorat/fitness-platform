@@ -17,7 +17,7 @@ namespace FitnessPlatform.Application.Infrastructure.Services;
 public class EmailVerificationTokenService(IApplicationDbContext db, IEmailService emailService) : IEmailVerificationTokenService
 {
     /// <inheritdoc />
-    public async Task IssueAndSendAsync(ApplicationUser user, string language, CancellationToken ct, bool countTowardLifetimeCap = true)
+    public async Task<string> IssueAsync(ApplicationUser user, CancellationToken ct, bool countTowardLifetimeCap = true)
     {
         // Invalidate previous unused tokens
         var previousTokens = await db.EmailVerificationTokens
@@ -51,6 +51,14 @@ public class EmailVerificationTokenService(IApplicationDbContext db, IEmailServi
         }
 
         await db.SaveChangesAsync(ct);
+
+        return tokenValue;
+    }
+
+    /// <inheritdoc />
+    public async Task IssueAndSendAsync(ApplicationUser user, string language, CancellationToken ct, bool countTowardLifetimeCap = true)
+    {
+        var tokenValue = await IssueAsync(user, ct, countTowardLifetimeCap);
 
         // Send AFTER the DB write commits: the token row (and the incremented counter)
         // must exist even if the send itself fails, so a caller can catch a send

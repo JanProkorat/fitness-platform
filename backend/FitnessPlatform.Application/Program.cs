@@ -237,6 +237,15 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<PhotoDiaryReminder
 builder.Services.AddSingleton<SocialLoginNonceReaperService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<SocialLoginNonceReaperService>());
 
+// Background email dispatch queue + worker (#702) — closes the timing-enumeration
+// oracle on the anonymous resend-verification endpoint by deferring the SMTP send off
+// the request path. Queue is a singleton so the request path (scoped) and the worker
+// (hosted service) share the same channel. Worker registered as both singleton (for
+// test access via IServiceProvider) and hosted service, mirroring the schedulers above.
+builder.Services.AddSingleton<IBackgroundEmailQueue, BackgroundEmailQueue>();
+builder.Services.AddSingleton<EmailDispatchWorker>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<EmailDispatchWorker>());
+
 // Session lock service — mutual exclusion for trainer-edit vs client-live sessions
 builder.Services.Configure<TrainingLockOptions>(
     builder.Configuration.GetSection(TrainingLockOptions.SectionName));
