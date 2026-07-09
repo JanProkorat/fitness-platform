@@ -43,18 +43,22 @@ export interface UpdateQuestionDto {
   mappedField?: string | null;
 }
 
+interface GetTrainerQuestionnairesResponse {
+  questionnaires: QuestionnaireSummaryDto[];
+}
+
 export async function getTrainerQuestionnaires(): Promise<QuestionnaireSummaryDto[]> {
-  const { data } = await api.get('/trainer/questionnaires');
+  const { data } = await api.get<GetTrainerQuestionnairesResponse>('/trainer/questionnaires');
   return data.questionnaires;
 }
 
 export async function getTrainerQuestionnaire(publicId: string): Promise<QuestionnaireDto> {
-  const { data } = await api.get(`/trainer/questionnaires/${publicId}`);
+  const { data } = await api.get<QuestionnaireDto>(`/trainer/questionnaires/${publicId}`);
   return data;
 }
 
 export async function createQuestionnaire(title: string, description?: string): Promise<QuestionnaireDto> {
-  const { data } = await api.post('/trainer/questionnaires', { title, description });
+  const { data } = await api.post<QuestionnaireDto>('/trainer/questionnaires', { title, description });
   return data;
 }
 
@@ -65,7 +69,7 @@ export async function updateQuestionnaire(publicId: string, payload: {
   isDefault: boolean;
   questions: UpdateQuestionDto[];
 }): Promise<QuestionnaireDto> {
-  const { data } = await api.put(`/trainer/questionnaires/${publicId}`, { publicId, ...payload });
+  const { data } = await api.put<QuestionnaireDto>(`/trainer/questionnaires/${publicId}`, { publicId, ...payload });
   return data;
 }
 
@@ -107,24 +111,24 @@ export interface ClientResponsesDto {
 }
 
 export async function assignQuestionnaire(clientPublicId: string, questionnairePublicId: string): Promise<void> {
-  await api.post(`/trainer/clients/${clientPublicId}/assign-questionnaire`, { questionnairePublicId });
+  await api.post<void>(`/trainer/clients/${clientPublicId}/assign-questionnaire`, { questionnairePublicId });
 }
 
 export async function cancelQuestionnaire(clientPublicId: string): Promise<void> {
-  await api.post(`/trainer/clients/${clientPublicId}/cancel-questionnaire`);
+  await api.post<void>(`/trainer/clients/${clientPublicId}/cancel-questionnaire`);
 }
 
 export async function replaceQuestionnaire(clientPublicId: string, questionnairePublicId: string): Promise<void> {
-  await api.post(`/trainer/clients/${clientPublicId}/replace-questionnaire`, { questionnairePublicId });
+  await api.post<void>(`/trainer/clients/${clientPublicId}/replace-questionnaire`, { questionnairePublicId });
 }
 
 /** @deprecated Use getClientQuestionnaireResponses (plural) instead */
 export async function getClientQuestionnaireResponse(clientId: string): Promise<ClientResponseDto> {
-  const { data } = await api.get(`/trainer/clients/${clientId}/questionnaire-response`);
+  const { data } = await api.get<ClientResponseDto>(`/trainer/clients/${clientId}/questionnaire-response`);
   return data;
 }
 
 export async function getClientQuestionnaireResponses(clientId: string): Promise<ClientResponsesDto> {
-  const { data } = await api.get(`/trainer/clients/${clientId}/questionnaire-responses`);
+  const { data } = await api.get<ClientResponsesDto>(`/trainer/clients/${clientId}/questionnaire-responses`);
   return data;
 }

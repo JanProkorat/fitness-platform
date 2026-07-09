@@ -29,6 +29,8 @@ export function useSignalR(handlers: Record<string, (payload: unknown) => void>)
   useLayoutEffect(() => {
     handlersRef.current = handlers;
   });
+  /** Lowercased event keys registered on the connection by the handlers-update effect below. */
+  const registeredKeysRef = useRef<Set<string>>(new Set());
 
   // Connect/disconnect based on auth state only (not token changes).
   // React 18 StrictMode runs effects twice (mount → cleanup → mount),
@@ -95,10 +97,20 @@ export function useSignalR(handlers: Record<string, (payload: unknown) => void>)
     };
   }, [isAuthenticated]);
 
-  // Update handlers when they change
+  // Update handlers when they change. Diff against the previously-registered
+  // keys so a handler removed between renders is off()'d instead of left
+  // dangling on the connection (a stale closure would otherwise keep firing).
   useEffect(() => {
     const conn = connectionRef.current;
     if (!conn) return;
+
+    const newKeys = new Set(Object.keys(handlers).map((event) => event.toLowerCase()));
+
+    for (const key of registeredKeysRef.current) {
+      if (!newKeys.has(key)) {
+        conn.off(key);
+      }
+    }
 
     for (const event of Object.keys(handlers)) {
       const key = event.toLowerCase();
@@ -107,5 +119,7 @@ export function useSignalR(handlers: Record<string, (payload: unknown) => void>)
         handlersRef.current[event]?.(payload);
       });
     }
+
+    registeredKeysRef.current = newKeys;
   }, [handlers]);
 }

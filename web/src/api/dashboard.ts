@@ -25,6 +25,6 @@ export interface DashboardSummaryResponse {
 }
 
 export async function getDashboardSummary(): Promise<DashboardSummaryResponse> {
-  const { data } = await api.get('/trainer/dashboard-summary');
+  const { data } = await api.get<DashboardSummaryResponse>('/trainer/dashboard-summary');
   return data;
 }

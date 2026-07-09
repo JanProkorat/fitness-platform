@@ -5,6 +5,7 @@ import { useToastStore } from '@/stores/toast';
 import api from '@/lib/api';
 import { addRole } from '@/api/roles';
 import { getApiErrorMessage } from '@/lib/api-errors';
+import { Dialog, Button } from '@/components/ui';
 
 interface User {
   publicId: string;
@@ -33,6 +34,7 @@ export function RolesSection({ user, onRoleAdded }: RolesSectionProps) {
   const addToast = useToastStore((s) => s.addToast);
   const [status, setStatus] = useState<{ message: string; isError: boolean } | null>(null);
   const [loading, setLoading] = useState(false);
+  const [pendingRole, setPendingRole] = useState<string | null>(null);
 
   const hasTrainer = user.roles.includes('Trainer');
   const hasNutritionist = user.roles.includes('Nutritionist');
@@ -57,15 +59,25 @@ export function RolesSection({ user, onRoleAdded }: RolesSectionProps) {
   const isActive = (role: string) =>
     role === 'Trainer' ? hasTrainer : hasNutritionist;
 
-  const handleToggle = async (role: string) => {
+  const handleToggle = (role: string) => {
     if (isActive(role)) {
       // Toggle-off not supported — show informational toast
       addToast(t('profile.roleRemovalNotSupported'), 'error');
       return;
     }
 
-    // Toggle-on — confirm then add role
-    if (!window.confirm(t('profile.addRoleConfirm'))) return;
+    // Toggle-on — open confirmation dialog
+    setPendingRole(role);
+  };
+
+  const cancelAddRole = () => {
+    if (loading) return;
+    setPendingRole(null);
+  };
+
+  const confirmAddRole = async () => {
+    const role = pendingRole;
+    if (!role) return;
 
     setStatus(null);
     setLoading(true);
@@ -85,6 +97,7 @@ export function RolesSection({ user, onRoleAdded }: RolesSectionProps) {
 
       onRoleAdded(updatedUser);
       setStatus({ message: t('profile.roleAdded'), isError: false });
+      setPendingRole(null);
     } catch (err) {
       setStatus({ message: getApiErrorMessage(err, 'profile.addRoleError'), isError: true });
     } finally {
@@ -200,6 +213,25 @@ export function RolesSection({ user, onRoleAdded }: RolesSectionProps) {
           <StatusMessage status={status} />
         </div>
       )}
+
+      <Dialog
+        open={pendingRole !== null}
+        onClose={cancelAddRole}
+        title={t('profile.addRoleConfirmTitle')}
+        footer={
+          <>
+            <Button onClick={cancelAddRole} disabled={loading}>
+              {t('common.cancel')}
+            </Button>
+            <Button onClick={confirmAddRole} disabled={loading}>
+              {t('common.confirm')}
+            </Button>
+          </>
+        }
+        maxWidth={400}
+      >
+        <p className="text-[13px] text-text2">{t('profile.addRoleConfirm')}</p>
+      </Dialog>
     </div>
   );
 }
