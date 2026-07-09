@@ -1,13 +1,10 @@
 using System.Security.Claims;
-using System.Security.Cryptography;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
-using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 
 namespace FitnessPlatform.Application.Features.Auth.ResendVerification;
 
@@ -15,13 +12,11 @@ namespace FitnessPlatform.Application.Features.Auth.ResendVerification;
 /// Endpoint for resending the email verification email.
 /// Requires authentication. Limited to 4 total emails (including the original).
 /// </summary>
-/// <param name="db">Database context.</param>
 /// <param name="userManager">ASP.NET Identity user manager.</param>
-/// <param name="emailService">Email sending service.</param>
+/// <param name="tokenService">Shared email-verification token issuance service (see #679).</param>
 public class ResendVerificationEndpoint(
-    IApplicationDbContext db,
     UserManager<ApplicationUser> userManager,
-    IEmailService emailService)
+    IEmailVerificationTokenService tokenService)
     : EndpointWithoutRequest
 {
     /// <inheritdoc />
@@ -66,31 +61,8 @@ public class ResendVerificationEndpoint(
             return;
         }
 
-        // Invalidate previous unused tokens
-        var previousTokens = await db.EmailVerificationTokens
-            .Where(t => t.UserId == user.Id && t.UsedAt == null)
-            .ToListAsync(ct);
-
-        foreach (var t in previousTokens)
-        {
-            t.UsedAt = DateTime.UtcNow;
-        }
-
-        // Create new token
-        var tokenValue = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
-        var verificationToken = new EmailVerificationToken
-        {
-            UserId = user.Id,
-            Token = tokenValue,
-            ExpiresAt = DateTime.UtcNow.AddHours(24)
-        };
-
-        db.EmailVerificationTokens.Add(verificationToken);
-        user.VerificationEmailsSent++;
-        await db.SaveChangesAsync(ct);
-
         var language = HttpContext.Request.Headers.AcceptLanguage.FirstOrDefault() ?? "en";
-        await emailService.SendEmailVerificationAsync(user.Email!, tokenValue, language, ct);
+        await tokenService.IssueAndSendAsync(user, language, ct);
 
         await Send.OkAsync(new
         {
