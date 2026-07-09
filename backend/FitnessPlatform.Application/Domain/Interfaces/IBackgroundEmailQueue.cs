@@ -30,8 +30,10 @@ public interface IBackgroundEmailQueue
     bool TryEnqueue(EmailDispatchWorkItem item);
 
     /// <summary>
-    /// Streams queued items for the background worker to consume. Completes only when
-    /// <paramref name="ct"/> (the worker's own stopping token) is cancelled.
+    /// Streams queued items for the background worker to consume. Completes when
+    /// <paramref name="ct"/> is cancelled, OR when <see cref="Complete"/> has been called
+    /// and every already-buffered item has been yielded (graceful-drain path, #705) —
+    /// whichever happens first.
     /// </summary>
     IAsyncEnumerable<EmailDispatchWorkItem> ReadAllAsync(CancellationToken ct);
 
@@ -40,6 +42,18 @@ public interface IBackgroundEmailQueue
     /// the worker after each item, never by request-path code.
     /// </summary>
     void MarkProcessed();
+
+    /// <summary>
+    /// Marks the queue complete: no further items may ever be enqueued (#705, graceful
+    /// shutdown drain). After this call, <see cref="TryEnqueue"/> always returns
+    /// <c>false</c> — a write to a completed channel fails cleanly rather than throwing —
+    /// so callers that already treat a <c>false</c> return as "log and continue" (see the
+    /// anonymous resend-verification endpoint) keep working unchanged, preserving the
+    /// no-enumeration contract from #679 even after shutdown has begun. Items enqueued
+    /// before this call are still delivered by <see cref="ReadAllAsync"/> until drained;
+    /// this only closes the door on new writes.
+    /// </summary>
+    void Complete();
 
     /// <summary>
     /// Number of items enqueued but not yet fully processed — still sitting in the

@@ -54,4 +54,7 @@ public class BackgroundEmailQueue : IBackgroundEmailQueue
 
     /// <inheritdoc />
     public void MarkProcessed() => Interlocked.Decrement(ref _pendingCount);
+
+    /// <inheritdoc />
+    public void Complete() => _channel.Writer.Complete();
 }
