@@ -3,6 +3,7 @@ using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.Trainers.GetDashboardSummary;
@@ -217,5 +218,145 @@ public class GetDashboardSummaryEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(200);
         ep.Response.Clients.Should().ContainSingle();
         ep.Response.Clients[0].AvatarBlobUrl.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task HandleAsync_EmptyRoster_ReturnsEmptyClientsList()
+    {
+        // Arrange — trainer has no active client links
+        var trainerProfile = EntityBuilder.ProfessionalProfile
+            .WithId(99)
+            .WithUserId(_trainerUserId)
+            .Build();
+
+        var db = new MockDbBuilder()
+            .With(trainerProfile)
+            .Build();
+
+        var ep = CreateEndpoint(db);
+
+        // Act
+        await ep.HandleAsync(TestContext.Current.CancellationToken);
+
+        // Assert — empty roster short-circuits to an empty list (#660 error path)
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        ep.Response.Clients.Should().BeEmpty();
+    }
+
+    /// <summary>
+    /// Regression guard for the #660 roster parallelization: proves that after
+    /// switching the per-client loop to a bounded <c>Parallel.ForEachAsync</c>,
+    /// (a) results stay index-correlated with the roster order returned by EF,
+    /// (b) each client's compliance percentage comes from its own
+    /// <see cref="IComplianceService"/> call (no cross-client bleed), and
+    /// (c) the batched last-measurement EF lookup resolves the correct MAX
+    /// measurement per client, ignoring other clients' rows entirely.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_MultipleClients_ReturnsIndexCorrelatedPerClientResults()
+    {
+        // Arrange — three clients with distinct compliance values and distinct
+        // body-measurement histories (some with multiple rows, one with none).
+        var clientAUser = EntityBuilder.User
+            .WithEmail("alice@test.com").WithFirstName("Alice").WithLastName("A").Build();
+        var clientBUser = EntityBuilder.User
+            .WithEmail("bob@test.com").WithFirstName("Bob").WithLastName("B").Build();
+        var clientCUser = EntityBuilder.User
+            .WithEmail("carol@test.com").WithFirstName("Carol").WithLastName("C").Build();
+
+        var trainerProfile = EntityBuilder.ProfessionalProfile
+            .WithId(100)
+            .WithUserId(_trainerUserId)
+            .Build();
+
+        var clientAProfile = EntityBuilder.ClientProfile.WithId(101).WithUser(clientAUser).Build();
+        var clientBProfile = EntityBuilder.ClientProfile.WithId(102).WithUser(clientBUser).Build();
+        var clientCProfile = EntityBuilder.ClientProfile.WithId(103).WithUser(clientCUser).Build();
+
+        var linkA = EntityBuilder.ClientProfessionalLink
+            .WithClientProfile(clientAProfile).WithProfessionalProfile(trainerProfile).Build();
+        var linkB = EntityBuilder.ClientProfessionalLink
+            .WithClientProfile(clientBProfile).WithProfessionalProfile(trainerProfile).Build();
+        var linkC = EntityBuilder.ClientProfessionalLink
+            .WithClientProfile(clientCProfile).WithProfessionalProfile(trainerProfile).Build();
+
+        // Client A: two measurements — the later one must win.
+        var clientAOlderMeasurement = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var clientANewerMeasurement = new DateTime(2026, 1, 10, 0, 0, 0, DateTimeKind.Utc);
+        // Client B: single measurement.
+        var clientBMeasurement = new DateTime(2026, 1, 5, 0, 0, 0, DateTimeKind.Utc);
+        // Client C: no measurements at all — must resolve to null, not leak A/B's dates.
+
+        var db = new MockDbBuilder()
+            .With(trainerProfile)
+            .With(clientAProfile)
+            .With(clientBProfile)
+            .With(clientCProfile)
+            .With(linkA)
+            .With(linkB)
+            .With(linkC)
+            .With(new BodyMeasurement { ClientProfileId = clientAProfile.Id, MeasuredAt = clientAOlderMeasurement })
+            .With(new BodyMeasurement { ClientProfileId = clientAProfile.Id, MeasuredAt = clientANewerMeasurement })
+            .With(new BodyMeasurement { ClientProfileId = clientBProfile.Id, MeasuredAt = clientBMeasurement })
+            .Build();
+
+        var complianceByClient = new Dictionary<Guid, decimal>
+        {
+            [clientAProfile.PublicId] = 10m,
+            [clientBProfile.PublicId] = 20m,
+            [clientCProfile.PublicId] = 30m,
+        };
+
+        // The test trainer only holds the Trainer role (see FakeUserClaims below),
+        // so the endpoint resolves discipline = TrainingOnly and reads
+        // TrainingCompliancePercent as percentForViewer — set all three fields
+        // to the same per-client value so the assertion is robust regardless
+        // of which discipline the endpoint picks.
+        var complianceSvc = Substitute.For<IComplianceService>();
+        complianceSvc.CalculateComplianceAsync(
+                Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var percent = complianceByClient[callInfo.ArgAt<Guid>(0)];
+                return new ComplianceResult
+                {
+                    CompliancePercent = percent,
+                    NutritionCompliancePercent = percent,
+                    TrainingCompliancePercent = percent,
+                };
+            });
+        complianceSvc.CalculateStreakAsync(
+                Arg.Any<Guid>(), Arg.Any<ComplianceDiscipline>(), Arg.Any<CancellationToken>())
+            .Returns(0);
+        complianceSvc.CalculateAverageMacrosAsync(
+                Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+            .Returns(new NutrientTotals { Kcal = 0m });
+
+        var ep = CreateEndpoint(db, compliance: complianceSvc);
+
+        // Act
+        await ep.HandleAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        ep.Response.Clients.Should().HaveCount(3);
+
+        // Response order matches the roster order returned by EF (index-correlated
+        // array write in Parallel.ForEachAsync), regardless of task completion order.
+        ep.Response.Clients[0].PublicId.Should().Be(clientAProfile.PublicId);
+        ep.Response.Clients[1].PublicId.Should().Be(clientBProfile.PublicId);
+        ep.Response.Clients[2].PublicId.Should().Be(clientCProfile.PublicId);
+
+        // Each client's compliance came from its own ComplianceService call — no
+        // cross-client bleed introduced by running the roster concurrently.
+        ep.Response.Clients[0].CompliancePercent.Should().Be(10m);
+        ep.Response.Clients[1].CompliancePercent.Should().Be(20m);
+        ep.Response.Clients[2].CompliancePercent.Should().Be(30m);
+
+        // The batched last-measurement EF lookup resolves the MAX per client,
+        // never a value belonging to a different client.
+        ep.Response.Clients[0].LastActivityAt.Should().Be(clientANewerMeasurement);
+        ep.Response.Clients[1].LastActivityAt.Should().Be(clientBMeasurement);
+        ep.Response.Clients[2].LastActivityAt.Should().BeNull();
     }
 }
