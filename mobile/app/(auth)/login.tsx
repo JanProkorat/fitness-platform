@@ -85,16 +85,21 @@ export default function LoginScreen() {
   }, []);
 
   // Must be called synchronously, right after login() resolves, on every
-  // successful login path. AuthGate (app/_layout.tsx) has its own effect
-  // that replaces to `/(client)` once isAuthenticated flips true; that
-  // effect only runs on the next commit, so calling router.replace here —
-  // in the same synchronous call stack as login() — wins the race and
-  // lands the user back on the pending invite instead of the Today tab.
+  // successful login path. Rather than navigating imperatively here (which
+  // used to race against AuthGate's own post-auth redirect effect in
+  // app/_layout.tsx and lose nondeterministically — #606), this records the
+  // intent in the auth store. AuthGate is the single routing authority: once
+  // isAuthenticated + emailConfirmed are both true, it reads
+  // pendingInviteToken and redirects to the invite screen itself, then
+  // clears the flag. login() and setPendingInviteToken() are both
+  // synchronous store updates batched into the same render, so there is no
+  // race — AuthGate always observes the flag already set on its first
+  // post-login run of the redirect effect.
   const navigateAfterLogin = useCallback(() => {
     if (redirect === 'invite' && inviteToken) {
-      router.replace(`/(auth)/invite/${inviteToken}`);
+      useAuthStore.getState().setPendingInviteToken(inviteToken);
     }
-  }, [redirect, inviteToken, router]);
+  }, [redirect, inviteToken]);
 
   // Build the Google auth request with the server-issued nonce in extraParams.
   // The nonce is passed as a raw string; Google embeds it verbatim in the

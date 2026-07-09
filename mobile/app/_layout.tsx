@@ -33,6 +33,8 @@ function AuthGate() {
   const isInitialized = useAuthStore((s) => s.isInitialized);
   const restoreSession = useAuthStore((s) => s.restoreSession);
   const user = useAuthStore((s) => s.user);
+  const pendingInviteToken = useAuthStore((s) => s.pendingInviteToken);
+  const setPendingInviteToken = useAuthStore((s) => s.setPendingInviteToken);
 
   // Load Inter weights used across the app — typography.ts maps fontWeight →
   // Inter_<weight><Name> family name. Splash stays up until the fonts are in.
@@ -102,10 +104,19 @@ function AuthGate() {
       router.replace('/(auth)/login');
     } else if (isAuthenticated && !user?.emailConfirmed && !onVerifyScreen) {
       router.replace(href('/(auth)/verify-email'));
+    } else if (isAuthenticated && user?.emailConfirmed && pendingInviteToken) {
+      // Deterministic invite hand-off (#606). login.tsx recorded the intent
+      // in the store instead of navigating imperatively — AuthGate is the
+      // single routing authority so there is no race with the `/(client)`
+      // branch below. Consume the flag before navigating so this branch
+      // fires exactly once (onInviteScreen becomes true on the next run).
+      const token = pendingInviteToken;
+      setPendingInviteToken(null);
+      router.replace(`/(auth)/invite/${token}`);
     } else if (isAuthenticated && user?.emailConfirmed && inAuthGroup && !onQuestionnaireScreen && !onInviteScreen) {
       router.replace('/(client)');
     }
-  }, [isAuthenticated, isInitialized, fontsLoaded, segments, router, user]);
+  }, [isAuthenticated, isInitialized, fontsLoaded, segments, router, user, pendingInviteToken, setPendingInviteToken]);
 
   if (!isInitialized || !fontsLoaded) {
     return (
