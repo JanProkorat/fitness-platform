@@ -2183,6 +2183,8 @@ export default function WorkoutLogScreen() {
       // Refresh the Today card so completed exercises / sessions light up there too.
       void queryClient.invalidateQueries({ queryKey: ['today-training'] })
       void queryClient.invalidateQueries({ queryKey: ['compliance-score'] })
+      // Refresh Training History so the just-finished session appears immediately (#604).
+      void queryClient.invalidateQueries({ queryKey: ['workout-logs'] })
       return result
     },
     onError: (_err, logId) => {
