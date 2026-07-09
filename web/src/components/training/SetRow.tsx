@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import type { ExerciseSet, MovementType, LoggedSetDto } from '@/api/training-plan-types';
 import type { SetCompletionState } from '@/lib/completionState';
 import { CompletionBadge } from '@/components/common/CompletionBadge';
+import { parseNumericInput } from '@/lib/parseNumericInput';
 
 interface SetRowProps {
   set: ExerciseSet;
@@ -67,17 +68,20 @@ export function SetRow({ set, movementType, onUpdate, onDuplicate, onRemove, com
     onChange: (v: number | null) => void,
     placeholder = '--',
     ariaLabel?: string,
+    min = 0,
   ) => (
     <input
       type="number"
       placeholder={placeholder}
       value={value ?? ''}
+      min={min}
       aria-label={ariaLabel}
       style={inputStyle}
       onClick={(e) => e.stopPropagation()}
-      onChange={(e) =>
-        onChange(e.target.value !== '' ? Number(e.target.value) : null)
-      }
+      onChange={(e) => {
+        const parsed = parseNumericInput(e.target.value, min);
+        if (parsed !== undefined) onChange(parsed);
+      }}
       onFocus={handleFocus}
       onBlur={handleBlur}
     />
@@ -177,22 +181,22 @@ export function SetRow({ set, movementType, onUpdate, onDuplicate, onRemove, com
       case 'Time':
         return (
           <>
-            {numInput(set.durationSeconds, (v) => onUpdate({ durationSeconds: v }), '--', t('training.setDurationAriaLabel', { setNumber: set.setNumber }))}
+            {numInput(set.durationSeconds, (v) => onUpdate({ durationSeconds: v }), '--', t('training.setDurationAriaLabel', { setNumber: set.setNumber }), 1)}
             {numInput(set.restSeconds, (v) => onUpdate({ restSeconds: v }), '--', t('training.setRestAriaLabel', { setNumber: set.setNumber }))}
           </>
         );
       case 'Distance':
         return (
           <>
-            {numInput(set.distanceMeters, (v) => onUpdate({ distanceMeters: v }), '--', t('training.setDistanceAriaLabel', { setNumber: set.setNumber }))}
-            {numInput(set.durationSeconds, (v) => onUpdate({ durationSeconds: v }), '--', t('training.setDurationAriaLabel', { setNumber: set.setNumber }))}
+            {numInput(set.distanceMeters, (v) => onUpdate({ distanceMeters: v }), '--', t('training.setDistanceAriaLabel', { setNumber: set.setNumber }), 1)}
+            {numInput(set.durationSeconds, (v) => onUpdate({ durationSeconds: v }), '--', t('training.setDurationAriaLabel', { setNumber: set.setNumber }), 1)}
             {numInput(set.restSeconds, (v) => onUpdate({ restSeconds: v }), '--', t('training.setRestAriaLabel', { setNumber: set.setNumber }))}
           </>
         );
       case 'RepsForTime':
         return (
           <>
-            {numInput(set.reps, (v) => onUpdate({ reps: v }), '--', t('training.setRepsAriaLabel', { setNumber: set.setNumber }))}
+            {numInput(set.reps, (v) => onUpdate({ reps: v }), '--', t('training.setRepsAriaLabel', { setNumber: set.setNumber }), 1)}
             {numInput(set.restSeconds, (v) => onUpdate({ restSeconds: v }), '--', t('training.setRestAriaLabel', { setNumber: set.setNumber }))}
           </>
         );
@@ -201,7 +205,7 @@ export function SetRow({ set, movementType, onUpdate, onDuplicate, onRemove, com
         return (
           <>
             {numInput(set.weightKg, (v) => onUpdate({ weightKg: v }), '--', t('training.setWeightAriaLabel', { setNumber: set.setNumber }))}
-            {numInput(set.reps, (v) => onUpdate({ reps: v }), '--', t('training.setRepsAriaLabel', { setNumber: set.setNumber }))}
+            {numInput(set.reps, (v) => onUpdate({ reps: v }), '--', t('training.setRepsAriaLabel', { setNumber: set.setNumber }), 1)}
             {numInput(set.restSeconds, (v) => onUpdate({ restSeconds: v }), '--', t('training.setRestAriaLabel', { setNumber: set.setNumber }))}
           </>
         );

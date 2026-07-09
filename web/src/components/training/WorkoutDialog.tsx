@@ -20,6 +20,7 @@ import { showApiError, showSuccess } from '@/lib/api-errors';
 import { INPUT_CLASS_SM, CANCEL_BUTTON_CLASS } from '@/lib/styles';
 import { FORMAT_LABEL_KEYS, MUSCLE_COLORS, MUSCLE_BG_COLORS } from '@/constants/training';
 import { SectionFormatConfigRow } from '@/components/training/SectionFormatConfigRow';
+import { parseNumericInput } from '@/lib/parseNumericInput';
 
 const FORMATS: WorkoutFormat[] = ['Standard', 'EMOM', 'AMRAP', 'ForTime', 'Tabata'];
 
@@ -544,15 +545,16 @@ export function WorkoutDialog({ open, template, onClose, onSaved }: WorkoutDialo
                                       <td className="px-1 py-1">
                                         <input
                                           type="number"
-                                          min={0}
+                                          min={1}
                                           step={1}
                                           value={set.reps}
                                           aria-label={t('training.setRepsAriaLabel', { setNumber: setIdx + 1 })}
-                                          onChange={(e) =>
-                                            updateSet(exIdx, setIdx, {
-                                              reps: e.target.value === '' ? '' : Number(e.target.value),
-                                            })
-                                          }
+                                          onChange={(e) => {
+                                            const parsed = parseNumericInput(e.target.value, 1);
+                                            if (parsed !== undefined) {
+                                              updateSet(exIdx, setIdx, { reps: parsed === null ? '' : parsed });
+                                            }
+                                          }}
                                           className="w-full rounded border border-border bg-bg px-1.5 py-0.5 text-center text-[13px] text-text outline-none focus:border-border-hv"
                                         />
                                       </td>
@@ -563,11 +565,12 @@ export function WorkoutDialog({ open, template, onClose, onSaved }: WorkoutDialo
                                           step={0.5}
                                           value={set.weightKg}
                                           aria-label={t('training.setWeightAriaLabel', { setNumber: setIdx + 1 })}
-                                          onChange={(e) =>
-                                            updateSet(exIdx, setIdx, {
-                                              weightKg: e.target.value === '' ? '' : Number(e.target.value),
-                                            })
-                                          }
+                                          onChange={(e) => {
+                                            const parsed = parseNumericInput(e.target.value, 0);
+                                            if (parsed !== undefined) {
+                                              updateSet(exIdx, setIdx, { weightKg: parsed === null ? '' : parsed });
+                                            }
+                                          }}
                                           className="w-full rounded border border-border bg-bg px-1.5 py-0.5 text-center text-[13px] text-text outline-none focus:border-border-hv"
                                         />
                                       </td>
@@ -578,11 +581,12 @@ export function WorkoutDialog({ open, template, onClose, onSaved }: WorkoutDialo
                                           step={5}
                                           value={set.restSeconds}
                                           aria-label={t('training.setRestAriaLabel', { setNumber: setIdx + 1 })}
-                                          onChange={(e) =>
-                                            updateSet(exIdx, setIdx, {
-                                              restSeconds: e.target.value === '' ? '' : Number(e.target.value),
-                                            })
-                                          }
+                                          onChange={(e) => {
+                                            const parsed = parseNumericInput(e.target.value, 0);
+                                            if (parsed !== undefined) {
+                                              updateSet(exIdx, setIdx, { restSeconds: parsed === null ? '' : parsed });
+                                            }
+                                          }}
                                           className="w-full rounded border border-border bg-bg px-1.5 py-0.5 text-center text-[13px] text-text outline-none focus:border-border-hv"
                                         />
                                       </td>
@@ -622,15 +626,16 @@ export function WorkoutDialog({ open, template, onClose, onSaved }: WorkoutDialo
                                     </span>
                                     <input
                                       type="number"
-                                      min={0}
+                                      min={1}
                                       step={1}
                                       value={row.sets[0]?.reps ?? ''}
                                       aria-label={t('training.wodRepsAriaLabel')}
-                                      onChange={(e) =>
-                                        updateSet(exIdx, 0, {
-                                          reps: e.target.value === '' ? '' : Number(e.target.value),
-                                        })
-                                      }
+                                      onChange={(e) => {
+                                        const parsed = parseNumericInput(e.target.value, 1);
+                                        if (parsed !== undefined) {
+                                          updateSet(exIdx, 0, { reps: parsed === null ? '' : parsed });
+                                        }
+                                      }}
                                       className="w-16 rounded border border-border bg-bg px-1.5 py-0.5 text-center text-[13px] text-text outline-none focus:border-border-hv"
                                     />
                                   </span>
@@ -645,11 +650,12 @@ export function WorkoutDialog({ open, template, onClose, onSaved }: WorkoutDialo
                                     step={0.5}
                                     value={row.sets[0]?.weightKg ?? ''}
                                     aria-label={t('training.wodWeightAriaLabel')}
-                                    onChange={(e) =>
-                                      updateSet(exIdx, 0, {
-                                        weightKg: e.target.value === '' ? '' : Number(e.target.value),
-                                      })
-                                    }
+                                    onChange={(e) => {
+                                      const parsed = parseNumericInput(e.target.value, 0);
+                                      if (parsed !== undefined) {
+                                        updateSet(exIdx, 0, { weightKg: parsed === null ? '' : parsed });
+                                      }
+                                    }}
                                     className="w-16 rounded border border-border bg-bg px-1.5 py-0.5 text-center text-[13px] text-text outline-none focus:border-border-hv"
                                   />
                                   <span className="text-[11px] text-text4">kg</span>
