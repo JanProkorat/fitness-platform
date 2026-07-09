@@ -1526,7 +1526,13 @@
     "statusPending": "Pending",
     "statusInProgress": "In progress",
     "submitted": "Submitted",
-    "synced": "↗ Synced"
+    "synced": "↗ Synced",
+    "answersView": {
+      "loading": "Loading questionnaire answers…",
+      "error": "Failed to load the questionnaire answers.",
+      "empty": "No questionnaire is assigned to this client yet. Assign one from the sidebar panel.",
+      "emptyAnswers": "This questionnaire doesn't have any answers yet."
+    }
   },
   "mealKind": {
     "Breakfast": "Breakfast",

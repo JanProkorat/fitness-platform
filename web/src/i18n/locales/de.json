@@ -1525,7 +1525,13 @@
     "statusPending": "Ausstehend",
     "statusInProgress": "In Bearbeitung",
     "submitted": "Eingereicht",
-    "synced": "↗ Synchronisiert"
+    "synced": "↗ Synchronisiert",
+    "answersView": {
+      "loading": "Fragebogenantworten werden geladen…",
+      "error": "Die Antworten des Fragebogens konnten nicht geladen werden.",
+      "empty": "Diesem Klienten wurde noch kein Fragebogen zugewiesen. Weisen Sie einen im Seitenpanel zu.",
+      "emptyAnswers": "Dieser Fragebogen enthält noch keine Antworten."
+    }
   },
   "mealKind": {
     "Breakfast": "Frühstück",

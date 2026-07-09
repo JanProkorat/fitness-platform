@@ -1545,7 +1545,13 @@
     "statusPending": "Čeká na vyplnění",
     "statusInProgress": "Rozpracováno",
     "submitted": "Odesláno",
-    "synced": "↗ Synchronizováno"
+    "synced": "↗ Synchronizováno",
+    "answersView": {
+      "loading": "Načítání odpovědí dotazníku…",
+      "error": "Nepodařilo se načíst odpovědi dotazníku.",
+      "empty": "Klientovi nebyl přiřazen žádný dotazník. Přiřaďte ho v postranním panelu vpravo.",
+      "emptyAnswers": "Tento dotazník ještě neobsahuje žádné odpovědi."
+    }
   },
   "mealKind": {
     "Breakfast": "Snídaně",

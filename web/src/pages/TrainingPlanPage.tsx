@@ -8,6 +8,8 @@ import type { SectionTemplateResponse } from '@/api/sectionTemplates';
 import type { WorkoutFormat, MovementType, SetType } from '@/api/training-plan-types';
 import type { WorkoutFormat as GenWorkoutFormat, MovementType as GenMovementType, SetType as GenSetType, WodConfig as GenWodConfig } from '@/api/generated';
 import { PlanQuestionnairePanel } from '@/components/questionnaire/PlanQuestionnairePanel';
+import { QuestionnaireAnswersView } from '@/components/questionnaire/QuestionnaireAnswersView';
+import { getClientQuestionnaireResponses, type ClientResponseItem } from '@/api/questionnaires';
 import { getExercise } from '@/api/exercises';
 import type { MuscleGroup } from '@/api/exercise-types';
 import { apiClient } from '@/api/client';
@@ -85,7 +87,7 @@ export default function TrainingPlanPage() {
   const clearSessionLockedError = useTrainingPlanStore((s) => s.clearSessionLockedError);
 
   // ── Local UI state ──
-  const [pageTab, setPageTab] = useState<'sessions' | 'photos'>('sessions');
+  const [pageTab, setPageTab] = useState<'sessions' | 'photos' | 'questionnaire'>('sessions');
   const [selectedDay, setSelectedDay] = useState(1);
   const [collapsedSessions, setCollapsedSessions] = useState<Set<string>>(new Set());
   /** Sessions currently undergoing an unlock/relock request (prevents double-click). */
@@ -143,6 +145,26 @@ export default function TrainingPlanPage() {
     if (!clientEntry) return null;
     return `${clientEntry.firstName ?? ''} ${clientEntry.lastName ?? ''}`.trim();
   }, [clientEntry]);
+
+  // ── Linked questionnaire response — shared queryKey with the sidebar
+  // `PlanQuestionnairePanel` so the "Dotazník" tab and the sidebar stay in
+  // sync without duplicating the fetch logic. Selection mirrors the panel:
+  // prefer the response linked to the plan, else fall back to the latest
+  // submitted one. ──
+  const questionnaireResponsesQuery = useQuery({
+    queryKey: ['questionnaire-responses', plan?.clientId],
+    queryFn: () => getClientQuestionnaireResponses(plan!.clientId),
+    enabled: !!plan?.clientId && pageTab === 'questionnaire',
+  });
+
+  const linkedQuestionnaireResponse: ClientResponseItem | undefined = useMemo(() => {
+    const submitted = (questionnaireResponsesQuery.data?.responses ?? []).filter(
+      (r) => r.status === 'Submitted',
+    );
+    return plan?.questionnaireResponseId
+      ? submitted.find((r) => r.responsePublicId === plan.questionnaireResponseId)
+      : submitted[0];
+  }, [questionnaireResponsesQuery.data, plan?.questionnaireResponseId]);
 
   // ── Fetch muscle groups for exercises ──
   const allExerciseIds = useMemo(() => {
@@ -717,6 +739,18 @@ export default function TrainingPlanPage() {
         >
           {t('nutrition.photos.tab')}
         </button>
+        <button
+          type="button"
+          onClick={() => setPageTab('questionnaire')}
+          className={cn(
+            'px-3 py-1 rounded-full text-[12px] font-medium transition-colors border',
+            pageTab === 'questionnaire'
+              ? 'bg-accent text-bg border-accent'
+              : 'bg-bg2 text-text3 border-border hover:bg-bg3 hover:text-text2',
+          )}
+        >
+          {t('questionnaire.answersTitle')}
+        </button>
 
         {/* Right side: start date + add-week */}
         <div className="ml-auto flex items-center gap-1.5 text-text3">
@@ -760,6 +794,17 @@ export default function TrainingPlanPage() {
             clientName={clientName ?? undefined}
             linkId={clientEntry?.linkId}
             allowFoodCategory={false}
+          />
+        </div>
+      )}
+
+      {/* ── Questionnaire tab content ── */}
+      {pageTab === 'questionnaire' && (
+        <div className="flex-1 overflow-y-auto">
+          <QuestionnaireAnswersView
+            response={linkedQuestionnaireResponse}
+            isLoading={questionnaireResponsesQuery.isLoading}
+            isError={questionnaireResponsesQuery.isError}
           />
         </div>
       )}

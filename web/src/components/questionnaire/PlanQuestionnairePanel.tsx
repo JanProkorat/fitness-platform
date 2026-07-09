@@ -10,7 +10,6 @@ import {
 } from '@/api/questionnaires';
 import { QuestionnaireSelectDialog } from './QuestionnaireSelectDialog';
 import { RevokeConfirmDialog } from './RevokeConfirmDialog';
-import { formatAnswerValue } from './questionnaire-helpers';
 import { showApiError } from '@/lib/api-errors';
 
 interface Props {
@@ -23,7 +22,8 @@ interface Props {
 
 /**
  * Sidebar panel showing linked questionnaire on a plan detail page.
- * - Linked: shows questionnaire title + expandable answers
+ * - Linked: shows questionnaire title + submitted date (answers themselves
+ *   render in the page-level "Dotazník" tab via `QuestionnaireAnswersView`)
  * - Pending: shows waiting indicator + replace/revoke buttons
  * - Empty: shows "Send questionnaire" button
  */
@@ -36,7 +36,6 @@ export function PlanQuestionnairePanel({
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const locale = i18n.language === 'cs' ? 'cs-CZ' : i18n.language === 'de' ? 'de-DE' : 'en-GB';
-  const [answersOpen, setAnswersOpen] = useState(false);
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
   const [replaceOpen, setReplaceOpen] = useState(false);
   const [revokeOpen, setRevokeOpen] = useState(false);
@@ -90,7 +89,7 @@ export function PlanQuestionnairePanel({
       </div>
 
       {linked ? (
-        /* ── Linked state: show questionnaire title + expandable answers ── */
+        /* ── Linked state: show questionnaire title + submitted date ── */
         <div>
           <div
             style={{
@@ -115,60 +114,6 @@ export function PlanQuestionnairePanel({
               )}
             </div>
           </div>
-
-          {/* View answers toggle */}
-          {linked.answers.length > 0 && (
-            <>
-              <button
-                type="button"
-                onClick={() => setAnswersOpen((o) => !o)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4,
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: 11,
-                  color: 'var(--accent)',
-                  fontFamily: 'inherit',
-                  padding: '2px 0',
-                  transition: 'opacity 0.1s',
-                }}
-              >
-                <span style={{ transform: answersOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s', display: 'inline-block' }}>▸</span>
-                {t(`${ns}.viewAnswers`)} ({linked.answers.length})
-              </button>
-              {answersOpen && (
-                <div
-                  style={{
-                    marginTop: 6,
-                    border: '1px solid var(--border)',
-                    borderRadius: 'var(--radius-md)',
-                    overflow: 'hidden',
-                  }}
-                >
-                  {linked.answers.map((answer, idx) => (
-                    <div
-                      key={answer.questionPublicId}
-                      style={{
-                        padding: '5px 8px',
-                        borderBottom: idx < linked.answers.length - 1 ? '1px solid var(--border)' : 'none',
-                        fontSize: 11,
-                      }}
-                    >
-                      <div style={{ color: 'var(--text3)', marginBottom: 1 }}>
-                        {answer.questionLabel}
-                      </div>
-                      <div style={{ color: 'var(--text)', fontWeight: 500 }}>
-                        {formatAnswerValue(answer)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
         </div>
       ) : hasPending ? (
         /* ── Pending state: waiting indicator + replace/revoke buttons ── */
