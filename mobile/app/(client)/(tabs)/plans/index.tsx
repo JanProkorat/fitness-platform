@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/hooks/useTheme'
+import { goldAlpha } from '@/constants/colors'
 import { hrefParams, href } from '@/lib/navigation'
 import { getDayLabels } from '@/lib/nutrition-plan-helpers'
 import { Type } from '@/constants/typography'
@@ -444,7 +445,7 @@ function TrainingSessionRow({
     status === 'done'
       ? 'rgba(52,199,89,0.15)'
       : status === 'today'
-        ? `rgba(201,168,76,0.18)`
+        ? goldAlpha['18']
         : colors.fill
 
   const iconColor =
@@ -471,7 +472,7 @@ function TrainingSessionRow({
         {
           backgroundColor:
             status === 'today'
-              ? `rgba(201,168,76,0.06)`
+              ? goldAlpha['06']
               : colors.bg2,
           opacity: pressed ? 0.85 : 1,
         },
@@ -549,7 +550,7 @@ function NutritionDayRow({
     status === 'done'
       ? 'rgba(52,199,89,0.15)'
       : status === 'today'
-        ? 'rgba(201,168,76,0.18)'
+        ? goldAlpha['18']
         : colors.fill
 
   const iconColor =
@@ -575,7 +576,7 @@ function NutritionDayRow({
         rowStyles.row,
         {
           backgroundColor:
-            status === 'today' ? 'rgba(201,168,76,0.06)' : colors.bg2,
+            status === 'today' ? goldAlpha['06'] : colors.bg2,
           opacity: pressed ? 0.85 : 1,
         },
       ]}

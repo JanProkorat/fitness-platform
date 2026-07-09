@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTheme } from '@/hooks/useTheme';
+import { goldAlpha } from '@/constants/colors';
 import {
   getProfessionalProfile,
   sendClientRequest,
@@ -377,7 +378,7 @@ const getStyles = (colors: ReturnType<typeof useTheme>) =>
       marginBottom: 8,
     },
     roleBadge: {
-      backgroundColor: 'rgba(200, 169, 78, 0.15)',
+      backgroundColor: goldAlpha['15'],
       paddingHorizontal: 14,
       paddingVertical: 5,
       borderRadius: 14,

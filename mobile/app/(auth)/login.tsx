@@ -10,7 +10,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
@@ -29,6 +29,15 @@ WebBrowser.maybeCompleteAuthSession();
 export default function LoginScreen() {
   const colors = useTheme();
   const router = useRouter();
+  // A logged-out user tapping a trainer's invite link is bounced here by
+  // app/(auth)/invite/[token].tsx as `/(auth)/login?redirect=invite&token=<t>`.
+  // Read those params so every successful login path below can navigate
+  // straight back to the invite screen instead of falling through to
+  // AuthGate's default `/(client)` redirect (see app/_layout.tsx).
+  const { redirect, token: inviteToken } = useLocalSearchParams<{
+    redirect?: string;
+    token?: string;
+  }>();
   const { t } = useTranslation();
   const login = useAuthStore((s) => s.login);
   const [email, setEmail] = useState('');
@@ -74,6 +83,18 @@ export default function LoginScreen() {
       .then(setAppleAvailable)
       .catch(() => setAppleAvailable(false));
   }, []);
+
+  // Must be called synchronously, right after login() resolves, on every
+  // successful login path. AuthGate (app/_layout.tsx) has its own effect
+  // that replaces to `/(client)` once isAuthenticated flips true; that
+  // effect only runs on the next commit, so calling router.replace here —
+  // in the same synchronous call stack as login() — wins the race and
+  // lands the user back on the pending invite instead of the Today tab.
+  const navigateAfterLogin = useCallback(() => {
+    if (redirect === 'invite' && inviteToken) {
+      router.replace(`/(auth)/invite/${inviteToken}`);
+    }
+  }, [redirect, inviteToken, router]);
 
   // Build the Google auth request with the server-issued nonce in extraParams.
   // The nonce is passed as a raw string; Google embeds it verbatim in the
@@ -141,6 +162,7 @@ export default function LoginScreen() {
           res.accessToken,
           res.refreshToken,
         );
+        navigateAfterLogin();
       } catch (err: unknown) {
         // 409: email already registered with a password login.
         // Read errorCode from the top-level camelCase field per ProblemDetails wire shape.
@@ -163,7 +185,7 @@ export default function LoginScreen() {
     };
 
     handleGoogleResponse();
-  }, [googleResponse, t, login, fetchGoogleNonce]);
+  }, [googleResponse, t, login, fetchGoogleNonce, navigateAfterLogin]);
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) return;
@@ -190,6 +212,7 @@ export default function LoginScreen() {
         data.accessToken,
         data.refreshToken,
       );
+      navigateAfterLogin();
     } catch {
       Alert.alert(t('auth.login.failedTitle'), t('auth.login.failedMessage'));
     } finally {
@@ -277,6 +300,7 @@ export default function LoginScreen() {
         res.accessToken,
         res.refreshToken,
       );
+      navigateAfterLogin();
     } catch (err: unknown) {
       // User cancelled the native Apple sign-in sheet — return silently.
       if (

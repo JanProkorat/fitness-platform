@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/hooks/useTheme'
-import { Colors } from '@/constants/colors'
+import { Colors, goldAlpha } from '@/constants/colors'
 import { Radius } from '@/constants/radius'
 import { useTranslation } from 'react-i18next'
 import { RadioGroup } from './RadioGroup'
@@ -34,7 +34,7 @@ function SingleChoiceCustomInput({
   }
 
   return (
-    <View style={[styles.customAddRow, { borderColor: isCustomSelected ? colors.gold : colors.sep2, backgroundColor: isCustomSelected ? 'rgba(201,168,76,0.06)' : colors.bg2 }]}>
+    <View style={[styles.customAddRow, { borderColor: isCustomSelected ? colors.gold : colors.sep2, backgroundColor: isCustomSelected ? goldAlpha['06'] : colors.bg2 }]}>
       <TextInput
         style={[styles.customAddInput, { color: colors.label }]}
         placeholder={t('questionnaire.customAnswer')}
@@ -99,7 +99,7 @@ function MultiSelectInput({
             style={[
               styles.multiPill,
               {
-                backgroundColor: isSelected ? 'rgba(201,168,76,0.12)' : colors.fill,
+                backgroundColor: isSelected ? goldAlpha['12'] : colors.fill,
                 borderColor: isSelected ? colors.gold : 'transparent',
               },
             ]}
@@ -207,7 +207,7 @@ export function QuestionInput({
                 style={[
                   styles.choiceRow,
                   {
-                    backgroundColor: isSelected ? 'rgba(201,168,76,0.06)' : colors.bg2,
+                    backgroundColor: isSelected ? goldAlpha['06'] : colors.bg2,
                     borderColor: isSelected ? colors.gold : colors.sep2,
                   },
                 ]}

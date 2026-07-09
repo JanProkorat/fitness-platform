@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/stores/auth';
 import { useTheme } from '@/hooks/useTheme';
-import { Static } from '@/constants/colors';
+import { Static, goldAlpha } from '@/constants/colors';
 import { resendVerification } from '@/api/verification';
 import { connect, onEvent, disconnect } from '@/api/signalr';
 
@@ -176,9 +176,9 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 8,
-    backgroundColor: 'rgba(200,169,78,0.08)',
+    backgroundColor: goldAlpha['08'],
     borderWidth: 1,
-    borderColor: 'rgba(200,169,78,0.2)',
+    borderColor: goldAlpha['20'],
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
