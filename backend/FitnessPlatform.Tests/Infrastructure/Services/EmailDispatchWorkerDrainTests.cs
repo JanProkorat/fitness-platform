@@ -1,0 +1,88 @@
+using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Infrastructure.Services;
+using FitnessPlatform.Tests.Infrastructure;
+using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
+
+namespace FitnessPlatform.Tests.Infrastructure.Services;
+
+/// <summary>
+/// Unit tests for <see cref="EmailDispatchWorker"/>'s graceful-drain behavior on shutdown
+/// (#705). The worker is constructed directly against a real <see cref="BackgroundEmailQueue"/>
+/// and a minimal <see cref="IServiceScopeFactory"/> that resolves <see cref="FakeEmailService"/>
+/// — no Docker/Testcontainers needed, since none of this touches Postgres or Mongo. Driving
+/// the worker through its public <see cref="Microsoft.Extensions.Hosting.BackgroundService.StartAsync"/>
+/// / <see cref="Microsoft.Extensions.Hosting.BackgroundService.StopAsync"/> lifecycle (rather
+/// than calling a test-only method) exercises the exact shutdown path the host uses in
+/// production: <c>StopAsync</c> cancels the worker's <c>stoppingToken</c> and then awaits its
+/// <c>ExecuteAsync</c> task, so it does not return until the drain this issue introduces has
+/// actually completed — no fixed <c>Task.Delay</c> sleep required for determinism.
+/// </summary>
+public class EmailDispatchWorkerDrainTests
+{
+    private static IServiceScopeFactory BuildScopeFactory()
+    {
+        var services = new ServiceCollection();
+        services.AddScoped<IEmailService, FakeEmailService>();
+        return services.BuildServiceProvider().GetRequiredService<IServiceScopeFactory>();
+    }
+
+    [Fact]
+    public async Task StopAsync_DrainsAllBufferedItems_BeforeReturning()
+    {
+        FakeEmailService.Reset();
+
+        var queue = new BackgroundEmailQueue();
+        var worker = new EmailDispatchWorker(queue, BuildScopeFactory(), NullLogger<EmailDispatchWorker>.Instance);
+
+        const int itemCount = 25;
+        var runId = Guid.NewGuid().ToString("N");
+        string Email(int i) => $"{runId}-{i}@drain-test.com";
+
+        for (var i = 0; i < itemCount; i++)
+        {
+            queue.TryEnqueue(new EmailDispatchWorkItem(Email(i), $"token-{i}", "en")).Should().BeTrue(
+                "enqueueing before shutdown begins must always succeed while capacity remains");
+        }
+
+        await worker.StartAsync(TestContext.Current.CancellationToken);
+
+        // Trigger shutdown right away -- the worker has likely not drained everything on
+        // its own yet. StopAsync must not return until ExecuteAsync's drain loop has
+        // finished processing every buffered item (see the worker's Complete()-on-shutdown
+        // registration), so no separate wait/poll is needed here.
+        await worker.StopAsync(TestContext.Current.CancellationToken);
+
+        FakeEmailService.SentVerifications.Count(v => v.Email.StartsWith(runId, StringComparison.Ordinal))
+            .Should().Be(itemCount, "every item buffered before shutdown must be sent during the drain, not dropped");
+
+        queue.PendingCount.Should().Be(0, "MarkProcessed must run for every drained item, including those processed during shutdown");
+    }
+
+    [Fact]
+    public async Task StopAsync_WithNoBufferedItems_ReturnsPromptly()
+    {
+        var queue = new BackgroundEmailQueue();
+        var worker = new EmailDispatchWorker(queue, BuildScopeFactory(), NullLogger<EmailDispatchWorker>.Instance);
+
+        await worker.StartAsync(TestContext.Current.CancellationToken);
+        await worker.StopAsync(TestContext.Current.CancellationToken);
+
+        queue.PendingCount.Should().Be(0, "an empty queue drains trivially -- nothing left pending after shutdown");
+    }
+
+    [Fact]
+    public void TryEnqueue_AfterComplete_ReturnsFalse_NeverThrows()
+    {
+        var queue = new BackgroundEmailQueue();
+
+        queue.Complete();
+
+        var act = () => queue.TryEnqueue(new EmailDispatchWorkItem("late@drain-test.com", "token", "en"));
+
+        act.Should().NotThrow(
+            "a write to a completed channel must fail cleanly so the caller's existing false-return handling (log + generic 200) keeps working");
+        act().Should().BeFalse("no new item may be accepted once the queue has been marked complete");
+    }
+}

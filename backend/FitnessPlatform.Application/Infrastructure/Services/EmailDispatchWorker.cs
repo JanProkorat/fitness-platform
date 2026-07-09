@@ -17,8 +17,23 @@ namespace FitnessPlatform.Application.Infrastructure.Services;
 /// be cancelled by the time this runs, since the request has completed) and never
 /// captures the request-scoped <see cref="IEmailService"/> (disposed along with the
 /// request's DI scope). Instead every dequeued item is processed inside a fresh scope
-/// created from <see cref="IServiceScopeFactory"/>, and the loop runs under this
-/// service's own <c>stoppingToken</c>.
+/// created from <see cref="IServiceScopeFactory"/>.
+/// </para>
+///
+/// <para>
+/// Graceful shutdown drain (#705): on host shutdown, <c>stoppingToken</c> cancelling used
+/// to make <c>ReadAllAsync</c> throw <see cref="OperationCanceledException"/> immediately,
+/// dropping any items still buffered in the channel plus a send that was in flight. Now a
+/// callback registered on <c>stoppingToken</c> calls <see cref="IBackgroundEmailQueue.Complete"/>
+/// so the channel writer closes (new enqueues start failing cleanly — see
+/// <see cref="IBackgroundEmailQueue.Complete"/>), while the read loop itself runs on
+/// <see cref="CancellationToken.None"/> so it keeps draining the already-buffered items
+/// and completes naturally once they're exhausted, instead of being torn down by
+/// cancellation. Each send also runs on <see cref="CancellationToken.None"/> so an
+/// in-flight/drained send finishes rather than being cancelled mid-send. The drain has no
+/// separate timer of its own — it stays bounded by the host's overall
+/// <c>HostOptions.ShutdownTimeout</c>, which governs how long the host waits for this
+/// <see cref="BackgroundService"/>'s <c>ExecuteAsync</c> task before moving on regardless.
 /// </para>
 /// </summary>
 public class EmailDispatchWorker(
@@ -31,9 +46,18 @@ public class EmailDispatchWorker(
     {
         logger.LogInformation("EmailDispatchWorker: starting.");
 
+        // Shutdown begins → stop accepting new items immediately, but let the loop below
+        // keep draining whatever is already buffered — see the class remarks (#705).
+        using var completeOnShutdown = stoppingToken.Register(queue.Complete);
+
         try
         {
-            await foreach (var item in queue.ReadAllAsync(stoppingToken))
+            // Deliberately CancellationToken.None, not stoppingToken: queue.Complete()
+            // (registered above) closes the channel writer on shutdown, so
+            // Channel.Reader.ReadAllAsync finishes naturally once every buffered item has
+            // been yielded rather than throwing OperationCanceledException and abandoning
+            // them mid-drain.
+            await foreach (var item in queue.ReadAllAsync(CancellationToken.None))
             {
                 try
                 {
@@ -43,7 +67,11 @@ public class EmailDispatchWorker(
                     // one disposed with a long-gone request scope.
                     using var scope = scopeFactory.CreateScope();
                     var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
-                    await emailService.SendEmailVerificationAsync(item.Email, item.Token, item.Language, stoppingToken);
+
+                    // CancellationToken.None: a send picked up during the shutdown drain
+                    // (or already in flight when shutdown began) must be allowed to finish
+                    // rather than being cancelled mid-send by stoppingToken.
+                    await emailService.SendEmailVerificationAsync(item.Email, item.Token, item.Language, CancellationToken.None);
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
@@ -63,7 +91,9 @@ public class EmailDispatchWorker(
         }
         catch (OperationCanceledException)
         {
-            // Graceful shutdown — stoppingToken was cancelled while awaiting the next item.
+            // Defensive backstop only: the read loop above runs on CancellationToken.None,
+            // so it should never actually throw OCE. Kept in case a future change
+            // reintroduces a cancellable await inside the loop.
         }
 
         logger.LogInformation("EmailDispatchWorker: stopped.");
