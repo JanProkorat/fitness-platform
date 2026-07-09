@@ -5,6 +5,7 @@ import { startConversation, sendMessage } from '../api/messages'
 import { getMyRequests, type ClientRequestDto } from '../api/professionals'
 import { getCollaborations, endCollaboration, type CollaborationDto } from '../api/profile'
 import { useAuthStore, type ActiveCollaborator, type PendingRequest } from '../stores/auth'
+import { useAcceptInvite } from './useAcceptInvite'
 import { Toast } from '../lib/toast'
 
 function collabToActiveCollaborator(c: CollaborationDto): ActiveCollaborator {
@@ -86,14 +87,11 @@ export function useCollaboration() {
     queryClient.invalidateQueries({ queryKey: ['my-requests'] })
   }
 
-  const acceptInviteMutation = useMutation({
-    mutationFn: (id: string) => api.post(`/client/invites/${id}/accept`),
-    onSuccess: () => {
-      invalidateAll()
-      store.refreshProfile()
-      Toast.show('Invitation accepted')
-    },
-  })
+  // Shared accept-invite mutation (#605) — owns the union invalidation set
+  // (today-plan/today-training/conversation-context/conversations/
+  // collaborations/my-requests/client-invite + refreshProfile). This site
+  // adds its own toast on top.
+  const acceptInviteMutation = useAcceptInvite()
 
   const declineInviteMutation = useMutation({
     mutationFn: (id: string) => api.post(`/client/invites/${id}/decline`),
@@ -209,7 +207,8 @@ export function useCollaboration() {
   return {
     isLoading: collabQuery.isLoading || requestsQuery.isLoading,
     refetch: () => { collabQuery.refetch(); requestsQuery.refetch() },
-    acceptInvite: acceptInviteMutation.mutate,
+    acceptInvite: (id: string) =>
+      acceptInviteMutation.mutate(id, { onSuccess: () => Toast.show('Invitation accepted') }),
     declineInvite: declineInviteMutation.mutate,
     endTrainerCollab: endTrainerMutation.mutate,
     endCoachCollab: endCoachMutation.mutate,
