@@ -126,8 +126,17 @@ public class AuthFlowTests(FitnessApiFactory factory)
         body.RefreshToken.Should().NotBe(refreshToken);
     }
 
+    /// <summary>
+    /// Immediate reuse of a just-rotated refresh token (well within #652's
+    /// grace window — default 20s) is the legitimate benign-reconcile path,
+    /// NOT theft: the second call must succeed and hand back the SAME
+    /// successor token the first call minted, rather than rejecting outright.
+    /// Reuse detection for a token replayed OUTSIDE the grace window (the
+    /// actual theft path) is covered against real Postgres by
+    /// <c>RefreshTokenReuseDetectionConcurrencyTests.ReplayOutsideGraceWindow_RevokesWholeFamily_AndRejectsBothTokens</c>.
+    /// </summary>
     [Fact]
-    public async Task RefreshToken_UsedTwice_FailsSecondTime()
+    public async Task RefreshToken_UsedTwiceImmediately_ReconcilesBenignlyWithSameSuccessor()
     {
         var client = factory.CreateClient();
         var email = UniqueEmail();
@@ -138,9 +147,15 @@ public class AuthFlowTests(FitnessApiFactory factory)
 
         var first = await client.PostAsJsonAsync("/auth/refresh", new { RefreshToken = refreshToken }, cancellationToken: TestContext.Current.CancellationToken);
         first.StatusCode.Should().Be(HttpStatusCode.OK);
+        var firstBody = await first.Content.ReadFromJsonAsync<LoginResult>(cancellationToken: TestContext.Current.CancellationToken);
 
         var second = await client.PostAsJsonAsync("/auth/refresh", new { RefreshToken = refreshToken }, cancellationToken: TestContext.Current.CancellationToken);
-        second.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        second.StatusCode.Should().Be(HttpStatusCode.OK,
+            "immediate reuse within the grace window is a benign reconcile, not theft");
+
+        var secondBody = await second.Content.ReadFromJsonAsync<LoginResult>(cancellationToken: TestContext.Current.CancellationToken);
+        secondBody!.RefreshToken.Should().Be(firstBody!.RefreshToken,
+            "the reconcile must hand back the SAME successor the first call minted");
     }
 
     [Fact]

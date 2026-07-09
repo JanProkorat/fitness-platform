@@ -113,6 +113,32 @@ public class ImageUploadService(IBlobStorageService blobStorage) : IImageUploadS
             ct);
     }
 
+    /// <inheritdoc />
+    public bool IsValidBlobUrlForSubPath(ImageUploadScope scope, string subPathPrefix, string blobUrl)
+    {
+        if (string.IsNullOrWhiteSpace(blobUrl) || string.IsNullOrWhiteSpace(subPathPrefix))
+        {
+            return false;
+        }
+
+        var prefix = ScopeToPrefix(scope);
+
+        // Try every allowed extension — the caller doesn't know which one was used at
+        // upload time, only the identity-bound prefix (e.g. "{userId}").
+        foreach (var extension in AllowedContentTypes.Values)
+        {
+            var containerPath = $"{prefix}/{subPathPrefix}.{extension}";
+            var expectedUrl = blobStorage.BuildPublicUrl(containerPath);
+
+            if (string.Equals(blobUrl, expectedUrl, StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static string ScopeToPrefix(ImageUploadScope scope) => scope switch
     {
         ImageUploadScope.Avatar    => "avatars",

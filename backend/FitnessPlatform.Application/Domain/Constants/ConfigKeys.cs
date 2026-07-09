@@ -21,6 +21,14 @@ public static class ConfigKeys
     public const string JwtRefreshTokenExpirationDays = "Jwt:RefreshTokenExpirationDays";
 
     /// <summary>
+    /// Grace window (in seconds) during which a just-rotated refresh token can be
+    /// presented again and treated as a benign concurrent double-fire (e.g. a
+    /// client retry racing its own successful request) rather than theft. Reuse
+    /// presented outside this window triggers full token-family revocation.
+    /// </summary>
+    public const string RefreshTokenReuseGraceWindowSeconds = "Jwt:RefreshTokenReuseGraceWindowSeconds";
+
+    /// <summary>
     /// PostgreSQL connection string key.
     /// </summary>
     public const string PostgreSql = "PostgreSQL";

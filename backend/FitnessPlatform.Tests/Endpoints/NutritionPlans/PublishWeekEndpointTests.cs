@@ -6,6 +6,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.NutritionPlans.PublishWeek;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -36,7 +37,8 @@ public class PublishWeekEndpointTests
             mongo,
             new MockDbBuilder().Build(),
             Substitute.For<INotificationService>(),
-            Substitute.For<IRealtimeNotifier>());
+            Substitute.For<IRealtimeNotifier>(),
+            new PlanConcurrencyGuard());
 
     [Fact]
     public async Task HandleAsync_DraftWeek_PublishesSuccessfully()
@@ -174,5 +176,55 @@ public class PublishWeekEndpointTests
         await ep.HandleAsync(req, TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(404);
+    }
+
+    [Fact]
+    public async Task HandleAsync_ReplaceLosesRace_Returns409AndDoesNotArchiveSiblings()
+    {
+        // Regression test for #655: the version-gated ReplaceOneAsync can lose a
+        // concurrency race (another request bumped the Version between our initial
+        // fetch and our write) even though the initial plan.Version == req.Version
+        // check passed. In that case the client's other active plans must NOT be
+        // archived — archiving must only happen after the replace is confirmed.
+        var planId = Guid.NewGuid();
+        var plan = PlanTestHelpers.CreatePlan(
+            externalId: planId,
+            nutritionistId: _nutritionistId,
+            status: NutritionPlanStatus.Draft,
+            weekCount: 1,
+            version: 1);
+        plan.StartDate = DateTime.UtcNow.Date;
+
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+
+        // Simulate the lost race: ReplaceOneAsync reports ModifiedCount == 0.
+        var lostRaceResult = Substitute.For<ReplaceOneResult>();
+        lostRaceResult.ModifiedCount.Returns(0);
+        mongo.NutritionPlans.ReplaceOneAsync(
+                Arg.Any<FilterDefinition<NutritionPlan>>(),
+                Arg.Any<NutritionPlan>(),
+                Arg.Any<ReplaceOptions>(),
+                Arg.Any<CancellationToken>())
+            .Returns(lostRaceResult);
+
+        var ep = CreateEndpoint(mongo);
+
+        var req = new PublishWeekRequest
+        {
+            PlanId = planId,
+            WeekNumber = 1,
+            Version = 1
+        };
+
+        await ep.HandleAsync(req, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(409);
+
+        // Siblings must NOT be archived when the version-gated write loses the race.
+        await mongo.NutritionPlans.DidNotReceive().UpdateManyAsync(
+            Arg.Any<FilterDefinition<NutritionPlan>>(),
+            Arg.Any<UpdateDefinition<NutritionPlan>>(),
+            Arg.Any<UpdateOptions>(),
+            Arg.Any<CancellationToken>());
     }
 }

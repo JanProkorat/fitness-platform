@@ -86,7 +86,12 @@ public class GetClientTimelineEndpoint(
             return;
         }
 
+        // MealLog.ClientId, NutritionPlan.ClientId, and TrainingPlan.ClientId store
+        // ClientProfile.PublicId. WorkoutLog.ClientId and PersonalRecord.ClientId
+        // store ApplicationUser.Id (UserId). QuestionnaireResponse.ClientId is an
+        // EF entity keyed on UserId as well.
         var clientUserId = clientProfile.UserId;
+        var clientPublicId = clientProfile.PublicId;
 
         // Look back up to 90 days; we'll take the top `Limit` overall.
         var from = DateTime.UtcNow.Date.AddDays(-90);
@@ -94,7 +99,7 @@ public class GetClientTimelineEndpoint(
         var items = new List<ClientTimelineItem>();
 
         // ── 1. Meal logs — aggregate per day to avoid dozens of rows ──
-        var mealFilter = Builders<MealLog>.Filter.Eq(l => l.ClientId, clientUserId)
+        var mealFilter = Builders<MealLog>.Filter.Eq(l => l.ClientId, clientPublicId)
             & Builders<MealLog>.Filter.Gte(l => l.EatenAt, from);
 
         using (var cursor = await mongo.MealLogs.FindAsync(mealFilter, cancellationToken: ct))
@@ -189,7 +194,7 @@ public class GetClientTimelineEndpoint(
         }
 
         // ── 5. Nutrition & training plan publish events ──
-        var nutritionPlanFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientUserId)
+        var nutritionPlanFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientPublicId)
             & Builders<NutritionPlan>.Filter.Gte(p => p.DatePublished, from);
 
         using (var cursor = await mongo.NutritionPlans.FindAsync(nutritionPlanFilter, cancellationToken: ct))
@@ -209,7 +214,7 @@ public class GetClientTimelineEndpoint(
             }
         }
 
-        var trainingPlanFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientUserId)
+        var trainingPlanFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientPublicId)
             & Builders<TrainingPlan>.Filter.Gte(p => p.DatePublished, from);
 
         using (var cursor = await mongo.TrainingPlans.FindAsync(trainingPlanFilter, cancellationToken: ct))

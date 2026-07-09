@@ -313,6 +313,28 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 cancellationToken);
     }
 
+    /// <inheritdoc />
+    public Task<int> RotateRefreshTokenAsync(string token, string replacedByToken, DateTime revokedAt, CancellationToken cancellationToken = default)
+    {
+        return RefreshTokens
+            .Where(rt => rt.Token == token && rt.RevokedAt == null)
+            .ExecuteUpdateAsync(
+                s => s
+                    .SetProperty(rt => rt.RevokedAt, revokedAt)
+                    .SetProperty(rt => rt.ReplacedByToken, replacedByToken),
+                cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<int> RevokeRefreshTokenFamilyAsync(Guid userId, DateTime revokedAt, CancellationToken cancellationToken = default)
+    {
+        return RefreshTokens
+            .Where(rt => rt.UserId == userId && rt.RevokedAt == null)
+            .ExecuteUpdateAsync(
+                s => s.SetProperty(rt => rt.RevokedAt, revokedAt),
+                cancellationToken);
+    }
+
     /// <summary>
     /// Automatically sets DateCreated and DateUpdated on tracked entities.
     /// </summary>

@@ -85,12 +85,16 @@ public class MinioBlobStorageService : IBlobStorageService
                 .WithObject(containerPath)
                 .WithExpiry((int)expiresIn.TotalSeconds));
 
+        return new BlobUploadUrl(uploadUrl, BuildPublicUrl(containerPath));
+    }
+
+    /// <inheritdoc />
+    public string BuildPublicUrl(string containerPath)
+    {
         var publicBase = _publicEndpoint.TrimEnd('/');
-        var blobUrl = _publicUrlIncludesBucket
+        return _publicUrlIncludesBucket
             ? $"{publicBase}/{_bucketName}/{containerPath}"
             : $"{publicBase}/{containerPath}";
-
-        return new BlobUploadUrl(uploadUrl, blobUrl);
     }
 
     /// <inheritdoc />

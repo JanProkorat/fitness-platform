@@ -17,12 +17,34 @@ namespace FitnessPlatform.Tests.Endpoints.Professionals.Avatar;
 /// - GET /professionals/{id}   — avatarBlobUrl present in detail response
 /// - Unauthenticated access — 401
 /// - Client (non-professional) — blocked by role policy
+/// - Foreign/attacker-supplied blobUrl — rejected before persist (#658)
 /// </summary>
 [Collection(TestCollection.Name)]
 public class ProfessionalAvatarIntegrationTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail() => $"{Guid.NewGuid():N}@prof-avatar-test.com";
     private const string TestPassword = "TestPass1!";
+
+    /// <summary>
+    /// Requests a real, identity-scoped avatar blobUrl via POST /professionals/me/avatar/upload-url
+    /// — exactly what a legitimate client does before calling PUT /professionals/me/avatar. Tests
+    /// must use this instead of a hand-picked string: since #658, ConfirmProfessionalAvatarEndpoint
+    /// rejects any blobUrl that isn't the caller's own presigned key.
+    /// </summary>
+    private static async Task<string> GetOwnUploadBlobUrlAsync(HttpClient client)
+    {
+        var resp = await client.PostAsJsonAsync(
+            "/professionals/me/avatar/upload-url",
+            new { ContentType = "image/jpeg", SizeBytes = 1024 },
+            TestContext.Current.CancellationToken);
+
+        resp.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await resp.Content.ReadFromJsonAsync<UploadUrlResponse>(
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        body.Should().NotBeNull();
+        return body!.BlobUrl;
+    }
 
     // ── PUT /professionals/me/avatar ─────────────────────────────────────────
 
@@ -36,7 +58,7 @@ public class ProfessionalAvatarIntegrationTests(FitnessApiFactory factory)
         var (token, _) = await TestHelpers.LoginAsync(client, email, TestPassword);
         TestHelpers.SetBearerToken(client, token);
 
-        const string blobUrl = "avatars/prof-99.jpg";
+        var blobUrl = await GetOwnUploadBlobUrlAsync(client);
 
         var putResp = await client.PutAsJsonAsync(
             "/professionals/me/avatar",
@@ -89,6 +111,74 @@ public class ProfessionalAvatarIntegrationTests(FitnessApiFactory factory)
         resp.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
+    // ── Stored-content injection (#658) ──────────────────────────────────────
+
+    [Fact]
+    public async Task PutAvatar_ForeignUrl_Returns400_AndDoesNotPersist()
+    {
+        var client = factory.CreateClient();
+        var email = UniqueEmail();
+
+        await TestHelpers.RegisterAsync(client, email, TestPassword, "Mallory", "Attacker", "Trainer");
+        var (token, _) = await TestHelpers.LoginAsync(client, email, TestPassword);
+        TestHelpers.SetBearerToken(client, token);
+
+        var putResp = await client.PutAsJsonAsync(
+            "/professionals/me/avatar",
+            new { BlobUrl = "https://evil.example.com/phishing.jpg" },
+            TestContext.Current.CancellationToken);
+
+        putResp.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var userId = (await db.Users.FirstAsync(
+            u => u.Email == email,
+            TestContext.Current.CancellationToken)).Id;
+        var profile = await db.ProfessionalProfiles.FirstAsync(
+            p => p.UserId == userId,
+            TestContext.Current.CancellationToken);
+
+        profile.AvatarBlobUrl.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task PutAvatar_AnotherProfessionalsKey_Returns400_AndDoesNotPersist()
+    {
+        // Trainer A obtains their own real, valid upload key.
+        var clientA = factory.CreateClient();
+        var emailA = UniqueEmail();
+        await TestHelpers.RegisterAsync(clientA, emailA, TestPassword, "Nora", "Owner", "Trainer");
+        var (tokenA, _) = await TestHelpers.LoginAsync(clientA, emailA, TestPassword);
+        TestHelpers.SetBearerToken(clientA, tokenA);
+        var foreignBlobUrl = await GetOwnUploadBlobUrlAsync(clientA);
+
+        // Trainer B tries to confirm Trainer A's key as their own avatar.
+        var clientB = factory.CreateClient();
+        var emailB = UniqueEmail();
+        await TestHelpers.RegisterAsync(clientB, emailB, TestPassword, "Oscar", "Impersonator", "Trainer");
+        var (tokenB, _) = await TestHelpers.LoginAsync(clientB, emailB, TestPassword);
+        TestHelpers.SetBearerToken(clientB, tokenB);
+
+        var putResp = await clientB.PutAsJsonAsync(
+            "/professionals/me/avatar",
+            new { BlobUrl = foreignBlobUrl },
+            TestContext.Current.CancellationToken);
+
+        putResp.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var userIdB = (await db.Users.FirstAsync(
+            u => u.Email == emailB,
+            TestContext.Current.CancellationToken)).Id;
+        var profileB = await db.ProfessionalProfiles.FirstAsync(
+            p => p.UserId == userIdB,
+            TestContext.Current.CancellationToken);
+
+        profileB.AvatarBlobUrl.Should().BeNull();
+    }
+
     // ── DELETE /professionals/me/avatar ─────────────────────────────────────
 
     [Fact]
@@ -101,10 +191,11 @@ public class ProfessionalAvatarIntegrationTests(FitnessApiFactory factory)
         var (token, _) = await TestHelpers.LoginAsync(client, email, TestPassword);
         TestHelpers.SetBearerToken(client, token);
 
-        // Set an avatar first
+        // Set an avatar first, using a real presigned key for this caller
+        var blobUrl = await GetOwnUploadBlobUrlAsync(client);
         await client.PutAsJsonAsync(
             "/professionals/me/avatar",
-            new { BlobUrl = "avatars/prof-delete-test.jpg" },
+            new { BlobUrl = blobUrl },
             TestContext.Current.CancellationToken);
 
         // Then delete it
@@ -151,7 +242,7 @@ public class ProfessionalAvatarIntegrationTests(FitnessApiFactory factory)
         var (trainerToken, _) = await TestHelpers.LoginAsync(trainerClient, trainerEmail, TestPassword);
         TestHelpers.SetBearerToken(trainerClient, trainerToken);
 
-        const string blobUrl = "avatars/prof-search-test.jpg";
+        var blobUrl = await GetOwnUploadBlobUrlAsync(trainerClient);
         await trainerClient.PutAsJsonAsync(
             "/professionals/me/avatar",
             new { BlobUrl = blobUrl },
@@ -184,7 +275,7 @@ public class ProfessionalAvatarIntegrationTests(FitnessApiFactory factory)
         var (trainerToken, _) = await TestHelpers.LoginAsync(trainerClient, trainerEmail, TestPassword);
         TestHelpers.SetBearerToken(trainerClient, trainerToken);
 
-        const string blobUrl = "avatars/prof-frank.png";
+        var blobUrl = await GetOwnUploadBlobUrlAsync(trainerClient);
         await trainerClient.PutAsJsonAsync(
             "/professionals/me/avatar",
             new { BlobUrl = blobUrl },
@@ -218,7 +309,7 @@ public class ProfessionalAvatarIntegrationTests(FitnessApiFactory factory)
         var (trainerToken, _) = await TestHelpers.LoginAsync(trainerClient, trainerEmail, TestPassword);
         TestHelpers.SetBearerToken(trainerClient, trainerToken);
 
-        const string blobUrl = "avatars/prof-hank-detail.jpg";
+        var blobUrl = await GetOwnUploadBlobUrlAsync(trainerClient);
         await trainerClient.PutAsJsonAsync(
             "/professionals/me/avatar",
             new { BlobUrl = blobUrl },
@@ -299,4 +390,6 @@ public class ProfessionalAvatarIntegrationTests(FitnessApiFactory factory)
     // ── Local response DTOs (per slice rules — no cross-feature imports) ─────
 
     private record PublicProfileResponse(string? AvatarBlobUrl);
+
+    private record UploadUrlResponse(string UploadUrl, string BlobUrl);
 }

@@ -37,8 +37,12 @@ public sealed class TrackingBlobStorageService : IBlobStorageService
         string containerPath, string contentType, TimeSpan expiresIn, CancellationToken ct)
     {
         var uploadUrl = $"https://fake-storage/upload/{containerPath}?token=test";
-        return Task.FromResult(new BlobUploadUrl(uploadUrl, containerPath));
+        return Task.FromResult(new BlobUploadUrl(uploadUrl, BuildPublicUrl(containerPath)));
     }
+
+    /// <inheritdoc />
+    /// <remarks>Mirrors <see cref="FitnessPlatform.Tests.Infrastructure.FakeBlobStorageService"/> — returns the bare container path (test double, no real host).</remarks>
+    public string BuildPublicUrl(string containerPath) => containerPath;
 
     public Task UploadAsync(string containerPath, byte[] data, string contentType, CancellationToken ct)
     {

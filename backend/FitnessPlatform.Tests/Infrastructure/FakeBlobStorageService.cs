@@ -19,9 +19,17 @@ public class FakeBlobStorageService : IBlobStorageService
         // what the real service would store (e.g. "foods/{foodId}.jpg") so
         // integration tests can assert both the upload URL and the blob URL.
         var uploadUrl = $"https://fake-storage/upload/{containerPath}?token=test";
-        var blobUrl = containerPath;
-        return Task.FromResult(new BlobUploadUrl(uploadUrl, blobUrl));
+        return Task.FromResult(new BlobUploadUrl(uploadUrl, BuildPublicUrl(containerPath)));
     }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Mirrors production shape: the real MinIO-backed service returns a full,
+    /// host-prefixed URL while this fake returns the bare container path — so tests that
+    /// exercise the identity-scoped blobUrl check (<c>ImageUploadService.IsValidBlobUrlForSubPath</c>)
+    /// stay representative of real behavior without needing a real MinIO host.
+    /// </remarks>
+    public string BuildPublicUrl(string containerPath) => containerPath;
 
     /// <inheritdoc />
     public Task UploadAsync(string containerPath, byte[] data, string contentType, CancellationToken ct)

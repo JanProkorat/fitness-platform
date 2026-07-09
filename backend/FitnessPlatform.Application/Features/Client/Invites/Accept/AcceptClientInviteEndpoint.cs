@@ -39,9 +39,21 @@ public class AcceptClientInviteEndpoint(
 
         var userGuid = Guid.Parse(userId);
 
+        var caller = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userGuid, ct);
+        if (caller is null) { await Send.UnauthorizedAsync(ct); return; }
+
+        // Use NormalizedEmail (uppercase, set by Identity) for reliable matching.
+        // PendingInvite.Email stores the original casing from the trainer, so compare
+        // using UPPER() on both sides. Folding this into the lookup itself (rather than
+        // checking after) means a GUID that belongs to someone else's invite falls
+        // through to the same 404 as an unknown/consumed invite — never a distinct 403
+        // that would confirm the GUID exists.
+        var normalizedEmail = caller.NormalizedEmail ?? caller.Email?.ToUpper() ?? string.Empty;
+
         var invite = await db.PendingInvites
             .Include(pi => pi.ProfessionalProfile)
-            .FirstOrDefaultAsync(pi => pi.PublicId == req.Id && !pi.IsAccepted, ct);
+            .FirstOrDefaultAsync(pi => pi.PublicId == req.Id && !pi.IsAccepted
+                && pi.Email.ToUpper() == normalizedEmail, ct);
 
         if (invite is null)
         {
@@ -121,8 +133,7 @@ public class AcceptClientInviteEndpoint(
         }
 
         // Notify the professional that their invite was accepted
-        var clientUser = await db.Users.FirstAsync(u => u.Id == userGuid, ct);
-        var clientName = $"{clientUser.FirstName} {clientUser.LastName}";
+        var clientName = $"{caller.FirstName} {caller.LastName}";
 
         await notificationService.CreateAsync(
             invite.ProfessionalProfile.UserId,

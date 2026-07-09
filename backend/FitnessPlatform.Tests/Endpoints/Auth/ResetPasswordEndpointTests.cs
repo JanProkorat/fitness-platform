@@ -81,4 +81,56 @@ public class ResetPasswordEndpointTests
 
         await act.Should().ThrowAsync<ValidationFailureException>();
     }
+
+    /// <summary>
+    /// Regression test for #656 (email-enumeration oracle). Both the
+    /// non-existent-email branch and the existing-email/wrong-token branch
+    /// must throw the exact same error message text — otherwise an attacker
+    /// can distinguish registered accounts by diffing the response body.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_NonExistentEmailAndWrongTokenForExistingEmail_ReturnSameErrorMessage()
+    {
+        var user = new ApplicationUser
+        {
+            Id = Guid.NewGuid(), Email = "existing@test.com", UserName = "existing@test.com",
+            FirstName = "T", LastName = "U"
+        };
+
+        var userManagerForMissingEmail = EndpointTestHelpers.CreateFakeUserManager();
+        userManagerForMissingEmail.FindByEmailAsync("missing@test.com").Returns((ApplicationUser?)null);
+        var missingEmailEndpoint = Factory.Create<ResetPasswordEndpoint>(userManagerForMissingEmail);
+
+        var userManagerForExistingEmail = EndpointTestHelpers.CreateFakeUserManager();
+        userManagerForExistingEmail.FindByEmailAsync("existing@test.com").Returns(user);
+        userManagerForExistingEmail.ResetPasswordAsync(user, "bad-token", "NewPass123!")
+            .Returns(IdentityResult.Failed(new IdentityError { Code = "InvalidToken", Description = "Invalid token." }));
+        var existingEmailEndpoint = Factory.Create<ResetPasswordEndpoint>(userManagerForExistingEmail);
+
+        var missingEmailAct = () => missingEmailEndpoint.HandleAsync(new ResetPasswordRequest
+        {
+            Token = "bad-token",
+            Email = "missing@test.com",
+            NewPassword = "NewPass123!",
+            ConfirmPassword = "NewPass123!"
+        }, CancellationToken.None);
+
+        var existingEmailAct = () => existingEmailEndpoint.HandleAsync(new ResetPasswordRequest
+        {
+            Token = "bad-token",
+            Email = "existing@test.com",
+            NewPassword = "NewPass123!",
+            ConfirmPassword = "NewPass123!"
+        }, CancellationToken.None);
+
+        var missingEmailException = await missingEmailAct.Should().ThrowAsync<ValidationFailureException>();
+        var existingEmailException = await existingEmailAct.Should().ThrowAsync<ValidationFailureException>();
+
+        var missingEmailMessages = missingEmailException.Which.Failures.Select(f => f.ErrorMessage ?? string.Empty).ToList();
+        var existingEmailMessages = existingEmailException.Which.Failures.Select(f => f.ErrorMessage ?? string.Empty).ToList();
+
+        missingEmailMessages.Should().BeEquivalentTo(existingEmailMessages);
+        missingEmailMessages.Should().ContainSingle()
+            .Which.Should().NotContain("Invalid token").And.NotContain("Invalid reset request");
+    }
 }

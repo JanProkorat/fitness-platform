@@ -190,8 +190,11 @@ public static class ErrorCodes
     public const string PlanNotFound = "PLAN_NOT_FOUND";
 
     /// <summary>
-    /// BlobUrl does not match the expected storage prefix for this plan
-    /// (<c>plan-photos/{planId}/{guid}.{ext}</c>). Prevents path traversal and cross-plan hijacking.
+    /// BlobUrl does not match the expected identity-scoped storage key for the resource being
+    /// confirmed — e.g. <c>plan-photos/{planId}/{guid}.{ext}</c> for a plan photo, or
+    /// <c>avatars/{userId}.{ext}</c> / <c>avatars/prof-{profileId}.{ext}</c> for an avatar.
+    /// Prevents path traversal, cross-resource hijacking, and stored-content injection via an
+    /// attacker-supplied external URL.
     /// </summary>
     public const string InvalidBlobUrl = "INVALID_BLOB_URL";
 

@@ -3,11 +3,14 @@ using System.Text.Json;
 using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.TrainingPlans.PublishTrainingWeek;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints;
+using MongoDB.Driver;
 using NSubstitute;
 
 namespace FitnessPlatform.Tests.Endpoints.TrainingPlans;
@@ -44,7 +47,8 @@ public class PublishTrainingWeekEndpointTests
             new MockDbBuilder().Build(),
             Substitute.For<INotificationService>(),
             Substitute.For<IRealtimeNotifier>(),
-            StubLockService());
+            StubLockService(),
+            new PlanConcurrencyGuard());
 
         await ep.HandleAsync(new PublishTrainingWeekRequest
         {
@@ -80,7 +84,8 @@ public class PublishTrainingWeekEndpointTests
             new MockDbBuilder().Build(),
             Substitute.For<INotificationService>(),
             Substitute.For<IRealtimeNotifier>(),
-            StubLockService());
+            StubLockService(),
+            new PlanConcurrencyGuard());
 
         await ep.HandleAsync(new PublishTrainingWeekRequest
         {
@@ -98,5 +103,57 @@ public class PublishTrainingWeekEndpointTests
         using var doc = await JsonDocument.ParseAsync(responseBody);
         doc.RootElement.GetProperty("errorCode").GetString()
             .Should().Be(ErrorCodes.PlanVersionConflict);
+    }
+
+    [Fact]
+    public async Task HandleAsync_ReplaceLosesRace_Returns409AndDoesNotArchiveSiblings()
+    {
+        // Regression test for #655: the version-gated ReplaceOneAsync can lose a
+        // concurrency race (another request bumped the Version between our initial
+        // fetch and our write) even though the initial plan.Version == req.Version
+        // check passed. In that case the client's other active plans must NOT be
+        // archived — archiving must only happen after the replace is confirmed.
+        var planId = Guid.NewGuid();
+        var plan = TrainingPlanTestHelpers.CreatePlan(
+            externalId: planId, trainerId: _trainerId, weekCount: 1, version: 1);
+        plan.StartDate = DateTime.UtcNow.Date;
+        var mongo = TrainingPlanTestHelpers.CreateMockMongo(plan);
+
+        // Simulate the lost race: ReplaceOneAsync reports ModifiedCount == 0.
+        var lostRaceResult = Substitute.For<ReplaceOneResult>();
+        lostRaceResult.ModifiedCount.Returns(0);
+        mongo.TrainingPlans.ReplaceOneAsync(
+                Arg.Any<FilterDefinition<TrainingPlan>>(),
+                Arg.Any<TrainingPlan>(),
+                Arg.Any<ReplaceOptions>(),
+                Arg.Any<CancellationToken>())
+            .Returns(lostRaceResult);
+
+        var ep = Factory.Create<PublishTrainingWeekEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            mongo,
+            new MockDbBuilder().Build(),
+            Substitute.For<INotificationService>(),
+            Substitute.For<IRealtimeNotifier>(),
+            StubLockService(),
+            new PlanConcurrencyGuard());
+
+        await ep.HandleAsync(new PublishTrainingWeekRequest
+        {
+            PlanId = planId,
+            WeekNumber = 1,
+            Version = 1
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(409);
+
+        // Siblings must NOT be archived when the version-gated write loses the race.
+        await mongo.TrainingPlans.DidNotReceive().UpdateManyAsync(
+            Arg.Any<FilterDefinition<TrainingPlan>>(),
+            Arg.Any<UpdateDefinition<TrainingPlan>>(),
+            Arg.Any<UpdateOptions>(),
+            Arg.Any<CancellationToken>());
     }
 }

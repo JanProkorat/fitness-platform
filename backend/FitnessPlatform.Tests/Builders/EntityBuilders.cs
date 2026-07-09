@@ -308,6 +308,12 @@ public class RefreshTokenBuilder
     public RefreshTokenBuilder Revoked() { _revokedAt = DateTime.UtcNow.AddMinutes(-5); return this; }
 
     /// <summary>
+    /// Sets an explicit revocation timestamp — used to place a revoked+rotated
+    /// token inside or outside the reuse grace window in tests.
+    /// </summary>
+    public RefreshTokenBuilder WithRevokedAt(DateTime revokedAt) { _revokedAt = revokedAt; return this; }
+
+    /// <summary>
     /// Sets the replacement token string.
     /// </summary>
     public RefreshTokenBuilder WithReplacedByToken(string? token) { _replacedByToken = token; return this; }

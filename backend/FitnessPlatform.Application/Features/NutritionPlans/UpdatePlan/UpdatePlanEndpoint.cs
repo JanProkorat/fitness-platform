@@ -4,6 +4,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.NutritionPlans.GetPlan;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Infrastructure.Data;
@@ -21,7 +22,13 @@ namespace FitnessPlatform.Application.Features.NutritionPlans.UpdatePlan;
 /// <param name="macroCalculator">Service to recalculate nutrient totals.</param>
 /// <param name="db">Relational database context used to resolve the client user id for notifications.</param>
 /// <param name="notifier">Realtime notifier used to push the plan-updated event to the client.</param>
-public class UpdatePlanEndpoint(IMongoContext mongo, IMacroCalculatorService macroCalculator, IApplicationDbContext db, IRealtimeNotifier notifier)
+/// <param name="guard">Shared version-gated fetch-check-replace-409 skeleton.</param>
+public class UpdatePlanEndpoint(
+    IMongoContext mongo,
+    IMacroCalculatorService macroCalculator,
+    IApplicationDbContext db,
+    IRealtimeNotifier notifier,
+    PlanConcurrencyGuard guard)
     : Endpoint<UpdatePlanRequest, GetPlanResponse>
 {
     /// <inheritdoc />
@@ -49,27 +56,67 @@ public class UpdatePlanEndpoint(IMongoContext mongo, IMacroCalculatorService mac
 
         var nutritionistId = Guid.Parse(userId);
 
-        // Fetch current plan
-        var filter = Builders<NutritionPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
+        var lookupFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
                      & Builders<NutritionPlan>.Filter.Eq(p => p.NutritionistId, nutritionistId);
+        var replaceFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
+                            & Builders<NutritionPlan>.Filter.Eq(p => p.Version, req.Version);
 
-        var cursor = await mongo.NutritionPlans.FindAsync(filter, cancellationToken: ct);
-        var plan = await cursor.FirstOrDefaultAsync(ct);
+        var guardResult = await guard.ReplaceWithVersionGuardAsync(
+            mongo.NutritionPlans,
+            lookupFilter,
+            replaceFilter,
+            req.Version,
+            p => p.Version,
+            (plan, _) => MutateAsync(plan, req),
+            ct);
 
-        if (plan is null)
+        switch (guardResult.Outcome)
         {
-            await Send.NotFoundAsync(ct);
-            return;
+            case PlanConcurrencyOutcome.NotFound:
+                await Send.NotFoundAsync(ct);
+                return;
+            case PlanConcurrencyOutcome.VersionConflict:
+                await this.SendProblemAsync(409, ErrorCodes.PlanVersionConflict,
+                    "Version conflict. The plan was modified by another request.", ct);
+                return;
+            case PlanConcurrencyOutcome.ReplaceConflict:
+                await this.SendProblemAsync(409, ErrorCodes.PlanVersionConflict,
+                    "Version conflict. The plan was modified concurrently.", ct);
+                return;
+            case PlanConcurrencyOutcome.HandledByMutator:
+                // Never reached: this endpoint's mutate delegate always returns true.
+                return;
         }
 
-        // Optimistic concurrency check
-        if (plan.Version != req.Version)
+        var plan = guardResult.Document!;
+
+        // Notify the client in real-time when published weeks were modified
+        if (plan.Weeks.Any(w => w.Status == WeekStatus.Published))
         {
-            await this.SendProblemAsync(409, ErrorCodes.PlanVersionConflict,
-                "Version conflict. The plan was modified by another request.", ct);
-            return;
+            var clientProfile = await db.ClientProfiles
+                .AsNoTracking()
+                .FirstOrDefaultAsync(cp => cp.PublicId == plan.ClientId, ct);
+
+            if (clientProfile is not null)
+            {
+                await notifier.NotifyAsync(clientProfile.UserId, "nutritionplanupdated", new
+                {
+                    PlanId = plan.ExternalId,
+                }, ct);
+            }
         }
 
+        await Send.OkAsync(GetPlanResponse.FromDocument(plan), ct);
+    }
+
+    /// <summary>
+    /// Endpoint-specific validation and mutation applied to the fetched plan before the
+    /// version-gated replace. Synchronous — declared as returning <c>Task&lt;bool&gt;</c> to
+    /// satisfy the guard's mutate-delegate contract. Always returns <c>true</c>: no error path
+    /// here writes a response directly, validation failures throw via <c>ThrowError</c> instead.
+    /// </summary>
+    private Task<bool> MutateAsync(NutritionPlan plan, UpdatePlanRequest req)
+    {
         // Build lookup of existing week statuses
         var existingWeeks = plan.Weeks.ToDictionary(w => w.WeekNumber);
 
@@ -82,7 +129,7 @@ public class UpdatePlanEndpoint(IMongoContext mongo, IMacroCalculatorService mac
         if (removedPublished.Count > 0)
         {
             ThrowError($"Cannot remove published weeks: {string.Join(", ", removedPublished.Select(w => w.WeekNumber))}");
-            return;
+            return Task.FromResult(false);
         }
 
         // Start date validation
@@ -94,14 +141,14 @@ public class UpdatePlanEndpoint(IMongoContext mongo, IMacroCalculatorService mac
             if (DateOnly.FromDateTime(plan.StartDate.Value) < today)
             {
                 ThrowError(ErrorCodes.StartDateLocked, "Start date cannot be changed after it has arrived.");
-                return;
+                return Task.FromResult(false);
             }
 
             // Clearing: only allowed if no weeks are published
             if (!req.StartDate.HasValue && plan.Weeks.Any(w => w.Status == WeekStatus.Published))
             {
                 ThrowError(ErrorCodes.StartDateLocked, "Start date cannot be cleared when weeks are published.");
-                return;
+                return Task.FromResult(false);
             }
         }
 
@@ -110,7 +157,7 @@ public class UpdatePlanEndpoint(IMongoContext mongo, IMacroCalculatorService mac
             if (req.StartDate.Value.DayOfWeek != System.DayOfWeek.Monday)
             {
                 ThrowError(ErrorCodes.StartDateNotMonday, "Start date must be a Monday.");
-                return;
+                return Task.FromResult(false);
             }
 
             // Only enforce "not in past" when the start date is being set or changed.
@@ -121,7 +168,7 @@ public class UpdatePlanEndpoint(IMongoContext mongo, IMacroCalculatorService mac
             if (isStartDateNewOrChanged && DateOnly.FromDateTime(req.StartDate.Value) < today)
             {
                 ThrowError(ErrorCodes.StartDateInPast, "Start date cannot be in the past.");
-                return;
+                return Task.FromResult(false);
             }
         }
 
@@ -201,36 +248,6 @@ public class UpdatePlanEndpoint(IMongoContext mongo, IMacroCalculatorService mac
         plan.DateUpdated = DateTime.UtcNow;
         plan.Version += 1;
 
-        // Persist with version check
-        var versionFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
-                            & Builders<NutritionPlan>.Filter.Eq(p => p.Version, req.Version);
-
-        var result = await mongo.NutritionPlans.ReplaceOneAsync(
-            versionFilter, plan, cancellationToken: ct);
-
-        if (result.ModifiedCount == 0)
-        {
-            await this.SendProblemAsync(409, ErrorCodes.PlanVersionConflict,
-                "Version conflict. The plan was modified concurrently.", ct);
-            return;
-        }
-
-        // Notify the client in real-time when published weeks were modified
-        if (plan.Weeks.Any(w => w.Status == WeekStatus.Published))
-        {
-            var clientProfile = await db.ClientProfiles
-                .AsNoTracking()
-                .FirstOrDefaultAsync(cp => cp.PublicId == plan.ClientId, ct);
-
-            if (clientProfile is not null)
-            {
-                await notifier.NotifyAsync(clientProfile.UserId, "nutritionplanupdated", new
-                {
-                    PlanId = plan.ExternalId,
-                }, ct);
-            }
-        }
-
-        await Send.OkAsync(GetPlanResponse.FromDocument(plan), ct);
+        return Task.FromResult(true);
     }
 }

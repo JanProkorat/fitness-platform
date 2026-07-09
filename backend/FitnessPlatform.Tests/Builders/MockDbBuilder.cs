@@ -171,6 +171,15 @@ public class MockDbBuilder
         // override this with db.ConsumeNonceAsync(...).Returns(0).
         db.ConsumeNonceAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(1);
 
+        // Default: the atomic refresh-token rotation succeeds (this caller wins
+        // the race). Tests that exercise the concurrent-loser path override this
+        // with db.RotateRefreshTokenAsync(...).Returns(0), typically alongside a
+        // callback that mutates the seeded token to simulate the winner's commit.
+        db.RotateRefreshTokenAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+            .Returns(1);
+        db.RevokeRefreshTokenFamilyAsync(Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+            .Returns(0);
+
         return db;
     }
 }
