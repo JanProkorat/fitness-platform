@@ -9,7 +9,6 @@ interface IdentityStripProps {
   clientInitials: string;
   clientAge: number | null;
   onEditProfile: () => void;
-  onPhotoDiary: () => void;
 }
 
 export function IdentityStrip({
@@ -18,7 +17,6 @@ export function IdentityStrip({
   clientInitials,
   clientAge,
   onEditProfile,
-  onPhotoDiary,
 }: IdentityStripProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -44,22 +42,14 @@ export function IdentityStrip({
 
   return (
     <div className="flex items-center gap-3.5 px-20 py-5 pb-3.5 max-w-[1200px]">
-      {/* Avatar with camera badge */}
-      <div className="relative flex-shrink-0">
+      {/* Avatar */}
+      <div className="flex-shrink-0">
         <div
           className="w-12 h-12 rounded-full bg-bg3 flex items-center justify-center font-semibold text-[18px] text-text2"
           aria-label={clientInitials}
         >
           {clientInitials}
         </div>
-        <button
-          type="button"
-          onClick={onPhotoDiary}
-          title={t('clientDetail.photoDiary')}
-          className="absolute -right-0.5 -bottom-0.5 w-5 h-5 rounded-full bg-accent border-2 border-bg flex items-center justify-center text-white text-[9px] cursor-pointer"
-        >
-          📷
-        </button>
       </div>
 
       {/* Name + meta line */}
@@ -89,9 +79,6 @@ export function IdentityStrip({
 
       {/* Actions */}
       <div className="ml-auto flex items-center gap-1.5">
-        <Button onClick={onPhotoDiary}>
-          📸 {t('clientDetail.photoDiary')}
-        </Button>
         <Button onClick={onEditProfile}>
           ✏ {t('clients.editProfile')}
         </Button>

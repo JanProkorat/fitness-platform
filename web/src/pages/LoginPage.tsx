@@ -233,15 +233,15 @@ export default function LoginPage() {
           <div className="auth-logo-icon">GF</div>
           <div>
             <div className="auth-logo-name">GoodFellas Platform</div>
-            <div className="auth-logo-sub">Fitness &amp; výživa</div>
+            <div className="auth-logo-sub">{t('auth.tagline')}</div>
           </div>
         </div>
 
         {/* Title */}
         <div className="auth-title">
-          Vítejte <span>zpět</span>
+          {t('auth.loginHeroTitle')} <span>{t('auth.loginHeroTitleHighlight')}</span>
         </div>
-        <div className="auth-sub">Přihlaste se ke svému účtu</div>
+        <div className="auth-sub">{t('auth.loginHeroSubtitle')}</div>
 
         {/* Status banners */}
         {justRegistered && (
@@ -271,12 +271,12 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {/* Email */}
           <div className="form-group">
-            <label className="form-label">Email</label>
+            <label className="form-label">{t('common.email')}</label>
             <input
               type="email"
               {...register('email')}
               className="auth-input"
-              placeholder="vas@email.cz"
+              placeholder={t('auth.emailPlaceholder')}
               autoComplete="email"
             />
             {errors.email && (
@@ -287,12 +287,12 @@ export default function LoginPage() {
           {/* Password */}
           <div className="form-group">
             <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>Heslo</span>
+              <span>{t('auth.password')}</span>
               <Link
                 to="/forgot-password"
                 style={{ fontWeight: 500, color: 'var(--accent)', fontSize: 12, textDecoration: 'none' }}
               >
-                Zapomenuté heslo?
+                {t('auth.forgotPasswordLink')}
               </Link>
             </label>
             <div className="auth-password-wrap">
@@ -328,12 +328,12 @@ export default function LoginPage() {
             className="btn-auth-primary"
             style={{ marginTop: 4 }}
           >
-            {loading ? t('auth.loginLoading') : 'Přihlásit se'}
+            {loading ? t('auth.loginLoading') : t('auth.login')}
           </button>
         </form>
 
         {/* Divider */}
-        <div className="auth-divider">nebo</div>
+        <div className="auth-divider">{t('auth.orDivider')}</div>
 
         {/* Social Buttons */}
         {/*
@@ -407,12 +407,12 @@ export default function LoginPage() {
 
         {/* Footer */}
         <div className="auth-footer">
-          Nemáte účet?{' '}
+          {t('auth.noAccount')}{' '}
           <Link
             to="/register"
             state={{ fromInvite: hasPendingInvite || fromInvite }}
           >
-            Zaregistrujte se
+            {t('auth.registerLink')}
           </Link>
         </div>
       </div>

@@ -312,9 +312,9 @@ export function FoodDialog({ open, food, onClose, onSaved }: FoodDialogProps) {
                     <label className="mb-2 block text-xs font-medium text-text3">{t('foods.localizedNames')}</label>
                     <div className="flex flex-col gap-1.5">
                       {[
-                        { key: 'nameEn' as const, label: 'EN', placeholder: 'English name' },
-                        { key: 'nameCs' as const, label: 'CS', placeholder: 'Český název' },
-                        { key: 'nameDe' as const, label: 'DE', placeholder: 'Deutscher Name' },
+                        { key: 'nameEn' as const, label: 'EN', placeholder: t('foods.nameEnPlaceholder') },
+                        { key: 'nameCs' as const, label: 'CS', placeholder: t('foods.nameCsPlaceholder') },
+                        { key: 'nameDe' as const, label: 'DE', placeholder: t('foods.nameDePlaceholder') },
                       ].map((l) => (
                         <div key={l.key} className="flex items-center gap-2">
                           <span className="text-[10px] font-semibold text-text3 w-6 text-center shrink-0">{l.label}</span>

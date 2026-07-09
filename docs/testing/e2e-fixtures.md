@@ -336,6 +336,91 @@ curl -sk -H "Authorization: Bearer $ACCESS" \
 
 ---
 
+## Seeded questionnaire template + submitted response (#715)
+
+A questionnaire template owned by the QA trainer, a SUBMITTED response for the
+QA client, and a link from BOTH the main training plan (`QaTrainingPlanExternalId`)
+and the seeded nutrition plan (`QaNutritionPlanExternalId`) to that same response
+via `QuestionnaireResponseId`. This unblocks interactive QA of the "Dotaznik"
+answers tabs on the training plan (#697) and nutrition plan (#698) detail pages —
+without it, both tabs can only ever render their empty state against seed data.
+
+### Stable GUIDs
+
+| Constant | Value | What it maps to |
+|---|---|---|
+| `QaQuestionnaireExternalId` | `00000000-0000-0000-7777-000000000000` | `Questionnaire.PublicId` |
+| `QaQuestionnaireResponseExternalId` | `00000000-0000-0000-7777-000000000099` | `QuestionnaireResponse.PublicId` |
+| `QaQuestionSectionBasicInfoId` | `00000000-0000-0000-7777-000000000001` | Section header, OrderIndex 0 |
+| `QaQuestionGoalId` | `00000000-0000-0000-7777-000000000002` | short_text question, OrderIndex 1 |
+| `QaQuestionWeightId` | `00000000-0000-0000-7777-000000000003` | number question, OrderIndex 2 |
+| `QaQuestionTrainingDaysId` | `00000000-0000-0000-7777-000000000004` | single_choice question, OrderIndex 3 |
+| `QaQuestionSectionHealthId` | `00000000-0000-0000-7777-000000000005` | Section header, OrderIndex 4 |
+| `QaQuestionEnergyId` | `00000000-0000-0000-7777-000000000006` | scale question, OrderIndex 5 |
+| `QaQuestionInjuriesId` | `00000000-0000-0000-7777-000000000007` | multi_select question, OrderIndex 6 |
+| `QaQuestionMedicalDocId` | `00000000-0000-0000-7777-000000000008` | file_upload question, OrderIndex 7 |
+
+### Ownership
+
+- Questionnaire template: `ProfessionalId = TrainerUserId` (`22222222-...`) — owned by the QA trainer.
+- Response: `ClientId = ClientUserId` (`11111111-...`), `ProfessionalId = TrainerUserId`, `LinkId` = the existing QA trainer↔client `ClientProfessionalLink`.
+- Response `Status = Submitted`, `SubmittedAt` = a fixed time-of-day 2 days before the seed run (`DateTime.UtcNow.Date.AddDays(-2).AddHours(9)`, computed once at first seed and never overwritten on re-seed).
+
+> **Note on cross-professional visibility.** The response's `ProfessionalId` is
+> the QA trainer. The trainer/nutritionist-scoped `GetClientResponsesEndpoint`
+> (`GET /trainer/clients/{clientPublicId}/questionnaire-responses`, used by the
+> web portal's `PlanQuestionnairePanel`) filters by
+> `r.ProfessionalId == <calling professional>`, so today only the QA trainer's
+> own view resolves this response through that specific endpoint — the QA
+> nutritionist's view of the nutrition plan's questionnaire panel will show it
+> as "linked" (via `NutritionPlan.QuestionnaireResponseId`) but the panel's
+> `submitted.find(...)` lookup will come up empty until #697/#698's
+> implementers reconcile the professional-scoping. This is a known
+> limitation surfaced during #715, not something this seed fixes — the
+> client-facing `GetClientResponseByIdEndpoint` (scoped by `ClientId` only)
+> already supports the shared-response shape natively.
+
+### Template shape
+
+```
+Questionnaire "QA Onboarding Questionnaire" (ExternalId = 00000000-0000-0000-7777-000000000000)
+  Section "Basic Info" (OrderIndex 0)
+    Q1 short_text     "What is your main fitness goal?"
+    Q2 number         "What is your current body weight (kg)?"     Config: {"min":30,"max":250,"unit":"kg","step":1}
+    Q3 single_choice  "How many days per week do you currently train?"  Config: {"options":["0","1-2","3-4","5+"]}
+  Section "Health & Preferences" (OrderIndex 4)
+    Q4 scale          "Rate your current energy level"             Config: {"min":1,"max":10,"labelMin":"Low","labelMax":"High"}
+    Q5 multi_select   "Which areas have you previously injured?"   Config: {"options":["Knee","Back","Shoulder","None"]}
+    Q6 file_upload    "Upload a recent medical clearance document (optional)"
+```
+
+### Submitted answers (as `formatAnswerValue` renders them)
+
+| Question | Raw value stored | Rendered value |
+|---|---|---|
+| Q1 — goal (short_text) | `ValueText = "Build lean muscle and improve overall strength"` | `Build lean muscle and improve overall strength` |
+| Q2 — weight (number) | `ValueNumber = 78` | `78` |
+| Q3 — training days (single_choice) | `ValueText = "3-4"` | `3-4` |
+| Q4 — energy (scale) | `ValueNumber = 7` | `7 / 10` |
+| Q5 — injuries (multi_select) | `ValueJson = "[\"Knee\",\"Shoulder\"]"` | `Knee, Shoulder` |
+| Q6 — medical doc (file_upload) | `FileUrl = "https://storage.qa.fitnessplatform.test/qa-fixtures/medical-clearance-checkup.pdf"` | link text `medical-clearance-checkup.pdf` |
+
+### Curl recipe — fetch as the QA trainer
+
+```bash
+API_URL=$(scripts/test-env ports | jq -r '.api_url')
+
+ACCESS=$(curl -sk -X POST "$API_URL/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"qa.trainer@fitnessplatform.test","password":"<QA_SEED_PASSWORD>"}' \
+  | jq -r '.accessToken')
+
+curl -sk -H "Authorization: Bearer $ACCESS" \
+  "$API_URL/trainer/clients/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/questionnaire-responses" | jq '.'
+```
+
+---
+
 ## CI
 
 The `e2e.yml` GitHub Actions workflow sources `JWT_SECRET` and `QA_SEED_PASSWORD` from repository-level secrets (`secrets.JWT_SECRET`, `secrets.QA_SEED_PASSWORD`) and writes them into `.env.test` before `npm run e2e:up`. Configure these secrets at `Settings → Secrets and variables → Actions` before the first CI run, or the workflow will fail at the env-file write step with a clear error message.

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/cn';
 import { ROLES, type Role } from './register-types';
 
@@ -9,13 +10,14 @@ interface RegisterStep1Props {
 }
 
 export function RegisterStep1({ selectedRoles, onToggleRole, onContinue }: RegisterStep1Props) {
+  const { t } = useTranslation();
   return (
     <>
       <div className="auth-title">
-        Vytvoření <span>účtu</span>
+        {t('auth.registerHeroTitle')} <span>{t('auth.registerHeroTitleHighlight')}</span>
       </div>
       <div className="auth-sub">
-        Kdo jste? Obsah aplikace přizpůsobíme vaší roli.
+        {t('auth.registerStep1Subtitle')}
       </div>
 
       <div className="auth-role-grid">
@@ -30,14 +32,14 @@ export function RegisterStep1({ selectedRoles, onToggleRole, onContinue }: Regis
             )}
           >
             <div className="auth-role-icon">{role.icon}</div>
-            <div className="auth-role-name">{role.name}</div>
-            <div className="auth-role-desc">{role.desc}</div>
+            <div className="auth-role-name">{t(role.nameKey)}</div>
+            <div className="auth-role-desc">{t(role.descKey)}</div>
           </button>
         ))}
       </div>
 
       <p style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12, marginTop: -8, textAlign: 'center' }}>
-        Můžete vybrat i obě role současně.
+        {t('auth.registerStep1MultiRoleHint')}
       </p>
 
       <button
@@ -47,12 +49,12 @@ export function RegisterStep1({ selectedRoles, onToggleRole, onContinue }: Regis
         className="btn-auth-primary"
         style={{ marginTop: 4 }}
       >
-        Pokračovat →
+        {t('auth.continueButton')}
       </button>
 
       <div className="auth-footer">
-        Máte účet?{' '}
-        <Link to="/login">Přihlaste se</Link>
+        {t('auth.hasAccountRegister')}{' '}
+        <Link to="/login">{t('auth.loginLinkText')}</Link>
       </div>
     </>
   );

@@ -93,7 +93,7 @@ export default function VerifyEmailPage() {
           <div className="auth-logo-icon">GF</div>
           <div>
             <div className="auth-logo-name">GoodFellas Platform</div>
-            <div className="auth-logo-sub">Fitness &amp; výživa</div>
+            <div className="auth-logo-sub">{t('auth.tagline')}</div>
           </div>
         </div>
 
@@ -133,7 +133,7 @@ export default function VerifyEmailPage() {
 
             {user?.email && (
               <div style={{ marginTop: 16, padding: '12px 14px', background: 'var(--bg2)', borderRadius: 'var(--radius-md)', fontSize: 13, color: 'var(--text2)', textAlign: 'left' }}>
-                <span style={{ color: 'var(--text3)', fontSize: 11, display: 'block', marginBottom: 3 }}>Email:</span>
+                <span style={{ color: 'var(--text3)', fontSize: 11, display: 'block', marginBottom: 3 }}>{t('auth.emailColonLabel')}</span>
                 <span style={{ fontWeight: 500, color: 'var(--text)' }}>{user.email}</span>
               </div>
             )}

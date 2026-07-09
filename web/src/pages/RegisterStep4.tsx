@@ -43,16 +43,15 @@ export function RegisterStep4({ email }: RegisterStep4Props) {
       </div>
 
       <div className="auth-success-title">
-        Účet byl vytvořen!
+        {t('auth.registerStep4Title')}
       </div>
       <div className="auth-success-text">
-        Poslali jsme vám ověřovací email. Klikněte na odkaz v emailu
-        pro aktivaci účtu.
+        {t('auth.registerStep4Text')}
       </div>
 
       {/* Email confirmation box */}
       <div style={{ marginTop: 20, borderRadius: 'var(--radius-md)', background: 'var(--bg2)', padding: 12 }}>
-        <div style={{ fontSize: 11, color: 'var(--text3)' }}>Email odeslán na:</div>
+        <div style={{ fontSize: 11, color: 'var(--text3)' }}>{t('auth.emailSentTo')}</div>
         <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{email}</div>
       </div>
 
@@ -62,11 +61,11 @@ export function RegisterStep4({ email }: RegisterStep4Props) {
         className="btn-auth-primary"
         style={{ marginTop: 16, textDecoration: 'none' }}
       >
-        Přejít na přihlášení
+        {t('auth.goToLoginButton')}
       </Link>
 
       <div style={{ marginTop: 12, fontSize: 13, color: 'var(--text3)' }}>
-        Email nedorazil?{' '}
+        {t('auth.emailNotArrived')}{' '}
         <button
           type="button"
           onClick={handleResend}

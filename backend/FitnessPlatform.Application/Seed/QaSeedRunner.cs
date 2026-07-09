@@ -177,6 +177,31 @@ public static class QaSeedRunner
     // Nutrition plan — Author = Nutri, Client = QA Client.
     public static readonly Guid QaNutritionPlanExternalId = new("dddddddd-eeee-ffff-0000-111111111111");
 
+    // -------------------------------------------------------------------------
+    // #715 — Questionnaire fixture: a submitted client response with a spread
+    // of question types, linked to BOTH the main training plan (dddddddd-...)
+    // and the nutrition plan (dddddddd-eeee-...) so the "Dotaznik" answers
+    // tabs on both plan-detail pages (#697, #698) render a populated response.
+    // -------------------------------------------------------------------------
+
+    /// <summary>Questionnaire template owned by the QA trainer.</summary>
+    public static readonly Guid QaQuestionnaireExternalId = new("00000000-0000-0000-7777-000000000000");
+
+    /// <summary>Submitted response, linked to both the training and nutrition plan.</summary>
+    public static readonly Guid QaQuestionnaireResponseExternalId = new("00000000-0000-0000-7777-000000000099");
+
+    // Section headers (Type="section" — non-answerable, rendered as group titles).
+    public static readonly Guid QaQuestionSectionBasicInfoId = new("00000000-0000-0000-7777-000000000001");
+    public static readonly Guid QaQuestionSectionHealthId    = new("00000000-0000-0000-7777-000000000005");
+
+    // Answerable questions — one per formatAnswerValue branch (web/src/components/questionnaire/questionnaire-helpers.tsx).
+    public static readonly Guid QaQuestionGoalId         = new("00000000-0000-0000-7777-000000000002"); // short_text
+    public static readonly Guid QaQuestionWeightId       = new("00000000-0000-0000-7777-000000000003"); // number
+    public static readonly Guid QaQuestionTrainingDaysId = new("00000000-0000-0000-7777-000000000004"); // single_choice
+    public static readonly Guid QaQuestionEnergyId       = new("00000000-0000-0000-7777-000000000006"); // scale
+    public static readonly Guid QaQuestionInjuriesId     = new("00000000-0000-0000-7777-000000000007"); // multi_select
+    public static readonly Guid QaQuestionMedicalDocId   = new("00000000-0000-0000-7777-000000000008"); // file_upload
+
     // MinIO blob keys (deterministic per QA fixture).
     public const string QaAvatarBlobKey    = "avatars/qa-client-11111111.png";
     public const string QaFoodImageBlobKey = "foods/qa-food-1.png";
@@ -295,6 +320,10 @@ public static class QaSeedRunner
             await EnsureFoodsAsync(mongo, NutriUserId, logger);
             await EnsureRecipesAsync(mongo, NutriUserId, logger);
             await EnsureNutritionPlanAsync(mongo, clientProfile.PublicId, NutriUserId, logger);
+
+            // #715 — Questionnaire template + submitted response, linked to both
+            // the training plan and the nutrition plan created just above.
+            await EnsureQuestionnaireFixtureAsync(db, mongo, logger);
 
             // Image blobs in MinIO — idempotent, bucket created if absent.
             await EnsureAvatarAsync(sp, logger);
@@ -1644,6 +1673,223 @@ public static class QaSeedRunner
         logger.LogInformation(
             "QA NutritionPlan created: externalId={ExternalId} clientId={ClientId}",
             QaNutritionPlanExternalId, clientProfilePublicId);
+    }
+
+    /// <summary>
+    /// Seeds a questionnaire template for the QA trainer with two sections and
+    /// six answerable question types, a SUBMITTED response for the QA client,
+    /// and links that response to both the main training plan and the seeded
+    /// nutrition plan via QuestionnaireResponseId (#715).
+    ///
+    /// The response is created directly against Postgres — bypassing the HTTP
+    /// CreateResponse/UpdateResponse/Submit endpoints, same as every other
+    /// Ensure* fixture in this file — with Status=Submitted and a SubmittedAt
+    /// timestamp, matching the shape the real submit path produces.
+    ///
+    /// Note on the response's ProfessionalId: it is set to the QA trainer (the
+    /// questionnaire's owner). The Postgres-side link-eligibility check in
+    /// TrainingPlans/NutritionPlans LinkQuestionnaireEndpoint compares
+    /// response.ProfessionalId against the CALLING professional, so a real
+    /// nutritionist-initiated "link questionnaire" HTTP call against this same
+    /// response would be rejected (403-equivalent ThrowError). This seed writes
+    /// the Mongo QuestionnaireResponseId field directly — bypassing that
+    /// HTTP-level check — to satisfy the fixture requirement that ONE response
+    /// renders on both the training and nutrition plan "Dotaznik" tabs. The
+    /// client-facing GetClientResponseByIdEndpoint (scoped by ClientId only,
+    /// not ProfessionalId) already supports this shape natively; the
+    /// trainer/nutritionist-scoped GetClientResponsesEndpoint used by the web
+    /// portal's PlanQuestionnairePanel filters by ProfessionalId, so only the
+    /// QA trainer's own view will show this response via that specific
+    /// endpoint today — a reconciliation left to #697/#698's implementers.
+    /// </summary>
+    private static async Task EnsureQuestionnaireFixtureAsync(
+        ApplicationDbContext db,
+        IMongoContext mongo,
+        ILogger logger)
+    {
+        // 1. Questionnaire template — two sections, six answerable question types.
+        var questionnaire = await db.Questionnaires
+            .Include(q => q.Questions)
+            .FirstOrDefaultAsync(q => q.PublicId == QaQuestionnaireExternalId);
+
+        if (questionnaire is null)
+        {
+            questionnaire = new Questionnaire
+            {
+                PublicId       = QaQuestionnaireExternalId,
+                ProfessionalId = TrainerUserId,
+                Title          = "QA Onboarding Questionnaire",
+                Description    = "Fixture questionnaire seeded for #715 — exercises every formatAnswerValue branch.",
+                IsActive       = true,
+                IsDefault      = false,
+                Questions =
+                [
+                    new QuestionnaireQuestion { PublicId = QaQuestionSectionBasicInfoId, OrderIndex = 0, Type = "section",      Label = "Basic Info" },
+                    new QuestionnaireQuestion { PublicId = QaQuestionGoalId,             OrderIndex = 1, Type = "short_text",    Label = "What is your main fitness goal?", IsRequired = true },
+                    new QuestionnaireQuestion { PublicId = QaQuestionWeightId,           OrderIndex = 2, Type = "number",        Label = "What is your current body weight (kg)?", IsRequired = true, Config = "{\"min\":30,\"max\":250,\"unit\":\"kg\",\"step\":1}" },
+                    new QuestionnaireQuestion { PublicId = QaQuestionTrainingDaysId,     OrderIndex = 3, Type = "single_choice", Label = "How many days per week do you currently train?", IsRequired = true, Config = "{\"options\":[\"0\",\"1-2\",\"3-4\",\"5+\"]}" },
+                    new QuestionnaireQuestion { PublicId = QaQuestionSectionHealthId,    OrderIndex = 4, Type = "section",      Label = "Health & Preferences" },
+                    new QuestionnaireQuestion { PublicId = QaQuestionEnergyId,           OrderIndex = 5, Type = "scale",         Label = "Rate your current energy level", IsRequired = true, Config = "{\"min\":1,\"max\":10,\"labelMin\":\"Low\",\"labelMax\":\"High\"}" },
+                    new QuestionnaireQuestion { PublicId = QaQuestionInjuriesId,         OrderIndex = 6, Type = "multi_select",  Label = "Which areas have you previously injured?", Config = "{\"options\":[\"Knee\",\"Back\",\"Shoulder\",\"None\"]}" },
+                    new QuestionnaireQuestion { PublicId = QaQuestionMedicalDocId,       OrderIndex = 7, Type = "file_upload",   Label = "Upload a recent medical clearance document (optional)" },
+                ],
+            };
+
+            db.Questionnaires.Add(questionnaire);
+            await db.SaveChangesAsync();
+            logger.LogInformation(
+                "QA Questionnaire created: externalId={ExternalId} title={Title}",
+                QaQuestionnaireExternalId, questionnaire.Title);
+        }
+        else
+        {
+            logger.LogInformation("QA Questionnaire already present: externalId={ExternalId}", QaQuestionnaireExternalId);
+        }
+
+        // 2. Submitted response for the QA client, against the QA trainer↔client link.
+        var response = await db.QuestionnaireResponses
+            .FirstOrDefaultAsync(r => r.PublicId == QaQuestionnaireResponseExternalId);
+
+        if (response is null)
+        {
+            var clientProfile = await db.ClientProfiles.FirstOrDefaultAsync(cp => cp.UserId == ClientUserId)
+                ?? throw new InvalidOperationException("QA ClientProfile must be seeded before the questionnaire fixture.");
+            var trainerProfile = await db.ProfessionalProfiles.FirstOrDefaultAsync(pp => pp.UserId == TrainerUserId)
+                ?? throw new InvalidOperationException("QA trainer ProfessionalProfile must be seeded before the questionnaire fixture.");
+            var link = await db.ClientProfessionalLinks
+                .FirstOrDefaultAsync(l => l.ClientProfileId == clientProfile.Id && l.ProfessionalProfileId == trainerProfile.Id)
+                ?? throw new InvalidOperationException("QA trainer↔client link must be seeded before the questionnaire fixture.");
+
+            // Anchored to a fixed time-of-day 2 days before the seed run, so
+            // re-seeding on a later day doesn't shift an already-created row.
+            var submittedAt = DateTime.UtcNow.Date.AddDays(-2).AddHours(9);
+
+            response = new QuestionnaireResponse
+            {
+                PublicId        = QaQuestionnaireResponseExternalId,
+                QuestionnaireId = questionnaire.Id,
+                ClientId        = ClientUserId,
+                ProfessionalId  = TrainerUserId,
+                LinkId          = link.Id,
+                Status          = QuestionnaireResponseStatus.Submitted,
+                SubmittedAt     = submittedAt,
+                Answers =
+                [
+                    new QuestionnaireAnswer
+                    {
+                        PublicId   = new Guid("00000000-0000-0000-7777-000000001002"),
+                        QuestionId = questionnaire.Questions.First(q => q.PublicId == QaQuestionGoalId).Id,
+                        ValueText  = "Build lean muscle and improve overall strength",
+                    },
+                    new QuestionnaireAnswer
+                    {
+                        PublicId    = new Guid("00000000-0000-0000-7777-000000001003"),
+                        QuestionId  = questionnaire.Questions.First(q => q.PublicId == QaQuestionWeightId).Id,
+                        ValueNumber = 78m,
+                    },
+                    new QuestionnaireAnswer
+                    {
+                        PublicId   = new Guid("00000000-0000-0000-7777-000000001004"),
+                        QuestionId = questionnaire.Questions.First(q => q.PublicId == QaQuestionTrainingDaysId).Id,
+                        ValueText  = "3-4",
+                    },
+                    new QuestionnaireAnswer
+                    {
+                        PublicId    = new Guid("00000000-0000-0000-7777-000000001006"),
+                        QuestionId  = questionnaire.Questions.First(q => q.PublicId == QaQuestionEnergyId).Id,
+                        ValueNumber = 7m,
+                    },
+                    new QuestionnaireAnswer
+                    {
+                        PublicId   = new Guid("00000000-0000-0000-7777-000000001007"),
+                        QuestionId = questionnaire.Questions.First(q => q.PublicId == QaQuestionInjuriesId).Id,
+                        ValueJson  = "[\"Knee\",\"Shoulder\"]",
+                    },
+                    new QuestionnaireAnswer
+                    {
+                        PublicId   = new Guid("00000000-0000-0000-7777-000000001008"),
+                        QuestionId = questionnaire.Questions.First(q => q.PublicId == QaQuestionMedicalDocId).Id,
+                        FileUrl    = "https://storage.qa.fitnessplatform.test/qa-fixtures/medical-clearance-checkup.pdf",
+                    },
+                ],
+            };
+
+            db.QuestionnaireResponses.Add(response);
+            await db.SaveChangesAsync();
+            logger.LogInformation(
+                "QA QuestionnaireResponse created: externalId={ExternalId} submittedAt={SubmittedAt}",
+                QaQuestionnaireResponseExternalId, submittedAt);
+        }
+        else
+        {
+            logger.LogInformation("QA QuestionnaireResponse already present: externalId={ExternalId}", QaQuestionnaireResponseExternalId);
+        }
+
+        // 3. Link the response to the main training plan (idempotent: only sets
+        //    the field the first time — a re-run must never clobber a value a
+        //    later test run or manual QA click has since changed).
+        var trainingPlan = await mongo.TrainingPlans
+            .Find(p => p.ExternalId == QaTrainingPlanExternalId)
+            .FirstOrDefaultAsync();
+
+        if (trainingPlan is null)
+        {
+            logger.LogWarning(
+                "QA TrainingPlan not found while linking questionnaire response: externalId={ExternalId}",
+                QaTrainingPlanExternalId);
+        }
+        else if (trainingPlan.QuestionnaireResponseId is not null)
+        {
+            logger.LogInformation(
+                "QA TrainingPlan already linked to a QuestionnaireResponse: externalId={ExternalId}",
+                QaTrainingPlanExternalId);
+        }
+        else
+        {
+            var filter = Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, QaTrainingPlanExternalId)
+                       & Builders<TrainingPlan>.Filter.Eq(p => p.Version, trainingPlan.Version);
+            var update = Builders<TrainingPlan>.Update
+                .Set(p => p.QuestionnaireResponseId, QaQuestionnaireResponseExternalId)
+                .Set(p => p.DateUpdated, DateTime.UtcNow)
+                .Set(p => p.Version, trainingPlan.Version + 1);
+
+            await mongo.TrainingPlans.UpdateOneAsync(filter, update);
+            logger.LogInformation(
+                "QA TrainingPlan linked to QuestionnaireResponse: externalId={ExternalId} responseId={ResponseId}",
+                QaTrainingPlanExternalId, QaQuestionnaireResponseExternalId);
+        }
+
+        // 4. Link the response to the seeded nutrition plan — same idempotency rule.
+        var nutritionPlan = await mongo.NutritionPlans
+            .Find(p => p.ExternalId == QaNutritionPlanExternalId)
+            .FirstOrDefaultAsync();
+
+        if (nutritionPlan is null)
+        {
+            logger.LogWarning(
+                "QA NutritionPlan not found while linking questionnaire response: externalId={ExternalId}",
+                QaNutritionPlanExternalId);
+        }
+        else if (nutritionPlan.QuestionnaireResponseId is not null)
+        {
+            logger.LogInformation(
+                "QA NutritionPlan already linked to a QuestionnaireResponse: externalId={ExternalId}",
+                QaNutritionPlanExternalId);
+        }
+        else
+        {
+            var filter = Builders<NutritionPlan>.Filter.Eq(p => p.ExternalId, QaNutritionPlanExternalId)
+                       & Builders<NutritionPlan>.Filter.Eq(p => p.Version, nutritionPlan.Version);
+            var update = Builders<NutritionPlan>.Update
+                .Set(p => p.QuestionnaireResponseId, QaQuestionnaireResponseExternalId)
+                .Set(p => p.DateUpdated, DateTime.UtcNow)
+                .Set(p => p.Version, nutritionPlan.Version + 1);
+
+            await mongo.NutritionPlans.UpdateOneAsync(filter, update);
+            logger.LogInformation(
+                "QA NutritionPlan linked to QuestionnaireResponse: externalId={ExternalId} responseId={ResponseId}",
+                QaNutritionPlanExternalId, QaQuestionnaireResponseExternalId);
+        }
     }
 
     private static async Task EnsureAvatarAsync(IServiceProvider sp, ILogger logger)
