@@ -1619,7 +1619,8 @@
       "saved": "Einstellungen gespeichert",
       "saveError": "Einstellungen konnten nicht gespeichert werden",
       "overrideSaved": "Individuelle Einstellung gespeichert",
-      "overrideDeleted": "Individuelle Einstellung entfernt — Standardeinstellungen werden verwendet"
+      "overrideDeleted": "Individuelle Einstellung entfernt — Standardeinstellungen werden verwendet",
+      "overrideDialogHeadline": "Individueller Check-in-Zeitplan für diesen Klienten und den Beruf {{profession}}. Nicht angekreuzte Felder folgen Ihren Standardeinstellungen."
     },
     "settings": {
       "deadlineLabel": "Antwortfrist",

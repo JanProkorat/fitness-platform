@@ -153,7 +153,15 @@ export function OverrideDialog({ override, settings, onClose }: OverrideDialogPr
       data.useDefaultDeadline;
 
     if (allDefault) {
-      deleteMutation.mutate();
+      // Only a persisted override has a real id — the client-detail Check-ins
+      // tab opens this dialog with a synthetic, never-saved override (id: '')
+      // when no override exists yet. Firing DELETE for that case 404s against
+      // a row that never existed; no-op and close instead.
+      if (override.id) {
+        deleteMutation.mutate();
+      } else {
+        onClose();
+      }
       return;
     }
 
@@ -205,6 +213,9 @@ export function OverrideDialog({ override, settings, onClose }: OverrideDialogPr
         </>
       }
     >
+      <p className="text-[12px] text-text3 mb-4">
+        {t('weeklyCheckIn.config.overrideDialogHeadline', { profession: professionLabel })}
+      </p>
       <form onSubmit={handleSubmit(onSubmit)}>
         {/* Enabled */}
         <div className="mb-4">

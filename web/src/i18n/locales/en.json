@@ -1620,7 +1620,8 @@
       "saved": "Settings saved",
       "saveError": "Failed to save settings",
       "overrideSaved": "Override saved",
-      "overrideDeleted": "Override removed — using defaults"
+      "overrideDeleted": "Override removed — using defaults",
+      "overrideDialogHeadline": "Per-client check-in schedule override for {{profession}}. Unchecked fields follow your default settings."
     },
     "settings": {
       "deadlineLabel": "Response deadline",
