@@ -966,9 +966,11 @@ function ActivePlansContent({
     },
   })
 
-  // Full nutrition plan query (enabled only when nutrition plan exists)
+  // Full nutrition plan query (enabled only when nutrition plan exists).
+  // Canonical key shared with Today/Nutrition tabs so publish/update
+  // SignalR invalidations refresh this screen too (#603).
   const nutritionFullQuery = useQuery({
-    queryKey: ['nutrition-full-plan'],
+    queryKey: ['nutrition-plan-full'],
     queryFn: getFullPlan,
     enabled: nutritionPlan !== null,
     staleTime: 60_000,
@@ -1078,7 +1080,7 @@ function ActivePlansContent({
     if (activeTab === 'training') {
       queryClient.invalidateQueries({ queryKey: ['training-full-plan', trainingPlan?.planId ?? ''] })
     } else {
-      queryClient.invalidateQueries({ queryKey: ['nutrition-full-plan'] })
+      queryClient.invalidateQueries({ queryKey: ['nutrition-plan-full'] })
     }
   }, [queryClient, activeTab, trainingPlan])
 
@@ -1218,7 +1220,7 @@ export default function PlansScreen() {
     queryClient.invalidateQueries({ queryKey: ['client-plans-active'] })
     queryClient.invalidateQueries({ queryKey: ['collaborations'] })
     queryClient.invalidateQueries({ queryKey: ['training-full-plan'] })
-    queryClient.invalidateQueries({ queryKey: ['nutrition-full-plan'] })
+    queryClient.invalidateQueries({ queryKey: ['nutrition-plan-full'] })
   }, [queryClient])
 
   const activePlans = activePlansQuery.data?.items ?? []
