@@ -93,7 +93,6 @@ export default function App() {
                 <Route path="/clients/:id" element={<ClientDetailPage />} />
                 <Route path="/clients/:id/nutrition-goals" element={<ClientNutritionGoalsPage />} />
                 <Route path="/clients/:id/nutrition" element={<ClientNutritionPage />} />
-                <Route path="/clients/:id/training" element={<ClientTrainingPage />} />
               </Route>
 
               {/* Nutritionist only */}
@@ -115,6 +114,7 @@ export default function App() {
               >
                 <Route path="/exercises" element={<ExercisesPage />} />
                 <Route path="/section-templates" element={<SectionTemplatesPage />} />
+                <Route path="/clients/:id/training" element={<ClientTrainingPage />} />
                 <Route path="/clients/:id/training-plans/:planId" element={<TrainingPlanPage />} />
               </Route>
             </Route>

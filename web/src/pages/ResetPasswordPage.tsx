@@ -8,6 +8,8 @@ import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { DarkModeToggle } from '@/components/DarkModeToggle';
 import { apiClient, ApiException } from '@/api/client';
 import { cn } from '@/lib/cn';
+import { PasswordStrengthMeter } from '@/components/PasswordStrengthMeter';
+import { PASSWORD_REQUIREMENTS } from './register-types';
 
 const PasswordInput = forwardRef<
   HTMLInputElement,
@@ -41,45 +43,11 @@ const PasswordInput = forwardRef<
 });
 PasswordInput.displayName = 'PasswordInput';
 
-function PasswordStrength({ password }: { password: string }) {
-  let score = 0;
-  if (password.length >= 8) score++;
-  if (/[A-Z]/.test(password)) score++;
-  if (/[0-9]/.test(password)) score++;
-  if (/[^A-Za-z0-9]/.test(password)) score++;
-
-  const strengthClass = (i: number) => {
-    if (i >= score) return '';
-    if (score === 1) return 'weak';
-    if (score === 2) return 'medium';
-    return 'strong';
-  };
-
-  return (
-    <div className="auth-strength">
-      {[0, 1, 2, 3].map((i) => (
-        <div
-          key={i}
-          className={cn('auth-strength-bar', strengthClass(i))}
-        />
-      ))}
-    </div>
-  );
-}
-
-// labelKey is an i18n key (not literal text) — resolve with t() at render time.
-const reqs = [
-  { test: (v: string) => v.length >= 8, labelKey: 'auth.passwordReqMinLength' },
-  { test: (v: string) => /[A-Z]/.test(v), labelKey: 'auth.passwordReqUppercase' },
-  { test: (v: string) => /[a-z]/.test(v), labelKey: 'auth.passwordReqLowercase' },
-  { test: (v: string) => /[0-9]/.test(v), labelKey: 'auth.passwordReqDigit' },
-];
-
 function PasswordRequirements({ password }: { password: string }) {
   const { t } = useTranslation();
   return (
     <div className="auth-pw-reqs">
-      {reqs.map(({ test, labelKey }) => {
+      {PASSWORD_REQUIREMENTS.map(({ test, labelKey }) => {
         const met = test(password);
         return (
           <div key={labelKey} className={cn('auth-pw-req', met && 'met')}>
@@ -246,7 +214,7 @@ export default function ResetPasswordPage() {
               placeholder={t('auth.newPasswordPlaceholder')}
               {...register('newPassword')}
             />
-            <PasswordStrength password={watchedPassword} />
+            <PasswordStrengthMeter password={watchedPassword} />
             <PasswordRequirements password={watchedPassword} />
             {errors.newPassword && (
               <p className="mt-1 text-xs text-red">

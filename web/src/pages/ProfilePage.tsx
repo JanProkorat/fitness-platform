@@ -4,11 +4,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/auth';
-import api from '@/lib/api';
 import { PageHeader } from '@/components/layout';
 import { useToastStore } from '@/stores/toast';
-import { showApiError } from '@/lib/api-errors';
 import { Dialog, Button, EditableAvatar } from '@/components/ui';
 import { QuestionnaireList, QuestionnaireEditor, type QuestionnaireEditorHandle } from '@/components/questionnaire';
 import { RolesSection } from '@/components/RolesSection';
@@ -18,6 +17,13 @@ import {
   requestUserAvatarUploadUrl,
   confirmUserAvatar,
 } from '@/api/avatar';
+import {
+  getMyProfile,
+  updateMyProfile,
+  getTrainerProfile,
+  updateTrainerProfile,
+  profileKeys,
+} from '@/api/profile';
 
 function parseJsonArray(value: string | null | undefined): string[] {
   if (!value) return [];
@@ -49,8 +55,7 @@ export default function ProfilePage() {
   const [checkInSaving, setCheckInSaving] = useState(false);
   const [checkInDirty, setCheckInDirty] = useState(false);
 
-  // Personal fields (API-backed)
-  const [saving, setSaving] = useState(false);
+  // Personal fields (API-backed) — `saving` is derived below from saveMutation.
   const addToast = useToastStore((s) => s.addToast);
 
   const schema = z.object({
@@ -109,9 +114,17 @@ export default function ProfilePage() {
   const [showInSearch, setShowInSearch] = useState(true);
   const [acceptNewClients, setAcceptNewClients] = useState(true);
 
-  // Snapshot of loaded state for dirty tracking
-  const initialState = useRef<string>('');
-  const [loaded, setLoaded] = useState(false);
+  // Snapshot of loaded state for dirty tracking. Deliberately a state value
+  // (not a ref) — reading a ref's `.current` during render is a lint error
+  // under this project's React Compiler config (react-hooks/refs); `isDirty`
+  // below needs to compare against this baseline on every render.
+  const [initialSnapshot, setInitialSnapshot] = useState('');
+  // Guards the hydration block below so it only seeds local edit state once
+  // per query settle — useQuery re-renders on every refetch/invalidate, and
+  // re-hydrating on those would stomp in-progress edits. `null` (not `false`)
+  // so the guard matches the `ref.current == null` pattern this project's
+  // react-hooks/refs lint rule requires for a ref read during render.
+  const hydratedRef = useRef<true | null>(null);
 
   const getCurrentSnapshot = () => JSON.stringify({
     phone, bio, city, estimatedPrice, specializations, certificates,
@@ -119,86 +132,97 @@ export default function ProfilePage() {
     website, showInSearch, acceptNewClients,
   });
 
-  // Fetch all profile data, then take snapshot and mark as loaded
+  const queryClient = useQueryClient();
+
+  const userQuery = useQuery({
+    queryKey: profileKeys.me,
+    queryFn: getMyProfile,
+  });
+
+  const trainerQuery = useQuery({
+    queryKey: profileKeys.trainer,
+    queryFn: getTrainerProfile,
+    enabled: Boolean(isTrainer),
+  });
+
   useEffect(() => {
-    (async () => {
-      try {
-        let phoneVal = '';
-        let bioVal = '';
-        let cityVal = '';
-        let estimatedPriceVal = '';
-        let specializationsVal: string[] = [];
-        let certificatesVal: string[] = [];
-        let languagesVal: string[] = [];
-        let collaborationTypeVal = 'both';
-        let maxClientsVal = 15;
-        let linkedinVal = '';
-        let instagramVal = '';
-        let websiteVal = '';
-        let showInSearchVal = true;
-        let acceptNewClientsVal = true;
+    if (userQuery.isError) {
+      addToast(t('profile.loadError'), 'error');
+    }
+  }, [userQuery.isError, addToast, t]);
 
-        // Fetch phone and avatar from user profile
-        const userPromise = api.get('/users/me').then(({ data }) => {
-          phoneVal = data.phoneNumber ?? '';
-          setPhone(phoneVal);
-          setAvatarSrc(data.avatarBlobUrl ?? null);
-        }).catch((err) => {
-          showApiError(err, 'profile.loadError');
-        });
+  useEffect(() => {
+    if (trainerQuery.isError) {
+      addToast(t('profile.trainerProfileLoadError'), 'error');
+    }
+  }, [trainerQuery.isError, addToast, t]);
 
-        // Fetch trainer profile (if applicable)
-        const trainerPromise = isTrainer
-          ? api.get('/trainer/profile').then(({ data }) => {
-              bioVal = data.bio ?? '';
-              cityVal = data.city ?? '';
-              estimatedPriceVal = data.estimatedPrice ?? '';
-              specializationsVal = parseJsonArray(data.specializations);
-              certificatesVal = parseJsonArray(data.certificates);
-              languagesVal = parseJsonArray(data.languages);
-              collaborationTypeVal = data.collaborationType ?? 'both';
-              maxClientsVal = data.maxClients ?? 15;
-              linkedinVal = data.linkedIn ?? '';
-              instagramVal = data.instagram ?? '';
-              websiteVal = data.website ?? '';
-              showInSearchVal = data.showInSearch ?? true;
-              acceptNewClientsVal = data.acceptNewClients ?? true;
+  // `isFetched` flips to true after the first settle (success OR error) —
+  // mirrors the previous fetch effect's `finally { setLoaded(true) }`, which
+  // marked the page ready for dirty-tracking regardless of per-request errors.
+  const loaded = userQuery.isFetched && (!isTrainer || trainerQuery.isFetched);
 
-              setBio(bioVal);
-              setCity(cityVal);
-              setEstimatedPrice(estimatedPriceVal);
-              setSpecializations(specializationsVal);
-              setCertificates(certificatesVal);
-              setLanguages(languagesVal);
-              setCollaborationType(collaborationTypeVal);
-              setMaxClients(maxClientsVal);
-              setLinkedin(linkedinVal);
-              setInstagram(instagramVal);
-              setWebsite(websiteVal);
-              setShowInSearch(showInSearchVal);
-              setAcceptNewClients(acceptNewClientsVal);
-            }).catch((err) => {
-              showApiError(err, 'profile.trainerProfileLoadError');
-            })
-          : Promise.resolve();
+  // Hydrate local edit state + take the initial dirty-tracking snapshot once
+  // both queries have settled. Local state (not the query cache) backs the
+  // controlled inputs below, so edits don't get overwritten by background
+  // refetches.
+  //
+  // Deliberately done during render (React's "adjusting state when a prop
+  // changes" pattern — see https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes)
+  // rather than in a useEffect: calling several setState functions inside an
+  // effect body is flagged by this project's react-hooks/set-state-in-effect
+  // rule (cascading-render risk). Guarding with `hydratedRef` keeps this to a
+  // single pass — React re-renders immediately with the updated state before
+  // committing, so there's no visible flash.
+  if (hydratedRef.current == null) {
+    if (loaded) {
+      hydratedRef.current = true;
 
-        await Promise.all([userPromise, trainerPromise]);
+      const u = userQuery.data;
+      const tp = trainerQuery.data;
 
-        // Take snapshot from the fetched values directly, not from React state
-        initialState.current = JSON.stringify({
-          phone: phoneVal, bio: bioVal, city: cityVal, estimatedPrice: estimatedPriceVal,
-          specializations: specializationsVal, certificates: certificatesVal,
-          languages: languagesVal, collaborationType: collaborationTypeVal,
-          maxClients: maxClientsVal, linkedin: linkedinVal, instagram: instagramVal,
-          website: websiteVal, showInSearch: showInSearchVal, acceptNewClients: acceptNewClientsVal,
-        });
-      } finally {
-        setLoaded(true);
-      }
-    })();
-  }, [isTrainer]);
+      const phoneVal = u?.phoneNumber ?? '';
+      const bioVal = tp?.bio ?? '';
+      const cityVal = tp?.city ?? '';
+      const estimatedPriceVal = tp?.estimatedPrice ?? '';
+      const specializationsVal = parseJsonArray(tp?.specializations);
+      const certificatesVal = parseJsonArray(tp?.certificates);
+      const languagesVal = parseJsonArray(tp?.languages);
+      const collaborationTypeVal = tp?.collaborationType ?? 'both';
+      const maxClientsVal = tp?.maxClients ?? 15;
+      const linkedinVal = tp?.linkedIn ?? '';
+      const instagramVal = tp?.instagram ?? '';
+      const websiteVal = tp?.website ?? '';
+      const showInSearchVal = tp?.showInSearch ?? true;
+      const acceptNewClientsVal = tp?.acceptNewClients ?? true;
 
-  const isDirty = loaded && getCurrentSnapshot() !== initialState.current;
+      setPhone(phoneVal);
+      setAvatarSrc(u?.avatarBlobUrl ?? null);
+      setBio(bioVal);
+      setCity(cityVal);
+      setEstimatedPrice(estimatedPriceVal);
+      setSpecializations(specializationsVal);
+      setCertificates(certificatesVal);
+      setLanguages(languagesVal);
+      setCollaborationType(collaborationTypeVal);
+      setMaxClients(maxClientsVal);
+      setLinkedin(linkedinVal);
+      setInstagram(instagramVal);
+      setWebsite(websiteVal);
+      setShowInSearch(showInSearchVal);
+      setAcceptNewClients(acceptNewClientsVal);
+
+      setInitialSnapshot(JSON.stringify({
+        phone: phoneVal, bio: bioVal, city: cityVal, estimatedPrice: estimatedPriceVal,
+        specializations: specializationsVal, certificates: certificatesVal,
+        languages: languagesVal, collaborationType: collaborationTypeVal,
+        maxClients: maxClientsVal, linkedin: linkedinVal, instagram: instagramVal,
+        website: websiteVal, showInSearch: showInSearchVal, acceptNewClients: acceptNewClientsVal,
+      }));
+    }
+  }
+
+  const isDirty = loaded && getCurrentSnapshot() !== initialSnapshot;
 
   // Combined dirty state for navigation guard
   const anyDirty = isDirty || questionnaireDirty || checkInDirty;
@@ -216,21 +240,23 @@ export default function ProfilePage() {
   const location = useLocation();
   const [pendingNav, setPendingNav] = useState<string | null>(null);
 
+  // Single effect covering both in-app navigation vectors — back/forward
+  // (popstate) and programmatic navigation (react-router's <Link>/navigate(),
+  // which goes through history.pushState). These previously lived in two
+  // separate effects with identical deps and both funneled into
+  // `setPendingNav`; consolidated into one registration/cleanup pair (#687).
   useEffect(() => {
     if (!anyDirty) return;
-    const handler = () => {
-      window.history.pushState(null, '', location.pathname + location.search);
+    const currentPath = location.pathname + location.search;
+
+    const onPopState = () => {
+      window.history.pushState(null, '', currentPath);
       setPendingNav('__back__');
     };
-    window.addEventListener('popstate', handler);
-    window.history.pushState(null, '', location.pathname + location.search);
-    return () => window.removeEventListener('popstate', handler);
-  }, [anyDirty, location.pathname, location.search]);
+    window.addEventListener('popstate', onPopState);
+    window.history.pushState(null, '', currentPath);
 
-  useEffect(() => {
-    if (!anyDirty) return;
     const origPush = window.history.pushState.bind(window.history);
-    const currentPath = location.pathname + location.search;
     window.history.pushState = function (...args: Parameters<typeof origPush>) {
       const url = typeof args[2] === 'string' ? args[2] : '';
       if (url && url !== currentPath && !url.startsWith(currentPath + '#')) {
@@ -239,14 +265,18 @@ export default function ProfilePage() {
       }
       return origPush(...args);
     };
-    return () => { window.history.pushState = origPush; };
+
+    return () => {
+      window.removeEventListener('popstate', onPopState);
+      window.history.pushState = origPush;
+    };
   }, [anyDirty, location.pathname, location.search]);
 
   const confirmLeave = () => {
     const target = pendingNav;
     setPendingNav(null);
     // Reset dirty states to allow navigation
-    initialState.current = getCurrentSnapshot();
+    setInitialSnapshot(getCurrentSnapshot());
     setQuestionnaireDirty(false);
     // resetDirty on the handle is required (not just setCheckInDirty(false)):
     // without it, ProfessionBlock's isDirty useEffect re-fires onDirtyChange(true)
@@ -259,20 +289,18 @@ export default function ProfilePage() {
     }
   };
 
-  const onSave = async (data: PersonalForm) => {
-    setSaving(true);
-    try {
+  const saveMutation = useMutation({
+    mutationFn: async (data: PersonalForm) => {
       // Update user profile (name + phone)
-      await api.put('/users/me', {
+      await updateMyProfile({
         firstName: data.firstName,
         lastName: data.lastName,
         phoneNumber: phone || null,
       });
-      setUser({ ...user!, firstName: data.firstName, lastName: data.lastName });
 
       // Update trainer/professional profile
       if (isTrainer) {
-        await api.put('/trainer/profile', {
+        await updateTrainerProfile({
           bio: bio || null,
           specialization: specializations.filter(Boolean).join(', ') || null,
           city: city || null,
@@ -289,15 +317,23 @@ export default function ProfilePage() {
           acceptNewClients,
         });
       }
-
-      initialState.current = getCurrentSnapshot();
+    },
+    onSuccess: (_result, data) => {
+      setUser({ ...user!, firstName: data.firstName, lastName: data.lastName });
+      setInitialSnapshot(getCurrentSnapshot());
       addToast(t('profile.saved'), 'success');
-    } catch {
+      queryClient.invalidateQueries({ queryKey: profileKeys.me });
+      if (isTrainer) {
+        queryClient.invalidateQueries({ queryKey: profileKeys.trainer });
+      }
+    },
+    onError: () => {
       addToast(t('profile.saveError'), 'error');
-    } finally {
-      setSaving(false);
-    }
-  };
+    },
+  });
+
+  const onSave = (data: PersonalForm) => saveMutation.mutate(data);
+  const saving = saveMutation.isPending;
 
   const userInitials = user
     ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase()

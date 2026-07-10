@@ -4,6 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useToastStore } from '@/stores/toast';
 import { getClientMeasurements } from '@/api/measurements';
 import type { MeasurementDto } from '@/api/generated';
+import { formatClientDate } from '@/lib/date-format';
+import { EmptyState } from '@/components/clients/EmptyState';
 
 interface MereniTabProps {
   clientId: string;
@@ -260,24 +262,22 @@ export function MereniTab({ clientId, targetWeightKg }: MereniTabProps) {
 
       {/* Empty state */}
       {!isPending && !isError && !hasData && (
-        <div className="flex flex-col items-center gap-3 py-16 text-center">
-          <div className="text-[32px] opacity-40">📏</div>
-          <div className="text-[14px] font-medium text-text2">
-            {t('clientDetail.mereni.emptyTitle')}
-          </div>
-          <div className="text-[13px] text-text3 max-w-xs">
-            {t('clientDetail.mereni.emptyDescription')}
-          </div>
-          <button
-            type="button"
-            className="mt-1 text-[13px] font-semibold text-accent hover:underline bg-transparent border-none cursor-pointer"
-            onClick={() =>
-              addToast(t('clientDetail.mereni.addMeasurementPlaceholder'), 'success')
-            }
-          >
-            + {t('clientDetail.mereni.addFirstMeasurement')}
-          </button>
-        </div>
+        <EmptyState
+          icon="📏"
+          title={t('clientDetail.mereni.emptyTitle')}
+          description={t('clientDetail.mereni.emptyDescription')}
+          action={
+            <button
+              type="button"
+              className="mt-1 text-[13px] font-semibold text-accent hover:underline bg-transparent border-none cursor-pointer"
+              onClick={() =>
+                addToast(t('clientDetail.mereni.addMeasurementPlaceholder'), 'success')
+              }
+            >
+              + {t('clientDetail.mereni.addFirstMeasurement')}
+            </button>
+          }
+        />
       )}
 
       {/* Data sections */}
@@ -376,14 +376,7 @@ export function MereniTab({ clientId, targetWeightKg }: MereniTabProps) {
               </thead>
               <tbody>
                 {sorted.map((m) => {
-                  const date = toDate(m.measuredAt);
-                  const dateStr = date
-                    ? date.toLocaleDateString(i18n.language, {
-                        day: 'numeric',
-                        month: 'numeric',
-                        year: 'numeric',
-                      })
-                    : '—';
+                  const dateStr = formatClientDate(m.measuredAt, i18n.language, 'numeric', '—');
                   return (
                     <tr key={m.measurementId ?? m.measuredAt} className="border-t border-border">
                       <td className="row-title py-2 pr-4 font-medium text-text">

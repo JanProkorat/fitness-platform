@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import type { TrainingPlanSummary } from '@/api/training-plan-types';
 import type { TopPrRecord } from '@/components/domain/RecentActivity/useRecentActivityAggregates';
+import { formatClientDate as formatDate } from '@/lib/date-format';
 
 interface ActiveTrainingPlanCardProps {
   plan: TrainingPlanSummary;
@@ -14,12 +15,6 @@ interface ActiveTrainingPlanCardProps {
   /** Top personal record this month derived from the client timeline. */
   topPr?: TopPrRecord | null;
   onHistoryClick: () => void;
-}
-
-function formatDate(iso: string | null | undefined, locale: string): string {
-  if (!iso) return '';
-  const d = new Date(iso);
-  return d.toLocaleDateString(locale, { day: 'numeric', month: 'numeric', year: 'numeric' });
 }
 
 export function ActiveTrainingPlanCard({

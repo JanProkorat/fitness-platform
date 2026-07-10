@@ -21,13 +21,27 @@ export function invokeHub(method: string, ...args: unknown[]): void {
  * Connects when the user is authenticated, disconnects on logout.
  *
  * @param handlers - Map of event names to callbacks. Stable references recommended.
+ * @param onReconnected - Called after the SignalR client silently re-establishes
+ *   its connection (transport downgrade, hub timeout, brief server restart —
+ *   the browser's `navigator.onLine`/TanStack `refetchOnReconnect` never fires
+ *   for these because the network itself never went down). Use this to
+ *   invalidate queries that may have missed a broadcast during the gap;
+ *   `useSignalR` never fetches data itself, only notifies. Stable reference
+ *   recommended (same rule as `handlers`).
  */
-export function useSignalR(handlers: Record<string, (payload: unknown) => void>) {
+export function useSignalR(
+  handlers: Record<string, (payload: unknown) => void>,
+  onReconnected?: () => void,
+) {
   const connectionRef = useRef<HubConnection | null>(null);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const handlersRef = useRef(handlers);
   useLayoutEffect(() => {
     handlersRef.current = handlers;
+  });
+  const onReconnectedRef = useRef(onReconnected);
+  useLayoutEffect(() => {
+    onReconnectedRef.current = onReconnected;
   });
   /** Lowercased event keys registered on the connection by the handlers-update effect below. */
   const registeredKeysRef = useRef<Set<string>>(new Set());
@@ -65,6 +79,7 @@ export function useSignalR(handlers: Record<string, (payload: unknown) => void>)
 
     connection.onreconnected(() => {
       console.log('[SignalR] Reconnected');
+      onReconnectedRef.current?.();
     });
 
     // Start the connection. If cleanup runs mid-negotiation (React 18

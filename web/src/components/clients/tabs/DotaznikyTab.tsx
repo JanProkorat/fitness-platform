@@ -9,6 +9,8 @@ import {
 import { QuestionnaireSelectDialog } from '@/components/questionnaire/QuestionnaireSelectDialog';
 import { formatAnswerValue } from '@/components/questionnaire/questionnaire-helpers';
 import { useToastStore } from '@/stores/toast';
+import { formatClientDate } from '@/lib/date-format';
+import { EmptyState } from '@/components/clients/EmptyState';
 
 interface DotaznikyTabProps {
   /** Client's public ID — used as the clientId param for questionnaire endpoints. */
@@ -17,16 +19,7 @@ interface DotaznikyTabProps {
 
 /** Returns a short localised date string from an ISO string. */
 function formatShortDate(iso: string | null | undefined, language: string): string {
-  if (!iso) return '—';
-  try {
-    return new Date(iso).toLocaleDateString(language, {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-  } catch {
-    return iso;
-  }
+  return formatClientDate(iso, language, 'short', '—');
 }
 
 interface ExpandedAnswersProps {
@@ -170,22 +163,20 @@ export function DotaznikyTab({ clientId }: DotaznikyTabProps) {
 
       {/* Empty state */}
       {!isError && sorted.length === 0 && (
-        <div className="flex flex-col items-center gap-3 py-16 text-center">
-          <div className="text-[32px] opacity-40">📝</div>
-          <div className="text-[14px] font-medium text-text2">
-            {t('clientDetail.dotazniky.emptyTitle')}
-          </div>
-          <div className="text-[13px] text-text3 max-w-xs">
-            {t('clientDetail.dotazniky.emptyDescription')}
-          </div>
-          <button
-            type="button"
-            className="mt-1 text-[13px] font-semibold text-accent hover:underline bg-transparent border-none cursor-pointer"
-            onClick={() => setAssignDialogOpen(true)}
-          >
-            + {t('clientDetail.dotazniky.assignFirst')}
-          </button>
-        </div>
+        <EmptyState
+          icon="📝"
+          title={t('clientDetail.dotazniky.emptyTitle')}
+          description={t('clientDetail.dotazniky.emptyDescription')}
+          action={
+            <button
+              type="button"
+              className="mt-1 text-[13px] font-semibold text-accent hover:underline bg-transparent border-none cursor-pointer"
+              onClick={() => setAssignDialogOpen(true)}
+            >
+              + {t('clientDetail.dotazniky.assignFirst')}
+            </button>
+          }
+        />
       )}
 
       {/* Questionnaire rows */}

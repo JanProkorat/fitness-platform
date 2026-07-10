@@ -15,11 +15,13 @@ interface Props {
 
 // ─── Status Badge ───────────────────────────────────────────────────
 
+// Reuses the shared --status-* tokens (index.css) that DiaryRequestStatusChip
+// already relies on, instead of hand-rolling a color map (#687).
 function StatusBadge({ status, label }: { status: string; label: string }) {
   const colorMap: Record<string, { bg: string; color: string }> = {
-    Submitted: { bg: 'var(--green-bg)', color: 'var(--green)' },
-    Pending: { bg: 'var(--orange-bg)', color: 'var(--orange)' },
-    InProgress: { bg: 'var(--orange-bg)', color: 'var(--orange)' },
+    Submitted: { bg: 'var(--status-completed-bg)', color: 'var(--status-completed-text)' },
+    Pending: { bg: 'var(--status-pending-bg)', color: 'var(--status-pending-text)' },
+    InProgress: { bg: 'var(--status-inprogress-bg)', color: 'var(--status-inprogress-text)' },
   };
   const colors = colorMap[status] ?? { bg: 'var(--bg2)', color: 'var(--text3)' };
 

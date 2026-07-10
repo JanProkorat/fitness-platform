@@ -49,6 +49,14 @@
   --orange-bg: rgba(173, 87, 0, 0.08);
   --orange-br: rgba(173, 87, 0, 0.2);
 
+  /* Overlay text — white text rendered on top of a colored/dark surface
+     (photo hero gradients, solid accent buttons). Theme-invariant: unlike
+     --text/--bg, this does NOT flip in dark mode because the underlying
+     surface (a photo overlay or the accent button) stays dark regardless
+     of app theme. */
+  --overlay-text:      #ffffff;
+  --overlay-text-soft: rgba(255, 255, 255, 0.75);
+
   /* Diary request status-chip tokens.
      Active-but-unfinished statuses (Pending / Accepted / InProgress) all use
      the brand-gold accent so the trainer can spot live diaries at a glance.
@@ -130,6 +138,9 @@
   --color-green:     var(--green);
   --color-green-bg:  var(--green-bg);
   --color-green-br:  var(--green-br);
+
+  --color-overlay-text:      var(--overlay-text);
+  --color-overlay-text-soft: var(--overlay-text-soft);
 
   /* Macro chart tokens — semantic names for donut chart + legend swatches */
   --color-macro-protein: #60a5fa; /* blue-400 */
