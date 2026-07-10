@@ -25,6 +25,10 @@ namespace FitnessPlatform.Tests.Endpoints.Auth;
 [Collection(TestCollection.Name)]
 public class AnonymousResendVerificationEndpointTests(FitnessApiFactory factory)
 {
+    // Per-host singleton (#726 refinement) — resolved from this factory's own DI
+    // container so assertions never see another factory's zombie worker traffic.
+    private FakeEmailService EmailService => factory.Services.GetRequiredService<FakeEmailService>();
+
     private const string Route = "/auth/resend-verification/anonymous";
     private const string GenericMessage = "If an unverified account exists for this email, a verification email has been sent.";
 
@@ -43,7 +47,7 @@ public class AnonymousResendVerificationEndpointTests(FitnessApiFactory factory)
         var body = await response.Content.ReadFromJsonAsync<GenericResult>(cancellationToken: TestContext.Current.CancellationToken);
         body!.Message.Should().Be(GenericMessage);
 
-        FakeEmailService.SentVerifications.Should().NotContain(v => v.Email == email,
+        EmailService.SentVerifications.Should().NotContain(v => v.Email == email,
             "an unregistered email must never trigger a send");
     }
 
@@ -74,7 +78,7 @@ public class AnonymousResendVerificationEndpointTests(FitnessApiFactory factory)
 
         // Only the registration send exists for this email — the resend call itself
         // must not have added a second one.
-        FakeEmailService.SentVerifications.Where(v => v.Email == email).Should().ContainSingle(
+        EmailService.SentVerifications.Where(v => v.Email == email).Should().ContainSingle(
             "registration sends the original email, but the resend call on an already-verified account must not send another");
     }
 
@@ -97,11 +101,11 @@ public class AnonymousResendVerificationEndpointTests(FitnessApiFactory factory)
         // in SentVerifications yet by the time the HTTP response returns. Drain
         // deterministically (bounded poll, not a fixed sleep) before asserting on it.
         await FakeEmailService.WaitForAsync(() =>
-            FakeEmailService.SentVerifications.Count(v => v.Email == email) >= 2);
+            EmailService.SentVerifications.Count(v => v.Email == email) >= 2);
 
         // Registration sends one verification email; the resend call sends a second,
         // distinct one (prior unused tokens are invalidated by the shared token service).
-        var sentForEmail = FakeEmailService.SentVerifications.Where(v => v.Email == email).ToList();
+        var sentForEmail = EmailService.SentVerifications.Where(v => v.Email == email).ToList();
         sentForEmail.Should().HaveCount(2, "registration sends one email, the resend call sends a second");
 
         var resendToken = sentForEmail[1].Token;
@@ -138,7 +142,7 @@ public class AnonymousResendVerificationEndpointTests(FitnessApiFactory factory)
             await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
-        var sentBeforeResend = FakeEmailService.SentVerifications.Count(v => v.Email == email);
+        var sentBeforeResend = EmailService.SentVerifications.Count(v => v.Email == email);
 
         var response = await client.PostAsJsonAsync(Route, new { Email = email }, TestContext.Current.CancellationToken);
 
@@ -149,9 +153,9 @@ public class AnonymousResendVerificationEndpointTests(FitnessApiFactory factory)
 
         // Fire-and-forget send (#702) -- drain deterministically before asserting.
         await FakeEmailService.WaitForAsync(() =>
-            FakeEmailService.SentVerifications.Count(v => v.Email == email) > sentBeforeResend);
+            EmailService.SentVerifications.Count(v => v.Email == email) > sentBeforeResend);
 
-        FakeEmailService.SentVerifications.Count(v => v.Email == email).Should().Be(sentBeforeResend + 1,
+        EmailService.SentVerifications.Count(v => v.Email == email).Should().Be(sentBeforeResend + 1,
             "the anonymous endpoint must not gate on the lifetime counter — only the rolling-window throttle applies here");
     }
 
@@ -181,7 +185,7 @@ public class AnonymousResendVerificationEndpointTests(FitnessApiFactory factory)
             await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
-        var sentBeforeResend = FakeEmailService.SentVerifications.Count(v => v.Email == email);
+        var sentBeforeResend = EmailService.SentVerifications.Count(v => v.Email == email);
 
         // This would be the 4th send within the window — must be throttled.
         var response = await client.PostAsJsonAsync(Route, new { Email = email }, TestContext.Current.CancellationToken);
@@ -191,7 +195,7 @@ public class AnonymousResendVerificationEndpointTests(FitnessApiFactory factory)
         var body = await response.Content.ReadFromJsonAsync<GenericResult>(cancellationToken: TestContext.Current.CancellationToken);
         body!.Message.Should().Be(GenericMessage);
 
-        FakeEmailService.SentVerifications.Count(v => v.Email == email).Should().Be(sentBeforeResend,
+        EmailService.SentVerifications.Count(v => v.Email == email).Should().Be(sentBeforeResend,
             "the rolling-24h window cap (3 sends) must suppress the 4th send without changing the response");
     }
 
@@ -221,12 +225,12 @@ public class AnonymousResendVerificationEndpointTests(FitnessApiFactory factory)
         // Both anonymous sends are fire-and-forget (#702) -- drain deterministically
         // before asserting on the total count.
         await FakeEmailService.WaitForAsync(() =>
-            FakeEmailService.SentVerifications.Count(v => v.Email == email) >= 3);
+            EmailService.SentVerifications.Count(v => v.Email == email) >= 3);
 
         // Registration + 2 anonymous sends = 3 emails total, but the lifetime counter the
         // AUTHENTICATED endpoint gates on must still read 1 — proving the anonymous sends
         // never advanced it.
-        FakeEmailService.SentVerifications.Count(v => v.Email == email).Should().Be(3);
+        EmailService.SentVerifications.Count(v => v.Email == email).Should().Be(3);
 
         using (var scope = factory.Services.CreateScope())
         {
@@ -260,7 +264,7 @@ public class AnonymousResendVerificationEndpointTests(FitnessApiFactory factory)
         // right after the response is already conclusive -- no wait needed.
         var unregisteredEmail = UniqueEmail();
         var unregisteredResponse = await client.PostAsJsonAsync(Route, new { Email = unregisteredEmail }, TestContext.Current.CancellationToken);
-        FakeEmailService.SentVerifications.Should().NotContain(v => v.Email == unregisteredEmail,
+        EmailService.SentVerifications.Should().NotContain(v => v.Email == unregisteredEmail,
             "an unregistered email must never enqueue a background send");
 
         // -- Already-verified (no-op): only the registration send exists.
@@ -274,7 +278,7 @@ public class AnonymousResendVerificationEndpointTests(FitnessApiFactory factory)
             await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
         var verifiedResponse = await client.PostAsJsonAsync(Route, new { Email = verifiedEmail }, TestContext.Current.CancellationToken);
-        FakeEmailService.SentVerifications.Where(v => v.Email == verifiedEmail).Should().ContainSingle(
+        EmailService.SentVerifications.Where(v => v.Email == verifiedEmail).Should().ContainSingle(
             "an already-verified account must never enqueue a background send beyond the original registration email");
 
         // -- Throttled (no-op): window cap already exhausted.
@@ -289,22 +293,22 @@ public class AnonymousResendVerificationEndpointTests(FitnessApiFactory factory)
                 new EmailVerificationToken { UserId = user.Id, Token = Guid.NewGuid().ToString("N"), ExpiresAt = DateTime.UtcNow.AddHours(23) });
             await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
-        var sentBeforeThrottled = FakeEmailService.SentVerifications.Count(v => v.Email == throttledEmail);
+        var sentBeforeThrottled = EmailService.SentVerifications.Count(v => v.Email == throttledEmail);
         var throttledResponse = await client.PostAsJsonAsync(Route, new { Email = throttledEmail }, TestContext.Current.CancellationToken);
-        FakeEmailService.SentVerifications.Count(v => v.Email == throttledEmail).Should().Be(sentBeforeThrottled,
+        EmailService.SentVerifications.Count(v => v.Email == throttledEmail).Should().Be(sentBeforeThrottled,
             "a throttled (window-cap) request must never enqueue a background send");
 
         // -- Real send (registered + unverified + under-throttle): exactly one enqueued
         // send, observed once the background worker drains it.
         var sendEmail = UniqueEmail();
         await TestHelpers.RegisterAsync(client, sendEmail, "TestPass1!", "Anon", "AllFourRealSend", "Client");
-        var sentBeforeSend = FakeEmailService.SentVerifications.Count(v => v.Email == sendEmail);
+        var sentBeforeSend = EmailService.SentVerifications.Count(v => v.Email == sendEmail);
         var sendResponse = await client.PostAsJsonAsync(Route, new { Email = sendEmail }, TestContext.Current.CancellationToken);
 
         await FakeEmailService.WaitForAsync(() =>
-            FakeEmailService.SentVerifications.Count(v => v.Email == sendEmail) > sentBeforeSend);
+            EmailService.SentVerifications.Count(v => v.Email == sendEmail) > sentBeforeSend);
 
-        FakeEmailService.SentVerifications.Count(v => v.Email == sendEmail).Should().Be(sentBeforeSend + 1,
+        EmailService.SentVerifications.Count(v => v.Email == sendEmail).Should().Be(sentBeforeSend + 1,
             "the unverified branch must enqueue exactly one background send");
 
         // -- Response identity: all four requests get the SAME 200 with the SAME body.
@@ -351,6 +355,10 @@ public class AnonymousResendVerificationRateLimitTests : IAsyncLifetime
 {
     private readonly RateLimitEnabledFactory _factory = new();
 
+    // Per-host singleton (#726 refinement) — resolved from this factory's own DI
+    // container so assertions never see another factory's zombie worker traffic.
+    private FakeEmailService EmailService => _factory.Services.GetRequiredService<FakeEmailService>();
+
     private const string Route = "/auth/resend-verification/anonymous";
 
     // A private IP not used by RateLimitPolicyTests' own buckets, in the 10.0.0.0/8
@@ -376,9 +384,9 @@ public class AnonymousResendVerificationRateLimitTests : IAsyncLifetime
     {
         using var client = CreateClientWithIp(Ip);
 
-        // SentVerifications is a STATIC list shared across the whole test run (including
-        // classes running concurrently in other collections) — scope every email to a
-        // run-unique prefix so assertions below never see another test's traffic.
+        // SentVerifications is per-host (#726 refinement) -- this factory's instance is
+        // isolated from every other factory's, but still scope every email to a
+        // run-unique prefix so assertions below never see this HOST's own other traffic.
         var runId = Guid.NewGuid().ToString("N");
         string BudgetEmail(int i) => $"budget-{runId}-{i}@ratelimit-anon-test.com";
         var finalEmail = $"final-{runId}@ratelimit-anon-test.com";
@@ -401,7 +409,7 @@ public class AnonymousResendVerificationRateLimitTests : IAsyncLifetime
         rateLimitedResponse.StatusCode.Should().Be(HttpStatusCode.TooManyRequests,
             "the 11th call from the same IP must be rate-limited (budget = 10 per 15 min)");
 
-        FakeEmailService.SentVerifications.Should().NotContain(v => v.Email == finalEmail,
+        EmailService.SentVerifications.Should().NotContain(v => v.Email == finalEmail,
             "no email should be sent for the request that got rate-limited");
     }
 }

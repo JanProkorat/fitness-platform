@@ -122,7 +122,8 @@ public class RateLimitEnabledFactory : WebApplicationFactory<Program>, IAsyncLif
             var emailDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(IEmailService));
             if (emailDescriptor is not null)
                 services.Remove(emailDescriptor);
-            services.AddScoped<IEmailService, FakeEmailService>();
+            services.AddSingleton<FakeEmailService>();
+            services.AddSingleton<IEmailService>(sp => sp.GetRequiredService<FakeEmailService>());
 
             // Replace blob storage with fake
             var blobDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(IBlobStorageService));

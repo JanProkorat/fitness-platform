@@ -21,20 +21,31 @@ namespace FitnessPlatform.Tests.Infrastructure.Services;
 /// </summary>
 public class EmailDispatchWorkerDrainTests
 {
-    private static IServiceScopeFactory BuildScopeFactory()
+    /// <summary>
+    /// Builds a minimal DI container for the worker plus the <see cref="FakeEmailService"/>
+    /// instance it will resolve. <see cref="FakeEmailService"/> is registered as a singleton
+    /// (not scoped) so the worker's scope-per-item resolution (see
+    /// <see cref="EmailDispatchWorker"/>'s remarks) always lands on the SAME instance this
+    /// method hands back to the test — a per-instance store only works if every consumer
+    /// shares one instance (#726 refinement; see <see cref="FakeEmailService"/>'s remarks
+    /// for why the store moved off `static` fields).
+    /// </summary>
+    private static (IServiceScopeFactory ScopeFactory, FakeEmailService EmailService) BuildScopeFactory()
     {
         var services = new ServiceCollection();
-        services.AddScoped<IEmailService, FakeEmailService>();
-        return services.BuildServiceProvider().GetRequiredService<IServiceScopeFactory>();
+        services.AddSingleton<FakeEmailService>();
+        services.AddSingleton<IEmailService>(sp => sp.GetRequiredService<FakeEmailService>());
+        var provider = services.BuildServiceProvider();
+        return (provider.GetRequiredService<IServiceScopeFactory>(), provider.GetRequiredService<FakeEmailService>());
     }
 
     [Fact]
     public async Task StopAsync_DrainsAllBufferedItems_BeforeReturning()
     {
-        FakeEmailService.Reset();
+        var (scopeFactory, emailService) = BuildScopeFactory();
 
         var queue = new BackgroundEmailQueue();
-        var worker = new EmailDispatchWorker(queue, BuildScopeFactory(), NullLogger<EmailDispatchWorker>.Instance);
+        var worker = new EmailDispatchWorker(queue, scopeFactory, NullLogger<EmailDispatchWorker>.Instance);
 
         const int itemCount = 25;
         var runId = Guid.NewGuid().ToString("N");
@@ -54,7 +65,7 @@ public class EmailDispatchWorkerDrainTests
         // registration), so no separate wait/poll is needed here.
         await worker.StopAsync(TestContext.Current.CancellationToken);
 
-        FakeEmailService.SentVerifications.Count(v => v.Email.StartsWith(runId, StringComparison.Ordinal))
+        emailService.SentVerifications.Count(v => v.Email.StartsWith(runId, StringComparison.Ordinal))
             .Should().Be(itemCount, "every item buffered before shutdown must be sent during the drain, not dropped");
 
         queue.PendingCount.Should().Be(0, "MarkProcessed must run for every drained item, including those processed during shutdown");
@@ -64,7 +75,8 @@ public class EmailDispatchWorkerDrainTests
     public async Task StopAsync_WithNoBufferedItems_ReturnsPromptly()
     {
         var queue = new BackgroundEmailQueue();
-        var worker = new EmailDispatchWorker(queue, BuildScopeFactory(), NullLogger<EmailDispatchWorker>.Instance);
+        var (scopeFactory, _) = BuildScopeFactory();
+        var worker = new EmailDispatchWorker(queue, scopeFactory, NullLogger<EmailDispatchWorker>.Instance);
 
         await worker.StartAsync(TestContext.Current.CancellationToken);
         await worker.StopAsync(TestContext.Current.CancellationToken);

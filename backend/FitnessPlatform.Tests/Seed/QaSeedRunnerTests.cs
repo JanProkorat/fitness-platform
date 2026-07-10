@@ -122,7 +122,9 @@ public class QaSeedRunnerFactory : WebApplicationFactory<Program>, IAsyncLifetim
             var emailDesc = services.SingleOrDefault(
                 d => d.ServiceType == typeof(FitnessPlatform.Application.Domain.Interfaces.IEmailService));
             if (emailDesc is not null) services.Remove(emailDesc);
-            services.AddScoped<FitnessPlatform.Application.Domain.Interfaces.IEmailService, FakeEmailService>();
+            services.AddSingleton<FakeEmailService>();
+            services.AddSingleton<FitnessPlatform.Application.Domain.Interfaces.IEmailService>(
+                sp => sp.GetRequiredService<FakeEmailService>());
 
             var notifierDesc = services.SingleOrDefault(
                 d => d.ServiceType == typeof(FitnessPlatform.Application.Domain.Interfaces.IRealtimeNotifier));

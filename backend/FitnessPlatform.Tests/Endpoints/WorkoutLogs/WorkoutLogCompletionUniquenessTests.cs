@@ -78,7 +78,9 @@ public class WorkoutLogUniquenessFactory : WebApplicationFactory<Program>, IAsyn
             var emailDesc = services.SingleOrDefault(
                 d => d.ServiceType == typeof(Application.Domain.Interfaces.IEmailService));
             if (emailDesc is not null) services.Remove(emailDesc);
-            services.AddScoped<Application.Domain.Interfaces.IEmailService, FakeEmailService>();
+            services.AddSingleton<FakeEmailService>();
+            services.AddSingleton<Application.Domain.Interfaces.IEmailService>(
+                sp => sp.GetRequiredService<FakeEmailService>());
 
             var notifierDesc = services.SingleOrDefault(
                 d => d.ServiceType == typeof(Application.Domain.Interfaces.IRealtimeNotifier));

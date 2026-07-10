@@ -43,11 +43,12 @@ public class FitnessApiFactoryTests(FitnessApiFactory factory)
     }
 
     /// <summary>
-    /// Root-cause regression test for #726: the four long-running background
-    /// schedulers/worker must never appear in the resolved <see cref="IHostedService"/>
-    /// set for a Testcontainers-backed test host, or their zombie timers can tick
-    /// against a disposed container after their own collection tears down (see
-    /// <see cref="TestHostedServiceExtensions"/> for the full explanation).
+    /// Root-cause regression test for #726: the three long-running, DB-touching
+    /// background schedulers/reaper must never appear in the resolved
+    /// <see cref="IHostedService"/> set for a Testcontainers-backed test host, or
+    /// their zombie timers can tick against a disposed container after their own
+    /// collection tears down (see <see cref="TestHostedServiceExtensions"/> for
+    /// the full explanation).
     /// </summary>
     [Fact]
     public void BackgroundHostedServices_AreNotRegistered_InTestHost()
@@ -62,19 +63,22 @@ public class FitnessApiFactoryTests(FitnessApiFactory factory)
             "the scheduler's BackgroundService loop must not auto-start in a test host");
         hostedServiceTypes.Should().NotContain(typeof(SocialLoginNonceReaperService),
             "the reaper's BackgroundService loop must not auto-start in a test host");
-        hostedServiceTypes.Should().NotContain(typeof(EmailDispatchWorker),
-            "the worker's BackgroundService loop must not auto-start in a test host — it races FakeEmailService's shared static store");
     }
 
     /// <summary>
-    /// <see cref="MongoIndexInitializer"/> must remain a registered
-    /// <see cref="IHostedService"/> — unlike the four background loops above, it is
-    /// a one-shot startup task (not a <see cref="BackgroundService"/>) and several
-    /// integration tests depend on the indexes it creates (e.g. the partial unique
-    /// index exercised by WorkoutLogCompletionUniquenessTests).
+    /// <see cref="MongoIndexInitializer"/> and <see cref="EmailDispatchWorker"/> must
+    /// remain registered <see cref="IHostedService"/>s in the test host. Neither one
+    /// is part of the #726 removal set (see <see cref="TestHostedServiceExtensions"/>):
+    /// <see cref="MongoIndexInitializer"/> is a one-shot startup task (not a
+    /// <see cref="BackgroundService"/>) that several integration tests depend on for
+    /// the indexes it creates (e.g. the partial unique index exercised by
+    /// WorkoutLogCompletionUniquenessTests). <see cref="EmailDispatchWorker"/> never
+    /// touches Postgres/Mongo, so it cannot hit the container-disposed cascade the
+    /// removal set exists to prevent — and <c>AnonymousResendVerificationEndpointTests</c>
+    /// depends on it actually running to drain the endpoint's fire-and-forget send.
     /// </summary>
     [Fact]
-    public void MongoIndexInitializer_IsStillRegistered_InTestHost()
+    public void MongoIndexInitializer_And_EmailDispatchWorker_AreStillRegistered_InTestHost()
     {
         var hostedServiceTypes = factory.Services.GetServices<IHostedService>()
             .Select(s => s.GetType())
@@ -82,5 +86,7 @@ public class FitnessApiFactoryTests(FitnessApiFactory factory)
 
         hostedServiceTypes.Should().Contain(typeof(MongoIndexInitializer),
             "index creation must still run at test-host startup — it is a one-shot task, not a recurring background loop");
+        hostedServiceTypes.Should().Contain(typeof(EmailDispatchWorker),
+            "the worker must keep draining its queue in the test host — AnonymousResendVerificationEndpointTests depends on it");
     }
 }

@@ -79,7 +79,8 @@ public class FitnessApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
             if (emailDescriptor is not null)
                 services.Remove(emailDescriptor);
 
-            services.AddScoped<IEmailService, FakeEmailService>();
+            services.AddSingleton<FakeEmailService>();
+            services.AddSingleton<IEmailService>(sp => sp.GetRequiredService<FakeEmailService>());
 
             // Replace realtime notifier with in-memory fake so tests can assert broadcasts
             var notifierDescriptor = services.SingleOrDefault(

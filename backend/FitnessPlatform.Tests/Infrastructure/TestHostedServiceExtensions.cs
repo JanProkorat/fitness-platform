@@ -5,8 +5,8 @@ using Microsoft.Extensions.Hosting;
 namespace FitnessPlatform.Tests.Infrastructure;
 
 /// <summary>
-/// Test-only helper that prevents the app's long-running background
-/// <see cref="BackgroundService"/> schedulers/worker from ever starting inside a
+/// Test-only helper that prevents the app's long-running, DB-touching background
+/// <see cref="BackgroundService"/> schedulers/reaper from ever starting inside a
 /// <c>WebApplicationFactory&lt;Program&gt;</c> test host.
 ///
 /// Root cause (#726): six factories (<see cref="FitnessApiFactory"/> and its
@@ -16,9 +16,9 @@ namespace FitnessPlatform.Tests.Infrastructure;
 /// standalone (no-collection) tests. That means the generic <c>IHost</c> itself,
 /// and every <see cref="BackgroundService"/> registered on it
 /// (<see cref="WeeklyCheckInScheduler"/>, <see cref="PhotoDiaryReminderScheduler"/>,
-/// <see cref="SocialLoginNonceReaperService"/>, <see cref="EmailDispatchWorker"/>),
-/// is left running for the remaining lifetime of the test process — only their
-/// Testcontainers are disposed at collection teardown. Because
+/// <see cref="SocialLoginNonceReaperService"/>), is left running for the
+/// remaining lifetime of the test process — only their Testcontainers are
+/// disposed at collection teardown. Because
 /// <c>[assembly: CollectionBehavior(MaxParallelThreads = 1)]</c>
 /// (see <c>TestAssemblyConfig.cs</c>) serializes collections rather than running
 /// them concurrently, a long CI run gives these zombie timers enough elapsed
@@ -29,21 +29,34 @@ namespace FitnessPlatform.Tests.Infrastructure;
 /// unhandled exception tears down the host that raised it, cascading failures
 /// into whatever unrelated collection happens to be running at that moment.
 ///
-/// The fix: never start these services in a test host at all. None of the
-/// integration-test suite exercises their autonomous scheduling behavior via the
-/// hosted-service pipeline — the scheduling/reaping logic itself is covered by
-/// dedicated tests that resolve the singleton directly
+/// The fix: never start these three DB-touching services in a test host at all.
+/// None of the integration-test suite exercises their autonomous scheduling
+/// behavior via the hosted-service pipeline — the scheduling/reaping logic
+/// itself is covered by dedicated tests that resolve the singleton directly
 /// (<c>Services.GetRequiredService&lt;WeeklyCheckInScheduler&gt;()</c>, etc. — see
-/// <c>FitnessApiFactoryTests</c>) and drive its tick method by hand, or (for
-/// <see cref="EmailDispatchWorker"/>) construct the class directly against a
-/// minimal <see cref="IServiceScopeFactory"/> with no Testcontainers at all
-/// (<c>EmailDispatchWorkerDrainTests</c>). Removing the <see cref="IHostedService"/>
-/// registration only stops the background loop from auto-starting; the
-/// underlying singleton registration (<c>AddSingleton&lt;WeeklyCheckInScheduler&gt;()</c>,
-/// etc.) is left untouched, so those direct-resolution tests are unaffected.
+/// <c>FitnessApiFactoryTests</c>) and drive its tick method by hand. Removing the
+/// <see cref="IHostedService"/> registration only stops the background loop from
+/// auto-starting; the underlying singleton registration
+/// (<c>AddSingleton&lt;WeeklyCheckInScheduler&gt;()</c>, etc.) is left untouched,
+/// so those direct-resolution tests are unaffected.
+///
+/// <see cref="EmailDispatchWorker"/> is intentionally NOT included in the
+/// removal set (superseding an earlier #726 attempt that removed it too — CI
+/// proved that over-broad: <c>AnonymousResendVerificationEndpointTests</c>
+/// depends on this worker draining its fire-and-forget queue inside the shared
+/// test host, since the endpoint enqueues the send and returns before it lands).
+/// Unlike the three schedulers above, it never touches Postgres/Mongo — its only
+/// dependency is <see cref="Domain.Interfaces.IEmailService"/> (<c>FakeEmailService</c>
+/// in tests), so a zombie instance ticking after its host's Testcontainers are
+/// gone cannot throw the <c>ObjectDisposedException</c>/container-not-found
+/// cascade this class exists to prevent. The residual risk it does carry — a
+/// zombie worker from one disposed factory racing another factory's assertions
+/// against a shared store — is closed by giving <c>FakeEmailService</c> a
+/// per-host singleton instance instead of a process-global static store (see
+/// <c>FakeEmailService</c>'s remarks).
 ///
 /// <see cref="MongoIndexInitializer"/> is intentionally NOT included in the
-/// removal set. It is a one-shot <see cref="IHostedService"/> (not a
+/// removal set either. It is a one-shot <see cref="IHostedService"/> (not a
 /// <see cref="BackgroundService"/>) whose <c>StartAsync</c> runs to completion
 /// during host startup — the generic host awaits it before the host is
 /// considered started, so it can never "keep running" and tick against a
@@ -59,7 +72,6 @@ public static class TestHostedServiceExtensions
         typeof(WeeklyCheckInScheduler),
         typeof(PhotoDiaryReminderScheduler),
         typeof(SocialLoginNonceReaperService),
-        typeof(EmailDispatchWorker),
     ];
 
     /// <summary>
