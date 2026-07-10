@@ -24,14 +24,20 @@ export default function InviteAcceptScreen() {
       return;
     }
 
+    let redirectTimer: ReturnType<typeof setTimeout> | null = null;
+
     // Accept the invitation
     api
       .post(`/trainer/invite/accept`, { token })
       .then(() => {
         setStatus('success');
-        setTimeout(() => router.replace('/(client)'), 2000);
+        redirectTimer = setTimeout(() => router.replace('/(client)'), 2000);
       })
       .catch(() => setStatus('error'));
+
+    return () => {
+      if (redirectTimer) clearTimeout(redirectTimer);
+    };
   }, [token, isAuthenticated, router]);
 
   return (
