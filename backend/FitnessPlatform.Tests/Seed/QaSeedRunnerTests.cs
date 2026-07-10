@@ -836,11 +836,13 @@ public class QaSeedRunnerTests : IAsyncLifetime
     /// 6 answerable questions covering every formatAnswerValue branch
     /// (short_text, number, single_choice, scale, multi_select, file_upload),
     /// a SUBMITTED response with a matching answer per question, and that
-    /// response's PublicId must be written onto BOTH the main training plan
-    /// and the seeded nutrition plan's QuestionnaireResponseId field.
+    /// response's PublicId must be written onto the main training plan's
+    /// QuestionnaireResponseId field. The nutrition plan is asserted
+    /// separately (#720 links it to the nutritionist-owned response instead —
+    /// see <see cref="SeedAsync_NutritionistQuestionnaireFixture_HasTemplateSubmittedResponseAndPlanLink"/>).
     /// </summary>
     [Fact]
-    public async Task SeedAsync_QuestionnaireFixture_HasTemplateSubmittedResponseAndBothPlanLinks()
+    public async Task SeedAsync_QuestionnaireFixture_HasTemplateSubmittedResponseAndTrainingPlanLink()
     {
         var ct = TestContext.Current.CancellationToken;
 
@@ -883,26 +885,27 @@ public class QaSeedRunnerTests : IAsyncLifetime
         response.SubmittedAt.Should().NotBeNull("a Submitted response must have a SubmittedAt timestamp");
         response.Answers.Should().HaveCount(6, "one answer per answerable question");
 
-        // Plan links — both the training plan and the nutrition plan must point
-        // at the SAME response's PublicId.
+        // Plan link — the training plan must point at this response's PublicId.
         var trainingPlan = await mongo.TrainingPlans
             .Find(p => p.ExternalId == QaSeedRunner.QaTrainingPlanExternalId)
             .FirstOrDefaultAsync(ct);
         trainingPlan.Should().NotBeNull();
         trainingPlan!.QuestionnaireResponseId.Should().Be(QaSeedRunner.QaQuestionnaireResponseExternalId,
-            "the main training plan must be linked to the submitted response so #697's Dotaznik tab renders it");
+            "the main training plan must be linked to the trainer's submitted response so #697's Dotaznik tab renders it");
 
+        // The nutrition plan must NOT be linked to this trainer-owned response
+        // — #720 links it to the nutritionist-owned response instead.
         var nutritionPlan = await mongo.NutritionPlans
             .Find(p => p.ExternalId == QaSeedRunner.QaNutritionPlanExternalId)
             .FirstOrDefaultAsync(ct);
         nutritionPlan.Should().NotBeNull();
-        nutritionPlan!.QuestionnaireResponseId.Should().Be(QaSeedRunner.QaQuestionnaireResponseExternalId,
-            "the nutrition plan must be linked to the SAME submitted response so #698's Dotaznik tab renders it");
+        nutritionPlan!.QuestionnaireResponseId.Should().NotBe(QaSeedRunner.QaQuestionnaireResponseExternalId,
+            "the nutrition plan must link a nutritionist-owned response (#720), not this trainer-owned one");
     }
 
     /// <summary>
     /// Seeding twice must not duplicate the questionnaire template, the response,
-    /// or its answers, and must not clobber the plan links on the second pass.
+    /// or its answers, and must not clobber the training plan link on the second pass.
     /// </summary>
     [Fact]
     public async Task SeedAsync_QuestionnaireFixture_IsIdempotent()
@@ -939,11 +942,125 @@ public class QaSeedRunnerTests : IAsyncLifetime
         trainingPlan!.QuestionnaireResponseId.Should().Be(QaSeedRunner.QaQuestionnaireResponseExternalId,
             "the training plan link must remain stable across re-seeds");
         trainingPlan.Version.Should().Be(2, "the link update bumps Version exactly once, not once per seed run");
+    }
+
+    /// <summary>
+    /// The #720 nutritionist-owned questionnaire fixture must seed a template
+    /// with 2 sections and 6 answerable questions covering every
+    /// formatAnswerValue branch, a SUBMITTED response owned by the QA
+    /// nutritionist, an active nutritionist↔client link so
+    /// GetClientResponsesEndpoint can return it, and the response's PublicId
+    /// must be written onto the seeded nutrition plan's QuestionnaireResponseId
+    /// field — replacing #715's trainer-owned link there.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_NutritionistQuestionnaireFixture_HasTemplateSubmittedResponseAndPlanLink()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var sp    = scope.ServiceProvider;
+        var db    = sp.GetRequiredService<ApplicationDbContext>();
+        var mongo = sp.GetRequiredService<IMongoContext>();
+
+        // Questionnaire template — owned by the QA nutritionist, 2 sections + 6 answerable questions.
+        var questionnaire = await db.Questionnaires
+            .Include(q => q.Questions)
+            .FirstOrDefaultAsync(q => q.PublicId == QaSeedRunner.QaNutriQuestionnaireExternalId, ct);
+
+        questionnaire.Should().NotBeNull("the #720 nutritionist questionnaire template must be seeded");
+        questionnaire!.ProfessionalId.Should().Be(QaSeedRunner.NutriUserId,
+            "the questionnaire template is owned by the QA nutritionist");
+        questionnaire.Questions.Should().HaveCount(8, "2 section headers + 6 answerable questions");
+        questionnaire.Questions.Count(q => q.Type == "section").Should().Be(2,
+            "the template must have at least 2 sections (#720 AC)");
+
+        var answerableTypes = questionnaire.Questions
+            .Where(q => q.Type != "section")
+            .Select(q => q.Type)
+            .ToList();
+        answerableTypes.Should().BeEquivalentTo(
+            ["short_text", "number", "single_choice", "scale", "multi_select", "file_upload"],
+            "every formatAnswerValue branch must be exercised, same spread as #715");
+
+        // Submitted response.
+        var response = await db.QuestionnaireResponses
+            .Include(r => r.Answers)
+            .FirstOrDefaultAsync(r => r.PublicId == QaSeedRunner.QaNutriQuestionnaireResponseExternalId, ct);
+
+        response.Should().NotBeNull("the #720 submitted response must be seeded");
+        response!.ClientId.Should().Be(QaSeedRunner.ClientUserId);
+        response.ProfessionalId.Should().Be(QaSeedRunner.NutriUserId,
+            "the response must be owned by the QA nutritionist so GetClientResponsesEndpoint returns it to her");
+        response.Status.Should().Be(QuestionnaireResponseStatus.Submitted);
+        response.SubmittedAt.Should().NotBeNull("a Submitted response must have a SubmittedAt timestamp");
+        response.Answers.Should().HaveCount(6, "one answer per answerable question");
+
+        // Nutritionist↔client link must exist and be active — required by
+        // GetClientResponsesEndpoint's active-link check.
+        var clientProfile = await db.ClientProfiles.FirstAsync(cp => cp.UserId == QaSeedRunner.ClientUserId, ct);
+        var nutriProfile = await db.ProfessionalProfiles.FirstAsync(pp => pp.UserId == QaSeedRunner.NutriUserId, ct);
+        var nutriLink = await db.ClientProfessionalLinks.FirstOrDefaultAsync(
+            l => l.ClientProfileId == clientProfile.Id && l.ProfessionalProfileId == nutriProfile.Id, ct);
+        nutriLink.Should().NotBeNull("a nutritionist↔client link must be seeded so the response is queryable by the nutritionist");
+        nutriLink!.IsActive.Should().BeTrue();
+        response.LinkId.Should().Be(nutriLink.Id, "the response's LinkId must reference the nutritionist↔client link");
+
+        // Plan link — the nutrition plan must point at this response's PublicId,
+        // NOT the #715 trainer-owned response.
+        var nutritionPlan = await mongo.NutritionPlans
+            .Find(p => p.ExternalId == QaSeedRunner.QaNutritionPlanExternalId)
+            .FirstOrDefaultAsync(ct);
+        nutritionPlan.Should().NotBeNull();
+        nutritionPlan!.QuestionnaireResponseId.Should().Be(QaSeedRunner.QaNutriQuestionnaireResponseExternalId,
+            "the nutrition plan must be linked to the nutritionist-owned response so #698's Dotaznik tab renders it for the nutritionist");
+    }
+
+    /// <summary>
+    /// Seeding twice must not duplicate the nutritionist-owned template,
+    /// response, its answers, or the nutritionist↔client link, and must not
+    /// clobber the nutrition plan link on the second pass.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_NutritionistQuestionnaireFixture_IsIdempotent()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var sp    = scope.ServiceProvider;
+        var db    = sp.GetRequiredService<ApplicationDbContext>();
+        var mongo = sp.GetRequiredService<IMongoContext>();
+
+        var questionnaireCount = await db.Questionnaires
+            .CountAsync(q => q.PublicId == QaSeedRunner.QaNutriQuestionnaireExternalId, ct);
+        questionnaireCount.Should().Be(1, "the nutritionist questionnaire template must not be duplicated on re-seed");
+
+        var questionCount = await db.QuestionnaireQuestions
+            .CountAsync(q => q.Questionnaire.PublicId == QaSeedRunner.QaNutriQuestionnaireExternalId, ct);
+        questionCount.Should().Be(8, "the 8 template questions must not be duplicated on re-seed");
+
+        var responseCount = await db.QuestionnaireResponses
+            .CountAsync(r => r.PublicId == QaSeedRunner.QaNutriQuestionnaireResponseExternalId, ct);
+        responseCount.Should().Be(1, "the submitted response must not be duplicated on re-seed");
+
+        var answerCount = await db.QuestionnaireAnswers
+            .CountAsync(a => a.Response.PublicId == QaSeedRunner.QaNutriQuestionnaireResponseExternalId, ct);
+        answerCount.Should().Be(6, "the 6 answers must not be duplicated on re-seed");
+
+        // Total link count: trainer↔client (#474 has 2 pairs = 2 links) + this
+        // nutritionist↔client link = 3 total.
+        var linkCount = await db.ClientProfessionalLinks.CountAsync(ct);
+        linkCount.Should().Be(3, "2 trainer↔client links (#474) + 1 nutritionist↔client link (#720), no duplicates on re-seed");
 
         var nutritionPlan = await mongo.NutritionPlans
             .Find(p => p.ExternalId == QaSeedRunner.QaNutritionPlanExternalId)
             .FirstOrDefaultAsync(ct);
-        nutritionPlan!.QuestionnaireResponseId.Should().Be(QaSeedRunner.QaQuestionnaireResponseExternalId,
+        nutritionPlan!.QuestionnaireResponseId.Should().Be(QaSeedRunner.QaNutriQuestionnaireResponseExternalId,
             "the nutrition plan link must remain stable across re-seeds");
         nutritionPlan.Version.Should().Be(2, "the link update bumps Version exactly once, not once per seed run");
     }
