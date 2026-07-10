@@ -150,6 +150,13 @@ export function AppShell() {
       if (data?.conversationId) {
         queryClient.invalidateQueries({ queryKey: ['messages', data.conversationId] });
       }
+      // Prefix-invalidate ALL ['messages', *] queries too, not just the one
+      // keyed on data.conversationId above. A missing or differently-cased
+      // conversationId field on the payload previously left the open thread
+      // on MessagesPage stale — this covers that thread regardless of the
+      // payload shape, since TanStack only refetches queries that are
+      // currently mounted/observed (#586).
+      queryClient.invalidateQueries({ queryKey: ['messages'] });
     },
     userPresence: () => {
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
@@ -371,7 +378,16 @@ export function AppShell() {
     },
   }), [queryClient, addToast, t]);
 
-  useSignalR(signalRHandlers);
+  // On a SignalR-only reconnect (transport downgrade, hub timeout, brief
+  // server restart with the network staying up), invalidate conversations +
+  // ALL open message threads. TanStack's own refetchOnReconnect only fires on
+  // navigator.onLine, which never toggles for this kind of gap (#586).
+  const handleSignalRReconnected = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    queryClient.invalidateQueries({ queryKey: ['messages'] });
+  }, [queryClient]);
+
+  useSignalR(signalRHandlers, handleSignalRReconnected);
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
