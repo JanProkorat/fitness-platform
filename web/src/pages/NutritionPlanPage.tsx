@@ -8,6 +8,8 @@ import { computeNutritionPlanLocks } from '@/lib/nutrition-plan-locks';
 import { deriveDayCompletionState, deriveMealCompletionState } from '@/lib/completionState';
 import { CompletionBadge } from '@/components/common/CompletionBadge';
 import { PlanQuestionnairePanel } from '@/components/questionnaire/PlanQuestionnairePanel';
+import { QuestionnaireAnswersView } from '@/components/questionnaire/QuestionnaireAnswersView';
+import { getClientQuestionnaireResponses, type ClientResponseItem } from '@/api/questionnaires';
 import { getClientDashboard } from '@/api/nutrition-goals';
 import { PageHeader } from '@/components/layout';
 import { Button, Dialog } from '@/components/ui';
@@ -69,7 +71,7 @@ export default function NutritionPlanPage() {
   const setSupplements = useNutritionPlanStore((s) => s.setSupplements);
 
   // ── Local UI state ──
-  const [pageTab, setPageTab] = useState<'meals' | 'photos'>('meals');
+  const [pageTab, setPageTab] = useState<'meals' | 'photos' | 'questionnaire'>('meals');
   const [selectedDay, setSelectedDay] = useState(1);
   const [weekViewExpanded, setWeekViewExpanded] = useState(false);
   const [dragOverDay, setDragOverDay] = useState<number | null>(null);
@@ -123,6 +125,26 @@ export default function NutritionPlanPage() {
     queryFn: () => getClientDashboard(plan!.clientId),
     enabled: !!plan?.clientId,
   });
+
+  // ── Linked questionnaire response — shared queryKey with the sidebar
+  // `PlanQuestionnairePanel` so the "Dotazník" tab and the sidebar stay in
+  // sync without duplicating the fetch logic. Selection mirrors the panel:
+  // prefer the response linked to the plan, else fall back to the latest
+  // submitted one. ──
+  const questionnaireResponsesQuery = useQuery({
+    queryKey: ['questionnaire-responses', plan?.clientId],
+    queryFn: () => getClientQuestionnaireResponses(plan!.clientId),
+    enabled: !!plan?.clientId && pageTab === 'questionnaire',
+  });
+
+  const linkedQuestionnaireResponse: ClientResponseItem | undefined = useMemo(() => {
+    const submitted = (questionnaireResponsesQuery.data?.responses ?? []).filter(
+      (r) => r.status === 'Submitted',
+    );
+    return plan?.questionnaireResponseId
+      ? submitted.find((r) => r.responsePublicId === plan.questionnaireResponseId)
+      : submitted[0];
+  }, [questionnaireResponsesQuery.data, plan?.questionnaireResponseId]);
 
   const targets = useMemo(() => {
     const gs = plan?.globalSettings;
@@ -435,6 +457,18 @@ export default function NutritionPlanPage() {
         >
           {t('nutrition.photos.tab')}
         </button>
+        <button
+          type="button"
+          onClick={() => setPageTab('questionnaire')}
+          className={cn(
+            'px-3 py-1 rounded-full text-[12px] font-medium transition-colors border',
+            pageTab === 'questionnaire'
+              ? 'bg-accent text-bg border-accent'
+              : 'bg-bg2 text-text3 border-border hover:bg-bg3 hover:text-text2',
+          )}
+        >
+          {t('questionnaire.answersTitle')}
+        </button>
 
         {/* Right side: start date + add-week */}
         <div className="ml-auto flex items-center gap-1.5 text-text3">
@@ -481,6 +515,17 @@ export default function NutritionPlanPage() {
                 : undefined
             }
             linkId={clientDashboard?.linkId}
+          />
+        </div>
+      )}
+
+      {/* ── Questionnaire tab content ── */}
+      {pageTab === 'questionnaire' && (
+        <div className="flex-1 overflow-y-auto">
+          <QuestionnaireAnswersView
+            response={linkedQuestionnaireResponse}
+            isLoading={questionnaireResponsesQuery.isLoading}
+            isError={questionnaireResponsesQuery.isError}
           />
         </div>
       )}
