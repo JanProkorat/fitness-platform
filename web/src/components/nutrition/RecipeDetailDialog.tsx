@@ -37,8 +37,8 @@ export function RecipeDetailDialog({ open, recipe, onClose, onEdit }: RecipeDeta
             {/* Overlay gradient + name on hero */}
             {detail && (
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.45))', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '14px 20px' }}>
-                <div style={{ fontSize: 22, fontWeight: 700, color: '#fff', letterSpacing: '-0.02em', lineHeight: 1.2 }}>{detail.name}</div>
-                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 3 }}>
+                <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--overlay-text)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>{detail.name}</div>
+                <div style={{ fontSize: 13, color: 'var(--overlay-text-soft)', marginTop: 3 }}>
                   {detail.foods.length} {t('recipes.foods').toLowerCase()}
                   {detail.prepTimeMinutes && ` · ${detail.prepTimeMinutes} min`}
                 </div>
@@ -144,7 +144,7 @@ export function RecipeDetailDialog({ open, recipe, onClose, onEdit }: RecipeDeta
             </button>
             <button
               onClick={onEdit}
-              style={{ padding: '8px 16px', borderRadius: 6, border: 'none', background: 'var(--accent)', fontSize: 13, fontWeight: 500, color: '#fff', cursor: 'pointer' }}
+              style={{ padding: '8px 16px', borderRadius: 6, border: 'none', background: 'var(--accent)', fontSize: 13, fontWeight: 500, color: 'var(--overlay-text)', cursor: 'pointer' }}
             >
               ✏ {t('recipes.editRecipe')}
             </button>
