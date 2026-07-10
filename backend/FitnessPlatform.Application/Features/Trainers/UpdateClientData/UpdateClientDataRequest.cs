@@ -9,6 +9,18 @@ public class UpdateClientDataRequest
     /// <summary>Client profile public ID (route parameter).</summary>
     public Guid ClientId { get; set; }
 
+    // --- Identity fields (#667) — persisted on the client's ApplicationUser,
+    // not the ClientProfile. Email doubles as the account's login identifier
+    // (UserManager.FindByEmailAsync), so a change here goes through
+    // UserManager.SetEmailAsync/SetUserNameAsync for uniqueness enforcement
+    // and normalized-field upkeep rather than a direct field assignment. ---
+    /// <summary>Client's first name.</summary>
+    public string? FirstName { get; set; }
+    /// <summary>Client's last name.</summary>
+    public string? LastName { get; set; }
+    /// <summary>Client's email address (also the login identifier).</summary>
+    public string? Email { get; set; }
+
     // --- Profile fields ---
     /// <summary>Weight in kg.</summary>
     public decimal? WeightKg { get; set; }
