@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { StatCardShell } from './StatCardShell';
 import type { ThisMonthAggregates } from './useRecentActivityAggregates';
 
 interface ThisMonthCardProps {
@@ -9,10 +10,7 @@ export function ThisMonthCard({ data }: ThisMonthCardProps) {
   const { t } = useTranslation();
 
   return (
-    <div className="border border-border rounded-md p-3 pb-3.5">
-      <div className="text-[11px] text-text3 uppercase tracking-[0.04em] font-medium mb-2.5">
-        {t('clients.recentActivity.thisMonth')}
-      </div>
+    <StatCardShell title={t('clients.recentActivity.thisMonth')}>
       <div className="flex flex-col gap-1.5 text-[13px]">
         <div className="flex justify-between items-baseline">
           <span className="text-text2">🏆 {t('clients.recentActivity.prTotal')}</span>
@@ -33,6 +31,6 @@ export function ThisMonthCard({ data }: ThisMonthCardProps) {
           </span>
         </div>
       </div>
-    </div>
+    </StatCardShell>
   );
 }

@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { StatCardShell } from './StatCardShell';
 import type { ThisWeekAggregates } from './useRecentActivityAggregates';
 
 interface ThisWeekCardProps {
@@ -14,10 +15,7 @@ export function ThisWeekCard({ data }: ThisWeekCardProps) {
       : 'text-text';
 
   return (
-    <div className="border border-border rounded-md p-3 pb-3.5">
-      <div className="text-[11px] text-text3 uppercase tracking-[0.04em] font-medium mb-2.5">
-        {t('clients.recentActivity.thisWeek')}
-      </div>
+    <StatCardShell title={t('clients.recentActivity.thisWeek')}>
       <div className="flex flex-col gap-1.5 text-[13px]">
         <div className="flex justify-between items-baseline">
           <span className="text-text2">🏋️ {t('clients.recentActivity.workoutsLabel')}</span>
@@ -34,6 +32,6 @@ export function ThisWeekCard({ data }: ThisWeekCardProps) {
           </span>
         </div>
       </div>
-    </div>
+    </StatCardShell>
   );
 }

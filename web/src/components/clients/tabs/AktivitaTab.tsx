@@ -1,8 +1,7 @@
 import { useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/cn';
-import { getClientTimeline } from '@/api/timeline';
+import { useClientTimeline, CLIENT_TIMELINE_DEFAULT_LIMIT } from '@/hooks/useClientTimeline';
 import { DayCard } from '@/components/domain/RecentActivity/DayCard';
 import {
   useRecentActivityAggregates,
@@ -13,8 +12,13 @@ import {
 /** Maximum items the timeline endpoint returns. Disables "Zobrazit více" at this cap. */
 const LIMIT_MAX = 100;
 
-/** Initial number of timeline items to load. */
-const LIMIT_INITIAL = 30;
+/**
+ * Initial number of timeline items to load. Matches
+ * CLIENT_TIMELINE_DEFAULT_LIMIT so this tab's initial fetch shares a cache
+ * entry with ClientDetailPage's overview "top PR" timeline query (#687)
+ * instead of issuing a second independent request.
+ */
+const LIMIT_INITIAL = CLIENT_TIMELINE_DEFAULT_LIMIT;
 
 /** Increment per "Zobrazit více" click. */
 const LIMIT_INCREMENT = 30;
@@ -50,12 +54,7 @@ export function AktivitaTab({ clientId }: AktivitaTabProps) {
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [selectedMonthKey, setSelectedMonthKey] = useState<string>(currentMonthKey);
 
-  const { data, isPending, isError } = useQuery({
-    queryKey: ['client-timeline', clientId, limit],
-    queryFn: () => getClientTimeline(clientId, limit),
-    enabled: Boolean(clientId),
-    retry: false,
-  });
+  const { data, isPending, isError } = useClientTimeline(clientId, { limit });
 
   // Stabilise the array reference: produce a new value only when `data` changes.
   // A plain `data?.items ?? []` would create a new array on every render while
