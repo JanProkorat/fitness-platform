@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react'
 import { View, Text, Pressable, StyleSheet, Animated } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
 
 interface AutoUnarchiveBannerProps {
@@ -11,6 +12,7 @@ interface AutoUnarchiveBannerProps {
 
 export function AutoUnarchiveBanner({ conversationName, onPress, onDismiss }: AutoUnarchiveBannerProps) {
   const colors = useTheme()
+  const { t } = useTranslation()
   const slideAnim = useRef(new Animated.Value(-80)).current
 
   useEffect(() => {
@@ -32,13 +34,13 @@ export function AutoUnarchiveBanner({ conversationName, onPress, onDismiss }: Au
       >
         <Text style={styles.icon}>📬</Text>
         <View style={styles.body}>
-          <Text style={[styles.title, { color: colors.label }]}>New message from archive</Text>
+          <Text style={[styles.title, { color: colors.label }]}>{t('messages.autoUnarchiveTitle')}</Text>
           <Text style={[styles.sub, { color: colors.label2 }]}>
-            {conversationName} sent a message — conversation unarchived
+            {t('messages.autoUnarchiveDesc', { name: conversationName })}
           </Text>
         </View>
         <Pressable onPress={onDismiss} hitSlop={8}>
-          <Text style={[styles.action, { color: colors.blue }]}>OK</Text>
+          <Text style={[styles.action, { color: colors.blue }]}>{t('common.ok')}</Text>
         </Pressable>
       </Pressable>
     </Animated.View>

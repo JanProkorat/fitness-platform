@@ -2082,6 +2082,7 @@
     "loadError": "Fehler beim Laden des Trainingsplans.",
     "createError": "Plan konnte nicht erstellt werden.",
     "back": "← Zurück",
-    "defaultPlanName": "Trainingsplan"
+    "defaultPlanName": "Trainingsplan",
+    "roleDenied": "Sie haben keinen Zugriff auf die Trainingspläne dieses Klienten."
   }
 }

@@ -99,7 +99,6 @@ export function DiaryAcceptWizardScreen() {
       // Clear the persisted selection — the request is now accepted server-side.
       clearSelection(requestId)
       queryClient.invalidateQueries({ queryKey: ['pending-questionnaires'] })
-      queryClient.invalidateQueries({ queryKey: ['diary-requests'] })
       queryClient.invalidateQueries({ queryKey: ['active-diary-requests'] })
 
       // Navigate to the picked flow.

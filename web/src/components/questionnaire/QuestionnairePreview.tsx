@@ -1,14 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import type { QuestionnaireDto } from '@/api/questionnaires';
-
-const TYPE_ICONS: Record<string, string> = {
-  short_text: 'Aa',
-  single_choice: '◉',
-  multi_select: '☑',
-  number: '#',
-  scale: '⟷',
-  file_upload: '📎',
-};
+import { TYPE_ICONS } from './questionnaire-helpers';
 
 export function QuestionnairePreview({ questionnaire }: { questionnaire: QuestionnaireDto }) {
   const { t } = useTranslation();

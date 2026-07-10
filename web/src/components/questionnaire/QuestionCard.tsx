@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { QuestionDto } from '@/api/questionnaires';
+import { TYPE_ICONS } from './questionnaire-helpers';
 
 interface QuestionCardProps {
   question: QuestionDto;
@@ -47,16 +48,6 @@ const MAPPED_FIELDS = [
   'pastBlockers',
   'primaryMotivation',
 ] as const;
-
-const TYPE_ICONS: Record<string, string> = {
-  section: '§',
-  short_text: 'Aa',
-  single_choice: '◉',
-  multi_select: '☑',
-  number: '#',
-  scale: '⟷',
-  file_upload: '📎',
-};
 
 const parseConfig = (config: string | null | undefined): Record<string, unknown> => {
   if (!config) return {};

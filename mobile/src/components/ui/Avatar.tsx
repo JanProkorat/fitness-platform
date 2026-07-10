@@ -6,12 +6,7 @@ import { Radius } from '@/constants/radius'
 import { getInitials } from '@/lib/initials'
 import { useImagePicker } from '@/hooks/useImagePicker'
 import { useTranslation } from 'react-i18next'
-
-const AVATAR_COLORS = [
-  '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
-  '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F',
-  '#BB8FCE', '#85C1E9',
-] as const
+import { AVATAR_PALETTE } from '@/constants/semanticColors'
 
 export type AvatarSize = 'sm' | 'md' | 'lg' | 'xl'
 
@@ -46,7 +41,7 @@ function getColorForName(name: string): string {
   for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash)
   }
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
+  return AVATAR_PALETTE[Math.abs(hash) % AVATAR_PALETTE.length]
 }
 
 /** Internal component rendering the camera-badge overlay. */

@@ -15,7 +15,7 @@
  *  4. Submit is enabled only when ≥1 photo exists, none are uploading, and none
  *     are in a failed state (AC #2). User must retry or remove failures first.
  *  5. On Submit: POST /client/photo-diary-requests/{id}/submit, then invalidate
- *     diary-requests + today-questionnaires queries, navigate to Today.
+ *     active-diary-requests + pending-questionnaires queries, navigate to Today.
  */
 
 import React, { useCallback, useReducer, useRef, useState } from 'react'
@@ -391,7 +391,6 @@ export function DiaryBulkScreen() {
       return submitDiaryRequest(requestId)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['diary-requests'] })
       queryClient.invalidateQueries({ queryKey: ['pending-questionnaires'] })
       queryClient.invalidateQueries({ queryKey: ['active-diary-requests'] })
       Toast.show(t('diary.bulk.successToast'))

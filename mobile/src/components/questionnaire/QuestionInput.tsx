@@ -55,7 +55,7 @@ function SingleChoiceCustomInput({
           },
         ]}
       >
-        <Ionicons name="add" size={18} color={text.trim() ? '#fff' : colors.label3} />
+        <Ionicons name="add" size={18} color={text.trim() ? colors.onAccent : colors.label3} />
       </Pressable>
     </View>
   )
@@ -132,7 +132,7 @@ function MultiSelectInput({
               },
             ]}
           >
-            <Ionicons name="add" size={18} color={customText.trim() ? '#fff' : colors.label3} />
+            <Ionicons name="add" size={18} color={customText.trim() ? colors.onAccent : colors.label3} />
           </Pressable>
         </View>
       )}
@@ -222,7 +222,7 @@ export function QuestionInput({
                     },
                   ]}
                 >
-                  {isSelected && <Ionicons name="checkmark" size={13} color="#fff" />}
+                  {isSelected && <Ionicons name="checkmark" size={13} color={colors.onAccent} />}
                 </View>
               </Pressable>
             )

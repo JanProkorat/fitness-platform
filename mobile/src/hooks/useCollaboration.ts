@@ -208,7 +208,12 @@ export function useCollaboration() {
     isLoading: collabQuery.isLoading || requestsQuery.isLoading,
     refetch: () => { collabQuery.refetch(); requestsQuery.refetch() },
     acceptInvite: (id: string) =>
-      acceptInviteMutation.mutate(id, { onSuccess: () => Toast.show('Invitation accepted') }),
+      acceptInviteMutation.mutate(id, {
+        onSuccess: () => {
+          store.setPendingInvite(null)
+          Toast.show('Invitation accepted')
+        },
+      }),
     declineInvite: declineInviteMutation.mutate,
     endTrainerCollab: endTrainerMutation.mutate,
     endCoachCollab: endCoachMutation.mutate,

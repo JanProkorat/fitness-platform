@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -16,6 +16,11 @@ import { NewClientDialog } from '@/components/NewClientDialog';
 import { ClientRequestDialog, PendingInviteDialog } from '@/components/layout/SidebarDialogs';
 import { useToastStore } from '@/stores/toast';
 import { ImageLightbox } from '@/components/ui';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+
+/** Stable id for the `<aside>` element — referenced by the hamburger
+ * trigger's `aria-controls` in AppShell.tsx (#585). */
+export const SIDEBAR_ELEMENT_ID = 'app-sidebar';
 
 interface SidebarProps {
   onToggleDark?: () => void;
@@ -30,6 +35,17 @@ export function Sidebar({ onToggleDark, isOpen = false, onClose }: SidebarProps)
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  // Mobile drawer a11y (#585): move focus into the drawer when it opens and
+  // trap Tab cycling while it's open. Focus-restore-to-trigger on close
+  // lives in AppShell (which owns the hamburger button ref).
+  const asideRef = useRef<HTMLElement>(null);
+  useFocusTrap(asideRef, isOpen);
+  useEffect(() => {
+    if (isOpen) {
+      asideRef.current?.focus();
+    }
+  }, [isOpen]);
 
   const isNutritionist = user?.roles.some((r) => ['Nutritionist', 'Admin'].includes(r));
   const isTrainer = user?.roles.some((r) => ['Trainer', 'Admin'].includes(r));
@@ -160,7 +176,12 @@ export function Sidebar({ onToggleDark, isOpen = false, onClose }: SidebarProps)
     location.pathname === path || location.pathname.startsWith(path + '/');
 
   return (
-    <aside className={cn('sb', isOpen && 'sb--open')}>
+    <aside
+      ref={asideRef}
+      id={SIDEBAR_ELEMENT_ID}
+      tabIndex={-1}
+      className={cn('sb', isOpen && 'sb--open')}
+    >
       {/* Workspace header */}
       <div className="sb-ws">
         <button
@@ -173,6 +194,18 @@ export function Sidebar({ onToggleDark, isOpen = false, onClose }: SidebarProps)
           <div className="sb-ws-name">GoodFellas</div>
         </button>
         <NotificationBell />
+        {/* Explicit close affordance — mobile drawer only. Wires the
+            previously-unused sidebar.closeMenu i18n key (#585). */}
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label={t('sidebar.closeMenu')}
+          className="md:hidden flex items-center justify-center w-8 h-8 rounded-md text-text2 hover:bg-bg-hover hover:text-text transition-colors border-none bg-transparent cursor-pointer shrink-0"
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <path d="M1 1L13 13M13 1L1 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
+        </button>
       </div>
 
       <div className="sb-div" />

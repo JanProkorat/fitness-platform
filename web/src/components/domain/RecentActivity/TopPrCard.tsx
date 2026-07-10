@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatWeight } from '@/lib/personalRecordFormatters';
+import { StatCardShell } from './StatCardShell';
 import type { TopPrRecord } from './useRecentActivityAggregates';
 
 interface TopPrCardProps {
@@ -17,16 +18,7 @@ export function TopPrCard({ topPr, locale }: TopPrCardProps) {
   );
 
   return (
-    <div
-      className="rounded-md p-3 pb-3.5"
-      style={{
-        background: 'var(--accent-bg)',
-        border: '1px solid var(--accent-br)',
-      }}
-    >
-      <div className="text-[11px] text-text3 uppercase tracking-[0.04em] font-medium mb-1.5">
-        🏆 {t('clients.recentActivity.topPrMonth')}
-      </div>
+    <StatCardShell variant="accent" title={`🏆 ${t('clients.recentActivity.topPrMonth')}`}>
       {topPr ? (
         <>
           <div className="text-[13px] font-semibold text-text mb-1">
@@ -47,6 +39,6 @@ export function TopPrCard({ topPr, locale }: TopPrCardProps) {
           {t('clients.recentActivity.noPrThisMonth')}
         </div>
       )}
-    </div>
+    </StatCardShell>
   );
 }

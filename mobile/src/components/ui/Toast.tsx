@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Animated, StyleSheet, Text } from 'react-native'
 import { BlurView } from 'expo-blur'
 import { Toast } from '@/lib/toast'
+import { Static } from '@/constants/colors'
 
 export function ToastProvider() {
   const [visible, setVisible] = useState(false)
@@ -59,7 +60,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   text: {
-    color: '#ffffff',
+    color: Static.alwaysWhite,
     fontSize: 15,
     fontWeight: '500',
   },

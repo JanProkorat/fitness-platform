@@ -79,7 +79,8 @@ public class FitnessApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
             if (emailDescriptor is not null)
                 services.Remove(emailDescriptor);
 
-            services.AddScoped<IEmailService, FakeEmailService>();
+            services.AddSingleton<FakeEmailService>();
+            services.AddSingleton<IEmailService>(sp => sp.GetRequiredService<FakeEmailService>());
 
             // Replace realtime notifier with in-memory fake so tests can assert broadcasts
             var notifierDescriptor = services.SingleOrDefault(
@@ -111,12 +112,17 @@ public class FitnessApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
             services.AddSingleton<IPushNotificationService>(
                 sp => sp.GetRequiredService<FakePushNotificationService>());
 
-            // Issue #282: the IHostedService-removal predicate for PhotoDiaryReminderScheduler
-            // (added in #279) was a CI runtime no-op — both schedulers still fired ExecuteAsync
-            // on every Backend CI run (verified on run 26187846524, sha ee01787: 8 PhotoDiary
-            // first-tick log lines, 9 WeeklyCheckIn first-tick log lines). Cascade prevention
-            // is carried by the per-candidate IServiceScope inside each scheduler's ExecuteAsync
-            // (introduced in #278/#279/#280/#281) and remains intact.
+            // #726: prevent the background schedulers/worker from ever starting in
+            // this test host — see TestHostedServiceExtensions for the full root
+            // cause (zombie BackgroundService timers ticking against a disposed
+            // Testcontainer, cascading via BackgroundServiceExceptionBehavior=StopHost).
+            // Supersedes the #282/#299 finding that a narrower, single-type removal
+            // predicate was a no-op: that attempt only targeted PhotoDiaryReminderScheduler
+            // and left WeeklyCheckInScheduler/SocialLoginNonceReaperService/EmailDispatchWorker
+            // running; this removes all four background loops while leaving each
+            // singleton independently resolvable for direct-tick tests (verified by
+            // FitnessApiFactoryTests).
+            services.RemoveBackgroundHostedServices();
         });
 
         builder.UseEnvironment("Development");

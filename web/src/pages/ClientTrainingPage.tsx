@@ -3,11 +3,17 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { getTrainingPlans, createTrainingPlan } from '@/api/training-plans';
+import { useAuthStore } from '@/stores/auth';
 
 /**
  * Wrapper that resolves a client's training plan:
  * - If the client has a plan → redirect to /clients/:id/training-plans/:planId
  * - If not → auto-create an empty plan (1 week) and redirect
+ *
+ * Route-level `RoleGuard` (App.tsx) already restricts this route to
+ * Trainer/Admin. This component-level check is defense-in-depth so the
+ * plan-creation effect below can never fire for a Nutritionist even if a
+ * future route change re-widens the guard (#687 route-guard note).
  */
 export default function ClientTrainingPage() {
   const { id } = useParams<{ id: string }>();
@@ -15,6 +21,8 @@ export default function ClientTrainingPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const user = useAuthStore((s) => s.user);
+  const canManageTraining = Boolean(user?.roles.some((r) => ['Trainer', 'Admin'].includes(r)));
   // Keep a ref to `t` so the resolve effect can access the current translator
   // without adding it to the deps array (t changes identity on every language
   // switch, which would re-fire the mutating effect and create duplicate plans).
@@ -23,7 +31,7 @@ export default function ClientTrainingPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!clientId) return;
+    if (!clientId || !canManageTraining) return;
 
     let cancelled = false;
 
@@ -67,7 +75,23 @@ export default function ClientTrainingPage() {
 
     resolve();
     return () => { cancelled = true; };
-  }, [clientId, navigate, queryClient]);
+  }, [clientId, navigate, queryClient, canManageTraining]);
+
+  if (!canManageTraining) {
+    return (
+      <div style={{ padding: '80px', textAlign: 'center' }}>
+        <p style={{ color: 'var(--red)', fontSize: 14 }}>{t('clientTraining.roleDenied')}</p>
+        <button
+          type="button"
+          className="btn"
+          style={{ marginTop: 12 }}
+          onClick={() => navigate('/dashboard', { replace: true })}
+        >
+          {t('clientTraining.back')}
+        </button>
+      </div>
+    );
+  }
 
   if (error) {
     return (

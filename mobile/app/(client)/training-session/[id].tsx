@@ -35,6 +35,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
 import { Brand } from '@/constants/colors'
+import { SemanticColors } from '@/constants/semanticColors'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
 import { href } from '@/lib/navigation'
@@ -169,26 +170,26 @@ function isWodFormat(format: WorkoutFormat | null | undefined): format is Workou
 // surfaces `muscleGroups` on SessionExercise, switch to
 // `getMuscleGroupColor(ex.muscleGroups[0], colors)` and delete this map.
 const MUSCLE_COLORS: Record<string, string> = {
-  Chest: '#0b6e99',
-  Shoulders: '#af52de',
-  Arms: '#ff9500',
-  Back: '#3ed7be',
-  Triceps: '#ff9500',
-  Biceps: '#ff9500',
-  Quadriceps: '#34c759',
-  Hamstrings: '#ff6b6b',
-  Glutes: '#ff9500',
-  Calves: '#5ac8fa',
-  Abs: '#ff9500',
-  Obliques: '#ff9500',
-  LowerBack: '#3ed7be',
-  Traps: '#3ed7be',
+  Chest: SemanticColors.deepBlue,
+  Shoulders: SemanticColors.purple,
+  Arms: SemanticColors.orange,
+  Back: SemanticColors.teal,
+  Triceps: SemanticColors.orange,
+  Biceps: SemanticColors.orange,
+  Quadriceps: SemanticColors.green,
+  Hamstrings: SemanticColors.coral,
+  Glutes: SemanticColors.orange,
+  Calves: SemanticColors.skyBlue,
+  Abs: SemanticColors.orange,
+  Obliques: SemanticColors.orange,
+  LowerBack: SemanticColors.teal,
+  Traps: SemanticColors.teal,
   FullBody: Brand.gold,
   // Czech translations (the API may return localized strings)
-  Hrudník: '#0b6e99',
-  Ramena: '#af52de',
-  Paže: '#ff9500',
-  Záda: '#3ed7be',
+  Hrudník: SemanticColors.deepBlue,
+  Ramena: SemanticColors.purple,
+  Paže: SemanticColors.orange,
+  Záda: SemanticColors.teal,
 }
 
 function muscleColorFor(exercise: SessionExercise): string {

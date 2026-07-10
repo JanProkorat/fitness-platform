@@ -122,7 +122,8 @@ public class RateLimitEnabledFactory : WebApplicationFactory<Program>, IAsyncLif
             var emailDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(IEmailService));
             if (emailDescriptor is not null)
                 services.Remove(emailDescriptor);
-            services.AddScoped<IEmailService, FakeEmailService>();
+            services.AddSingleton<FakeEmailService>();
+            services.AddSingleton<IEmailService>(sp => sp.GetRequiredService<FakeEmailService>());
 
             // Replace blob storage with fake
             var blobDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(IBlobStorageService));
@@ -144,6 +145,10 @@ public class RateLimitEnabledFactory : WebApplicationFactory<Program>, IAsyncLif
             services.AddSingleton<FakePushNotificationService>();
             services.AddSingleton<IPushNotificationService>(
                 sp => sp.GetRequiredService<FakePushNotificationService>());
+
+            // #726: prevent the background schedulers/worker from starting in this
+            // test host — see TestHostedServiceExtensions for the root cause.
+            services.RemoveBackgroundHostedServices();
         });
 
         builder.UseEnvironment("Development");

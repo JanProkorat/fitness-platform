@@ -8,7 +8,7 @@ import { showApiError, showSuccess } from '@/lib/api-errors';
 import { getClientVerdict } from '@/api/client-verdict';
 import { getPlans, getPlan } from '@/api/plans';
 import { getTrainingPlans } from '@/api/training-plans';
-import { getClientTimeline } from '@/api/timeline';
+import { useClientTimeline } from '@/hooks/useClientTimeline';
 import { useRecentActivityAggregates } from '@/components/domain/RecentActivity/useRecentActivityAggregates';
 
 import { Button, Dialog, Input } from '@/components/ui';
@@ -148,10 +148,10 @@ export default function ClientDetailPage() {
   });
 
   // Fetch the client timeline so we can derive the top PR for the training card.
-  const { data: timelineData } = useQuery({
-    queryKey: ['client-timeline', id],
-    queryFn: () => getClientTimeline(id!, 50),
-    enabled: !!id && client?.hasRegistered === true,
+  // Shares a query key + default limit with AktivitaTab's initial fetch
+  // (useClientTimeline) so the two don't double-fetch when both are mounted.
+  const { data: timelineData } = useClientTimeline(id, {
+    enabled: client?.hasRegistered === true,
   });
 
   const { topPr } = useRecentActivityAggregates(timelineData?.items ?? []);

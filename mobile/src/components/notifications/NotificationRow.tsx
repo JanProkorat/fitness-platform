@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
 import { goldAlpha, Brand, Static } from '@/constants/colors'
+import { withAlpha } from '@/constants/semanticColors'
 import type { Notification } from '@/hooks/useNotifications'
 
 const NOTIF_CONFIG: Record<Notification['type'], {
@@ -14,10 +15,10 @@ const NOTIF_CONFIG: Record<Notification['type'], {
 }> = {
   invitation:     { bg: goldAlpha['12'],                 icon: 'person-add',         color: Brand.gold },
   questionnaire:  { bg: goldAlpha['12'],                 icon: 'clipboard',          color: Brand.gold },
-  new_plan:       { bg: 'rgba(11,110,153,0.10)',         icon: 'calendar',           color: Static.deepBlue },
-  message:        { bg: 'rgba(0,122,255,0.10)',          icon: 'chatbubble',         color: Static.blue },
-  training_done:  { bg: 'rgba(52,199,89,0.10)',          icon: 'checkmark-circle',   color: Static.green },
-  alarm:          { bg: 'rgba(255,59,48,0.10)',          icon: 'alert-circle',       color: Static.red },
+  new_plan:       { bg: withAlpha(Static.deepBlue, 0.10), icon: 'calendar',          color: Static.deepBlue },
+  message:        { bg: withAlpha(Static.blue, 0.10),     icon: 'chatbubble',        color: Static.blue },
+  training_done:  { bg: withAlpha(Static.green, 0.10),    icon: 'checkmark-circle',  color: Static.green },
+  alarm:          { bg: withAlpha(Static.red, 0.10),      icon: 'alert-circle',      color: Static.red },
   weekly_checkin: { bg: goldAlpha['12'],                 icon: 'calendar-number',    color: Brand.gold },
 }
 

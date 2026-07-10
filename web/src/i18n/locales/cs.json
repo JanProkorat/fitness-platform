@@ -2114,6 +2114,7 @@
     "loadError": "Chyba při načítání tréninkového plánu.",
     "createError": "Nepodařilo se vytvořit plán.",
     "back": "← Zpět",
-    "defaultPlanName": "Tréninkový plán"
+    "defaultPlanName": "Tréninkový plán",
+    "roleDenied": "K tréninkovým plánům tohoto klienta nemáte přístup."
   }
 }

@@ -6,32 +6,48 @@ namespace FitnessPlatform.Tests.Infrastructure;
 /// No-op email service for integration tests. Records sent emails for assertion.
 /// </summary>
 /// <remarks>
-/// Thread safety (#702): the anonymous resend-verification endpoint now dispatches its
+/// Thread safety (#702): the anonymous resend-verification endpoint dispatches its
 /// send from a background worker thread (<c>EmailDispatchWorker</c>), concurrently with
 /// the test's own assertions and possibly with other tests' requests still in flight. A
 /// plain <c>List&lt;T&gt;.Add</c> racing a <c>foreach</c>/<c>Where</c> enumeration on the
 /// same list is undefined behavior, so every read and write below goes through a single
 /// lock. Reads return a point-in-time snapshot (<c>ToArray()</c>) rather than the live
 /// list, so a caller enumerating the result can never observe a concurrent mutation.
+///
+/// Per-instance store (#726 refinement): this used to hold its three send lists in
+/// `static` fields so any test could read `FakeEmailService.SentVerifications` without
+/// resolving an instance from DI. That worked as long as `EmailDispatchWorker` never
+/// auto-started in a test host — with no worker running, nothing but the test's own
+/// request ever wrote to the store. Once `EmailDispatchWorker` is kept running (see
+/// `TestHostedServiceExtensions`) so `AnonymousResendVerificationEndpointTests` can
+/// observe its fire-and-forget sends land, a *different* Testcontainers-backed
+/// factory's now-zombie worker (the six factories in this suite intentionally never
+/// fully dispose their host — see the #296 comment on `FitnessApiFactory`) could still
+/// be draining its queue and writing into the SAME static store a completely unrelated
+/// collection's tests are asserting against, corrupting counts across collections. Each
+/// factory now registers this class as a per-host `AddSingleton&lt;FakeEmailService&gt;()`
+/// (mirroring the existing `FakeRealtimeNotifier`/`FakePushNotificationService` pattern)
+/// so every host's worker and every test resolving that host's DI container share one
+/// instance — and no two hosts ever share a store.
 /// </remarks>
 public class FakeEmailService : IEmailService
 {
-    private static readonly object Sync = new();
+    private readonly object _sync = new();
 
-    private static readonly List<(string Email, string TrainerName, string Token, string Language, string? PersonalMessage)> InvitationsSent = [];
-    private static readonly List<(string Email, string Token, string Language)> PasswordResetsSent = [];
-    private static readonly List<(string Email, string Token, string Language)> VerificationsSent = [];
+    private readonly List<(string Email, string TrainerName, string Token, string Language, string? PersonalMessage)> _invitationsSent = [];
+    private readonly List<(string Email, string Token, string Language)> _passwordResetsSent = [];
+    private readonly List<(string Email, string Token, string Language)> _verificationsSent = [];
 
     /// <summary>
     /// Snapshot of invitation emails sent during the test.
     /// </summary>
-    public static IReadOnlyList<(string Email, string TrainerName, string Token, string Language, string? PersonalMessage)> SentInvitations
+    public IReadOnlyList<(string Email, string TrainerName, string Token, string Language, string? PersonalMessage)> SentInvitations
     {
         get
         {
-            lock (Sync)
+            lock (_sync)
             {
-                return InvitationsSent.ToArray();
+                return _invitationsSent.ToArray();
             }
         }
     }
@@ -39,13 +55,13 @@ public class FakeEmailService : IEmailService
     /// <summary>
     /// Snapshot of password reset emails sent during the test.
     /// </summary>
-    public static IReadOnlyList<(string Email, string Token, string Language)> SentPasswordResets
+    public IReadOnlyList<(string Email, string Token, string Language)> SentPasswordResets
     {
         get
         {
-            lock (Sync)
+            lock (_sync)
             {
-                return PasswordResetsSent.ToArray();
+                return _passwordResetsSent.ToArray();
             }
         }
     }
@@ -57,13 +73,13 @@ public class FakeEmailService : IEmailService
     /// asserting on a background-dispatched send (#702) must use instead of a fixed
     /// sleep.
     /// </summary>
-    public static IReadOnlyList<(string Email, string Token, string Language)> SentVerifications
+    public IReadOnlyList<(string Email, string Token, string Language)> SentVerifications
     {
         get
         {
-            lock (Sync)
+            lock (_sync)
             {
-                return VerificationsSent.ToArray();
+                return _verificationsSent.ToArray();
             }
         }
     }
@@ -71,9 +87,9 @@ public class FakeEmailService : IEmailService
     /// <inheritdoc />
     public Task SendInvitationEmailAsync(string toEmail, string trainerName, string invitationToken, string language, string? personalMessage, CancellationToken ct)
     {
-        lock (Sync)
+        lock (_sync)
         {
-            InvitationsSent.Add((toEmail, trainerName, invitationToken, language, personalMessage));
+            _invitationsSent.Add((toEmail, trainerName, invitationToken, language, personalMessage));
         }
 
         return Task.CompletedTask;
@@ -82,9 +98,9 @@ public class FakeEmailService : IEmailService
     /// <inheritdoc />
     public Task SendPasswordResetEmailAsync(string toEmail, string resetToken, string language, CancellationToken ct)
     {
-        lock (Sync)
+        lock (_sync)
         {
-            PasswordResetsSent.Add((toEmail, resetToken, language));
+            _passwordResetsSent.Add((toEmail, resetToken, language));
         }
 
         return Task.CompletedTask;
@@ -93,9 +109,9 @@ public class FakeEmailService : IEmailService
     /// <inheritdoc />
     public Task SendEmailVerificationAsync(string toEmail, string verificationToken, string language, CancellationToken ct)
     {
-        lock (Sync)
+        lock (_sync)
         {
-            VerificationsSent.Add((toEmail, verificationToken, language));
+            _verificationsSent.Add((toEmail, verificationToken, language));
         }
 
         return Task.CompletedTask;
@@ -104,13 +120,13 @@ public class FakeEmailService : IEmailService
     /// <summary>
     /// Clears all recorded emails.
     /// </summary>
-    public static void Reset()
+    public void Reset()
     {
-        lock (Sync)
+        lock (_sync)
         {
-            InvitationsSent.Clear();
-            PasswordResetsSent.Clear();
-            VerificationsSent.Clear();
+            _invitationsSent.Clear();
+            _passwordResetsSent.Clear();
+            _verificationsSent.Clear();
         }
     }
 
@@ -122,6 +138,11 @@ public class FakeEmailService : IEmailService
     /// increments — never a single fixed-duration sleep — returning as soon as it is
     /// satisfied. On timeout the loop simply exits; the caller's own assertion (not this
     /// helper) is what should fail, so the test's failure message stays meaningful.
+    ///
+    /// Kept `static` even though the store itself is now per-instance: this helper never
+    /// touches instance state directly — the caller's <paramref name="predicate"/> closure
+    /// is what reads a specific instance's snapshot property, so there is nothing here
+    /// that needs to move off the type.
     /// </summary>
     /// <param name="predicate">Re-evaluated against live state on every poll.</param>
     /// <param name="timeout">Defaults to 5 seconds — generous for an in-process
