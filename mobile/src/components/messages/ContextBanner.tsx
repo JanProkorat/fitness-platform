@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react'
 import { View, Text, Pressable, StyleSheet, Animated } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
 import { goldAlpha } from '@/constants/colors'
@@ -26,6 +27,7 @@ export function ContextBanner({
   onDecline,
 }: ContextBannerProps) {
   const colors = useTheme()
+  const { t } = useTranslation()
   const hasInviteActions = !!onAccept && !!onDecline
   const opacity = useRef(new Animated.Value(0)).current
   const translateY = useRef(new Animated.Value(-40)).current
@@ -76,13 +78,13 @@ export function ContextBanner({
             style={[styles.btn, { backgroundColor: colors.gold, flex: 1 }]}
             onPress={onAccept}
           >
-            <Text style={[styles.btnTextPrimary, { color: colors.onAccent }]}>Accept</Text>
+            <Text style={[styles.btnTextPrimary, { color: colors.onAccent }]}>{t('common.accept')}</Text>
           </Pressable>
           <Pressable
             style={[styles.btn, { backgroundColor: colors.fill, flex: 1 }]}
             onPress={onDecline}
           >
-            <Text style={[styles.btnTextSecondary, { color: colors.label2 }]}>Decline</Text>
+            <Text style={[styles.btnTextSecondary, { color: colors.label2 }]}>{t('common.decline')}</Text>
           </Pressable>
         </View>
       )}

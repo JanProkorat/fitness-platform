@@ -187,7 +187,10 @@
     "options": "Optionen",
     "yourCoach": "dein Coach",
     "previous": "Zurück",
-    "next": "Weiter"
+    "next": "Weiter",
+    "accept": "Annehmen",
+    "decline": "Ablehnen",
+    "ok": "OK"
   },
   "errors": {
     "rateLimit": "Zu viele Anfragen. Bitte versuchen Sie es in einem Moment erneut."
@@ -403,7 +406,13 @@
     "archivedConversations": "Archivierte Konversationen",
     "noArchived": "Keine archivierten Konversationen",
     "noArchivedDesc": "Archivierte Konversationen werden hier angezeigt.",
-    "connected": "Du und {{name}} seid jetzt verbunden"
+    "connected": "Du und {{name}} seid jetzt verbunden",
+    "formerTrainerTitle": "Nachricht vom ehemaligen Trainer",
+    "formerTrainerDesc": "Die Zusammenarbeit mit {{name}} wurde beendet. Du siehst diese Nachricht, weil er/sie dir erneut geschrieben hat.",
+    "showChat": "Chat anzeigen",
+    "ignore": "Ignorieren",
+    "autoUnarchiveTitle": "Neue Nachricht aus dem Archiv",
+    "autoUnarchiveDesc": "{{name}} hat geschrieben — Konversation wurde wiederhergestellt"
   },
   "plans": {
     "title": "Pläne",

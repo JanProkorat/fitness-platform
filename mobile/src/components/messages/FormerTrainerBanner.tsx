@@ -1,5 +1,6 @@
 import React from 'react'
 import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
 import { Static } from '@/constants/colors'
 import { Radius } from '@/constants/radius'
@@ -12,27 +13,28 @@ interface FormerTrainerBannerProps {
 
 export function FormerTrainerBanner({ trainerName, onShow, onIgnore }: FormerTrainerBannerProps) {
   const colors = useTheme()
+  const { t } = useTranslation()
 
   return (
     <View style={[styles.container, { backgroundColor: 'rgba(255,149,0,0.08)', borderColor: 'rgba(255,149,0,0.2)' }]}>
       <Text style={styles.icon}>⚠️</Text>
       <View style={styles.body}>
-        <Text style={styles.title}>Message from former trainer</Text>
+        <Text style={styles.title}>{t('messages.formerTrainerTitle')}</Text>
         <Text style={[styles.sub, { color: colors.label2 }]}>
-          Collaboration with {trainerName} has ended. You see this message because they wrote to you again.
+          {t('messages.formerTrainerDesc', { name: trainerName })}
         </Text>
         <View style={styles.actions}>
           <Pressable
             onPress={onShow}
             style={[styles.btn, { backgroundColor: colors.gold }]}
           >
-            <Text style={[styles.btnPrimary, { color: colors.onAccent }]}>Show chat</Text>
+            <Text style={[styles.btnPrimary, { color: colors.onAccent }]}>{t('messages.showChat')}</Text>
           </Pressable>
           <Pressable
             onPress={onIgnore}
             style={[styles.btn, { backgroundColor: colors.fill }]}
           >
-            <Text style={[styles.btnSecondary, { color: colors.label2 }]}>Ignore</Text>
+            <Text style={[styles.btnSecondary, { color: colors.label2 }]}>{t('messages.ignore')}</Text>
           </Pressable>
         </View>
       </View>
