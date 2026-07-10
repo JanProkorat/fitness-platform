@@ -15,7 +15,7 @@ import { useRouter } from 'expo-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/hooks/useTheme'
-import { goldAlpha } from '@/constants/colors'
+import { goldAlpha, Static } from '@/constants/colors'
 import { hrefParams, href } from '@/lib/navigation'
 import { getDayLabels } from '@/lib/nutrition-plan-helpers'
 import { Type } from '@/constants/typography'
@@ -281,7 +281,7 @@ const heroStyles = StyleSheet.create({
     fontWeight: '600',
   },
   toggleLabelActive: {
-    color: '#ffffff',
+    color: Static.alwaysWhite,
   },
   toggleLabelInactive: {
     color: 'rgba(255,255,255,0.55)',
@@ -297,7 +297,7 @@ const heroStyles = StyleSheet.create({
   planName: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#ffffff',
+    color: Static.alwaysWhite,
     letterSpacing: -0.2,
   },
   subtitle: {

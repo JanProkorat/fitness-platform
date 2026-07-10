@@ -13,7 +13,7 @@ import { BlurView } from 'expo-blur'
 import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from '@/hooks/useTheme'
-import { Colors, goldAlpha } from '@/constants/colors'
+import { Colors, Static, goldAlpha } from '@/constants/colors'
 import { href } from '@/lib/navigation'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
   // CTAs
   ctas: { padding: 20, gap: 10 },
   acceptBtn: { paddingVertical: 15, borderRadius: 14, alignItems: 'center' },
-  acceptText: { fontSize: 17, fontWeight: '600', color: '#fff' },
+  acceptText: { fontSize: 17, fontWeight: '600', color: Static.alwaysWhite },
   declineBtn: { paddingVertical: 13, borderRadius: 14, alignItems: 'center' },
   declineText: { fontSize: 15, fontWeight: '500' },
 })

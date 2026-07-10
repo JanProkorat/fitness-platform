@@ -589,7 +589,7 @@ function NutritionPlanDetail({
                     styles.weekGridText,
                     {
                       color:
-                        w.weekNumber === effectiveWeek ? '#fff' : colors.label,
+                        w.weekNumber === effectiveWeek ? colors.onAccent : colors.label,
                     },
                   ]}
                 >
@@ -654,7 +654,7 @@ function NutritionPlanDetail({
                       styles.dayItemNumText,
                       {
                         color: isSelected
-                          ? '#fff'
+                          ? colors.onAccent
                           : isDayToday
                             ? colors.gold
                             : colors.label3,
@@ -1226,7 +1226,7 @@ function TrainingPlanDetail({
                   style={[
                     styles.weekGridText,
                     {
-                      color: w.weekNumber === effectiveWeek ? '#fff' : colors.label,
+                      color: w.weekNumber === effectiveWeek ? colors.onAccent : colors.label,
                     },
                   ]}
                 >
@@ -1283,7 +1283,7 @@ function TrainingPlanDetail({
                       styles.dayItemNumText,
                       {
                         color: isSelected
-                          ? '#fff'
+                          ? colors.onAccent
                           : isDayToday
                             ? colors.gold
                             : colors.label3,

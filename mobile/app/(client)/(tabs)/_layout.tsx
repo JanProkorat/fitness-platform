@@ -414,7 +414,7 @@ export default function ClientTabLayout() {
             ...(tab.name === 'messages' && unreadMessages > 0
               ? {
                   tabBarBadge: unreadMessages,
-                  tabBarBadgeStyle: { backgroundColor: colors.gold, color: '#ffffff', fontSize: 11 },
+                  tabBarBadgeStyle: { backgroundColor: colors.gold, color: colors.onAccent, fontSize: 11 },
                 }
               : {}),
           }}
