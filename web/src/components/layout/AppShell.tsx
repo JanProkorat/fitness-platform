@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useMemo, useRef, Suspense } from 'rea
 import { Outlet, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Sidebar } from './Sidebar';
+import { Sidebar, SIDEBAR_ELEMENT_ID } from './Sidebar';
 import { useSignalR } from '@/hooks/useSignalR';
 import { useToastStore } from '@/stores/toast';
 import { useTrainingPlanStore } from '@/stores/trainingPlan';
@@ -50,6 +50,31 @@ export function AppShell() {
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
+  }, [sidebarOpen]);
+
+  // Resize-edge fix (#585): if the drawer is open on a narrow viewport and
+  // the window is resized (or rotated) past the `md` breakpoint, close it —
+  // otherwise it silently reappears as a permanent overlay once the
+  // viewport later crosses back below `md`, since `sidebarOpen` never reset.
+  useEffect(() => {
+    const mql = window.matchMedia('(min-width: 768px)');
+    const handleViewportChange = (e: MediaQueryListEvent) => {
+      if (e.matches) setSidebarOpen(false);
+    };
+    mql.addEventListener('change', handleViewportChange);
+    return () => mql.removeEventListener('change', handleViewportChange);
+  }, []);
+
+  // Focus management (#585): restore focus to the hamburger trigger when
+  // the drawer closes (whichever way it closed — overlay click, Escape,
+  // nav-link click, or the in-drawer close button).
+  const hamburgerRef = useRef<HTMLButtonElement>(null);
+  const wasSidebarOpenRef = useRef(sidebarOpen);
+  useEffect(() => {
+    if (wasSidebarOpenRef.current && !sidebarOpen) {
+      hamburgerRef.current?.focus();
+    }
+    wasSidebarOpenRef.current = sidebarOpen;
   }, [sidebarOpen]);
 
   // Per-conversation typing-indicator clear timers (#638). Declared outside the
@@ -408,11 +433,13 @@ export function AppShell() {
         {/* Hamburger — visible only <md */}
         <div className="flex items-center px-3 py-2 border-b border-border md:hidden">
           <button
+            ref={hamburgerRef}
             type="button"
             className="flex items-center justify-center w-9 h-9 rounded-md text-text2 hover:bg-bg-hover hover:text-text transition-colors border-none bg-transparent cursor-pointer"
             onClick={() => setSidebarOpen(true)}
             aria-label={t('sidebar.openMenu')}
             aria-expanded={sidebarOpen}
+            aria-controls={SIDEBAR_ELEMENT_ID}
           >
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
               <rect x="2" y="4" width="14" height="1.5" rx="0.75" fill="currentColor" />
