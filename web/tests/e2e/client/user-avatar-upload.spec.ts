@@ -30,29 +30,17 @@
  * Seed dependency: Phase 3 must be committed and QaSeedRunnerTests green
  * before this spec runs. The seed creates qa.client@fitnessplatform.test with
  * ClientUserId = 11111111-... and an initial avatarBlobKey = QaAvatarBlobKey.
- *
- * Auth (#376): the `client` project's default storageState
- * (.auth/client.json) is captured against the trainer-portal origin by
- * auth.setup.ts and does NOT authenticate this spec's mobile-web origin —
- * storageState is per-origin. This file overrides storageState to
- * .auth/mobile-web-client.json, produced by the dedicated
- * "authenticate as mobile-web client" setup test in auth.setup.ts (which
- * drives the real RN-Web login form at mobile-web:8081).
  */
 
 import { test, expect } from '@playwright/test';
 import { Buffer } from 'node:buffer';
-import path from 'node:path';
 
-// ── Base URL + auth override ────────────────────────────────────────────────
+// ── Base URL override ──────────────────────────────────────────────────────────
 // Inside the qa-playwright container, MOBILE_WEB_BASE_URL is set to
 // http://mobile-web:8081 by the orchestrator in Phase 5.
 const MOBILE_WEB_BASE_URL = process.env['MOBILE_WEB_BASE_URL'] ?? 'http://localhost:8081';
 
-test.use({
-  baseURL: MOBILE_WEB_BASE_URL,
-  storageState: path.resolve('.auth/mobile-web-client.json'),
-});
+test.use({ baseURL: MOBILE_WEB_BASE_URL });
 
 // ── Minimal 1×1 transparent PNG (67 bytes) ────────────────────────────────────
 // Inline buffer so no binary fixture file is committed to the repo.
