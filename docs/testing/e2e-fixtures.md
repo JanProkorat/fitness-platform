@@ -339,11 +339,17 @@ curl -sk -H "Authorization: Bearer $ACCESS" \
 ## Seeded questionnaire template + submitted response (#715)
 
 A questionnaire template owned by the QA trainer, a SUBMITTED response for the
-QA client, and a link from BOTH the main training plan (`QaTrainingPlanExternalId`)
-and the seeded nutrition plan (`QaNutritionPlanExternalId`) to that same response
-via `QuestionnaireResponseId`. This unblocks interactive QA of the "Dotaznik"
-answers tabs on the training plan (#697) and nutrition plan (#698) detail pages —
-without it, both tabs can only ever render their empty state against seed data.
+QA client, and a link from the main training plan (`QaTrainingPlanExternalId`)
+to that response via `QuestionnaireResponseId`. This unblocks interactive QA
+of the "Dotaznik" answers tab on the training plan detail page (#697) —
+without it, the tab can only ever render its empty state against seed data.
+
+> **#720 update.** The seeded nutrition plan (`QaNutritionPlanExternalId`) used
+> to link to this SAME trainer-owned response (#715's original shape). #720
+> replaced that with a separate nutritionist-owned template + response (see
+> [below](#seeded-nutritionist-owned-questionnaire-template--submitted-response-720))
+> so the nutrition plan links a response the QA nutritionist actually owns —
+> see the cross-professional-visibility note below for why that matters.
 
 ### Stable GUIDs
 
@@ -418,6 +424,95 @@ ACCESS=$(curl -sk -X POST "$API_URL/auth/login" \
 curl -sk -H "Authorization: Bearer $ACCESS" \
   "$API_URL/trainer/clients/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/questionnaire-responses" | jq '.'
 ```
+
+---
+
+## Seeded nutritionist-owned questionnaire template + submitted response (#720)
+
+A second questionnaire template owned by the QA **nutritionist**, a SUBMITTED
+response for the QA client with `ProfessionalId = NutriUserId`, and a link
+from the seeded nutrition plan (`QaNutritionPlanExternalId`) to that response
+via `QuestionnaireResponseId` — **replacing** the trainer-owned link #715
+used to write there. This unblocks interactive QA of the nutritionist's own
+"Dotaznik" answers tab on the nutrition plan detail page (#698), which
+otherwise only ever renders its empty state: `GetClientResponsesEndpoint`
+filters by `r.ProfessionalId == <calling professional>`, and the #715 fixture
+only seeded a trainer-owned response.
+
+A nutritionist↔client `ClientProfessionalLink` (`ProfessionalRole =
+Nutritionist`, `IsActive = true`, `CanViewNutritionPlans = true`) is seeded
+as part of this fixture — `GetClientResponsesEndpoint` requires an active
+link between the calling professional and the client before it returns
+anything, the same rule #715's trainer-owned fixture relies on via the
+trainer↔client link created unconditionally at the top of `SeedAsync`.
+
+### Stable GUIDs
+
+| Constant | Value | What it maps to |
+|---|---|---|
+| `QaNutriQuestionnaireExternalId` | `00000000-0000-0000-8888-000000000000` | `Questionnaire.PublicId` |
+| `QaNutriQuestionnaireResponseExternalId` | `00000000-0000-0000-8888-000000000099` | `QuestionnaireResponse.PublicId` |
+| `QaNutriQuestionSectionIntakeId` | `00000000-0000-0000-8888-000000000001` | Section header, OrderIndex 0 |
+| `QaNutriQuestionDietGoalId` | `00000000-0000-0000-8888-000000000002` | short_text question, OrderIndex 1 |
+| `QaNutriQuestionCaloriesId` | `00000000-0000-0000-8888-000000000003` | number question, OrderIndex 2 |
+| `QaNutriQuestionMealsPerDayId` | `00000000-0000-0000-8888-000000000004` | single_choice question, OrderIndex 3 |
+| `QaNutriQuestionSectionLifestyleId` | `00000000-0000-0000-8888-000000000005` | Section header, OrderIndex 4 |
+| `QaNutriQuestionAppetiteId` | `00000000-0000-0000-8888-000000000006` | scale question, OrderIndex 5 |
+| `QaNutriQuestionAllergiesId` | `00000000-0000-0000-8888-000000000007` | multi_select question, OrderIndex 6 |
+| `QaNutriQuestionFoodDiaryId` | `00000000-0000-0000-8888-000000000008` | file_upload question, OrderIndex 7 |
+
+### Ownership
+
+- Questionnaire template: `ProfessionalId = NutriUserId` (`33333333-...`) — owned by the QA nutritionist.
+- Response: `ClientId = ClientUserId` (`11111111-...`), `ProfessionalId = NutriUserId`, `LinkId` = the nutritionist↔client `ClientProfessionalLink` seeded by this fixture.
+- Response `Status = Submitted`, `SubmittedAt` = a fixed time-of-day 1 day before the seed run (`DateTime.UtcNow.Date.AddDays(-1).AddHours(10)`, computed once at first seed and never overwritten on re-seed — distinct from #715's `-2` days so the two responses' timestamps never collide).
+- The nutrition plan link is written **unconditionally** whenever the plan's current `QuestionnaireResponseId` doesn't already equal this response's `PublicId` — unlike #715's "only set if null" guard, this corrects a pre-#720 database that still points at the old trainer-owned response on the very next seed run, instead of leaving it stale forever.
+
+### Template shape
+
+```
+Questionnaire "QA Nutrition Intake Questionnaire" (ExternalId = 00000000-0000-0000-8888-000000000000)
+  Section "Nutrition Info" (OrderIndex 0)
+    Q1 short_text     "What is your primary dietary goal?"
+    Q2 number         "How many calories do you currently consume per day?"  Config: {"min":1000,"max":6000,"unit":"kcal","step":50}
+    Q3 single_choice  "How many meals do you eat per day?"                  Config: {"options":["1-2","3-4","5+"]}
+  Section "Lifestyle & Restrictions" (OrderIndex 4)
+    Q4 scale          "Rate your current appetite level"                    Config: {"min":1,"max":10,"labelMin":"Low","labelMax":"High"}
+    Q5 multi_select   "Which foods do you need to avoid?"                   Config: {"options":["Gluten","Dairy","Nuts","None"]}
+    Q6 file_upload    "Upload a recent food diary (optional)"
+```
+
+### Submitted answers (as `formatAnswerValue` renders them)
+
+| Question | Raw value stored | Rendered value |
+|---|---|---|
+| Q1 — diet goal (short_text) | `ValueText = "Lose body fat while preserving muscle mass"` | `Lose body fat while preserving muscle mass` |
+| Q2 — calories (number) | `ValueNumber = 2200` | `2200` |
+| Q3 — meals per day (single_choice) | `ValueText = "3-4"` | `3-4` |
+| Q4 — appetite (scale) | `ValueNumber = 6` | `6 / 10` |
+| Q5 — allergies (multi_select) | `ValueJson = "[\"Gluten\",\"Dairy\"]"` | `Gluten, Dairy` |
+| Q6 — food diary (file_upload) | `FileUrl = "https://storage.qa.fitnessplatform.test/qa-fixtures/food-diary-week1.pdf"` | link text `food-diary-week1.pdf` |
+
+### Curl recipe — fetch as the QA nutritionist
+
+```bash
+API_URL=$(scripts/test-env ports | jq -r '.api_url')
+
+ACCESS=$(curl -sk -X POST "$API_URL/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"qa.nutri@fitnessplatform.test","password":"<QA_SEED_PASSWORD>"}' \
+  | jq -r '.accessToken')
+
+curl -sk -H "Authorization: Bearer $ACCESS" \
+  "$API_URL/trainer/clients/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/questionnaire-responses" | jq '.'
+```
+
+This hits the same route as the trainer's curl recipe above
+(`GET /trainer/clients/{clientPublicId}/questionnaire-responses`), but the
+professional-scoping in `GetClientResponsesEndpoint` (`r.ProfessionalId ==
+<calling professional>`) means the QA trainer's call returns the #715
+trainer-owned response and the QA nutritionist's call returns this
+#720 nutritionist-owned response — never both.
 
 ---
 
