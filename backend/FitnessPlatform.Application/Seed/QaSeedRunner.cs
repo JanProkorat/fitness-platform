@@ -160,6 +160,18 @@ public static class QaSeedRunner
     public static readonly Guid TabataSectionId    = new("00000000-0000-0000-aaaa-000000000002");
     public static readonly Guid TabataExercise1Id  = new("00000000-0000-0000-eeee-000000000006");
 
+    // #588 — the six synthetic exercise ids used by the past-dated training plan
+    // (EnsurePastTrainingPlanAsync) and its WorkoutLogs. Previously inline Guid
+    // literals; named here so EnsureExercisesAsync can insert matching catalog
+    // docs from a single source of truth (no drift between the plan seed and
+    // the catalog seed).
+    public static readonly Guid PastBenchPressExerciseId       = new("11111111-1111-1111-4444-000000000001");
+    public static readonly Guid PastOverheadPressExerciseId    = new("11111111-1111-1111-4444-000000000002");
+    public static readonly Guid PastBackSquatExerciseId        = new("11111111-1111-1111-4444-000000000003");
+    public static readonly Guid PastRomanianDeadliftExerciseId = new("11111111-1111-1111-4444-000000000004");
+    public static readonly Guid PastPulldownExerciseId         = new("11111111-1111-1111-4444-000000000005");
+    public static readonly Guid PastSeatedRowExerciseId        = new("11111111-1111-1111-4444-000000000006");
+
     // Foods — owned by Nutri (NutritionistId = NutriUserId, the ApplicationUser.Id).
     // CreateFoodEndpoint sets NutritionistId = Guid.Parse(AppClaims.UserId) (the user id, NOT the
     // ProfessionalProfile.PublicId), and the ownership guard in UploadFoodImageUrlEndpoint compares
@@ -333,6 +345,11 @@ public static class QaSeedRunner
 
         if (kind == SeedKind.Rich)
         {
+            // #588 — exercise catalog docs for every synthetic SessionExercise id the
+            // training-plan fixtures below reference. Must run BEFORE the training plans
+            // so GET /exercises/{id} resolves for every id present in a seeded plan.
+            await EnsureExercisesAsync(mongo, logger);
+
             // Training plan — ForTime + 0-exercise fixture for #258 non-regression.
             await EnsureTrainingPlanAsync(mongo, clientProfile.PublicId, trainerProfile.PublicId, logger);
 
@@ -704,6 +721,65 @@ public static class QaSeedRunner
     }
 
     /// <summary>
+    /// #588 — inserts Exercise catalog docs (mongo.Exercises) matching every synthetic
+    /// SessionExercise id the QA training-plan fixtures reference (AMRAP/Standard/Tabata
+    /// section exercises, the multi-section shared exercise, and the past-dated plan's
+    /// six exercises). Without this, GET /exercises/{id} 404s for every one of these ids
+    /// because QaSeedRunner previously only ever referenced them from SessionExercise
+    /// entries — it never inserted a matching Exercise document, so the ids existed
+    /// nowhere in the catalog collection. Idempotent: skips entirely if the first id is
+    /// already present (all twelve are always inserted together).
+    /// </summary>
+    private static async Task EnsureExercisesAsync(IMongoContext mongo, ILogger logger)
+    {
+        var existing = await mongo.Exercises
+            .Find(e => e.ExternalId == AmrapExercise1Id)
+            .FirstOrDefaultAsync();
+
+        if (existing is not null)
+        {
+            logger.LogInformation("QA Exercise catalog docs already present.");
+            return;
+        }
+
+        var now = DateTime.UtcNow;
+
+        Exercise Build(Guid externalId, string name, MuscleGroup muscleGroup, ExerciseEquipment equipment) => new()
+        {
+            ExternalId = externalId,
+            Name = name,
+            MuscleGroups = [muscleGroup],
+            Equipment = equipment,
+            Category = ExerciseCategory.Strength,
+            Difficulty = ExerciseDifficulty.Intermediate,
+            IsCustom = false,
+            IsActive = true,
+            Source = "system",
+            DateCreated = now,
+        };
+
+        var exercises = new List<Exercise>
+        {
+            Build(AmrapExercise1Id, "QA Pull-up", MuscleGroup.Back, ExerciseEquipment.Bodyweight),
+            Build(AmrapExercise2Id, "QA Box Jump", MuscleGroup.Quadriceps, ExerciseEquipment.Bodyweight),
+            Build(StandardExercise1Id, "QA Squat", MuscleGroup.Quadriceps, ExerciseEquipment.Barbell),
+            Build(StandardExercise2Id, "QA Deadlift", MuscleGroup.Hamstrings, ExerciseEquipment.Barbell),
+            Build(TabataExercise1Id, "QA Burpee", MuscleGroup.Chest, ExerciseEquipment.Bodyweight),
+            Build(SharedExerciseId, "QA Kettlebell Swing", MuscleGroup.Glutes, ExerciseEquipment.Kettlebell),
+            Build(PastBenchPressExerciseId, "QA Bench Press", MuscleGroup.Chest, ExerciseEquipment.Barbell),
+            Build(PastOverheadPressExerciseId, "QA Overhead Press", MuscleGroup.Shoulders, ExerciseEquipment.Barbell),
+            Build(PastBackSquatExerciseId, "QA Back Squat", MuscleGroup.Quadriceps, ExerciseEquipment.Barbell),
+            Build(PastRomanianDeadliftExerciseId, "QA Romanian Deadlift", MuscleGroup.Hamstrings, ExerciseEquipment.Barbell),
+            Build(PastPulldownExerciseId, "QA Pull-down", MuscleGroup.Back, ExerciseEquipment.Machine),
+            Build(PastSeatedRowExerciseId, "QA Seated Row", MuscleGroup.Back, ExerciseEquipment.Machine),
+        };
+
+        await mongo.Exercises.InsertManyAsync(exercises);
+
+        logger.LogInformation("QA Exercise catalog docs created: count={Count}", exercises.Count);
+    }
+
+    /// <summary>
     /// Seeds a completed WorkoutLog against the main QA training plan (dddddddd-...)
     /// Standard section, exercising all four planned-vs-actual set cases in one session:
     ///
@@ -920,14 +996,14 @@ public static class QaSeedRunner
                                         [
                                             new SessionExercise
                                             {
-                                                ExerciseExternalId = new Guid("11111111-1111-1111-4444-000000000001"),
+                                                ExerciseExternalId = PastBenchPressExerciseId,
                                                 ExerciseName       = "QA Bench Press",
                                                 Order              = 1,
                                                 MovementType       = MovementType.Reps,
                                             },
                                             new SessionExercise
                                             {
-                                                ExerciseExternalId = new Guid("11111111-1111-1111-4444-000000000002"),
+                                                ExerciseExternalId = PastOverheadPressExerciseId,
                                                 ExerciseName       = "QA Overhead Press",
                                                 Order              = 2,
                                                 MovementType       = MovementType.Reps,
@@ -956,14 +1032,14 @@ public static class QaSeedRunner
                                         [
                                             new SessionExercise
                                             {
-                                                ExerciseExternalId = new Guid("11111111-1111-1111-4444-000000000003"),
+                                                ExerciseExternalId = PastBackSquatExerciseId,
                                                 ExerciseName       = "QA Back Squat",
                                                 Order              = 1,
                                                 MovementType       = MovementType.Reps,
                                             },
                                             new SessionExercise
                                             {
-                                                ExerciseExternalId = new Guid("11111111-1111-1111-4444-000000000004"),
+                                                ExerciseExternalId = PastRomanianDeadliftExerciseId,
                                                 ExerciseName       = "QA Romanian Deadlift",
                                                 Order              = 2,
                                                 MovementType       = MovementType.Reps,
@@ -1001,14 +1077,14 @@ public static class QaSeedRunner
                                         [
                                             new SessionExercise
                                             {
-                                                ExerciseExternalId = new Guid("11111111-1111-1111-4444-000000000005"),
+                                                ExerciseExternalId = PastPulldownExerciseId,
                                                 ExerciseName       = "QA Pull-down",
                                                 Order              = 1,
                                                 MovementType       = MovementType.Reps,
                                             },
                                             new SessionExercise
                                             {
-                                                ExerciseExternalId = new Guid("11111111-1111-1111-4444-000000000006"),
+                                                ExerciseExternalId = PastSeatedRowExerciseId,
                                                 ExerciseName       = "QA Seated Row",
                                                 Order              = 2,
                                                 MovementType       = MovementType.Reps,
@@ -1077,7 +1153,7 @@ public static class QaSeedRunner
                         [
                             new WorkoutExercise
                             {
-                                ExerciseExternalId = new Guid("11111111-1111-1111-4444-000000000001"),
+                                ExerciseExternalId = PastBenchPressExerciseId,
                                 ExerciseName       = "QA Bench Press",
                                 Sets               =
                                 [
@@ -1088,7 +1164,7 @@ public static class QaSeedRunner
                             },
                             new WorkoutExercise
                             {
-                                ExerciseExternalId = new Guid("11111111-1111-1111-4444-000000000002"),
+                                ExerciseExternalId = PastOverheadPressExerciseId,
                                 ExerciseName       = "QA Overhead Press",
                                 Sets               =
                                 [
@@ -1147,7 +1223,7 @@ public static class QaSeedRunner
                         [
                             new WorkoutExercise
                             {
-                                ExerciseExternalId = new Guid("11111111-1111-1111-4444-000000000003"),
+                                ExerciseExternalId = PastBackSquatExerciseId,
                                 ExerciseName       = "QA Back Squat",
                                 Sets               =
                                 [
@@ -1157,7 +1233,7 @@ public static class QaSeedRunner
                             },
                             new WorkoutExercise
                             {
-                                ExerciseExternalId = new Guid("11111111-1111-1111-4444-000000000004"),
+                                ExerciseExternalId = PastRomanianDeadliftExerciseId,
                                 ExerciseName       = "QA Romanian Deadlift",
                                 Sets               = [], // exercise was never started
                             },
