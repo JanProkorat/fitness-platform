@@ -26,6 +26,8 @@ import { listDiaryRequests } from '@/api/diary-requests';
 import { RequestDiaryDialog } from '@/components/diary/RequestDiaryDialog';
 import type { PlanSummary } from '@/api/plan-types';
 import type { TrainingPlanSummary } from '@/api/training-plan-types';
+import { formatClientDate } from '@/lib/date-format';
+import { EmptyState } from '@/components/clients/EmptyState';
 
 // How many thumbnails to show before the overflow tile.
 const MAX_VISIBLE = 8;
@@ -231,12 +233,7 @@ export function FotkyTab({
 
   // ── Date formatter (active locale, matching MereniTab / PlanPhotosTab pattern) ─
   function formatDate(iso: string | undefined): string {
-    if (!iso) return '—';
-    return new Date(iso).toLocaleDateString(i18n.language, {
-      day: 'numeric',
-      month: 'numeric',
-      year: 'numeric',
-    });
+    return formatClientDate(iso, i18n.language, 'numeric', '—');
   }
 
   // ── Category label for thumbnail caption ─────────────────────────────────────
@@ -394,24 +391,22 @@ export function FotkyTab({
 
           {/* Empty state */}
           {totalCount === 0 && (
-            <div className="flex flex-col items-center gap-3 py-16 text-center">
-              <div className="text-[32px] opacity-40">📷</div>
-              <div className="text-[14px] font-medium text-text2">
-                {t('clientDetail.fotky.emptyTitle')}
-              </div>
-              <div className="text-[13px] text-text3 max-w-xs">
-                {t('clientDetail.fotky.emptyDescription')}
-              </div>
-              <button
-                type="button"
-                disabled={hasInFlightDiary}
-                onClick={() => setDiaryDialogOpen(true)}
-                className="mt-1 text-[13px] font-semibold hover:underline bg-transparent border-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ color: 'var(--accent)' }}
-              >
-                📸 {t('clientDetail.fotky.emptyRequestCta')}
-              </button>
-            </div>
+            <EmptyState
+              icon="📷"
+              title={t('clientDetail.fotky.emptyTitle')}
+              description={t('clientDetail.fotky.emptyDescription')}
+              action={
+                <button
+                  type="button"
+                  disabled={hasInFlightDiary}
+                  onClick={() => setDiaryDialogOpen(true)}
+                  className="mt-1 text-[13px] font-semibold hover:underline bg-transparent border-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ color: 'var(--accent)' }}
+                >
+                  📸 {t('clientDetail.fotky.emptyRequestCta')}
+                </button>
+              }
+            />
           )}
 
           {/* Thumbnail grid — auto-fill min 140px columns, 1:1 aspect */}

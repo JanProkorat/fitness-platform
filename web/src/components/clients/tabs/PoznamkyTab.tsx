@@ -13,20 +13,10 @@ import {
   deleteNote,
   type TrainerNote,
 } from '@/api/trainer-notes';
+import { formatClientDate as formatDate } from '@/lib/date-format';
 
 interface PoznamkyTabProps {
   clientId: string;
-}
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatDate(iso: string, locale: string): string {
-  const d = new Date(iso);
-  return d.toLocaleDateString(locale, {
-    day: 'numeric',
-    month: 'numeric',
-    year: 'numeric',
-  });
 }
 
 // ── Sub-component: a single editable note card ────────────────────────────────

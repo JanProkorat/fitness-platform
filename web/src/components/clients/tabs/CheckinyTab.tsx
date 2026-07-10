@@ -13,6 +13,8 @@ import {
   DAY_OF_WEEK_KEYS,
   formatTimeDisplay,
 } from '@/api/weekly-checkins';
+import { formatClientDate, formatClientDateTime } from '@/lib/date-format';
+import { EmptyState } from '@/components/clients/EmptyState';
 
 interface CheckinyTabProps {
   /** Client's ApplicationUser Id (Guid string) — passed to check-in endpoints. */
@@ -25,30 +27,12 @@ interface CheckinyTabProps {
 
 /** Formats an ISO string to a short localised date. */
 function formatShortDate(iso: string, language: string): string {
-  try {
-    return new Date(iso).toLocaleDateString(language, {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-  } catch {
-    return iso;
-  }
+  return formatClientDate(iso, language, 'short');
 }
 
 /** Formats an ISO string to a date + time display. */
 function formatDateTimeStr(iso: string, language: string): string {
-  try {
-    return new Date(iso).toLocaleDateString(language, {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return iso;
-  }
+  return formatClientDateTime(iso, language);
 }
 
 export function CheckinyTab({
@@ -163,15 +147,11 @@ export function CheckinyTab({
 
       {/* Empty state */}
       {!isError && items.length === 0 && (
-        <div className="flex flex-col items-center gap-3 py-16 text-center">
-          <div className="text-[32px] opacity-40">📋</div>
-          <div className="text-[14px] font-medium text-text2">
-            {t('clientDetail.checkiny.emptyTitle')}
-          </div>
-          <div className="text-[13px] text-text3 max-w-xs">
-            {t('clientDetail.checkiny.emptyDescription')}
-          </div>
-        </div>
+        <EmptyState
+          icon="📋"
+          title={t('clientDetail.checkiny.emptyTitle')}
+          description={t('clientDetail.checkiny.emptyDescription')}
+        />
       )}
 
       {/* Check-in rows */}

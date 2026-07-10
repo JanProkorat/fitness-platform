@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import type { PlanSummary, GlobalNutritionSettings } from '@/api/plan-types';
+import { formatClientDate as formatDate } from '@/lib/date-format';
 
 interface ActiveNutritionPlanCardProps {
   plan: PlanSummary;
@@ -10,12 +11,6 @@ interface ActiveNutritionPlanCardProps {
   goalLabel?: string | null;
   compliancePercent?: number | null;
   onHistoryClick: () => void;
-}
-
-function formatDate(iso: string | null | undefined, locale: string): string {
-  if (!iso) return '';
-  const d = new Date(iso);
-  return d.toLocaleDateString(locale, { day: 'numeric', month: 'numeric', year: 'numeric' });
 }
 
 export function ActiveNutritionPlanCard({

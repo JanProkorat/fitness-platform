@@ -7,6 +7,8 @@ import type { ClientPlanItem, PlanStatus } from '@/api/client-plans';
 // Module-scope helper — no React hook available here. Use the i18n singleton
 // directly, mirroring lib/api-errors.ts.
 import i18n from '@/i18n';
+import { formatClientDatePeriod } from '@/lib/date-format';
+import { EmptyState } from '@/components/clients/EmptyState';
 
 interface PlanyTabProps {
   clientId: string;
@@ -14,22 +16,8 @@ interface PlanyTabProps {
 
 // ── Date formatting helpers ───────────────────────────────────────────────────
 
-function formatDate(iso: string | null | undefined): string {
-  if (!iso) return '';
-  return new Date(iso).toLocaleDateString(i18n.language, {
-    day: 'numeric',
-    month: 'numeric',
-    year: 'numeric',
-  });
-}
-
 function formatPeriod(periodStart: string | null | undefined, periodEnd: string | null | undefined): string {
-  const start = formatDate(periodStart);
-  const end = formatDate(periodEnd);
-  if (!start && !end) return '—';
-  if (start && !end) return `${start} →`;
-  if (!start && end) return `→ ${end}`;
-  return `${start} – ${end}`;
+  return formatClientDatePeriod(periodStart, periodEnd, i18n.language);
 }
 
 // ── Status chip ───────────────────────────────────────────────────────────────
@@ -166,15 +154,11 @@ export function PlanyTab({ clientId }: PlanyTabProps) {
 
       {/* Empty state */}
       {isEmpty && (
-        <div className="flex flex-col items-center gap-3 py-16 text-center">
-          <div className="text-[32px] opacity-40">📋</div>
-          <div className="text-[14px] font-medium text-text2">
-            {t('clientDetail.plany.emptyTitle')}
-          </div>
-          <div className="text-[13px] text-text3 max-w-xs">
-            {t('clientDetail.plany.emptyDescription')}
-          </div>
-        </div>
+        <EmptyState
+          icon="📋"
+          title={t('clientDetail.plany.emptyTitle')}
+          description={t('clientDetail.plany.emptyDescription')}
+        />
       )}
 
       {/* Plans table */}
