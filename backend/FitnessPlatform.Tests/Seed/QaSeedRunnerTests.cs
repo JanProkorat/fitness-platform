@@ -161,12 +161,6 @@ public class QaSeedRunnerFactory : WebApplicationFactory<Program>, IAsyncLifetim
 
     public new async ValueTask DisposeAsync()
     {
-        // Stop hosted services (schedulers, EmailDispatchWorker) before tearing down the
-        // containers below, so they stop touching Postgres/Mongo and the shared
-        // FakeEmailService test double once this factory is done — see
-        // TestHostedServiceShutdown for the full root-cause explanation (#726).
-        await TestHostedServiceShutdown.StopAllAsync(Services);
-
         // Skip base.DisposeAsync() to avoid disposing the root IServiceProvider
         // while other tests may be holding a reference (see FitnessApiFactory comment).
         await Task.WhenAll(

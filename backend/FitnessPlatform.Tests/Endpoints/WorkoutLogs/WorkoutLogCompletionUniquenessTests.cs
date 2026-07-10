@@ -117,12 +117,6 @@ public class WorkoutLogUniquenessFactory : WebApplicationFactory<Program>, IAsyn
 
     public new async ValueTask DisposeAsync()
     {
-        // Stop hosted services (schedulers, EmailDispatchWorker) before tearing down the
-        // containers below — see TestHostedServiceShutdown for the full root-cause
-        // explanation (#726: zombie services touching disposed Testcontainers /
-        // racing FakeEmailService's shared static state).
-        await TestHostedServiceShutdown.StopAllAsync(Services);
-
         await Task.WhenAll(
             _postgres.DisposeAsync().AsTask(),
             _mongo.DisposeAsync().AsTask());
