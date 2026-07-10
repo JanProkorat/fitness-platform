@@ -29,7 +29,7 @@ public static class QuestionSectionResolver
     /// they produce no answer row, so there is nothing to key them by.
     /// </summary>
     /// <param name="questions">All questions belonging to the questionnaire (including section headers).</param>
-    /// <returns>A lookup keyed by <see cref="QuestionnaireQuestion.Id"/>.</returns>
+    /// <returns>A lookup keyed by the question's long primary key (<c>QuestionnaireQuestion.Id</c>).</returns>
     public static Dictionary<long, (string? SectionLabel, int? SectionOrder)> Resolve(
         IEnumerable<QuestionnaireQuestion> questions)
     {
