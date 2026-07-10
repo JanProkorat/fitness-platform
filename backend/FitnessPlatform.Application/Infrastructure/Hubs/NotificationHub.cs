@@ -47,6 +47,10 @@ public class NotificationHub(
         var userId = Context.User?.FindFirst(AppClaims.UserId)?.Value;
         if (userId is null) return;
 
+        // Fail soft on a malformed conversationId, matching the rest of this hub
+        // (which returns on a null/unresolved userId rather than throwing) — see #663.
+        if (!Guid.TryParse(conversationId, out var conversationGuid)) return;
+
         var userGuid = Guid.Parse(userId);
 
         using var scope = scopeFactory.CreateScope();
@@ -55,7 +59,7 @@ public class NotificationHub(
         var conversation = await db.Conversations
             .AsNoTracking()
             .FirstOrDefaultAsync(c =>
-                c.PublicId == Guid.Parse(conversationId) &&
+                c.PublicId == conversationGuid &&
                 (c.ProfessionalUserId == userGuid || c.ClientUserId == userGuid));
 
         if (conversation is null) return;
