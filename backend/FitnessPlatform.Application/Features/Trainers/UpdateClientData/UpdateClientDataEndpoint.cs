@@ -1,20 +1,23 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitnessPlatform.Application.Features.Trainers.UpdateClientData;
 
 /// <summary>
-/// Updates a client's profile fields and nutrition targets.
-/// Only non-null request fields are applied.
+/// Updates a client's profile fields, nutrition targets, and (#667) identity
+/// fields (first name, last name, email). Only non-null request fields are applied.
 /// </summary>
 /// <param name="db">Database context.</param>
+/// <param name="userManager">ASP.NET Identity user manager — used for the client's identity fields.</param>
 /// <param name="audit">Audit logging service.</param>
-public class UpdateClientDataEndpoint(IApplicationDbContext db, IAuditService audit)
+public class UpdateClientDataEndpoint(IApplicationDbContext db, UserManager<ApplicationUser> userManager, IAuditService audit)
     : Endpoint<UpdateClientDataRequest, UpdateClientDataResponse>
 {
     /// <inheritdoc />
@@ -51,6 +54,45 @@ public class UpdateClientDataEndpoint(IApplicationDbContext db, IAuditService au
                         && l.ClientProfileId == clientProfile.Id
                         && l.IsActive, ct);
         if (!hasLink) { await Send.NotFoundAsync(ct); return; }
+
+        // Update identity fields (#667) — these live on ApplicationUser, not ClientProfile.
+        if (req.FirstName != null || req.LastName != null || req.Email != null)
+        {
+            var clientUser = await userManager.FindByIdAsync(clientProfile.UserId.ToString());
+            if (clientUser is null) { await Send.NotFoundAsync(ct); return; }
+
+            if (req.Email != null && !string.Equals(clientUser.Email, req.Email, StringComparison.OrdinalIgnoreCase))
+            {
+                // SetEmailAsync (not a direct field assignment) so NormalizedEmail stays in
+                // sync with the uniqueness index UserManager.FindByEmailAsync relies on, and
+                // so RequireUniqueEmail's validator catches a duplicate here rather than
+                // failing silently or crashing on a unique-constraint violation at SaveChanges.
+                var emailResult = await userManager.SetEmailAsync(clientUser, req.Email);
+                if (!emailResult.Succeeded)
+                {
+                    ThrowError("Email", string.Join(" ", emailResult.Errors.Select(e => e.Description)));
+                    return;
+                }
+
+                // Keep UserName in sync with Email — Register always sets them equal, and
+                // other lookups (FindByNameAsync) should not silently diverge from it.
+                var userNameResult = await userManager.SetUserNameAsync(clientUser, req.Email);
+                if (!userNameResult.Succeeded)
+                {
+                    ThrowError("Email", string.Join(" ", userNameResult.Errors.Select(e => e.Description)));
+                    return;
+                }
+            }
+
+            if (req.FirstName != null) clientUser.FirstName = req.FirstName;
+            if (req.LastName != null) clientUser.LastName = req.LastName;
+
+            if (req.FirstName != null || req.LastName != null)
+            {
+                clientUser.DateUpdated = DateTime.UtcNow;
+                await userManager.UpdateAsync(clientUser);
+            }
+        }
 
         // Update profile fields
         if (req.WeightKg.HasValue) clientProfile.WeightKg = req.WeightKg.Value;

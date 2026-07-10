@@ -16,6 +16,10 @@ namespace FitnessPlatform.Application.Features.Auth.RefreshToken;
 /// <remarks>
 /// Rotation is closed against concurrent reuse with an atomic conditional update
 /// (<c>WHERE Token = @token AND RevokedAt IS NULL</c>) rather than a read-then-write.
+/// The conditional update and the successor row insert run in a single database
+/// transaction (<see cref="IApplicationDbContext.RotateRefreshTokenAsync"/>, #694) —
+/// so the successor row is always durably present whenever <c>ReplacedByToken</c>
+/// is set, never left dangling by a crash between two separate writes.
 /// Exactly one concurrent caller can win that update; the loser re-reads the
 /// now-revoked row and is routed into a grace-window discriminator (Auth0-style
 /// rotation-with-reuse-detection):
@@ -87,9 +91,19 @@ public class RefreshTokenEndpoint(
 
         var newRefreshTokenValue = GenerateRefreshToken();
         var rotatedAt = DateTime.UtcNow;
+        var refreshTokenDays = config.GetValue(ConfigKeys.JwtRefreshTokenExpirationDays, 7);
 
-        // Atomic conditional update — exactly one concurrent caller can win this.
-        var rowsAffected = await db.RotateRefreshTokenAsync(req.RefreshToken, newRefreshTokenValue, rotatedAt, ct);
+        var successorToken = new Domain.Entities.RefreshToken
+        {
+            UserId = user.Id,
+            Token = newRefreshTokenValue,
+            ExpiresAt = DateTime.UtcNow.AddDays(refreshTokenDays)
+        };
+
+        // Atomic conditional update + successor insert, in a single transaction
+        // (#694) — exactly one concurrent caller can win this, and the successor
+        // row is guaranteed durably present whenever ReplacedByToken is set.
+        var rowsAffected = await db.RotateRefreshTokenAsync(req.RefreshToken, successorToken, rotatedAt, ct);
 
         if (rowsAffected == 0)
         {
@@ -111,22 +125,13 @@ public class RefreshTokenEndpoint(
             return;
         }
 
-        // We won the rotation race — issue the new token pair.
+        // We won the rotation race — the successor row is already durably
+        // persisted (RotateRefreshTokenAsync inserted it in the same
+        // transaction as the conditional update). Just issue the new token pair.
         var roles = await userManager.GetRolesAsync(user);
         var expiresAt = DateTime.UtcNow.AddMinutes(
             config.GetValue(ConfigKeys.JwtAccessTokenExpirationMinutes, 15));
         var accessToken = CreateAccessToken(user, roles, expiresAt);
-
-        var refreshTokenDays = config.GetValue(ConfigKeys.JwtRefreshTokenExpirationDays, 7);
-
-        db.RefreshTokens.Add(new Domain.Entities.RefreshToken
-        {
-            UserId = user.Id,
-            Token = newRefreshTokenValue,
-            ExpiresAt = DateTime.UtcNow.AddDays(refreshTokenDays)
-        });
-
-        await db.SaveChangesAsync(ct);
 
         await Send.OkAsync(new RefreshTokenResponse
         {

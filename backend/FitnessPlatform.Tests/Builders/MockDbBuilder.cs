@@ -175,7 +175,7 @@ public class MockDbBuilder
         // the race). Tests that exercise the concurrent-loser path override this
         // with db.RotateRefreshTokenAsync(...).Returns(0), typically alongside a
         // callback that mutates the seeded token to simulate the winner's commit.
-        db.RotateRefreshTokenAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+        db.RotateRefreshTokenAsync(Arg.Any<string>(), Arg.Any<RefreshToken>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
             .Returns(1);
         db.RevokeRefreshTokenFamilyAsync(Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
             .Returns(0);

@@ -52,6 +52,28 @@ public class PlanConcurrencyResult<TDoc>
 /// <c>mutate</c> delegate, and any work that must run only after a confirmed successful
 /// replace (e.g. archiving sibling plans, releasing edit locks) stays in the endpoint, gated on
 /// <see cref="PlanConcurrencyOutcome.Success"/>.
+///
+/// <para>
+/// <b>Create and Delete are intentionally excluded (#659 / #695).</b> #659's original
+/// six-pair enumeration (Create, Update, Publish, Delete, Complete, LinkQuestionnaire)
+/// only migrated the four pairs that already implement this guard's version-gated
+/// fetch-check-replace-409 skeleton. Create and Delete don't:
+/// <list type="bullet">
+/// <item><b>Create</b> (<c>CreateTrainingPlanEndpoint</c> / <c>CreatePlanEndpoint</c>)
+/// uses <c>InsertOneAsync</c> with <c>Version = 1</c> on a brand-new document — there is
+/// no existing row to fetch, no version to compare, and no 409 path to extract.</item>
+/// <item><b>Delete</b> (<c>DeleteTrainingPlanEndpoint</c> / <c>DeletePlanEndpoint</c>)
+/// soft-deletes via <c>UpdateOneAsync(...).Inc(Version)</c> scoped only by ExternalId +
+/// owner — it never compares a caller-supplied <c>req.Version</c>, so there is no
+/// version-conflict branch for the guard to encapsulate either.</item>
+/// </list>
+/// Forcing either through this guard as-is would <i>add</i> a version-check/409 path
+/// neither endpoint has today — a behavior change #659's AC explicitly ruled out ("not a
+/// behavior or API-shape change"). This is the intended, permanent state: Create/Delete
+/// stay as-is unless their own duplication independently clears the project's
+/// rule-of-three for extraction (a decision for a fresh, narrowly-scoped issue, not a
+/// re-opening of #659).
+/// </para>
 /// </summary>
 public class PlanConcurrencyGuard
 {

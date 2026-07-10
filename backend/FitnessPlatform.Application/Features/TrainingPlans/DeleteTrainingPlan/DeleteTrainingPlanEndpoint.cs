@@ -11,6 +11,12 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.DeleteTrainingPlan;
 /// <summary>
 /// Soft-deletes a training plan by setting its status to Archived.
 /// </summary>
+/// <remarks>
+/// Intentionally does not go through <see cref="FitnessPlatform.Application.Domain.Services.PlanConcurrencyGuard"/> —
+/// this update scopes only by ExternalId + owner and never compares a caller-supplied
+/// version, so there is no version-conflict branch for the guard to encapsulate. See the
+/// guard's class doc-comment for the full Create/Delete exclusion rationale (#659 / #695).
+/// </remarks>
 /// <param name="mongo">MongoDB context.</param>
 public class DeleteTrainingPlanEndpoint(IMongoContext mongo) : Endpoint<DeleteTrainingPlanRequest>
 {

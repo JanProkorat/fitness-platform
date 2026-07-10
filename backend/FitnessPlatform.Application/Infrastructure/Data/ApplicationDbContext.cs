@@ -314,15 +314,33 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     }
 
     /// <inheritdoc />
-    public Task<int> RotateRefreshTokenAsync(string token, string replacedByToken, DateTime revokedAt, CancellationToken cancellationToken = default)
+    public async Task<int> RotateRefreshTokenAsync(string token, RefreshToken successorToken, DateTime revokedAt, CancellationToken cancellationToken = default)
     {
-        return RefreshTokens
+        // No retry-on-failure is configured for the Npgsql provider (see Program.cs),
+        // so a plain BeginTransactionAsync/CommitAsync is sufficient here — no
+        // execution-strategy wrapping needed to guard against a transient-retry
+        // replaying the transaction.
+        await using var transaction = await Database.BeginTransactionAsync(cancellationToken);
+
+        var rowsAffected = await RefreshTokens
             .Where(rt => rt.Token == token && rt.RevokedAt == null)
             .ExecuteUpdateAsync(
                 s => s
                     .SetProperty(rt => rt.RevokedAt, revokedAt)
-                    .SetProperty(rt => rt.ReplacedByToken, replacedByToken),
+                    .SetProperty(rt => rt.ReplacedByToken, successorToken.Token),
                 cancellationToken);
+
+        if (rowsAffected > 0)
+        {
+            // Only insert the successor when this caller actually won the
+            // conditional update — a losing caller must not create an orphaned
+            // successor row nobody points to.
+            RefreshTokens.Add(successorToken);
+            await SaveChangesAsync(cancellationToken);
+        }
+
+        await transaction.CommitAsync(cancellationToken);
+        return rowsAffected;
     }
 
     /// <inheritdoc />

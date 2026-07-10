@@ -61,6 +61,43 @@ public class ResetPasswordValidatorTests
         _validator.TestValidate(req).ShouldHaveValidationErrorFor(x => x.NewPassword);
     }
 
+    /// <summary>
+    /// Regression coverage for #692: the validator must mirror the Identity
+    /// password policy (uppercase / lowercase / digit) so a policy-violating
+    /// password for a valid-token user is rejected here — with an actionable
+    /// message — rather than reaching <c>ResetPasswordAsync</c> and being
+    /// collapsed into the endpoint's generic enumeration-safe error.
+    /// </summary>
+    [Fact]
+    public void NewPassword_MissingUppercase_FailsWithActionableMessage()
+    {
+        var req = ValidRequest();
+        req.NewPassword = "lowercase123!";
+        req.ConfirmPassword = req.NewPassword;
+        _validator.TestValidate(req).ShouldHaveValidationErrorFor(x => x.NewPassword)
+            .WithErrorMessage("Password must contain at least one uppercase letter.");
+    }
+
+    [Fact]
+    public void NewPassword_MissingLowercase_FailsWithActionableMessage()
+    {
+        var req = ValidRequest();
+        req.NewPassword = "UPPERCASE123!";
+        req.ConfirmPassword = req.NewPassword;
+        _validator.TestValidate(req).ShouldHaveValidationErrorFor(x => x.NewPassword)
+            .WithErrorMessage("Password must contain at least one lowercase letter.");
+    }
+
+    [Fact]
+    public void NewPassword_MissingDigit_FailsWithActionableMessage()
+    {
+        var req = ValidRequest();
+        req.NewPassword = "NoDigitsHere!";
+        req.ConfirmPassword = req.NewPassword;
+        _validator.TestValidate(req).ShouldHaveValidationErrorFor(x => x.NewPassword)
+            .WithErrorMessage("Password must contain at least one digit.");
+    }
+
     [Fact]
     public void ConfirmPassword_Mismatch_Fails()
     {

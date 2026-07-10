@@ -13,6 +13,9 @@ public class UpdateClientDataValidator : Validator<UpdateClientDataRequest>
     public UpdateClientDataValidator()
     {
         RuleFor(x => x.ClientId).NotEmpty();
+        RuleFor(x => x.FirstName).NotEmpty().MaximumLength(50).When(x => x.FirstName != null);
+        RuleFor(x => x.LastName).NotEmpty().MaximumLength(50).When(x => x.LastName != null);
+        RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(100).When(x => x.Email != null);
         RuleFor(x => x.WeightKg).InclusiveBetween(30, 300).When(x => x.WeightKg.HasValue);
         RuleFor(x => x.HeightCm).InclusiveBetween(100, 250).When(x => x.HeightCm.HasValue);
         RuleFor(x => x.Age).InclusiveBetween(10, 120).When(x => x.Age.HasValue);

@@ -30,6 +30,12 @@ public class ResetPasswordEndpoint(UserManager<ApplicationUser> userManager) : E
     /// surfacing Identity's distinct "Invalid token." text (or any of
     /// <see cref="IdentityResult.Errors"/>) only when the email exists would let an
     /// attacker enumerate registered accounts by comparing response text. See #656.
+    ///
+    /// Password-policy violations (weak new password) are intentionally NOT routed
+    /// through this generic branch — <see cref="ResetPasswordValidator"/> mirrors the
+    /// Identity password policy and rejects weak passwords before HandleAsync runs,
+    /// so a valid-token user always sees the specific, actionable policy error rather
+    /// than this generic one. See #692.
     /// </summary>
     private const string GenericResetFailureMessage = "Invalid or expired password reset request.";
 

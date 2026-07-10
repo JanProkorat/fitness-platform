@@ -103,6 +103,12 @@ public class SendClientRequestEndpoint(
 
         db.ClientRequests.Add(clientRequest);
 
+        // Persist explicitly rather than relying on NotificationService.CreateAsync's
+        // downstream SaveChangesAsync call on this same scoped context — the request
+        // must still be durably saved if the notification call is ever removed,
+        // reordered, or moved to a different context/scope (#663).
+        await db.SaveChangesAsync(ct);
+
         // Get client user for notification
         var clientUser = await db.Users.FirstAsync(u => u.Id == userGuid, ct);
 

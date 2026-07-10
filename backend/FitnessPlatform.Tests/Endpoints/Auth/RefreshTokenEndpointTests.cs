@@ -129,7 +129,7 @@ public class RefreshTokenEndpointTests
         // The atomic rotation goes through db.RotateRefreshTokenAsync (mocked to
         // succeed by default) rather than mutating the tracked entity directly.
         await db.Received(1).RotateRefreshTokenAsync(
-            "old-token", Arg.Any<string>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>());
+            "old-token", Arg.Any<RefreshToken>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>());
     }
 
     // ── Grace-window reuse-detection discriminator ──────────────────────────
@@ -256,7 +256,7 @@ public class RefreshTokenEndpointTests
         // the token is now revoked with a successor recorded, within the grace
         // window (mimicking the winner's own commit that just happened).
         db.RotateRefreshTokenAsync(
-                "raced-token", Arg.Any<string>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+                "raced-token", Arg.Any<RefreshToken>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
             .Returns(_ =>
             {
                 token.RevokedAt = DateTime.UtcNow;
@@ -292,7 +292,7 @@ public class RefreshTokenEndpointTests
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
 
         db.RotateRefreshTokenAsync(
-                "raced-stolen-token", Arg.Any<string>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+                "raced-stolen-token", Arg.Any<RefreshToken>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
             .Returns(_ =>
             {
                 token.RevokedAt = DateTime.UtcNow.AddMinutes(-5);

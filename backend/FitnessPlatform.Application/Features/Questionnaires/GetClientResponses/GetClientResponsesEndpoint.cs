@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Features.Questionnaires.Dtos;
 using FitnessPlatform.Application.Features.Questionnaires.GetClientResponse;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -67,7 +68,7 @@ public class GetClientResponsesEndpoint(IApplicationDbContext db) : EndpointWith
 
         var responses = await db.QuestionnaireResponses
             .Include(r => r.Answers).ThenInclude(a => a.Question)
-            .Include(r => r.Questionnaire)
+            .Include(r => r.Questionnaire).ThenInclude(q => q.Questions)
             .Where(r => r.ClientId == clientProfile.UserId
                      && r.ProfessionalId == professionalProfile.UserId)
             .OrderByDescending(r => r.SubmittedAt ?? r.DateCreated)
@@ -75,27 +76,40 @@ public class GetClientResponsesEndpoint(IApplicationDbContext db) : EndpointWith
 
         await Send.OkAsync(new GetClientResponsesResponse
         {
-            Responses = responses.Select(r => new ClientResponseItem
+            Responses = responses.Select(r =>
             {
-                ResponsePublicId = r.PublicId,
-                QuestionnaireTitle = r.Questionnaire.Title,
-                Status = r.Status.ToString(),
-                SubmittedAt = r.SubmittedAt,
-                DateCreated = r.DateCreated,
-                AnswerCount = r.Answers.Count,
-                Answers = r.Status == QuestionnaireResponseStatus.Submitted
-                    ? r.Answers.Select(a => new ResponseAnswerDto
-                    {
-                        QuestionPublicId = a.Question.PublicId,
-                        QuestionLabel = a.Question.Label,
-                        QuestionType = a.Question.Type,
-                        MappedField = a.Question.MappedField,
-                        ValueText = a.ValueText,
-                        ValueNumber = a.ValueNumber,
-                        ValueJson = a.ValueJson,
-                        FileUrl = a.FileUrl,
-                    }).ToList()
-                    : [],
+                // #713 — QuestionId → (SectionLabel, SectionOrder), same resolver as
+                // the single-response endpoint so both surfaces stay consistent.
+                var sectionsByQuestionId = QuestionSectionResolver.Resolve(r.Questionnaire.Questions);
+
+                return new ClientResponseItem
+                {
+                    ResponsePublicId = r.PublicId,
+                    QuestionnaireTitle = r.Questionnaire.Title,
+                    Status = r.Status.ToString(),
+                    SubmittedAt = r.SubmittedAt,
+                    DateCreated = r.DateCreated,
+                    AnswerCount = r.Answers.Count,
+                    Answers = r.Status == QuestionnaireResponseStatus.Submitted
+                        ? r.Answers.Select(a =>
+                        {
+                            var (sectionLabel, sectionOrder) = sectionsByQuestionId.GetValueOrDefault(a.QuestionId);
+                            return new ResponseAnswerDto
+                            {
+                                QuestionPublicId = a.Question.PublicId,
+                                QuestionLabel = a.Question.Label,
+                                QuestionType = a.Question.Type,
+                                MappedField = a.Question.MappedField,
+                                ValueText = a.ValueText,
+                                ValueNumber = a.ValueNumber,
+                                ValueJson = a.ValueJson,
+                                FileUrl = a.FileUrl,
+                                SectionLabel = sectionLabel,
+                                SectionOrder = sectionOrder,
+                            };
+                        }).ToList()
+                        : [],
+                };
             }).ToList(),
         }, ct);
     }
