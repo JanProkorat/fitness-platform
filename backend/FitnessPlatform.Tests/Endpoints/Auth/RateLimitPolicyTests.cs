@@ -144,6 +144,10 @@ public class RateLimitEnabledFactory : WebApplicationFactory<Program>, IAsyncLif
             services.AddSingleton<FakePushNotificationService>();
             services.AddSingleton<IPushNotificationService>(
                 sp => sp.GetRequiredService<FakePushNotificationService>());
+
+            // #726: prevent the background schedulers/worker from starting in this
+            // test host — see TestHostedServiceExtensions for the root cause.
+            services.RemoveBackgroundHostedServices();
         });
 
         builder.UseEnvironment("Development");
