@@ -187,7 +187,10 @@
     "options": "Možnosti",
     "yourCoach": "váš kouč",
     "previous": "Předchozí",
-    "next": "Další"
+    "next": "Další",
+    "accept": "Přijmout",
+    "decline": "Odmítnout",
+    "ok": "OK"
   },
   "errors": {
     "rateLimit": "Příliš mnoho požadavků. Zkuste to prosím za chvíli."
@@ -408,7 +411,13 @@
     "archivedConversations": "Archivované konverzace",
     "noArchived": "Žádné archivované konverzace",
     "noArchivedDesc": "Archivované konverzace se zobrazí zde.",
-    "connected": "Vy a {{name}} jste nyní propojeni"
+    "connected": "Vy a {{name}} jste nyní propojeni",
+    "formerTrainerTitle": "Zpráva od bývalého trenéra",
+    "formerTrainerDesc": "Spolupráce s {{name}} byla ukončena. Tuto zprávu vidíte, protože vám znovu napsal(a).",
+    "showChat": "Zobrazit chat",
+    "ignore": "Ignorovat",
+    "autoUnarchiveTitle": "Nová zpráva z archivu",
+    "autoUnarchiveDesc": "{{name}} vám napsal(a) — konverzace byla obnovena z archivu"
   },
   "plans": {
     "title": "Plány",

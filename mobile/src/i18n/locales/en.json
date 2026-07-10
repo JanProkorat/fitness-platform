@@ -187,7 +187,10 @@
     "options": "Options",
     "yourCoach": "your coach",
     "previous": "Previous",
-    "next": "Next"
+    "next": "Next",
+    "accept": "Accept",
+    "decline": "Decline",
+    "ok": "OK"
   },
   "errors": {
     "rateLimit": "Too many requests. Please try again in a moment."
@@ -403,7 +406,13 @@
     "archivedConversations": "Archived conversations",
     "noArchived": "No archived conversations",
     "noArchivedDesc": "Conversations you archive will appear here.",
-    "connected": "You and {{name}} are now connected"
+    "connected": "You and {{name}} are now connected",
+    "formerTrainerTitle": "Message from former trainer",
+    "formerTrainerDesc": "Collaboration with {{name}} has ended. You see this message because they wrote to you again.",
+    "showChat": "Show chat",
+    "ignore": "Ignore",
+    "autoUnarchiveTitle": "New message from archive",
+    "autoUnarchiveDesc": "{{name}} sent a message — conversation unarchived"
   },
   "plans": {
     "title": "Plans",
