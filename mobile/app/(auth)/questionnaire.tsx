@@ -190,7 +190,7 @@ export default function QuestionnaireScreen() {
     return true
   }, [activeQuestions, answers])
 
-  const ensureResponse = async (): Promise<string> => {
+  const ensureResponse = useCallback(async (): Promise<string> => {
     if (responsePublicId) return responsePublicId
     if (!questionnaire) throw new Error('No questionnaire')
     const { data } = await api.post<{ responsePublicId: string }>(
@@ -199,7 +199,7 @@ export default function QuestionnaireScreen() {
     )
     setResponsePublicId(data.responsePublicId)
     return data.responsePublicId
-  }
+  }, [responsePublicId, questionnaire])
 
   const handleSubmit = useCallback(async () => {
     try {
@@ -224,7 +224,7 @@ export default function QuestionnaireScreen() {
     } finally {
       setSubmitting(false)
     }
-  }, [answers])
+  }, [answers, ensureResponse, queryClient, t])
 
   const handleContinue = useCallback(async () => {
     await refreshProfile()
