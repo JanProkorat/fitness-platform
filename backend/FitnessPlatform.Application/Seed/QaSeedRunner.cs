@@ -22,7 +22,9 @@ namespace FitnessPlatform.Application.Seed;
 /// - QA Trainer (22222222-...) has a ProfessionalProfile with PublicId = TrainerProfilePublicId.
 /// - A ClientProfessionalLink ties the two with IsActive=true so the trainer
 ///   dashboard shows "QA Client" without any further setup.
-/// - QA Nutri (33333333-...) has a ProfessionalProfile (no client link seeded).
+/// - QA Nutri (33333333-...) has a ProfessionalProfile. A ClientProfessionalLink
+///   (ProfessionalRole=Nutritionist) to the QA client is seeded as part of the
+///   #720 nutritionist-owned questionnaire fixture (Rich seed path only).
 /// - A TrainingPlan (dddddddd-...) is seeded for the QA client with a Published week
 ///   containing one session with four sections:
 ///   Section 1 — ForTime + 0 exercises (the #258 bug shape).
@@ -179,15 +181,16 @@ public static class QaSeedRunner
 
     // -------------------------------------------------------------------------
     // #715 — Questionnaire fixture: a submitted client response with a spread
-    // of question types, linked to BOTH the main training plan (dddddddd-...)
-    // and the nutrition plan (dddddddd-eeee-...) so the "Dotaznik" answers
-    // tabs on both plan-detail pages (#697, #698) render a populated response.
+    // of question types, linked to the main training plan (dddddddd-...) so
+    // the "Dotaznik" answers tab on the training plan detail page (#697)
+    // renders a populated response. The nutrition plan's link is handled by
+    // the separate nutritionist-owned fixture below (#720).
     // -------------------------------------------------------------------------
 
     /// <summary>Questionnaire template owned by the QA trainer.</summary>
     public static readonly Guid QaQuestionnaireExternalId = new("00000000-0000-0000-7777-000000000000");
 
-    /// <summary>Submitted response, linked to both the training and nutrition plan.</summary>
+    /// <summary>Submitted response owned by the QA trainer, linked to the training plan.</summary>
     public static readonly Guid QaQuestionnaireResponseExternalId = new("00000000-0000-0000-7777-000000000099");
 
     // Section headers (Type="section" — non-answerable, rendered as group titles).
@@ -201,6 +204,37 @@ public static class QaSeedRunner
     public static readonly Guid QaQuestionEnergyId       = new("00000000-0000-0000-7777-000000000006"); // scale
     public static readonly Guid QaQuestionInjuriesId     = new("00000000-0000-0000-7777-000000000007"); // multi_select
     public static readonly Guid QaQuestionMedicalDocId   = new("00000000-0000-0000-7777-000000000008"); // file_upload
+
+    // -------------------------------------------------------------------------
+    // #720 — Nutritionist-owned questionnaire fixture: a second template +
+    // submitted response, owned by the QA nutritionist (ProfessionalId =
+    // NutriUserId), linked to the seeded nutrition plan (dddddddd-eeee-...).
+    // This REPLACES the #715 trainer-owned link on the nutrition plan — a
+    // nutrition plan should link a nutritionist-owned response so the
+    // nutritionist's own "Dotaznik" tab (#698) renders a populated view via
+    // GetClientResponsesEndpoint, which filters by the CALLING professional's
+    // ProfessionalId. The training plan keeps its #715 trainer-owned link
+    // unchanged (#697 is unaffected).
+    // -------------------------------------------------------------------------
+
+    /// <summary>Questionnaire template owned by the QA nutritionist.</summary>
+    public static readonly Guid QaNutriQuestionnaireExternalId = new("00000000-0000-0000-8888-000000000000");
+
+    /// <summary>Submitted response owned by the QA nutritionist, linked to the nutrition plan.</summary>
+    public static readonly Guid QaNutriQuestionnaireResponseExternalId = new("00000000-0000-0000-8888-000000000099");
+
+    // Section headers (Type="section" — non-answerable, rendered as group titles).
+    public static readonly Guid QaNutriQuestionSectionIntakeId    = new("00000000-0000-0000-8888-000000000001");
+    public static readonly Guid QaNutriQuestionSectionLifestyleId = new("00000000-0000-0000-8888-000000000005");
+
+    // Answerable questions — same spread of types as #715 (short_text, number,
+    // single_choice, scale, multi_select, file_upload).
+    public static readonly Guid QaNutriQuestionDietGoalId    = new("00000000-0000-0000-8888-000000000002"); // short_text
+    public static readonly Guid QaNutriQuestionCaloriesId    = new("00000000-0000-0000-8888-000000000003"); // number
+    public static readonly Guid QaNutriQuestionMealsPerDayId = new("00000000-0000-0000-8888-000000000004"); // single_choice
+    public static readonly Guid QaNutriQuestionAppetiteId    = new("00000000-0000-0000-8888-000000000006"); // scale
+    public static readonly Guid QaNutriQuestionAllergiesId   = new("00000000-0000-0000-8888-000000000007"); // multi_select
+    public static readonly Guid QaNutriQuestionFoodDiaryId   = new("00000000-0000-0000-8888-000000000008"); // file_upload
 
     // MinIO blob keys (deterministic per QA fixture).
     public const string QaAvatarBlobKey    = "avatars/qa-client-11111111.png";
@@ -321,9 +355,14 @@ public static class QaSeedRunner
             await EnsureRecipesAsync(mongo, NutriUserId, logger);
             await EnsureNutritionPlanAsync(mongo, clientProfile.PublicId, NutriUserId, logger);
 
-            // #715 — Questionnaire template + submitted response, linked to both
-            // the training plan and the nutrition plan created just above.
+            // #715 — Questionnaire template + submitted response owned by the
+            // QA trainer, linked to the training plan created above.
             await EnsureQuestionnaireFixtureAsync(db, mongo, logger);
+
+            // #720 — Second questionnaire template + submitted response owned
+            // by the QA nutritionist, linked to the nutrition plan created
+            // above (replacing the trainer-owned link #715 used to set there).
+            await EnsureNutritionistQuestionnaireFixtureAsync(db, mongo, logger);
 
             // Image blobs in MinIO — idempotent, bucket created if absent.
             await EnsureAvatarAsync(sp, logger);
@@ -1678,8 +1717,8 @@ public static class QaSeedRunner
     /// <summary>
     /// Seeds a questionnaire template for the QA trainer with two sections and
     /// six answerable question types, a SUBMITTED response for the QA client,
-    /// and links that response to both the main training plan and the seeded
-    /// nutrition plan via QuestionnaireResponseId (#715).
+    /// and links that response to the main training plan via
+    /// QuestionnaireResponseId (#715).
     ///
     /// The response is created directly against Postgres — bypassing the HTTP
     /// CreateResponse/UpdateResponse/Submit endpoints, same as every other
@@ -1690,17 +1729,19 @@ public static class QaSeedRunner
     /// questionnaire's owner). The Postgres-side link-eligibility check in
     /// TrainingPlans/NutritionPlans LinkQuestionnaireEndpoint compares
     /// response.ProfessionalId against the CALLING professional, so a real
-    /// nutritionist-initiated "link questionnaire" HTTP call against this same
-    /// response would be rejected (403-equivalent ThrowError). This seed writes
-    /// the Mongo QuestionnaireResponseId field directly — bypassing that
-    /// HTTP-level check — to satisfy the fixture requirement that ONE response
-    /// renders on both the training and nutrition plan "Dotaznik" tabs. The
-    /// client-facing GetClientResponseByIdEndpoint (scoped by ClientId only,
-    /// not ProfessionalId) already supports this shape natively; the
-    /// trainer/nutritionist-scoped GetClientResponsesEndpoint used by the web
-    /// portal's PlanQuestionnairePanel filters by ProfessionalId, so only the
-    /// QA trainer's own view will show this response via that specific
-    /// endpoint today — a reconciliation left to #697/#698's implementers.
+    /// trainer-initiated "link questionnaire" HTTP call against this response
+    /// would be accepted, but a nutritionist-initiated one would be rejected
+    /// (403-equivalent ThrowError). This seed writes the Mongo
+    /// QuestionnaireResponseId field directly — bypassing that HTTP-level
+    /// check — matching every other Ensure* fixture in this file.
+    ///
+    /// The nutrition plan used to link to THIS trainer-owned response too
+    /// (#715's original shape), but #720 replaced that with a separate
+    /// nutritionist-owned template + response (see
+    /// <see cref="EnsureNutritionistQuestionnaireFixtureAsync"/>) so the
+    /// nutritionist's own "Dotaznik" tab (#698) can render a populated view
+    /// through GetClientResponsesEndpoint, which filters by the CALLING
+    /// professional's ProfessionalId.
     /// </summary>
     private static async Task EnsureQuestionnaireFixtureAsync(
         ApplicationDbContext db,
@@ -1859,7 +1900,191 @@ public static class QaSeedRunner
                 QaTrainingPlanExternalId, QaQuestionnaireResponseExternalId);
         }
 
-        // 4. Link the response to the seeded nutrition plan — same idempotency rule.
+        // Note: the seeded nutrition plan is intentionally NOT linked to this
+        // trainer-owned response — see EnsureNutritionistQuestionnaireFixtureAsync
+        // (#720), which links it to a nutritionist-owned response instead.
+    }
+
+    /// <summary>
+    /// Seeds a second questionnaire template + submitted response owned by the
+    /// QA nutritionist (ProfessionalId = NutriUserId), and links that response
+    /// to the seeded nutrition plan via QuestionnaireResponseId (#720).
+    ///
+    /// A nutritionist↔client ClientProfessionalLink is seeded here (Rich seed
+    /// path only) — GetClientResponsesEndpoint requires an active link between
+    /// the calling professional and the client before it returns anything, the
+    /// same rule #715's trainer-owned fixture relies on via the trainer↔client
+    /// link created unconditionally in SeedAsync.
+    ///
+    /// Mirrors EnsureQuestionnaireFixtureAsync's shape and idempotency pattern:
+    /// stable GUIDs, direct Postgres/Mongo writes (bypassing the HTTP
+    /// Create/Submit/Link endpoints), Status=Submitted with a fixed SubmittedAt
+    /// anchored relative to the seed run.
+    ///
+    /// The nutrition plan's QuestionnaireResponseId link is written
+    /// unconditionally whenever it doesn't already equal this response's
+    /// PublicId — this is what "replaces" #715's original trainer-owned link
+    /// (which #715 used to write there before #720) on both a fresh seed and a
+    /// pre-#720 database that still has the stale trainer-response id set.
+    /// </summary>
+    private static async Task EnsureNutritionistQuestionnaireFixtureAsync(
+        ApplicationDbContext db,
+        IMongoContext mongo,
+        ILogger logger)
+    {
+        // 0. Nutritionist↔client link — required by GetClientResponsesEndpoint's
+        //    active-link check before it will return the response to the nutritionist.
+        var clientProfile = await db.ClientProfiles.FirstOrDefaultAsync(cp => cp.UserId == ClientUserId)
+            ?? throw new InvalidOperationException("QA ClientProfile must be seeded before the nutritionist questionnaire fixture.");
+        var nutriProfile = await db.ProfessionalProfiles.FirstOrDefaultAsync(pp => pp.UserId == NutriUserId)
+            ?? throw new InvalidOperationException("QA nutri ProfessionalProfile must be seeded before the nutritionist questionnaire fixture.");
+
+        var nutriLink = await db.ClientProfessionalLinks
+            .FirstOrDefaultAsync(l => l.ClientProfileId == clientProfile.Id && l.ProfessionalProfileId == nutriProfile.Id);
+
+        if (nutriLink is null)
+        {
+            nutriLink = new ClientProfessionalLink
+            {
+                ProfessionalProfileId = nutriProfile.Id,
+                ClientProfileId       = clientProfile.Id,
+                ProfessionalRole      = UserRole.Nutritionist,
+                IsActive              = true,
+                CanViewNutritionPlans = true,
+                CanViewTrainingPlans  = false,
+                DateCreated           = DateTime.UtcNow,
+            };
+
+            db.ClientProfessionalLinks.Add(nutriLink);
+            await db.SaveChangesAsync();
+            logger.LogInformation(
+                "QA nutritionist↔client link created: nutriProfileId={NutriProfileId} clientProfileId={ClientProfileId}",
+                nutriProfile.Id, clientProfile.Id);
+        }
+        else
+        {
+            logger.LogInformation(
+                "QA nutritionist↔client link already present: nutriProfileId={NutriProfileId} clientProfileId={ClientProfileId}",
+                nutriProfile.Id, clientProfile.Id);
+        }
+
+        // 1. Questionnaire template — two sections, six answerable question types.
+        var questionnaire = await db.Questionnaires
+            .Include(q => q.Questions)
+            .FirstOrDefaultAsync(q => q.PublicId == QaNutriQuestionnaireExternalId);
+
+        if (questionnaire is null)
+        {
+            questionnaire = new Questionnaire
+            {
+                PublicId       = QaNutriQuestionnaireExternalId,
+                ProfessionalId = NutriUserId,
+                Title          = "QA Nutrition Intake Questionnaire",
+                Description    = "Fixture questionnaire seeded for #720 — owned by the QA nutritionist so GetClientResponsesEndpoint returns a populated response for the nutritionist's own view.",
+                IsActive       = true,
+                IsDefault      = false,
+                Questions =
+                [
+                    new QuestionnaireQuestion { PublicId = QaNutriQuestionSectionIntakeId,    OrderIndex = 0, Type = "section",      Label = "Nutrition Info" },
+                    new QuestionnaireQuestion { PublicId = QaNutriQuestionDietGoalId,          OrderIndex = 1, Type = "short_text",    Label = "What is your primary dietary goal?", IsRequired = true },
+                    new QuestionnaireQuestion { PublicId = QaNutriQuestionCaloriesId,          OrderIndex = 2, Type = "number",        Label = "How many calories do you currently consume per day?", IsRequired = true, Config = "{\"min\":1000,\"max\":6000,\"unit\":\"kcal\",\"step\":50}" },
+                    new QuestionnaireQuestion { PublicId = QaNutriQuestionMealsPerDayId,       OrderIndex = 3, Type = "single_choice", Label = "How many meals do you eat per day?", IsRequired = true, Config = "{\"options\":[\"1-2\",\"3-4\",\"5+\"]}" },
+                    new QuestionnaireQuestion { PublicId = QaNutriQuestionSectionLifestyleId,  OrderIndex = 4, Type = "section",      Label = "Lifestyle & Restrictions" },
+                    new QuestionnaireQuestion { PublicId = QaNutriQuestionAppetiteId,          OrderIndex = 5, Type = "scale",         Label = "Rate your current appetite level", IsRequired = true, Config = "{\"min\":1,\"max\":10,\"labelMin\":\"Low\",\"labelMax\":\"High\"}" },
+                    new QuestionnaireQuestion { PublicId = QaNutriQuestionAllergiesId,         OrderIndex = 6, Type = "multi_select",  Label = "Which foods do you need to avoid?", Config = "{\"options\":[\"Gluten\",\"Dairy\",\"Nuts\",\"None\"]}" },
+                    new QuestionnaireQuestion { PublicId = QaNutriQuestionFoodDiaryId,         OrderIndex = 7, Type = "file_upload",   Label = "Upload a recent food diary (optional)" },
+                ],
+            };
+
+            db.Questionnaires.Add(questionnaire);
+            await db.SaveChangesAsync();
+            logger.LogInformation(
+                "QA nutritionist Questionnaire created: externalId={ExternalId} title={Title}",
+                QaNutriQuestionnaireExternalId, questionnaire.Title);
+        }
+        else
+        {
+            logger.LogInformation("QA nutritionist Questionnaire already present: externalId={ExternalId}", QaNutriQuestionnaireExternalId);
+        }
+
+        // 2. Submitted response for the QA client, against the nutritionist↔client link.
+        var response = await db.QuestionnaireResponses
+            .FirstOrDefaultAsync(r => r.PublicId == QaNutriQuestionnaireResponseExternalId);
+
+        if (response is null)
+        {
+            // Anchored to a fixed time-of-day 1 day before the seed run — distinct
+            // from the trainer response's -2 days so the two never collide, and
+            // stable across re-seeds (computed once, never overwritten).
+            var submittedAt = DateTime.UtcNow.Date.AddDays(-1).AddHours(10);
+
+            response = new QuestionnaireResponse
+            {
+                PublicId        = QaNutriQuestionnaireResponseExternalId,
+                QuestionnaireId = questionnaire.Id,
+                ClientId        = ClientUserId,
+                ProfessionalId  = NutriUserId,
+                LinkId          = nutriLink.Id,
+                Status          = QuestionnaireResponseStatus.Submitted,
+                SubmittedAt     = submittedAt,
+                Answers =
+                [
+                    new QuestionnaireAnswer
+                    {
+                        PublicId   = new Guid("00000000-0000-0000-8888-000000001002"),
+                        QuestionId = questionnaire.Questions.First(q => q.PublicId == QaNutriQuestionDietGoalId).Id,
+                        ValueText  = "Lose body fat while preserving muscle mass",
+                    },
+                    new QuestionnaireAnswer
+                    {
+                        PublicId    = new Guid("00000000-0000-0000-8888-000000001003"),
+                        QuestionId  = questionnaire.Questions.First(q => q.PublicId == QaNutriQuestionCaloriesId).Id,
+                        ValueNumber = 2200m,
+                    },
+                    new QuestionnaireAnswer
+                    {
+                        PublicId   = new Guid("00000000-0000-0000-8888-000000001004"),
+                        QuestionId = questionnaire.Questions.First(q => q.PublicId == QaNutriQuestionMealsPerDayId).Id,
+                        ValueText  = "3-4",
+                    },
+                    new QuestionnaireAnswer
+                    {
+                        PublicId    = new Guid("00000000-0000-0000-8888-000000001006"),
+                        QuestionId  = questionnaire.Questions.First(q => q.PublicId == QaNutriQuestionAppetiteId).Id,
+                        ValueNumber = 6m,
+                    },
+                    new QuestionnaireAnswer
+                    {
+                        PublicId   = new Guid("00000000-0000-0000-8888-000000001007"),
+                        QuestionId = questionnaire.Questions.First(q => q.PublicId == QaNutriQuestionAllergiesId).Id,
+                        ValueJson  = "[\"Gluten\",\"Dairy\"]",
+                    },
+                    new QuestionnaireAnswer
+                    {
+                        PublicId   = new Guid("00000000-0000-0000-8888-000000001008"),
+                        QuestionId = questionnaire.Questions.First(q => q.PublicId == QaNutriQuestionFoodDiaryId).Id,
+                        FileUrl    = "https://storage.qa.fitnessplatform.test/qa-fixtures/food-diary-week1.pdf",
+                    },
+                ],
+            };
+
+            db.QuestionnaireResponses.Add(response);
+            await db.SaveChangesAsync();
+            logger.LogInformation(
+                "QA nutritionist QuestionnaireResponse created: externalId={ExternalId} submittedAt={SubmittedAt}",
+                QaNutriQuestionnaireResponseExternalId, submittedAt);
+        }
+        else
+        {
+            logger.LogInformation("QA nutritionist QuestionnaireResponse already present: externalId={ExternalId}", QaNutriQuestionnaireResponseExternalId);
+        }
+
+        // 3. Link the response to the seeded nutrition plan — REPLACES #715's
+        //    trainer-owned link. Unlike EnsureQuestionnaireFixtureAsync's
+        //    "only set if null" guard, this write is unconditional whenever the
+        //    current value isn't already THIS response's id, so a pre-#720
+        //    database (still pointing at the old trainer-owned response) gets
+        //    corrected on the next seed run instead of staying stale forever.
         var nutritionPlan = await mongo.NutritionPlans
             .Find(p => p.ExternalId == QaNutritionPlanExternalId)
             .FirstOrDefaultAsync();
@@ -1867,13 +2092,13 @@ public static class QaSeedRunner
         if (nutritionPlan is null)
         {
             logger.LogWarning(
-                "QA NutritionPlan not found while linking questionnaire response: externalId={ExternalId}",
+                "QA NutritionPlan not found while linking nutritionist QuestionnaireResponse: externalId={ExternalId}",
                 QaNutritionPlanExternalId);
         }
-        else if (nutritionPlan.QuestionnaireResponseId is not null)
+        else if (nutritionPlan.QuestionnaireResponseId == QaNutriQuestionnaireResponseExternalId)
         {
             logger.LogInformation(
-                "QA NutritionPlan already linked to a QuestionnaireResponse: externalId={ExternalId}",
+                "QA NutritionPlan already linked to the nutritionist QuestionnaireResponse: externalId={ExternalId}",
                 QaNutritionPlanExternalId);
         }
         else
@@ -1881,14 +2106,14 @@ public static class QaSeedRunner
             var filter = Builders<NutritionPlan>.Filter.Eq(p => p.ExternalId, QaNutritionPlanExternalId)
                        & Builders<NutritionPlan>.Filter.Eq(p => p.Version, nutritionPlan.Version);
             var update = Builders<NutritionPlan>.Update
-                .Set(p => p.QuestionnaireResponseId, QaQuestionnaireResponseExternalId)
+                .Set(p => p.QuestionnaireResponseId, QaNutriQuestionnaireResponseExternalId)
                 .Set(p => p.DateUpdated, DateTime.UtcNow)
                 .Set(p => p.Version, nutritionPlan.Version + 1);
 
             await mongo.NutritionPlans.UpdateOneAsync(filter, update);
             logger.LogInformation(
-                "QA NutritionPlan linked to QuestionnaireResponse: externalId={ExternalId} responseId={ResponseId}",
-                QaNutritionPlanExternalId, QaQuestionnaireResponseExternalId);
+                "QA NutritionPlan (re)linked to nutritionist QuestionnaireResponse, replacing any prior trainer-owned link: externalId={ExternalId} responseId={ResponseId}",
+                QaNutritionPlanExternalId, QaNutriQuestionnaireResponseExternalId);
         }
     }
 
