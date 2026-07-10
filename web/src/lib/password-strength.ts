@@ -1,3 +1,9 @@
+/**
+ * Shared password-strength scoring, used by both the registration wizard
+ * (RegisterStep2) and the reset-password form (ResetPasswordPage). Kept as
+ * plain functions (not a hook) so the score can be computed synchronously
+ * from the current field value without extra render cycles.
+ */
 export function computePasswordStrength(pwd: string): number {
   let score = 0;
   if (pwd.length >= 8) score++;

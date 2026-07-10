@@ -1,10 +1,9 @@
-import { useMemo } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/cn';
 import { PASSWORD_REQUIREMENTS } from './register-types';
-import { computePasswordStrength, strengthClass } from './register-helpers';
+import { PasswordStrengthMeter } from '@/components/PasswordStrengthMeter';
 
 interface RegisterStep2Props {
   error: string | null;
@@ -31,7 +30,6 @@ export function RegisterStep2({
 }: RegisterStep2Props) {
   const { register, formState: { errors } } = useFormContext();
   const { t } = useTranslation();
-  const strength = useMemo(() => computePasswordStrength(passwordValue), [passwordValue]);
 
   return (
     <>
@@ -116,19 +114,7 @@ export function RegisterStep2({
           </div>
 
           {/* Strength bars */}
-          {passwordValue.length > 0 && (
-            <div className="auth-strength">
-              {[1, 2, 3, 4].map((i) => (
-                <div
-                  key={i}
-                  className={cn(
-                    'auth-strength-bar',
-                    i <= strength && strengthClass(strength),
-                  )}
-                />
-              ))}
-            </div>
-          )}
+          <PasswordStrengthMeter password={passwordValue} />
 
           {/* Requirements checklist */}
           <div className="auth-pw-reqs">

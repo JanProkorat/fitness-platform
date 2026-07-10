@@ -1,5 +1,17 @@
 import type { ResponseAnswerDto } from '@/api/questionnaires';
 
+// Shared between QuestionCard (editor) and QuestionnairePreview (read-only
+// preview) — was duplicated in both files before this extraction (#687).
+export const TYPE_ICONS: Record<string, string> = {
+  section: '§',
+  short_text: 'Aa',
+  single_choice: '◉',
+  multi_select: '☑',
+  number: '#',
+  scale: '⟷',
+  file_upload: '📎',
+};
+
 export function formatAnswerValue(answer: ResponseAnswerDto): React.ReactNode {
   switch (answer.questionType) {
     case 'short_text':
