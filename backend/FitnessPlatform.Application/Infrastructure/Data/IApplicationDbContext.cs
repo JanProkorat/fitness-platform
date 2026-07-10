@@ -164,17 +164,23 @@ public interface IApplicationDbContext
     Task<int> ConsumeNonceAsync(string nonce, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Atomically rotates a refresh token by issuing a single UPDATE statement
-    /// conditional on the token not already being revoked
-    /// (<c>WHERE Token = @token AND RevokedAt IS NULL</c>). This closes the
+    /// Atomically rotates a refresh token AND inserts its successor row in a
+    /// single database transaction: a conditional UPDATE
+    /// (<c>WHERE Token = @token AND RevokedAt IS NULL</c>) that closes the
     /// read-then-write race where two concurrent <c>/auth/refresh</c> calls for
-    /// the same token could both observe it as active and both succeed.
-    /// Returns the number of rows updated (1 = this caller won the rotation
-    /// race and must issue the new token pair; 0 = the token was already
-    /// revoked by a concurrent request — the caller must re-read the row and
-    /// route into the reuse/reconcile discriminator).
+    /// the same token could both observe it as active, followed — only if that
+    /// update wins — by inserting <paramref name="successorToken"/>, both
+    /// committed together. Previously these were two separate autocommitting
+    /// writes; a crash (or a concurrent reader) between them could observe
+    /// <c>ReplacedByToken</c> set on the predecessor with no successor row
+    /// present yet, or ever if the process crashed (#694).
+    /// Returns the number of rows updated by the conditional UPDATE (1 = this
+    /// caller won the rotation race and the successor row is now durably
+    /// present; 0 = the token was already revoked by a concurrent request — no
+    /// successor was inserted by this call, and the caller must re-read the row
+    /// and route into the reuse/reconcile discriminator).
     /// </summary>
-    Task<int> RotateRefreshTokenAsync(string token, string replacedByToken, DateTime revokedAt, CancellationToken cancellationToken = default);
+    Task<int> RotateRefreshTokenAsync(string token, RefreshToken successorToken, DateTime revokedAt, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Atomically revokes every currently-active refresh token belonging to a

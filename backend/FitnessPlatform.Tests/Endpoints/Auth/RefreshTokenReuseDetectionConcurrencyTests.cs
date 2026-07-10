@@ -305,4 +305,53 @@ public class RefreshTokenReuseDetectionConcurrencyTests(RefreshTokenConcurrencyF
         successorAttempt.StatusCode.Should().Be(HttpStatusCode.BadRequest,
             "the family-wide revocation must invalidate the legitimate successor too");
     }
+
+    // ── (3) Rotate-then-insert atomicity (#694) ──────────────────────────────
+
+    /// <summary>
+    /// Proves <see cref="IApplicationDbContext.RotateRefreshTokenAsync"/>'s
+    /// conditional UPDATE and successor INSERT commit together as a single
+    /// transaction (#694): immediately after the call returns, a completely
+    /// FRESH scope (a different <see cref="ApplicationDbContext"/> instance —
+    /// not the one that performed the write) must see BOTH the predecessor's
+    /// <c>ReplacedByToken</c> set AND the successor row present. There is no
+    /// window where one is durable and the other is not.
+    /// </summary>
+    [Fact]
+    public async Task RotateRefreshTokenAsync_SuccessorRow_AlwaysDurableAlongsideReplacedByToken()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (token, userId) = await SeedActiveUserAndTokenAsync(ct);
+
+        var successorTokenValue = $"successor-{Guid.NewGuid():N}";
+        var rotatedAt = DateTime.UtcNow;
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var successor = new RefreshToken
+            {
+                UserId = userId,
+                Token = successorTokenValue,
+                ExpiresAt = DateTime.UtcNow.AddDays(7)
+            };
+
+            var rowsAffected = await db.RotateRefreshTokenAsync(token, successor, rotatedAt, ct);
+            rowsAffected.Should().Be(1, "this is the only caller — it must win the conditional update");
+        }
+
+        // Read back from a brand-new scope/DbContext (a different connection)
+        // to prove the transaction actually committed both writes together,
+        // not just made them visible within the writing context's own tracker.
+        var family = await GetFamilyAsync(userId, ct);
+        family.Should().HaveCount(2, "the predecessor plus its successor, both durably committed");
+
+        var predecessor = family.Single(rt => rt.Token == token);
+        predecessor.ReplacedByToken.Should().Be(successorTokenValue);
+        predecessor.IsRevoked.Should().BeTrue();
+
+        var successorRow = family.SingleOrDefault(rt => rt.Token == successorTokenValue);
+        successorRow.Should().NotBeNull(
+            "the successor row must always be present whenever ReplacedByToken references it — never a dangling reference left by two separate non-atomic writes");
+    }
 }
