@@ -19,4 +19,19 @@ public class ResponseAnswerDto
     public decimal? ValueNumber { get; set; }
     public string? ValueJson { get; set; }
     public string? FileUrl { get; set; }
+
+    /// <summary>
+    /// Label of the questionnaire section (a Type="section" question) this
+    /// answer's question falls under, or null if it appears before the first
+    /// section header. Computed server-side via
+    /// <see cref="Dtos.QuestionSectionResolver"/> — additive field, #713.
+    /// </summary>
+    public string? SectionLabel { get; set; }
+
+    /// <summary>
+    /// 0-based order of <see cref="SectionLabel"/> relative to the other
+    /// sections in the questionnaire, or null when <see cref="SectionLabel"/>
+    /// is null. Additive field, #713.
+    /// </summary>
+    public int? SectionOrder { get; set; }
 }

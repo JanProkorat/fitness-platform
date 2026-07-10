@@ -107,6 +107,117 @@ public class GetClientResponsesEndpointTests(FitnessApiFactory factory)
         return response.PublicId;
     }
 
+    /// <summary>
+    /// Inserts a submitted response for a questionnaire with two sections
+    /// (#713): "Basic Info" (short_text + number questions) and "Health"
+    /// (a multi_select question), each answered.
+    /// </summary>
+    private async Task<Guid> InsertSubmittedResponseWithSectionsAsync(
+        long linkId, Guid clientUserId, Guid professionalUserId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var questionnaire = new Questionnaire
+        {
+            PublicId = Guid.NewGuid(),
+            ProfessionalId = professionalUserId,
+            Title = "Onboarding With Sections",
+            IsActive = true,
+            DateCreated = DateTime.UtcNow,
+        };
+        db.Questionnaires.Add(questionnaire);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var basicInfoSection = new QuestionnaireQuestion
+        {
+            QuestionnaireId = questionnaire.Id, OrderIndex = 0, Type = "section", Label = "Basic Info",
+            PublicId = Guid.NewGuid(), DateCreated = DateTime.UtcNow,
+        };
+        var goalQuestion = new QuestionnaireQuestion
+        {
+            QuestionnaireId = questionnaire.Id, OrderIndex = 1, Type = "short_text", Label = "Goal",
+            PublicId = Guid.NewGuid(), DateCreated = DateTime.UtcNow,
+        };
+        var weightQuestion = new QuestionnaireQuestion
+        {
+            QuestionnaireId = questionnaire.Id, OrderIndex = 2, Type = "number", Label = "Weight",
+            PublicId = Guid.NewGuid(), DateCreated = DateTime.UtcNow,
+        };
+        var healthSection = new QuestionnaireQuestion
+        {
+            QuestionnaireId = questionnaire.Id, OrderIndex = 3, Type = "section", Label = "Health",
+            PublicId = Guid.NewGuid(), DateCreated = DateTime.UtcNow,
+        };
+        var injuriesQuestion = new QuestionnaireQuestion
+        {
+            QuestionnaireId = questionnaire.Id, OrderIndex = 4, Type = "multi_select", Label = "Injuries",
+            PublicId = Guid.NewGuid(), DateCreated = DateTime.UtcNow,
+        };
+        db.QuestionnaireQuestions.AddRange(
+            basicInfoSection, goalQuestion, weightQuestion, healthSection, injuriesQuestion);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var response = new QuestionnaireResponse
+        {
+            PublicId = Guid.NewGuid(),
+            QuestionnaireId = questionnaire.Id,
+            ClientId = clientUserId,
+            ProfessionalId = professionalUserId,
+            LinkId = linkId,
+            Status = QuestionnaireResponseStatus.Submitted,
+            SubmittedAt = DateTime.UtcNow,
+            DateCreated = DateTime.UtcNow,
+        };
+        db.QuestionnaireResponses.Add(response);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        db.QuestionnaireAnswers.AddRange(
+            new QuestionnaireAnswer { ResponseId = response.Id, QuestionId = goalQuestion.Id, ValueText = "Lose weight", DateCreated = DateTime.UtcNow },
+            new QuestionnaireAnswer { ResponseId = response.Id, QuestionId = weightQuestion.Id, ValueNumber = 82, DateCreated = DateTime.UtcNow },
+            new QuestionnaireAnswer { ResponseId = response.Id, QuestionId = injuriesQuestion.Id, ValueJson = "[\"knee\"]", DateCreated = DateTime.UtcNow });
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        return response.PublicId;
+    }
+
+    // ── #713: answers resolve to the correct section ─────────────────────────
+
+    [Fact]
+    public async Task GetResponses_QuestionnaireWithTwoSections_AnswersResolveToCorrectSection()
+    {
+        var (trainerHttp, trainerId) = await SetupTrainerAsync();
+        var clientId = await SetupClientAsync();
+
+        var (linkId, clientPublicId) = await InsertLinkAsync(clientId, trainerId, isActive: true);
+        var responsePublicId = await InsertSubmittedResponseWithSectionsAsync(linkId, clientId, trainerId);
+
+        var response = await trainerHttp.GetAsync(
+            $"/trainer/clients/{clientPublicId}/questionnaire-responses",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<ResponsesWithSectionsBody>(
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        body.Should().NotBeNull();
+        var item = body!.Responses.Single(r => r.ResponsePublicId == responsePublicId);
+        item.Answers.Should().HaveCount(3);
+
+        var goal = item.Answers.Single(a => a.QuestionLabel == "Goal");
+        goal.SectionLabel.Should().Be("Basic Info");
+        goal.SectionOrder.Should().Be(0);
+
+        var weight = item.Answers.Single(a => a.QuestionLabel == "Weight");
+        weight.SectionLabel.Should().Be("Basic Info");
+        weight.SectionOrder.Should().Be(0);
+
+        var injuries = item.Answers.Single(a => a.QuestionLabel == "Injuries");
+        injuries.SectionLabel.Should().Be("Health");
+        injuries.SectionOrder.Should().Be(1);
+    }
+
     // ── Regression: inactive link → 404, not the response history ────────────
 
     [Fact]
@@ -174,4 +285,10 @@ public class GetClientResponsesEndpointTests(FitnessApiFactory factory)
     private record ClientResponseItem(Guid ResponsePublicId, string QuestionnaireTitle, string Status);
 
     private record ResponsesBody(List<ClientResponseItem> Responses);
+
+    private record SectionedAnswer(string QuestionLabel, string? SectionLabel, int? SectionOrder);
+
+    private record ClientResponseItemWithSections(Guid ResponsePublicId, List<SectionedAnswer> Answers);
+
+    private record ResponsesWithSectionsBody(List<ClientResponseItemWithSections> Responses);
 }
