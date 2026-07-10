@@ -134,6 +134,12 @@ public class FitnessApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
     public new async ValueTask DisposeAsync()
     {
+        // Stop hosted services (schedulers, EmailDispatchWorker) gracefully BEFORE tearing
+        // down the containers below, so they stop touching Postgres/Mongo and the shared
+        // FakeEmailService test double once this factory is "done" — see
+        // TestHostedServiceShutdown for the full root-cause explanation (#726).
+        await TestHostedServiceShutdown.StopAllAsync(Services);
+
         // Dispose the Testcontainers but intentionally skip base.DisposeAsync().
         //
         // base.DisposeAsync() disposes the root IServiceProvider, which clears
@@ -141,7 +147,8 @@ public class FitnessApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         // call running concurrently (standalone unit tests without a [Collection] attribute)
         // would then throw ObjectDisposedException. Skipping base.DisposeAsync() keeps the
         // provider alive until the process exits — safe for test code where the process is
-        // short-lived. Containers are the only external resource that needs explicit cleanup.
+        // short-lived. Containers still need explicit cleanup, and (see above) so do the
+        // hosted services that would otherwise keep running against those containers.
         //
         // See also: ResetEndpointFactoryBase (same pattern, #296).
         await Task.WhenAll(

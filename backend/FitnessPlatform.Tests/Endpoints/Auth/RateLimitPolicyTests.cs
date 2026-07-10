@@ -160,6 +160,12 @@ public class RateLimitEnabledFactory : WebApplicationFactory<Program>, IAsyncLif
 
     public new async ValueTask DisposeAsync()
     {
+        // Stop hosted services (schedulers, EmailDispatchWorker) gracefully BEFORE tearing
+        // down the containers below — see TestHostedServiceShutdown for the full
+        // root-cause explanation (#726: zombie schedulers touching disposed Testcontainers,
+        // zombie EmailDispatchWorker racing FakeEmailService's shared static state).
+        await TestHostedServiceShutdown.StopAllAsync(Services);
+
         await Task.WhenAll(
             _postgres.DisposeAsync().AsTask(),
             _mongo.DisposeAsync().AsTask());
