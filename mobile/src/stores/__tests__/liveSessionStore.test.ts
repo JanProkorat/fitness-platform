@@ -1,17 +1,8 @@
 /**
  * Unit tests for liveSessionStore.
  *
- * NOTE: These tests require a jest + jest-expo (or equivalent) setup that is
- * not yet present in the mobile package. The mobile/package.json has no
- * "jest" field and no jest.config.* file. The tests are written to be
- * runnable once jest is added — no new runner is introduced here.
- *
- * Required setup (blocked, do not add without orchestrator approval):
- *   - jest-expo preset (or bare jest with babel-jest + react-native preset)
- *   - A mock for react-native-mmkv (see __mocks__ below)
- *   - A mock for zustand/react (already plain JS — no DOM needed)
- *
- * To run once jest is configured:
+ * jest + jest-expo are configured via the "jest" field in mobile/package.json.
+ * Run with:
  *   cd mobile && npx jest src/stores/__tests__/liveSessionStore.test.ts
  */
 
@@ -305,6 +296,66 @@ describe('liveSessionStore', () => {
       useLiveSessionStore.getState().discard()
       expect(useLiveSessionStore.getState().hasActiveSession()).toBe(false)
     })
+
+    // stores/auth.ts logout() dynamically imports this store and calls
+    // discard() so a subsequent user's session never inherits a previous
+    // user's in-progress WOD/rest/form-override state. Assert discard()
+    // fully restores every field (not just the handful the tests above
+    // sample) so that logout-reset contract stays covered.
+    it('resets every field to its initial value (the logout-reset contract)', () => {
+      const store = useLiveSessionStore.getState()
+      store.start({ sessionId: 's' }, 'l', 'p')
+      store.markSetDone('ex-1', 0, { reps: 10, weightKg: 50 })
+      store.skipSet('ex-1', 1)
+      store.skipExercise('ex-2')
+      store.startRest(60)
+      store.advance(2, 1)
+      store.advanceSection(1)
+      store.recordRound('sect-1')
+      store.markRoundFailed('sect-1', 1)
+      store.setExtraReps('sect-1', 5)
+      store.finalizeWod('sect-1', { roundsCompleted: 3 })
+
+      store.discard()
+
+      expect(useLiveSessionStore.getState()).toEqual({
+        _version: 2,
+        activeLogId: null,
+        planId: null,
+        sessionId: null,
+        startedAt: null,
+        currentExerciseIdx: 0,
+        currentSetIdx: 0,
+        currentSectionIdx: null,
+        completedSets: {},
+        skippedSets: {},
+        skippedExercises: [],
+        restStartedAt: null,
+        restSeconds: null,
+        finishedAt: null,
+        formOverrides: {},
+        wodResults: {},
+        // Action functions carry over unchanged — assert their presence
+        // without pinning identity.
+        start: expect.any(Function),
+        markSetDone: expect.any(Function),
+        skipSet: expect.any(Function),
+        skipExercise: expect.any(Function),
+        startRest: expect.any(Function),
+        skipRest: expect.any(Function),
+        advance: expect.any(Function),
+        advanceSection: expect.any(Function),
+        close: expect.any(Function),
+        resume: expect.any(Function),
+        finish: expect.any(Function),
+        discard: expect.any(Function),
+        hasActiveSession: expect.any(Function),
+        recordRound: expect.any(Function),
+        markRoundFailed: expect.any(Function),
+        setExtraReps: expect.any(Function),
+        finalizeWod: expect.any(Function),
+      })
+    })
   })
 
   // ── hasActiveSession() ────────────────────────────────────────────────────
@@ -360,5 +411,266 @@ describe('liveSessionStore', () => {
       expect(s.restStartedAt).toBeNull()
       expect(s.restSeconds).toBeNull()
     })
+  })
+
+  // ── advanceSection() ──────────────────────────────────────────────────────
+
+  describe('advanceSection()', () => {
+    beforeEach(() => {
+      useLiveSessionStore.getState().start({ sessionId: 's' }, 'l', 'p')
+    })
+
+    it('sets currentSectionIdx and resets exercise/set indices to 0', () => {
+      useLiveSessionStore.getState().advance(3, 2)
+      useLiveSessionStore.getState().advanceSection(1)
+      const s = useLiveSessionStore.getState()
+      expect(s.currentSectionIdx).toBe(1)
+      expect(s.currentExerciseIdx).toBe(0)
+      expect(s.currentSetIdx).toBe(0)
+    })
+
+    it('persists the new section index to MMKV', () => {
+      useLiveSessionStore.getState().advanceSection(2)
+      const parsed = JSON.parse(_mmkvStore['session'])
+      expect(parsed.currentSectionIdx).toBe(2)
+    })
+
+    it('leaves completedSets and wodResults untouched', () => {
+      const store = useLiveSessionStore.getState()
+      store.markSetDone('ex-1', 0)
+      store.finalizeWod('sect-0', { roundsCompleted: 4 })
+      store.advanceSection(1)
+      const s = useLiveSessionStore.getState()
+      expect(s.completedSets['ex-1']).toEqual([0])
+      expect(s.wodResults['sect-0']).toEqual({ roundsCompleted: 4 })
+    })
+  })
+
+  // ── WOD-result actions ────────────────────────────────────────────────────
+
+  describe('recordRound()', () => {
+    beforeEach(() => {
+      useLiveSessionStore.getState().start({ sessionId: 's' }, 'l', 'p')
+    })
+
+    it('starts roundsCompleted at 1 for a new key', () => {
+      useLiveSessionStore.getState().recordRound('sect-1')
+      expect(useLiveSessionStore.getState().wodResults['sect-1'].roundsCompleted).toBe(1)
+    })
+
+    it('increments roundsCompleted on repeated calls', () => {
+      const store = useLiveSessionStore.getState()
+      store.recordRound('sect-1')
+      store.recordRound('sect-1')
+      store.recordRound('sect-1')
+      expect(useLiveSessionStore.getState().wodResults['sect-1'].roundsCompleted).toBe(3)
+    })
+
+    it('keeps separate counters per key', () => {
+      const store = useLiveSessionStore.getState()
+      store.recordRound('sect-1')
+      store.recordRound('sect-2')
+      store.recordRound('sect-2')
+      const s = useLiveSessionStore.getState()
+      expect(s.wodResults['sect-1'].roundsCompleted).toBe(1)
+      expect(s.wodResults['sect-2'].roundsCompleted).toBe(2)
+    })
+  })
+
+  describe('markRoundFailed()', () => {
+    beforeEach(() => {
+      useLiveSessionStore.getState().start({ sessionId: 's' }, 'l', 'p')
+    })
+
+    it('adds the round number to failedRounds', () => {
+      useLiveSessionStore.getState().markRoundFailed('sect-1', 2)
+      expect(useLiveSessionStore.getState().wodResults['sect-1'].failedRounds).toEqual([2])
+    })
+
+    it('toggles the round off when marked failed twice', () => {
+      const store = useLiveSessionStore.getState()
+      store.markRoundFailed('sect-1', 2)
+      store.markRoundFailed('sect-1', 2)
+      expect(useLiveSessionStore.getState().wodResults['sect-1'].failedRounds).toEqual([])
+    })
+
+    it('keeps failedRounds sorted', () => {
+      const store = useLiveSessionStore.getState()
+      store.markRoundFailed('sect-1', 3)
+      store.markRoundFailed('sect-1', 1)
+      expect(useLiveSessionStore.getState().wodResults['sect-1'].failedRounds).toEqual([1, 3])
+    })
+  })
+
+  describe('setExtraReps()', () => {
+    beforeEach(() => {
+      useLiveSessionStore.getState().start({ sessionId: 's' }, 'l', 'p')
+    })
+
+    it('sets extraReps for the given key', () => {
+      useLiveSessionStore.getState().setExtraReps('sect-1', 7)
+      expect(useLiveSessionStore.getState().wodResults['sect-1'].extraReps).toBe(7)
+    })
+
+    it('overwrites a previous value for the same key', () => {
+      const store = useLiveSessionStore.getState()
+      store.setExtraReps('sect-1', 7)
+      store.setExtraReps('sect-1', 12)
+      expect(useLiveSessionStore.getState().wodResults['sect-1'].extraReps).toBe(12)
+    })
+
+    it('preserves other fields already set on the same key', () => {
+      const store = useLiveSessionStore.getState()
+      store.recordRound('sect-1')
+      store.setExtraReps('sect-1', 4)
+      const result = useLiveSessionStore.getState().wodResults['sect-1']
+      expect(result.roundsCompleted).toBe(1)
+      expect(result.extraReps).toBe(4)
+    })
+  })
+
+  describe('finalizeWod()', () => {
+    beforeEach(() => {
+      useLiveSessionStore.getState().start({ sessionId: 's' }, 'l', 'p')
+    })
+
+    it('writes the full WodResult for the given key', () => {
+      useLiveSessionStore.getState().finalizeWod('sect-1', { roundsCompleted: 5, extraReps: 10 })
+      expect(useLiveSessionStore.getState().wodResults['sect-1']).toEqual({
+        roundsCompleted: 5,
+        extraReps: 10,
+      })
+    })
+
+    it('replaces any prior in-progress result for the same key', () => {
+      const store = useLiveSessionStore.getState()
+      store.recordRound('sect-1')
+      store.markRoundFailed('sect-1', 1)
+      store.finalizeWod('sect-1', { roundsCompleted: 9 })
+      expect(useLiveSessionStore.getState().wodResults['sect-1']).toEqual({ roundsCompleted: 9 })
+    })
+
+    it('persists the result to MMKV', () => {
+      useLiveSessionStore.getState().finalizeWod('sect-1', { roundsCompleted: 2 })
+      const parsed = JSON.parse(_mmkvStore['session'])
+      expect(parsed.wodResults['sect-1']).toEqual({ roundsCompleted: 2 })
+    })
+
+    it('does not affect other keys', () => {
+      const store = useLiveSessionStore.getState()
+      store.finalizeWod('sect-1', { roundsCompleted: 2 })
+      store.finalizeWod('sect-2', { roundsCompleted: 6 })
+      const s = useLiveSessionStore.getState()
+      expect(s.wodResults['sect-1']).toEqual({ roundsCompleted: 2 })
+      expect(s.wodResults['sect-2']).toEqual({ roundsCompleted: 6 })
+    })
+  })
+})
+
+// ── migrateState() v1 → v2 migration ────────────────────────────────────────
+//
+// The store reads + migrates persisted state once, at module-eval time
+// (getPersistedSession() runs inside the create() initializer). To exercise
+// migrateState() with a v1-shaped MMKV blob already on disk, we must seed
+// the mock MMKV *before* a fresh module instance evaluates, via
+// jest.isolateModules() + require() (resetModules() alone would not help,
+// since the outer `useLiveSessionStore` import at the top of this file has
+// already run its module-level initializer).
+
+describe('migrateState() v1 -> v2 migration', () => {
+  beforeEach(() => {
+    Object.keys(_mmkvStore).forEach((k) => { delete _mmkvStore[k] })
+  })
+
+  it('drops the legacy sentinel wodResults key and stamps _version=2', () => {
+    _mmkvStore['session'] = JSON.stringify({
+      _version: 1,
+      activeLogId: 'log-1',
+      planId: 'plan-1',
+      sessionId: 'sess-1',
+      startedAt: '2024-01-01T00:00:00.000Z',
+      currentExerciseIdx: 0,
+      currentSetIdx: 0,
+      completedSets: {},
+      skippedSets: {},
+      skippedExercises: [],
+      restStartedAt: null,
+      restSeconds: null,
+      finishedAt: null,
+      formOverrides: {},
+      wodResults: {
+        '__legacySentinelKey123': { roundsCompleted: 3 },
+        'section-real': { roundsCompleted: 5 },
+      },
+    })
+
+    let fresh: typeof import('../liveSessionStore') | undefined
+    jest.isolateModules(() => {
+      fresh = require('../liveSessionStore')
+    })
+
+    const state = fresh!.useLiveSessionStore.getState()
+    expect(state._version).toBe(2)
+    expect(state.wodResults).toEqual({ 'section-real': { roundsCompleted: 5 } })
+    expect(state.currentSectionIdx).toBeNull()
+  })
+
+  it('treats a persisted blob with no _version field as v1 and migrates it', () => {
+    _mmkvStore['session'] = JSON.stringify({
+      activeLogId: 'log-1',
+      planId: 'plan-1',
+      sessionId: 'sess-1',
+      startedAt: null,
+      currentExerciseIdx: 0,
+      currentSetIdx: 0,
+      completedSets: {},
+      skippedSets: {},
+      skippedExercises: [],
+      restStartedAt: null,
+      restSeconds: null,
+      finishedAt: null,
+      formOverrides: {},
+      wodResults: { '__oldSentinel': { roundsCompleted: 1 } },
+    })
+
+    let fresh: typeof import('../liveSessionStore') | undefined
+    jest.isolateModules(() => {
+      fresh = require('../liveSessionStore')
+    })
+
+    const state = fresh!.useLiveSessionStore.getState()
+    expect(state._version).toBe(2)
+    expect(state.wodResults).toEqual({})
+  })
+
+  it('leaves an already-current (v2) blob untouched', () => {
+    _mmkvStore['session'] = JSON.stringify({
+      _version: 2,
+      activeLogId: 'log-1',
+      planId: 'plan-1',
+      sessionId: 'sess-1',
+      startedAt: null,
+      currentExerciseIdx: 0,
+      currentSetIdx: 0,
+      currentSectionIdx: 1,
+      completedSets: {},
+      skippedSets: {},
+      skippedExercises: [],
+      restStartedAt: null,
+      restSeconds: null,
+      finishedAt: null,
+      formOverrides: {},
+      wodResults: { 'section-real': { roundsCompleted: 5 } },
+    })
+
+    let fresh: typeof import('../liveSessionStore') | undefined
+    jest.isolateModules(() => {
+      fresh = require('../liveSessionStore')
+    })
+
+    const state = fresh!.useLiveSessionStore.getState()
+    expect(state._version).toBe(2)
+    expect(state.currentSectionIdx).toBe(1)
+    expect(state.wodResults).toEqual({ 'section-real': { roundsCompleted: 5 } })
   })
 })
