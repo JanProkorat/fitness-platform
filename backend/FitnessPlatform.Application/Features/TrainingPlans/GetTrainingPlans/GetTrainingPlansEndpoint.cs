@@ -4,6 +4,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Features.TrainingPlans.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Application.Infrastructure.Services;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlans;
@@ -12,7 +13,8 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlans;
 /// Lists training plans for the authenticated trainer with optional filtering and pagination.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
-public class GetTrainingPlansEndpoint(IMongoContext mongo) : Endpoint<GetTrainingPlansRequest, GetTrainingPlansResponse>
+/// <param name="authHelper">Validates the trainer-client link's CanViewTrainingPlans permission when filtering by client.</param>
+public class GetTrainingPlansEndpoint(IMongoContext mongo, ProfessionalAuthHelper authHelper) : Endpoint<GetTrainingPlansRequest, GetTrainingPlansResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -38,6 +40,22 @@ public class GetTrainingPlansEndpoint(IMongoContext mongo) : Endpoint<GetTrainin
         }
 
         var trainerId = Guid.Parse(userId);
+
+        // Server-side enforcement of CanViewTrainingPlans (#590) — mirrors the ownership +
+        // permission-flag check used elsewhere (e.g. ListClientPlansEndpoint). Only relevant
+        // when the caller scopes the query to a specific client; an unscoped list already
+        // implicitly filters to TrainerId == trainerId below, so there is no client-specific
+        // permission to check.
+        if (req.ClientId.HasValue)
+        {
+            var hasPlanAccess = await authHelper.HasPlanAccessAsync(trainerId, req.ClientId.Value, requireTrainingPlanAccess: true, ct);
+
+            if (!hasPlanAccess)
+            {
+                await Send.ForbiddenAsync(ct);
+                return;
+            }
+        }
 
         var filterBuilder = Builders<TrainingPlan>.Filter;
         var filter = filterBuilder.Eq(p => p.TrainerId, trainerId);

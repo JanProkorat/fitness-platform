@@ -262,15 +262,20 @@ public static class TrainingPlanTestHelpers
     }
 
     /// <summary>
-    /// Creates a mocked <see cref="ProfessionalAuthHelper"/> that returns true for HasActiveLinkAsync.
+    /// Creates a mocked <see cref="ProfessionalAuthHelper"/> that returns <paramref name="hasLink"/>
+    /// for HasActiveLinkAsync and <paramref name="hasPlanAccess"/> for HasPlanAccessAsync
+    /// (used by #590's CanViewTrainingPlans server-side enforcement).
     /// </summary>
-    public static ProfessionalAuthHelper CreateMockAuthHelper(bool hasLink = true)
+    public static ProfessionalAuthHelper CreateMockAuthHelper(bool hasLink = true, bool hasPlanAccess = true)
     {
         var db = Substitute.For<IApplicationDbContext>();
         var authHelper = Substitute.For<ProfessionalAuthHelper>(db);
         authHelper.HasActiveLinkAsync(
                 Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
             .Returns(hasLink);
+        authHelper.HasPlanAccessAsync(
+                Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
+            .Returns(hasPlanAccess);
         return authHelper;
     }
 
