@@ -14,6 +14,12 @@ namespace FitnessPlatform.Application.Features.NutritionPlans.CreatePlan;
 /// <summary>
 /// Creates a new nutrition plan for a client in Draft status.
 /// </summary>
+/// <remarks>
+/// Intentionally does not go through <see cref="Domain.Services.PlanConcurrencyGuard"/> —
+/// this is an <c>InsertOneAsync</c> of a brand-new document with <c>Version = 1</c>, so
+/// there is no existing row to fetch, no version to compare, and no 409 path to extract.
+/// See the guard's class doc-comment for the full Create/Delete exclusion rationale (#659 / #695).
+/// </remarks>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="authHelper">Validates nutritionist-client relationship.</param>
 /// <param name="db">PostgreSQL context for cross-DB validation.</param>
