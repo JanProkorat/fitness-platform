@@ -15,7 +15,7 @@ import { useRouter, Stack } from 'expo-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/hooks/useTheme'
-import { goldAlpha } from '@/constants/colors'
+import { goldAlpha, Static } from '@/constants/colors'
 import { hrefParams } from '@/lib/navigation'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
   planName: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#ffffff',
+    color: Static.alwaysWhite,
     letterSpacing: -0.3,
   },
   planSubtitle: {

@@ -20,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
 import { Brand } from '@/constants/colors'
+import { SemanticColors } from '@/constants/semanticColors'
 import { Type } from '@/constants/typography'
 import i18n from '@/i18n'
 import {
@@ -38,19 +39,19 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 // ─── Category colors (matching web food-category.ts) ───────────────────
 
 const CATEGORY_COLORS: Record<string, string> = {
-  Fruit: '#c0392b',
-  Vegetables: '#0f7b6c',
-  Meat: '#8b5e3c',
-  FishAndSeafood: '#0b6e99',
-  Dairy: '#9b9a97',
+  Fruit: SemanticColors.brickRed,
+  Vegetables: SemanticColors.forestTeal,
+  Meat: SemanticColors.brown,
+  FishAndSeafood: SemanticColors.deepBlue,
+  Dairy: SemanticColors.stone,
   GrainsAndCereals: Brand.gold,
-  Legumes: '#6d8c54',
-  NutsAndSeeds: '#ad5700',
-  OilsAndFats: '#7a8b3c',
-  SweetsAndSnacks: '#a0522d',
-  Beverages: '#2e86ab',
-  Supplements: '#6940a5',
-  Other: '#9b9a97',
+  Legumes: SemanticColors.olive,
+  NutsAndSeeds: SemanticColors.rust,
+  OilsAndFats: SemanticColors.moss,
+  SweetsAndSnacks: SemanticColors.terracotta,
+  Beverages: SemanticColors.ocean,
+  Supplements: SemanticColors.indigo,
+  Other: SemanticColors.stone,
 }
 
 // ─── Types ──────────────────────────────────────────────────────────────
@@ -524,7 +525,7 @@ export default function ShoppingListScreen() {
                   isChecked && { backgroundColor: colors.gold, borderColor: colors.gold },
                 ]}
               >
-                {isChecked && <Ionicons name="checkmark" size={14} color="#fff" />}
+                {isChecked && <Ionicons name="checkmark" size={14} color={colors.onAccent} />}
               </View>
               <View style={styles.itemInfo}>
                 <Text
