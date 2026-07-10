@@ -4,18 +4,19 @@ import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
 import { goldAlpha, Brand, Static } from '@/constants/colors'
+import { withAlpha } from '@/constants/semanticColors'
 import { Radius } from '@/constants/radius'
 import { Avatar } from '@/components/ui/Avatar'
 
 export type RequestStatus = 'none' | 'pending' | 'active'
 
 const ROLE_BADGE_COLORS: Record<string, { bg: string; text: string }> = {
-  'Osobní trenér': { bg: 'rgba(0,122,255,0.10)', text: Static.blue },
-  'Výž. poradce': { bg: 'rgba(52,199,89,0.10)', text: Static.green },
-  'Výživový poradce': { bg: 'rgba(52,199,89,0.10)', text: Static.green },
+  'Osobní trenér': { bg: withAlpha(Static.blue, 0.10), text: Static.blue },
+  'Výž. poradce': { bg: withAlpha(Static.green, 0.10), text: Static.green },
+  'Výživový poradce': { bg: withAlpha(Static.green, 0.10), text: Static.green },
   'Trenér & poradce': { bg: goldAlpha['10'], text: Brand.gold },
-  Trainer: { bg: 'rgba(0,122,255,0.10)', text: Static.blue },
-  Nutritionist: { bg: 'rgba(52,199,89,0.10)', text: Static.green },
+  Trainer: { bg: withAlpha(Static.blue, 0.10), text: Static.blue },
+  Nutritionist: { bg: withAlpha(Static.green, 0.10), text: Static.green },
 }
 
 /**
@@ -25,12 +26,12 @@ const ROLE_BADGE_COLORS: Record<string, { bg: string; text: string }> = {
  * "combined" wash.
  */
 const ROLE_HEADER_TINT: Record<string, string> = {
-  'Osobní trenér': 'rgba(0,122,255,0.08)',
-  'Výž. poradce': 'rgba(52,199,89,0.08)',
-  'Výživový poradce': 'rgba(52,199,89,0.08)',
+  'Osobní trenér': withAlpha(Static.blue, 0.08),
+  'Výž. poradce': withAlpha(Static.green, 0.08),
+  'Výživový poradce': withAlpha(Static.green, 0.08),
   'Trenér & poradce': goldAlpha['08'],
-  Trainer: 'rgba(0,122,255,0.08)',
-  Nutritionist: 'rgba(52,199,89,0.08)',
+  Trainer: withAlpha(Static.blue, 0.08),
+  Nutritionist: withAlpha(Static.green, 0.08),
 }
 
 function getHeaderTint(roles: string[]): string {
