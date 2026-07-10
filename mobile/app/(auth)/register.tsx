@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import axios from 'axios';
 import api from '@/api/client';
 import { useAuthStore } from '@/stores/auth';
 import { useTheme } from '@/hooks/useTheme';
@@ -96,10 +97,13 @@ export default function RegisterScreen() {
         data.accessToken,
         data.refreshToken
       );
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const data = axios.isAxiosError(e)
+        ? (e.response?.data as { errors?: { generalErrors?: string[] }; message?: string } | undefined)
+        : undefined;
       const msg =
-        e.response?.data?.errors?.generalErrors?.[0] ??
-        e.response?.data?.message ??
+        data?.errors?.generalErrors?.[0] ??
+        data?.message ??
         t('auth.register.failedMessage');
       Alert.alert(t('auth.register.failedTitle'), msg);
     } finally {
