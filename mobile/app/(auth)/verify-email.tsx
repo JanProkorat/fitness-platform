@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import axios from 'axios';
 import { useAuthStore } from '@/stores/auth';
 import { useTheme } from '@/hooks/useTheme';
 import { Static, goldAlpha } from '@/constants/colors';
@@ -44,8 +45,11 @@ export default function VerifyEmailScreen() {
       const res = await resendVerification();
       setResendSuccess(true);
       setRemainingResends(res.remainingResends);
-    } catch (err: any) {
-      const code = err?.response?.data?.errors?.[0]?.errorCode;
+    } catch (err: unknown) {
+      const data = axios.isAxiosError(err)
+        ? (err.response?.data as { errors?: { errorCode?: string }[] } | undefined)
+        : undefined;
+      const code = data?.errors?.[0]?.errorCode;
       if (code === 'VERIFICATION_RESEND_LIMIT_REACHED') {
         setRemainingResends(0);
       } else {
