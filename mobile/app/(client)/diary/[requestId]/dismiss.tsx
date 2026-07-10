@@ -51,7 +51,6 @@ export function DiaryDismissScreen() {
     onSuccess: () => {
       clearSelection(requestId)
       queryClient.invalidateQueries({ queryKey: ['pending-questionnaires'] })
-      queryClient.invalidateQueries({ queryKey: ['diary-requests'] })
       queryClient.invalidateQueries({ queryKey: ['active-diary-requests'] })
       Toast.show(t('diary.dismiss.successToast'))
       router.replace('/(client)')
