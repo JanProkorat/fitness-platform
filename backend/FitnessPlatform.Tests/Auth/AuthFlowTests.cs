@@ -15,6 +15,10 @@ namespace FitnessPlatform.Tests.Auth;
 [Collection(TestCollection.Name)]
 public class AuthFlowTests(FitnessApiFactory factory)
 {
+    // Per-host singleton (#726 refinement) — resolved from this factory's own DI
+    // container so assertions never see another factory's zombie worker traffic.
+    private FakeEmailService EmailService => factory.Services.GetRequiredService<FakeEmailService>();
+
     private static string UniqueEmail() => $"{Guid.NewGuid():N}@test.com";
 
     [Fact]
@@ -220,7 +224,7 @@ public class AuthFlowTests(FitnessApiFactory factory)
     [Fact]
     public async Task PasswordReset_FullFlow_Works()
     {
-        FakeEmailService.Reset();
+        EmailService.Reset();
         var client = factory.CreateClient();
         var email = UniqueEmail();
 
@@ -229,9 +233,9 @@ public class AuthFlowTests(FitnessApiFactory factory)
         var requestResponse = await client.PostAsJsonAsync("/auth/password/reset", new { Email = email }, cancellationToken: TestContext.Current.CancellationToken);
 
         requestResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-        FakeEmailService.SentPasswordResets.Should().ContainSingle();
+        EmailService.SentPasswordResets.Should().ContainSingle();
 
-        var resetToken = FakeEmailService.SentPasswordResets[0].Token;
+        var resetToken = EmailService.SentPasswordResets[0].Token;
 
         var resetResponse = await client.PutAsJsonAsync("/auth/password/reset", new
             {

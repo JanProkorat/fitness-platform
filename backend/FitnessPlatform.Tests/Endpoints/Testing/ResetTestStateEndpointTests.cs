@@ -101,7 +101,9 @@ public abstract class ResetEndpointFactoryBase : WebApplicationFactory<Program>,
                 d => d.ServiceType == typeof(FitnessPlatform.Application.Domain.Interfaces.IEmailService));
             if (emailDescriptor is not null)
                 services.Remove(emailDescriptor);
-            services.AddScoped<FitnessPlatform.Application.Domain.Interfaces.IEmailService, FakeEmailService>();
+            services.AddSingleton<FakeEmailService>();
+            services.AddSingleton<FitnessPlatform.Application.Domain.Interfaces.IEmailService>(
+                sp => sp.GetRequiredService<FakeEmailService>());
 
             var notifierDescriptor = services.SingleOrDefault(
                 d => d.ServiceType == typeof(FitnessPlatform.Application.Domain.Interfaces.IRealtimeNotifier));
@@ -124,6 +126,10 @@ public abstract class ResetEndpointFactoryBase : WebApplicationFactory<Program>,
             services.AddSingleton<FakePushNotificationService>();
             services.AddSingleton<FitnessPlatform.Application.Domain.Interfaces.IPushNotificationService>(
                 sp => sp.GetRequiredService<FakePushNotificationService>());
+
+            // #726: prevent the background schedulers/worker from starting in this
+            // test host — see TestHostedServiceExtensions for the root cause.
+            services.RemoveBackgroundHostedServices();
         });
 
         builder.UseEnvironment(EnvironmentName);

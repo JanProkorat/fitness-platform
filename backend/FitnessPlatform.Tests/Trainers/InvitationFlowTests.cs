@@ -14,12 +14,16 @@ namespace FitnessPlatform.Tests.Trainers;
 [Collection(TestCollection.Name)]
 public class InvitationFlowTests(FitnessApiFactory factory)
 {
+    // Per-host singleton (#726 refinement) — resolved from this factory's own DI
+    // container so assertions never see another factory's zombie worker traffic.
+    private FakeEmailService EmailService => factory.Services.GetRequiredService<FakeEmailService>();
+
     private static string UniqueEmail() => $"{Guid.NewGuid():N}@test.com";
 
     [Fact]
     public async Task InviteClient_AsTrainer_Returns201()
     {
-        FakeEmailService.Reset();
+        EmailService.Reset();
         var client = factory.CreateClient();
         var trainerEmail = UniqueEmail();
 
