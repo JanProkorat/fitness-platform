@@ -15,16 +15,16 @@
  * final value goes to the store via onSetDone.
  */
 
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React from 'react'
 import { View, Text, Pressable, StyleSheet } from 'react-native'
 import { useTheme } from '@/hooks/useTheme'
-import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
 import { useTranslation } from 'react-i18next'
 import type { MovementType } from '@/api/wod-types'
-
-// Shared set-status type mirrors LiveExerciseFocus
-type SetStatus = 'done' | 'active' | 'skipped' | 'pending'
+import { ExerciseFocusHero, type SetStatus } from '@/components/training/ExerciseFocusHero'
+import { useCountdownTimer } from '@/components/training/useCountdownTimer'
+import { useDistanceStepper } from '@/components/training/useDistanceStepper'
+import { formatCountdown } from '@/components/training/timedExerciseHelpers'
 
 export interface TimedExerciseFocusProps {
   /** Display name of the current exercise */
@@ -55,16 +55,6 @@ export interface TimedExerciseFocusProps {
   onGoToSet: (idx: number) => void
 }
 
-/**
- * Format seconds as MM:SS.
- */
-function formatCountdown(secs: number): string {
-  const s = Math.max(0, Math.ceil(secs))
-  const m = Math.floor(s / 60)
-  const remaining = s % 60
-  return `${String(m).padStart(2, '0')}:${String(remaining).padStart(2, '0')}`
-}
-
 export function TimedExerciseFocus({
   exerciseName,
   muscleColor,
@@ -85,158 +75,28 @@ export function TimedExerciseFocus({
   const colors = useTheme()
   const { t } = useTranslation()
 
-  // ── Timer state (Time movements) ─────────────────────────────────────────
-  const [timerRunning, setTimerRunning] = useState(false)
-  const [remaining, setRemaining] = useState(plannedDurationSeconds)
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const startedAtRef = useRef<number | null>(null)
+  const { timerRunning, remaining, handleStartTimer, handlePauseTimer, handleFinishTimer } =
+    useCountdownTimer({ plannedDurationSeconds, currentSet, onSetDone })
 
-  // Reset when the planned duration changes (next set)
-  useEffect(() => {
-    setRemaining(plannedDurationSeconds)
-    setTimerRunning(false)
-    if (timerRef.current) {
-      clearInterval(timerRef.current)
-      timerRef.current = null
-    }
-    startedAtRef.current = null
-  }, [plannedDurationSeconds, currentSet])
-
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current)
-    }
-  }, [])
-
-  const handleStartTimer = useCallback(() => {
-    if (timerRunning) return
-    startedAtRef.current = Date.now()
-    setTimerRunning(true)
-    timerRef.current = setInterval(() => {
-      if (startedAtRef.current === null) return
-      const elapsed = (Date.now() - startedAtRef.current) / 1000
-      const rem = plannedDurationSeconds - elapsed
-      if (rem <= 0) {
-        setRemaining(0)
-        setTimerRunning(false)
-        if (timerRef.current) {
-          clearInterval(timerRef.current)
-          timerRef.current = null
-        }
-        onSetDone(plannedDurationSeconds, undefined)
-      } else {
-        setRemaining(rem)
-      }
-    }, 250)
-  }, [timerRunning, plannedDurationSeconds, onSetDone])
-
-  const handlePauseTimer = useCallback(() => {
-    if (!timerRunning) return
-    setTimerRunning(false)
-    if (timerRef.current) {
-      clearInterval(timerRef.current)
-      timerRef.current = null
-    }
-    if (startedAtRef.current !== null) {
-      const elapsed = (Date.now() - startedAtRef.current) / 1000
-      setRemaining((r) => Math.max(0, r - elapsed))
-      startedAtRef.current = null
-    }
-  }, [timerRunning])
-
-  const handleFinishTimer = useCallback(() => {
-    if (timerRef.current) clearInterval(timerRef.current)
-    timerRef.current = null
-    setTimerRunning(false)
-    const elapsed = startedAtRef.current
-      ? Math.round((Date.now() - startedAtRef.current) / 1000)
-      : Math.round(plannedDurationSeconds - remaining)
-    const duration = timerRunning
-      ? plannedDurationSeconds - remaining + elapsed
-      : plannedDurationSeconds - remaining
-    onSetDone(Math.round(duration), undefined)
-  }, [timerRunning, remaining, plannedDurationSeconds, onSetDone])
-
-  // ── Distance state ────────────────────────────────────────────────────────
-  const [distanceMeters, setDistanceMeters] = useState(plannedDistanceMeters)
-
-  useEffect(() => {
-    setDistanceMeters(plannedDistanceMeters)
-  }, [plannedDistanceMeters, currentSet])
-
-  const handleDistanceDec = useCallback(
-    () => setDistanceMeters((d) => Math.max(0, Math.round((d - 10) * 10) / 10)),
-    [],
-  )
-  const handleDistanceInc = useCallback(
-    () => setDistanceMeters((d) => Math.round((d + 10) * 10) / 10),
-    [],
-  )
-
-  const handleDistanceDone = useCallback(() => {
-    onSetDone(undefined, distanceMeters)
-  }, [onSetDone, distanceMeters])
+  const { distanceMeters, handleDistanceDec, handleDistanceInc, handleDistanceDone } =
+    useDistanceStepper({ plannedDistanceMeters, currentSet, onSetDone })
 
   const isTime = movementType === 'Time'
 
   return (
     <>
       {/* Exercise hero */}
-      <View
-        style={[
-          styles.heroCard,
-          { backgroundColor: colors.bg2, borderColor: colors.sep2 },
-        ]}
-      >
-        <View style={styles.heroTop}>
-          <View style={styles.heroLeft}>
-            <View style={styles.muscleLine}>
-              <View style={[styles.muscleDot, { backgroundColor: muscleColor }]} />
-              <Text style={[styles.muscleLabel, { color: colors.label2 }]}>
-                {muscleLabel} · {t('training.live.exerciseProgress', {
-                  current: exerciseIndex,
-                  total: exerciseTotal,
-                })}
-              </Text>
-            </View>
-            <Text style={[styles.exerciseName, { color: colors.label }]} numberOfLines={2}>
-              {exerciseName}
-            </Text>
-          </View>
-
-          {/* SÉRIE badge */}
-          <View
-            style={[
-              styles.serieBadge,
-              { backgroundColor: colors.goldBg, borderColor: colors.gold + '4d' },
-            ]}
-          >
-            <Text style={[styles.serieCurr, { color: colors.gold }]}>{currentSet}</Text>
-            <Text style={[styles.serieSlash, { color: colors.label3 }]}>/{totalSets}</Text>
-            <Text style={[styles.serieLabel, { color: colors.label3 }]}>
-              {t('training.live.seriesLabel')}
-            </Text>
-          </View>
-        </View>
-
-        {/* Set dots */}
-        <View style={styles.dotsRow}>
-          {setStatuses.map((status, i) => (
-            <Pressable
-              key={i}
-              style={[
-                styles.setDot,
-                status === 'done' && { backgroundColor: colors.gold },
-                status === 'active' && { backgroundColor: colors.gold + '8c' },
-                status === 'skipped' && { backgroundColor: colors.label3 },
-                status === 'pending' && { backgroundColor: colors.fill },
-              ]}
-              onPress={() => onGoToSet(i)}
-              accessibilityLabel={`${t('training.live.setLabel')} ${i + 1}`}
-            />
-          ))}
-        </View>
-      </View>
+      <ExerciseFocusHero
+        exerciseName={exerciseName}
+        muscleColor={muscleColor}
+        muscleLabel={muscleLabel}
+        exerciseIndex={exerciseIndex}
+        exerciseTotal={exerciseTotal}
+        currentSet={currentSet}
+        totalSets={totalSets}
+        setStatuses={setStatuses}
+        onGoToSet={onGoToSet}
+      />
 
       {/* Input card */}
       <View
@@ -353,77 +213,6 @@ export function TimedExerciseFocus({
 }
 
 const styles = StyleSheet.create({
-  heroCard: {
-    marginHorizontal: 16,
-    marginTop: 14,
-    borderRadius: Radius.md,
-    padding: 18,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  heroTop: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  heroLeft: {
-    flex: 1,
-    minWidth: 0,
-  },
-  muscleLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 6,
-  },
-  muscleDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    flexShrink: 0,
-  },
-  muscleLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.08 * 11,
-  },
-  exerciseName: {
-    ...Type.title2,
-    lineHeight: 26,
-  },
-  serieBadge: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    alignItems: 'center',
-    flexShrink: 0,
-  },
-  serieCurr: {
-    fontSize: 18,
-    fontWeight: '700',
-    lineHeight: 21,
-  },
-  serieSlash: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  serieLabel: {
-    fontSize: 9,
-    letterSpacing: 0.1 * 9,
-    marginTop: 2,
-  },
-  dotsRow: {
-    flexDirection: 'row',
-    gap: 6,
-    marginTop: 14,
-  },
-  setDot: {
-    flex: 1,
-    height: 6,
-    borderRadius: 99,
-  },
   inputCard: {
     marginHorizontal: 16,
     marginTop: 12,
