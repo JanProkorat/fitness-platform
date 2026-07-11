@@ -61,6 +61,12 @@ const KNOWN_EVENTS = [
   'emailverified',
   // #548: training plan content update (distinct from trainingplanpublished)
   'trainingplanupdated',
+  // Weekly check-in requested: fires on the client's connection when the
+  // scheduler (or a trainer/nutritionist action) creates a new weekly
+  // check-in for them. The Today screen listens to this so the pending
+  // banner appears without requiring a manual refresh.
+  // Payload: { weeklyCheckInId: string, profession: string, professionalName: string }
+  'weeklycheckinrequested',
 ]
 
 function createConnection(): HubConnection {
