@@ -2083,6 +2083,7 @@
     "createError": "Plan konnte nicht erstellt werden.",
     "back": "← Zurück",
     "defaultPlanName": "Trainingsplan",
-    "roleDenied": "Sie haben keinen Zugriff auf die Trainingspläne dieses Klienten."
+    "roleDenied": "Sie haben keinen Zugriff auf die Trainingspläne dieses Klienten.",
+    "accessDenied": "Sie sind nicht berechtigt, die Trainingspläne dieses Klienten anzusehen."
   }
 }
