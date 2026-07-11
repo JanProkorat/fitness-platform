@@ -283,6 +283,36 @@ public class WeeklyCheckInScheduler(
                 using var candidateScope = scopeFactory.CreateScope();
                 var candidateDb = candidateScope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
 
+                // Pre-flight existence check on the unique key (client, professional,
+                // profession, week). This is the common case: a trainer edits their
+                // reminder day/time mid-week after that week's check-in already fired,
+                // and the next tick re-evaluates the same candidate. Checking first
+                // avoids the doomed INSERT entirely, so EF Core never logs the
+                // DbUpdateException/PostgresException 23505 stack trace at ERROR —
+                // that log fires from EF's internal SaveChanges diagnostics, upstream
+                // of our own try/catch, so catching the exception downstream cannot
+                // suppress it. The catch below stays only as a race-condition backstop
+                // for a genuinely concurrent insert landing between this check and our
+                // own SaveChanges (e.g. overlapping ticks, multi-instance deployment).
+                var alreadyExists = await candidateDb.WeeklyCheckIns
+                    .AsNoTracking()
+                    .AnyAsync(c =>
+                        c.ClientUserId == clientUserId
+                        && c.ProfessionalUserId == setting.UserId
+                        && c.Profession == setting.Profession
+                        && c.WeekStartDate == weekStartDate,
+                        ct);
+
+                if (alreadyExists)
+                {
+                    logger.LogDebug(
+                        "WeeklyCheckInScheduler: check-in already exists for " +
+                        "client={ClientUserId} professional={ProfessionalUserId} " +
+                        "profession={Profession} week={WeekStartDate}; skipping.",
+                        clientUserId, setting.UserId, setting.Profession, weekStartDate);
+                    continue;
+                }
+
                 // Resolve the effective deadline offset:
                 // client override → professional setting → default constant (72h).
                 var effectiveDeadlineOffsetHours =
@@ -311,9 +341,16 @@ public class WeeklyCheckInScheduler(
                 catch (DbUpdateException ex)
                     when (IsUniqueViolation(ex))
                 {
-                    // Duplicate — check-in already exists for this (ClientUserId, ProfessionalUserId,
-                    // Profession, WeekStartDate). The candidateScope is disposed at end-of-block;
-                    // no tracker cleanup needed.
+                    // Race-condition backstop only: the pre-flight AnyAsync check above
+                    // handles the common re-evaluation case without ever reaching this
+                    // catch. This path is reserved for a genuinely concurrent insert
+                    // that landed for the same (ClientUserId, ProfessionalUserId,
+                    // Profession, WeekStartDate) between our existence check and this
+                    // SaveChanges — overlapping ticks or multiple scheduler instances.
+                    // EF Core still logs its own internal SaveChanges diagnostics for
+                    // the failed insert, but that firing is now the rare/expected
+                    // exception path rather than the routine one. The candidateScope
+                    // is disposed at end-of-block; no tracker cleanup needed.
                     logger.LogWarning(
                         "WeeklyCheckInScheduler: duplicate check-in skipped for " +
                         "client={ClientUserId} professional={ProfessionalUserId} " +

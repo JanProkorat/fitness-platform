@@ -175,6 +175,133 @@ public class WeeklyCheckInSchedulerTests(FitnessApiFactory factory)
         checkIns.Should().HaveCount(1, "unique-index must prevent duplicates even across multiple ticks");
     }
 
+    /// <summary>
+    /// Regression test for #742: when a check-in already exists for a candidate's
+    /// (ClientUserId, ProfessionalUserId, Profession, WeekStartDate) — e.g. a trainer edits
+    /// their reminder day/time mid-week and the next tick re-evaluates the same week — the
+    /// scheduler's pre-flight existence check must skip the candidate WITHOUT attempting the
+    /// doomed INSERT. This proves the fix does not rely on the 23505 catch (which itself
+    /// stays as a race-condition backstop only): no second row is created, no exception is
+    /// thrown, and no duplicate notification/broadcast fires for the already-satisfied candidate.
+    /// </summary>
+    /// <remarks>
+    /// The row-count / notification / push / broadcast assertions alone do NOT distinguish the
+    /// pre-flight skip from the legacy "attempt INSERT then catch 23505" path — both paths
+    /// produce the identical observable surface (1 row, no new notification/push/broadcast) for
+    /// this candidate. The two paths log at different levels though: the pre-flight skip logs
+    /// Debug only (see <c>WeeklyCheckInScheduler.ProcessTickAsync</c>'s "check-in already exists"
+    /// branch), while the 23505-catch path logs a Warning ("duplicate check-in skipped"). This
+    /// test also captures the app's actual Serilog console output (via
+    /// <see cref="ConsoleOutputCapture"/> — see its doc comment for why a DI-registered
+    /// <c>ILoggerProvider</c> does NOT work in this codebase) and asserts that Warning was never
+    /// emitted — if the pre-flight block were reverted, the candidate would fall through to the
+    /// doomed INSERT, hit the unique violation, and that Warning WOULD fire, failing this
+    /// assertion.
+    /// </remarks>
+    [Fact]
+    public async Task Tick_CheckInAlreadyExistsForWeek_SkipsWithoutInsertAttemptOrDuplicateBroadcast()
+    {
+        var (trainerUserId, clientUserId) = await SetupTrainerAndClientWithSettingAsync(
+            DayOfWeek.Wednesday,
+            TimeSpan.FromHours(11),
+            "UTC");
+
+        var utcNow = DateTime.UtcNow;
+        var daysToLastWed = ((int)utcNow.DayOfWeek - (int)DayOfWeek.Wednesday + 7) % 7;
+        var lastWed = utcNow.Date.AddDays(-daysToLastWed).AddHours(11);
+        if (lastWed >= utcNow) lastWed = lastWed.AddDays(-7);
+
+        var weekStartDate = WeeklyCheckInScheduler.NextIsoMonday(lastWed);
+
+        // Pre-seed a WeeklyCheckIn row for this exact key, as if an earlier tick (or a
+        // trainer's reminder-time edit re-evaluation) already created it for this ISO week.
+        using (var seedScope = factory.Services.CreateScope())
+        {
+            var seedDb = seedScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            seedDb.WeeklyCheckIns.Add(new WeeklyCheckIn
+            {
+                ClientUserId = clientUserId,
+                ProfessionalUserId = trainerUserId,
+                Profession = Profession.Training,
+                WeekStartDate = weekStartDate,
+                SentAt = lastWed.AddHours(-3),
+                DateCreated = lastWed.AddHours(-3),
+                DateModified = lastWed.AddHours(-3)
+            });
+            await seedDb.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        var push = factory.Services.GetRequiredService<FakePushNotificationService>();
+        push.Reset();
+
+        var notifier = factory.Services.GetRequiredService<FakeRealtimeNotifier>();
+        notifier.Reset();
+
+        var scheduler = factory.Services.GetRequiredService<WeeklyCheckInScheduler>();
+        scheduler.ResetCursor();
+
+        // Position cursor just before the fire time so this candidate is re-evaluated
+        // (falls within the tick window) despite the check-in already existing for the week.
+        scheduler.SetLastTickAt(lastWed.AddMinutes(-10));
+        scheduler.OverrideNow = lastWed.AddMinutes(5);
+
+        // Act — must not throw. Capture Console output for the differentiating log assertion
+        // below (see the class remarks for why this is the only viable capture mechanism here).
+        using var consoleCapture = new ConsoleOutputCapture();
+
+        var act = async () => await scheduler.TickAsync(
+            scheduler.OverrideNow.Value, TestContext.Current.CancellationToken);
+        await act.Should().NotThrowAsync(
+            "the pre-flight existence check must skip the candidate cleanly, never reaching " +
+            "an INSERT that Postgres would reject");
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var checkIns = await db.WeeklyCheckIns
+            .Where(c => c.ClientUserId == clientUserId
+                        && c.ProfessionalUserId == trainerUserId
+                        && c.WeekStartDate == weekStartDate)
+            .ToListAsync(TestContext.Current.CancellationToken);
+
+        checkIns.Should().HaveCount(1,
+            "the pre-existing row must remain the only row for this key — no duplicate insert attempted");
+
+        // No new notification, push, or SignalR broadcast — the candidate was skipped
+        // before any of that work, since the check-in already existed.
+        var notification = await db.Notifications
+            .Where(n => n.RecipientUserId == clientUserId
+                        && n.Type == NotificationType.WeeklyCheckInRequested)
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
+        notification.Should().BeNull(
+            "no new notification should be created for an already-satisfied candidate");
+
+        push.Calls.Should().NotContain(c => c.UserId == clientUserId,
+            "no push should be sent for an already-satisfied candidate");
+
+        notifier.Calls.Should().NotContain(c => c.UserId == clientUserId,
+            "no SignalR broadcast should fire for an already-satisfied candidate");
+
+        // ── The differentiating assertion ──────────────────────────────────────
+        // Everything above also passes if the pre-flight block is REVERTED and the
+        // candidate instead falls through to "attempt INSERT → catch 23505 → continue":
+        // that path produces the identical row count and the identical absence of a new
+        // notification/push/broadcast. What it does NOT produce identically is the log
+        // output — the catch path logs a Warning containing "duplicate check-in skipped",
+        // while the pre-flight skip logs Debug only (which the Console sink, configured at
+        // MinimumLevel=Information, never even emits). Asserting the Warning text is absent
+        // from the captured console output is what actually proves the pre-flight check ran
+        // instead of the legacy catch path — this assertion FAILS if the pre-flight block is
+        // reverted, because the catch path's LogWarning call would then fire for this exact
+        // candidate and print to the console.
+        var consoleOutput = consoleCapture.Output;
+        consoleOutput.Should().NotContain(
+            "WeeklyCheckInScheduler: duplicate check-in skipped",
+            "the pre-flight existence check must skip the candidate via Debug-level logging only " +
+            "— this Warning message is only ever logged by the legacy insert-then-catch-23505 " +
+            "path, which must not run for an already-satisfied candidate");
+    }
+
     [Fact]
     public async Task Tick_CreatesNotificationRow()
     {
