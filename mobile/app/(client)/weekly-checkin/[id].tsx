@@ -296,16 +296,16 @@ export default function WeeklyCheckInScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 24}
       >
-        {/* ── Drag indicator + close ── */}
-        <View style={styles.dragRow}>
-          <View style={[styles.dragHandle, { backgroundColor: colors.sep }]} />
+        {/* ── Custom chevron-back header (card push, not a modal) ── */}
+        <View style={styles.navHeader}>
           <Pressable
             onPress={handleClose}
-            style={styles.closeTouchable}
+            style={styles.backBtn}
+            hitSlop={8}
             accessibilityRole="button"
-            accessibilityLabel={t('weeklyCheckIn.sheet.close')}
+            accessibilityLabel={t('common.back')}
           >
-            <Ionicons name="close" size={22} color={colors.label2} />
+            <Ionicons name="chevron-back" size={22} color={colors.gold} />
           </Pressable>
         </View>
 
@@ -470,24 +470,14 @@ const styles = StyleSheet.create({
   closeBtn: {
     padding: 8,
   },
-  dragRow: {
+  navHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 12,
-    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingHorizontal: 12,
     paddingBottom: 4,
-    position: 'relative',
   },
-  dragHandle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-  },
-  closeTouchable: {
-    position: 'absolute',
-    right: 16,
-    top: 8,
+  backBtn: {
     padding: 6,
   },
   scroll: {

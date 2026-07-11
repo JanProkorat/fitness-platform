@@ -1,16 +1,16 @@
 import { Stack } from 'expo-router'
 
 /**
- * Modal stack for the weekly check-in response sheet.
- * `presentation: 'modal'` makes the [id] screen slide up as a full-height modal.
+ * Card-push stack for the weekly check-in response screen.
+ * Mirrors training-session/_layout.tsx — a standard card push with a
+ * custom in-screen chevron-back header (see [id].tsx), not a modal sheet.
  */
 export default function WeeklyCheckInLayout() {
   return (
     <Stack
       screenOptions={{
         headerShown: false,
-        presentation: 'modal',
-        animation: 'slide_from_bottom',
+        animation: 'slide_from_right',
       }}
     />
   )
