@@ -309,6 +309,21 @@ export default function ClientTabLayout() {
         queryClient.invalidateQueries({ queryKey: ['personal-records-latest'] });
         queryClient.invalidateQueries({ queryKey: ['personal-records-all'] });
       }),
+      onEvent('weeklycheckinrequested', (raw: unknown) => {
+        const payload = raw as {
+          weeklyCheckInId?: string
+          profession?: string
+          professionalName?: string
+        } | undefined;
+        localNotify(
+          t('notifications.weeklyCheckInRequested'),
+          payload?.professionalName
+            ? t('notifications.weeklyCheckInRequestedBy', { name: payload.professionalName })
+            : t('notifications.weeklyCheckInRequestedFallback'),
+        );
+        queryClient.invalidateQueries({ queryKey: ['current-weekly-check-ins'] });
+        queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      }),
       onEvent('sessioneditlockchanged', (raw: unknown) => {
         const payload = raw as {
           planId: string;
