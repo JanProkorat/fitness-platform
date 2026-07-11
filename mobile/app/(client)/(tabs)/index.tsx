@@ -244,17 +244,6 @@ export default function TodayScreen() {
           />
         )}
 
-        {/* Weekly check-in banners — one per pending check-in, stacks vertically */}
-        {pendingCheckIns.map((checkIn) => (
-          <WeeklyCheckInBanner
-            key={checkIn.id}
-            checkIn={checkIn}
-            onOpen={(ci) =>
-              router.push(href(`/(client)/weekly-checkin/${ci.id}`))
-            }
-          />
-        ))}
-
         {/* ── State: no-trainer ── */}
         {todayState === 'no-trainer' && <NoTrainerState />}
 
@@ -311,6 +300,19 @@ export default function TodayScreen() {
                     }}
                   />
                 )}
+
+                {/* Weekly check-in banners — one per pending check-in, stacks vertically.
+                    Rendered after diary/questionnaire banners to match the prototype
+                    (docs/prototypes/mobile/scenes/today.html). */}
+                {pendingCheckIns.map((checkIn) => (
+                  <WeeklyCheckInBanner
+                    key={checkIn.id}
+                    checkIn={checkIn}
+                    onOpen={(ci) =>
+                      router.push(href(`/(client)/weekly-checkin/${ci.id}`))
+                    }
+                  />
+                ))}
               </>
             }
           />
