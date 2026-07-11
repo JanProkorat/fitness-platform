@@ -539,7 +539,27 @@ export function useTodayTrainingActions({
       }
       queryClient.invalidateQueries({ queryKey: ['today-training'] })
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
+      // Write the server's new per-session version tokens back into the cache.
+      // Unlike the per-session mutations (which call applyExerciseProgressToCache),
+      // the whole-day mark used to discard the response versions — leaving
+      // versionBySession stale. The next per-session mark/un-mark then sent an
+      // outdated optimistic-concurrency token → backend 409 → onError rolled the
+      // un-mark back to the complete state and refetched, so un-marking appeared
+      // to "snap back" to finished (#739).
+      const summaries = response.sessions ?? []
+      if (summaries.length > 0) {
+        queryClient.setQueryData<TodayTrainingResponse>(['today-training'], (prev) => {
+          if (!prev) return prev
+          const nextVersions = { ...(prev.versionBySession ?? {}) }
+          for (const summary of summaries) {
+            if (summary.sessionId != null && summary.version != null) {
+              nextVersions[summary.sessionId] = summary.version
+            }
+          }
+          return { ...prev, versionBySession: nextVersions }
+        })
+      }
       queryClient.invalidateQueries({ queryKey: ['compliance-score'] })
     },
   })

@@ -572,4 +572,121 @@ public class MarkWholeDayCompleteEndpointTests
         await _notifier.DidNotReceive().NotifyAsync(
             Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<object>(), Arg.Any<CancellationToken>());
     }
+
+    /// <summary>
+    /// Regression test for #739: the whole-day mark must write the per-section
+    /// attribution map (<c>CompletedExerciseIdsBySection</c>), not just the flat
+    /// <c>CompletedExerciseIds</c>. When an exercise is shared across two sections
+    /// (e.g. "Bench" in both a Standard block and an AMRAP), the read-time backfill
+    /// (<c>TrainingCompletionBackfill</c>) would otherwise credit it to only the
+    /// first section — leaving the second section reading as not-done after refresh.
+    /// The written map must credit the shared exercise to EVERY section that contains it.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_ExerciseSharedAcrossSections_WritesSharedExerciseToEverySection()
+    {
+        var sharedExercise = Guid.NewGuid();
+        var exA = Guid.NewGuid();
+        var exB = Guid.NewGuid();
+        var sectionA = Guid.NewGuid();
+        var sectionB = Guid.NewGuid();
+
+        var today = DateTime.UtcNow;
+        var startOfWeek = today.Date.AddDays(-(((int)today.DayOfWeek + 6) % 7));
+        var todayDow = (int)today.DayOfWeek;
+        todayDow = todayDow == 0 ? 7 : todayDow;
+
+        var plan = new TrainingPlan
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = _clientId,
+            TrainerId = Guid.NewGuid(),
+            Name = "Shared-Exercise Day Plan",
+            Status = TrainingPlanStatus.Active,
+            StartDate = startOfWeek,
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = startOfWeek,
+                    Sessions =
+                    [
+                        new TrainingSession
+                        {
+                            SessionId = _session1,
+                            DayOfWeek = todayDow,
+                            Name = "Shared session",
+                            Order = 1,
+                            Sections =
+                            [
+                                new TrainingSection
+                                {
+                                    SectionId = sectionA,
+                                    Order = 0,
+                                    Name = "Standard",
+                                    Exercises =
+                                    [
+                                        new SessionExercise { ExerciseExternalId = sharedExercise, ExerciseName = "Bench", Order = 1, Sets = [] },
+                                        new SessionExercise { ExerciseExternalId = exA, ExerciseName = "Pec deck", Order = 2, Sets = [] }
+                                    ]
+                                },
+                                new TrainingSection
+                                {
+                                    SectionId = sectionB,
+                                    Order = 1,
+                                    Name = "AMRAP",
+                                    Exercises =
+                                    [
+                                        new SessionExercise { ExerciseExternalId = sharedExercise, ExerciseName = "Bench", Order = 1, Sets = [] },
+                                        new SessionExercise { ExerciseExternalId = exB, ExerciseName = "Shyb", Order = 2, Sets = [] }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            Version = 1,
+            DateCreated = startOfWeek
+        };
+
+        var mongo = Substitute.For<IMongoContext>();
+        var planCollection = TrainingCompletionTestHelpers.CreateMockMongo(plan: plan).Mongo.TrainingPlans;
+        mongo.TrainingPlans.Returns(planCollection);
+
+        var completionCollection = TrainingCompletionTestHelpers.CreateMockCompletionCollection([]);
+        mongo.TrainingCompletions.Returns(completionCollection);
+
+        TrainingCompletion? inserted = null;
+        completionCollection
+            .When(x => x.InsertOneAsync(Arg.Any<TrainingCompletion>(), Arg.Any<InsertOneOptions>(), Arg.Any<CancellationToken>()))
+            .Do(ci => inserted = ci.Arg<TrainingCompletion>());
+
+        var db = CreateMockDb();
+
+        var ep = Factory.Create<MarkWholeDayCompleteEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+
+        await ep.HandleAsync(
+            new MarkWholeDayCompleteRequest { Date = DateOnly.FromDateTime(DateTime.UtcNow) },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        inserted.Should().NotBeNull();
+        inserted!.CompletedExerciseIdsBySection.Should().NotBeNull();
+        // Both sections must be present as keys.
+        inserted.CompletedExerciseIdsBySection!.Keys.Should()
+            .BeEquivalentTo([sectionA.ToString(), sectionB.ToString()]);
+        // Section A carries the shared exercise + its own.
+        inserted.CompletedExerciseIdsBySection[sectionA.ToString()].Should()
+            .BeEquivalentTo([sharedExercise, exA]);
+        // Section B ALSO carries the shared exercise (the bug: it used to be lost). + its own.
+        inserted.CompletedExerciseIdsBySection[sectionB.ToString()].Should()
+            .BeEquivalentTo([sharedExercise, exB]);
+    }
 }
