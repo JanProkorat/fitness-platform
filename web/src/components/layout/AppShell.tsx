@@ -4,6 +4,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Sidebar, SIDEBAR_ELEMENT_ID } from './Sidebar';
 import { useSignalR } from '@/hooks/useSignalR';
+import { MD_BREAKPOINT_QUERY } from '@/hooks/useMediaQuery';
+import { FOCUSABLE_SELECTOR } from '@/hooks/useFocusTrap';
 import { useToastStore } from '@/stores/toast';
 import { useTrainingPlanStore } from '@/stores/trainingPlan';
 import { isTrainingProgressUpdatedEvent } from '@/api/trainingProgressEvent';
@@ -39,14 +41,25 @@ export function AppShell() {
     setDark((prev) => !prev);
   }, []);
 
+  // Tracks WHY the drawer closed so the focus-restore effect below can pick
+  // a valid target: the mobile close paths (button/overlay/Escape/nav
+  // click) restore to the hamburger, but the resize-to-desktop auto-close
+  // path must NOT — the hamburger is `md:hidden` at that width, so focusing
+  // it silently no-ops to <body> (#729).
+  const closeReasonRef = useRef<'mobile' | 'resize'>('mobile');
+
   const handleCloseSidebar = useCallback(() => {
+    closeReasonRef.current = 'mobile';
     setSidebarOpen(false);
   }, []);
 
   useEffect(() => {
     if (!sidebarOpen) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setSidebarOpen(false);
+      if (e.key === 'Escape') {
+        closeReasonRef.current = 'mobile';
+        setSidebarOpen(false);
+      }
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
@@ -57,22 +70,34 @@ export function AppShell() {
   // otherwise it silently reappears as a permanent overlay once the
   // viewport later crosses back below `md`, since `sidebarOpen` never reset.
   useEffect(() => {
-    const mql = window.matchMedia('(min-width: 768px)');
+    const mql = window.matchMedia(MD_BREAKPOINT_QUERY);
     const handleViewportChange = (e: MediaQueryListEvent) => {
-      if (e.matches) setSidebarOpen(false);
+      if (e.matches) {
+        closeReasonRef.current = 'resize';
+        setSidebarOpen(false);
+      }
     };
     mql.addEventListener('change', handleViewportChange);
     return () => mql.removeEventListener('change', handleViewportChange);
   }, []);
 
-  // Focus management (#585): restore focus to the hamburger trigger when
-  // the drawer closes (whichever way it closed — overlay click, Escape,
-  // nav-link click, or the in-drawer close button).
+  // Focus management (#585, #729): restore focus to the hamburger trigger
+  // when the drawer closes via a mobile path (overlay click, Escape,
+  // nav-link click, or the in-drawer close button). On the resize-to-desktop
+  // auto-close path, land focus on the first focusable control inside the
+  // now-permanent, visible sidebar instead — the hamburger is hidden there.
   const hamburgerRef = useRef<HTMLButtonElement>(null);
   const wasSidebarOpenRef = useRef(sidebarOpen);
   useEffect(() => {
     if (wasSidebarOpenRef.current && !sidebarOpen) {
-      hamburgerRef.current?.focus();
+      if (closeReasonRef.current === 'resize') {
+        const sidebarEl = document.getElementById(SIDEBAR_ELEMENT_ID);
+        const target = sidebarEl?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+        target?.focus();
+      } else {
+        hamburgerRef.current?.focus();
+      }
+      closeReasonRef.current = 'mobile';
     }
     wasSidebarOpenRef.current = sidebarOpen;
   }, [sidebarOpen]);
