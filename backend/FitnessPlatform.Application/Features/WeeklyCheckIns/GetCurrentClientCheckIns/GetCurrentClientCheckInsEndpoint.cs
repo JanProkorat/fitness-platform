@@ -8,8 +8,11 @@ using Microsoft.EntityFrameworkCore;
 namespace FitnessPlatform.Application.Features.WeeklyCheckIns.GetCurrentClientCheckIns;
 
 /// <summary>
-/// Returns the active (not yet responded, not dismissed) weekly check-ins for the
-/// authenticated client in the current ISO week. Maximum 2 items (one per profession).
+/// Returns the client's active weekly check-ins — active meaning not yet responded, not
+/// dismissed, not expired, and still within the response deadline (<c>DueAt</c>). This is
+/// independent of calendar-week boundaries: check-ins are prospective (they cover the
+/// upcoming week), so the response window spans the tail of the current week rather than
+/// the week named by <c>WeekStartDate</c>. Maximum 2 items (one per profession).
 /// </summary>
 public class GetCurrentClientCheckInsEndpoint(IApplicationDbContext db)
     : EndpointWithoutRequest<GetCurrentClientCheckInsResponse>
@@ -21,10 +24,10 @@ public class GetCurrentClientCheckInsEndpoint(IApplicationDbContext db)
         Roles(AppRoles.Client);
         Summary(s =>
         {
-            s.Summary = "Get current week's active check-ins (client)";
+            s.Summary = "Get active check-ins (client)";
             s.Description =
-                "Returns up to 2 active weekly check-ins (not responded, not dismissed) " +
-                "for the authenticated client in the current ISO week.";
+                "Returns up to 2 active weekly check-ins (not responded, not dismissed, not " +
+                "expired, and still within the response deadline) for the authenticated client.";
         });
     }
 
@@ -39,20 +42,16 @@ public class GetCurrentClientCheckInsEndpoint(IApplicationDbContext db)
         }
 
         var clientUserId = Guid.Parse(userId);
-
-        // Compute ISO-week Monday of the current week.
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var daysFromMonday = ((int)today.DayOfWeek - (int)DayOfWeek.Monday + 7) % 7;
-        var weekMonday = today.AddDays(-daysFromMonday);
+        var now = DateTime.UtcNow;
 
         var checkIns = await db.WeeklyCheckIns
             .AsNoTracking()
             .Where(c =>
                 c.ClientUserId == clientUserId &&
-                c.WeekStartDate == weekMonday &&
                 c.RespondedAt == null &&
                 c.DismissedByClientAt == null &&
-                c.Status != WeeklyCheckInStatus.Expired)
+                c.Status != WeeklyCheckInStatus.Expired &&
+                (c.DueAt == null || c.DueAt > now))
             .Include(c => c.ProfessionalUser)
             .OrderBy(c => c.Profession)
             .Select(c => new CheckInSummary

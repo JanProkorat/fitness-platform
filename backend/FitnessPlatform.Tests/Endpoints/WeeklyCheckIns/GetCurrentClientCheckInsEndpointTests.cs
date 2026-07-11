@@ -54,7 +54,9 @@ public class GetCurrentClientCheckInsEndpointTests(FitnessApiFactory factory)
         Profession profession,
         DateOnly? weekStartDate = null,
         DateTime? respondedAt = null,
-        DateTime? dismissedAt = null)
+        DateTime? dismissedAt = null,
+        DateTime? dueAt = null,
+        WeeklyCheckInStatus status = WeeklyCheckInStatus.Pending)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -70,6 +72,8 @@ public class GetCurrentClientCheckInsEndpointTests(FitnessApiFactory factory)
             SentAt = DateTime.UtcNow.AddHours(-1),
             RespondedAt = respondedAt,
             DismissedByClientAt = dismissedAt,
+            DueAt = dueAt,
+            Status = status,
             DateCreated = DateTime.UtcNow,
             DateModified = DateTime.UtcNow
         });
@@ -175,6 +179,98 @@ public class GetCurrentClientCheckInsEndpointTests(FitnessApiFactory factory)
         var body = await response.Content.ReadFromJsonAsync<CheckInsWrapper>(
             cancellationToken: TestContext.Current.CancellationToken);
         body!.CheckIns.Should().BeEmpty();
+    }
+
+    // ── Active-window regression coverage (#744) ─────────────────────────────
+
+    [Fact]
+    public async Task GetCurrent_NextWeekCheckIn_StillWithinDeadline_ReturnsIt()
+    {
+        // Regression guard for #744: the scheduler stamps WeekStartDate as NEXT week's
+        // Monday (the week being planned) while the response window is open THIS week.
+        // The endpoint must return the check-in based on active state + DueAt, not on
+        // WeekStartDate equaling the current ISO week's Monday.
+        var (http, clientUserId) = await SetupClientAsync();
+        var trainerId = await SetupTrainerAsync();
+
+        var nextMonday = CurrentWeekMonday().AddDays(7);
+        await InsertCheckInAsync(
+            clientUserId,
+            trainerId,
+            Profession.Training,
+            weekStartDate: nextMonday,
+            dueAt: DateTime.UtcNow.AddHours(48),
+            status: WeeklyCheckInStatus.Pending);
+
+        var response = await http.GetAsync(
+            "/client/weekly-check-ins/current", TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<CheckInsWrapper>(
+            cancellationToken: TestContext.Current.CancellationToken);
+        body!.CheckIns.Should().HaveCount(1);
+        body.CheckIns[0].WeekStartDate.Should().Be(nextMonday);
+    }
+
+    [Fact]
+    public async Task GetCurrent_ExpiredStatus_DoesNotReturn()
+    {
+        var (http, clientUserId) = await SetupClientAsync();
+        var trainerId = await SetupTrainerAsync();
+
+        await InsertCheckInAsync(
+            clientUserId,
+            trainerId,
+            Profession.Training,
+            status: WeeklyCheckInStatus.Expired);
+
+        var response = await http.GetAsync(
+            "/client/weekly-check-ins/current", TestContext.Current.CancellationToken);
+
+        var body = await response.Content.ReadFromJsonAsync<CheckInsWrapper>(
+            cancellationToken: TestContext.Current.CancellationToken);
+        body!.CheckIns.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetCurrent_PastDueAt_DoesNotReturn()
+    {
+        var (http, clientUserId) = await SetupClientAsync();
+        var trainerId = await SetupTrainerAsync();
+
+        await InsertCheckInAsync(
+            clientUserId,
+            trainerId,
+            Profession.Training,
+            dueAt: DateTime.UtcNow.AddHours(-1));
+
+        var response = await http.GetAsync(
+            "/client/weekly-check-ins/current", TestContext.Current.CancellationToken);
+
+        var body = await response.Content.ReadFromJsonAsync<CheckInsWrapper>(
+            cancellationToken: TestContext.Current.CancellationToken);
+        body!.CheckIns.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetCurrent_NullDueAt_LegacyRow_ReturnsIt()
+    {
+        var (http, clientUserId) = await SetupClientAsync();
+        var trainerId = await SetupTrainerAsync();
+
+        await InsertCheckInAsync(
+            clientUserId,
+            trainerId,
+            Profession.Training,
+            dueAt: null);
+
+        var response = await http.GetAsync(
+            "/client/weekly-check-ins/current", TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<CheckInsWrapper>(
+            cancellationToken: TestContext.Current.CancellationToken);
+        body!.CheckIns.Should().HaveCount(1);
     }
 
     // ── Local DTOs ────────────────────────────────────────────────────────────
