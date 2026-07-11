@@ -126,6 +126,18 @@ public class MarkWholeDayCompleteEndpoint(
             session.WithBackfilledSections();
             var allExerciseIds = session.Exercises.Select(e => e.ExerciseExternalId).ToList();
             var allSectionIds = session.Sections.Select(s => s.SectionId).ToList();
+            // Per-section attribution map: each section explicitly carries the
+            // exercise ids that belong to IT. Required because the read-time
+            // backfill in `TrainingCompletionBackfill` falls back to "first
+            // section that contains this id" — when the same exercise id is
+            // referenced from multiple sections (e.g. two AMRAPs sharing
+            // "Bench"), the duplicate would get attributed to only the first
+            // section and the others would read as not-done after refresh.
+            // Mirrors MarkSessionCompleteEndpoint so the whole-day mark and the
+            // per-session mark write identical section-aware state.
+            var completedBySection = session.Sections.ToDictionary(
+                s => s.SectionId.ToString(),
+                s => s.Exercises.Select(e => e.ExerciseExternalId).ToList());
 
             var completionFilter = Builders<TrainingCompletion>.Filter.Eq(c => c.ClientId, clientId)
                                    & Builders<TrainingCompletion>.Filter.Eq(c => c.Date, targetDate)
@@ -160,6 +172,7 @@ public class MarkWholeDayCompleteEndpoint(
 
                 var update = Builders<TrainingCompletion>.Update
                     .Set(c => c.CompletedExerciseIds, allExerciseIds)
+                    .Set(c => c.CompletedExerciseIdsBySection, completedBySection)
                     .Set(c => c.CompletedSectionIds, allSectionIds)
                     .Set(c => c.DateUpdated, DateTime.UtcNow)
                     .Set(c => c.Version, newVersion);
@@ -178,6 +191,7 @@ public class MarkWholeDayCompleteEndpoint(
                     Date = targetDate,
                     SessionId = session.SessionId,
                     CompletedExerciseIds = allExerciseIds,
+                    CompletedExerciseIdsBySection = completedBySection,
                     CompletedSectionIds = allSectionIds,
                     DateCreated = DateTime.UtcNow,
                     Version = 1
@@ -214,6 +228,7 @@ public class MarkWholeDayCompleteEndpoint(
                             & Builders<TrainingCompletion>.Filter.Eq(c => c.Version, existing.Version);
                         var retryUpdate = Builders<TrainingCompletion>.Update
                             .Set(c => c.CompletedExerciseIds, allExerciseIds)
+                            .Set(c => c.CompletedExerciseIdsBySection, completedBySection)
                             .Set(c => c.CompletedSectionIds, allSectionIds)
                             .Set(c => c.DateUpdated, DateTime.UtcNow)
                             .Set(c => c.Version, retryVersion);
