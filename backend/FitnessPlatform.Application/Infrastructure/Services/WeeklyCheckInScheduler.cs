@@ -3,6 +3,7 @@ using System.Text.Json;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Features.WeeklyCheckIns;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -389,6 +390,31 @@ public class WeeklyCheckInScheduler(
                 {
                     logger.LogWarning(ex,
                         "WeeklyCheckInScheduler: failed to broadcast newnotification to client {ClientUserId}.",
+                        clientUserId);
+                }
+
+                // Broadcast the specific weeklycheckinrequested event so the mobile app can
+                // show a foreground banner + invalidate the current-check-ins query live —
+                // mirrors the photodiaryrequested pattern. Additive: the generic
+                // newnotification broadcast above is left intact. Best-effort — never
+                // aborts the scheduler run.
+                try
+                {
+                    await notifier.NotifyAsync(
+                        clientUserId,
+                        "weeklycheckinrequested",
+                        new WeeklyCheckInRequestedEvent
+                        {
+                            WeeklyCheckInId = checkIn.Id,
+                            Profession = setting.Profession.ToString(),
+                            ProfessionalName = professionalName
+                        },
+                        ct);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex,
+                        "WeeklyCheckInScheduler: failed to broadcast weeklycheckinrequested to client {ClientUserId}.",
                         clientUserId);
                 }
 

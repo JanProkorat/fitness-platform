@@ -1,6 +1,7 @@
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Features.WeeklyCheckIns;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Infrastructure;
@@ -237,6 +238,21 @@ public class WeeklyCheckInSchedulerTests(FitnessApiFactory factory)
 
         newNotificationCalls.Should().HaveCount(1,
             "scheduler must broadcast exactly one newnotification to the client");
+
+        // The specific weeklycheckinrequested event must ALSO fire, additively —
+        // mirrors the photodiaryrequested pattern so the mobile app can show a
+        // foreground banner + invalidate the current-check-ins query live (#738).
+        var weeklyCheckInRequestedCalls = notifier.Calls
+            .Where(c => c.UserId == clientUserId && c.EventType == "weeklycheckinrequested")
+            .ToList();
+
+        weeklyCheckInRequestedCalls.Should().HaveCount(1,
+            "scheduler must additionally broadcast exactly one weeklycheckinrequested to the client");
+
+        var payload = weeklyCheckInRequestedCalls[0].Payload.Should()
+            .BeOfType<WeeklyCheckInRequestedEvent>().Subject;
+        payload.Profession.Should().Be(Profession.Training.ToString());
+        payload.ProfessionalName.Should().NotBeNullOrWhiteSpace();
     }
 
     // ── Sub-hour precision tests ──────────────────────────────────────────────
