@@ -2084,6 +2084,7 @@
     "createError": "Failed to create plan.",
     "back": "← Back",
     "defaultPlanName": "Training plan",
-    "roleDenied": "You do not have access to this client's training plans."
+    "roleDenied": "You do not have access to this client's training plans.",
+    "accessDenied": "You do not have permission to view this client's training plans."
   }
 }

@@ -2115,6 +2115,7 @@
     "createError": "Nepodařilo se vytvořit plán.",
     "back": "← Zpět",
     "defaultPlanName": "Tréninkový plán",
-    "roleDenied": "K tréninkovým plánům tohoto klienta nemáte přístup."
+    "roleDenied": "K tréninkovým plánům tohoto klienta nemáte přístup.",
+    "accessDenied": "Nemáte oprávnění zobrazit tréninkové plány tohoto klienta."
   }
 }

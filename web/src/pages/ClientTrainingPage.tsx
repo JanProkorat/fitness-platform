@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getTrainingPlans, createTrainingPlan } from '@/api/training-plans';
+import { getClientDashboard } from '@/api/nutrition-goals';
 import { useAuthStore } from '@/stores/auth';
 
 /**
@@ -14,6 +15,12 @@ import { useAuthStore } from '@/stores/auth';
  * Trainer/Admin. This component-level check is defense-in-depth so the
  * plan-creation effect below can never fire for a Nutritionist even if a
  * future route change re-widens the guard (#687 route-guard note).
+ *
+ * The per-client `canViewTrainingPlans` link permission (independent of
+ * role) is also gated here — see #735. The backend enforces it
+ * (`GetTrainingPlansEndpoint` → `HasPlanAccessAsync`) and returns a raw 403
+ * if the effect fires anyway, so the resolve effect below must not run
+ * until the client dashboard confirms the flag is true.
  */
 export default function ClientTrainingPage() {
   const { id } = useParams<{ id: string }>();
@@ -30,8 +37,17 @@ export default function ClientTrainingPage() {
   useEffect(() => { tRef.current = t; });
   const [error, setError] = useState<string | null>(null);
 
+  const { data: client, isLoading: clientLoading } = useQuery({
+    queryKey: ['client-dashboard', clientId],
+    queryFn: () => getClientDashboard(clientId),
+    enabled: Boolean(clientId),
+  });
+
+  const clientLoaded = client !== undefined;
+  const canViewTrainingPlans = client?.canViewTrainingPlans === true;
+
   useEffect(() => {
-    if (!clientId || !canManageTraining) return;
+    if (!clientId || !canManageTraining || !clientLoaded || !canViewTrainingPlans) return;
 
     let cancelled = false;
 
@@ -75,12 +91,36 @@ export default function ClientTrainingPage() {
 
     resolve();
     return () => { cancelled = true; };
-  }, [clientId, navigate, queryClient, canManageTraining]);
+  }, [clientId, navigate, queryClient, canManageTraining, clientLoaded, canViewTrainingPlans]);
 
   if (!canManageTraining) {
     return (
       <div style={{ padding: '80px', textAlign: 'center' }}>
         <p style={{ color: 'var(--red)', fontSize: 14 }}>{t('clientTraining.roleDenied')}</p>
+        <button
+          type="button"
+          className="btn"
+          style={{ marginTop: 12 }}
+          onClick={() => navigate('/dashboard', { replace: true })}
+        >
+          {t('clientTraining.back')}
+        </button>
+      </div>
+    );
+  }
+
+  if (clientLoading) {
+    return (
+      <div style={{ padding: '80px', textAlign: 'center', color: 'var(--text3)', fontSize: 14 }}>
+        {t('clientTraining.loading')}
+      </div>
+    );
+  }
+
+  if (clientLoaded && !canViewTrainingPlans) {
+    return (
+      <div style={{ padding: '80px', textAlign: 'center' }}>
+        <p style={{ color: 'var(--red)', fontSize: 14 }}>{t('clientTraining.accessDenied')}</p>
         <button
           type="button"
           className="btn"
