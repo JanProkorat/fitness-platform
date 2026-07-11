@@ -184,6 +184,20 @@ public class WeeklyCheckInSchedulerTests(FitnessApiFactory factory)
     /// stays as a race-condition backstop only): no second row is created, no exception is
     /// thrown, and no duplicate notification/broadcast fires for the already-satisfied candidate.
     /// </summary>
+    /// <remarks>
+    /// The row-count / notification / push / broadcast assertions alone do NOT distinguish the
+    /// pre-flight skip from the legacy "attempt INSERT then catch 23505" path — both paths
+    /// produce the identical observable surface (1 row, no new notification/push/broadcast) for
+    /// this candidate. The two paths log at different levels though: the pre-flight skip logs
+    /// Debug only (see <c>WeeklyCheckInScheduler.ProcessTickAsync</c>'s "check-in already exists"
+    /// branch), while the 23505-catch path logs a Warning ("duplicate check-in skipped"). This
+    /// test also captures the app's actual Serilog console output (via
+    /// <see cref="ConsoleOutputCapture"/> — see its doc comment for why a DI-registered
+    /// <c>ILoggerProvider</c> does NOT work in this codebase) and asserts that Warning was never
+    /// emitted — if the pre-flight block were reverted, the candidate would fall through to the
+    /// doomed INSERT, hit the unique violation, and that Warning WOULD fire, failing this
+    /// assertion.
+    /// </remarks>
     [Fact]
     public async Task Tick_CheckInAlreadyExistsForWeek_SkipsWithoutInsertAttemptOrDuplicateBroadcast()
     {
@@ -231,7 +245,10 @@ public class WeeklyCheckInSchedulerTests(FitnessApiFactory factory)
         scheduler.SetLastTickAt(lastWed.AddMinutes(-10));
         scheduler.OverrideNow = lastWed.AddMinutes(5);
 
-        // Act — must not throw.
+        // Act — must not throw. Capture Console output for the differentiating log assertion
+        // below (see the class remarks for why this is the only viable capture mechanism here).
+        using var consoleCapture = new ConsoleOutputCapture();
+
         var act = async () => await scheduler.TickAsync(
             scheduler.OverrideNow.Value, TestContext.Current.CancellationToken);
         await act.Should().NotThrowAsync(
@@ -264,6 +281,25 @@ public class WeeklyCheckInSchedulerTests(FitnessApiFactory factory)
 
         notifier.Calls.Should().NotContain(c => c.UserId == clientUserId,
             "no SignalR broadcast should fire for an already-satisfied candidate");
+
+        // ── The differentiating assertion ──────────────────────────────────────
+        // Everything above also passes if the pre-flight block is REVERTED and the
+        // candidate instead falls through to "attempt INSERT → catch 23505 → continue":
+        // that path produces the identical row count and the identical absence of a new
+        // notification/push/broadcast. What it does NOT produce identically is the log
+        // output — the catch path logs a Warning containing "duplicate check-in skipped",
+        // while the pre-flight skip logs Debug only (which the Console sink, configured at
+        // MinimumLevel=Information, never even emits). Asserting the Warning text is absent
+        // from the captured console output is what actually proves the pre-flight check ran
+        // instead of the legacy catch path — this assertion FAILS if the pre-flight block is
+        // reverted, because the catch path's LogWarning call would then fire for this exact
+        // candidate and print to the console.
+        var consoleOutput = consoleCapture.Output;
+        consoleOutput.Should().NotContain(
+            "WeeklyCheckInScheduler: duplicate check-in skipped",
+            "the pre-flight existence check must skip the candidate via Debug-level logging only " +
+            "— this Warning message is only ever logged by the legacy insert-then-catch-23505 " +
+            "path, which must not run for an already-satisfied candidate");
     }
 
     [Fact]
