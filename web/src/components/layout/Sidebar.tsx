@@ -17,6 +17,7 @@ import { ClientRequestDialog, PendingInviteDialog } from '@/components/layout/Si
 import { useToastStore } from '@/stores/toast';
 import { ImageLightbox } from '@/components/ui';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useMediaQuery, MD_BREAKPOINT_QUERY } from '@/hooks/useMediaQuery';
 
 /** Stable id for the `<aside>` element — referenced by the hamburger
  * trigger's `aria-controls` in AppShell.tsx (#585). */
@@ -46,6 +47,15 @@ export function Sidebar({ onToggleDark, isOpen = false, onClose }: SidebarProps)
       asideRef.current?.focus();
     }
   }, [isOpen]);
+
+  // Below `md` the <aside> is an off-canvas drawer hidden only via a CSS
+  // transform when closed (index.css) — its contents stay in the DOM,
+  // tab-focusable and screen-reader-visible. `inert` removes an element
+  // from both the tab order AND the accessibility tree in one attribute,
+  // so it must apply only while closed AND below the `md` breakpoint (the
+  // permanent desktop sidebar must never be inert) (#729).
+  const isDesktop = useMediaQuery(MD_BREAKPOINT_QUERY);
+  const isClosedMobileDrawer = !isDesktop && !isOpen;
 
   const isNutritionist = user?.roles.some((r) => ['Nutritionist', 'Admin'].includes(r));
   const isTrainer = user?.roles.some((r) => ['Trainer', 'Admin'].includes(r));
@@ -180,6 +190,7 @@ export function Sidebar({ onToggleDark, isOpen = false, onClose }: SidebarProps)
       ref={asideRef}
       id={SIDEBAR_ELEMENT_ID}
       tabIndex={-1}
+      inert={isClosedMobileDrawer}
       className={cn('sb', isOpen && 'sb--open')}
     >
       {/* Workspace header */}
