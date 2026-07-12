@@ -6,20 +6,6 @@ import { CheckInFlagChips } from './CheckInFlagChips';
 import { useTrainerWeeklyCheckIns } from '@/hooks/useWeeklyCheckIns';
 import type { TrainerCheckInDto } from '@/api/weekly-checkins';
 
-/** Returns the ISO-week Monday (YYYY-MM-DD) for today's date. */
-function currentISOWeekMonday(): string {
-  const today = new Date();
-  const dow = today.getDay(); // 0=Sunday, 1=Monday, …
-  // Shift so Monday=0, Sunday=6
-  const daysSinceMonday = (dow + 6) % 7;
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - daysSinceMonday);
-  const y = monday.getFullYear();
-  const m = String(monday.getMonth() + 1).padStart(2, '0');
-  const d = String(monday.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
 /** Derives the initials (up to 2 chars) from a full name string. */
 function nameInitials(name: string): string {
   const parts = name.trim().split(/\s+/);
@@ -131,13 +117,15 @@ function CheckInRow({ checkIn, language }: CheckInRowProps) {
 /* ─────────────────────── Card ─────────────────────── */
 
 /**
- * "Weekly check-ins · this week" card for the trainer dashboard.
- * Hidden when there are no check-ins for the current ISO week.
+ * "Weekly check-ins" card for the trainer dashboard.
+ * Shows the trainer's active check-ins (pending, responded, and expired —
+ * i.e. not yet dismissed by the client or reviewed by the trainer),
+ * regardless of which calendar week they were scheduled for (#751).
+ * Hidden when there are no active check-ins at all.
  */
 export function WeeklyCheckInCard() {
   const { t, i18n } = useTranslation();
-  const weekStartDate = currentISOWeekMonday();
-  const { data: checkIns, isLoading } = useTrainerWeeklyCheckIns(weekStartDate);
+  const { data: checkIns, isLoading } = useTrainerWeeklyCheckIns();
 
   // Show responded + expired check-ins in the card body; pending/dismissed go to footer count.
   // Expired check-ins are a terminal state the coach should see (no response was ever received).
@@ -149,7 +137,7 @@ export function WeeklyCheckInCard() {
   ).length;
 
   if (isLoading) return null;
-  // Hide card entirely when there are no check-ins this week at all
+  // Hide card entirely when there are no active check-ins at all (#751)
   if (checkIns.length === 0) return null;
 
   return (
@@ -159,11 +147,10 @@ export function WeeklyCheckInCard() {
       aria-label={t('weeklyCheckIn.today.cardTitle')}
     >
       {/* Card header */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-bg2">
+      <div className="flex items-center px-4 py-2.5 border-b border-border bg-bg2">
         <span className="text-[12px] font-semibold text-text uppercase tracking-wide">
           {t('weeklyCheckIn.today.cardTitle')}
         </span>
-        <span className="text-[11px] text-text3">{weekStartDate}</span>
       </div>
 
       {/* Responded rows */}

@@ -14,9 +14,14 @@ import {
 export const weeklyCheckInKeys = {
   /** All trainer weekly-check-in queries */
   all: ['weekly-check-ins'] as const,
-  /** List for Today card: keyed by ISO week Monday date */
-  trainerList: (weekStartDate: string) =>
-    ['weekly-check-ins', 'trainer-list', weekStartDate] as const,
+  /**
+   * List for the dashboard "Weekly check-ins" card.
+   * Omit `weekStartDate` for the active (week-agnostic) set — pending,
+   * responded, and expired check-ins that aren't dismissed/reviewed yet.
+   * Pass an ISO Monday date to keep the exact-week filter (history view).
+   */
+  trainerList: (weekStartDate?: string) =>
+    ['weekly-check-ins', 'trainer-list', weekStartDate ?? 'active'] as const,
   /** Current check-in for a specific client (+ optional profession filter) */
   clientCurrent: (clientUserId: string, profession?: Profession) =>
     ['weekly-check-ins', 'client-current', clientUserId, profession ?? 'all'] as const,
@@ -25,12 +30,15 @@ export const weeklyCheckInKeys = {
 // ── Hooks ────────────────────────────────────────────────────────────────────
 
 /**
- * Returns all responded weekly check-ins for the trainer's clients for a given
- * ISO week. Used by the "Weekly check-ins · this week" Today card.
+ * Returns the trainer's clients' weekly check-ins for the dashboard card.
  *
- * @param weekStartDate - ISO date string for the Monday of the week (YYYY-MM-DD).
+ * @param weekStartDate - Optional. Omit to get the active set (pending,
+ *   responded, and expired check-ins that aren't dismissed by the client or
+ *   already reviewed by the trainer), regardless of calendar week. Pass an
+ *   ISO Monday date (YYYY-MM-DD) to preserve the exact-week filter (kept for
+ *   a future history view).
  */
-export function useTrainerWeeklyCheckIns(weekStartDate: string): {
+export function useTrainerWeeklyCheckIns(weekStartDate?: string): {
   data: TrainerCheckInDto[];
   isLoading: boolean;
 } {
@@ -38,7 +46,6 @@ export function useTrainerWeeklyCheckIns(weekStartDate: string): {
     queryKey: weeklyCheckInKeys.trainerList(weekStartDate),
     queryFn: () => getTrainerCheckIns(weekStartDate),
     staleTime: 60_000,
-    enabled: Boolean(weekStartDate),
   });
 
   return {

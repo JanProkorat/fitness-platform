@@ -363,6 +363,13 @@ export function AppShell() {
       }
       queryClient.invalidateQueries({ queryKey: ['diary-requests'] });
     },
+    // Broadcast to the coach whenever a new Notification row is persisted for
+    // them (e.g. WeeklyCheckInResponded). The notification bell's own query
+    // (NotificationBell.tsx, ['web-notifications']) otherwise only refreshes
+    // on its 30s poll or a manual page reload (#751).
+    newnotification: () => {
+      queryClient.invalidateQueries({ queryKey: ['web-notifications'] });
+    },
     weeklycheckinupdated: (payload: unknown) => {
       if (import.meta.env.DEV) {
         console.debug('weeklycheckinupdated', payload);

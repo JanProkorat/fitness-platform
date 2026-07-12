@@ -10,13 +10,15 @@ using Microsoft.Extensions.DependencyInjection;
 namespace FitnessPlatform.Tests.Endpoints.WeeklyCheckIns;
 
 /// <summary>
-/// Integration tests for GET /trainer/weekly-check-ins?weekStartDate=...
+/// Integration tests for GET /trainer/clients/{clientUserId}/weekly-check-ins/current.
+/// This is the trainer-facing "plan editor banner" endpoint (distinct from
+/// GET /client/weekly-check-ins/current, covered by GetCurrentClientCheckInsEndpointTests).
 /// Uses Testcontainers PostgreSQL (Docker required). Excluded from CI.
 /// </summary>
 [Collection(TestCollection.Name)]
-public class GetTrainerCheckInsEndpointTests(FitnessApiFactory factory)
+public class GetClientCurrentCheckInEndpointTests(FitnessApiFactory factory)
 {
-    private static string UniqueEmail(string tag = "get-trainer-ci") =>
+    private static string UniqueEmail(string tag = "get-client-current") =>
         $"{Guid.NewGuid():N}@{tag}.com";
 
     private async Task<(HttpClient Http, Guid TrainerId)> SetupTrainerAsync()
@@ -51,9 +53,10 @@ public class GetTrainerCheckInsEndpointTests(FitnessApiFactory factory)
         Guid clientUserId,
         Guid professionalUserId,
         DateOnly weekStartDate,
-        bool dismissed = false,
         DateTime? respondedAt = null,
-        DateTime? reviewedByTrainerAt = null)
+        DateTime? dismissedAt = null,
+        DateTime? reviewedByTrainerAt = null,
+        WeeklyCheckInStatus status = WeeklyCheckInStatus.Pending)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -66,8 +69,9 @@ public class GetTrainerCheckInsEndpointTests(FitnessApiFactory factory)
             WeekStartDate = weekStartDate,
             SentAt = DateTime.UtcNow.AddHours(-1),
             RespondedAt = respondedAt,
-            DismissedByClientAt = dismissed ? DateTime.UtcNow : null,
+            DismissedByClientAt = dismissedAt,
             ReviewedByTrainerAt = reviewedByTrainerAt,
+            Status = status,
             DateCreated = DateTime.UtcNow,
             DateModified = DateTime.UtcNow
         });
@@ -82,74 +86,31 @@ public class GetTrainerCheckInsEndpointTests(FitnessApiFactory factory)
     // ── Auth ──────────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task GetList_Unauthenticated_Returns401()
+    public async Task GetCurrent_Unauthenticated_Returns401()
     {
         var http = factory.CreateClient();
         var response = await http.GetAsync(
-            "/trainer/weekly-check-ins?weekStartDate=2026-04-21",
+            $"/trainer/clients/{Guid.NewGuid()}/weekly-check-ins/current",
             TestContext.Current.CancellationToken);
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
-    // ── Filtering ─────────────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task GetList_ReturnsOnlyOwnRows()
-    {
-        var (http, trainerId) = await SetupTrainerAsync();
-        var (_, trainerId2) = await SetupTrainerAsync();
-        var clientId = await SetupClientUserIdAsync();
-
-        var weekDate = NextMonday();
-
-        await InsertCheckInAsync(clientId, trainerId, weekDate);
-        await InsertCheckInAsync(clientId, trainerId2, weekDate.AddDays(7)); // different week to avoid constraint
-
-        var response = await http.GetAsync(
-            $"/trainer/weekly-check-ins?weekStartDate={weekDate:yyyy-MM-dd}",
-            TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var body = await response.Content.ReadFromJsonAsync<CheckInsWrapper>(
-            cancellationToken: TestContext.Current.CancellationToken);
-
-        body!.CheckIns.Should().HaveCount(1);
-        body.CheckIns[0].Profession.Should().Be("Training");
-    }
-
-    [Fact]
-    public async Task GetList_DismissedRows_NotReturned()
-    {
-        var (http, trainerId) = await SetupTrainerAsync();
-        var clientId = await SetupClientUserIdAsync();
-
-        var weekDate = NextMonday().AddDays(14); // use a unique future week
-        await InsertCheckInAsync(clientId, trainerId, weekDate, dismissed: true);
-
-        var response = await http.GetAsync(
-            $"/trainer/weekly-check-ins?weekStartDate={weekDate:yyyy-MM-dd}",
-            TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var body = await response.Content.ReadFromJsonAsync<CheckInsWrapper>(
-            cancellationToken: TestContext.Current.CancellationToken);
-
-        body!.CheckIns.Should().BeEmpty();
     }
 
     // ── Active-set (week-agnostic, #751) ─────────────────────────────────────
 
     [Fact]
-    public async Task GetList_WeekOmitted_ReturnsRespondedNextWeekCheckIn()
+    public async Task GetCurrent_RespondedNextWeekCheckIn_IsReturned()
     {
         var (http, trainerId) = await SetupTrainerAsync();
         var clientId = await SetupClientUserIdAsync();
 
         var nextMonday = NextMonday();
-        await InsertCheckInAsync(clientId, trainerId, nextMonday, respondedAt: DateTime.UtcNow);
+        await InsertCheckInAsync(
+            clientId, trainerId, nextMonday,
+            respondedAt: DateTime.UtcNow,
+            status: WeeklyCheckInStatus.Responded);
 
         var response = await http.GetAsync(
-            "/trainer/weekly-check-ins",
+            $"/trainer/clients/{clientId}/weekly-check-ins/current",
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -160,44 +121,87 @@ public class GetTrainerCheckInsEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task GetList_WeekOmitted_ExcludesReviewedAndDismissed()
+    public async Task GetCurrent_Reviewed_ExcludedFromActiveSet()
     {
         var (http, trainerId) = await SetupTrainerAsync();
         var clientId = await SetupClientUserIdAsync();
 
-        var weekA = NextMonday().AddDays(21);
-        var weekB = NextMonday().AddDays(28);
+        var weekDate = NextMonday().AddDays(7);
         await InsertCheckInAsync(
-            clientId, trainerId, weekA,
+            clientId, trainerId, weekDate,
             respondedAt: DateTime.UtcNow,
-            reviewedByTrainerAt: DateTime.UtcNow);
-        await InsertCheckInAsync(clientId, trainerId, weekB, dismissed: true);
+            reviewedByTrainerAt: DateTime.UtcNow,
+            status: WeeklyCheckInStatus.Responded);
 
         var response = await http.GetAsync(
-            "/trainer/weekly-check-ins",
+            $"/trainer/clients/{clientId}/weekly-check-ins/current",
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var body = await response.Content.ReadFromJsonAsync<CheckInsWrapper>(
             cancellationToken: TestContext.Current.CancellationToken);
 
-        body!.CheckIns.Should().NotContain(c => c.WeekStartDate == weekA || c.WeekStartDate == weekB);
+        body!.CheckIns.Should().BeEmpty();
     }
 
     [Fact]
-    public async Task GetList_WeekOmitted_EnforcesOwnership()
+    public async Task GetCurrent_Dismissed_ExcludedFromActiveSet()
+    {
+        var (http, trainerId) = await SetupTrainerAsync();
+        var clientId = await SetupClientUserIdAsync();
+
+        var weekDate = NextMonday().AddDays(14);
+        await InsertCheckInAsync(
+            clientId, trainerId, weekDate,
+            dismissedAt: DateTime.UtcNow);
+
+        var response = await http.GetAsync(
+            $"/trainer/clients/{clientId}/weekly-check-ins/current",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<CheckInsWrapper>(
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        body!.CheckIns.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetCurrent_Expired_StillReturnedIfNotReviewedOrDismissed()
+    {
+        var (http, trainerId) = await SetupTrainerAsync();
+        var clientId = await SetupClientUserIdAsync();
+
+        var weekDate = NextMonday().AddDays(21);
+        await InsertCheckInAsync(
+            clientId, trainerId, weekDate,
+            status: WeeklyCheckInStatus.Expired);
+
+        var response = await http.GetAsync(
+            $"/trainer/clients/{clientId}/weekly-check-ins/current",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<CheckInsWrapper>(
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        body!.CheckIns.Should().ContainSingle(c => c.WeekStartDate == weekDate);
+    }
+
+    [Fact]
+    public async Task GetCurrent_EnforcesOwnership_OtherTrainerRowNotReturned()
     {
         var (http, trainerId) = await SetupTrainerAsync();
         var (_, otherTrainerId) = await SetupTrainerAsync();
         var clientId = await SetupClientUserIdAsync();
 
-        var weekA = NextMonday().AddDays(35);
-        var weekB = NextMonday().AddDays(42);
+        var weekA = NextMonday().AddDays(28);
+        var weekB = NextMonday().AddDays(35);
         await InsertCheckInAsync(clientId, trainerId, weekA, respondedAt: DateTime.UtcNow);
         await InsertCheckInAsync(clientId, otherTrainerId, weekB, respondedAt: DateTime.UtcNow);
 
         var response = await http.GetAsync(
-            "/trainer/weekly-check-ins",
+            $"/trainer/clients/{clientId}/weekly-check-ins/current",
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -208,36 +212,44 @@ public class GetTrainerCheckInsEndpointTests(FitnessApiFactory factory)
         body.CheckIns.Should().NotContain(c => c.WeekStartDate == weekB);
     }
 
+    // ── Ordering (#751 follow-up: deterministic tiebreak) ────────────────────
+
     [Fact]
-    public async Task GetList_WeekProvided_PreservesExactWeekBehavior()
+    public async Task GetCurrent_MultipleActiveRowsSameProfession_OrderedNewestWeekFirst()
     {
+        // Regression guard: WeeklyCheckInScheduler.SweepExpiredAsync marks past-due
+        // Pending rows Expired without dismissing/reviewing them, so an older Expired
+        // row can coexist with a newer Responded row for the same client+profession.
+        // The plan-editor banner (web CheckInBanner.tsx) reads checkIns[0], so ordering
+        // MUST put the most recent WeekStartDate first, not rely on Profession alone.
         var (http, trainerId) = await SetupTrainerAsync();
         var clientId = await SetupClientUserIdAsync();
 
-        var weekDate = NextMonday().AddDays(49);
-        var otherWeek = weekDate.AddDays(7);
-        // A reviewed check-in for the same requested week would still match the
-        // exact-week mode today (it only excludes dismissed) — assert that
-        // legacy behavior is unchanged by the optional-param refactor.
+        var newerMonday = NextMonday();
+        var olderMonday = newerMonday.AddDays(-7);
+
         await InsertCheckInAsync(
-            clientId, trainerId, weekDate,
+            clientId, trainerId, olderMonday,
+            status: WeeklyCheckInStatus.Expired);
+        await InsertCheckInAsync(
+            clientId, trainerId, newerMonday,
             respondedAt: DateTime.UtcNow,
-            reviewedByTrainerAt: DateTime.UtcNow);
-        await InsertCheckInAsync(clientId, trainerId, otherWeek, respondedAt: DateTime.UtcNow);
+            status: WeeklyCheckInStatus.Responded);
 
         var response = await http.GetAsync(
-            $"/trainer/weekly-check-ins?weekStartDate={weekDate:yyyy-MM-dd}",
+            $"/trainer/clients/{clientId}/weekly-check-ins/current",
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var body = await response.Content.ReadFromJsonAsync<CheckInsWrapper>(
             cancellationToken: TestContext.Current.CancellationToken);
 
-        body!.CheckIns.Should().ContainSingle(c => c.WeekStartDate == weekDate);
-        body.CheckIns.Should().NotContain(c => c.WeekStartDate == otherWeek);
+        body!.CheckIns.Should().HaveCount(2);
+        body.CheckIns[0].WeekStartDate.Should().Be(newerMonday);
+        body.CheckIns[1].WeekStartDate.Should().Be(olderMonday);
     }
 
     // ── Local DTOs ────────────────────────────────────────────────────────────
     private record CheckInsWrapper(List<CheckInDto> CheckIns);
-    private record CheckInDto(Guid Id, Guid ClientUserId, string ClientName, string Profession, DateOnly WeekStartDate);
+    private record CheckInDto(Guid Id, string Profession, DateOnly WeekStartDate);
 }
