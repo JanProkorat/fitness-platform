@@ -59,7 +59,8 @@ public class GetClientCurrentCheckInEndpoint(IApplicationDbContext db)
         }
 
         var checkIns = await query
-            .OrderBy(c => c.Profession)
+            .OrderByDescending(c => c.WeekStartDate)
+            .ThenBy(c => c.Profession)
             .Select(c => new ClientCheckInDto
             {
                 Id = c.Id,

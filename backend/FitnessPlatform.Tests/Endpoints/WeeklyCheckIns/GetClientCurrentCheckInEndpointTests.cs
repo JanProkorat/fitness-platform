@@ -212,6 +212,43 @@ public class GetClientCurrentCheckInEndpointTests(FitnessApiFactory factory)
         body.CheckIns.Should().NotContain(c => c.WeekStartDate == weekB);
     }
 
+    // ── Ordering (#751 follow-up: deterministic tiebreak) ────────────────────
+
+    [Fact]
+    public async Task GetCurrent_MultipleActiveRowsSameProfession_OrderedNewestWeekFirst()
+    {
+        // Regression guard: WeeklyCheckInScheduler.SweepExpiredAsync marks past-due
+        // Pending rows Expired without dismissing/reviewing them, so an older Expired
+        // row can coexist with a newer Responded row for the same client+profession.
+        // The plan-editor banner (web CheckInBanner.tsx) reads checkIns[0], so ordering
+        // MUST put the most recent WeekStartDate first, not rely on Profession alone.
+        var (http, trainerId) = await SetupTrainerAsync();
+        var clientId = await SetupClientUserIdAsync();
+
+        var newerMonday = NextMonday();
+        var olderMonday = newerMonday.AddDays(-7);
+
+        await InsertCheckInAsync(
+            clientId, trainerId, olderMonday,
+            status: WeeklyCheckInStatus.Expired);
+        await InsertCheckInAsync(
+            clientId, trainerId, newerMonday,
+            respondedAt: DateTime.UtcNow,
+            status: WeeklyCheckInStatus.Responded);
+
+        var response = await http.GetAsync(
+            $"/trainer/clients/{clientId}/weekly-check-ins/current",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<CheckInsWrapper>(
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        body!.CheckIns.Should().HaveCount(2);
+        body.CheckIns[0].WeekStartDate.Should().Be(newerMonday);
+        body.CheckIns[1].WeekStartDate.Should().Be(olderMonday);
+    }
+
     // ── Local DTOs ────────────────────────────────────────────────────────────
     private record CheckInsWrapper(List<CheckInDto> CheckIns);
     private record CheckInDto(Guid Id, string Profession, DateOnly WeekStartDate);
