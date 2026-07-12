@@ -8,7 +8,8 @@ using Microsoft.EntityFrameworkCore;
 namespace FitnessPlatform.Application.Features.WeeklyCheckIns.GetClientCurrentCheckIn;
 
 /// <summary>
-/// Returns the latest check-in(s) for a specific client in the current ISO week.
+/// Returns the active (not dismissed, not yet reviewed) check-in(s) for a specific client,
+/// regardless of which calendar week they were scheduled for.
 /// Used by the plan-editor banner to decide which state to render.
 /// Only returns check-ins that belong to the authenticated professional.
 /// </summary>
@@ -22,10 +23,12 @@ public class GetClientCurrentCheckInEndpoint(IApplicationDbContext db)
         Roles(AppRoles.Trainer, AppRoles.Nutritionist);
         Summary(s =>
         {
-            s.Summary = "Get current week's check-in for a client (trainer)";
+            s.Summary = "Get the active check-in for a client (trainer)";
             s.Description =
-                "Returns the check-in(s) for the given client in the current ISO week, " +
-                "filtered to the authenticated professional. Optionally filter by profession.";
+                "Returns the check-in(s) for the given client that are not dismissed by the " +
+                "client and not yet reviewed by the trainer (pending, responded, or expired), " +
+                "week-agnostic, filtered to the authenticated professional. Optionally filter " +
+                "by profession.";
         });
     }
 
@@ -41,17 +44,13 @@ public class GetClientCurrentCheckInEndpoint(IApplicationDbContext db)
 
         var professionalUserId = Guid.Parse(userId);
 
-        // Compute ISO-week Monday of the current week.
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var daysFromMonday = ((int)today.DayOfWeek - (int)DayOfWeek.Monday + 7) % 7;
-        var weekMonday = today.AddDays(-daysFromMonday);
-
         var query = db.WeeklyCheckIns
             .AsNoTracking()
             .Where(c =>
                 c.ClientUserId == req.ClientUserId &&
                 c.ProfessionalUserId == professionalUserId &&
-                c.WeekStartDate == weekMonday);
+                c.DismissedByClientAt == null &&
+                c.ReviewedByTrainerAt == null);
 
         if (!string.IsNullOrWhiteSpace(req.Profession) &&
             Enum.TryParse<Profession>(req.Profession, ignoreCase: true, out var professionFilter))

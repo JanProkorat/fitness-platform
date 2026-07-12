@@ -7,8 +7,8 @@ using Microsoft.EntityFrameworkCore;
 namespace FitnessPlatform.Application.Features.WeeklyCheckIns.GetTrainerCheckIns;
 
 /// <summary>
-/// Returns all responded and pending (not dismissed) check-ins for the caller's clients
-/// for the specified ISO week.
+/// Returns check-ins for the caller's clients, either the active (week-agnostic) set or a
+/// specific ISO week's check-ins.
 /// </summary>
 public class GetTrainerCheckInsEndpoint(IApplicationDbContext db)
     : Endpoint<GetTrainerCheckInsRequest, GetTrainerCheckInsResponse>
@@ -20,10 +20,13 @@ public class GetTrainerCheckInsEndpoint(IApplicationDbContext db)
         Roles(AppRoles.Trainer, AppRoles.Nutritionist);
         Summary(s =>
         {
-            s.Summary = "List check-ins for a week (trainer)";
+            s.Summary = "List check-ins for the trainer";
             s.Description =
-                "Returns responded and pending (not dismissed) check-ins for the authenticated " +
-                "trainer's clients for the given week. Pass weekStartDate as YYYY-MM-DD (must be a Monday).";
+                "weekStartDate is optional (YYYY-MM-DD, must be a Monday). When omitted, " +
+                "returns the active set for the authenticated trainer's clients — check-ins " +
+                "that are not dismissed by the client and not yet reviewed by the trainer, " +
+                "across all weeks. When provided, preserves the exact-week behavior (responded " +
+                "and pending, not dismissed, for that specific week) for a future history view.";
         });
     }
 
@@ -39,12 +42,19 @@ public class GetTrainerCheckInsEndpoint(IApplicationDbContext db)
 
         var professionalUserId = Guid.Parse(userId);
 
-        var checkIns = await db.WeeklyCheckIns
+        var query = db.WeeklyCheckIns
             .AsNoTracking()
-            .Where(c =>
-                c.ProfessionalUserId == professionalUserId &&
-                c.WeekStartDate == req.WeekStartDate &&
+            .Where(c => c.ProfessionalUserId == professionalUserId);
+
+        query = req.WeekStartDate.HasValue
+            ? query.Where(c =>
+                c.WeekStartDate == req.WeekStartDate.Value &&
                 c.DismissedByClientAt == null)
+            : query.Where(c =>
+                c.DismissedByClientAt == null &&
+                c.ReviewedByTrainerAt == null);
+
+        var checkIns = await query
             .Include(c => c.ClientUser)
             .OrderBy(c => c.ClientUser.LastName)
                 .ThenBy(c => c.ClientUser.FirstName)
