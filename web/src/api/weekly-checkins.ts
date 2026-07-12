@@ -247,12 +247,19 @@ export interface GetTrainerCheckInsResponse {
   checkIns: TrainerCheckInDto[];
 }
 
-/** GET /trainer/weekly-check-ins?weekStartDate=YYYY-MM-DD */
+/**
+ * GET /trainer/weekly-check-ins?weekStartDate=YYYY-MM-DD
+ *
+ * @param weekStartDate - Optional. Omit to get the trainer's active check-ins
+ *   (not dismissed by the client, not yet reviewed by the trainer) across all
+ *   weeks — pending, responded, and expired. Pass an ISO Monday date to
+ *   preserve the exact-week filter (kept for a future history view).
+ */
 export async function getTrainerCheckIns(
-  weekStartDate: string,
+  weekStartDate?: string,
 ): Promise<GetTrainerCheckInsResponse> {
   const { data } = await api.get<GetTrainerCheckInsResponse>('/trainer/weekly-check-ins', {
-    params: { weekStartDate },
+    params: weekStartDate ? { weekStartDate } : {},
   });
   return data;
 }
