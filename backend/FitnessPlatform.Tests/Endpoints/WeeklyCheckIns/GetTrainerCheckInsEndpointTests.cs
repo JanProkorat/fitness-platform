@@ -36,6 +36,17 @@ public class GetTrainerCheckInsEndpointTests(FitnessApiFactory factory)
 
     private async Task<Guid> SetupClientUserIdAsync()
     {
+        var (userId, _) = await SetupClientAsync();
+        return userId;
+    }
+
+    /// <summary>
+    /// Registers a client user and returns both their ApplicationUser.Id and their
+    /// ClientProfile.PublicId (created automatically by registration) — used to assert
+    /// the check-in DTO exposes the PublicId, not the user id.
+    /// </summary>
+    private async Task<(Guid ClientUserId, Guid ClientPublicId)> SetupClientAsync()
+    {
         var http = factory.CreateClient();
         var email = UniqueEmail("client");
         await TestHelpers.RegisterAsync(http, email, "TestPass1!", "C", "Client", "Client");
@@ -44,7 +55,9 @@ public class GetTrainerCheckInsEndpointTests(FitnessApiFactory factory)
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var user = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
             .FirstAsync(db.Users, u => u.Email == email, TestContext.Current.CancellationToken);
-        return user.Id;
+        var profile = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
+            .FirstAsync(db.ClientProfiles, cp => cp.UserId == user.Id, TestContext.Current.CancellationToken);
+        return (user.Id, profile.PublicId);
     }
 
     private async Task InsertCheckInAsync(
@@ -135,6 +148,31 @@ public class GetTrainerCheckInsEndpointTests(FitnessApiFactory factory)
             cancellationToken: TestContext.Current.CancellationToken);
 
         body!.CheckIns.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetList_ReturnsClientPublicId_NotUserId()
+    {
+        var (http, trainerId) = await SetupTrainerAsync();
+        var (clientUserId, clientPublicId) = await SetupClientAsync();
+
+        var weekDate = NextMonday().AddDays(56); // unique future week to avoid collisions
+        await InsertCheckInAsync(clientUserId, trainerId, weekDate);
+
+        var response = await http.GetAsync(
+            $"/trainer/weekly-check-ins?weekStartDate={weekDate:yyyy-MM-dd}",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<CheckInsWrapper>(
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        body!.CheckIns.Should().ContainSingle();
+        var dto = body.CheckIns[0];
+        dto.ClientUserId.Should().Be(clientUserId);
+        dto.ClientPublicId.Should().Be(clientPublicId);
+        dto.ClientPublicId.Should().NotBe(clientUserId);
+        dto.ClientPublicId.Should().NotBe(Guid.Empty);
     }
 
     // ── Active-set (week-agnostic, #751) ─────────────────────────────────────
@@ -239,5 +277,11 @@ public class GetTrainerCheckInsEndpointTests(FitnessApiFactory factory)
 
     // ── Local DTOs ────────────────────────────────────────────────────────────
     private record CheckInsWrapper(List<CheckInDto> CheckIns);
-    private record CheckInDto(Guid Id, Guid ClientUserId, string ClientName, string Profession, DateOnly WeekStartDate);
+    private record CheckInDto(
+        Guid Id,
+        Guid ClientUserId,
+        Guid ClientPublicId,
+        string ClientName,
+        string Profession,
+        DateOnly WeekStartDate);
 }

@@ -21,6 +21,13 @@ public class TrainerCheckInDto
     /// <summary>Client's ApplicationUser.Id.</summary>
     public Guid ClientUserId { get; set; }
 
+    /// <summary>
+    /// Client's ClientProfile.PublicId — the id every client-detail link in the app uses
+    /// (e.g. /clients/{clientPublicId}). Defaults to Guid.Empty if the client has no
+    /// ClientProfile row (should not happen in practice, but the join is null-safe).
+    /// </summary>
+    public Guid ClientPublicId { get; set; }
+
     /// <summary>Client's display name.</summary>
     public string ClientName { get; set; } = string.Empty;
 

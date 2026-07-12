@@ -62,6 +62,13 @@ public class GetTrainerCheckInsEndpoint(IApplicationDbContext db)
             {
                 Id = c.Id,
                 ClientUserId = c.ClientUserId,
+                // Null-safe correlated subquery: FirstOrDefault() on a Guid sequence
+                // yields Guid.Empty if the client has no ClientProfile row, rather than
+                // throwing — avoids an inner join that could silently drop the check-in.
+                ClientPublicId = db.ClientProfiles
+                    .Where(cp => cp.UserId == c.ClientUserId)
+                    .Select(cp => cp.PublicId)
+                    .FirstOrDefault(),
                 ClientName = c.ClientUser.FirstName + " " + c.ClientUser.LastName,
                 Profession = c.Profession.ToString(),
                 WeekStartDate = c.WeekStartDate,
