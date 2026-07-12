@@ -1739,7 +1739,7 @@
       "cardTitle": "Weekly check-ins · this week",
       "noResponseCount_one": "{{count}} client hasn't responded",
       "noResponseCount_other": "{{count}} clients haven't responded",
-      "openPlan": "Open plan",
+      "openCheckIn": "Open check-in",
       "noRespondedYet": "No responses yet this week",
       "expiredDueAt": "Due by: {{date}}"
     },

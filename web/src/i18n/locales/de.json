@@ -1738,7 +1738,7 @@
       "cardTitle": "Wöchentliche Check-ins · diese Woche",
       "noResponseCount_one": "{{count}} Klient hat noch nicht geantwortet",
       "noResponseCount_other": "{{count}} Klienten haben noch nicht geantwortet",
-      "openPlan": "Plan öffnen",
+      "openCheckIn": "Check-in öffnen",
       "noRespondedYet": "Noch keine Antworten diese Woche",
       "expiredDueAt": "Frist: {{date}}"
     },

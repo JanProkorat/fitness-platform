@@ -14,17 +14,13 @@ function nameInitials(name: string): string {
 }
 
 /**
- * Maps a profession value to a route segment for the plan editors.
- * "Training" → "/training-plans/{clientId}"
- * "Nutrition" → "/clients/{clientId}/nutrition" (navigate to the client page which has plan links)
- *
- * Judgment call: since the spec says "Open plan →" button should route to the matching
- * plan editor, and we don't have a direct clientId-to-planId resolver here, we navigate
- * to the client detail page which has links to both editors.  A future iteration could
- * store a planId on the TrainerCheckInDto and navigate directly.
+ * Builds the client-detail route for the card's CTA, landing the trainer
+ * directly on the Checkiny tab. Uses clientPublicId (ClientProfile.PublicId)
+ * — the id every client-detail link in the app resolves against — not the
+ * clientUserId, which 404s against GET /trainer/clients/{id} (#753).
  */
-function buildPlanRoute(checkIn: TrainerCheckInDto): string {
-  return `/clients/${checkIn.clientUserId}`;
+function buildCheckInRoute(checkIn: TrainerCheckInDto): string {
+  return `/clients/${checkIn.clientPublicId}?tab=checkiny`;
 }
 
 /* ─────────────────────── Individual row ─────────────────────── */
@@ -101,14 +97,14 @@ function CheckInRow({ checkIn, language }: CheckInRowProps) {
         )}
       </div>
 
-      {/* Open plan action */}
+      {/* Open check-in action */}
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => navigate(buildPlanRoute(checkIn))}
+        onClick={() => navigate(buildCheckInRoute(checkIn))}
         className="shrink-0"
       >
-        {t('weeklyCheckIn.today.openPlan')} →
+        {t('weeklyCheckIn.today.openCheckIn')} →
       </Button>
     </div>
   );
