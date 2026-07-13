@@ -250,7 +250,7 @@ export default function ClientDetailPage() {
                   data to evaluate (see verdictHasSignal above). */}
               {verdictLoading && <VerdictHeroCardSkeleton />}
               {verdictError && <VerdictHeroCardError />}
-              {verdict && verdictHasSignal && (
+              {verdict && verdictHasSignal && !verdictError && (
                 <VerdictHeroCard verdict={verdict} />
               )}
 
