@@ -1,6 +1,7 @@
 import { useEffect, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '@/lib/queryClient';
 import { useAuthStore } from '@/stores/auth';
 import ProtectedRoute from '@/routes/ProtectedRoute';
 import RoleGuard from '@/routes/RoleGuard';
@@ -36,21 +37,6 @@ function DefaultRedirect() {
   const isClientOnly = user?.roles.includes('Client') && !user.roles.some((r) => ['Trainer', 'Nutritionist', 'Admin'].includes(r));
   return <Navigate to={isClientOnly ? '/download-app' : '/dashboard'} replace />;
 }
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 30_000,
-      gcTime: 5 * 60_000,
-      retry: 1,
-    },
-  },
-});
-
-// Refetch all queries when the app language changes so localized data (e.g. food names) updates
-window.addEventListener('app:languageChanged', () => {
-  queryClient.invalidateQueries();
-});
 
 export default function App() {
   const restoreSession = useAuthStore((s) => s.restoreSession);
