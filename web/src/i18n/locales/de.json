@@ -5,6 +5,7 @@
     "saving": "Speichern...",
     "create": "Erstellen",
     "publish": "Veröffentlichen",
+    "publishNoStartDate": "Legen Sie das Startdatum des Plans fest, bevor Sie veröffentlichen.",
     "cancel": "Abbrechen",
     "close": "Schließen",
     "optional": "optional",

@@ -160,6 +160,20 @@ export default function ClientDetailPage() {
   const currentWeight = client?.latestMeasurement?.weightKg ?? startWeight;
   const targetWeight = ob?.targetWeightKg ?? null;
 
+  // The backend defaults to ClientVerdict.OnTrack when there is nothing to
+  // evaluate (no active plan, no measurements, no logged activity) — see
+  // ClientVerdictService.ComputeVerdict's offSignals === 0 fallback. That
+  // default is meaningless for a brand-new client, so only render the
+  // verdict hero once the response actually carries a real signal.
+  const verdictHasSignal =
+    verdict != null &&
+    (verdict.compliancePercent != null ||
+      verdict.weightDeltaToGoal != null ||
+      verdict.trainingFrequencyActual != null ||
+      verdict.trainingFrequencyPrescribed != null ||
+      verdict.lastActiveAt != null ||
+      (verdict.prCountThisMonth ?? 0) > 0);
+
   // ── Loading / error states ───────────────────────────────────────────────────
 
   if (clientLoading) {
@@ -232,10 +246,11 @@ export default function ClientDetailPage() {
               aria-labelledby="cl-tab-prehled"
               className="tab-content-transition"
             >
-              {/* Verdict hero card */}
+              {/* Verdict hero card — hidden entirely when there is no plan/progress
+                  data to evaluate (see verdictHasSignal above). */}
               {verdictLoading && <VerdictHeroCardSkeleton />}
               {verdictError && <VerdictHeroCardError />}
-              {verdict && !verdictError && (
+              {verdict && verdictHasSignal && !verdictError && (
                 <VerdictHeroCard verdict={verdict} />
               )}
 
