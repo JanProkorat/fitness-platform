@@ -18,9 +18,11 @@ import { ProProfileView } from '@/components/trainers/ProProfileView'
 import { useAuthStore } from '@/stores/auth'
 import { useCollaboration } from '@/hooks/useCollaboration'
 import { SendInviteSheet, type InviteTarget } from '@/components/trainers/SendInviteSheet'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getProfessionalProfile } from '@/api/professionals'
+import { startConversation } from '@/api/messages'
 import { href } from '@/lib/navigation'
+import { Toast } from '@/lib/toast'
 
 export default function TrainerProfileScreen() {
   const { trainerId } = useLocalSearchParams<{ trainerId: string }>()
@@ -35,6 +37,27 @@ export default function TrainerProfileScreen() {
   const hasCoach = useAuthStore((s) => s.hasCoach)
   const trainer = useAuthStore((s) => s.trainer)
   const coach = useAuthStore((s) => s.coach)
+  const queryClient = useQueryClient()
+
+  // #773 — "Zpráva" must open a chat composer, not the Messages list, even
+  // when no conversation exists yet with this coach. startConversation is a
+  // get-or-create endpoint (POST /conversations), so it's safe to call every
+  // time — it returns the existing thread if one is already there.
+  const startConversationMutation = useMutation({
+    mutationFn: (participantId: string) => startConversation(participantId),
+    onSuccess: (conversation) => {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] })
+      router.push(href(`/(client)/messages/${conversation.id ?? ''}`))
+    },
+    onError: () => {
+      Toast.show(t('collab.startConversationError'))
+    },
+  })
+
+  const handleMessagePress = (participantId: string) => {
+    if (!participantId || startConversationMutation.isPending) return
+    startConversationMutation.mutate(participantId)
+  }
 
   // Profile query — same key as ProProfileView so cache is shared
   const query = useQuery({
@@ -132,7 +155,7 @@ export default function TrainerProfileScreen() {
             professionalPublicId={activeCollaborator.id}
             displayName={activeCollaborator.name}
             activeSince={activeCollaborator.since}
-            onMessagePress={() => router.push(href('/(client)/messages'))}
+            onMessagePress={() => handleMessagePress(activeCollaborator.id)}
             onEndCollabPress={handleEndCollab}
           />
         ) : (
@@ -140,7 +163,7 @@ export default function TrainerProfileScreen() {
             professionalPublicId={trainerId ?? ''}
             displayName={fullName}
             activeSince=""
-            onMessagePress={() => router.push(href('/(client)/messages'))}
+            onMessagePress={() => handleMessagePress(trainerId ?? '')}
             onEndCollabPress={() => {}}
             showActionBar={false}
           />

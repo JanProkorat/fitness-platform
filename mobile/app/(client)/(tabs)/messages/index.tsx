@@ -71,12 +71,12 @@ export default function MessagesScreen() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={[styles.container, { backgroundColor: colors.bg, paddingTop: insets.top }]}>
-        {/* Header */}
+        {/* Header — #774: the "new message" compose button was removed;
+            #773 made the coach-profile "Zpráva" flow the sole entry point
+            for starting a new conversation. Existing conversations open
+            directly from the list below. */}
         <View style={styles.header}>
           <Text style={[Type.largeTitle, { color: colors.label }]}>{t('messages.title')}</Text>
-          <Pressable style={[styles.composeBtn, { backgroundColor: colors.fill }]}>
-            <Ionicons name="create-outline" size={18} color={colors.gold} />
-          </Pressable>
         </View>
 
         {/* Search bar */}
@@ -171,17 +171,9 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: 8,
     paddingBottom: 4,
-  },
-  composeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   searchWrap: {
     paddingHorizontal: 16,
