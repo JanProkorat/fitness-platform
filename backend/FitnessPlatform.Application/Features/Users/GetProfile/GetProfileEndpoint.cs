@@ -63,14 +63,31 @@ public class GetProfileEndpoint(UserManager<ApplicationUser> userManager, IAppli
 
             if (clientProfile is not null)
             {
+                // Derive roles from the CanView* flags, NOT the single ProfessionalRole
+                // enum column (#771). A professional can hold BOTH Trainer and
+                // Nutritionist identity roles simultaneously; the ClientProfessionalLink
+                // row is one-per-(client, professional) (unique DB constraint), so
+                // ProfessionalRole alone can only ever report one of the two roles even
+                // when the professional is entitled to both. CanViewTrainingPlans /
+                // CanViewNutritionPlans are independently granted per role held (see
+                // AcceptClientInviteEndpoint / AcceptClientRequestEndpoint /
+                // AcceptInvitationEndpoint / CreateCollaborationEndpoint), so they are the
+                // correct source for "which tabs should this client unlock".
                 var activeLinks = await dbContext.ClientProfessionalLinks
                     .Where(l => l.ClientProfileId == clientProfile.Id && l.IsActive)
-                    .Select(l => l.ProfessionalRole)
-                    .Distinct()
+                    .Select(l => new { l.CanViewTrainingPlans, l.CanViewNutritionPlans })
                     .ToListAsync(ct);
 
                 hasActiveLink = activeLinks.Count > 0;
-                linkedRoles = activeLinks.Select(r => r.ToString()).ToList();
+
+                var roleSet = new HashSet<string>();
+                foreach (var link in activeLinks)
+                {
+                    if (link.CanViewTrainingPlans) roleSet.Add(UserRole.Trainer.ToString());
+                    if (link.CanViewNutritionPlans) roleSet.Add(UserRole.Nutritionist.ToString());
+                }
+
+                linkedRoles = roleSet.ToList();
             }
 
             hasPendingQuestionnaire = await dbContext.QuestionnaireResponses

@@ -77,10 +77,19 @@ public class AcceptClientRequestEndpoint(
             return;
         }
 
-        // Determine professional role from identity roles
-        var professionalRole = User.IsInRole(AppRoles.Nutritionist)
-            ? UserRole.Nutritionist
-            : UserRole.Trainer;
+        // Determine plan-view capabilities from ALL of the caller's identity roles —
+        // NOT a single tie-broken role. A professional can legitimately hold both
+        // Trainer and Nutritionist roles simultaneously (#776); resolving to a single
+        // mutually-exclusive role here meant CanViewTrainingPlans was force-reset to
+        // false (and vice versa) every time such a dual-role professional accepted
+        // ANY client request, even one that already had the other flag granted.
+        var isTrainer = User.IsInRole(AppRoles.Trainer);
+        var isNutritionist = User.IsInRole(AppRoles.Nutritionist);
+
+        // ProfessionalRole remains a single display label (used elsewhere for UI text) —
+        // prefer Nutritionist when both are held, matching prior behavior; the two
+        // CanView* flags below are what actually gate plan access and are independent.
+        var professionalRole = isNutritionist ? UserRole.Nutritionist : UserRole.Trainer;
 
         // Update request status
         clientRequest.Status = ClientRequestStatus.Accepted;
@@ -97,8 +106,8 @@ public class AcceptClientRequestEndpoint(
         {
             link.IsActive = true;
             link.ProfessionalRole = professionalRole;
-            link.CanViewNutritionPlans = professionalRole == UserRole.Nutritionist;
-            link.CanViewTrainingPlans = professionalRole == UserRole.Trainer;
+            link.CanViewNutritionPlans = isNutritionist;
+            link.CanViewTrainingPlans = isTrainer;
         }
         else
         {
@@ -108,8 +117,8 @@ public class AcceptClientRequestEndpoint(
                 ProfessionalProfileId = professionalProfile.Id,
                 ProfessionalRole = professionalRole,
                 IsActive = true,
-                CanViewNutritionPlans = professionalRole == UserRole.Nutritionist,
-                CanViewTrainingPlans = professionalRole == UserRole.Trainer
+                CanViewNutritionPlans = isNutritionist,
+                CanViewTrainingPlans = isTrainer
             };
             db.ClientProfessionalLinks.Add(link);
         }
