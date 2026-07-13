@@ -257,6 +257,11 @@
     "waitingChipTraining": "Training wird erstellt",
     "waitingChipNutrition": "Ernährungsplan wird erstellt",
     "inviteAccepted": "Einladung angenommen ✓",
+    "inviteCard": {
+      "subtitle": "{{name}} lädt dich zur Zusammenarbeit ein",
+      "accept": "Einladung annehmen",
+      "decline": "Ablehnen"
+    },
     "questionnaireTitle": "Neuer Fragebogen zum Ausfüllen",
     "questionnaireDesc": "Dein Trainer hat dir einen Fragebogen gesendet. Fülle ihn aus, um deinen Plan einzurichten.",
     "questionnaireFill": "Ausfüllen",

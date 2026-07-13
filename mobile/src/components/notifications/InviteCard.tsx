@@ -1,5 +1,6 @@
 import React, { useRef, useCallback, useEffect } from 'react'
 import { View, Text, StyleSheet, Pressable, Animated } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
 import { goldAlpha } from '@/constants/colors'
@@ -16,6 +17,7 @@ interface InviteCardProps {
 
 export function InviteCard({ invite, onAccept, onDecline }: InviteCardProps) {
   const colors = useTheme()
+  const { t } = useTranslation()
   const opacity = useRef(new Animated.Value(0)).current
   const translateY = useRef(new Animated.Value(-40)).current
   const maxHeight = useRef(new Animated.Value(300)).current
@@ -81,7 +83,7 @@ export function InviteCard({ invite, onAccept, onDecline }: InviteCardProps) {
 
         {/* Invite text — personal message now lives in the chat */}
         <Text style={[Type.subheadline, { color: colors.label2, marginTop: 10 }]}>
-          {invite.trainerName} invites you to collaborate
+          {t('today.inviteCard.subtitle', { name: invite.trainerName })}
         </Text>
 
         {/* Actions */}
@@ -90,13 +92,13 @@ export function InviteCard({ invite, onAccept, onDecline }: InviteCardProps) {
             style={[styles.btn, { backgroundColor: colors.gold, flex: 1 }]}
             onPress={() => animateOut(onAccept)}
           >
-            <Text style={[styles.btnTextPrimary, { color: colors.onAccent }]}>Accept invitation</Text>
+            <Text style={[styles.btnTextPrimary, { color: colors.onAccent }]}>{t('today.inviteCard.accept')}</Text>
           </Pressable>
           <Pressable
             style={[styles.btn, { backgroundColor: colors.fill, flex: 1 }]}
             onPress={() => animateOut(onDecline)}
           >
-            <Text style={[styles.btnTextSecondary, { color: colors.label2 }]}>Decline</Text>
+            <Text style={[styles.btnTextSecondary, { color: colors.label2 }]}>{t('today.inviteCard.decline')}</Text>
           </Pressable>
         </View>
       </View>

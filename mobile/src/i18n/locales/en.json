@@ -257,6 +257,11 @@
     "waitingChipTraining": "Training in progress",
     "waitingChipNutrition": "Meal plan in progress",
     "inviteAccepted": "Invitation accepted ✓",
+    "inviteCard": {
+      "subtitle": "{{name}} invites you to collaborate",
+      "accept": "Accept invitation",
+      "decline": "Decline"
+    },
     "questionnaireTitle": "New questionnaire to fill",
     "questionnaireDesc": "Your trainer sent you a questionnaire. Fill it in to set up your plan.",
     "questionnaireFill": "Fill in",

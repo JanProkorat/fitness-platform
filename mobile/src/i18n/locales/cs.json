@@ -257,6 +257,11 @@
     "waitingChipTraining": "Trénink se připravuje",
     "waitingChipNutrition": "Jídelníček se připravuje",
     "inviteAccepted": "Pozvánka přijata ✓",
+    "inviteCard": {
+      "subtitle": "{{name}} vás zve ke spolupráci",
+      "accept": "Přijmout pozvánku",
+      "decline": "Odmítnout"
+    },
     "questionnaireTitle": "Nový dotazník k vyplnění",
     "questionnaireDesc": "Váš trenér vám odeslal dotazník. Vyplňte ho pro nastavení vašeho plánu.",
     "questionnaireFill": "Vyplnit",
