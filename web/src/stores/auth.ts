@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { create } from 'zustand';
 import { executeRefresh } from '@/lib/refresh';
+import { queryClient } from '@/lib/queryClient';
 
 interface User {
   publicId: string;
@@ -43,11 +44,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setUser: (user) => set({ user, isAuthenticated: true }),
 
   login: (user, accessToken, refreshToken) => {
+    // Wipe any query cache left over from a previous session in this tab
+    // before the new session populates it. Login is a client-side navigation
+    // (no page reload), so without this a prior coach's cached data (client
+    // list, dashboards, messages) would be served to the coach logging in now.
+    // See issue #769.
+    queryClient.clear();
     localStorage.setItem('refreshToken', refreshToken);
     set({ user, accessToken, refreshToken, isAuthenticated: true });
   },
 
   logout: () => {
+    // Drop all cached queries so the next user in this tab never sees the
+    // previous session's data. See issue #769.
+    queryClient.clear();
     localStorage.removeItem('refreshToken');
     set({
       user: null,
