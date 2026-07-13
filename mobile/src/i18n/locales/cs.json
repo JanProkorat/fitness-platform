@@ -1274,7 +1274,7 @@
       "errorSubmit": "Odeslání se nezdařilo. Zkus to znovu.",
       "errorLoadRequest": "Nepodařilo se načíst foto-deník.",
       "retryLoad": "Zkusit znovu",
-      "noPlanError": "Tento deník není propojen s plánem, nahrávání fotek zatím není možné. Kontaktuj svého koučea."
+      "noPlanError": "Tento deník není propojen s plánem, nahrávání fotek zatím není možné. Kontaktuj svého kouče."
     },
     "workflow": {
       "title": "Foto-deník",
