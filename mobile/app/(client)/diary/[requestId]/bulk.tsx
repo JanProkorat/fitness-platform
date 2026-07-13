@@ -152,6 +152,23 @@ export function DiaryBulkScreen() {
   })
   const planId = requestQuery.data?.planId
 
+  // Root cause (#782): `planId` is `undefined` in three situations that used
+  // to be indistinguishable in the UI — (1) the request query is still
+  // loading, (2) `requestId` never arrived as a route param so the query is
+  // permanently `enabled: false` and never settles at all, and (3) the query
+  // settled but the request has no plan attached (a valid backend state —
+  // CreateRequestRequest.PlanId is optional) or the request could not be
+  // found. All three used to render the same permanently-disabled
+  // ActivityIndicator on the "Add photos" card with no way out. Split them:
+  // `isPending` covers the transient case (bounded by the default single
+  // retry in queryClient.ts); a missing `requestId` or a hard fetch failure
+  // are now surfaced with a retry button; `requestSettled && !planId` covers
+  // the terminal "no plan to upload against" case (now an explicit message
+  // instead of an infinite spinner).
+  const requestFailed = requestQuery.isError || !requestId
+  const requestSettled = !requestQuery.isPending && !requestQuery.isError
+  const missingPlan = requestSettled && !!requestId && !planId
+
   // ── Photo list managed by a local reducer ────────────────────────────────────
   const [photos, dispatch] = useReducer(photosReducer, [])
   const [picking, setPicking] = useState(false)
@@ -448,37 +465,87 @@ export function DiaryBulkScreen() {
 
       {/* ── Pinned add-photos card (always visible) ─────────────────────────── */}
       <View style={styles.pinnedAddArea}>
-        <Pressable
-          onPress={handlePick}
-          disabled={picking || !planId}
-          accessibilityRole="button"
-          accessibilityState={{ disabled: picking || !planId }}
-          style={({ pressed }) => [
-            styles.addCard,
-            {
-              backgroundColor: colors.bg2,
-              borderColor: colors.sep,
-              opacity: picking || !planId ? 0.5 : pressed ? 0.7 : 1,
-            },
-          ]}
-        >
-          {picking || !planId ? (
-            <ActivityIndicator color={colors.gold} />
-          ) : (
-            <>
-              <Text style={[Type.caption1, styles.addCardHintTop, { color: colors.label3 }]}>
-                {t('diary.bulk.hint')}
-              </Text>
-              <Text style={styles.addCardIcon}>📷</Text>
-              <Text style={[Type.callout, styles.addCardTitle, { color: colors.label }]}>
-                {t('diary.bulk.addPhotos')}
-              </Text>
-              <Text style={[Type.caption1, styles.addCardHint, { color: colors.label2 }]}>
-                {t('diary.bulk.addPhotosHint')}
-              </Text>
-            </>
-          )}
-        </Pressable>
+        {requestFailed ? (
+          // Hard fetch failure (network / server), or `requestId` never
+          // arrived as a route param — surfaced with a retry instead of
+          // leaving the card spinning forever (#782). Refetching a query
+          // with no `requestId` is a no-op, so the retry action is only
+          // offered when there's an actual query to retry.
+          <View
+            style={[
+              styles.addCard,
+              styles.stateCard,
+              { backgroundColor: colors.bg2, borderColor: colors.red },
+            ]}
+          >
+            <Text style={[Type.callout, styles.addCardTitle, styles.stateText, { color: colors.label }]}>
+              {t('diary.bulk.errorLoadRequest')}
+            </Text>
+            {requestId ? (
+              <Pressable
+                onPress={() => requestQuery.refetch()}
+                accessibilityRole="button"
+                style={({ pressed }) => [
+                  styles.retryLoadBtn,
+                  { backgroundColor: colors.gold, opacity: pressed ? 0.7 : 1 },
+                ]}
+              >
+                <Text style={[Type.subheadline, styles.retryLoadLabel, { color: colors.onAccent }]}>
+                  {t('diary.bulk.retryLoad')}
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : missingPlan ? (
+          // Query settled successfully but the request has no plan attached
+          // (a valid backend state — CreateRequestRequest.PlanId is
+          // optional) or the request could not be found. Upload is
+          // structurally impossible without a planId, so say so explicitly
+          // instead of disabling the button forever with no explanation (#782).
+          <View
+            style={[
+              styles.addCard,
+              styles.stateCard,
+              { backgroundColor: colors.bg2, borderColor: colors.sep },
+            ]}
+          >
+            <Text style={[Type.callout, styles.addCardTitle, styles.stateText, { color: colors.label }]}>
+              {t('diary.bulk.noPlanError')}
+            </Text>
+          </View>
+        ) : (
+          <Pressable
+            onPress={handlePick}
+            disabled={picking || !planId}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: picking || !planId }}
+            style={({ pressed }) => [
+              styles.addCard,
+              {
+                backgroundColor: colors.bg2,
+                borderColor: colors.sep,
+                opacity: picking || !planId ? 0.5 : pressed ? 0.7 : 1,
+              },
+            ]}
+          >
+            {picking || !planId ? (
+              <ActivityIndicator color={colors.gold} />
+            ) : (
+              <>
+                <Text style={[Type.caption1, styles.addCardHintTop, { color: colors.label3 }]}>
+                  {t('diary.bulk.hint')}
+                </Text>
+                <Text style={styles.addCardIcon}>📷</Text>
+                <Text style={[Type.callout, styles.addCardTitle, { color: colors.label }]}>
+                  {t('diary.bulk.addPhotos')}
+                </Text>
+                <Text style={[Type.caption1, styles.addCardHint, { color: colors.label2 }]}>
+                  {t('diary.bulk.addPhotosHint')}
+                </Text>
+              </>
+            )}
+          </Pressable>
+        )}
       </View>
 
       {/* ── Scrollable photo grid only ──────────────────────────────────────── */}
@@ -737,6 +804,23 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 4,
     lineHeight: 18,
+  },
+
+  // Error / no-plan state card (replaces the infinite spinner, #782)
+  stateCard: {
+    borderStyle: 'solid',
+    gap: 10,
+  },
+  stateText: {
+    textAlign: 'center',
+  },
+  retryLoadBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: Radius.md,
+  },
+  retryLoadLabel: {
+    fontWeight: '600',
   },
 
   // 2-column grid

@@ -1271,7 +1271,10 @@
       "successToast": "Fotky odeslány!",
 
       "errorUpload": "Nahrání se nezdařilo. Zkus to znovu.",
-      "errorSubmit": "Odeslání se nezdařilo. Zkus to znovu."
+      "errorSubmit": "Odeslání se nezdařilo. Zkus to znovu.",
+      "errorLoadRequest": "Nepodařilo se načíst foto-deník.",
+      "retryLoad": "Zkusit znovu",
+      "noPlanError": "Tento deník není propojen s plánem, nahrávání fotek zatím není možné. Kontaktuj svého koučea."
     },
     "workflow": {
       "title": "Foto-deník",
