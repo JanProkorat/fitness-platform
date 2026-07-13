@@ -1249,7 +1249,10 @@
       "submitCta": "Senden",
       "successToast": "Fotos gesendet!",
       "errorUpload": "Hochladen fehlgeschlagen. Bitte erneut versuchen.",
-      "errorSubmit": "Senden fehlgeschlagen. Bitte erneut versuchen."
+      "errorSubmit": "Senden fehlgeschlagen. Bitte erneut versuchen.",
+      "errorLoadRequest": "Das Foto-Tagebuch konnte nicht geladen werden.",
+      "retryLoad": "Erneut versuchen",
+      "noPlanError": "Dieses Tagebuch ist mit keinem Plan verknüpft, daher ist das Hochladen von Fotos noch nicht möglich. Wende dich an deinen Coach."
     },
     "workflow": {
       "title": "Foto-Tagebuch",

@@ -1252,7 +1252,10 @@
       "submitCta": "Send",
       "successToast": "Photos sent!",
       "errorUpload": "Upload failed. Please try again.",
-      "errorSubmit": "Submission failed. Please try again."
+      "errorSubmit": "Submission failed. Please try again.",
+      "errorLoadRequest": "Couldn't load the photo diary.",
+      "retryLoad": "Retry",
+      "noPlanError": "This diary isn't linked to a plan, so photo upload isn't available yet. Contact your coach."
     },
     "workflow": {
       "title": "Photo Diary",
