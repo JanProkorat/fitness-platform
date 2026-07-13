@@ -5,6 +5,7 @@
     "saving": "Saving...",
     "create": "Create",
     "publish": "Publish",
+    "publishNoStartDate": "Set the plan's start date before publishing.",
     "cancel": "Cancel",
     "close": "Close",
     "optional": "optional",

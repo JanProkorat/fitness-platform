@@ -345,6 +345,9 @@ export default function NutritionPlanPage() {
   // ── Derived data ──
   const currentWeek = plan?.weeks.find((w) => w.weekNumber === selectedWeek) ?? plan?.weeks[0];
   const isWeekPublished = currentWeek?.status === 'Published';
+  // A plan with no start date has no anchor to schedule days/weeks against —
+  // publishing without one leaves the client-facing plan dateless.
+  const hasStartDate = Boolean(plan?.startDate);
   const currentDay = currentWeek?.days.find((d) => d.dayOfWeek === selectedDay);
   const meals = useMemo(
     () => (currentDay?.meals ?? []).slice().sort((a, b) => a.order - b.order),
@@ -881,7 +884,8 @@ export default function NutritionPlanPage() {
               <Button
                 variant="brand"
                 onClick={() => setPublishDialogOpen(true)}
-                disabled={isWeekPublished || isDirty || plan?.status === 'Completed'}
+                disabled={isWeekPublished || isDirty || plan?.status === 'Completed' || !hasStartDate}
+                title={!hasStartDate && !isWeekPublished ? t('common.publishNoStartDate') : undefined}
                 className="flex w-full justify-center"
               >
                 {isWeekPublished ? t('nutrition.published') : t('nutrition.publishWeekButton')}

@@ -5,6 +5,7 @@
     "saving": "Ukládám...",
     "create": "Vytvořit",
     "publish": "Publikovat",
+    "publishNoStartDate": "Před publikováním nastavte datum začátku plánu.",
     "cancel": "Zrušit",
     "close": "Zavřít",
     "optional": "volitelné",

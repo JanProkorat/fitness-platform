@@ -549,6 +549,9 @@ export default function TrainingPlanPage() {
   // ── Derived data ──
   const currentWeek = plan?.weeks.find((w) => w.weekNumber === selectedWeek) ?? plan?.weeks[0];
   const isWeekPublished = currentWeek?.status === 'Published';
+  // A plan with no start date has no anchor to schedule sessions/days against —
+  // publishing without one leaves the client-facing plan dateless.
+  const hasStartDate = Boolean(plan?.startDate);
   // Week is "finished" — read-only historical record — when it's published AND
   // the current date is on or after the start of the next week.
   const isCurrentWeekFinished =
@@ -1640,7 +1643,8 @@ export default function TrainingPlanPage() {
             <Button
               variant="brand"
               onClick={handlePublish}
-              disabled={isWeekPublished || isDirty || plan?.status === 'Completed'}
+              disabled={isWeekPublished || isDirty || plan?.status === 'Completed' || !hasStartDate}
+              title={!hasStartDate && !isWeekPublished ? t('common.publishNoStartDate') : undefined}
               className="flex w-full justify-center"
             >
               {isWeekPublished ? t('training.published') : t('common.publish')}
