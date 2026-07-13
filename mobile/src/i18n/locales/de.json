@@ -659,7 +659,8 @@
     "tabSearch": "Suchen",
     "activeSince": "Aktiv · seit {{date}}",
     "profileLoadError": "Profil konnte nicht geladen werden.",
-    "retry": "Erneut versuchen"
+    "retry": "Erneut versuchen",
+    "startConversationError": "Konversation konnte nicht geöffnet werden. Bitte versuche es erneut."
   },
   "foodDetail": {
     "nutritionValues": "Nährwerte",

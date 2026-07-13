@@ -669,7 +669,8 @@
     "tabSearch": "Hledat",
     "activeSince": "Aktivní · od {{date}}",
     "profileLoadError": "Profil se nepodařilo načíst.",
-    "retry": "Zkusit znovu"
+    "retry": "Zkusit znovu",
+    "startConversationError": "Konverzaci se nepodařilo otevřít. Zkuste to znovu."
   },
   "weeklyCheckIn": {
     "title": "Týdenní check-iny",
