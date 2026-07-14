@@ -391,6 +391,10 @@ export default function ClientTabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
+        // #784 — smooth cross-fade between tabs instead of an instant cut.
+        // 'fade' | 'shift' | 'none' are the only supported presets on
+        // @react-navigation/bottom-tabs v7 (no custom durations/colors).
+        animation: 'fade',
         tabBarStyle: hideTabBar
           ? { display: 'none' }
           : {
