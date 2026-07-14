@@ -465,4 +465,168 @@ public class MarkExerciseCompleteEndpointTests
             Arg.Any<UpdateOptions>(),
             Arg.Any<CancellationToken>());
     }
+
+    /// <summary>
+    /// Regression guard for #780: the Mark* endpoints must resolve the training plan whose
+    /// date window contains the completion's TARGET date (<c>req.CompletedOn</c>), not
+    /// "today" — otherwise a backdated/forward-dated completion resolves whichever plan's
+    /// window contains today (or none), producing a 404 or writing against the wrong plan.
+    /// Here the client has two non-overlapping Active plans: an older one whose window has
+    /// already ended, and the current one whose window contains today. Completing an
+    /// exercise with <c>CompletedOn</c> dated inside the OLDER plan's window must resolve
+    /// that older plan and succeed — even though "today" falls inside the current plan's
+    /// window (and the older plan's session/section/exercise ids don't exist in the
+    /// current plan, so a mis-resolved plan would 404 instead of silently succeeding).
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_BackdatedCompletionInOlderPlanWindow_ResolvesOlderPlan_Returns200()
+    {
+        var today = DateTime.UtcNow.Date;
+        var todayStart = today.AddDays(-(((int)today.DayOfWeek + 6) % 7)); // Monday of current week
+
+        // Older plan: fully-elapsed window, well before today. This is the plan the
+        // backdated completion targets.
+        var olderPlanStart = todayStart.AddDays(-60);
+        var olderSessionId = Guid.NewGuid();
+        var olderSectionId = Guid.NewGuid();
+        var olderExerciseId = Guid.NewGuid();
+        var olderPlan = new TrainingPlan
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = _clientId,
+            TrainerId = Guid.NewGuid(),
+            Name = "Older Plan",
+            Status = TrainingPlanStatus.Active,
+            StartDate = olderPlanStart,
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = olderPlanStart,
+                    Sessions =
+                    [
+                        new TrainingSession
+                        {
+                            SessionId = olderSessionId,
+                            DayOfWeek = 1,
+                            Name = "Older Session",
+                            Order = 1,
+                            Sections =
+                            [
+                                new TrainingSection
+                                {
+                                    SectionId = olderSectionId,
+                                    Order = 0,
+                                    Name = "Hlavní",
+                                    Exercises =
+                                    [
+                                        new SessionExercise
+                                        {
+                                            ExerciseExternalId = olderExerciseId,
+                                            ExerciseName = "Old Ex",
+                                            Order = 1,
+                                            Sets = []
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            Version = 1,
+            DateCreated = olderPlanStart
+        };
+
+        // Current plan: window contains today. Its session/exercise ids are unrelated to
+        // the older plan's, so a mis-resolved-plan bug would 404 rather than accidentally pass.
+        var currentPlan = TrainingCompletionTestHelpers.CreateActivePlan(
+            clientId: _clientId,
+            sessionId: Guid.NewGuid(),
+            exerciseIds: [Guid.NewGuid()],
+            startDate: todayStart);
+
+        // Backdated completion date — squarely inside the older plan's window, well before
+        // "today" (which is inside the current plan's window).
+        var backdatedDate = DateOnly.FromDateTime(olderPlanStart.AddDays(2));
+
+        var mongo = Substitute.For<FitnessPlatform.Application.Infrastructure.Data.MongoDb.IMongoContext>();
+        var planCollection = CreateMultiPlanCollection([olderPlan, currentPlan]);
+        mongo.TrainingPlans.Returns(planCollection);
+
+        var completionCollection = TrainingCompletionTestHelpers.CreateMockCompletionCollection([]);
+        mongo.TrainingCompletions.Returns(completionCollection);
+
+        var db = CreateMockDb();
+
+        var ep = Factory.Create<MarkExerciseCompleteEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+
+        await ep.HandleAsync(
+            new MarkExerciseCompleteRequest
+            {
+                SessionId = olderSessionId,
+                ExerciseExternalId = olderExerciseId,
+                SectionId = olderSectionId,
+                CompletedOn = backdatedDate
+            },
+            TestContext.Current.CancellationToken);
+
+        // Before the fix, the plan was resolved against DateTime.UtcNow (today, inside the
+        // CURRENT plan's window) — olderSessionId would not be found among the current
+        // plan's sessions, producing a 404. After the fix, the plan is resolved against the
+        // request's target date (inside the OLDER plan's window), so the session/section/
+        // exercise lookups succeed.
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        await completionCollection.Received(1).InsertOneAsync(
+            Arg.Is<TrainingCompletion>(c =>
+                c.ClientId == _clientId &&
+                c.SessionId == olderSessionId &&
+                c.Date == backdatedDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc) &&
+                c.CompletedExerciseIds.Contains(olderExerciseId)),
+            Arg.Any<InsertOneOptions>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    /// <summary>
+    /// Builds a mock <see cref="IMongoCollection{TrainingPlan}"/> that returns several plans
+    /// from a single <c>FindAsync</c> call — used to exercise
+    /// <see cref="FitnessPlatform.Application.Domain.Services.PlanWindowResolver"/>
+    /// with >1 Active plan for the client (#780). Local copy of the cursor-building pattern in
+    /// <see cref="TrainingCompletionTestHelpers"/> (which only supports a single plan).
+    /// </summary>
+    private static IMongoCollection<TrainingPlan> CreateMultiPlanCollection(
+        List<TrainingPlan> plans)
+    {
+        var collection = Substitute.For<IMongoCollection<TrainingPlan>>();
+        collection.FindAsync(
+                Arg.Any<FilterDefinition<TrainingPlan>>(),
+                Arg.Any<FindOptions<TrainingPlan, TrainingPlan>>(),
+                Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                var cursor = Substitute.For<IAsyncCursor<TrainingPlan>>();
+                var moved = false;
+                cursor.Current.Returns(plans);
+                cursor.MoveNext(Arg.Any<CancellationToken>()).Returns(_ =>
+                {
+                    if (moved) return false;
+                    moved = true;
+                    return plans.Count > 0;
+                });
+                cursor.MoveNextAsync(Arg.Any<CancellationToken>()).Returns(_ =>
+                {
+                    if (moved) return false;
+                    moved = true;
+                    return plans.Count > 0;
+                });
+                return cursor;
+            });
+        return collection;
+    }
 }
