@@ -8,6 +8,7 @@ import { showApiError, showSuccess } from '@/lib/api-errors';
 import { getClientVerdict } from '@/api/client-verdict';
 import { getPlans, getPlan } from '@/api/plans';
 import { getTrainingPlans } from '@/api/training-plans';
+import { resolveCurrentPlan } from '@/lib/plan-window';
 import { useClientTimeline } from '@/hooks/useClientTimeline';
 import { useRecentActivityAggregates } from '@/components/domain/RecentActivity/useRecentActivityAggregates';
 
@@ -94,15 +95,20 @@ export default function ClientDetailPage() {
     retry: false,
   });
 
+  // A client may hold several sequential, non-overlapping Active plans of
+  // the same type (#780) — fetch the full Active set (not pageSize:1) and
+  // resolve the one whose date window contains today, rather than an
+  // arbitrary plans[0]. See lib/plan-window.ts (mirrors the backend's
+  // PlanWindowResolver).
   const { data: nutritionPlans } = useQuery({
     queryKey: ['plans', { clientId: id, status: 'Active' }],
-    queryFn: () => getPlans({ clientId: id, status: 'Active', pageSize: 1 }),
+    queryFn: () => getPlans({ clientId: id, status: 'Active', pageSize: 50 }),
     enabled: !!id && client?.hasRegistered === true && client?.canViewNutritionPlans === true,
   });
 
   const { data: trainingPlans } = useQuery({
     queryKey: ['training-plans', { clientId: id, status: 'Active' }],
-    queryFn: () => getTrainingPlans({ clientId: id, status: 'Active', pageSize: 1 }),
+    queryFn: () => getTrainingPlans({ clientId: id, status: 'Active', pageSize: 50 }),
     enabled: !!id && client?.hasRegistered === true && client?.canViewTrainingPlans === true,
   });
 
@@ -161,10 +167,10 @@ export default function ClientDetailPage() {
   }, [dob]);
 
   const activeNutritionPlanSummary: PlanSummary | null =
-    nutritionPlans?.plans?.[0] ?? null;
+    resolveCurrentPlan(nutritionPlans?.plans ?? []);
 
   const activeTrainingPlan: TrainingPlanSummary | null =
-    trainingPlans?.plans?.[0] ?? null;
+    resolveCurrentPlan(trainingPlans?.plans ?? []);
 
   // Fetch the active nutrition plan detail to get globalSettings (macros).
   // PlanSummary does not carry globalSettings — the detail does.

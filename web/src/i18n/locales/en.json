@@ -201,7 +201,16 @@
     "closeMenu": "Close menu",
     "collapseClient": "Collapse {{name}}",
     "expandClient": "Expand {{name}}",
-    "goToClient": "Go to {{name}}"
+    "goToClient": "Go to {{name}}",
+    "expandTrainingPlans": "Expand training plans",
+    "collapseTrainingPlans": "Collapse training plans",
+    "expandMealPlans": "Expand meal plans",
+    "collapseMealPlans": "Collapse meal plans",
+    "newTrainingPlanAriaLabel": "New training plan",
+    "newMealPlanAriaLabel": "New meal plan",
+    "planSubmenu": {
+      "empty": "No plans yet"
+    }
   },
   "dashboard": {
     "title": "Dashboard",
@@ -921,6 +930,7 @@
     "START_DATE_LOCKED": "Start date cannot be changed after it has arrived.",
     "START_DATE_REQUIRED": "Set a start date before publishing a week.",
     "WEEK_START_IN_PAST": "This week's start date is in the past and cannot be published.",
+    "PLAN_OVERLAP": "The selected date range overlaps an existing plan for this client.",
     "INVALID_VERIFICATION_TOKEN": "Invalid or expired verification link.",
     "VERIFICATION_TOKEN_EXPIRED": "Verification link has expired. Please request a new one.",
     "VERIFICATION_RESEND_LIMIT_REACHED": "Too many verification emails sent. Please try again later.",
@@ -2077,7 +2087,19 @@
     "loadError": "Error loading meal plan.",
     "createError": "Failed to create plan.",
     "back": "← Back",
-    "defaultPlanName": "Meal plan"
+    "defaultPlanName": "Meal plan",
+    "list": {
+      "title": "Client's meal plans",
+      "newPlan": "New meal plan",
+      "emptyTitle": "No meal plan yet",
+      "emptyDescription": "Create the first one using the button above."
+    },
+    "createDialog": {
+      "title": "New meal plan",
+      "nameLabel": "Plan name",
+      "startDateLabel": "Start date",
+      "weekCountLabel": "Number of weeks"
+    }
   },
   "clientTraining": {
     "loading": "Loading training plan…",
@@ -2086,6 +2108,28 @@
     "back": "← Back",
     "defaultPlanName": "Training plan",
     "roleDenied": "You do not have access to this client's training plans.",
-    "accessDenied": "You do not have permission to view this client's training plans."
+    "accessDenied": "You do not have permission to view this client's training plans.",
+    "list": {
+      "title": "Client's training plans",
+      "newPlan": "New training plan",
+      "emptyTitle": "No training plan yet",
+      "emptyDescription": "Create the first one using the button above."
+    },
+    "createDialog": {
+      "title": "New training plan",
+      "nameLabel": "Plan name",
+      "startDateLabel": "Start date",
+      "weekCountLabel": "Number of weeks"
+    }
+  },
+  "planCreateDialog": {
+    "nameRequired": "Enter a plan name.",
+    "nameTooLong": "Name can be at most 200 characters.",
+    "startDateRequired": "Enter a start date.",
+    "startDateNotMonday": "Start date must be a Monday.",
+    "startDateInPast": "Start date cannot be in the past.",
+    "mondayHint": "Plans can only start on a Monday.",
+    "weekCountRequired": "Enter a number of weeks.",
+    "weekCountRange": "Number of weeks must be between 1 and 52."
   }
 }
